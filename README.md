@@ -22,7 +22,7 @@ Future plans are:
 
 
 
-#PC Requirements:
+# PC Requirements:
 
 1. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with latest driver ...
 
@@ -33,14 +33,14 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 https://vulkan.lunarg.com/
 
 
-#macOS Requirements:
+# macOS Requirements:
 
 1. macOS 10.13.3 Beta (17D34a)
 
 2. XCode Version 9.2 (9C40b)
 
 
-#Unit Tests
+# Unit Tests
 In the moment there are the following unit tests in The Forge:
 
 1. Transformation
@@ -93,12 +93,12 @@ This unit test show cases the rendering of grass with the help of hardware tesse
 
 ![Image of the Hardware Tessellation Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/07_Hardware_Tessellation.PNG)
 
-#Examples
+# Examples
 There is also an example implementation of the Triangle Visibility Buffer as covered in various conference talks.
 
 
 
-
+# Open-Source Libraries
 The Forge utilizes the following Open-Source libraries:
 - Assimp (https://github.com/assimp/assimp)
 - Bullet Physics (https://github.com/bulletphysics)
