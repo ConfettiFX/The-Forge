@@ -57,7 +57,7 @@ This unit test shows a Julia 4D fractal running in a compute shader. In the futu
 
 3. Multi-Threaded Rendering
 
-This unit test shows the usage of the Task Scheduler (https://github.com/SergeyMakeev/TaskScheduler) to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on a demo by Intel called Stardust (https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application
+This unit test shows the usage of the fiber-based Task Scheduler (https://github.com/SergeyMakeev/TaskScheduler) to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on a demo by Intel called Stardust (https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application
 
 ![Image of the Multi-Threaded command buffer generation example](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/03_MultiThreading.PNG)
 
@@ -103,20 +103,20 @@ There is also an example implementation of the Triangle Visibility Buffer as cov
 
 # Open-Source Libraries
 The Forge utilizes the following Open-Source libraries:
-- Assimp (https://github.com/assimp/assimp)
-- Bullet Physics (https://github.com/bulletphysics)
-- Fontstash (https://github.com/memononen/fontstash)
-- Vectormath (https://github.com/glampert/vectormath)
-- Nothings single file libs (https://github.com/nothings/stb)
- - stb_hash.h
- - stb_image.h
- - stb_image_resize.h
- - stb_image_write.h
-- Nuklear UI (https://github.com/vurtun/nuklear)
-- shaderc (https://github.com/google/shaderc)
-- SPIRV_Cross (https://github.com/KhronosGroup/SPIRV-Cross)
-- Task Scheduler (https://github.com/SergeyMakeev/TaskScheduler)
-- TinyEXR (https://github.com/syoyo/tinyexr)
-- TinySTL (https://github.com/mendsley/tinystl)
-- Vulkan Memory Allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
-- WinPixEventRuntime (https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
+* Assimp (https://github.com/assimp/assimp)
+* Bullet Physics (https://github.com/bulletphysics)
+* Fontstash (https://github.com/memononen/fontstash)
+* Vectormath (https://github.com/glampert/vectormath)
+* Nothings single file libs (https://github.com/nothings/stb)
+ * stb_hash.h
+ * stb_image.h
+ * stb_image_resize.h
+ * stb_image_write.h
+* Nuklear UI (https://github.com/vurtun/nuklear)
+* shaderc (https://github.com/google/shaderc)
+* SPIRV_Cross (https://github.com/KhronosGroup/SPIRV-Cross)
+* Task Scheduler (https://github.com/SergeyMakeev/TaskScheduler)
+* TinyEXR (https://github.com/syoyo/tinyexr)
+* TinySTL (https://github.com/mendsley/tinystl)
+* Vulkan Memory Allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+* WinPixEventRuntime (https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
