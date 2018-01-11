@@ -85,16 +85,19 @@ This unit test shows the current state of our font rendering library that is bas
 
 The BRDF example shows a simple BRDF model. In the future we might replace this with a PBR model.
 
-
+![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/06_BRDF.PNG)
 
 7. Hardware Tessellation
 
-This unit test show cases the rendering of grass with the help of hardware tessellation.
+This unit test showcases the rendering of grass with the help of hardware tessellation.
 
 ![Image of the Hardware Tessellation Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/07_Hardware_Tessellation.PNG)
 
 # Examples
 There is also an example implementation of the Triangle Visibility Buffer as covered in various conference talks.
+
+![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/Visibility_Buffer.png)
+
 
 
 
