@@ -1,5 +1,5 @@
 # The Forge
-The Forge was developed as a cross-platform rendering framework supporting
+The Forge is a cross-platform rendering framework supporting
 - PC with DirectX 12 / Vulkan
 - macOS with Metal 2
 - iOS with Metal 2 (in development)
@@ -7,18 +7,20 @@ The Forge was developed as a cross-platform rendering framework supporting
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 (in development) (only available for accredited developers on request)
 
-The Forge supports cross-platform
+Particularly, The Forge supports cross-platform
 - Descriptor management
 - Multi-threaded resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
 
 Future plans are:
-- unified shader generation
+- Unified shader generation
+
+The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom 3D engines.
 
 
 # News
-"" First Release January xx, 2018
+## First Release January xx, 2018
 
 
 
@@ -99,6 +101,9 @@ There is also an example implementation of the Triangle Visibility Buffer as cov
 ![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/Visibility_Buffer.png)
 
 
+# Releases / Maintenance
+Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
+We are looking for people that can help us maintain the current and boot new platforms.
 
 
 # Open-Source Libraries
@@ -108,10 +113,10 @@ The Forge utilizes the following Open-Source libraries:
 * Fontstash (https://github.com/memononen/fontstash)
 * Vectormath (https://github.com/glampert/vectormath)
 * Nothings single file libs (https://github.com/nothings/stb)
- * stb_hash.h
- * stb_image.h
- * stb_image_resize.h
- * stb_image_write.h
+  * stb_hash.h
+  * stb_image.h
+  * stb_image_resize.h
+  * stb_image_write.h
 * Nuklear UI (https://github.com/vurtun/nuklear)
 * shaderc (https://github.com/google/shaderc)
 * SPIRV_Cross (https://github.com/KhronosGroup/SPIRV-Cross)
@@ -119,4 +124,5 @@ The Forge utilizes the following Open-Source libraries:
 * TinyEXR (https://github.com/syoyo/tinyexr)
 * TinySTL (https://github.com/mendsley/tinystl)
 * Vulkan Memory Allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+* GeometryFX (https://gpuopen.com/gaming-product/geometryfx/)
 * WinPixEventRuntime (https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
