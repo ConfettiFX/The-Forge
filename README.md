@@ -41,13 +41,15 @@ https://vulkan.lunarg.com/
 
 2. XCode Version 9.2 (9C40b)
 
+3. Tested on iMac with AMD RADEON 560 and 580 GPUs
+
 
 # Unit Tests
 In the moment there are the following unit tests in The Forge:
 
 1. Transformation
 
-This unit test just shows a simple solar system. It just shows a "Hello World" like setup for cross-platform rendering.
+This unit test just shows a simple solar system. It is our "3D game Hello World" setup for cross-platform rendering.
 
 ![Image of the Transformations Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/01_Transformations.PNG)
 
@@ -65,7 +67,7 @@ This unit test shows the usage of the fiber-based Task Scheduler (https://github
 
 4. ExecuteIndirect
 
-This unit test shows the substantial difference in speed between Instanced Rendering, using ExecuteIndirect with CPU update of the indirect argument buffers and using ExecuteIndirect with GPU update of the indirect argument buffers.
+This unit test shows the difference in speed between Instanced Rendering, using ExecuteIndirect with CPU update of the indirect argument buffers and using ExecuteIndirect with GPU update of the indirect argument buffers.
 This unit test is based on the Asteroids example by Intel (https://software.intel.com/en-us/articles/asteroids-and-directx-12-performance-and-power-savings).
 
 ![Image of the ExecuteIndirect Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/04_ExecuteIndirect.PNG)
@@ -85,7 +87,7 @@ This unit test shows the current state of our font rendering library that is bas
 
 6. BRDF
 
-The BRDF example shows a simple BRDF model. In the future we might replace this with a PBR model.
+The BRDF example shows a simple BRDF model. In the future we might replace this with a better PBR model.
 
 ![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/06_BRDF.PNG)
 
@@ -96,14 +98,14 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 ![Image of the Hardware Tessellation Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/07_Hardware_Tessellation.PNG)
 
 # Examples
-There is also an example implementation of the Triangle Visibility Buffer as covered in various conference talks.
+There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks (e.g. http://www.conffx.com/Visibility_Buffer_GDCE.pdf).
 
 ![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/Visibility_Buffer.png)
 
 
 # Releases / Maintenance
 Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
-We are looking for people that can help us maintain the current and boot new platforms.
+We are looking for people that want to become platform maintainers for certain platforms.
 
 
 # Open-Source Libraries
