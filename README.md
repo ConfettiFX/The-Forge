@@ -98,9 +98,10 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 ![Image of the Hardware Tessellation Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/07_Hardware_Tessellation.PNG)
 
 # Examples
-There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks (e.g. http://www.conffx.com/Visibility_Buffer_GDCE.pdf).
+There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks (e.g. <a href="http://www.conffx.com/Visibility_Buffer_GDCE.pdf" target="_blank">Triangle Visibility Buffer</a>).
 
-![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/Visibility_Buffer.png)
+![Image of the Visibility Buffer](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/Visibility_Buffer.png)
+
 
 
 # Releases / Maintenance
