@@ -20,13 +20,13 @@ The intended usage of The Forge is to enable developers to quickly build their o
 
 
 # News
-## First Release January xx, 2018
+## First Release January 22nd, 2018
 
 
-
+  
 # PC Requirements:
 
-1. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with latest driver ...
+1. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with the latest driver ...
 
 2. Visual Studio 2015 with Windows SDK / DirectX version 15063
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
@@ -43,64 +43,67 @@ https://vulkan.lunarg.com/
 
 3. Tested on iMac with AMD RADEON 560 and 580 GPUs
 
+# Install
+Run PRE_BUILD.bat to download and unzip the art assets.
+
 
 # Unit Tests
 In the moment there are the following unit tests in The Forge:
 
-1. Transformation
+## 1. Transformation
 
 This unit test just shows a simple solar system. It is our "3D game Hello World" setup for cross-platform rendering.
 
-![Image of the Transformations Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/01_Transformations.PNG)
+![Image of the Transformations Unit test](Screenshots/01_Transformations.PNG)
 
-2. Compute
+## 2. Compute
 
 This unit test shows a Julia 4D fractal running in a compute shader. In the future this test will use several compute queues at once.
 
-![Image of the Compute Shader Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/02_Compute.PNG)
+![Image of the Compute Shader Unit test](Screenshots/02_Compute.PNG)
 
-3. Multi-Threaded Rendering
+## 3. Multi-Threaded Rendering
 
-This unit test shows the usage of the fiber-based Task Scheduler (https://github.com/SergeyMakeev/TaskScheduler) to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on a demo by Intel called Stardust (https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application
+This unit test shows the usage of [the open source fiber-based Task Scheduler](https://github.com/SergeyMakeev/TaskScheduler) to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on [a demo by Intel called Stardust](https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application).
 
-![Image of the Multi-Threaded command buffer generation example](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/03_MultiThreading.PNG)
+![Image of the Multi-Threaded command buffer generation example](Screenshots/03_MultiThreading.PNG)
 
-4. ExecuteIndirect
+## 4. ExecuteIndirect
 
 This unit test shows the difference in speed between Instanced Rendering, using ExecuteIndirect with CPU update of the indirect argument buffers and using ExecuteIndirect with GPU update of the indirect argument buffers.
-This unit test is based on the Asteroids example by Intel (https://software.intel.com/en-us/articles/asteroids-and-directx-12-performance-and-power-savings).
+This unit test is based on [the Asteroids example by Intel](https://software.intel.com/en-us/articles/asteroids-and-directx-12-performance-and-power-savings).
 
-![Image of the ExecuteIndirect Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/04_ExecuteIndirect.PNG)
+![Image of the ExecuteIndirect Unit test](Screenshots/04_ExecuteIndirect.PNG)
 Using ExecuteIndirect with GPU updates for the indirect argument buffers
 
-![Image of the ExecuteIndirect Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/04_ExecuteIndirect_2.PNG)
+![Image of the ExecuteIndirect Unit test](Screenshots/04_ExecuteIndirect_2.PNG)
 Using ExecuteIndirect with CPU updates for the indirect argument buffers
 
-![Image of the ExecuteIndirect Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/04_ExecuteIndirect_3.PNG)
+![Image of the ExecuteIndirect Unit test](Screenshots/04_ExecuteIndirect_3.PNG)
 Using Instanced Rendering
 
-5. Font Rendering
+## 5. Font Rendering
 
 This unit test shows the current state of our font rendering library that is based on several open-source libraries.
 
-![Image of the Font Rendering Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/05_FontRendering.PNG)
+![Image of the Font Rendering Unit test](Screenshots/05_FontRendering.PNG)
 
-6. BRDF
+## 6. BRDF
 
 The BRDF example shows a simple BRDF model. In the future we might replace this with a better PBR model.
 
-![Image of the BRDF Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/06_BRDF.PNG)
+![Image of the BRDF Unit test](Screenshots/06_BRDF.PNG)
 
-7. Hardware Tessellation
+## 7. Hardware Tessellation
 
 This unit test showcases the rendering of grass with the help of hardware tessellation.
 
-![Image of the Hardware Tessellation Unit test](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/07_Hardware_Tessellation.PNG)
+![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks (e.g. <a href="http://www.conffx.com/Visibility_Buffer_GDCE.pdf" target="_blank">Triangle Visibility Buffer</a>).
 
-![Image of the Visibility Buffer](https://github.com/ConfettiFX/The-Forge/blob/master/Screenshots/Visibility_Buffer.png)
+![Image of the Visibility Buffer](Screenshots/Visibility_Buffer.png)
 
 
 
@@ -111,21 +114,21 @@ We are looking for people that want to become platform maintainers for certain p
 
 # Open-Source Libraries
 The Forge utilizes the following Open-Source libraries:
-* Assimp (https://github.com/assimp/assimp)
-* Bullet Physics (https://github.com/bulletphysics)
-* Fontstash (https://github.com/memononen/fontstash)
-* Vectormath (https://github.com/glampert/vectormath)
-* Nothings single file libs (https://github.com/nothings/stb)
-  * stb_hash.h
-  * stb_image.h
-  * stb_image_resize.h
-  * stb_image_write.h
-* Nuklear UI (https://github.com/vurtun/nuklear)
-* shaderc (https://github.com/google/shaderc)
-* SPIRV_Cross (https://github.com/KhronosGroup/SPIRV-Cross)
-* Task Scheduler (https://github.com/SergeyMakeev/TaskScheduler)
-* TinyEXR (https://github.com/syoyo/tinyexr)
-* TinySTL (https://github.com/mendsley/tinystl)
-* Vulkan Memory Allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
-* GeometryFX (https://gpuopen.com/gaming-product/geometryfx/)
-* WinPixEventRuntime (https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
+* [Assimp](https://github.com/assimp/assimp)
+* [Bullet Physics](https://github.com/bulletphysics)
+* [Fontstash](https://github.com/memononen/fontstash)
+* [Vectormath](https://github.com/glampert/vectormath)
+* [Nothings](https://github.com/nothings/stb) single file libs 
+  * [stb.h](https://github.com/nothings/stb/blob/master/stb.h)
+  * [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h)
+  * [stb_image_resize.h](https://github.com/nothings/stb/blob/master/stb_image_resize.h)
+  * [stb_image_write.h](https://github.com/nothings/stb/blob/master/stb_image_write.h)
+* [Nuklear UI](https://github.com/vurtun/nuklear)
+* [shaderc](https://github.com/google/shaderc)
+* [SPIRV_Cross](https://github.com/KhronosGroup/SPIRV-Cross)
+* [Task Scheduler](https://github.com/SergeyMakeev/TaskScheduler)
+* [TinyEXR](https://github.com/syoyo/tinyexr)
+* [TinySTL](https://github.com/mendsley/tinystl)
+* [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+* [GeometryFX](https://gpuopen.com/gaming-product/geometryfx/)
+* [WinPixEventRuntime](https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
