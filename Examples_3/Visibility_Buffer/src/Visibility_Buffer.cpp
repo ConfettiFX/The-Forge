@@ -96,25 +96,11 @@ const char* pszRoots[FSR_Count] =
 	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders_Common
 
 #if OLD_MODELS
-
-#if defined(SPONZA)
-	"../../../../../../Examples_2/Aura/DX11Assets/Textures/",			// FSR_Textures
-	"../../../../../../Examples_2/Aura/DX11Assets/Meshes/SponzaNew/",	// FSR_Meshes
-#elif defined(SANMIGUEL)
-	"../../../../../../Art/SanMiguel_2/",								// FSR_Textures
-	"../../../../../../Art/SanMiguel_2/",								// FSR_Meshes
-#endif
-
+	"../../../../../Art/SanMiguel_2/",									// FSR_Textures
+	"../../../../../Art/SanMiguel_2/",									// FSR_Meshes
 #else
-
-#if defined(SPONZA)
-	"../../../../../../Art/Sponza_Deprecated/Textures/Compressed/",		// FSR_Textures
-	"../../../../../../Art/Sponza_Deprecated/",							// FSR_Meshes
-#elif defined(SANMIGUEL)
-	"../../../../../../Art/SanMiguel_3/",								// FSR_Textures
-	"../../../../../../Art/SanMiguel_3/",								// FSR_Meshes
-#endif
-
+	"../../../../../Art/SanMiguel_3/",									// FSR_Textures
+	"../../../../../Art/SanMiguel_3/",									// FSR_Meshes
 #endif
 	"../../../Resources/Fonts/",										// Fonts
 #else   // !defined(TARGET_IOS)

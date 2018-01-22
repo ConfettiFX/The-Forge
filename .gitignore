@@ -31,5 +31,8 @@
 *.out
 *.app
 
+# Art
+Art/
+
 # Vulkan Binary Shaders
 **/PCVulkan/Binary/
