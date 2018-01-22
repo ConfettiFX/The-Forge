@@ -1,1 +1,8 @@
-svn checkout https://98.187.254.136/svn/Art
+set filename=Art.zip
+
+del %filename%
+
+"Tools/wget" -O %filename% http://www.conffx.com/%filename%
+"Tools/7z" x %filename% > NUL
+
+del %filename%
