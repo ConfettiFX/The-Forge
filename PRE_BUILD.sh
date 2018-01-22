@@ -1,8 +1,8 @@
-set filename=Art.zip
+filename=Art.zip
 
-rm %filename%
+rm $filename
 
-curl -L -o %filename% http://www.conffx.com/%filename%
-unzip %filename%
+curl -L -o $filename http://www.conffx.com/$filename
+unzip $filename
 
-rm %filename%
+rm $filename
