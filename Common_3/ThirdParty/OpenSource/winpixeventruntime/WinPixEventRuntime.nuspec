@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>WinPixEventRuntime</id>
+    <version>1.0.170918004</version>
+    <title>WinPixEventRuntime</title>
+    <authors>Microsoft</authors>
+    <owners>pix,microsoft</owners>
+    <licenseUrl>https://www.microsoft.com/web/webpi/eula/eula_pix_event_runtime.htm</licenseUrl>
+    <projectUrl>https://blogs.msdn.microsoft.com/pix/winpixeventruntime/</projectUrl>
+    <iconUrl>http://www.gravatar.com/avatar/df362936893270e6a1b53807fa90e8fa</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Allows applications to be instrumented with marker events, for use with Microsoft PIX.</description>
+    <tags>PIX Direct3D graphics 3D</tags>
+  </metadata>
+</package>

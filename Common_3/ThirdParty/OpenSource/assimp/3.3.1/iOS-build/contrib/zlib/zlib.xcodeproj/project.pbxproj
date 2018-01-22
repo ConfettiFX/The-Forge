@@ -1,0 +1,939 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		0E71AC1AB08442FFA7F4E504 /* ALL_BUILD */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = EAAC9C7FD4EB43ED95A419A5 /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */;
+			buildPhases = (
+				0AD350E7DEBE41E3831ED113 /* CMake Rules */,
+			);
+			dependencies = (
+				BF4D3A293C424AC6B557CB2C /* PBXTargetDependency */,
+				E5E6465C16C54D038B7E3AAE /* PBXTargetDependency */,
+			);
+			name = ALL_BUILD;
+			productName = ALL_BUILD;
+		};
+		1648CF6C4FAD4796B74CDDFB /* ZERO_CHECK */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = F550F53EE1B94E7B8DD17800 /* Build configuration list for PBXAggregateTarget "ZERO_CHECK" */;
+			buildPhases = (
+				76D66D552D5A48958E59A109 /* CMake Rules */,
+			);
+			dependencies = (
+			);
+			name = ZERO_CHECK;
+			productName = ZERO_CHECK;
+		};
+		EB8029487768489B9C60AE01 /* install */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = DD28F535A9DE497687C01B2E /* Build configuration list for PBXAggregateTarget "install" */;
+			buildPhases = (
+				8AF58775B14F41DBBA50945B /* CMake PostBuild Rules */,
+			);
+			dependencies = (
+				01945FD2A0714B18B17AC0D1 /* PBXTargetDependency */,
+			);
+			name = install;
+			productName = install;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildFile section */
+		03EB58AB04DC4A8F960F446E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/uncompr.c */ = {isa = PBXBuildFile; fileRef = 6C984C4026754C1EBCBDF2CD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/uncompr.c */; };
+		1017F8EA545641C89B20246A /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.c */ = {isa = PBXBuildFile; fileRef = 95E27572CA2C46C1873754DF /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.c */; };
+		29D193685B79425A979FE962 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.h */ = {isa = PBXBuildFile; fileRef = 08F51752B8544397823ED0BB /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.h */; };
+		29FCE391B1384EAF9DB20CC1 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.h */ = {isa = PBXBuildFile; fileRef = 867E5B81BE644E738DE14328 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.h */; };
+		2F817DCC7D02401EBACD6697 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.h */ = {isa = PBXBuildFile; fileRef = D80F44523D85463CB86201FD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.h */; };
+		2FC71E623B49423680581875 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.c */ = {isa = PBXBuildFile; fileRef = 2989D553A92D4C01AF5A1244 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.c */; };
+		56F277830E8948B49A4E5EB0 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzlib.c */ = {isa = PBXBuildFile; fileRef = 4A73AC78019C488CA74ECA3D /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzlib.c */; };
+		5C1BD5144B174177A02EC055 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.h */ = {isa = PBXBuildFile; fileRef = 876D6616AE80413594CF642A /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.h */; };
+		696F9B98C3284AAEBE7694C3 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.c */ = {isa = PBXBuildFile; fileRef = 67F2C9AA264F45EB9515F36E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.c */; };
+		6C15BB1F884D43CBABF62F38 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/compress.c */ = {isa = PBXBuildFile; fileRef = DC22FE21BC314123B8A0A49E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/compress.c */; };
+		7830E77FA01F436DA0B314A3 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.h */ = {isa = PBXBuildFile; fileRef = D04483CF7C304709A685A918 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.h */; };
+		8338AF92DBD24CFD8F275CC7 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.c */ = {isa = PBXBuildFile; fileRef = E80268E1F14241188D404243 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.c */; };
+		8512AADACE6044C3AD3866CD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffixed.h */ = {isa = PBXBuildFile; fileRef = 55D3BE81DD294DA284554BD4 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffixed.h */; };
+		87326E784F164494BB68B137 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzwrite.c */ = {isa = PBXBuildFile; fileRef = 1AC26F7A8D954606B4A91DA8 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzwrite.c */; };
+		89C1B8434CC14FE58C70A871 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzguts.h */ = {isa = PBXBuildFile; fileRef = F50B6146732041EEA5A9BDD6 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzguts.h */; };
+		91C2526E335B46BC8CC40519 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzclose.c */ = {isa = PBXBuildFile; fileRef = 66D3C12F013C4495BB5B284B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzclose.c */; };
+		A0BCDA1E1D7F4B7199F93FAD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/zconf.h */ = {isa = PBXBuildFile; fileRef = 6F3C3DDD9985432F874723F7 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/zconf.h */; };
+		AD9005F982204D9EB8F6C508 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzread.c */ = {isa = PBXBuildFile; fileRef = F239553230474D8D9AA0C1E3 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzread.c */; };
+		B107685EDFA441E89CC74ACF /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zlib.h */ = {isa = PBXBuildFile; fileRef = 387E0149623440DB89738FE4 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zlib.h */; };
+		B27A95845C3241EEB4B14E27 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.c */ = {isa = PBXBuildFile; fileRef = 714FBFB47A144BC7BDB30989 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.c */; };
+		B7465F20D5B64D1E8EB842AB /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */ = {isa = PBXBuildFile; fileRef = 7F5565F91295476B86B4F0E2 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */; };
+		B77B5E20C8A3413999EC5231 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/adler32.c */ = {isa = PBXBuildFile; fileRef = 5ABDE53E16AD468FA9E531E1 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/adler32.c */; };
+		D4243BEF5B6649FFAB69802B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.h */ = {isa = PBXBuildFile; fileRef = B7F45EFA84F04C219914AC62 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.h */; };
+		DA27BC950E324BCDA698F90F /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.c */ = {isa = PBXBuildFile; fileRef = A1C190136405493C80A08464 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.c */; };
+		DACA1325AEE74B65811BDC6F /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.c */ = {isa = PBXBuildFile; fileRef = 2D37C2A3DFAD4E5D8C48893B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.c */; };
+		F13391610E234E79972B336E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/infback.c */ = {isa = PBXBuildFile; fileRef = F83730078E68447497132D74 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/infback.c */; };
+		F2565CDCAACA4669BAB3890A /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.h */ = {isa = PBXBuildFile; fileRef = 54E2BCEAF4D948FE80E9CAB6 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildStyle section */
+		18D2B6E622D3462A8948FCEB /* Debug */ = {
+			isa = PBXBuildStyle;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = Debug;
+		};
+		5F8EAA992C2B4ABC90D1CB01 = {
+			isa = PBXBuildStyle;
+		};
+		A71ECFC27A5E40F796F52568 /* MinSizeRel */ = {
+			isa = PBXBuildStyle;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = MinSizeRel;
+		};
+		BE322056376147C8916C1D38 /* Release */ = {
+			isa = PBXBuildStyle;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = Release;
+		};
+		E9C88D62FD93416C94040897 /* RelWithDebInfo */ = {
+			isa = PBXBuildStyle;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = RelWithDebInfo;
+		};
+/* End PBXBuildStyle section */
+
+/* Begin PBXContainerItemProxy section */
+		347323E0261F4D978C197079 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28B031F0F4A2427DA2EEE628 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1648CF6C4FAD4796B74CDDFB;
+			remoteInfo = ZERO_CHECK;
+		};
+		66E8B24F639F40D5A5EC06A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28B031F0F4A2427DA2EEE628 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1648CF6C4FAD4796B74CDDFB;
+			remoteInfo = ZERO_CHECK;
+		};
+		9BA0376A239049E5BEE6A8D7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28B031F0F4A2427DA2EEE628 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A6A0F8F1B2CB44B1B56858CA;
+			remoteInfo = zlibstatic;
+		};
+		CFDB2C9406964FD89E2880EC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28B031F0F4A2427DA2EEE628 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0E71AC1AB08442FFA7F4E504;
+			remoteInfo = ALL_BUILD;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		08F51752B8544397823ED0BB /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = crc32.h; path = crc32.h; sourceTree = SOURCE_ROOT; };
+		1AC26F7A8D954606B4A91DA8 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzwrite.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = gzwrite.c; path = gzwrite.c; sourceTree = SOURCE_ROOT; };
+		2989D553A92D4C01AF5A1244 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = inftrees.c; path = inftrees.c; sourceTree = SOURCE_ROOT; };
+		2D37C2A3DFAD4E5D8C48893B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = crc32.c; path = crc32.c; sourceTree = SOURCE_ROOT; };
+		387E0149623440DB89738FE4 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zlib.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = zlib.h; path = zlib.h; sourceTree = SOURCE_ROOT; };
+		4A73AC78019C488CA74ECA3D /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzlib.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = gzlib.c; path = gzlib.c; sourceTree = SOURCE_ROOT; };
+		54E2BCEAF4D948FE80E9CAB6 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = trees.h; path = trees.h; sourceTree = SOURCE_ROOT; };
+		55D3BE81DD294DA284554BD4 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffixed.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = inffixed.h; path = inffixed.h; sourceTree = SOURCE_ROOT; };
+		5ABDE53E16AD468FA9E531E1 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/adler32.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = adler32.c; path = adler32.c; sourceTree = SOURCE_ROOT; };
+		65D7CA54E6E34DBEA245B1DF /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.text; fileEncoding = 4; name = CMakeLists.txt; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+		66D3C12F013C4495BB5B284B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzclose.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = gzclose.c; path = gzclose.c; sourceTree = SOURCE_ROOT; };
+		67F2C9AA264F45EB9515F36E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = trees.c; path = trees.c; sourceTree = SOURCE_ROOT; };
+		6C984C4026754C1EBCBDF2CD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/uncompr.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = uncompr.c; path = uncompr.c; sourceTree = SOURCE_ROOT; };
+		6F3C3DDD9985432F874723F7 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/zconf.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = zconf.h; path = "../../iOS-build/contrib/zlib/zconf.h"; sourceTree = SOURCE_ROOT; };
+		6FA5CD02624C482EBA69CB79 /* zlibstatic */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		714FBFB47A144BC7BDB30989 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = deflate.c; path = deflate.c; sourceTree = SOURCE_ROOT; };
+		7F5565F91295476B86B4F0E2 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.text; fileEncoding = 4; name = CMakeLists.txt; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+		867E5B81BE644E738DE14328 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = zutil.h; path = zutil.h; sourceTree = SOURCE_ROOT; };
+		876D6616AE80413594CF642A /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = inflate.h; path = inflate.h; sourceTree = SOURCE_ROOT; };
+		95E27572CA2C46C1873754DF /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = zutil.c; path = zutil.c; sourceTree = SOURCE_ROOT; };
+		A1C190136405493C80A08464 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = inffast.c; path = inffast.c; sourceTree = SOURCE_ROOT; };
+		B7F45EFA84F04C219914AC62 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = inftrees.h; path = inftrees.h; sourceTree = SOURCE_ROOT; };
+		BD4D1D63560E4EF78E6BA277 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.text; fileEncoding = 4; name = CMakeLists.txt; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+		D04483CF7C304709A685A918 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = inffast.h; path = inffast.h; sourceTree = SOURCE_ROOT; };
+		D80F44523D85463CB86201FD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = deflate.h; path = deflate.h; sourceTree = SOURCE_ROOT; };
+		DC22FE21BC314123B8A0A49E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/compress.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = compress.c; path = compress.c; sourceTree = SOURCE_ROOT; };
+		E80268E1F14241188D404243 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = inflate.c; path = inflate.c; sourceTree = SOURCE_ROOT; };
+		F239553230474D8D9AA0C1E3 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzread.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = gzread.c; path = gzread.c; sourceTree = SOURCE_ROOT; };
+		F50B6146732041EEA5A9BDD6 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzguts.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = gzguts.h; path = gzguts.h; sourceTree = SOURCE_ROOT; };
+		F83730078E68447497132D74 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/infback.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.c; fileEncoding = 4; name = infback.c; path = infback.c; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1263B5A1A61E4CF1B448E597 /* ZERO_CHECK */ = {
+			isa = PBXGroup;
+			children = (
+				AA72B8EACC004F6CB7BD6206 /* CMake Rules */,
+				BD4D1D63560E4EF78E6BA277 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */,
+			);
+			name = ZERO_CHECK;
+			sourceTree = "<group>";
+		};
+		2BF912B0BC32481699C0F979 = {
+			isa = PBXGroup;
+			children = (
+				DD817C5E99EC40BFB7919939 /* Sources */,
+				7D1DF80501E54976A38F64ED /* Resources */,
+				3002B228B5994AE89B853DEA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3002B228B5994AE89B853DEA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6FA5CD02624C482EBA69CB79 /* zlibstatic */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6258BABEC1FB4956A9B47639 /* CMake Rules */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "CMake Rules";
+			sourceTree = "<group>";
+		};
+		75BEB14C386846E6AB29251D /* Header Files */ = {
+			isa = PBXGroup;
+			children = (
+				08F51752B8544397823ED0BB /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.h */,
+				D80F44523D85463CB86201FD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.h */,
+				F50B6146732041EEA5A9BDD6 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzguts.h */,
+				D04483CF7C304709A685A918 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.h */,
+				55D3BE81DD294DA284554BD4 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffixed.h */,
+				876D6616AE80413594CF642A /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.h */,
+				B7F45EFA84F04C219914AC62 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.h */,
+				54E2BCEAF4D948FE80E9CAB6 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.h */,
+				387E0149623440DB89738FE4 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zlib.h */,
+				867E5B81BE644E738DE14328 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.h */,
+				6F3C3DDD9985432F874723F7 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/zconf.h */,
+			);
+			name = "Header Files";
+			sourceTree = "<group>";
+		};
+		7D1DF80501E54976A38F64ED /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		A3CAD94CBDEE45FF9A7B350B /* ALL_BUILD */ = {
+			isa = PBXGroup;
+			children = (
+				6258BABEC1FB4956A9B47639 /* CMake Rules */,
+				65D7CA54E6E34DBEA245B1DF /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */,
+			);
+			name = ALL_BUILD;
+			sourceTree = "<group>";
+		};
+		AA72B8EACC004F6CB7BD6206 /* CMake Rules */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "CMake Rules";
+			sourceTree = "<group>";
+		};
+		AC28EA7A78C44AB9AB7C8314 /* zlibstatic */ = {
+			isa = PBXGroup;
+			children = (
+				F4BE0B60023544209CF464B9 /* Source Files */,
+				75BEB14C386846E6AB29251D /* Header Files */,
+				7F5565F91295476B86B4F0E2 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/CMakeLists.txt */,
+			);
+			name = zlibstatic;
+			sourceTree = "<group>";
+		};
+		DD817C5E99EC40BFB7919939 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				AC28EA7A78C44AB9AB7C8314 /* zlibstatic */,
+				A3CAD94CBDEE45FF9A7B350B /* ALL_BUILD */,
+				1263B5A1A61E4CF1B448E597 /* ZERO_CHECK */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		F4BE0B60023544209CF464B9 /* Source Files */ = {
+			isa = PBXGroup;
+			children = (
+				5ABDE53E16AD468FA9E531E1 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/adler32.c */,
+				DC22FE21BC314123B8A0A49E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/compress.c */,
+				2D37C2A3DFAD4E5D8C48893B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.c */,
+				714FBFB47A144BC7BDB30989 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.c */,
+				66D3C12F013C4495BB5B284B /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzclose.c */,
+				4A73AC78019C488CA74ECA3D /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzlib.c */,
+				F239553230474D8D9AA0C1E3 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzread.c */,
+				1AC26F7A8D954606B4A91DA8 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzwrite.c */,
+				F83730078E68447497132D74 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/infback.c */,
+				A1C190136405493C80A08464 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.c */,
+				E80268E1F14241188D404243 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.c */,
+				2989D553A92D4C01AF5A1244 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.c */,
+				67F2C9AA264F45EB9515F36E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.c */,
+				6C984C4026754C1EBCBDF2CD /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/uncompr.c */,
+				95E27572CA2C46C1873754DF /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.c */,
+			);
+			name = "Source Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A6A0F8F1B2CB44B1B56858CA /* zlibstatic */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65544673304C4CACA5B94AB1 /* Build configuration list for PBXNativeTarget "zlibstatic" */;
+			buildPhases = (
+				9009D5AEC296400F8ABECA59 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA2753333EA948E5B6AA9178 /* PBXTargetDependency */,
+			);
+			name = zlibstatic;
+			productName = zlibstatic;
+			productReference = 6FA5CD02624C482EBA69CB79 /* zlibstatic */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		28B031F0F4A2427DA2EEE628 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 0900;
+			};
+			buildConfigurationList = 2F197B9BEAE04234B014C2C3 /* Build configuration list for PBXProject "zlib" */;
+			buildSettings = {
+			};
+			buildStyles = (
+				18D2B6E622D3462A8948FCEB /* Debug */,
+				BE322056376147C8916C1D38 /* Release */,
+				A71ECFC27A5E40F796F52568 /* MinSizeRel */,
+				E9C88D62FD93416C94040897 /* RelWithDebInfo */,
+			);
+			compatibilityVersion = "Xcode 3.2";
+			hasScannedForEncodings = 0;
+			mainGroup = 2BF912B0BC32481699C0F979;
+			projectDirPath = ../../../contrib/zlib;
+			projectRoot = "";
+			targets = (
+				0E71AC1AB08442FFA7F4E504 /* ALL_BUILD */,
+				1648CF6C4FAD4796B74CDDFB /* ZERO_CHECK */,
+				EB8029487768489B9C60AE01 /* install */,
+				A6A0F8F1B2CB44B1B56858CA /* zlibstatic */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0AD350E7DEBE41E3831ED113 /* CMake Rules */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "CMake Rules";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -f /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/CMakeScripts/ALL_BUILD_cmakeRulesBuildPhase.make$CONFIGURATION all";
+			showEnvVarsInLog = 0;
+		};
+		23FF1BD59BCC461B9C5419BA = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# shell script goes here
+exit 0";
+			showEnvVarsInLog = 0;
+		};
+		76D66D552D5A48958E59A109 /* CMake Rules */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "CMake Rules";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -f /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/CMakeScripts/ZERO_CHECK_cmakeRulesBuildPhase.make$CONFIGURATION all";
+			showEnvVarsInLog = 0;
+		};
+		8AF58775B14F41DBBA50945B /* CMake PostBuild Rules */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "CMake PostBuild Rules";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -f /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/CMakeScripts/install_postBuildPhase.make$CONFIGURATION all";
+			showEnvVarsInLog = 0;
+		};
+		A04C033025CE4B57A3294EB5 = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# shell script goes here
+exit 0";
+			showEnvVarsInLog = 0;
+		};
+		AF72F2B8125940E6B49144CD = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# shell script goes here
+exit 0";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9009D5AEC296400F8ABECA59 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B77B5E20C8A3413999EC5231 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/adler32.c */,
+				6C15BB1F884D43CBABF62F38 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/compress.c */,
+				DACA1325AEE74B65811BDC6F /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/crc32.c */,
+				B27A95845C3241EEB4B14E27 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/deflate.c */,
+				91C2526E335B46BC8CC40519 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzclose.c */,
+				56F277830E8948B49A4E5EB0 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzlib.c */,
+				AD9005F982204D9EB8F6C508 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzread.c */,
+				87326E784F164494BB68B137 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/gzwrite.c */,
+				F13391610E234E79972B336E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/infback.c */,
+				DA27BC950E324BCDA698F90F /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inffast.c */,
+				8338AF92DBD24CFD8F275CC7 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inflate.c */,
+				2FC71E623B49423680581875 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/inftrees.c */,
+				696F9B98C3284AAEBE7694C3 /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/trees.c */,
+				03EB58AB04DC4A8F960F446E /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/uncompr.c */,
+				1017F8EA545641C89B20246A /* /Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/contrib/zlib/zutil.c */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		01945FD2A0714B18B17AC0D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0E71AC1AB08442FFA7F4E504 /* ALL_BUILD */;
+			targetProxy = CFDB2C9406964FD89E2880EC /* PBXContainerItemProxy */;
+		};
+		AA2753333EA948E5B6AA9178 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1648CF6C4FAD4796B74CDDFB /* ZERO_CHECK */;
+			targetProxy = 66E8B24F639F40D5A5EC06A7 /* PBXContainerItemProxy */;
+		};
+		BF4D3A293C424AC6B557CB2C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A6A0F8F1B2CB44B1B56858CA /* zlibstatic */;
+			targetProxy = 9BA0376A239049E5BEE6A8D7 /* PBXContainerItemProxy */;
+		};
+		E5E6465C16C54D038B7E3AAE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1648CF6C4FAD4796B74CDDFB /* ZERO_CHECK */;
+			targetProxy = 347323E0261F4D978C197079 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0ACF712366384B2797ACFAC7 /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				SDKROOT = /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk;
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/build";
+			};
+			name = RelWithDebInfo;
+		};
+		0F36D802997E4471AD440D4C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ALL_BUILD;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Release;
+		};
+		0F3F19811FC64191B891156F /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ZERO_CHECK;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = MinSizeRel;
+		};
+		1201D94050894595A7428068 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				SDKROOT = /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk;
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/build";
+			};
+			name = Release;
+		};
+		300525A006BE412EBABE9B41 /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ALL_BUILD;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = MinSizeRel;
+		};
+		32F8C15B2D38486893E7C285 /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				SDKROOT = /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk;
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/build";
+			};
+			name = MinSizeRel;
+		};
+		442B61173B9440B4BDA05EC8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ALL_BUILD;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Debug;
+		};
+		4D224A0A412E4D39890C03CB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = install;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Debug;
+		};
+		4EBC6BEEA1054DAEB57576A5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				SDKROOT = /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk;
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/build";
+			};
+			name = Debug;
+		};
+		58DC1100AEFF453D85FC2576 /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ZERO_CHECK;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = RelWithDebInfo;
+		};
+		644F2CE5ED6244A8A9812486 /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ALL_BUILD;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = RelWithDebInfo;
+		};
+		69DBCAE9532149BE97B49F00 /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 2;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'",OPENDDL_NO_USE_CPP11,NO_FSEEKO);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = "-isysroot /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk        -DNDEBUG -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/. -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1   ";
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = zlibstatic;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = RelWithDebInfo;
+		};
+		71238772D56E41829FFECC42 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = install;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Release;
+		};
+		8575C643ED494BF7BA41DBEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ZERO_CHECK;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Release;
+		};
+		9521137F226248EF992F8F4F /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'",OPENDDL_NO_USE_CPP11,NO_FSEEKO);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = "-isysroot /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk     -DNDEBUG -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/. -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1   ";
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = zlibstatic;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = MinSizeRel;
+		};
+		AD128F68AAFB4675BC3EB736 /* MinSizeRel */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = install;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = MinSizeRel;
+		};
+		B414A6322CFD4F1C9F8115F0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'",OPENDDL_NO_USE_CPP11,NO_FSEEKO);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = "-isysroot /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk     -DNDEBUG -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/. -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1   ";
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = zlibstatic;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Release;
+		};
+		C07E9D2D78564FBEB115D454 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = ZERO_CHECK;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Debug;
+		};
+		C5ECB5C9CAB54A83AADD9736 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_SUFFIX = .a;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'",OPENDDL_NO_USE_CPP11,NO_FSEEKO);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				LIBRARY_STYLE = STATIC;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = "-isysroot /Applications/Xcode/15A326/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.0.sdk    -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/. -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib -I/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1   ";
+				OTHER_LIBTOOLFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = zlibstatic;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = Debug;
+		};
+		E804CFFC9D99496D860B4D99 /* RelWithDebInfo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'");
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/.,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/include,"/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib",/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1);
+				INSTALL_PATH = "";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = " ";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = install;
+				SECTORDER_FLAGS = "";
+				SYMROOT = "/Users/nicholassmith/src/tests/TheForge/Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib";
+				USE_HEADERMAP = NO;
+				WARNING_CFLAGS = ("-Wmost","-Wno-four-char-constants","-Wno-unknown-pragmas","$(inherited)");
+			};
+			name = RelWithDebInfo;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2F197B9BEAE04234B014C2C3 /* Build configuration list for PBXProject "zlib" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4EBC6BEEA1054DAEB57576A5 /* Debug */,
+				1201D94050894595A7428068 /* Release */,
+				32F8C15B2D38486893E7C285 /* MinSizeRel */,
+				0ACF712366384B2797ACFAC7 /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		65544673304C4CACA5B94AB1 /* Build configuration list for PBXNativeTarget "zlibstatic" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C5ECB5C9CAB54A83AADD9736 /* Debug */,
+				B414A6322CFD4F1C9F8115F0 /* Release */,
+				9521137F226248EF992F8F4F /* MinSizeRel */,
+				69DBCAE9532149BE97B49F00 /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DD28F535A9DE497687C01B2E /* Build configuration list for PBXAggregateTarget "install" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D224A0A412E4D39890C03CB /* Debug */,
+				71238772D56E41829FFECC42 /* Release */,
+				AD128F68AAFB4675BC3EB736 /* MinSizeRel */,
+				E804CFFC9D99496D860B4D99 /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EAAC9C7FD4EB43ED95A419A5 /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				442B61173B9440B4BDA05EC8 /* Debug */,
+				0F36D802997E4471AD440D4C /* Release */,
+				300525A006BE412EBABE9B41 /* MinSizeRel */,
+				644F2CE5ED6244A8A9812486 /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F550F53EE1B94E7B8DD17800 /* Build configuration list for PBXAggregateTarget "ZERO_CHECK" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C07E9D2D78564FBEB115D454 /* Debug */,
+				8575C643ED494BF7BA41DBEC /* Release */,
+				0F3F19811FC64191B891156F /* MinSizeRel */,
+				58DC1100AEFF453D85FC2576 /* RelWithDebInfo */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 28B031F0F4A2427DA2EEE628 /* Project object */;
+}

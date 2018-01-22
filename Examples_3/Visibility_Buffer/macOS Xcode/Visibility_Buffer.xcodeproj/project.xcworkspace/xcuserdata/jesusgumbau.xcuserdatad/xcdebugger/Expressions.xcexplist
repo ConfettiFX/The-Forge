@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "GLOBAL">
+         <PersistentStrings>
+            <PersistentString
+               value = "pScreenRenderTarget">
+            </PersistentString>
+            <PersistentString
+               value = "pScene-&gt;materials[pScene-&gt;meshes[i].materialId].alphaTested">
+            </PersistentString>
+            <PersistentString
+               value = "batchChunk-&gt;batches[0]">
+            </PersistentString>
+            <PersistentString
+               value = "batchChunk-&gt;batches[1]">
+            </PersistentString>
+            <PersistentString
+               value = "ds[5]">
+            </PersistentString>
+            <PersistentString
+               value = "p_pipeline-&gt;mSettings.pRasterizerState-&gt;cullMode">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "cmdBindDescriptorSets(Cmd*, Pipeline*, DescriptorSet*):MetalRenderer.mm">
+      </ContextState>
+      <ContextState
+         contextName = "loadScene(RendererDesc*, CmdPool*, char const*):Geometry.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "scene-&gt;materials[i].textureFileName">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "DrawVisibilityBufferShade(Cmd*, unsigned int):Visibility_Buffer.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "ds[5]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "loadScene(RendererDesc*, CmdPool*, char const*, char const*):Geometry.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "materialName">
+            </PersistentString>
+            <PersistentString
+               value = "scene-&gt;materials[i]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "loadScene(RendererDesc*, char const*):Geometry.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "assimpMesh-&gt;mFaces[j]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "UpdateLightCluster(Cmd*, unsigned int):Visibility_Buffer.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "clusterRight - clusterLeft">
+            </PersistentString>
+            <PersistentString
+               value = "clusterBottom - clusterTop">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "FilterTriangles(Cmd*, unsigned int, unsigned int, FilterBatchChunk*):Visibility_Buffer.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "addClusterToBatchChunk(Cluster const*, Mesh const*, unsigned int, unsigned int, unsigned int, FilterBatchChunk*):Geometry.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "reflectShaderStruct(ShaderReflectionInfo*, unsigned int, unsigned long, MTLStructType*):MetalShaderReflection.mm">
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>

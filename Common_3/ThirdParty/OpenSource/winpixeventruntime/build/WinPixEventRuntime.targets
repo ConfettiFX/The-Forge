@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\Include\WinPixEventRuntime;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'=='UAP'">
+    <Link>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WinPixEventRuntime_UAP.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup Label="WinPixEventRuntime" Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'=='UAP'">
+    <PackagingOutputs Include="$(MSBuildThisFileDirectory)..\bin\WinPixEventRuntime_UAP.dll">
+        <OutputGroup>WinPixEventBinary</OutputGroup>
+        <ProjectName>$(ProjectName)</ProjectName>
+        <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </PackagingOutputs>
+  </ItemGroup>
+
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'!='UAP'">
+    <Link>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WinPixEventRuntime.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'!='UAP'">
+    <Content Include="$(MSBuildThisFileDirectory)..\bin\WinPixEventRuntime.dll">
+      <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

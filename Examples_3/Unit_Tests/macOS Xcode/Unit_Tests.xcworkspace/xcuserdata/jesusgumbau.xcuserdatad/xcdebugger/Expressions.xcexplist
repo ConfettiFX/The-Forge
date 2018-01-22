@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "::-[GameViewController viewDidLoad]():GameViewController.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "_view.bounds">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "loadAllImages():10_MultiThread.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "pSkyBoxImageFileNames">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "acquireNextImage(RendererDesc*, Semaphore*, Fence*):MetalRenderer.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "pRenderer-&gt;ppSwapchainRenderTargets[i]-&gt;mWidth">
+            </PersistentString>
+            <PersistentString
+               value = " render_target-&gt;pColorAttachments[0]">
+            </PersistentString>
+            <PersistentString
+               value = "pRenderer-&gt;ppSwapchainRenderTargets[i]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "addShaderResource(ShaderResource*, unsigned int, DescriptorType, unsigned int, unsigned int, ShaderStage, char**, char*):MetalShaderReflection.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "pResources[idx].name">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "ShaderResourceCmp(ShaderResource*, ShaderResource*):CommonShaderReflection.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "::-[MetalRenderer initWithMetalDevice:renderDestinationProvider:view:](id, id, MTKView *):MetalRenderer.mm">
+      </ContextState>
+      <ContextState
+         contextName = "finishResourceLoading():ResourceLoader.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "pCmds">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "addShaderResource(ShaderResource*, unsigned int, DescriptorType, unsigned int, unsigned int, ShaderStage, char*, char*):MetalShaderReflection.mm">
+      </ContextState>
+      <ContextState
+         contextName = "tinystl::unordered_map&lt;unsigned int, Buffer*, tinystl::allocator&gt;::find(unsigned int const&amp;):unordered_map.h">
+         <PersistentStrings>
+            <PersistentString
+               value = "m_buckets">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "InitCpuUsage():10_MultiThread.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "CpuGraphUpdateBuffer(CpuGraphData*, CpuGraph*, unsigned int):10_MultiThread.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "InitForgeRenderer(WindowsDesc const*):10_MultiThread.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "sizeof(GraphVertex)">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "addDescriptorSet(RendererDesc*, RootSignature*, unsigned int, Descriptor const*, DescriptorSet**):MetalRenderer.mm">
+      </ContextState>
+      <ContextState
+         contextName = "cmdBindStaticDescriptorSet(Cmd*, Pipeline*, DescriptorSet*):MetalRenderer.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "descriptor">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptor[3]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pRootSignature-&gt;pDescriptors[0]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptorSetData[2]">
+            </PersistentString>
+            <PersistentString
+               value = "descriptorSetData-&gt;pName">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptor[0]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pRootSignature-&gt;pDescriptorSetLayouts[0]">
+            </PersistentString>
+            <PersistentString
+               value = "descriptorSetData">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptor[1]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pRootSignature-&gt;pDescriptors[1]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptor[2]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pRootSignature-&gt;pDescriptors[2]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "addRootSignature(RendererDesc*, unsigned int, Shader* const*, RootSignature**):MetalRenderer.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "pRootSignature-&gt;pDescriptors[0]">
+            </PersistentString>
+            <PersistentString
+               value = "descIndex">
+            </PersistentString>
+            <PersistentString
+               value = "pRootSignature-&gt;pDescriptors[1]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "cmdBindDynamicDescriptorSet(Cmd*, RootSignature*, Pipeline*, unsigned int, Descriptor const*, unsigned int):MetalRenderer.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "pDescriptors[0]">
+            </PersistentString>
+            <PersistentString
+               value = "pDescriptors[1]">
+            </PersistentString>
+            <PersistentString
+               value = "pDescriptors[3]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "createShaderReflection(Shader*, unsigned char const*, unsigned int, ShaderStage, ShaderReflection*):MetalShaderReflection.mm">
+         <PersistentStrings>
+            <PersistentString
+               value = "pVertexInputs[i].name">
+            </PersistentString>
+            <PersistentString
+               value = "vertexBufferInfo">
+            </PersistentString>
+            <PersistentString
+               value = "shaderCode">
+            </PersistentString>
+            <PersistentString
+               value = "pCurrentName">
+            </PersistentString>
+            <PersistentString
+               value = "pVariables[i]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "DrawFrame():11_ExecuteIndirect.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "DrawFrame():01_Color.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "DrawFrame():10_MultiThread.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "pCpuData[1]">
+            </PersistentString>
+            <PersistentString
+               value = "pCpuData[2]">
+            </PersistentString>
+            <PersistentString
+               value = "gThreadCount">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "CpuGraphBackGroundUpdate(unsigned int):10_MultiThread.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[7+32]">
+            </PersistentString>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[5+32]">
+            </PersistentString>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[3+32]">
+            </PersistentString>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[1+32]">
+            </PersistentString>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[6+32]">
+            </PersistentString>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[4+32]">
+            </PersistentString>
+            <PersistentString
+               value = "((float*)mBackGroundPoints[frameIdx])[2+32]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "UIRenderer::drawTexturedR8AsAlpha(PrimitiveTopology, TexVertex*, unsigned int, Texture*, Vectormath::Aos::Vector4 const*):UIRenderer.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "params[3].ppSamplers">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "DrawFrame():03_UniformBuffer.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "mvp">
+            </PersistentString>
+            <PersistentString
+               value = "sizeof(mvp)">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "GLOBAL">
+         <PersistentStrings>
+            <PersistentString
+               value = "pSkyBoxTextures">
+            </PersistentString>
+            <PersistentString
+               value = "gResourceThreads[i]">
+            </PersistentString>
+            <PersistentString
+               value = "p_cmd-&gt;selectedViewport">
+            </PersistentString>
+            <PersistentString
+               value = "gAsteroidSim">
+            </PersistentString>
+            <PersistentString
+               value = "pCurrentName">
+            </PersistentString>
+            <PersistentString
+               value = "shaderCode">
+            </PersistentString>
+            <PersistentString
+               value = "indexOffsets[i + 1]">
+            </PersistentString>
+            <PersistentString
+               value = "descriptorSet-&gt;pDescriptor[0]">
+            </PersistentString>
+            <PersistentString
+               value = "descriptorSet-&gt;pDescriptor[1]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptor[0]">
+            </PersistentString>
+            <PersistentString
+               value = "p_descriptor_set-&gt;pDescriptor[1]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "DrawFrame(float):04_ExecuteIndirect.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "ThreadSystem::ProcessItems(void*):ThreadSystem.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "this">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>

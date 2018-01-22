@@ -1,0 +1,54 @@
+﻿Build started 10/9/2014 12:16:14 PM.
+     1>Project "C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\BulletDynamics\BulletDynamics.vcxproj" on node 4 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /I..\..\..\..\Glut /I..\..\..\..\src /I"C:\Program Files (x86)\Visual Leak Detector\include" /Zi /nologo /W3 /WX- /O2 /Ob2 /Oy- /D WIN32 /D NDEBUG /D USE_GRAPHICAL_BENCHMARK /D _IRR_STATIC_LIB_ /D _CRT_SECURE_NO_WARNINGS /D _CRT_SECURE_NO_DEPRECATE /D _SCL_SECURE_NO_WARNINGS /D "CMAKE_INTDIR=\"Release\"" /D _MBCS /Gm- /EHsc /MD /GS /arch:SSE /fp:precise /Zc:wchar_t /Zc:forScope /GR /Fo"BulletDynamics.dir\Release\\" /Fd"..\..\lib\Release/BulletDynamics.pdb" /Gd /TP /analyze- /errorReport:prompt  /Zm1000 /fp:fast ..\..\..\..\src\BulletDynamics\Character\btKinematicCharacterController.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btConeTwistConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btContactConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btGeneric6DofConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btGeneric6DofSpringConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btHinge2Constraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btHingeConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btPoint2PointConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btSequentialImpulseConstraintSolver.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btSliderConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btSolve2LinearConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btTypedConstraint.cpp ..\..\..\..\src\BulletDynamics\ConstraintSolver\btUniversalConstraint.cpp ..\..\..\..\src\BulletDynamics\Dynamics\btContinuousDynamicsWorld.cpp ..\..\..\..\src\BulletDynamics\Dynamics\btDiscreteDynamicsWorld.cpp ..\..\..\..\src\BulletDynamics\Dynamics\btRigidBody.cpp ..\..\..\..\src\BulletDynamics\Dynamics\btSimpleDynamicsWorld.cpp "..\..\..\..\src\BulletDynamics\Dynamics\Bullet-C-API.cpp" ..\..\..\..\src\BulletDynamics\Vehicle\btRaycastVehicle.cpp ..\..\..\..\src\BulletDynamics\Vehicle\btWheelInfo.cpp
+     1>cl : Command line warning D9025: overriding '/fp:precise' with '/fp:fast'
+         btKinematicCharacterController.cpp
+         btConeTwistConstraint.cpp
+         btContactConstraint.cpp
+         btGeneric6DofConstraint.cpp
+         btGeneric6DofSpringConstraint.cpp
+         btHinge2Constraint.cpp
+         btHingeConstraint.cpp
+         btPoint2PointConstraint.cpp
+         btSequentialImpulseConstraintSolver.cpp
+         btSliderConstraint.cpp
+         btSolve2LinearConstraint.cpp
+         btTypedConstraint.cpp
+         btUniversalConstraint.cpp
+         btContinuousDynamicsWorld.cpp
+         btDiscreteDynamicsWorld.cpp
+         btRigidBody.cpp
+         btSimpleDynamicsWorld.cpp
+         Bullet-C-API.cpp
+         btRaycastVehicle.cpp
+         btWheelInfo.cpp
+         Generating Code...
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V110\Microsoft.CppBuild.targets(1299,5): warning MSB8012: TargetPath(C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\BulletDynamics\Release\BulletDynamics.lib) does not match the Library's OutputFile property value (C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\lib\Release\BulletDynamics.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+       Lib:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\Lib.exe /OUT:"..\..\lib\Release\BulletDynamics.lib" /LIBPATH:"C:\Program Files (x86)\Visual Leak Detector\lib\Win32" /NOLOGO BulletDynamics.dir\Release\btKinematicCharacterController.obj
+         BulletDynamics.dir\Release\btConeTwistConstraint.obj
+         BulletDynamics.dir\Release\btContactConstraint.obj
+         BulletDynamics.dir\Release\btGeneric6DofConstraint.obj
+         BulletDynamics.dir\Release\btGeneric6DofSpringConstraint.obj
+         BulletDynamics.dir\Release\btHinge2Constraint.obj
+         BulletDynamics.dir\Release\btHingeConstraint.obj
+         BulletDynamics.dir\Release\btPoint2PointConstraint.obj
+         BulletDynamics.dir\Release\btSequentialImpulseConstraintSolver.obj
+         BulletDynamics.dir\Release\btSliderConstraint.obj
+         BulletDynamics.dir\Release\btSolve2LinearConstraint.obj
+         BulletDynamics.dir\Release\btTypedConstraint.obj
+         BulletDynamics.dir\Release\btUniversalConstraint.obj
+         BulletDynamics.dir\Release\btContinuousDynamicsWorld.obj
+         BulletDynamics.dir\Release\btDiscreteDynamicsWorld.obj
+         BulletDynamics.dir\Release\btRigidBody.obj
+         BulletDynamics.dir\Release\btSimpleDynamicsWorld.obj
+         "BulletDynamics.dir\Release\Bullet-C-API.obj"
+         BulletDynamics.dir\Release\btRaycastVehicle.obj
+         BulletDynamics.dir\Release\btWheelInfo.obj
+         BulletDynamics.vcxproj -> C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\BulletDynamics\Release\BulletDynamics.lib
+     1>Done Building Project "C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\BulletDynamics\BulletDynamics.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:07.83

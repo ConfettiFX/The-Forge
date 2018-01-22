@@ -1,0 +1,10 @@
+﻿Build started 10/9/2014 1:46:47 PM.
+     1>Project "C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\LinearMath\LinearMath.vcxproj" on node 2 (Build target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V110\Microsoft.CppBuild.targets(1299,5): warning MSB8012: TargetPath(C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\LinearMath\Debug\LinearMath.lib) does not match the Library's OutputFile property value (C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\lib\Debug\LinearMath.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+     1>Lib:
+         LinearMath.vcxproj -> C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\LinearMath\Debug\LinearMath.lib
+     1>Done Building Project "C:\Confetti\Common\Physics\bullet-2.77\msvc\2005\src\LinearMath\LinearMath.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.01
