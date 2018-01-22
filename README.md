@@ -43,6 +43,9 @@ https://vulkan.lunarg.com/
 
 3. Tested on iMac with AMD RADEON 560 and 580 GPUs
 
+# Install
+Run PRE_BUILD.bat to download and unzip the art assets.
+
 
 # Unit Tests
 In the moment there are the following unit tests in The Forge:
