@@ -23,7 +23,7 @@ The intended usage of The Forge is to enable developers to quickly build their o
 ## First Release January 22nd, 2018
 
 
-
+  
 # PC Requirements:
 
 1. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with the latest driver ...
