@@ -31,6 +31,10 @@
 *.out
 *.app
 
+# Visual Studio
+**/.vs/
+**/x64/
+
 # Art
 Art/
 
