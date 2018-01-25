@@ -20,8 +20,12 @@ The intended usage of The Forge is to enable developers to quickly build their o
 
 
 # News
-## First Release January 22nd, 2018
+## Release 1.01 - January 25th, 2018
+Mainly improved the performance of the macOS build. macOS is now using the same art assets as the PC and the performance of the triangle filtering compute shader isimproved.
+Reduced the size of the art assets because we only need one version of San Miguel for all platforms now.
 
+## Release 1.0 - January 22nd, 2018
+Very first release.
 
   
 # PC Requirements:
@@ -45,6 +49,7 @@ https://vulkan.lunarg.com/
 
 # Install
 Run PRE_BUILD.bat to download and unzip the art assets.
+
 
 
 # Unit Tests
@@ -100,11 +105,16 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
+## 8. Procedural 
+In the spirit of the shadertoy examples this unit test shows a procedurally generated earth.
+
+![Image of the Procedural Unit test](Screenshots/08_Procedural.PNG)
+
+
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks (e.g. <a href="http://www.conffx.com/Visibility_Buffer_GDCE.pdf" target="_blank">Triangle Visibility Buffer</a>).
 
 ![Image of the Visibility Buffer](Screenshots/Visibility_Buffer.png)
-
 
 
 # Releases / Maintenance
