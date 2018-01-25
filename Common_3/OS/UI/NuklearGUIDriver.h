@@ -50,7 +50,7 @@ struct TextDrawDesc;
 class NuklearGUIDriver
 {
 public:
-	NuklearGUIDriver(const TextDrawDesc* settings);
+	NuklearGUIDriver();
 	~NuklearGUIDriver();
 
 	void load(UIRenderer* renderer, int fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);

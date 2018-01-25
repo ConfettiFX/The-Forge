@@ -29,6 +29,17 @@
 #define CONF_EARLY_DEPTH_STENCIL
 #endif
 
+struct VsInPositionOnly
+{
+    float3 position : POSITION;
+};
+
+struct PsInPositionOnly
+{
+    float4 position : SV_Position;
+};
+
+
 struct VsIn
 {
     float3 position : POSITION;
@@ -37,6 +48,7 @@ struct VsIn
 
 ConstantBuffer<PerFrameConstants> uniforms : register(b0);
 ConstantBuffer<RootConstant> indirectRootConstant : register(b1);
+
 
 struct PsIn
 {
@@ -52,15 +64,21 @@ PsIn VSMain(VsIn In)
     return Out;
 }
 
+
+PsInPositionOnly VSMainPositionOnly(VsInPositionOnly In)
+{
+    PsInPositionOnly Out;
+    Out.position = mul(uniforms.transform[VIEW_SHADOW].mvp, float4(In.position, 1.0f));
+    return Out;
+}
+
 StructuredBuffer<uint> indirectMaterialBuffer : register(t0);
 Texture2D diffuseMaps[] : register(t1);
 SamplerState textureFilter : register(s0);
 
-CONF_EARLY_DEPTH_STENCIL
-void PSMain(PsIn In)
-{}
+#define __XBOX_FORCE_PS_ZORDER_EARLY_Z_THEN_RE_Z
 
-//[earlydepthstencil]
+CONF_EARLY_DEPTH_STENCIL
 void PSMainAlphaTested(PsIn In)
 {
     uint matBaseSlot = BaseMaterialBuffer(true, 0); //1 is camera view, 0 is shadow map view

@@ -25,14 +25,7 @@
 #ifndef Geometry_h
 #define Geometry_h
 
-#ifdef METAL
-// NOTE: Metal version cannot work with old models since it needs the duplicate vertices
-// as it has no index buffer
-#define OLD_MODELS 0
-#else
-// TODO: Remove this switch after the new models are optimized
 #define OLD_MODELS 1
-#endif
 
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/ResourceLoader.h"
@@ -56,18 +49,32 @@ typedef struct SceneVertexPos
     float x,y,z;
 } SceneVertexPos;
 
-typedef struct SceneVertexAttr
+typedef struct SceneVertexTexCoord
 {
 #if defined(METAL)
     float u,v;      // texture coords
-    float nx,ny,nz; // normals
-    float tx,ty,tz; // tangents
 #else
 	uint32_t texCoord;
+#endif
+} SceneVertexTexCoord;
+
+typedef struct SceneVertexNormal
+{
+#if defined(METAL)
+	float nx, ny, nz; // normals
+#else
 	uint32_t normal;
+#endif
+} SceneVertexNormal;
+
+typedef struct SceneVertexTangent
+{
+#if defined(METAL)
+	float tx, ty, tz; // tangents
+#else
 	uint32_t tangent;
 #endif
-} SceneVertexAttr;
+} SceneVertexTangent;
 
 typedef struct Cluster
 {
@@ -76,8 +83,9 @@ typedef struct Cluster
     uint32_t triangleCount;
     uint32_t clusterStart;
     float coneAngleCosine;
-    bool valid;
     uint32_t meshIndex;
+    float distanceFromCamera;
+    bool valid;
 } Cluster;
 
 typedef struct Mesh
@@ -111,14 +119,14 @@ typedef struct Scene
     Mesh* meshes;
     Material* materials;
     tinystl::vector<SceneVertexPos> positions;
-    tinystl::vector<SceneVertexAttr> attributes;
+    tinystl::vector<SceneVertexTexCoord> texCoords;
+	tinystl::vector<SceneVertexNormal> normals;
+	tinystl::vector<SceneVertexTangent> tangents;
     char** textures;
     char** normalMaps;
     char** specularMaps;
     
-#if !defined(METAL)
 	tinystl::vector<uint32_t>			indices;
-#endif
 } Scene;
 
 typedef struct FilterBatchData
@@ -126,6 +134,8 @@ typedef struct FilterBatchData
 #if defined(METAL)
     uint32_t triangleCount;
     uint32_t triangleOffset;
+    uint32_t meshIdx;
+    uint32_t twoSided;
 #else
 	uint meshIndex;         // Index into meshConstants
 	uint indexOffset;       // Index relative to the meshConstants[meshIndex].indexOffset
@@ -144,7 +154,7 @@ typedef struct FilterBatchChunk
     uint32_t currentBatchCount;
     uint32_t currentDrawCallCount;
 #if defined(METAL)
-    Buffer*** batchDataBuffer;         // an array of Buffer*: one per clusters/BATCH_COUNT per mesh (clusters are filtered in batches of size BATCH_COUNT)
+    Buffer* batchDataBuffer; // GPU buffer containing all batch data
 #else
 	struct UniformRingBuffer* pRingBuffer;
 #endif
@@ -156,7 +166,7 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName);
 void removeScene(Scene* scene);
 void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh);
 #if defined(METAL)
-void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, FilterBatchChunk* batchChunk);
+void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
 #else
 void addClusterToBatchChunk(const Cluster* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk);
 #endif

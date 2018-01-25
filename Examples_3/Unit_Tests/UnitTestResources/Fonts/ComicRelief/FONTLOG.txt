@@ -1,0 +1,9 @@
+Comic Relief is a typeface designed to be metrically equivalent to the popular Comic Sans MS. Comic Relief can be used in place of Comic Sans MS without having to move, resize, or reset any part of the copy.
+
+Comic Relief is freely available via loudifier.com/comic-relief as a .ttf, FontForge .sfd project, and as a web-ready @font-face kit. It is copylefted using the SIL Open Font License, so feel free to use it, modify it, or embed it as you see fit.
+
+V1.0 17 JAN 2013
+Initial release. Contains all glyphs necessary to replace Comic Sans MS Regular V5.0.
+
+V1.1 19 NOV 2013
+Bold Variant added. Very minor changes. Highest/lowest points adjusted for better compatibility with Comic Sans MS. Crossbar of lowercase 't' raised slightly.

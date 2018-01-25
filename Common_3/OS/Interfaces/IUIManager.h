@@ -127,7 +127,7 @@ public:
 
 typedef struct TextDrawDesc
 {
-	TextDrawDesc(uint32_t font = 0, uint32_t color = 0xffffffff, float size = 12.0f, float spacing = 0.0f, float blur = 0.0f) :
+	TextDrawDesc(uint32_t font = 0, uint32_t color = 0xffffffff, float size = 15.0f, float spacing = 0.0f, float blur = 0.0f) :
 		mFontID(font), mFontColor(color), mFontSize(size), mFontSpacing(spacing), mFontBlur(blur) {}
 
 	uint32_t mFontID;
@@ -141,21 +141,21 @@ typedef struct GpuProfileDrawDesc
 {
 	float mChildIndent = 25.0f;
 	float mHeightOffset = 25.0f;
-	TextDrawDesc mDefaultGpuTextDrawDesc = TextDrawDesc(0, 0xFF00CCAA, 10);
+	TextDrawDesc mDefaultGpuTextDrawDesc = TextDrawDesc(0, 0xFF00CCAA, 15);
 } GpuProfileDrawDesc;
 
 typedef struct UISettings
 {
 	const char* pDefaultFontName;
 
-	TextDrawDesc mDefaultFrameTimeTextDrawDesc	= TextDrawDesc(0, 0xff00ffff, 10);
-	TextDrawDesc mDefaultTextDrawDesc			= TextDrawDesc(0, 0xffffffff, 10);
+	TextDrawDesc mDefaultFrameTimeTextDrawDesc	= TextDrawDesc(0, 0xff00ffff, 18);
+	TextDrawDesc mDefaultTextDrawDesc			= TextDrawDesc(0, 0xffffffff, 16);
 	GpuProfileDrawDesc mDefaultGpuProfileDrawDesc;
 } UISettings;
 
 typedef struct GuiDesc
 {
-	GuiDesc(const vec2& startPos = { 0.0f, 150.0f }, const vec2& startSize = { 600.0f, 550.0f }, const TextDrawDesc& textDrawDesc = { 0, 0xffffffff, 10 }) :
+	GuiDesc(const vec2& startPos = { 0.0f, 150.0f }, const vec2& startSize = { 600.0f, 550.0f }, const TextDrawDesc& textDrawDesc = { 0, 0xffffffff, 16 }) :
 		mStartPosition(startPos),
 		mStartSize(startSize),
 		mDefaultTextDrawDesc(textDrawDesc)

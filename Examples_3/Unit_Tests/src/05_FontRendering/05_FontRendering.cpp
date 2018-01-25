@@ -83,13 +83,12 @@ LogManager gLogManager;
 /* SCENE VARIABLES
 /************************************************************************/
 struct Fonts
-{
-	int neoSansBold;
-	int comic;
-	int droidSerif;
-	int roboto;
-	int courbd;
-	int veraMono;
+{	// src: https://fontlibrary.org
+	int titilliumBold;
+	int comicRelief;
+	int crimsonSerif;
+	int monoSpace;
+	int monoSpaceBold;
 };
 
 struct TextObject
@@ -192,19 +191,18 @@ void initApp(const WindowsDesc* window)
 	
 	// UI setup
 	UISettings uiSettings = {};
-	uiSettings.pDefaultFontName = "NeoSans-Bold.ttf";
+	uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
 	addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 
 	requestMouseCapture(false);
 
 	// setup scene text
 	UIRenderer* pUIRenderer = pUIManager->pUIRenderer;	// shorthand
-	gFonts.neoSansBold	= pUIRenderer->addFont("NeoSans-Bold.ttf", "NeoSans-Bold");
-	gFonts.comic		= pUIRenderer->addFont("comic.ttf", "comic");
-	gFonts.droidSerif	= pUIRenderer->addFont("DroidSerif-Regular.ttf", "comic");
-	gFonts.roboto		= pUIRenderer->addFont("Roboto-Regular.ttf", "roboto");
-	gFonts.courbd		= pUIRenderer->addFont("courbd.ttf", "courbd");
-	gFonts.veraMono		= pUIRenderer->addFont("veraMono.ttf", "veramono");
+	gFonts.titilliumBold	= pUIRenderer->addFont("TitilliumText/TitilliumText-Bold.ttf", "TitilliumText-Bold");
+	gFonts.comicRelief			= pUIRenderer->addFont("ComicRelief/ComicRelief.ttf", "Comic Relief");
+	gFonts.crimsonSerif		= pUIRenderer->addFont("Crimson/Crimson-Roman.ttf", "Crimson Serif");
+	gFonts.monoSpace		= pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC.ttf", "Inconsolata");
+	gFonts.monoSpaceBold	= pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", "InconsolataBold");
 
 	tinystl::vector<TextObject> sceneTexts;
 	TextDrawDesc drawDescriptor;
@@ -214,7 +212,7 @@ void initApp(const WindowsDesc* window)
 	// TITLE
 	//--------------------------------------------------------------------------
 	drawDescriptor.mFontColor = 0xff000000;	// black : (ABGR)
-	drawDescriptor.mFontID = gFonts.veraMono;
+	drawDescriptor.mFontID = gFonts.monoSpaceBold;
 	drawDescriptor.mFontSize = 50.0f;
 	txt = "Fontstash Font Rendering";
 	sceneTexts.push_back({ txt, drawDescriptor, { width*0.3f, height*0.05f } });
@@ -222,6 +220,7 @@ void initApp(const WindowsDesc* window)
 
 	// FONT SPACING
 	//--------------------------------------------------------------------------
+	drawDescriptor.mFontID = gFonts.monoSpace;
 	drawDescriptor.mFontSpacing = 3.0f;
 	drawDescriptor.mFontSize = 20.0f;
 
@@ -276,7 +275,7 @@ void initApp(const WindowsDesc* window)
 	sceneTexts.push_back({ txt, drawDescriptor,{ width*0.6f, height*0.17f } });
 
 	drawDescriptor.mFontColor = 0xffdd0000;
-	txt = "Font Color: Blue  | 0xffdd000";
+	txt = "Font Color: Blue  | 0xffdd0000";
 	sceneTexts.push_back({ txt, drawDescriptor,{ width*0.6f, height*0.19f } });
 
 	drawDescriptor.mFontColor = 0xff333333;
@@ -288,22 +287,21 @@ void initApp(const WindowsDesc* window)
 	// DIFFERENT FONTS
 	//--------------------------------------------------------------------------
 	const char* alphabetText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789";
-	const char* fontNames[5] = { "NeoSans-Bold", "Roboto", "Droid-Serif", "Comic", "Vera-Mono" };
-	const int   fontIDs[5] = { gFonts.neoSansBold, gFonts.roboto, gFonts.droidSerif, gFonts.comic, gFonts.veraMono };
+	const char* fontNames[] = { "TitilliumText-Bold", "Crimson-Serif", "Comic Relief", "Inconsolata-Mono" };
+	const int   fontIDs[] = { gFonts.titilliumBold, gFonts.crimsonSerif, gFonts.comicRelief, gFonts.monoSpace };
 
 	drawDescriptor.mFontSize = 30.0f;
-	vec2 labelPos    = vec2(width * 0.12f, height * 0.30f);
-	vec2 alphabetPos = vec2(width * 0.25f, height * 0.30f);
+	vec2 labelPos    = vec2(width * 0.18f, height * 0.30f);
+	vec2 alphabetPos = vec2(width * 0.31f, height * 0.30f);
 	vec2 offset = vec2(0, drawDescriptor.mFontSize * 1.8f);
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		// font label
-		drawDescriptor.mFontID = gFonts.neoSansBold;
+		drawDescriptor.mFontID = fontIDs[i];
 		txt = fontNames[i];
 		sceneTexts.push_back({ txt, drawDescriptor, labelPos });
 
 		// alphabet
-		drawDescriptor.mFontID = fontIDs[i];
 		txt = alphabetText;
 		sceneTexts.push_back({ txt, drawDescriptor, alphabetPos });
 
@@ -332,11 +330,11 @@ void initApp(const WindowsDesc* window)
 		u8"you as you accelerate into a tunnel of light."
 	};
 
-	drawDescriptor.mFontSize = 20.5f;
-	drawDescriptor.mFontID = gFonts.droidSerif;
+	drawDescriptor.mFontSize = 30.5f;
+	drawDescriptor.mFontID = gFonts.crimsonSerif;
 	for (int i = 0; i < 11; i++)
 	{
-		sceneTexts.push_back({ string1[i], drawDescriptor, vec2(width * 0.20f, drawDescriptor.mFontSize * 1.1f * float(i) + height * 0.60f) });
+		sceneTexts.push_back({ string1[i], drawDescriptor, vec2(width * 0.20f, drawDescriptor.mFontSize * float(i) + height * 0.55f) });
 	}
 	//--------------------------------------------------------------------------
 	
@@ -404,6 +402,7 @@ void drawFrame(float deltaTime)
 	// draw profiler timings text
 	TextDrawDesc uiTextDesc;	// default
 	uiTextDesc.mFontColor = 0xff444444;
+	uiTextDesc.mFontSize = 18;
 	cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 15.0f), "CPU ", gTimer.GetUSec(true) / 1000.0f, &uiTextDesc);
 	cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f, &uiTextDesc);
 	cmdUIEndRender(cmd, pUIManager);

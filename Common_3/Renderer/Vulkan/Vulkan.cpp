@@ -679,14 +679,14 @@ namespace RENDERER_CPP_NAMESPACE {
   // With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
   DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
   {
-	  tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap->find(Thread::GetCurrentThreadID()).node;
+	  tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
 	  if (pNode == NULL)
 	  {
 		  // Only need a lock when creating a new descriptor manager for this thread
 		  MutexLock lock(gDescriptorMutex);
 		  DescriptorManager* pManager = NULL;
 		  add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-		  pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+		  pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
 		  return pManager;
 	  }
 	  else
@@ -697,7 +697,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
   const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
   {
-	  DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pResName));
+	  DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
 	  if (it.node)
 	  {
 		  *pIndex = it.node->second;
@@ -1243,7 +1243,16 @@ namespace RENDERER_CPP_NAMESPACE {
 	/************************************************************************/
 	void create_default_resources(Renderer* pRenderer)
 	{
-		TextureDesc textureDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+		TextureDesc textureDesc = {};
+		textureDesc.mArraySize = 1;
+		textureDesc.mDepth = 1;
+		textureDesc.mFormat = ImageFormat::R8;
+		textureDesc.mHeight = 2;
+		textureDesc.mMipLevels = 1;
+		textureDesc.mSampleCount = SAMPLE_COUNT_1;
+		textureDesc.mStartState = RESOURCE_STATE_COMMON;
+		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS;
+		textureDesc.mWidth = 2;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture);
 
 		BufferDesc bufferDesc = {};
@@ -2491,8 +2500,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		tinystl::vector<ShaderResource const*> shaderResources;
 		const RootSignatureDesc* pRootSignatureDesc = pRootDesc ? pRootDesc : &gDefaultRootSignatureDesc;
 
-		void* pData = conf_calloc(1, sizeof(tinystl::unordered_map<uint32_t, uint32_t>));
-		pRootSignature->pDescriptorNameToIndexMap = conf_placement_new<tinystl::unordered_map<uint32_t,uint32_t> >(pData);
+		conf_placement_new<tinystl::unordered_map<uint32_t,uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
 
 		// Collect all unique shader resources in the given shaders
 		// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -2513,9 +2521,9 @@ namespace RENDERER_CPP_NAMESPACE {
 				if (pRes->type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 					setIndex = 0;
 
-				if (pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pRes->name)).node == 0)
+				if (pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node == 0)
 				{
-					pRootSignature->pDescriptorNameToIndexMap->insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
 					shaderResources.emplace_back(pRes);
 				}
 			}
@@ -2707,24 +2715,23 @@ namespace RENDERER_CPP_NAMESPACE {
 		/************************************************************************/
 		/************************************************************************/
 
-		pRootSignature->pDescriptorManagerMap = conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(conf_calloc(1, sizeof(RootSignature::ThreadLocalDescriptorManager)));
+		conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(&pRootSignature->pDescriptorManagerMap);
 		// Create descriptor manager for this thread
 		DescriptorManager* pManager = NULL;
 		add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-		pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+		pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
 
 		*ppRootSignature = pRootSignature;
 	}
 
 	void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	{
-		for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : *pRootSignature->pDescriptorManagerMap)
+		for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : pRootSignature->pDescriptorManagerMap)
 		{
 			remove_descriptor_manager(pRenderer, pRootSignature, it.second);
 		}
 
-		pRootSignature->pDescriptorManagerMap->~unordered_map();
-		conf_free(pRootSignature->pDescriptorManagerMap);
+		pRootSignature->pDescriptorManagerMap.~unordered_map();
 
 		vkDestroyPipelineLayout(pRenderer->pDevice, pRootSignature->pPipelineLayout, NULL);
 
@@ -2747,8 +2754,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pRootSignature->pRootDescriptorLayouts);
 
 		// Need delete since the destructor frees allocated memory
-		pRootSignature->pDescriptorNameToIndexMap->~unordered_map();
-		conf_free(pRootSignature->pDescriptorNameToIndexMap);
+		pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
 		SAFE_FREE(pRootSignature);
 	}

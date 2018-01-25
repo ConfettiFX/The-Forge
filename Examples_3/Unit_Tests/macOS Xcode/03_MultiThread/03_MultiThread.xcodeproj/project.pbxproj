@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
 		C91D461F1FD9976400564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461E1FD9976400564C8B /* MemoryTrackingManager.cpp */; };
-		C91D462F1FD9A1E900564C8B /* Vulkan.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D462E1FD9A1E900564C8B /* Vulkan.cpp */; };
 		C92C9B041FD9424C00CB09C8 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C92C9B021FD9424C00CB09C8 /* Fontstash.cpp */; };
 		C9DF3AF22006771C000D674E /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DF3AF12006771B000D674E /* macOSFileSystem.mm */; };
 		D237137F1FA0A51E000977BE /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D237137E1FA0A51E000977BE /* FileSystem.cpp */; };
@@ -51,7 +50,6 @@
 /* Begin PBXFileReference section */
 		5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../../../../Common_3/Renderer/ResourceLoader.cpp; sourceTree = SOURCE_ROOT; };
 		C91D461E1FD9976400564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
-		C91D462E1FD9A1E900564C8B /* Vulkan.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Vulkan.cpp; path = Vulkan/Vulkan.cpp; sourceTree = "<group>"; };
 		C92C9B021FD9424C00CB09C8 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Fontstash.cpp; sourceTree = "<group>"; };
 		C92C9B031FD9424C00CB09C8 /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Fontstash.h; sourceTree = "<group>"; };
 		C960AF382003F31C0007B156 /* float4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float4.h; path = Math/float4.h; sourceTree = "<group>"; };
@@ -264,7 +262,6 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
-				C91D462E1FD9A1E900564C8B /* Vulkan.cpp */,
 				D274C0CC1F71824A000D55E8 /* CommonShaderReflection.cpp */,
 				D274C0CE1F71824B000D55E8 /* GpuProfiler.cpp */,
 				D274C0CD1F71824B000D55E8 /* MetalShaderReflection.mm */,
@@ -437,7 +434,6 @@
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
 				D274C0CF1F71824B000D55E8 /* CommonShaderReflection.cpp in Sources */,
-				C91D462F1FD9A1E900564C8B /* Vulkan.cpp in Sources */,
 				D274C0D01F71824B000D55E8 /* MetalShaderReflection.mm in Sources */,
 				C92C9B041FD9424C00CB09C8 /* Fontstash.cpp in Sources */,
 				EA463D121EF94A1E005AC8C7 /* NuklearGUIDriver.cpp in Sources */,
@@ -577,7 +573,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/Build/$(PROJECT_NAME)";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
@@ -600,7 +596,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/Build/$(PROJECT_NAME)";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				GCC_PREPROCESSOR_DEFINITIONS = METAL;
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

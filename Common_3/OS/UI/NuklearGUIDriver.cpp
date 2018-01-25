@@ -75,7 +75,6 @@ public:
 
 	UIRenderer* renderer;
 	Fontstash* fontstash;
-	//TextDrawDesc settings;
 	int fontID;
 	
 	float width;
@@ -107,14 +106,12 @@ static float font_get_width(nk_handle handle, float h, const char *text, int len
 	return width;
 }
 
-NuklearGUIDriver::NuklearGUIDriver(const TextDrawDesc* settings)
+NuklearGUIDriver::NuklearGUIDriver()
 {
-  UNREF_PARAM(settings);
 	impl = conf_placement_new<_Impl_NuklearGUIDriver>(conf_calloc(1, sizeof(_Impl_NuklearGUIDriver)));
 	impl->inputInstructionCount = 0;
-	impl->fontCalibrationOffset = 2.0f;
+	impl->fontCalibrationOffset = 0.0f;
 	impl->currentFontStackPos = 0;
-	//impl->settings = *settings;
 }
 
 NuklearGUIDriver::~NuklearGUIDriver()

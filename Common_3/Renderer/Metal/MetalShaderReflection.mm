@@ -317,7 +317,7 @@ bool isInputVertexBuffer(const BufferInfo& bufferInfo, ShaderStage shaderStage)
 void addShaderResource(ShaderResource* pResources, uint32_t idx, DescriptorType type, uint32_t bindingPoint, uint32_t sizeInBytes, ShaderStage shaderStage, char** ppCurrentName, char* name)
 {
     pResources[idx].type = type;
-    pResources[idx].set = DESCRIPTOR_UPDATE_FREQ_NONE;  // TODO: set appropriate frequency
+    pResources[idx].set = DESCRIPTOR_UPDATE_FREQ_NONE;
     pResources[idx].reg = bindingPoint;
     pResources[idx].size = sizeInBytes;
     pResources[idx].used_stages = shaderStage;
@@ -400,7 +400,6 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         renderPipelineDesc.vertexFunction = shader->mtlVertexShader;
         renderPipelineDesc.fragmentFunction = shader->mtlFragmentShader;
         
-        // TODO: Fix this value from the swapchain this pipeline is gonna be build for.
         for(uint i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; i++)
         {
             renderPipelineDesc.colorAttachments[i].pixelFormat = MTLPixelFormatBGRA8Unorm;

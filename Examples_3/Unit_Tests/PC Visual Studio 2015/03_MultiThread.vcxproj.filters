@@ -20,24 +20,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\03_MultiThread\PCVulkan\Graph.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\PCVulkan\Graph.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\PCVulkan\Skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\PCVulkan\Skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\PCVulkan\Particle.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\PCVulkan\Particle.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
     <None Include="..\src\03_MultiThread\PCDX12\Particle.hlsl">
       <Filter>Shaders\PCDX12</Filter>
     </None>
@@ -47,5 +29,25 @@
     <None Include="..\src\03_MultiThread\PCDX12\Skybox.hlsl">
       <Filter>Shaders\PCDX12</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Graph.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Graph.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Particle.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Particle.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
