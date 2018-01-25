@@ -25,7 +25,7 @@ Mainly improved the performance of the macOS build. macOS is now using the same 
 Reduced the size of the art assets because we only need one version of San Miguel for all platforms now.
 
 ## Release 1.0 - January 22nd, 2018
-
+Very first release.
 
   
 # PC Requirements:
