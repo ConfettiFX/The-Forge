@@ -872,14 +872,14 @@ namespace RENDERER_CPP_NAMESPACE {
 	// With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
 	DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
 	{
-		tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap->find(Thread::GetCurrentThreadID()).node;
+		tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
 		if (pNode == NULL)
 		{
 			// Only need a lock when creating a new descriptor manager for this thread
 			MutexLock lock(gDescriptorMutex);
 			DescriptorManager* pManager = NULL;
 			add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-			pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+			pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
 			return pManager;
 		}
 		else
@@ -890,7 +890,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
 	{
-		DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pResName));
+		DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
 		if (it.node)
 		{
 			*pIndex = it.node->second;
@@ -1057,22 +1057,33 @@ namespace RENDERER_CPP_NAMESPACE {
 				}
 				break;
 			case DESCRIPTOR_TYPE_TEXTURE:
+			{
 				if (!pParam->ppTextures)
 				{
 					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
+				D3D12_CPU_DESCRIPTOR_HANDLE* handlePtr = &pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex];
+				Texture** ppTextures = pParam->ppTextures;
 				for (uint32_t j = 0; j < pParam->mCount; ++j)
 				{
-					if (!pParam->ppBuffers[j])
+#ifdef _DEBUG
+					if (!pParam->ppTextures[j])
 					{
 						LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
-					pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[j]->mTextureId, 1, pHash[setIndex]);
-					pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppTextures[j]->mDxSrvHandle;
+#endif
+
+					//if (j < pParam->mCount - 1)
+					//	_mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
+					Texture* tex = ppTextures[j];
+					pHash[setIndex] = tinystl::hash_state(&tex->mTextureId, 1, pHash[setIndex]);
+					handlePtr[j] = tex->mDxSrvHandle;
+					//pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = tex->mDxSrvHandle;
 				}
 				break;
+			}
 			case DESCRIPTOR_TYPE_RW_TEXTURE:
 				if (!pParam->ppTextures)
 				{
@@ -1092,7 +1103,7 @@ namespace RENDERER_CPP_NAMESPACE {
 					TextureBarrier textureBarriers[] = {
 						{ pParam->ppTextures[j], RESOURCE_STATE_UNORDERED_ACCESS }
 					};
-					cmdResourceBarrier(pCmd, 0, NULL, 1, textureBarriers, false);
+					cmdResourceBarrier(pCmd, 0, NULL, 1, textureBarriers, true);
 #endif
 				}
 				break;
@@ -1122,7 +1133,7 @@ namespace RENDERER_CPP_NAMESPACE {
 					BufferBarrier bufferBarriers[] = {
 						{ pParam->ppBuffers[j], state }
 					};
-					cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, false);
+					cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, true);
 #endif
 				}
 				break;
@@ -1145,7 +1156,7 @@ namespace RENDERER_CPP_NAMESPACE {
 					BufferBarrier bufferBarriers[] = {
 						{ pParam->ppBuffers[j], RESOURCE_STATE_UNORDERED_ACCESS }
 					};
-					cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, false);
+					cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, true);
 #endif
 				}
 				break;
@@ -1170,6 +1181,11 @@ namespace RENDERER_CPP_NAMESPACE {
 				break;
 			}
 		}
+		
+#ifdef _DURANGO
+		cmdFlushBarriers(pCmd);
+#endif
+
 
 		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 		{
@@ -2330,7 +2346,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT)
 				mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT;
 			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
-				mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_BIT;
+				mem_reqs.flags |= (RESOURCE_MEMORY_REQUIREMENT_SHARED_BIT | RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT);
 			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT)
 				mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_ADAPTER_BIT;
 
@@ -2844,6 +2860,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				if (fnHookShaderCompileFlags != NULL)
 					fnHookShaderCompileFlags(compile_flags);
 
+
 				ID3DBlob* error_msgs = NULL;
 				HRESULT hres = D3DCompile2(pStage->mCode.c_str(), pStage->mCode.size(), pStage->mName.c_str(),
 					macros, D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -3031,9 +3048,9 @@ namespace RENDERER_CPP_NAMESPACE {
 		bool useInputLayout = false;
 		const RootSignatureDesc* pRootSignatureDesc = pRootDesc ? pRootDesc : &gDefaultRootSignatureDesc;
 
-		pRootSignature->pDescriptorNameToIndexMap = conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(
-			conf_calloc(1, sizeof(tinystl::unordered_map<uint32_t, uint32_t>))
-			);
+		//pRootSignature->pDescriptorNameToIndexMap;
+		conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(
+			&pRootSignature->pDescriptorNameToIndexMap);
 
 		// Collect all unique shader resources in the given shaders
 		// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -3067,10 +3084,10 @@ namespace RENDERER_CPP_NAMESPACE {
 					setIndex = 0;
 
 				// Find all unique resources
-				tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pRes->name)).node;
+				tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
 				if (!pNode)
 				{
-					pRootSignature->pDescriptorNameToIndexMap->insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
 					shaderResources.push_back(*pRes);
 
 					uint32_t constantSize = 0;
@@ -3493,24 +3510,23 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		SAFE_RELEASE (error_msgs);
 
-		pRootSignature->pDescriptorManagerMap = conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(conf_calloc(1, sizeof(RootSignature::ThreadLocalDescriptorManager)));
+		conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(&pRootSignature->pDescriptorManagerMap);
 		// Create descriptor manager for this thread
 		DescriptorManager* pManager = NULL;
 		add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-		pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+		pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
 
 		*ppRootSignature = pRootSignature;
 	}
 
 	void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	{
-		for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : *pRootSignature->pDescriptorManagerMap)
+		for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : pRootSignature->pDescriptorManagerMap)
 		{
 			remove_descriptor_manager(pRenderer, pRootSignature, it.second);
 		}
 
-		pRootSignature->pDescriptorManagerMap->~unordered_map();
-		conf_free(pRootSignature->pDescriptorManagerMap);
+		pRootSignature->pDescriptorManagerMap.~unordered_map();
 
 		SAFE_RELEASE(pRootSignature->pDxRootSignature);
 		SAFE_RELEASE(pRootSignature->pDxSerializedRootSignatureString);
@@ -3528,8 +3544,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			SAFE_FREE((void*)pRootSignature->pDescriptors[i].mDesc.name);
 		}
 
-		pRootSignature->pDescriptorNameToIndexMap->~unordered_map();
-		conf_free(pRootSignature->pDescriptorNameToIndexMap);
+		pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
 		SAFE_FREE(pRootSignature->pDescriptors);
 		SAFE_FREE(pRootSignature->pViewTableLayouts);
@@ -4029,7 +4044,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		//set new viewport
 		ASSERT(pCmd->pDxCmdList);
 
-		DECLARE_ZERO(D3D12_VIEWPORT, viewport);
+		D3D12_VIEWPORT viewport;
 		viewport.TopLeftX = x;
 		viewport.TopLeftY = y;
 		viewport.Width = width;
@@ -4047,7 +4062,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		//set new scissor values
 		ASSERT(pCmd->pDxCmdList);
 
-		DECLARE_ZERO(D3D12_RECT, scissor);
+		D3D12_RECT scissor;
 		scissor.left = x;
 		scissor.top = y;
 		scissor.right = x + width;
@@ -5041,29 +5056,27 @@ namespace RENDERER_CPP_NAMESPACE {
 
 #ifdef _DURANGO
 		// Create the DX12 API device object.
-		ComPtr<ID3D12Device> d3dDevice;
 		HRESULT hres = D3D12CreateDevice(
 			nullptr,
 			feature_levels[0],
-			IID_ARGS(d3dDevice.ReleaseAndGetAddressOf())
+			IID_ARGS(&pRenderer->pDevice)
 		);
 		ASSERT(SUCCEEDED(hres));
 
 		// First, retrieve the underlying DXGI device from the D3D device.
-		ComPtr<IDXGIDevice1> dxgiDevice;
-		hres = d3dDevice.As(&dxgiDevice);
+		IDXGIDevice1* dxgiDevice;
+		hres = pRenderer->pDevice->QueryInterface(IID_ARGS(&dxgiDevice));
 		ASSERT(SUCCEEDED(hres));
 		
 		// Identify the physical adapter (GPU or card) this device is running on.
-		ComPtr<IDXGIAdapter> dxgiAdapter;
-		hres = dxgiDevice->GetAdapter(dxgiAdapter.GetAddressOf());
+		IDXGIAdapter* dxgiAdapter;
+		hres = dxgiDevice->GetAdapter(&dxgiAdapter);
 		ASSERT(SUCCEEDED(hres));
 
 		// And obtain the factory object that created it.
 		hres = dxgiAdapter->GetParent(IID_ARGS(&pRenderer->pDXGIFactory));
 		ASSERT(SUCCEEDED(hres));
-
-		pRenderer->mNumOfGPUs = 1;
+		
 		typedef struct GpuDesc
 		{
 			IDXGIAdapter* pGpu = NULL;
@@ -5071,11 +5084,11 @@ namespace RENDERER_CPP_NAMESPACE {
 		} GpuDesc;
 
 		GpuDesc gpuDesc[MAX_GPUS] = {};
-		gpuDesc->pGpu = dxgiAdapter.Detach();
+		dxgiAdapter->QueryInterface(IID_ARGS(&gpuDesc->pGpu));
 		gpuDesc->mMaxSupportedFeatureLevel = feature_levels[0];
+		pRenderer->mNumOfGPUs = 1;
 
-		pRenderer->pDevice = d3dDevice.Detach();		
-
+		dxgiAdapter->Release();
 #else
 		UINT flags = 0;
 #if defined( _DEBUG )
@@ -5093,7 +5106,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		GpuDesc gpuDesc[MAX_GPUS] = {};
 
 		IDXGIAdapter3* adapter = NULL;
-		for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1 (i, (IDXGIAdapter1**)&adapter); ++i) {
+		for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i) {
 			DECLARE_ZERO (DXGI_ADAPTER_DESC1, desc);
 			adapter->GetDesc1 (&desc);
 
@@ -5102,8 +5115,8 @@ namespace RENDERER_CPP_NAMESPACE {
 				for (uint32_t level = 0; level < _countof (feature_levels); ++level)
 				{
 					// Make sure the adapter can support a D3D12 device
-					if (SUCCEEDED (D3D12CreateDevice (adapter, feature_levels[level], __uuidof(pRenderer->pDevice), NULL))) {
-						hres = adapter->QueryInterface (IID_ARGS(&gpuDesc[pRenderer->mNumOfGPUs].pGpu));
+					if (SUCCEEDED (D3D12CreateDevice(adapter, feature_levels[level], __uuidof(pRenderer->pDevice), NULL))) {
+						hres = adapter->QueryInterface(IID_ARGS(&gpuDesc[pRenderer->mNumOfGPUs].pGpu));
 						if (SUCCEEDED (hres)) {
 							gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = feature_levels[level];
 							++pRenderer->mNumOfGPUs;
@@ -5113,12 +5126,12 @@ namespace RENDERER_CPP_NAMESPACE {
 				}
 			}
 
-			adapter->Release ();
+			adapter->Release();
 		}
 
 		ASSERT (pRenderer->mNumOfGPUs > 0);
 		// Sort GPUs to get highest feature level gpu at front
-		qsort (gpuDesc, pRenderer->mNumOfGPUs, sizeof (GpuDesc), [](const void* lhs, const void* rhs) {
+		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof (GpuDesc), [](const void* lhs, const void* rhs) {
 			GpuDesc* gpu1 = (GpuDesc*)lhs;
 			GpuDesc* gpu2 = (GpuDesc*)rhs;
 			return (int)gpu1->mMaxSupportedFeatureLevel - (int)gpu2->mMaxSupportedFeatureLevel;
@@ -5165,7 +5178,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 
 #ifndef _DURANGO
-		hres = D3D12CreateDevice (pRenderer->pActiveGPU, gpuDesc[0].mMaxSupportedFeatureLevel, __uuidof(pRenderer->pDevice), (void**)(&pRenderer->pDevice));
+		hres = D3D12CreateDevice(pRenderer->pActiveGPU, gpuDesc[0].mMaxSupportedFeatureLevel, IID_ARGS(&pRenderer->pDevice));
 		ASSERT (SUCCEEDED (hres));
 #endif
 

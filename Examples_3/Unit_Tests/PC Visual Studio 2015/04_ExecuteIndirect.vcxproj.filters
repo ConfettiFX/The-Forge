@@ -46,27 +46,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\basic.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\basic.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\ComputeUpdate.comp">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
     <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.hlsl">
       <Filter>Shaders\PCDX12</Filter>
     </None>
@@ -79,5 +58,14 @@
     <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.hlsl">
       <Filter>Shaders\PCDX12</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.frag" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.vert" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ComputeUpdate.comp" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.frag" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.vert" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.frag" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.vert" />
   </ItemGroup>
 </Project>

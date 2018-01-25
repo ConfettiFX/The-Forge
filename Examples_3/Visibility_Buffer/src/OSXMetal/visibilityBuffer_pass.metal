@@ -33,8 +33,6 @@ struct PackedVertexPosData {
 
 struct PackedVertexAttrData {
     packed_float2 texCoord;
-    packed_float3 normal;
-    packed_float3 tangent;
 };
 
 struct VSOutput {

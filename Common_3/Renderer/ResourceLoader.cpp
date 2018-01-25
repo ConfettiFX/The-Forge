@@ -312,20 +312,26 @@ static void upload_texture_data(TextureLoadDesc* pTextureFileDesc, const Image& 
 	else if (img.IsCube())
 		textureType = TEXTURE_TYPE_CUBE;
 
-	TextureDesc desc = {
-		textureType,
-		TEXTURE_CREATION_FLAG_NONE,
-		img.GetWidth(), img.GetHeight(), img.GetDepth(),
-		0, img.GetArrayCount(),
-		0, img.GetMipMapCount(),
-		SAMPLE_COUNT_1, 0,
-		img.getFormat(),
-		ClearValue(),
-		false,
-		TEXTURE_USAGE_SAMPLED_IMAGE,
-		RESOURCE_STATE_COMMON,
-		NULL,
-		pTextureFileDesc->mSrgb };
+	TextureDesc desc = { };
+	desc.mType = textureType;
+	desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
+	desc.mWidth = img.GetWidth();
+	desc.mHeight = img.GetHeight();
+	desc.mDepth = img.GetDepth();
+	desc.mBaseArrayLayer = 0;
+	desc.mArraySize = img.GetArrayCount();
+	desc.mBaseMipLevel = 0;
+	desc.mMipLevels = img.GetMipMapCount();
+	desc.mSampleCount = SAMPLE_COUNT_1;
+	desc.mSampleQuality = 0;
+	desc.mFormat = img.getFormat();
+	desc.mClearValue = ClearValue();
+	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+	desc.mStartState = RESOURCE_STATE_COMMON;
+	desc.pNativeHandle = NULL;
+	desc.mSrgb = pTextureFileDesc->mSrgb;
+	desc.mHostVisible = false;
+
 	addTexture(pLoader->pRenderer, &desc, pTextureFileDesc->ppTexture);
 	Texture* pTexture = *pTextureFileDesc->ppTexture;
 	ASSERT(pTexture);

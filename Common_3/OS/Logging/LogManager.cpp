@@ -22,8 +22,6 @@
  * under the License.
 */
 
-#include <ctime>
-
 #include "LogManager.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IFileSystem.h"

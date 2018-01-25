@@ -23,15 +23,7 @@
 */
 
 #pragma once
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 Confetti Special Effects Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Special Effects Inc.
-//
-//--------------------------------------------------------------------------------------------
+
 #include <new>
 
 void* m_allocator(size_t size);

@@ -108,9 +108,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IUIManager.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\hash.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h">
       <Filter>OS\Core</Filter>
     </ClInclude>

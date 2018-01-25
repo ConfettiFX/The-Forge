@@ -54,6 +54,8 @@ struct BatchData
 {
     uint triangleCount;
     uint triangleOffset;
+    uint drawId;
+    uint twoSided;
 };
 
 struct PerFrameUniforms {
@@ -66,11 +68,6 @@ struct PerFrameUniforms {
     packed_float2 shadowMapSize;
     float4x4 lightMVP;
     packed_float3 normalizedDirToLight;
-};
-
-struct PerBatchUniforms {
-    uint drawId;  // used to idendify the batch from the shader
-    uint twoSided;  // possible values: 0/1
 };
 
 // This is the struct Metal uses to specify an indirect draw call.
@@ -226,17 +223,18 @@ kernel void CSMain(uint inGroupId [[thread_position_in_threadgroup]],
                    constant BatchData* perBatch [[buffer(1)]],
                    device uint* filteredTrianglesCamera [[buffer(2)]],
                    device uint* filteredTrianglesShadow [[buffer(3)]],
-                   constant PerBatchUniforms& perMeshUniforms [[buffer(4)]],
-                   device IndirectDrawArguments* indirectDrawArgsCamera [[buffer(5)]],
-                   device IndirectDrawArguments* indirectDrawArgsShadow [[buffer(6)]],
-                   constant PerFrameConstants& uniforms [[buffer(7)]])
+                   device IndirectDrawArguments* indirectDrawArgsCamera [[buffer(4)]],
+                   device IndirectDrawArguments* indirectDrawArgsShadow [[buffer(5)]],
+                   constant PerFrameConstants& uniforms [[buffer(6)]])
 {
-    // Starting triangle to start reading triangles from
-    uint inputTriangleOffset = perBatch[groupId].triangleOffset;
-    
     // Don't run anything if we run out of triangles
     if (inGroupId >= perBatch[groupId].triangleCount)
         return;
+    
+    // Starting triangle to start reading triangles from
+    uint inputTriangleOffset = perBatch[groupId].triangleOffset;
+    uint drawId = perBatch[groupId].drawId;
+    uint twoSided = perBatch[groupId].twoSided;
     
     uint triangleIdGlobal = inGroupId + inputTriangleOffset;
     
@@ -249,7 +247,7 @@ kernel void CSMain(uint inGroupId [[thread_position_in_threadgroup]],
     SceneVertexPos v2 = vertexPos[vertexIdGlobal+2];
     
     // Perform culling on all the views
-    DoViewCulling(triangleIdGlobal, v0.position, v1.position, v2.position, uniforms.transform[VIEW_CAMERA].mvp, uniforms.cullingViewports[VIEW_CAMERA].windowSize, perMeshUniforms.drawId, perMeshUniforms.twoSided, indirectDrawArgsCamera, filteredTrianglesCamera);
-    DoViewCulling(triangleIdGlobal, v0.position, v1.position, v2.position, uniforms.transform[VIEW_SHADOW].mvp, uniforms.cullingViewports[VIEW_SHADOW].windowSize, perMeshUniforms.drawId, perMeshUniforms.twoSided, indirectDrawArgsShadow, filteredTrianglesShadow);
+    DoViewCulling(triangleIdGlobal, v0.position, v1.position, v2.position, uniforms.transform[VIEW_CAMERA].mvp, uniforms.cullingViewports[VIEW_CAMERA].windowSize, drawId, twoSided, indirectDrawArgsCamera, filteredTrianglesCamera);
+    DoViewCulling(triangleIdGlobal, v0.position, v1.position, v2.position, uniforms.transform[VIEW_SHADOW].mvp, uniforms.cullingViewports[VIEW_SHADOW].windowSize, drawId, twoSided, indirectDrawArgsShadow, filteredTrianglesShadow);
 }
 

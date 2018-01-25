@@ -31,9 +31,15 @@ struct PackedVertexPosData {
     packed_float3 position;
 };
 
-struct PackedVertexAttrData {
+struct PackedVertexTexcoord {
     packed_float2 texCoord;
+};
+
+struct PackedVertexNormal {
     packed_float3 normal;
+};
+
+struct PackedVertexTangent {
     packed_float3 tangent;
 };
 
@@ -64,7 +70,9 @@ vertex VSOutput VSMain(constant PackedVertexPosData* vertexPos [[buffer(0)]],
                        constant uint* filteredTriangles [[buffer(2)]],
                        constant PerBatchUniforms& perBatch [[buffer(3)]],
                        constant IndirectDrawArguments* indirectDrawArgs [[buffer(4)]],
-                       constant PackedVertexAttrData* vertexAttrs [[buffer(5)]],
+                       constant PackedVertexTexcoord* vertexTexcoord [[buffer(5)]],
+                       constant PackedVertexNormal* vertexNormal [[buffer(6)]],
+                       constant PackedVertexTangent* vertexTangent [[buffer(7)]],
                        uint vertexId [[vertex_id]])
 {
     // Get the indirect draw arguments data for this batch
@@ -84,14 +92,16 @@ vertex VSOutput VSMain(constant PackedVertexPosData* vertexPos [[buffer(0)]],
     
     // Load vertex data from vertex bfufer using global vertexId
     PackedVertexPosData vertPos = vertexPos[vId];
-    PackedVertexAttrData vertexAttr = vertexAttrs[vId];
+    PackedVertexTexcoord vertTexcoord = vertexTexcoord[vId];
+    PackedVertexNormal vertNormal = vertexNormal[vId];
+    PackedVertexTangent vertTangent = vertexTangent[vId];
     
     // Output data to the pixel shader
 	VSOutput result;
     result.position = uniforms.transform[VIEW_CAMERA].mvp * float4(vertPos.position,1);
-    result.texCoord = vertexAttr.texCoord;
-    result.normal = vertexAttr.normal; // TODO: multiply by normal matrix
-    result.tangent = vertexAttr.tangent;   // TODO: multiply by normal matrix
+    result.texCoord = vertTexcoord.texCoord;
+    result.normal = vertNormal.normal; // TODO: multiply by normal matrix
+    result.tangent = vertTangent.tangent;   // TODO: multiply by normal matrix
     result.twoSided = perBatch.twoSided;
 	return result;
 }

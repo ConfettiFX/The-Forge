@@ -154,8 +154,8 @@ const char* pszRoots[] =
 {
 	"../../../src/07_Tessellation/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
 	"../../../src/07_Tessellation/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"../../../src/00_Common/" RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
-	"../../../src/00_Common/" RESOURCE_DIR "/",					// FSR_SrcShaders_Common
+	"",															// FSR_BinShaders_Common
+	"",															// FSR_SrcShaders_Common
 	"../../../UnitTestResources/Textures/",						// FSR_Textures
 	"../../../UnitTestResources/Meshes/",						// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
@@ -665,7 +665,7 @@ void initApp(const WindowsDesc* window)
 #endif
 
 	UISettings uiSettings = {};
-	uiSettings.pDefaultFontName = "NeoSans-Bold.ttf";
+	uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
 
 	addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 

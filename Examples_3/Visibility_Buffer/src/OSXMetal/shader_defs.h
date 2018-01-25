@@ -40,9 +40,8 @@
 #define CLUSTER_SIZE 256
 
 // BATCH_COUNT limits the amount of triangle batches we can process on the GPU.
-// It depends on the amoutnt of data we need to store in the constant buffers, since
-// the max constant buffer size is 64KB - sizeof(SmallBatchData) * 2048 = 64KB
-#define BATCH_COUNT 2048
+// It should be enough to fit all triangles in the scene.
+#define BATCH_COUNT 32768
 
 // This defines the amount of viewports that are going to be culled in parallel.
 #define NUM_CULLING_VIEWPORTS 2
