@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace
    version = "1.0">
-   <Group
-      location = "container:"
-      name = "00_Common">
-      <FileRef
-         location = "group:../src/00_Common/OSXMetal">
-      </FileRef>
-   </Group>
    <FileRef
       location = "group:01_Transformations/01_Transformations.xcodeproj">
    </FileRef>
@@ -25,5 +18,11 @@
    </FileRef>
    <FileRef
       location = "group:06_BRDF/06_BRDF.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:07_Tessellation/07_Tessellation.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:08_Procedural/08_Procedural.xcodeproj">
    </FileRef>
 </Workspace>

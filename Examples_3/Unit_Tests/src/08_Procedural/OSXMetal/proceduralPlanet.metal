@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include <metal_stdlib>
+using namespace metal;
 
 struct Light
 {
@@ -31,76 +33,73 @@ struct Light
 	float intensity;
 };
 
-static const float PI = 3.14159265359;
+static constant float PI = 3.14159265359;
 
-cbuffer cbCamera : register(b0) {
-	float4x4 projView;
-	float3 camPos;
-	float pad_0;
-}
+struct CameraData
+{
+    float4x4 projView;
+    float3 camPos;
+    float pad_0;
+};
 
-cbuffer cbObject : register(b1) {
-	float4x4 worldMat;
-	float4x4 invWorldMat;
+struct ObjectData
+{
+    float4x4 worldMat;
+    float4x4 invWorldMat;
+    
+    float4 u_OceanColor;
+    float4 u_ShorelineColor;
+    float4 u_FoliageColor;
+    float4 u_MountainsColor;
+    
+    float4 u_SnowColor;
+    float4 u_PolarCapsColor;
+    float4 u_AtmosphereColor;
+    float4 u_HeightsInfo; // x : Ocean, y : Shore, z : Snow, w : Polar
+    
+    float4 u_TimeInfo; //time, controls.Noise4D, controls.TerrainExp, controls.TerrainSeed * 39.0
+};
 
-	float4 u_OceanColor;
-	float4 u_ShorelineColor;
-	float4 u_FoliageColor;
-	float4 u_MountainsColor;
+struct LightData
+{
+    int currAmountOflights;
+    int pad0;
+    int pad1;
+    int pad2;
+    array<Light, 16> lights;
+};
 
-	float4 u_SnowColor;
-	float4 u_PolarCapsColor;
-	float4 u_AtmosphereColor;
-	float4 u_HeightsInfo; // x : Ocean, y : Shore, z : Snow, w : Polar
-
-	float4 u_TimeInfo; //time, controls.Noise4D, controls.TerrainExp, controls.TerrainSeed * 39.0
-}
-
-cbuffer cbLights : register(b2) {
-	int currAmountOflights;
-	int pad0;
-	int pad1;
-	int pad2;
-	Light lights[16];
-}
-
-
-cbuffer cbScreen : register(b3) {
-	float4 u_screenSize;
-}
-
-SamplerState uSampler0 : register(s7);
-Texture2D uEnvTex0 : register(t1);
-
+struct ScreenData
+{
+    float4 u_screenSize;
+};
 
 struct VSInput
 {
-    float4 vs_Pos : POSITION;
-    float4 vs_Nor : NORMAL;
+    float4 vs_Pos [[attribute(0)]];
+    float4 vs_Nor [[attribute(1)]];
 };
 
 struct VSOutput {
-	float4 Position : SV_POSITION;
-	float4 fs_Pos : POSITION;
-	float4 fs_Nor : NORMAL;
+	float4 Position [[position]];
+	float4 fs_Pos;
+	float4 fs_Nor;
 
-	float4 fs_Col : TEXTURE0;
-	float4 fs_TerrainInfo : TEXTURE1;
-	float4 fs_transedPos : TEXTURE2;
+	float4 fs_Col;
+	float4 fs_TerrainInfo;
+	float4 fs_transedPos;
 };
 
 struct VSBGInput
 {
-	float4 vs_Pos : POSITION;
-	float4 vs_Nor : NORMAL;
+    float4 vs_Pos [[attribute(0)]];
+    float4 vs_Nor [[attribute(1)]];
 };
 
 struct VSBGOutput {
-	float4 Position : SV_POSITION;
-	float2 fs_UV : TEXTURE0;
+    float4 Position [[position]];
+    float2 fs_UV;
 };
-
-
 
 float2 LightingFunGGX_FV(float dotLH, float roughness)
 {
@@ -144,39 +143,59 @@ float3 GGX_Spec(float3 Normal, float3 HalfVec, float Roughness, float3 BaseColor
 	return D * FV;
 }
 
-float hash(float n)
+float hash(float n, constant ObjectData& uniforms)
 {
 	//4D
-	if (u_TimeInfo.y > 0.0)
+	if (uniforms.u_TimeInfo.y > 0.0)
 	{
-		return frac(sin(n) *cos(u_TimeInfo.x * 0.00001) * 1e4);
+		return fract(sin(n) *cos(uniforms.u_TimeInfo.x * 0.00001) * 1e4);
 	}
 	else
 	{
-		return frac(sin(n) * cos(u_TimeInfo.w * 0.00001) * 1e4);
+		return fract(sin(n) * cos(uniforms.u_TimeInfo.w * 0.00001) * 1e4);
 	}
 
 }
+float hash(float2 p)
+{
+    return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x))));
+}
 
-float hash(float2 p) { return frac(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-float noise(float x) { float i = floor(x); float f = frac(x); float u = f * f * (3.0 - 2.0 * f); return lerp(hash(i), hash(i + 1.0), u); }
-float noise(float2 x) { float2 i = floor(x); float2 f = frac(x); float a = hash(i); float b = hash(i + float2(1.0, 0.0)); float c = hash(i + float2(0.0, 1.0)); float d = hash(i + float2(1.0, 1.0)); float2 u = f * f * (3.0 - 2.0 * f); return lerp(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y; }
+float noise(float x, constant ObjectData& uniforms)
+{
+    float i = floor(x);
+    float f = fract(x);
+    float u = f * f * (3.0 - 2.0 * f);
+    return mix(hash(i, uniforms), hash(i + 1.0, uniforms), u);
+    
+}
+float noise(float2 x)
+{
+    float2 i = floor(x);
+    float2 f = fract(x);
+    float a = hash(i);
+    float b = hash(i + float2(1.0, 0.0));
+    float c = hash(i + float2(0.0, 1.0));
+    float d = hash(i + float2(1.0, 1.0));
+    float2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
 
 float rand(float2 co) {
-	return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453);
+	return fract(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453);
 }
 
 float noise(float3 x)
 {
 	float3 step = float3(110, 241, 171);
 	float3 i = floor(x);
-	float3 f = frac(x);
+	float3 f = fract(x);
 	float n = dot(i, step);
 	float3 u = f * f * (3.0 - 2.0 * f);
-	return lerp(lerp(lerp(hash(n + dot(step, float3(0, 0, 0))), hash(n + dot(step, float3(1, 0, 0))), u.x),
-		lerp(hash(n + dot(step, float3(0, 1, 0))), hash(n + dot(step, float3(1, 1, 0))), u.x), u.y),
-		lerp(lerp(hash(n + dot(step, float3(0, 0, 1))), hash(n + dot(step, float3(1, 0, 1))), u.x),
-			lerp(hash(n + dot(step, float3(0, 1, 1))), hash(n + dot(step, float3(1, 1, 1))), u.x), u.y), u.z);
+	return mix(mix(mix(hash(n + dot(step, float3(0, 0, 0))), hash(n + dot(step, float3(1, 0, 0))), u.x),
+		mix(hash(n + dot(step, float3(0, 1, 0))), hash(n + dot(step, float3(1, 1, 0))), u.x), u.y),
+		mix(mix(hash(n + dot(step, float3(0, 0, 1))), hash(n + dot(step, float3(1, 0, 1))), u.x),
+			mix(hash(n + dot(step, float3(0, 1, 1))), hash(n + dot(step, float3(1, 1, 1))), u.x), u.y), u.z);
 }
 
 #define PI 3.1415926535897932384626422832795028841971
@@ -214,15 +233,15 @@ float SphericalPhi(float3 v)
 }
 
 
-float OceanNoise(float3 vertexPos, float oceneHeight, float noiseResult, float blendFactor)
+float OceanNoise(float3 vertexPos, float oceneHeight, float noiseResult, float blendFactor, constant ObjectData& uniforms)
 {
 	float relativeWaterDepth = min(1.0, (oceneHeight - noiseResult) * 15.0);
 
-	float oceanTime = u_TimeInfo.x * 0.03;
+	float oceanTime = uniforms.u_TimeInfo.x * 0.03;
 
 	float shallowWaveRefraction = 4.0;
 	float waveMagnitude = 0.0002;
-	float waveLength = lerp(0.007, 0.0064, blendFactor);
+	float waveLength = mix(0.007, 0.0064, blendFactor);
 
 	float shallowWavePhase = (vertexPos.y - noiseResult * shallowWaveRefraction) * (1.0 / waveLength);
 	float deepWavePhase = (atan2(vertexPos.x, vertexPos.z) + noise(vertexPos.xyz * 15.0) * 0.075) * (1.5 / waveLength);
@@ -230,9 +249,9 @@ float OceanNoise(float3 vertexPos, float oceneHeight, float noiseResult, float b
 }
 
 //refer to Morgan McGuire's Earth-like Tiny Planet
-float3 addStars(float2 screenSize, float2 fs_UV)
+float3 addStars(float2 screenSize, float2 fs_UV, constant ObjectData& uniforms)
 {
-	float time = u_TimeInfo.x;
+	float time = uniforms.u_TimeInfo.x;
 
 	// Background starfield
 	float galaxyClump = (pow(noise(fs_UV.xy * (30.0 * screenSize.x)), 3.0) * 0.5 + pow(noise(100.0 + fs_UV.xy * (15.0 * screenSize.x)), 5.0)) / 3.5;
@@ -244,18 +263,21 @@ float3 addStars(float2 screenSize, float2 fs_UV)
 	starColor.y *= sqrt(noise(fs_UV.xy * 4.0));
 
 	float2 delta = (fs_UV.xy - screenSize.xy * 0.5) * screenSize.y * 1.2;
-	float radialNoise = lerp(1.0, noise(normalize(delta) * 20.0 + time * 0.5), 0.12);
+	float radialNoise = mix(1.0, noise(normalize(delta) * 20.0 + time * 0.5), 0.12);
 
 	float att = 0.057 * pow(max(0.0, 1.0 - (length(delta) - 0.9) / 0.9), 8.0);
 
-	starColor += radialNoise * u_AtmosphereColor.xyz * min(1.0, att);
+	starColor += radialNoise * uniforms.u_AtmosphereColor.xyz * min(1.0, att);
 
 	float randSeed = rand(fs_UV);
 
 	return starColor * ((sin(randSeed + randSeed * time* 0.05) + 1.0)* 0.4 + 0.2);
 }
 
-VSOutput VSMain(VSInput input, uint InstanceID : SV_InstanceID)
+vertex VSOutput VSMain(VSInput input                    [[stage_in]],
+                       uint InstanceID                  [[instance_id]],
+                       constant CameraData& cbCamera    [[buffer(0)]],
+                       constant ObjectData& cbObject    [[buffer(1)]])
 {
 	VSOutput output;
 
@@ -264,14 +286,14 @@ VSOutput VSMain(VSInput input, uint InstanceID : SV_InstanceID)
 	float4 vertexPos = float4(input.vs_Pos.xyz, 1.0);
 	output.fs_Pos = vertexPos;
 
-	float oceneHeight = length(vertexPos.xyz) + u_HeightsInfo.x;
+	float oceneHeight = length(vertexPos.xyz) + cbObject.u_HeightsInfo.x;
 	float3 localNormal = normalize(vertexPos.xyz);
 
 	float u_resolution = 4.0;
 
 	float noiseResult = fbm(vertexPos.xyz*u_resolution, 6) * 2.0;
 
-	noiseResult = pow(noiseResult, u_TimeInfo.z);
+	noiseResult = pow(noiseResult, cbObject.u_TimeInfo.z);
 
 	vertexPos.xyz += localNormal * noiseResult;
 
@@ -282,7 +304,7 @@ VSOutput VSMain(VSInput input, uint InstanceID : SV_InstanceID)
 
 
 
-	float4 ocenColor = u_OceanColor * gap5;
+	float4 ocenColor = cbObject.u_OceanColor * gap5;
 
 	float oceneRougness = 0.15;
 	float iceRougness = 0.15;
@@ -293,12 +315,10 @@ VSOutput VSMain(VSInput input, uint InstanceID : SV_InstanceID)
 	//ocean
 	if (height < oceneHeight)
 	{
-		//float gap10 = pow(pow(gap, 100.0), 0.8);
+		float gap10 = pow(pow(gap, 100.0), 0.8);
 
-		//float wave = OceanNoise(vertexPos.xyz, oceneHeight, noiseResult, gap10);
-		//vertexPos.xyz = (oceneHeight + wave) * localNormal;
-
-		vertexPos.xyz = oceneHeight * localNormal;
+		float wave = OceanNoise(vertexPos.xyz, oceneHeight, noiseResult, gap10, cbObject);
+		vertexPos.xyz = (oceneHeight + wave) * localNormal;
 
 		output.fs_Pos = vertexPos;
 		output.fs_TerrainInfo.w = oceneRougness;
@@ -311,22 +331,22 @@ VSOutput VSMain(VSInput input, uint InstanceID : SV_InstanceID)
 
 		float appliedAttitude;
 
-		if (abs(vertexPos.y) > u_HeightsInfo.w)
-			appliedAttitude = clamp((abs(vertexPos.y) - u_HeightsInfo.w) * 3.0, 0.0, 1.0);
+		if (abs(vertexPos.y) > cbObject.u_HeightsInfo.w)
+			appliedAttitude = clamp((abs(vertexPos.y) - cbObject.u_HeightsInfo.w) * 3.0, 0.0, 1.0);
 		else
 			appliedAttitude = 0.0;
 
-		float4 terrainColor = lerp(u_FoliageColor, u_PolarCapsColor, appliedAttitude);
-		float terrainRoughness = lerp(foliageRougness, iceRougness, appliedAttitude);
+		float4 terrainColor = mix(cbObject.u_FoliageColor, cbObject.u_PolarCapsColor, appliedAttitude);
+		float terrainRoughness = mix(foliageRougness, iceRougness, appliedAttitude);
 
 		vertexPos.xyz = height * localNormal;
 
-		float oceneLine = oceneHeight + u_HeightsInfo.y;
-		float snowLine = 1.0 + u_HeightsInfo.z;
+		float oceneLine = oceneHeight + cbObject.u_HeightsInfo.y;
+		float snowLine = 1.0 + cbObject.u_HeightsInfo.z;
 
 		if (height < oceneLine)
 		{
-			output.fs_Col = u_ShorelineColor;
+			output.fs_Col = cbObject.u_ShorelineColor;
 			output.fs_TerrainInfo.w = shoreRougness;
 		}
 		else if (height >= snowLine)
@@ -334,28 +354,33 @@ VSOutput VSMain(VSInput input, uint InstanceID : SV_InstanceID)
 			output.fs_TerrainInfo.x = 0.15;
 
 			float alpha = clamp((height - snowLine) / 0.03, 0.0, 1.0);
-			output.fs_Col = lerp(terrainColor, u_SnowColor, alpha);
+			output.fs_Col = mix(terrainColor, cbObject.u_SnowColor, alpha);
 
-			output.fs_TerrainInfo.w = lerp(terrainRoughness, snowRougness, alpha);
+			output.fs_TerrainInfo.w = mix(terrainRoughness, snowRougness, alpha);
 		}
 		else
 		{
-			float alpha = clamp((height - oceneLine) / u_HeightsInfo.y, 0.0, 1.0);
-			output.fs_Col = lerp(u_ShorelineColor, terrainColor, alpha);
+			float alpha = clamp((height - oceneLine) / cbObject.u_HeightsInfo.y, 0.0, 1.0);
+			output.fs_Col = mix(cbObject.u_ShorelineColor, terrainColor, alpha);
 
-			output.fs_TerrainInfo.w = lerp(shoreRougness, terrainRoughness, alpha);
+			output.fs_TerrainInfo.w = mix(shoreRougness, terrainRoughness, alpha);
 		}
 	}
 
-	float4 modelposition = mul(worldMat, vertexPos);
+	float4 modelposition = cbObject.worldMat * vertexPos;
 
 	output.fs_transedPos = modelposition;
-	output.Position = mul(projView, modelposition);
+	output.Position = cbCamera.projView * modelposition;
 
 	return output;
 }
 
-float4 PSMain(VSOutput input) : SV_TARGET
+fragment float4 PSMain(VSOutput input                   [[stage_in]],
+                       constant CameraData& cbCamera    [[buffer(0)]],
+                       constant ObjectData& cbObject    [[buffer(1)]],
+                       constant LightData& cbLights     [[buffer(2)]],
+                       sampler uSampler0                [[sampler(3)]],
+                       texture2d<float> uEnvTex0        [[texture(4)]])
 {
 	// Material base color (before shading)
     float3 normalVec = normalize(input.fs_Nor.xyz);
@@ -370,54 +395,48 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     float3 localNormal = normalize(input.fs_Pos.xyz);
 
-	float3x3 invMat = (float3x3)invWorldMat;
+	float3x3 invMat = float3x3(cbObject.invWorldMat[0].xyz, cbObject.invWorldMat[1].xyz, cbObject.invWorldMat[2].xyz);
 
-	float4 fs_ViewVec = float4(mul(invMat, normalize(camPos - input.fs_transedPos.xyz)) ,  0.0);
-	float4 fs_LightVec = float4( mul(invMat,  normalize(lights[0].pos.xyz - input.fs_Pos.xyz)), 0.0);
+	float4 fs_ViewVec = float4(invMat * normalize(cbCamera.camPos - input.fs_transedPos.xyz) ,  0.0);
+	float4 fs_LightVec = float4(invMat *  normalize(cbLights.lights[0].pos.xyz - input.fs_Pos.xyz), 0.0);
 
-	fs_ViewVec.w = length(camPos.xyz);
+	fs_ViewVec.w = length(cbCamera.camPos.xyz);
 
     //Terrain-atmosphere Color Interpolation
     float a = 1.0 - clamp(dot(fs_ViewVec.xyz, localNormal), 0.0, 1.0);
 
     a = pow(a, 5.0);
 
-	float u_resolution = 4.0;
-	float constant = 10.0;
-	float sm = (1.0 - smoothstep(0.0, 7.0, log(fs_ViewVec.w)));
-	int LOD = int(constant * pow(sm, 1.7));
-
-	float noise = fbm(input.fs_Pos.xyz*u_resolution, LOD) * 2.0;
-	noise = pow(noise, u_TimeInfo.z);
-
     //terrain
     if(input.fs_TerrainInfo.x > 0.0 && input.fs_TerrainInfo.x < 0.2 )
     {
+        float u_resolution = 4.0;
+
+        float constantVal = 10.0;
+
+        float sm = (1.0 - smoothstep(0.0, 6.0, log(fs_ViewVec.w)));
+
+        int LOD = int(constantVal * pow(sm, 1.7));
+
+        float noise = fbm(input.fs_Pos.xyz*u_resolution, LOD) * 2.0;
+                  
+        noise = pow(noise, cbObject.u_TimeInfo.z);
+
         float4 vertexPos = input.fs_Pos;
         vertexPos.xyz += localNormal * noise;
 
         //detail normal
-        normalVec = normalize(cross( ddx(vertexPos.xyz), ddy(vertexPos.xyz)));  
+        normalVec = normalize(cross(dfdx(vertexPos.xyz), dfdy(vertexPos.xyz)));
         
         float NolN= clamp(dot(localNormal, normalVec), 0.0, 1.0);
-        diffuseColor = lerp(u_MountainsColor, diffuseColor, NolN*NolN*NolN);       
+        diffuseColor = mix(cbObject.u_MountainsColor, diffuseColor, NolN*NolN*NolN);
     }
     else
     {
         float4 vertexPos = input.fs_Pos;
-		float oceneHeight = length(vertexPos.xyz) + u_HeightsInfo.x;
-		float height = length(vertexPos.xyz);
-
-		float gap = saturate((1.0 - (oceneHeight - height)));
-		float gap5 = pow(gap, 3.0);
-
-		float gap10 = pow(pow(gap, 100.0), 0.8);
-
-		float wave = OceanNoise(vertexPos.xyz, oceneHeight, noise, gap10);
-		vertexPos.xyz = (oceneHeight + wave) * localNormal;
 
         //detail normal
-        normalVec = normalize(cross(ddx(vertexPos.xyz), ddy(vertexPos.xyz)));
+        normalVec = normalize(cross(dfdx(vertexPos.xyz), dfdy(vertexPos.xyz)));
     }
    
 
@@ -438,16 +457,18 @@ float4 PSMain(VSOutput input) : SV_TARGET
         
     //Envmap
     float2 st = float2(SphericalPhi(reflecVec.xyz) * Inv2Pi, SphericalTheta(reflecVec.xyz) * InvPi);
-    float4 envColor = uEnvTex0.Sample(uSampler0, st) * energyConservation * 0.5;
+    float4 envColor = uEnvTex0.sample(uSampler0, st) * energyConservation * 0.5;
 
     // Compute final shaded color
     float4 planetColor = float4( ( diffuseColor.rgb + specularTerm + envColor.xyz ) * lightIntensity, 1.0);
 
-    return float4(lerp(planetColor.xyz ,u_AtmosphereColor.xyz, a), 1.0);
+    return float4(mix(planetColor.xyz ,cbObject.u_AtmosphereColor.xyz, a), 1.0);
 }
 
 
-VSBGOutput VSBGMain(VSBGInput input, uint VertexID : SV_VertexID, uint InstanceID : SV_InstanceID)
+vertex VSBGOutput VSBGMain(VSBGInput input  [[stage_in]],
+                           uint VertexID    [[vertex_id]],
+                           uint InstanceID  [[instance_id]])
 {
 	VSBGOutput output;
 
@@ -485,13 +506,15 @@ VSBGOutput VSBGMain(VSBGInput input, uint VertexID : SV_VertexID, uint InstanceI
 	return output;
 }
 
-float4 PSBGMain(VSBGOutput input) : SV_TARGET
+fragment float4 PSBGMain(VSBGOutput input               [[stage_in]],
+                         constant ScreenData& cbScreen  [[buffer(0)]],
+                         constant ObjectData& cbObject  [[buffer(1)]])
 {
 	float4 out_Col = float4(0.0, 0.0, 0.0, 1.0);
 
-	float2 screenSize = u_screenSize.xy;
+	float2 screenSize = cbScreen.u_screenSize.xy;
 
 	// Background stars
-	out_Col.xyz += addStars(screenSize, input.fs_UV);
+	out_Col.xyz += addStars(screenSize, input.fs_UV, cbObject);
 	return out_Col;
 }
