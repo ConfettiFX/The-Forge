@@ -184,7 +184,7 @@ uint32_t         gWindowHeight;
 
 uint32_t         gFrameIndex = 0;
 
-const int        gSphereResolution = 1600; // Increase for higher resolution spheres
+const int        gSphereResolution = 1024; // Increase for higher resolution spheres
 const float      gPi = 3.141592654f;
 
 const char*      pEnvImageFileNames[] =
@@ -429,7 +429,9 @@ void initApp(const WindowsDesc* pWindow)
 	addSwapChain();
 
 	initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
+#ifndef METAL
 	addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+#endif
 
 	TextureLoadDesc textureDesc = {};
 	textureDesc.mRoot = FSR_Textures;
@@ -479,10 +481,14 @@ void initApp(const WindowsDesc* pWindow)
 	fragBGFile.Close();
 
 #elif defined(METAL)
-	// prepare metal shaders
-    File metalFile = {}; metalFile.Open("renderSceneBRDF.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    // prepare metal shaders
+    File metalFile = {};
+    metalFile.Open("proceduralPlanet.metal", FM_Read, FSR_SrcShaders);
     String metal = metalFile.ReadText();
-    brdfRenderSceneShaderDesc = { brdfRenderSceneShaderDesc.mStages, {metalFile.GetName(), metal, "VSMain" }, {metalFile.GetName(), metal, "PSMain"} };
+    brdfRenderSceneShaderDesc = { brdfRenderSceneShaderDesc.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
+    bgRenderSceneShaderDesc = { bgRenderSceneShaderDesc.mStages,{ metalFile.GetName(), metal, "VSBGMain" },{ metalFile.GetName(), metal, "PSBGMain" } };
+    
+    metalFile.Close();
 #endif
 
 	addSampler(pRenderer, &pSamplerEnv, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
@@ -801,7 +807,9 @@ void drawFrame(float deltaTime)
 	tinystl::vector<Cmd*> allCmds;
     Cmd* cmd = ppCmds[gFrameIndex];
     beginCmd(cmd);
+#ifndef METAL
 	cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+#endif
     
     // Transfer our render target to a render target state
     TextureBarrier barriers[] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
@@ -813,7 +821,9 @@ void drawFrame(float deltaTime)
     /************************************************************************/
 	//Draw BG
     /************************************************************************/
+#ifndef METAL
 	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw BG");
+#endif
 	
 	cmdBindPipeline(cmd, pPipelineBG);
 	
@@ -827,11 +837,15 @@ void drawFrame(float deltaTime)
 	cmdBindVertexBuffer(cmd, 1, &pBGVertexBuffer);
 	
 	cmdDraw(cmd, 6, 0);
+#ifndef METAL
 	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+#endif
 	/************************************************************************/
 	//Draw Planet
 	/************************************************************************/
+#ifndef METAL
 	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planet");
+#endif
 
 	cmdBindPipeline(cmd, pPipelineBRDF);
 
@@ -858,10 +872,14 @@ void drawFrame(float deltaTime)
 	cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
 	cmdEndRender(cmd, 1, &pRenderTarget, pDepthBuffer);
 
+#ifndef METAL
 	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+#endif
 	/************************************************************************/
 	/************************************************************************/
+#ifndef METAL
 	cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+#endif
 	endCmd(cmd);
 	allCmds.push_back(cmd);
 
@@ -878,8 +896,10 @@ void drawFrame(float deltaTime)
     static HiresTimer gTimer;
 	
     cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", gTimer.GetUSec(true) / 1000.0f);
+#ifndef METAL
 	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 40 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
 	cmdUIDrawGpuProfileData(cmd, pUIManager, { 8, 65 }, pGpuProfiler);
+#endif
 
 	cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
 
@@ -962,7 +982,9 @@ void exitApp()
 	removeRootSignature(pRenderer, pRootSigBRDF);
 	removeRootSignature(pRenderer, pRootSigBG);
 	
+#ifndef METAL
 	removeGpuProfiler(pRenderer, pGpuProfiler);
+#endif
 
 	// Remove resource loader and renderer
 	removeResourceLoaderInterface(pRenderer);
@@ -1034,4 +1056,66 @@ int main(int argc, char **argv)
 	
 	return 0;
 }
+#else
+
+#import "MetalKitApplication.h"
+
+// Timer used in the update function.
+Timer deltaTimer;
+float retinaScale = 1.0f;
+
+// Metal application implementation.
+@implementation MetalKitApplication {}
+-(nonnull instancetype) initWithMetalDevice:(nonnull id<MTLDevice>)device
+                  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
+                                       view:(nonnull MTKView*)view
+                        retinaScalingFactor:(CGFloat)retinaScalingFactor
+{
+    self = [super init];
+    if(self)
+    {
+        FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
+        
+        retinaScale = retinaScalingFactor;
+        
+        RectDesc resolution;
+        getRecommendedResolution(&resolution);
+        
+        gWindow.windowedRect = resolution;
+        gWindow.fullscreenRect = resolution;
+        gWindow.fullScreen = false;
+        gWindow.maximized = false;
+        gWindow.handle = (void*)CFBridgingRetain(view);
+        
+        @autoreleasepool {
+            const char * appName = "01_Transformations";
+            openWindow(appName, &gWindow);
+            initApp(&gWindow);
+        }
+    }
+    
+    return self;
+}
+
+- (void)drawRectResized:(CGSize)size
+{
+    waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+    
+    gWindowWidth = size.width * retinaScale;
+    gWindowHeight = size.height * retinaScale;
+    unload();
+    load();
+}
+
+- (void)update
+{
+    float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+    // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+    if (deltaTime > 0.15f)
+        deltaTime = 0.05f;
+    
+    update(deltaTime);
+    drawFrame(deltaTime);
+}
+@end
 #endif

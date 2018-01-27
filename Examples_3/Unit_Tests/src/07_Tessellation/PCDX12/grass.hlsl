@@ -91,11 +91,11 @@ VS_CONTROL_POINT_OUTPUT VSMain(VSIn In) {
 	float sinTheta = sin(theta);
 	float cosTheta = cos(theta);
 
-	float3 faceDir = normalize(cross(float3(sinTheta, 0, cosTheta), up));	
-	float3 widthDir = normalize(cross(up, faceDir));
+	//float3 faceDir = normalize(cross(float3(sinTheta, 0, cosTheta), up));	
+	//float3 widthDir = normalize(cross(up, faceDir));
 
-	//float3 faceDir = normalize(cross(up, float3(sinTheta, 0, cosTheta)));
-	//float3 widthDir = normalize(cross(faceDir, up));
+	float3 faceDir = normalize(cross(up, float3(sinTheta, 0, cosTheta)));
+	float3 widthDir = normalize(cross(faceDir, up));
 	
 	Out.tesc_widthDir_x = widthDir.x;
 	Out.tesc_widthDir_y = widthDir.y;
@@ -134,7 +134,7 @@ PatchTess ConstantsHS(InputPatch<VS_CONTROL_POINT_OUTPUT, 1> ip, uint PatchID : 
 	float near = 0.1;
 	float far = 25.0;
 	
-	float depth = (mul(view, WorldPosV0)).z / (far - near);
+	float depth = -(mul(view, WorldPosV0)).z / (far - near);
 	depth = saturate(depth);
 
 	float minLevel = 1.0;
@@ -215,8 +215,8 @@ DS_OUTPUT DSMain(
 
 	float3 t0 = normalize(b - a);	
 	
-	Output.Normal =  normalize(cross(t0, t1));
-	//Output.Normal = normalize(cross(t1, t0));
+	//Output.Normal =  normalize(cross(t0, t1));
+	Output.Normal = normalize(cross(t1, t0));
 	
 
 	//triagnle shape

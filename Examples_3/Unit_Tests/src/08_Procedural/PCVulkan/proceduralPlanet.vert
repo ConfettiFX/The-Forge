@@ -182,12 +182,12 @@ void main ()
     //ocean
     if(height < oceneHeight)
     {
-        float gap10 = pow(pow(gap, 100.0), 0.8);
+        //float gap10 = pow(pow(gap, 100.0), 0.8);
+        //float wave = OceanNoise(vertexPos.xyz, oceneHeight, noiseResult, gap10);  
+        //vertexPos.xyz = (oceneHeight + wave) * localNormal;
+		vertexPos.xyz = oceneHeight * localNormal;
 
-        float wave = OceanNoise(vertexPos.xyz, oceneHeight, noiseResult, gap10);  
-        vertexPos.xyz = (oceneHeight + wave) * localNormal;
-
-        fs_Pos = vertexPos;
+		fs_Pos = vec4(vertexPos.xyz, 1.0);        
         fs_TerrainInfo.w = oceneRougness;
         fs_Col = ocenColor;
     }
