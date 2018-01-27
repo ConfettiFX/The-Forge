@@ -1251,6 +1251,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		textureDesc.mMipLevels = 1;
 		textureDesc.mSampleCount = SAMPLE_COUNT_1;
 		textureDesc.mStartState = RESOURCE_STATE_COMMON;
+		textureDesc.mType = TEXTURE_TYPE_2D;
 		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS;
 		textureDesc.mWidth = 2;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture);
