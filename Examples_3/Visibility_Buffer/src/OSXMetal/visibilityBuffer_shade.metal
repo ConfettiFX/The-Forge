@@ -32,10 +32,15 @@ struct SceneVertexPos
     packed_float3 position;
 };
 
-struct SceneVertexAttr
-{
+struct SceneVertexTexcoord {
     packed_float2 texCoord;
+};
+
+struct SceneVertexNormal {
     packed_float3 normal;
+};
+
+struct SceneVertexTangent {
     packed_float3 tangent;
 };
 
@@ -147,24 +152,26 @@ fragment float4 PSMain(VSOutput input                                       [[st
                        uint32_t sampleID                                    [[sample_id]],
                        constant IndirectDrawArguments* indirectDrawArgs     [[buffer(0)]],
                        constant SceneVertexPos* vertexPos                   [[buffer(1)]],
-                       constant SceneVertexAttr* vertexAttr                 [[buffer(2)]],
-                       constant PerFrameConstants& uniforms                 [[buffer(3)]],
-                       constant uint32_t* indirectMaterialBuffer            [[buffer(4)]],
-                       constant LightData* lights                           [[buffer(5)]],
-                       constant uint32_t* lightClustersCount                [[buffer(6)]],
-                       constant uint32_t* lightClusters                     [[buffer(7)]],
-                       sampler textureSampler                               [[sampler(8)]],
-                       sampler depthSampler                                 [[sampler(9)]],
+                       constant SceneVertexTexcoord* vertexTexCoord         [[buffer(2)]],
+                       constant SceneVertexNormal* vertexNormal             [[buffer(3)]],
+                       constant SceneVertexTangent* vertexTangent           [[buffer(4)]],
+                       constant PerFrameConstants& uniforms                 [[buffer(5)]],
+                       constant uint32_t* indirectMaterialBuffer            [[buffer(6)]],
+                       constant LightData* lights                           [[buffer(7)]],
+                       constant uint32_t* lightClustersCount                [[buffer(8)]],
+                       constant uint32_t* lightClusters                     [[buffer(9)]],
+                       sampler textureSampler                               [[sampler(10)]],
+                       sampler depthSampler                                 [[sampler(11)]],
 #if SAMPLE_COUNT > 1
-                       texture2d_ms<float,access::read> vbTex               [[texture(10)]],
+                       texture2d_ms<float,access::read> vbTex               [[texture(12)]],
 #else
-                       texture2d<float,access::read> vbTex                  [[texture(10)]],
+                       texture2d<float,access::read> vbTex                  [[texture(12)]],
 #endif
-                       texture2d<float,access::read> aoTex                  [[texture(11)]],
-                       depth2d<float,access::sample> shadowMap              [[texture(12)]],
-                       constant BindlessDiffuseData& diffuseMaps            [[buffer(13)]],
-                       constant BindlessNormalData& normalMaps              [[buffer(14)]],
-                       constant BindlessSpecularData& specularMaps          [[buffer(15)]])
+                       texture2d<float,access::read> aoTex                  [[texture(13)]],
+                       depth2d<float,access::sample> shadowMap              [[texture(14)]],
+                       constant BindlessDiffuseData& diffuseMaps            [[buffer(15)]],
+                       constant BindlessNormalData& normalMaps              [[buffer(16)]],
+                       constant BindlessSpecularData& specularMaps          [[buffer(17)]])
 {
     // Load Visibility Buffer raw packed float4 data from render target
     float4 visRaw = vbTex.read(uint2(input.position.xy), sampleID);
@@ -229,17 +236,12 @@ fragment float4 PSMain(VSOutput input                                       [[st
         // Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
         float3 position = (uniforms.transform[VIEW_CAMERA].invVP * float4(input.screenPos * w, z, w)).xyz;
         
-        // Load the vertex attributes.
-        SceneVertexAttr v0attr = vertexAttr[vertexId0];
-        SceneVertexAttr v1attr = vertexAttr[vertexId1];
-        SceneVertexAttr v2attr = vertexAttr[vertexId2];
-        
         // TEXTURE COORD INTERPOLATION
         // Apply perspective correction to texture coordinates
         float3x2 texCoords = {
-            float2(v0attr.texCoord) * one_over_w[0],
-            float2(v1attr.texCoord) * one_over_w[1],
-            float2(v2attr.texCoord) * one_over_w[2]
+            float2(vertexTexCoord[vertexId0].texCoord) * one_over_w[0],
+            float2(vertexTexCoord[vertexId1].texCoord) * one_over_w[1],
+            float2(vertexTexCoord[vertexId2].texCoord) * one_over_w[2]
         };
         
         // Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
@@ -251,9 +253,9 @@ fragment float4 PSMain(VSOutput input                                       [[st
         // NORMAL INTERPOLATION
         // Apply perspective division to normals
         float3x3 normals = {
-            float3(v0attr.normal) * one_over_w[0],
-            float3(v1attr.normal) * one_over_w[1],
-            float3(v2attr.normal) * one_over_w[2]
+            float3(vertexNormal[vertexId0].normal) * one_over_w[0],
+            float3(vertexNormal[vertexId1].normal) * one_over_w[1],
+            float3(vertexNormal[vertexId2].normal) * one_over_w[2]
         };
         
         float3 normal = normalize(interpolateAttribute(normals, derivativesOut.db_dx, derivativesOut.db_dy, d));
@@ -261,9 +263,9 @@ fragment float4 PSMain(VSOutput input                                       [[st
         // TANGENT INTERPOLATION
         // Apply perspective division to tangents
         float3x3 tangents = {
-            float3(v0attr.tangent) * one_over_w[0],
-            float3(v1attr.tangent) * one_over_w[1],
-            float3(v2attr.tangent) * one_over_w[2]
+            float3(vertexTangent[vertexId0].tangent) * one_over_w[0],
+            float3(vertexTangent[vertexId1].tangent) * one_over_w[1],
+            float3(vertexTangent[vertexId2].tangent) * one_over_w[2]
         };
         
         float3 tangent = normalize(interpolateAttribute(tangents, derivativesOut.db_dx, derivativesOut.db_dy, d));

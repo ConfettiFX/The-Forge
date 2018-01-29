@@ -31,6 +31,13 @@
 *.out
 *.app
 
+# Visual Studio
+**/.vs/
+**/x64/
+**.vcxproj.user
+**.user
+**.log
+
 # Art
 Art/
 

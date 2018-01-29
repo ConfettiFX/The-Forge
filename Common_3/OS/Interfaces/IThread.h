@@ -22,17 +22,6 @@
  * under the License.
 */
 
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 Confetti Special Effects Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Special Effects Inc.
-//
-//--------------------------------------------------------------------------------------------
-#include <atomic>
-
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Math/FloatUtil.h"
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"

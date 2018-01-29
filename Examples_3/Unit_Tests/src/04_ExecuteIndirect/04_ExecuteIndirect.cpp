@@ -111,8 +111,8 @@ const char* pszRoots[] =
 {
     "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
     "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/",		// FSR_SrcShaders
-    "../../../src/00_Common/" RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
-    "../../../src/00_Common/" RESOURCE_DIR "/",					// FSR_SrcShaders_Common
+    "",															// FSR_BinShaders_Common
+    "",															// FSR_SrcShaders_Common
     "../../../UnitTestResources/Textures/",						// FSR_Textures
     "../../../UnitTestResources/Meshes/",						// FSR_Meshes
     "../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
@@ -1083,7 +1083,7 @@ void initApp(const WindowsDesc* window)
     tinystl::vector<IndirectArgumentDescriptor> indirectArgDescs(2);
     indirectArgDescs[0] = {};
     indirectArgDescs[0].mType = INDIRECT_CONSTANT;  // Root Constant
-    indirectArgDescs[0].mRootParameterIndex = pIndirectRoot->pRootConstantLayouts[pIndirectRoot->pDescriptors[(*pIndirectRoot->pDescriptorNameToIndexMap)[tinystl::hash("rootConstant")]].mIndexInParent].mRootIndex;
+    indirectArgDescs[0].mRootParameterIndex = pIndirectRoot->pRootConstantLayouts[pIndirectRoot->pDescriptors[pIndirectRoot->pDescriptorNameToIndexMap[tinystl::hash("rootConstant")]].mIndexInParent].mRootIndex;
     indirectArgDescs[0].mCount = 1;
     indirectArgDescs[1] = {};
     indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX; // Indirect Index Draw Arguments
@@ -1155,8 +1155,8 @@ void initApp(const WindowsDesc* window)
 
     /* UI and Camera Setup */
 
-    UISettings uiSettings = {};
-    uiSettings.pDefaultFontName = "NeoSans-Bold.ttf";
+	UISettings uiSettings = {};
+	uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
     addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 
 	GuiDesc guiDesc = {};
@@ -1573,10 +1573,8 @@ void drawFrame(float deltaTime)
     sprintf(buff, "SPACE - Rendering mode - %s", modeStr);
     cmdUIDrawText(cmd, pUIManager, { 8, 65 }, buff);
 
-#ifndef METAL
     cmdUIDrawText(cmd, pUIManager, { 8, 80 }, "F1 - Toggle UI");
     cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
-#endif
 
 	cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 110.0f), pGpuProfiler);
 

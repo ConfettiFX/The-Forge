@@ -24,10 +24,6 @@
 
 #pragma once
 
-//#if defined(_DEBUG)
-//#define USE_LOGGING
-//#endif
-
 #if defined(_WIN32)
 
 #include <sys/stat.h>
@@ -62,6 +58,7 @@ typedef uint64_t uint64;
 
 // For time related functions such as getting localtime
 #include <time.h>
+#include <ctime>
 
 #ifndef _WIN32
 #define stricmp(a, b) strcasecmp(a, b)

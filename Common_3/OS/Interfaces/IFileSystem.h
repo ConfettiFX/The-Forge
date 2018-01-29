@@ -21,16 +21,6 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 Confetti Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 #pragma once
 
 //Use Virtual FileSystem
@@ -280,47 +270,43 @@ private:
 class FileSystem
 {
 public:
-	FileSystem();
-
-	static size_t GetFileSize(FileHandle handle);
+	static unsigned	GetFileSize(FileHandle handle);
 	// Allows to modify root paths at runtime
-	static void SetRootPath(FSRoot root, const String& rootPath);
+	static void		SetRootPath(FSRoot root, const String& rootPath);
 	// Reverts back to App static defined pszRoots[]
-	static void ClearModifiedRootPaths();
-	static size_t GetModifiedTime(const String& _fileName, FSRoot _root);
+	static void		ClearModifiedRootPaths();
+	static unsigned	GetLastModifiedTime(const String& _fileName);
 	// First looks it root exists in m_ModifiedRootPaths
 	// otherwise uses App static defined pszRoots[]
-	static String FixPath(const String& pszFileName, FSRoot root);
-    static bool FileExists(const String& pszFileName, FSRoot root);
+	static String	FixPath(const String& pszFileName, FSRoot root);
+    static bool		FileExists(const String& pszFileName, FSRoot root);
 
-	static String GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
-	static String GetProgramDir() { return GetPath(_getExePath()); }
-	static String GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
-	static String GetAppPreferencesDir(const String& org, const String& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
+	static String	GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
+	static String	GetProgramDir() { return GetPath(_getExePath()); }
+	static String	GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
+	static String	GetAppPreferencesDir(const String& org, const String& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
 
-	static void SetCurrentDir(const String& path) { _setCurrentDir(path.c_str()); }
+	static void		SetCurrentDir(const String& path) { _setCurrentDir(path.c_str()); }
 
-	static void SplitPath(const String& fullPath, String* pathName, String* fileName, String* extension, bool lowercaseExtension = true);
-	static String GetPath(const String& fullPath);
-	static String GetFileName(const String& fullPath);
-	static String GetExtension(const String& fullPath, bool lowercaseExtension = true);
-	static String GetFileNameAndExtension(const String& fullPath, bool lowercaseExtension = false);
-	static String ReplaceExtension(const String& fullPath, const String& newExtension);
-	static String AddTrailingSlash(const String& pathName);
-	static String RemoveTrailingSlash(const String& pathName);
-	static String GetParentPath(const String& pathName);
-	static String GetInternalPath(const String& pathName);
-	static String GetNativePath(const String& pathName);
-	static bool IsAbsolutePath(const String& pathName);
-	static bool IsAbsoluteParentPath(const String& absParentPath, const String& fullPath);
+	static void		SplitPath(const String& fullPath, String* pathName, String* fileName, String* extension, bool lowercaseExtension = true);
+	static String	GetPath(const String& fullPath);
+	static String	GetFileName(const String& fullPath);
+	static String	GetExtension(const String& fullPath, bool lowercaseExtension = true);
+	static String	GetFileNameAndExtension(const String& fullPath, bool lowercaseExtension = false);
+	static String	ReplaceExtension(const String& fullPath, const String& newExtension);
+	static String	AddTrailingSlash(const String& pathName);
+	static String	RemoveTrailingSlash(const String& pathName);
+	static String	GetParentPath(const String& pathName);
+	static String	GetInternalPath(const String& pathName);
+	static String	GetNativePath(const String& pathName);
 
-	static bool DirExists(const String& pathName);
-	static bool CreateDir(const String& pathName);
-	static int SystemRun(const String& fileName, const tinystl::vector<String>& arguments, String stdOut = "");
-	static bool Delete(const String& fileName);
+	static bool		DirExists(const String& pathName);
+	static bool		CreateDir(const String& pathName);
+	static int		SystemRun(const String& fileName, const tinystl::vector<String>& arguments, String stdOut = "");
+	static bool		Delete(const String& fileName);
 
 private:
 	// The following root paths are the ones that were modified at run-time
-	static String mModifiedRootPaths[FSRoot::FSR_Count];
-	static String mProgramDir;
+	static String	mModifiedRootPaths[FSRoot::FSR_Count];
+	static String	mProgramDir;
 };

@@ -260,6 +260,13 @@ namespace tinystl {
 			return str;
 		}
 
+		string replaced(const string& replaceThis, const string& replaceWith, bool caseSensitive = true) const
+		{
+			string ret(*this);
+			ret.replace(replaceThis, replaceWith, caseSensitive);
+			return ret;
+		}
+
 		/// Move a range of characters within the string.
 		void move_range(unsigned dest, unsigned src, unsigned count)
 		{

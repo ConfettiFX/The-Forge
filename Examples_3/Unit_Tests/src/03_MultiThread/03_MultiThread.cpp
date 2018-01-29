@@ -111,8 +111,8 @@ const char* pszRoots[] =
 {
     "../../..//src/03_MultiThread/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
     "../../..//src/03_MultiThread/" RESOURCE_DIR "/",			// FSR_SrcShaders
-    "../../..//src/00_Common/" RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
-    "../../..//src/00_Common/" RESOURCE_DIR "/",				// FSR_SrcShaders_Common
+    "",															// FSR_BinShaders_Common
+    "",															// FSR_SrcShaders_Common
     "../../..//UnitTestResources/Textures/",					// FSR_Textures
     "../../..//UnitTestResources/Meshes/",						// FSR_Meshes
     "../../..//UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
@@ -361,6 +361,7 @@ void ParticleThreadDraw(void* pData)
   cmdSetViewport(cmd, 0.0f, 0.0f, (float)data->pRenderTarget->mDesc.mWidth, (float)data->pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
   cmdSetScissor(cmd, 0, 0, data->pRenderTarget->mDesc.mWidth, data->pRenderTarget->mDesc.mHeight);
 
+  cmdBindPipeline(cmd, pPipeline);
   DescriptorData params[3] = {};
   params[0].pName = "uTex0";
   params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
@@ -370,7 +371,6 @@ void ParticleThreadDraw(void* pData)
   params[2].pName = "particleRootConstant";
   params[2].pRootConstant = &gParticleData;
   cmdBindDescriptors(cmd, pRootSignature, 3, params);
-  cmdBindPipeline(cmd, pPipeline);
 
   cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer);
 
@@ -1062,7 +1062,7 @@ void initApp(const WindowsDesc* window)
   }
 
   UISettings uiSettings = {};
-  uiSettings.pDefaultFontName = "NeoSans-Bold.ttf";
+  uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
   addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 
   gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);

@@ -308,40 +308,59 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName)
 	assimpScene.Read(&scene->totalTriangles, sizeof(uint32_t));
 
 	scene->meshes = (Mesh*)conf_calloc(scene->numMeshes, sizeof(Mesh));
-	scene->indices = tinystl::vector<uint32>(scene->totalTriangles, uint32_t(0));
+    scene->indices = tinystl::vector<uint32>(scene->totalTriangles, uint32_t(0));
 	scene->positions = tinystl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
-	scene->attributes = tinystl::vector<SceneVertexAttr>(scene->totalVertices, SceneVertexAttr{ 0 });
+	scene->texCoords = tinystl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
+	scene->normals = tinystl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
+    scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
 
-	tinystl::vector<float2> texcoords(scene->totalVertices);
-	tinystl::vector<float3> normals(scene->totalVertices);
-	tinystl::vector<float3> tangents(scene->totalVertices);
+    tinystl::vector<float2> texcoords(scene->totalVertices);
+    tinystl::vector<float3> normals(scene->totalVertices);
+    tinystl::vector<float3> tangents(scene->totalVertices);
 
-	assimpScene.Read(scene->indices.getArray(), sizeof(uint32_t) * scene->totalTriangles);
-	assimpScene.Read(scene->positions.getArray(), sizeof(float3) * scene->totalVertices);
-	assimpScene.Read(texcoords.getArray(), sizeof(float2) * scene->totalVertices);
-	assimpScene.Read(normals.getArray(), sizeof(float3) * scene->totalVertices);
-	assimpScene.Read(tangents.getArray(), sizeof(float3) * scene->totalVertices);
+    assimpScene.Read(scene->indices.getArray(), sizeof(uint32_t) * scene->totalTriangles);
+    assimpScene.Read(scene->positions.getArray(), sizeof(float3) * scene->totalVertices);
+    assimpScene.Read(texcoords.getArray(), sizeof(float2) * scene->totalVertices);
+    assimpScene.Read(normals.getArray(), sizeof(float3) * scene->totalVertices);
+    assimpScene.Read(tangents.getArray(), sizeof(float3) * scene->totalVertices);
 
-	for (uint32_t v = 0; v < scene->totalVertices; v++)
-	{
-		const float3& normal = normals[v];
-		scene->attributes[v].normal = encodeDir(normal);
-
-		const float3& tangent = tangents[v];
-		scene->attributes[v].tangent = encodeDir(tangent);
-
-		const float2& tc = texcoords[v];
-		scene->attributes[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
-	}
+    for (uint32_t v = 0; v < scene->totalVertices; v++)
+    {
+        const float3& normal = normals[v];
+        const float3& tangent = tangents[v];
+        const float2& tc = texcoords[v];
+        
+#ifndef METAL
+        scene->normals[v].normal = encodeDir(normal);
+        scene->tangents[v].tangent = encodeDir(tangent);
+        scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
+#else
+        scene->normals[v].nx = normal.x;
+        scene->normals[v].ny = normal.y;
+        scene->normals[v].nz = normal.z;
+        
+        scene->tangents[v].tx = tangent.x;
+        scene->tangents[v].ty = tangent.y;
+        scene->tangents[v].tz = tangent.z;
+        
+        scene->texCoords[v].u = tc.x;
+        scene->texCoords[v].v = 1.0f - tc.y;
+#endif
+    }
 
 	for (uint32_t i = 0; i < scene->numMeshes; ++i)
 	{
 		Mesh& batch = scene->meshes[i];
 
 		assimpScene.Read(&batch.materialId, sizeof(uint32_t));
-		assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
+        assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
+#ifndef METAL
 		assimpScene.Read(&batch.startIndex, sizeof(uint32_t));
-		assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
+        assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
+#else
+        assimpScene.Read(&batch.startVertex, sizeof(uint32_t));
+        assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
+#endif
 	}
 
 	tinystl::unordered_set<String> twoSidedMaterials;
@@ -451,6 +470,38 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName)
 	}
 
 	assimpScene.Close();
+    
+#ifdef METAL
+    // Once we have read all the geometry from the original asset, expand indices into vertices so the models are compatible with Metal implementation.
+    Scene originalScene = *scene;
+    
+    scene->totalTriangles = 0;
+    scene->totalVertices = 0;
+    scene->positions.clear();
+    scene->texCoords.clear();
+    scene->normals.clear();
+    scene->tangents.clear();
+    
+    uint32_t originalIdx = 0;
+    for (uint32_t i = 0; i < scene->numMeshes; i++)
+    {
+        scene->meshes[i].startVertex = scene->positions.size();
+        
+        uint32_t idxCount = originalScene.meshes[i].vertexCount; // Index count is stored in the vertex count member when reading the mesh on Metal.
+        for (uint32_t j = 0; j < idxCount; j++)
+        {
+            uint32_t idx = originalScene.indices[originalIdx++];
+            scene->positions.push_back(originalScene.positions[idx]);
+            scene->texCoords.push_back(originalScene.texCoords[idx]);
+            scene->normals.push_back(originalScene.normals[idx]);
+            scene->tangents.push_back(originalScene.tangents[idx]);
+        }
+        scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
+        scene->meshes[i].triangleCount = scene->meshes[i].vertexCount / 3;
+        scene->totalTriangles += scene->meshes[i].triangleCount;
+        scene->totalVertices += scene->meshes[i].vertexCount;
+    }
+#endif
 #else
 	const aiScene* assimpScene = aiImportFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_PreTransformVertices | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 	if (!assimpScene)
@@ -505,17 +556,23 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName)
 				vertexPos.y = pos.y;
 				vertexPos.z = pos.z;
 				scene->positions.push_back(vertexPos);
-
-				SceneVertexAttr vertexAttr;
-				vertexAttr.u = tex.x;
-				vertexAttr.v = tex.y;
-				vertexAttr.nx = nor.x;
-				vertexAttr.ny = nor.y;
-				vertexAttr.nz = nor.z;
-				vertexAttr.tx = tan.x;
-				vertexAttr.ty = tan.y;
-				vertexAttr.tz = tan.z;
-				scene->attributes.push_back(vertexAttr);
+                
+                SceneVertexTexCoord vertexTexcoord;
+                vertexTexcoord.u = tex.x;
+                vertexTexcoord.v = tex.y;
+                scene->texCoords.push_back(vertexTexcoord);
+                
+                SceneVertexNormal vertexNormal;
+                vertexNormal.nx = nor.x;
+                vertexNormal.ny = nor.y;
+                vertexNormal.nz = nor.z;
+                scene->normals.push_back(vertexNormal);
+                
+                SceneVertexTangent vertexTangent;
+                vertexTangent.tx = tan.x;
+                vertexTangent.ty = tan.y;
+                vertexTangent.tz = tan.z;
+                scene->tangents.push_back(vertexTangent);
 			}
 		}
 		scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
@@ -692,7 +749,9 @@ void removeScene(Scene* scene)
 	}
 
 	scene->positions.~vector();
-	scene->attributes.~vector();
+	scene->texCoords.~vector();
+	scene->normals.~vector();
+	scene->tangents.~vector();
 #ifndef METAL
 	scene->indices.~vector();
 #endif
@@ -967,12 +1026,14 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 }
 
 #if defined(METAL)
-void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, FilterBatchChunk* batchChunk)
+void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk)
 {
 	FilterBatchData* batchData = &batchChunk->batches[batchChunk->currentBatchCount++];
 
 	batchData->triangleCount = cluster->triangleCount;
 	batchData->triangleOffset = cluster->clusterStart + mesh->startVertex / 3; // each 3 vertices form a triangle
+    batchData->meshIdx = meshIdx;
+    batchData->twoSided = (isTwoSided ? 1 : 0);
 }
 #else
 void addClusterToBatchChunk(const Cluster* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk)

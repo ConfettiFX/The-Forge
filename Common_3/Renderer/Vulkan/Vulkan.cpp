@@ -316,6 +316,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	VkImageAspectFlags		util_vk_determine_aspect_mask(VkFormat format);
 	VkFormatFeatureFlags	util_vk_image_usage_to_format_features(VkImageUsageFlags usage);
 	VkFilter				util_to_vk_filter(FilterType filter);
+	VkSamplerMipmapMode		util_to_vk_mip_map_mode(MipMapMode mipMapMode);
 	VkSamplerAddressMode	util_to_vk_address_mode(AddressMode addressMode);
 	VkFormat				util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
 	ImageFormat::Enum		util_to_internal_image_format(VkFormat format);
@@ -679,14 +680,14 @@ namespace RENDERER_CPP_NAMESPACE {
   // With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
   DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
   {
-	  tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap->find(Thread::GetCurrentThreadID()).node;
+	  tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
 	  if (pNode == NULL)
 	  {
 		  // Only need a lock when creating a new descriptor manager for this thread
 		  MutexLock lock(gDescriptorMutex);
 		  DescriptorManager* pManager = NULL;
 		  add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-		  pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+		  pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
 		  return pManager;
 	  }
 	  else
@@ -697,7 +698,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
   const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
   {
-	  DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pResName));
+	  DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
 	  if (it.node)
 	  {
 		  *pIndex = it.node->second;
@@ -1243,7 +1244,17 @@ namespace RENDERER_CPP_NAMESPACE {
 	/************************************************************************/
 	void create_default_resources(Renderer* pRenderer)
 	{
-		TextureDesc textureDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+		TextureDesc textureDesc = {};
+		textureDesc.mArraySize = 1;
+		textureDesc.mDepth = 1;
+		textureDesc.mFormat = ImageFormat::R8;
+		textureDesc.mHeight = 2;
+		textureDesc.mMipLevels = 1;
+		textureDesc.mSampleCount = SAMPLE_COUNT_1;
+		textureDesc.mStartState = RESOURCE_STATE_COMMON;
+		textureDesc.mType = TEXTURE_TYPE_2D;
+		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS;
+		textureDesc.mWidth = 2;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture);
 
 		BufferDesc bufferDesc = {};
@@ -2293,7 +2304,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		add_info.flags = 0;
 		add_info.magFilter = util_to_vk_filter(magFilter);
 		add_info.minFilter = util_to_vk_filter(minFilter);
-		add_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		add_info.mipmapMode = util_to_vk_mip_map_mode(mipMapMode);
 		add_info.addressModeU = util_to_vk_address_mode(addressU);
 		add_info.addressModeV = util_to_vk_address_mode(addressV);
 		add_info.addressModeW = util_to_vk_address_mode(addressW);
@@ -2491,8 +2502,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		tinystl::vector<ShaderResource const*> shaderResources;
 		const RootSignatureDesc* pRootSignatureDesc = pRootDesc ? pRootDesc : &gDefaultRootSignatureDesc;
 
-		void* pData = conf_calloc(1, sizeof(tinystl::unordered_map<uint32_t, uint32_t>));
-		pRootSignature->pDescriptorNameToIndexMap = conf_placement_new<tinystl::unordered_map<uint32_t,uint32_t> >(pData);
+		conf_placement_new<tinystl::unordered_map<uint32_t,uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
 
 		// Collect all unique shader resources in the given shaders
 		// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -2513,9 +2523,9 @@ namespace RENDERER_CPP_NAMESPACE {
 				if (pRes->type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 					setIndex = 0;
 
-				if (pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pRes->name)).node == 0)
+				if (pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node == 0)
 				{
-					pRootSignature->pDescriptorNameToIndexMap->insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
 					shaderResources.emplace_back(pRes);
 				}
 			}
@@ -2707,24 +2717,23 @@ namespace RENDERER_CPP_NAMESPACE {
 		/************************************************************************/
 		/************************************************************************/
 
-		pRootSignature->pDescriptorManagerMap = conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(conf_calloc(1, sizeof(RootSignature::ThreadLocalDescriptorManager)));
+		conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(&pRootSignature->pDescriptorManagerMap);
 		// Create descriptor manager for this thread
 		DescriptorManager* pManager = NULL;
 		add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-		pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+		pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
 
 		*ppRootSignature = pRootSignature;
 	}
 
 	void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	{
-		for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : *pRootSignature->pDescriptorManagerMap)
+		for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : pRootSignature->pDescriptorManagerMap)
 		{
 			remove_descriptor_manager(pRenderer, pRootSignature, it.second);
 		}
 
-		pRootSignature->pDescriptorManagerMap->~unordered_map();
-		conf_free(pRootSignature->pDescriptorManagerMap);
+		pRootSignature->pDescriptorManagerMap.~unordered_map();
 
 		vkDestroyPipelineLayout(pRenderer->pDevice, pRootSignature->pPipelineLayout, NULL);
 
@@ -2747,8 +2756,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pRootSignature->pRootDescriptorLayouts);
 
 		// Need delete since the destructor frees allocated memory
-		pRootSignature->pDescriptorNameToIndexMap->~unordered_map();
-		conf_free(pRootSignature->pDescriptorNameToIndexMap);
+		pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
 		SAFE_FREE(pRootSignature);
 	}
@@ -3969,9 +3977,26 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		switch (filter)
 		{
-		case FILTER_NEAREST: return VK_FILTER_NEAREST;
-		case FILTER_LINEAR: return VK_FILTER_LINEAR;
-		default: return VK_FILTER_LINEAR;
+		case FILTER_NEAREST:
+			return VK_FILTER_NEAREST;
+		case FILTER_LINEAR:
+			return VK_FILTER_LINEAR;
+		default:
+			return VK_FILTER_LINEAR;
+		}
+	}
+
+	VkSamplerMipmapMode util_to_vk_mip_map_mode(MipMapMode mipMapMode)
+	{
+		switch (mipMapMode)
+		{
+		case MIPMAP_MODE_NEAREST:
+			return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		case MIPMAP_MODE_LINEAR:
+			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		default:
+			ASSERT(false && "Invalid Mip Map Mode");
+			return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
 		}
 	}
 
@@ -3979,11 +4004,16 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		switch (addressMode)
 		{
-		case ADDRESS_MODE_MIRROR: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		case ADDRESS_MODE_REPEAT: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		case ADDRESS_MODE_CLAMP_TO_EDGE: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		case ADDRESS_MODE_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		default: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case ADDRESS_MODE_MIRROR:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case ADDRESS_MODE_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case ADDRESS_MODE_CLAMP_TO_EDGE:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case ADDRESS_MODE_CLAMP_TO_BORDER:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		}
 	}
 

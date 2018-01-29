@@ -662,11 +662,6 @@ unsigned MemoryBuffer::Write(const void* data, unsigned size)
 String FileSystem::mModifiedRootPaths[FSRoot::FSR_Count] = { "" };
 String FileSystem::mProgramDir = "";
 
-FileSystem::FileSystem()
-{
-	ClearModifiedRootPaths();
-}
-
 void FileSystem::SetRootPath(FSRoot root, const String& rootPath)
 {
 	ASSERT(root < FSR_Count);
@@ -679,19 +674,18 @@ void FileSystem::ClearModifiedRootPaths()
 		s = "";
 }
 
-size_t FileSystem::GetModifiedTime(const String& _fileName, FSRoot _root)
+unsigned FileSystem::GetLastModifiedTime(const String& fileName)
 {
-	String fixedPath = FixPath(_fileName, _root);
-	return _getFileLastModifiedTime(fixedPath);
+	return (unsigned)_getFileLastModifiedTime(fileName);
 }
 
-size_t FileSystem::GetFileSize(FileHandle handle)
+unsigned FileSystem::GetFileSize(FileHandle handle)
 {
 	long curPos = _tellFile((::FILE*)handle);
 	_seekFile(handle, 0, SEEK_END);
 	size_t length = _tellFile((::FILE*)handle);
 	_seekFile((::FILE*)handle, curPos, SEEK_SET);
-	return length;
+	return (unsigned)length;
 }
     
 bool FileSystem::FileExists(const String& _fileName, FSRoot _root)
@@ -700,13 +694,16 @@ bool FileSystem::FileExists(const String& _fileName, FSRoot _root)
 #ifdef _DURANGO
 	return (fopen(fileName, "rb") != NULL);
 #else
-    return ( (access(fileName.c_str(), 0 )) != -1 );
+    return ((access(fileName.c_str(), 0 )) != -1);
 #endif
 }
 
 // TODO: FIX THIS FUNCTION
 String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 {
+	if (root == FSR_Absolute)
+		return pszFileName;
+
 	ASSERT(root < FSR_Count);
 	String res;
 	if (pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU

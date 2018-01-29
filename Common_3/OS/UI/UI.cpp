@@ -700,7 +700,7 @@ void UIAppComponentTextOnly::onDrawGUI()
 	draw();
 }
 
-UIAppComponentGui::UIAppComponentGui(const TextDrawDesc* settings) : driver(settings)
+UIAppComponentGui::UIAppComponentGui(const TextDrawDesc* settings) : driver()
 {
 	selectedID = 0;
 	minID = 0;
@@ -709,7 +709,7 @@ UIAppComponentGui::UIAppComponentGui(const TextDrawDesc* settings) : driver(sett
 
 	mouse_enabled = false;
 	escWasPressed = false;
-	fontSize = 12.0f;
+	fontSize = settings->mFontSize;
 	setTitle("Configuration");
 
 	MutexLock lock(gMutex);

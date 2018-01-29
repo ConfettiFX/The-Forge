@@ -51,7 +51,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\float4.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\FloatUtil.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\half.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\hash.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\IntersectionHelpers.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\mat2.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\mat3.h" />

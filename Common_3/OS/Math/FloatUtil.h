@@ -22,15 +22,6 @@
  * under the License.
 */
 
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 Confetti Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 #ifndef _CFX_FLOAT_UTIL_
 #define _CFX_FLOAT_UTIL_
 
@@ -144,9 +135,9 @@ inline float roundf(float x) { return floorf((x)+0.5f); }
 
 //	use reference as argument since this function will be inlined anyway
 template <class T>
-T min(const T &x, const T &y) { return (x < y) ? x : y; }
+constexpr T min(const T &x, const T &y) { return (x < y) ? x : y; }
 template <class T>
-T max(const T &x, const T &y) { return (x > y) ? x : y; }
+constexpr T max(const T &x, const T &y) { return (x > y) ? x : y; }
 template <class T>
 T clamp(const T& value, const T& minV, const T& maxV)
 { return min(max(value, minV), maxV); }

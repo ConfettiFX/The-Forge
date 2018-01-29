@@ -167,12 +167,6 @@ void main() {
     blade.v1.xyz = posV0 + r*(v1 - posV0);
 	blade.v2.xyz = blade.v1.xyz + r*(v2 - v1);
     blades[index] = blade;
-
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
-
 	
 	posV0 = blade.v0.xyz;
 	posV1 = blade.v1.xyz;

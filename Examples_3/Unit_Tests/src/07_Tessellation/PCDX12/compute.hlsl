@@ -105,8 +105,8 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 
 	float h = blade.v1.w;
 
-	//float3 faceDir = normalize(cross(upV, float3(sinTheta, 0, cosTheta)));
-	float3 faceDir = normalize(cross(float3(sinTheta, 0, cosTheta), upV));
+	float3 faceDir = normalize(cross(upV, float3(sinTheta, 0, cosTheta)));
+	//float3 faceDir = normalize(cross(float3(sinTheta, 0, cosTheta), upV));
 
 	//Gravity
 	float4 gravityDirection = float4(0, -1, 0, 9.8); //a : gravity Accelation
@@ -133,7 +133,8 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	float seed = dot(windDirection, float3(posV0.x, 0.0, posV0.z)) + totalTime*windSpeed;
 
 	//!!! DX12 verion need this bias + 0.5, need to check
-	float waveStrength = (cos(seed *(1.0 / (windWidth * 4.0)  )) + 0.5) * 1.0;
+	//float waveStrength = (cos(seed *(1.0 / (windWidth * 4.0)  )) + 0.5) * 1.0;
+	float waveStrength = cos(seed * (1.0 / windWidth));
 
 	float directionalAlignment = 1.0 - abs(dot(windDirection, normalize(posV2 - posV0)));
 	float heightratio = dot(posV2 - posV0, upV) / h;
@@ -162,8 +163,6 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 
 	blade.v1.xyz = posV0 + r*(v1 - posV0);
 	blade.v2.xyz = blade.v1.xyz + r*(v2 - v1);
-		
-
 	Blades[index] = blade;
 
 	posV0 = blade.v0.xyz;
@@ -221,7 +220,7 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	float far = 200.0;
 
 	bool culledByDistance = true;
-	float linearDepth = -(2.0 * near) / (far + near - projPosV0.z * (far - near));
+	float linearDepth = (2.0 * near) / (far + near - projPosV0.z * (far - near));
 
 	float tresholdDistCull = 0.95;
 

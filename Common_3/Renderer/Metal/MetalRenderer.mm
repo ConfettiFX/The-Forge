@@ -283,8 +283,8 @@ namespace RENDERER_CPP_NAMESPACE {
     MTLLoadAction util_to_mtl_load_action(const LoadActionType &loadActionType);
     
     void util_adjust_buffer_slots(const char* srcCode, char* outString);
-    void util_bind_root_constant(Cmd* pCmd, RootSignature* pRootSignature, const DescriptorInfo* descInfo, const DescriptorData* descData, const uint32_t& rootConstantOffset);
-    void util_bind_argument_buffer(Cmd* pCmd, RootSignature* pRootSignature, const DescriptorInfo* descInfo, const DescriptorData* descData);
+    void util_bind_root_constant(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
+    void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
     void util_end_current_encoders(Cmd* pCmd);
     bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType);
     
@@ -414,13 +414,17 @@ namespace RENDERER_CPP_NAMESPACE {
     typedef struct DescriptorManager
     {
         /// The root signature associated with this descriptor manager.
-        RootSignature*                                      pRootSignature;
+        RootSignature*                                                                  pRootSignature;
         /// The descriptor data bound to the current rootSignature;
-        DescriptorData*                                     pDescriptorDataArray;
+        DescriptorData*                                                                 pDescriptorDataArray;
         /// Array of flags to check whether a descriptor has already been bound.
-        bool*                                               pBoundDescriptors;
+        bool*                                                                           pBoundDescriptors;
         /// Map that holds the number of times each rootConstant is bound.
-        tinystl::unordered_map<uint32_t, uint32_t>          mRootConstantBindingCountMap;
+        tinystl::unordered_map<uint32_t, uint32_t>                                      mRootConstantBindingCountMap;
+        /// Map that holds all the rootConstants bound by this descriptor manager for each root signature.
+        tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>                      mRootConstantBuffers;
+        /// Map that holds all the argument buffers bound by this descriptor manager for each root signature.
+        tinystl::unordered_map<uint32_t, Buffer*>                                       mArgumentBuffers;
     } DescriptorManager;
     
     Mutex gDescriptorMutex;
@@ -489,6 +493,9 @@ namespace RENDERER_CPP_NAMESPACE {
     
     void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
     {
+        pManager->mRootConstantBindingCountMap.clear();
+        pManager->mRootConstantBuffers.clear();
+        pManager->mArgumentBuffers.clear();
         SAFE_FREE(pManager->pDescriptorDataArray);
         SAFE_FREE(pManager->pBoundDescriptors);
         SAFE_FREE(pManager);
@@ -499,14 +506,14 @@ namespace RENDERER_CPP_NAMESPACE {
     // With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
     DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
     {
-        tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap->find(Thread::GetCurrentThreadID()).node;
+        tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
         if (pNode == NULL)
         {
             // Only need a lock when creating a new descriptor manager for this thread
             MutexLock lock(gDescriptorMutex);
             DescriptorManager* pManager = NULL;
             add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-            pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+            pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
             return pManager;
         }
         else
@@ -517,7 +524,7 @@ namespace RENDERER_CPP_NAMESPACE {
     
     const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
     {
-        DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->find(tinystl::hash(pResName));
+        DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
         if (it.node)
         {
             *pIndex = it.node->second;
@@ -694,7 +701,7 @@ namespace RENDERER_CPP_NAMESPACE {
                             [pCmd->mtlComputeEncoder setSamplerState:descriptorData->ppSamplers[0]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg];
                         break;
                     case DESCRIPTOR_TYPE_ROOT_CONSTANT:
-                        util_bind_root_constant(pCmd, pRootSignature, descriptorInfo, descriptorData, pManager->mRootConstantBindingCountMap[tinystl::hash(descriptorData->pName)]);
+                        util_bind_root_constant(pCmd, pManager, descriptorInfo, descriptorData);
                         break;
                     case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                     case DESCRIPTOR_TYPE_RW_BUFFER:
@@ -702,7 +709,7 @@ namespace RENDERER_CPP_NAMESPACE {
                         // If we're trying to bind a buffer with an mCount > 1, it means we're binding many descriptors into an argument buffer.
                         if (descriptorData->mCount > 1)
                         {
-                            util_bind_argument_buffer(pCmd, pRootSignature, descriptorInfo, descriptorData);
+                            util_bind_argument_buffer(pCmd, pManager, descriptorInfo, descriptorData);
                         }
                         else
                         {
@@ -761,19 +768,19 @@ namespace RENDERER_CPP_NAMESPACE {
     /************************************************************************/
     void create_default_resources(Renderer* pRenderer)
     {
-        TextureDesc texture1DDesc = { TEXTURE_TYPE_1D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc texture1DDesc = { TEXTURE_TYPE_1D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &texture1DDesc, &pDefault1DTexture);
-        TextureDesc texture1DArrayDesc = { TEXTURE_TYPE_1D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc texture1DArrayDesc = { TEXTURE_TYPE_1D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &texture1DArrayDesc, &pDefault1DTextureArray);
-        TextureDesc texture2DDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc texture2DDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &texture2DDesc, &pDefault2DTexture);
-        TextureDesc texture2DArrayDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc texture2DArrayDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &texture2DArrayDesc, &pDefault2DTextureArray);
-        TextureDesc texture3DDesc = { TEXTURE_TYPE_3D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc texture3DDesc = { TEXTURE_TYPE_3D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &texture3DDesc, &pDefault3DTexture);
-        TextureDesc textureCubeDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc textureCubeDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &textureCubeDesc, &pDefaultCubeTexture);
-        TextureDesc textureCubeArrayDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), false, TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON };
+        TextureDesc textureCubeArrayDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &textureCubeArrayDesc, &pDefaultCubeTextureArray);
         
         BufferDesc bufferDesc = {};
@@ -817,7 +824,6 @@ namespace RENDERER_CPP_NAMESPACE {
     
     ImageFormat::Enum getRecommendedSwapchainFormat(bool hintHDR)
     {
-        // TODO: Support HDR swapchains on Metal.
         return ImageFormat::BGRA8;
     }
 
@@ -1154,8 +1160,8 @@ namespace RENDERER_CPP_NAMESPACE {
             pRenderTarget->mDesc.mBaseArrayLayer, pRenderTarget->mDesc.mArraySize,
             0, 1, // TODO: Should we support multiple mips levels on an RT?
             pRenderTarget->mDesc.mSampleCount, pRenderTarget->mDesc.mSampleQuality,
-            pRenderTarget->mDesc.mFormat, pRenderTarget->mDesc.mClearValue, false, TEXTURE_USAGE_SAMPLED_IMAGE,
-            RESOURCE_STATE_UNDEFINED, pNativeHandle, pRenderTarget->mDesc.mSrgb
+            pRenderTarget->mDesc.mFormat, pRenderTarget->mDesc.mClearValue, TEXTURE_USAGE_SAMPLED_IMAGE,
+            RESOURCE_STATE_UNDEFINED, pNativeHandle, pRenderTarget->mDesc.mSrgb, false
         };
         add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
         
@@ -1335,8 +1341,7 @@ namespace RENDERER_CPP_NAMESPACE {
         RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
         tinystl::vector<ShaderResource const*> shaderResources;
         
-        void* pData = conf_calloc(1, sizeof(tinystl::unordered_map<uint32_t, uint32_t>));
-        pRootSignature->pDescriptorNameToIndexMap = conf_placement_new<tinystl::unordered_map<uint32_t,uint32_t> >(pData);
+        conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
         
         // Collect all unique shader resources in the given shaders
         // Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -1355,9 +1360,10 @@ namespace RENDERER_CPP_NAMESPACE {
                 uint32_t setIndex = 0; // NOTE: Resource Update Frequency is ignored on Metal.
                 
                 // Find all unique resources
-                if (pRootSignature->pDescriptorNameToIndexMap[setIndex].find(tinystl::hash(pRes->name)).node == 0)
+                tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
+                if (!pNode)
                 {
-                    pRootSignature->pDescriptorNameToIndexMap->insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+                    pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
                     shaderResources.emplace_back(pRes);
                 }
             }
@@ -1401,26 +1407,24 @@ namespace RENDERER_CPP_NAMESPACE {
         }
         
         // Create descriptor manager for this thread.
-        pRootSignature->pDescriptorManagerMap = conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(conf_calloc(1, sizeof(RootSignature::ThreadLocalDescriptorManager)));
         DescriptorManager* pManager = NULL;
         add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-        pRootSignature->pDescriptorManagerMap->insert({ Thread::GetCurrentThreadID(), pManager });
+        pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
         
         *ppRootSignature = pRootSignature;
     }
     
     void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
     {
-        ASSERT(pRootSignature);
-        for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
+        for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : pRootSignature->pDescriptorManagerMap)
         {
-            pRootSignature->pDescriptorNameToIndexMap[i].clear();
+            remove_descriptor_manager(pRenderer, pRootSignature, it.second);
         }
-        conf_free(pRootSignature->pDescriptorNameToIndexMap);
         
-        // TODO: Correctly remove previously allocated descriptor managers and rootConstants/Argument buffers.
-        pRootSignature->pRootConstantBuffers.clear();
-        pRootSignature->pArgumentBuffers.clear();
+        pRootSignature->pDescriptorManagerMap.~unordered_map();
+        
+        pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
+        
         SAFE_FREE(pRootSignature);
     }
     
@@ -1714,7 +1718,7 @@ namespace RENDERER_CPP_NAMESPACE {
         // Reset the bound resources flags for the current root signature's descriptor manager.
         if(pCmd->pBoundRootSignature)
         {
-            tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pCmd->pBoundRootSignature->pDescriptorManagerMap->find(Thread::GetCurrentThreadID()).node;
+            const tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pCmd->pBoundRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
             if (pNode) reset_bound_resources(pNode->second);
         }
     }
@@ -1766,7 +1770,7 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pCmd);
         
         // Reset the bound resources flags for the current root signature's descriptor manager.
-        tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pCmd->pBoundRootSignature->pDescriptorManagerMap->find(Thread::GetCurrentThreadID()).node;
+        const tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pCmd->pBoundRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
         if (pNode) reset_bound_resources(pNode->second);
 
         @autoreleasepool {
@@ -2410,7 +2414,7 @@ namespace RENDERER_CPP_NAMESPACE {
         strncpy(dstPtr, srcPtr, bytesToCopy);
     }
     
-    void util_bind_root_constant(Cmd* pCmd, RootSignature* pRootSignature, const DescriptorInfo* descInfo, const DescriptorData* descData, const uint32_t& rootConstantOffset)
+    void util_bind_root_constant(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData)
     {
         // Since root constants are not supported on Metal,
         // we just simulate them binding them as a regular buffer
@@ -2421,8 +2425,8 @@ namespace RENDERER_CPP_NAMESPACE {
         {
             MutexLock mutexLock(rootConstantMutex);
             
-            tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>::iterator jt = pRootSignature->pRootConstantBuffers.find(hash);
-            if (jt.node == nil || jt->second.getCount() <= rootConstantOffset)
+            tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>::iterator jt = pManager->mRootConstantBuffers.find(hash);
+            if (jt.node == nil || jt->second.getCount() <= pManager->mRootConstantBindingCountMap[tinystl::hash(descData->pName)])
             {
                 BufferDesc bufferDesc = {};
                 bufferDesc.mUsage = BUFFER_USAGE_UPLOAD;
@@ -2431,10 +2435,10 @@ namespace RENDERER_CPP_NAMESPACE {
                 bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
                 
                 addBuffer(pCmd->pCmdPool->pRenderer, &bufferDesc, &rootConstantBuffer);
-                pRootSignature->pRootConstantBuffers[hash].push_back(rootConstantBuffer);
+                pManager->mRootConstantBuffers[hash].push_back(rootConstantBuffer);
             }
             else
-                rootConstantBuffer = jt->second[rootConstantOffset];
+                rootConstantBuffer = jt->second[pManager->mRootConstantBindingCountMap[tinystl::hash(descData->pName)]];
         }
         
         // Update the data on the buffer.
@@ -2449,7 +2453,7 @@ namespace RENDERER_CPP_NAMESPACE {
             [pCmd->mtlComputeEncoder setBuffer:rootConstantBuffer->mtlBuffer offset:(rootConstantBuffer->mPositionInHeap + descData->mOffset) atIndex:descInfo->mDesc.reg];
     }
     
-    void util_bind_argument_buffer(Cmd* pCmd, RootSignature* pRootSignature, const DescriptorInfo* descInfo, const DescriptorData* descData)
+    void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData)
     {
         // Look for the argument buffer (or create one if needed).
         uint32_t hash = tinystl::hash(descData->pName);
@@ -2458,7 +2462,7 @@ namespace RENDERER_CPP_NAMESPACE {
         id<MTLFunction> shaderStage = nil;
         {
             MutexLock mutexLock(argumentBufferMutex);
-            tinystl::unordered_map<uint32_t, Buffer*>::iterator jt = pRootSignature->pArgumentBuffers.find(hash);
+            tinystl::unordered_map<uint32_t, Buffer*>::iterator jt = pManager->mArgumentBuffers.find(hash);
             // If not previous argument buffer was found, create a new bufffer.
             if (jt.node == nil)
             {
@@ -2476,7 +2480,7 @@ namespace RENDERER_CPP_NAMESPACE {
                 bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
                 bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
                 addBuffer(pCmd->pCmdPool->pRenderer, &bufferDesc, &argumentBuffer);
-                pRootSignature->pArgumentBuffers[hash] = argumentBuffer;
+                pManager->mArgumentBuffers[hash] = argumentBuffer;
             }
             else
                 argumentBuffer = jt->second;

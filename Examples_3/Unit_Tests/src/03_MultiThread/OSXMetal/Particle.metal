@@ -174,15 +174,20 @@ vertex VSOutput VSMain(VSInput In [[stage_in]],
     return result;
 }
 
-fragment float4 PSMain(VSOutput input [[stage_in]],
-                       sampler uSampler0 [[sampler(3)]],
-                       array<texture2d<float,access::sample>,5> uTex0 [[texture(1)]],
-                       constant particleRootConstantBlock& particleRootConstant [[buffer(1)]])
+struct ParticleTextureData
+{
+    array<texture2d<float,access::sample>,5> textures;
+};
+
+fragment float4 PSMain(VSOutput input                                           [[stage_in]],
+                       sampler uSampler0                                        [[sampler(0)]],
+                       constant particleRootConstantBlock& particleRootConstant [[buffer(1)]],
+                       constant ParticleTextureData& uTex0                      [[buffer(2)]])
 {
     float2 tc = float2(input.TexCoord, 0.0f);
     
-    float4 ca = uTex0[particleRootConstant.textureIndex].sample(uSampler0, tc);
-    float4 cb = uTex0[(particleRootConstant.textureIndex + 1) % 5].sample(uSampler0, tc);
+    float4 ca = uTex0.textures[particleRootConstant.textureIndex].sample(uSampler0, tc);
+    float4 cb = uTex0.textures[(particleRootConstant.textureIndex + 1) % 5].sample(uSampler0, tc);
 
     return 0.05*mix(ca, cb, particleRootConstant.paletteFactor);
 

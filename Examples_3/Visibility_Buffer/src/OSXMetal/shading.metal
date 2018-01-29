@@ -36,6 +36,8 @@ using namespace metal;
 #define SHADOW_PCF 0
 #define SHADOW_ESM 1
 #define SHADOW SHADOW_ESM
+
+#if SHADOW == SHADOW_PCF
 constant int NUM_SHADOW_SAMPLES = 32;
 constant float NUM_SHADOW_SAMPLES_INV = 0.03125;
 constant float shadowSamples[NUM_SHADOW_SAMPLES*2] = {
@@ -72,6 +74,7 @@ constant float shadowSamples[NUM_SHADOW_SAMPLES*2] = {
     -0.5380967, 0.6264234,
     -0.9769312, -0.1550569
 };
+#endif
 
 float random(float3 seed, float3 freq)
 {

@@ -22,18 +22,8 @@
  * under the License.
 */
 
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 Confetti Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 #ifndef __VM_INCLUDE_H
 #define __VM_INCLUDE_H
-
 
 //#define __SSE__
 #if defined(ORBIS)

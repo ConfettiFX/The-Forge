@@ -94,69 +94,79 @@ layout(std430, set = 0, binding = 0) readonly buffer vertexPos
 	VertexPos vertexPosData[];
 };
 
-layout(std430, set = 0, binding = 1) readonly buffer vertexAttr
+layout(std430, set = 0, binding = 1) readonly buffer vertexTexCoord
 {
-	uint vertexAttrData[];
+	uint vertexTexCoordData[];
 };
 
-layout(std430, set = 0, binding = 2) readonly buffer filteredIndexBuffer
+layout(std430, set = 0, binding = 2) readonly buffer vertexNormal
+{
+	uint vertexNormalData[];
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer vertexTangent
+{
+	uint vertexTangentData[];
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer filteredIndexBuffer
 {
 	uint filteredIndexBufferData[];
 };
 
-layout(std430, set = 0, binding = 3) readonly buffer indirectMaterialBuffer
+layout(std430, set = 0, binding = 5) readonly buffer indirectMaterialBuffer
 {
 	uint indirectMaterialBufferData[];
 };
 
-layout(std430, set = 0, binding = 4) readonly buffer meshConstantsBuffer
+layout(std430, set = 0, binding = 6) readonly buffer meshConstantsBuffer
 {
 	MeshConstants meshConstantsBufferData[];
 };
 
-layout(set = 0, binding = 5) uniform sampler textureSampler;
-layout(set = 0, binding = 6) uniform sampler depthSampler;
+layout(set = 0, binding = 7) uniform sampler textureSampler;
+layout(set = 0, binding = 8) uniform sampler depthSampler;
 
 // Per frame descriptors
-layout(std430, set = 0, binding = 7) readonly buffer indirectDrawArgsBlock
+layout(std430, set = 0, binding = 9) readonly buffer indirectDrawArgsBlock
 {
 	uint indirectDrawArgsData[];
 } indirectDrawArgs[2];
 
-layout(set = 0, binding = 8) uniform uniforms
+layout(set = 0, binding = 10) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
 
-layout(set = 0, binding = 9) restrict readonly buffer lights
+layout(set = 0, binding = 11) restrict readonly buffer lights
 {
 	LightData lightsBuffer[];
 };
 
-layout(set = 0, binding = 10) restrict readonly buffer lightClustersCount
+layout(set = 0, binding = 12) restrict readonly buffer lightClustersCount
 {
 	uint lightClustersCountBuffer[];
 };
 
-layout(set = 0, binding = 11) restrict readonly buffer lightClusters
+layout(set = 0, binding = 13) restrict readonly buffer lightClusters
 {
 	uint lightClustersBuffer[];
 };
 
 #if(SAMPLE_COUNT > 1)
-layout(set = 0, binding=12) uniform texture2DMS vbTex;
+layout(set = 0, binding=14) uniform texture2DMS vbTex;
 #else
-layout(set = 0, binding=12) uniform texture2D vbTex;
+layout(set = 0, binding=14) uniform texture2D vbTex;
 #endif
 
 #if USE_AMBIENT_OCCLUSION
-layout(set = 0, binding = 13) uniform texture2D aoTex;
+layout(set = 0, binding = 15) uniform texture2D aoTex;
 #endif
-layout(set = 0, binding = 14) uniform texture2D shadowMap;
+layout(set = 0, binding = 16) uniform texture2D shadowMap;
 
-layout(set = 0, binding = 15) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
-layout(set = 0, binding = 15 + MAX_TEXTURE_UNITS) uniform texture2D normalMaps[MAX_TEXTURE_UNITS];
-layout(set = 0, binding = 15 + MAX_TEXTURE_UNITS * 2) uniform texture2D specularMaps[MAX_TEXTURE_UNITS];
+layout(set = 0, binding = 17) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
+layout(set = 0, binding = 18 + MAX_TEXTURE_UNITS) uniform texture2D normalMaps[MAX_TEXTURE_UNITS];
+layout(set = 0, binding = 18 + MAX_TEXTURE_UNITS * 2) uniform texture2D specularMaps[MAX_TEXTURE_UNITS];
 
 layout(location = 0) in vec2 iScreenPos;
 
@@ -239,9 +249,9 @@ void main()
 		// Apply perspective correction to texture coordinates
 		mat3x2 texCoords =
 		{
-			unpack2Floats(vertexAttrData[index0 * 3]) * one_over_w[0],
-			unpack2Floats(vertexAttrData[index1 * 3]) * one_over_w[1],
-			unpack2Floats(vertexAttrData[index2 * 3]) * one_over_w[2]
+			unpack2Floats(vertexTexCoordData[index0]) * one_over_w[0],
+			unpack2Floats(vertexTexCoordData[index1]) * one_over_w[1],
+			unpack2Floats(vertexTexCoordData[index2]) * one_over_w[2]
 		};
 
 		// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
@@ -254,9 +264,9 @@ void main()
 		// Apply perspective division to normals
 		mat3x3 normals =
 		{
-			decodeDir(unpackUnorm2x16(vertexAttrData[index0 * 3 + 1])) * one_over_w[0],
-			decodeDir(unpackUnorm2x16(vertexAttrData[index1 * 3 + 1])) * one_over_w[1],
-			decodeDir(unpackUnorm2x16(vertexAttrData[index2 * 3 + 1])) * one_over_w[2]
+			decodeDir(unpackUnorm2x16(vertexNormalData[index0])) * one_over_w[0],
+			decodeDir(unpackUnorm2x16(vertexNormalData[index1])) * one_over_w[1],
+			decodeDir(unpackUnorm2x16(vertexNormalData[index2])) * one_over_w[2]
 		};
 
 		vec3 normal = normalize(interpolateAttribute(normals, derivativesOut.db_dx, derivativesOut.db_dy, d));
@@ -265,9 +275,9 @@ void main()
 		// Apply perspective division to tangents
 		mat3x3 tangents =
 		{
-			decodeDir(unpackUnorm2x16(vertexAttrData[index0 * 3 + 2])) * one_over_w[0],
-			decodeDir(unpackUnorm2x16(vertexAttrData[index1 * 3 + 2])) * one_over_w[1],
-			decodeDir(unpackUnorm2x16(vertexAttrData[index2 * 3 + 2])) * one_over_w[2]
+			decodeDir(unpackUnorm2x16(vertexTangentData[index0])) * one_over_w[0],
+			decodeDir(unpackUnorm2x16(vertexTangentData[index1])) * one_over_w[1],
+			decodeDir(unpackUnorm2x16(vertexTangentData[index2])) * one_over_w[2]
 		};
 
 		vec3 tangent = normalize(interpolateAttribute(tangents, derivativesOut.db_dx, derivativesOut.db_dy, d));

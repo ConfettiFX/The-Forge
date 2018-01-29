@@ -131,6 +131,23 @@ struct BladeDrawIndirect
 	uint32_t firstInstance;
 };
 
+#ifdef METAL
+struct PatchTess
+{
+    half edges[4];
+    half inside[2];
+};
+
+struct HullOut
+{
+    float4 position;
+    float4 tese_v1;
+    float4 tese_v2;
+    float4 tese_up;
+    float4 tese_widthDir;
+};
+#endif
+
 tinystl::vector<Blade> blades;
 
 FileSystem gFileSystem;
@@ -154,8 +171,8 @@ const char* pszRoots[] =
 {
 	"../../../src/07_Tessellation/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
 	"../../../src/07_Tessellation/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"../../../src/00_Common/" RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
-	"../../../src/00_Common/" RESOURCE_DIR "/",					// FSR_SrcShaders_Common
+	"",															// FSR_BinShaders_Common
+	"",															// FSR_SrcShaders_Common
 	"../../../UnitTestResources/Textures/",						// FSR_Textures
 	"../../../UnitTestResources/Meshes/",						// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
@@ -195,14 +212,26 @@ Buffer*          pCulledBladeStorageBuffer = nullptr;
 
 Buffer*          pBladeNumBuffer = nullptr;
 
+#ifdef METAL
+Buffer*         pTessFactorsBuffer = nullptr;
+Buffer*         pHullOutputBuffer = nullptr;
+#endif
+
 CommandSignature* pIndirectCommandSignature = nullptr;
 
 Shader*          pGrassShader = nullptr;
 Pipeline*        pGrassPipeline = nullptr;
+#ifdef METAL
+Shader*          pGrassVertexHullShader = nullptr;
+Pipeline*        pGrassVertexHullPipeline = nullptr;
+#endif
 
 Pipeline*        pGrassPipelineForWireframe = nullptr;
 
 RootSignature*   pGrassRootSignature = nullptr;
+#ifdef METAL
+RootSignature*   pGrassVertexHullRootSignature = nullptr;
+#endif
 
 Shader*          pComputeShader = nullptr;
 Pipeline*        pComputePipeline = nullptr;
@@ -361,7 +390,7 @@ void addDepthBuffer()
 	depthRT.mArraySize = 1;
 	depthRT.mClearValue = { 1.0f, 0 };
 	depthRT.mDepth = 1;
-	depthRT.mFormat = ImageFormat::D24;
+	depthRT.mFormat = ImageFormat::D32F;
 	depthRT.mHeight = gWindowHeight;
 	depthRT.mSampleCount = SAMPLE_COUNT_1;
 	depthRT.mSampleQuality = 0;
@@ -443,10 +472,20 @@ void initApp(const WindowsDesc* window)
 	addSwapChain();
 
 	initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+#ifndef METAL
 	addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+#endif
 
 	ShaderDesc computeShader = { SHADER_STAGE_COMP };
+#ifndef METAL
 	ShaderDesc grassShader = { SHADER_STAGE_VERT | SHADER_STAGE_TESC | SHADER_STAGE_TESE | SHADER_STAGE_FRAG};
+#else
+    // In Metal there are no domain and hull shaders. To simulate this pipeline stages, we can execute a compute
+    // shader that takes care of generating the tessellation patches and subdivision factors, and then
+    // pass this info into vert/frag shader which takes care of assembling the final primitives that will be finally rendered.
+    ShaderDesc grassVertexHullShader = { SHADER_STAGE_COMP };
+    ShaderDesc grassShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG };
+#endif
 
 #if defined(DIRECT3D12)
 	File hlslFile = {};
@@ -510,13 +549,17 @@ void initApp(const WindowsDesc* window)
 
 #elif defined(METAL)
 	File metalFile = {};
-	metalFile.Open("display.metal", FM_Read, FSRoot::FSR_SrcShaders);
-	String metal = metalFile.ReadText();
-	displayShader = { displayShader.mStages,{ metalFile.GetName(), metal, "VSMain" },{ metalFile.GetName(), metal, "PSMain" } };
-
-	metalFile.Open("compute.metal", FM_Read, FSRoot::FSR_SrcShaders);
-	computeShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
-	metalFile.Close();
+    
+    metalFile.Open("compute.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    computeShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
+    
+    metalFile.Open("grass_vertexhull.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    grassVertexHullShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
+    
+    metalFile.Open("grass_domainfrag.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    grassShader = { grassShader.mStages, { metalFile.GetName(), metalFile.ReadText(), "VSMain" }, { metalFile.GetName(), metalFile.ReadText(), "PSMain" },};
+    
+    metalFile.Close();
 #endif
 
 	addShader(pRenderer, &computeShader, &pComputeShader);
@@ -524,6 +567,10 @@ void initApp(const WindowsDesc* window)
 
 	addShader(pRenderer, &grassShader, &pGrassShader);
 	addRootSignature(pRenderer, 1, &pGrassShader, &pGrassRootSignature);
+#ifdef METAL
+    addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
+    addRootSignature(pRenderer, 1, &pGrassVertexHullShader, &pGrassVertexHullRootSignature);
+#endif
 	
 	ComputePipelineDesc computePipelineDesc = { 0 };
 	computePipelineDesc.pRootSignature = pComputeRootSignature;
@@ -540,9 +587,13 @@ void initApp(const WindowsDesc* window)
 	addDepthBuffer();
 
 	VertexLayout vertexLayout = {};
+#ifndef METAL
 	vertexLayout.mAttribCount = 4;
+#else
+    vertexLayout.mAttribCount = 5;
+#endif
 
-	//v0
+	//v0 -- position (Metal)
 	vertexLayout.mAttribs[0].mSemantic = SEMANTIC_TEXCOORD0;
 	vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
 	vertexLayout.mAttribs[0].mBinding = 0;
@@ -569,6 +620,15 @@ void initApp(const WindowsDesc* window)
 	vertexLayout.mAttribs[3].mBinding = 0;
 	vertexLayout.mAttribs[3].mLocation = 3;
 	vertexLayout.mAttribs[3].mOffset = 12 * sizeof(float);
+    
+#ifdef METAL
+    // widthDir
+    vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
+    vertexLayout.mAttribs[4].mFormat = ImageFormat::RGBA32F;
+    vertexLayout.mAttribs[4].mBinding = 0;
+    vertexLayout.mAttribs[4].mLocation = 4;
+    vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
+#endif
 
 	GraphicsPipelineDesc pipelineSettings = { 0 };
 	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
@@ -581,9 +641,15 @@ void initApp(const WindowsDesc* window)
 	pipelineSettings.pRootSignature = pGrassRootSignature;
 	pipelineSettings.pShaderProgram = pGrassShader;
 	addPipeline(pRenderer, &pipelineSettings, &pGrassPipeline);
-
-	pipelineSettings.pRasterizerState = pWireframeRast;
-	addPipeline(pRenderer, &pipelineSettings, &pGrassPipelineForWireframe);	
+    pipelineSettings.pRasterizerState = pWireframeRast;
+    addPipeline(pRenderer, &pipelineSettings, &pGrassPipelineForWireframe);
+    
+#ifdef METAL
+    ComputePipelineDesc grassVertexHullPipelineDesc = { 0 };
+    grassVertexHullPipelineDesc.pRootSignature = pGrassVertexHullRootSignature;
+    grassVertexHullPipelineDesc.pShaderProgram = pGrassVertexHullShader;
+    addComputePipeline(pRenderer, &grassVertexHullPipelineDesc, &pGrassVertexHullPipeline);
+#endif
 
 	BufferLoadDesc ubGrassDesc = {};
 	ubGrassDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
@@ -634,6 +700,30 @@ void initApp(const WindowsDesc* window)
 	sbBladeNumDesc.pData = &indirectDraw;
 	sbBladeNumDesc.ppBuffer = &pBladeNumBuffer;
 	addResource(&sbBladeNumDesc);
+    
+#ifdef METAL
+    BufferLoadDesc tessFactorBufferDesc = {};
+    tessFactorBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+    tessFactorBufferDesc.mDesc.mFirstElement = 0;
+    tessFactorBufferDesc.mDesc.mElementCount = NUM_BLADES;
+    tessFactorBufferDesc.mDesc.mStructStride = sizeof(PatchTess);
+    tessFactorBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+    tessFactorBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(PatchTess);
+    tessFactorBufferDesc.pData = NULL;
+    tessFactorBufferDesc.ppBuffer = &pTessFactorsBuffer;
+    addResource(&tessFactorBufferDesc);
+    
+    BufferLoadDesc hullOutputBufferDesc = {};
+    hullOutputBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+    hullOutputBufferDesc.mDesc.mFirstElement = 0;
+    hullOutputBufferDesc.mDesc.mElementCount = NUM_BLADES;
+    hullOutputBufferDesc.mDesc.mStructStride = sizeof(HullOut);
+    hullOutputBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+    hullOutputBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(HullOut);
+    hullOutputBufferDesc.pData = NULL;
+    hullOutputBufferDesc.ppBuffer = &pHullOutputBuffer;
+    addResource(&hullOutputBufferDesc);
+#endif
 
 	tinystl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
 	indirectArgDescs[0] = {};
@@ -665,7 +755,7 @@ void initApp(const WindowsDesc* window)
 #endif
 
 	UISettings uiSettings = {};
-	uiSettings.pDefaultFontName = "NeoSans-Bold.ttf";
+	uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
 
 	addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 
@@ -777,9 +867,9 @@ void updateUniformBuffer(float deltaTime)
 
 void update(float deltaTime)
 {
-	ProcessInput(deltaTime);
-	updateUniformBuffer(deltaTime);
-	updateGui(pUIManager, pGuiWindow, deltaTime);
+    ProcessInput(deltaTime);
+    updateUniformBuffer(deltaTime);
+    updateGui(pUIManager, pGuiWindow, deltaTime);
 }
 
 
@@ -803,13 +893,16 @@ void drawFrame(float deltaTime)
 	Cmd* cmd = ppCmds[gFrameIndex];
 	beginCmd(cmd);
 
+#ifndef METAL
 	cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
-
+#endif
 	
 	const uint32_t* pThreadGroupSize = pComputeShader->mNumThreadsPerGroup;
 
+#ifndef METAL
 	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
-
+#endif
+    
 	DescriptorData computeParams[4] = {};
 	cmdBindPipeline(cmd, pComputePipeline);
 
@@ -828,7 +921,10 @@ void drawFrame(float deltaTime)
 
 	cmdBindDescriptors(cmd, pComputeRootSignature, 4, computeParams);
 	cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
+    
+#ifndef METAL
 	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+#endif
 	
 	TextureBarrier barriers[] = {
 		{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
@@ -838,13 +934,33 @@ void drawFrame(float deltaTime)
 		{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
 	};
 	cmdResourceBarrier(cmd, 2, srvBarriers, 1, barriers, false);
+    
+#ifdef METAL
+    // On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
+    DescriptorData vertexHullParams[5] = {};
+    cmdBindPipeline(cmd, pGrassVertexHullPipeline);
+    vertexHullParams[0].pName = "GrassUniformBlock";
+    vertexHullParams[0].ppBuffers = &pGrassUniformBuffer;
+    vertexHullParams[1].pName = "vertexInput";
+    vertexHullParams[1].ppBuffers = &pCulledBladeStorageBuffer;
+    vertexHullParams[2].pName = "drawInfo";
+    vertexHullParams[2].ppBuffers = &pBladeNumBuffer;
+    vertexHullParams[3].pName = "tessellationFactorBuffer";
+    vertexHullParams[3].ppBuffers = &pTessFactorsBuffer;
+    vertexHullParams[4].pName = "hullOutputBuffer";
+    vertexHullParams[4].ppBuffers = &pHullOutputBuffer;
+    cmdBindDescriptors(cmd, pGrassVertexHullRootSignature, 5, vertexHullParams);
+    cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
+#endif
 
 	cmdBeginRender(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
 	cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 	cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);	
 
+#ifndef METAL
 	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass");
-	
+#endif
+    
 	// Draw computed results
 	if(gFillMode == FILL_MODE_SOLID)
 		cmdBindPipeline(cmd, pGrassPipeline);
@@ -856,7 +972,13 @@ void drawFrame(float deltaTime)
 	grassParams[0].ppBuffers = &pGrassUniformBuffer;
 	cmdBindDescriptors(cmd, pGrassRootSignature, 1, grassParams);
 
+#ifndef METAL
 	cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer);
+#else
+    // When using tessellation on Metal, you should always bind the tessellationFactors buffer and the controlPointBuffer together as vertex buffer (following this order).
+    Buffer* tessBuffers[] = { pTessFactorsBuffer, pHullOutputBuffer};
+    cmdBindVertexBuffer(cmd, 2, tessBuffers);
+#endif
 	cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, nullptr, 0);
 	
 	cmdEndRender(cmd, 1, &pRenderTarget, pDepthBuffer);
@@ -867,9 +989,13 @@ void drawFrame(float deltaTime)
 	};
 	cmdResourceBarrier(cmd, 2, uavBarriers, 0, NULL, true);
 
+#ifndef METAL
 	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+#endif
 
+#ifndef METAL
 	cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+#endif
 
 	endCmd(cmd);
 
@@ -889,8 +1015,8 @@ void drawFrame(float deltaTime)
 	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", timer.GetUSec(true) / 1000.0f);
 #ifndef METAL // Metal doesn't support GPU profilers
 	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 40 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
-	cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
 #endif
+    cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
 
 	cmdUIDrawGpuProfileData(cmd, pUIManager, { 8, 65 }, pGpuProfiler);
 	cmdUIEndRender(cmd, pUIManager);
@@ -923,6 +1049,11 @@ void exitApp()
 	removeResource(pCulledBladeStorageBuffer);
 
 	removeResource(pBladeNumBuffer);
+    
+#ifdef METAL
+    removeResource(pTessFactorsBuffer);
+    removeResource(pHullOutputBuffer);
+#endif
 
 	removeGui(pUIManager, pGuiWindow);
 	removeUIManagerInterface(pRenderer, pUIManager);
@@ -953,16 +1084,27 @@ void exitApp()
 	removeResource(pGrassUniformBuffer);
 
 	removeShader(pRenderer, pGrassShader);
+#ifdef METAL
+    removeShader(pRenderer, pGrassVertexHullShader);
+#endif
 	removeShader(pRenderer, pComputeShader);
 
 	removePipeline(pRenderer, pGrassPipeline);
+#ifdef METAL
+    removePipeline(pRenderer, pGrassVertexHullPipeline);
+#endif
 	removePipeline(pRenderer, pGrassPipelineForWireframe);
 	removePipeline(pRenderer, pComputePipeline);
 
 	removeRootSignature(pRenderer, pGrassRootSignature);
+#ifdef METAL
+    removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
+#endif
 	removeRootSignature(pRenderer, pComputeRootSignature);
-	
+
+#ifndef METAL
 	removeGpuProfiler(pRenderer, pGpuProfiler);
+#endif
 	removeResourceLoaderInterface(pRenderer);
 	removeSwapChain(pRenderer, pSwapChain);
 	removeQueue(pGraphicsQueue);
@@ -1015,4 +1157,66 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+#else
+
+#import "MetalKitApplication.h"
+
+// Timer used in the update function.
+Timer deltaTimer;
+float retinaScale = 1.0f;
+
+// Metal application implementation.
+@implementation MetalKitApplication {}
+-(nonnull instancetype) initWithMetalDevice:(nonnull id<MTLDevice>)device
+                  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
+                                       view:(nonnull MTKView*)view
+                        retinaScalingFactor:(CGFloat)retinaScalingFactor
+{
+    self = [super init];
+    if(self)
+    {
+        FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
+        
+        retinaScale = retinaScalingFactor;
+        
+        RectDesc resolution;
+        getRecommendedResolution(&resolution);
+        
+        gWindow.windowedRect = resolution;
+        gWindow.fullscreenRect = resolution;
+        gWindow.fullScreen = false;
+        gWindow.maximized = false;
+        gWindow.handle = (void*)CFBridgingRetain(view);
+        
+        @autoreleasepool {
+            const char * appName = "01_Transformations";
+            openWindow(appName, &gWindow);
+            initApp(&gWindow);
+        }
+    }
+    
+    return self;
+}
+
+- (void)drawRectResized:(CGSize)size
+{
+    waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+    
+    gWindowWidth = size.width * retinaScale;
+    gWindowHeight = size.height * retinaScale;
+    unload();
+    load();
+}
+
+- (void)update
+{
+    float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+    // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+    if (deltaTime > 0.15f)
+        deltaTime = 0.05f;
+        
+    update(deltaTime);
+    drawFrame(deltaTime);
+}
+@end
 #endif

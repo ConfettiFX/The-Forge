@@ -710,6 +710,7 @@ typedef struct TextureDesc
 	uint32_t				mWidth;
 	/// Height
 	uint32_t				mHeight;
+
 	/// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
 	uint32_t				mDepth;
 	/// Start array layer (Should be between 0 and max array layers for this texture)
@@ -718,6 +719,7 @@ typedef struct TextureDesc
 	uint32_t				mArraySize;
 	/// Most detailed mip level (Should be between 0 and max mip levels for this texture)
 	uint32_t				mBaseMipLevel;
+
 	/// Number of mip levels
 	uint32_t				mMipLevels;
 	/// Number of multisamples per pixel (currently Textures created with mUsage TEXTURE_USAGE_SAMPLED_IMAGE only support SAMPLE_COUNT_1)
@@ -728,8 +730,6 @@ typedef struct TextureDesc
 	ImageFormat::Enum		mFormat;
 	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
 	ClearValue				mClearValue;
-	/// Is the texture CPU accessible (applicable on hardware supporting CPU mapped textures (UMA))
-	bool					mHostVisible;
 	/// Flags specifying suitable usage of the texture(UAV, SRV, RTV, DSV)
 	TextureUsage			mUsage;
 	/// What state will the texture get created in
@@ -737,13 +737,15 @@ typedef struct TextureDesc
 	/// Pointer to native texture handle if the texture does not own underlying resource
 	const void*				pNativeHandle;
 	/// Set whether texture is srgb
-    bool				    mSrgb;
+	bool				    mSrgb;
+	/// Is the texture CPU accessible (applicable on hardware supporting CPU mapped textures (UMA))
+	bool					mHostVisible;
 } TextureDesc;
 
 typedef struct Texture {
-	Renderer*							pRenderer;
+	Renderer*							pRenderer; //8
 	/// Texture creation info
-	TextureDesc							mDesc;
+	TextureDesc							mDesc;   //88
 	/// CPU mapped address (applicable to Textures created with mHostVisible = true)
 	void*								pCpuMappedAddress;
 	/// Size of the texture (in bytes)
@@ -754,9 +756,14 @@ typedef struct Texture {
 	ResourceState						mCurrentState;
 	/// State of the texture before mCurrentState (used for state tracking during a split barrier)
 	ResourceState						mPreviousState;
+	uint32_t padding; //Padding to put the textureID adn the SRV/UAV handle on the same cache line
 	/// A unique id used for hashing textures during resource binding
 	uint64_t							mTextureId;
 #if defined(DIRECT3D12)
+	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
+	D3D12_CPU_DESCRIPTOR_HANDLE			mDxSrvHandle;
+	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_UNORDERED_ACCESS)
+	D3D12_CPU_DESCRIPTOR_HANDLE			mDxUavHandle;
 	/// Native handle of the underlying resource
 	ID3D12Resource*                     pDxResource;
 	/// Contains resource allocation info such as parent heap, offset in heap
@@ -765,10 +772,6 @@ typedef struct Texture {
 	D3D12_SHADER_RESOURCE_VIEW_DESC     mDxSrvDesc;
 	/// Description for creating the UAV for this texture (applicable to TEXTURE_USAGE_UNORDERED_ACCESS)
 	D3D12_UNORDERED_ACCESS_VIEW_DESC    mDxUavDesc;
-	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-	D3D12_CPU_DESCRIPTOR_HANDLE			mDxSrvHandle;
-	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_UNORDERED_ACCESS)
-	D3D12_CPU_DESCRIPTOR_HANDLE			mDxUavHandle;
 #elif defined(VULKAN)
 	/// Native handle of the underlying resource
 	VkImage								pVkImage;
@@ -963,7 +966,7 @@ typedef struct RootSignature
 	/// Array of all descriptors declared in the root signature layout
 	DescriptorInfo*								pDescriptors;
 	/// Translates hash of descriptor name to descriptor index
-	tinystl::unordered_map<uint32_t, uint32_t>*	pDescriptorNameToIndexMap;
+	tinystl::unordered_map<uint32_t, uint32_t>	pDescriptorNameToIndexMap;
 
 	/// Number of root constants in the root signature
 	uint32_t									mRootConstantCount;
@@ -987,21 +990,23 @@ typedef struct RootSignature
 	RootDescriptorLayout*						pRootDescriptorLayouts;
 
 	VkPipelineLayout							pPipelineLayout;
-
 #elif defined(METAL)
-    tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>                          pRootConstantBuffers;
-    tinystl::unordered_map<uint32_t, Buffer*>                                       pArgumentBuffers;
 #endif
 
 	using ThreadLocalDescriptorManager = tinystl::unordered_map<ThreadID, struct DescriptorManager*>;
 
 	/// Api specific binding manager
-	ThreadLocalDescriptorManager*				pDescriptorManagerMap;
+	ThreadLocalDescriptorManager				pDescriptorManagerMap;
 } RootSignature;
 
 typedef struct DescriptorData
 {
-    DescriptorData() : pName(NULL), mCount(1), mOffset(0), mIndex((uint32_t)-1), ppTextures(NULL) {}
+    DescriptorData() :
+			pName(NULL),
+			mIndex((uint32_t)-1),
+			mCount(1),
+			mOffset(0),
+			ppTextures(NULL) {}
     
 	/// User can either set name of descriptor or index (index in pRootSignature->pDescriptors array)
     /// Name of descriptor

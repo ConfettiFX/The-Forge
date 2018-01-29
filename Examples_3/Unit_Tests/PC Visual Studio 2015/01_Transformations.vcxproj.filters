@@ -20,23 +20,25 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\01_Transformations\PCVulkan\basic.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\01_Transformations\PCVulkan\basic.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\01_Transformations\PCVulkan\skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\01_Transformations\PCVulkan\skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
     <None Include="..\src\01_Transformations\PCDX12\basic.hlsl">
       <Filter>Shaders\PCDX12</Filter>
     </None>
     <None Include="..\src\01_Transformations\PCDX12\skybox.hlsl">
       <Filter>Shaders\PCDX12</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\01_Transformations\PCVulkan\skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\01_Transformations\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\01_Transformations\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\01_Transformations\PCVulkan\skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
