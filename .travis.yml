@@ -1,2 +1,3 @@
 os: osx
 osx_image: xcode9.2
+script: xctool -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"
