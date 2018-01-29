@@ -316,6 +316,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	VkImageAspectFlags		util_vk_determine_aspect_mask(VkFormat format);
 	VkFormatFeatureFlags	util_vk_image_usage_to_format_features(VkImageUsageFlags usage);
 	VkFilter				util_to_vk_filter(FilterType filter);
+	VkSamplerMipmapMode		util_to_vk_mip_map_mode(MipMapMode mipMapMode);
 	VkSamplerAddressMode	util_to_vk_address_mode(AddressMode addressMode);
 	VkFormat				util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
 	ImageFormat::Enum		util_to_internal_image_format(VkFormat format);
@@ -2303,7 +2304,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		add_info.flags = 0;
 		add_info.magFilter = util_to_vk_filter(magFilter);
 		add_info.minFilter = util_to_vk_filter(minFilter);
-		add_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		add_info.mipmapMode = util_to_vk_mip_map_mode(mipMapMode);
 		add_info.addressModeU = util_to_vk_address_mode(addressU);
 		add_info.addressModeV = util_to_vk_address_mode(addressV);
 		add_info.addressModeW = util_to_vk_address_mode(addressW);
@@ -3976,9 +3977,26 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		switch (filter)
 		{
-		case FILTER_NEAREST: return VK_FILTER_NEAREST;
-		case FILTER_LINEAR: return VK_FILTER_LINEAR;
-		default: return VK_FILTER_LINEAR;
+		case FILTER_NEAREST:
+			return VK_FILTER_NEAREST;
+		case FILTER_LINEAR:
+			return VK_FILTER_LINEAR;
+		default:
+			return VK_FILTER_LINEAR;
+		}
+	}
+
+	VkSamplerMipmapMode util_to_vk_mip_map_mode(MipMapMode mipMapMode)
+	{
+		switch (mipMapMode)
+		{
+		case MIPMAP_MODE_NEAREST:
+			return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		case MIPMAP_MODE_LINEAR:
+			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		default:
+			ASSERT(false && "Invalid Mip Map Mode");
+			return VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
 		}
 	}
 
@@ -3986,11 +4004,16 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		switch (addressMode)
 		{
-		case ADDRESS_MODE_MIRROR: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		case ADDRESS_MODE_REPEAT: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		case ADDRESS_MODE_CLAMP_TO_EDGE: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		case ADDRESS_MODE_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		default: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case ADDRESS_MODE_MIRROR:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case ADDRESS_MODE_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case ADDRESS_MODE_CLAMP_TO_EDGE:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case ADDRESS_MODE_CLAMP_TO_BORDER:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		}
 	}
 
