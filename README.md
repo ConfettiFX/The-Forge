@@ -24,7 +24,7 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * Mainly improved the performance of the macOS build. macOS is now using the same art assets as the PC and the performance of the triangle filtering compute shader is improved. 
 * Reduced the size of the art assets because we only need one version of San Miguel for all platforms now. 
 * macOS now runs the Hardware Tessellation unit test. 
-* There is also now a new unit test that shows a procedurally generated earth.
+* There is also now a new unit test that shows a procedurally generated planet.
 
 
 ## Release 1.0 - January 22nd, 2018
