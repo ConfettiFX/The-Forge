@@ -10,3 +10,4 @@ script:
 - xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 06_BRDF > /dev/null
 - xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 07_Tessellation > /dev/null
 - xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 08_Procedural > /dev/null
+- xcodebuild -project "Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj" -scheme Visibility_Buffer > /dev/null
