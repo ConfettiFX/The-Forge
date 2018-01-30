@@ -1,2 +1,13 @@
 os: osx
 osx_image: xcode9.2
+language: objective-c
+script:
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 01_Transformations > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 02_Compute > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 03_MultiThread > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 04_ExecuteIndirect > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 05_FontRendering > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 06_BRDF > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 07_Tessellation > /dev/null
+- xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 08_Procedural > /dev/null
+- xcodebuild -project "Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj" -scheme Visibility_Buffer > /dev/null

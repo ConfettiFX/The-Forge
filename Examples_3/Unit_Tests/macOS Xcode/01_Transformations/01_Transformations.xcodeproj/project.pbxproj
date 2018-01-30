@@ -7,6 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		28A5AB81201F3A35000E571F /* Skybox_right1.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB7B201F3A35000E571F /* Skybox_right1.png */; };
+		28A5AB82201F3A35000E571F /* Skybox_left2.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB7C201F3A35000E571F /* Skybox_left2.png */; };
+		28A5AB83201F3A35000E571F /* Skybox_bottom4.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */; };
+		28A5AB84201F3A35000E571F /* Skybox_front5.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB7E201F3A35000E571F /* Skybox_front5.png */; };
+		28A5AB85201F3A35000E571F /* Skybox_top3.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB7F201F3A35000E571F /* Skybox_top3.png */; };
+		28A5AB86201F3A35000E571F /* Skybox_back6.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB80201F3A35000E571F /* Skybox_back6.png */; };
+		28A5AB8A201F3A77000E571F /* TitilliumText in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB89201F3A77000E571F /* TitilliumText */; };
+		28A5AB8B201F3E6B000E571F /* basic.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB68201F378A000E571F /* basic.metal */; };
+		28A5AB8C201F3E76000E571F /* skybox.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AB67201F378A000E571F /* skybox.metal */; };
+		28A5AB8D201F3E83000E571F /* skybox.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AB67201F378A000E571F /* skybox.metal */; };
+		28A5ABEC201F482F000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABEB201F482F000E571F /* Metal.framework */; };
+		28A5ABEE201F4838000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABED201F4838000E571F /* MetalKit.framework */; };
+		28A5ABF0201F4844000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABEF201F4844000E571F /* Metal.framework */; };
+		28A5ABF2201F484B000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABF1201F484B000E571F /* MetalKit.framework */; };
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
 		C91D461B1FD9974F00564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */; };
 		C930099A1FD02FE300DFA969 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C93009981FD02FE300DFA969 /* Fontstash.cpp */; };
@@ -45,9 +59,6 @@
 		C95133382010E75D002E584B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		C95133392010E760002E584B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
 		C951333A2010E764002E584B /* 01_Transformations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */; };
-		C951333C2010F7E7002E584B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C8E1EF81E8F005AC8C7 /* Metal.framework */; };
-		C951333D2010F7E9002E584B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C901EF81E8F005AC8C7 /* MetalKit.framework */; };
-		C951333E2010F7F0002E584B /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C921EF81E8F005AC8C7 /* ModelIO.framework */; };
 		C97778A71FD14F4D00346FED /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = C97778A61FD14F4D00346FED /* MetalRenderer.mm */; };
 		D204ED811F348A5B005F2CEA /* 01_Transformations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */; };
 		D205E2841F9F9EC600040CCE /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D205E2821F9F9EC600040CCE /* FileSystem.cpp */; };
@@ -58,9 +69,6 @@
 		D25926B21F67FBCE00091F9A /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D25926B11F67FBCD00091F9A /* CommonShaderReflection.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		EA463C8F1EF81E8F005AC8C7 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C8E1EF81E8F005AC8C7 /* Metal.framework */; };
-		EA463C911EF81E8F005AC8C7 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C901EF81E8F005AC8C7 /* MetalKit.framework */; };
-		EA463C931EF81E8F005AC8C7 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C921EF81E8F005AC8C7 /* ModelIO.framework */; };
 		EA463CF01EF81FC5005AC8C7 /* FloatUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */; };
 		EA463CF11EF81FC5005AC8C7 /* half.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB71EF81FC5005AC8C7 /* half.cpp */; };
 		EA463CF21EF81FC5005AC8C7 /* IntersectionHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB91EF81FC5005AC8C7 /* IntersectionHelpers.cpp */; };
@@ -85,6 +93,19 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		28A5AB67201F378A000E571F /* skybox.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.metal; path = ../../../src/01_Transformations/OSXMetal/skybox.metal; sourceTree = "<group>"; };
+		28A5AB68201F378A000E571F /* basic.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = basic.metal; path = ../../../src/01_Transformations/OSXMetal/basic.metal; sourceTree = "<group>"; };
+		28A5AB7B201F3A35000E571F /* Skybox_right1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_right1.png; path = ../../../UnitTestResources/Textures/Skybox_right1.png; sourceTree = "<group>"; };
+		28A5AB7C201F3A35000E571F /* Skybox_left2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_left2.png; path = ../../../UnitTestResources/Textures/Skybox_left2.png; sourceTree = "<group>"; };
+		28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_bottom4.png; path = ../../../UnitTestResources/Textures/Skybox_bottom4.png; sourceTree = "<group>"; };
+		28A5AB7E201F3A35000E571F /* Skybox_front5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_front5.png; path = ../../../UnitTestResources/Textures/Skybox_front5.png; sourceTree = "<group>"; };
+		28A5AB7F201F3A35000E571F /* Skybox_top3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_top3.png; path = ../../../UnitTestResources/Textures/Skybox_top3.png; sourceTree = "<group>"; };
+		28A5AB80201F3A35000E571F /* Skybox_back6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_back6.png; path = ../../../UnitTestResources/Textures/Skybox_back6.png; sourceTree = "<group>"; };
+		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
+		28A5ABEB201F482F000E571F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		28A5ABED201F4838000E571F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		28A5ABEF201F4844000E571F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		28A5ABF1201F484B000E571F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../../../../Common_3/Renderer/ResourceLoader.cpp; sourceTree = SOURCE_ROOT; };
 		C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C93009981FD02FE300DFA969 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Fontstash.cpp; sourceTree = "<group>"; };
@@ -121,9 +142,6 @@
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 01_Transformations.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 01_Transformations.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		EA463C8E1EF81E8F005AC8C7 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		EA463C901EF81E8F005AC8C7 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		EA463C921EF81E8F005AC8C7 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = System/Library/Frameworks/ModelIO.framework; sourceTree = SDKROOT; };
 		EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FloatUtil.cpp; path = ../../../../Common_3/OS/Math/FloatUtil.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CB61EF81FC5005AC8C7 /* FloatUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FloatUtil.h; path = ../../../../Common_3/OS/Math/FloatUtil.h; sourceTree = SOURCE_ROOT; };
 		EA463CB71EF81FC5005AC8C7 /* half.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = half.cpp; path = ../../../../Common_3/OS/Math/half.cpp; sourceTree = SOURCE_ROOT; };
@@ -173,9 +191,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C951333E2010F7F0002E584B /* ModelIO.framework in Frameworks */,
-				C951333C2010F7E7002E584B /* Metal.framework in Frameworks */,
-				C951333D2010F7E9002E584B /* MetalKit.framework in Frameworks */,
+				28A5ABF2201F484B000E571F /* MetalKit.framework in Frameworks */,
+				28A5ABF0201F4844000E571F /* Metal.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -183,18 +200,61 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EA463C931EF81E8F005AC8C7 /* ModelIO.framework in Frameworks */,
-				EA463C8F1EF81E8F005AC8C7 /* Metal.framework in Frameworks */,
-				EA463C911EF81E8F005AC8C7 /* MetalKit.framework in Frameworks */,
+				28A5ABEE201F4838000E571F /* MetalKit.framework in Frameworks */,
+				28A5ABEC201F482F000E571F /* Metal.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		28A5AB66201F377A000E571F /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				28A5AB68201F378A000E571F /* basic.metal */,
+				28A5AB67201F378A000E571F /* skybox.metal */,
+			);
+			name = Shaders;
+			sourceTree = "<group>";
+		};
+		28A5AB7A201F399E000E571F /* Textures */ = {
+			isa = PBXGroup;
+			children = (
+				28A5AB80201F3A35000E571F /* Skybox_back6.png */,
+				28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */,
+				28A5AB7E201F3A35000E571F /* Skybox_front5.png */,
+				28A5AB7C201F3A35000E571F /* Skybox_left2.png */,
+				28A5AB7B201F3A35000E571F /* Skybox_right1.png */,
+				28A5AB7F201F3A35000E571F /* Skybox_top3.png */,
+			);
+			name = Textures;
+			sourceTree = "<group>";
+		};
+		28A5AB88201F3A44000E571F /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				28A5AB89201F3A77000E571F /* TitilliumText */,
+			);
+			name = Fonts;
+			sourceTree = "<group>";
+		};
+		28A5ABEA201F482F000E571F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				28A5ABF1201F484B000E571F /* MetalKit.framework */,
+				28A5ABEF201F4844000E571F /* Metal.framework */,
+				28A5ABED201F4838000E571F /* MetalKit.framework */,
+				28A5ABEB201F482F000E571F /* Metal.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		C95132EE2010E68A002E584B /* 01_Transformations_iOS */ = {
 			isa = PBXGroup;
 			children = (
+				28A5AB88201F3A44000E571F /* Fonts */,
+				28A5AB7A201F399E000E571F /* Textures */,
+				28A5AB66201F377A000E571F /* Shaders */,
 				C95132FB2010E68A002E584B /* Main.storyboard */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
 				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
@@ -255,8 +315,8 @@
 				EA463CEC1EF81FC5005AC8C7 /* Common_3 */,
 				EA463C941EF81E8F005AC8C7 /* 01_Transformations */,
 				C95132EE2010E68A002E584B /* 01_Transformations_iOS */,
-				EA463C8D1EF81E8F005AC8C7 /* Frameworks */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
+				28A5ABEA201F482F000E571F /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -267,16 +327,6 @@
 				C95132ED2010E68A002E584B /* 01_Transformations_iOS.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		EA463C8D1EF81E8F005AC8C7 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				EA463C8E1EF81E8F005AC8C7 /* Metal.framework */,
-				EA463C901EF81E8F005AC8C7 /* MetalKit.framework */,
-				EA463C921EF81E8F005AC8C7 /* ModelIO.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		EA463C941EF81E8F005AC8C7 /* 01_Transformations */ = {
@@ -526,9 +576,18 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				28A5AB8D201F3E83000E571F /* skybox.metal in Resources */,
+				28A5AB8B201F3E6B000E571F /* basic.metal in Resources */,
+				28A5AB85201F3A35000E571F /* Skybox_top3.png in Resources */,
+				28A5AB81201F3A35000E571F /* Skybox_right1.png in Resources */,
+				28A5AB82201F3A35000E571F /* Skybox_left2.png in Resources */,
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
+				28A5AB83201F3A35000E571F /* Skybox_bottom4.png in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
+				28A5AB86201F3A35000E571F /* Skybox_back6.png in Resources */,
 				C95132FD2010E68A002E584B /* Main.storyboard in Resources */,
+				28A5AB84201F3A35000E571F /* Skybox_front5.png in Resources */,
+				28A5AB8A201F3A77000E571F /* TitilliumText in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -571,6 +630,7 @@
 				C951332E2010E70D002E584B /* mat2.cpp in Sources */,
 				C95133252010E6F1002E584B /* GuiCameraController.cpp in Sources */,
 				C95133242010E6EF002E584B /* FpsCameraController.cpp in Sources */,
+				28A5AB8C201F3E76000E571F /* skybox.metal in Sources */,
 				C95133312010E743002E584B /* CommonShaderReflection.cpp in Sources */,
 				C951331C2010E6B8002E584B /* GameViewController.mm in Sources */,
 				C95133282010E6FB002E584B /* NuklearGUIDriver.cpp in Sources */,
@@ -660,6 +720,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = AL7C26GNFJ;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -690,6 +751,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = AL7C26GNFJ;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
