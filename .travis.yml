@@ -1,4 +1,4 @@
 os: osx
 osx_image: xcode9.2
 language: objective-c
-script: xctool -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 01_Transformations
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 01_Transformations
