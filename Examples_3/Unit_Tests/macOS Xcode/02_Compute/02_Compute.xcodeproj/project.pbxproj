@@ -7,6 +7,51 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		28A5ABA2201F459F000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA0201F459F000E571F /* Main.storyboard */; };
+		28A5ABA4201F459F000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA3201F459F000E571F /* Assets.xcassets */; };
+		28A5ABA7201F459F000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA5201F459F000E571F /* LaunchScreen.storyboard */; };
+		28A5ABB4201F4637000E571F /* compute.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABB2201F4637000E571F /* compute.metal */; };
+		28A5ABB5201F4637000E571F /* display.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABB3201F4637000E571F /* display.metal */; };
+		28A5ABB7201F465B000E571F /* TitilliumText in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABB6201F465B000E571F /* TitilliumText */; };
+		28A5ABB8201F4662000E571F /* 02_Compute.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D25F24E31F347D7500751335 /* 02_Compute.cpp */; };
+		28A5ABB9201F468D000E571F /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB11EF81FC5005AC8C7 /* FileSystem.cpp */; };
+		28A5ABBA201F4691000E571F /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461C1FD9975900564C8B /* MemoryTrackingManager.cpp */; };
+		28A5ABBB201F4697000E571F /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92171F389B5C004B3A42 /* FpsCameraController.cpp */; };
+		28A5ABBC201F4697000E571F /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92161F389B5C004B3A42 /* GuiCameraController.cpp */; };
+		28A5ABBD201F469B000E571F /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C92C9AFF1FD9423F00CB09C8 /* Fontstash.cpp */; };
+		28A5ABBE201F469E000E571F /* UIManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D274C0C61F717C41000D55E8 /* UIManager.cpp */; };
+		28A5ABBF201F46A0000E571F /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0B1EF94A1E005AC8C7 /* NuklearGUIDriver.cpp */; };
+		28A5ABC0201F46A2000E571F /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0D1EF94A1E005AC8C7 /* UI.cpp */; };
+		28A5ABC1201F46A5000E571F /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0F1EF94A1E005AC8C7 /* UIRenderer.cpp */; };
+		28A5ABC2201F46AD000E571F /* FloatUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */; };
+		28A5ABC3201F46B0000E571F /* half.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB71EF81FC5005AC8C7 /* half.cpp */; };
+		28A5ABC4201F46B2000E571F /* IntersectionHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB91EF81FC5005AC8C7 /* IntersectionHelpers.cpp */; };
+		28A5ABC5201F46B4000E571F /* mat2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBB1EF81FC5005AC8C7 /* mat2.cpp */; };
+		28A5ABC6201F46B8000E571F /* Noise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CC21EF81FC5005AC8C7 /* Noise.cpp */; };
+		28A5ABC7201F46BC000E571F /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
+		28A5ABD3201F46D6000E571F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABC9201F46D6000E571F /* main.mm */; };
+		28A5ABD4201F46D6000E571F /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABCA201F46D6000E571F /* GameViewController.mm */; };
+		28A5ABD5201F46D6000E571F /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABCD201F46D6000E571F /* iOSThreadManager.cpp */; };
+		28A5ABD6201F46D6000E571F /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABCE201F46D6000E571F /* iOSLogManager.cpp */; };
+		28A5ABD7201F46D6000E571F /* iOSBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABCF201F46D6000E571F /* iOSBase.cpp */; };
+		28A5ABD8201F46D6000E571F /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABD0201F46D6000E571F /* iOSFileSystem.mm */; };
+		28A5ABD9201F46D6000E571F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ABD1201F46D6000E571F /* AppDelegate.m */; };
+		28A5ABDA201F46E1000E571F /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = D274C0C81F717C79000D55E8 /* MetalShaderReflection.mm */; };
+		28A5ABDB201F46E4000E571F /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D274C0C21F717BA9000D55E8 /* CommonShaderReflection.cpp */; };
+		28A5ABDC201F46E7000E571F /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D274C0C31F717BA9000D55E8 /* GpuProfiler.cpp */; };
+		28A5ABDD201F46E9000E571F /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
+		28A5ABDE201F46EC000E571F /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CDF1EF81FC5005AC8C7 /* MetalRenderer.mm */; };
+		28A5ABDF201F46F4000E571F /* tinyexr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */; };
+		28A5ABE0201F46FA000E571F /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
+		28A5ABE1201F4701000E571F /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
+		28A5ABE2201F4701000E571F /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
+		28A5ABE3201F4701000E571F /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
+		28A5ABE4201F472A000E571F /* compute.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABB2201F4637000E571F /* compute.metal */; };
+		28A5ABE5201F472F000E571F /* display.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABB3201F4637000E571F /* display.metal */; };
+		28A5ABF5201F489E000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABF4201F489E000E571F /* Metal.framework */; };
+		28A5ABF7201F48A5000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABF6201F48A4000E571F /* MetalKit.framework */; };
+		28A5ABF9201F48AC000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABF8201F48AC000E571F /* Metal.framework */; };
+		28A5ABFB201F48B1000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ABFA201F48B1000E571F /* MetalKit.framework */; };
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
 		C91D461D1FD9975A00564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461C1FD9975900564C8B /* MemoryTrackingManager.cpp */; };
 		C92C9B011FD9424000CB09C8 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C92C9AFF1FD9423F00CB09C8 /* Fontstash.cpp */; };
@@ -20,9 +65,6 @@
 		D274C0C91F717C79000D55E8 /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = D274C0C81F717C79000D55E8 /* MetalShaderReflection.mm */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		EA463C8F1EF81E8F005AC8C7 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C8E1EF81E8F005AC8C7 /* Metal.framework */; };
-		EA463C911EF81E8F005AC8C7 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C901EF81E8F005AC8C7 /* MetalKit.framework */; };
-		EA463C931EF81E8F005AC8C7 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA463C921EF81E8F005AC8C7 /* ModelIO.framework */; };
 		EA463CEE1EF81FC5005AC8C7 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB11EF81FC5005AC8C7 /* FileSystem.cpp */; };
 		EA463CF01EF81FC5005AC8C7 /* FloatUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */; };
 		EA463CF11EF81FC5005AC8C7 /* half.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB71EF81FC5005AC8C7 /* half.cpp */; };
@@ -48,6 +90,28 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		28A5AB92201F459F000E571F /* 02_Compute_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 02_Compute_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		28A5ABA1201F459F000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		28A5ABA3201F459F000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		28A5ABA6201F459F000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		28A5ABA8201F459F000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		28A5ABB2201F4637000E571F /* compute.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = compute.metal; path = ../../../src/02_Compute/OSXMetal/compute.metal; sourceTree = "<group>"; };
+		28A5ABB3201F4637000E571F /* display.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.metal; path = ../../../src/02_Compute/OSXMetal/display.metal; sourceTree = "<group>"; };
+		28A5ABB6201F465B000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
+		28A5ABC9201F46D6000E571F /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = main.mm; path = iOS/main.mm; sourceTree = "<group>"; };
+		28A5ABCA201F46D6000E571F /* GameViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = GameViewController.mm; path = iOS/GameViewController.mm; sourceTree = "<group>"; };
+		28A5ABCB201F46D6000E571F /* MetalKitApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalKitApplication.h; path = iOS/MetalKitApplication.h; sourceTree = "<group>"; };
+		28A5ABCC201F46D6000E571F /* GameViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GameViewController.h; path = iOS/GameViewController.h; sourceTree = "<group>"; };
+		28A5ABCD201F46D6000E571F /* iOSThreadManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = iOSThreadManager.cpp; path = iOS/iOSThreadManager.cpp; sourceTree = "<group>"; };
+		28A5ABCE201F46D6000E571F /* iOSLogManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = iOSLogManager.cpp; path = iOS/iOSLogManager.cpp; sourceTree = "<group>"; };
+		28A5ABCF201F46D6000E571F /* iOSBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSBase.cpp; path = iOS/iOSBase.cpp; sourceTree = "<group>"; };
+		28A5ABD0201F46D6000E571F /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = iOS/iOSFileSystem.mm; sourceTree = "<group>"; };
+		28A5ABD1201F46D6000E571F /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = iOS/AppDelegate.m; sourceTree = "<group>"; };
+		28A5ABD2201F46D6000E571F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = iOS/AppDelegate.h; sourceTree = "<group>"; };
+		28A5ABF4201F489E000E571F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		28A5ABF6201F48A4000E571F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		28A5ABF8201F48AC000E571F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		28A5ABFA201F48B1000E571F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../../../../Common_3/Renderer/ResourceLoader.cpp; sourceTree = SOURCE_ROOT; };
 		C91D461C1FD9975900564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C92C9AFF1FD9423F00CB09C8 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Fontstash.cpp; sourceTree = "<group>"; };
@@ -67,9 +131,6 @@
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 02_Compute.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 02_Compute.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		EA463C8E1EF81E8F005AC8C7 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		EA463C901EF81E8F005AC8C7 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		EA463C921EF81E8F005AC8C7 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = System/Library/Frameworks/ModelIO.framework; sourceTree = SDKROOT; };
 		EA463CB11EF81FC5005AC8C7 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = ../../../../Common_3/OS/Core/FileSystem.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FloatUtil.cpp; path = ../../../../Common_3/OS/Math/FloatUtil.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CB61EF81FC5005AC8C7 /* FloatUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FloatUtil.h; path = ../../../../Common_3/OS/Math/FloatUtil.h; sourceTree = SOURCE_ROOT; };
@@ -116,19 +177,86 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		28A5AB8F201F459F000E571F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28A5ABFB201F48B1000E571F /* MetalKit.framework in Frameworks */,
+				28A5ABF9201F48AC000E571F /* Metal.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EA463C931EF81E8F005AC8C7 /* ModelIO.framework in Frameworks */,
-				EA463C8F1EF81E8F005AC8C7 /* Metal.framework in Frameworks */,
-				EA463C911EF81E8F005AC8C7 /* MetalKit.framework in Frameworks */,
+				28A5ABF7201F48A5000E571F /* MetalKit.framework in Frameworks */,
+				28A5ABF5201F489E000E571F /* Metal.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		28A5AB93201F459F000E571F /* 02_Compute_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				28A5ABAE201F4600000E571F /* Fonts */,
+				28A5ABB1201F461C000E571F /* Shaders */,
+				28A5ABA0201F459F000E571F /* Main.storyboard */,
+				28A5ABA3201F459F000E571F /* Assets.xcassets */,
+				28A5ABA5201F459F000E571F /* LaunchScreen.storyboard */,
+				28A5ABA8201F459F000E571F /* Info.plist */,
+			);
+			path = 02_Compute_iOS;
+			sourceTree = "<group>";
+		};
+		28A5ABAE201F4600000E571F /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				28A5ABB6201F465B000E571F /* TitilliumText */,
+			);
+			name = Fonts;
+			sourceTree = "<group>";
+		};
+		28A5ABB1201F461C000E571F /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				28A5ABB2201F4637000E571F /* compute.metal */,
+				28A5ABB3201F4637000E571F /* display.metal */,
+			);
+			name = Shaders;
+			sourceTree = "<group>";
+		};
+		28A5ABC8201F46CB000E571F /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				EA463CCB1EF81FC5005AC8C7 /* Math */,
+				28A5ABD2201F46D6000E571F /* AppDelegate.h */,
+				28A5ABD1201F46D6000E571F /* AppDelegate.m */,
+				28A5ABCC201F46D6000E571F /* GameViewController.h */,
+				28A5ABCA201F46D6000E571F /* GameViewController.mm */,
+				28A5ABCF201F46D6000E571F /* iOSBase.cpp */,
+				28A5ABD0201F46D6000E571F /* iOSFileSystem.mm */,
+				28A5ABCE201F46D6000E571F /* iOSLogManager.cpp */,
+				28A5ABCD201F46D6000E571F /* iOSThreadManager.cpp */,
+				28A5ABC9201F46D6000E571F /* main.mm */,
+				28A5ABCB201F46D6000E571F /* MetalKitApplication.h */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		28A5ABF3201F489E000E571F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				28A5ABFA201F48B1000E571F /* MetalKit.framework */,
+				28A5ABF8201F48AC000E571F /* Metal.framework */,
+				28A5ABF6201F48A4000E571F /* MetalKit.framework */,
+				28A5ABF4201F489E000E571F /* Metal.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		C91D46121FD9963B00564C8B /* MemoryManager */ = {
 			isa = PBXGroup;
 			children = (
@@ -151,8 +279,9 @@
 			children = (
 				EA463CEC1EF81FC5005AC8C7 /* Common_3 */,
 				EA463C941EF81E8F005AC8C7 /* 02_Compute */,
-				EA463C8D1EF81E8F005AC8C7 /* Frameworks */,
+				28A5AB93201F459F000E571F /* 02_Compute_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
+				28A5ABF3201F489E000E571F /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -160,18 +289,9 @@
 			isa = PBXGroup;
 			children = (
 				EA463C8B1EF81E8F005AC8C7 /* 02_Compute.app */,
+				28A5AB92201F459F000E571F /* 02_Compute_iOS.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		EA463C8D1EF81E8F005AC8C7 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				EA463C8E1EF81E8F005AC8C7 /* Metal.framework */,
-				EA463C901EF81E8F005AC8C7 /* MetalKit.framework */,
-				EA463C921EF81E8F005AC8C7 /* ModelIO.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		EA463C941EF81E8F005AC8C7 /* 02_Compute */ = {
@@ -248,11 +368,11 @@
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
+				28A5ABC8201F46CB000E571F /* iOS */,
 				EA463CB41EF81FC5005AC8C7 /* FileSystem */,
 				C91D46121FD9963B00564C8B /* MemoryManager */,
 				D20D92151F389B51004B3A42 /* Camera */,
 				EA463D081EF94A0C005AC8C7 /* UI */,
-				EA463CCB1EF81FC5005AC8C7 /* Math */,
 				EA463CD01EF81FC5005AC8C7 /* Image */,
 				EA463CDA1EF81FC5005AC8C7 /* macOS */,
 			);
@@ -350,6 +470,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		28A5AB91201F459F000E571F /* 02_Compute_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28A5ABAD201F459F000E571F /* Build configuration list for PBXNativeTarget "02_Compute_iOS" */;
+			buildPhases = (
+				28A5AB8E201F459F000E571F /* Sources */,
+				28A5AB8F201F459F000E571F /* Frameworks */,
+				28A5AB90201F459F000E571F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = 02_Compute_iOS;
+			productName = 02_Compute_iOS;
+			productReference = 28A5AB92201F459F000E571F /* 02_Compute_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		EA463C8A1EF81E8F005AC8C7 /* 02_Compute */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "02_Compute" */;
@@ -376,6 +513,11 @@
 				LastUpgradeCheck = 0910;
 				ORGANIZATIONNAME = Jesus;
 				TargetAttributes = {
+					28A5AB91201F459F000E571F = {
+						CreatedOnToolsVersion = 9.2;
+						DevelopmentTeam = AL7C26GNFJ;
+						ProvisioningStyle = Automatic;
+					};
 					EA463C8A1EF81E8F005AC8C7 = {
 						CreatedOnToolsVersion = 8.3.3;
 						ProvisioningStyle = Automatic;
@@ -396,11 +538,25 @@
 			projectRoot = "";
 			targets = (
 				EA463C8A1EF81E8F005AC8C7 /* 02_Compute */,
+				28A5AB91201F459F000E571F /* 02_Compute_iOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		28A5AB90201F459F000E571F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28A5ABE5201F472F000E571F /* display.metal in Resources */,
+				28A5ABE4201F472A000E571F /* compute.metal in Resources */,
+				28A5ABA7201F459F000E571F /* LaunchScreen.storyboard in Resources */,
+				28A5ABA4201F459F000E571F /* Assets.xcassets in Resources */,
+				28A5ABA2201F459F000E571F /* Main.storyboard in Resources */,
+				28A5ABB7201F465B000E571F /* TitilliumText in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA463C891EF81E8F005AC8C7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -413,6 +569,48 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		28A5AB8E201F459F000E571F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28A5ABDE201F46EC000E571F /* MetalRenderer.mm in Sources */,
+				28A5ABE1201F4701000E571F /* PlatformEvents.cpp in Sources */,
+				28A5ABBF201F46A0000E571F /* NuklearGUIDriver.cpp in Sources */,
+				28A5ABBD201F469B000E571F /* Fontstash.cpp in Sources */,
+				28A5ABB9201F468D000E571F /* FileSystem.cpp in Sources */,
+				28A5ABC2201F46AD000E571F /* FloatUtil.cpp in Sources */,
+				28A5ABD6201F46D6000E571F /* iOSLogManager.cpp in Sources */,
+				28A5ABDA201F46E1000E571F /* MetalShaderReflection.mm in Sources */,
+				28A5ABC4201F46B2000E571F /* IntersectionHelpers.cpp in Sources */,
+				28A5ABB5201F4637000E571F /* display.metal in Sources */,
+				28A5ABE2201F4701000E571F /* ThreadSystem.cpp in Sources */,
+				28A5ABBA201F4691000E571F /* MemoryTrackingManager.cpp in Sources */,
+				28A5ABD8201F46D6000E571F /* iOSFileSystem.mm in Sources */,
+				28A5ABDD201F46E9000E571F /* ResourceLoader.cpp in Sources */,
+				28A5ABB8201F4662000E571F /* 02_Compute.cpp in Sources */,
+				28A5ABC0201F46A2000E571F /* UI.cpp in Sources */,
+				28A5ABBB201F4697000E571F /* FpsCameraController.cpp in Sources */,
+				28A5ABDB201F46E4000E571F /* CommonShaderReflection.cpp in Sources */,
+				28A5ABC1201F46A5000E571F /* UIRenderer.cpp in Sources */,
+				28A5ABD7201F46D6000E571F /* iOSBase.cpp in Sources */,
+				28A5ABC3201F46B0000E571F /* half.cpp in Sources */,
+				28A5ABC6201F46B8000E571F /* Noise.cpp in Sources */,
+				28A5ABBE201F469E000E571F /* UIManager.cpp in Sources */,
+				28A5ABD4201F46D6000E571F /* GameViewController.mm in Sources */,
+				28A5ABC5201F46B4000E571F /* mat2.cpp in Sources */,
+				28A5ABD9201F46D6000E571F /* AppDelegate.m in Sources */,
+				28A5ABC7201F46BC000E571F /* Image.cpp in Sources */,
+				28A5ABDC201F46E7000E571F /* GpuProfiler.cpp in Sources */,
+				28A5ABDF201F46F4000E571F /* tinyexr.cpp in Sources */,
+				28A5ABD5201F46D6000E571F /* iOSThreadManager.cpp in Sources */,
+				28A5ABE0201F46FA000E571F /* LogManager.cpp in Sources */,
+				28A5ABB4201F4637000E571F /* compute.metal in Sources */,
+				28A5ABBC201F4697000E571F /* GuiCameraController.cpp in Sources */,
+				28A5ABE3201F4701000E571F /* Timer.cpp in Sources */,
+				28A5ABD3201F46D6000E571F /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA463C871EF81E8F005AC8C7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -456,6 +654,22 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		28A5ABA0201F459F000E571F /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				28A5ABA1201F459F000E571F /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		28A5ABA5201F459F000E571F /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				28A5ABA6201F459F000E571F /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
 		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -467,6 +681,70 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		28A5ABAB201F459F000E571F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
+				DEVELOPMENT_TEAM = AL7C26GNFJ;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					_DEBUG,
+					TARGET_IOS,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+				);
+				INFOPLIST_FILE = 02_Compute_iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-2-Compute-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		28A5ABAC201F459F000E571F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
+				DEVELOPMENT_TEAM = AL7C26GNFJ;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					TARGET_IOS,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+				);
+				INFOPLIST_FILE = 02_Compute_iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-2-Compute-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -614,6 +892,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		28A5ABAD201F459F000E571F /* Build configuration list for PBXNativeTarget "02_Compute_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				28A5ABAB201F459F000E571F /* Debug */,
+				28A5ABAC201F459F000E571F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "02_Compute" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
