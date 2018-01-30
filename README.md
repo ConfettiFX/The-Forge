@@ -21,10 +21,11 @@ The intended usage of The Forge is to enable developers to quickly build their o
 
 # News
 ## Release 1.01 - January 25th, 2018
-Mainly improved the performance of the macOS build. macOS is now using the same art assets as the PC and the performance of the triangle filtering compute shader is improved.
-Reduced the size of the art assets because we only need one version of San Miguel for all platforms now.
-macOS now runs the Hardware Tessellation unit test.
-There is also now a new unit test that shows a procedurally generated earth.
+
+* Mainly improved the performance of the macOS build. macOS is now using the same art assets as the PC and the performance of the triangle filtering compute shader is improved. 
+* Reduced the size of the art assets because we only need one version of San Miguel for all platforms now. 
+* macOS now runs the Hardware Tessellation unit test. 
+* There is also now a new unit test that shows a procedurally generated planet.
 
 ## Release 1.0 - January 22nd, 2018
 Very first release.
@@ -40,6 +41,7 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 3. Vulkan SDK 1.0.65 
 https://vulkan.lunarg.com/
 
+We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards and drivers. We are currently not testing Intel GPU based hardware. We are planning to integrate an Intel GPU based system into our build system in the future.
 
 # macOS Requirements:
 
@@ -47,7 +49,13 @@ https://vulkan.lunarg.com/
 
 2. XCode Version 9.2 (9C40b)
 
-3. Tested on iMac with AMD RADEON 560 and 580 GPUs
+3. The Forge is currently tested on 
+* iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
+* iMac with AMD RADEON 580 (Part No. MNED2xx/A)
+
+We are occasionally testing on Intel GPU based MacBooks but we are running into what we believe driver problems. We are going to address those challenges in the future. In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+We will not test any Hackintosh configuration. 
+We will get better with testing :-)
 
 # Install
 Run PRE_BUILD.bat to download and unzip the art assets.
@@ -108,7 +116,7 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
 ## 8. Procedural 
-In the spirit of the shadertoy examples this unit test shows a procedurally generated earth.
+In the spirit of the shadertoy examples this unit test shows a procedurally generated planet.
 
 ![Image of the Procedural Unit test](Screenshots/08_Procedural.PNG)
 
