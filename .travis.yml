@@ -2,3 +2,10 @@ os: osx
 osx_image: xcode9.2
 language: objective-c
 script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 01_Transformations
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 02_Compute
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 03_MultiThread
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 04_ExecuteIndirect
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 05_FontRendering
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 06_BRDF
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 07_Tessellation
+script: xcodebuild -workspace "Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace" -scheme 08_Procedural
