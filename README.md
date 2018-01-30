@@ -49,9 +49,9 @@ We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards
 
 # macOS Requirements:
 
-1. macOS 10.13.3 Beta (17D34a)
+1. macOS: 10.13.3 Beta (17D39a)
 
-2. XCode Version 9.2 (9C40b)
+2. XCode: Version 9.2 (9C40b)
 
 3. The Forge is currently tested on 
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
