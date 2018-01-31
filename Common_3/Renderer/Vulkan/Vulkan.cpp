@@ -269,19 +269,6 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
    static bool													gExternalMemoryExtension = false;
 
-   // extension function pointers for NVX
-   static PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX	pfnvkGetPhysicalDeviceGeneratedCommandsPropertiesNVX = NULL;
-   static PFN_vkCmdProcessCommandsNVX							pfnvkCmdProcessCommandsNVX = NULL;
-   static PFN_vkCmdReserveSpaceForCommandsNVX					pfnvkCmdReserveSpaceForCommandsNVX = NULL;
-   static PFN_vkCreateIndirectCommandsLayoutNVX					pfnvkCreateIndirectCommandsLayoutNVX = NULL;
-   static PFN_vkDestroyIndirectCommandsLayoutNVX				pfnvkDestroyIndirectCommandsLayoutNVX = NULL;
-   static PFN_vkCreateObjectTableNVX							pfnvkCreateObjectTableNVX = NULL;
-   static PFN_vkDestroyObjectTableNVX							pfnvkDestroyObjectTableNVX = NULL;
-   static PFN_vkRegisterObjectsNVX								pfnvkRegisterObjectsNVX = NULL;
-   static PFN_vkUnregisterObjectsNVX							pfnvkUnregisterObjectsNVX = NULL;
-
-   static bool													gNVXSupport = false;
-
    // Function pointers loaded from AMD draw indirect count extension
    static PFN_vkCmdDrawIndexedIndirectCountAMD					pfnvkCmdDrawIndexedIndirectCountAMD = NULL;
    static PFN_vkCmdDrawIndirectCountAMD							pfnvkCmdDrawIndirectCountAMD = NULL;
@@ -799,7 +786,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			  }
 			  for (uint32_t i = 0; i < pParam->mCount; ++i)
 			  {
-				  if (!pParam->ppBuffers[i]) {
+				  if (!pParam->ppTextures[i]) {
 					  LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, i);
 					  return;
 				  }
@@ -2916,7 +2903,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 			rs.pNext = NULL;
 			rs.flags = 0;
-			rs.depthClampEnable = pRasterizerState->DepthBiasEnable;
+			rs.depthClampEnable = pRasterizerState->DepthClampEnable;
 			rs.rasterizerDiscardEnable = VK_FALSE;
 			rs.polygonMode = pRasterizerState->PolygonMode;
 			rs.cullMode = pRasterizerState->CullMode;
@@ -3839,7 +3826,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		Renderer* renderer = pQueue->pRenderer;
 
 		VkSemaphore* wait_semaphores = waitSemaphoreCount ? (VkSemaphore*)alloca(waitSemaphoreCount * sizeof(VkSemaphore)) : NULL;
-		waitSemaphoreCount = waitSemaphoreCount > MAX_PRESENT_WAIT_SEMAPHORES ? waitSemaphoreCount : waitSemaphoreCount;
+		waitSemaphoreCount = waitSemaphoreCount > MAX_PRESENT_WAIT_SEMAPHORES ? MAX_PRESENT_WAIT_SEMAPHORES : waitSemaphoreCount;
 		uint32_t waitCount = 0;
 		for (uint32_t i = 0; i < waitSemaphoreCount; ++i) {
 			if (ppWaitSemaphores[i]->mSignaled)
@@ -4702,21 +4689,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		queue_priorities.clear();
 
 		// Get function pointers from loaded extensions
-
-		// Load nvx device generated commands functions
-		if (gNVXSupport)
-		{
-			pfnvkGetPhysicalDeviceGeneratedCommandsPropertiesNVX = (PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX");
-			pfnvkCmdProcessCommandsNVX = (PFN_vkCmdProcessCommandsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdProcessCommandsNVX");;
-			pfnvkCmdReserveSpaceForCommandsNVX = (PFN_vkCmdReserveSpaceForCommandsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdReserveSpaceForCommandsNVX");;
-			pfnvkCreateIndirectCommandsLayoutNVX = (PFN_vkCreateIndirectCommandsLayoutNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCreateIndirectCommandsLayoutNVX");
-			pfnvkDestroyIndirectCommandsLayoutNVX = (PFN_vkDestroyIndirectCommandsLayoutNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkDestroyIndirectCommandsLayoutNVX");
-			pfnvkCreateObjectTableNVX = (PFN_vkCreateObjectTableNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCreateObjectTableNVX");
-			pfnvkDestroyObjectTableNVX = (PFN_vkDestroyObjectTableNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkDestroyObjectTableNVX");
-			pfnvkRegisterObjectsNVX = (PFN_vkRegisterObjectsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkRegisterObjectsNVX");
-			pfnvkUnregisterObjectsNVX = (PFN_vkUnregisterObjectsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkUnregisterObjectsNVX");
-		}
-
 		if (gDebugMarkerExtension)
 		{
 			LOGINFOF("Successfully loaded Debug Marker extension");
@@ -4751,7 +4723,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (gExternalMemoryExtension)
 		{
 			LOGINFOF("Successfully loaded External Memory extension");
-
+			// Load memory import export functions
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 			pfnGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetMemoryWin32HandleKHR");
 #endif
@@ -4759,8 +4731,10 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		if (gDrawIndirectCountAMDExtension)
 		{
+			LOGINFOF("Successfully loaded AMD Draw Indirect extension");
+			// Load indirect draw functions which take a counter buffer to determine the number of draw commands
 			pfnvkCmdDrawIndexedIndirectCountAMD = (PFN_vkCmdDrawIndexedIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDrawIndexedIndirectCountAMD");
-			pfnvkCmdDrawIndirectCountAMD = (PFN_vkCmdDrawIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdIndirectCountAMD");
+			pfnvkCmdDrawIndirectCountAMD = (PFN_vkCmdDrawIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDrawIndirectCountAMD");
 		}
 	}
 
@@ -4778,79 +4752,41 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
 	{
+		ASSERT(pRenderer);
+		ASSERT(pDesc);
+
 		CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1, sizeof (CommandSignature));
 		pCommandSignature->mDesc = *pDesc;
-
-		//  VkIndirectCommandsLayoutTokenNVX* cmdLayoutTokens;
-		pCommandSignature->cmdLayoutTokens = (VkIndirectCommandsLayoutTokenNVX*)conf_calloc(pDesc->mIndirectArgCount, sizeof(VkIndirectCommandsLayoutTokenNVX));
-		pCommandSignature->mDrawCommandOffsets = (uint32_t*)conf_calloc(pDesc->mIndirectArgCount, sizeof(uint32_t));  // caculate offset for each command argument in per command
-		pCommandSignature->pTokens = (VkIndirectCommandsTokenNVX*)conf_calloc(pDesc->mIndirectArgCount, sizeof(VkIndirectCommandsTokenNVX));
-		pCommandSignature->mIndirectArgDescCounts = pDesc->mIndirectArgCount;
-		pCommandSignature->mDrawCommandStride = 0;
 
 		for (uint32_t i = 0; i < pDesc->mIndirectArgCount; ++i)  // counting for all types;
 		{
 			switch (pDesc->pArgDescs[i].mType)
 			{
-			case INDIRECT_CONSTANT_BUFFER_VIEW: LOGERROR ("Vulkan doesn't support CBV "); break;
-			case INDIRECT_SHADER_RESOURCE_VIEW: LOGERROR ("Vulkan doesn't support SRV "); break;
-			case INDIRECT_UNORDERED_ACCESS_VIEW: LOGERROR ("Vulkan doesn't support UAV "); break;
 			case INDIRECT_DRAW:
 				pCommandSignature->mDrawType = INDIRECT_DRAW;
-				pCommandSignature->mDrawCommandOffsets [i] = pCommandSignature->mDrawCommandStride;
-				pCommandSignature->mDrawCommandStride += sizeof (IndirectDrawArguments);
-				pCommandSignature->cmdLayoutTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_NVX;
-				pCommandSignature->pTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_NVX;
+				pCommandSignature->mDrawCommandStride += sizeof(IndirectDrawArguments);
 				break;
 			case INDIRECT_DRAW_INDEX:
 				pCommandSignature->mDrawType = INDIRECT_DRAW_INDEX;
-				pCommandSignature->mDrawCommandOffsets [i] = pCommandSignature->mDrawCommandStride;
-				pCommandSignature->mDrawCommandStride += sizeof (IndirectDrawIndexArguments);
-				pCommandSignature->cmdLayoutTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NVX;
-				pCommandSignature->pTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NVX;
+				pCommandSignature->mDrawCommandStride += sizeof(IndirectDrawIndexArguments);
 				break;
 			case INDIRECT_DISPATCH:
 				pCommandSignature->mDrawType = INDIRECT_DISPATCH;
-				pCommandSignature->mDrawCommandOffsets [i] = pCommandSignature->mDrawCommandStride;
-				pCommandSignature->mDrawCommandStride += sizeof (IndirectDispatchArguments);
-				pCommandSignature->cmdLayoutTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DISPATCH_NVX;
-				pCommandSignature->pTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DISPATCH_NVX;
+				pCommandSignature->mDrawCommandStride += sizeof(IndirectDispatchArguments);
 				break;
-			case INDIRECT_VERTEX_BUFFER:
-			case INDIRECT_INDEX_BUFFER:
-			case INDIRECT_CONSTANT:
-			case INDIRECT_DESCRIPTOR_TABLE:
-			case INDIRECT_PIPELINE:
-				LOGERROR("This Graphics Card desn't have VK_NVX_device_generated_commands, can only use IndirectDraw,IndirectDrawIndex and IndirectDispatch");
+			default:
+				LOGERROR("Vulkan runtime only supports IndirectDraw, IndirectDrawIndex and IndirectDispatch at this point");
 				break;
 			}
-			pCommandSignature->cmdLayoutTokens [i].divisor = 1;
 		}
 
 		pCommandSignature->mDrawCommandStride = round_up(pCommandSignature->mDrawCommandStride, 16);
-
-		VkIndirectCommandsLayoutCreateInfoNVX commandsLayoutInfo;
-		commandsLayoutInfo.sType = VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX;
-		commandsLayoutInfo.pNext = nullptr;
-
-		if (pCommandSignature->mDrawType == INDIRECT_DRAW || pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
-			commandsLayoutInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
-			commandsLayoutInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-
-		commandsLayoutInfo.pTokens = pCommandSignature->cmdLayoutTokens;
-		// re use the secondary command buffer bit
-        commandsLayoutInfo.flags = VK_INDIRECT_COMMANDS_LAYOUT_USAGE_EMPTY_EXECUTIONS_BIT_NVX;
-		commandsLayoutInfo.tokenCount = pDesc->mIndirectArgCount;
 
 		*ppCommandSignature = pCommandSignature;
 	}
 
 	void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
 	{
-		SAFE_FREE(pCommandSignature->pTokens);
-		SAFE_FREE(pCommandSignature->cmdLayoutTokens);
-		SAFE_FREE(pCommandSignature->mDrawCommandOffsets);
 		SAFE_FREE(pCommandSignature);
 	}
 
@@ -4924,9 +4860,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			pfnCmdDebugMarkerInsert(pCmd->pVkCmdBuf, &markerInfo);
 		}
 	}
-	/************************************************************************/
-	// Interop functionality
-	/************************************************************************/
 	/************************************************************************/
 	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION

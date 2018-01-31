@@ -141,6 +141,8 @@ private:
 	tinystl::vector <WorkItem*>		mWorkItems;
 	tinystl::vector<WorkItem*>		mWorkQueue;
 	Mutex							mQueueMutex;
+	ConditionVariable				mWaitConditionVar;
+	Mutex							mWaitMutex;
 	volatile bool					mShutDown;
 	volatile bool					mPausing;
 	bool							mPaused;

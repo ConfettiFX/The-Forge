@@ -83,7 +83,7 @@ WindowsDesc* getCurrentWindow()
 
 void getRecommendedResolution(RectDesc* rect)
 {
-    *rect = RectDesc{ 0,0,1920,1080 };
+    *rect = RectDesc{ 0,0,1334,750 };
 }
 
 /************************************************************************/

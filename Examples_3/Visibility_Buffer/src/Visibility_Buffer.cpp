@@ -80,11 +80,8 @@ const char* pszRoots[FSR_Count] =
 	"Shaders/",															// FSR_SrcShaders
 	"Shaders/Binary/",													// FSR_BinShaders_Common
 	"Shaders/",															// FSR_SrcShaders_Common
-#if defined(SPONZA)
-	"Meshes/Sponza/Textures/Compressed/",								// FSR_Textures
-	"Meshes/Sponza/",													// FSR_Meshes
-#elif defined(SANMIGUEL)
-	"Meshes/SanMiguel/",							// FSR_Textures
+#if defined(SANMIGUEL)
+	"Meshes/SanMiguel/",												// FSR_Textures
 	"Meshes/SanMiguel/",												// FSR_Meshes
 #endif
 
@@ -97,20 +94,19 @@ const char* pszRoots[FSR_Count] =
 
 #if OLD_MODELS
 
-#if defined(SPONZA)
-	"../../../../../../Examples_2/Aura/DX11Assets/Textures/",			// FSR_Textures
-	"../../../../../../Examples_2/Aura/DX11Assets/Meshes/SponzaNew/",	// FSR_Meshes
-#elif defined(SANMIGUEL)
+#if defined(SANMIGUEL)
+#if defined(METAL)
+    "../../../../../Art/SanMiguel_2/",									// FSR_Textures
+    "../../../../../Art/SanMiguel_2/",									// FSR_Meshes
+#else
 	"../../../../../Art/SanMiguel_2/",									// FSR_Textures
 	"../../../../../Art/SanMiguel_2/",									// FSR_Meshes
+#endif
 #endif
 
 #else
 
-#if defined(SPONZA)
-	"../../../../../../Art/Sponza_Deprecated/Textures/Compressed/",		// FSR_Textures
-	"../../../../../../Art/Sponza_Deprecated/",							// FSR_Meshes
-#elif defined(SANMIGUEL)
+#if defined(SANMIGUEL)
 	"../../../../../Art/SanMiguel_3/",									// FSR_Textures
 	"../../../../../Art/SanMiguel_3/",									// FSR_Meshes
 #endif
@@ -138,18 +134,10 @@ const char* pszRoots[FSR_Count] =
 #include "../../../CommonXBOXOne_3/Renderer/Direct3D12/Direct3D12X.h"
 #endif
 
-#ifdef SPONZA
-#if OLD_MODELS
-const char*    gSceneName = "sponza.cmesh";
-#else
-const char*    gSceneName = "Sponza.obj";
-#endif
-#else
 #if OLD_MODELS
 const char*		gSceneName = "SanMiguel.cmesh";
 #else
 const char*		gSceneName = "SanMiguel.FBX";
-#endif
 #endif
 
 // Number of in-flight buffers
@@ -280,7 +268,9 @@ typedef struct AppSettings
 
 	// This variable enables or disables triangle filtering. When filtering is disabled, all the scene is rendered unconditionally.
     bool mFilterTriangles = true;
-    bool mClusterCulling = true;
+	// Turns off cluster culling by default
+	// Cluster culling increases CPU time and does not provide enough benefit in terms of culling results to keep it enabled by default
+    bool mClusterCulling = false;
 
     bool mAsyncCompute = true;
 
@@ -292,7 +282,6 @@ typedef struct AppSettings
 #else
 	bool mDrawDebugTargets = false;
 #endif
-
 	// adjust directional sunlight angle
 	float mSunControl = 2.135000f;
 	float mEsmControl = 100.0f;
@@ -1181,7 +1170,7 @@ void addTriangleFilteringBuffers()
 	for (uint32_t i = 0; i < gImageCount; ++i)
 	{
 #if defined(METAL)
-		uint64_t bufferSize = BATCH_COUNT * sizeof(FilterBatchData);
+		uint64_t bufferSize = NUM_BATCHES * BATCH_COUNT * sizeof(FilterBatchData);
 		pFilterBatchChunk[i] = (FilterBatchChunk*)conf_malloc(sizeof(FilterBatchChunk));
 		pFilterBatchChunk[i]->batches = (FilterBatchData*)conf_malloc(bufferSize);
 		pFilterBatchChunk[i]->currentBatchCount = 0;
@@ -1278,15 +1267,9 @@ void addTriangleFilteringBuffers()
 	// Setup lights uniform buffer
 	for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 	{
-#ifdef SPONZA
-		gLightData[i].position.setX(float(rand() % 3000) - 1500.0f);
-		gLightData[i].position.setY(100);
-		gLightData[i].position.setZ(float(rand() % 3000) - 1500.0f);
-#else
 		gLightData[i].position.setX(float(rand() % 2000) - 1000.0f);
 		gLightData[i].position.setY(100);
 		gLightData[i].position.setZ(float(rand() % 2000) - 1000.0f);
-#endif
 		gLightData[i].color.setX(float(rand() % 255) / 255.0f);
 		gLightData[i].color.setY(float(rand() % 255) / 255.0f);
 		gLightData[i].color.setZ(float(rand() % 255) / 255.0f);
@@ -1363,11 +1346,7 @@ void addRenderTargets()
 	depthRT.mArraySize = 1;
 	depthRT.mClearValue = optimizedDepthClear;
 	depthRT.mDepth = 1;
-#if MSAASAMPLECOUNT >= 2
-	depthRT.mFormat = ImageFormat::D16; //32 bits won't fit into esram when ussing msaax2
-#else
 	depthRT.mFormat = ImageFormat::D32F;
-#endif
 	depthRT.mHeight = height;
 	depthRT.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 	depthRT.mSampleQuality = 0;
@@ -1642,7 +1621,7 @@ bool initApp()
 	/************************************************************************/
 	HiresTimer sceneLoadTimer;
 	String sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
-	pScene = loadScene(pRenderer, sceneFullPath.c_str());
+	pScene = loadScene(sceneFullPath.c_str());
 	LOGINFOF("Load assimp scene : %f ms", sceneLoadTimer.GetUSec(true) / 1000.0f);
 	/************************************************************************/
 	// IA buffers
@@ -1949,10 +1928,11 @@ bool initApp()
 	shadowPipelineSettings.pDepthState = pDepthStateEnable;
 	shadowPipelineSettings.pDepthStencil = pRenderTargetShadow;
 	shadowPipelineSettings.pRootSignature = pRootSignatureShadowPass;
-	if (MSAASAMPLECOUNT > 1)
+#if (MSAASAMPLECOUNT > 1)
 		shadowPipelineSettings.pRasterizerState = pRasterizerStateCullFrontMS;
-	else
+#else
 		shadowPipelineSettings.pRasterizerState = pRasterizerStateCullFront;
+#endif
 #if !defined(METAL)
 	shadowPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
 #endif
@@ -1982,10 +1962,11 @@ bool initApp()
 
 	for (uint32_t i = 0; i < gNumGeomSets; ++i)
 	{
-		if (MSAASAMPLECOUNT > 1)
-			vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNoneMS : pRasterizerStateCullFrontMS;
-		else
-			vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNone : pRasterizerStateCullFront;
+#if (MSAASAMPLECOUNT > 1)
+		vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNoneMS : pRasterizerStateCullFrontMS;
+#else
+		vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNone : pRasterizerStateCullFront;
+#endif
 		vbPassPipelineSettings.pShaderProgram = pShaderVisibilityBufferPass[i];
 
 #if defined(_DURANGO)
@@ -2021,25 +2002,22 @@ bool initApp()
 	vbShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 	vbShadePipelineSettings.mRenderTargetCount = 1;
 	vbShadePipelineSettings.pDepthState = pDepthStateDisable;
-	if (MSAASAMPLECOUNT > 1)
-	{
-		vbShadePipelineSettings.pRasterizerState = pRasterizerStateCullNoneMS;
-	}
-	else
-	{
-		vbShadePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-	}
+#if (MSAASAMPLECOUNT > 1)
+	vbShadePipelineSettings.pRasterizerState = pRasterizerStateCullNoneMS;
+#else
+	vbShadePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+#endif
 	vbShadePipelineSettings.pRootSignature = pRootSignatureVBShade;
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		vbShadePipelineSettings.pShaderProgram = pShaderVisibilityBufferShade[i];
 		vbShadePipelineSettings.ppRenderTargets = &pWorldRenderTarget;
-		if (MSAASAMPLECOUNT > 1)
-			vbShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-		else
-			vbShadePipelineSettings.ppRenderTargets = &pWorldRenderTarget;
-
+#if (MSAASAMPLECOUNT > 1)
+		vbShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
+#else
+		vbShadePipelineSettings.ppRenderTargets = &pWorldRenderTarget;
+#endif
 #if defined(_DURANGO) && 1
 		ExtendedGraphicsPipelineDesc edescs[2] = {};
 
@@ -2062,11 +2040,11 @@ bool initApp()
 		addPipeline(pRenderer, &vbShadePipelineSettings, &pPipelineVisibilityBufferShadePost[i]);
 #endif
 
-		if (MSAASAMPLECOUNT > 1)
-			vbShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-		else
-			vbShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-	
+#if (MSAASAMPLECOUNT > 1)
+		vbShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
+#else
+		vbShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+#endif	
 #if defined(_DURANGO) && 1
 		memset(edescs, 0, sizeof(edescs));
 
@@ -2106,10 +2084,11 @@ bool initApp()
 	// Create pipelines for geometry sets
 	for (uint32_t i = 0; i < gNumGeomSets; ++i)
 	{
-		if (MSAASAMPLECOUNT > 1)
-			deferredPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNoneMS : pRasterizerStateCullFrontMS;
-		else
-			deferredPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNone : pRasterizerStateCullFront;
+#if (MSAASAMPLECOUNT > 1)
+		deferredPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNoneMS : pRasterizerStateCullFrontMS;
+#else
+		deferredPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? pRasterizerStateCullNone : pRasterizerStateCullFront;
+#endif
 		deferredPassPipelineSettings.pShaderProgram = pShaderDeferredPass[i];
 		addPipeline(pRenderer, &deferredPassPipelineSettings, &pPipelineDeferredPass[i]);
 	}
@@ -2125,28 +2104,27 @@ bool initApp()
 	deferredShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 	deferredShadePipelineSettings.mRenderTargetCount = 1;
 	deferredShadePipelineSettings.pDepthState = pDepthStateDisable;
-	if (MSAASAMPLECOUNT > 1)
-	{
-		deferredShadePipelineSettings.pRasterizerState = pRasterizerStateCullNoneMS;
-	}
-	else
-	{
-		deferredShadePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-	}
+#if (MSAASAMPLECOUNT > 1)
+	deferredShadePipelineSettings.pRasterizerState = pRasterizerStateCullNoneMS;
+#else
+	deferredShadePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+#endif
 	deferredShadePipelineSettings.pRootSignature = pRootSignatureDeferredShade;
 
 	for (uint32_t i = 0; i < 2; ++i)
 	{
 		deferredShadePipelineSettings.pShaderProgram = pShaderDeferredShade[i];
-	if (MSAASAMPLECOUNT > 1)
+#if (MSAASAMPLECOUNT > 1)
 		deferredShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-	else
+#else
 		deferredShadePipelineSettings.ppRenderTargets = &pWorldRenderTarget;
+#endif
 		addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadePost[i]);
-	if (MSAASAMPLECOUNT > 1)
+#if (MSAASAMPLECOUNT > 1)
 		deferredShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-	else
+#else
 		deferredShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+#endif
 		addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadeSrgb[i]);
 	}
 	/************************************************************************/
@@ -2168,11 +2146,11 @@ bool initApp()
 	deferredPointLightPipelineSettings.pBlendState = pBlendStateOneZero;
 	deferredPointLightPipelineSettings.pDepthState = pDepthStateDisable;
 
-	if (MSAASAMPLECOUNT > 1)
-		deferredPointLightPipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-	else
-		deferredPointLightPipelineSettings.ppRenderTargets = &pWorldRenderTarget;
-
+#if (MSAASAMPLECOUNT > 1)
+	deferredPointLightPipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
+#else
+	deferredPointLightPipelineSettings.ppRenderTargets = &pWorldRenderTarget;
+#endif
 	deferredPointLightPipelineSettings.pRasterizerState = pRasterizerStateCullBack;
 	deferredPointLightPipelineSettings.pRootSignature = pRootSignatureDeferredShadePointLight;
 	deferredPointLightPipelineSettings.pShaderProgram = pShaderDeferredShadePointLight;
@@ -2180,11 +2158,11 @@ bool initApp()
 
 	addPipeline(pRenderer, &deferredPointLightPipelineSettings, &pPipelineDeferredShadePointLightPost);
 
-	if (MSAASAMPLECOUNT > 1)
-		deferredPointLightPipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-	else
-		deferredPointLightPipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-
+#if (MSAASAMPLECOUNT > 1)
+	deferredPointLightPipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
+#else
+	deferredPointLightPipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+#endif
 	addPipeline(pRenderer, &deferredPointLightPipelineSettings, &pPipelineDeferredShadePointLightSrgb);
 
 	// Create geometry for light rendering
@@ -2275,7 +2253,7 @@ bool initApp()
 	addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 
 	GuiDesc guiDesc = {};
-	guiDesc.mStartPosition = vec2(25.0f, 100.0f);
+	guiDesc.mStartPosition = vec2(225.0f, 100.0f);
 	addGui(pUIManager, &guiDesc, &pGuiWindow);
 
 	// Light Settings
@@ -2992,11 +2970,11 @@ void drawVisibilityBufferPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t fram
 void drawVisibilityBufferShade(Cmd* cmd, uint32_t frameIdx)
 {
 	RenderTarget* pDestinationRenderTarget;
-	if (MSAASAMPLECOUNT > 1)
-		pDestinationRenderTarget = pRenderTargetMSAA;
-	else
-		pDestinationRenderTarget = gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget;
-
+#if (MSAASAMPLECOUNT > 1)
+	pDestinationRenderTarget = pRenderTargetMSAA;
+#else
+	pDestinationRenderTarget = gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget;
+#endif
 	// Set load actions to clear the screen to black
 	LoadActionsDesc loadActions = {};
 	loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -3199,11 +3177,11 @@ void drawDeferredPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameIdx)
 void drawDeferredShade(Cmd* cmd, uint32_t frameIdx)
 {
 	RenderTarget* pDestinationRenderTarget;
-	if (MSAASAMPLECOUNT > 1)
-		pDestinationRenderTarget = pRenderTargetMSAA;
-	else
-		pDestinationRenderTarget = gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget;
-
+#if (MSAASAMPLECOUNT > 1)
+	pDestinationRenderTarget = pRenderTargetMSAA;
+#else
+	pDestinationRenderTarget = gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget;
+#endif
 	// Set load actions to clear the screen to black
 	LoadActionsDesc loadActions = {};
 	loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -3245,11 +3223,11 @@ void drawDeferredShade(Cmd* cmd, uint32_t frameIdx)
 void drawDeferredShadePointLights(Cmd* cmd, uint32_t frameIdx)
 {
 	RenderTarget* pDestinationRenderTarget;
-	if (MSAASAMPLECOUNT > 1)
-		pDestinationRenderTarget = pRenderTargetMSAA;
-	else
-		pDestinationRenderTarget = gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget;
-
+#if (MSAASAMPLECOUNT > 1)
+	pDestinationRenderTarget = pRenderTargetMSAA;
+#else
+	pDestinationRenderTarget = gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget;
+#endif
 	cmdBeginRender(cmd, 1, &pDestinationRenderTarget, NULL);
 	cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 	cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
@@ -3411,7 +3389,7 @@ void computeLightClusters(Cmd *cmd, uint32_t frameIdx)
 // - pIndirectDrawArguments: the vertexCount member of this structure is calculated in order to
 //                           indicate the renderer the amount of vertices per batch to render.
 #if defined(METAL)
-void filterTriangles(Cmd *cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk)
+void filterTriangles(Cmd *cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk, uint32_t bufferOffset)
 {
 	// Check if there are batches to filter
 	if (batchChunk->currentBatchCount == 0)
@@ -3421,11 +3399,12 @@ void filterTriangles(Cmd *cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk)
 	Buffer* batchDataBuffer = batchChunk->batchDataBuffer;
 
 	// Copy batch data to GPU buffer
-	BufferUpdateDesc dataBufferUpdate = { batchDataBuffer, batchChunk->batches, 0, 0, batchChunk->currentBatchCount * sizeof(FilterBatchData) };
+	BufferUpdateDesc dataBufferUpdate = { batchDataBuffer, batchChunk->batches, 0, bufferOffset, batchChunk->currentBatchCount * sizeof(FilterBatchData) };
 	updateResource(&dataBufferUpdate, true);
 
 	DescriptorData params[1] = {};
 	params[0].pName = "perBatch";
+    params[0].mOffset = bufferOffset;
 	params[0].ppBuffers = &batchDataBuffer;
 	cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
 
@@ -3537,43 +3516,6 @@ static inline int genClipMask(__m128 v)
 //	return result;
 //}
 
-bool frustumCullCluster(const Cluster* cluster, Transform transforms[gNumViews])
-{
-	return false;
-
-#if 0
-	//TODO: Should we support world matrix transformations? Would be nice to have :)
-
-	//Unpack the AABB into a cube
-	float3 p0 = cluster->aabbMin;
-	float3 p1 = cluster->aabbMax;
-
-	vec3 cube[8] = {
-		vec3(p0.x, p0.y, p0.z),
-		vec3(p0.x, p0.y, p1.z),
-		vec3(p0.x, p1.y, p0.z),
-		vec3(p0.x, p1.y, p1.z),
-		vec3(p1.x, p0.y, p0.z),
-		vec3(p1.x, p0.y, p1.z),
-		vec3(p1.x, p1.y, p0.z),
-		vec3(p1.x, p1.y, p1.z),
-	};
-
-	//Generate a mask based on what verices of this cube are inside the frustums and which are not
-	uint32_t mask = 0;
-	for (uint32_t i = 0; i < gNumViews; ++i)
-	{
-		//Transform the AABB to the view's perspective
-		for (int j = 0; j < 8; ++j)
-		{
-			vec4 t = transforms[i].vp * vec4(cube[j].getX(), cube[j].getY(), cube[j].getZ(), 1);
-			mask |= genClipMask(_mm_set_ps(t.getX(), t.getY(), t.getW(), t.getZ()));
-		}
-	}
-	return mask != 0x3f;
-#endif
-}
-
 void sortClusters(Cluster** clusters, uint32_t len)
 {
 	struct StackItem { Cluster** a; uint32_t l; };
@@ -3671,6 +3613,7 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 	cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 6, filterParams);
 
 	// Iterate mesh clusters and perform cluster culling
+    uint32_t batchBufferOffset = 0;
 	for (uint32_t i = 0; i < pScene->numMeshes; i++)
 	{
 		const Mesh* mesh = pScene->meshes + i;
@@ -3679,6 +3622,7 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 		for (uint32_t j = 0; j < mesh->clusterCount; j++)
 		{
 			const Cluster* cluster = mesh->clusters + j;
+            const ClusterCompact* pClusterCompact = &mesh->clusterCompacts[j];
 
 			// Perform CPU-based cluster culling before adding the cluster for GPU filtering
 			if (cullCluster(cluster, gPerFrame[frameIdx].gEyeObjectSpace))
@@ -3688,19 +3632,20 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 			}
 
 			// The cluster was not culled: add cluster to the cluster batch chunk for the GPU filtering step
-			addClusterToBatchChunk(cluster, mesh, i, material->twoSided, pFilterBatchChunk[frameIdx]);
+			addClusterToBatchChunk(pClusterCompact, mesh, i, material->twoSided, pFilterBatchChunk[frameIdx]);
 
 			// Check if we filled the whole batch of clusters
 			if (pFilterBatchChunk[frameIdx]->currentBatchCount >= BATCH_COUNT)
 			{
-                // We should never hit this point!
-                assert(0);
+                uint32_t oldBatchOffset = batchBufferOffset + pFilterBatchChunk[frameIdx]->currentBatchCount * sizeof(FilterBatchData);
+                filterTriangles(cmd, frameIdx, pFilterBatchChunk[frameIdx], batchBufferOffset);
+                batchBufferOffset = oldBatchOffset;
 			}
 		}
 	}
     
     // End of the mesh, filter the remaining clusters of the current batch
-    filterTriangles(cmd, frameIdx, pFilterBatchChunk[frameIdx]);
+    filterTriangles(cmd, frameIdx, pFilterBatchChunk[frameIdx], batchBufferOffset);
     
     // Flush the pending resource updates.
     flushResourceUpdates();
@@ -3773,7 +3718,7 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 	filterParams[5].pName = "uniforms";
 	filterParams[5].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 	cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 6, filterParams);
-#if 1
+#if 0
 #define SORT_CLUSTERS 1
 
 #if SORT_CLUSTERS
@@ -3801,13 +3746,7 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 			Cluster* clusterInfo = &drawBatch->clusters[j];
 
 			// Run cluster culling
-			if (!gAppSettings.mClusterCulling ||
-				!frustumCullCluster(clusterInfo, gPerFrame[frameIdx].gPerFrameUniformData.transform) ||
-				!cullCluster(clusterInfo, gPerFrame[frameIdx].gEyeObjectSpace))
 			{
-
-
-
 				//Calculate distance from the camera
 				vec4 p0 = vec4((f3Tov3(clusterInfo->aabbMin) + f3Tov3(clusterInfo->aabbMax)) * .5f, 1.0f);
 				mat4 vm = gPerFrame[frameIdx].gPerFrameUniformData.transform[VIEW_CAMERA].vp;
@@ -3835,8 +3774,6 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 				temporaryClusters[temporaryClusterCount++] = clusterInfo;
 
 			}
-			else
-				++gPerFrame[frameIdx].gCulledClusters;
 		}
 
 		//Sort the clusters
@@ -3876,9 +3813,6 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 			Cluster* clusterInfo = &drawBatch->clusters[j];
 
 			// Run cluster culling
-			if (!gAppSettings.mClusterCulling ||
-				!frustumCullCluster(clusterInfo, gPerFrame[frameIdx].gPerFrameUniformData.transform) ||
-				!cullCluster(clusterInfo, gPerFrame[frameIdx].gEyeObjectSpace))
 			{
 				addClusterToBatchChunk(
 					clusterInfo,
@@ -3889,8 +3823,6 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 					batchChunk);
 				accumNumTriangles += clusterInfo->triangleCount;
 			}
-			else
-				++gPerFrame[frameIdx].gCulledClusters;
 
 			// check to see if we filled the batch
 			if (batchChunk->currentBatchCount >= BATCH_COUNT)
@@ -3932,21 +3864,16 @@ void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameId
 		for (uint32_t j = 0; j < drawBatch->clusterCount; ++j)
 		{
 			++gPerFrame[frameIdx].gTotalClusters;
-			Cluster* clusterInfo = &drawBatch->clusters[j];
-
+			const ClusterCompact* clusterCompactInfo = &drawBatch->clusterCompacts[j];
 			// Run cluster culling
-			if (!gAppSettings.mClusterCulling ||
-				!frustumCullCluster(clusterInfo, gPerFrame[frameIdx].gPerFrameUniformData.transform) ||
-				!cullCluster(clusterInfo, gPerFrame[frameIdx].gEyeObjectSpace))
+			if (!gAppSettings.mClusterCulling || !cullCluster(&drawBatch->clusters[j], gPerFrame[frameIdx].gEyeObjectSpace))
 			{
 				// cluster culling passed or is turned off
 				// We will now add the cluster to the batch to be triangle filtered
-				addClusterToBatchChunk(clusterInfo, batchStart, accumDrawCount, accumNumTrianglesAtStartOfBatch, i, batchChunk);
-				accumNumTriangles += clusterInfo->triangleCount;
+				addClusterToBatchChunk(clusterCompactInfo, batchStart, accumDrawCount, accumNumTrianglesAtStartOfBatch, i, batchChunk);
+				accumNumTriangles += clusterCompactInfo->triangleCount;
 			}
-			else
-				++gPerFrame[frameIdx].gCulledClusters;
-
+		
 			// check to see if we filled the batch
 			if (batchChunk->currentBatchCount >= BATCH_COUNT)
 			{
@@ -4118,12 +4045,11 @@ void drawScene(Cmd* cmd, uint32_t frameIdx)
 		cmdEndGpuTimestampQuery(cmd, pGraphicsGpuProfiler);
 	}
 
-	if (MSAASAMPLECOUNT > 1)
-	{
-		cmdBeginGpuTimestampQuery(cmd, pGraphicsGpuProfiler, "Resolve Pass");
-		resolveMSAA(cmd, pRenderTargetMSAA, gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget);
-		cmdEndGpuTimestampQuery(cmd, pGraphicsGpuProfiler);
-	}
+#if (MSAASAMPLECOUNT > 1)
+	cmdBeginGpuTimestampQuery(cmd, pGraphicsGpuProfiler, "Resolve Pass");
+	resolveMSAA(cmd, pRenderTargetMSAA, gAppSettings.mEnablePaniniProjection ? pWorldRenderTarget : pScreenRenderTarget);
+	cmdEndGpuTimestampQuery(cmd, pGraphicsGpuProfiler);
+#endif
 }
 
 // Draw GUI / 2D elements
@@ -4142,14 +4068,12 @@ void drawGUI(Cmd* cmd, uint32_t frameIdx)
 #ifndef METAL
 	if (gAppSettings.mAsyncCompute)
 	{
-		// NOTE: Not sure whether this logic to calculate total gpu time is correct
-		float time = max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f,
-			(float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-		cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", time);
-        
-
 		if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
 		{
+			float time = max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f,
+				(float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
+			cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", time);
+
 			cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 65.0f), "Compute Queue ", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
 			cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 90.0f), pComputeGpuProfiler);
 			cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 300.0f), "Graphics Queue ", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f);
@@ -4157,6 +4081,9 @@ void drawGUI(Cmd* cmd, uint32_t frameIdx)
 		}
 		else
 		{
+			float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
+			cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", time);
+
 			cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 65.0f), pGraphicsGpuProfiler);
 		}
 	}
@@ -4168,7 +4095,7 @@ void drawGUI(Cmd* cmd, uint32_t frameIdx)
 #endif
 
 	// Draw Debug Textures
-#if MSAASAMPLECOUNT == 1
+#if (MSAASAMPLECOUNT == 1)
 	if (gAppSettings.mDrawDebugTargets)
 	{
 		float scale = 0.15f;
@@ -4522,7 +4449,7 @@ void unload()
 #ifndef __APPLE__
 int main(int argc, char **argv)
 {
-  UNREF_PARAM(argc);
+	UNREF_PARAM(argc);
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	HiresTimer deltaTimer;

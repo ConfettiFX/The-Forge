@@ -1962,15 +1962,23 @@ namespace RENDERER_CPP_NAMESPACE {
 		desc.BufferCount = pSwapChain->mDesc.mImageCount;
 		desc.Scaling = DXGI_SCALING_STRETCH;
 #ifdef _DURANGO
-    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 #else
-    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 #endif
-    desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-    desc.Flags = 0;
+		desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+		desc.Flags = 0;
 
-    if(fnHookModifySwapChainDesc)
-      fnHookModifySwapChainDesc(&desc);
+#if !defined(_DURANGO)
+		BOOL allowTearing = FALSE;
+		pRenderer->pDXGIFactory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+		desc.Flags |= allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
+		pSwapChain->mFlags |= allowTearing ? DXGI_PRESENT_ALLOW_TEARING : 0;
+#endif
+
+		if (fnHookModifySwapChainDesc)
+			fnHookModifySwapChainDesc(&desc);
 
 	IDXGISwapChain1* swapchain;
 
@@ -4509,24 +4517,21 @@ namespace RENDERER_CPP_NAMESPACE {
 			pQueue->pDxQueue->Signal(ppSignalSemaphores[i]->pFence->pDxFence, ppSignalSemaphores[i]->pFence->mFenceValue++);
 	}
 
-  void queuePresent(Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
-  {
-    UNREF_PARAM(swapChainImageIndex);
-    ASSERT(pQueue);
-    ASSERT(pSwapChain->pSwapChain);
+	void queuePresent(Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
+	{
+		UNREF_PARAM(swapChainImageIndex);
+		ASSERT(pQueue);
+		ASSERT(pSwapChain->pSwapChain);
 
-    if (waitSemaphoreCount > 0) {
-      ASSERT(ppWaitSemaphores);
-    }
+		if (waitSemaphoreCount > 0) {
+			ASSERT(ppWaitSemaphores);
+		}
 
-    UINT flags = 0;
-    pSwapChain->pSwapChain->Present(pSwapChain->mDxSyncInterval, flags);
-    
+		pSwapChain->pSwapChain->Present(pSwapChain->mDxSyncInterval, pSwapChain->mFlags);
+
 		HRESULT hr = pQueue->pRenderer->pDevice->GetDeviceRemovedReason();
-    if (FAILED(hr))
-      ASSERT(false);//TODO: let's do something with the error
-    int i = 0;
-		++i;
+		if (FAILED(hr))
+			ASSERT(false);//TODO: let's do something with the error
 	}
 
 	bool queueSignal(Queue* pQueue, Fence* fence, uint64_t value)

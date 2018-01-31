@@ -37,11 +37,6 @@
 #if OLD_MODELS
 static void SetAlphaTestMaterials(tinystl::unordered_set<String>& mats)
 {
-	// Sponza
-	mats.insert("Material__57");
-	mats.insert("leaf");
-	mats.insert("chain");
-
 	// San Miguel
 	mats.insert("aglaonema_Leaf");
 	mats.insert("brevipedunculata_Leaf1");
@@ -97,11 +92,6 @@ static void SetAlphaTestMaterials(tinystl::unordered_set<String>& mats)
 
 static void SetTwoSidedMaterials(tinystl::unordered_set<String>& mats)
 {
-	// Sponza
-	mats.insert("Material__57");
-	mats.insert("leaf");
-	mats.insert("chain");
-
 	// San Miguel
 	mats.insert("aglaonema_Leaf");
 	mats.insert("brevipedunculata_Leaf1");
@@ -290,7 +280,7 @@ static inline uint encodeDir(const float3& n)
 #endif
 
 // Loads a scene using ASSIMP and returns a Scene object with scene information
-Scene* loadScene(Renderer* pRenderer, const char* fileName)
+Scene* loadScene(const char* fileName)
 {
 #if TARGET_IOS
 	NSString *fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : fileName] ofType : @""];
@@ -389,8 +379,6 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName)
 	{
 		Material& m = scene->materials[i];
 		m.twoSided = false;
-
-		int texIndex = 0;
 
 		uint32_t matNameLength = 0;
 		assimpScene.Read(&matNameLength, sizeof(uint32_t));
@@ -590,7 +578,9 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName)
 
 	scene->indices = tinystl::vector<uint32>(scene->totalTriangles, uint32_t(0));
 	scene->positions = tinystl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
-	scene->attributes = tinystl::vector<SceneVertexAttr>(scene->totalVertices, SceneVertexAttr{ 0 });
+	scene->texCoords = tinystl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
+	scene->normals = tinystl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
+	scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
 
 	for (unsigned int i = 0, kv = 0, ki = 0; i < assimpScene->mNumMeshes; i++)
 	{
@@ -614,17 +604,17 @@ Scene* loadScene(Renderer* pRenderer, const char* fileName)
 
 			if (mesh->HasNormals()) {
 				aiVector3D *normal = mesh->mNormals + v;
-				scene->attributes[kv].normal = encodeDir(float3(normal->x, normal->y, normal->z));
+				scene->normals[kv].normal = encodeDir(float3(normal->x, normal->y, normal->z));
 			}
 
 			if (mesh->HasTangentsAndBitangents()) {
 				aiVector3D *tangent = mesh->mTangents + v;
-				scene->attributes[kv].tangent = encodeDir(float3(tangent->x, tangent->y, tangent->z));
+				scene->tangents[kv].tangent = encodeDir(float3(tangent->x, tangent->y, tangent->z));
 			}
 
 			if (mesh->HasTextureCoords(0)) {
 				aiVector3D *tc = mesh->mTextureCoords[0] + v;
-				scene->attributes[kv].texCoord = pack2Floats(float2(tc->x, tc->y));
+				scene->texCoords[kv].texCoord = pack2Floats(float2(tc->x, tc->y));
 			}
 		}
 
@@ -784,6 +774,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 
 	mesh->clusterCount = (mesh->triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
 	mesh->clusters = (Cluster*)conf_malloc(mesh->clusterCount * sizeof(Cluster));
+    mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
 	memset(mesh->clusters, 0, mesh->clusterCount * sizeof(Cluster));
 
 	const uint32_t triangleStart = mesh->startVertex / 3;  // Assumes that we have no indices and every 3 vertices are a triangle (due to Metal limitation).
@@ -879,8 +870,8 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 		mesh->clusters[i].coneCenter = v3ToF3(center + coneAxis*t);
 		mesh->clusters[i].coneAxis = v3ToF3(coneAxis);
 
-		mesh->clusters[i].triangleCount = clusterTriangleCount;
-		mesh->clusters[i].clusterStart = clusterStart;
+		mesh->clusterCompacts[i].triangleCount = clusterTriangleCount;
+		mesh->clusterCompacts[i].clusterStart = clusterStart;
 
 		//#if AMD_GEOMETRY_FX_ENABLE_CLUSTER_CENTER_SAFETY_CHECK
 		// If distance of coneCenter to the bounding box center is more than 16x the bounding box extent, the cluster is also invalid
@@ -910,6 +901,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 	const int clusterCount = (triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
 
 	mesh->clusterCount = clusterCount;
+	mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
 	mesh->clusters = (Cluster*)conf_calloc(mesh->clusterCount, sizeof(Cluster));
 
 	for (int i = 0; i < clusterCount; ++i)
@@ -1008,8 +1000,8 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 		mesh->clusters[i].coneCenter = v3ToF3(center + coneAxis * t);
 		mesh->clusters[i].coneAxis = v3ToF3(coneAxis);
 
-		mesh->clusters[i].triangleCount = clusterTriangleCount;
-		mesh->clusters[i].clusterStart = clusterStart;
+		mesh->clusterCompacts[i].triangleCount = clusterTriangleCount;
+		mesh->clusterCompacts[i].clusterStart = clusterStart;
 
 		//#if AMD_GEOMETRY_FX_ENABLE_CLUSTER_CENTER_SAFETY_CHECK
 		// If distance of coneCenter to the bounding box center is more than 16x the bounding box extent, the cluster is also invalid
@@ -1026,7 +1018,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 }
 
 #if defined(METAL)
-void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk)
+void addClusterToBatchChunk(const ClusterCompact* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk)
 {
 	FilterBatchData* batchData = &batchChunk->batches[batchChunk->currentBatchCount++];
 
@@ -1036,7 +1028,7 @@ void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, uint32_t m
     batchData->twoSided = (isTwoSided ? 1 : 0);
 }
 #else
-void addClusterToBatchChunk(const Cluster* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk)
+void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk)
 {
 	const int filteredIndexBufferStartOffset = accumNumTriangles * 3;
 

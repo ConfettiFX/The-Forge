@@ -110,8 +110,13 @@ typedef struct WindowsDesc
 	int lastCursorPosX, lastCursorPosY;
 } WindowsDesc;
 
+typedef struct VideoMode
+{
+	uint32_t mWidth;
+	uint32_t mHeight;
+} VideoMode;
 
-// Win32-specific per-monitor data
+// Monitor data
 //
 typedef struct MonitorDesc
 {
@@ -131,8 +136,11 @@ typedef struct MonitorDesc
 #endif
 	bool modesPruned;
 	bool modeChanged;
-} MonitorDesc;
 
+	VideoMode defaultVideoMode;
+	VideoMode* videoModes;
+	uint32_t videoModeCount;
+} MonitorDesc;
 
 #include <float.h>
 
@@ -188,8 +196,10 @@ void minimizeWindow(WindowsDesc* winDesc);
 void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y);
 
 void getRecommendedResolution(RectDesc* rect);
+// Sets video mode for specified display
+void setVideoMode(const MonitorDesc* pMonitor, uint32_t videoModeIndex);
 
-MonitorDesc getMonitor(uint32_t index);
+MonitorDesc* getMonitor(uint32_t index);
 
 // Input handling
 float2 getMousePosition();

@@ -32,6 +32,8 @@ static tinystl::vector<MouseMoveEventHandler> gMouseMoveCallbacks;
 static tinystl::vector<MouseButtonEventHandler> gMouseButtonCallbacks;
 static tinystl::vector<MouseWheelEventHandler> gMouseWheelCallbacks;
 static tinystl::vector<JoystickButtonEventHandler> gJoystickButtonCallbacks;
+static tinystl::vector<TouchEventHandler> gTouchCallbacks;
+static tinystl::vector<TouchMoveEventHandler> gTouchMoveCallbacks;
 
 void registerWindowResizeEvent(WindowResizeEventHandler callback)
 {
@@ -103,6 +105,26 @@ void unregisterJoystickButtonEvent(JoystickButtonEventHandler callback)
 	gJoystickButtonCallbacks.erase(gJoystickButtonCallbacks.find(callback));
 }
 
+void registerTouchEvent(TouchEventHandler callback)
+{
+    gTouchCallbacks.push_back(callback);
+}
+
+void unregisterTouchEvent(TouchEventHandler callback)
+{
+    gTouchCallbacks.erase(gTouchCallbacks.find(callback));
+}
+
+void registerTouchMoveEvent(TouchMoveEventHandler callback)
+{
+    gTouchMoveCallbacks.push_back(callback);
+}
+
+void unregisterTouchMoveEvent(TouchMoveEventHandler callback)
+{
+    gTouchMoveCallbacks.erase(gTouchMoveCallbacks.find(callback));
+}
+
 namespace PlatformEvents
 {
 	bool wantsMouseCapture = false;
@@ -149,6 +171,20 @@ namespace PlatformEvents
 		for (JoystickButtonEventHandler& callback : gJoystickButtonCallbacks)
 			callback(pData);
 	}
+    
+    // TODO: Add multitouch event handlers.
+    void onTouch(const TouchEventData* pData)
+    {
+        for (TouchEventHandler& callback : gTouchCallbacks)
+            callback(pData);
+    }
+    
+    void onTouchMove(const TouchMoveEventData* pData)
+    {
+        for (TouchMoveEventHandler& callback : gTouchMoveCallbacks)
+            callback(pData);
+    }
+    
 } // namespace PlatformEvents
 
 bool requestMouseCapture(bool allowCapture)

@@ -49,11 +49,7 @@
 #define GUI_CAMERACONTROLLER 1
 #define FPS_CAMERACONTROLLER 2
 
-#if !defined(TARGET_IOS)
 #define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
-#else
-#define USE_CAMERACONTROLLER 0
-#endif
 
 ICameraController* pCameraController = nullptr;
 
@@ -361,9 +357,6 @@ void initApp(const WindowsDesc* window)
 	gWindowHeight = (uint32_t)(height);
 
 	RendererDesc settings = { 0 };
-#if defined(TARGET_IOS)
-    settings.pViewHandle = window->handle;
-#endif
 	initRenderer("Transformations", &settings, &pRenderer);
 
 	QueueDesc queueDesc = {};
@@ -387,7 +380,11 @@ void initApp(const WindowsDesc* window)
 	for (int i = 0; i < 6; ++i)
 	{
 		TextureLoadDesc textureDesc = {};
+#ifndef TARGET_IOS
 		textureDesc.mRoot = FSR_Textures;
+#else
+        textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
 		textureDesc.mUseMipmaps = true;
 		textureDesc.pFilename = pSkyBoxImageFileNames[i];
 		textureDesc.ppTexture = &pSkyBoxTextures[i];
@@ -423,11 +420,17 @@ void initApp(const WindowsDesc* window)
 	vertFile.Close();
 	fragFile.Close();
 #elif defined(METAL)
-    File metalFile = {}; metalFile.Open("skybox.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    
+    FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
+#ifdef TARGET_IOS
+    shaderRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+    
+    File metalFile = {}; metalFile.Open("skybox.metal", FM_Read, shaderRoot);
     String metal = metalFile.ReadText();
     skyShader = { skyShader.mStages, {metalFile.GetName(), metal, "VSMain" }, {metalFile.GetName(), metal, "PSMain"} };
     
-    metalFile.Open("basic.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("basic.metal", FM_Read, shaderRoot);
     metal = metalFile.ReadText();
     basicShader = { basicShader.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
     metalFile.Close();
@@ -576,23 +579,7 @@ void initApp(const WindowsDesc* window)
 
 	gCameraYRotateScale = 0.01f;
 
-#if !USE_CAMERACONTROLLER
-	// initial camera properties
-	gCameraProp.mCameraPitch = -0.785398163f;
-	gCameraProp.mCamearYaw = 1.5f*0.785398163f;
-	gCameraProp.mCameraPosition = Point3(48.0f, 48.0f, 20.0f);
-	gCameraProp.mCameraForward = vec3(0.0f, 0.0f, -1.0f);
-	gCameraProp.mCameraUp = vec3(0.0f, 1.0f, 0.0f);
-
-	vec3 camRot(gCameraProp.mCameraPitch, gCameraProp.mCamearYaw, 0.0f);
-	mat3 trans;
-	trans = mat3::rotationZYX(camRot);
-	gCameraProp.mCameraDirection = trans* gCameraProp.mCameraForward;
-	gCameraProp.mCameraRight = cross(gCameraProp.mCameraDirection, gCameraProp.mCameraUp);
-	normalize(gCameraProp.mCameraRight);
-#endif
-
-	// setup planets (Rotation speeds are relative to Earth's, some values randomly given)
+	// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
 
 	// Sun
 	gPlanetInfoData[0].mParentIndex = 0;
@@ -703,12 +690,28 @@ void initApp(const WindowsDesc* window)
 	vec3 lookAt{ 0 };
     
     CreateCameraController(camPos, lookAt, cmp);
+#else
+    // initial camera properties
+    gCameraProp.mCameraPitch = -0.785398163f;
+    gCameraProp.mCamearYaw = 1.5f*0.785398163f;
+    gCameraProp.mCameraPosition = Point3(48.0f, 48.0f, 20.0f);
+    gCameraProp.mCameraForward = vec3(0.0f, 0.0f, 1.0f);
+    gCameraProp.mCameraUp = vec3(0.0f, 1.0f, 0.0f);
+    
+    vec3 camRot(gCameraProp.mCameraPitch, gCameraProp.mCamearYaw, 0.0f);
+    mat3 trans;
+    trans = mat3::rotationZYX(camRot);
+    gCameraProp.mCameraDirection = trans* gCameraProp.mCameraForward;
+    gCameraProp.mCameraRight = cross(gCameraProp.mCameraDirection, gCameraProp.mCameraUp);
+    normalize(gCameraProp.mCameraRight);
 #endif
 }
 
 void ProcessInput(float deltaTime)
 {
 #if USE_CAMERACONTROLLER
+    
+#ifndef TARGET_IOS
 #ifdef _DURANGO
 	if (getJoystickButtonDown(BUTTON_A))
 #else
@@ -717,6 +720,7 @@ void ProcessInput(float deltaTime)
 	{
 		RecenterCameraView(170.0f);
 	}
+#endif
 
 	pCameraController->update(deltaTime);
 #endif
@@ -843,7 +847,8 @@ void drawFrame(float deltaTime)
 	cmdBeginRender(cmd, 1, &pRenderTarget, NULL, NULL);
 	cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
 	static HiresTimer gTimer;
-	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", gTimer.GetUSec(true) / 1000.0f);
+	gTimer.GetUSec(true);
+	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", gTimer.GetUSecAverage() / 1000.0f);
 	cmdUIEndRender(cmd, pUIManager);
 	cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 	cmdEndDebugMarker(cmd);
@@ -939,7 +944,7 @@ int main(int argc, char **argv)
 
 	Timer deltaTimer;
 
-	gWindow.windowedRect = { 0, 0, 1920, 1080 };
+	getRecommendedResolution(&gWindow.windowedRect);
 	gWindow.fullScreen = false;
 	gWindow.maximized = false;
 	openWindow(FileSystem::GetFileName(argv[0]), &gWindow);

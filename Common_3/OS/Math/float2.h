@@ -69,7 +69,7 @@ inline float2 operator*(const float2& a, float b)
 inline const float2& operator*=(float2&a, float b)
 { return a = a * b; }
 inline float2 operator*(float a, const float2& b)
-{ return a * b; }
+{ return b * a; }
 inline float2 operator*(const float2& a, const float2& b)
 { return float2(a.x * b.x, a.y * b.y); }
 inline const float2& operator*=(float2&a, float2& b)

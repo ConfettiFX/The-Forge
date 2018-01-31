@@ -179,12 +179,31 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 
+	case WM_DISPLAYCHANGE:
+	{
+		if (gCurrentWindow)
+		{
+			if (gCurrentWindow->fullScreen)
+			{
+				gCurrentWindow->fullScreen = false;
+				toggleFullscreen(gCurrentWindow);
+			}
+			else
+			{
+				gCurrentWindow->fullScreen = true;
+				toggleFullscreen(gCurrentWindow);
+			}
+		}
+		break;
+	}
+
 	case WM_SIZE:
 		if (gCurrentWindow)
 		{
 			RectDesc rect = { 0 };
 			if (gCurrentWindow->fullScreen)
 			{
+				gCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
 				rect = gCurrentWindow->fullscreenRect;
 			}
 			else
@@ -425,6 +444,55 @@ static void collectMonitorInfo()
 			found++;
 		}
 	}
+
+	for (uint32_t monitor = 0; monitor < (uint32_t)gMonitors.size(); ++monitor)
+	{
+		MonitorDesc* pMonitor = &gMonitors[monitor];
+		DEVMODEW devMode = {};
+		devMode.dmSize = sizeof(DEVMODEW);
+		devMode.dmFields = DM_PELSHEIGHT | DM_PELSWIDTH;
+
+		EnumDisplaySettings(pMonitor->adapterName, ENUM_CURRENT_SETTINGS, &devMode);
+		pMonitor->defaultVideoMode.mHeight = devMode.dmPelsHeight;
+		pMonitor->defaultVideoMode.mWidth = devMode.dmPelsWidth;
+
+		tinystl::vector<VideoMode> displays;
+		DWORD current = 0;
+		while (EnumDisplaySettings(pMonitor->adapterName, current++, &devMode))
+		{
+			if (devMode.dmDefaultSource != 0)
+				continue;
+
+			VideoMode videoMode = {};
+			videoMode.mHeight = devMode.dmPelsHeight;
+			videoMode.mWidth = devMode.dmPelsWidth;
+			displays.emplace_back(videoMode);
+		}
+		qsort(displays.data(), displays.size(), sizeof(VideoMode), [](const void* lhs, const void* rhs) {
+			VideoMode* pLhs = (VideoMode*)lhs;
+			VideoMode* pRhs = (VideoMode*)rhs;
+			if (pLhs->mHeight == pRhs->mHeight)
+				return (int)(pLhs->mWidth - pRhs->mWidth);
+
+			return (int)(pLhs->mHeight - pRhs->mHeight);
+		});
+
+		pMonitor->videoModeCount = (uint32_t)displays.size();
+		pMonitor->videoModes = (VideoMode*)conf_calloc(pMonitor->videoModeCount, sizeof(VideoMode));
+		memcpy(pMonitor->videoModes, displays.data(), pMonitor->videoModeCount * sizeof(VideoMode));
+	}
+}
+
+void setVideoMode(const MonitorDesc* pMonitor, uint32_t videoModeIndex)
+{
+	const VideoMode* pMode = videoModeIndex == -1 ? &pMonitor->defaultVideoMode : &pMonitor->videoModes[videoModeIndex];
+
+	DEVMODEW devMode = {};
+	devMode.dmSize = sizeof(DEVMODEW);
+	devMode.dmPelsHeight = pMode->mHeight;
+	devMode.dmPelsWidth = pMode->mWidth;
+	devMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+	ChangeDisplaySettingsW(&devMode, CDS_FULLSCREEN);
 }
 
 bool isRunning()
@@ -434,7 +502,7 @@ bool isRunning()
 
 void getRecommendedResolution(RectDesc* rect)
 {
-	*rect = RectDesc{ 0,0,1920,1080 };
+	*rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
 }
 
 void requestShutDown()
@@ -484,11 +552,26 @@ public:
 
 		collectMonitorInfo();
 	}
+	~StaticWindowManager()
+	{
+		for (uint32_t i = 0; i < (uint32_t)gMonitors.size(); ++i)
+			conf_free(gMonitors[i].videoModes);
+	}
 } windowClass;
 
 void openWindow(const char* app_name, WindowsDesc* winDesc)
 {
 	winDesc->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+
+	// If user provided invalid or zero rect, get the rect from renderer
+	if (getRectWidth(winDesc->windowedRect) <= 0 || getRectHeight(winDesc->windowedRect) <= 0)
+	{
+		getRecommendedResolution(&winDesc->windowedRect);
+	}
+
+	RECT clientRect = { (LONG)winDesc->windowedRect.left, (LONG)winDesc->windowedRect.top, (LONG)winDesc->windowedRect.right, (LONG)winDesc->windowedRect.bottom };
+	AdjustWindowRect(&clientRect, WS_OVERLAPPEDWINDOW, FALSE);
+	winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
 	RectDesc& rect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 
@@ -511,6 +594,9 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 
 	if (hwnd)
 	{
+		GetClientRect(hwnd, &clientRect);
+		winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
+
 		winDesc->handle = hwnd;
 		gHWNDMap.insert({ hwnd, winDesc });
 
@@ -526,17 +612,10 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			}
 			else if (winDesc->fullScreen)
 			{
-				SetWindowLongPtr(hwnd, GWL_STYLE,
-					WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
-				MoveWindow(hwnd,
-					winDesc->fullscreenRect.left, winDesc->fullscreenRect.top,
-					winDesc->fullscreenRect.right, winDesc->fullscreenRect.bottom, TRUE);
+				winDesc->fullScreen = false;
+				toggleFullscreen(winDesc);
 			}
 		}
-
-		RECT clientRect;
-		GetClientRect(hwnd, &clientRect);
-		rect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
 		LOGINFOF("Created window app %s", app_name);
 	}
@@ -582,19 +661,57 @@ void toggleFullscreen(WindowsDesc* winDesc)
 	winDesc->fullScreen = !winDesc->fullScreen;
 
 	HWND hwnd = (HWND)winDesc->handle;
-	const RectDesc& rect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 
 	if (winDesc->fullScreen)
 	{
-		SetWindowLongPtr(hwnd, GWL_STYLE,
-			WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
+		RECT windowedRect = {};
+		// Save the old window rect so we can restore it when exiting fullscreen mode.
+		GetWindowRect(hwnd, &windowedRect);
+		winDesc->windowedRect = { (int)windowedRect.left, (int)windowedRect.top, (int)windowedRect.right, (int)windowedRect.bottom };
+
+		// Make the window borderless so that the client area can fill the screen.
+		SetWindowLong(hwnd, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
+
+		// Get the settings of the primary display. We want the app to go into
+		// fullscreen mode on the display that supports Independent Flip.
+		DEVMODE devMode = {};
+		devMode.dmSize = sizeof(DEVMODE);
+		EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devMode);
+
+		SetWindowPos(
+			hwnd,
+			HWND_TOPMOST,
+			devMode.dmPosition.x,
+			devMode.dmPosition.y,
+			devMode.dmPosition.x + devMode.dmPelsWidth,
+			devMode.dmPosition.y + devMode.dmPelsHeight,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		ShowWindow(hwnd, SW_MAXIMIZE);
 	}
 	else
 	{
-		SetWindowLongPtr(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-	}
+		// Restore the window's attributes and size.
+		SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 
-	MoveWindow(hwnd, rect.left, rect.top, getRectWidth(rect), getRectHeight(rect), TRUE);
+		SetWindowPos(
+			hwnd,
+			HWND_NOTOPMOST,
+			winDesc->windowedRect.left,
+			winDesc->windowedRect.top,
+			winDesc->windowedRect.right - winDesc->windowedRect.left,
+			winDesc->windowedRect.bottom - winDesc->windowedRect.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		if (winDesc->maximized)
+		{
+			ShowWindow(hwnd, SW_MAXIMIZE);
+		}
+		else
+		{
+			ShowWindow(hwnd, SW_NORMAL);
+		}
+	}
 }
 
 void showWindow(WindowsDesc* winDesc)
@@ -628,10 +745,10 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 	SetCursorPos(point.x, point.y);
 }
 
-MonitorDesc getMonitor(uint32_t index)
+MonitorDesc* getMonitor(uint32_t index)
 {
 	ASSERT((uint32_t)gMonitors.size() > index);
-	return gMonitors[index];
+	return &gMonitors[index];
 }
 
 float2 getMousePosition()

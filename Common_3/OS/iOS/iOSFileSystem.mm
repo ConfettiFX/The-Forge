@@ -33,15 +33,9 @@
 
 FileHandle _openFile(const char* filename, const char* flags)
 {
-#if TARGET_IOS
-      if (strncmp(filename, "Log.log", 7) == 0)
-      {
-          return stdout;
-      }
-
-      NSString *fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:filename] ofType:@""];
-      filename = [fileUrl fileSystemRepresentation];
-#endif
+  NSString *fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:filename] ofType:@""];
+  filename = [fileUrl fileSystemRepresentation];
+    
   FILE* fp = fopen(filename, flags);
   return fp;
 }

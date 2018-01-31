@@ -2795,7 +2795,6 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
             return AllocateOwnMemory(mtlMemReq.size, suballocType, memTypeIndex, (resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0, resourceAllocMemReq.pUserData, pAllocation);
         }
     }
-#ifndef TARGET_IOS // Only owned resource allocations are currently supported for iOS.
     else
     {
         uint32_t blockVectorType = AllocatorMemoryRequirementFlagsToBlockVectorType(resourceAllocMemReq.flags);
@@ -2907,9 +2906,7 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
             return true;
         }
     }
-#else
     return false;
-#endif
 }
 
 bool ResourceAllocator::AllocateOwnMemory(uint64_t size, AllocatorSuballocationType suballocType, uint32_t memTypeIndex, bool map, void* pUserData, ResourceAllocation** pAllocation)

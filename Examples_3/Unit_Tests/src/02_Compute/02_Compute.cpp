@@ -417,12 +417,18 @@ void initApp(const WindowsDesc* window)
 	fragFile.Close();
 	computeFile.Close();
 #elif defined(METAL)
+    
+    FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
+#ifdef TARGET_IOS
+    shaderRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+    
     File metalFile = {};
-    metalFile.Open("display.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("display.metal", FM_Read, shaderRoot);
     String metal = metalFile.ReadText();
     displayShader = { displayShader.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
     
-    metalFile.Open("compute.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("compute.metal", FM_Read, shaderRoot);
     computeShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
     metalFile.Close();
 #endif
@@ -507,7 +513,7 @@ void ProcessInput(float deltaTime)
   const float autoModeTimeoutReset = 3.0f;
   static float autoModeTimeout = 0.0f;
   
-#if USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER
+#if USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER && !defined(TARGET_IOS)
   if (getKeyDown(KEY_W) || getKeyDown(KEY_UP))
   {
     gObjSettings.rotX += gCameraYRotateScale;
@@ -530,15 +536,19 @@ void ProcessInput(float deltaTime)
   }
 #endif // USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER
 
+
 #if USE_CAMERACONTROLLER
+    
+#ifndef TARGET_IOS
 #ifdef _DURANGO
-  if (getJoystickButtonDown(BUTTON_A))
+    if (getJoystickButtonDown(BUTTON_A))
 #else
-  if (getKeyDown(KEY_F))
+        if (getKeyDown(KEY_F))
 #endif
-  {
-    RecenterCameraView(85.0f);
-  }
+        {
+            RecenterCameraView(85.0f);
+        }
+#endif
 
   pCameraController->update(deltaTime);
 
@@ -775,7 +785,7 @@ int main(int argc, char **argv)
 
 	Timer deltaTimer;
 
-	gWindow.windowedRect = { 0, 0, 1920, 1080 };
+	getRecommendedResolution(&gWindow.windowedRect);
 	gWindow.fullScreen = false;
 	gWindow.maximized = false;
 	openWindow(FileSystem::GetFileName(argv[0]), &gWindow);

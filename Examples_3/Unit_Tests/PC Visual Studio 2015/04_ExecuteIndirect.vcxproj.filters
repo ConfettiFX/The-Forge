@@ -60,12 +60,26 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.frag" />
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.vert" />
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ComputeUpdate.comp" />
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.frag" />
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.vert" />
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.frag" />
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.vert" />
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ComputeUpdate.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

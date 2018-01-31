@@ -548,15 +548,20 @@ void initApp(const WindowsDesc* window)
 	computeFile.Close();
 
 #elif defined(METAL)
-	File metalFile = {};
     
-    metalFile.Open("compute.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
+#ifdef TARGET_IOS
+    shaderRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+    
+	File metalFile = {};
+    metalFile.Open("compute.metal", FM_Read, shaderRoot);
     computeShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
     
-    metalFile.Open("grass_vertexhull.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("grass_vertexhull.metal", FM_Read, shaderRoot);
     grassVertexHullShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
     
-    metalFile.Open("grass_domainfrag.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("grass_domainfrag.metal", FM_Read, shaderRoot);
     grassShader = { grassShader.mStages, { metalFile.GetName(), metalFile.ReadText(), "VSMain" }, { metalFile.GetName(), metalFile.ReadText(), "PSMain" },};
     
     metalFile.Close();
@@ -694,7 +699,11 @@ void initApp(const WindowsDesc* window)
 	sbBladeNumDesc.mDesc.mFirstElement = 0;
 	sbBladeNumDesc.mDesc.mElementCount = 1;
 	sbBladeNumDesc.mDesc.mStructStride = sizeof(BladeDrawIndirect);
+#ifndef TARGET_IOS
 	sbBladeNumDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+#else
+    sbBladeNumDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU; // On iOS, we need to map this buffer to CPU memory to support tessellated execute-indirect.
+#endif
 	sbBladeNumDesc.mDesc.mSize = sizeof(BladeDrawIndirect);
 
 	sbBladeNumDesc.pData = &indirectDraw;
@@ -822,11 +831,13 @@ void initApp(const WindowsDesc* window)
 
 void ProcessInput(float deltaTime)
 {
+#ifndef TARGET_IOS
 #if USE_CAMERACONTROLLER
 	if (getKeyDown(KEY_F))
 	{
 		RecenterCameraView(170.0f);
 	}
+#endif
 
 	pCameraController->update(deltaTime);
 #endif
@@ -1015,8 +1026,9 @@ void drawFrame(float deltaTime)
 	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", timer.GetUSec(true) / 1000.0f);
 #ifndef METAL // Metal doesn't support GPU profilers
 	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 40 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
-#endif
+
     cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
+#endif
 
 	cmdUIDrawGpuProfileData(cmd, pUIManager, { 8, 65 }, pGpuProfiler);
 	cmdUIEndRender(cmd, pUIManager);
@@ -1129,7 +1141,7 @@ int main(int argc, char **argv)
 
 	Timer deltaTimer;
 
-	gWindow.windowedRect = { 0, 0, 1920, 1080 };
+	getRecommendedResolution(&gWindow.windowedRect);
 	gWindow.fullScreen = false;
 	gWindow.maximized = false;
 	openWindow(FileSystem::GetFileName(argv[0]), &gWindow);

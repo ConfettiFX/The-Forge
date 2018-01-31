@@ -235,7 +235,8 @@ void _Impl_FontStash::fonsImplementationModifyTexture(void* userPtr, int* rect, 
 
 void _Impl_FontStash::fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
 {
-	TexVertex vtx[FONS_VERTEX_COUNT];
+	//make it static so that we don't need to create texVertex Arr every time
+	static TexVertex vtx[FONS_VERTEX_COUNT];
 	ASSERT(nverts <= (sizeof(vtx)/sizeof(vtx[0])));
 
 	_Impl_FontStash* ctx = (_Impl_FontStash*)userPtr;

@@ -597,6 +597,23 @@ typedef struct MouseWheelEventData
 	int scroll;
 } MouseWheelEventData;
 
+typedef struct TouchEventData
+{
+    int x;
+    int y;
+    int radius;
+    bool pressed;
+} TouchEventData;
+
+typedef struct TouchMoveEventData
+{
+    int x;
+    int y;
+    int deltaX;
+    int deltaY;
+    int radius;
+} TouchMoveEventData;
+
 typedef void(*WindowResizeEventHandler)(const WindowResizeEventData* data);
 void registerWindowResizeEvent(WindowResizeEventHandler callback);
 void unregisterWindowResizeEvent(WindowResizeEventHandler callback);
@@ -626,3 +643,11 @@ void registerJoystickButtonEvent(JoystickButtonEventHandler callback);
 void unregisterJoystickButtonEvent(JoystickButtonEventHandler callback);
 
 bool requestMouseCapture(bool allowCapture);
+
+typedef bool(*TouchEventHandler)(const TouchEventData* data);
+void registerTouchEvent(TouchEventHandler callback);
+void unregisterTouchEvent(TouchEventHandler callback);
+
+typedef bool(*TouchMoveEventHandler)(const TouchMoveEventData* data);
+void registerTouchMoveEvent(TouchMoveEventHandler callback);
+void unregisterTouchMoveEvent(TouchMoveEventHandler callback);

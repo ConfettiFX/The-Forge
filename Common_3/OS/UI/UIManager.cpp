@@ -74,7 +74,11 @@ void addUIManagerInterface(Renderer* pRenderer, const UISettings* pUISettings, U
 		//  - NuklearGUIDriver
 		pUIManager->mDefaultFontstashID = pUIManager->pUIRenderer->addFontstash(512, 512);
 		Fontstash* pFont = pUIManager->pUIRenderer->getFontstash(pUIManager->mDefaultFontstashID);
+#ifndef TARGET_IOS
 		pFont->defineFont("default", pUISettings->pDefaultFontName, FSR_Builtin_Fonts);
+#else
+        pFont->defineFont("default", pUISettings->pDefaultFontName, FSR_Absolute);
+#endif
 	}
 
 	*ppUIManager = pUIManager;
@@ -246,6 +250,6 @@ void cmdUIDrawGpuProfileData(Cmd* pCmd, struct UIManager* pUIManager, const vec2
 
 void cmdUIEndRender(Cmd* pCmd, UIManager* pUIManager)
 {
-  UNREF_PARAM(pCmd);
+	UNREF_PARAM(pCmd);
 	pUIManager->pUIRenderer->reset();
 }

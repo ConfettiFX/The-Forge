@@ -184,7 +184,11 @@ uint32_t         gWindowHeight;
 
 uint32_t         gFrameIndex = 0;
 
+#ifndef TARGET_IOS
 const int        gSphereResolution = 1024; // Increase for higher resolution spheres
+#else
+const int        gSphereResolution = 512; // Halve the resolution of the planet on iOS.
+#endif
 const float      gPi = 3.141592654f;
 
 const char*      pEnvImageFileNames[] =
@@ -434,7 +438,11 @@ void initApp(const WindowsDesc* pWindow)
 #endif
 
 	TextureLoadDesc textureDesc = {};
+#ifndef TARGET_IOS
 	textureDesc.mRoot = FSR_Textures;
+#else
+    textureDesc.mRoot = FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
 	textureDesc.mUseMipmaps = true;
 	textureDesc.pFilename = pEnvImageFileNames[0];
 	textureDesc.ppTexture = &pEnvTex;
@@ -481,9 +489,15 @@ void initApp(const WindowsDesc* pWindow)
 	fragBGFile.Close();
 
 #elif defined(METAL)
+    
+    FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
+#ifdef TARGET_IOS
+    shaderRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+    
     // prepare metal shaders
     File metalFile = {};
-    metalFile.Open("proceduralPlanet.metal", FM_Read, FSR_SrcShaders);
+    metalFile.Open("proceduralPlanet.metal", FM_Read, shaderRoot);
     String metal = metalFile.ReadText();
     brdfRenderSceneShaderDesc = { brdfRenderSceneShaderDesc.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
     bgRenderSceneShaderDesc = { bgRenderSceneShaderDesc.mStages,{ metalFile.GetName(), metal, "VSBGMain" },{ metalFile.GetName(), metal, "PSBGMain" } };
@@ -684,9 +698,8 @@ void initApp(const WindowsDesc* pWindow)
 	addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
 
 	GuiDesc guiDesc = {};
-
 	guiDesc.mStartSize = vec2(300.0f, 360.0f);
-	guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
+	guiDesc.mStartPosition = vec2(300.0f, guiDesc.mStartSize.getY());
 	addGui(pUIManager, &guiDesc, &pGuiWindow);
 
 	UIProperty sunX = UIProperty("Sunlight X", gSunDirX, -1.0f, 1.0f, 0.01f);
@@ -727,6 +740,7 @@ void initApp(const WindowsDesc* pWindow)
 
 void ProcessInput(float deltaTime)
 {
+#ifndef TARGET_IOS
 #if USE_CAMERACONTROLLER
 #ifdef _DURANGO
     if (getJoystickButtonDown(BUTTON_A))
@@ -736,6 +750,7 @@ void ProcessInput(float deltaTime)
     {
         RecenterCameraView(170.0f);
     }
+#endif
     
     pCameraController->update(deltaTime);
 #endif
@@ -899,9 +914,9 @@ void drawFrame(float deltaTime)
 #ifndef METAL
 	cmdUIDrawFrameTime(cmd, pUIManager, { 8, 40 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
 	cmdUIDrawGpuProfileData(cmd, pUIManager, { 8, 65 }, pGpuProfiler);
-#endif
 
 	cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
+#endif
 
     cmdUIEndRender(cmd, pUIManager);
     cmdEndRender(cmd, 1, &pRenderTarget, NULL);

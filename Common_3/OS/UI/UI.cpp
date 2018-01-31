@@ -143,6 +143,32 @@ static bool uiJoystickButton(const JoystickButtonEventData* pData)
 	return false;
 }
 
+static bool uiTouch(const TouchEventData* pData)
+{
+#if defined(TARGET_IOS)
+    for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+        if (gInstances[i]->drawGui && gInstances[i]->onTouch(pData))
+            return true;
+#else
+    ASSERT(false && "Unsupported on this target.");
+#endif
+    
+    return false;
+}
+
+static bool uiTouchMove(const TouchMoveEventData* pData)
+{
+#if defined(TARGET_IOS)
+    for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+        if (gInstances[i]->drawGui && gInstances[i]->onTouchMove(pData))
+            return true;
+#else
+    ASSERT(false && "Unsupported on this target.");
+#endif
+    
+    return false;
+}
+
 // UI singular property
 UIProperty::UIProperty(const char* description, float& value, float min/*=0.0f*/, float max/*=1.0f*/,
                        float increment/*=0.1f*/, bool expScale/*=false*/) :
@@ -718,14 +744,18 @@ UIAppComponentGui::UIAppComponentGui(const TextDrawDesc* settings) : driver()
 	if (gInstances.size() == 1)
 	{
 		registerWindowResizeEvent(uiWindowResize);
-#ifndef _DURANGO
+#if !defined(_DURANGO) && !defined(TARGET_IOS)
 		registerKeyboardCharEvent(uiKeyboardChar);
 		registerKeyboardButtonEvent(uiKeyboardButton);
 		registerMouseButtonEvent(uiMouseButton);
 		registerMouseMoveEvent(uiMouseMove);
 		registerMouseWheelEvent(uiMouseWheel);
+#elif !defined(TARGET_IOS)
+        registerJoystickButtonEvent(uiJoystickButton);
+#else
+        registerTouchEvent(uiTouch);
+        registerTouchMoveEvent(uiTouchMove);
 #endif
-		registerJoystickButtonEvent(uiJoystickButton);
 	}
 }
 UIAppComponentGui::~UIAppComponentGui()
@@ -816,7 +846,7 @@ void UIAppComponentGui::update(float deltaTime)
 			gui_panel_row_push(&layout, 200.0f);
 			gui_panel_label(&layout, prop.description, GUI_TEXT_LEFT);
 			gui_panel_row_push(&layout, mainPanel->w - 200.0f - 50.0f - remainder);*/
-			nk_layout_row_begin(context, NK_STATIC, 30.f, cols);
+            nk_layout_row_begin(context, NK_STATIC, 30.f, cols);
 			nk_layout_row_push(context, colWidth);
 			nk_label_wrap(context, prop.description);
 			nk_layout_row_push(context, cols == 2 ? 2 * colWidth : colWidth);
@@ -1110,6 +1140,14 @@ bool UIAppComponentGui::onMouseWheel(const MouseWheelEventData* pData)
 		}
 	}
 	return false;
+}
+bool UIAppComponentGui::onTouch(const struct TouchEventData*)
+{
+    return false; // NuklearUI doesn't support touch events.
+}
+bool UIAppComponentGui::onTouchMove(const struct TouchMoveEventData*)
+{
+    return false; // NuklearUI doesn't support touch events.
 }
 void UIAppComponentGui::onDrawGUI()
 {

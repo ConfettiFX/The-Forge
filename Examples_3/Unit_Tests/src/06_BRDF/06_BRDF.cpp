@@ -403,8 +403,14 @@ void initApp(const WindowsDesc* pWindow)
 	fragFile.Close();
 
 #elif defined(METAL)
+    
+    FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
+#ifdef TARGET_IOS
+    shaderRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+    
 	// prepare metal shaders
-    File metalFile = {}; metalFile.Open("renderSceneBRDF.metal", FM_Read, FSRoot::FSR_SrcShaders);
+    File metalFile = {}; metalFile.Open("renderSceneBRDF.metal", FM_Read, shaderRoot);
     String metal = metalFile.ReadText();
     brdfRenderSceneShaderDesc = { brdfRenderSceneShaderDesc.mStages, {metalFile.GetName(), metal, "VSMain" }, {metalFile.GetName(), metal, "PSMain"} };
 #endif
@@ -586,6 +592,7 @@ void initApp(const WindowsDesc* pWindow)
 
 void ProcessInput(float deltaTime)
 {
+#ifndef TARGET_IOS
 #if USE_CAMERACONTROLLER
 #ifdef _DURANGO
     if (getJoystickButtonDown(BUTTON_A))
@@ -595,6 +602,7 @@ void ProcessInput(float deltaTime)
     {
         RecenterCameraView(170.0f);
     }
+#endif
     
     pCameraController->update(deltaTime);
 #endif
@@ -776,7 +784,7 @@ int main(int argc, char **argv)
     
     Timer deltaTimer;
     
-    gWindow.windowedRect = { 0, 0, 1920, 1080 };
+    getRecommendedResolution(&gWindow.windowedRect);
     gWindow.fullScreen = false;
     gWindow.maximized = false;
     openWindow(FileSystem::GetFileName(argv[0]), &gWindow);

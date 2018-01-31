@@ -197,12 +197,17 @@ void initApp(const WindowsDesc* window)
 	requestMouseCapture(false);
 
 	// setup scene text
+    FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
+#if defined(TARGET_IOS)
+    fontRoot = FSRoot::FSR_Absolute;
+#endif
+    
 	UIRenderer* pUIRenderer = pUIManager->pUIRenderer;	// shorthand
-	gFonts.titilliumBold	= pUIRenderer->addFont("TitilliumText/TitilliumText-Bold.ttf", "TitilliumText-Bold");
-	gFonts.comicRelief			= pUIRenderer->addFont("ComicRelief/ComicRelief.ttf", "Comic Relief");
-	gFonts.crimsonSerif		= pUIRenderer->addFont("Crimson/Crimson-Roman.ttf", "Crimson Serif");
-	gFonts.monoSpace		= pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC.ttf", "Inconsolata");
-	gFonts.monoSpaceBold	= pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", "InconsolataBold");
+	gFonts.titilliumBold	= pUIRenderer->addFont("TitilliumText/TitilliumText-Bold.ttf", "TitilliumText-Bold", fontRoot);
+	gFonts.comicRelief		= pUIRenderer->addFont("ComicRelief/ComicRelief.ttf", "Comic Relief", fontRoot);
+	gFonts.crimsonSerif		= pUIRenderer->addFont("Crimson/Crimson-Roman.ttf", "Crimson Serif", fontRoot);
+	gFonts.monoSpace		= pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC.ttf", "Inconsolata", fontRoot);
+	gFonts.monoSpaceBold	= pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", "InconsolataBold", fontRoot);
 
 	tinystl::vector<TextObject> sceneTexts;
 	TextDrawDesc drawDescriptor;
@@ -353,11 +358,13 @@ void update(float deltaTime)
 
 	// PROCESS INPUT
 	//-------------------------------------------------------------------------------------
+#ifndef TARGET_IOS
 	const int offset = getKeyDown(KEY_SHIFT) ? -1 : +1;	// shift+space = previous text
 	if (getKeyUp(KEY_SPACE))
 	{
 		gSceneData.sceneTextArrayIndex = (gSceneData.sceneTextArrayIndex + offset) % gSceneData.sceneTextArray.size();
 	}
+#endif
 }
 
 void drawFrame(float deltaTime)
@@ -464,7 +471,7 @@ int main(int argc, char **argv)
 
 	Timer deltaTimer;
 
-	gWindow.windowedRect = { 0, 0, 1920, 1080};
+	getRecommendedResolution(&gWindow.windowedRect);
 	gWindow.fullScreen = false;
 	gWindow.maximized = false;
 	openWindow(FileSystem::GetFileName(argv[0]), &gWindow);

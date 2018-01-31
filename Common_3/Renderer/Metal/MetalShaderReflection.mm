@@ -441,7 +441,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         }
         vertexDesc.layouts[0].stride = MAX_VERTEX_ATTRIBS * sizeof(float);
         vertexDesc.layouts[0].stepRate = 1;
-        vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+        vertexDesc.layouts[0].stepFunction = shader->mtlVertexShader.patchType != MTLPatchTypeNone ? MTLVertexStepFunctionPerPatchControlPoint : MTLVertexStepFunctionPerVertex;
 
         renderPipelineDesc.vertexDescriptor = vertexDesc;
         

@@ -272,8 +272,8 @@
 				D278835B1F320D1800F4362D /* GuiCameraController.cpp */,
 			);
 			name = Camera;
-			path = ../../../../Common_3/OS/Camera;
-			sourceTree = "<group>";
+			path = ../../../Common_3/OS/Camera;
+			sourceTree = SOURCE_ROOT;
 		};
 		D26E803C1F4708D300C043F1 /* iOS */ = {
 			isa = PBXGroup;
@@ -478,8 +478,8 @@
 				EA463CD01EF81FC5005AC8C7 /* Image */,
 			);
 			name = OS;
-			path = 01_Color;
-			sourceTree = "<group>";
+			path = ../../../Common_3/OS;
+			sourceTree = SOURCE_ROOT;
 		};
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
@@ -494,8 +494,8 @@
 				EA463CDF1EF81FC5005AC8C7 /* MetalRenderer.mm */,
 			);
 			name = Renderer;
-			path = 01_Color;
-			sourceTree = "<group>";
+			path = ../../../Common_3/Renderer;
+			sourceTree = SOURCE_ROOT;
 		};
 		EA463CE31EF81FC5005AC8C7 /* TinyEXR */ = {
 			isa = PBXGroup;
@@ -513,7 +513,8 @@
 				EA463CE31EF81FC5005AC8C7 /* TinyEXR */,
 			);
 			name = OpenSource;
-			sourceTree = "<group>";
+			path = ../../../Common_3/ThirdParty;
+			sourceTree = SOURCE_ROOT;
 		};
 		EA463CE51EF81FC5005AC8C7 /* ThirdParty */ = {
 			isa = PBXGroup;
@@ -521,8 +522,8 @@
 				EA463CE41EF81FC5005AC8C7 /* OpenSource */,
 			);
 			name = ThirdParty;
-			path = 01_Color;
-			sourceTree = "<group>";
+			path = ../../../Common_3/ThirdParty;
+			sourceTree = SOURCE_ROOT;
 		};
 		EA463CE81EF81FC5005AC8C7 /* Logging */ = {
 			isa = PBXGroup;
@@ -541,8 +542,8 @@
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
 			);
 			name = Core;
-			path = ../../../../Common_3/OS/Core;
-			sourceTree = "<group>";
+			path = ../../../Common_3/OS/Core;
+			sourceTree = SOURCE_ROOT;
 		};
 		EA463CEC1EF81FC5005AC8C7 /* Common_3 */ = {
 			isa = PBXGroup;
@@ -552,7 +553,7 @@
 				EA463CE51EF81FC5005AC8C7 /* ThirdParty */,
 			);
 			name = Common_3;
-			path = ../../../../../../Confetti/svn/testbed/Examples_3/Unit_Tests/xcode;
+			path = ../../../Common_3;
 			sourceTree = SOURCE_ROOT;
 		};
 		EA463D081EF94A0C005AC8C7 /* UI */ = {
@@ -792,7 +793,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_COMMA = NO;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -820,10 +821,11 @@
 					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/code/Release-iphoneos",
 					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/Release-iphoneos",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_PREPROCESSOR_DEFINITIONS = TARGET_IOS;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
+				SDKROOT = iphoneos11.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -834,7 +836,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_COMMA = NO;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -861,10 +863,11 @@
 					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/code/Release-iphoneos",
 					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/Release-iphoneos",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_PREPROCESSOR_DEFINITIONS = TARGET_IOS;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
+				SDKROOT = iphoneos11.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -983,6 +986,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx10.13;
 			};
 			name = Debug;
 		};
@@ -1007,6 +1011,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx10.13;
 			};
 			name = Release;
 		};

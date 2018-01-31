@@ -361,7 +361,7 @@ void addDepthBuffer()
 	depthRT.mArraySize = 1;
 	depthRT.mClearValue = { 1.0f, 0 };
 	depthRT.mDepth = 1;
-	depthRT.mFormat = ImageFormat::D16;
+	depthRT.mFormat = ImageFormat::D32F;
 	depthRT.mHeight = gWindowHeight;
 	depthRT.mSampleCount = SAMPLE_COUNT_1;
 	depthRT.mSampleQuality = 0;
@@ -804,14 +804,18 @@ void initApp(const WindowsDesc* window)
 
 	addSwapChain();
 
-    initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET * 5, false);
+    initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
 
 	addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
 	for (int i = 0; i < 6; ++i)
 	{
 		TextureLoadDesc textureDesc = {};
-		textureDesc.mRoot = FSR_Textures;
+#ifndef TARGET_IOS
+        textureDesc.mRoot = FSR_Textures;
+#else
+        textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
 		textureDesc.mUseMipmaps = true;
 		textureDesc.pFilename = pSkyBoxImageFileNames[i];
 		textureDesc.ppTexture = &pSkyBoxTextures[i];
@@ -875,20 +879,26 @@ void initApp(const WindowsDesc* window)
 	fragFile.Close();
 	computeFile.Close();
 #elif defined(METAL)
+    
+    FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
+#ifdef TARGET_IOS
+    shaderRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+    
     File metalFile = {};
-    metalFile.Open("basic.metal", FileMode::FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("basic.metal", FileMode::FM_Read, shaderRoot);
     String metal = metalFile.ReadText();
     instanceShader = { instanceShader.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
     
-    metalFile.Open("skybox.metal", FileMode::FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("skybox.metal", FileMode::FM_Read, shaderRoot);
     metal = metalFile.ReadText();
     skyShader = { skyShader.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
     
-    metalFile.Open("ExecuteIndirect.metal", FileMode::FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("ExecuteIndirect.metal", FileMode::FM_Read, shaderRoot);
     metal = metalFile.ReadText();
     indirectShader = { indirectShader.mStages, { metalFile.GetName(), metal, "VSMain" }, { metalFile.GetName(), metal, "PSMain" } };
     
-    metalFile.Open("ComputeUpdate.metal", FileMode::FM_Read, FSRoot::FSR_SrcShaders);
+    metalFile.Open("ComputeUpdate.metal", FileMode::FM_Read, shaderRoot);
     gpuUpdateShader.mComp = { metalFile.GetName(), metalFile.ReadText(), "CSMain" };
     
     metalFile.Close();
@@ -1573,8 +1583,10 @@ void drawFrame(float deltaTime)
     sprintf(buff, "SPACE - Rendering mode - %s", modeStr);
     cmdUIDrawText(cmd, pUIManager, { 8, 65 }, buff);
 
+#ifndef METAL
     cmdUIDrawText(cmd, pUIManager, { 8, 80 }, "F1 - Toggle UI");
     cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
+#endif
 
 	cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 110.0f), pGpuProfiler);
 
@@ -1697,6 +1709,8 @@ void exitApp()
 void ProcessInput(float deltaTime)
 {
 #if USE_CAMERACONTROLLER
+    
+#ifndef TARGET_IOS
 #ifdef _DURANGO
 	if (getJoystickButtonDown(BUTTON_A))
 #else
@@ -1705,9 +1719,13 @@ void ProcessInput(float deltaTime)
     {
         RecenterCameraView(170.0f);
     }
+#endif
+    
     pCameraController->update(deltaTime);
+
 #endif
 
+#ifndef TARGET_IOS
 #ifdef _DURANGO
 	if (getJoystickButtonDown(BUTTON_B))
 #else
@@ -1716,6 +1734,7 @@ void ProcessInput(float deltaTime)
 	{
         gRenderingMode = (++gRenderingMode) % RenderingMode_Count;
     }
+#endif
 }
 
 void update(float deltaTime)
@@ -1758,7 +1777,7 @@ int main(int argc, char **argv)
 
     Timer deltaTimer;
 
-    gWindow.windowedRect = { 0, 0, 1920, 1080 };
+    getRecommendedResolution(&gWindow.windowedRect);
     gWindow.fullScreen = false;
     gWindow.maximized = false;
     openWindow(FileSystem::GetFileName(argv[0]), &gWindow);

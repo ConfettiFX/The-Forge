@@ -158,7 +158,9 @@ public:
 	bool onJoystickButton(const struct JoystickButtonEventData*);
 	bool onMouseMove(const struct MouseMoveEventData*);
 	bool onMouseButton(const struct MouseButtonEventData*);
-	bool onMouseWheel(const struct MouseWheelEventData*);
+    bool onMouseWheel(const struct MouseWheelEventData*);
+    bool onTouch(const struct TouchEventData*);
+    bool onTouchMove(const struct TouchMoveEventData*);
 	void onDrawGUI();
 
 private:

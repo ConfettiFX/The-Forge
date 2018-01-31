@@ -1407,6 +1407,7 @@ typedef struct SwapChain
 	UINT					mDxSyncInterval;
 	ID3D12Resource**		ppDxSwapChainResources;
 	uint32_t				mImageIndex;
+	uint32_t				mFlags;
 #elif defined(DIRECT3D12)
 	/// Use IDXGISwapChain3 for now since IDXGISwapChain4
 	/// isn't supported by older devices.
@@ -1415,6 +1416,7 @@ typedef struct SwapChain
 	UINT					mDxSyncInterval;
 	ID3D12Resource**		ppDxSwapChainResources;
 	uint32_t				mImageIndex;
+	uint32_t				mFlags;
 #elif defined(VULKAN)
 	/// Present queue if one exists (queuePresent will use this queue if the hardware has a dedicated present queue)
 	VkQueue					pPresentQueue;
@@ -1446,9 +1448,6 @@ typedef struct RendererDesc {
 #elif defined(DIRECT3D12)
 	D3D_FEATURE_LEVEL				mDxFeatureLevel;
 #elif defined(METAL)
-#if defined(TARGET_IOS)
-    WindowHandle                    pViewHandle; // iOS needs the UIView to obtain the MTLDevice on initialization.
-#endif
 #endif
 } RendererDesc;
 
@@ -1487,7 +1486,7 @@ typedef struct Renderer {
 	struct DescriptorStoreHeap*			pSamplerHeap;
 	struct ResourceAllocator*			pResourceAllocator;
 #elif (DIRECT3D12)
-	IDXGIFactory4*						pDXGIFactory;
+	IDXGIFactory5*						pDXGIFactory;
 	IDXGIAdapter3*						pGPUs[MAX_GPUS];
 	IDXGIAdapter3*						pActiveGPU;
 	ID3D12Device*						pDevice;
@@ -1536,9 +1535,7 @@ typedef struct Renderer {
 	const char* gVkDeviceExtensions[MAX_DEVICE_EXTENSIONS];
 #elif defined(METAL)
     id<MTLDevice>						pDevice;
-#ifndef TARGET_IOS
     CAMetalLayer*						mMetalLayer;
-#endif
     struct ResourceAllocator*           pResourceAllocator;
 #endif
 
@@ -1574,14 +1571,7 @@ typedef struct CommandSignature
 #if defined(DIRECT3D12)
 	ID3D12CommandSignature*				pDxCommandSignautre;
 #elif defined(VULKAN)
-	VkIndirectCommandsLayoutNVX			mVkCommandLayOut;
-	VkIndirectCommandsLayoutTokenNVX*	cmdLayoutTokens;
-	Cmd*								pSecondaryCommandBuffer;
-	VkObjectTableNVX					mVkObjectTable;
-	uint32_t*							mDrawCommandOffsets;
 	IndirectArgumentType				mDrawType;
-	uint32_t*							pCountForDifferentCommandType;
-	VkIndirectCommandsTokenNVX*			pTokens;
 #elif defined(METAL)
 	IndirectArgumentType				mDrawType;
 #endif
