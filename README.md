@@ -18,10 +18,20 @@ Future plans are:
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom 3D engines.
 
+# Build Status
+
+* Windows [![Build status](https://ci.appveyor.com/api/projects/status/0w2qj3fs8u4utojr/branch/master?svg=true)](https://ci.appveyor.com/project/manaskulkarni786/the-forge/branch/master)
+* macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
-## Release 1.01 - January 25th, 2018
+## Release 1.02 - January 31st, 2018
+* Fixed all the issues mentioned in the issue tracker.
+* Removed the NVX commands, we don't use them and they seem to confuse people.
+* Dealing with multiple resolutions on PC is now a bit easier. We need to expose this in the GUI, so that you can switch in full-screen between -let's say- 1080p and 4k back and forth
+* For macOS the procedural planet unit test works now too. That should bring macOS on par with PC on the macOS platforms we are currently testing. All unit tests and the Visibility Buffer work.
+* We improved performance of the Visibility Buffer on macOS a bit more. Now if you have a comparable GPU on the PC, the performance should be on a similar level on macOS and PC.
 
+## Release 1.01 - January 25th, 2018
 * Mainly improved the performance of the macOS build. macOS is now using the same art assets as the PC and the performance of the triangle filtering compute shader is improved. 
 * Reduced the size of the art assets because we only need one version of San Miguel for all platforms now. 
 * macOS now runs the Hardware Tessellation unit test. 
@@ -45,15 +55,15 @@ We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards
 
 # macOS Requirements:
 
-1. macOS 10.13.3 Beta (17D34a)
+1. macOS: 10.13.3 Beta (17D39a)
 
-2. XCode Version 9.2 (9C40b)
+2. XCode: Version 9.2 (9C40b)
 
 3. The Forge is currently tested on 
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
 * iMac with AMD RADEON 580 (Part No. MNED2xx/A)
 
-We are occasionally testing on Intel GPU based MacBooks but we are running into what we believe driver problems. We are going to address those challenges in the future. In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+We are occasionally testing on Intel GPU based MacBooks but we are running into -what we believe- driver problems. We are going to address those challenges in the future. In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
 We will get better with testing :-)
 
