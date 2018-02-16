@@ -27,6 +27,7 @@
 #include <ctime>
 #pragma comment(lib, "WinMM.lib")
 #include <windowsx.h>
+#include <ntverp.h>
 
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
@@ -69,6 +70,8 @@ static KeyState		gKeys[MAX_KEYS] = { { false, false, false, false } };
 static tinystl::vector <MonitorDesc> gMonitors;
 static tinystl::unordered_map<void*, WindowsDesc*> gHWNDMap;
 
+void adjustWindow(WindowsDesc* winDesc);
+
 namespace PlatformEvents
 {
 	extern bool wantsMouseCapture;
@@ -78,6 +81,7 @@ namespace PlatformEvents
 	extern void onKeyboardChar(const KeyboardCharEventData* pData);
 	extern void onKeyboardButton(const KeyboardButtonEventData* pData);
 	extern void onMouseMove(const MouseMoveEventData* pData);
+	extern void onRawMouseMove(const RawMouseMoveEventData* pData);
 	extern void onMouseButton(const MouseButtonEventData* pData);
 	extern void onMouseWheel(const MouseWheelEventData* pData);
 }
@@ -125,34 +129,18 @@ static void updateKeyArray(int uMsg, unsigned int wParam)
 	PlatformEvents::onKeyboardButton(&eventData);
 }
 
-static void CapturedMouseMove(HWND hwnd, int x, int y)
-{
-	POINT p { x, y };
-	ClientToScreen(hwnd, &p);
-	SetCursorPos(p.x, p.y);
-}
-
 static bool captureMouse(HWND hwnd, bool shouldCapture)
 {
 	if (shouldCapture != isCaptured)
 	{
-		static int x_capture, y_capture;
-		static POINT capturedPoint;
 		if (shouldCapture)
 		{
-			WindowsDesc* pWindow = gHWNDMap[hwnd];
-			GetCursorPos(&capturedPoint);
-			ScreenToClient(hwnd, &capturedPoint);
-			SetCapture(hwnd);
 			ShowCursor(FALSE);
-			CapturedMouseMove(hwnd, getRectWidth(pWindow->windowedRect) / 2, getRectHeight(pWindow->windowedRect) / 2);
 			isCaptured = true;
 		}
 		else
 		{
-			CapturedMouseMove(hwnd, capturedPoint.x, capturedPoint.y);
 			ShowCursor(TRUE);
-			ReleaseCapture();
 			isCaptured = false;
 		}
 	}
@@ -185,13 +173,11 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		{
 			if (gCurrentWindow->fullScreen)
 			{
-				gCurrentWindow->fullScreen = false;
-				toggleFullscreen(gCurrentWindow);
+				adjustWindow(gCurrentWindow);
 			}
 			else
 			{
-				gCurrentWindow->fullScreen = true;
-				toggleFullscreen(gCurrentWindow);
+				adjustWindow(gCurrentWindow);
 			}
 		}
 		break;
@@ -217,7 +203,7 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 				gCurrentWindow->windowedRect = rect;
 			}
 
-			WindowResizeEventData eventData = { rect };
+			WindowResizeEventData eventData = { rect, gCurrentWindow };
 			PlatformEvents::onWindowResize(&eventData);
 		}
 		break;
@@ -247,12 +233,39 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		eventData.deltaX = x - lastX;
 		eventData.deltaY = y - lastY;
 		eventData.captured = isCaptured;
-		eventData.pWindow = *gCurrentWindow;
 		PlatformEvents::onMouseMove(&eventData);
 
 		lastX = x;
 		lastY = y;
 		break;
+	}
+	case WM_INPUT:
+	{
+		UINT dwSize;
+		static BYTE lpb[128] = {};
+
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+		RAWINPUT* raw = (RAWINPUT*)lpb;
+
+		if (raw->header.dwType == RIM_TYPEMOUSE)
+		{
+			static int lastX = 0, lastY = 0;
+
+			int xPosRelative = raw->data.mouse.lLastX;
+			int yPosRelative = raw->data.mouse.lLastY;
+
+			RawMouseMoveEventData eventData;
+			eventData.x = xPosRelative;
+			eventData.y = yPosRelative;
+			eventData.captured = isCaptured;
+			PlatformEvents::onRawMouseMove(&eventData);
+
+			lastX = xPosRelative;
+			lastY = yPosRelative;
+		}
+
+		return 0;
 	}
 	case WM_LBUTTONDOWN:
 	{
@@ -452,41 +465,49 @@ static void collectMonitorInfo()
 		devMode.dmSize = sizeof(DEVMODEW);
 		devMode.dmFields = DM_PELSHEIGHT | DM_PELSWIDTH;
 
-		EnumDisplaySettings(pMonitor->adapterName, ENUM_CURRENT_SETTINGS, &devMode);
-		pMonitor->defaultVideoMode.mHeight = devMode.dmPelsHeight;
-		pMonitor->defaultVideoMode.mWidth = devMode.dmPelsWidth;
+		EnumDisplaySettingsW(pMonitor->adapterName, ENUM_CURRENT_SETTINGS, &devMode);
+		pMonitor->defaultResolution.mHeight = devMode.dmPelsHeight;
+		pMonitor->defaultResolution.mWidth = devMode.dmPelsWidth;
 
-		tinystl::vector<VideoMode> displays;
+		tinystl::vector<Resolution> displays;
 		DWORD current = 0;
-		while (EnumDisplaySettings(pMonitor->adapterName, current++, &devMode))
+		while (EnumDisplaySettingsW(pMonitor->adapterName, current++, &devMode))
 		{
-			if (devMode.dmDefaultSource != 0)
+			bool duplicate = false;
+			for (uint32_t i = 0; i < (uint32_t)displays.size(); ++i)
+			{
+				if (displays[i].mWidth == (uint32_t)devMode.dmPelsWidth && displays[i].mHeight == (uint32_t)devMode.dmPelsHeight)
+				{
+					duplicate = true;
+					break;
+				}
+			}
+
+			if (duplicate)
 				continue;
 
-			VideoMode videoMode = {};
+			Resolution videoMode = {};
 			videoMode.mHeight = devMode.dmPelsHeight;
 			videoMode.mWidth = devMode.dmPelsWidth;
 			displays.emplace_back(videoMode);
 		}
-		qsort(displays.data(), displays.size(), sizeof(VideoMode), [](const void* lhs, const void* rhs) {
-			VideoMode* pLhs = (VideoMode*)lhs;
-			VideoMode* pRhs = (VideoMode*)rhs;
+		qsort(displays.data(), displays.size(), sizeof(Resolution), [](const void* lhs, const void* rhs) {
+			Resolution* pLhs = (Resolution*)lhs;
+			Resolution* pRhs = (Resolution*)rhs;
 			if (pLhs->mHeight == pRhs->mHeight)
 				return (int)(pLhs->mWidth - pRhs->mWidth);
 
 			return (int)(pLhs->mHeight - pRhs->mHeight);
 		});
 
-		pMonitor->videoModeCount = (uint32_t)displays.size();
-		pMonitor->videoModes = (VideoMode*)conf_calloc(pMonitor->videoModeCount, sizeof(VideoMode));
-		memcpy(pMonitor->videoModes, displays.data(), pMonitor->videoModeCount * sizeof(VideoMode));
+		pMonitor->resolutionCount = (uint32_t)displays.size();
+		pMonitor->resolutions = (Resolution*)conf_calloc(pMonitor->resolutionCount, sizeof(Resolution));
+		memcpy(pMonitor->resolutions, displays.data(), pMonitor->resolutionCount * sizeof(Resolution));
 	}
 }
 
-void setVideoMode(const MonitorDesc* pMonitor, uint32_t videoModeIndex)
+void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {
-	const VideoMode* pMode = videoModeIndex == -1 ? &pMonitor->defaultVideoMode : &pMonitor->videoModes[videoModeIndex];
-
 	DEVMODEW devMode = {};
 	devMode.dmSize = sizeof(DEVMODEW);
 	devMode.dmPelsHeight = pMode->mHeight;
@@ -502,7 +523,7 @@ bool isRunning()
 
 void getRecommendedResolution(RectDesc* rect)
 {
-	*rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+	*rect = { 0, 0, min(1920, GetSystemMetrics(SM_CXSCREEN)), min(1080, GetSystemMetrics(SM_CYSCREEN)) };
 }
 
 void requestShutDown()
@@ -548,6 +569,24 @@ public:
 					gWindowClassInitialized = gAppRunning;
 				}
 			}
+
+			RAWINPUTDEVICE Rid[2];
+
+			Rid[0].usUsagePage = 0x01;
+			Rid[0].usUsage = 0x02;
+			Rid[0].dwFlags = 0;	// adds HID mouse and also ignores legacy mouse messages
+			Rid[0].hwndTarget = 0;
+
+			Rid[1].usUsagePage = 0x01;
+			Rid[1].usUsage = 0x06;
+			Rid[1].dwFlags = 0;	// adds HID keyboard and also ignores legacy keyboard messages
+			Rid[1].hwndTarget = 0;
+
+			if (RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
+			{
+				LOGERRORF("Failed to register raw input devices");
+				//registration failed. Call GetLastError for the cause of the error
+			}
 		}
 
 		collectMonitorInfo();
@@ -555,7 +594,7 @@ public:
 	~StaticWindowManager()
 	{
 		for (uint32_t i = 0; i < (uint32_t)gMonitors.size(); ++i)
-			conf_free(gMonitors[i].videoModes);
+			conf_free(gMonitors[i].resolutions);
 	}
 } windowClass;
 
@@ -612,8 +651,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			}
 			else if (winDesc->fullScreen)
 			{
-				winDesc->fullScreen = false;
-				toggleFullscreen(winDesc);
+				adjustWindow(winDesc);
 			}
 		}
 
@@ -656,10 +694,8 @@ void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
 	setWindowRect(winDesc, { 0, 0, (int)width, (int)height });
 }
 
-void toggleFullscreen(WindowsDesc* winDesc)
+void adjustWindow(WindowsDesc* winDesc)
 {
-	winDesc->fullScreen = !winDesc->fullScreen;
-
 	HWND hwnd = (HWND)winDesc->handle;
 
 	if (winDesc->fullScreen)
@@ -714,6 +750,12 @@ void toggleFullscreen(WindowsDesc* winDesc)
 	}
 }
 
+void toggleFullscreen(WindowsDesc* winDesc)
+{
+	winDesc->fullScreen = !winDesc->fullScreen;
+	adjustWindow(winDesc);
+}
+
 void showWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = true;
@@ -742,13 +784,24 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 {
 	POINT point = { (LONG)x, (LONG)y };
 	ClientToScreen((HWND)winDesc->handle, &point);
-	SetCursorPos(point.x, point.y);
+	//SetCursorPos(point.x, point.y);
 }
 
 MonitorDesc* getMonitor(uint32_t index)
 {
 	ASSERT((uint32_t)gMonitors.size() > index);
 	return &gMonitors[index];
+}
+
+bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
+{
+	for (uint32_t i = 0; i < pMonitor->resolutionCount; ++i)
+	{
+		if (pMonitor->resolutions[i].mWidth == pRes->mWidth && pMonitor->resolutions[i].mHeight == pRes->mHeight)
+			return true;
+	}
+
+	return false;
 }
 
 float2 getMousePosition()
@@ -837,5 +890,71 @@ int64_t getTimerFrequency()
 
 	return highResTimerFrequency;
 }
+/************************************************************************/
+// App Entrypoint
+/************************************************************************/
+#include "../Interfaces/IApp.h"
+#include "../Interfaces/IFileSystem.h"
 
+static IApp* pApp = NULL;
+
+static void onResize(const WindowResizeEventData* pData)
+{
+	pApp->mSettings.mWidth = getRectWidth(pData->rect);
+	pApp->mSettings.mHeight = getRectHeight(pData->rect);
+	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
+	pApp->Unload();
+	pApp->Load();
+}
+
+int WindowsMain(int argc, char** argv, IApp* app)
+{
+	pApp = app;
+
+	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
+
+	IApp::Settings* pSettings = &pApp->mSettings;
+	WindowsDesc window = {};
+	Timer deltaTimer;
+
+	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
+	{
+		RectDesc rect = {};
+		getRecommendedResolution(&rect);
+		pSettings->mWidth = getRectWidth(rect);
+		pSettings->mHeight = getRectHeight(rect);
+	}
+
+	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
+	window.fullScreen = pSettings->mFullScreen;
+	window.maximized = false;
+	openWindow(pApp->GetName(), &window);
+
+	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
+	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
+	pApp->pWindow = &window;
+
+	if (!pApp->Init())
+		return EXIT_FAILURE;
+
+	registerWindowResizeEvent(onResize);
+
+	while (isRunning())
+	{
+		float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+		if (deltaTime > 0.15f)
+			deltaTime = 0.05f;
+
+		handleMessages();
+		pApp->Update(deltaTime);
+		pApp->Draw();
+	}
+
+	pApp->Exit();
+
+	return 0;
+}
+/************************************************************************/
+/************************************************************************/
 #endif

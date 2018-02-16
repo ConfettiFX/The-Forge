@@ -156,7 +156,7 @@ static bool uiTouch(const TouchEventData* pData)
     return false;
 }
 
-static bool uiTouchMove(const TouchMoveEventData* pData)
+static bool uiTouchMove(const TouchEventData* pData)
 {
 #if defined(TARGET_IOS)
     for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
@@ -361,6 +361,7 @@ void UI::removeProperty(unsigned int idx)
 {
 	UIProperty& prop = properties[idx];
 	prop.source = NULL;
+	prop.callback = NULL;
 }
 
 unsigned int UI::addProperty(const UIProperty& prop)
@@ -391,8 +392,8 @@ UIProperty& UI::getProperty(unsigned int idx)
 
 void UI::changedProperty(unsigned int idx)
 {
-	if (onPropertyChanged != 0)
-		onPropertyChanged(idx);
+	if (properties[idx].callback)
+		properties[idx].callback(&properties[idx]);
 }
 
 bool UI::loadProperties(const char* filename)
@@ -1145,7 +1146,7 @@ bool UIAppComponentGui::onTouch(const struct TouchEventData*)
 {
     return false; // NuklearUI doesn't support touch events.
 }
-bool UIAppComponentGui::onTouchMove(const struct TouchMoveEventData*)
+bool UIAppComponentGui::onTouchMove(const struct TouchEventData*)
 {
     return false; // NuklearUI doesn't support touch events.
 }

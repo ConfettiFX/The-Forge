@@ -89,7 +89,7 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 
 /// Must be called before any call to cmdBeginGpuTimestampQuery
 /// Preferred time to call this function is right after calling beginCmd
-void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler);
+void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker = false);
 /// Must be called after all gpu profiles are finished.
 /// This function cannot be called inside a render pass (cmdBeginRender-cmdEndRender)
 /// Preferred time to call this function is right before calling endCmd

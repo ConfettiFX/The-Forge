@@ -547,11 +547,26 @@ long createBuffer(
 		}
 		else
 		{
-			res = allocator->m_hDevice->CreateCommittedResource(
-				&gHeapProperties[pBuffer->pDxAllocation->GetMemoryTypeIndex()].mProps, D3D12_HEAP_FLAG_NONE,
-				pCreateInfo->pDesc, pCreateInfo->mStartState, NULL,
-				IID_ARGS(&pBuffer->pDxResource));
+			// If buffer is a UAV to be used in CPU mapped memory use write combine memory with a custom heap
+			if (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV))
+			{
+				D3D12_HEAP_PROPERTIES heapProps = gHeapProperties[pBuffer->pDxAllocation->GetMemoryTypeIndex()].mProps;
+				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+				heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
+				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
 
+				res = allocator->m_hDevice->CreateCommittedResource(
+					&heapProps, D3D12_HEAP_FLAG_NONE,
+					pCreateInfo->pDesc, pCreateInfo->mStartState, NULL,
+					IID_ARGS(&pBuffer->pDxResource));
+			}
+			else
+			{
+				res = allocator->m_hDevice->CreateCommittedResource(
+					&gHeapProperties[pBuffer->pDxAllocation->GetMemoryTypeIndex()].mProps, D3D12_HEAP_FLAG_NONE,
+					pCreateInfo->pDesc, pCreateInfo->mStartState, NULL,
+					IID_ARGS(&pBuffer->pDxResource));
+			}
 			pBuffer->pDxResource->SetName(L"OWN BUFFER RESOURCE");
 
 			if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT &&

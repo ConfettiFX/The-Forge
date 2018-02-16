@@ -63,6 +63,14 @@
 #endif
 #include <Windows.h>
 
+#if !defined(_DURANGO)
+// Prefer Higher Performance GPU on switchable GPU systems
+extern "C"
+{
+	__declspec(dllexport) DWORD	NvOptimusEnablement = 1;
+	__declspec(dllexport) int	AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
 
 #include "../IMemoryAllocator.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
@@ -1630,11 +1638,13 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	void initRenderer(const char *appName, const RendererDesc* settings, Renderer** ppRenderer)
 	{
-    UNREF_PARAM(appName);
 		initHooks();
 
 		Renderer* pRenderer = (Renderer*)conf_calloc(1, sizeof(*pRenderer));
 		ASSERT(pRenderer);
+
+		pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
+		memcpy(pRenderer->pName, appName, strlen(appName));
 
 		// Copy settings
 		memcpy(&(pRenderer->mSettings), settings, sizeof(*settings));
@@ -1679,6 +1689,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	void removeRenderer(Renderer* pRenderer)
 	{
 		ASSERT(pRenderer);
+
+		SAFE_FREE(pRenderer->pName);
 
 		destroy_default_resources(pRenderer);
 
@@ -1807,6 +1819,9 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		pQueue->pRenderer = pRenderer;
 
+		// Add queue fence. This fence will make sure we finish all GPU works before releasing the queue
+		addFence(pQueue->pRenderer, &pQueue->pQueueFence);
+
 		*ppQueue = pQueue;
 	}
 
@@ -1814,13 +1829,25 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		ASSERT(pQueue != NULL);
 
+		// Make sure we finished all GPU works before we remove the queue
+		FenceStatus fenceStatus;
+		pQueue->pDxQueue->Signal(pQueue->pQueueFence->pDxFence, pQueue->pQueueFence->mFenceValue++);
+		getFenceStatus(pQueue->pQueueFence, &fenceStatus);
+		uint64_t fenceValue = pQueue->pQueueFence->mFenceValue - 1;
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+		{
+			pQueue->pQueueFence->pDxFence->SetEventOnCompletion(fenceValue, pQueue->pQueueFence->pDxWaitIdleFenceEvent);
+			WaitForSingleObject(pQueue->pQueueFence->pDxWaitIdleFenceEvent, INFINITE);
+		}
+		removeFence(pQueue->pRenderer, pQueue->pQueueFence);
+
 		SAFE_RELEASE(pQueue->pDxQueue);
 		SAFE_FREE(pQueue);
 	}
 
 	void addCmdPool(Renderer *pRenderer, Queue* pQueue, bool transient, CmdPool** ppCmdPool, CmdPoolDesc * pCmdPoolDesc)
 	{
-    UNREF_PARAM(transient);
+		UNREF_PARAM(transient);
 		//ASSERT that renderer is valid
 		ASSERT(pRenderer);
 
@@ -1974,7 +2001,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		pRenderer->pDXGIFactory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
 		desc.Flags |= allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
-		pSwapChain->mFlags |= allowTearing ? DXGI_PRESENT_ALLOW_TEARING : 0;
+		pSwapChain->mFlags |= (!pDesc->mEnableVsync && allowTearing) ? DXGI_PRESENT_ALLOW_TEARING : 0;
 #endif
 
 		if (fnHookModifySwapChainDesc)
@@ -2071,7 +2098,9 @@ namespace RENDERER_CPP_NAMESPACE {
 		// Buffer will be used multiple times every frame
 		DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		desc.Alignment = 0;
+		//Alignment must be 64KB (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) or 0, which is effectively 64KB.
+		//https://msdn.microsoft.com/en-us/library/windows/desktop/dn903813(v=vs.85).aspx
+		desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 		desc.Width = pBuffer->mDesc.mSize;
 		desc.Height = 1;
 		desc.DepthOrArraySize = 1;
@@ -2284,7 +2313,9 @@ namespace RENDERER_CPP_NAMESPACE {
 
 			DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
 			desc.Dimension = res_dim;
-			desc.Alignment = 0;
+			//On PC, If Alignment is set to 0, the runtime will use 4MB for MSAA textures and 64KB for everything else.
+			//On XBox, We have to explicitlly assign D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT if MSAA is used
+			desc.Alignment = (UINT)pTexture->mDesc.mSampleCount > 1 ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : 0;
 			desc.Width = pTexture->mDesc.mWidth;
 			desc.Height = pTexture->mDesc.mHeight;
 			if (pTexture->mDesc.mType == TEXTURE_TYPE_CUBE)
@@ -2778,6 +2809,86 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pSampler);
 	}
 
+	void compileShader(Renderer* pRenderer, ShaderStage stage, const String& fileName, const String& code, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
+	{
+#if defined(_DEBUG)
+		// Enable better shader debugging with the graphics debugging tools.
+		UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+		UINT compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+
+		compile_flags |= (D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
+
+		int major;
+		int minor;
+		switch (pRenderer->mSettings.mShaderTarget) {
+		default:
+		case shader_target_5_1: { major = 5; minor = 1; } break;
+		case shader_target_6_0: { major = 6; minor = 0; } break;
+		}
+
+		String target;
+		switch (stage)
+		{
+		case SHADER_STAGE_VERT:
+			target = String().sprintf("vs_%d_%d", major, minor);
+			break;
+		case SHADER_STAGE_TESC:
+			target = String().sprintf("hs_%d_%d", major, minor);
+			break;
+		case SHADER_STAGE_TESE:
+			target = String().sprintf("ds_%d_%d", major, minor);
+			break;
+		case SHADER_STAGE_GEOM:
+			target = String().sprintf("gs_%d_%d", major, minor);
+			break;
+		case SHADER_STAGE_FRAG:
+			target = String().sprintf("ps_%d_%d", major, minor);
+			break;
+		case SHADER_STAGE_COMP:
+			target = String().sprintf("cs_%d_%d", major, minor);
+			break;
+		default:
+			break;
+		}
+
+		// Extract shader macro definitions into D3D_SHADER_MACRO scruct
+		// Allocate Size+2 structs: one for D3D12 1 definition and one for null termination
+		D3D_SHADER_MACRO* macros = (D3D_SHADER_MACRO*)alloca((macroCount + 2) * sizeof(D3D_SHADER_MACRO));
+		macros[0] = { "D3D12", "1" };
+		for (uint32_t j = 0; j < macroCount; ++j)
+		{
+			macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
+		}
+		macros[macroCount + 1] = { NULL, NULL };
+
+		if (fnHookShaderCompileFlags != NULL)
+			fnHookShaderCompileFlags(compile_flags);
+
+		String entryPoint = "main";
+		ID3DBlob* compiled_code = NULL;
+		ID3DBlob* error_msgs = NULL;
+		HRESULT hres = D3DCompile2(code.c_str(), code.size(), fileName.c_str(),
+			macros, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			entryPoint.c_str(), target, compile_flags,
+			0, 0, NULL, 0,
+			&compiled_code, &error_msgs);
+		if (FAILED(hres)) {
+			char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
+			ASSERT(msg);
+			memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
+			String error = fileName + " " + msg;
+			ErrorMsg(error);
+			SAFE_FREE(msg);
+		}
+		ASSERT(SUCCEEDED(hres));
+
+		pByteCode->resize(compiled_code->GetBufferSize());
+		memcpy(pByteCode->data(), compiled_code->GetBufferPointer(), compiled_code->GetBufferSize());
+		SAFE_RELEASE(compiled_code);
+	}
+
 	void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderProgram)
 	{
 		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
@@ -2905,13 +3016,85 @@ namespace RENDERER_CPP_NAMESPACE {
 			reflectionCount,
 			&pShaderProgram->mReflection);
 
+		*ppShaderProgram = pShaderProgram;
+	}
+
+	void addShader(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+	{
+		ASSERT(pRenderer);
+		ASSERT(pDesc && pDesc->mStages);
+		ASSERT(ppShaderProgram);
+
+		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
+		ASSERT(pShaderProgram);
+		pShaderProgram->mStages = pDesc->mStages;
+
+		uint32_t reflectionCount = 0;
+
+		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+		{
+			ShaderStage stage_mask = (ShaderStage)(1 << i);
+			const BinaryShaderStageDesc* pStage = NULL;
+			ID3DBlob** compiled_code = NULL;
+
+			if (stage_mask == (pShaderProgram->mStages & stage_mask))
+			{
+				switch (stage_mask) {
+				case SHADER_STAGE_VERT: {
+					pStage = &pDesc->mVert;
+					compiled_code = &(pShaderProgram->pDxVert);
+				} break;
+				case SHADER_STAGE_HULL: {
+					pStage = &pDesc->mHull;
+					compiled_code = &(pShaderProgram->pDxHull);
+				} break;
+				case SHADER_STAGE_DOMN: {
+					pStage = &pDesc->mDomain;
+					compiled_code = &(pShaderProgram->pDxDomn);
+				} break;
+				case SHADER_STAGE_GEOM: {
+					pStage = &pDesc->mGeom;
+					compiled_code = &(pShaderProgram->pDxGeom);
+				} break;
+				case SHADER_STAGE_FRAG: {
+					pStage = &pDesc->mFrag;
+					compiled_code = &(pShaderProgram->pDxFrag);
+				} break;
+				case SHADER_STAGE_COMP: {
+					pStage = &pDesc->mComp;
+					compiled_code = &(pShaderProgram->pDxComp);
+				} break;
+				}
+
+				D3DCreateBlob(pStage->mByteCode.size(), compiled_code);
+				memcpy((*compiled_code)->GetBufferPointer(), pStage->mByteCode.data(), pStage->mByteCode.size() * sizeof(unsigned char));
+
+				createShaderReflection(
+					(uint8_t*)((*compiled_code)->GetBufferPointer()),
+					(uint32_t)(*compiled_code)->GetBufferSize(),
+					stage_mask,
+					&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
+
+				if (stage_mask == SHADER_STAGE_COMP)
+					memcpy(pShaderProgram->mNumThreadsPerGroup, pShaderProgram->mReflection.mStageReflections[reflectionCount].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
+				else if (stage_mask == SHADER_STAGE_TESC)
+					memcpy(&pShaderProgram->mNumControlPoint, &pShaderProgram->mReflection.mStageReflections[reflectionCount].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
+
+				reflectionCount++;
+			}
+		}
+
+		createPipelineReflection(
+			pShaderProgram->mReflection.mStageReflections,
+			reflectionCount,
+			&pShaderProgram->mReflection);
 
 		*ppShaderProgram = pShaderProgram;
 	}
 
 	void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	{
-    UNREF_PARAM(pRenderer);
+		UNREF_PARAM(pRenderer);
 
 		//remove given shader
 		SAFE_RELEASE(pShaderProgram->pDxVert);
@@ -2960,7 +3143,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	}
 
 	/// Creates a root descriptor table parameter from the input table layout for root signature version 1_1
-	void create_descriptor_table(uint32_t numDescriptors, DescriptorInfo** tableRef, D3D12_ROOT_PARAMETER1* pRootParam, D3D12_DESCRIPTOR_RANGE1* pRange)
+	void create_descriptor_table(uint32_t numDescriptors, DescriptorInfo** tableRef, D3D12_DESCRIPTOR_RANGE1* pRange, D3D12_ROOT_PARAMETER1* pRootParam)
 	{
 		pRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		ShaderStage stageCount = SHADER_STAGE_NONE;
@@ -2981,7 +3164,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	}
 
 	/// Creates a root descriptor table parameter from the input table layout for root signature version 1_0
-	void create_descriptor_table_1_0(uint32_t numDescriptors, DescriptorInfo** tableRef, D3D12_ROOT_PARAMETER* pRootParam, D3D12_DESCRIPTOR_RANGE* pRange)
+	void create_descriptor_table_1_0(uint32_t numDescriptors, DescriptorInfo** tableRef, D3D12_DESCRIPTOR_RANGE* pRange, D3D12_ROOT_PARAMETER* pRootParam)
 	{
 		pRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		ShaderStage stageCount = SHADER_STAGE_NONE;
@@ -3369,7 +3552,13 @@ namespace RENDERER_CPP_NAMESPACE {
 
 			if (pDesc->mDesc.size > gMaxRootConstantsPerRootParam)
 			{
-				LOGWARNINGF("Root constant (%s) has (%u) 32 bit values. Please consider using a constant buffer instead", pDesc->mDesc.name, pDesc->mDesc.size);
+				//64 DWORDS for NVIDIA, 16 for AMD but 3 are used by driver so we get 13 SGPR
+				//DirectX12
+				//Root descriptors - 2
+				//Root constants - Number of 32 bit constants
+				//Descriptor tables - 1
+				//Static samplers - 0
+				LOGINFOF("Root constant (%s) has (%u) 32 bit values. It is recommended to have root constant number less than 14", pDesc->mDesc.name, pDesc->mDesc.size);
 			}
 		}
 
@@ -3382,11 +3571,25 @@ namespace RENDERER_CPP_NAMESPACE {
 			// Fill the descriptor table layout for the view descriptor table of this update frequency
 			if (layout.mCbvSrvUavTable.getCount())
 			{
+				// sort table by type (CBV/SRV/UAV) by register by space
+				layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
+				{
+					return (int)(lhs->mDesc.reg - rhs->mDesc.reg);
+				});
+				layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
+				{
+					return (int)(lhs->mDesc.set - rhs->mDesc.set);
+				});
+				layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
+				{
+					return (int)(lhs->mDesc.type - rhs->mDesc.type);
+				});
+
 				D3D12_ROOT_PARAMETER1 rootParam;
-				create_descriptor_table(layout.mCbvSrvUavTable.getCount(), layout.mCbvSrvUavTable.data(), &rootParam, cbvSrvUavRange[i].data());
+				create_descriptor_table(layout.mCbvSrvUavTable.getCount(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange[i].data(), &rootParam);
 
 				D3D12_ROOT_PARAMETER rootParam_1_0;
-				create_descriptor_table_1_0(layout.mCbvSrvUavTable.getCount(), layout.mCbvSrvUavTable.data(), &rootParam_1_0, cbvSrvUavRange_1_0[i].data());
+				create_descriptor_table_1_0(layout.mCbvSrvUavTable.getCount(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
 
 				DescriptorSetLayout& table = pRootSignature->pViewTableLayouts[i];
 
@@ -3419,10 +3622,10 @@ namespace RENDERER_CPP_NAMESPACE {
 			if (layout.mSamplerTable.getCount())
 			{
 				D3D12_ROOT_PARAMETER1 rootParam;
-				create_descriptor_table(layout.mSamplerTable.getCount(), layout.mSamplerTable.data(), &rootParam, samplerRange[i].data());
+				create_descriptor_table(layout.mSamplerTable.getCount(), layout.mSamplerTable.data(), samplerRange[i].data(), &rootParam);
 
 				D3D12_ROOT_PARAMETER rootParam_1_0;
-				create_descriptor_table_1_0(layout.mSamplerTable.getCount(), layout.mSamplerTable.data(), &rootParam_1_0, samplerRange_1_0[i].data());
+				create_descriptor_table_1_0(layout.mSamplerTable.getCount(), layout.mSamplerTable.data(), samplerRange_1_0[i].data(), &rootParam_1_0);
 
 				DescriptorSetLayout& table = pRootSignature->pSamplerTableLayouts[i];
 
@@ -4543,14 +4746,18 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		return SUCCEEDED(hres);
 	}
-
+	
 	void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences)
 	{
-		// Signal fences and increment value
 		// Wait for fence completion
 		for (uint32_t i = 0; i < fenceCount; ++i)
 		{
-			pQueue->pDxQueue->Signal(ppFences[i]->pDxFence, ppFences[i]->mFenceValue++);
+			// TODO: we should consider the use case of this function. 
+			// Usecase A: If we want to wait for an already signaled fence, we shouldn't issue new signal here.
+			// Usecase B: If we want to wait for all works in the queue complete, we should signal and wait.
+			// Our current vis buffer implemnetation uses this function as Usecase A. Thus we should not signal again.
+			//pQueue->pDxQueue->Signal(ppFences[i]->pDxFence, ppFences[i]->mFenceValue++);
+			
 			FenceStatus fenceStatus;
 			getFenceStatus(ppFences[i], &fenceStatus);
 			uint64_t fenceValue = ppFences[i]->mFenceValue - 1;
@@ -4578,14 +4785,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		return SUCCEEDED(hres);
 	}
 
-	void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle)
-	{
-		ASSERT(pRenderer);
-		ASSERT(pTexture);
-		ASSERT(ppHandle);
-
-		*ppHandle = pTexture->pDxResource;
-	}
 	// -------------------------------------------------------------------------------------------------
 	// Utility functions
 	// -------------------------------------------------------------------------------------------------
@@ -5106,24 +5305,29 @@ namespace RENDERER_CPP_NAMESPACE {
 		{
 			IDXGIAdapter3* pGpu = NULL;
 			D3D_FEATURE_LEVEL mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
+			SIZE_T mDedicatedVideoMemory = 0;
 		} GpuDesc;
 
 		GpuDesc gpuDesc[MAX_GPUS] = {};
 
 		IDXGIAdapter3* adapter = NULL;
-		for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i) {
+		for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
+		{
 			DECLARE_ZERO (DXGI_ADAPTER_DESC1, desc);
-			adapter->GetDesc1 (&desc);
+			adapter->GetDesc1(&desc);
 
 			if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
 			{
 				for (uint32_t level = 0; level < _countof (feature_levels); ++level)
 				{
 					// Make sure the adapter can support a D3D12 device
-					if (SUCCEEDED (D3D12CreateDevice(adapter, feature_levels[level], __uuidof(pRenderer->pDevice), NULL))) {
+					if (SUCCEEDED (D3D12CreateDevice(adapter, feature_levels[level], __uuidof(pRenderer->pDevice), NULL)))
+					{
 						hres = adapter->QueryInterface(IID_ARGS(&gpuDesc[pRenderer->mNumOfGPUs].pGpu));
-						if (SUCCEEDED (hres)) {
+						if (SUCCEEDED (hres))
+						{
 							gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = feature_levels[level];
+							gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
 							++pRenderer->mNumOfGPUs;
 							break;
 						}
@@ -5139,7 +5343,16 @@ namespace RENDERER_CPP_NAMESPACE {
 		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof (GpuDesc), [](const void* lhs, const void* rhs) {
 			GpuDesc* gpu1 = (GpuDesc*)lhs;
 			GpuDesc* gpu2 = (GpuDesc*)rhs;
-			return (int)gpu1->mMaxSupportedFeatureLevel - (int)gpu2->mMaxSupportedFeatureLevel;
+			// Check feature level first, sort the greatest feature level gpu to the front
+			if ((int)gpu1->mMaxSupportedFeatureLevel != (int)gpu2->mMaxSupportedFeatureLevel)
+			{
+				return (int)gpu2->mMaxSupportedFeatureLevel - (int)gpu1->mMaxSupportedFeatureLevel;
+			}
+			// If feature levels are the same, push the gpu with most video memory support to the front
+			else
+			{
+				return gpu1->mDedicatedVideoMemory > gpu2->mDedicatedVideoMemory ? -1 : 1;
+			}
 		});
 #endif
 
@@ -5154,11 +5367,13 @@ namespace RENDERER_CPP_NAMESPACE {
 			DXGI_ADAPTER_DESC adapterDesc;
 			pRenderer->pGPUs[i]->GetDesc(&adapterDesc);
 			pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = gRootSignatureDWORDS[util_to_internal_gpu_vendor(adapterDesc.VendorId)];
+			LOGINFOF("GPU[%i] detected. Vendor ID: %x GPU Name: %S",i, adapterDesc.VendorId, adapterDesc.Description);
 		}
 
 		// Get the latest and greatest feature level gpu
 		pRenderer->pActiveGPU = pRenderer->pGPUs[0];
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
+		LOGINFOF("GPU[0] is selected as default GPU");
 
 		ASSERT (pRenderer->pActiveGPU != NULL);
 

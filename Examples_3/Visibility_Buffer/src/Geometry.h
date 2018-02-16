@@ -25,8 +25,6 @@
 #ifndef Geometry_h
 #define Geometry_h
 
-#define OLD_MODELS 1
-
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -175,7 +173,6 @@ void addClusterToBatchChunk(const ClusterCompact* cluster, const Mesh* mesh, uin
 void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk);
 #endif
 void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer **outVertexBuffer, Buffer **outIndexBuffer);
-void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffer, unsigned tessellationX, unsigned tessellationY);
 void destroyBuffers(Renderer* pRenderer, Buffer* outVertexBuffer, Buffer* outIndexBuffer);
 
 #endif

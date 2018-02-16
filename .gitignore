@@ -42,4 +42,10 @@
 Art/
 
 # Vulkan Binary Shaders
+**/PCDX12/Binary/
 **/PCVulkan/Binary/
+**/OSXMetal/Binary/
+
+# Obj folders
+**/obj/
+**/bin/

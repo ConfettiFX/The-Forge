@@ -224,6 +224,7 @@ namespace RENDERER_CPP_NAMESPACE {
       VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
       VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+	  VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
    };
 
    const char* gVkWantedDeviceExtensions[] =
@@ -237,11 +238,13 @@ namespace RENDERER_CPP_NAMESPACE {
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 	  VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+	  VK_NV_EXTERNAL_MEMORY_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	  VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
 #endif
 	  VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	  VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
+	  VK_AMD_GCN_SHADER_EXTENSION_NAME,
    };
 
    // These functions will need to be loaded in
@@ -267,6 +270,7 @@ namespace RENDERER_CPP_NAMESPACE {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
    static PFN_vkGetMemoryWin32HandleKHR							pfnGetMemoryWin32HandleKHR = NULL;
 #endif
+   static PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV pfnvkGetPhysicalDeviceExternalImageFormatPropertiesNV = NULL;
    static bool													gExternalMemoryExtension = false;
 
    // Function pointers loaded from AMD draw indirect count extension
@@ -288,10 +292,10 @@ namespace RENDERER_CPP_NAMESPACE {
 
 #if defined(__cplusplus)  
 #define DECLARE_ZERO(type, var) \
-            type var = {};                        
+            type var = {};
 #else
 #define DECLARE_ZERO(type, var) \
-            type var = {0};                        
+            type var = {0};
 #endif
 
 	// Internal utility functions (may become external one day)
@@ -1213,8 +1217,11 @@ namespace RENDERER_CPP_NAMESPACE {
 			LOGINFOF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
 		}
 		else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+			// Vulkan SDK 1.0.68 fixes the Dedicated memory binding validation error bugs
+#if VK_HEADER_VERSION < 68
 			// Disable warnings for bind memory for dedicated allocations extension
 			if(gDedicatedAllocationExtension && messageCode != 11 && messageCode != 12)
+#endif
 				LOGWARNINGF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
 		}
 		else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
@@ -1285,10 +1292,13 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	// API functions
 	// -------------------------------------------------------------------------------------------------
-	void initRenderer(const char *app_name, const RendererDesc * settings, Renderer** ppRenderer)
+	void initRenderer(const char* app_name, const RendererDesc * settings, Renderer** ppRenderer)
 	{
 		Renderer* pRenderer = (Renderer*)conf_calloc (1, sizeof (*pRenderer));
 		ASSERT(pRenderer);
+
+		pRenderer->pName = (char*)conf_calloc(strlen(app_name) + 1, sizeof(char));
+		memcpy(pRenderer->pName, app_name, strlen(app_name));
 
 		// Copy settings
 		memcpy (&(pRenderer->mSettings), settings, sizeof (*settings));
@@ -1330,6 +1340,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	void removeRenderer(Renderer* pRenderer)
 	{
 		ASSERT(pRenderer);
+
+		SAFE_FREE(pRenderer->pName);
 
 		destroy_default_resources(pRenderer);
 
@@ -2037,7 +2049,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			add_info.extent.height = pTexture->mDesc.mHeight;
 			add_info.extent.depth = pTexture->mDesc.mType == TEXTURE_TYPE_3D ? pTexture->mDesc.mDepth : 1;
 			add_info.mipLevels = pTexture->mDesc.mMipLevels;
-			add_info.arrayLayers = pTexture->mDesc.mArraySize * pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1;
+			add_info.arrayLayers = pTexture->mDesc.mArraySize * (pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1);
 			add_info.samples = util_to_vk_sample_count(pTexture->mDesc.mSampleCount);
 			add_info.tiling = (0 != pTexture->mDesc.mHostVisible) ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
 			add_info.usage = util_to_vk_image_usage(pTexture->mDesc.mUsage);
@@ -2151,7 +2163,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			add_info.subresourceRange.baseMipLevel = pTexture->mDesc.mBaseMipLevel;
 			add_info.subresourceRange.levelCount = pTexture->mDesc.mMipLevels;
 			add_info.subresourceRange.baseArrayLayer = pTexture->mDesc.mBaseArrayLayer;
-			add_info.subresourceRange.layerCount = pTexture->mDesc.mArraySize * pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1;
+			add_info.subresourceRange.layerCount = pTexture->mDesc.mArraySize * (pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1);
 			VkResult vk_res = vkCreateImageView(pRenderer->pDevice, &add_info, NULL, &(pTexture->pVkImageView));
 			ASSERT(VK_SUCCESS == vk_res);
 
@@ -2352,9 +2364,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mVert.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pVertEntryPoint = (char*)conf_calloc(pDesc->mVert.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pVertEntryPoint, pDesc->mVert.mEntryPoint, pDesc->mVert.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_TESC: {
 					createShaderReflection((const uint8_t*)pDesc->mHull.mCode.c_str(), pDesc->mHull.mCode.getLength(), SHADER_STAGE_TESC, &stageReflections[counter++]);
@@ -2365,9 +2374,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mHull.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pTescEntryPoint = (char*)conf_calloc(pDesc->mHull.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pTescEntryPoint, pDesc->mHull.mEntryPoint, pDesc->mHull.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_TESE: {
 					createShaderReflection((const uint8_t*)pDesc->mDomain.mCode.c_str(), pDesc->mDomain.mCode.getLength(), SHADER_STAGE_TESE, &stageReflections[counter++]);
@@ -2376,9 +2382,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mDomain.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pTeseEntryPoint = (char*)conf_calloc(pDesc->mDomain.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pTeseEntryPoint, pDesc->mDomain.mEntryPoint, pDesc->mDomain.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_GEOM: {
 					createShaderReflection((const uint8_t*)pDesc->mGeom.mCode.c_str(), pDesc->mGeom.mCode.getLength(), SHADER_STAGE_GEOM, &stageReflections[counter++]);
@@ -2387,9 +2390,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mGeom.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pGeomEntryPoint = (char*)conf_calloc(pDesc->mGeom.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pGeomEntryPoint, pDesc->mGeom.mEntryPoint, pDesc->mGeom.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_FRAG: {
 					createShaderReflection((const uint8_t*)pDesc->mFrag.mCode.c_str(), pDesc->mFrag.mCode.getLength(), SHADER_STAGE_FRAG, &stageReflections[counter++]);
@@ -2398,9 +2398,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mFrag.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pFragEntryPoint = (char*)conf_calloc(pDesc->mFrag.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pFragEntryPoint, pDesc->mFrag.mEntryPoint, pDesc->mFrag.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_COMP: {
 					createShaderReflection((const uint8_t*)pDesc->mComp.mCode.c_str(), pDesc->mComp.mCode.getLength(), SHADER_STAGE_COMP, &stageReflections[counter++]);
@@ -2411,9 +2408,86 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mComp.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
 					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				}
+			}
+		}
 
-					pShaderProgram->pCompEntryPoint = (char*)conf_calloc(pDesc->mComp.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pCompEntryPoint, pDesc->mComp.mEntryPoint, pDesc->mComp.mEntryPoint.size());
+		createPipelineReflection(stageReflections, counter, &pShaderProgram->mReflection);
+
+		*ppShaderProgram = pShaderProgram;
+	}
+
+	void addShader(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+	{
+		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
+		pShaderProgram->mStages = pDesc->mStages;
+
+		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
+
+		uint32_t counter = 0;
+		ShaderReflection stageReflections[SHADER_STAGE_COUNT];
+		String entryPoint = "main";
+
+		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i) {
+			ShaderStage stage_mask = (ShaderStage)(1 << i);
+			if (stage_mask == (pShaderProgram->mStages & stage_mask)) {
+				DECLARE_ZERO(VkShaderModuleCreateInfo, create_info);
+				create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+				create_info.pNext = NULL;
+				create_info.flags = 0;
+				switch (stage_mask) {
+				case SHADER_STAGE_VERT: {
+					createShaderReflection((const uint8_t*)pDesc->mVert.mByteCode.data(), (uint32_t)pDesc->mVert.mByteCode.size(), SHADER_STAGE_VERT, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mVert.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mVert.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_TESC: {
+					createShaderReflection((const uint8_t*)pDesc->mHull.mByteCode.data(), (uint32_t)pDesc->mHull.mByteCode.size(), SHADER_STAGE_TESC, &stageReflections[counter++]);
+
+					memcpy(&pShaderProgram->mNumControlPoint, &stageReflections[counter - 1].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
+
+					create_info.codeSize = pDesc->mHull.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mHull.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_TESE: {
+					createShaderReflection((const uint8_t*)pDesc->mDomain.mByteCode.data(), (uint32_t)pDesc->mDomain.mByteCode.size(), SHADER_STAGE_TESE, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mDomain.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mDomain.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_GEOM: {
+					createShaderReflection((const uint8_t*)pDesc->mGeom.mByteCode.data(), (uint32_t)pDesc->mGeom.mByteCode.size(), SHADER_STAGE_GEOM, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mGeom.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mGeom.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_FRAG: {
+					createShaderReflection((const uint8_t*)pDesc->mFrag.mByteCode.data(), (uint32_t)pDesc->mFrag.mByteCode.size(), SHADER_STAGE_FRAG, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mFrag.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mFrag.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_COMP: {
+					createShaderReflection((const uint8_t*)pDesc->mComp.mByteCode.data(), (uint32_t)pDesc->mComp.mByteCode.size(), SHADER_STAGE_COMP, &stageReflections[counter++]);
+
+					memcpy(pShaderProgram->mNumThreadsPerGroup, stageReflections[counter - 1].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
+
+					create_info.codeSize = pDesc->mComp.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mComp.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
+					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				}
 			}
@@ -2432,32 +2506,26 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkVert) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkVert, NULL);
-			SAFE_FREE(pShaderProgram->pVertEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkTesc) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkTesc, NULL);
-			SAFE_FREE(pShaderProgram->pTescEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkTese) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkTese, NULL);
-			SAFE_FREE(pShaderProgram->pTeseEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkGeom) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkGeom, NULL);
-			SAFE_FREE(pShaderProgram->pGeomEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkFrag) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkFrag, NULL);
-			SAFE_FREE(pShaderProgram->pFragEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkComp) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkComp, NULL);
-			SAFE_FREE(pShaderProgram->pCompEntryPoint);
 		}
 
 		destroyPipelineReflection(&pShaderProgram->mReflection);
@@ -2634,6 +2702,19 @@ namespace RENDERER_CPP_NAMESPACE {
 			DescriptorSetLayout& table = pRootSignature->pDescriptorSetLayouts[i];
 			RootDescriptorLayout& root = pRootSignature->pRootDescriptorLayouts[i];
 
+			if (layouts[i].mBindings.getCount())
+			{
+				// sort table by type (CBV/SRV/UAV) by register
+				layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)
+				{
+					return (int)(lhs.binding - rhs.binding);
+				});
+				layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)
+				{
+					return (int)(lhs.descriptorType - rhs.descriptorType);
+				});
+			}
+
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layoutInfo.pNext = NULL;
@@ -2788,27 +2869,27 @@ namespace RENDERER_CPP_NAMESPACE {
 					stages[stage_count].pSpecializationInfo = NULL;
 					switch (stage_mask) {
 					case SHADER_STAGE_VERT: {
-						stages[stage_count].pName = pShaderProgram->pVertEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mVertexStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
 						stages[stage_count].module = pShaderProgram->pVkVert;
 					} break;
 					case SHADER_STAGE_TESC: {
-						stages[stage_count].pName = pShaderProgram->pTescEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mHullStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 						stages[stage_count].module = pShaderProgram->pVkTesc;
 					} break;
 					case SHADER_STAGE_TESE: {
-						stages[stage_count].pName = pShaderProgram->pTeseEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mDomainStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 						stages[stage_count].module = pShaderProgram->pVkTese;
 					} break;
 					case SHADER_STAGE_GEOM: {
-						stages[stage_count].pName = pShaderProgram->pGeomEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mGeometryStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
 						stages[stage_count].module = pShaderProgram->pVkGeom;
 					} break;
 					case SHADER_STAGE_FRAG: {
-						stages[stage_count].pName = pShaderProgram->pFragEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mPixelStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 						stages[stage_count].module = pShaderProgram->pVkFrag;
 					} break;
@@ -3023,7 +3104,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			stage.flags = 0;
 			stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 			stage.module = pDesc->pShaderProgram->pVkComp;
-			stage.pName = pDesc->pShaderProgram->pCompEntryPoint;
+			stage.pName = pDesc->pShaderProgram->mReflection.mStageReflections[0].pEntryPoint;
 			stage.pSpecializationInfo = NULL;
 
 			DECLARE_ZERO(VkComputePipelineCreateInfo, create_info);
@@ -3897,21 +3978,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 	}
 
-	void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle)
-	{
-		ASSERT(pRenderer);
-		ASSERT(pTexture);
-		ASSERT(ppHandle);
 
-		VkMemoryGetWin32HandleInfoKHR info = { VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR, NULL };
-		info.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-		info.memory = pTexture->pVkMemory->GetMemory();
-		HANDLE handle = NULL;
-		VkResult vkRes = pfnGetMemoryWin32HandleKHR(pRenderer->pDevice, &info, ppHandle);
-
-		ASSERT(VK_SUCCESS == vkRes && *ppHandle);
-		//*ppHandle = pTexture->pVkImage;
-	}
 	// -------------------------------------------------------------------------------------------------
 	// Utility functions
 	// -------------------------------------------------------------------------------------------------
@@ -4723,6 +4790,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (gExternalMemoryExtension)
 		{
 			LOGINFOF("Successfully loaded External Memory extension");
+			pfnvkGetPhysicalDeviceExternalImageFormatPropertiesNV = (PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV)
+				vkGetInstanceProcAddr(pRenderer->pVKInstance, "vkGetPhysicalDeviceExternalImageFormatPropertiesNV");
 			// Load memory import export functions
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 			pfnGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetMemoryWin32HandleKHR");

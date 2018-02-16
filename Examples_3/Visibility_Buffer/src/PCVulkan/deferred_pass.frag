@@ -71,7 +71,11 @@ void main()
 	vec3 binormal = normalize(cross(tangent, normal));
 	// Calculate pixel normal using the normal map and the tangent space vectors
 	oColor = texture(sampler2D(diffuseMaps[NonUniformResourceIndex(materialID)], textureFilter), iTexCoord);
-	oNormal = vec4((reconstructedNormalMap.x * iTangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * iNormal) * 0.5 + 0.5, 0);
+	oNormal = vec4((reconstructedNormalMap.x * iTangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * iNormal), 0);
+	if (isnan(dot(oNormal, oNormal)))
+		oNormal = vec4(iNormal, 0);
+
+	oNormal = oNormal * 0.5 + 0.5;
 	oSpecular = texture(sampler2D(specularMaps[NonUniformResourceIndex(materialID)], textureFilter), iTexCoord);
-    oSimulation = vec4(0,0,0,0);
+	oSimulation = vec4(0,0,0,0);
 }

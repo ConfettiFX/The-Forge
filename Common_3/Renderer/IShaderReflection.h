@@ -114,6 +114,10 @@ struct ShaderReflection
 
    //number of tessellation control point
    uint32_t mNumControlPoint;
+
+#if defined(VULKAN)
+   char* pEntryPoint;
+#endif
 };
 
 struct PipelineReflection
@@ -124,6 +128,10 @@ struct PipelineReflection
    uint32_t mStageReflectionCount;
 
    uint32_t mVertexStageIndex;
+   uint32_t mHullStageIndex;
+   uint32_t mDomainStageIndex;
+   uint32_t mGeometryStageIndex;
+   uint32_t mPixelStageIndex;
 
    ShaderResource* pShaderResources;
    uint32_t mShaderResourceCount;

@@ -261,7 +261,7 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 #endif
 }
 
-void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
+void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker)
 {
 #if defined(DIRECT3D12) || defined(VULKAN)
 	// resolve last frame
@@ -291,7 +291,7 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 	pGpuProfiler->mCumulativeCpuTimeInternal = 0.0;
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->mRoot;
 
-	cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "ROOT");
+	cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "ROOT", bUseMarker);
 #endif
 }
 

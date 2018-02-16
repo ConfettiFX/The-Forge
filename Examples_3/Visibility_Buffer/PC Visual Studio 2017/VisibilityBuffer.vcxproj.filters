@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{cc5d90ed-4ba6-4267-9d86-ee9bc9170f0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{17d773b7-f852-40da-a0b0-e5321940b196}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDirectX12">
+      <UniqueIdentifier>{be3df660-9f38-4e8f-9b00-0744591a335b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{cd301ba0-0a3a-4454-a8f9-d4bf20d8dc4f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\Geometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Visibility_Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\Geometry.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCVulkan\packing.h">
+      <Filter>Shaders\PCVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCVulkan\shader_defs.h">
+      <Filter>Shaders\PCVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCVulkan\shading.h">
+      <Filter>Shaders\PCVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCVulkan\non_uniform_resource_index.h">
+      <Filter>Shaders\PCVulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCDX12\packing.h">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCDX12\shader_defs.h">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PCDX12\shading.h">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\PCVulkan\batch_compaction.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\clear_buffers.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\clear_light_clusters.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\cluster_lights.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_pass.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_pass.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_pass_alpha.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_shade.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_shade_pointlight.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\shadow_pass.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\shadow_pass_alpha.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\triangle_filtering.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\visibilityBuffer_pass.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\visibilityBuffer_pass.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\visibilityBuffer_pass_alpha.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\visibilityBuffer_shade.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\HDAO.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\resolve.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\PCVulkan\visibilityBuffer_pass_alpha.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCVulkan\shadow_pass_alpha.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCVulkan\deferred_shade.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCVulkan\deferred_shade_pointlight.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCVulkan\HDAO.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCVulkan\resolve.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCVulkan\visibilityBuffer_shade.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\PCDX12\batch_compaction.comp">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\clear_buffers.comp">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\clear_light_clusters.comp">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\cluster_lights.comp">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_pass.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_pass.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_pass_alpha.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_shade.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_shade.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_shade_pointlight.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\deferred_shade_pointlight.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\HDAO.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\HDAO.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\resolve.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\resolve.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\shadow_pass.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\shadow_pass_alpha.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\shadow_pass_alpha.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\triangle_filtering.comp">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\visibilityBuffer_pass.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\visibilityBuffer_pass.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\visibilityBuffer_pass_alpha.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\visibilityBuffer_pass_alpha.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\visibilityBuffer_shade.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\PCDX12\visibilityBuffer_shade.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+  </ItemGroup>
+</Project>

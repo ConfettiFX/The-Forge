@@ -34,7 +34,6 @@
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 #include "../../../Common_3/OS/Core/Compiler.h"
 
-#if OLD_MODELS
 static void SetAlphaTestMaterials(tinystl::unordered_set<String>& mats)
 {
 	// San Miguel
@@ -158,7 +157,6 @@ static void SetTwoSidedMaterials(tinystl::unordered_set<String>& mats)
 	mats.insert("Tela_Mesa_D_2");
 	mats.insert("Tela_Mesa_D");
 }
-#endif
 
 #if !defined(METAL)
 static inline float2 abs(const float2& v)
@@ -287,10 +285,14 @@ Scene* loadScene(const char* fileName)
 	fileName = [fileUrl fileSystemRepresentation];
 #endif
 
-#if OLD_MODELS
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 	File assimpScene = {};
 	assimpScene.Open(fileName, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
+	if (!assimpScene.IsOpen())
+	{
+		ErrorMsg("Could not open scene %s.\nPlease make sure you have downloaded the art assets by using the PRE_BUILD command in the root directory", fileName);
+		return NULL;
+	}
 	ASSERT(assimpScene.IsOpen());
 
 	assimpScene.Read(&scene->numMeshes, sizeof(uint32_t));
@@ -490,242 +492,7 @@ Scene* loadScene(const char* fileName)
         scene->totalVertices += scene->meshes[i].vertexCount;
     }
 #endif
-#else
-	const aiScene* assimpScene = aiImportFile(fileName, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_PreTransformVertices | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
-	if (!assimpScene)
-		LOGERRORF(aiGetErrorString());
-	ASSERT(assimpScene);
 
-	Scene* scene = (Scene*)conf_malloc(sizeof(Scene));
-	memset(scene, 0, sizeof(*scene));
-	scene->numMeshes = assimpScene->mNumMeshes;
-	scene->numMaterials = assimpScene->mNumMaterials;
-	scene->meshes = (Mesh*)conf_malloc(scene->numMeshes * sizeof(Mesh));
-	scene->materials = (Material*)conf_malloc(scene->numMaterials * sizeof(Material));
-	scene->textures = (char**)conf_malloc(scene->numMaterials * sizeof(char*));
-	scene->normalMaps = (char**)conf_malloc(scene->numMaterials * sizeof(char*));
-	scene->specularMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
-
-	memset(scene->meshes, 0, scene->numMeshes * sizeof(Mesh));
-	memset(scene->materials, 0, scene->numMaterials * sizeof(Material));
-
-	// Metal does not load indices
-#if defined(METAL)
-	// Build vertex buffer data
-	for (uint32_t i = 0; i < assimpScene->mNumMeshes; i++)
-	{
-		const aiMesh* assimpMesh = assimpScene->mMeshes[i];
-
-		scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
-		scene->meshes[i].minBBox = float3((float)INT_MAX, (float)INT_MAX, (float)INT_MAX);
-		scene->meshes[i].maxBBox = float3((float)-INT_MAX, (float)-INT_MAX, (float)-INT_MAX);
-		scene->meshes[i].materialId = assimpMesh->mMaterialIndex;
-
-		for (uint32_t j = 0; j < assimpMesh->mNumFaces; j++)
-		{
-			assert(assimpMesh->mFaces[j].mNumIndices == 3);
-			for (uint32_t k = 0; k < assimpMesh->mFaces[j].mNumIndices; k++)
-			{
-				uint32_t index = assimpMesh->mFaces[j].mIndices[k];
-				const aiVector3D& pos = assimpMesh->mVertices[index];
-				const aiVector3D& tex = (assimpMesh->HasTextureCoords(0) ? assimpMesh->mTextureCoords[0][index] : aiVector3D(0, 0, 0));
-				const aiVector3D& nor = (assimpMesh->HasNormals() ? assimpMesh->mNormals[index] : aiVector3D(0, 0, 0));
-				const aiVector3D& tan = (assimpMesh->HasTangentsAndBitangents() ? assimpMesh->mTangents[index] : aiVector3D(0, 0, 0));
-
-				if (pos.x < scene->meshes[i].minBBox.getX()) scene->meshes[i].minBBox.setX(pos.x);
-				if (pos.y < scene->meshes[i].minBBox.getY()) scene->meshes[i].minBBox.setY(pos.y);
-				if (pos.z < scene->meshes[i].minBBox.getZ()) scene->meshes[i].minBBox.setZ(pos.z);
-				if (pos.x > scene->meshes[i].maxBBox.getX()) scene->meshes[i].maxBBox.setX(pos.x);
-				if (pos.y > scene->meshes[i].maxBBox.getY()) scene->meshes[i].maxBBox.setY(pos.y);
-				if (pos.z > scene->meshes[i].maxBBox.getZ()) scene->meshes[i].maxBBox.setZ(pos.z);
-
-				SceneVertexPos vertexPos;
-				vertexPos.x = pos.x;
-				vertexPos.y = pos.y;
-				vertexPos.z = pos.z;
-				scene->positions.push_back(vertexPos);
-                
-                SceneVertexTexCoord vertexTexcoord;
-                vertexTexcoord.u = tex.x;
-                vertexTexcoord.v = tex.y;
-                scene->texCoords.push_back(vertexTexcoord);
-                
-                SceneVertexNormal vertexNormal;
-                vertexNormal.nx = nor.x;
-                vertexNormal.ny = nor.y;
-                vertexNormal.nz = nor.z;
-                scene->normals.push_back(vertexNormal);
-                
-                SceneVertexTangent vertexTangent;
-                vertexTangent.tx = tan.x;
-                vertexTangent.ty = tan.y;
-                vertexTangent.tz = tan.z;
-                scene->tangents.push_back(vertexTangent);
-			}
-		}
-		scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
-		scene->meshes[i].triangleCount = scene->meshes[i].vertexCount / 3;
-		scene->totalTriangles += scene->meshes[i].triangleCount;
-		scene->totalVertices += scene->meshes[i].vertexCount;
-	}
-#else
-	for (unsigned int i = 0; i < assimpScene->mNumMeshes; i++) {
-		aiMesh *mesh = assimpScene->mMeshes[i];
-		scene->totalVertices += assimpScene->mMeshes[i]->mNumVertices;
-		for (unsigned int f = 0; f < mesh->mNumFaces; f++)
-			scene->totalTriangles += mesh->mFaces[f].mNumIndices;
-	}
-
-	scene->indices = tinystl::vector<uint32>(scene->totalTriangles, uint32_t(0));
-	scene->positions = tinystl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
-	scene->texCoords = tinystl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-	scene->normals = tinystl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-	scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
-
-	for (unsigned int i = 0, kv = 0, ki = 0; i < assimpScene->mNumMeshes; i++)
-	{
-		aiMesh* mesh = assimpScene->mMeshes[i];
-
-		scene->meshes[i].materialId = mesh->mMaterialIndex;
-		scene->meshes[i].startIndex = ki;
-		scene->meshes[i].vertexCount = mesh->mNumVertices;
-
-		for (unsigned int f = 0; f < mesh->mNumFaces; f++) {
-			aiFace *face = mesh->mFaces + f;
-			for (unsigned int j = 0; j < face->mNumIndices; j++, ki++)
-				scene->indices[ki] = face->mIndices[j] + kv;
-		}
-
-		for (unsigned int v = 0; v < mesh->mNumVertices; v++, kv++) {
-			aiVector3D *position = mesh->mVertices + v;
-			scene->positions[kv].x = position->x;
-			scene->positions[kv].y = position->y;
-			scene->positions[kv].z = position->z;
-
-			if (mesh->HasNormals()) {
-				aiVector3D *normal = mesh->mNormals + v;
-				scene->normals[kv].normal = encodeDir(float3(normal->x, normal->y, normal->z));
-			}
-
-			if (mesh->HasTangentsAndBitangents()) {
-				aiVector3D *tangent = mesh->mTangents + v;
-				scene->tangents[kv].tangent = encodeDir(float3(tangent->x, tangent->y, tangent->z));
-			}
-
-			if (mesh->HasTextureCoords(0)) {
-				aiVector3D *tc = mesh->mTextureCoords[0] + v;
-				scene->texCoords[kv].texCoord = pack2Floats(float2(tc->x, tc->y));
-			}
-		}
-
-		scene->meshes[i].indexCount = ki - scene->meshes[i].startIndex;
-	}
-#endif
-
-	// Try to load .twosided file with information about two sided materials
-	tinystl::vector<aiString> doubleSidedMaterials;
-	String twoSidedFileName = String(fileName) + String(".twosided");
-	File file = {}; file.Open(twoSidedFileName.c_str(), FM_ReadBinary, FSR_Absolute);
-	if (file.IsOpen())
-	{
-		while (!file.IsEof())
-		{
-			String line = file.ReadLine();
-			aiString matName(line.c_str());
-			doubleSidedMaterials.push_back(matName);
-		}
-		file.Close();
-	}
-
-	// Build material info data
-	for (uint32_t i = 0; i < assimpScene->mNumMaterials; ++i)
-	{
-		char textureFileName[MAX_PATH] = "white.png";  // Default diffuse map
-		char normalMapFileName[MAX_PATH] = "flat.png"; // Default normal map
-		char specularMapFileName[MAX_PATH] = "white.png";
-
-		aiMaterial* assimpMaterial = assimpScene->mMaterials[i];
-
-		aiString texturePath;
-		aiReturn texFound = assimpMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
-
-		if (texFound == aiReturn_SUCCESS)
-		{
-			// texture found: use it!
-			strncpy(textureFileName, texturePath.C_Str(), sizeof(textureFileName));
-		}
-
-		// If a DDS file is present with the same name, prefer that one
-		int dotIndex;
-		for (dotIndex = MAX_PATH - 1; dotIndex >= 0; dotIndex--)
-			if (textureFileName[dotIndex] == '.')
-				break;
-
-		String ddsFileName;
-		ddsFileName.append(textureFileName, dotIndex);
-		ddsFileName.append(".DDS", 4);
-
-		// Check if the DDS file exists
-		if (FileSystem::FileExists(ddsFileName, FSR_Textures))
-		{
-			// File exists: prefer the DDS file
-			strncpy(textureFileName, ddsFileName.c_str(), sizeof(textureFileName));
-		}
-
-		// Look for a normal map: the same texture filename with suffix _norm
-		String fileName = FileSystem::GetFileName(textureFileName);
-		String extension = FileSystem::GetExtension(textureFileName);
-		String normalMapFile = fileName + String("_norm") + extension;
-		String specularMapFile = fileName + String("_spec") + extension;
-		if (FileSystem::FileExists(normalMapFile, FSR_Textures))
-		{
-			// File exists
-			strncpy(normalMapFileName, normalMapFile.c_str(), normalMapFile.size());
-		}
-		if (FileSystem::FileExists(specularMapFile, FSR_Textures))
-		{
-			// File exists
-			strncpy(specularMapFileName, specularMapFile.c_str(), specularMapFile.size());
-		}
-
-		// Determine if the material is two-sided
-		int twoSided = 0;
-		aiReturn res = aiGetMaterialInteger(assimpMaterial, AI_MATKEY_TWOSIDED, &twoSided);
-		if (res == aiReturn_SUCCESS)
-		{
-			printf("Two sided: %s", texturePath.C_Str());
-		}
-
-		aiString materialName;
-		res = aiGetMaterialString(assimpMaterial, AI_MATKEY_NAME, &materialName);
-		if (res == aiReturn_SUCCESS)
-		{
-			// Is this material in the two sided material list?
-			for (uint32_t j = 0; j < doubleSidedMaterials.size(); j++)
-			{
-				const aiString& matName = doubleSidedMaterials[j];
-				if (materialName == matName)
-				{
-					twoSided = 1;
-					break;
-				}
-			}
-		}
-
-		scene->materials[i].twoSided = (twoSided == 1);
-
-		scene->textures[i] = (char*)conf_calloc(strlen(textureFileName) + 1, sizeof(char));
-		memcpy(scene->textures[i], textureFileName, strlen(textureFileName));
-
-		scene->normalMaps[i] = (char*)conf_calloc(strlen(normalMapFileName) + 1, sizeof(char));
-		memcpy(scene->normalMaps[i], normalMapFileName, strlen(normalMapFileName));
-
-		scene->specularMaps[i] = (char*)conf_calloc(strlen(specularMapFileName) + 1, sizeof(char));
-		memcpy(scene->specularMaps[i], specularMapFileName, strlen(specularMapFileName));
-	}
-
-	aiReleaseImport(assimpScene);
-#endif
 	return scene;
 }
 
@@ -1096,82 +863,4 @@ void destroyBuffers(Renderer* pRenderer, Buffer* outVertexBuffer, Buffer* outInd
 	UNREF_PARAM(pRenderer);
 	removeResource(outVertexBuffer);
 	removeResource(outIndexBuffer);
-}
-
-void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffer, unsigned tessellationX, unsigned tessellationY)
-{
-	assert(tessellationX >= 1);
-	assert(tessellationY >= 1);
-
-	// full screen quad coordinates [-1, -1] to [1, 1] -> width & height = 2
-	const float width = 2.0f;
-	const float height = 2.0f;
-	const float dx = width / tessellationX;
-	const float dy = height / tessellationY;
-
-	const int numQuads = tessellationX * tessellationY;
-	const int numVertices = (tessellationX + 1) * (tessellationY + 1);
-
-	tinystl::vector<vec4> vertices(numVertices);
-	const unsigned m = tessellationX + 1;
-	const unsigned n = tessellationY + 1;
-	for (unsigned i = 0; i < n; ++i)
-	{
-		const float y = i * dy - 1.0f;		// offset w/ -1.0f :  [0,2]->[-1,1]
-		for (unsigned j = 0; j < m; ++j)
-		{
-			const float x = j * dx - 1.0f;	// offset w/ -1.0f :  [0,2]->[-1,1]
-			vertices[i*m + j] = vec4(x, y, 0, 1);
-		}
-	}
-
-	BufferLoadDesc vbDesc = {};
-	vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
-	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	vbDesc.mDesc.mSize = vertices.size() * sizeof(vec4);
-	vbDesc.mDesc.mVertexStride = sizeof(vec4);
-	vbDesc.pData = vertices.data();
-	vbDesc.ppBuffer = ppVertexBuffer;
-	addResource(&vbDesc);
-
-
-	tinystl::vector<uint16_t> indices(numQuads * 6);
-	//	  A	+------+ B
-	//		|	 / |
-	//		|	/  |
-	//		|  /   |
-	//		| /	   |
-	//		|/	   |
-	//	  C	+------+ D
-	//
-	//	A	: V(i  , j  )
-	//	B	: V(i  , j+1)
-	//	C	: V(i+1, j  )
-	//	D	: V(i+1, j+1)
-	//
-	//	ABC	: (i*n +j    , i*n + j+1, (i+1)*n + j  )
-	//	CBD : ((i+1)*n +j, i*n + j+1, (i+1)*n + j+1)
-	unsigned quad = 0;
-	for (unsigned i = 0; i < tessellationY; ++i)
-	{
-		for (unsigned j = 0; j < tessellationX; ++j)
-		{
-			indices[quad * 6 + 0] = (uint16_t)(i*m + j);
-			indices[quad * 6 + 1] = (uint16_t)(i*m + j + 1);
-			indices[quad * 6 + 2] = (uint16_t)((i + 1)*m + j);
-			indices[quad * 6 + 3] = (uint16_t)((i + 1)*m + j);
-			indices[quad * 6 + 4] = (uint16_t)(i*m + j + 1);
-			indices[quad * 6 + 5] = (uint16_t)((i + 1)*m + j + 1);
-			quad++;
-		}
-	}
-
-	BufferLoadDesc ibDesc = {};
-	ibDesc.mDesc.mUsage = BUFFER_USAGE_INDEX;
-	ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	ibDesc.mDesc.mSize = indices.size() * sizeof(uint16_t);
-	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
-	ibDesc.pData = indices.data();
-	ibDesc.ppBuffer = ppIndexBuffer;
-	addResource(&ibDesc);
 }

@@ -34,7 +34,6 @@
 class UI
 {
 public:
-	typedef void(*PropertyChangedCallback)(int propertyID);
 
 	UI();
 
@@ -160,7 +159,7 @@ public:
 	bool onMouseButton(const struct MouseButtonEventData*);
     bool onMouseWheel(const struct MouseWheelEventData*);
     bool onTouch(const struct TouchEventData*);
-    bool onTouchMove(const struct TouchMoveEventData*);
+    bool onTouchMove(const struct TouchEventData*);
 	void onDrawGUI();
 
 private:

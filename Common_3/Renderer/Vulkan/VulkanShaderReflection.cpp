@@ -74,6 +74,7 @@ void createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, Shad
 
    CreateCrossCompiler((const uint32_t*)shaderCode, shaderSize / sizeof(uint32_t), &cc);
 
+   ReflectEntryPoint(&cc);
    ReflectShaderResources(&cc);
    ReflectShaderVariables(&cc);
 
@@ -95,6 +96,9 @@ void createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, Shad
    uint32_t vertexInputCount  = 0;
    uint32_t resouceCount      = 0;
    uint32_t variablesCount    = 0;
+
+   namePoolSize += cc.EntryPointSize + 1;
+
    for(uint32_t i = 0; i < cc.ShaderResourceCount; ++i)
    {
       SPIRV_Resource* resource = cc.pShaderResouces + i;
@@ -136,6 +140,10 @@ void createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, Shad
    if (namePoolSize)
 	   namePool = (char*)conf_calloc(namePoolSize, 1);
    char* pCurrentName = namePool;
+
+   pOutReflection->pEntryPoint = pCurrentName;
+   memcpy(pCurrentName, cc.pEntryPoint, cc.EntryPointSize);
+   pCurrentName += cc.EntryPointSize + 1;
 
    VertexInput* pVertexInputs = NULL;
    // start with the vertex input

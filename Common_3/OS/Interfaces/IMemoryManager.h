@@ -23,9 +23,24 @@
 */
 
 #pragma once
-
+//--------------------------------------------------------------------------------------------
+//
+// Copyright (C) 2009 - 2016 Confetti Special Effects Inc.
+// All rights reserved.
+//
+// This source may not be distributed and/or modified without expressly written permission
+// from Confetti Special Effects Inc.
+//
+//--------------------------------------------------------------------------------------------
 #include <new>
+#ifdef USE_MEMORY_TRACKING
+#include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.h"
 
+#define conf_malloc(size)		m_allocator		(__FILE__,__LINE__,__FUNCTION__,m_alloc_malloc,(size))
+#define conf_calloc(count,size) m_allocator		(__FILE__,__LINE__,__FUNCTION__,m_alloc_calloc,((size)*(count)))
+#define conf_realloc(ptr,size)	m_reallocator	(__FILE__,__LINE__,__FUNCTION__,m_alloc_realloc,(size),(ptr))
+#define conf_free(ptr)			m_deallocator	(__FILE__,__LINE__,__FUNCTION__,m_alloc_free,(ptr))
+#else
 void* m_allocator(size_t size);
 void* m_allocator(size_t count, size_t size);
 void* m_reallocator(void* ptr, size_t size);
@@ -35,6 +50,7 @@ void m_deallocator(void* ptr);
 #define conf_calloc(count,size) m_allocator(count,size)
 #define conf_realloc(ptr,size)	m_reallocator(ptr,size)
 #define conf_free(ptr)			m_deallocator(ptr)
+#endif
 
 #define	malloc(size)		static_assert(false, "Please use conf_malloc");
 #define	calloc(count,size)	static_assert(false, "Please use conf_calloc");

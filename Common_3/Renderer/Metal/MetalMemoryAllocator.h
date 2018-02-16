@@ -192,7 +192,13 @@ static inline void AllocatorUint64ToStr(char* outStr, size_t strLen, uint64_t nu
  Every object will have its own allocation.
  Define to 1 for debugging purposes only.
  */
+#ifndef TARGET_IOS
 #define RESOURCE_DEBUG_ALWAYS_OWN_MEMORY (0) // NOTE: Set this to 1 on Intel GPUs. It seems like suballocating buffers from heaps can give us problems on Intel hardware.
+#else
+// NOTE: Suballocating from MTLHeaps seems to be breaking sample 03_MultiThread on iOS.
+// TODO: Fix iOS MTLHeap suballocation problems.
+#define RESOURCE_DEBUG_ALWAYS_OWN_MEMORY (1)
+#endif
 #endif
 
 #ifndef RESOURCE_DEBUG_ALIGNMENT
@@ -289,9 +295,9 @@ typedef struct AllocatorHeapProperties
     uint64_t mBlockSize;
     MTLStorageMode mStorageMode;
     MTLCPUCacheMode mCPUCacheMode;
+    const char* pName;
 } AllocatorHeapProperties;
-// Only private storage mode is available for resource heaps on macOS.
-// TODO: Modify this to support Shared/Private resource heaps on iOS.
+
 static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TYPES] =
 {
     /// Default Buffer
@@ -299,88 +305,105 @@ static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TY
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Default Buffers Heap",
     },
     // Upload Buffer
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModeShared,
         MTLCPUCacheModeWriteCombined,
+        "Upload Buffers Heap",
     },
     // Readback Buffer
     {
         RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE,
         MTLStorageModeShared,
         MTLCPUCacheModeDefaultCache,
+        "Readback Buffers Heap",
     },
     /// Texture Small
     {
         RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Small Textures Heap",
     },
     /// Texture Default
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Default Textures Heap",
     },
     /// Texture MSAA
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "MSAA Textures Heap",
     },
     /// RTV DSV
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "RenderTargets Heap",
     },
     /// RTV DSV MSAA
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "MSAA RenderTargets Heap",
     },
     /// RTV DSV Shared
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Shared RenderTargets Heap",
     },
     /// RTV DSV Shared MSAA
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Shared MSAA RenderTargets Heap",
     },
     /// RTV DSV Shared Adapter
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Shared Adapter RenderTargets Heap",
     },
     /// RTV DSV Shared Adapter MSAA
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Shared Adapter MSAA RenderTargets Heap",
     },
-    /// UAV Buffer
+    /// Default UAV Buffer
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModePrivate,
         MTLCPUCacheModeDefaultCache,
+        "Default UAV Buffers Heap",
     },
+    /// Upload UAV Buffer
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModeShared,
         MTLCPUCacheModeWriteCombined,
+        "Upload UAV Buffers Heap",
     },
+    /// Readback UAV Buffer
     {
         RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
         MTLStorageModeShared,
         MTLCPUCacheModeDefaultCache,
+        "Readback UAV Buffers Heap",
     },
 };
 
@@ -2230,7 +2253,7 @@ bool AllocatorBlock::CheckAllocation(uint64_t bufferImageGranularity, uint64_t a
     ASSERT(suballoc.type == RESOURCE_SUBALLOCATION_TYPE_FREE);
     
     // Size of this suballocation is too small for this request: Early return.
-    if (suballoc.size < allocSize)
+    if([m_hMemory maxAvailableSizeWithAlignment:allocAlignment] < allocSize)
     {
         return false;
     }
@@ -2846,9 +2869,8 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
             
             // Start with full preferredBlockSize.
             id<MTLHeap> mem = nil;
-            const char* allocationLabel = "HEAP";
             mem = [m_Device newHeapWithDescriptor:allocInfo];
-            mem.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+            mem.label = [NSString stringWithFormat:@"%s", pHeapProps->pName];
             if (mem == nil)
             {
                 // 3. Try half the size.
@@ -2856,7 +2878,7 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
                 if (allocInfo.size >= mtlMemReq.size)
                 {
                     mem = [m_Device newHeapWithDescriptor:allocInfo];
-                    mem.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+                    mem.label = [NSString stringWithFormat:@"%s", pHeapProps->pName];
                     if (mem == nil)
                     {
                         // 4. Try quarter the size.
@@ -2864,7 +2886,7 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
                         if (allocInfo.size >= mtlMemReq.size)
                         {
                             mem = [m_Device newHeapWithDescriptor:allocInfo];
-                            mem.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+                            mem.label = [NSString stringWithFormat:@"%s", pHeapProps->pName];
                         }
                     }
                 }
@@ -3513,8 +3535,8 @@ long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateI
         if (pBuffer->pMtlAllocation->GetType() == ResourceAllocation::ALLOCATION_TYPE_BLOCK)
         {
             pBuffer->mtlBuffer = [pBuffer->pMtlAllocation->GetMemory() newBufferWithLength:pCreateInfo->mSize options:mtlResourceOptions];
-            const char* allocationLabel = "PLACED BUFFER RESOURCE";
-            pBuffer->mtlBuffer.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+            pBuffer->mtlBuffer.label = @"Placed Buffer";
+            assert(pBuffer->mtlBuffer);
             
             if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT)
             {
@@ -3531,8 +3553,8 @@ long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateI
         else
         {
             pBuffer->mtlBuffer = [allocator->m_Device newBufferWithLength:pCreateInfo->mSize options:mtlResourceOptions];
-            const char* allocationLabel = "OWN BUFFER RESOURCE";
-            pBuffer->mtlBuffer.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+            pBuffer->mtlBuffer.label = @"Owned Buffer";
+            assert(pBuffer->mtlBuffer);
             
             if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT &&
                 pMemoryRequirements->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
@@ -3545,9 +3567,9 @@ long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateI
         if (pBuffer->pMtlAllocation)
         {
             // All steps succeeded.
-            ResourceAllocationInfo allocInco = {};
-            allocator->GetAllocationInfo(pBuffer->pMtlAllocation, &allocInco);
-            pBuffer->pCpuMappedAddress = allocInco.pMappedData;
+            ResourceAllocationInfo allocInfo = {};
+            allocator->GetAllocationInfo(pBuffer->pMtlAllocation, &allocInfo);
+            pBuffer->pCpuMappedAddress = allocInfo.pMappedData;
             return true;
         }
         
@@ -3600,22 +3622,22 @@ long createTexture(ResourceAllocator* allocator, const TextureCreateInfo* pCreat
         if (pTexture->pMtlAllocation->GetType () == ResourceAllocation::ALLOCATION_TYPE_BLOCK)
         {
             pTexture->mtlTexture = [pTexture->pMtlAllocation->GetMemory() newTextureWithDescriptor:pCreateInfo->pDesc];
-            const char* allocationLabel = "PLACED TEXTURE RESOURCE";
-            pTexture->mtlTexture.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+            assert(pTexture->mtlTexture);
+            pTexture->mtlTexture.label = @"Placed Texture";
         }
         else
         {
             pTexture->mtlTexture = [allocator->m_Device newTextureWithDescriptor:pCreateInfo->pDesc];
-            const char* allocationLabel = "OWN TEXTURE RESOURCE";
-            pTexture->mtlTexture.label = [[NSString alloc] initWithUTF8String:allocationLabel];
+            assert(pTexture->mtlTexture);
+            pTexture->mtlTexture.label = @"Owned Texture";
         }
         
         // Bind texture with memory.
         if (pTexture->pMtlAllocation)
         {
             // All steps succeeded.
-            ResourceAllocationInfo allocInco = {};
-            allocator->GetAllocationInfo(pTexture->pMtlAllocation, &allocInco);
+            ResourceAllocationInfo allocInfo = {};
+            allocator->GetAllocationInfo(pTexture->pMtlAllocation, &allocInfo);
             return true;
         }
         
@@ -3643,3 +3665,4 @@ void destroyTexture(ResourceAllocator* allocator, Texture* pTexture)
 }
 
 #endif
+

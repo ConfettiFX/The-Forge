@@ -64,7 +64,7 @@ void _PrintUnicodeLine(const String& str, bool error = false);
 // there is a large amount of stuff included via header files ...
 #define ASSERT(cond) SCE_GNM_ASSERT(cond)
 #else
-#define ASSERT(b) if (!(b)) _FailedAssert(__FILE__, __LINE__, #b)
+#define ASSERT(b) if (b) {} else _FailedAssert(__FILE__, __LINE__, #b)
 #endif
 #else
 #define ASSERT(b) assume(b)
