@@ -18,6 +18,10 @@ Future plans are:
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom 3D engines.
 
+# Build Status
+
+* Windows [![Build status](https://ci.appveyor.com/api/projects/status/0w2qj3fs8u4utojr/branch/master?svg=true)](https://ci.appveyor.com/project/manaskulkarni786/the-forge/branch/master)
+* macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
 ## Release 1.01 - January 25th, 2018
