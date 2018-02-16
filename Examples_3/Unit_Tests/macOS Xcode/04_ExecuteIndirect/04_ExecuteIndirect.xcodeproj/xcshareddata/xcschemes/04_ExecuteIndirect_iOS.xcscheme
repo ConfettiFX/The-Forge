@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "0920"
+   version = "1.7">
+   <BuildAction
+      parallelizeBuildables = "NO"
+      buildImplicitDependencies = "YES">
+      <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Run Script"
+               scriptText = "&#10;xcodebuild \&#10;-project &quot;${PROJECT_DIR}/../../../../Middleware_3/PaniniProjection/macOS Xcode/PaniniProjection.xcodeproj&quot; \&#10;-target &quot;PaniniProjection_iOS&quot; \&#10;-configuration &quot;${CONFIGURATION}&quot; \&#10;BUILD_DIR=&quot;${PROJECT_DIR}/../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/&quot; \&#10;BUILD_ROOT=&quot;${PROJECT_DIR}/../../../../Middleware_3/PaniniProjection/macOS Xcode/&quot; \&#10;VALID_ARCHS=&quot;i386 x86_64 armv7 armv7s arm64&quot;">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "28A5AC78201F682F000E571F"
+                     BuildableName = "04_ExecuteIndirect_iOS.app"
+                     BlueprintName = "04_ExecuteIndirect_iOS"
+                     ReferencedContainer = "container:04_ExecuteIndirect.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PreActions>
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AC78201F682F000E571F"
+               BuildableName = "04_ExecuteIndirect_iOS.app"
+               BlueprintName = "04_ExecuteIndirect_iOS"
+               ReferencedContainer = "container:04_ExecuteIndirect.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+      </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "28A5AC78201F682F000E571F"
+            BuildableName = "04_ExecuteIndirect_iOS.app"
+            BlueprintName = "04_ExecuteIndirect_iOS"
+            ReferencedContainer = "container:04_ExecuteIndirect.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+      <AdditionalOptions>
+      </AdditionalOptions>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "28A5AC78201F682F000E571F"
+            BuildableName = "04_ExecuteIndirect_iOS.app"
+            BlueprintName = "04_ExecuteIndirect_iOS"
+            ReferencedContainer = "container:04_ExecuteIndirect.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+      <AdditionalOptions>
+      </AdditionalOptions>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "28A5AC78201F682F000E571F"
+            BuildableName = "04_ExecuteIndirect_iOS.app"
+            BlueprintName = "04_ExecuteIndirect_iOS"
+            ReferencedContainer = "container:04_ExecuteIndirect.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>

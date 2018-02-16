@@ -40,10 +40,15 @@ public:
 	virtual ~ICameraController() {}
 	virtual void setMotionParameters(const CameraMotionParameters&) = 0;
 
-#ifndef _DURANGO
-	virtual void onMouseMove(const MouseMoveEventData* pData) = 0;
+#if !defined(_DURANGO)
+	virtual void onMouseMove(const RawMouseMoveEventData* pData) = 0;
 	virtual void onMouseButton(const MouseButtonEventData* pData) = 0;
 	virtual void onMouseWheel(const MouseWheelEventData* pData) = 0;
+#endif
+    
+#if defined(TARGET_IOS)
+    virtual void onTouch(const TouchEventData* pData) = 0;
+    virtual void onTouchMove(const TouchEventData* pData) = 0;
 #endif
 	virtual void update(float deltaTime) = 0;
 
@@ -52,6 +57,15 @@ public:
 	virtual mat4 getViewMatrix() const = 0;
 	virtual vec3 getViewPosition() const = 0;
 	virtual vec2 getRotationXY() const = 0;
+
+#ifdef TARGET_IOS
+    virtual float getVirtualJoystickInternalRadius() const = 0;
+    virtual float getVirtualJoystickExternalRadius() const = 0;
+    virtual vec2 getVirtualLeftJoystickCenter() const = 0;
+    virtual vec2 getVirtualLeftJoystickPos() const = 0;
+    virtual vec2 getVirtualRightJoystickCenter() const = 0;
+    virtual vec2 getVirtualRightJoystickPos() const = 0;
+#endif
 
 	virtual void moveTo(const vec3& location) = 0;
 	virtual void lookAt(const vec3& lookAt) = 0;

@@ -29,11 +29,18 @@ extern void updateTouchEvent(int numTaps);
 
 extern WindowsDesc* getCurrentWindow();
 
+namespace PlatformEvents
+{
+    extern void onTouch(const TouchEventData* pData);
+    extern void onTouchMove(const TouchMoveEventData* pData);
+}
+
 @implementation GameViewController
 {
     MTKView *_view;
     id<MTLDevice> _device;
     MetalKitApplication *_application;
+    CGFloat _retinaScale;
 }
 
 - (void)viewDidLoad
@@ -47,13 +54,10 @@ extern WindowsDesc* getCurrentWindow();
     _view.device = _device;
     
     // Adjust window size to match retina scaling.
-    CGFloat retinaScale = _view.drawableSize.width / _view.frame.size.width;
-    //NSSize windowSize = CGSizeMake(_view.frame.size.width / retinaScale, _view.frame.size.height / retinaScale);
-    //[_view.window setContentSize:windowSize];
-    //[_view.window setContentScaleFactor:retinaScale];
+    _retinaScale = _view.drawableSize.width / _view.frame.size.width;
     
     // Kick-off the MetalKitApplication.
-    _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view retinaScalingFactor:retinaScale];
+    _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view retinaScalingFactor:_retinaScale];
     
     if(!_device)
     {
@@ -123,25 +127,76 @@ extern WindowsDesc* getCurrentWindow();
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
     for (UITouch *touch in touches)
     {
-        //CGPoint location = [touch locationInView:self.view];
+        CGPoint location = [touch locationInView:self.view];
+        location.x *= _retinaScale;
+        location.y *= _retinaScale;
+        
+        TouchEventData eventData;
+        eventData.x = location.x;
+        eventData.y = location.y;
+        eventData.radius = (int32_t)(touch.majorRadius - touch.majorRadiusTolerance);
+        eventData.pressed = true;
+        
+        PlatformEvents::onTouch(&eventData);
     }
+}
 
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
+    for (UITouch *touch in touches)
+    {
+        CGPoint location = [touch locationInView:self.view];
+        location.x *= _retinaScale;
+        location.y *= _retinaScale;
+        
+        TouchEventData eventData;
+        eventData.x = location.x;
+        eventData.y = location.y;
+        eventData.radius = (int32_t)(touch.majorRadius - touch.majorRadiusTolerance);
+        eventData.pressed = false;
+        
+        PlatformEvents::onTouch(&eventData);
+    }
+}
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
+    for (UITouch *touch in touches)
+    {
+        CGPoint location = [touch locationInView:self.view];
+        location.x *= _retinaScale;
+        location.y *= _retinaScale;
+        
+        TouchEventData eventData;
+        eventData.x = location.x;
+        eventData.y = location.y;
+        eventData.radius = (int32_t)(touch.majorRadius - touch.majorRadiusTolerance);
+        eventData.pressed = false;
+        
+        PlatformEvents::onTouch(&eventData);
+    }
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
     for (UITouch *touch in touches)
     {
-        //CGPoint location = [touch locationInView:self.view];
+        CGPoint location = [touch locationInView:self.view];
+        location.x *= _retinaScale;
+        location.y *= _retinaScale;
+        
+        CGPoint prevLocation = [touch previousLocationInView:self.view];
+        prevLocation.y = self.view.bounds.size.height - prevLocation.y;
+        prevLocation.x *= _retinaScale;
+        prevLocation.y *= _retinaScale;
+        
+        TouchMoveEventData eventData;
+        eventData.x = location.x;
+        eventData.y = location.y;
+        eventData.deltaX = prevLocation.x - location.x;
+        eventData.deltaY = prevLocation.y - location.y;
+        eventData.radius = (int32_t)(touch.majorRadius - touch.majorRadiusTolerance);
+        
+        PlatformEvents::onTouchMove(&eventData);
     }
 }
-
-- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
-    updateTouchEvent((int)[event allTouches].count);
-}
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
-    
-}
-
 
 @end
 

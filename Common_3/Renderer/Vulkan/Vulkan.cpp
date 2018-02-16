@@ -224,6 +224,7 @@ namespace RENDERER_CPP_NAMESPACE {
       VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
       VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+	  VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
    };
 
    const char* gVkWantedDeviceExtensions[] =
@@ -237,11 +238,13 @@ namespace RENDERER_CPP_NAMESPACE {
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 	  VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+	  VK_NV_EXTERNAL_MEMORY_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	  VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
 #endif
 	  VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	  VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
+	  VK_AMD_GCN_SHADER_EXTENSION_NAME,
    };
 
    // These functions will need to be loaded in
@@ -267,20 +270,8 @@ namespace RENDERER_CPP_NAMESPACE {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
    static PFN_vkGetMemoryWin32HandleKHR							pfnGetMemoryWin32HandleKHR = NULL;
 #endif
+   static PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV pfnvkGetPhysicalDeviceExternalImageFormatPropertiesNV = NULL;
    static bool													gExternalMemoryExtension = false;
-
-   // extension function pointers for NVX
-   static PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX	pfnvkGetPhysicalDeviceGeneratedCommandsPropertiesNVX = NULL;
-   static PFN_vkCmdProcessCommandsNVX							pfnvkCmdProcessCommandsNVX = NULL;
-   static PFN_vkCmdReserveSpaceForCommandsNVX					pfnvkCmdReserveSpaceForCommandsNVX = NULL;
-   static PFN_vkCreateIndirectCommandsLayoutNVX					pfnvkCreateIndirectCommandsLayoutNVX = NULL;
-   static PFN_vkDestroyIndirectCommandsLayoutNVX				pfnvkDestroyIndirectCommandsLayoutNVX = NULL;
-   static PFN_vkCreateObjectTableNVX							pfnvkCreateObjectTableNVX = NULL;
-   static PFN_vkDestroyObjectTableNVX							pfnvkDestroyObjectTableNVX = NULL;
-   static PFN_vkRegisterObjectsNVX								pfnvkRegisterObjectsNVX = NULL;
-   static PFN_vkUnregisterObjectsNVX							pfnvkUnregisterObjectsNVX = NULL;
-
-   static bool													gNVXSupport = false;
 
    // Function pointers loaded from AMD draw indirect count extension
    static PFN_vkCmdDrawIndexedIndirectCountAMD					pfnvkCmdDrawIndexedIndirectCountAMD = NULL;
@@ -301,10 +292,10 @@ namespace RENDERER_CPP_NAMESPACE {
 
 #if defined(__cplusplus)  
 #define DECLARE_ZERO(type, var) \
-            type var = {};                        
+            type var = {};
 #else
 #define DECLARE_ZERO(type, var) \
-            type var = {0};                        
+            type var = {0};
 #endif
 
 	// Internal utility functions (may become external one day)
@@ -799,7 +790,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			  }
 			  for (uint32_t i = 0; i < pParam->mCount; ++i)
 			  {
-				  if (!pParam->ppBuffers[i]) {
+				  if (!pParam->ppTextures[i]) {
 					  LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, i);
 					  return;
 				  }
@@ -1226,8 +1217,11 @@ namespace RENDERER_CPP_NAMESPACE {
 			LOGINFOF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
 		}
 		else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+			// Vulkan SDK 1.0.68 fixes the Dedicated memory binding validation error bugs
+#if VK_HEADER_VERSION < 68
 			// Disable warnings for bind memory for dedicated allocations extension
 			if(gDedicatedAllocationExtension && messageCode != 11 && messageCode != 12)
+#endif
 				LOGWARNINGF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
 		}
 		else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
@@ -1298,10 +1292,13 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	// API functions
 	// -------------------------------------------------------------------------------------------------
-	void initRenderer(const char *app_name, const RendererDesc * settings, Renderer** ppRenderer)
+	void initRenderer(const char* app_name, const RendererDesc * settings, Renderer** ppRenderer)
 	{
 		Renderer* pRenderer = (Renderer*)conf_calloc (1, sizeof (*pRenderer));
 		ASSERT(pRenderer);
+
+		pRenderer->pName = (char*)conf_calloc(strlen(app_name) + 1, sizeof(char));
+		memcpy(pRenderer->pName, app_name, strlen(app_name));
 
 		// Copy settings
 		memcpy (&(pRenderer->mSettings), settings, sizeof (*settings));
@@ -1343,6 +1340,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	void removeRenderer(Renderer* pRenderer)
 	{
 		ASSERT(pRenderer);
+
+		SAFE_FREE(pRenderer->pName);
 
 		destroy_default_resources(pRenderer);
 
@@ -2050,7 +2049,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			add_info.extent.height = pTexture->mDesc.mHeight;
 			add_info.extent.depth = pTexture->mDesc.mType == TEXTURE_TYPE_3D ? pTexture->mDesc.mDepth : 1;
 			add_info.mipLevels = pTexture->mDesc.mMipLevels;
-			add_info.arrayLayers = pTexture->mDesc.mArraySize * pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1;
+			add_info.arrayLayers = pTexture->mDesc.mArraySize * (pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1);
 			add_info.samples = util_to_vk_sample_count(pTexture->mDesc.mSampleCount);
 			add_info.tiling = (0 != pTexture->mDesc.mHostVisible) ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
 			add_info.usage = util_to_vk_image_usage(pTexture->mDesc.mUsage);
@@ -2164,7 +2163,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			add_info.subresourceRange.baseMipLevel = pTexture->mDesc.mBaseMipLevel;
 			add_info.subresourceRange.levelCount = pTexture->mDesc.mMipLevels;
 			add_info.subresourceRange.baseArrayLayer = pTexture->mDesc.mBaseArrayLayer;
-			add_info.subresourceRange.layerCount = pTexture->mDesc.mArraySize * pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1;
+			add_info.subresourceRange.layerCount = pTexture->mDesc.mArraySize * (pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1);
 			VkResult vk_res = vkCreateImageView(pRenderer->pDevice, &add_info, NULL, &(pTexture->pVkImageView));
 			ASSERT(VK_SUCCESS == vk_res);
 
@@ -2365,9 +2364,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mVert.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pVertEntryPoint = (char*)conf_calloc(pDesc->mVert.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pVertEntryPoint, pDesc->mVert.mEntryPoint, pDesc->mVert.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_TESC: {
 					createShaderReflection((const uint8_t*)pDesc->mHull.mCode.c_str(), pDesc->mHull.mCode.getLength(), SHADER_STAGE_TESC, &stageReflections[counter++]);
@@ -2378,9 +2374,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mHull.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pTescEntryPoint = (char*)conf_calloc(pDesc->mHull.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pTescEntryPoint, pDesc->mHull.mEntryPoint, pDesc->mHull.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_TESE: {
 					createShaderReflection((const uint8_t*)pDesc->mDomain.mCode.c_str(), pDesc->mDomain.mCode.getLength(), SHADER_STAGE_TESE, &stageReflections[counter++]);
@@ -2389,9 +2382,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mDomain.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pTeseEntryPoint = (char*)conf_calloc(pDesc->mDomain.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pTeseEntryPoint, pDesc->mDomain.mEntryPoint, pDesc->mDomain.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_GEOM: {
 					createShaderReflection((const uint8_t*)pDesc->mGeom.mCode.c_str(), pDesc->mGeom.mCode.getLength(), SHADER_STAGE_GEOM, &stageReflections[counter++]);
@@ -2400,9 +2390,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mGeom.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pGeomEntryPoint = (char*)conf_calloc(pDesc->mGeom.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pGeomEntryPoint, pDesc->mGeom.mEntryPoint, pDesc->mGeom.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_FRAG: {
 					createShaderReflection((const uint8_t*)pDesc->mFrag.mCode.c_str(), pDesc->mFrag.mCode.getLength(), SHADER_STAGE_FRAG, &stageReflections[counter++]);
@@ -2411,9 +2398,6 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mFrag.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
 					ASSERT(VK_SUCCESS == vk_res);
-
-					pShaderProgram->pFragEntryPoint = (char*)conf_calloc(pDesc->mFrag.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pFragEntryPoint, pDesc->mFrag.mEntryPoint, pDesc->mFrag.mEntryPoint.size());
 				} break;
 				case SHADER_STAGE_COMP: {
 					createShaderReflection((const uint8_t*)pDesc->mComp.mCode.c_str(), pDesc->mComp.mCode.getLength(), SHADER_STAGE_COMP, &stageReflections[counter++]);
@@ -2424,9 +2408,86 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_info.pCode = (const uint32_t*)pDesc->mComp.mCode.c_str();
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
 					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				}
+			}
+		}
 
-					pShaderProgram->pCompEntryPoint = (char*)conf_calloc(pDesc->mComp.mEntryPoint.size() + 1, sizeof(char));
-					memcpy(pShaderProgram->pCompEntryPoint, pDesc->mComp.mEntryPoint, pDesc->mComp.mEntryPoint.size());
+		createPipelineReflection(stageReflections, counter, &pShaderProgram->mReflection);
+
+		*ppShaderProgram = pShaderProgram;
+	}
+
+	void addShader(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+	{
+		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
+		pShaderProgram->mStages = pDesc->mStages;
+
+		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
+
+		uint32_t counter = 0;
+		ShaderReflection stageReflections[SHADER_STAGE_COUNT];
+		String entryPoint = "main";
+
+		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i) {
+			ShaderStage stage_mask = (ShaderStage)(1 << i);
+			if (stage_mask == (pShaderProgram->mStages & stage_mask)) {
+				DECLARE_ZERO(VkShaderModuleCreateInfo, create_info);
+				create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+				create_info.pNext = NULL;
+				create_info.flags = 0;
+				switch (stage_mask) {
+				case SHADER_STAGE_VERT: {
+					createShaderReflection((const uint8_t*)pDesc->mVert.mByteCode.data(), (uint32_t)pDesc->mVert.mByteCode.size(), SHADER_STAGE_VERT, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mVert.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mVert.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_TESC: {
+					createShaderReflection((const uint8_t*)pDesc->mHull.mByteCode.data(), (uint32_t)pDesc->mHull.mByteCode.size(), SHADER_STAGE_TESC, &stageReflections[counter++]);
+
+					memcpy(&pShaderProgram->mNumControlPoint, &stageReflections[counter - 1].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
+
+					create_info.codeSize = pDesc->mHull.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mHull.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_TESE: {
+					createShaderReflection((const uint8_t*)pDesc->mDomain.mByteCode.data(), (uint32_t)pDesc->mDomain.mByteCode.size(), SHADER_STAGE_TESE, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mDomain.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mDomain.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_GEOM: {
+					createShaderReflection((const uint8_t*)pDesc->mGeom.mByteCode.data(), (uint32_t)pDesc->mGeom.mByteCode.size(), SHADER_STAGE_GEOM, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mGeom.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mGeom.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_FRAG: {
+					createShaderReflection((const uint8_t*)pDesc->mFrag.mByteCode.data(), (uint32_t)pDesc->mFrag.mByteCode.size(), SHADER_STAGE_FRAG, &stageReflections[counter++]);
+
+					create_info.codeSize = pDesc->mFrag.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mFrag.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
+					ASSERT(VK_SUCCESS == vk_res);
+				} break;
+				case SHADER_STAGE_COMP: {
+					createShaderReflection((const uint8_t*)pDesc->mComp.mByteCode.data(), (uint32_t)pDesc->mComp.mByteCode.size(), SHADER_STAGE_COMP, &stageReflections[counter++]);
+
+					memcpy(pShaderProgram->mNumThreadsPerGroup, stageReflections[counter - 1].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
+
+					create_info.codeSize = pDesc->mComp.mByteCode.size();
+					create_info.pCode = (const uint32_t*)pDesc->mComp.mByteCode.data();
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
+					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				}
 			}
@@ -2445,32 +2506,26 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkVert) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkVert, NULL);
-			SAFE_FREE(pShaderProgram->pVertEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkTesc) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkTesc, NULL);
-			SAFE_FREE(pShaderProgram->pTescEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkTese) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkTese, NULL);
-			SAFE_FREE(pShaderProgram->pTeseEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkGeom) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkGeom, NULL);
-			SAFE_FREE(pShaderProgram->pGeomEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkFrag) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkFrag, NULL);
-			SAFE_FREE(pShaderProgram->pFragEntryPoint);
 		}
 
 		if (VK_NULL_HANDLE != pShaderProgram->pVkComp) {
 			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkComp, NULL);
-			SAFE_FREE(pShaderProgram->pCompEntryPoint);
 		}
 
 		destroyPipelineReflection(&pShaderProgram->mReflection);
@@ -2647,6 +2702,19 @@ namespace RENDERER_CPP_NAMESPACE {
 			DescriptorSetLayout& table = pRootSignature->pDescriptorSetLayouts[i];
 			RootDescriptorLayout& root = pRootSignature->pRootDescriptorLayouts[i];
 
+			if (layouts[i].mBindings.getCount())
+			{
+				// sort table by type (CBV/SRV/UAV) by register
+				layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)
+				{
+					return (int)(lhs.binding - rhs.binding);
+				});
+				layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)
+				{
+					return (int)(lhs.descriptorType - rhs.descriptorType);
+				});
+			}
+
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layoutInfo.pNext = NULL;
@@ -2801,27 +2869,27 @@ namespace RENDERER_CPP_NAMESPACE {
 					stages[stage_count].pSpecializationInfo = NULL;
 					switch (stage_mask) {
 					case SHADER_STAGE_VERT: {
-						stages[stage_count].pName = pShaderProgram->pVertEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mVertexStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
 						stages[stage_count].module = pShaderProgram->pVkVert;
 					} break;
 					case SHADER_STAGE_TESC: {
-						stages[stage_count].pName = pShaderProgram->pTescEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mHullStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 						stages[stage_count].module = pShaderProgram->pVkTesc;
 					} break;
 					case SHADER_STAGE_TESE: {
-						stages[stage_count].pName = pShaderProgram->pTeseEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mDomainStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 						stages[stage_count].module = pShaderProgram->pVkTese;
 					} break;
 					case SHADER_STAGE_GEOM: {
-						stages[stage_count].pName = pShaderProgram->pGeomEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mGeometryStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
 						stages[stage_count].module = pShaderProgram->pVkGeom;
 					} break;
 					case SHADER_STAGE_FRAG: {
-						stages[stage_count].pName = pShaderProgram->pFragEntryPoint;
+						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mPixelStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 						stages[stage_count].module = pShaderProgram->pVkFrag;
 					} break;
@@ -2916,7 +2984,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 			rs.pNext = NULL;
 			rs.flags = 0;
-			rs.depthClampEnable = pRasterizerState->DepthBiasEnable;
+			rs.depthClampEnable = pRasterizerState->DepthClampEnable;
 			rs.rasterizerDiscardEnable = VK_FALSE;
 			rs.polygonMode = pRasterizerState->PolygonMode;
 			rs.cullMode = pRasterizerState->CullMode;
@@ -3036,7 +3104,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			stage.flags = 0;
 			stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 			stage.module = pDesc->pShaderProgram->pVkComp;
-			stage.pName = pDesc->pShaderProgram->pCompEntryPoint;
+			stage.pName = pDesc->pShaderProgram->mReflection.mStageReflections[0].pEntryPoint;
 			stage.pSpecializationInfo = NULL;
 
 			DECLARE_ZERO(VkComputePipelineCreateInfo, create_info);
@@ -3839,7 +3907,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		Renderer* renderer = pQueue->pRenderer;
 
 		VkSemaphore* wait_semaphores = waitSemaphoreCount ? (VkSemaphore*)alloca(waitSemaphoreCount * sizeof(VkSemaphore)) : NULL;
-		waitSemaphoreCount = waitSemaphoreCount > MAX_PRESENT_WAIT_SEMAPHORES ? waitSemaphoreCount : waitSemaphoreCount;
+		waitSemaphoreCount = waitSemaphoreCount > MAX_PRESENT_WAIT_SEMAPHORES ? MAX_PRESENT_WAIT_SEMAPHORES : waitSemaphoreCount;
 		uint32_t waitCount = 0;
 		for (uint32_t i = 0; i < waitSemaphoreCount; ++i) {
 			if (ppWaitSemaphores[i]->mSignaled)
@@ -3910,21 +3978,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 	}
 
-	void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle)
-	{
-		ASSERT(pRenderer);
-		ASSERT(pTexture);
-		ASSERT(ppHandle);
 
-		VkMemoryGetWin32HandleInfoKHR info = { VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR, NULL };
-		info.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-		info.memory = pTexture->pVkMemory->GetMemory();
-		HANDLE handle = NULL;
-		VkResult vkRes = pfnGetMemoryWin32HandleKHR(pRenderer->pDevice, &info, ppHandle);
-
-		ASSERT(VK_SUCCESS == vkRes && *ppHandle);
-		//*ppHandle = pTexture->pVkImage;
-	}
 	// -------------------------------------------------------------------------------------------------
 	// Utility functions
 	// -------------------------------------------------------------------------------------------------
@@ -4702,21 +4756,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		queue_priorities.clear();
 
 		// Get function pointers from loaded extensions
-
-		// Load nvx device generated commands functions
-		if (gNVXSupport)
-		{
-			pfnvkGetPhysicalDeviceGeneratedCommandsPropertiesNVX = (PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX");
-			pfnvkCmdProcessCommandsNVX = (PFN_vkCmdProcessCommandsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdProcessCommandsNVX");;
-			pfnvkCmdReserveSpaceForCommandsNVX = (PFN_vkCmdReserveSpaceForCommandsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdReserveSpaceForCommandsNVX");;
-			pfnvkCreateIndirectCommandsLayoutNVX = (PFN_vkCreateIndirectCommandsLayoutNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCreateIndirectCommandsLayoutNVX");
-			pfnvkDestroyIndirectCommandsLayoutNVX = (PFN_vkDestroyIndirectCommandsLayoutNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkDestroyIndirectCommandsLayoutNVX");
-			pfnvkCreateObjectTableNVX = (PFN_vkCreateObjectTableNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCreateObjectTableNVX");
-			pfnvkDestroyObjectTableNVX = (PFN_vkDestroyObjectTableNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkDestroyObjectTableNVX");
-			pfnvkRegisterObjectsNVX = (PFN_vkRegisterObjectsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkRegisterObjectsNVX");
-			pfnvkUnregisterObjectsNVX = (PFN_vkUnregisterObjectsNVX)vkGetDeviceProcAddr(pRenderer->pDevice, "vkUnregisterObjectsNVX");
-		}
-
 		if (gDebugMarkerExtension)
 		{
 			LOGINFOF("Successfully loaded Debug Marker extension");
@@ -4751,7 +4790,9 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (gExternalMemoryExtension)
 		{
 			LOGINFOF("Successfully loaded External Memory extension");
-
+			pfnvkGetPhysicalDeviceExternalImageFormatPropertiesNV = (PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV)
+				vkGetInstanceProcAddr(pRenderer->pVKInstance, "vkGetPhysicalDeviceExternalImageFormatPropertiesNV");
+			// Load memory import export functions
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 			pfnGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetMemoryWin32HandleKHR");
 #endif
@@ -4759,8 +4800,10 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		if (gDrawIndirectCountAMDExtension)
 		{
+			LOGINFOF("Successfully loaded AMD Draw Indirect extension");
+			// Load indirect draw functions which take a counter buffer to determine the number of draw commands
 			pfnvkCmdDrawIndexedIndirectCountAMD = (PFN_vkCmdDrawIndexedIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDrawIndexedIndirectCountAMD");
-			pfnvkCmdDrawIndirectCountAMD = (PFN_vkCmdDrawIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdIndirectCountAMD");
+			pfnvkCmdDrawIndirectCountAMD = (PFN_vkCmdDrawIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDrawIndirectCountAMD");
 		}
 	}
 
@@ -4778,79 +4821,41 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
 	{
+		ASSERT(pRenderer);
+		ASSERT(pDesc);
+
 		CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1, sizeof (CommandSignature));
 		pCommandSignature->mDesc = *pDesc;
-
-		//  VkIndirectCommandsLayoutTokenNVX* cmdLayoutTokens;
-		pCommandSignature->cmdLayoutTokens = (VkIndirectCommandsLayoutTokenNVX*)conf_calloc(pDesc->mIndirectArgCount, sizeof(VkIndirectCommandsLayoutTokenNVX));
-		pCommandSignature->mDrawCommandOffsets = (uint32_t*)conf_calloc(pDesc->mIndirectArgCount, sizeof(uint32_t));  // caculate offset for each command argument in per command
-		pCommandSignature->pTokens = (VkIndirectCommandsTokenNVX*)conf_calloc(pDesc->mIndirectArgCount, sizeof(VkIndirectCommandsTokenNVX));
-		pCommandSignature->mIndirectArgDescCounts = pDesc->mIndirectArgCount;
-		pCommandSignature->mDrawCommandStride = 0;
 
 		for (uint32_t i = 0; i < pDesc->mIndirectArgCount; ++i)  // counting for all types;
 		{
 			switch (pDesc->pArgDescs[i].mType)
 			{
-			case INDIRECT_CONSTANT_BUFFER_VIEW: LOGERROR ("Vulkan doesn't support CBV "); break;
-			case INDIRECT_SHADER_RESOURCE_VIEW: LOGERROR ("Vulkan doesn't support SRV "); break;
-			case INDIRECT_UNORDERED_ACCESS_VIEW: LOGERROR ("Vulkan doesn't support UAV "); break;
 			case INDIRECT_DRAW:
 				pCommandSignature->mDrawType = INDIRECT_DRAW;
-				pCommandSignature->mDrawCommandOffsets [i] = pCommandSignature->mDrawCommandStride;
-				pCommandSignature->mDrawCommandStride += sizeof (IndirectDrawArguments);
-				pCommandSignature->cmdLayoutTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_NVX;
-				pCommandSignature->pTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_NVX;
+				pCommandSignature->mDrawCommandStride += sizeof(IndirectDrawArguments);
 				break;
 			case INDIRECT_DRAW_INDEX:
 				pCommandSignature->mDrawType = INDIRECT_DRAW_INDEX;
-				pCommandSignature->mDrawCommandOffsets [i] = pCommandSignature->mDrawCommandStride;
-				pCommandSignature->mDrawCommandStride += sizeof (IndirectDrawIndexArguments);
-				pCommandSignature->cmdLayoutTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NVX;
-				pCommandSignature->pTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NVX;
+				pCommandSignature->mDrawCommandStride += sizeof(IndirectDrawIndexArguments);
 				break;
 			case INDIRECT_DISPATCH:
 				pCommandSignature->mDrawType = INDIRECT_DISPATCH;
-				pCommandSignature->mDrawCommandOffsets [i] = pCommandSignature->mDrawCommandStride;
-				pCommandSignature->mDrawCommandStride += sizeof (IndirectDispatchArguments);
-				pCommandSignature->cmdLayoutTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DISPATCH_NVX;
-				pCommandSignature->pTokens [i].tokenType = VK_INDIRECT_COMMANDS_TOKEN_TYPE_DISPATCH_NVX;
+				pCommandSignature->mDrawCommandStride += sizeof(IndirectDispatchArguments);
 				break;
-			case INDIRECT_VERTEX_BUFFER:
-			case INDIRECT_INDEX_BUFFER:
-			case INDIRECT_CONSTANT:
-			case INDIRECT_DESCRIPTOR_TABLE:
-			case INDIRECT_PIPELINE:
-				LOGERROR("This Graphics Card desn't have VK_NVX_device_generated_commands, can only use IndirectDraw,IndirectDrawIndex and IndirectDispatch");
+			default:
+				LOGERROR("Vulkan runtime only supports IndirectDraw, IndirectDrawIndex and IndirectDispatch at this point");
 				break;
 			}
-			pCommandSignature->cmdLayoutTokens [i].divisor = 1;
 		}
 
 		pCommandSignature->mDrawCommandStride = round_up(pCommandSignature->mDrawCommandStride, 16);
-
-		VkIndirectCommandsLayoutCreateInfoNVX commandsLayoutInfo;
-		commandsLayoutInfo.sType = VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX;
-		commandsLayoutInfo.pNext = nullptr;
-
-		if (pCommandSignature->mDrawType == INDIRECT_DRAW || pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
-			commandsLayoutInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
-			commandsLayoutInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-
-		commandsLayoutInfo.pTokens = pCommandSignature->cmdLayoutTokens;
-		// re use the secondary command buffer bit
-        commandsLayoutInfo.flags = VK_INDIRECT_COMMANDS_LAYOUT_USAGE_EMPTY_EXECUTIONS_BIT_NVX;
-		commandsLayoutInfo.tokenCount = pDesc->mIndirectArgCount;
 
 		*ppCommandSignature = pCommandSignature;
 	}
 
 	void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
 	{
-		SAFE_FREE(pCommandSignature->pTokens);
-		SAFE_FREE(pCommandSignature->cmdLayoutTokens);
-		SAFE_FREE(pCommandSignature->mDrawCommandOffsets);
 		SAFE_FREE(pCommandSignature);
 	}
 
@@ -4924,9 +4929,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			pfnCmdDebugMarkerInsert(pCmd->pVkCmdBuf, &markerInfo);
 		}
 	}
-	/************************************************************************/
-	// Interop functionality
-	/************************************************************************/
 	/************************************************************************/
 	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION

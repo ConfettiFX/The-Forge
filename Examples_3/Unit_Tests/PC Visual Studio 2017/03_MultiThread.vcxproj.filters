@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{d0979d97-7f0e-4556-b920-2142af65c39e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{c2e84fd6-adae-4734-bc2a-4da88250b3e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{c5d3607f-970b-4814-8ae2-327d3571d43e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{45acf34d-daa2-413e-b4a5-6476c2cf16a3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\03_MultiThread\03_MultiThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Graph.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Graph.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Particle.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Particle.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\03_MultiThread\PCDX12\Graph.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\PCDX12\Graph.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\PCDX12\Particle.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\PCDX12\Particle.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\PCDX12\Skybox.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\PCDX12\Skybox.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+  </ItemGroup>
+</Project>

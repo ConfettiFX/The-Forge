@@ -74,7 +74,7 @@ inline float3 operator*(const float3& a, float b)
 inline const float3& operator*=(float3&a, float b)
 { return a = a * b; }
 inline float3 operator*(float a, const float3& b)
-{ return a * b; }
+{ return b * a; }
 inline float3 operator*(const float3& a, const float3& b)
 { return float3(a.x * b.x, a.y * b.y, a.z * b.z); }
 inline const float3& operator*=(float3&a, float3& b)

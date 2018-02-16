@@ -38,30 +38,7 @@
 #include "../../OS/Interfaces/IMemoryManager.h"
 #include "../../OS/Interfaces/ILogManager.h"
 
-#define VALIDATE_IOS_MIN_VERSION(MIN_VER)    defined(TARGET_IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= MIN_VER
-#define VERTEX_SHADER   0
-#define FRAGMENT_SHADER 1
-#define COMPUTE_SHADER  2
 #define MAX_BUFFER_BINDINGS 31
-
-#ifdef TARGET_IOS
-using NativeScreenType = UIScreen;
-#else
-using NativeScreenType = NSScreen;
-#endif
-
-// Constanat definitions
-
-const unsigned int gPvrTc2MinTexWidth = 16;
-const unsigned int gPvrTc2MinTexHeight = 8;
-const unsigned int gPvrTc4MinTexHeight = 8;
-
-const uint32_t MAX_DESCRIPTOR_SET_POOL_SIZE = 256;
-
-// Global variables
-float retinaScaling = 1.0f;
-Mutex rootConstantMutex;
-Mutex argumentBufferMutex;
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 namespace RENDERER_CPP_NAMESPACE {
@@ -135,6 +112,18 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLTriangleFillModeLines,
     };
     
+    static const MTLSamplerAddressMode gMtlAddressModeTranslator[] =
+    {
+        MTLSamplerAddressModeMirrorRepeat,
+        MTLSamplerAddressModeRepeat,
+        MTLSamplerAddressModeClampToEdge,
+#ifndef TARGET_IOS
+        MTLSamplerAddressModeClampToBorderColor,
+#else
+        MTLSamplerAddressModeClampToEdge,
+#endif
+    };
+    
     static const MTLPixelFormat gMtlFormatTranslator[] =
     {
         MTLPixelFormatInvalid,
@@ -142,7 +131,11 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLPixelFormatR8Unorm,
         MTLPixelFormatRG8Unorm,
         MTLPixelFormatInvalid, //RGB8 not directly supported
+#ifndef TARGET_IOS
         MTLPixelFormatRGBA8Unorm,
+#else
+        MTLPixelFormatBGRA8Unorm,
+#endif
         
         MTLPixelFormatR16Unorm,
         MTLPixelFormatRG16Unorm,
@@ -200,19 +193,21 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLPixelFormatDepth16Unorm,
         MTLPixelFormatDepth24Unorm_Stencil8,
         MTLPixelFormatDepth24Unorm_Stencil8,
+#else
+        // Only 32-bit depth formats are supported on iOS.
+        MTLPixelFormatDepth32Float,
+        MTLPixelFormatDepth32Float,
+        MTLPixelFormatDepth32Float,
+#endif
         MTLPixelFormatDepth32Float,
         
+#ifndef TARGET_IOS
         MTLPixelFormatBC1_RGBA,
         MTLPixelFormatBC2_RGBA,
         MTLPixelFormatBC3_RGBA,
         MTLPixelFormatBC4_RUnorm,
         MTLPixelFormatBC5_RGUnorm,
 #else
-        MTLPixelFormatInvalid,
-        MTLPixelFormatInvalid,
-        MTLPixelFormatInvalid,
-        MTLPixelFormatInvalid,
-        
         MTLPixelFormatInvalid,
         MTLPixelFormatInvalid,
         MTLPixelFormatInvalid,
@@ -250,9 +245,9 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLPixelFormatBGRA8Unorm, // BGRA8 = 79,
         // Extend for DXGI
         MTLPixelFormatInvalid, // X8D24PAX32 = 80,
-        MTLPixelFormatInvalid, // S8 = 81,
+        MTLPixelFormatStencil8,// S8 = 81,
         MTLPixelFormatInvalid, // D16S8 = 82,
-        MTLPixelFormatInvalid, // D32S8 = 83,
+        MTLPixelFormatDepth32Float_Stencil8, // D32S8 = 83,
     };
     
     // =================================================================================================
@@ -282,7 +277,6 @@ namespace RENDERER_CPP_NAMESPACE {
     MTLVertexFormat util_to_mtl_vertex_format(const ImageFormat::Enum &format);
     MTLLoadAction util_to_mtl_load_action(const LoadActionType &loadActionType);
     
-    void util_adjust_buffer_slots(const char* srcCode, char* outString);
     void util_bind_root_constant(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
     void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
     void util_end_current_encoders(Cmd* pCmd);
@@ -419,12 +413,14 @@ namespace RENDERER_CPP_NAMESPACE {
         DescriptorData*                                                                 pDescriptorDataArray;
         /// Array of flags to check whether a descriptor has already been bound.
         bool*                                                                           pBoundDescriptors;
-        /// Map that holds the number of times each rootConstant is bound.
-        tinystl::unordered_map<uint32_t, uint32_t>                                      mRootConstantBindingCountMap;
+        
         /// Map that holds all the rootConstants bound by this descriptor manager for each root signature.
         tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>                      mRootConstantBuffers;
+        /// Map that holds the number of times each rootConstant is bound.
+        tinystl::unordered_map<uint32_t, uint32_t>                                      mRootConstantBindingCountMap;
+        
         /// Map that holds all the argument buffers bound by this descriptor manager for each root signature.
-        tinystl::unordered_map<uint32_t, Buffer*>                                       mArgumentBuffers;
+        tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>                  mArgumentBuffers;
     } DescriptorManager;
     
     Mutex gDescriptorMutex;
@@ -444,8 +440,7 @@ namespace RENDERER_CPP_NAMESPACE {
             DescriptorInfo* descriptorInfo = &pRootSignature->pDescriptors[i];
             
             // Create a DescriptorData structure for a default resource.
-            pManager->pDescriptorDataArray[i].pName = (const char*)conf_calloc(descriptorInfo->mDesc.name_size + 1, sizeof(char));
-            memcpy((char*)pManager->pDescriptorDataArray[i].pName, descriptorInfo->mDesc.name, descriptorInfo->mDesc.name_size);
+            pManager->pDescriptorDataArray[i].pName = "";
             pManager->pDescriptorDataArray[i].mIndex = i;
             pManager->pDescriptorDataArray[i].mCount = 1;
             pManager->pDescriptorDataArray[i].mOffset = 0;
@@ -462,6 +457,7 @@ namespace RENDERER_CPP_NAMESPACE {
                     case MTLTextureType3D: ppDefaultTexture = &pDefault3DTexture; break;
                     case MTLTextureTypeCube: ppDefaultTexture = &pDefaultCubeTexture; break;
                     case MTLTextureTypeCubeArray: ppDefaultTexture = &pDefaultCubeTextureArray; break;
+                    default: break;
                 }
             }
             
@@ -484,6 +480,7 @@ namespace RENDERER_CPP_NAMESPACE {
                 case DESCRIPTOR_TYPE_BUFFER:{
                     pManager->pDescriptorDataArray[i].ppBuffers = &pDefaultBuffer;
                     break;
+                default: break;
                 }
             }
         }
@@ -493,9 +490,9 @@ namespace RENDERER_CPP_NAMESPACE {
     
     void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
     {
+        pManager->mArgumentBuffers.clear();
         pManager->mRootConstantBindingCountMap.clear();
         pManager->mRootConstantBuffers.clear();
-        pManager->mArgumentBuffers.clear();
         SAFE_FREE(pManager->pDescriptorDataArray);
         SAFE_FREE(pManager->pBoundDescriptors);
         SAFE_FREE(pManager);
@@ -542,6 +539,10 @@ namespace RENDERER_CPP_NAMESPACE {
         for (uint32_t i = 0; i < pManager->pRootSignature->mDescriptorCount; ++i)
         {
             DescriptorInfo* descInfo = &pManager->pRootSignature->pDescriptors[i];
+
+            pManager->pDescriptorDataArray[i].mIndex = 0;
+            pManager->pDescriptorDataArray[i].mCount = 1;
+            pManager->pDescriptorDataArray[i].mOffset = 0;
             
             // Metal requires that the bound textures match the texture type present in the shader.
             Texture** ppDefaultTexture = nil;
@@ -555,6 +556,7 @@ namespace RENDERER_CPP_NAMESPACE {
                     case MTLTextureType3D: ppDefaultTexture = &pDefault3DTexture; break;
                     case MTLTextureTypeCube: ppDefaultTexture = &pDefaultCubeTexture; break;
                     case MTLTextureTypeCubeArray: ppDefaultTexture = &pDefaultCubeTextureArray; break;
+                    default: break;
                 }
             }
             
@@ -575,11 +577,12 @@ namespace RENDERER_CPP_NAMESPACE {
                 case DESCRIPTOR_TYPE_BUFFER:{
                     pManager->pDescriptorDataArray[i].ppBuffers = &pDefaultBuffer;
                     break;
+                default: break;
                 }
             }
             pManager->pBoundDescriptors[i] = false;
         }
-        pManager->mRootConstantBindingCountMap.clear(); // Also clear the root constants binding count map.
+        pManager->mRootConstantBindingCountMap.clear();
     }
     
     void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
@@ -658,7 +661,12 @@ namespace RENDERER_CPP_NAMESPACE {
                         return;
                     }
                     pManager->pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
+                    
+                    // In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
+                    if(pParam->mCount > 1 && pManager->mArgumentBuffers.find(hash).node) pManager->mArgumentBuffers[hash].second = true;
+                    
                     break;
+                default: break;
             }
             
             // Mark this descriptor as unbound, so it's values are updated.
@@ -722,6 +730,7 @@ namespace RENDERER_CPP_NAMESPACE {
                         }
                         break;
                     }
+                    default: break;
                 }
                 pManager->pBoundDescriptors[i] = true;
             }
@@ -781,7 +790,11 @@ namespace RENDERER_CPP_NAMESPACE {
         TextureDesc textureCubeDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
         addTexture(pRenderer, &textureCubeDesc, &pDefaultCubeTexture);
         TextureDesc textureCubeArrayDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+#ifndef TARGET_IOS
         addTexture(pRenderer, &textureCubeArrayDesc, &pDefaultCubeTextureArray);
+#else
+        if([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1]) addTexture(pRenderer, &textureCubeArrayDesc, &pDefaultCubeTextureArray);
+#endif
         
         BufferDesc bufferDesc = {};
         bufferDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_UNIFORM;
@@ -827,10 +840,13 @@ namespace RENDERER_CPP_NAMESPACE {
         return ImageFormat::BGRA8;
     }
 
-    void initRenderer(const char *appName, const RendererDesc* settings, Renderer** ppRenderer)
+    void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
     {
         Renderer* pRenderer = (Renderer*)conf_calloc(1, sizeof(*pRenderer));
         ASSERT(pRenderer);
+        
+        pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
+        memcpy(pRenderer->pName, appName, strlen(appName));
         
         // Copy settings
         memcpy(&(pRenderer->mSettings), settings, sizeof(*settings));
@@ -838,19 +854,13 @@ namespace RENDERER_CPP_NAMESPACE {
         // Initialize the Metal bits
         {
             // Get the systems default device.
-#ifndef TARGET_IOS
             pRenderer->pDevice = MTLCreateSystemDefaultDevice();
-#else
-            pRenderer->pDevice = ((MTKView*)CFBridgingRelease(pRenderer->mSettings.pViewHandle)).device;
-#endif
             
             // Get the Metal Layer.
-#ifndef TARGET_IOS
             pRenderer->mMetalLayer = [CAMetalLayer layer];
             pRenderer->mMetalLayer.framebufferOnly = YES;
             pRenderer->mMetalLayer.drawsAsynchronously = TRUE;
             pRenderer->mMetalLayer.presentsWithTransaction = FALSE;
-#endif
             
             // Set the default GPU settings.
             pRenderer->mNumOfGPUs = 1;
@@ -876,10 +886,9 @@ namespace RENDERER_CPP_NAMESPACE {
     void removeRenderer(Renderer* pRenderer)
     {
         ASSERT(pRenderer);
+        SAFE_FREE(pRenderer->pName);
         destroyAllocator(pRenderer->pResourceAllocator);
-#ifndef TARGET_IOS
         pRenderer->mMetalLayer = nil;
-#endif
         pRenderer->pDevice = nil;
         SAFE_FREE(pRenderer);
     }
@@ -1027,15 +1036,13 @@ namespace RENDERER_CPP_NAMESPACE {
         pSwapChain->pMTKView = (MTKView*)CFBridgingRelease(pDesc->pWindow->handle);
         pSwapChain->pMTKView.device = pRenderer->pDevice;
         pSwapChain->pMTKView.autoresizesSubviews = TRUE;
+        pSwapChain->pMTKView.preferredFramesPerSecond = 60.0;
 #if !defined(TARGET_IOS)
         pSwapChain->pMTKView.wantsLayer = YES;
 #endif
         
         // Set the view pixel format to match the swapchain's pixel format.
         pSwapChain->pMTKView.colorPixelFormat = util_to_mtl_pixel_format(pSwapChain->mDesc.mColorFormat, pSwapChain->mDesc.mSrgb);
-        
-        // Calculate the global retina scaling (shared across swapchains).
-        retinaScaling = pSwapChain->pMTKView.drawableSize.width / pSwapChain->pMTKView.frame.size.width;
         
         // Create present command queues for the swapchain.
         pSwapChain->presentCommandQueue = [pRenderer->pDevice newCommandQueue];
@@ -1055,12 +1062,9 @@ namespace RENDERER_CPP_NAMESPACE {
         descColor.mSampleCount = SAMPLE_COUNT_1;
         descColor.mSampleQuality = 0;
         
-        // Swapchain RT creation happens during acquireNextImage, as we can only access the swapchain's current drawable.
         pSwapChain->ppSwapchainRenderTargets = (RenderTarget**)conf_calloc(pSwapChain->mDesc.mImageCount, sizeof(*pSwapChain->ppSwapchainRenderTargets));
         for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i) {
-            void* drawableTexture = nullptr;
-            //if(i == 0) drawableTexture = (void*)CFBridgingRetain(pSwapChain->pMTKView.currentDrawable.texture); // We only have access to the current drawable.
-            addRenderTarget(pRenderer, &descColor, &pSwapChain->ppSwapchainRenderTargets[i], drawableTexture);
+            addRenderTarget(pRenderer, &descColor, &pSwapChain->ppSwapchainRenderTargets[i], nil);
         }
         
         *ppSwapChain = pSwapChain;
@@ -1137,8 +1141,7 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
         if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
         {
-            LOGERROR("Multi-Sampled textures cannot have mip maps");
-            ASSERT(false);
+            internal_log(LOG_TYPE_ERROR, "Multi-Sampled textures cannot have mip maps", "MetalRenderer");
             return;
         }
         add_texture(pRenderer, pDesc, ppTexture, false);
@@ -1154,31 +1157,43 @@ namespace RENDERER_CPP_NAMESPACE {
         pRenderTarget->mDesc = *pDesc;
         
         TextureDesc rtDesc = {
-            TEXTURE_TYPE_2D, // TODO: Support different format RTs.
-            TEXTURE_CREATION_FLAG_NONE,
+            TEXTURE_TYPE_2D, // TODO: Support 1D, 2D, 3D and Cube RTs.
+            pRenderTarget->mDesc.mFlags,
             pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight, pRenderTarget->mDesc.mDepth,
             pRenderTarget->mDesc.mBaseArrayLayer, pRenderTarget->mDesc.mArraySize,
-            0, 1, // TODO: Should we support multiple mips levels on an RT?
+            pRenderTarget->mDesc.mBaseMipLevel, 1, // TODO: Support render to mip.
             pRenderTarget->mDesc.mSampleCount, pRenderTarget->mDesc.mSampleQuality,
             pRenderTarget->mDesc.mFormat, pRenderTarget->mDesc.mClearValue, TEXTURE_USAGE_SAMPLED_IMAGE,
             RESOURCE_STATE_UNDEFINED, pNativeHandle, pRenderTarget->mDesc.mSrgb, false
         };
+#ifndef TARGET_IOS
         add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
+#else
+        if(pDesc->mFormat != ImageFormat::D24S8) add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
+        // Combined depth stencil is not supported on iOS.
+        else
+        {
+            rtDesc.mFormat = ImageFormat::D24;
+            add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
+            rtDesc.mFormat = ImageFormat::S8;
+            add_texture(pRenderer, &rtDesc, &pRenderTarget->pStencil, true);
+        }
+#endif
         
         *ppRenderTarget = pRenderTarget;
     }
     void removeTexture(Renderer* pRenderer, Texture* pTexture)
     {
         ASSERT(pTexture);
-        if (pTexture->mOwnsImage)
-        {
-            destroyTexture(pRenderer->pResourceAllocator, pTexture);
-        }
+        destroyTexture(pRenderer->pResourceAllocator, pTexture);
         SAFE_FREE(pTexture);
     }
     void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
     {
         removeTexture(pRenderer, pRenderTarget->pTexture);
+#ifdef TARGET_IOS
+        if(pRenderTarget->pStencil) removeTexture(pRenderer, pRenderTarget->pStencil);
+#endif
         SAFE_FREE(pRenderTarget);
     }
     
@@ -1193,12 +1208,13 @@ namespace RENDERER_CPP_NAMESPACE {
         
         MTLSamplerDescriptor* samplerDesc = [[MTLSamplerDescriptor alloc] init];
         samplerDesc.minFilter = (minFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
-        samplerDesc.magFilter = (minFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
+        samplerDesc.magFilter = (magFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
         samplerDesc.mipFilter = (mipMapMode == MIPMAP_MODE_NEAREST ? MTLSamplerMipFilterNearest : MTLSamplerMipFilterLinear);
         samplerDesc.maxAnisotropy = (maxAnisotropy==0 ? 1 : maxAnisotropy);  // 0 is not allowed in Metal
-        samplerDesc.sAddressMode = (addressU == ADDRESS_MODE_CLAMP_TO_EDGE ? MTLSamplerAddressModeClampToEdge : MTLSamplerAddressModeMirrorRepeat);
-        samplerDesc.tAddressMode = (addressV == ADDRESS_MODE_CLAMP_TO_EDGE ? MTLSamplerAddressModeClampToEdge : MTLSamplerAddressModeMirrorRepeat);
-        samplerDesc.rAddressMode = (addressW == ADDRESS_MODE_CLAMP_TO_EDGE ? MTLSamplerAddressModeClampToEdge : MTLSamplerAddressModeMirrorRepeat);
+        samplerDesc.sAddressMode = gMtlAddressModeTranslator[addressU];
+        samplerDesc.tAddressMode = gMtlAddressModeTranslator[addressV];
+        samplerDesc.rAddressMode = gMtlAddressModeTranslator[addressW];
+        
         pSampler->mtlSamplerState = [pRenderer->pDevice newSamplerStateWithDescriptor:samplerDesc];
         pSampler->mSamplerId = (++gSamplerIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
         
@@ -1225,30 +1241,31 @@ namespace RENDERER_CPP_NAMESPACE {
         ShaderReflection stageReflections[SHADER_STAGE_COUNT];
         for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
         {
+            String source = NULL;
+            const char* entry_point = NULL;
+            const char* shader_name = NULL;
+            tinystl::vector<ShaderMacro> shader_macros;
+            __strong id<MTLFunction>* compiled_code = nullptr;
+            
             ShaderStage stage_mask = (ShaderStage)(1 << i);
             if (stage_mask == (pShaderProgram->mStages & stage_mask)) {
-                const char* source = NULL;
-                const char* entry_point = NULL;
-                const char* shader_name = NULL;
-                tinystl::vector<ShaderMacro> shader_macros;
-                __strong id<MTLFunction>* compiled_code = nullptr;
                 switch (stage_mask) {
                     case SHADER_STAGE_VERT: {
-                        source = pDesc->mVert.mCode.c_str();
+                        source = pDesc->mVert.mCode;
                         entry_point = pDesc->mVert.mEntryPoint.c_str();
                         shader_name = pDesc->mVert.mName.c_str();
                         shader_macros = pDesc->mVert.mMacros;
                         compiled_code = &(pShaderProgram->mtlVertexShader);
                     } break;
                     case SHADER_STAGE_FRAG: {
-                        source = pDesc->mFrag.mCode.c_str();
+                        source = pDesc->mFrag.mCode;
                         entry_point = pDesc->mFrag.mEntryPoint.c_str();
                         shader_name = pDesc->mFrag.mName.c_str();
                         shader_macros = pDesc->mFrag.mMacros;
                         compiled_code = &(pShaderProgram->mtlFragmentShader);
                     } break;
                     case SHADER_STAGE_COMP: {
-                        source = pDesc->mComp.mCode.c_str();
+                        source = pDesc->mComp.mCode;
                         entry_point = pDesc->mComp.mEntryPoint.c_str();
                         shader_name = pDesc->mComp.mName.c_str();
                         shader_macros = pDesc->mComp.mMacros;
@@ -1257,13 +1274,6 @@ namespace RENDERER_CPP_NAMESPACE {
                     default:
                         break;
                 }
-                
-                char* parsedCode = (char*)conf_calloc(1, strlen(source)*2);
-                util_adjust_buffer_slots(source, parsedCode);
-                uint32_t parsedCodeSize = (uint32_t)strlen(parsedCode);
-                
-                tinystl::string definition;
-                tinystl::string value;
                 
                 // Create a NSDictionary for all the shader macros.
                 NSNumberFormatter *numberFormatter = [[NSNumberFormatter alloc] init]; // Used for reading NSNumbers macro values from strings.
@@ -1284,20 +1294,12 @@ namespace RENDERER_CPP_NAMESPACE {
                 NSDictionary* macroDictionary = [[NSDictionary alloc] initWithObjects:valArray forKeys:defArray];
                 
                 // Compile the code
-                NSString* shaderSource = [[NSString alloc] initWithUTF8String:parsedCode];
+                NSString* shaderSource = [[NSString alloc] initWithUTF8String:source.c_str()];
                 NSError* error = nil;
                 
-#if VALIDATE_IOS_MIN_VERSION(__IPHONE_9_0) && !defined(TARGET_IOS)
-                MTLCompileOptions* options = [MTLCompileOptions alloc];
-                options.preprocessorMacros = macroDictionary;
-                options.languageVersion = MTLLanguageVersion1_0;
-                id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithSource:shaderSource options:options error:&error];
-#else
                 MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
                 options.preprocessorMacros = macroDictionary;
-                //  TODO: iOS 9.0 beta 3 fails to compile the shader is options object is passed
                 id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithSource:shaderSource options:options error:&error];
-#endif  //  VALIDATE_IOS_MIN_VERSION(__IPHONE_9_0)
                 
                 if (error)
                 {
@@ -1313,13 +1315,66 @@ namespace RENDERER_CPP_NAMESPACE {
                     *compiled_code = function;
                 }
                 
-                createShaderReflection(pShaderProgram, (const uint8_t*)parsedCode, parsedCodeSize, stage_mask, &stageReflections[shaderReflectionCounter++]);
-                
-                conf_free(parsedCode);
+                createShaderReflection(pShaderProgram, (const uint8_t*)source.c_str(), source.size(), stage_mask, &stageReflections[shaderReflectionCounter++]);
             }
         }
         
         createPipelineReflection(stageReflections, shaderReflectionCounter, &pShaderProgram->mReflection);
+        
+        *ppShaderProgram = pShaderProgram;
+    }
+    
+    void addShader(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+    {
+        ASSERT(pRenderer);
+        ASSERT(pDesc && pDesc->mStages);
+        ASSERT(ppShaderProgram);
+        
+        Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
+        ASSERT(pShaderProgram);
+        pShaderProgram->pRenderer = pRenderer;
+        pShaderProgram->mStages = pDesc->mStages;
+        
+        uint32_t reflectionCount = 0;
+        for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+        {
+            ShaderStage stage_mask = (ShaderStage)(1 << i);
+            const BinaryShaderStageDesc* pStage = NULL;
+            __strong id<MTLFunction>* compiled_code = nullptr;
+            
+            if (stage_mask == (pShaderProgram->mStages & stage_mask))
+            {
+                switch (stage_mask) {
+                    case SHADER_STAGE_VERT: {
+                        pStage = &pDesc->mVert;
+                        compiled_code = &(pShaderProgram->mtlVertexShader);
+                    } break;
+                    case SHADER_STAGE_FRAG: {
+                        pStage = &pDesc->mFrag;
+                        compiled_code = &(pShaderProgram->mtlFragmentShader);
+                    } break;
+                    case SHADER_STAGE_COMP: {
+                        pStage = &pDesc->mComp;
+                        compiled_code = &(pShaderProgram->mtlComputeShader);
+                    } break;
+                    default:
+                        break;
+                }
+                
+                // Create a MTLLibrary from bytecode.
+                dispatch_data_t byteCode = dispatch_data_create(pStage->mByteCode.data(), pStage->mByteCode.size(), nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+                id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithData:byteCode error:nil];
+                
+                // Create a MTLFunction from the loaded MTLLibrary.
+                NSString* entryPointNStr = [[NSString alloc] initWithUTF8String:pStage->mEntryPoint];
+                id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
+                *compiled_code = function;
+                
+                createShaderReflection(pShaderProgram, (const uint8_t*)pStage->mSource.c_str(), pStage->mSource.size(), stage_mask, &pShaderProgram->mReflection.mStageReflections[reflectionCount++]);
+            }
+        }
+        
+        createPipelineReflection(pShaderProgram->mReflection.mStageReflections, reflectionCount, &pShaderProgram->mReflection);
         
         *ppShaderProgram = pShaderProgram;
     }
@@ -1330,6 +1385,16 @@ namespace RENDERER_CPP_NAMESPACE {
         pShaderProgram->mtlVertexShader = nil;
         pShaderProgram->mtlFragmentShader = nil;
         pShaderProgram->mtlComputeShader = nil;
+        
+        // free allocated resources during reflection.
+        for(uint32_t i = 0; i < MAX_SHADER_STAGE_COUNT; i++)
+        {
+            SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pNamePool);
+            SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pVertexInputs);
+            SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pShaderResources);
+            SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pVariables);
+        }
+        
         SAFE_FREE(pShaderProgram);
     }
     
@@ -1357,7 +1422,6 @@ namespace RENDERER_CPP_NAMESPACE {
             for (uint32_t i = 0; i < pReflection->mShaderResourceCount; ++i)
             {
                 ShaderResource const* pRes = &pReflection->pShaderResources[i];
-                uint32_t setIndex = 0; // NOTE: Resource Update Frequency is ignored on Metal.
                 
                 // Find all unique resources
                 tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
@@ -1465,7 +1529,7 @@ namespace RENDERER_CPP_NAMESPACE {
             }
             renderPipelineDesc.vertexDescriptor.layouts[0].stride = calculateVertexLayoutStride(pPipeline->mGraphics.pVertexLayout);
             renderPipelineDesc.vertexDescriptor.layouts[0].stepRate = 1;
-            renderPipelineDesc.vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+            renderPipelineDesc.vertexDescriptor.layouts[0].stepFunction = pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone ? MTLVertexStepFunctionPerPatchControlPoint : MTLVertexStepFunctionPerVertex;
         }
         
 #if !defined(TARGET_IOS)
@@ -1476,6 +1540,7 @@ namespace RENDERER_CPP_NAMESPACE {
             case PRIMITIVE_TOPO_LINE_STRIP: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine; break;
             case PRIMITIVE_TOPO_TRI_LIST:   renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
             case PRIMITIVE_TOPO_TRI_STRIP:  renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
+            default: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
         }
 #endif
         
@@ -1503,6 +1568,29 @@ namespace RENDERER_CPP_NAMESPACE {
         if (pDesc->pDepthStencil !=nil )
         {
             renderPipelineDesc.depthAttachmentPixelFormat = pDesc->pDepthStencil->pTexture->mtlPixelFormat;
+#ifndef TARGET_IOS
+            if(renderPipelineDesc.depthAttachmentPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8) renderPipelineDesc.stencilAttachmentPixelFormat = renderPipelineDesc.depthAttachmentPixelFormat;
+#else
+            if(pDesc->pDepthStencil->pStencil) renderPipelineDesc.stencilAttachmentPixelFormat = pDesc->pDepthStencil->pStencil->mtlPixelFormat;
+#endif
+        }
+        
+        // assign common tesselation configuration if needed.
+        if(pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone)
+        {
+            renderPipelineDesc.tessellationFactorScaleEnabled = NO;
+            renderPipelineDesc.tessellationFactorFormat = MTLTessellationFactorFormatHalf;
+            renderPipelineDesc.tessellationControlPointIndexType = MTLTessellationControlPointIndexTypeNone;
+            renderPipelineDesc.tessellationFactorStepFunction = MTLTessellationFactorStepFunctionConstant;
+            renderPipelineDesc.tessellationOutputWindingOrder = MTLWindingClockwise;
+            renderPipelineDesc.tessellationPartitionMode = MTLTessellationPartitionModeFractionalEven;
+#if TARGET_OS_IOS
+            // In iOS, the maximum tessellation factor is 16
+            renderPipelineDesc.maxTessellationFactor = 16;
+#elif TARGET_OS_OSX
+            // In OS X, the maximum tessellation factor is 64
+            renderPipelineDesc.maxTessellationFactor = 64;
+#endif
         }
         
         // create pipeline from descriptor
@@ -1681,6 +1769,45 @@ namespace RENDERER_CPP_NAMESPACE {
         SAFE_FREE(pRasterizerState);
     }
     
+    void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
+    {
+        assert(pRenderer!=nil);
+        assert(pDesc!=nil);
+        
+        CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1,sizeof(CommandSignature));
+        
+        for (uint32_t i=0; i< pDesc->mIndirectArgCount; i++)
+        {
+            const IndirectArgumentDescriptor* argDesc = pDesc->pArgDescs + i;
+            if (argDesc->mType != INDIRECT_DRAW && argDesc->mType != INDIRECT_DISPATCH && argDesc->mType != INDIRECT_DRAW_INDEX)
+            {
+                assert(!"Unsupported indirect argument type.");
+                SAFE_FREE(pCommandSignature);
+                return;
+            }
+            
+            if (i==0)
+            {
+                pCommandSignature->mDrawType = argDesc->mType;
+            }
+            else if (pCommandSignature->mDrawType != argDesc->mType)
+            {
+                assert(!"All elements in the root signature must be of the same type.");
+                SAFE_FREE(pCommandSignature);
+                return;
+            }
+        }
+        pCommandSignature->mIndirectArgDescCounts = pDesc->mIndirectArgCount;
+        
+        *ppCommandSignature = pCommandSignature;
+    }
+    
+    void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
+    {
+        ASSERT(pCommandSignature);
+        SAFE_FREE(pCommandSignature);
+    }
+    
     // -------------------------------------------------------------------------------------------------
     // Buffer functions
     // -------------------------------------------------------------------------------------------------
@@ -1737,8 +1864,21 @@ namespace RENDERER_CPP_NAMESPACE {
                 Texture* colorAttachment = ppRenderTargets[i]->pTexture;
                 
                 pCmd->pRenderPassDesc.colorAttachments[i].texture = colorAttachment->mtlTexture;
+#ifndef TARGET_IOS
                 pCmd->pRenderPassDesc.colorAttachments[i].loadAction = (pLoadActions!=NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionLoad);
                 pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+#else
+                if(colorAttachment->mtlTexture.storageMode == MTLStorageModeMemoryless)
+                {
+                    pCmd->pRenderPassDesc.colorAttachments[i].loadAction = MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionDontCare;
+                }
+                else
+                {
+                    pCmd->pRenderPassDesc.colorAttachments[i].loadAction = (pLoadActions!=NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionLoad);
+                    pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+                }
+#endif
                 if (pLoadActions!=NULL)
                 {
                     const ClearValue& clearValue = pLoadActions->mClearColorValues[i];
@@ -1749,11 +1889,61 @@ namespace RENDERER_CPP_NAMESPACE {
             if (pDepthStencil != nil)
             {
                 pCmd->pRenderPassDesc.depthAttachment.texture = pDepthStencil->pTexture->mtlTexture;
-                pCmd->pRenderPassDesc.depthAttachment.loadAction = (pLoadActions!=NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionLoad);
+#ifndef TARGET_IOS
+                bool isStencilEnabled = pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
+                if(isStencilEnabled) pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pTexture->mtlTexture;
+
+                pCmd->pRenderPassDesc.depthAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
                 pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
-                if (pLoadActions!=NULL){
-                    pCmd->pRenderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
+                if(isStencilEnabled)
+                {
+                    pCmd->pRenderPassDesc.stencilAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
                 }
+                else
+                {
+                    pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+                }
+#else
+                bool isStencilEnabled = pDepthStencil->pStencil != nil;
+                if(isStencilEnabled) pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pStencil->mtlTexture;
+                
+                if(pDepthStencil->pTexture->mtlTexture.storageMode != MTLStorageModeMemoryless)
+                {
+                    pCmd->pRenderPassDesc.depthAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+                    if(isStencilEnabled)
+                    {
+                        pCmd->pRenderPassDesc.stencilAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
+                        pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
+                    }
+                    else
+                    {
+                        pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+                        pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+                    }
+                }
+                else
+                {
+                    pCmd->pRenderPassDesc.depthAttachment.loadAction = MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
+                    pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+                }
+#endif
+                if (pLoadActions)
+                {
+                    pCmd->pRenderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
+                    if(isStencilEnabled) pCmd->pRenderPassDesc.stencilAttachment.clearStencil = 0;
+                }
+            }
+            else
+            {
+                pCmd->pRenderPassDesc.depthAttachment.loadAction = MTLLoadActionDontCare;
+                pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+                pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
+                pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
             }
             
             bool switchedEncoders = util_sync_encoders(pCmd, CMD_POOL_DIRECT); // Check if we need to sync different types of encoders (only on direct cmds).
@@ -1781,10 +1971,9 @@ namespace RENDERER_CPP_NAMESPACE {
     void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
     {
         ASSERT(pCmd);
-        // TODO: Add more error messages like these in other cmd functions.
         if (pCmd->mtlRenderEncoder==nil)
         {
-            LOGERROR("Using cmdSetViewport out of a cmdBeginRender / cmdEndRender block is not allowed");
+            internal_log(LOG_TYPE_ERROR, "Using cmdSetViewport out of a cmdBeginRender / cmdEndRender block is not allowed", "cmdSetViewport");
             return;
         }
         
@@ -1804,13 +1993,13 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pCmd);
         if (pCmd->mtlRenderEncoder==nil)
         {
-            LOGERROR("Using cmdSetScissor out of a cmdBeginRender / cmdEndRender block is not allowed");
+            internal_log(LOG_TYPE_ERROR, "Using cmdSetScissor out of a cmdBeginRender / cmdEndRender block is not allowed", "cmdSetScissor");
             return;
         }
         
         // Get the maximum safe scissor values for the current render pass.
-        uint32_t maxScissorX = pCmd->pRenderPassDesc.colorAttachments[0].texture.width > 0 ? pCmd->pRenderPassDesc.colorAttachments[0].texture.width : pCmd->pRenderPassDesc.depthAttachment.texture.width;
-        uint32_t maxScissorY = pCmd->pRenderPassDesc.colorAttachments[0].texture.height > 0 ? pCmd->pRenderPassDesc.colorAttachments[0].texture.height : pCmd->pRenderPassDesc.depthAttachment.texture.height;
+        uint32_t maxScissorX = pCmd->pRenderPassDesc.colorAttachments[0].texture.width > 0 ? (uint32_t)pCmd->pRenderPassDesc.colorAttachments[0].texture.width : (uint32_t)pCmd->pRenderPassDesc.depthAttachment.texture.width;
+        uint32_t maxScissorY = pCmd->pRenderPassDesc.colorAttachments[0].texture.height > 0 ? (uint32_t)pCmd->pRenderPassDesc.colorAttachments[0].texture.height : (uint32_t)pCmd->pRenderPassDesc.depthAttachment.texture.height;
         uint32_t maxScissorW = maxScissorX - int32_t(max(x, 0));
         uint32_t maxScissorH = maxScissorY - int32_t(max(y, 0));
         
@@ -1841,6 +2030,7 @@ namespace RENDERER_CPP_NAMESPACE {
                 
                 RasterizerState* rasterizerState = pPipeline->mGraphics.pRasterizerState ? pPipeline->mGraphics.pRasterizerState : pDefaultRasterizerState;
                 [pCmd->mtlRenderEncoder setCullMode:rasterizerState->cullMode];
+                [pCmd->mtlRenderEncoder setTriangleFillMode:rasterizerState->fillMode];
                 
                 if(pCmd->pRenderPassDesc.depthAttachment.texture != nil) {
                     DepthState* depthState = pPipeline->mGraphics.pDepthState ? pPipeline->mGraphics.pDepthState : pDefaultDepthState;
@@ -1853,6 +2043,7 @@ namespace RENDERER_CPP_NAMESPACE {
                     case PRIMITIVE_TOPO_LINE_STRIP: pCmd->selectedPrimitiveType = MTLPrimitiveTypeLineStrip; break;
                     case PRIMITIVE_TOPO_TRI_LIST: pCmd->selectedPrimitiveType = MTLPrimitiveTypeTriangle; break;
                     case PRIMITIVE_TOPO_TRI_STRIP: pCmd->selectedPrimitiveType = MTLPrimitiveTypeTriangleStrip; break;
+                    default: pCmd->selectedPrimitiveType = MTLPrimitiveTypeTriangle; break;
                 }
             }
             else
@@ -1881,42 +2072,90 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(0 != bufferCount);
         ASSERT(ppBuffers);
         
-        for (uint32_t i=0; i<bufferCount; i++)
+        // When using a poss-tessellation vertex shader, the first vertex buffer bound is used as the tessellation factors buffer.
+        uint startIdx = 0;
+        if(pCmd->pShader->mtlVertexShader.patchType != MTLPatchTypeNone)
         {
-            [pCmd->mtlRenderEncoder setVertexBuffer:ppBuffers[i]->mtlBuffer offset:ppBuffers[i]->mPositionInHeap atIndex:i];
+            startIdx = 1;
+            [pCmd->mtlRenderEncoder setTessellationFactorBuffer:ppBuffers[0]->mtlBuffer offset:0 instanceStride:0];
+        }
+        
+        for (uint32_t i = startIdx; i<bufferCount; i++)
+        {
+            [pCmd->mtlRenderEncoder setVertexBuffer:ppBuffers[i]->mtlBuffer offset:ppBuffers[i]->mPositionInHeap atIndex:(i-startIdx)];
         }
     }
     
     void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
     {
         ASSERT(pCmd);
-        [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
-                                    vertexStart:firstVertex
-                                    vertexCount:vertexCount];
+        if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+        {
+            [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
+                                       vertexStart:firstVertex
+                                       vertexCount:vertexCount];
+        }
+        else // Tessellated draw version.
+        {
+            [pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                     patchStart:firstVertex
+                                     patchCount:vertexCount
+                               patchIndexBuffer:nil
+                         patchIndexBufferOffset:0
+                                  instanceCount:1
+                                   baseInstance:0];
+        }
     }
     
     void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount)
     {
         ASSERT(pCmd);
-        [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
-                                    vertexStart:firstVertex
-                                    vertexCount:vertexCount
-                                  instanceCount:instanceCount];
+        if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+        {
+            [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
+                                       vertexStart:firstVertex
+                                       vertexCount:vertexCount
+                                     instanceCount:instanceCount];
+        }
+        else // Tessellated draw version.
+        {
+            [pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                     patchStart:firstVertex
+                                     patchCount:vertexCount
+                               patchIndexBuffer:nil
+                         patchIndexBufferOffset:0
+                                  instanceCount:instanceCount
+                                   baseInstance:0];
+        }
     }
     
     void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex)
     {
         ASSERT(pCmd);
-        
         Buffer* indexBuffer = pCmd->selectedIndexBuffer;
         MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
         uint64_t offset = firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4);
         
-        [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
-                                            indexCount:indexCount
-                                             indexType:indexType
-                                           indexBuffer:indexBuffer->mtlBuffer
-                                     indexBufferOffset:offset];
+        if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+        {
+            [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
+                                               indexCount:indexCount
+                                                indexType:indexType
+                                              indexBuffer:indexBuffer->mtlBuffer
+                                        indexBufferOffset:offset];
+        }
+        else // Tessellated draw version.
+        {
+            [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                            patchStart:firstIndex
+                                            patchCount:indexCount
+                                      patchIndexBuffer:indexBuffer->mtlBuffer
+                                patchIndexBufferOffset:0
+                               controlPointIndexBuffer:nil
+                         controlPointIndexBufferOffset:0
+                                         instanceCount:1
+                                          baseInstance:0];
+        }
     }
     
     void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount)
@@ -1927,12 +2166,27 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
         uint64_t offset = firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4);
         
-        [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
-                                            indexCount:indexCount
-                                             indexType:indexType
-                                           indexBuffer:indexBuffer->mtlBuffer
-                                     indexBufferOffset:offset
-                                         instanceCount:instanceCount];
+        if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+        {
+            [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
+                                               indexCount:indexCount
+                                                indexType:indexType
+                                              indexBuffer:indexBuffer->mtlBuffer
+                                        indexBufferOffset:offset
+                                            instanceCount:instanceCount];
+        }
+        else // Tessellated draw version.
+        {
+            [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                            patchStart:firstIndex
+                                            patchCount:indexCount
+                                      patchIndexBuffer:indexBuffer->mtlBuffer
+                                patchIndexBufferOffset:0
+                               controlPointIndexBuffer:nil
+                         controlPointIndexBufferOffset:0
+                                         instanceCount:instanceCount
+                                          baseInstance:0];
+        }
     }
     
     void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -1948,18 +2202,97 @@ namespace RENDERER_CPP_NAMESPACE {
         [pCmd->mtlComputeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadsPerThreadgroup];
     }
     
-    void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers, bool batch)
+    void cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset)
     {
+        for (uint32_t i=0; i<maxCommandCount; i++)
+        {
+            if (pCommandSignature->mDrawType == INDIRECT_DRAW)
+            {
+                uint64_t indirectBufferOffset = bufferOffset + sizeof(IndirectDrawArguments)*i;
+                if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+                {
+                    [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
+                                            indirectBuffer:pIndirectBuffer->mtlBuffer
+                                      indirectBufferOffset:indirectBufferOffset];
+                }
+                else // Tessellated draw version.
+                {
+#ifndef TARGET_IOS
+                    [pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                       patchIndexBuffer:nil
+                                 patchIndexBufferOffset:0
+                                         indirectBuffer:pIndirectBuffer->mtlBuffer
+                                   indirectBufferOffset:indirectBufferOffset];
+#else
+                    // Tessellated indirect-draw is not supported on iOS.
+                    // Instead, read regular draw arguments from the indirect draw buffer.
+                    mapBuffer(pCmd->pCmdPool->pRenderer, pIndirectBuffer);
+                    IndirectDrawArguments* pDrawArgs = (IndirectDrawArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
+                    unmapBuffer(pCmd->pCmdPool->pRenderer, pIndirectBuffer);
+                    
+                    [pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                             patchStart:pDrawArgs->mStartVertex
+                                             patchCount:pDrawArgs->mVertexCount
+                                       patchIndexBuffer:nil
+                                 patchIndexBufferOffset:0
+                                          instanceCount:pDrawArgs->mInstanceCount
+                                           baseInstance:pDrawArgs->mStartInstance];
+#endif
+                }
+            }
+            else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
+            {
+                Buffer* indexBuffer = pCmd->selectedIndexBuffer;
+                MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
+                uint64_t indirectBufferOffset = bufferOffset + sizeof(IndirectDrawIndexArguments)*i;
+                
+                if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+                {
+                    [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
+                                                        indexType:indexType
+                                                      indexBuffer:indexBuffer->mtlBuffer
+                                                indexBufferOffset:0
+                                                   indirectBuffer:pIndirectBuffer->mtlBuffer
+                                             indirectBufferOffset:indirectBufferOffset];
+                }
+                else // Tessellated draw version.
+                {
+#ifndef TARGET_IOS
+                    [pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                       patchIndexBuffer:indexBuffer->mtlBuffer
+                                 patchIndexBufferOffset:0
+                                         indirectBuffer:pIndirectBuffer->mtlBuffer
+                                   indirectBufferOffset:indirectBufferOffset];
+#else
+                    // Tessellated indirect-draw is not supported on iOS.
+                    // Instead, read regular draw arguments from the indirect draw buffer.
+                    mapBuffer(pCmd->pCmdPool->pRenderer, pIndirectBuffer);
+                    IndirectDrawIndexArguments* pDrawArgs = (IndirectDrawIndexArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
+                    unmapBuffer(pCmd->pCmdPool->pRenderer, pIndirectBuffer);
+                    
+                    [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                                    patchStart:pDrawArgs->mStartIndex
+                                                    patchCount:pDrawArgs->mIndexCount
+                                              patchIndexBuffer:indexBuffer->mtlBuffer
+                                        patchIndexBufferOffset:0
+                                       controlPointIndexBuffer:nil
+                                 controlPointIndexBufferOffset:0
+                                                 instanceCount:pDrawArgs->mInstanceCount
+                                                  baseInstance:pDrawArgs->mStartInstance];
+#endif
+                }
+            }
+            else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
+            {
+                //TODO: Implement.
+                ASSERT(0);
+            }
+        }
     }
     
-    void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch)
-    {
-    }
-    
-    void cmdFlushBarriers(Cmd* pCmd)
-    {
-        
-    }
+    void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers, bool batch) {}
+    void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch) {}
+    void cmdFlushBarriers(Cmd* pCmd) {}
     
     void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer)
     {
@@ -2022,30 +2355,6 @@ namespace RENDERER_CPP_NAMESPACE {
         }
     }
     
-    void cmdCopyBufferToTexture2d(Cmd* pCmd, uint32_t width, uint32_t height, uint32_t rowPitch, uint64_t bufferOffset, uint32_t mipLevel, Buffer* pBuffer, Texture* pTexture)
-    {
-        ASSERT(pCmd);
-        ASSERT(pBuffer);
-        ASSERT(pTexture);
-        ASSERT(pCmd->mtlCommandBuffer);
-        
-        util_end_current_encoders(pCmd);
-        pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
-        
-        width = max<uint32_t>(width, 1);
-        height = max<uint32_t>(height, 1);
-        
-        [pCmd->mtlBlitEncoder copyFromBuffer:pBuffer->mtlBuffer
-                                sourceOffset:bufferOffset
-                           sourceBytesPerRow: pTexture->mIsCompressed ? rowPitch*4 : rowPitch  //TODO: must ask Apple why we have to *4 here. Otherwise a validation error is thrown: metal bug?
-                         sourceBytesPerImage:0     // this is only needed for 3D textures and texture arrays
-                                  sourceSize:MTLSizeMake(width, height, 1)
-                                   toTexture:pTexture->mtlTexture
-                            destinationSlice:0
-                            destinationLevel:mipLevel
-                           destinationOrigin:MTLOriginMake(0, 0, 0)];
-    }
-    
     void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
     {
         ASSERT(pRenderer);
@@ -2053,19 +2362,14 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pSwapChain);
         ASSERT(pSignalSemaphore || pFence);
         
-#ifdef TARGET_IOS
-        *pImageIndex = (uint32_t)(pSwapChain->pMTKView.currentDrawable.drawableID);
-        return;
-#else
         id<CAMetalDrawable> drawable = pSwapChain->pMTKView.currentDrawable;
-        id<MTLTexture> mtlTexture = drawable.texture;
         
         // Look for the render target containing this texture.
         // If not found: assign it to an empty slot
         for (uint32_t i=0; i<pSwapChain->mDesc.mImageCount; i++)
         {
             RenderTarget* renderTarget = pSwapChain->ppSwapchainRenderTargets[i];
-            if (renderTarget->pTexture->mtlTexture == mtlTexture)
+            if (renderTarget->pTexture->mtlTexture == drawable.texture)
             {
                 *pImageIndex = i;
                 return;
@@ -2098,7 +2402,6 @@ namespace RENDERER_CPP_NAMESPACE {
             pSwapChain->ppSwapchainRenderTargets[i]->pTexture->mtlTexture = nil;
         }
         acquireNextImage(pRenderer, pSwapChain, pSignalSemaphore, pFence, pImageIndex);
-#endif
     }
     
     void queueSubmit(Queue* pQueue,uint32_t cmdCount, Cmd** ppCmds, Fence* pFence, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores, uint32_t signalSemaphoreCount, Semaphore** ppSignalSemaphores)
@@ -2159,7 +2462,11 @@ namespace RENDERER_CPP_NAMESPACE {
         }
         ASSERT(pQueue->mtlCommandQueue != nil);
         
+#ifndef TARGET_IOS
         [pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->pMTKView.currentDrawable];
+#else
+        [pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->pMTKView.currentDrawable afterMinimumDuration:1.0/pSwapChain->pMTKView.preferredFramesPerSecond];
+#endif
         
         for (uint32_t i=0; i<waitSemaphoreCount; i++)
         {
@@ -2203,6 +2510,54 @@ namespace RENDERER_CPP_NAMESPACE {
         *ppHandle = (void*)CFBridgingRetain(pTexture->mtlTexture);
     }
     
+    /************************************************************************/
+    // Debug Marker Implementation
+    /************************************************************************/
+    
+    void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+    {
+        if(pCmd->mtlRenderEncoder) [pCmd->mtlRenderEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+        else if(pCmd->mtlComputeEncoder) [pCmd->mtlComputeEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+        else if(pCmd->mtlBlitEncoder) [pCmd->mtlBlitEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+        else [pCmd->mtlCommandBuffer pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+    }
+    
+    void cmdBeginDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...)
+    {
+        va_list argptr;
+        va_start(argptr, pFormat);
+        char buffer[65536];
+        vsnprintf(buffer, sizeof(buffer), pFormat, argptr);
+        va_end(argptr);
+        cmdBeginDebugMarker(pCmd, r, g, b, buffer);
+    }
+    
+    void cmdEndDebugMarker(Cmd* pCmd)
+    {
+        if(pCmd->mtlRenderEncoder) [pCmd->mtlRenderEncoder popDebugGroup];
+        else if(pCmd->mtlComputeEncoder) [pCmd->mtlComputeEncoder popDebugGroup];
+        else if(pCmd->mtlBlitEncoder) [pCmd->mtlBlitEncoder popDebugGroup];
+        else [pCmd->mtlCommandBuffer popDebugGroup];
+    }
+    
+    void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+    {
+        if(pCmd->mtlRenderEncoder) [pCmd->mtlRenderEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
+        else if(pCmd->mtlComputeEncoder) [pCmd->mtlComputeEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
+        else if(pCmd->mtlBlitEncoder) [pCmd->mtlBlitEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
+    }
+    
+    void cmdAddDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...)
+    {
+        va_list argptr;
+        va_start(argptr, pFormat);
+        char buffer[65536];
+        vsnprintf(buffer, sizeof(buffer), pFormat, argptr);
+        va_end(argptr);
+        
+        cmdAddDebugMarker(pCmd, r, g, b, buffer);
+    }
+    
     // -------------------------------------------------------------------------------------------------
     // Utility functions
     // -------------------------------------------------------------------------------------------------
@@ -2235,6 +2590,8 @@ namespace RENDERER_CPP_NAMESPACE {
             case ImageFormat::RGBA16F: result = true; break;
             case ImageFormat::RGBA32UI: result = true; break;
             case ImageFormat::RGBA32F: result = true; break;
+            
+            default: result = false; break;
         }
         return result;
     }
@@ -2307,7 +2664,8 @@ namespace RENDERER_CPP_NAMESPACE {
         format == MTLPixelFormatBC2_RGBA ||
         format == MTLPixelFormatBC2_RGBA_sRGB ||
         format == MTLPixelFormatBC3_RGBA ||
-        format== MTLPixelFormatBC4_RUnorm ||
+        format == MTLPixelFormatBC3_RGBA_sRGB ||
+        format == MTLPixelFormatBC4_RUnorm ||
         format == MTLPixelFormatBC4_RSnorm ||
         format == MTLPixelFormatBC5_RGUnorm ||
         format == MTLPixelFormatBC5_RGSnorm ||
@@ -2383,37 +2741,6 @@ namespace RENDERER_CPP_NAMESPACE {
             return MTLLoadActionClear;
     }
     
-    void util_adjust_buffer_slots(const char* srcCode, char* outString)
-    {
-        const char* srcPtr = srcCode;
-        char* dstPtr = outString;
-        
-        const char* srcLoc = nullptr;
-        while((srcLoc = strstr(srcPtr, "buffer(")))
-        {
-            uint32_t bytesToCopy = (uint32_t)(srcLoc - srcPtr);
-            strncpy(dstPtr, srcPtr, bytesToCopy);
-            dstPtr += bytesToCopy;
-            srcPtr = strchr(srcLoc,')')+1;
-            
-            int bufferSlotIdx = 0;
-            int num = sscanf(srcLoc, "buffer(%d)", &bufferSlotIdx);
-            if (num!=1)
-            {
-                NSLog(@"Malformed shader code: ')' not found for: %s", srcLoc);
-                assert(0);
-                return;
-            }
-            bufferSlotIdx = MAX_BUFFER_BINDINGS - bufferSlotIdx - 1;
-            sprintf(dstPtr, "buffer(%d)", bufferSlotIdx);
-            dstPtr = strchr(dstPtr, ')')+1;
-        }
-        
-        srcLoc = strchr(srcPtr,'\0'); //copy the remaining of the file till the end
-        uint32_t bytesToCopy = (uint32_t)(srcLoc - srcPtr);
-        strncpy(dstPtr, srcPtr, bytesToCopy);
-    }
-    
     void util_bind_root_constant(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData)
     {
         // Since root constants are not supported on Metal,
@@ -2423,8 +2750,6 @@ namespace RENDERER_CPP_NAMESPACE {
         // Look for the root constant buffer (or create one if needed).
         Buffer* rootConstantBuffer = nil;
         {
-            MutexLock mutexLock(rootConstantMutex);
-            
             tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>::iterator jt = pManager->mRootConstantBuffers.find(hash);
             if (jt.node == nil || jt->second.getCount() <= pManager->mRootConstantBindingCountMap[tinystl::hash(descData->pName)])
             {
@@ -2455,14 +2780,16 @@ namespace RENDERER_CPP_NAMESPACE {
     
     void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData)
     {
-        // Look for the argument buffer (or create one if needed).
-        uint32_t hash = tinystl::hash(descData->pName);
         Buffer* argumentBuffer;
+        bool bufferNeedsReencoding = false;
+        
         id<MTLArgumentEncoder> argumentEncoder = nil;
         id<MTLFunction> shaderStage = nil;
+        
+        // Look for the argument buffer (or create one if needed).
+        uint32_t hash = tinystl::hash(descData->pName);
         {
-            MutexLock mutexLock(argumentBufferMutex);
-            tinystl::unordered_map<uint32_t, Buffer*>::iterator jt = pManager->mArgumentBuffers.find(hash);
+            tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>::iterator jt = pManager->mArgumentBuffers.find(hash);
             // If not previous argument buffer was found, create a new bufffer.
             if (jt.node == nil)
             {
@@ -2480,31 +2807,40 @@ namespace RENDERER_CPP_NAMESPACE {
                 bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
                 bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
                 addBuffer(pCmd->pCmdPool->pRenderer, &bufferDesc, &argumentBuffer);
-                pManager->mArgumentBuffers[hash] = argumentBuffer;
+                
+                pManager->mArgumentBuffers[hash] = { argumentBuffer, true};
+                bufferNeedsReencoding = true;
             }
             else
-                argumentBuffer = jt->second;
+            {
+                argumentBuffer = jt->second.first;
+                bufferNeedsReencoding = jt->second.second;
+            }
         }
         
-        if(!argumentEncoder) argumentEncoder = [shaderStage newArgumentEncoderWithBufferIndex:descInfo->mDesc.reg];
-        
         // Update the argument buffer's data.
-        // Note: Encoding textures into an argument buffer every frame seems to be crashing the app when trying to do a GPU capture.
-        [argumentEncoder setArgumentBuffer:argumentBuffer->mtlBuffer offset:0];
-        for (uint32_t i = 0; i < descData->mCount; i++)
+        if(bufferNeedsReencoding)
         {
-            switch(descInfo->mDesc.mtlArgumentBufferType)
+            if(!argumentEncoder) argumentEncoder = [shaderStage newArgumentEncoderWithBufferIndex:descInfo->mDesc.reg];
+            
+            [argumentEncoder setArgumentBuffer:argumentBuffer->mtlBuffer offset:0];
+            for (uint32_t i = 0; i < descData->mCount; i++)
             {
-                case DESCRIPTOR_TYPE_SAMPLER:
-                    [argumentEncoder setSamplerState:descData->ppSamplers[i]->mtlSamplerState atIndex:i];
-                    break;
-                case DESCRIPTOR_TYPE_BUFFER:
-                    [argumentEncoder setBuffer:descData->ppBuffers[i]->mtlBuffer offset:descData->ppBuffers[i]->mPositionInHeap atIndex:i];
-                    break;
-                case DESCRIPTOR_TYPE_TEXTURE:
-                    [argumentEncoder setTexture:descData->ppTextures[i]->mtlTexture atIndex:i];
-                    break;
+                switch(descInfo->mDesc.mtlArgumentBufferType)
+                {
+                    case DESCRIPTOR_TYPE_SAMPLER:
+                        [argumentEncoder setSamplerState:descData->ppSamplers[i]->mtlSamplerState atIndex:i];
+                        break;
+                    case DESCRIPTOR_TYPE_BUFFER:
+                        [argumentEncoder setBuffer:descData->ppBuffers[i]->mtlBuffer offset:descData->ppBuffers[i]->mPositionInHeap atIndex:i];
+                        break;
+                    case DESCRIPTOR_TYPE_TEXTURE:
+                        [argumentEncoder setTexture:descData->ppTextures[i]->mtlTexture atIndex:i];
+                        break;
+                }
             }
+            
+            pManager->mArgumentBuffers[hash].second = false;
         }
         
         // Bind the argument buffer.
@@ -2560,7 +2896,17 @@ namespace RENDERER_CPP_NAMESPACE {
         pTexture->mDesc = *pDesc;
         pTexture->pCpuMappedAddress = NULL;
         pTexture->mTextureId = (++gTextureIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
+        
         pTexture->mtlPixelFormat = util_to_mtl_pixel_format(pTexture->mDesc.mFormat, pTexture->mDesc.mSrgb);
+#ifndef TARGET_IOS
+        if(pTexture->mtlPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8 && ![pRenderer->pDevice isDepth24Stencil8PixelFormatSupported])
+        {
+            internal_log(LOG_TYPE_WARN, "Format D24S8 is not supported on this device. Using D32 instead", "addTexture");
+            pTexture->mtlPixelFormat = MTLPixelFormatDepth32Float;
+            pTexture->mDesc.mFormat = ImageFormat::D32F;
+        }
+#endif
+        
         pTexture->mIsCompressed = util_is_mtl_compressed_pixel_format(pTexture->mtlPixelFormat);
         pTexture->mTextureSize = Image::GetMipMappedSize(pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, 1, 0, pTexture->mDesc.mMipLevels, pTexture->mDesc.mFormat);
         if (pTexture->mDesc.mHostVisible) {
@@ -2595,7 +2941,12 @@ namespace RENDERER_CPP_NAMESPACE {
                     break;
                 case TEXTURE_TYPE_CUBE:
                     if(pTexture->mDesc.mArraySize == 1) textureDesc.textureType = MTLTextureTypeCube;
+#ifndef TARGET_IOS
                     else textureDesc.textureType = MTLTextureTypeCubeArray;
+#else
+                    else if([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1]) textureDesc.textureType = MTLTextureTypeCubeArray;
+                    else internal_log(LOG_TYPE_ERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+#endif
                     break;
             }
             textureDesc.pixelFormat = pTexture->mtlPixelFormat;
@@ -2611,6 +2962,12 @@ namespace RENDERER_CPP_NAMESPACE {
             bool isDepthBuffer = util_is_mtl_depth_pixel_format(pTexture->mtlPixelFormat);
             bool isMultiSampled = pTexture->mDesc.mSampleCount > 1;
             if (isDepthBuffer || isMultiSampled) textureDesc.resourceOptions = MTLResourceStorageModePrivate;
+#ifdef TARGET_IOS
+            if (pDesc->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
+            {
+                textureDesc.resourceOptions = MTLResourceStorageModeMemoryless;
+            }
+#endif
             
             if (isRT || isDepthBuffer) textureDesc.usage |= MTLTextureUsageRenderTarget;
             if ((pTexture->mDesc.mUsage & TEXTURE_USAGE_UNORDERED_ACCESS) != 0) textureDesc.usage |= MTLTextureUsageShaderWrite;
@@ -2631,104 +2988,6 @@ namespace RENDERER_CPP_NAMESPACE {
         }
         
         *ppTexture = pTexture;
-    }
-    
-    // -------------------------------------------------------------------------------------------------
-    // Indirect draw functions
-    // -------------------------------------------------------------------------------------------------
-    void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
-    {
-        assert(pRenderer!=nil);
-        assert(pDesc!=nil);
-        
-        CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1,sizeof(CommandSignature));
-        
-        for (uint32_t i=0; i< pDesc->mIndirectArgCount; i++)
-        {
-            const IndirectArgumentDescriptor* argDesc = pDesc->pArgDescs + i;
-            if (argDesc->mType != INDIRECT_DRAW && argDesc->mType != INDIRECT_DISPATCH && argDesc->mType != INDIRECT_DRAW_INDEX)
-            {
-                assert(!"Unsupported indirect argument type.");
-                SAFE_FREE(pCommandSignature);
-                return;
-            }
-            
-            if (i==0)
-            {
-                pCommandSignature->mDrawType = argDesc->mType;
-            }
-            else if (pCommandSignature->mDrawType != argDesc->mType)
-            {
-                assert(!"All elements in the root signature must be of the same type.");
-                SAFE_FREE(pCommandSignature);
-                return;
-            }
-        }
-        pCommandSignature->mIndirectArgDescCounts = pDesc->mIndirectArgCount;
-        
-        *ppCommandSignature = pCommandSignature;
-    }
-    
-    void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
-    {
-        ASSERT(pCommandSignature);
-        SAFE_FREE(pCommandSignature);
-    }
-    
-    void cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset)
-    {
-        for (uint32_t i=0; i<maxCommandCount; i++)
-        {
-            if (pCommandSignature->mDrawType == INDIRECT_DRAW)
-            {
-                uint64_t indirectBufferOffset = bufferOffset + sizeof(IndirectDrawArguments)*i;
-                
-                [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
-                                        indirectBuffer:pIndirectBuffer->mtlBuffer
-                                  indirectBufferOffset:indirectBufferOffset];
-            }
-            else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
-            {
-                Buffer* indexBuffer = pCmd->selectedIndexBuffer;
-                MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
-                uint64_t indirectBufferOffset = bufferOffset + sizeof(IndirectDrawIndexArguments)*i;
-                
-                [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
-                                                    indexType:indexType
-                                                  indexBuffer:indexBuffer->mtlBuffer
-                                            indexBufferOffset:0
-                                               indirectBuffer:pIndirectBuffer->mtlBuffer
-                                         indirectBufferOffset:indirectBufferOffset];
-            }
-            else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
-            {
-                //TODO: Implement.
-                ASSERT(0);
-            }
-        }
-    }
-    
-    /************************************************************************/
-    // Debug Marker Implementation
-    /************************************************************************/
-    
-    void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
-    {
-        // TODO: Implement.
-    }
-    void cmdBeginDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...)
-    {
-        // TODO: Implement.
-    }
-    
-    void cmdEndDebugMarker(Cmd* pCmd)
-    {
-        // TODO: Implement.
-    }
-    
-    void cmdAddDebugMarker(Cmd* pCmd, const char* pName, float r, float g, float b, float a)
-    {
-        // TODO: Implement.
     }
     
     /************************************************************************/

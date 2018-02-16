@@ -32,7 +32,7 @@
 #define UNREF_PARAM(x) (x)
 #else
 //Add more compilers and platforms as we need them
-#define UNREF_PARAM(x) (x)
+#define UNREF_PARAM(x)
 #endif
 
 

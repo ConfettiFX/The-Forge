@@ -1384,7 +1384,7 @@ bool Image::iLoadSTBIFromMemory(const char *buffer, uint32_t memSize, const bool
     return false;
 
   int w = 0, h = 0, cmp = 0, requiredCmp = 0;
-  stbi_info_from_memory ((stbi_uc*) buffer, memSize, &w, &h, &cmp);
+  stbi_info_from_memory((stbi_uc*)buffer, memSize, &w, &h, &cmp);
 
   if (w == 0 || h == 0 || cmp == 0)
   {
@@ -1411,7 +1411,7 @@ bool Image::iLoadSTBIFromMemory(const char *buffer, uint32_t memSize, const bool
   case 4: mFormat = ImageFormat::RGBA8; break;
   }
 
-  stbi_uc* uncompressed = stbi_load_from_memory ((stbi_uc*) buffer, (int) memSize, &w, &h, &cmp, requiredCmp);
+  stbi_uc* uncompressed = stbi_load_from_memory((stbi_uc*) buffer, (int) memSize, &w, &h, &cmp, requiredCmp);
 
   if (uncompressed == nullptr)
 	  return false;
@@ -1422,7 +1422,7 @@ bool Image::iLoadSTBIFromMemory(const char *buffer, uint32_t memSize, const bool
 	  pData = (stbi_uc*)pAllocator(this, memoryRequirement, pUserData);
 	  if (pData == NULL)
 	  {
-		  LOGERRORF("Image::iLoadSTBIFromMemory(%s) Allocator returned NULL", mLoadFileName.c_str());
+		  LOGERRORF("Allocator returned NULL", mLoadFileName.c_str());
 		  return false;
 	  }
 
@@ -1445,42 +1445,74 @@ bool Image::iLoadSTBIFromMemory(const char *buffer, uint32_t memSize, const bool
 
 bool Image::iLoadSTBIFP32FromMemory(const char *buffer, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
 {
-  UNREF_PARAM(useMipmaps);
-  UNREF_PARAM(pAllocator);
-  UNREF_PARAM(pUserData);
-  // stbi does not generate or load mipmaps. (useMipmaps is ignored)
-  if (buffer == 0 || memSize == 0)
-    return false;
+	// stbi does not generate or load mipmaps. (useMipmaps is ignored)
+	if (buffer == 0 || memSize == 0)
+		return false;
 
-  int w = 0, h = 0, cmp = 0;
-  float* uncompressed = stbi_loadf_from_memory((stbi_uc*)buffer, (int)memSize, &w, &h, &cmp, 0);
+	int w = 0, h = 0, cmp = 0, requiredCmp = 0;
+	stbi_info_from_memory((stbi_uc*)buffer, memSize, &w, &h, &cmp);
 
-  if (uncompressed == 0)
-    return false;
+	if (w == 0 || h == 0 || cmp == 0)
+	{
+		return false;
+	}
 
-  if (w == 0 || h == 0 || cmp == 0)
-  {
-    stbi_image_free(uncompressed);
-    return false;
-  }
+	requiredCmp = cmp;
+#if defined(METAL) || defined(VULKAN)
+	if (cmp == 3)
+		requiredCmp = 4;
+#endif
 
-  mWidth = w;
-  mHeight = h;
-  mDepth = 1;
-  mMipMapCount = 1;
-  mArrayCount = 1;
-  pData = (unsigned char*)conf_malloc(mWidth*mHeight * sizeof(float)*cmp);
-  memcpy(pData, uncompressed, mWidth*mHeight * sizeof(float)*cmp);
-  stbi_image_free(uncompressed);
-  switch (cmp)
-  {
-  case 1: mFormat = ImageFormat::R32F; break;
-  case 2: mFormat = ImageFormat::RG32F; break;
-  case 3: mFormat = ImageFormat::RGB32F; break;
-  case 4: mFormat = ImageFormat::RGBA32F; break;
-  }
+	mWidth = w;
+	mHeight = h;
+	mDepth = 1;
+	mMipMapCount = 1;
+	mArrayCount = 1;
 
-  return true;
+	switch (requiredCmp)
+	{
+	case 1: mFormat = ImageFormat::R32F; break;
+	case 2: mFormat = ImageFormat::RG32F; break;
+	case 3: mFormat = ImageFormat::RGB32F; break;
+	case 4: mFormat = ImageFormat::RGBA32F; break;
+	}
+
+	uint64_t memoryRequirement = sizeof (float) * mWidth * mHeight * requiredCmp;
+
+	// stbi does not generate or load mipmaps. (useMipmaps is ignored)
+	if (buffer == 0 || memSize == 0)
+		return false;
+
+	float* uncompressed = stbi_loadf_from_memory((stbi_uc*)buffer, (int)memSize, &w, &h, &cmp, requiredCmp);
+
+	if (uncompressed == 0)
+		return false;
+
+	if (pAllocator)
+	{
+		//uint32_t mipMapCount = GetMipMapCountFromDimensions(); //unused
+		pData = (stbi_uc*)pAllocator(this, memoryRequirement, pUserData);
+		if (pData == NULL)
+		{
+			LOGERRORF("Allocator returned NULL", mLoadFileName.c_str());
+			return false;
+		}
+
+		memcpy(pData, uncompressed, memoryRequirement);
+
+		mOwnsMemory = false;
+	}
+	else
+	{
+		pData = (unsigned char*)conf_malloc(memoryRequirement);
+		memcpy(pData, uncompressed, memoryRequirement);
+		if (useMipmaps)
+			GenerateMipMaps(GetMipMapCountFromDimensions());
+	}
+
+	stbi_image_free(uncompressed);
+
+	return true;
 }
 
 bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)

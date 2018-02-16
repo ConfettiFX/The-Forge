@@ -59,7 +59,7 @@ typedef void(*PFN_HOOK_SHADER_COMPILE_FLAGS)(
 	uint32_t& compileFlags);
 
 typedef void(*PFN_HOOK_RESOURCE_ALLOCATION_INFO)(
-	D3D12_RESOURCE_ALLOCATION_INFO& info);
+	D3D12_RESOURCE_ALLOCATION_INFO& info, UINT64 alignment);
 
 typedef bool(*PFN_HOOK_SPECIAL_BUFFER_ALLOCATION)(
 	Buffer* pBuffer,

@@ -167,6 +167,11 @@ void getRecommendedResolution(RectDesc* rect)
     *rect = RectDesc{ 0,0,1920,1080 };
 }
 
+void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
+{
+    
+}
+
 float2 getMousePosition()
 {
     // TODO: Implement.
@@ -237,5 +242,82 @@ unsigned getTimeSinceStart()
 {
 	return (unsigned)time(NULL);
 }
+/************************************************************************/
+// App Entrypoint
+/************************************************************************/
+static IApp* pApp = NULL;
 
+int macOSMain(int argc, char** argv, IApp* app)
+{
+	pApp = app;
+	return NSApplicationMain(argc, argv);
+}
+
+#import "MetalKitApplication.h"
+
+// Timer used in the update function.
+Timer deltaTimer;
+float retinaScale = 1.0f;
+
+// Metal application implementation.
+@implementation MetalKitApplication{}
+-(nonnull instancetype) initWithMetalDevice:(nonnull id<MTLDevice>)device
+renderDestinationProvider : (nonnull id<RenderDestinationProvider>)renderDestinationProvider
+	view : (nonnull MTKView*)view
+	retinaScalingFactor : (CGFloat)retinaScalingFactor
+{
+	self = [super init];
+	if (self)
+	{
+		FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
+
+		retinaScale = retinaScalingFactor;
+
+		RectDesc resolution;
+		getRecommendedResolution(&resolution);
+
+		WindowsDesc gWindow = {};
+		gWindow.windowedRect = resolution;
+		gWindow.fullscreenRect = resolution;
+		gWindow.fullScreen = false;
+		gWindow.maximized = false;
+		gWindow.handle = (void*)CFBridgingRetain(view);
+
+		@autoreleasepool {
+			const char * appName = "01_Transformations";
+			openWindow(appName, &gWindow);
+
+			pApp->pWindow = &gWindow;
+			pApp->mSettings.mWidth = getRectWidth(resolution);
+			pApp->mSettings.mWidth = getRectHeight(resolution);
+			pApp->mSettings.mFullScreen = false;
+			pApp->Init();
+		}
+	}
+
+	return self;
+}
+
+-(void)drawRectResized:(CGSize)size
+{
+	pApp->mSettings.mWidth = size.width * retinaScale;
+	pApp->mSettings.mHeight = size.height * retinaScale;
+	// TODO: Fullscreen
+	pApp->Unload();
+	pApp->Load();
+}
+
+-(void)update
+{
+	float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+	if (deltaTime > 0.15f)
+		deltaTime = 0.05f;
+
+	pApp->Update(deltaTime);
+	pApp->Draw();
+}
+@end
+/************************************************************************/
+/************************************************************************/
 #endif

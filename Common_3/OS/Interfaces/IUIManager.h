@@ -41,6 +41,7 @@ enum UIPropertyType
 };
 
 typedef void(*UIButtonFn)(void*);
+typedef void(*PropertyChangedCallback)(const class UIProperty* pProp);
 
 class UIProperty
 {
@@ -60,11 +61,12 @@ public:
 	UIProperty(const char* description, char* value, unsigned int length);
 
 	template <class T>
-	UIProperty(const char* description, T& value, const char** enumNames, const T* enumValues) :
+	UIProperty(const char* description, T& value, const char** enumNames, const T* enumValues, PropertyChangedCallback callback = NULL) :
 		description(description),
 		type(UI_PROPERTY_ENUM),
 		flags(FLAG_VISIBLE),
-		source(&value)
+		source(&value),
+		callback(callback)
 	{
 		settings.eByteSize = sizeof(T);
 		settings.eNames = enumNames;
@@ -79,6 +81,7 @@ public:
 	UIPropertyType type;
 	unsigned int flags;
 	void* source;
+	PropertyChangedCallback callback = NULL;
 	union Settings
 	{
 		struct
@@ -187,9 +190,37 @@ void addGui(UIManager* pUIManager, const GuiDesc* pDesc, Gui** ppGui);
 void removeGui(UIManager* pUIManager, Gui* pGui);
 void addProperty(Gui* pUIManager, const UIProperty* pProperty, uint32_t* pID = NULL);
 void addProperty(Gui* pUIManager, const UIProperty pProperty, uint32_t* pID = NULL);
+void addResolutionProperty(Gui* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, PropertyChangedCallback onResolutionChanged, uint32_t* pId = NULL);
 void removeProperty(Gui* pUIManager, uint32_t id);
 
 void updateGui(UIManager* pUIManager, Gui* pGui, float deltaTime);
+
+typedef struct DynamicUIControls
+{
+	tinystl::vector<UIProperty> mDynamicProperties;
+	tinystl::vector<uint32_t>   mDynamicPropHandles;
+
+	void ShowDynamicProperties(Gui* pGui)
+	{
+		for (int i = 0; i < mDynamicProperties.size(); ++i)
+		{
+			mDynamicPropHandles.push_back(0);
+			addProperty(pGui, &mDynamicProperties[i], &mDynamicPropHandles[i]);
+		}
+	}
+
+	void HideDynamicProperties(Gui* pGui)
+	{
+		for (int i = 0; i < mDynamicProperties.size(); i++)
+		{
+			removeProperty(pGui, mDynamicPropHandles[i]);
+		}
+		mDynamicPropHandles.clear();
+	}
+
+} DynamicUIControls;
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void cmdUIBeginRender(struct Cmd* pCmd, UIManager* pUIManager, uint32_t renderTargetCount, struct RenderTarget** ppRenderTargets, struct RenderTarget* pDepthStencil);
 void cmdUIDrawFrameTime(struct Cmd* pCmd, UIManager* pUIManager, const vec2& position, const char* pPrefix, float ms, const TextDrawDesc* pTextDrawDesc = NULL);

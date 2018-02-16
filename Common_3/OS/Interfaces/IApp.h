@@ -80,3 +80,69 @@ void drawFrame(float deltaTime);
 // hot-swap the input device
 // the user decides to switch from keyboard to controller input
 // we are going to call exitInput() and then initInput()
+
+class IApp
+{
+public:
+	virtual bool Init() = 0;
+	virtual void Exit() = 0;
+
+	virtual bool Load() = 0;
+	virtual void Unload() = 0;
+
+	virtual void Update(float deltaTime) = 0;
+	virtual void Draw() = 0;
+
+	virtual String GetName() = 0;
+
+	struct Settings
+	{
+		/// Window width
+		int32_t mWidth = -1;
+		/// Window height
+		int32_t mHeight = -1;
+		/// Set to true if fullscreen mode has been requested
+		bool mFullScreen = false;
+	} mSettings;
+
+	WindowsDesc* pWindow;
+};
+
+#if defined(_DURANGO)
+#define DEFINE_APPLICATION_MAIN(appClass)						\
+extern int DurangoMain(int argc, char** argv, IApp* app);		\
+																\
+int main(int argc, char** argv)									\
+{																\
+	appClass app;												\
+	return DurangoMain(argc, argv, &app);						\
+}
+#elif defined(_WIN32)
+#define DEFINE_APPLICATION_MAIN(appClass)						\
+extern int WindowsMain(int argc, char** argv, IApp* app);		\
+																\
+int main(int argc, char** argv)									\
+{																\
+	appClass app;												\
+	return WindowsMain(argc, argv, &app);						\
+}
+#elif defined(TARGET_IOS)
+#define DEFINE_APPLICATION_MAIN(appClass)						\
+extern int iOSMain(int argc, char** argv, IApp* app);			\
+																\
+int main(int argc, char** argv)									\
+{																\
+	appClass app;												\
+	return iOSMain(argc, argv, &app);							\
+}
+#elif defined(__APPLE__)
+#define DEFINE_APPLICATION_MAIN(appClass)						\
+extern int macOSMain(int argc, const char** argv, IApp* app);	\
+																\
+int main(int argc, const char* argv[])                          \
+{																\
+    appClass app;												\
+    return macOSMain(argc, argv, &app);							\
+}
+#else
+#endif

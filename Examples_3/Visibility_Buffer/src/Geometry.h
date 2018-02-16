@@ -25,8 +25,6 @@
 #ifndef Geometry_h
 #define Geometry_h
 
-#define OLD_MODELS 1
-
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -76,14 +74,17 @@ typedef struct SceneVertexTangent
 #endif
 } SceneVertexTangent;
 
+typedef struct ClusterCompact
+{
+	uint32_t triangleCount;
+	uint32_t clusterStart;
+} ClusterCompact;
+
 typedef struct Cluster
 {
     float3 aabbMin, aabbMax;
     float3 coneCenter, coneAxis;
-    uint32_t triangleCount;
-    uint32_t clusterStart;
     float coneAngleCosine;
-    uint32_t meshIndex;
     float distanceFromCamera;
     bool valid;
 } Cluster;
@@ -99,8 +100,9 @@ typedef struct Mesh
 #endif
     uint32_t vertexCount;
     float3 minBBox, maxBBox;
-    Cluster* clusters;
     uint32_t clusterCount;
+	ClusterCompact* clusterCompacts;
+	Cluster* clusters;
     uint32_t materialId;
 } Mesh;
 
@@ -162,16 +164,15 @@ typedef struct FilterBatchChunk
 
 // Exposed functions
 
-Scene* loadScene(Renderer* pRenderer, const char* fileName);
+Scene* loadScene(const char* fileName);
 void removeScene(Scene* scene);
 void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh);
 #if defined(METAL)
-void addClusterToBatchChunk(const Cluster* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
+void addClusterToBatchChunk(const ClusterCompact* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
 #else
-void addClusterToBatchChunk(const Cluster* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk);
+void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk);
 #endif
 void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer **outVertexBuffer, Buffer **outIndexBuffer);
-void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffer, unsigned tessellationX, unsigned tessellationY);
 void destroyBuffers(Renderer* pRenderer, Buffer* outVertexBuffer, Buffer* outIndexBuffer);
 
 #endif

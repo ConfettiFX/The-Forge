@@ -37,12 +37,6 @@
 
 #include "../Interfaces/IMemoryManager.h" //NOTE: this should be the last include in a .cpp
 
-#define MAKEQUAD(x0, y0, x1, y1, o)\
-	float2(x0 + o, y0 + o),\
-	float2(x0 + o, y1 - o),\
-	float2(x1 - o, y0 + o),\
-	float2(x1 - o, y1 - o),
-
 struct InputInstruction
 {
 	enum Type

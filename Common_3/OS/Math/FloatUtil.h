@@ -329,8 +329,7 @@ inline float planeDistance(const vec4 &plane, const vec3 &point)
   	plane.getW();
 #else
 	static const __m128 maskxyz = _mm_castsi128_ps(_mm_set_epi32(0, ~0u, ~0u, ~0u));
-	static const __m128 maskw = _mm_castsi128_ps(_mm_set_epi32(~0u, 0, 0, 0));
-	
+	//static const __m128 maskw = _mm_castsi128_ps(_mm_set_epi32(~0u, 0, 0, 0));
 
 	//a = vec4(point.xyz * plane.xyz, 0);
 	const __m128 a = _mm_and_ps(
@@ -400,7 +399,23 @@ inline unsigned int toBGRA(const vec4 &u)
 #endif
 
 }
+/************************************************************************/
+// Mesh generation helpers
+/************************************************************************/
+// Generates an array of vertices and normals for a sphere
+void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int numberOfDivisions);
 
+#define MAKEQUAD(x0, y0, x1, y1, o)\
+	float2(x0 + o, y0 + o),\
+	float2(x0 + o, y1 - o),\
+	float2(x1 - o, y0 + o),\
+	float2(x1 - o, y1 - o),
 
-
+#define MAKETEXQUAD(x0, y0, x1, y1, o)\
+	TexVertex(float2(x0 + o, y0 + o), float2(0, 0)),\
+	TexVertex(float2(x0 + o, y1 - o), float2(0, 1)),\
+	TexVertex(float2(x1 - o, y0 + o), float2(1, 0)),\
+	TexVertex(float2(x1 - o, y1 - o), float2(1, 1)),
+/************************************************************************/
+/************************************************************************/
 #endif

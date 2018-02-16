@@ -50,7 +50,9 @@
 
 #include "AsteroidSim.h"
 #include "Random.h"
+#if !defined(TARGET_IOS)
 #include <immintrin.h>
+#endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -177,8 +179,8 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
         ALIGNED_(16) mat4 rotate = mat4::rotation(staticAsteroid.rotationSpeed * deltaTime,
             vec3(staticAsteroid.rotationAxis.getX(), staticAsteroid.rotationAxis.getY(), staticAsteroid.rotationAxis.getZ()));
 
-#ifdef _DURANGO
-		// XBox One doesn't support some of these SSE instructions.
+#if defined(_DURANGO) || defined(TARGET_IOS)
+		// XBoxOne/iOS don't support some of these SSE instructions.
 		// 0xC000001D: Illegal Instruction
 		// Implement it without SSE
 

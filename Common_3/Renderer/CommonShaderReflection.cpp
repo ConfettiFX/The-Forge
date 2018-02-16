@@ -127,6 +127,10 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 	// this will have a large amount of looping
 	// 1. count number of resources
 	uint32_t vertexStageIndex = ~0u;
+	uint32_t hullStageIndex = ~0u;
+	uint32_t domainStageIndex = ~0u;
+	uint32_t geometryStageIndex = ~0u;
+	uint32_t pixelStageIndex = ~0u;
 	ShaderResource* pResources = NULL;
 	uint32_t resourceCount = 0;
 	ShaderVariable* pVariables = NULL;
@@ -146,6 +150,24 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 		if (pSrcRef->mShaderStage == SHADER_STAGE_VERT)
 		{
 			vertexStageIndex = i;
+		}
+#if !defined(METAL)
+		else if (pSrcRef->mShaderStage == SHADER_STAGE_HULL)
+		{
+			hullStageIndex = i;
+		}
+		else if (pSrcRef->mShaderStage == SHADER_STAGE_DOMN)
+		{
+			domainStageIndex = i;
+		}
+		else if (pSrcRef->mShaderStage == SHADER_STAGE_GEOM)
+		{
+			geometryStageIndex = i;
+		}
+#endif
+		else if (pSrcRef->mShaderStage == SHADER_STAGE_FRAG)
+		{
+			pixelStageIndex = i;
 		}
 
 		//Loop through all shader resources
@@ -242,6 +264,10 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 	pOutReflection->mStageReflectionCount = stageCount;
 
 	pOutReflection->mVertexStageIndex = vertexStageIndex;
+	pOutReflection->mHullStageIndex = hullStageIndex;
+	pOutReflection->mDomainStageIndex = domainStageIndex;
+	pOutReflection->mGeometryStageIndex = geometryStageIndex;
+	pOutReflection->mPixelStageIndex = pixelStageIndex;
 
 	pOutReflection->pShaderResources = pResources;
 	pOutReflection->mShaderResourceCount = resourceCount;

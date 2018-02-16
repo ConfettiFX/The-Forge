@@ -22,15 +22,6 @@
  * under the License.
 */
 
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2014 Confetti Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 #include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/Importer.hpp"
 #include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/Exporter.hpp"
 #include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/scene.h"

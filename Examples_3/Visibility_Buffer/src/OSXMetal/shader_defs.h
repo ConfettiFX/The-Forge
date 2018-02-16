@@ -39,9 +39,13 @@
 // Should be a multiple of the wavefront size
 #define CLUSTER_SIZE 256
 
-// BATCH_COUNT limits the amount of triangle batches we can process on the GPU.
-// It should be enough to fit all triangles in the scene.
-#define BATCH_COUNT 32768
+// BATCH_COUNT limits the amount of triangle batches we can process on the GPU at the same time.
+#define BATCH_COUNT 16384
+
+// SCENE_BATCHES specifies the amount of batches needed to filter all the triangles in the scene.
+// Different scenes might need different SCENE_BATCHES values.
+#define SCENE_BATCHES 32768 // San Miguel values.
+#define NUM_BATCHES (SCENE_BATCHES / BATCH_COUNT)
 
 // This defines the amount of viewports that are going to be culled in parallel.
 #define NUM_CULLING_VIEWPORTS 2

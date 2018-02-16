@@ -315,10 +315,7 @@ vertex VSOutput VSMain(VSInput input                    [[stage_in]],
 	//ocean
 	if (height < oceneHeight)
 	{
-		float gap10 = pow(pow(gap, 100.0), 0.8);
-
-		float wave = OceanNoise(vertexPos.xyz, oceneHeight, noiseResult, gap10, cbObject);
-		vertexPos.xyz = (oceneHeight + wave) * localNormal;
+		vertexPos.xyz = oceneHeight* localNormal;
 
 		output.fs_Pos = vertexPos;
 		output.fs_TerrainInfo.w = oceneRougness;
@@ -406,22 +403,18 @@ fragment float4 PSMain(VSOutput input                   [[stage_in]],
     float a = 1.0 - clamp(dot(fs_ViewVec.xyz, localNormal), 0.0, 1.0);
 
     a = pow(a, 5.0);
-
+    
+    float u_resolution = 4.0;
+    float constantVal = 10.0;
+    float sm = (1.0 - smoothstep(0.0, 7.0, log(fs_ViewVec.w)));
+    int LOD = int(constantVal * pow(sm, 1.7));
+    
+    float noise = fbm(input.fs_Pos.xyz*u_resolution, LOD) * 2.0;
+    noise = pow(noise, cbObject.u_TimeInfo.z);
+    
     //terrain
     if(input.fs_TerrainInfo.x > 0.0 && input.fs_TerrainInfo.x < 0.2 )
     {
-        float u_resolution = 4.0;
-
-        float constantVal = 10.0;
-
-        float sm = (1.0 - smoothstep(0.0, 6.0, log(fs_ViewVec.w)));
-
-        int LOD = int(constantVal * pow(sm, 1.7));
-
-        float noise = fbm(input.fs_Pos.xyz*u_resolution, LOD) * 2.0;
-                  
-        noise = pow(noise, cbObject.u_TimeInfo.z);
-
         float4 vertexPos = input.fs_Pos;
         vertexPos.xyz += localNormal * noise;
 
@@ -434,6 +427,16 @@ fragment float4 PSMain(VSOutput input                   [[stage_in]],
     else
     {
         float4 vertexPos = input.fs_Pos;
+        float oceneHeight = length(vertexPos.xyz) + cbObject.u_HeightsInfo.x;
+        float height = length(vertexPos.xyz);
+        
+        float gap = saturate((1.0 - (oceneHeight - height)));
+        float gap5 = pow(gap, 3.0);
+        
+        float gap10 = pow(pow(gap, 100.0), 0.8);
+        
+        float wave = OceanNoise(vertexPos.xyz, oceneHeight, noise, gap10, cbObject);
+        vertexPos.xyz = (oceneHeight + wave) * localNormal;
 
         //detail normal
         normalVec = normalize(cross(dfdx(vertexPos.xyz), dfdy(vertexPos.xyz)));

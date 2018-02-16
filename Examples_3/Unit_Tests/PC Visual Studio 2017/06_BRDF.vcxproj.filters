@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{b0d14062-c02b-4eef-9553-c13945d38a4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{483cec9b-3a9b-4031-9da9-fabf524e0ee8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{5f6e3055-af53-4e3c-8397-667edfcf312f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{fdcc7f85-3418-40ef-8fc7-589119da0fed}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\06_BRDF\06_BRDF.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\renderSceneBRDF.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\renderSceneBRDF.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\BRDFIntegration.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\computeIrradianceMap.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\computeSpecularMap.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\06_BRDF\PCVulkan\panoToCube.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\06_BRDF\PCDX12\renderSceneBRDF.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\renderSceneBRDF.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\BRDFIntegration.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\panoToCube.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\computeIrradianceMap.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\skybox.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\skybox.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\computeSpecularMap.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\BRDFIntegration.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\computeIrradianceMap.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\computeSpecularMap.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\panoToCube.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\skybox.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\06_BRDF\PCDX12\skybox.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+  </ItemGroup>
+</Project>

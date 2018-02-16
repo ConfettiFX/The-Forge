@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{87dbc550-7b01-4f1b-b305-78146b1addd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{c3c74ab2-99a9-43b1-92e0-87c2e3d1d845}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{5e838495-aee3-4a66-b992-5c7d70f99961}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{63e5c419-9703-4c8d-8e1f-868ae7b4ed9f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\07_Tessellation\07_Tessellation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\compute.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.tesc">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.tese">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\07_Tessellation\PCDX12\compute.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCDX12\grass.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCDX12\grass.tesc">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCDX12\grass.tese">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCDX12\grass.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+  </ItemGroup>
+</Project>

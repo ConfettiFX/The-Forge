@@ -24,7 +24,6 @@
  * under the License.
 */
 
-
 layout(location = 0) out vec2 oScreenPos;
 layout(location = 1) out flat uint oTriangleId;
 
