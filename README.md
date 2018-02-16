@@ -149,7 +149,7 @@ This unit test shows the current state of our font rendering library that is bas
 
 ## 6. Physically-Based Rendering
 
-The Physically-Based Rendering example shows the PBR model from the following Unreal Engine 4 paper. 
+The Physically-Based Rendering example shows the PBR model from the following [Unreal Engine 4 paper](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf). 
 
 ![Image of the PBR Unit test](Screenshots/06_PBR.PNG)
 
