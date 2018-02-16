@@ -83,7 +83,13 @@ WindowsDesc* getCurrentWindow()
 
 void getRecommendedResolution(RectDesc* rect)
 {
+    // TODO: Get recommeneded resolution based on the device.
     *rect = RectDesc{ 0,0,1334,750 };
+}
+
+void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
+{
+    
 }
 
 /************************************************************************/

@@ -1,8 +1,12 @@
+echo Installing Shader Build Extension
+"Tools/ShaderBuildCommand.vsix"
+
 set filename=Art.zip
 
 del %filename%
 
-"BuildTools/wget" -O %filename% http://www.conffx.com/%filename%
-"BuildTools/7z" x %filename% > NUL
+echo Pulling Art Assets
+"Tools/wget" -O %filename% http://www.conffx.com/%filename%
+"Tools/7z" x %filename% > NUL
 
 del %filename%

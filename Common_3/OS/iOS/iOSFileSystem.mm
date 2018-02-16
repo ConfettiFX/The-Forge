@@ -102,15 +102,13 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 
 String _getAppPrefsDir(const char *org, const char *app)
 {
-    // TODO: Implement.
-    ASSERT(0);
+    ASSERT(false && "Unsupported on target iOS");
     return String();
 }
 
 String _getUserDocumentsDir()
 {
-    // TODO: Implement.
-    ASSERT(0);
+    ASSERT(false && "Unsupported on target iOS");
     return String();
 }
 

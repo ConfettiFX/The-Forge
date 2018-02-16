@@ -978,8 +978,8 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 	}
 	else if (pid > 0)
 	{
-		int exitCode;
-		wait(&exitCode);
+		int exitCode = EINTR;
+        while(exitCode == EINTR) wait(&exitCode);
 		return exitCode;
 	}
 	else

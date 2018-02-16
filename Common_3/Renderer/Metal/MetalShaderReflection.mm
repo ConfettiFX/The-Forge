@@ -25,6 +25,7 @@
 #ifdef METAL
 
 #include "../IRenderer.h"
+#include "../../OS/Interfaces/IMemoryManager.h"
 #include <string.h>
 
 #define MAX_REFLECT_STRING_LENGTH 128
@@ -338,7 +339,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
 
     NSError *error = nil;
     
-    ShaderReflectionInfo* reflectionInfo = nil;
+    ShaderReflectionInfo* pReflectionInfo = nil;
     
     // Setup temporary pipeline to get reflection data
     if (shaderStage == SHADER_STAGE_COMP)
@@ -356,8 +357,8 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
             return;
         }
         
-        reflectionInfo = (ShaderReflectionInfo*)calloc(1,sizeof(ShaderReflectionInfo));
-        reflectShader(reflectionInfo, ref.arguments);
+        pReflectionInfo = (ShaderReflectionInfo*)conf_calloc(1, sizeof(ShaderReflectionInfo));
+        reflectShader(pReflectionInfo, ref.arguments);
         
         // Note: Metal compute shaders don't specify the number of threads per group in the shader code.
         // Instead this must be specified from the client API.
@@ -400,7 +401,11 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         renderPipelineDesc.vertexFunction = shader->mtlVertexShader;
         renderPipelineDesc.fragmentFunction = shader->mtlFragmentShader;
         
-        for(uint i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; i++)
+        uint maxColorAttachments = MAX_RENDER_TARGET_ATTACHMENTS;
+#ifdef TARGET_IOS
+        if(![shader->pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1]) maxColorAttachments = 4;
+#endif
+        for(uint i = 0; i < maxColorAttachments; i++)
         {
             renderPipelineDesc.colorAttachments[i].pixelFormat = MTLPixelFormatBGRA8Unorm;
         }
@@ -408,7 +413,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         // We need to create a vertex descriptor if needed to obtain reflection information
         // We are forced to initialize the vertex descriptor with dummy information just to get
         // the reflection information.
-        MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor new];
+        MTLVertexDescriptor* vertexDesc = [[MTLVertexDescriptor alloc] init];
         
         // read line by line and find vertex attribute definitions
         tinystl::unordered_map<uint32_t, MTLVertexFormat> detectedVertexFormats;
@@ -456,13 +461,13 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         
         if (shaderStage == SHADER_STAGE_VERT)
         {
-            reflectionInfo = (ShaderReflectionInfo*)calloc(1, sizeof(ShaderReflectionInfo));
-            reflectShader(reflectionInfo, ref.vertexArguments);
+            pReflectionInfo = (ShaderReflectionInfo*)conf_calloc(1, sizeof(ShaderReflectionInfo));
+            reflectShader(pReflectionInfo, ref.vertexArguments);
         }
         else if (shaderStage == SHADER_STAGE_FRAG)
         {
-            reflectionInfo = (ShaderReflectionInfo*)calloc(1, sizeof(ShaderReflectionInfo));
-            reflectShader(reflectionInfo, ref.fragmentArguments);
+            pReflectionInfo = (ShaderReflectionInfo*)conf_calloc(1, sizeof(ShaderReflectionInfo));
+            reflectShader(pReflectionInfo, ref.fragmentArguments);
         }
         else
         {
@@ -470,19 +475,19 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         }
     }
     
-    assert(reflectionInfo!=nil);
+    assert(pReflectionInfo!=nil);
     
     // lets find out the size of the name pool we need
     // also get number of resources while we are at it
-    uint32_t namePoolSize = calculateNamePoolSize(reflectionInfo);
+    uint32_t namePoolSize = calculateNamePoolSize(pReflectionInfo);
     uint32_t resourceCount = 0;
-    uint32_t variablesCount = (uint32_t)reflectionInfo->variableMembers.size();
+    uint32_t variablesCount = (uint32_t)pReflectionInfo->variableMembers.size();
     
     tinystl::vector<BufferInfo> vertexBuffers;
     
-    for (uint32_t i = 0; i < reflectionInfo->buffers.size(); ++i)
+    for (uint32_t i = 0; i < pReflectionInfo->buffers.size(); ++i)
     {
-        const BufferInfo& bufferInfo = reflectionInfo->buffers[i];
+        const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
         // The name of the vertex buffers declared as stage_in are internally named by Metal starting with preffix "vertexBuffer."
         if (isInputVertexBuffer(bufferInfo, shaderStage))
         {
@@ -492,11 +497,11 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
             ++resourceCount;
     }
     
-    resourceCount += reflectionInfo->textures.size();
-    resourceCount += reflectionInfo->samplers.size();
+    resourceCount += pReflectionInfo->textures.size();
+    resourceCount += pReflectionInfo->samplers.size();
 
     // we now have the size of the memory pool and number of resources
-    char* namePool = (char*)calloc(namePoolSize, 1);
+    char* namePool = (char*)conf_calloc(namePoolSize, 1);
     char* pCurrentName = namePool;
 
     // start with the vertex input
@@ -504,7 +509,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
     const uint32_t vertexInputCount = (uint32_t)vertexBuffers.size();
     if (shaderStage == SHADER_STAGE_VERT && vertexInputCount > 0)
     {
-        pVertexInputs = (VertexInput*)malloc(sizeof(VertexInput) * vertexInputCount);
+        pVertexInputs = (VertexInput*)conf_malloc(sizeof(VertexInput) * vertexInputCount);
         
         for (uint32_t i = 0; i < vertexBuffers.size(); ++i)
         {
@@ -524,11 +529,11 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
     ShaderResource* pResources = NULL;
     if (resourceCount>0)
     {
-        pResources = (ShaderResource*)malloc(sizeof(ShaderResource) * resourceCount);
+        pResources = (ShaderResource*)conf_malloc(sizeof(ShaderResource) * resourceCount);
         uint32_t resourceIdx = 0;
-        for(uint32_t i = 0; i < reflectionInfo->buffers.size(); ++i)
+        for(uint32_t i = 0; i < pReflectionInfo->buffers.size(); ++i)
         {
-            const BufferInfo& bufferInfo = reflectionInfo->buffers[i];
+            const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
             if (!isInputVertexBuffer(bufferInfo, shaderStage)){
                 DescriptorType descriptorType = (tinystl::string(bufferInfo.name).to_lower().find("rootconstant")!=0 ? DESCRIPTOR_TYPE_ROOT_CONSTANT : DESCRIPTOR_TYPE_BUFFER);
                 addShaderResource(pResources, resourceIdx, descriptorType, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, shaderStage, &pCurrentName, (char*)bufferInfo.name);
@@ -539,17 +544,17 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
                 resourceIdxByBufferIdx[bufferInfo.bufferIndex] = resourceIdx++;
             }
         }
-        for(uint32_t i = 0; i < reflectionInfo->textures.size(); ++i, ++resourceIdx)
+        for(uint32_t i = 0; i < pReflectionInfo->textures.size(); ++i, ++resourceIdx)
         {
-            const TextureInfo& texInfo = reflectionInfo->textures[i];
+            const TextureInfo& texInfo = pReflectionInfo->textures[i];
             addShaderResource(pResources, resourceIdx, DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex, 0/*size*/, shaderStage, &pCurrentName, (char*)texInfo.name);
             
             pResources[resourceIdx].mtlTextureType = texInfo.type;
             pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
         }
-        for(uint32_t i = 0; i < reflectionInfo->samplers.size(); ++i, ++resourceIdx)
+        for(uint32_t i = 0; i < pReflectionInfo->samplers.size(); ++i, ++resourceIdx)
         {
-            const SamplerInfo& samplerInfo = reflectionInfo->samplers[i];
+            const SamplerInfo& samplerInfo = pReflectionInfo->samplers[i];
             addShaderResource(pResources, resourceIdx, DESCRIPTOR_TYPE_SAMPLER, samplerInfo.slotIndex, 0/*samplerInfo.sizeInBytes*/, shaderStage, &pCurrentName, (char*)samplerInfo.name);
             pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
         }
@@ -559,10 +564,10 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
     // now do variables
     if (variablesCount>0)
     {
-        pVariables = (ShaderVariable*)malloc(sizeof(ShaderVariable) * variablesCount);
+        pVariables = (ShaderVariable*)conf_malloc(sizeof(ShaderVariable) * variablesCount);
         for(uint32_t i = 0; i < variablesCount; ++i)
         {
-            const BufferStructMember& variable = reflectionInfo->variableMembers[i];
+            const BufferStructMember& variable = pReflectionInfo->variableMembers[i];
             
             pVariables[i].offset = (uint32_t)variable.offset;
             pVariables[i].size = variable.sizeInBytes;
@@ -590,5 +595,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
 
     pOutReflection->pVariables = pVariables;
     pOutReflection->mVariableCount = variablesCount;
+    
+    conf_free(pReflectionInfo);
 }
 #endif // #ifdef METAL

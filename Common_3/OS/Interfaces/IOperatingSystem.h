@@ -66,6 +66,10 @@ typedef uint64_t uint64;
 #define strncpy_s strncpy
 #endif
 
+#if defined(_DURANGO)
+#define stricmp(a, b) _stricmp(a, b)
+#endif
+
 typedef void* IconHandle;
 typedef void* WindowHandle;
 
@@ -110,11 +114,11 @@ typedef struct WindowsDesc
 	int lastCursorPosX, lastCursorPosY;
 } WindowsDesc;
 
-typedef struct VideoMode
+typedef struct Resolution
 {
 	uint32_t mWidth;
 	uint32_t mHeight;
-} VideoMode;
+} Resolution;
 
 // Monitor data
 //
@@ -137,9 +141,9 @@ typedef struct MonitorDesc
 	bool modesPruned;
 	bool modeChanged;
 
-	VideoMode defaultVideoMode;
-	VideoMode* videoModes;
-	uint32_t videoModeCount;
+	Resolution defaultResolution;
+	Resolution* resolutions;
+	uint32_t resolutionCount;
 } MonitorDesc;
 
 #include <float.h>
@@ -197,9 +201,11 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y);
 
 void getRecommendedResolution(RectDesc* rect);
 // Sets video mode for specified display
-void setVideoMode(const MonitorDesc* pMonitor, uint32_t videoModeIndex);
+void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 MonitorDesc* getMonitor(uint32_t index);
+
+bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 // Input handling
 float2 getMousePosition();

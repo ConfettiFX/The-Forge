@@ -22,15 +22,6 @@
  * under the License.
 */
 
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2013 Confetti Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 #pragma once
 
 #include <stdint.h>
@@ -153,10 +144,15 @@ struct CrossCompiler
    // uniforms
    SPIRV_Variable* pUniformVariables;
    uint32_t UniformVariablesCount;
+
+   char* pEntryPoint;
+   uint32_t EntryPointSize;
 };
 
 SPIRV_INTERFACE  void CALLTYPE CreateCrossCompiler(const uint32_t* SpirvBinary, uint32_t BinarySize, CrossCompiler* outCompiler);
 SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* compiler);
+
+SPIRV_INTERFACE  void CALLTYPE ReflectEntryPoint(CrossCompiler* compiler);
 
 SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* compiler);
 SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* compiler);

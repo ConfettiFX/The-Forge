@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		281FA9E720333E3D00CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9E620333E3D00CD5D9C /* circlepad.png */; };
+		288F630B2035B00900B758DE /* basic.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63082035B00900B758DE /* basic.frag.metal */; };
+		288F630C2035B00900B758DE /* ExecuteIndirect.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63092035B00900B758DE /* ExecuteIndirect.frag.metal */; };
+		288F630D2035B00900B758DE /* skybox.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F630A2035B00900B758DE /* skybox.frag.metal */; };
+		288F630E2035B20200B758DE /* basic.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63082035B00900B758DE /* basic.frag.metal */; };
+		288F630F2035B20800B758DE /* ExecuteIndirect.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63092035B00900B758DE /* ExecuteIndirect.frag.metal */; };
+		288F63102035B20C00B758DE /* skybox.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F630A2035B00900B758DE /* skybox.frag.metal */; };
 		28A5AC89201F682F000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC87201F682F000E571F /* Main.storyboard */; };
 		28A5AC8B201F682F000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC8A201F682F000E571F /* Assets.xcassets */; };
 		28A5AC8E201F682F000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC8C201F682F000E571F /* LaunchScreen.storyboard */; };
@@ -17,23 +24,20 @@
 		28A5ACA3201F6889000E571F /* Skybox_front5.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC9D201F6889000E571F /* Skybox_front5.png */; };
 		28A5ACA4201F6889000E571F /* Skybox_top3.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC9E201F6889000E571F /* Skybox_top3.png */; };
 		28A5ACA5201F6889000E571F /* Skybox_back6.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC9F201F6889000E571F /* Skybox_back6.png */; };
-		28A5ACAA201F6899000E571F /* skybox.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA6201F6899000E571F /* skybox.metal */; };
-		28A5ACAB201F6899000E571F /* ExecuteIndirect.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA7201F6899000E571F /* ExecuteIndirect.metal */; };
-		28A5ACAC201F6899000E571F /* basic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA8201F6899000E571F /* basic.metal */; };
-		28A5ACAD201F6899000E571F /* ComputeUpdate.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA9201F6899000E571F /* ComputeUpdate.metal */; };
+		28A5ACAA201F6899000E571F /* skybox.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA6201F6899000E571F /* skybox.vert.metal */; };
+		28A5ACAB201F6899000E571F /* ExecuteIndirect.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA7201F6899000E571F /* ExecuteIndirect.vert.metal */; };
+		28A5ACAC201F6899000E571F /* basic.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA8201F6899000E571F /* basic.vert.metal */; };
+		28A5ACAD201F6899000E571F /* ComputeUpdate.comp.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA9201F6899000E571F /* ComputeUpdate.comp.metal */; };
 		28A5ACB0201F68C4000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACAF201F68C4000E571F /* Metal.framework */; };
 		28A5ACB2201F68CA000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACB1201F68CA000E571F /* MetalKit.framework */; };
 		28A5ACB5201F68D1000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACB3201F68D1000E571F /* Metal.framework */; };
 		28A5ACB6201F68D1000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACB4201F68D1000E571F /* MetalKit.framework */; };
-		28A5ACB7201F68E3000E571F /* basic.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA8201F6899000E571F /* basic.metal */; };
-		28A5ACB8201F68E5000E571F /* ComputeUpdate.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA9201F6899000E571F /* ComputeUpdate.metal */; };
-		28A5ACB9201F68E7000E571F /* ExecuteIndirect.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA7201F6899000E571F /* ExecuteIndirect.metal */; };
-		28A5ACBA201F68E9000E571F /* skybox.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA6201F6899000E571F /* skybox.metal */; };
-		28A5ACC6201F6999000E571F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACBC201F6999000E571F /* main.mm */; };
-		28A5ACC7201F6999000E571F /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACBD201F6999000E571F /* GameViewController.mm */; };
+		28A5ACB7201F68E3000E571F /* basic.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA8201F6899000E571F /* basic.vert.metal */; };
+		28A5ACB8201F68E5000E571F /* ComputeUpdate.comp.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA9201F6899000E571F /* ComputeUpdate.comp.metal */; };
+		28A5ACB9201F68E7000E571F /* ExecuteIndirect.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA7201F6899000E571F /* ExecuteIndirect.vert.metal */; };
+		28A5ACBA201F68E9000E571F /* skybox.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACA6201F6899000E571F /* skybox.vert.metal */; };
 		28A5ACC8201F6999000E571F /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACC0201F6999000E571F /* iOSThreadManager.cpp */; };
 		28A5ACC9201F6999000E571F /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACC1201F6999000E571F /* iOSLogManager.cpp */; };
-		28A5ACCA201F6999000E571F /* iOSBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACC2201F6999000E571F /* iOSBase.cpp */; };
 		28A5ACCB201F6999000E571F /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACC3201F6999000E571F /* iOSFileSystem.mm */; };
 		28A5ACCC201F6999000E571F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACC4201F6999000E571F /* AppDelegate.m */; };
 		28A5ACCD201F699F000E571F /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB11EF81FC5005AC8C7 /* FileSystem.cpp */; };
@@ -65,7 +69,11 @@
 		28A5ACE7201F69FF000E571F /* simplexnoise1234.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2A5205A1F4ED89800C9B029 /* simplexnoise1234.cpp */; };
 		28A5ACE8201F69FF000E571F /* TextureGen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2A5205C1F4ED89800C9B029 /* TextureGen.cpp */; };
 		28A5ACE9201F6B65000E571F /* 04_ExecuteIndirect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D28782F11F0A7F98004DC624 /* 04_ExecuteIndirect.cpp */; };
+		5C85A3882029FF2E00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3872029FF2E00AB83C6 /* macOSBase.mm */; };
+		5C85A39B202A0E9D00AB83C6 /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A399202A0E9A00AB83C6 /* iOSBase.mm */; };
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
+		B21AD0F7202E80E100CF5DD7 /* PaniniProjection_iOS.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */; };
+		B21AD0F8202E80FC00CF5DD7 /* PaniniProjection.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = B21AD0F2202E80C100CF5DD7 /* PaniniProjection.lib */; };
 		C91D46211FD9976D00564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */; };
 		C91D46231FD997AB00564C8B /* UIManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46221FD997AB00564C8B /* UIManager.cpp */; };
 		C91D46251FD9984A00564C8B /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = C91D46241FD9984900564C8B /* MetalShaderReflection.mm */; };
@@ -88,9 +96,6 @@
 		EA463CF51EF81FC5005AC8C7 /* Noise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CC21EF81FC5005AC8C7 /* Noise.cpp */; };
 		EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
 		EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD21EF81FC5005AC8C7 /* AppDelegate.m */; };
-		EA463CFB1EF81FC5005AC8C7 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD41EF81FC5005AC8C7 /* GameViewController.mm */; };
-		EA463CFC1EF81FC5005AC8C7 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD51EF81FC5005AC8C7 /* main.mm */; };
-		EA463CFD1EF81FC5005AC8C7 /* macOSBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD61EF81FC5005AC8C7 /* macOSBase.cpp */; };
 		EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */; };
 		EA463D001EF81FC5005AC8C7 /* macOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD91EF81FC5005AC8C7 /* macOSThreadManager.cpp */; };
 		EA463D011EF81FC5005AC8C7 /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CDF1EF81FC5005AC8C7 /* MetalRenderer.mm */; };
@@ -106,6 +111,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		281FA9E620333E3D00CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
+		288F63082035B00900B758DE /* basic.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = basic.frag.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/basic.frag.metal; sourceTree = "<group>"; };
+		288F63092035B00900B758DE /* ExecuteIndirect.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = ExecuteIndirect.frag.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/ExecuteIndirect.frag.metal; sourceTree = "<group>"; };
+		288F630A2035B00900B758DE /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.frag.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/skybox.frag.metal; sourceTree = "<group>"; };
 		28A5AC79201F682F000E571F /* 04_ExecuteIndirect_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 04_ExecuteIndirect_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AC88201F682F000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AC8A201F682F000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -118,25 +127,27 @@
 		28A5AC9D201F6889000E571F /* Skybox_front5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_front5.png; path = ../../../UnitTestResources/Textures/Skybox_front5.png; sourceTree = "<group>"; };
 		28A5AC9E201F6889000E571F /* Skybox_top3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_top3.png; path = ../../../UnitTestResources/Textures/Skybox_top3.png; sourceTree = "<group>"; };
 		28A5AC9F201F6889000E571F /* Skybox_back6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_back6.png; path = ../../../UnitTestResources/Textures/Skybox_back6.png; sourceTree = "<group>"; };
-		28A5ACA6201F6899000E571F /* skybox.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/skybox.metal; sourceTree = "<group>"; };
-		28A5ACA7201F6899000E571F /* ExecuteIndirect.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = ExecuteIndirect.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/ExecuteIndirect.metal; sourceTree = "<group>"; };
-		28A5ACA8201F6899000E571F /* basic.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = basic.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/basic.metal; sourceTree = "<group>"; };
-		28A5ACA9201F6899000E571F /* ComputeUpdate.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = ComputeUpdate.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/ComputeUpdate.metal; sourceTree = "<group>"; };
+		28A5ACA6201F6899000E571F /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.vert.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/skybox.vert.metal; sourceTree = "<group>"; };
+		28A5ACA7201F6899000E571F /* ExecuteIndirect.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = ExecuteIndirect.vert.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/ExecuteIndirect.vert.metal; sourceTree = "<group>"; };
+		28A5ACA8201F6899000E571F /* basic.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = basic.vert.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/basic.vert.metal; sourceTree = "<group>"; };
+		28A5ACA9201F6899000E571F /* ComputeUpdate.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = ComputeUpdate.comp.metal; path = ../../../src/04_ExecuteIndirect/OSXMetal/ComputeUpdate.comp.metal; sourceTree = "<group>"; };
 		28A5ACAF201F68C4000E571F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		28A5ACB1201F68CA000E571F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		28A5ACB3201F68D1000E571F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		28A5ACB4201F68D1000E571F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
-		28A5ACBC201F6999000E571F /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = main.mm; path = iOS/main.mm; sourceTree = "<group>"; };
-		28A5ACBD201F6999000E571F /* GameViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = GameViewController.mm; path = iOS/GameViewController.mm; sourceTree = "<group>"; };
-		28A5ACBE201F6999000E571F /* MetalKitApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalKitApplication.h; path = iOS/MetalKitApplication.h; sourceTree = "<group>"; };
-		28A5ACBF201F6999000E571F /* GameViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GameViewController.h; path = iOS/GameViewController.h; sourceTree = "<group>"; };
 		28A5ACC0201F6999000E571F /* iOSThreadManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = iOSThreadManager.cpp; path = iOS/iOSThreadManager.cpp; sourceTree = "<group>"; };
 		28A5ACC1201F6999000E571F /* iOSLogManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = iOSLogManager.cpp; path = iOS/iOSLogManager.cpp; sourceTree = "<group>"; };
-		28A5ACC2201F6999000E571F /* iOSBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSBase.cpp; path = iOS/iOSBase.cpp; sourceTree = "<group>"; };
 		28A5ACC3201F6999000E571F /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = iOS/iOSFileSystem.mm; sourceTree = "<group>"; };
 		28A5ACC4201F6999000E571F /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = iOS/AppDelegate.m; sourceTree = "<group>"; };
 		28A5ACC5201F6999000E571F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = iOS/AppDelegate.h; sourceTree = "<group>"; };
+		5C85A3872029FF2E00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
+		5C85A399202A0E9A00AB83C6 /* iOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSBase.mm; path = iOS/iOSBase.mm; sourceTree = "<group>"; };
 		5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../../../../Common_3/Renderer/ResourceLoader.cpp; sourceTree = SOURCE_ROOT; };
+		B21AD0EE202E7D4500CF5DD7 /* PaniniProjection_iOS.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection_iOS.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/Debug/PaniniProjection_iOS.lib"; sourceTree = "<group>"; };
+		B21AD0F2202E80C100CF5DD7 /* PaniniProjection.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/PaniniProjection.lib"; sourceTree = "<group>"; };
+		B21AD0F4202E80D200CF5DD7 /* PaniniProjection_iOS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PaniniProjection_iOS; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/include/PaniniProjection_iOS"; sourceTree = "<group>"; };
+		B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection_iOS.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/PaniniProjection_iOS.lib"; sourceTree = "<group>"; };
+		B263E338202E6D7700457D44 /* PaniniProjection.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/Debug/PaniniProjection.lib"; sourceTree = "<group>"; };
 		C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C91D46221FD997AB00564C8B /* UIManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = UIManager.cpp; sourceTree = "<group>"; };
 		C91D46241FD9984900564C8B /* MetalShaderReflection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalShaderReflection.mm; path = Metal/MetalShaderReflection.mm; sourceTree = "<group>"; };
@@ -147,7 +158,6 @@
 		C960AF2F2003F29E0007B156 /* float4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float4.h; path = Math/float4.h; sourceTree = "<group>"; };
 		C960AF302003F29F0007B156 /* float2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float2.h; path = Math/float2.h; sourceTree = "<group>"; };
 		C960AF312003F29F0007B156 /* float3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float3.h; path = Math/float3.h; sourceTree = "<group>"; };
-		C98933852004E918006FE269 /* MetalKitApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalKitApplication.h; path = macOS/MetalKitApplication.h; sourceTree = "<group>"; };
 		C98FC7001FE9113A00AF2793 /* MetalMemoryAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalMemoryAllocator.h; path = Metal/MetalMemoryAllocator.h; sourceTree = "<group>"; };
 		C9DF3AF320067771000D674E /* macOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSFileSystem.mm; path = macOS/macOSFileSystem.mm; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 04_ExecuteIndirect/Assets.xcassets; sourceTree = SOURCE_ROOT; };
@@ -185,10 +195,6 @@
 		EA463CCF1EF81FC5005AC8C7 /* ImageKTXImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImageKTXImpl.h; path = ../../../../Common_3/OS/Image/ImageKTXImpl.h; sourceTree = SOURCE_ROOT; };
 		EA463CD11EF81FC5005AC8C7 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = SOURCE_ROOT; };
 		EA463CD21EF81FC5005AC8C7 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = SOURCE_ROOT; };
-		EA463CD31EF81FC5005AC8C7 /* GameViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GameViewController.h; path = ../../../../Common_3/OS/macOS/GameViewController.h; sourceTree = SOURCE_ROOT; };
-		EA463CD41EF81FC5005AC8C7 /* GameViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = GameViewController.mm; path = ../../../../Common_3/OS/macOS/GameViewController.mm; sourceTree = SOURCE_ROOT; };
-		EA463CD51EF81FC5005AC8C7 /* main.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = main.mm; path = ../../../../Common_3/OS/macOS/main.mm; sourceTree = SOURCE_ROOT; };
-		EA463CD61EF81FC5005AC8C7 /* macOSBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = macOSBase.cpp; path = ../../../../Common_3/OS/macOS/macOSBase.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = macOSLogManager.cpp; path = ../../../../Common_3/OS/macOS/macOSLogManager.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CD91EF81FC5005AC8C7 /* macOSThreadManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = macOSThreadManager.cpp; path = ../../../../Common_3/OS/macOS/macOSThreadManager.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CDD1EF81FC5005AC8C7 /* IRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IRenderer.h; path = ../../../../Common_3/Renderer/IRenderer.h; sourceTree = SOURCE_ROOT; };
@@ -216,6 +222,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B21AD0F7202E80E100CF5DD7 /* PaniniProjection_iOS.lib in Frameworks */,
 				28A5ACB5201F68D1000E571F /* Metal.framework in Frameworks */,
 				28A5ACB6201F68D1000E571F /* MetalKit.framework in Frameworks */,
 			);
@@ -225,6 +232,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B21AD0F8202E80FC00CF5DD7 /* PaniniProjection.lib in Frameworks */,
 				28A5ACB2201F68CA000E571F /* MetalKit.framework in Frameworks */,
 				28A5ACB0201F68C4000E571F /* Metal.framework in Frameworks */,
 			);
@@ -258,10 +266,13 @@
 		28A5AC96201F6852000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
-				28A5ACA8201F6899000E571F /* basic.metal */,
-				28A5ACA9201F6899000E571F /* ComputeUpdate.metal */,
-				28A5ACA7201F6899000E571F /* ExecuteIndirect.metal */,
-				28A5ACA6201F6899000E571F /* skybox.metal */,
+				28A5ACA8201F6899000E571F /* basic.vert.metal */,
+				288F63082035B00900B758DE /* basic.frag.metal */,
+				28A5ACA9201F6899000E571F /* ComputeUpdate.comp.metal */,
+				28A5ACA7201F6899000E571F /* ExecuteIndirect.vert.metal */,
+				288F63092035B00900B758DE /* ExecuteIndirect.frag.metal */,
+				28A5ACA6201F6899000E571F /* skybox.vert.metal */,
+				288F630A2035B00900B758DE /* skybox.frag.metal */,
 			);
 			name = Shaders;
 			sourceTree = "<group>";
@@ -269,6 +280,7 @@
 		28A5AC97201F685A000E571F /* Textures */ = {
 			isa = PBXGroup;
 			children = (
+				281FA9E620333E3D00CD5D9C /* circlepad.png */,
 				28A5AC9F201F6889000E571F /* Skybox_back6.png */,
 				28A5AC9C201F6889000E571F /* Skybox_bottom4.png */,
 				28A5AC9D201F6889000E571F /* Skybox_front5.png */,
@@ -282,6 +294,11 @@
 		28A5ACAE201F68C4000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */,
+				B21AD0F4202E80D200CF5DD7 /* PaniniProjection_iOS */,
+				B21AD0F2202E80C100CF5DD7 /* PaniniProjection.lib */,
+				B21AD0EE202E7D4500CF5DD7 /* PaniniProjection_iOS.lib */,
+				B263E338202E6D7700457D44 /* PaniniProjection.lib */,
 				28A5ACB3201F68D1000E571F /* Metal.framework */,
 				28A5ACB4201F68D1000E571F /* MetalKit.framework */,
 				28A5ACB1201F68CA000E571F /* MetalKit.framework */,
@@ -293,16 +310,12 @@
 		28A5ACBB201F6988000E571F /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				5C85A399202A0E9A00AB83C6 /* iOSBase.mm */,
 				28A5ACC5201F6999000E571F /* AppDelegate.h */,
 				28A5ACC4201F6999000E571F /* AppDelegate.m */,
-				28A5ACBF201F6999000E571F /* GameViewController.h */,
-				28A5ACBD201F6999000E571F /* GameViewController.mm */,
-				28A5ACC2201F6999000E571F /* iOSBase.cpp */,
 				28A5ACC3201F6999000E571F /* iOSFileSystem.mm */,
 				28A5ACC1201F6999000E571F /* iOSLogManager.cpp */,
 				28A5ACC0201F6999000E571F /* iOSThreadManager.cpp */,
-				28A5ACBC201F6999000E571F /* main.mm */,
-				28A5ACBE201F6999000E571F /* MetalKitApplication.h */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
@@ -411,13 +424,9 @@
 		EA463CDA1EF81FC5005AC8C7 /* macOS */ = {
 			isa = PBXGroup;
 			children = (
+				5C85A3872029FF2E00AB83C6 /* macOSBase.mm */,
 				EA463CD11EF81FC5005AC8C7 /* AppDelegate.h */,
 				EA463CD21EF81FC5005AC8C7 /* AppDelegate.m */,
-				EA463CD31EF81FC5005AC8C7 /* GameViewController.h */,
-				EA463CD41EF81FC5005AC8C7 /* GameViewController.mm */,
-				C98933852004E918006FE269 /* MetalKitApplication.h */,
-				EA463CD51EF81FC5005AC8C7 /* main.mm */,
-				EA463CD61EF81FC5005AC8C7 /* macOSBase.cpp */,
 				C9DF3AF320067771000D674E /* macOSFileSystem.mm */,
 				EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */,
 				EA463CD91EF81FC5005AC8C7 /* macOSThreadManager.cpp */,
@@ -612,10 +621,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				28A5ACBA201F68E9000E571F /* skybox.metal in Resources */,
-				28A5ACB9201F68E7000E571F /* ExecuteIndirect.metal in Resources */,
-				28A5ACB8201F68E5000E571F /* ComputeUpdate.metal in Resources */,
-				28A5ACB7201F68E3000E571F /* basic.metal in Resources */,
+				28A5ACB7201F68E3000E571F /* basic.vert.metal in Resources */,
+				288F630E2035B20200B758DE /* basic.frag.metal in Resources */,
+				28A5ACB8201F68E5000E571F /* ComputeUpdate.comp.metal in Resources */,
+				28A5ACB9201F68E7000E571F /* ExecuteIndirect.vert.metal in Resources */,
+				288F630F2035B20800B758DE /* ExecuteIndirect.frag.metal in Resources */,
+				28A5ACBA201F68E9000E571F /* skybox.vert.metal in Resources */,
+				288F63102035B20C00B758DE /* skybox.frag.metal in Resources */,
+				281FA9E720333E3D00CD5D9C /* circlepad.png in Resources */,
 				28A5AC8E201F682F000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5ACA3201F6889000E571F /* Skybox_front5.png in Resources */,
 				28A5AC8B201F682F000E571F /* Assets.xcassets in Resources */,
@@ -645,22 +658,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				28A5ACC6201F6999000E571F /* main.mm in Sources */,
 				28A5ACDD201F69CE000E571F /* CommonShaderReflection.cpp in Sources */,
 				28A5ACE0201F69CE000E571F /* MetalRenderer.mm in Sources */,
 				28A5ACCE201F69A4000E571F /* MemoryTrackingManager.cpp in Sources */,
 				28A5ACCD201F699F000E571F /* FileSystem.cpp in Sources */,
-				28A5ACAB201F6899000E571F /* ExecuteIndirect.metal in Sources */,
-				28A5ACAD201F6899000E571F /* ComputeUpdate.metal in Sources */,
+				28A5ACAB201F6899000E571F /* ExecuteIndirect.vert.metal in Sources */,
+				28A5ACAD201F6899000E571F /* ComputeUpdate.comp.metal in Sources */,
 				28A5ACE5201F69F1000E571F /* Timer.cpp in Sources */,
 				28A5ACE1201F69E8000E571F /* tinyexr.cpp in Sources */,
 				28A5ACD4201F69B3000E571F /* UI.cpp in Sources */,
 				28A5ACDB201F69C3000E571F /* Image.cpp in Sources */,
+				5C85A39B202A0E9D00AB83C6 /* iOSBase.mm in Sources */,
 				28A5ACD6201F69C3000E571F /* FloatUtil.cpp in Sources */,
 				28A5ACDE201F69CE000E571F /* MetalShaderReflection.mm in Sources */,
 				28A5ACCB201F6999000E571F /* iOSFileSystem.mm in Sources */,
 				28A5ACC8201F6999000E571F /* iOSThreadManager.cpp in Sources */,
-				28A5ACCA201F6999000E571F /* iOSBase.cpp in Sources */,
 				28A5ACD8201F69C3000E571F /* IntersectionHelpers.cpp in Sources */,
 				28A5ACC9201F6999000E571F /* iOSLogManager.cpp in Sources */,
 				28A5ACDA201F69C3000E571F /* Noise.cpp in Sources */,
@@ -672,9 +684,9 @@
 				28A5ACD3201F69B3000E571F /* NuklearGUIDriver.cpp in Sources */,
 				28A5ACE8201F69FF000E571F /* TextureGen.cpp in Sources */,
 				28A5ACE7201F69FF000E571F /* simplexnoise1234.cpp in Sources */,
-				28A5ACC7201F6999000E571F /* GameViewController.mm in Sources */,
+				288F630B2035B00900B758DE /* basic.frag.metal in Sources */,
 				28A5ACDF201F69CE000E571F /* ResourceLoader.cpp in Sources */,
-				28A5ACAC201F6899000E571F /* basic.metal in Sources */,
+				28A5ACAC201F6899000E571F /* basic.vert.metal in Sources */,
 				28A5ACD5201F69B3000E571F /* UIRenderer.cpp in Sources */,
 				28A5ACE2201F69F1000E571F /* LogManager.cpp in Sources */,
 				28A5ACDC201F69CE000E571F /* GpuProfiler.cpp in Sources */,
@@ -684,7 +696,9 @@
 				28A5ACD7201F69C3000E571F /* half.cpp in Sources */,
 				28A5ACE4201F69F1000E571F /* ThreadSystem.cpp in Sources */,
 				28A5ACE9201F6B65000E571F /* 04_ExecuteIndirect.cpp in Sources */,
-				28A5ACAA201F6899000E571F /* skybox.metal in Sources */,
+				288F630C2035B00900B758DE /* ExecuteIndirect.frag.metal in Sources */,
+				288F630D2035B00900B758DE /* skybox.frag.metal in Sources */,
+				28A5ACAA201F6899000E571F /* skybox.vert.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -692,7 +706,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EA463CFC1EF81FC5005AC8C7 /* main.mm in Sources */,
 				5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */,
 				EA463D141EF94A1E005AC8C7 /* UIRenderer.cpp in Sources */,
 				D2A520601F4ED89900C9B029 /* TextureGen.cpp in Sources */,
@@ -700,11 +713,10 @@
 				EA463D131EF94A1E005AC8C7 /* UI.cpp in Sources */,
 				D28782F21F0A7F98004DC624 /* 04_ExecuteIndirect.cpp in Sources */,
 				EA463CF11EF81FC5005AC8C7 /* half.cpp in Sources */,
-				EA463CFB1EF81FC5005AC8C7 /* GameViewController.mm in Sources */,
 				C91D46251FD9984A00564C8B /* MetalShaderReflection.mm in Sources */,
 				EA463CF01EF81FC5005AC8C7 /* FloatUtil.cpp in Sources */,
 				EA463CF31EF81FC5005AC8C7 /* mat2.cpp in Sources */,
-				EA463CFD1EF81FC5005AC8C7 /* macOSBase.cpp in Sources */,
+				5C85A3882029FF2E00AB83C6 /* macOSBase.mm in Sources */,
 				C91D46231FD997AB00564C8B /* UIManager.cpp in Sources */,
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				EA463CEE1EF81FC5005AC8C7 /* FileSystem.cpp in Sources */,

@@ -534,6 +534,8 @@ typedef enum TextureCreationFlags
 	TEXTURE_CREATION_FLAG_IMPORT_BIT = 0x08,
 	/// Use ESRAM to store this texture
 	TEXTURE_CREATION_FLAG_ESRAM = 0x10,
+    /// Use on-tile memory to store this texture
+    TEXTURE_CREATION_FLAG_ON_TILE = 0x20,
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
@@ -839,6 +841,9 @@ typedef struct RenderTarget
 	D3D12_CPU_DESCRIPTOR_HANDLE		mDxRtvHandle;
 	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to RENDER_TARGET_USAGE_DEPTH_STENCIL)
 	D3D12_CPU_DESCRIPTOR_HANDLE		mDxDsvHandle;
+#elif defined(TARGET_IOS)
+    // A separate texture is needed for stencil rendering on iOS.
+    Texture*                        pStencil;
 #endif
 } RenderTarget;
 
@@ -1154,17 +1159,18 @@ typedef struct Semaphore {
 
 typedef struct Queue {
 	Renderer*			    pRenderer;
-	QueueDesc				mQueueDesc;
 #if defined(VULKAN)
 	VkQueue					pVkQueue;
 	uint32_t				mVkQueueFamilyIndex;
 	uint32_t				mVkQueueIndex;
 #elif defined(DIRECT3D12)
 	ID3D12CommandQueue*		pDxQueue;
+	Fence*					pQueueFence;
 #elif defined(METAL)
     id<MTLCommandQueue>		mtlCommandQueue;
     dispatch_semaphore_t	pMtlSemaphore;
 #endif
+	QueueDesc				mQueueDesc;
 } Queue;
 
 typedef struct ShaderMacro
@@ -1196,6 +1202,29 @@ typedef struct ShaderDesc
 	ShaderStageDesc mComp;
 } ShaderDesc;
 
+typedef struct BinaryShaderStageDesc
+{
+	/// Byte code array
+	tinystl::vector<char>	mByteCode;
+#if defined(METAL)
+    // Shader source is needed for reflection
+    tinystl::string         mSource;
+	/// Entry point is needed for Metal
+	tinystl::string			mEntryPoint;
+#endif
+} BinaryShaderStageDesc;
+
+typedef struct BinaryShaderDesc
+{
+	ShaderStage				mStages;
+	BinaryShaderStageDesc	mVert;
+	BinaryShaderStageDesc	mFrag;
+	BinaryShaderStageDesc	mGeom;
+	BinaryShaderStageDesc	mHull;
+	BinaryShaderStageDesc	mDomain;
+	BinaryShaderStageDesc	mComp;
+} BinaryShaderDesc;
+
 typedef struct Shader {
 	Renderer*               pRenderer;
 	ShaderStage				mStages;
@@ -1204,7 +1233,6 @@ typedef struct Shader {
 	uint32_t				mNumThreadsPerGroup[3];
 	uint32_t				mNumControlPoint;
 
-
 #if defined(VULKAN)
 	VkShaderModule			pVkVert;
 	VkShaderModule			pVkTesc;
@@ -1212,13 +1240,6 @@ typedef struct Shader {
 	VkShaderModule			pVkGeom;
 	VkShaderModule			pVkFrag;
 	VkShaderModule			pVkComp;
-
-	char*					pVertEntryPoint;
-	char*					pFragEntryPoint;
-	char*					pTescEntryPoint;
-	char*					pTeseEntryPoint;
-	char*					pGeomEntryPoint;
-	char*					pCompEntryPoint;
 #elif defined(DIRECT3D12)
 	ID3DBlob*				pDxVert;
 	ID3DBlob*				pDxHull;
@@ -1461,6 +1482,7 @@ typedef struct GPUSettings
 } GPUSettings;
 
 typedef struct Renderer {
+	char*								pName;
 	RendererDesc						mSettings;
 	uint32_t							mNumOfGPUs;
 	GPUSettings*						pActiveGpuSettings;
@@ -1629,6 +1651,7 @@ ApiExport void removeSampler(Renderer* pRenderer, Sampler* p_sampler);
 
 // shader functions
 ApiExport void addShader(Renderer* pRenderer, const ShaderDesc* p_desc, Shader** p_shader_program);
+ApiExport void addShader(Renderer* pRenderer, const BinaryShaderDesc* p_desc, Shader** p_shader_program);
 ApiExport void removeShader(Renderer* pRenderer, Shader* p_shader_program);
 
 // pipeline functions
@@ -1686,11 +1709,6 @@ ApiExport void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstV
 ApiExport void cmdDrawIndexed(Cmd* p_cmd, uint32_t index_count, uint32_t first_index);
 ApiExport void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount);
 ApiExport void cmdDispatch(Cmd* p_cmd, uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z);
-//
-////Debug markers
-////Color is in XRGB format (X being padding) 0xff0000 -> red, 0x00ff00 -> green, 0x0000ff -> blue
-//ApiExport void cmdPushDebugMarker(Cmd* pCmd, uint32_t color, const char* name, ...);
-//ApiExport void cmdPopDebugMarker(Cmd* pCmd);
 
 // Transition Commands
 ApiExport void cmdResourceBarrier(Cmd* p_cmd, uint32_t buffer_barrier_count, BufferBarrier* p_buffer_barriers, uint32_t texture_barrier_count, TextureBarrier* p_texture_barriers, bool batch);
@@ -1709,12 +1727,6 @@ ApiExport void queueSubmit(Queue* p_queue, uint32_t cmd_count, Cmd** pp_cmds, Fe
 ApiExport void queuePresent(Queue* p_queue, SwapChain* p_swap_chain, uint32_t swap_chain_image_index, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores);
 ApiExport void getFenceStatus(Fence* p_fence, FenceStatus* p_fence_status);
 ApiExport void waitForFences(Queue* p_queue, uint32_t fence_count, Fence** pp_fences);
-////Queue debug markers
-////Color is in XRGB format (X being padding) 0xff0000 -> red, 0x00ff00 -> green, 0x0000ff -> blue
-//ApiExport void queuePushDebugMarker(Queue* pQueue, uint32_t color, const char* name, ...);
-//ApiExport void queuePopDebugMarker(Queue* pQueue);
-
-ApiExport void getRawTextureHandle(Renderer* pRenderer, Texture* p_texture, void** pp_handle);
 
 // image related functions
 ApiExport bool isImageFormatSupported(ImageFormat::Enum format);

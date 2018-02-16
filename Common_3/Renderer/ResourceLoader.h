@@ -22,6 +22,11 @@
  * under the License.
 */
 
+// ***************************************************
+// NOTE:
+// "IRenderer.h" MUST be included before this header!
+// ***************************************************
+
 #pragma once
 
 // Resource Loader Interface
@@ -112,6 +117,19 @@ typedef struct ResourceUpdateDesc
 	};
 } ResourceUpdateDesc;
 
+typedef struct ShaderStageLoadDesc
+{
+	String			mFileName;
+	ShaderMacro*	pMacros;
+	uint32_t		mMacroCount;
+	FSRoot			mRoot;
+} ShaderStageLoadDesc;
+
+typedef struct ShaderLoadDesc
+{
+	ShaderStageLoadDesc mStages[SHADER_STAGE_COUNT];
+} ShaderLoadDesc;
+
 void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget = DEFAULT_MEMORY_BUDGET, bool useThreads = false);
 void removeResourceLoaderInterface(Renderer* pRenderer);
 
@@ -128,3 +146,6 @@ void removeResource(Buffer* pBuffer);
 void removeResource(Texture* pTexture);
 
 void finishResourceLoading();
+
+/// Either loads the cached shader bytecode or compiles the shader to create new bytecode depending on whether source is newer than binary
+void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader);

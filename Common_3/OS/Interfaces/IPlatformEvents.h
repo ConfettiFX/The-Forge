@@ -546,29 +546,24 @@ typedef enum MouseButton
 typedef struct WindowResizeEventData
 {
 	RectDesc rect;
-	struct WindowsDesc pWindow;
+	struct WindowsDesc* pWindow;
 } WindowResizeEventData;
 
 typedef struct KeyboardCharEventData
 {
 	unsigned int unicode;
-	struct WindowsDesc pWindow;
 } KeyboardCharEventData;
 
 typedef struct KeyboardButtonEventData
 {
 	unsigned int key;
 	bool pressed;
-	struct WindowsDesc pWindow;
 } KeyboardButtonEventData;
 
 typedef struct JoystickButtonEventData
 {
 	unsigned int button;
 	bool pressed;
-#ifndef _DURANGO
-	struct WindowsDesc pWindow;
-#endif
 } JoystickButtonEventData;
 
 typedef struct MouseMoveEventData
@@ -578,8 +573,14 @@ typedef struct MouseMoveEventData
 	int deltaX;
 	int deltaY;
 	bool captured;
-	struct WindowsDesc pWindow;
 } MouseMoveEventData;
+
+typedef struct RawMouseMoveEventData
+{
+	int x;
+	int y;
+	bool captured;
+} RawMouseMoveEventData;
 
 typedef struct MouseButtonEventData
 {
@@ -587,7 +588,6 @@ typedef struct MouseButtonEventData
 	int y;
 	MouseButton button;
 	bool pressed;
-	struct WindowsDesc pWindow;
 } MouseButtonEventData;
 
 typedef struct MouseWheelEventData
@@ -597,22 +597,25 @@ typedef struct MouseWheelEventData
 	int scroll;
 } MouseWheelEventData;
 
+#define MAX_MULTI_TOUCHES 5
+typedef struct TouchData
+{
+    int x;
+    float screenX;
+    int y;
+    float screenY;
+    int deltaX;
+    float screenDeltaX;
+    int deltaY;
+    float screenDeltaY;
+    bool pressed;
+} TouchData;
+
 typedef struct TouchEventData
 {
-    int x;
-    int y;
-    int radius;
-    bool pressed;
+    uint32_t touchesRecorded;
+    TouchData touchData[MAX_MULTI_TOUCHES];
 } TouchEventData;
-
-typedef struct TouchMoveEventData
-{
-    int x;
-    int y;
-    int deltaX;
-    int deltaY;
-    int radius;
-} TouchMoveEventData;
 
 typedef void(*WindowResizeEventHandler)(const WindowResizeEventData* data);
 void registerWindowResizeEvent(WindowResizeEventHandler callback);
@@ -629,6 +632,10 @@ void unregisterKeyboardButtonEvent(KeyboardButtonEventHandler callback);
 typedef bool(*MouseMoveEventHandler)(const MouseMoveEventData* data);
 void registerMouseMoveEvent(MouseMoveEventHandler callback);
 void unregisterMouseMoveEvent(MouseMoveEventHandler callback);
+
+typedef bool(*RawMouseMoveEventHandler)(const RawMouseMoveEventData* data);
+void registerRawMouseMoveEvent(RawMouseMoveEventHandler callback);
+void unregisterRawMouseMoveEvent(RawMouseMoveEventHandler callback);
 
 typedef bool(*MouseButtonEventHandler)(const MouseButtonEventData* data);
 void registerMouseButtonEvent(MouseButtonEventHandler callback);
@@ -648,6 +655,6 @@ typedef bool(*TouchEventHandler)(const TouchEventData* data);
 void registerTouchEvent(TouchEventHandler callback);
 void unregisterTouchEvent(TouchEventHandler callback);
 
-typedef bool(*TouchMoveEventHandler)(const TouchMoveEventData* data);
-void registerTouchMoveEvent(TouchMoveEventHandler callback);
-void unregisterTouchMoveEvent(TouchMoveEventHandler callback);
+typedef bool(*TouchMoveEventHandler)(const TouchEventData* data);
+void registerTouchMoveEvent(TouchEventHandler callback);
+void unregisterTouchMoveEvent(TouchEventHandler callback);

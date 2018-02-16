@@ -22,7 +22,10 @@
  * under the License.
 */
 
+#ifdef __APPLE__
+
 #import <Foundation/Foundation.h>
+
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
@@ -99,19 +102,23 @@ String _getExePath()
 
 String _getAppPrefsDir(const char *org, const char *app)
 {
-    // TODO: Implement.
-    ASSERT(0);
-    return String();
+    const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
+    const char * path;
+    path = strstr(rawUserPath,"/Users/");
+    return String(path) + String("Library/") + String(org) + String("/") + String(app);
 }
 
 String _getUserDocumentsDir()
 {
-    // TODO: Implement.
-    ASSERT(0);
-    return String();
+    const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
+    const char * path;
+    path = strstr(rawUserPath,"/Users/");
+    return String(path);
 }
 
 void _setCurrentDir(const char* path)
 {
     chdir(path);
 }
+
+#endif

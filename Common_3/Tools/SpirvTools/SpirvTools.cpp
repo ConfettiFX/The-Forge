@@ -22,15 +22,6 @@
  * under the License.
 */
 
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2014 Confetti Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 #include "SpirvTools.h"
 
 #define SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
@@ -133,12 +124,30 @@ SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* pCompiler)
    }
 
    delete[] pCompiler->pUniformVariables;
+   delete[] pCompiler->pEntryPoint;
 
    pCompiler->pCompiler = NULL;
    pCompiler->pShaderResouces = NULL;
    pCompiler->ShaderResourceCount = 0;
    pCompiler->pUniformVariables = NULL;
    pCompiler->UniformVariablesCount = 0;
+}
+
+SPIRV_INTERFACE void CALLTYPE ReflectEntryPoint(CrossCompiler* pCompiler)
+{
+	if (pCompiler == NULL)
+	{
+		return; // error code here
+	}
+
+	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
+	std::string entryPoint = compiler->get_entry_points()[0];
+
+	pCompiler->EntryPointSize = (uint32_t)entryPoint.size();
+
+	pCompiler->pEntryPoint = new char[pCompiler->EntryPointSize + 1];
+	memcpy(pCompiler->pEntryPoint, entryPoint.c_str(), pCompiler->EntryPointSize * sizeof(char));
+	pCompiler->pEntryPoint[pCompiler->EntryPointSize] = 0;
 }
 
 SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)

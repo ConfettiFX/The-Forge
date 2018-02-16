@@ -77,9 +77,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	pCurrentRootSignature(NULL),
 	pCurrentCmd(NULL)
 {
-	String vsEntryPoint = "VSMain";
-	String psEntryPoint = "PSMain";
-#if defined(DIRECT3D12) || defined(METAL)
+#if defined(METAL)
 	String vsPlainFile = "builtin_plain";
 	String psPlainFile = "builtin_plain";
 	String vsTexturedFile = "builtin_textured";
@@ -91,47 +89,22 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	String vsTextured = builtin_textured;
 	String psTextured = builtin_textured;
 	String psTexturedRedAlpha = builtin_textured_red_alpha;
-#elif defined (VULKAN)
-	vsEntryPoint = "main";
-	psEntryPoint = "main";
-	String vsPlainFile = "builtin_plain.vert";
-	String psPlainFile = "builtin_plain.frag";
-	String vsTexturedFile = "builtin_textured.vert";
-	String psTexturedFile = "builtin_textured.frag";
-	String psTexturedRedAlphaFile = "builtin_textured_red_alpha.frag";
 
-	String vsPlain;
-	vsPlain.resize(sizeof(builtin_plain_vert));
-	memcpy(vsPlain.begin(), builtin_plain_vert, sizeof(builtin_plain_vert));
-	String psPlain;
-	psPlain.resize(sizeof(builtin_plain_frag));
-	memcpy(psPlain.begin(), builtin_plain_frag, sizeof(builtin_plain_frag));
-	String vsTextured;
-	vsTextured.resize(sizeof(builtin_textured_vert));
-	memcpy(vsTextured.begin(), builtin_textured_vert, sizeof(builtin_textured_vert));
-	String psTextured;
-	psTextured.resize(sizeof(builtin_textured_frag));
-	memcpy(psTextured.begin(), builtin_textured_frag, sizeof(builtin_textured_frag));
-	String psTexturedRedAlpha;
-	psTexturedRedAlpha.resize(sizeof(builtin_textured_red_alpha_frag));
-	memcpy(psTexturedRedAlpha.begin(), builtin_textured_red_alpha_frag, sizeof(builtin_textured_red_alpha_frag));
+	ShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsPlainFile, vsPlain, "VSMain" }, { psPlainFile, psPlain, "PSMain" } };
+	ShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedRedAlphaFile, psTexturedRedAlpha, "PSMain" } };
+	ShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedFile, psTextured, "PSMain" } };
+#elif defined(DIRECT3D12) || defined(VULKAN)
+	tinystl::vector<char> vsPlain(sizeof(builtin_plain_vert)); memcpy(vsPlain.data(), builtin_plain_vert, sizeof(builtin_plain_vert));
+	tinystl::vector<char> psPlain(sizeof(builtin_plain_frag)); memcpy(psPlain.data(), builtin_plain_frag, sizeof(builtin_plain_frag));
+
+	tinystl::vector<char> vsTextured(sizeof(builtin_textured_vert)); memcpy(vsTextured.data(), builtin_textured_vert, sizeof(builtin_textured_vert));
+	tinystl::vector<char> psTextured(sizeof(builtin_textured_frag)); memcpy(psTextured.data(), builtin_textured_frag, sizeof(builtin_textured_frag));
+	tinystl::vector<char> psTexturedRedAlpha(sizeof(builtin_textured_red_alpha_frag)); memcpy(psTexturedRedAlpha.data(), builtin_textured_red_alpha_frag, sizeof(builtin_textured_red_alpha_frag));
+
+	BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsPlain }, { psPlain } };
+	BinaryShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTextured }, { psTexturedRedAlpha } };
+	BinaryShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTextured }, { psTextured } };
 #endif
-
-	ShaderDesc plainShader = {
-		SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-		{ vsPlainFile, vsPlain, vsEntryPoint },
-		{ psPlainFile, psPlain, psEntryPoint }
-	};
-	ShaderDesc texShader = {
-		SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-		{ vsTexturedFile, vsTextured, vsEntryPoint },
-		{ psTexturedRedAlphaFile, psTexturedRedAlpha, psEntryPoint }
-	};
-	ShaderDesc textureShader = {
-		SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-		{ vsTexturedFile, vsTextured, vsEntryPoint },
-		{ psTexturedFile, psTextured, psEntryPoint }
-	};
 
 	addShader(pRenderer, &plainShader, &pBuiltinPlainShader);
 	addShader(pRenderer, &texShader, &pBuiltinTextShader);

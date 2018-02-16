@@ -41,20 +41,6 @@
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../Interfaces/IMemoryManager.h"
 
-#define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
-
-#define MAKEQUAD(x0, y0, x1, y1, o)\
-	vec2(x0 + o, y0 + o),\
-	vec2(x0 + o, y1 - o),\
-	vec2(x1 - o, y0 + o),\
-	vec2(x1 - o, y1 - o),
-
-#define MAKETEXQUAD(x0, y0, x1, y1, o)\
-	TexVertex(float2(x0 + o, y0 + o), float2(0, 0)),\
-	TexVertex(float2(x0 + o, y1 - o), float2(0, 1)),\
-	TexVertex(float2(x1 - o, y0 + o), float2(1, 0)),\
-	TexVertex(float2(x1 - o, y1 - o), float2(1, 1)),
-
 /************************************************************************/
 // UIManager Interface Implementation
 /************************************************************************/
@@ -86,7 +72,7 @@ void addUIManagerInterface(Renderer* pRenderer, const UISettings* pUISettings, U
 
 void removeUIManagerInterface(Renderer* pRenderer, UIManager* pUIManager)
 {
-  UNREF_PARAM(pRenderer);
+	UNREF_PARAM(pRenderer);
 	pUIManager->pUIRenderer->~UIRenderer();
 	conf_free(pUIManager->pUIRenderer);
 
@@ -147,6 +133,48 @@ void addProperty(Gui* pUIManager, const UIProperty pProperty, uint32_t* pId)
 	}
 }
 
+void addResolutionProperty(Gui* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, PropertyChangedCallback onResolutionChanged, uint32_t* pId)
+{
+#if !defined(_DURANGO) && !defined(METAL)
+	if (pUIManager->pUI)
+	{
+		struct ResolutionData
+		{
+			tinystl::vector<String> resNameContainer;
+			tinystl::vector<const char*> resNamePointers;
+			tinystl::vector<uint32_t> resValues;
+		};
+
+		static tinystl::unordered_map<Gui*, ResolutionData> guiResolution;
+		ResolutionData& data = guiResolution[pUIManager];
+
+		data.resNameContainer.clear();
+		data.resNamePointers.clear();
+		data.resValues.clear();
+
+		for (uint32_t i = 0; i < resCount; ++i)
+		{
+			data.resNameContainer.push_back(String().sprintf("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
+			data.resValues.push_back(i);
+		}
+
+		data.resNamePointers.resize(data.resNameContainer.size() + 1);
+		for (uint32_t i = 0; i < (uint32_t)data.resNameContainer.size(); ++i)
+		{
+			data.resNamePointers[i] = data.resNameContainer[i];
+		}
+		data.resNamePointers[data.resNamePointers.size() - 1] = nullptr;
+
+		UIProperty property = UIProperty("Screen Resolution", resolutionIndex, data.resNamePointers.data(), data.resValues.data(), onResolutionChanged);
+
+		if (pId)
+			*pId = pUIManager->pUI->addProperty(property);
+		else
+			pUIManager->pUI->addProperty(property);
+	}
+#endif
+}
+
 void removeProperty(Gui* pUIManager, uint32_t id)
 {
 	if (pUIManager->pUI)
@@ -158,7 +186,7 @@ void removeProperty(Gui* pUIManager, uint32_t id)
 
 void updateGui(UIManager* pUIManager, Gui* pGui, float deltaTime)
 {
-  UNREF_PARAM(pUIManager);
+	UNREF_PARAM(pUIManager);
 	pGui->pGui->update(deltaTime);
 }
 
@@ -180,7 +208,7 @@ void cmdUIDrawFrameTime(struct Cmd* pCmd, UIManager* pUIManager, const vec2& pos
 
 void cmdUIDrawText(struct Cmd* pCmd, UIManager* pUIManager, const vec2& position, const char* pText, const TextDrawDesc* pTextDrawDesc /*= NULL*/)
 {
-  UNREF_PARAM(pCmd);
+	UNREF_PARAM(pCmd);
 	const TextDrawDesc* drawDesc = pTextDrawDesc ? pTextDrawDesc : &pUIManager->mSettings.mDefaultTextDrawDesc;
 	//Fontstash* pFont = pUIManager->pUIRenderer->getFontstash(drawDesc->mFontID);
 	Fontstash* pFont = pUIManager->pUIRenderer->getFontstash(0);
@@ -192,18 +220,18 @@ void cmdUIDrawText(struct Cmd* pCmd, UIManager* pUIManager, const vec2& position
 
 void cmdUIDrawTexturedQuad(struct Cmd* pCmd, UIManager* pUIManager, const vec2& position, const vec2& size, Texture* pTexture)
 {
-  UNREF_PARAM(pCmd);
+	UNREF_PARAM(pCmd);
 	// the last variable can be used to create a border
 	TexVertex pVertices[] = { MAKETEXQUAD(position.getX(), position.getY(), position.getX() + size.getX(), position.getY() + size.getY(), 0) };
-	int nVertices = ARRAY_COUNT(pVertices);
+	int nVertices = sizeof(pVertices) / sizeof(pVertices[0]);
 	float4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	pUIManager->pUIRenderer->drawTextured(PRIMITIVE_TOPO_TRI_STRIP, pVertices, nVertices, pTexture, &color);
 }
 
 void cmdUIDrawGUI(struct Cmd* pCmd, UIManager* pUIManager, Gui* pGui)
 {
-  UNREF_PARAM(pCmd);
-  UNREF_PARAM(pUIManager);
+	UNREF_PARAM(pCmd);
+	UNREF_PARAM(pUIManager);
 	pGui->pGui->onDrawGUI();
 }
 

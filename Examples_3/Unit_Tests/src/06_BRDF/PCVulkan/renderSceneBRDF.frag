@@ -55,6 +55,11 @@ layout (std140, set=2, binding=0) uniform cbLights {
 const float PI = 3.14159265359;
 
 
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
 	return F0 + (1.0f - F0) * pow(1.0 - cosTheta, 5.0);
@@ -99,13 +104,22 @@ layout(location = 1) in vec3 pos;
 
 layout(location = 0) out vec4 outColor;
 
+
+layout(set = 0, binding = 3) uniform texture2D brdfIntegrationMap;
+layout(set = 0, binding = 4) uniform textureCube irradianceMap;
+layout(set = 0, binding = 5) uniform textureCube specularMap;
+layout(set = 0, binding = 6) uniform sampler envSampler;
+layout(set = 0, binding = 7) uniform sampler defaultSampler;
+
+
 void main()
 {
 	vec3 N = normalize(normal);
 	vec3 V = normalize(camPos - pos);
+	vec3 R = reflect(-V, N);
 
 	// Fixed albedo for now
-	vec3 albedo = vec3(0.9568f, 0.8745f, 0.8588f);
+	vec3 albedo = vec3(0.5f, 0.0f, 0.0f);
 
 
 	// 0.04 is the index of refraction for metal
@@ -153,7 +167,19 @@ void main()
 		Lo +=  (kD * albedo / PI + specular) * radiance * NdotL;
 	}
 	
-	vec3 ambient = vec3(0.03) * albedo;
+	vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metalness;
+
+	vec3 irradiance = texture(samplerCube(irradianceMap, envSampler), N).rgb;
+	vec3 diffuse = kD * irradiance * albedo;
+
+	vec3 specularColor = textureLod(samplerCube(specularMap, envSampler), R, roughness * 4).rgb;
+	vec2 brdf = texture(sampler2D(brdfIntegrationMap, defaultSampler), vec2(max(dot(N,V), roughness))).rg;
+	vec3 specular = specularColor * (F * brdf.x + brdf.y);
+	//prefilteredColor += textureLod(samplerCube(srcTexture, skyboxSampler), L, mipLevel) * NdotL;
+	vec3 ambient = vec3(diffuse + specular);
 	
 	vec3 color = Lo + ambient;
 	

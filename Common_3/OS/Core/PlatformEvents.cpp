@@ -29,6 +29,7 @@ static tinystl::vector<WindowResizeEventHandler> gWindowResizeCallbacks;
 static tinystl::vector<KeyboardCharEventHandler> gKeyboardCharCallbacks;
 static tinystl::vector<KeyboardButtonEventHandler> gKeyboardButtonCallbacks;
 static tinystl::vector<MouseMoveEventHandler> gMouseMoveCallbacks;
+static tinystl::vector<RawMouseMoveEventHandler> gRawMouseMoveCallbacks;
 static tinystl::vector<MouseButtonEventHandler> gMouseButtonCallbacks;
 static tinystl::vector<MouseWheelEventHandler> gMouseWheelCallbacks;
 static tinystl::vector<JoystickButtonEventHandler> gJoystickButtonCallbacks;
@@ -73,6 +74,16 @@ void registerMouseMoveEvent(MouseMoveEventHandler callback)
 void unregisterMouseMoveEvent(MouseMoveEventHandler callback)
 {
 	gMouseMoveCallbacks.erase(gMouseMoveCallbacks.find(callback));
+}
+
+void registerRawMouseMoveEvent(RawMouseMoveEventHandler callback)
+{
+	gRawMouseMoveCallbacks.push_back(callback);
+}
+
+void unregisterRawMouseMoveEvent(RawMouseMoveEventHandler callback)
+{
+	gRawMouseMoveCallbacks.erase(gRawMouseMoveCallbacks.find(callback));
 }
 
 void registerMouseButtonEvent(MouseButtonEventHandler callback)
@@ -154,6 +165,12 @@ namespace PlatformEvents
 			callback(pData);
 	}
 
+	void onRawMouseMove(const RawMouseMoveEventData* pData)
+	{
+		for (RawMouseMoveEventHandler& callback : gRawMouseMoveCallbacks)
+			callback(pData);
+	}
+
 	void onMouseButton(const MouseButtonEventData* pData)
 	{
 		for (MouseButtonEventHandler& callback : gMouseButtonCallbacks)
@@ -179,7 +196,7 @@ namespace PlatformEvents
             callback(pData);
     }
     
-    void onTouchMove(const TouchMoveEventData* pData)
+    void onTouchMove(const TouchEventData* pData)
     {
         for (TouchMoveEventHandler& callback : gTouchMoveCallbacks)
             callback(pData);

@@ -399,7 +399,23 @@ inline unsigned int toBGRA(const vec4 &u)
 #endif
 
 }
+/************************************************************************/
+// Mesh generation helpers
+/************************************************************************/
+// Generates an array of vertices and normals for a sphere
+void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int numberOfDivisions);
 
+#define MAKEQUAD(x0, y0, x1, y1, o)\
+	float2(x0 + o, y0 + o),\
+	float2(x0 + o, y1 - o),\
+	float2(x1 - o, y0 + o),\
+	float2(x1 - o, y1 - o),
 
-
+#define MAKETEXQUAD(x0, y0, x1, y1, o)\
+	TexVertex(float2(x0 + o, y0 + o), float2(0, 0)),\
+	TexVertex(float2(x0 + o, y1 - o), float2(0, 1)),\
+	TexVertex(float2(x1 - o, y0 + o), float2(1, 0)),\
+	TexVertex(float2(x1 - o, y1 - o), float2(1, 1)),
+/************************************************************************/
+/************************************************************************/
 #endif

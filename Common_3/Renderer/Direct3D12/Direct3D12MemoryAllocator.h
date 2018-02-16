@@ -2008,9 +2008,8 @@ static HRESULT AllocateMemoryForImage(
     ASSERT(allocator && desc && pMemoryRequirements && pAllocation);
 
     D3D12_RESOURCE_ALLOCATION_INFO info = allocator->m_hDevice->GetResourceAllocationInfo(0, 1, desc);
-
 	if (fnHookResourceAllocationInfo != NULL)
-		fnHookResourceAllocationInfo(info);
+		fnHookResourceAllocationInfo(info, desc->Alignment);
 
 	return allocator->AllocateMemory(
 		info,
