@@ -42,6 +42,7 @@ First of all: thanks a lot for the amount of feedback and support we received fr
   * Better synchronization between CPU and GPU  
   * Moved to Visual Studio 2017 and Windows SDK 16299.91 (Fall Creators Update) and Vulkan SDK 1.0.68
 * XBOX One: numerous performance improvements (check the non-public repository history log)
+
 Any rendering framework needs a test farm that makes sure it is running on all the devices and OS'es supported. Our current testing setup is based on Jenkins and only supports a rather narrow range of hardware devices. We will add more hardware devices over time; this also depends when and how we get ahold of them. Considering that the feature set of The Forge is forward looking with support for Vulkan, DirectX 12 and Metal 2, we will leave out a lot of older hardware. We already started a conversation with Intel and Apple about the challenges we have and we will get in touch with driver teams from Samsung, Qualcomm,Google, AMD, NVIDIA and others to provide feedback on drivers.
 
 ## Release 1.02 - January 31st, 2018
@@ -148,7 +149,7 @@ This unit test shows the current state of our font rendering library that is bas
 
 ## 6. Physically-Based Rendering
 
-The Physically-Based Rendering example shows the PBR model from the following Unreal Engine 4 paper. 
+The Physically-Based Rendering example shows the PBR model from the following [Unreal Engine 4 paper](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf). 
 
 ![Image of the PBR Unit test](Screenshots/06_PBR.PNG)
 
