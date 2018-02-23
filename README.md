@@ -22,7 +22,7 @@ The intended usage of The Forge is to enable developers to quickly build their o
 
 * Windows [![Build status](https://ci.appveyor.com/api/projects/status/0w2qj3fs8u4utojr/branch/master?svg=true)](https://ci.appveyor.com/project/manaskulkarni786/the-forge/branch/master)
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
-
+ 
 # News
 ## Release 1.04 - February 23rd, 2018 - iOS Improvements
 * Added code for our automated test framework
