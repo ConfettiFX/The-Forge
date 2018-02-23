@@ -203,7 +203,10 @@ public:
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		if (!Load())
+		if (!addSwapChain())
+			return false;
+
+		if (!addDepthBuffer())
 			return false;
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
@@ -289,8 +292,11 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pDepthStencil = pDepthBuffer;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -577,30 +583,11 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		depthRT.mWidth = mSettings.mWidth;
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+		if (!addDepthBuffer())
+			return false;
 
 		return true;
 	}
@@ -795,6 +782,41 @@ public:
 	String GetName()
 	{
 		return "01_Transformations";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	bool addDepthBuffer()
+	{
+		// Add depth buffer
+		RenderTargetDesc depthRT = {};
+		depthRT.mArraySize = 1;
+		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mDepth = 1;
+		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mHeight = mSettings.mHeight;
+		depthRT.mSampleCount = SAMPLE_COUNT_1;
+		depthRT.mSampleQuality = 0;
+		depthRT.mType = RENDER_TARGET_TYPE_2D;
+		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
+		depthRT.mWidth = mSettings.mWidth;
+		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+
+		return pDepthBuffer != NULL;
 	}
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))

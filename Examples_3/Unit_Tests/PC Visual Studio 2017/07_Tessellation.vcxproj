@@ -303,7 +303,8 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -382,7 +383,8 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>

@@ -56,11 +56,7 @@
 
 #define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
-
-
 ICameraController* pCameraController = nullptr;
-
-
 
 // Grass Parameters
 static const unsigned int NUM_BLADES = 1 << 16;
@@ -303,7 +299,10 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 #endif
 
-		if (!Load())
+		if (!addSwapChain())
+			return false;
+
+		if (!addDepthBuffer())
 			return false;
         
 #ifdef TARGET_IOS
@@ -404,8 +403,11 @@ public:
 		pipelineSettings.pRasterizerState = pRast;
 		pipelineSettings.pDepthState = pDepth;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-		pipelineSettings.pDepthStencil = pDepthBuffer;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pGrassRootSignature;
 		pipelineSettings.pShaderProgram = pGrassShader;
@@ -688,33 +690,11 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		depthRT.mWidth = mSettings.mWidth;
-#ifdef TARGET_IOS
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
-#endif
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+		if (!addDepthBuffer())
+			return false;
 
 		return true;
 	}
@@ -959,7 +939,7 @@ public:
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
-		queueSubmit(pGraphicsQueue, allCmds.getCount(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
@@ -973,6 +953,41 @@ public:
 	String GetName()
 	{
 		return "07_Tessellation";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	bool addDepthBuffer()
+	{
+		// Add depth buffer
+		RenderTargetDesc depthRT = {};
+		depthRT.mArraySize = 1;
+		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mDepth = 1;
+		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mHeight = mSettings.mHeight;
+		depthRT.mSampleCount = SAMPLE_COUNT_1;
+		depthRT.mSampleQuality = 0;
+		depthRT.mType = RENDER_TARGET_TYPE_2D;
+		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
+		depthRT.mWidth = mSettings.mWidth;
+		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+
+		return pDepthBuffer != NULL;
 	}
 
 	float generateRandomFloat()

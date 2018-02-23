@@ -141,7 +141,7 @@ float4 main(VSOutput input) : SV_TARGET
 	F0 = lerp(F0, albedo, metalness);
 
 	// Lo = outgoing radiance
-	float3 Lo = float3(0.5f, 0.0f, 0.0f);
+	float3 Lo = float3(0.0f, 0.0f, 0.0f);
 	for(int i = 0; i < currAmountOflights; ++i)
 	{
 		float3 L = normalize(lights[i].pos.rgb - input.pos);

@@ -94,16 +94,12 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	ShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedRedAlphaFile, psTexturedRedAlpha, "PSMain" } };
 	ShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedFile, psTextured, "PSMain" } };
 #elif defined(DIRECT3D12) || defined(VULKAN)
-	tinystl::vector<char> vsPlain(sizeof(builtin_plain_vert)); memcpy(vsPlain.data(), builtin_plain_vert, sizeof(builtin_plain_vert));
-	tinystl::vector<char> psPlain(sizeof(builtin_plain_frag)); memcpy(psPlain.data(), builtin_plain_frag, sizeof(builtin_plain_frag));
-
-	tinystl::vector<char> vsTextured(sizeof(builtin_textured_vert)); memcpy(vsTextured.data(), builtin_textured_vert, sizeof(builtin_textured_vert));
-	tinystl::vector<char> psTextured(sizeof(builtin_textured_frag)); memcpy(psTextured.data(), builtin_textured_frag, sizeof(builtin_textured_frag));
-	tinystl::vector<char> psTexturedRedAlpha(sizeof(builtin_textured_red_alpha_frag)); memcpy(psTexturedRedAlpha.data(), builtin_textured_red_alpha_frag, sizeof(builtin_textured_red_alpha_frag));
-
-	BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsPlain }, { psPlain } };
-	BinaryShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTextured }, { psTexturedRedAlpha } };
-	BinaryShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTextured }, { psTextured } };
+	BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)builtin_plain_vert, sizeof(builtin_plain_vert) }, { (char*)builtin_plain_frag, sizeof(builtin_plain_frag) } };
+	BinaryShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)builtin_textured_vert, sizeof(builtin_textured_vert) },{ (char*)builtin_textured_red_alpha_frag, sizeof(builtin_textured_red_alpha_frag) } };
+	BinaryShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)builtin_textured_vert, sizeof(builtin_textured_vert) },{ (char*)builtin_textured_frag, sizeof(builtin_textured_frag) } };
 #endif
 
 	addShader(pRenderer, &plainShader, &pBuiltinPlainShader);
@@ -244,14 +240,31 @@ void UIRenderer::beginRender(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(ImageFormat::RG32F);
 
+		ImageFormat::Enum colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+		bool srgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+		ImageFormat::Enum depthStencilFormat = ImageFormat::None;
+		SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
+		uint32_t sampleQuality = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleQuality : pDepthStencil->mDesc.mSampleQuality;
+		for (uint32_t i = 0; i < renderTargetCount; ++i)
+		{
+			colorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
+			srgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
+		}
+		if (pDepthStencil)
+			depthStencilFormat = pDepthStencil->mDesc.mFormat;
+
 		GraphicsPipelineDesc pipelineDesc = { 0 };
 		pipelineDesc.pBlendState = pBlendAlpha;
 		pipelineDesc.pDepthState = pDepthNone;
 		pipelineDesc.pRasterizerState = pRasterizerNoCull;
 		pipelineDesc.pVertexLayout = &vertexLayout;
 		pipelineDesc.mRenderTargetCount = renderTargetCount;
-		pipelineDesc.ppRenderTargets = ppRenderTargets;
-		pipelineDesc.pDepthStencil = pDepthStencil;
+		pipelineDesc.pColorFormats = colorFormats;
+		pipelineDesc.pSrgbValues = srgbValues;
+		pipelineDesc.mSampleCount = sampleCount;
+		pipelineDesc.mSampleCount = sampleCount;
+		pipelineDesc.mSampleQuality = sampleQuality;
+		pipelineDesc.mDepthStencilFormat = depthStencilFormat;
 
 		PipelineVector pipelinePlainMesh = PipelineVector(PrimitiveTopology::PRIMITIVE_TOPO_COUNT);
 		PipelineVector pipelineTextMesh = PipelineVector(PrimitiveTopology::PRIMITIVE_TOPO_COUNT);
@@ -306,12 +319,12 @@ void UIRenderer::onWindowResize(const struct WindowResizeEventData* pData)
 uint32_t UIRenderer::addFontstash(uint32_t width, uint32_t height)
 {
 	mFontStashes.push_back(conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), this, (int)width, (int)height));
-	return mFontStashes.getCount() - 1;
+	return (uint32_t)mFontStashes.size() - 1;
 }
 
 Fontstash* UIRenderer::getFontstash(uint32_t fontID)
 {
-	if (mFontStashes.getCount() > fontID)
+	if ((uint32_t)mFontStashes.size() > fontID)
 	{
 		return mFontStashes[fontID];
 	}

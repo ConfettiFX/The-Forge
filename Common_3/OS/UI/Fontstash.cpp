@@ -57,7 +57,7 @@ public:
 		img.Destroy ();
 
 		// unload font buffers
-		for(unsigned int i=0; i<fontBuffers.getCount(); i++)
+		for(unsigned int i=0; i<(uint32_t)fontBuffers.size(); i++)
 			conf_free(fontBuffers[i]);
 	}
 
@@ -132,7 +132,7 @@ int Fontstash::defineFont(const char* identification, const char* filename)
 	file.Read(buffer, bytes);
 
 	// add buffer to font buffers for cleanup
-	impl->fontBuffers.add(buffer);
+	impl->fontBuffers.emplace_back(buffer);
 
 	return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
 }
@@ -148,7 +148,7 @@ int Fontstash::defineFont(const char* identification, const char* filename, FSRo
 	file.Read(buffer, bytes);
 
 	// add buffer to font buffers for cleanup
-	impl->fontBuffers.add(buffer);
+	impl->fontBuffers.emplace_back(buffer);
 
 	return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
 }

@@ -529,8 +529,7 @@ long createBuffer(
 						pBuffer->pDxAllocation->GetMemory(), pBuffer->pDxAllocation->GetOffset(),
 						pCreateInfo->pDesc, pCreateInfo->mStartState, NULL,
 						IID_ARGS(&pBuffer->pDxResource));
-
-					pBuffer->pDxResource->SetName(L"PLACED BUFFER RESOURCE");
+					pBuffer->pDxResource->SetName(pCreateInfo->pDebugName? pCreateInfo->pDebugName : L"PLACED BUFFER RESOURCE");
 				}
 				if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT)
 				{
@@ -567,7 +566,7 @@ long createBuffer(
 					pCreateInfo->pDesc, pCreateInfo->mStartState, NULL,
 					IID_ARGS(&pBuffer->pDxResource));
 			}
-			pBuffer->pDxResource->SetName(L"OWN BUFFER RESOURCE");
+			pBuffer->pDxResource->SetName(pCreateInfo->pDebugName ? pCreateInfo->pDebugName : L"OWN BUFFER RESOURCE");
 
 			if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT &&
 				pMemoryRequirements->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
@@ -643,7 +642,7 @@ long createTexture(
 					pTexture->pDxAllocation->GetMemory(), pTexture->pDxAllocation->GetOffset(),
 					pCreateInfo->pDesc, pCreateInfo->mStartState, pCreateInfo->pClearValue,
 					IID_ARGS(&pTexture->pDxResource));
-				pTexture->pDxResource->SetName(L"PLACED TEXTURE RESOURCE");
+				pTexture->pDxResource->SetName(pCreateInfo->pDebugName? pCreateInfo->pDebugName : L"PLACED TEXTURE RESOURCE");
 			}
 		}
 		else
@@ -661,7 +660,7 @@ long createTexture(
 				pCreateInfo->pDesc, pCreateInfo->mStartState, pCreateInfo->pClearValue,
 				IID_ARGS(&pTexture->pDxResource));
 
-			pTexture->pDxResource->SetName(L"OWN TEXTURE RESOURCE");
+			pTexture->pDxResource->SetName(pCreateInfo->pDebugName ? pCreateInfo->pDebugName : L"OWN TEXTURE RESOURCE");
 		}
 
 		if (SUCCEEDED(res))

@@ -850,13 +850,13 @@ static void resourceAlloc_delete_array(T* ptr, size_t count)
 template<typename T>
 static void VectorInsert(AllocatorVector<T>& vec, size_t index, const T& item)
 {
-	vec.insert(index, item);
+	vec.insert(vec.begin() + index, item);
 }
 
 template<typename T>
 static void VectorRemove(AllocatorVector<T>& vec, size_t index)
 {
-	vec.remove((uint32_t)index);
+	vec.erase(vec.begin() + index);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

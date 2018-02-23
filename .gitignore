@@ -49,3 +49,6 @@ Art/
 # Obj folders
 **/obj/
 **/bin/
+
+# Nuget packages
+Tools/ShaderBuildCommand/packages/
