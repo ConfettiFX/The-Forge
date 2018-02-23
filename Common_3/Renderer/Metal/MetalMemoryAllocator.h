@@ -192,13 +192,7 @@ static inline void AllocatorUint64ToStr(char* outStr, size_t strLen, uint64_t nu
  Every object will have its own allocation.
  Define to 1 for debugging purposes only.
  */
-#ifndef TARGET_IOS
 #define RESOURCE_DEBUG_ALWAYS_OWN_MEMORY (0) // NOTE: Set this to 1 on Intel GPUs. It seems like suballocating buffers from heaps can give us problems on Intel hardware.
-#else
-// NOTE: Suballocating from MTLHeaps seems to be breaking sample 03_MultiThread on iOS.
-// TODO: Fix iOS MTLHeap suballocation problems.
-#define RESOURCE_DEBUG_ALWAYS_OWN_MEMORY (1)
-#endif
 #endif
 
 #ifndef RESOURCE_DEBUG_ALIGNMENT
@@ -778,13 +772,13 @@ static void resourceAlloc_delete_array(T* ptr, size_t count)
 template<typename T>
 static void VectorInsert(AllocatorVector<T>& vec, size_t index, const T& item)
 {
-    vec.insert(index, item);
+    vec.insert(vec.begin() + index, item);
 }
 
 template<typename T>
 static void VectorRemove(AllocatorVector<T>& vec, size_t index)
 {
-    vec.remove((uint32_t)index);
+    vec.erase(vec.begin() + index);
 }
 
 #define AllocatorPair tinystl::pair

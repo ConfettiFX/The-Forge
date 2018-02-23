@@ -277,7 +277,6 @@ namespace RENDERER_CPP_NAMESPACE {
     MTLVertexFormat util_to_mtl_vertex_format(const ImageFormat::Enum &format);
     MTLLoadAction util_to_mtl_load_action(const LoadActionType &loadActionType);
     
-    void util_bind_root_constant(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
     void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
     void util_end_current_encoders(Cmd* pCmd);
     bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType);
@@ -414,11 +413,6 @@ namespace RENDERER_CPP_NAMESPACE {
         /// Array of flags to check whether a descriptor has already been bound.
         bool*                                                                           pBoundDescriptors;
         
-        /// Map that holds all the rootConstants bound by this descriptor manager for each root signature.
-        tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>                      mRootConstantBuffers;
-        /// Map that holds the number of times each rootConstant is bound.
-        tinystl::unordered_map<uint32_t, uint32_t>                                      mRootConstantBindingCountMap;
-        
         /// Map that holds all the argument buffers bound by this descriptor manager for each root signature.
         tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>                  mArgumentBuffers;
     } DescriptorManager;
@@ -491,8 +485,6 @@ namespace RENDERER_CPP_NAMESPACE {
     void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
     {
         pManager->mArgumentBuffers.clear();
-        pManager->mRootConstantBindingCountMap.clear();
-        pManager->mRootConstantBuffers.clear();
         SAFE_FREE(pManager->pDescriptorDataArray);
         SAFE_FREE(pManager->pBoundDescriptors);
         SAFE_FREE(pManager);
@@ -582,7 +574,6 @@ namespace RENDERER_CPP_NAMESPACE {
             }
             pManager->pBoundDescriptors[i] = false;
         }
-        pManager->mRootConstantBindingCountMap.clear();
     }
     
     void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
@@ -648,10 +639,6 @@ namespace RENDERER_CPP_NAMESPACE {
                         return;
                     }
                     pManager->pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
-                    
-                    // Check if this rootConstant has previously been bound.
-                    if (pManager->mRootConstantBindingCountMap.find(hash).node) pManager->mRootConstantBindingCountMap[hash]++;
-                    else pManager->mRootConstantBindingCountMap[hash] = 0;
                     break;
                 case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                 case DESCRIPTOR_TYPE_RW_BUFFER:
@@ -709,7 +696,12 @@ namespace RENDERER_CPP_NAMESPACE {
                             [pCmd->mtlComputeEncoder setSamplerState:descriptorData->ppSamplers[0]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg];
                         break;
                     case DESCRIPTOR_TYPE_ROOT_CONSTANT:
-                        util_bind_root_constant(pCmd, pManager, descriptorInfo, descriptorData);
+                        if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                            [pCmd->mtlRenderEncoder setVertexBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
+                        if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                            [pCmd->mtlRenderEncoder setFragmentBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
+                        if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                            [pCmd->mtlComputeEncoder setBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
                         break;
                     case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                     case DESCRIPTOR_TYPE_RW_BUFFER:
@@ -847,7 +839,7 @@ namespace RENDERER_CPP_NAMESPACE {
         
         pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
         memcpy(pRenderer->pName, appName, strlen(appName));
-        
+
         // Copy settings
         memcpy(&(pRenderer->mSettings), settings, sizeof(*settings));
         
@@ -855,12 +847,6 @@ namespace RENDERER_CPP_NAMESPACE {
         {
             // Get the systems default device.
             pRenderer->pDevice = MTLCreateSystemDefaultDevice();
-            
-            // Get the Metal Layer.
-            pRenderer->mMetalLayer = [CAMetalLayer layer];
-            pRenderer->mMetalLayer.framebufferOnly = YES;
-            pRenderer->mMetalLayer.drawsAsynchronously = TRUE;
-            pRenderer->mMetalLayer.presentsWithTransaction = FALSE;
             
             // Set the default GPU settings.
             pRenderer->mNumOfGPUs = 1;
@@ -888,7 +874,6 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pRenderer);
         SAFE_FREE(pRenderer->pName);
         destroyAllocator(pRenderer->pResourceAllocator);
-        pRenderer->mMetalLayer = nil;
         pRenderer->pDevice = nil;
         SAFE_FREE(pRenderer);
     }
@@ -904,7 +889,6 @@ namespace RENDERER_CPP_NAMESPACE {
         pFence->pRenderer = pRenderer;
         pFence->pMtlSemaphore = dispatch_semaphore_create(0);
         pFence->mSubmitted = false;
-        pFence->mCompleted = false;
         
         *ppFence = pFence;
     }
@@ -1044,9 +1028,8 @@ namespace RENDERER_CPP_NAMESPACE {
         // Set the view pixel format to match the swapchain's pixel format.
         pSwapChain->pMTKView.colorPixelFormat = util_to_mtl_pixel_format(pSwapChain->mDesc.mColorFormat, pSwapChain->mDesc.mSrgb);
         
-        // Create present command queues for the swapchain.
-        pSwapChain->presentCommandQueue = [pRenderer->pDevice newCommandQueue];
-        pSwapChain->presentCommandBuffer = [pSwapChain->presentCommandQueue commandBuffer];
+        // Create present command buffer for the swapchain.
+        pSwapChain->presentCommandBuffer = [pSwapChain->mDesc.pQueue->mtlCommandQueue commandBuffer];
         
         // Create the swapchain RT descriptor.
         RenderTargetDesc descColor = {};
@@ -1076,7 +1059,6 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pSwapChain);
         
         pSwapChain->presentCommandBuffer = nil;
-        pSwapChain->presentCommandQueue = nil;
         
         for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i)
             removeRenderTarget(pRenderer, pSwapChain->ppSwapchainRenderTargets[i]);
@@ -1156,16 +1138,26 @@ namespace RENDERER_CPP_NAMESPACE {
         RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc(1, sizeof(*pRenderTarget));
         pRenderTarget->mDesc = *pDesc;
         
-        TextureDesc rtDesc = {
-            TEXTURE_TYPE_2D, // TODO: Support 1D, 2D, 3D and Cube RTs.
-            pRenderTarget->mDesc.mFlags,
-            pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight, pRenderTarget->mDesc.mDepth,
-            pRenderTarget->mDesc.mBaseArrayLayer, pRenderTarget->mDesc.mArraySize,
-            pRenderTarget->mDesc.mBaseMipLevel, 1, // TODO: Support render to mip.
-            pRenderTarget->mDesc.mSampleCount, pRenderTarget->mDesc.mSampleQuality,
-            pRenderTarget->mDesc.mFormat, pRenderTarget->mDesc.mClearValue, TEXTURE_USAGE_SAMPLED_IMAGE,
-            RESOURCE_STATE_UNDEFINED, pNativeHandle, pRenderTarget->mDesc.mSrgb, false
-        };
+        TextureDesc rtDesc = {};
+        rtDesc.mType= TEXTURE_TYPE_2D; // TODO: Support 1D, 2D, 3D and Cube RTs.
+        rtDesc.mFlags= pRenderTarget->mDesc.mFlags;
+        rtDesc.mWidth= pRenderTarget->mDesc.mWidth;
+        rtDesc.mHeight= pRenderTarget->mDesc.mHeight;
+        rtDesc.mDepth= pRenderTarget->mDesc.mDepth;
+        rtDesc.mBaseArrayLayer= pRenderTarget->mDesc.mBaseArrayLayer;
+        rtDesc.mArraySize = pRenderTarget->mDesc.mArraySize;
+        rtDesc.mBaseMipLevel= pRenderTarget->mDesc.mBaseMipLevel;
+        rtDesc.mMipLevels = 1;
+        rtDesc.mSampleCount = pRenderTarget->mDesc.mSampleCount;
+        rtDesc.mSampleQuality= pRenderTarget->mDesc.mSampleQuality;
+        rtDesc.mFormat= pRenderTarget->mDesc.mFormat;
+        rtDesc.mClearValue= pRenderTarget->mDesc.mClearValue;
+        rtDesc.mUsage= TEXTURE_USAGE_SAMPLED_IMAGE;
+        rtDesc.mStartState= RESOURCE_STATE_UNDEFINED;
+        rtDesc.pNativeHandle = pNativeHandle;
+        rtDesc.mSrgb= pRenderTarget->mDesc.mSrgb;
+        rtDesc.mHostVisible= false;
+        
 #ifndef TARGET_IOS
         add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
 #else
@@ -1362,7 +1354,7 @@ namespace RENDERER_CPP_NAMESPACE {
                 }
                 
                 // Create a MTLLibrary from bytecode.
-                dispatch_data_t byteCode = dispatch_data_create(pStage->mByteCode.data(), pStage->mByteCode.size(), nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+                dispatch_data_t byteCode = dispatch_data_create(pStage->pByteCode, pStage->mByteCodeSize, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
                 id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithData:byteCode error:nil];
                 
                 // Create a MTLFunction from the loaded MTLLibrary.
@@ -1427,20 +1419,20 @@ namespace RENDERER_CPP_NAMESPACE {
                 tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
                 if (!pNode)
                 {
-                    pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+                    pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
                     shaderResources.emplace_back(pRes);
                 }
             }
         }
         
-        if (shaderResources.getCount())
+        if ((uint32_t)shaderResources.size())
         {
-            pRootSignature->mDescriptorCount = shaderResources.getCount();
+            pRootSignature->mDescriptorCount = (uint32_t)shaderResources.size();
             pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorInfo));
         }
         
         // Fill the descriptor array to be stored in the root signature
-        for (uint32_t i = 0; i < shaderResources.getCount(); ++i)
+        for (uint32_t i = 0; i < (uint32_t)shaderResources.size(); ++i)
         {
             DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
             ShaderResource const* pRes = shaderResources[i];
@@ -1512,9 +1504,7 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLRenderPipelineDescriptor *renderPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
         renderPipelineDesc.vertexFunction = pDesc->pShaderProgram->mtlVertexShader;
         renderPipelineDesc.fragmentFunction = pDesc->pShaderProgram->mtlFragmentShader;
-        if(pDesc->mRenderTargetCount > 0) renderPipelineDesc.sampleCount = pDesc->ppRenderTargets[0]->pTexture->mDesc.mSampleCount;
-        else renderPipelineDesc.sampleCount = pDesc->pDepthStencil->pTexture->mDesc.mSampleCount;
-        
+        renderPipelineDesc.sampleCount = pDesc->mSampleCount;
         
         // add vertex layout to descriptor
         if (pPipeline->mGraphics.pVertexLayout != nil)
@@ -1548,7 +1538,7 @@ namespace RENDERER_CPP_NAMESPACE {
         const BlendState* blendState = pDesc->pBlendState ? pDesc->pBlendState : pDefaultBlendState;
         for (uint32_t i=0; i<pDesc->mRenderTargetCount; i++)
         {
-            renderPipelineDesc.colorAttachments[i].pixelFormat = pDesc->ppRenderTargets[i]->pTexture->mtlPixelFormat;
+            renderPipelineDesc.colorAttachments[i].pixelFormat = util_to_mtl_pixel_format(pDesc->pColorFormats[i], pDesc->pSrgbValues[i]);
             
             // set blend state
             bool hasBlendState = (blendState!=nil);
@@ -1565,13 +1555,13 @@ namespace RENDERER_CPP_NAMESPACE {
         }
         
         // assign pixel format form depth attachment
-        if (pDesc->pDepthStencil !=nil )
+        if (pDesc->mDepthStencilFormat != ImageFormat::None )
         {
-            renderPipelineDesc.depthAttachmentPixelFormat = pDesc->pDepthStencil->pTexture->mtlPixelFormat;
+            renderPipelineDesc.depthAttachmentPixelFormat = util_to_mtl_pixel_format(pDesc->mDepthStencilFormat, false);
 #ifndef TARGET_IOS
             if(renderPipelineDesc.depthAttachmentPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8) renderPipelineDesc.stencilAttachmentPixelFormat = renderPipelineDesc.depthAttachmentPixelFormat;
 #else
-            if(pDesc->pDepthStencil->pStencil) renderPipelineDesc.stencilAttachmentPixelFormat = pDesc->pDepthStencil->pStencil->mtlPixelFormat;
+            if(pDesc->mDepthStencilFormat == ImageFormat::D24S8) renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
 #endif
         }
         
@@ -2476,7 +2466,7 @@ namespace RENDERER_CPP_NAMESPACE {
         [pSwapChain->presentCommandBuffer commit];
         
         // after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
-        pSwapChain->presentCommandBuffer = [pSwapChain->presentCommandQueue commandBuffer];
+        pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
     }
     
     void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences)
@@ -2487,10 +2477,7 @@ namespace RENDERER_CPP_NAMESPACE {
         
         for (uint32_t i=0; i<fenceCount; i++)
         {
-            if (ppFences[i]->mSubmitted){
-                dispatch_semaphore_wait(ppFences[i]->pMtlSemaphore, DISPATCH_TIME_FOREVER);
-                ppFences[i]->mCompleted = true;
-            }
+            if (ppFences[i]->mSubmitted) dispatch_semaphore_wait(ppFences[i]->pMtlSemaphore, DISPATCH_TIME_FOREVER);
             ppFences[i]->mSubmitted = false;
         }
     }
@@ -2498,7 +2485,15 @@ namespace RENDERER_CPP_NAMESPACE {
     void getFenceStatus(Fence* pFence, FenceStatus* pFenceStatus)
     {
         ASSERT(pFence);
-        *pFenceStatus = (pFence->mCompleted ? FENCE_STATUS_COMPLETE : FENCE_STATUS_INCOMPLETE);
+        *pFenceStatus = FENCE_STATUS_COMPLETE;
+        if (pFence->mSubmitted)
+        {
+            // Check the fence status (and mark it as unsubmitted it if it has succesfully decremented).
+            long status = dispatch_semaphore_wait(pFence->pMtlSemaphore, DISPATCH_TIME_NOW);
+            if (status == 0) pFence->mSubmitted = false;
+            
+            *pFenceStatus = (status == 0 ? FENCE_STATUS_COMPLETE : FENCE_STATUS_INCOMPLETE);
+        }
     }
     
     void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle)
@@ -2741,43 +2736,6 @@ namespace RENDERER_CPP_NAMESPACE {
             return MTLLoadActionClear;
     }
     
-    void util_bind_root_constant(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData)
-    {
-        // Since root constants are not supported on Metal,
-        // we just simulate them binding them as a regular buffer
-        uint32_t hash = tinystl::hash(descData->pName);
-        
-        // Look for the root constant buffer (or create one if needed).
-        Buffer* rootConstantBuffer = nil;
-        {
-            tinystl::unordered_map<uint32_t, tinystl::vector<Buffer*>>::iterator jt = pManager->mRootConstantBuffers.find(hash);
-            if (jt.node == nil || jt->second.getCount() <= pManager->mRootConstantBindingCountMap[tinystl::hash(descData->pName)])
-            {
-                BufferDesc bufferDesc = {};
-                bufferDesc.mUsage = BUFFER_USAGE_UPLOAD;
-                bufferDesc.mSize = descInfo->mDesc.size;
-                bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-                bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-                
-                addBuffer(pCmd->pCmdPool->pRenderer, &bufferDesc, &rootConstantBuffer);
-                pManager->mRootConstantBuffers[hash].push_back(rootConstantBuffer);
-            }
-            else
-                rootConstantBuffer = jt->second[pManager->mRootConstantBindingCountMap[tinystl::hash(descData->pName)]];
-        }
-        
-        // Update the data on the buffer.
-        memcpy(rootConstantBuffer->pCpuMappedAddress, descData->pRootConstant, descInfo->mDesc.size);
-        
-        //Bind the buffer to the appropiate pipeline stages.
-        if ((descInfo->mDesc.used_stages & SHADER_STAGE_VERT) != 0)
-            [pCmd->mtlRenderEncoder setVertexBuffer:rootConstantBuffer->mtlBuffer offset:(rootConstantBuffer->mPositionInHeap + descData->mOffset) atIndex:descInfo->mDesc.reg];
-        if ((descInfo->mDesc.used_stages & SHADER_STAGE_FRAG) != 0)
-            [pCmd->mtlRenderEncoder setFragmentBuffer:rootConstantBuffer->mtlBuffer offset:(rootConstantBuffer->mPositionInHeap + descData->mOffset) atIndex:descInfo->mDesc.reg];
-        if ((descInfo->mDesc.used_stages & SHADER_STAGE_COMP) != 0)
-            [pCmd->mtlComputeEncoder setBuffer:rootConstantBuffer->mtlBuffer offset:(rootConstantBuffer->mPositionInHeap + descData->mOffset) atIndex:descInfo->mDesc.reg];
-    }
-    
     void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData)
     {
         Buffer* argumentBuffer;
@@ -2832,9 +2790,11 @@ namespace RENDERER_CPP_NAMESPACE {
                         [argumentEncoder setSamplerState:descData->ppSamplers[i]->mtlSamplerState atIndex:i];
                         break;
                     case DESCRIPTOR_TYPE_BUFFER:
+                        [pCmd->mtlRenderEncoder useResource:descData->ppBuffers[i]->mtlBuffer usage:(MTLResourceUsageRead | MTLResourceUsageSample)];
                         [argumentEncoder setBuffer:descData->ppBuffers[i]->mtlBuffer offset:descData->ppBuffers[i]->mPositionInHeap atIndex:i];
                         break;
                     case DESCRIPTOR_TYPE_TEXTURE:
+                        [pCmd->mtlRenderEncoder useResource:descData->ppTextures[i]->mtlTexture usage:MTLResourceUsageRead];
                         [argumentEncoder setTexture:descData->ppTextures[i]->mtlTexture atIndex:i];
                         break;
                 }

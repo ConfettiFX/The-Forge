@@ -145,7 +145,7 @@ namespace tinystl {
 
 		T* erase_unordered(T* where);
 		T* erase_unordered(T* first, T* last);
-
+/*
 		// [Confetti backwards compatibility]
 		T* getArray() const { return m_array; }
 		T* abandonArray();
@@ -156,7 +156,7 @@ namespace tinystl {
 		void orderedRemove(const unsigned int index);
 		void fastRemove(const unsigned int index);
 		void reset();
-
+*/
 	private:
 		int partition(int(*compare)(const T &elem0, const T &elem1), int p, int r);
 		void quickSort(int(*compare)(const T &elem0, const T &elem1), int p, int r);

@@ -40,10 +40,12 @@ StructuredBuffer<LightData> lights : register(t1);
 Texture2DMS<float4, SAMPLE_COUNT> gBufferNormal : register(t2);
 Texture2DMS<float4, SAMPLE_COUNT> gBufferDepth : register(t3);
 Texture2DMS<float4, SAMPLE_COUNT> gBufferSpecular : register(t4);
+Texture2DMS<float4, SAMPLE_COUNT> gBufferSimulation : register(t5);
 #else
 Texture2D gBufferNormal : register(t2);
 Texture2D gBufferDepth : register(t3);
 Texture2D gBufferSpecular : register(t4);
+Texture2D gBufferSimulation : register(t5);
 #endif
 
 float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
@@ -63,9 +65,11 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 #if (SAMPLE_COUNT > 1)
 	float depth = gBufferDepth.Load(uint2(input.position.xy), i).r;
 	float4 specularData = gBufferSpecular.Load(uint2(input.position.xy), i);
+	float4 simulation = gBufferSimulation.Load(uint2(input.position.xy), i);
 #else
     float depth = gBufferDepth.Load(uint3(input.position.xy, 0)).r;
     float4 specularData = gBufferSpecular.Load(uint3(input.position.xy, 0));
+	float4 simulation = gBufferSimulation.Load(uint3(input.position.xy, 0));
 #endif
     
     float2 screenPos = ((input.position.xy / uniforms.cullingViewports[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
@@ -75,6 +79,6 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
     float3 posWS = position.xyz/position.w;
     bool twoSided = (normalData.w > 0.5);
     
-    float3 color = pointLightShade(input.lightPos, input.color, uniforms.camPos.xyz, posWS, normal, specularData.xyz, twoSided);
+    float3 color = pointLightShade(input.lightPos, input.color, uniforms.camPos.xyz + simulation, posWS, normal, specularData.xyz, twoSided);
     return float4(color,1);
 }

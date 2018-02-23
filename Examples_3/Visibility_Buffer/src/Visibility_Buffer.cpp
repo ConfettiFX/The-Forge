@@ -305,8 +305,6 @@ RootSignature*					pRootSignatureClusterLights = nullptr;
 /************************************************************************/
 Shader*							pShaderShadowPass[gNumGeomSets] = { nullptr };
 Pipeline*						pPipelineShadowPass[gNumGeomSets] = { nullptr };
-RootSignature*					pRootSignatureShadowPass = nullptr;
-CommandSignature*				pCmdSignatureShadowPass = nullptr;
 /************************************************************************/
 // VB pass pipeline
 /************************************************************************/
@@ -318,7 +316,6 @@ CommandSignature*				pCmdSignatureVBPass = nullptr;
 // VB shade pipeline
 /************************************************************************/
 Shader*							pShaderVisibilityBufferShade[2] = { nullptr };
-Pipeline*						pPipelineVisibilityBufferShadePost[2] = { nullptr };
 Pipeline*						pPipelineVisibilityBufferShadeSrgb[2] = { nullptr };
 RootSignature*					pRootSignatureVBShade = nullptr;
 /************************************************************************/
@@ -332,14 +329,12 @@ CommandSignature*				pCmdSignatureDeferredPass = nullptr;
 // Deferred shade pipeline
 /************************************************************************/
 Shader*							pShaderDeferredShade[2] = { nullptr };
-Pipeline*						pPipelineDeferredShadePost[2] = { nullptr };
 Pipeline*						pPipelineDeferredShadeSrgb[2] = { nullptr };
 RootSignature*					pRootSignatureDeferredShade = nullptr;
 /************************************************************************/
 // Deferred point light shade pipeline
 /************************************************************************/
 Shader*							pShaderDeferredShadePointLight = nullptr;
-Pipeline*						pPipelineDeferredShadePointLightPost = nullptr;
 Pipeline*						pPipelineDeferredShadePointLightSrgb = nullptr;
 RootSignature*					pRootSignatureDeferredShadePointLight = nullptr;
 /************************************************************************/
@@ -521,7 +516,16 @@ public:
 		addCmdPool(pRenderer, pComputeQueue, false, &pComputeCmdPool);
 		addCmd_n(pComputeCmdPool, false, gImageCount, &ppComputeCmds);
 
-		if (!Load())
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addFence(pRenderer, &pComputeCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			addSemaphore(pRenderer, &pComputeCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		if (!addRenderTargets())
 			return false;
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
@@ -582,6 +586,7 @@ public:
 		ibDesc.mDesc.mSize = ibDesc.mDesc.mElementCount * ibDesc.mDesc.mStructStride;
 		ibDesc.pData = pScene->indices.data();
 		ibDesc.ppBuffer = &pIndexBufferAll;
+		ibDesc.mDesc.pDebugName = L"Non-filtered Index Buffer Desc";
 		addResource(&ibDesc);
 #else
 		// Fill the pIndexBufferAll with triangle IDs for the whole scene (since metal implementation doesn't use scene indices).
@@ -600,6 +605,7 @@ public:
 		ibDesc.mDesc.mSize = ibDesc.mDesc.mElementCount * ibDesc.mDesc.mStructStride;
 		ibDesc.pData = trianglesBuffer;
 		ibDesc.ppBuffer = &pIndexBufferAll;
+		ibDesc.mDesc.pDebugName = L"Non-filtered Index Buffer Desc";
 		addResource(&ibDesc);
 
 		conf_free(trianglesBuffer);
@@ -615,6 +621,7 @@ public:
 		vbPosDesc.mDesc.mSize = vbPosDesc.mDesc.mElementCount * vbPosDesc.mDesc.mStructStride;
 		vbPosDesc.pData = pScene->positions.data();
 		vbPosDesc.ppBuffer = &pVertexBufferPosition;
+		vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc";
 		addResource(&vbPosDesc);
 
 		// Vertex texcoord buffer for the scene
@@ -627,6 +634,7 @@ public:
 		vbTexCoordDesc.mDesc.mSize = vbTexCoordDesc.mDesc.mElementCount * vbTexCoordDesc.mDesc.mStructStride;
 		vbTexCoordDesc.pData = pScene->texCoords.data();
 		vbTexCoordDesc.ppBuffer = &pVertexBufferTexCoord;
+		vbTexCoordDesc.mDesc.pDebugName = L"Vertex TexCoord Buffer Desc";
 		addResource(&vbTexCoordDesc);
 
 		// Vertex normal buffer for the scene
@@ -639,6 +647,7 @@ public:
 		vbNormalDesc.mDesc.mSize = vbNormalDesc.mDesc.mElementCount * vbNormalDesc.mDesc.mStructStride;
 		vbNormalDesc.pData = pScene->normals.data();
 		vbNormalDesc.ppBuffer = &pVertexBufferNormal;
+		vbNormalDesc.mDesc.pDebugName = L"Vertex Normal Buffer Desc";
 		addResource(&vbNormalDesc);
 
 		// Vertex tangent buffer for the scene
@@ -651,6 +660,7 @@ public:
 		vbTangentDesc.mDesc.mSize = vbTangentDesc.mDesc.mElementCount * vbTangentDesc.mDesc.mStructStride;
 		vbTangentDesc.pData = pScene->tangents.data();
 		vbTangentDesc.ppBuffer = &pVertexBufferTangent;
+		vbTangentDesc.mDesc.pDebugName = L"Vertex Tangent Buffer Desc";
 		addResource(&vbTangentDesc);
 
 		LOGINFOF("Load scene buffers : %f ms", bufferLoadTimer.GetUSec(true) / 1000.0f);
@@ -777,8 +787,13 @@ public:
 #endif
 
 		// Graphics root signatures
-		addRootSignature(pRenderer, gNumGeomSets, pShaderShadowPass, &pRootSignatureShadowPass, &geomPassRootDesc);
-		addRootSignature(pRenderer, gNumGeomSets, pShaderVisibilityBufferPass, &pRootSignatureVBPass, &geomPassRootDesc);
+		Shader* pShaders[gNumGeomSets * 2] = {};
+		for (uint32_t i = 0; i < gNumGeomSets; ++i)
+		{
+            pShaders[i * 2] = pShaderVisibilityBufferPass[i];
+			pShaders[i * 2 + 1] = pShaderShadowPass[i];
+		}
+		addRootSignature(pRenderer, gNumGeomSets * 2, pShaders, &pRootSignatureVBPass, &geomPassRootDesc);
 		addRootSignature(pRenderer, gNumGeomSets, pShaderDeferredPass, &pRootSignatureDeferredPass, &deferredPassRootDesc);
 
 		addRootSignature(pRenderer, 2, pShaderVisibilityBufferShade, &pRootSignatureVBShade, &shadeRootDesc);
@@ -808,11 +823,6 @@ public:
 		indirectArgs[0].mCount = 1;
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
 
-		CommandSignatureDesc shadowPassDesc = { pCmdPool, pRootSignatureShadowPass, 2, indirectArgs };
-		pDrawId = &pRootSignatureShadowPass->pDescriptors[pRootSignatureShadowPass->pDescriptorNameToIndexMap[tinystl::hash("indirectRootConstant")]];
-		indirectArgs[0].mRootParameterIndex = pRootSignatureShadowPass->pRootConstantLayouts[pDrawId->mIndexInParent].mRootIndex;
-		addIndirectCommandSignature(pRenderer, &shadowPassDesc, &pCmdSignatureShadowPass);
-
 		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
 		pDrawId = &pRootSignatureVBPass->pDescriptors[pRootSignatureVBPass->pDescriptorNameToIndexMap[tinystl::hash("indirectRootConstant")]];
 		indirectArgs[0].mRootParameterIndex = pRootSignatureVBPass->pRootConstantLayouts[pDrawId->mIndexInParent].mRootIndex;
@@ -832,10 +842,8 @@ public:
 #else
 		indirectArgs[0].mType = INDIRECT_DRAW_INDEX;
 #endif
-		CommandSignatureDesc shadowPassDesc = { pCmdPool, pRootSignatureShadowPass, 1, indirectArgs };
 		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 1, indirectArgs };
 		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 1, indirectArgs };
-		addIndirectCommandSignature(pRenderer, &shadowPassDesc, &pCmdSignatureShadowPass);
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
 #endif
@@ -846,8 +854,10 @@ public:
 		GraphicsPipelineDesc shadowPipelineSettings = {};
 		shadowPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		shadowPipelineSettings.pDepthState = pDepthStateEnable;
-		shadowPipelineSettings.pDepthStencil = pRenderTargetShadow;
-		shadowPipelineSettings.pRootSignature = pRootSignatureShadowPass;
+		shadowPipelineSettings.mDepthStencilFormat = pRenderTargetShadow->mDesc.mFormat;
+		shadowPipelineSettings.mSampleCount = pRenderTargetShadow->mDesc.mSampleCount;
+		shadowPipelineSettings.mSampleQuality = pRenderTargetShadow->mDesc.mSampleQuality;
+		shadowPipelineSettings.pRootSignature = pRootSignatureVBPass;
 #if (MSAASAMPLECOUNT > 1)
 		shadowPipelineSettings.pRasterizerState = pRasterizerStateCullFrontMS;
 #else
@@ -873,8 +883,11 @@ public:
 		vbPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		vbPassPipelineSettings.mRenderTargetCount = 1;
 		vbPassPipelineSettings.pDepthState = pDepthStateEnable;
-		vbPassPipelineSettings.pDepthStencil = pDepthBuffer;
-		vbPassPipelineSettings.ppRenderTargets = &pRenderTargetVBPass;
+		vbPassPipelineSettings.pColorFormats = &pRenderTargetVBPass->mDesc.mFormat;
+		vbPassPipelineSettings.pSrgbValues = &pRenderTargetVBPass->mDesc.mSrgb;
+		vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mDesc.mSampleCount;
+		vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mDesc.mSampleQuality;
+		vbPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		vbPassPipelineSettings.pRootSignature = pRootSignatureVBPass;
 #if !defined(METAL)
 		vbPassPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
@@ -932,40 +945,19 @@ public:
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			vbShadePipelineSettings.pShaderProgram = pShaderVisibilityBufferShade[i];
-			vbShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+			vbShadePipelineSettings.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 #if (MSAASAMPLECOUNT > 1)
-			vbShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
+			vbShadePipelineSettings.pColorFormats = &pRenderTargetMSAA->mDesc.mFormat;
+			vbShadePipelineSettings.pSrgbValues = &pRenderTargetMSAA->mDesc.mSrgb;
+			vbShadePipelineSettings.mSampleQuality = pRenderTargetMSAA->mDesc.mSampleQuality;
 #else
-			vbShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-#endif
-#if defined(_DURANGO) && 1
-			ExtendedGraphicsPipelineDesc edescs[2] = {};
-
-			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_PIXEL_SHADER_OPTIONS;;
-			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
-			//edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
-
-			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
-			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
-
-			if (i == 0)
-				edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
-			addPipelineExt(
-				pRenderer,
-				&vbShadePipelineSettings,
-				_countof(edescs),
-				edescs,
-				&pPipelineVisibilityBufferShadePost[i]);
-#else
-			addPipeline(pRenderer, &vbShadePipelineSettings, &pPipelineVisibilityBufferShadePost[i]);
+			vbShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+			vbShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+			vbShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 #endif
 
-#if (MSAASAMPLECOUNT > 1)
-			vbShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-#else
-			vbShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-#endif	
 #if defined(_DURANGO) && 1
+			ExtendedGraphicsPipelineDesc edescs[2];
 			memset(edescs, 0, sizeof(edescs));
 
 			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
@@ -990,12 +982,23 @@ public:
 		/************************************************************************/
 		// Setup the resources needed for the Deferred Pass Pipeline
 		/************************************************************************/
+		ImageFormat::Enum deferredFormats[DEFERRED_RT_COUNT] = {};
+		bool deferredSrgb[DEFERRED_RT_COUNT] = {};
+		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+		{
+			deferredFormats[i] = pRenderTargetDeferredPass[i]->mDesc.mFormat;
+			deferredSrgb[i] = pRenderTargetDeferredPass[i]->mDesc.mSrgb;
+		}
+
 		GraphicsPipelineDesc deferredPassPipelineSettings = {};
 		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		deferredPassPipelineSettings.mRenderTargetCount = DEFERRED_RT_COUNT;
 		deferredPassPipelineSettings.pDepthState = pDepthStateEnable;
-		deferredPassPipelineSettings.pDepthStencil = pDepthBuffer;
-		deferredPassPipelineSettings.ppRenderTargets = pRenderTargetDeferredPass;
+		deferredPassPipelineSettings.pColorFormats = deferredFormats;
+		deferredPassPipelineSettings.pSrgbValues = deferredSrgb;
+		deferredPassPipelineSettings.mSampleCount = pDepthBuffer->mDesc.mSampleCount;
+		deferredPassPipelineSettings.mSampleQuality = pDepthBuffer->mDesc.mSampleQuality;
+		deferredPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		deferredPassPipelineSettings.pRootSignature = pRootSignatureDeferredPass;
 #if !defined(METAL)
 		deferredPassPipelineSettings.pVertexLayout = &vertexLayout;
@@ -1034,16 +1037,15 @@ public:
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			deferredShadePipelineSettings.pShaderProgram = pShaderDeferredShade[i];
+			deferredShadePipelineSettings.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 #if (MSAASAMPLECOUNT > 1)
-			deferredShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
+			deferredShadePipelineSettings.pColorFormats = &pRenderTargetMSAA->mDesc.mFormat;
+			deferredShadePipelineSettings.pSrgbValues = &pRenderTargetMSAA->mDesc.mSrgb;
+			deferredShadePipelineSettings.mSampleQuality = pRenderTargetMSAA->mDesc.mSampleQuality;
 #else
-			deferredShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-#endif
-			addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadePost[i]);
-#if (MSAASAMPLECOUNT > 1)
-			deferredShadePipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-#else
-			deferredShadePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+			deferredShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+			deferredShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+			deferredShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 #endif
 			addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadeSrgb[i]);
 		}
@@ -1065,24 +1067,14 @@ public:
 		deferredPointLightPipelineSettings.mRenderTargetCount = 1;
 		deferredPointLightPipelineSettings.pBlendState = pBlendStateOneZero;
 		deferredPointLightPipelineSettings.pDepthState = pDepthStateDisable;
-
-#if (MSAASAMPLECOUNT > 1)
-		deferredPointLightPipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-#else
-		deferredPointLightPipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-#endif
+		deferredPointLightPipelineSettings.pColorFormats = deferredShadePipelineSettings.pColorFormats;
+		deferredPointLightPipelineSettings.pSrgbValues = deferredShadePipelineSettings.pSrgbValues;
+		deferredPointLightPipelineSettings.mSampleCount = deferredShadePipelineSettings.mSampleCount;
 		deferredPointLightPipelineSettings.pRasterizerState = pRasterizerStateCullBack;
 		deferredPointLightPipelineSettings.pRootSignature = pRootSignatureDeferredShadePointLight;
 		deferredPointLightPipelineSettings.pShaderProgram = pShaderDeferredShadePointLight;
 		deferredPointLightPipelineSettings.pVertexLayout = &vertexLayoutPointLightShade;
 
-		addPipeline(pRenderer, &deferredPointLightPipelineSettings, &pPipelineDeferredShadePointLightPost);
-
-#if (MSAASAMPLECOUNT > 1)
-		deferredPointLightPipelineSettings.ppRenderTargets = &pRenderTargetMSAA;
-#else
-		deferredPointLightPipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
-#endif
 		addPipeline(pRenderer, &deferredPointLightPipelineSettings, &pPipelineDeferredShadePointLightSrgb);
 
 		// Create geometry for light rendering
@@ -1116,7 +1108,10 @@ public:
 		aoPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		aoPipelineSettings.mRenderTargetCount = 1;
 		aoPipelineSettings.pDepthState = pDepthStateDisable;
-		aoPipelineSettings.ppRenderTargets = &pRenderTargetAO;
+		aoPipelineSettings.pColorFormats = &pRenderTargetAO->mDesc.mFormat;
+		aoPipelineSettings.pSrgbValues = &pRenderTargetAO->mDesc.mSrgb;
+		aoPipelineSettings.mSampleCount = pRenderTargetAO->mDesc.mSampleCount;
+		aoPipelineSettings.mSampleQuality = pRenderTargetAO->mDesc.mSampleQuality;
 		aoPipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		aoPipelineSettings.pRootSignature = pRootSignatureAO;
 		for (uint32_t i = 0; i < 4; ++i)
@@ -1131,14 +1126,15 @@ public:
 		resolvePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		resolvePipelineSettings.mRenderTargetCount = 1;
 		resolvePipelineSettings.pDepthState = pDepthStateDisable;
-		resolvePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		resolvePipelineSettings.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		resolvePipelineSettings.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		resolvePipelineSettings.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		resolvePipelineSettings.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
 		resolvePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		resolvePipelineSettings.pRootSignature = pRootSignatureResolve;
 		resolvePipelineSettings.pShaderProgram = pShaderResolve;
 		addPipeline(pRenderer, &resolvePipelineSettings, &pPipelineResolve);
-		resolvePipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
 		addPipeline(pRenderer, &resolvePipelineSettings, &pPipelineResolvePost);
-
 		/************************************************************************/
 		// Setup the UI components for text rendering, UI controls...
 		/************************************************************************/
@@ -1163,9 +1159,6 @@ public:
 
 		UIProperty esm("Shadow Control", gAppSettings.mEsmControl, 0, 200.0f);
 		addProperty(pGuiWindow, &esm);
-
-		UIProperty retina("Retina Scale", gAppSettings.mRetinaScaling, 0, 5.0f);
-		addProperty(pGuiWindow, &retina);
 
 		UIProperty localLight("Enable Random Point Lights", gAppSettings.mRenderLocalLights);
 		addProperty(pGuiWindow, &localLight);
@@ -1338,11 +1331,9 @@ public:
 		removePipeline(pRenderer, pPipelineClearBuffers);
 
 		// Destroy graphics pipelines
-		removePipeline(pRenderer, pPipelineDeferredShadePointLightPost);
 		removePipeline(pRenderer, pPipelineDeferredShadePointLightSrgb);
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			removePipeline(pRenderer, pPipelineDeferredShadePost[i]);
 			removePipeline(pRenderer, pPipelineDeferredShadeSrgb[i]);
 		}
 
@@ -1351,7 +1342,6 @@ public:
 
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			removePipeline(pRenderer, pPipelineVisibilityBufferShadePost[i]);
 			removePipeline(pRenderer, pPipelineVisibilityBufferShadeSrgb[i]);
 		}
 
@@ -1375,11 +1365,9 @@ public:
 		removeRootSignature(pRenderer, pRootSignatureDeferredPass);
 		removeRootSignature(pRenderer, pRootSignatureVBShade);
 		removeRootSignature(pRenderer, pRootSignatureVBPass);
-		removeRootSignature(pRenderer, pRootSignatureShadowPass);
 
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
-		removeIndirectCommandSignature(pRenderer, pCmdSignatureShadowPass);
 		/************************************************************************/
 		// Remove loaded scene
 		/************************************************************************/
@@ -1415,7 +1403,18 @@ public:
 		/************************************************************************/
 		removeShaders();
 
-		Unload();
+		removeRenderTargets();
+
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		// Remove default fences, semaphores
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeFence(pRenderer, pComputeCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
+		}
 
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
@@ -1456,140 +1455,9 @@ public:
 	{
 		gFrameCount = 0;
 
-		const uint32_t width = mSettings.mWidth;
-		const uint32_t height = mSettings.mHeight;
+		if (!addRenderTargets())
+			return false;
 
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = width;
-		swapChainDesc.mHeight = height;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
-		swapChainDesc.mSrgb = true;
-
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addFence(pRenderer, &pComputeCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			addSemaphore(pRenderer, &pComputeCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-		/************************************************************************/
-		/************************************************************************/
-		ClearValue optimizedDepthClear = { 1.0f, 0 };
-		ClearValue optimizedColorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
-		ClearValue optimizedColorClearWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-		BEGINALLOCATION("RTs");
-
-		/************************************************************************/
-		// Main depth buffer
-		/************************************************************************/
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue = optimizedDepthClear;
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = height;
-		depthRT.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
-		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
-		depthRT.mWidth = width;
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
-		/************************************************************************/
-		// Shadow pass render target
-		/************************************************************************/
-		RenderTargetDesc shadowRTDesc = {};
-		shadowRTDesc.mArraySize = 1;
-		shadowRTDesc.mClearValue = optimizedDepthClear;
-		shadowRTDesc.mDepth = 1;
-		shadowRTDesc.mFormat = ImageFormat::D32F;
-		shadowRTDesc.mWidth = gShadowMapSize;
-		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
-		shadowRTDesc.mSampleQuality = 0;
-		shadowRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		shadowRTDesc.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		//shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
-		shadowRTDesc.mHeight = gShadowMapSize;
-		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
-		/************************************************************************/
-		// Visibility buffer pass render target
-		/************************************************************************/
-		RenderTargetDesc vbRTDesc = {};
-		vbRTDesc.mArraySize = 1;
-		vbRTDesc.mClearValue = optimizedColorClearWhite;
-		vbRTDesc.mDepth = 1;
-		vbRTDesc.mFormat = ImageFormat::RGBA8;
-		vbRTDesc.mHeight = height;
-		vbRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
-		vbRTDesc.mSampleQuality = 0;
-		vbRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		vbRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-		vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
-		vbRTDesc.mWidth = width;
-		addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
-		/************************************************************************/
-		// Deferred pass render targets
-		/************************************************************************/
-		RenderTargetDesc deferredRTDesc = {};
-		deferredRTDesc.mArraySize = 1;
-		deferredRTDesc.mClearValue = optimizedColorClearBlack;
-		deferredRTDesc.mDepth = 1;
-		deferredRTDesc.mFormat = ImageFormat::RGBA8;
-		deferredRTDesc.mHeight = height;
-		deferredRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
-		deferredRTDesc.mSampleQuality = 0;
-		deferredRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		deferredRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-		deferredRTDesc.mWidth = width;
-		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
-		{
-			addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[i]);
-		}
-		/************************************************************************/
-		// MSAA render target
-		/************************************************************************/
-		RenderTargetDesc msaaRTDesc = {};
-		msaaRTDesc.mArraySize = 1;
-		msaaRTDesc.mClearValue = optimizedColorClearWhite;
-		msaaRTDesc.mDepth = 1;
-		msaaRTDesc.mFormat = ImageFormat::RGBA8;
-		msaaRTDesc.mHeight = height;
-		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
-		msaaRTDesc.mSampleQuality = 0;
-		msaaRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		msaaRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-		msaaRTDesc.mWidth = width;
-		addRenderTarget(pRenderer, &msaaRTDesc, &pRenderTargetMSAA);
-
-		ENDALLOCATION("RTs");
-		/************************************************************************/
-		// HDAO render target
-		/************************************************************************/
-		RenderTargetDesc aoRTDesc = {};
-		aoRTDesc.mArraySize = 1;
-		aoRTDesc.mClearValue = optimizedColorClearBlack;
-		aoRTDesc.mDepth = 1;
-		aoRTDesc.mFormat = ImageFormat::R8;
-		aoRTDesc.mHeight = height;
-		aoRTDesc.mSampleCount = SAMPLE_COUNT_1;
-		aoRTDesc.mSampleQuality = 0;
-		aoRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		aoRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-		aoRTDesc.mWidth = width;
-		addRenderTarget(pRenderer, &aoRTDesc, &pRenderTargetAO);
-		/************************************************************************/
-		/************************************************************************/
 		return true;
 	}
 
@@ -1598,27 +1466,7 @@ public:
 		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
 		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences);
 
-		removeRenderTarget(pRenderer, pRenderTargetMSAA);
-		removeRenderTarget(pRenderer, pRenderTargetAO);
-		removeRenderTarget(pRenderer, pDepthBuffer);
-		removeRenderTarget(pRenderer, pRenderTargetVBPass);
-		removeRenderTarget(pRenderer, pRenderTargetShadow);
-
-		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
-			removeRenderTarget(pRenderer, pRenderTargetDeferredPass[i]);
-
-		removeSwapChain(pRenderer, pSwapChain);
-
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		// Remove default fences, semaphores
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeFence(pRenderer, pComputeCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
-		}
+		removeRenderTargets();
 	}
 
 	void Update(float deltaTime)
@@ -1837,32 +1685,172 @@ public:
 	{
 		return "Visibility Buffer";
 	}
+    
 	/************************************************************************/
-	// Resource loading
+	// Add render targets
 	/************************************************************************/
-	// TODO: Remove this function after Metal runtime supports loading bytecode directly
-#if defined(METAL)
-	void applyMacros(ShaderDesc &description, ShaderMacro &macros)
+	bool addRenderTargets()
 	{
-		description.mVert.mMacros.add(macros);
-		description.mHull.mMacros.add(macros);
-		description.mGeom.mMacros.add(macros);
-		description.mFrag.mMacros.add(macros);
-		description.mDomain.mMacros.add(macros);
-		description.mComp.mMacros.add(macros);
-	}
-#endif
+		const uint32_t width = mSettings.mWidth;
+		const uint32_t height = mSettings.mHeight;
 
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = width;
+		swapChainDesc.mHeight = height;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
+		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
+		swapChainDesc.mSrgb = true;
+
+		swapChainDesc.mEnableVsync = false;
+		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		/************************************************************************/
+		/************************************************************************/
+		ClearValue optimizedDepthClear = { 1.0f, 0 };
+		ClearValue optimizedColorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
+		ClearValue optimizedColorClearWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		BEGINALLOCATION("RTs");
+
+		/************************************************************************/
+		// Main depth buffer
+		/************************************************************************/
+		// Add depth buffer
+		RenderTargetDesc depthRT = {};
+		depthRT.mArraySize = 1;
+		depthRT.mClearValue = optimizedDepthClear;
+		depthRT.mDepth = 1;
+		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mHeight = height;
+		depthRT.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
+		depthRT.mSampleQuality = 0;
+		depthRT.mType = RENDER_TARGET_TYPE_2D;
+		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+		depthRT.mWidth = width;
+		depthRT.pDebugName = L"Depth Buffer RT";
+		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+		/************************************************************************/
+		// Shadow pass render target
+		/************************************************************************/
+		RenderTargetDesc shadowRTDesc = {};
+		shadowRTDesc.mArraySize = 1;
+		shadowRTDesc.mClearValue = optimizedDepthClear;
+		shadowRTDesc.mDepth = 1;
+		shadowRTDesc.mFormat = ImageFormat::D32F;
+		shadowRTDesc.mWidth = gShadowMapSize;
+		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		shadowRTDesc.mSampleQuality = 0;
+		shadowRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		shadowRTDesc.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
+		//shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+		shadowRTDesc.mHeight = gShadowMapSize;
+		shadowRTDesc.pDebugName = L"Shadow Map RT";
+		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
+		/************************************************************************/
+		// Visibility buffer pass render target
+		/************************************************************************/
+		RenderTargetDesc vbRTDesc = {};
+		vbRTDesc.mArraySize = 1;
+		vbRTDesc.mClearValue = optimizedColorClearWhite;
+		vbRTDesc.mDepth = 1;
+		vbRTDesc.mFormat = ImageFormat::RGBA8;
+		vbRTDesc.mHeight = height;
+		vbRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
+		vbRTDesc.mSampleQuality = 0;
+		vbRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		vbRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
+		vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+		vbRTDesc.mWidth = width;
+		vbRTDesc.pDebugName = L"VB RT";
+		addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
+		/************************************************************************/
+		// Deferred pass render targets
+		/************************************************************************/
+		RenderTargetDesc deferredRTDesc = {};
+		deferredRTDesc.mArraySize = 1;
+		deferredRTDesc.mClearValue = optimizedColorClearBlack;
+		deferredRTDesc.mDepth = 1;
+		deferredRTDesc.mFormat = ImageFormat::RGBA8;
+		deferredRTDesc.mHeight = height;
+		deferredRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
+		deferredRTDesc.mSampleQuality = 0;
+		deferredRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		deferredRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
+		deferredRTDesc.mWidth = width;
+		deferredRTDesc.pDebugName = L"G-Buffer RTs";
+		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+		{
+			addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[i]);
+		}
+		/************************************************************************/
+		// MSAA render target
+		/************************************************************************/
+		RenderTargetDesc msaaRTDesc = {};
+		msaaRTDesc.mArraySize = 1;
+		msaaRTDesc.mClearValue = optimizedColorClearWhite;
+		msaaRTDesc.mDepth = 1;
+		msaaRTDesc.mFormat = ImageFormat::RGBA8;
+		msaaRTDesc.mHeight = height;
+		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
+		msaaRTDesc.mSampleQuality = 0;
+		msaaRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		msaaRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
+		msaaRTDesc.mWidth = width;
+		msaaRTDesc.pDebugName = L"MSAA RT";
+		msaaRTDesc.mFlags = TEXTURE_CREATION_FLAG_NO_COMPRESSION;
+		addRenderTarget(pRenderer, &msaaRTDesc, &pRenderTargetMSAA);
+
+		/************************************************************************/
+		// HDAO render target
+		/************************************************************************/
+		RenderTargetDesc aoRTDesc = {};
+		aoRTDesc.mArraySize = 1;
+		aoRTDesc.mClearValue = optimizedColorClearBlack;
+		aoRTDesc.mDepth = 1;
+		aoRTDesc.mFormat = ImageFormat::R8;
+		aoRTDesc.mHeight = height;
+		aoRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		aoRTDesc.mSampleQuality = 0;
+		aoRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		aoRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
+		aoRTDesc.mWidth = width;
+		aoRTDesc.pDebugName = L"AO RT";
+		addRenderTarget(pRenderer, &aoRTDesc, &pRenderTargetAO);
+		/************************************************************************/
+		/************************************************************************/
+		ENDALLOCATION("RTs");
+		return true;
+	}
+
+	void removeRenderTargets()
+	{
+		removeRenderTarget(pRenderer, pRenderTargetMSAA);
+		removeRenderTarget(pRenderer, pRenderTargetAO);
+		removeRenderTarget(pRenderer, pDepthBuffer);
+		removeRenderTarget(pRenderer, pRenderTargetVBPass);
+		removeRenderTarget(pRenderer, pRenderTargetShadow);
+
+		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+			removeRenderTarget(pRenderer, pRenderTargetDeferredPass[i]);
+
+		removeSwapChain(pRenderer, pSwapChain);
+	}
+	/************************************************************************/
 	// Load all the shaders needed for the demo
+	/************************************************************************/
 	void addShaders()
 	{
 		ShaderMacro shadingMacros[2][2] = {
 			{
-				{ "SAMPLE_COUNT", String().sprintf("%d", MSAASAMPLECOUNT) },
+				{ "SAMPLE_COUNT", String::format("%d", MSAASAMPLECOUNT) },
 				{ "USE_AMBIENT_OCCLUSION", "" }
 			},
 			{
-				{ "SAMPLE_COUNT", String().sprintf("%d", MSAASAMPLECOUNT) },
+				{ "SAMPLE_COUNT", String::format("%d", MSAASAMPLECOUNT) },
 				{ "USE_AMBIENT_OCCLUSION", "" }
 			},
 		};
@@ -1903,7 +1891,7 @@ public:
 
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			shadingMacros[i][1].value.sprintf("%d", i);
+			shadingMacros[i][1].value = String::format("%d", i);
 			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, FSR_SrcShaders };
 			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
 
@@ -1922,7 +1910,7 @@ public:
 		for (uint32_t i = 0; i < 4; ++i)
 		{
 			hdaoMacros[i][0] = shadingMacros[0][0];
-			hdaoMacros[i][1] = { "AO_QUALITY", String().sprintf("%u", (i + 1)) };
+			hdaoMacros[i][1] = { "AO_QUALITY", String::format("%u", (i + 1)) };
 			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
 			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
 		}
@@ -2010,6 +1998,7 @@ public:
 		materialPropDesc.mDesc.mSize = materialPropDesc.mDesc.mElementCount * materialPropDesc.mDesc.mStructStride;
 		materialPropDesc.pData = alphaTestMaterials;
 		materialPropDesc.ppBuffer = &pMaterialPropertyBuffer;
+		materialPropDesc.mDesc.pDebugName = L"Material Prop Desc";
 		addResource(&materialPropDesc);
 
 		conf_free(alphaTestMaterials);
@@ -2043,6 +2032,7 @@ public:
 		indirectBufferDesc.mDesc.mSize = indirectBufferDesc.mDesc.mElementCount * indirectBufferDesc.mDesc.mStructStride;
 		indirectBufferDesc.pData = indirectDrawArgumentsMax;
 		indirectBufferDesc.ppBuffer = &pIndirectDrawArgumentsBufferAll;
+		indirectBufferDesc.mDesc.pDebugName = L"Indirect Buffer Desc";
 		addResource(&indirectBufferDesc);
 
 		// Setup indirect material buffer.
@@ -2054,6 +2044,7 @@ public:
 		indirectDesc.mDesc.mSize = indirectDesc.mDesc.mElementCount * indirectDesc.mDesc.mStructStride;
 		indirectDesc.pData = materialIDPerDrawCall.data();
 		indirectDesc.ppBuffer = &pIndirectMaterialBufferAll;
+		indirectDesc.mDesc.pDebugName = L"Indirect Desc";
 		addResource(&indirectDesc);
 
 		conf_free(indirectDrawArgumentsMax);
@@ -2095,8 +2086,8 @@ public:
 				iNoAlpha++;
 			}
 		}
-		*(((UINT*)indirectArgsAlpha.getArray()) + DRAW_COUNTER_SLOT_POS) = iAlpha;
-		*(((UINT*)indirectArgsNoAlpha.getArray()) + DRAW_COUNTER_SLOT_POS) = iNoAlpha;
+		*(((UINT*)indirectArgsAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iAlpha;
+		*(((UINT*)indirectArgsNoAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iNoAlpha;
 
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
@@ -2116,6 +2107,7 @@ public:
 			indirectBufferDesc.mDesc.mSize = indirectBufferDesc.mDesc.mElementCount * indirectBufferDesc.mDesc.mStructStride;
 			indirectBufferDesc.pData = i == 0 ? indirectArgsNoAlpha.data() : indirectArgsAlpha.data();
 			indirectBufferDesc.ppBuffer = &pIndirectDrawArgumentsBufferAll[i];
+			indirectBufferDesc.mDesc.pDebugName = L"Indirect Buffer Desc";
 			addResource(&indirectBufferDesc);
 		}
 
@@ -2127,6 +2119,7 @@ public:
 		indirectDesc.mDesc.mSize = indirectDesc.mDesc.mElementCount * indirectDesc.mDesc.mStructStride;
 		indirectDesc.pData = materialIDPerDrawCall.data();
 		indirectDesc.ppBuffer = &pIndirectMaterialBufferAll;
+		indirectDesc.mDesc.pDebugName = L"Indirect Desc";
 		addResource(&indirectDesc);
 #endif
 		/************************************************************************/
@@ -2139,6 +2132,7 @@ public:
 		filterIbDesc.mDesc.mElementCount = pScene->totalTriangles;
 		filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
+		filterIbDesc.mDesc.pDebugName = L"Filtered IB Desc";
 		filterIbDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -2167,6 +2161,7 @@ public:
 		filterIndirectDesc.mDesc.mElementCount = pScene->numMeshes;
 		filterIndirectDesc.mDesc.mStructStride = sizeof(VisBufferIndirectCommand);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
+		filterIndirectDesc.mDesc.pDebugName = L"Filter Indirect Desc";
 		filterIndirectDesc.pData = indirectDrawArguments;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -2195,6 +2190,7 @@ public:
 		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
+		filterIndirectDesc.mDesc.pDebugName = L"Filtered Indirect Desc";
 		filterIndirectDesc.pData = indirectDrawArguments;
 
 		BufferLoadDesc uncompactedDesc = {};
@@ -2203,6 +2199,7 @@ public:
 		uncompactedDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT;
 		uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
 		uncompactedDesc.mDesc.mSize = uncompactedDesc.mDesc.mElementCount * uncompactedDesc.mDesc.mStructStride;
+		uncompactedDesc.mDesc.pDebugName = L"Uncompacted Draw Arguments Desc";
 		uncompactedDesc.pData = NULL;
 
 		BufferLoadDesc filterMaterialDesc = {};
@@ -2211,6 +2208,7 @@ public:
 		filterMaterialDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		filterMaterialDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterMaterialDesc.mDesc.mSize = filterMaterialDesc.mDesc.mElementCount * filterMaterialDesc.mDesc.mStructStride;
+		filterMaterialDesc.mDesc.pDebugName = L"Filtered Indirect Material Desc";
 		filterMaterialDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -2255,6 +2253,7 @@ public:
 			ubDesc.mDesc.mSize = bufferSize;
 			ubDesc.pData = nullptr;
 			ubDesc.ppBuffer = &(pFilterBatchChunk[i]->batchDataBuffer);
+			ubDesc.mDesc.pDebugName = L"Uniform Buffer Desc";
 			addResource(&ubDesc);
 #else
 			for (uint32_t j = 0; j < gSmallBatchChunkCount; ++j)
@@ -2292,6 +2291,8 @@ public:
 		meshConstantDesc.mDesc.mSize = meshConstantDesc.mDesc.mElementCount * meshConstantDesc.mDesc.mStructStride;
 		meshConstantDesc.pData = meshConstants;
 		meshConstantDesc.ppBuffer = &pMeshConstantsBuffer;
+		meshConstantDesc.mDesc.pDebugName = L"Mesh Constant Desc";
+
 		addResource(&meshConstantDesc);
 
 		conf_free(meshConstants);
@@ -2307,6 +2308,7 @@ public:
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = nullptr;
+		ubDesc.mDesc.pDebugName = L"Uniform Buffer Desc";
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -2332,6 +2334,7 @@ public:
 			batchUb.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			batchUb.pData = &perBatchData;
 			batchUb.ppBuffer = &gPerBatchUniformBuffers[j];
+			batchUb.mDesc.pDebugName = L"Batch UB Desc";
 			addResource(&batchUb);
 		}
 #endif
@@ -2355,6 +2358,7 @@ public:
 		batchUb.mDesc.mStructStride = sizeof(LightData);
 		batchUb.pData = gLightData;
 		batchUb.ppBuffer = &pLightsBuffer;
+		batchUb.mDesc.pDebugName = L"Batch UB Desc";
 		addResource(&batchUb);
 
 		// Setup lights cluster data
@@ -2367,6 +2371,7 @@ public:
 		lightClustersCountBufferDesc.mDesc.mElementCount = LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
 		lightClustersCountBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 		lightClustersCountBufferDesc.pData = lightClustersInitData;
+		lightClustersCountBufferDesc.mDesc.pDebugName = L"Light Cluster Count Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			lightClustersCountBufferDesc.ppBuffer = &pLightClustersCount[frameIdx];
@@ -2381,6 +2386,7 @@ public:
 		lightClustersDataBufferDesc.mDesc.mElementCount = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
 		lightClustersDataBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 		lightClustersDataBufferDesc.pData = nullptr;
+		lightClustersDataBufferDesc.mDesc.pDebugName = L"Light Cluster Data Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			lightClustersDataBufferDesc.ppBuffer = &pLightClusters[frameIdx];
@@ -2718,7 +2724,7 @@ public:
 		shadowParams[1].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		shadowParams[2].pName = "filteredTriangles";
 		shadowParams[2].ppBuffers = &filteredTrianglesBuffer;
-		cmdBindDescriptors(cmd, pRootSignatureShadowPass, 3, shadowParams);
+		cmdBindDescriptors(cmd, pRootSignatureVBPass, 3, shadowParams);
 
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -2729,7 +2735,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pRootSignatureShadowPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pRootSignatureVBPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineShadowPass[i]);
 
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -2744,8 +2750,8 @@ public:
 				meshParams[0].ppBuffers = &gPerBatchUniformBuffers[m];
                 meshParams[1].pName = "diffuseMap";
                 meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pRootSignatureShadowPass, 2, meshParams);
-				cmdExecuteIndirect(cmd, pCmdSignatureShadowPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), nullptr, 0);
+				cmdBindDescriptors(cmd, pRootSignatureVBPass, 2, meshParams);
+				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), nullptr, 0);
 			}
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -2763,7 +2769,7 @@ public:
 		params[1].ppBuffers = &pIndirectMaterialBuffer;
 		params[2].pName = "uniforms";
 		params[2].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureShadowPass, 3, params);
+		cmdBindDescriptors(cmd, pRootSignatureVBPass, 3, params);
 
 		// Position only opaque shadow pass
 		Buffer* pVertexBuffersPositionOnly[] = { pVertexBufferPosition };
@@ -2772,7 +2778,7 @@ public:
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[0],true);
 		cmdBindPipeline(cmd, pPipelineShadowPass[0]);
 		Buffer* pIndirectBufferPositionOnly = gAppSettings.mFilterTriangles ? pFilteredIndirectDrawArgumentsBuffer[frameIdx][0][VIEW_SHADOW] : pIndirectDrawArgumentsBufferAll[0];
-		cmdExecuteIndirect(cmd, pCmdSignatureShadowPass, gPerFrame[frameIdx].gDrawCount[0], pIndirectBufferPositionOnly, 0, pIndirectBufferPositionOnly, DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
+		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gDrawCount[0], pIndirectBufferPositionOnly, 0, pIndirectBufferPositionOnly, DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		// Alpha tested shadow pass with extra vetex attribute stream
@@ -2782,7 +2788,7 @@ public:
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[1], true);
 		cmdBindPipeline(cmd, pPipelineShadowPass[1]);
 		Buffer* pIndirectBuffer = gAppSettings.mFilterTriangles ? pFilteredIndirectDrawArgumentsBuffer[frameIdx][1][VIEW_SHADOW] : pIndirectDrawArgumentsBufferAll[1];
-		cmdExecuteIndirect(cmd, pCmdSignatureShadowPass, gPerFrame[frameIdx].gDrawCount[1], pIndirectBuffer, 0, pIndirectBuffer, DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
+		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gDrawCount[1], pIndirectBuffer, 0, pIndirectBuffer, DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #endif
 
@@ -2807,9 +2813,6 @@ public:
 		cmdBeginRender(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mDesc.mWidth, pRenderTargetVBPass->mDesc.mHeight);
-
-		Buffer* pVertexBuffers[] = { pVertexBufferPosition, pVertexBufferTexCoord };
-		cmdBindVertexBuffer(cmd, 2, pVertexBuffers);
 
 #if defined(METAL)
 		Buffer* filteredTrianglesBuffer = (gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll);
@@ -2859,16 +2862,6 @@ public:
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll;
 		Buffer* pIndirectMaterialBuffer = gAppSettings.mFilterTriangles ? pFilterIndirectMaterialBuffer[frameIdx] : pIndirectMaterialBufferAll;
 		cmdBindIndexBuffer(cmd, pIndexBuffer);
-
-		DescriptorData params[3] = {};
-		params[0].pName = "diffuseMaps";
-		params[0].mCount = (uint32_t)gDiffuseMaps.size();
-		params[0].ppTextures = gDiffuseMaps.data();
-		params[1].pName = "indirectMaterialBuffer";
-		params[1].ppBuffers = &pIndirectMaterialBuffer;
-		params[2].pName = "uniforms";
-		params[2].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureVBPass, 3, params);
 
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -2920,13 +2913,13 @@ public:
 		vbShadeParams[0].pName = "vbTex";
 		vbShadeParams[0].ppTextures = &pRenderTargetVBPass->pTexture;
 		vbShadeParams[1].pName = "diffuseMaps";
-		vbShadeParams[1].mCount = gDiffuseMapsPacked.getCount();
+		vbShadeParams[1].mCount = (uint32_t)gDiffuseMapsPacked.size();
 		vbShadeParams[1].ppTextures = gDiffuseMapsPacked.data();
 		vbShadeParams[2].pName = "normalMaps";
-		vbShadeParams[2].mCount = gNormalMapsPacked.getCount();
+		vbShadeParams[2].mCount = (uint32_t)gNormalMapsPacked.size();
 		vbShadeParams[2].ppTextures = gNormalMapsPacked.data();
 		vbShadeParams[3].pName = "specularMaps";
-		vbShadeParams[3].mCount = gSpecularMapsPacked.getCount();
+		vbShadeParams[3].mCount = (uint32_t)gSpecularMapsPacked.size();
 		vbShadeParams[3].ppTextures = gSpecularMapsPacked.data();
 		vbShadeParams[4].pName = "vertexPos";
 		vbShadeParams[4].ppBuffers = &pVertexBufferPosition;

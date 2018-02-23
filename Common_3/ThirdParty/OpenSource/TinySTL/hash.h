@@ -58,14 +58,12 @@ namespace tinystl
 #endif
 	}
 
-	// [Confetti backwards compatibility]
-	static inline unsigned int hash(const char* str)
-	{
+	static inline unsigned int hash(const char* str) {
 		const char* strEnd = str;
 		while (*strEnd != '\0') { ++strEnd; }
 		return hash_string(str, strEnd - str);
 	}
-	// [/Confetti backwards compatibility]
+
 	template<typename T>
 	inline unsigned int hash(const T& value) {
 		return hash_string((const char*)&value, sizeof(value));

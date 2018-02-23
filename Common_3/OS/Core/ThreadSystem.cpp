@@ -100,7 +100,7 @@ void ThreadPool::AddWorkItem(WorkItem* item)
 {
 	// Check for duplicate / invalid items.
 	ASSERT(item && "Null work item submitted to thread pool");
-	ASSERT(!mWorkItems.contains(item));
+	ASSERT(mWorkItems.find(item) == mWorkItems.end());
 
 	// Push to the main thread list to keep item alive
 	// Clear completed flag in case item is reused
@@ -214,7 +214,7 @@ void ThreadPool::Complete(unsigned priority)
 			if (!mWorkQueue.empty() && mWorkQueue.front()->mPriority >= priority)
 			{
 				WorkItem* item = mWorkQueue.front();
-				mWorkQueue.remove(0);
+				mWorkQueue.erase(mWorkQueue.begin());
 				mQueueMutex.Release();
 				item->pFunc(item->pData);
 				item->mCompleted = true;
@@ -241,7 +241,7 @@ void ThreadPool::Complete(unsigned priority)
 		while (!mWorkQueue.empty() && mWorkQueue.front()->mPriority >= priority)
 		{
 			WorkItem* item = mWorkQueue.front();
-			mWorkQueue.remove(0);
+			mWorkQueue.erase(mWorkQueue.begin());
 			item->pFunc(item->pData);
 			item->mCompleted = true;
 		}
@@ -283,7 +283,7 @@ void ThreadPool::ProcessItems(void* pData)
 				wasActive = true;
 
 				WorkItem* item = pSystem->mWorkQueue.front();
-				pSystem->mWorkQueue.remove(0);
+				pSystem->mWorkQueue.erase(pSystem->mWorkQueue.begin());
 				pSystem->mQueueMutex.Release();
 				item->pFunc(item->pData);
 				item->mCompleted = true;

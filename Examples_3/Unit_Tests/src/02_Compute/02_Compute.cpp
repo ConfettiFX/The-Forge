@@ -202,7 +202,10 @@ public:
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
-		if (!Load())
+		if (!addSwapChain())
+			return false;
+
+		if (!addJuliaFractalUAV())
 			return false;
         
 #ifdef TARGET_IOS
@@ -240,7 +243,10 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.pRasterizerState = pRast;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
@@ -360,33 +366,11 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
-		// Create empty texture for output of compute shader
-		TextureLoadDesc textureDesc = {};
-		TextureDesc desc = {};
-		desc.mType = TEXTURE_TYPE_2D;
-		desc.mWidth = mSettings.mWidth;
-		desc.mHeight = mSettings.mHeight;
-		desc.mDepth = 1;
-		desc.mArraySize = 1;
-		desc.mMipLevels = 1;
-		desc.mFormat = ImageFormat::RGBA8;
-		desc.mUsage = (TextureUsage)(TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS);
-		desc.mSampleCount = SAMPLE_COUNT_1;
-		desc.mHostVisible = false;
-		textureDesc.pDesc = &desc;
-		textureDesc.ppTexture = &pTextureComputeOutput;
-		addResource(&textureDesc);
+		if (!addJuliaFractalUAV())
+			return false;
 
 		return true;
 	}
@@ -590,6 +574,44 @@ public:
 	String GetName()
 	{
 		return "02_Compute";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	bool addJuliaFractalUAV()
+	{
+		// Create empty texture for output of compute shader
+		TextureLoadDesc textureDesc = {};
+		TextureDesc desc = {};
+		desc.mType = TEXTURE_TYPE_2D;
+		desc.mWidth = mSettings.mWidth;
+		desc.mHeight = mSettings.mHeight;
+		desc.mDepth = 1;
+		desc.mArraySize = 1;
+		desc.mMipLevels = 1;
+		desc.mFormat = ImageFormat::RGBA8;
+		desc.mUsage = (TextureUsage)(TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS);
+		desc.mSampleCount = SAMPLE_COUNT_1;
+		desc.mHostVisible = false;
+		textureDesc.pDesc = &desc;
+		textureDesc.ppTexture = &pTextureComputeOutput;
+		addResource(&textureDesc);
+
+		return pTextureComputeOutput != NULL;
 	}
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))

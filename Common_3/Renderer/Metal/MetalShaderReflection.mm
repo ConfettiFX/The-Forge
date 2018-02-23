@@ -535,7 +535,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         {
             const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
             if (!isInputVertexBuffer(bufferInfo, shaderStage)){
-                DescriptorType descriptorType = (tinystl::string(bufferInfo.name).to_lower().find("rootconstant")!=0 ? DESCRIPTOR_TYPE_ROOT_CONSTANT : DESCRIPTOR_TYPE_BUFFER);
+                DescriptorType descriptorType = (tinystl::string(bufferInfo.name).to_lower().find("rootconstant", 0)!=String::npos ? DESCRIPTOR_TYPE_ROOT_CONSTANT : DESCRIPTOR_TYPE_BUFFER);
                 addShaderResource(pResources, resourceIdx, descriptorType, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, shaderStage, &pCurrentName, (char*)bufferInfo.name);
                 
                 if(bufferInfo.isArgBuffer) pResources[resourceIdx].mtlArgumentBufferType = bufferInfo.argBufferType;

@@ -55,7 +55,7 @@ static tinystl::string ExtractSceneNameFromFileName(const char* input)
 	in.rfind('.', -1, &lastperiod);
 
 	tinystl::string shortName(&in[lastSlash + 1], lastperiod - lastSlash - 1);
-	shortName.makeLowerCase();
+	shortName = shortName.to_lower();
 	shortName.replace(' ', '_');
 
 	return shortName;
@@ -65,14 +65,14 @@ static void GetNameFromAiString(tinystl::unordered_map<tinystl::string, size_t>*
 {
 	meshName = originalName.C_Str();
 	meshName.replace(' ', '_');
-	if (meshName.isEmpty())
+	if (meshName.size() == 0)
 	{
 		meshName = defaultPrefix + "_";
 		if (pMap->find(meshName) == pMap->end())
 		{
 			pMap->insert(tinystl::pair<tinystl::string, size_t>(meshName, 0));
 		}
-		meshName.appendInt((int)((*pMap)[meshName])++);
+		meshName += String::format("%d", (int)((*pMap)[meshName])++);
 	}
 }
 

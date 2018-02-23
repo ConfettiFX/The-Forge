@@ -183,6 +183,7 @@ typedef enum BufferFeatureFlags {
 MAKE_ENUM_FLAG(uint32_t, BufferFeatureFlags);
 
 typedef enum TextureType {
+	TEXTURE_TYPE_UNDEFINED = 0,
 	TEXTURE_TYPE_1D,
 	TEXTURE_TYPE_2D,
 	TEXTURE_TYPE_3D,
@@ -190,19 +191,22 @@ typedef enum TextureType {
 } TextureType;
 
 typedef enum RenderTargetType {
-	RENDER_TARGET_TYPE_1D = 0,
+	RENDER_TARGET_TYPE_UNKNOWN = 0,
+	RENDER_TARGET_TYPE_1D,
 	RENDER_TARGET_TYPE_2D,
 	RENDER_TARGET_TYPE_3D,
 	RENDER_TARGET_TYPE_BUFFER,
 } RenderTargetType;
 
 typedef enum TextureUsage {
+	TEXTURE_USAGE_UNDEFINED = 0x00,
 	TEXTURE_USAGE_SAMPLED_IMAGE = 0x01,
 	TEXTURE_USAGE_UNORDERED_ACCESS = 0x02
 } TextureUsage;
 MAKE_ENUM_FLAG(uint32_t, TextureUsage)
 
 typedef enum RenderTargetUsage {
+	RENDER_TARGET_USAGE_UNDEFINED = 0x00,
 	RENDER_TARGET_USAGE_COLOR = 0x01,
 	RENDER_TARGET_USAGE_DEPTH_STENCIL = 0x02,
 	RENDER_TARGET_USAGE_UNORDERED_ACCESS = 0x04,
@@ -536,6 +540,8 @@ typedef enum TextureCreationFlags
 	TEXTURE_CREATION_FLAG_ESRAM = 0x10,
     /// Use on-tile memory to store this texture
     TEXTURE_CREATION_FLAG_ON_TILE = 0x20,
+	/// Prevent compression meta data from generating (XBox)
+	TEXTURE_CREATION_FLAG_NO_COMPRESSION = 0x40,
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
@@ -592,14 +598,6 @@ typedef struct QueryHeap
 /// Data structure holding necessary info to create a Buffer
 typedef struct BufferDesc
 {
-	/// Default constructor
-	BufferDesc() :
-		mMemoryUsage(RESOURCE_MEMORY_USAGE_UNKNOWN),
-		mFlags(BUFFER_CREATION_FLAG_NONE),
-		mFeatures(BUFFER_FEATURE_NONE),
-		mFirstElement(0),
-		pCounterBuffer(NULL) {}
-
 	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
 	BufferUsage							mUsage;
 	/// Size of the buffer (in bytes)
@@ -626,10 +624,12 @@ typedef struct BufferDesc
 	ImageFormat::Enum					mFormat;
 	/// Flags specifying the special features of the buffer(typeless buffer,...) (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
 	BufferFeatureFlags					mFeatures;
+	/// Debug name used in gpu profile
+	wchar_t*							pDebugName;
 } BufferDesc;
 
 typedef struct Buffer {
-	Renderer*                       pRenderer;
+	Renderer*							pRenderer;
 	/// Buffer creation info
 	BufferDesc							mDesc;
 	/// Position of dynamic buffer memory in the mapped resource
@@ -742,6 +742,8 @@ typedef struct TextureDesc
 	bool				    mSrgb;
 	/// Is the texture CPU accessible (applicable on hardware supporting CPU mapped textures (UMA))
 	bool					mHostVisible;
+	/// Debug name used in gpu profile
+	wchar_t*				pDebugName;
 } TextureDesc;
 
 typedef struct Texture {
@@ -771,9 +773,9 @@ typedef struct Texture {
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct ResourceAllocation*			pDxAllocation;
 	/// Description for creating the SRV for this texture (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-	D3D12_SHADER_RESOURCE_VIEW_DESC     mDxSrvDesc;
+	D3D12_SHADER_RESOURCE_VIEW_DESC		mDxSrvDesc;
 	/// Description for creating the UAV for this texture (applicable to TEXTURE_USAGE_UNORDERED_ACCESS)
-	D3D12_UNORDERED_ACCESS_VIEW_DESC    mDxUavDesc;
+	D3D12_UNORDERED_ACCESS_VIEW_DESC	mDxUavDesc;
 #elif defined(VULKAN)
 	/// Native handle of the underlying resource
 	VkImage								pVkImage;
@@ -787,7 +789,7 @@ typedef struct Texture {
 	VkDescriptorImageInfo				mVkTextureView;
 #elif defined(METAL)
     /// Contains resource allocation info such as parent heap, offset in heap
-    struct ResourceAllocation*          pMtlAllocation;
+    struct ResourceAllocation*			pMtlAllocation;
 	/// Native handle of the underlying resource
 	id<MTLTexture>						mtlTexture;
 	MTLPixelFormat						mtlPixelFormat;
@@ -824,7 +826,9 @@ typedef struct RenderTargetDesc
 	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
 	uint32_t				mSampleQuality;
 	/// Set whether rendertarget is srgb
-    bool                    mSrgb;
+    bool					mSrgb;
+	/// Debug name used in gpu profile
+	wchar_t*				pDebugName;
 } RenderTargetDesc;
 
 typedef struct RenderTarget
@@ -843,27 +847,27 @@ typedef struct RenderTarget
 	D3D12_CPU_DESCRIPTOR_HANDLE		mDxDsvHandle;
 #elif defined(TARGET_IOS)
     // A separate texture is needed for stencil rendering on iOS.
-    Texture*                        pStencil;
+    Texture*						pStencil;
 #endif
 } RenderTarget;
 
 typedef struct Sampler {
-	Renderer*                   pRenderer;
+	Renderer*						pRenderer;
 	/// A unique id used for hashing samplers during resource binding
 	uint64_t						mSamplerId;
 #if defined(DIRECT3D12)
 	/// Description for creating the Sampler descriptor for ths sampler
-	D3D12_SAMPLER_DESC	            mDxSamplerDesc;
+	D3D12_SAMPLER_DESC				mDxSamplerDesc;
 	/// Descriptor handle of the Sampler in a CPU visible descriptor heap
 	D3D12_CPU_DESCRIPTOR_HANDLE		mDxSamplerHandle;
 #elif defined(VULKAN)
 	/// Native handle of the underlying resource
-	VkSampler                       pVkSampler;
+	VkSampler						pVkSampler;
 	/// Description for creating the descriptor for this sampler
-	VkDescriptorImageInfo           mVkSamplerView;
+	VkDescriptorImageInfo			mVkSamplerView;
 #elif defined(METAL)
 	/// Native handle of the underlying resource
-    id<MTLSamplerState>             mtlSamplerState;
+    id<MTLSamplerState>				mtlSamplerState;
 #endif
 } Sampler;
 
@@ -948,6 +952,7 @@ typedef struct DescriptorSetLayout
 
 typedef struct RootSignatureDesc
 {
+    //TODO: Remove constructor to keep C-Style interface
 	RootSignatureDesc()
 	{
 		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = 256U;
@@ -1006,12 +1011,13 @@ typedef struct RootSignature
 
 typedef struct DescriptorData
 {
+    //TODO: Remove constructor to keep C-Style interface
     DescriptorData() :
 			pName(NULL),
 			mIndex((uint32_t)-1),
 			mCount(1),
-			mOffset(0),
-			ppTextures(NULL) {}
+            mOffset(0),
+            ppTextures(NULL) {}
     
 	/// User can either set name of descriptor or index (index in pRootSignature->pDescriptors array)
     /// Name of descriptor
@@ -1082,12 +1088,6 @@ typedef struct Cmd {
 	VkBufferMemoryBarrier					pBatchBufferMemoryBarriers[MAX_BATCH_BARRIERS];
 	uint32_t								mBatchBufferMemoryBarrierCount;
 	struct DescriptorStoreHeap*				pDescriptorPool;
-	/// Render-passes are not exposed to the app code since they are not available on all apis
-	/// This map takes care of hashing a render pass based on the render targets passed to cmdBeginRender
-	using RenderPassMap = tinystl::unordered_map<uint64_t, struct RenderPass*>;
-	using RenderPassMapNode = tinystl::unordered_hash_node<uint64_t, struct RenderPass*>;
-
-	RenderPassMap							mRenderPassMap;
 #elif defined(METAL)
 	id<MTLCommandBuffer>					mtlCommandBuffer;
     id<MTLFence>                            mtlEncoderFence; // Used to sync different types of encoders recording in the same Cmd.
@@ -1127,7 +1127,6 @@ typedef struct Fence {
 #elif defined(METAL)
     dispatch_semaphore_t                pMtlSemaphore;
     bool                                mSubmitted;
-    bool                                mCompleted;
 #endif
 } Fence;
 
@@ -1179,16 +1178,13 @@ typedef struct ShaderMacro
 	tinystl::string value;
 } ShaderMacro;
 
+#if defined(METAL)
 typedef struct ShaderStageDesc
 {
 	tinystl::string					mName;
 	tinystl::string					mCode;
 	tinystl::string					mEntryPoint;
 	tinystl::vector<ShaderMacro>	mMacros;
-#if defined(DIRECT3D12)
-#elif defined(VULKAN)
-	tinystl::string					mCompileFlags;
-#endif
 } ShaderStageDesc;
 
 typedef struct ShaderDesc
@@ -1201,11 +1197,13 @@ typedef struct ShaderDesc
 	ShaderStageDesc mDomain;
 	ShaderStageDesc mComp;
 } ShaderDesc;
+#endif
 
 typedef struct BinaryShaderStageDesc
 {
 	/// Byte code array
-	tinystl::vector<char>	mByteCode;
+	char*					pByteCode;
+	uint32_t				mByteCodeSize;
 #if defined(METAL)
     // Shader source is needed for reflection
     tinystl::string         mSource;
@@ -1340,13 +1338,16 @@ typedef struct GraphicsPipelineDesc
 	Shader*				pShaderProgram;
 	RootSignature*		pRootSignature;
 	VertexLayout*		pVertexLayout;
-	RenderTarget**		ppRenderTargets;
-	uint32_t			mRenderTargetCount;
-	RenderTarget*		pDepthStencil;
-	PrimitiveTopology   mPrimitiveTopo;
 	BlendState*			pBlendState;
 	DepthState*			pDepthState;
 	RasterizerState*	pRasterizerState;
+	ImageFormat::Enum*	pColorFormats;
+	bool*				pSrgbValues;
+	uint32_t			mRenderTargetCount;
+	SampleCount			mSampleCount;
+	uint32_t			mSampleQuality;
+	ImageFormat::Enum	mDepthStencilFormat;
+	PrimitiveTopology	mPrimitiveTopo;
 } GraphicsPipelineDesc;
 
 typedef struct ComputePipelineDesc {
@@ -1447,7 +1448,6 @@ typedef struct SwapChain
 #elif defined(METAL)
     MTKView*                pMTKView;
     id<MTLCommandBuffer>    presentCommandBuffer;
-    id<MTLCommandQueue>     presentCommandQueue;
 #endif
 } SwapChain;
 
@@ -1461,10 +1461,10 @@ typedef struct RendererDesc {
 	LogFn							pLogFn;
 	ShaderTarget					mShaderTarget;
 #if defined(VULKAN)
-	StringList						mInstanceLayers;
-	StringList						mInstanceExtensions;
-	StringList						mDeviceLayers;
-	StringList						mDeviceExtensions;
+	tinystl::vector<String>			mInstanceLayers;
+	tinystl::vector<String>			mInstanceExtensions;
+	tinystl::vector<String>			mDeviceLayers;
+	tinystl::vector<String>			mDeviceExtensions;
 	PFN_vkDebugReportCallbackEXT	pVkDebugFn;
 #elif defined(DIRECT3D12)
 	D3D_FEATURE_LEVEL				mDxFeatureLevel;
@@ -1557,7 +1557,6 @@ typedef struct Renderer {
 	const char* gVkDeviceExtensions[MAX_DEVICE_EXTENSIONS];
 #elif defined(METAL)
     id<MTLDevice>						pDevice;
-    CAMetalLayer*						mMetalLayer;
     struct ResourceAllocator*           pResourceAllocator;
 #endif
 
@@ -1650,7 +1649,9 @@ ApiExport void addSampler(Renderer* pRenderer, Sampler** pp_sampler, FilterType 
 ApiExport void removeSampler(Renderer* pRenderer, Sampler* p_sampler);
 
 // shader functions
+#if defined(METAL)
 ApiExport void addShader(Renderer* pRenderer, const ShaderDesc* p_desc, Shader** p_shader_program);
+#endif
 ApiExport void addShader(Renderer* pRenderer, const BinaryShaderDesc* p_desc, Shader** p_shader_program);
 ApiExport void removeShader(Renderer* pRenderer, Shader* p_shader_program);
 
@@ -1749,4 +1750,10 @@ void cmdEndDebugMarker(Cmd* pCmd);
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
 void cmdAddDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...);
+/************************************************************************/
+// Resource Debug Naming Interface
+/************************************************************************/
+void setName(Renderer* pRenderer, Buffer* pBuffer, const char* pName);
+void setName(Renderer* pRenderer, Texture* pTexture, const char* pName);
+/************************************************************************/
 /************************************************************************/

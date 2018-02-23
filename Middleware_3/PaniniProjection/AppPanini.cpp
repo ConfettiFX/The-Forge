@@ -154,15 +154,6 @@ void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffe
 	ibDesc.ppBuffer = ppIndexBuffer;
 	addResource(&ibDesc);
 }
-void applyMacros(ShaderDesc &description, ShaderMacro &macros)
-{
-	description.mVert.mMacros.add(macros);
-	description.mHull.mMacros.add(macros);
-	description.mGeom.mMacros.add(macros);
-	description.mFrag.mMacros.add(macros);
-	description.mDomain.mMacros.add(macros);
-	description.mComp.mMacros.add(macros);
-}
 
 bool initializeRenderingResources(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
@@ -201,7 +192,10 @@ bool initializeRenderingResources(Renderer* pRenderer, RenderTarget* pRenderTarg
 	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 	pipelineSettings.mRenderTargetCount = 1;
 	pipelineSettings.pDepthState = pDepthStateDisable;
-	pipelineSettings.ppRenderTargets = &pRenderTarget;
+	pipelineSettings.pColorFormats = &pRenderTarget->mDesc.mFormat;
+	pipelineSettings.pSrgbValues = &pRenderTarget->mDesc.mSrgb;
+	pipelineSettings.mSampleCount = pRenderTarget->mDesc.mSampleCount;
+	pipelineSettings.mSampleQuality = pRenderTarget->mDesc.mSampleQuality;
 	pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 	pipelineSettings.pRootSignature = pRootSignaturePaniniPostProcess;
 	pipelineSettings.pShaderProgram = pShaderPanini;

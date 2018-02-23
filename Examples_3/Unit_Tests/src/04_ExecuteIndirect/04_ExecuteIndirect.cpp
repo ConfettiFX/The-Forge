@@ -377,33 +377,12 @@ public:
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
 
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		depthRT.mWidth = mSettings.mWidth;
-#ifdef TARGET_IOS
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
-#endif
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+		if (!addDepthBuffer())
+			return false;
+
 #if defined(VULKAN)
 		transitionRenderTargets();
 #endif
@@ -508,8 +487,11 @@ public:
 		pipelineSettings.pBlendState = pBlend;
 		pipelineSettings.pDepthState = pDepth;
 		pipelineSettings.pRasterizerState = pBasicRast;
-		pipelineSettings.pDepthStencil = pDepthBuffer;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pBasicRoot;
 		pipelineSettings.pShaderProgram = pBasicShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -608,7 +590,7 @@ public:
 		bufDesc = {};
 		bufDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		bufDesc.mDesc.mSize = sizeof(Vertex) * vertices.getCount();
+		bufDesc.mDesc.mSize = sizeof(Vertex) * (uint32_t)vertices.size();
 		bufDesc.mDesc.mVertexStride = sizeof(Vertex);
 		bufDesc.pData = vertices.data();
 		bufDesc.ppBuffer = &pAsteroidVertexBuffer;
@@ -619,7 +601,7 @@ public:
 		bufDesc.mDesc.mUsage = BUFFER_USAGE_INDEX;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
-		bufDesc.mDesc.mSize = sizeof(uint16_t) * indices.getCount();
+		bufDesc.mDesc.mSize = sizeof(uint16_t) * (uint32_t)indices.size();
 		bufDesc.pData = indices.data();
 		bufDesc.ppBuffer = &pAsteroidIndexBuffer;
 		addResource(&bufDesc);
@@ -791,7 +773,9 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
 
+#ifndef TARGET_IOS
 		gPanini.Exit(pRenderer);
+#endif
 
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
@@ -891,33 +875,12 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		depthRT.mWidth = mSettings.mWidth;
-#ifdef TARGET_IOS
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
-#endif
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+		if (!addDepthBuffer())
+			return false;
+
 #if defined(VULKAN)
 		transitionRenderTargets();
 #endif
@@ -934,7 +897,11 @@ public:
 		postProcRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 		
+#ifndef TARGET_IOS
 		bool bSuccess = gPanini.Load();
+#else
+        bool bSuccess = true;
+#endif
 
 		return bSuccess;
 	}
@@ -945,7 +912,9 @@ public:
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
+#ifndef TARGET_IOS
 		gPanini.Unload();
+#endif
 	}
 
 	float frameTime;
@@ -983,7 +952,9 @@ public:
 #endif
 
 		updateGui(pUIManager, pGuiWindow, deltaTime);
+#ifndef TARGET_IOS
 		gPanini.Update(&gHorizontalFoV);
+#endif
 	}
 
 	void Draw()
@@ -1286,7 +1257,7 @@ public:
 		/************************************************************************/
 		// Submit commands to graphics queue
 		/************************************************************************/
-		queueSubmit(pGraphicsQueue, allCmds.getCount(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
+		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
@@ -1301,6 +1272,41 @@ public:
 	String GetName()
 	{
 		return "04_ExecuteIndirect";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	bool addDepthBuffer()
+	{
+		// Add depth buffer
+		RenderTargetDesc depthRT = {};
+		depthRT.mArraySize = 1;
+		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mDepth = 1;
+		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mHeight = mSettings.mHeight;
+		depthRT.mSampleCount = SAMPLE_COUNT_1;
+		depthRT.mSampleQuality = 0;
+		depthRT.mType = RENDER_TARGET_TYPE_2D;
+		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
+		depthRT.mWidth = mSettings.mWidth;
+		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+
+		return pDepthBuffer != NULL;
 	}
 
 	void transitionRenderTargets()
@@ -1345,7 +1351,7 @@ public:
 			vert.mNormal = vec4(0, 0, 0, 0);
 		}
 
-		uint32_t numTriangles = indices.getCount() / 3;
+		uint32_t numTriangles = (uint32_t)indices.size() / 3;
 		for (uint32_t i = 0; i < numTriangles; ++i)
 		{
 			Vertex& v1 = vertices[indices[i * 3 + 0]];
@@ -1482,12 +1488,12 @@ public:
 
 		tinystl::unordered_map<Edge, uint16_t> midPointMap;
 		tinystl::vector<uint16_t> newIndices;
-		newIndices.reserve(outIndices.getCount() * 4);
-		outVertices.reserve(outVertices.getCount() * 2);
+		newIndices.reserve((uint32_t)outIndices.size() * 4);
+		outVertices.reserve((uint32_t)outVertices.size() * 2);
 
 		GetMidpointIndex getMidpointIndex(&midPointMap, &outVertices);
 
-		uint32_t numTriangles = outIndices.getCount() / 3;
+		uint32_t numTriangles = (uint32_t)outIndices.size() / 3;
 		for (uint32_t i = 0; i < numTriangles; ++i)
 		{
 			uint16_t t0 = outIndices[i * 3 + 0];
@@ -1535,10 +1541,10 @@ public:
 
 		for (unsigned i = 0; i < subdivisions; ++i)
 		{
-			indexOffsets[i + 1] = unsigned(outIndices.getCount());
+			indexOffsets[i + 1] = unsigned((uint32_t)outIndices.size());
 			Subdivide(vertices, indices);
 
-			offset = unsigned(outVertices.getCount());
+			offset = unsigned((uint32_t)outVertices.size());
 			outVertices.insert(outVertices.end(), vertices.begin(), vertices.end());
 
 			for (uint16_t idx : indices)
@@ -1547,7 +1553,7 @@ public:
 			}
 		}
 
-		indexOffsets[subdivisions + 1] = unsigned(outIndices.getCount());
+		indexOffsets[subdivisions + 1] = unsigned((uint32_t)outIndices.size());
 
 		Spherify(outVertices);
 	}
@@ -1569,7 +1575,7 @@ public:
 
 		CreateGeosphere(origVerts, indices, subdivisions, indexOffsets);
 
-		outVerticesPerMesh = unsigned(origVerts.getCount());
+		outVerticesPerMesh = unsigned((uint32_t)origVerts.size());
 
 		float noiseScale = 1.5f;
 		float radiusScale = 0.9f;

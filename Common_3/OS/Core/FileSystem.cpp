@@ -198,7 +198,7 @@ String Deserializer::ReadFileID()
 {
 	String ret;
 	ret.resize(4);
-	Read(&ret[0U], 4);
+	Read(ret.begin(), 4);
 	return ret;
 }
 
@@ -337,10 +337,10 @@ bool Serializer::WriteString(const String& value)
 bool Serializer::WriteFileID(const String& value)
 {
 	bool success = true;
-	unsigned length = (unsigned)min((int)value.getLength(), 4);
+	unsigned length = (unsigned)min((int)(uint32_t)value.size(), 4);
 
 	success &= Write(value.c_str(), length) == length;
-	for (unsigned i = value.getLength(); i < 4; ++i)
+	for (unsigned i = (uint32_t)value.size(); i < 4; ++i)
 		success &= WriteByte(' ');
 	return success;
 }
@@ -348,7 +348,7 @@ bool Serializer::WriteFileID(const String& value)
 bool Serializer::WriteLine(const String& value)
 {
 	bool success = true;
-	success &= Write(value.c_str(), value.getLength()) == value.getLength();
+	success &= Write(value.c_str(), (uint32_t)value.size()) == (uint32_t)value.size();
 	// Only write '\n'; if we are writing to a text file it should be opened in text mode.
 	// Platforms other than Windows won't interpret the '\r' correctly if we add it here.
 	success &= WriteUByte(10);
@@ -373,7 +373,7 @@ bool File::Open(const String& _fileName, FileMode mode, FSRoot root)
 
 	Close();
 
-	if (fileName.isEmpty())
+	if (fileName.size() == 0)
 	{
 		LOGERRORF("Could not open file with empty name");
 		return false;
@@ -709,7 +709,7 @@ String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 	if (pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU
 	{
 		// was the path modified? if so use that, otherwise use static array
-		if (!mModifiedRootPaths[root].isEmpty())
+		if (mModifiedRootPaths[root].size() != 0)
 			res = mModifiedRootPaths[root] + pszFileName;
 		else
 			res = String(pszRoots[root]) + pszFileName;
@@ -816,7 +816,7 @@ String FileSystem::AddTrailingSlash(const String& pathName)
 {
 	String ret = pathName.trimmed();
 	ret.replace('\\', '/');
-	if (!ret.isEmpty() && ret.at(ret.getLength() - 1) != '/')
+	if (ret.size() != 0 && ret.at((uint32_t)ret.size() - 1) != '/')
 		ret.push_back('/');
 	return ret;
 }
@@ -825,8 +825,8 @@ String FileSystem::RemoveTrailingSlash(const String& pathName)
 {
 	String ret = pathName.trimmed();
 	ret.replace('\\', '/');
-	if (!ret.isEmpty() && ret.at(ret.getLength() - 1) == '/')
-		ret.resize(ret.getLength() - 1);
+	if (ret.size() != 0 && ret.at((uint32_t)ret.size() - 1) == '/')
+		ret.resize((uint32_t)ret.size() - 1);
 	return ret;
 }
 
@@ -882,7 +882,7 @@ bool FileSystem::CreateDir(const String& pathName)
 {
 	// Create each of the parents if necessary
 	String parentPath = GetParentPath(pathName);
-	if (parentPath.getLength() > 1 && !DirExists(parentPath))
+	if ((uint32_t)parentPath.size() > 1 && !DirExists(parentPath))
 	{
 		if (!CreateDir(parentPath))
 			return false;
@@ -914,7 +914,7 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 
 #elif defined(_WIN32)
 	// Add .exe extension if no extension defined
-	if (GetExtension(fixedFileName).isEmpty())
+	if (GetExtension(fixedFileName).size() == 0)
 		fixedFileName += ".exe";
 
 	String commandLine = "\"" + fixedFileName + "\"";

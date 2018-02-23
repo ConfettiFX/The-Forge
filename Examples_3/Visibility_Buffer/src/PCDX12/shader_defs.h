@@ -37,7 +37,7 @@
 // This defines the amount of triangles that will be processed in parallel by the 
 // compute shader in the triangle filtering process.
 // Should be a multiple of the wavefront size
-#define CLUSTER_SIZE 512
+#define CLUSTER_SIZE 256
 
 // BATCH_COUNT limits the amount of triangle batches we can process on the GPU.
 // It depends on the amoutnt of data we need to store in the constant buffers, since

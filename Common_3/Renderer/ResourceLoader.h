@@ -47,7 +47,7 @@ typedef struct BufferLoadDesc
 
 typedef struct TextureLoadDesc
 {
-	TextureLoadDesc() : pFilename(NULL), pImage(NULL), mSrgb(false) {}
+	TextureLoadDesc() : pFilename(NULL), pImage(NULL), mSrgb(false), pDesc() {}
 
 	Texture**		ppTexture;
 	/// Load texture from image

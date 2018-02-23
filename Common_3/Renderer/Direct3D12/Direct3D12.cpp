@@ -422,6 +422,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	PFN_HOOK_RESOURCE_ALLOCATION_INFO           fnHookResourceAllocationInfo = NULL;
 	PFN_HOOK_SPECIAL_BUFFER_ALLOCATION			fnHookSpecialBufferAllocation = NULL;
 	PFN_HOOK_SPECIAL_TEXTURE_ALLOCATION			fnHookSpecialTextureAllocation = NULL;
+	PFN_HOOK_RESOURCE_FLAGS						fnHookResourceFlags = NULL;
 
 	/************************************************************************/
 	// Dynamic Memory Allocator Defines
@@ -649,7 +650,7 @@ namespace RENDERER_CPP_NAMESPACE {
 						{ pHeap->mStartCpuHandle.ptr + (result * pHeap->mDescriptorSize) },
 					});
 
-					if (handles.getCount() == numDescriptors)
+					if ((uint32_t)handles.size() == numDescriptors)
 					{
 						return handles.front();
 					}
@@ -698,7 +699,7 @@ namespace RENDERER_CPP_NAMESPACE {
 						{ pHeap->mStartGpuHandle.ptr + (result * pHeap->mDescriptorSize) },
 					});
 
-					if (handles.getCount() == numDescriptors)
+					if ((uint32_t)handles.size() == numDescriptors)
 					{
 						*pStartCpuHandle = handles.front().first;
 						*pStartGpuHandle = handles.front().second;
@@ -2142,7 +2143,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_INDIRECT)
 			mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_ALLOW_INDIRECT_BUFFER;
 
-		BufferCreateInfo alloc_info = { &desc, res_states };
+		BufferCreateInfo alloc_info = { &desc, res_states, pBuffer->mDesc.pDebugName};
 		HRESULT hres = createBuffer(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pBuffer);
 		ASSERT(SUCCEEDED(hres));
 
@@ -2359,6 +2360,9 @@ namespace RENDERER_CPP_NAMESPACE {
 				desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
 				desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 			}
+	
+			if (fnHookResourceFlags != NULL)
+				fnHookResourceFlags(desc.Flags, pDesc->mFlags);
 
 			DECLARE_ZERO(D3D12_CLEAR_VALUE, clearValue);
 			clearValue.Format = dxFormat;
@@ -2389,7 +2393,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT)
 				mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_ADAPTER_BIT;
 
-			TextureCreateInfo alloc_info = { &desc, pClearValue, res_states };
+			TextureCreateInfo alloc_info = { &desc, pClearValue, res_states, pTexture->mDesc.pDebugName};
 			HRESULT hr = createTexture(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pTexture);
 			ASSERT(SUCCEEDED(hr));
 			pTexture->pCpuMappedAddress = pTexture->pDxAllocation->GetMemory();
@@ -2625,7 +2629,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		textureDesc.mWidth = pDesc->mWidth;
 		textureDesc.pNativeHandle = pNativeHandle;
 		textureDesc.mSrgb = pDesc->mSrgb;
-
+		textureDesc.pDebugName = pDesc->pDebugName;
 		switch (pDesc->mType)
 		{
 		case RENDER_TARGET_TYPE_1D:
@@ -2832,22 +2836,22 @@ namespace RENDERER_CPP_NAMESPACE {
 		switch (stage)
 		{
 		case SHADER_STAGE_VERT:
-			target = String().sprintf("vs_%d_%d", major, minor);
+			target = String::format("vs_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_TESC:
-			target = String().sprintf("hs_%d_%d", major, minor);
+			target = String::format("hs_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_TESE:
-			target = String().sprintf("ds_%d_%d", major, minor);
+			target = String::format("ds_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_GEOM:
-			target = String().sprintf("gs_%d_%d", major, minor);
+			target = String::format("gs_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_FRAG:
-			target = String().sprintf("ps_%d_%d", major, minor);
+			target = String::format("ps_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_COMP:
-			target = String().sprintf("cs_%d_%d", major, minor);
+			target = String::format("cs_%d_%d", major, minor);
 			break;
 		default:
 			break;
@@ -2887,136 +2891,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		pByteCode->resize(compiled_code->GetBufferSize());
 		memcpy(pByteCode->data(), compiled_code->GetBufferPointer(), compiled_code->GetBufferSize());
 		SAFE_RELEASE(compiled_code);
-	}
-
-	void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderProgram)
-	{
-		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
-		pShaderProgram->mStages = pDesc->mStages;
-
-#if defined(_DEBUG)
-		// Enable better shader debugging with the graphics debugging tools.
-		UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-		UINT compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
-#endif
-
-		compile_flags |= (D3DCOMPILE_ALL_RESOURCES_BOUND  | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
-
-		int major;
-		int minor;
-		switch (pRenderer->mSettings.mShaderTarget) {
-		default:
-		case shader_target_5_1: { major = 5; minor = 1; } break;
-		case shader_target_6_0: { major = 6; minor = 0; } break;
-		}
-
-		DECLARE_ZERO(char, vsTarget[16]);
-		DECLARE_ZERO(char, hsTarget[16]);
-		DECLARE_ZERO(char, dsTarget[16]);
-		DECLARE_ZERO(char, gsTarget[16]);
-		DECLARE_ZERO(char, psTarget[16]);
-		DECLARE_ZERO(char, csTarget[16]);
-
-		sprintf_s(vsTarget, "vs_%d_%d", major, minor);
-		sprintf_s(hsTarget, "hs_%d_%d", major, minor);
-		sprintf_s(dsTarget, "ds_%d_%d", major, minor);
-		sprintf_s(gsTarget, "gs_%d_%d", major, minor);
-		sprintf_s(psTarget, "ps_%d_%d", major, minor);
-		sprintf_s(csTarget, "cs_%d_%d", major, minor);
-
-		uint32_t reflectionCount = 0;
-
-		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i) {
-			ShaderStage stage_mask = (ShaderStage)(1 << i);
-			if (stage_mask == (pShaderProgram->mStages & stage_mask)) {
-				const ShaderStageDesc* pStage = NULL;
-				const char* target = NULL;
-				ID3DBlob**  compiled_code = NULL;
-				switch (stage_mask) {
-				case SHADER_STAGE_VERT: {
-					pStage = &pDesc->mVert;
-					target = vsTarget;
-					compiled_code = &(pShaderProgram->pDxVert);
-				} break;
-				case SHADER_STAGE_HULL: {
-					pStage = &pDesc->mHull;
-					target = hsTarget;
-					compiled_code = &(pShaderProgram->pDxHull);
-				} break;
-				case SHADER_STAGE_DOMN: {
-					pStage = &pDesc->mDomain;
-					target = dsTarget;
-					compiled_code = &(pShaderProgram->pDxDomn);
-				} break;
-				case SHADER_STAGE_GEOM: {
-					pStage = &pDesc->mGeom;
-					target = gsTarget;
-					compiled_code = &(pShaderProgram->pDxGeom);
-				} break;
-				case SHADER_STAGE_FRAG: {
-					pStage = &pDesc->mFrag;
-					target = psTarget;
-					compiled_code = &(pShaderProgram->pDxFrag);
-				} break;
-				case SHADER_STAGE_COMP: {
-					pStage = &pDesc->mComp;
-					target = csTarget;
-					compiled_code = &(pShaderProgram->pDxComp);
-				} break;
-				}
-
-				// Extract shader macro definitions into D3D_SHADER_MACRO scruct
-				// Allocate Size+2 structs: one for D3D12 1 definition and one for null termination
-				D3D_SHADER_MACRO* macros = (D3D_SHADER_MACRO*)alloca((pStage->mMacros.size() + 2) * sizeof(D3D_SHADER_MACRO));
-				macros[0] = { "D3D12", "1" };
-				for (uint32_t j = 0; j < (uint32_t)pStage->mMacros.size(); ++j)
-				{
-					macros[j + 1] = { pStage->mMacros[j].definition, pStage->mMacros[j].value };
-				}
-				macros[pStage->mMacros.size() + 1] = { NULL, NULL };
-
-				if (fnHookShaderCompileFlags != NULL)
-					fnHookShaderCompileFlags(compile_flags);
-
-
-				ID3DBlob* error_msgs = NULL;
-				HRESULT hres = D3DCompile2(pStage->mCode.c_str(), pStage->mCode.size(), pStage->mName.c_str(),
-					macros, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-					pStage->mEntryPoint.c_str(), target, compile_flags,
-					0, 0, NULL, 0,
-					compiled_code, &error_msgs);
-				if (FAILED(hres)) {
-					char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
-					ASSERT(msg);
-					memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-					String error = pStage->mName + " " + msg;
-					ErrorMsg(error);
-					SAFE_FREE(msg);
-				}
-				ASSERT(SUCCEEDED(hres));
-
-				createShaderReflection(
-					(uint8_t*)((*compiled_code)->GetBufferPointer()),
-					(uint32_t)(*compiled_code)->GetBufferSize(),
-					stage_mask,
-					&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
-
-				if (stage_mask == SHADER_STAGE_COMP)
-					memcpy(pShaderProgram->mNumThreadsPerGroup, pShaderProgram->mReflection.mStageReflections[reflectionCount].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
-				else if (stage_mask == SHADER_STAGE_TESC)
-					memcpy(&pShaderProgram->mNumControlPoint, &pShaderProgram->mReflection.mStageReflections[reflectionCount].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
-
-				reflectionCount++;
-			}
-		}
-
-		createPipelineReflection(
-			pShaderProgram->mReflection.mStageReflections,
-			reflectionCount,
-			&pShaderProgram->mReflection);
-
-		*ppShaderProgram = pShaderProgram;
 	}
 
 	void addShader(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
@@ -3066,8 +2940,8 @@ namespace RENDERER_CPP_NAMESPACE {
 				} break;
 				}
 
-				D3DCreateBlob(pStage->mByteCode.size(), compiled_code);
-				memcpy((*compiled_code)->GetBufferPointer(), pStage->mByteCode.data(), pStage->mByteCode.size() * sizeof(unsigned char));
+				D3DCreateBlob(pStage->mByteCodeSize, compiled_code);
+				memcpy((*compiled_code)->GetBufferPointer(), pStage->pByteCode, pStage->mByteCodeSize);
 
 				createShaderReflection(
 					(uint8_t*)((*compiled_code)->GetBufferPointer()),
@@ -3123,16 +2997,16 @@ namespace RENDERER_CPP_NAMESPACE {
 		uint32_t size = 0;
 		for (uint32_t i = 0; i < numLayouts; ++i)
 		{
-			if (pLayouts[i].mCbvSrvUavTable.getCount())
+			if ((uint32_t)pLayouts[i].mCbvSrvUavTable.size())
 				size += gDescriptorTableDWORDS;
-			if (pLayouts[i].mSamplerTable.getCount())
+			if ((uint32_t)pLayouts[i].mSamplerTable.size())
 				size += gDescriptorTableDWORDS;
 
-			for (uint32_t c = 0; c < pLayouts[i].mConstantParams.getCount(); ++c)
+			for (uint32_t c = 0; c < (uint32_t)pLayouts[i].mConstantParams.size(); ++c)
 			{
 				size += gRootDescriptorDWORDS;
 			}
-			for (uint32_t c = 0; c < pLayouts[i].mRootConstants.getCount(); ++c)
+			for (uint32_t c = 0; c < (uint32_t)pLayouts[i].mRootConstants.size(); ++c)
 			{
 				DescriptorInfo* pDesc = pLayouts[i].mRootConstants[c];
 				size += pDesc->mDesc.size;
@@ -3278,7 +3152,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
 				if (!pNode)
 				{
-					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
 					shaderResources.push_back(*pRes);
 
 					uint32_t constantSize = 0;
@@ -3311,14 +3185,14 @@ namespace RENDERER_CPP_NAMESPACE {
 			}
 		}
 
-		if (shaderResources.getCount())
+		if ((uint32_t)shaderResources.size())
 		{
-			pRootSignature->mDescriptorCount = shaderResources.getCount();
+			pRootSignature->mDescriptorCount = (uint32_t)shaderResources.size();
 			pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorInfo));
 		}
 
 		// Fill the descriptor array to be stored in the root signature
-		for (uint32_t i = 0; i < shaderResources.getCount(); ++i)
+		for (uint32_t i = 0; i < (uint32_t)shaderResources.size(); ++i)
 		{
 			DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
 			ShaderResource* pRes = &shaderResources[i];
@@ -3368,7 +3242,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			{
 				// D3D12 has no special syntax to declare root constants like Vulkan
 				// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-				if (tinystl::string(pRes->name).to_lower().find("rootconstant") || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+				if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != String::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 				{
 					// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 					pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -3394,21 +3268,21 @@ namespace RENDERER_CPP_NAMESPACE {
 			layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 		}
 
-		uint32_t rootSize = calculate_root_signature_size(layouts.data(), layouts.getCount());
+		uint32_t rootSize = calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size());
 
 		// If the root signature size has crossed the recommended hardware limit try to optimize it
 		if (rootSize > pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS)
 		{
 			// Cconvert some of the root constants to root descriptors
-			for (uint32_t i = 0; i < layouts.getCount(); ++i)
+			for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
 			{
-				if (!layouts[i].mRootConstants.getCount())
+				if (!layouts[i].mRootConstants.size())
 					continue;
 
 				UpdateFrequencyLayoutInfo& layout = layouts[i];
 				DescriptorInfo** convertIt = layout.mRootConstants.end() - 1;
 				DescriptorInfo** endIt = layout.mRootConstants.begin();
-				while (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), layouts.getCount()) && convertIt >= endIt)
+				while (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size()) && convertIt >= endIt)
 				{
 					layout.mCbvSrvUavTable.push_back(*convertIt);
 					layout.mRootConstants.erase(layout.mRootConstants.find(*convertIt));
@@ -3420,16 +3294,16 @@ namespace RENDERER_CPP_NAMESPACE {
 
 			// If the root signature size is still above the recommended max, we need to place some of the less updated root descriptors
 			// in descriptor tables of the same update frequency
-			for (uint32_t i = 0; i < layouts.getCount(); ++i)
+			for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
 			{
-				if (!layouts[i].mConstantParams.getCount())
+				if (!layouts[i].mConstantParams.size())
 					continue;
 
 				UpdateFrequencyLayoutInfo& layout = layouts[i];
 
-				while (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), layouts.getCount()))
+				while (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size()))
 				{
-					if (!layout.mConstantParams.getCount())
+					if (!layout.mConstantParams.size())
 						break;
 					DescriptorInfo** constantIt = layout.mConstantParams.end() - 1;
 					DescriptorInfo** endIt = layout.mConstantParams.begin();
@@ -3445,7 +3319,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 
 		// We should never reach inside this if statement. If we do, something got messed up
-		if (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), layouts.getCount()))
+		if (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size()))
 		{
 			LOGWARNING("Root Signature size greater than the specified max size");
 			ASSERT(false);
@@ -3453,12 +3327,12 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		// D3D12 currently has two versions of root signatures (1_0, 1_1)
 		// So we fill the structs of both versions and in the end use the structs compatible with the supported version
-		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE1> > cbvSrvUavRange(layouts.getCount());
-		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE1> > samplerRange(layouts.getCount());
+		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE1> > cbvSrvUavRange((uint32_t)layouts.size());
+		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE1> > samplerRange((uint32_t)layouts.size());
 		tinystl::vector <D3D12_ROOT_PARAMETER1> rootParams;
 
-		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE> > cbvSrvUavRange_1_0(layouts.getCount());
-		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE> > samplerRange_1_0(layouts.getCount());
+		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE> > cbvSrvUavRange_1_0((uint32_t)layouts.size());
+		tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE> > samplerRange_1_0((uint32_t)layouts.size());
 		tinystl::vector <D3D12_ROOT_PARAMETER> rootParams_1_0;
 
 		tinystl::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs(staticSamplers.size());
@@ -3479,7 +3353,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			staticSamplerDescs[i].ShaderVisibility = util_to_dx_shader_visibility(staticSamplers[i].first->mDesc.used_stages);
 		}
 
-		for (uint32_t i = 0; i < layouts.getCount(); ++i)
+		for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
 		{
 			cbvSrvUavRange[i].resize(layouts[i].mCbvSrvUavTable.size());
 			cbvSrvUavRange_1_0[i].resize(layouts[i].mCbvSrvUavTable.size());
@@ -3488,12 +3362,12 @@ namespace RENDERER_CPP_NAMESPACE {
 			samplerRange_1_0[i].resize(layouts[i].mSamplerTable.size());
 		}
 
-		pRootSignature->pViewTableLayouts = (DescriptorSetLayout*)conf_calloc(layouts.getCount(), sizeof(*pRootSignature->pViewTableLayouts));
-		pRootSignature->pSamplerTableLayouts = (DescriptorSetLayout*)conf_calloc(layouts.getCount(), sizeof(*pRootSignature->pSamplerTableLayouts));
-		pRootSignature->pRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc(layouts.getCount(), sizeof(*pRootSignature->pRootDescriptorLayouts));
-		pRootSignature->mDescriptorCount = shaderResources.getCount();
+		pRootSignature->pViewTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pViewTableLayouts));
+		pRootSignature->pSamplerTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pSamplerTableLayouts));
+		pRootSignature->pRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pRootDescriptorLayouts));
+		pRootSignature->mDescriptorCount = (uint32_t)shaderResources.size();
 
-		pRootSignature->mRootConstantCount = layouts[0].mRootConstants.getCount();
+		pRootSignature->mRootConstantCount = (uint32_t)layouts[0].mRootConstants.size();
 		if (pRootSignature->mRootConstantCount)
 			pRootSignature->pRootConstantLayouts = (RootConstantLayout*)conf_calloc(pRootSignature->mRootConstantCount, sizeof(*pRootSignature->pRootConstantLayouts));
 
@@ -3503,18 +3377,18 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		// Collect all root descriptors
 		// Put most frequently changed params first
-		for (uint32_t i = layouts.getCount(); i-- > 0U;)
+		for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
 		{
 			UpdateFrequencyLayoutInfo& layout = layouts[i];
-			if (layout.mConstantParams.getCount())
+			if (layout.mConstantParams.size())
 			{
 				RootDescriptorLayout& root = pRootSignature->pRootDescriptorLayouts[i];
 
-				root.mRootDescriptorCount = layout.mConstantParams.getCount();
+				root.mRootDescriptorCount = (uint32_t)layout.mConstantParams.size();
 				root.pDescriptorIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
 				root.pRootIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
 
-				for (uint32_t descIndex = 0; descIndex < layout.mConstantParams.getCount(); ++descIndex)
+				for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mConstantParams.size(); ++descIndex)
 				{
 					DescriptorInfo* pDesc = layout.mConstantParams[descIndex];
 					D3D12_ROOT_PARAMETER1 rootParam;
@@ -3523,7 +3397,7 @@ namespace RENDERER_CPP_NAMESPACE {
 					create_root_descriptor_1_0(pDesc, &rootParam_1_0);
 
 					root.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
-					root.pRootIndices[descIndex] = rootParams.getCount();
+					root.pRootIndices[descIndex] = (uint32_t)rootParams.size();
 
 					rootParams.push_back(rootParam);
 					rootParams_1_0.push_back(rootParam_1_0);
@@ -3539,7 +3413,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			RootConstantLayout* pLayout = &pRootSignature->pRootConstantLayouts[i];
 			DescriptorInfo* pDesc = layouts[0].mRootConstants[i];
 			pDesc->mIndexInParent = i;
-			pLayout->mRootIndex = rootParams.getCount();
+			pLayout->mRootIndex = (uint32_t)rootParams.size();
 			pLayout->mDescriptorIndex = layouts[0].mDescriptorIndexMap[pDesc];
 
 			D3D12_ROOT_PARAMETER1 rootParam;
@@ -3558,18 +3432,18 @@ namespace RENDERER_CPP_NAMESPACE {
 				//Root constants - Number of 32 bit constants
 				//Descriptor tables - 1
 				//Static samplers - 0
-				LOGINFOF("Root constant (%s) has (%u) 32 bit values. It is recommended to have root constant number less than 14", pDesc->mDesc.name, pDesc->mDesc.size);
+				LOGINFOF("Root constant (%s) has (%u) 32 bit values. It is recommended to have root constant number less or equal than 13", pDesc->mDesc.name, pDesc->mDesc.size);
 			}
 		}
 
 		// Collect descriptor table parameters
 		// Put most frequently changed descriptor tables in the front of the root signature
-		for (uint32_t i = layouts.getCount(); i-- > 0U;)
+		for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
 		{
 			UpdateFrequencyLayoutInfo& layout = layouts[i];
 
 			// Fill the descriptor table layout for the view descriptor table of this update frequency
-			if (layout.mCbvSrvUavTable.getCount())
+			if (layout.mCbvSrvUavTable.size())
 			{
 				// sort table by type (CBV/SRV/UAV) by register by space
 				layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
@@ -3586,20 +3460,20 @@ namespace RENDERER_CPP_NAMESPACE {
 				});
 
 				D3D12_ROOT_PARAMETER1 rootParam;
-				create_descriptor_table(layout.mCbvSrvUavTable.getCount(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange[i].data(), &rootParam);
+				create_descriptor_table((uint32_t)layout.mCbvSrvUavTable.size(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange[i].data(), &rootParam);
 
 				D3D12_ROOT_PARAMETER rootParam_1_0;
-				create_descriptor_table_1_0(layout.mCbvSrvUavTable.getCount(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
+				create_descriptor_table_1_0((uint32_t)layout.mCbvSrvUavTable.size(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
 
 				DescriptorSetLayout& table = pRootSignature->pViewTableLayouts[i];
 
 				// Store some of the binding info which will be required later when binding the descriptor table
 				// We need the root index when calling SetRootDescriptorTable
-				table.mRootIndex = rootParams.getCount();
-				table.mDescriptorCount = layout.mCbvSrvUavTable.getCount();
+				table.mRootIndex = (uint32_t)rootParams.size();
+				table.mDescriptorCount = (uint32_t)layout.mCbvSrvUavTable.size();
 				table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
 
-				for (uint32_t descIndex = 0; descIndex < layout.mCbvSrvUavTable.getCount(); ++descIndex)
+				for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mCbvSrvUavTable.size(); ++descIndex)
 				{
 					DescriptorInfo* pDesc = layout.mCbvSrvUavTable[descIndex];
 					pDesc->mIndexInParent = descIndex;
@@ -3619,23 +3493,23 @@ namespace RENDERER_CPP_NAMESPACE {
 			}
 
 			// Fill the descriptor table layout for the sampler descriptor table of this update frequency
-			if (layout.mSamplerTable.getCount())
+			if (layout.mSamplerTable.size())
 			{
 				D3D12_ROOT_PARAMETER1 rootParam;
-				create_descriptor_table(layout.mSamplerTable.getCount(), layout.mSamplerTable.data(), samplerRange[i].data(), &rootParam);
+				create_descriptor_table((uint32_t)layout.mSamplerTable.size(), layout.mSamplerTable.data(), samplerRange[i].data(), &rootParam);
 
 				D3D12_ROOT_PARAMETER rootParam_1_0;
-				create_descriptor_table_1_0(layout.mSamplerTable.getCount(), layout.mSamplerTable.data(), samplerRange_1_0[i].data(), &rootParam_1_0);
+				create_descriptor_table_1_0((uint32_t)layout.mSamplerTable.size(), layout.mSamplerTable.data(), samplerRange_1_0[i].data(), &rootParam_1_0);
 
 				DescriptorSetLayout& table = pRootSignature->pSamplerTableLayouts[i];
 
 				// Store some of the binding info which will be required later when binding the descriptor table
 				// We need the root index when calling SetRootDescriptorTable
-				table.mRootIndex = rootParams.getCount();
-				table.mDescriptorCount = layout.mSamplerTable.getCount();
+				table.mRootIndex = (uint32_t)rootParams.size();
+				table.mDescriptorCount = (uint32_t)layout.mSamplerTable.size();
 				table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
 
-				for (uint32_t descIndex = 0; descIndex < layout.mSamplerTable.getCount(); ++descIndex)
+				for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mSamplerTable.size(); ++descIndex)
 				{
 					DescriptorInfo* pDesc = layout.mSamplerTable[descIndex];
 					pDesc->mIndexInParent = descIndex;
@@ -3689,7 +3563,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (D3D_ROOT_SIGNATURE_VERSION_1_1 == feature_data.HighestVersion)
 		{
 			desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			desc.Desc_1_1.NumParameters = rootParams.getCount ();
+			desc.Desc_1_1.NumParameters = (uint32_t)rootParams.size ();
 			desc.Desc_1_1.pParameters = rootParams.data ();
 			desc.Desc_1_1.NumStaticSamplers = (UINT)staticSamplerDescs.size();
 			desc.Desc_1_1.pStaticSamplers = staticSamplerDescs.data();
@@ -3698,7 +3572,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		else
 		{
 			desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_0;
-			desc.Desc_1_0.NumParameters = rootParams_1_0.getCount ();
+			desc.Desc_1_0.NumParameters = (uint32_t)rootParams_1_0.size ();
 			desc.Desc_1_0.pParameters = rootParams_1_0.data ();
 			desc.Desc_1_0.NumStaticSamplers = (UINT)staticSamplerDescs.size();
 			desc.Desc_1_0.pStaticSamplers = staticSamplerDescs.data();
@@ -3904,8 +3778,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		render_target_count = min(render_target_count, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
 
 		DECLARE_ZERO(DXGI_SAMPLE_DESC, sample_desc);
-		sample_desc.Count = (UINT)(pDesc->pDepthStencil ? pDesc->pDepthStencil->mDesc.mSampleCount : pDesc->ppRenderTargets[0]->mDesc.mSampleCount);
-		sample_desc.Quality = (UINT)(pDesc->pDepthStencil ? pDesc->pDepthStencil->mDesc.mSampleQuality : pDesc->ppRenderTargets[0]->mDesc.mSampleQuality);
+		sample_desc.Count = (UINT)(pDesc->mSampleCount);
+		sample_desc.Quality = (UINT)(pDesc->mSampleQuality);
 
 		DECLARE_ZERO(D3D12_CACHED_PIPELINE_STATE, cached_pso_desc);
 		cached_pso_desc.pCachedBlob = NULL;
@@ -3934,7 +3808,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		pipeline_state_desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
 		pipeline_state_desc.PrimitiveTopologyType = util_to_dx_primitive_topology_type(pDesc->mPrimitiveTopo);
 		pipeline_state_desc.NumRenderTargets = render_target_count;
-		pipeline_state_desc.DSVFormat = pDesc->pDepthStencil ? util_to_dx_image_format(pDesc->pDepthStencil->mDesc.mFormat, false) : DXGI_FORMAT_UNKNOWN;
+		pipeline_state_desc.DSVFormat = util_to_dx_image_format(pDesc->mDepthStencilFormat, false);
 
 		pipeline_state_desc.SampleDesc = sample_desc;
 		pipeline_state_desc.NodeMask = 0;
@@ -3942,7 +3816,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		pipeline_state_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		for (uint32_t attrib_index = 0; attrib_index < render_target_count; ++attrib_index) {
-			pipeline_state_desc.RTVFormats[attrib_index] = util_to_dx_image_format(pDesc->ppRenderTargets[attrib_index]->mDesc.mFormat, pDesc->ppRenderTargets[attrib_index]->mDesc.mSrgb);
+			pipeline_state_desc.RTVFormats[attrib_index] = util_to_dx_image_format(pDesc->pColorFormats[attrib_index], pDesc->pSrgbValues[attrib_index]);
 		}
 
 		HRESULT hres = pRenderer->pDevice->CreateGraphicsPipelineState(
@@ -5606,7 +5480,42 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
 	}
 	/************************************************************************/
+	// Resource Debug Naming Interface
 	/************************************************************************/
+	void setName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+	{
+		ASSERT(pRenderer);
+		ASSERT(pBuffer);
+		ASSERT(pName);
 
+		size_t length = strlen(pName);
+
+		ASSERT(length < MAX_PATH && "Name too long");
+
+		wchar_t wName[MAX_PATH] = {};
+		wName[strlen(pName)] = '\0';
+		size_t numConverted = 0;
+		mbstowcs_s(&numConverted, wName, pName, strlen(pName));
+		pBuffer->pDxResource->SetName(wName);
+	}
+
+	void setName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+	{
+		ASSERT(pRenderer);
+		ASSERT(pTexture);
+		ASSERT(pName);
+
+		size_t length = strlen(pName);
+
+		ASSERT(length < MAX_PATH && "Name too long");
+
+		wchar_t wName[MAX_PATH] = {};
+		wName[strlen(pName)] = '\0';
+		size_t numConverted = 0;
+		mbstowcs_s(&numConverted, wName, pName, strlen(pName));
+		pTexture->pDxResource->SetName(wName);
+	}
+	/************************************************************************/
+	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION
 #endif
