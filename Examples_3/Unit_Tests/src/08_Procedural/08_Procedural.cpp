@@ -258,7 +258,10 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 #endif
 
-		if (!Load())
+		if (!addSwapChain())
+			return false;
+
+		if (!addDepthBuffer())
 			return false;
 
 		TextureLoadDesc textureDesc = {};
@@ -353,8 +356,11 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pDepthStencil = pDepthBuffer;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSigBRDF;
 		pipelineSettings.pShaderProgram = pShaderBRDF;
 		pipelineSettings.pVertexLayout = &vertexLayoutSphere;
@@ -381,8 +387,11 @@ public:
 		pipelineSettingsBG.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettingsBG.mRenderTargetCount = 1;
 		pipelineSettingsBG.pDepthState = pDepth;
-		pipelineSettingsBG.pDepthStencil = pDepthBuffer;
-		pipelineSettingsBG.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettingsBG.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettingsBG.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettingsBG.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettingsBG.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettingsBG.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettingsBG.pRootSignature = pRootSigBG;
 		pipelineSettingsBG.pShaderProgram = pShaderBG;
 		pipelineSettingsBG.pVertexLayout = &vertexLayoutBG;
@@ -613,33 +622,12 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-		depthRT.mWidth = mSettings.mWidth;
-#ifdef TARGET_IOS
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
-#endif
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+		if (!addDepthBuffer())
+			return false;
+
 		return true;
 	}
 
@@ -857,7 +845,7 @@ public:
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
-		queueSubmit(pGraphicsQueue, allCmds.getCount(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
@@ -872,6 +860,41 @@ public:
 	String GetName()
 	{
 		return "08_Procedural";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	bool addDepthBuffer()
+	{
+		// Add depth buffer
+		RenderTargetDesc depthRT = {};
+		depthRT.mArraySize = 1;
+		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mDepth = 1;
+		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mHeight = mSettings.mHeight;
+		depthRT.mSampleCount = SAMPLE_COUNT_1;
+		depthRT.mSampleQuality = 0;
+		depthRT.mType = RENDER_TARGET_TYPE_2D;
+		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
+		depthRT.mWidth = mSettings.mWidth;
+		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+
+		return pDepthBuffer != NULL;
 	}
 
 	// Generates an array of vertices and normals for a sphere
@@ -922,10 +945,10 @@ public:
 		}
 
 
-		*pNumberOfPoints = vertices.getCount() * 3 * 2;
+		*pNumberOfPoints = (uint32_t)vertices.size() * 3 * 2;
 		(*ppPoints) = (float *)conf_malloc(sizeof(float) * (*pNumberOfPoints));
 
-		for (uint32_t i = 0; i < vertices.getCount(); i++)
+		for (uint32_t i = 0; i < (uint32_t)vertices.size(); i++)
 		{
 			vec3 vertex = vertices[i];
 			vec3 normal = normals[i];

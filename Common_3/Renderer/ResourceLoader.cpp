@@ -112,7 +112,7 @@ static void addResourceLoader (Renderer* pRenderer, uint64_t mSize, ResourceLoad
 
 static void cleanupResourceLoader(ResourceLoader* pLoader)
 {
-	for (uint32_t i = 0; i < pLoader->mTempStagingBuffers.getCount(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)pLoader->mTempStagingBuffers.size(); ++i)
 		removeBuffer(pLoader->pRenderer, pLoader->mTempStagingBuffers[i]);
 
 	pLoader->mTempStagingBuffers.clear();
@@ -574,7 +574,7 @@ static void loadThread(void* pThreadData)
 		if (!gResourceQueue.empty())
 		{
 			ResourceLoadDesc* item = gResourceQueue.front();
-			gResourceQueue.remove(0);
+			gResourceQueue.erase(gResourceQueue.begin());
 			gResourceQueueMutex.Release();
 			cmdLoadResource (item, pLoader);
 			if (item->mType == RESOURCE_TYPE_TEXTURE && item->tex.pFilename)
@@ -851,7 +851,7 @@ void removeResource(Buffer* pBuffer)
 
 void finishResourceLoading()
 {
-	if (gResourceThreads.getCount())
+	if ((uint32_t)gResourceThreads.size())
 	{
         while (!gResourceQueue.empty ())
             Thread::Sleep (0);
@@ -863,24 +863,24 @@ void finishResourceLoading()
             Thread::Sleep(0);
         
 		Cmd* pCmds[MAX_LOAD_THREADS + 1];
-		for (uint32_t i = 0; i < gResourceThreads.getCount(); ++i)
+		for (uint32_t i = 0; i < (uint32_t)gResourceThreads.size(); ++i)
 		{
 			pCmds[i] = gResourceThreads[i]->pLoader->pCopyCmd;
 		}
 
-		pCmds[gResourceThreads.getCount()] = pMainResourceLoader->pCopyCmd;
+		pCmds[(uint32_t)gResourceThreads.size()] = pMainResourceLoader->pCopyCmd;
 
-		queueSubmit(pCopyQueue, gResourceThreads.getCount(), pCmds, pWaitFence, 0, 0, 0, 0);
+		queueSubmit(pCopyQueue, (uint32_t)gResourceThreads.size(), pCmds, pWaitFence, 0, 0, 0, 0);
 		waitForFences(pCopyQueue, 1, &pWaitFence);
 		cleanupResourceLoader(pMainResourceLoader);
 
-		for (uint32_t i = 0; i < gResourceThreads.getCount(); ++i)
+		for (uint32_t i = 0; i < (uint32_t)gResourceThreads.size(); ++i)
 			removeResourceLoader(gResourceThreads[i]->pLoader);
 
 		pThreadPool->~ThreadPool();
         conf_free(pThreadPool);
 
-        for (unsigned i = 0; i < gResourceThreads.getCount(); ++i)
+        for (unsigned i = 0; i < (uint32_t)gResourceThreads.size(); ++i)
 		{
 			conf_free(gResourceThreads[i]->pItem);
 			conf_free(gResourceThreads[i]);
@@ -908,11 +908,11 @@ void compileShader(Renderer* pRenderer, const String& fileName, const String& ou
 	{
 		configFileName = FileSystem::GetPath(fileName) + "/config.conf";
 		// Add command to compile from Vulkan GLSL to Spirv
-		commandLine.sprintf("\"%s\" -V \"%s\" -o \"%s\"", configFileName.size() ? configFileName.c_str() : "", fileName.c_str(), outFile.c_str());
+		commandLine += String::format("\"%s\" -V \"%s\" -o \"%s\"", configFileName.size() ? configFileName.c_str() : "", fileName.c_str(), outFile.c_str());
 	}
 	else
 	{
-		commandLine.sprintf("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
+		commandLine += String::format("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
 	}
 
 	// Add user defined macros to the command line
@@ -968,7 +968,7 @@ void compileShader(Renderer* pRenderer, const String& fileName, const String& ou
     args.push_back("-sdk");
     args.push_back("macosx");
     args.push_back("metal");
-    tmpArg.sprintf("""%s""", fileName.c_str());
+    tmpArg = String::format("""%s""", fileName.c_str());
     args.push_back(tmpArg);
     args.push_back("-o");
     args.push_back(intermediateFile.c_str());
@@ -990,7 +990,7 @@ void compileShader(Renderer* pRenderer, const String& fileName, const String& ou
         args.push_back("metallib");
         args.push_back(intermediateFile.c_str());
         args.push_back("-o");
-        tmpArg.sprintf("""%s""", outFile.c_str());
+        tmpArg = String::format("""%s""", outFile.c_str());
         args.push_back(tmpArg);
         if(FileSystem::SystemRun(xcrun, args, "") == 0)
         {
@@ -1031,7 +1031,7 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 	{
 		String line = file->ReadLine();
 
-		if (line.find("#include \"", 0))
+		if (line.find("#include \"", 0) != String::npos)
 		{
 			String includeFileName = FileSystem::GetPath(file->GetName()) + line.substring(9).replaced("\"", "").trimmed();
 			File includeFile = {};
@@ -1101,6 +1101,14 @@ bool save_byte_code(const String& binaryShaderName, const tinystl::vector<char>&
 	return true;
 }
 
+#if defined(DIRECT3D12)
+#define RENDERER_API "PXDX12"
+#elif defined(VULKAN)
+#define RENDERER_API "PCVulkan"
+#elif defined(METAL)
+#define RENDERER_API "OSXMetal"
+#endif
+
 bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>& byteCode)
 {
 	File shaderSource = {};
@@ -1129,8 +1137,13 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 		shaderDefines += (pMacros[i].definition + pMacros[i].value);
 	}
 
-	String binaryShaderName = FileSystem::GetProgramDir() + "/" + pRenderer->pName + "/CompiledShaders/" +
-		FileSystem::GetFileName(fileName) + String().sprintf("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+#ifdef _DURANGO
+	String binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
+		FileSystem::GetFileName(fileName) + String::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+#else
+	String binaryShaderName = FileSystem::GetProgramDir() + "/" + pRenderer->pName + String("/" RENDERER_API "/CompiledShadersBinary/") +
+		FileSystem::GetFileName(fileName) + String::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+#endif
 
 	// Shader source is newer than binary
 	if (!check_for_byte_code(binaryShaderName, timeStamp, byteCode))
@@ -1156,7 +1169,7 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
     shaderSource.Close();
 	return true;
 }
-
+#ifdef TARGET_IOS
 bool find_shader_stage(const String& fileName, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
     String ext = FileSystem::GetExtension(fileName);
@@ -1201,7 +1214,7 @@ bool find_shader_stage(const String& fileName, ShaderDesc* pDesc, ShaderStageDes
     
     return true;
 }
-
+#else
 bool find_shader_stage(const String& fileName, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
 	String ext = FileSystem::GetExtension(fileName);
@@ -1246,23 +1259,26 @@ bool find_shader_stage(const String& fileName, BinaryShaderDesc* pBinaryDesc, Bi
 
 	return true;
 }
-
+#endif
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader)
 {
 #ifndef TARGET_IOS
 	BinaryShaderDesc binaryDesc = {};
+	tinystl::vector<char> byteCodes[SHADER_STAGE_COUNT] = {};
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
-		if (!pDesc->mStages[i].mFileName.isEmpty())
+		if (pDesc->mStages[i].mFileName.size() != 0)
 		{
 			ShaderStage stage;
 			BinaryShaderStageDesc* pStage = NULL;
 			if (find_shader_stage(pDesc->mStages[i].mFileName, &binaryDesc, &pStage, &stage))
 			{
-				if (!load_shader_stage_byte_code(pRenderer, stage, pDesc->mStages[i].mFileName, pDesc->mStages[i].mRoot, pDesc->mStages[i].mMacroCount, pDesc->mStages[i].pMacros, pStage->mByteCode))
+				if (!load_shader_stage_byte_code(pRenderer, stage, pDesc->mStages[i].mFileName, pDesc->mStages[i].mRoot, pDesc->mStages[i].mMacroCount, pDesc->mStages[i].pMacros, byteCodes[i]))
 					return;
 
 				binaryDesc.mStages |= stage;
+				pStage->pByteCode = byteCodes[i].data();
+				pStage->mByteCodeSize = (uint32_t)byteCodes[i].size();
 #if defined(METAL)
                 pStage->mEntryPoint = "stageMain";
 				// In metal, we need the shader source for our reflection system.
@@ -1281,7 +1297,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
     ShaderDesc desc = {};
     for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
-        if (!pDesc->mStages[i].mFileName.isEmpty())
+        if (pDesc->mStages[i].mFileName.size() > 0)
         {
             ShaderStage stage;
             ShaderStageDesc* pStage = NULL;

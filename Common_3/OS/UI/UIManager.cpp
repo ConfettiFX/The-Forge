@@ -154,7 +154,7 @@ void addResolutionProperty(Gui* pUIManager, uint32_t& resolutionIndex, uint32_t 
 
 		for (uint32_t i = 0; i < resCount; ++i)
 		{
-			data.resNameContainer.push_back(String().sprintf("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
+			data.resNameContainer.push_back(String::format("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
 			data.resValues.push_back(i);
 		}
 
@@ -252,11 +252,11 @@ void cmdUIDrawGpuProfileData(Cmd* pCmd, struct UIManager* pUIManager, vec2& star
 		cmdUIDrawText(pCmd, pUIManager, startPos, buffer, &pDrawDesc->mDefaultGpuTextDrawDesc);
 		startPos.setY(startPos.getY() + pDrawDesc->mHeightOffset);
 
-		if (pRoot->mChildren.getCount())
+		if ((uint32_t)pRoot->mChildren.size())
 			startPos.setX(startPos.getX() + pDrawDesc->mChildIndent);
 	}
 
-	for (uint32_t i = 0; i < pRoot->mChildren.getCount(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)pRoot->mChildren.size(); ++i)
 	{
 		cmdUIDrawGpuProfileData(pCmd, pUIManager, startPos, pDrawDesc, pGpuProfiler, pRoot->mChildren[i]);
 	}

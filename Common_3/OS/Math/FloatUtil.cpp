@@ -101,10 +101,10 @@ void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int numberOfDi
 		}
 	}
 
-	*pNumberOfPoints = vertices.getCount() * 3 * 2;
+	*pNumberOfPoints = (uint32_t)vertices.size() * 3 * 2;
 	(*ppPoints) = (float*)conf_malloc(sizeof(float) * (*pNumberOfPoints));
 
-	for (uint32_t i = 0; i < vertices.getCount(); i++)
+	for (uint32_t i = 0; i < (uint32_t)vertices.size(); i++)
 	{
 		vec3 vertex = vertices[i];
 		vec3 normal = normals[i];

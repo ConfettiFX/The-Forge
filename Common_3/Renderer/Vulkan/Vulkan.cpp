@@ -912,21 +912,34 @@ namespace RENDERER_CPP_NAMESPACE {
   /************************************************************************/
   typedef struct RenderPassDesc
   {
-	  RenderTarget**	ppRenderTargets;
-	  uint32_t			mRenderTargetCount;
-	  RenderTarget*		pDepthStencil;
+	  ImageFormat::Enum*	pColorFormats;
+	  bool*					pSrgbValues;
+	  uint32_t				mRenderTargetCount;
+	  SampleCount			mSampleCount;
+	  ImageFormat::Enum		mDepthStencilFormat;
   } RenderPassDesc;
 
   typedef struct RenderPass
   {
+	  VkRenderPass		pRenderPass;
 	  RenderPassDesc	mDesc;
-	  SampleCount		mSampleCount;
+  } RenderPass;
+
+  typedef struct FrameBufferDesc
+  {
+	  RenderPass*		pRenderPass;
+	  RenderTarget**	ppRenderTargets;
+	  RenderTarget*		pDepthStencil;
+	  uint32_t			mRenderTargetCount;
+  } FrameBufferDesc;
+
+  typedef struct FrameBuffer
+  {
+	  VkFramebuffer		pFramebuffer;
 	  uint32_t			mWidth;
 	  uint32_t			mHeight;
 	  uint32_t			mArraySize;
-	  VkRenderPass		pRenderPass;
-	  VkFramebuffer		pFramebuffer;
-  } RenderPass;
+  } FrameBuffer;
 
   void addRenderPass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass** ppRenderPass)
   {
@@ -938,26 +951,13 @@ namespace RENDERER_CPP_NAMESPACE {
 	  ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
 
 	  uint32_t colorAttachmentCount = pDesc->mRenderTargetCount;
-	  uint32_t depthAttachmentCount = (pDesc->pDepthStencil) ? 1 : 0;
-
-	  if (colorAttachmentCount)
-	  {
-		  pRenderPass->mSampleCount = pDesc->ppRenderTargets[0]->mDesc.mSampleCount;
-		  pRenderPass->mWidth = pDesc->ppRenderTargets[0]->mDesc.mWidth;
-		  pRenderPass->mHeight = pDesc->ppRenderTargets[0]->mDesc.mHeight;
-		  pRenderPass->mArraySize = pDesc->ppRenderTargets[0]->mDesc.mArraySize;
-	  }
-	  else
-	  {
-		  pRenderPass->mSampleCount = pDesc->pDepthStencil->mDesc.mSampleCount;
-		  pRenderPass->mWidth = pDesc->pDepthStencil->mDesc.mWidth;
-		  pRenderPass->mHeight = pDesc->pDepthStencil->mDesc.mHeight;
-		  pRenderPass->mArraySize = pDesc->pDepthStencil->mDesc.mArraySize;
-	  }
+	  uint32_t depthAttachmentCount = (pDesc->mDepthStencilFormat != ImageFormat::None) ? 1 : 0;
 
 	  VkAttachmentDescription* attachments = NULL;
 	  VkAttachmentReference* color_attachment_refs = NULL;
 	  VkAttachmentReference* depth_stencil_attachment_ref = NULL;
+
+	  VkSampleCountFlagBits sample_count = util_to_vk_sample_count(pDesc->mSampleCount);
 
 	  // Fill out attachment descriptions and references
 	  {
@@ -979,8 +979,8 @@ namespace RENDERER_CPP_NAMESPACE {
 
 			  // descriptions
 			  attachments[ssidx].flags = 0;
-			  attachments[ssidx].format = util_to_vk_image_format(pDesc->ppRenderTargets[i]->mDesc.mFormat, pDesc->ppRenderTargets[i]->mDesc.mSrgb);
-			  attachments[ssidx].samples = util_to_vk_sample_count(pDesc->ppRenderTargets[i]->mDesc.mSampleCount);
+			  attachments[ssidx].format = util_to_vk_image_format(pDesc->pColorFormats[i], pDesc->pSrgbValues[i]);
+			  attachments[ssidx].samples = sample_count;
 			  attachments[ssidx].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 			  attachments[ssidx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			  attachments[ssidx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -998,8 +998,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	  if (depthAttachmentCount > 0) {
 		  uint32_t idx = colorAttachmentCount;
 		  attachments[idx].flags = 0;
-		  attachments[idx].format = util_to_vk_image_format(pDesc->pDepthStencil->mDesc.mFormat, false);
-		  attachments[idx].samples = util_to_vk_sample_count(pDesc->pDepthStencil->mDesc.mSampleCount);
+		  attachments[idx].format = util_to_vk_image_format(pDesc->mDepthStencilFormat, false);
+		  attachments[idx].samples = sample_count;
 		  attachments[idx].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 		  attachments[idx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		  attachments[idx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -1042,11 +1042,47 @@ namespace RENDERER_CPP_NAMESPACE {
 	  SAFE_FREE(attachments);
 	  SAFE_FREE(color_attachment_refs);
 	  SAFE_FREE(depth_stencil_attachment_ref);
+
+	  *ppRenderPass = pRenderPass;
+  }
+
+  void removeRenderPass(Renderer* pRenderer, RenderPass* pRenderPass)
+  {
+	  vkDestroyRenderPass(pRenderer->pDevice, pRenderPass->pRenderPass, NULL);
+	  SAFE_FREE(pRenderPass);
+  }
+
+  void addFrameBuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, FrameBuffer** ppFrameBuffer)
+  {
+	  ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
+
+	  FrameBuffer* pFrameBuffer = (FrameBuffer*)conf_calloc(1, sizeof(*pFrameBuffer));
+	  ASSERT(pFrameBuffer);
+
+	  uint32_t colorAttachmentCount = pDesc->mRenderTargetCount;
+	  uint32_t depthAttachmentCount = (pDesc->pDepthStencil) ? 1 : 0;
+
+	  if (colorAttachmentCount)
+	  {
+		  pFrameBuffer->mWidth = pDesc->ppRenderTargets[0]->mDesc.mWidth;
+		  pFrameBuffer->mHeight = pDesc->ppRenderTargets[0]->mDesc.mHeight;
+		  pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mDesc.mArraySize;
+	  }
+	  else
+	  {
+		  pFrameBuffer->mWidth = pDesc->pDepthStencil->mDesc.mWidth;
+		  pFrameBuffer->mHeight = pDesc->pDepthStencil->mDesc.mHeight;
+		  pFrameBuffer->mArraySize = pDesc->pDepthStencil->mDesc.mArraySize;
+	  }
+
 	  /************************************************************************/
 	  // Add frame buffer
 	  /************************************************************************/
-	  VkImageView* pImageViews = (VkImageView*)conf_calloc(attachment_count, sizeof(*attachments));
-	  ASSERT(attachments);
+	  uint32_t attachment_count = colorAttachmentCount;
+	  attachment_count += depthAttachmentCount;
+
+	  VkImageView* pImageViews = (VkImageView*)conf_calloc(attachment_count, sizeof(*pImageViews));
+	  ASSERT(pImageViews);
 
 	  VkImageView* iter_attachments = pImageViews;
 	  // Color
@@ -1064,25 +1100,73 @@ namespace RENDERER_CPP_NAMESPACE {
 	  add_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	  add_info.pNext = NULL;
 	  add_info.flags = 0;
-	  add_info.renderPass = pRenderPass->pRenderPass;
+	  add_info.renderPass = pDesc->pRenderPass->pRenderPass;
 	  add_info.attachmentCount = attachment_count;
 	  add_info.pAttachments = pImageViews;
-	  add_info.width = pRenderPass->mWidth;
-	  add_info.height = pRenderPass->mHeight;
-	  add_info.layers = pRenderPass->mArraySize;
-	  vk_res = vkCreateFramebuffer(pRenderer->pDevice, &add_info, NULL, &(pRenderPass->pFramebuffer));
+	  add_info.width = pFrameBuffer->mWidth;
+	  add_info.height = pFrameBuffer->mHeight;
+	  add_info.layers = pFrameBuffer->mArraySize;
+	  VkResult vk_res = vkCreateFramebuffer(pRenderer->pDevice, &add_info, NULL, &(pFrameBuffer->pFramebuffer));
 	  ASSERT(VK_SUCCESS == vk_res);
 	  SAFE_FREE(pImageViews);
 	  /************************************************************************/
 	  /************************************************************************/
-	  *ppRenderPass = pRenderPass;
+
+	  *ppFrameBuffer = pFrameBuffer;
   }
 
-  void removeRenderPass(Renderer* pRenderer, RenderPass* pRenderPass)
+  void removeFrameBuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
   {
-	  vkDestroyFramebuffer(pRenderer->pDevice, pRenderPass->pFramebuffer, NULL);
-	  vkDestroyRenderPass(pRenderer->pDevice, pRenderPass->pRenderPass, NULL);
-	  SAFE_FREE(pRenderPass);
+	  ASSERT(pRenderer);
+	  ASSERT(pFrameBuffer);
+
+	  vkDestroyFramebuffer(pRenderer->pDevice, pFrameBuffer->pFramebuffer, NULL);
+	  SAFE_FREE(pFrameBuffer);
+  }
+  /************************************************************************/
+  // Per Thread Render Pass synchronization logic
+  /************************************************************************/
+  /// Render-passes are not exposed to the app code since they are not available on all apis
+  /// This map takes care of hashing a render pass based on the render targets passed to cmdBeginRender
+  using RenderPassMap = tinystl::unordered_map<uint64_t, struct RenderPass*>;
+  using RenderPassMapNode = tinystl::unordered_hash_node<uint64_t, struct RenderPass*>;
+  using FrameBufferMap = tinystl::unordered_map<uint64_t, struct FrameBuffer*>;
+  using FrameBufferMapNode = tinystl::unordered_hash_node<uint64_t, struct FrameBuffer*>;
+
+  // RenderPass map per thread (this will make lookups lock free and we only need a lock when inserting a RenderPass Map for the first time)
+  tinystl::unordered_map<ThreadID, RenderPassMap >	mRenderPassMap;
+  // FrameBuffer map per thread (this will make lookups lock free and we only need a lock when inserting a FrameBuffer map for the first time)
+  tinystl::unordered_map<ThreadID, FrameBufferMap >	mFrameBufferMap;
+  Mutex												gRenderPassMutex;
+
+  RenderPassMap& get_render_pass_map()
+  {
+	  tinystl::unordered_hash_node<ThreadID, RenderPassMap>* pNode = mRenderPassMap.find(Thread::GetCurrentThreadID()).node;
+	  if (pNode == NULL)
+	  {
+		  // Only need a lock when creating a new renderpass map for this thread
+		  MutexLock lock(gRenderPassMutex);
+		  return mRenderPassMap.insert({ Thread::GetCurrentThreadID(),{} }).first->second;
+	  }
+	  else
+	  {
+		  return pNode->second;
+	  }
+  }
+
+  FrameBufferMap& get_frame_buffer_map()
+  {
+	  tinystl::unordered_hash_node<ThreadID, FrameBufferMap>* pNode = mFrameBufferMap.find(Thread::GetCurrentThreadID()).node;
+	  if (pNode == NULL)
+	  {
+		  // Only need a lock when creating a new framebuffer map for this thread
+		  MutexLock lock(gRenderPassMutex);
+		  return mFrameBufferMap.insert({ Thread::GetCurrentThreadID(),{} }).first->second;
+	  }
+	  else
+	  {
+		  return pNode->second;
+	  }
   }
   /************************************************************************/
   // Query Heap Implementation
@@ -1344,6 +1428,15 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pRenderer->pName);
 
 		destroy_default_resources(pRenderer);
+
+		// Remove the renderpasses
+		for (tinystl::unordered_hash_node<ThreadID, RenderPassMap>& t : mRenderPassMap)
+			for (RenderPassMapNode& it : t.second)
+				removeRenderPass(pRenderer, it.second);
+
+		for (tinystl::unordered_hash_node<ThreadID, FrameBufferMap>& t : mFrameBufferMap)
+			for (FrameBufferMapNode& it : t.second)
+				removeFrameBuffer(pRenderer, it.second);
 
 		// Destroy the Vulkan bits
 		remove_descriptor_heap(pRenderer, pRenderer->pDescriptorPool);
@@ -1615,13 +1708,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(VK_NULL_HANDLE != pCmdPool->pRenderer->pDevice);
 		ASSERT(VK_NULL_HANDLE != pCmdPool->pVkCmdPool);
 		ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
-
-		// Remove the renderpasses
-		for (Cmd::RenderPassMapNode& it : pCmd->mRenderPassMap)
-		{
-			removeRenderPass(pCmdPool->pRenderer, it.second);
-		}
-		pCmd->mRenderPassMap.~unordered_map();
 
 		if (pCmd->pDescriptorPool)
 			remove_descriptor_heap(pCmdPool->pRenderer, pCmd->pDescriptorPool);
@@ -2339,85 +2425,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pSampler);
 	}
 
-	void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderProgram)
-	{
-		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
-		pShaderProgram->mStages = pDesc->mStages;
-
-		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
-
-		uint32_t counter = 0;
-		ShaderReflection stageReflections[SHADER_STAGE_COUNT];
-
-		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i) {
-			ShaderStage stage_mask = (ShaderStage)(1 << i);
-			if (stage_mask == (pShaderProgram->mStages & stage_mask)) {
-				DECLARE_ZERO(VkShaderModuleCreateInfo, create_info);
-				create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-				create_info.pNext = NULL;
-				create_info.flags = 0;
-				switch (stage_mask) {
-				case SHADER_STAGE_VERT: {
-					createShaderReflection((const uint8_t*)pDesc->mVert.mCode.c_str(), pDesc->mVert.mCode.getLength(), SHADER_STAGE_VERT, &stageReflections[counter++]);
-
-					create_info.codeSize = pDesc->mVert.mCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mVert.mCode.c_str();
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
-					ASSERT(VK_SUCCESS == vk_res);
-				} break;
-				case SHADER_STAGE_TESC: {
-					createShaderReflection((const uint8_t*)pDesc->mHull.mCode.c_str(), pDesc->mHull.mCode.getLength(), SHADER_STAGE_TESC, &stageReflections[counter++]);
-
-					memcpy(&pShaderProgram->mNumControlPoint, &stageReflections[counter - 1].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
-
-					create_info.codeSize = pDesc->mHull.mCode.size();;
-					create_info.pCode = (const uint32_t*)pDesc->mHull.mCode.c_str();
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
-					ASSERT(VK_SUCCESS == vk_res);
-				} break;
-				case SHADER_STAGE_TESE: {
-					createShaderReflection((const uint8_t*)pDesc->mDomain.mCode.c_str(), pDesc->mDomain.mCode.getLength(), SHADER_STAGE_TESE, &stageReflections[counter++]);
-
-					create_info.codeSize = pDesc->mDomain.mCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mDomain.mCode.c_str();
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
-					ASSERT(VK_SUCCESS == vk_res);
-				} break;
-				case SHADER_STAGE_GEOM: {
-					createShaderReflection((const uint8_t*)pDesc->mGeom.mCode.c_str(), pDesc->mGeom.mCode.getLength(), SHADER_STAGE_GEOM, &stageReflections[counter++]);
-
-					create_info.codeSize = pDesc->mGeom.mCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mGeom.mCode.c_str();
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
-					ASSERT(VK_SUCCESS == vk_res);
-				} break;
-				case SHADER_STAGE_FRAG: {
-					createShaderReflection((const uint8_t*)pDesc->mFrag.mCode.c_str(), pDesc->mFrag.mCode.getLength(), SHADER_STAGE_FRAG, &stageReflections[counter++]);
-
-					create_info.codeSize = pDesc->mFrag.mCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mFrag.mCode.c_str();
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
-					ASSERT(VK_SUCCESS == vk_res);
-				} break;
-				case SHADER_STAGE_COMP: {
-					createShaderReflection((const uint8_t*)pDesc->mComp.mCode.c_str(), pDesc->mComp.mCode.getLength(), SHADER_STAGE_COMP, &stageReflections[counter++]);
-
-					memcpy(pShaderProgram->mNumThreadsPerGroup, stageReflections[counter - 1].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
-
-					create_info.codeSize = pDesc->mComp.mCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mComp.mCode.c_str();
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
-					ASSERT(VK_SUCCESS == vk_res);
-				} break;
-				}
-			}
-		}
-
-		createPipelineReflection(stageReflections, counter, &pShaderProgram->mReflection);
-
-		*ppShaderProgram = pShaderProgram;
-	}
-
 	void addShader(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 	{
 		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
@@ -2427,7 +2434,6 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		uint32_t counter = 0;
 		ShaderReflection stageReflections[SHADER_STAGE_COUNT];
-		String entryPoint = "main";
 
 		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i) {
 			ShaderStage stage_mask = (ShaderStage)(1 << i);
@@ -2438,54 +2444,54 @@ namespace RENDERER_CPP_NAMESPACE {
 				create_info.flags = 0;
 				switch (stage_mask) {
 				case SHADER_STAGE_VERT: {
-					createShaderReflection((const uint8_t*)pDesc->mVert.mByteCode.data(), (uint32_t)pDesc->mVert.mByteCode.size(), SHADER_STAGE_VERT, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mVert.pByteCode, (uint32_t)pDesc->mVert.mByteCodeSize, SHADER_STAGE_VERT, &stageReflections[counter++]);
 
-					create_info.codeSize = pDesc->mVert.mByteCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mVert.mByteCode.data();
+					create_info.codeSize = pDesc->mVert.mByteCodeSize;
+					create_info.pCode = (const uint32_t*)pDesc->mVert.pByteCode;
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_TESC: {
-					createShaderReflection((const uint8_t*)pDesc->mHull.mByteCode.data(), (uint32_t)pDesc->mHull.mByteCode.size(), SHADER_STAGE_TESC, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mHull.pByteCode, (uint32_t)pDesc->mHull.mByteCodeSize, SHADER_STAGE_TESC, &stageReflections[counter++]);
 
 					memcpy(&pShaderProgram->mNumControlPoint, &stageReflections[counter - 1].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
 
-					create_info.codeSize = pDesc->mHull.mByteCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mHull.mByteCode.data();
+					create_info.codeSize = pDesc->mHull.mByteCodeSize;
+					create_info.pCode = (const uint32_t*)pDesc->mHull.pByteCode;
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_TESE: {
-					createShaderReflection((const uint8_t*)pDesc->mDomain.mByteCode.data(), (uint32_t)pDesc->mDomain.mByteCode.size(), SHADER_STAGE_TESE, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mDomain.pByteCode, (uint32_t)pDesc->mDomain.mByteCodeSize, SHADER_STAGE_TESE, &stageReflections[counter++]);
 
-					create_info.codeSize = pDesc->mDomain.mByteCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mDomain.mByteCode.data();
+					create_info.codeSize = pDesc->mDomain.mByteCodeSize;
+					create_info.pCode = (const uint32_t*)pDesc->mDomain.pByteCode;
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_GEOM: {
-					createShaderReflection((const uint8_t*)pDesc->mGeom.mByteCode.data(), (uint32_t)pDesc->mGeom.mByteCode.size(), SHADER_STAGE_GEOM, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mGeom.pByteCode, (uint32_t)pDesc->mGeom.mByteCodeSize, SHADER_STAGE_GEOM, &stageReflections[counter++]);
 
-					create_info.codeSize = pDesc->mGeom.mByteCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mGeom.mByteCode.data();
+					create_info.codeSize = pDesc->mGeom.mByteCodeSize;
+					create_info.pCode = (const uint32_t*)pDesc->mGeom.pByteCode;
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_FRAG: {
-					createShaderReflection((const uint8_t*)pDesc->mFrag.mByteCode.data(), (uint32_t)pDesc->mFrag.mByteCode.size(), SHADER_STAGE_FRAG, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mFrag.pByteCode, (uint32_t)pDesc->mFrag.mByteCodeSize, SHADER_STAGE_FRAG, &stageReflections[counter++]);
 
-					create_info.codeSize = pDesc->mFrag.mByteCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mFrag.mByteCode.data();
+					create_info.codeSize = pDesc->mFrag.mByteCodeSize;
+					create_info.pCode = (const uint32_t*)pDesc->mFrag.pByteCode;
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_COMP: {
-					createShaderReflection((const uint8_t*)pDesc->mComp.mByteCode.data(), (uint32_t)pDesc->mComp.mByteCode.size(), SHADER_STAGE_COMP, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mComp.pByteCode, (uint32_t)pDesc->mComp.mByteCodeSize, SHADER_STAGE_COMP, &stageReflections[counter++]);
 
 					memcpy(pShaderProgram->mNumThreadsPerGroup, stageReflections[counter - 1].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
 
-					create_info.codeSize = pDesc->mComp.mByteCode.size();
-					create_info.pCode = (const uint32_t*)pDesc->mComp.mByteCode.data();
+					create_info.codeSize = pDesc->mComp.mByteCodeSize;
+					create_info.pCode = (const uint32_t*)pDesc->mComp.pByteCode;
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
@@ -2580,20 +2586,20 @@ namespace RENDERER_CPP_NAMESPACE {
 
 				if (pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node == 0)
 				{
-					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), shaderResources.getCount() });
+					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
 					shaderResources.emplace_back(pRes);
 				}
 			}
 		}
 
-		if (shaderResources.getCount())
+		if ((uint32_t)shaderResources.size())
 		{
-			pRootSignature->mDescriptorCount = shaderResources.getCount();
+			pRootSignature->mDescriptorCount = (uint32_t)shaderResources.size();
 			pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorInfo));
 		}
 
 		// Fill the descriptor array to be stored in the root signature
-		for (uint32_t i = 0; i < shaderResources.getCount(); ++i)
+		for (uint32_t i = 0; i < (uint32_t)shaderResources.size(); ++i)
 		{
 			DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
 			ShaderResource const* pRes = shaderResources[i];
@@ -2675,10 +2681,10 @@ namespace RENDERER_CPP_NAMESPACE {
 			layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 		}
 
-		pRootSignature->pDescriptorSetLayouts = (DescriptorSetLayout*)conf_calloc(layouts.getCount(), sizeof(*pRootSignature->pDescriptorSetLayouts));
-		pRootSignature->pRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc(layouts.getCount(), sizeof(*pRootSignature->pRootDescriptorLayouts));
+		pRootSignature->pDescriptorSetLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDescriptorSetLayouts));
+		pRootSignature->pRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pRootDescriptorLayouts));
 
-		pRootSignature->mRootConstantCount = pushConstantDescriptors.getCount();
+		pRootSignature->mRootConstantCount = (uint32_t)pushConstantDescriptors.size();
 		if (pRootSignature->mRootConstantCount)
 			pRootSignature->pRootConstantLayouts = (RootConstantLayout*)conf_calloc(pRootSignature->mRootConstantCount, sizeof(*pRootSignature->pRootConstantLayouts));
 
@@ -2696,13 +2702,13 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		// Create descriptor layouts
 		// Put most frequently changed params first
-		for (uint32_t i = layouts.getCount(); i-- > 0U;)
+		for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
 		{
 			UpdateFrequencyLayoutInfo& layout = layouts[i];
 			DescriptorSetLayout& table = pRootSignature->pDescriptorSetLayouts[i];
 			RootDescriptorLayout& root = pRootSignature->pRootDescriptorLayouts[i];
 
-			if (layouts[i].mBindings.getCount())
+			if (layouts[i].mBindings.size())
 			{
 				// sort table by type (CBV/SRV/UAV) by register
 				layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs)
@@ -2718,20 +2724,20 @@ namespace RENDERER_CPP_NAMESPACE {
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layoutInfo.pNext = NULL;
-			layoutInfo.bindingCount = layout.mBindings.getCount();
+			layoutInfo.bindingCount = (uint32_t)layout.mBindings.size();
 			layoutInfo.pBindings = layout.mBindings.data();
 			layoutInfo.flags = 0;
 
 			vkCreateDescriptorSetLayout(pRenderer->pDevice, &layoutInfo, NULL, &table.pVkSetLayout);
 
-			if (!layouts[i].mBindings.getCount())
+			if (!layouts[i].mBindings.size())
 				continue;
 
-			table.mDescriptorCount = layout.mDescriptors.getCount();
+			table.mDescriptorCount = (uint32_t)layout.mDescriptors.size();
 			table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
 
 			// Loop through descriptors belonging to this update frequency and increment the cumulative descriptor count
-			for (uint32_t descIndex = 0; descIndex < layout.mDescriptors.getCount(); ++descIndex)
+			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mDescriptors.size(); ++descIndex)
 			{
 				DescriptorInfo* pDesc = layout.mDescriptors[descIndex];
 				pDesc->mIndexInParent = descIndex;
@@ -2749,7 +2755,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				table.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
 			}
 
-			root.mRootDescriptorCount = layout.mDynamicDescriptors.getCount();
+			root.mRootDescriptorCount = (uint32_t)layout.mDynamicDescriptors.size();
 			if (root.mRootDescriptorCount)
 				root.pDescriptorIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
 			for (uint32_t descIndex = 0; descIndex < root.mRootDescriptorCount; ++descIndex)
@@ -2776,7 +2782,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		add_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		add_info.pNext = NULL;
 		add_info.flags = 0;
-		add_info.setLayoutCount = descriptorSetLayouts.getCount();
+		add_info.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
 		add_info.pSetLayouts = descriptorSetLayouts.data();
 		add_info.pushConstantRangeCount = pRootSignature->mRootConstantCount;
 		add_info.pPushConstantRanges = pushConstants.data();
@@ -2849,8 +2855,10 @@ namespace RENDERER_CPP_NAMESPACE {
 		RenderPassDesc renderPassDesc = { 0 };
 		RenderPass* pRenderPass = NULL;
 		renderPassDesc.mRenderTargetCount = pDesc->mRenderTargetCount;
-		renderPassDesc.ppRenderTargets = pDesc->ppRenderTargets;
-		renderPassDesc.pDepthStencil = pDesc->pDepthStencil;
+		renderPassDesc.pColorFormats = pDesc->pColorFormats;
+		renderPassDesc.mSampleCount = pDesc->mSampleCount;
+		renderPassDesc.pSrgbValues = pDesc->pSrgbValues;
+		renderPassDesc.mDepthStencilFormat = pDesc->mDepthStencilFormat;
 		addRenderPass(pRenderer, &renderPassDesc, &pRenderPass);
 
 		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
@@ -2999,7 +3007,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 			ms.pNext = NULL;
 			ms.flags = 0;
-			ms.rasterizationSamples = util_to_vk_sample_count(pRenderPass->mSampleCount);
+			ms.rasterizationSamples = util_to_vk_sample_count(pDesc->mSampleCount);
 			ms.sampleShadingEnable = VK_FALSE;
 			ms.minSampleShading = 0.0f;
 			ms.pSampleMask = 0;
@@ -3336,39 +3344,107 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(ppRenderTargets || pDepthStencil);
 		ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
 
-		uint64_t hash = 0;
-		for (uint32_t i = 0; i < renderTargetCount; ++i)
-			hash = tinystl::hash_state(&ppRenderTargets[i]->pTexture->mTextureId, 1, hash);
-		if (pDepthStencil)
-			hash = tinystl::hash_state(&pDepthStencil->pTexture->mTextureId, 1, hash);
+		uint64_t renderPassHash = 0;
+		uint64_t frameBufferHash = 0;
 
-		Cmd::RenderPassMapNode* pNode = pCmd->mRenderPassMap.find(hash).node;
+		// Generate hash for render pass and frame buffer
+		// NOTE:
+		// Render pass does not care about underlying VkImageView. It only cares about the format and sample count of the attachments.
+		// We hash those two values to generate render pass hash
+		// Frame buffer is the actual array of all the VkImageViews
+		// We hash the texture id associated with the render target to generate frame buffer hash
+		for (uint32_t i = 0; i < renderTargetCount; ++i)
+		{
+			uint32_t hashValues[] = {
+				(uint32_t)ppRenderTargets[i]->mDesc.mFormat,
+				(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
+				(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
+			};
+			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+			frameBufferHash = tinystl::hash_state(&ppRenderTargets[i]->pTexture->mTextureId, 1, frameBufferHash);
+		}
+		if (pDepthStencil)
+		{
+			uint32_t hashValues[] = {
+				(uint32_t)pDepthStencil->mDesc.mFormat,
+				(uint32_t)pDepthStencil->mDesc.mSampleCount,
+				(uint32_t)pDepthStencil->mDesc.mSrgb,
+			};
+			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+			frameBufferHash = tinystl::hash_state(&pDepthStencil->pTexture->mTextureId, 1, frameBufferHash);
+		}
+
+		RenderPassMap& renderPassMap = get_render_pass_map();
+		FrameBufferMap& frameBufferMap = get_frame_buffer_map();
+
+		const RenderPassMapNode* pNode = renderPassMap.find(renderPassHash).node;
+		const FrameBufferMapNode* pFrameBufferNode = frameBufferMap.find(frameBufferHash).node;
+
 		RenderPass* pRenderPass = NULL;
+		FrameBuffer* pFrameBuffer = NULL;
+
+		// If a render pass of this combination already exists just use it or create a new one
 		if (pNode)
 		{
 			pRenderPass = pNode->second;
 		}
 		else
 		{
-			RenderPassDesc desc = { 0 };
+			ImageFormat::Enum colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+			bool srgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+			ImageFormat::Enum depthStencilFormat = ImageFormat::None;
+			SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
+			for (uint32_t i = 0; i < renderTargetCount; ++i)
+			{
+				colorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
+				srgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
+			}
+			if (pDepthStencil)
+			{
+				depthStencilFormat = pDepthStencil->mDesc.mFormat;
+			}
+
+			RenderPassDesc renderPassDesc = {};
+			renderPassDesc.mRenderTargetCount = renderTargetCount;
+			renderPassDesc.mSampleCount = sampleCount;
+			renderPassDesc.pColorFormats = colorFormats;
+			renderPassDesc.pSrgbValues = srgbValues;
+			renderPassDesc.mDepthStencilFormat = depthStencilFormat;
+			addRenderPass(pCmd->pCmdPool->pRenderer, &renderPassDesc, &pRenderPass);
+
+			// No need of a lock here since this map is per thread
+			renderPassMap.insert({ renderPassHash, pRenderPass });
+		}
+
+		// If a frame buffer of this combination already exists just use it or create a new one
+		if (pFrameBufferNode)
+		{
+			pFrameBuffer = pFrameBufferNode->second;
+		}
+		else
+		{
+			FrameBufferDesc desc = { 0 };
 			desc.mRenderTargetCount = renderTargetCount;
 			desc.pDepthStencil = pDepthStencil;
 			desc.ppRenderTargets = ppRenderTargets;
-			addRenderPass(pCmd->pCmdPool->pRenderer, &desc, &pRenderPass);
-			pCmd->mRenderPassMap.insert({ hash, pRenderPass });
+			desc.pRenderPass = pRenderPass;
+			addFrameBuffer(pCmd->pCmdPool->pRenderer, &desc, &pFrameBuffer);
+
+			// No need of a lock here since this map is per thread
+			frameBufferMap.insert({ frameBufferHash, pFrameBuffer });
 		}
 
 		DECLARE_ZERO(VkRect2D, render_area);
 		render_area.offset.x = 0;
 		render_area.offset.y = 0;
-		render_area.extent.width = pRenderPass->mWidth;
-		render_area.extent.height = pRenderPass->mHeight;
+		render_area.extent.width = pFrameBuffer->mWidth;
+		render_area.extent.height = pFrameBuffer->mHeight;
 
 		DECLARE_ZERO(VkRenderPassBeginInfo, begin_info);
 		begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		begin_info.pNext = NULL;
 		begin_info.renderPass = pRenderPass->pRenderPass;
-		begin_info.framebuffer = pRenderPass->pFramebuffer;
+		begin_info.framebuffer = pFrameBuffer->pFramebuffer;
 		begin_info.renderArea = render_area;
 		begin_info.clearValueCount = 0; // we will clear on our own
 		begin_info.pClearValues = NULL;
@@ -3380,11 +3456,11 @@ namespace RENDERER_CPP_NAMESPACE {
 		{
 			DECLARE_ZERO(VkClearRect, rect);
 			rect.baseArrayLayer = 0;
-			rect.layerCount = pRenderPass->mArraySize;
+			rect.layerCount = pFrameBuffer->mArraySize;
 			rect.rect.offset.x = 0;
 			rect.rect.offset.y = 0;
-			rect.rect.extent.width = pRenderPass->mWidth;
-			rect.rect.extent.height = pRenderPass->mHeight;
+			rect.rect.extent.width = pFrameBuffer->mWidth;
+			rect.rect.extent.height = pFrameBuffer->mHeight;
 
 			for (uint32_t i = 0; i < renderTargetCount; ++i)
 			{
@@ -4685,7 +4761,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				queue_create_infos[queue_create_infos_count].queueFamilyIndex = i;
 				queue_create_infos[queue_create_infos_count].queueCount = queueFamilies[i].mTotalQueues;
 				queue_priorities[i].resize(queueFamilies[i].mTotalQueues);
-				memset(queue_priorities[i].getArray(), 1, queue_priorities[i].getCount() * sizeof(float));
+				memset(queue_priorities[i].data(), 1, queue_priorities[i].size() * sizeof(float));
 				queue_create_infos[queue_create_infos_count].pQueuePriorities = queue_priorities[i].data();
 				queue_create_infos_count++;
 			}
@@ -4927,6 +5003,42 @@ namespace RENDERER_CPP_NAMESPACE {
 			markerInfo.color[3] = 1.0f;
 			markerInfo.pMarkerName = pName;
 			pfnCmdDebugMarkerInsert(pCmd->pVkCmdBuf, &markerInfo);
+		}
+	}
+	/************************************************************************/
+	// Resource Debug Naming Interface
+	/************************************************************************/
+	void setName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+	{
+		ASSERT(pRenderer);
+		ASSERT(pBuffer);
+		ASSERT(pName);
+
+		if (pfnDebugMarkerSetObjectName)
+		{
+			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT;
+			nameInfo.object = (uint64_t)pBuffer->pVkBuffer;
+			nameInfo.pObjectName = pName;
+			pfnDebugMarkerSetObjectName(pRenderer->pDevice, &nameInfo);
+		}
+	}
+
+	void setName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+	{
+		ASSERT(pRenderer);
+		ASSERT(pTexture);
+		ASSERT(pName);
+
+		if (pfnDebugMarkerSetObjectName)
+		{
+			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
+			nameInfo.object = (uint64_t)pTexture->pVkImage;
+			nameInfo.pObjectName = pName;
+			pfnDebugMarkerSetObjectName(pRenderer->pDevice, &nameInfo);
 		}
 	}
 	/************************************************************************/

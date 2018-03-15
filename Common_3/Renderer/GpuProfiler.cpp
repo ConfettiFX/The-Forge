@@ -46,7 +46,7 @@ void clearChildren(GpuTimerTree* pRoot)
 	if (!pRoot)
 		return;
 
-	for (uint32_t i = 0; i < pRoot->mChildren.getCount(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)pRoot->mChildren.size(); ++i)
 		clearChildren(pRoot->mChildren[i]);
 
 	pRoot->mChildren.clear();
@@ -87,7 +87,7 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 		pRoot->mGpuTimer.mHistoryIndex = (historyIndex + 1) % GpuTimer::LENGTH_OF_HISTORY;
 	}
 
-	for (uint32_t i = 0; i < pRoot->mChildren.getCount(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)pRoot->mChildren.size(); ++i)
 		calculateTimes(pCmd, pGpuProfiler, pRoot->mChildren[i]);
 }
 #endif
@@ -142,6 +142,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	bufDesc.mDesc.mSize = maxTimers * sizeof(uint64_t) * 2;
 	bufDesc.pData = NULL;
+	bufDesc.mDesc.pDebugName = L"GPU Profilter ReadBack Buffer Desc";
 
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
@@ -300,7 +301,7 @@ void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 #if defined(DIRECT3D12) || defined(VULKAN)
 	cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 
-	for (uint32_t i = 0; i < pGpuProfiler->mRoot.mChildren.getCount(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)pGpuProfiler->mRoot.mChildren.size(); ++i)
 	{
 		pGpuProfiler->mCumulativeTimeInternal += getAverageGpuTime(pGpuProfiler, &pGpuProfiler->mRoot.mChildren[i]->mGpuTimer);
 

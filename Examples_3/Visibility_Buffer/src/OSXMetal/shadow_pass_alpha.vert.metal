@@ -56,10 +56,10 @@ struct IndirectDrawArguments
 vertex VSOut stageMain(uint vertexId                                    [[vertex_id]],
                        constant PackedVertexPosData* vertexPos          [[buffer(0)]],
                        constant PackedVertexTexcoord* vertexTexcoord    [[buffer(1)]],
-                       constant PerFrameConstants& uniforms             [[buffer(2)]],
-                       constant PerBatchUniforms& perBatch              [[buffer(3)]],
-                       constant IndirectDrawArguments* indirectDrawArgs [[buffer(4)]],
-                       constant uint* filteredTriangles                 [[buffer(5)]])
+                       constant PerBatchUniforms& perBatch              [[buffer(2)]],
+                       constant PerFrameConstants& uniforms             [[buffer(3)]],
+                       constant uint* filteredTriangles                 [[buffer(4)]],
+                       constant IndirectDrawArguments* indirectDrawArgs [[buffer(5)]])
 {
     // Get the indirect draw arguments data for this batch
     IndirectDrawArguments batchData = indirectDrawArgs[perBatch.drawId];

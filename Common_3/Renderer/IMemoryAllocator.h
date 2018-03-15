@@ -29,6 +29,7 @@ typedef struct BufferCreateInfo
 #if defined(DIRECT3D12)
 	const D3D12_RESOURCE_DESC*	pDesc;
 	D3D12_RESOURCE_STATES		mStartState;
+	wchar_t*					pDebugName;
 #elif defined(VULKAN)
 	const VkBufferCreateInfo*	pDesc;
 #elif defined(METAL)
@@ -43,6 +44,7 @@ typedef struct TextureCreateInfo
 	const D3D12_RESOURCE_DESC*	pDesc;
 	const D3D12_CLEAR_VALUE*	pClearValue;
 	D3D12_RESOURCE_STATES		mStartState;
+	wchar_t*					pDebugName;
 #elif defined(VULKAN)
 	VkImageCreateInfo*			pDesc;
 #elif defined(METAL)

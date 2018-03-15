@@ -91,15 +91,6 @@ namespace tinystl {
 		void insert(iterator where, const T& value);
 		void insert(iterator where, const T* first, const T* last);
 
-		void insert(size_t index, const T& src)
-		{
-			const size_t oldCount = size();
-			resize(oldCount + 1);
-			if (index < oldCount)
-				memmove(m_buffer.first + (index + 1), m_buffer.first + index, (oldCount - index) * sizeof(T));
-			m_buffer.first [index] = src;
-		}
-
 		template<typename Param>
 		void emplace(iterator where, const Param& param);
 
@@ -109,41 +100,15 @@ namespace tinystl {
 		iterator erase_unordered(iterator where);
 		iterator erase_unordered(iterator first, iterator last);
 
-		// [Confetti backwards compatibility]
-		T* getArray() const { return m_buffer.first; }
-		T* abandonArray();
-		unsigned int getCount() const { return static_cast<unsigned int>(size()); }
-		void setCount(const unsigned int newCount);
-		const unsigned int add(const T& t);
-		void remove(const unsigned int index);
-		void orderedRemove(const unsigned int index);
-		void fastRemove(const unsigned int index);
-		void reset();
-
-		inline bool contains(const T& other) const {
-			for (unsigned i = 0; i < getCount(); ++i)
-				if (m_buffer.first[i] == other)
-					return true;
-
-			return false;
-		}
-
-		inline iterator find(const T& other) const {
-			for (unsigned i = 0; i < getCount(); ++i)
-				if (m_buffer.first[i] == other)
-					return &m_buffer.first[i];
-
-			return m_buffer.last;
-		}
-
+		inline iterator find(const T& other) const;
+	
 	private:
 		int partition(int(*compare)(const T &elem0, const T &elem1), int p, int r);
 		void quickSort(int(*compare)(const T &elem0, const T &elem1), int p, int r);
 
 	public:
-		void sort (int (*compare)(const T &elem0, const T &elem1));
-		void sort (unsigned begin, unsigned end, int (*compare)(const T &elem0, const T &elem1));
-		// [Confetti backwards compatibility]
+		void sort(int (*compare)(const T &elem0, const T &elem1));
+		void sort(unsigned begin, unsigned end, int (*compare)(const T &elem0, const T &elem1));
 
 	private:
 		buffer<T, Alloc> m_buffer;
@@ -364,50 +329,13 @@ namespace tinystl {
 	}
 
 	template<typename T, typename Alloc>
-	T* vector<T, Alloc>::abandonArray()
+	inline typename vector<T, Alloc>::iterator vector<T, Alloc>::find(const T& other) const
 	{
-		T* r = m_buffer.first;
-		buffer_init(&m_buffer);
-		return r;
-	}
+		for (unsigned i = 0; i < size(); ++i)
+			if (m_buffer.first[i] == other)
+				return &m_buffer.first[i];
 
-	template<typename T, typename Alloc>
-	inline void vector<T, Alloc>::setCount(const unsigned int newCount)
-	{
-		buffer_resize(&m_buffer, newCount);
-	}
-
-	template<typename T, typename Alloc>
-	inline const unsigned int vector<T, Alloc>::add(const T& t)
-	{
-		push_back(t);
-		return static_cast<unsigned int>(size() - 1);
-	}
-
-	template<typename T, typename Alloc>
-	inline void vector<T, Alloc>::fastRemove(const unsigned int index)
-	{
-		// Fast remove used to cause a memory leak in the old stl
-		// Just remove regularly instead
-		erase(m_buffer.first + index);
-	}
-
-	template<typename T, typename Alloc>
-	inline void vector<T, Alloc>::remove(const unsigned int index)
-	{
-		erase(m_buffer.first + index);
-	}
-
-	template<typename T, typename Alloc>
-	inline void vector<T, Alloc>::orderedRemove(const unsigned int index)
-	{
-		erase(m_buffer.first + index);
-	}
-
-	template<typename T, typename Alloc>
-	inline void vector<T, Alloc>::reset()
-	{
-		clear();
+		return m_buffer.last;
 	}
 
 	template<typename T, typename Alloc>

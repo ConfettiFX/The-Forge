@@ -295,7 +295,8 @@ public:
 		HiresTimer timer;
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 
-		Load();
+		if (!addSwapChain())
+			return false;
 
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
@@ -378,7 +379,10 @@ public:
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pBlendState = gParticleBlend;
 		pipelineSettings.pRasterizerState = gSkyboxRast;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -462,7 +466,10 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pRasterizerState = gSkyboxRast;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -486,7 +493,10 @@ public:
 		pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.ppRenderTargets = &pSwapChain->ppSwapchainRenderTargets[0];
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pGraphRootSignature;
 		pipelineSettings.pShaderProgram = pGraphShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -716,16 +726,8 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
 		return true;
 	}
@@ -959,13 +961,13 @@ public:
 		cmdUIDrawText(cmd, pUIManager, { 8, 65 }, "Particle CPU Times");
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			cmdUIDrawFrameTime(cmd, pUIManager, { 8, 90.0f + i * 25.0f }, String().sprintf("- Thread %u  ", i), (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f);
+			cmdUIDrawFrameTime(cmd, pUIManager, { 8, 90.0f + i * 25.0f }, String::format("- Thread %u  ", i), (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f);
 		}
 
 		cmdUIDrawText(cmd, pUIManager, { 8, 105 + gThreadCount * 25.0f }, "Particle GPU Times");
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			cmdUIDrawFrameTime(cmd, pUIManager, { 8, (130 + gThreadCount * 25.0f) + i * 25.0f }, String().sprintf("- Thread %u  ", i), (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f);
+			cmdUIDrawFrameTime(cmd, pUIManager, { 8, (130 + gThreadCount * 25.0f) + i * 25.0f }, String::format("- Thread %u  ", i), (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f);
 		}
 #endif
 		cmdUIEndRender(cmd, pUIManager);
@@ -1041,6 +1043,22 @@ public:
 	String GetName()
 	{
 		return "03_MultiThread";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
 	}
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))

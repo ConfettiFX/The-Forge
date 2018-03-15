@@ -78,421 +78,48 @@ namespace tinystl {
 
 		void swap(string& other);
 
-		// [Confetti backwards compatibility]
-		char& operator [] (unsigned int n);
-		const char& operator [] (unsigned int n) const;
-		unsigned int getLength() const { return (unsigned int)size(); }
-		string sprintf(const string* fmt, ...);
-		string sprintf(const char* fmt, ...);
-		bool isEmpty() const { return size() == 0; }
-		bool find(const char ch, int pos = 0, unsigned int* index = nullptr) const;
-		bool find(const char *string, unsigned int pos = 0, unsigned int *index = nullptr) const;
+		string substring(unsigned pos) const;
+		string substring(unsigned pos, unsigned length) const;
+
+		unsigned find(char c, unsigned startPos, bool caseSensitive = true) const;
+		unsigned find(const string& str, unsigned startPos, bool caseSensitive = true) const;
 		bool rfind(const char ch, int pos = -1, unsigned int* index = nullptr) const;
+
+		unsigned find_last(char c, unsigned startPos = npos, bool caseSensitive = true) const;
+		unsigned find_last(const string& str, unsigned startPos = npos, bool caseSensitive = true) const;
+
+		void replace(char replaceThis, char replaceWith, bool caseSensitive = true);
+		void replace(const string& replaceThis, const string& replaceWith, bool caseSensitive = true);
+
 		bool insert(const unsigned int pos, const char *string, const unsigned int len);
-		void append(const char* string, const unsigned int len);
-		void appendInt(const int integer);
-		void appendLong(const long longInt);
-		void appendFloat(const float floatPoint);
 
-		unsigned find(char c, unsigned startPos, bool caseSensitive = true) const
-		{
-			if (caseSensitive)
-			{
-				for (unsigned i = startPos; i < getLength(); ++i)
-				{
-					if (m_first[i] == c)
-						return i;
-				}
-			}
-			else
-			{
-				c = (char)tolower(c);
-				for (unsigned i = startPos; i < getLength(); ++i)
-				{
-					if (tolower(m_first[i]) == c)
-						return i;
-				}
-			}
+		string replaced(char s, char r) const;
+		string replaced(const string& replaceThis, const string& replaceWith, bool caseSensitive = true) const;
 
-			return npos;
-		}
+		string trimmed() const;
 
-		unsigned find(const string& str, unsigned startPos, bool caseSensitive = true) const
-		{
-			if (!str.getLength() || str.getLength() > getLength())
-				return npos;
+		string to_lower() const;
+		string to_upper() const;
 
-			char first = str.m_first[0];
-			if (!caseSensitive)
-				first = (char)tolower(first);
+		vector<string> split(char separator, bool keepEmptyStrings = false) const;
 
-			for (unsigned i = startPos; i <= getLength() - str.getLength(); ++i)
-			{
-				char c = m_first[i];
-				if (!caseSensitive)
-					c = (char)tolower(c);
+		/// Copy chars from one buffer to another.
+		static inline void copy_chars(char* dest, const char* src, unsigned count);
+		static inline int compare(const char* lhs, const char* rhs, bool caseSensitive);
+		static inline string format(const char* fmt, ...);
 
-				if (c == first)
-				{
-					unsigned skip = npos;
-					bool found = true;
-					for (unsigned j = 1; j < str.getLength(); ++j)
-					{
-						c = m_first[i + j];
-						char d = str.m_first[j];
-						if (!caseSensitive)
-						{
-							c = (char)tolower(c);
-							d = (char)tolower(d);
-						}
+		/// Position for "not found."
+		static const unsigned npos = 0xffffffff;
 
-						if (skip == npos && c == first)
-							skip = i + j - 1;
-
-						if (c != d)
-						{
-							found = false;
-							if (skip != npos)
-								i = skip;
-							break;
-						}
-					}
-					if (found)
-						return i;
-				}
-			}
-
-			return npos;
-		}
-
-		void replace(char replaceThis, char replaceWith, bool caseSensitive = true)
-		{
-			if (caseSensitive)
-			{
-				for (unsigned i = 0; i < getLength(); ++i)
-				{
-					if (m_first[i] == replaceThis)
-						m_first[i] = replaceWith;
-				}
-			}
-			else
-			{
-				replaceThis = (char)tolower(replaceThis);
-				for (unsigned i = 0; i < getLength(); ++i)
-				{
-					if (tolower(m_first[i]) == replaceThis)
-						m_first[i] = replaceWith;
-				}
-			}
-		}
-
-		void replace(const string& replaceThis, const string& replaceWith, bool caseSensitive = true)
-		{
-			unsigned nextPos = 0;
-
-			while (nextPos < getLength())
-			{
-				unsigned pos = find(replaceThis, nextPos, caseSensitive);
-				if (pos == npos)
-					break;
-				replace(pos, replaceThis.getLength(), replaceWith);
-				nextPos = pos + replaceWith.getLength();
-			}
-		}
-
-		iterator replace(const iterator& start, const iterator& e, const string& replaceWith)
-		{
-			unsigned pos = (unsigned)(start - begin());
-			if (pos >= getLength())
-				return end();
-			unsigned length = (unsigned)(e - start);
-			replace(pos, length, replaceWith);
-
-			return begin() + pos;
-		}
-
-		void replace(unsigned pos, unsigned length, const string& replaceWith)
-		{
-			// If substring is illegal, do nothing
-			if (pos + length > getLength())
-				return;
-
-			replace(pos, length, replaceWith.m_first, replaceWith.getLength());
-		}
-
-		void replace(unsigned pos, unsigned length, const char* replaceWith)
-		{
-			// If substring is illegal, do nothing
-			if (pos + length > getLength())
-				return;
-
-			replace(pos, length, replaceWith, (unsigned)strlen(replaceWith));
-		}
-
-
-		void replace(unsigned pos, unsigned length, const char* srcStart, unsigned srcLength)
-		{
-			int delta = (int)srcLength - (int)length;
-
-			if (pos + length < getLength())
-			{
-				if (delta < 0)
-				{
-					move_range(pos + srcLength, pos + length, getLength() - pos - length);
-					resize(getLength() + delta);
-				}
-				if (delta > 0)
-				{
-					resize(getLength() + delta);
-					move_range(pos + srcLength, pos + length, getLength() - pos - length - delta);
-				}
-			}
-			else
-				resize(getLength() + delta);
-
-			copy_chars(m_first + pos, srcStart, srcLength);
-		}
-
-		string replaced(char s, char r) const
-		{
-			string str = *this;
-			str.replace(s, r);
-			return str;
-		}
-
-		string replaced(const string& replaceThis, const string& replaceWith, bool caseSensitive = true) const
-		{
-			string ret(*this);
-			ret.replace(replaceThis, replaceWith, caseSensitive);
-			return ret;
-		}
-
+	private:
 		/// Move a range of characters within the string.
-		void move_range(unsigned dest, unsigned src, unsigned count)
+		inline void move_range(unsigned dest, unsigned src, unsigned count)
 		{
 			if (count)
 				memmove(m_first + dest, m_first + src, count);
 		}
 
-		void assign(const char* string, const unsigned int len);
-		int toInt() const;
-		float toFloat() const;
-		double toDouble() const;
-		void makeLowerCase();
 
-		unsigned find_last(char c, unsigned startPos = npos, bool caseSensitive = true) const
-		{
-			if (startPos >= getLength())
-				startPos = getLength() - 1;
-
-			if (caseSensitive)
-			{
-				for (unsigned i = startPos; i < getLength(); --i)
-				{
-					if (m_first[i] == c)
-						return i;
-				}
-			}
-			else
-			{
-				c = (char)tolower(c);
-				for (unsigned i = startPos; i < getLength(); --i)
-				{
-					if (tolower(m_first[i]) == c)
-						return i;
-				}
-			}
-
-			return npos;
-		}
-
-		unsigned find_last(const string& str, unsigned startPos = npos, bool caseSensitive = true) const
-		{
-			if (!str.getLength() || str.getLength() > getLength())
-				return npos;
-			if (startPos > getLength() - str.getLength())
-				startPos = getLength() - str.getLength();
-
-			char first = *str.m_first;
-			if (!caseSensitive)
-				first = (char)tolower(first);
-
-			for (unsigned i = startPos; i < getLength(); --i)
-			{
-				char c = m_first[i];
-				if (!caseSensitive)
-					c = (char)tolower(c);
-
-				if (c == first)
-				{
-					bool found = true;
-					for (unsigned j = 1; j < str.getLength(); ++j)
-					{
-						c = m_first[i + j];
-						char d = str.m_first[j];
-						if (!caseSensitive)
-						{
-							c = (char)tolower(c);
-							d = (char)tolower(d);
-						}
-
-						if (c != d)
-						{
-							found = false;
-							break;
-						}
-					}
-					if (found)
-						return i;
-				}
-			}
-
-			return npos;
-		}
-
-		string substring(unsigned pos) const
-		{
-			if (pos < getLength())
-			{
-				string ret;
-				ret.resize(getLength() - pos);
-				copy_chars(ret.m_first, m_first + pos, ret.getLength());
-
-				return ret;
-			}
-			else
-				return string();
-		}
-
-		string substring(unsigned pos, unsigned length) const
-		{
-			if (pos < getLength())
-			{
-				string ret;
-				if (pos + length > getLength())
-					length = getLength() - pos;
-				ret.resize(length);
-				copy_chars(ret.m_first, m_first + pos, ret.getLength());
-
-				return ret;
-			}
-			else
-				return string();
-		}
-
-		string trimmed() const
-		{
-			unsigned trimStart = 0;
-			unsigned trimEnd = getLength();
-
-			while (trimStart < trimEnd)
-			{
-				char c = m_first[trimStart];
-				if (c != ' ' && c != 9)
-					break;
-				++trimStart;
-			}
-			while (trimEnd > trimStart)
-			{
-				char c = m_first[trimEnd - 1];
-				if (c != ' ' && c != 9)
-					break;
-				--trimEnd;
-			}
-
-			return substring(trimStart, trimEnd - trimStart);
-		}
-
-		string to_lower() const
-		{
-			string ret = *this;
-			for (unsigned i = 0; i < ret.getLength(); ++i)
-				ret[i] = (char)tolower(m_first[i]);
-
-			return ret;
-		}
-
-		string to_upper() const
-		{
-			string ret = *this;
-			for (unsigned i = 0; i < ret.getLength(); ++i)
-				ret[i] = (char)toupper(m_first[i]);
-
-			return ret;
-		}
-
-		vector<string> split(char separator, bool keepEmptyStrings = false) const
-		{
-			const char* str = c_str();
-			vector<string> ret;
-			const char* strEnd = str + strlen(str);
-
-			for (const char* splitEnd = str; splitEnd != strEnd; ++splitEnd)
-			{
-				if (*splitEnd == separator)
-				{
-					const ptrdiff_t splitLen = splitEnd - str;
-					if (splitLen > 0 || keepEmptyStrings)
-						ret.push_back(string(str, splitLen));
-					str = splitEnd + 1;
-				}
-			}
-
-			const ptrdiff_t splitLen = strEnd - str;
-			if (splitLen > 0 || keepEmptyStrings)
-				ret.push_back(string(str, splitLen));
-
-			return ret;
-		}
-
-		/// Copy chars from one buffer to another.
-		static void copy_chars(char* dest, const char* src, unsigned count)
-		{
-#ifdef _MSC_VER
-			if (count)
-				memcpy(dest, src, count);
-#else
-			char* end = dest + count;
-			while (dest != end)
-			{
-				*dest = *src;
-				++dest;
-				++src;
-			}
-#endif
-		}
-
-		static int compare(const char* lhs, const char* rhs, bool caseSensitive)
-		{
-			if (!lhs || !rhs)
-				return lhs ? 1 : (rhs ? -1 : 0);
-
-			if (caseSensitive)
-				return strcmp(lhs, rhs);
-			else
-			{
-				for (;;)
-				{
-					char l = (char)tolower(*lhs);
-					char r = (char)tolower(*rhs);
-					if (!l || !r)
-						return l ? 1 : (r ? -1 : 0);
-					if (l < r)
-						return -1;
-					if (l > r)
-						return 1;
-
-					++lhs;
-					++rhs;
-				}
-			}
-		}
-
-		/// Position for "not found."
-		static const unsigned npos = 0xffffffff;
-
-		// [\Confetti backwards compatibility]
-	private:
 		typedef char* pointer;
 		pointer m_first;
 		pointer m_last;
@@ -637,92 +264,105 @@ namespace tinystl {
 		}
 	}
 
-	inline string string::sprintf(const string* fmt, ...)
+	inline string string::substring(unsigned pos) const
 	{
-		int size = ((int)fmt->size()) * 2 + 50;   // Use a rubric appropriate for your code
-		string str;
-		va_list ap;
-		while (1) {     // Maximum two passes on a POSIX system...
-			str.resize(size);
-			va_start(ap, fmt);
-			int n = vsnprintf((char *)str.c_str(), size, fmt->c_str(), ap);
-			va_end(ap);
-			if (n > -1 && n < size) {  // Everything worked
-				str.resize(n);
-				this->append(str.c_str(), (const unsigned int)str.size());
-				return *this;
-			}
-			if (n > -1)  // Needed size returned
-				size = n + 1;   // For null char
-			else
-				size *= 2;      // Guess at a larger size (OS specific)
-		}
-		return str;
-	}
-
-	inline string string::sprintf(const char* fmt, ...)
-	{
-		int size = int(strlen(fmt) * 2 + 50);
-		string str;
-		va_list ap;
-		while (1) {     // Maximum two passes on a POSIX system...
-			str.resize(size);
-			va_start(ap, fmt);
-			int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
-			va_end(ap);
-			if (n > -1 && n < size) {  // Everything worked
-				str.resize(n);
-				this->append(str.c_str(), (const unsigned int)str.size());
-				return *this;
-			}
-			if (n > -1)  // Needed size returned
-				size = n + 1;   // For null char
-			else
-				size *= 2;      // Guess at a larger size (OS specific)
-		}
-		return str;
-	}
-
-	inline char& string::operator [] (unsigned int n)
-	{
-		// TODO: assert
-		//assert(n < size());
-		return m_first[n];
-	}
-
-	inline const char& string::operator [] (unsigned int n) const
-	{
-		// TODO: assert
-		//assert(n < capacity);
-		return m_first[n];
-	}
-
-	inline bool string::find(const char ch, int pos, unsigned int* index) const
-	{
-		size_t length = size();
-		for (unsigned int i = pos; i < length; i++)
+		if (pos < (unsigned)size())
 		{
-			if (m_first[i] == ch)
+			string ret;
+			ret.resize((unsigned)size() - pos);
+			copy_chars(ret.m_first, m_first + pos, (unsigned)ret.size());
+
+			return ret;
+		}
+		else
+			return string();
+	}
+
+	inline string string::substring(unsigned pos, unsigned length) const
+	{
+		if (pos < (unsigned)size())
+		{
+			string ret;
+			if (pos + length > (unsigned)size())
+				length = (unsigned)size() - pos;
+			ret.resize(length);
+			copy_chars(ret.m_first, m_first + pos, (unsigned)ret.size());
+
+			return ret;
+		}
+		else
+			return string();
+	}
+
+	inline unsigned string::find(char c, unsigned startPos, bool caseSensitive /* = true*/) const
+	{
+		if (caseSensitive)
+		{
+			for (unsigned i = startPos; i < (unsigned)size(); ++i)
 			{
-				if (index != nullptr)
-				{
-					*index = i;
-					return true;
-				}
+				if (m_first[i] == c)
+					return i;
+			}
+		}
+		else
+		{
+			c = (char)tolower(c);
+			for (unsigned i = startPos; i < (unsigned)size(); ++i)
+			{
+				if (tolower(m_first[i]) == c)
+					return i;
 			}
 		}
 
-		return false;
+		return npos;
 	}
 
-	inline bool string::find(const char *string, unsigned int pos, unsigned int *index) const
+	inline unsigned string::find(const string& str, unsigned startPos, bool caseSensitive /* = true*/) const
 	{
-		const char *st = strstr(m_first + pos, string);
-		if (st != NULL) {
-			if (index != NULL) *index = (unsigned int)(st - m_first);
-			return true;
+		if (!(unsigned)str.size() || (unsigned)str.size() > (unsigned)size())
+			return npos;
+
+		char first = str.m_first[0];
+		if (!caseSensitive)
+			first = (char)tolower(first);
+
+		for (unsigned i = startPos; i <= (unsigned)size() - (unsigned)str.size(); ++i)
+		{
+			char c = m_first[i];
+			if (!caseSensitive)
+				c = (char)tolower(c);
+
+			if (c == first)
+			{
+				unsigned skip = npos;
+				bool found = true;
+				for (unsigned j = 1; j < (unsigned)str.size(); ++j)
+				{
+					c = m_first[i + j];
+					char d = str.m_first[j];
+					if (!caseSensitive)
+					{
+						c = (char)tolower(c);
+						d = (char)tolower(d);
+					}
+
+					if (skip == npos && c == first)
+						skip = i + j - 1;
+
+					if (c != d)
+					{
+						found = false;
+						if (skip != npos)
+							i = skip;
+						break;
+					}
+				}
+				if (found)
+					return i;
+			}
 		}
-		return false;
+
+		return npos;
 	}
 
 	inline bool string::rfind(const char ch, int pos, unsigned int* index) const
@@ -745,6 +385,136 @@ namespace tinystl {
 		return false;
 	}
 
+	inline unsigned string::find_last(char c, unsigned startPos /* = npos*/, bool caseSensitive /* = true*/) const
+	{
+		if (startPos >= (unsigned)size())
+			startPos = (unsigned)size() - 1;
+
+		if (caseSensitive)
+		{
+			for (unsigned i = startPos; i < (unsigned)size(); --i)
+			{
+				if (m_first[i] == c)
+					return i;
+			}
+		}
+		else
+		{
+			c = (char)tolower(c);
+			for (unsigned i = startPos; i < (unsigned)size(); --i)
+			{
+				if (tolower(m_first[i]) == c)
+					return i;
+			}
+		}
+
+		return npos;
+	}
+
+	inline unsigned string::find_last(const string& str, unsigned startPos /* = npos*/, bool caseSensitive /* = true*/) const
+	{
+		if (!(unsigned)str.size() || (unsigned)str.size() > (unsigned)size())
+			return npos;
+		if (startPos > (unsigned)size() - (unsigned)str.size())
+			startPos = (unsigned)size() - (unsigned)str.size();
+
+		char first = *str.m_first;
+		if (!caseSensitive)
+			first = (char)tolower(first);
+
+		for (unsigned i = startPos; i < (unsigned)size(); --i)
+		{
+			char c = m_first[i];
+			if (!caseSensitive)
+				c = (char)tolower(c);
+
+			if (c == first)
+			{
+				bool found = true;
+				for (unsigned j = 1; j < (unsigned)str.size(); ++j)
+				{
+					c = m_first[i + j];
+					char d = str.m_first[j];
+					if (!caseSensitive)
+					{
+						c = (char)tolower(c);
+						d = (char)tolower(d);
+					}
+
+					if (c != d)
+					{
+						found = false;
+						break;
+					}
+				}
+				if (found)
+					return i;
+			}
+		}
+
+		return npos;
+	}
+
+	inline void string::replace(char replaceThis, char replaceWith, bool caseSensitive /* = true*/)
+	{
+		if (caseSensitive)
+		{
+			for (unsigned i = 0; i < (unsigned)size(); ++i)
+			{
+				if (m_first[i] == replaceThis)
+					m_first[i] = replaceWith;
+			}
+		}
+		else
+		{
+			replaceThis = (char)tolower(replaceThis);
+			for (unsigned i = 0; i < (unsigned)size(); ++i)
+			{
+				if (tolower(m_first[i]) == replaceThis)
+					m_first[i] = replaceWith;
+			}
+		}
+	}
+
+	inline void string::replace(const string& replaceThis, const string& replaceWith, bool caseSensitive /* = true*/)
+	{
+		unsigned nextPos = 0;
+
+		while (nextPos < (unsigned)size())
+		{
+			unsigned pos = find(replaceThis, nextPos, caseSensitive);
+			if (pos == npos)
+				break;
+
+			unsigned srcLength = (unsigned)replaceWith.size();
+			unsigned length = (unsigned)replaceThis.size();
+			const char* srcStart = replaceWith.c_str();
+			int delta = (int)srcLength - (int)length;
+
+			if (pos + length < (unsigned)size())
+			{
+				if (delta < 0)
+				{
+					move_range(pos + srcLength, pos + length, (unsigned)size() - pos - length);
+					resize((unsigned)size() + delta);
+				}
+				if (delta > 0)
+				{
+					resize((unsigned)size() + delta);
+					move_range(pos + srcLength, pos + length, (unsigned)size() - pos - length - delta);
+				}
+			}
+			else
+				resize((unsigned)size() + delta);
+
+			copy_chars(m_first + pos, srcStart, srcLength);
+
+
+			replace(pos, (unsigned)replaceThis.size(), replaceWith);
+			nextPos = pos + (unsigned)replaceWith.size();
+		}
+	}
+
 	inline bool string::insert(const unsigned int pos, const char *string, const unsigned int len)
 	{
 		if (pos > size())
@@ -764,65 +534,83 @@ namespace tinystl {
 		return true;
 	}
 
-	inline void string::append(const char* string, const unsigned int len)
+	inline string string::replaced(char s, char r) const
 	{
-		size_t length = size();
-		resize(length + len);
-		strncpy(m_first + length, string, len);
+		string str = *this;
+		str.replace(s, r);
+		return str;
 	}
 
-	inline void string::appendInt(const int integer)
+	inline string string::replaced(const string& replaceThis, const string& replaceWith, bool caseSensitive /* = true*/) const
 	{
-		char s[16];
-		append(s, ::sprintf(s, "%d", integer));
+		string ret = *this;
+		ret.replace(replaceThis, replaceWith, caseSensitive);
+		return ret;
 	}
 
-	inline void string::appendLong(const long longInt)
+	inline string string::trimmed() const
 	{
-		char s[32];
-		append(s, ::sprintf(s, "%li", longInt));
-	}
+		unsigned trimStart = 0;
+		unsigned trimEnd = (unsigned)size();
 
-	inline void string::appendFloat(const float floatPoint)
-	{
-		char s[16];
-		append(s, ::sprintf(s, "%f", floatPoint));
-	}
-
-	inline void string::makeLowerCase()
-	{
-		pointer s = this->m_first;
-
-		while (s != this->m_last)
+		while (trimStart < trimEnd)
 		{
-			if (*s >= 65 && *s <= 90)
-			{
-				*s = *s + 32;
-			}
-			s++;
+			char c = m_first[trimStart];
+			if (c != ' ' && c != 9)
+				break;
+			++trimStart;
 		}
+		while (trimEnd > trimStart)
+		{
+			char c = m_first[trimEnd - 1];
+			if (c != ' ' && c != 9)
+				break;
+			--trimEnd;
+		}
+
+		return substring(trimStart, trimEnd - trimStart);
 	}
 
-	inline void string::assign(const char* string, const unsigned int len)
+	inline string string::to_lower() const
 	{
-		resize(len);
-		strncpy(m_first, string, len);
-		m_first[len] = '\0';
+		string ret = *this;
+		for (unsigned i = 0; i < (unsigned)ret.size(); ++i)
+			ret.m_first[i] = (char)tolower(m_first[i]);
+
+		return ret;
 	}
 
-	inline int string::toInt() const
+	inline string string::to_upper() const
 	{
-		return atoi(m_first);
+		string ret = *this;
+		for (unsigned i = 0; i < (unsigned)ret.size(); ++i)
+			ret.m_first[i] = (char)toupper(m_first[i]);
+
+		return ret;
 	}
 
-	inline float string::toFloat() const
+	inline vector<string> string::split(char separator, bool keepEmptyStrings /* = false*/) const
 	{
-		return (float)atof(m_first);
-	}
+		const char* str = c_str();
+		vector<string> ret;
+		const char* strEnd = str + strlen(str);
 
-	inline double string::toDouble() const
-	{
-		return atof(m_first);
+		for (const char* splitEnd = str; splitEnd != strEnd; ++splitEnd)
+		{
+			if (*splitEnd == separator)
+			{
+				const ptrdiff_t splitLen = splitEnd - str;
+				if (splitLen > 0 || keepEmptyStrings)
+					ret.push_back(string(str, splitLen));
+				str = splitEnd + 1;
+			}
+		}
+
+		const ptrdiff_t splitLen = strEnd - str;
+		if (splitLen > 0 || keepEmptyStrings)
+			ret.push_back(string(str, splitLen));
+
+		return ret;
 	}
 
 	inline bool operator==(const string& lhs, const string& rhs) {
@@ -891,17 +679,76 @@ namespace tinystl {
 		return lhs;
 	}
 
-	static inline size_t hash(const string& value) {
+	static inline unsigned int hash(const string& value) {
 		return hash_string(value.c_str(), value.size());
+	}
+
+	inline void string::copy_chars(char* dest, const char* src, unsigned count)
+	{
+#ifdef _MSC_VER
+		if (count)
+			memcpy(dest, src, count);
+#else
+		char* end = dest + count;
+		while (dest != end)
+		{
+			*dest = *src;
+			++dest;
+			++src;
+		}
+#endif
+	}
+
+	inline int string::compare(const char* lhs, const char* rhs, bool caseSensitive)
+	{
+		if (!lhs || !rhs)
+			return lhs ? 1 : (rhs ? -1 : 0);
+
+		if (caseSensitive)
+			return strcmp(lhs, rhs);
+		else
+		{
+			for (;;)
+			{
+				char l = (char)tolower(*lhs);
+				char r = (char)tolower(*rhs);
+				if (!l || !r)
+					return l ? 1 : (r ? -1 : 0);
+				if (l < r)
+					return -1;
+				if (l > r)
+					return 1;
+
+				++lhs;
+				++rhs;
+			}
+		}
+	}
+
+	inline string string::format(const char* fmt, ...)
+	{
+		int size = int(strlen(fmt) * 2 + 50);
+		string str;
+		va_list ap;
+		while (1) {     // Maximum two passes on a POSIX system...
+			str.resize(size);
+			va_start(ap, fmt);
+			int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
+			va_end(ap);
+			if (n > -1 && n < size) {  // Everything worked
+				str.resize(n);
+				return str;
+			}
+			if (n > -1)  // Needed size returned
+				size = n + 1;   // For null char
+			else
+				size *= 2;      // Guess at a larger size (OS specific)
+		}
+		return str;
 	}
 }
 
 typedef tinystl::string String;
-
-typedef struct StringList {
-	uint32_t        count;
-	const char**    names;
-} StringList;
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

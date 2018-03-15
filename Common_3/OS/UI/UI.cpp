@@ -367,7 +367,7 @@ void UI::removeProperty(unsigned int idx)
 unsigned int UI::addProperty(const UIProperty& prop)
 {
 	// Try first to fill empty property slot
-	for (unsigned int i = 0; i < properties.getCount(); i++)
+	for (unsigned int i = 0; i < (uint32_t)properties.size(); i++)
 	{
 		UIProperty& prop_slot = properties[i];
 		if (prop_slot.source != NULL)
@@ -377,12 +377,13 @@ unsigned int UI::addProperty(const UIProperty& prop)
 		return i;
 	}
 
-	return properties.add(prop);
+	properties.emplace_back(prop);
+	return (uint32_t)properties.size() - 1;
 }
 
 unsigned int UI::getPropertyCount()
 {
-	return properties.getCount();
+	return (uint32_t)properties.size();
 }
 
 UIProperty& UI::getProperty(unsigned int idx)

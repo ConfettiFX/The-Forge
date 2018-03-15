@@ -17,13 +17,32 @@ Future plans are:
 - Unified shader generation
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. It was designed with -what we call in the moment- a next-gen rendering feature set in mind.
-
+ 
 # Build Status
 
 * Windows [![Build status](https://ci.appveyor.com/api/projects/status/0w2qj3fs8u4utojr/branch/master?svg=true)](https://ci.appveyor.com/project/manaskulkarni786/the-forge/branch/master)
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+## Release 1.04 - February 23rd, 2018 - iOS Improvements
+* Added code for our automated test framework
+* Removed some old left-over code that was copied into the TinySTL code base. Now the whole codebase is more consistent with TinySTL
+* Fixed some visual differences between APIs in the PBR example
+* Separated the app interface load / init and unload / exit functions better in the whole code base
+* Root signatures can be build for several sets of shaders while pipelines only have one shader set. This way you can use root signatures in several draw calls that will require similar settings except the shaders. We now reduced the number of root signatures in the Visibility Buffer to make that more obvious
+* Move the shader cache directory to avoid any conflict
+* PC
+  * Made buffer / texture naming for PIX debugging more explicit
+  * Changed the pipeline creation code to only require a few properties of the render target and not the whole render target
+  * Vulkan: remove unnecessary lock in renderpass lookup
+* iOS
+  * Explicitly set the mCompleted value of a fence to false when submitting
+  * Created the presentation command buffer from the main rendering queue to avoid the nil drawable issue on iOS
+  * Removed unused CAMetalLayer
+  * Removed util_bind_root_constant in favor of the setBytes function for rootConstant binding
+  * Removed a bug in our fencing logic which was forcing to wait on all fences (ignoring their status)
+* XBOX One: numerous changes and performance optimizations please check the log file of the internal repository
+
 ## Release 1.03 - February 14th, 2018 - iOS Alpha
 First of all: thanks a lot for the amount of feedback and support we received from the community. I think the amount of code changes in this release is a reflection of the strong feeback. Keep it coming!
 * Abstracted the application level by using the interface in IApp.h
@@ -149,7 +168,7 @@ This unit test shows the current state of our font rendering library that is bas
 
 ## 6. Physically-Based Rendering
 
-The Physically-Based Rendering example shows the PBR model from the following [Unreal Engine 4 paper](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf). 
+The Physically-Based Rendering example shows the PBR model from this [Unreal Engine 4 paper](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf). 
 
 ![Image of the PBR Unit test](Screenshots/06_PBR.PNG)
 
@@ -196,4 +215,4 @@ The Forge utilizes the following Open-Source libraries:
 * [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 * [GeometryFX](https://gpuopen.com/gaming-product/geometryfx/)
 * [WinPixEventRuntime](https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
-* [Fluid Studios Memory Manager] (http://www.paulnettle.com/)
+* [Fluid Studios Memory Manager](http://www.paulnettle.com/)

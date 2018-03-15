@@ -33,7 +33,7 @@
 // 
 
 
-
+/*
 
 // when we are in windowed mode and the user wants to resize the window with the mouse
 void onResize(RectDesc rect);
@@ -67,7 +67,7 @@ void update(float deltaTime);
 
 // only Graphics API draw calls and command buffer generation
 void drawFrame(float deltaTime);
-
+*/
 
 // Device Change
 // so what is going to happen if the user changes the graphics device?
@@ -106,6 +106,7 @@ public:
 	} mSettings;
 
 	WindowsDesc* pWindow;
+	String mCommandLine;
 };
 
 #if defined(_DURANGO)

@@ -911,6 +911,22 @@ int WindowsMain(int argc, char** argv, IApp* app)
 {
 	pApp = app;
 
+	//Used for automated testing, if enabled app will exit after 120 frames
+	bool testing = false;
+	uint32_t testingFrameCount = 0;
+	const uint32_t testingDesiredFrameCount = 120;
+
+	//search for --test in command line arguments
+	if (argc > 1)
+	{
+		for(int i = 0 ; i < argc ; i++)
+		{
+			if (strcmp(argv[i], "--testing"))
+				testing = true;
+		}
+	}
+
+
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	IApp::Settings* pSettings = &pApp->mSettings;
@@ -933,6 +949,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
 	pApp->pWindow = &window;
+	pApp->mCommandLine = GetCommandLineA();
 
 	if (!pApp->Init())
 		return EXIT_FAILURE;
@@ -949,6 +966,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		handleMessages();
 		pApp->Update(deltaTime);
 		pApp->Draw();
+		
+		//used in automated tests only.
+		if (testing)
+		{
+			testingFrameCount++;
+			if (testingFrameCount >= testingDesiredFrameCount)
+				break;
+		}
 	}
 
 	pApp->Exit();

@@ -153,7 +153,7 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		finishResourceLoading();
 
-		if (!Load())
+		if (!addSwapChain())
 			return false;
 
 		// UI setup
@@ -345,16 +345,8 @@ public:
 
 	bool Load()
 	{
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		if (!addSwapChain())
+			return false;
 
 		return true;
 	}
@@ -451,6 +443,22 @@ public:
 	String GetName()
 	{
 		return "05_FontRendering";
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
 	}
 };
 
