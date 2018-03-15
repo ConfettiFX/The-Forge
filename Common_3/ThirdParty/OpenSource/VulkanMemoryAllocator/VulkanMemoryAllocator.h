@@ -1651,7 +1651,7 @@ Define to 0 if you are going to provide you own pointers to Vulkan functions via
 VmaAllocatorCreateInfo::pVulkanFunctions.
 */
 #ifndef VMA_STATIC_VULKAN_FUNCTIONS
-#define VMA_STATIC_VULKAN_FUNCTIONS 1
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
 #endif
 
 // Define this macro to 1 to make the library use STL containers instead of its own implementation.

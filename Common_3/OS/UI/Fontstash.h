@@ -50,5 +50,6 @@ public:
 	float measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
 	float measureText(float* out_bounds, const char* message, int messageLength, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
 protected:
+	float m_fFontMaxSize;
 	class _Impl_FontStash* impl;
 };

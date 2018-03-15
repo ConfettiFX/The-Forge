@@ -41,12 +41,15 @@
 #include "../../Common_3/OS/Image/Image.h"
 
 // for cpu usage query
-#ifdef _WIN32
+#if defined(_WIN32)
+#if defined(_DURANGO)
+#else
 #include <Windows.h>
 #include <comdef.h>
 #include <Wbemidl.h>
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "comsuppw.lib")
+#endif
 #else
 #include <mach/mach.h>
 #include <mach/processor_info.h>
@@ -169,18 +172,21 @@ Texture*                pVirtualJoystickTex = nullptr;
 Sampler*				pSampler = nullptr;
 Sampler*				pSamplerSkyBox = nullptr;
 uint32_t				gFrameIndex = 0;
-uint					gCPUCoreCount = 0;
 
-#ifdef _WIN32
+#if defined(_WIN32)
+#if defined(_DURANGO)
+#else
 IWbemServices*			pService;
 IWbemLocator*			pLocator;
 uint64_t*				pOldTimeStamp;
 uint64_t*				pOldPprocUsage;
+#endif
 #else
 NSLock*					CPUUsageLock;
 processor_info_array_t	prevCpuInfo;
 mach_msg_type_number_t	numPrevCpuInfo;
 #endif
+
 uint					gCoresCount;
 float*					pCoresLoadData;
 
@@ -237,18 +243,33 @@ const char*				pSkyBoxImageFileNames[] =
 #error PLATFORM NOT SUPPORTED
 #endif
 
+#ifdef _DURANGO
+// Durango load assets from 'Layout\Image\Loose'
+const char* pszRoots[] =
+{
+	"Shaders/Binary/",									// FSR_BinShaders
+	"Shaders/",											// FSR_SrcShaders
+	"Shaders/Binary/",									// FSR_BinShaders_Common
+	"Shaders/",											// FSR_SrcShaders_Common
+	"Textures/",										// FSR_Textures
+	"Meshes/",											// FSR_Meshes
+	"Fonts/",											// FSR_Builtin_Fonts
+	"",													// FSR_OtherFiles
+};
+#else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../..//src/03_MultiThread/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../..//src/03_MultiThread/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"",															// FSR_BinShaders_Common
-	"",															// FSR_SrcShaders_Common
-	"../../..//UnitTestResources/Textures/",					// FSR_Textures
-	"../../..//UnitTestResources/Meshes/",						// FSR_Meshes
-	"../../..//UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"",															// FSR_OtherFiles
+	"../../../src/03_MultiThread/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+	"../../../src/03_MultiThread/" RESOURCE_DIR "/",		// FSR_SrcShaders
+	"",													// FSR_BinShaders_Common
+	"",													// FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",				// FSR_Textures
+	"../../../UnitTestResources/Meshes/",				// FSR_Meshes
+	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
+	"",													// FSR_OtherFiles
 };
+#endif
 
 class MultiThread : public IApp
 {
@@ -258,7 +279,7 @@ public:
 		InitCpuUsage();
 
 		gGraphWidth = mSettings.mWidth / 6; //200;
-		gGraphHeight = (mSettings.mHeight - 30 - gCoresCount * 10) / gCoresCount;
+		gGraphHeight = gCoresCount ? (mSettings.mHeight - 30 - gCoresCount * 10) / gCoresCount : 0;
 
 		RendererDesc settings = { 0 };
 		// settings.pLogFn = RendererLog;
@@ -390,13 +411,13 @@ public:
 
 		gTextureIndex = 0;
 
-#ifdef _WIN32
-		SYSTEM_INFO sysinfo;
-		GetSystemInfo(&sysinfo);
-		gCPUCoreCount = sysinfo.dwNumberOfProcessors;
-#elif defined(__APPLE__)
-		gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
-#endif
+//#ifdef _WIN32
+//		SYSTEM_INFO sysinfo;
+//		GetSystemInfo(&sysinfo);
+//		gCPUCoreCount = sysinfo.dwNumberOfProcessors;
+//#elif defined(__APPLE__)
+//		gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
+//#endif
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -623,11 +644,11 @@ public:
 #endif
 
 		pCameraController->setMotionParameters(cmp);
-
+#if !defined(_DURANGO)
 		registerRawMouseMoveEvent(cameraMouseMove);
 		registerMouseButtonEvent(cameraMouseButton);
 		registerMouseWheelEvent(cameraMouseWheel);
-        
+#endif
 #ifdef TARGET_IOS
         registerTouchEvent(cameraTouch);
         registerTouchMoveEvent(cameraTouchMove);
@@ -976,7 +997,7 @@ public:
 		endCmd(cmd);
 
 		beginCmd(ppGraphCmds[frameIdx]);
-		for (uint i = 0; i < gCPUCoreCount; ++i)
+		for (uint i = 0; i < gCoresCount; ++i)
 		{
 			gGraphWidth = pRenderTarget->mDesc.mWidth / 6;
 			gGraphHeight = (pRenderTarget->mDesc.mHeight - 30 - gCoresCount * 10) / gCoresCount;
@@ -1080,6 +1101,8 @@ public:
 	void CalCpuUsage()
 	{
 #ifdef _WIN32
+#if defined(_DURANGO)
+#else
 		HRESULT hr = NULL;
 		ULONG retVal;
 		UINT i;
@@ -1090,7 +1113,9 @@ public:
 		hr = pService->ExecQuery(bstr_t("WQL"), bstr_t("SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor"),
 			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
 		for (i = 0; i < gCoresCount; i++) {
-			hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclassObj, &retVal);
+			//Waiting for inifinite blocks resources and app.
+			//Waiting for 15 ms (arbitrary) instead works much better
+			hr = pEnumerator->Next(15, 1, &pclassObj, &retVal);
 			if (!retVal) {
 				break;
 			}
@@ -1121,6 +1146,7 @@ public:
 		}
 
 		pEnumerator->Release();
+#endif
 #else
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;
@@ -1174,8 +1200,9 @@ public:
 	int InitCpuUsage()
 	{
 		gCoresCount = 0;
-
 #ifdef _WIN32
+#if defined(_DURANGO)
+#else
 		IWbemClassObject *pclassObj;
 		IEnumWbemClassObject *pEnumerator;
 		HRESULT hr;
@@ -1223,7 +1250,7 @@ public:
 			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
 			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
 		}
-
+#endif
 #elif defined(__APPLE__)
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;
@@ -1265,8 +1292,11 @@ public:
 	{
 		conf_free(pCpuData);
 #ifdef _WIN32
+#if defined(_DURANGO)
+#else
 		conf_free(pOldTimeStamp);
 		conf_free(pOldPprocUsage);
+#endif
 #endif
 		conf_free(pCoresLoadData);
 	}
@@ -1404,7 +1434,7 @@ public:
 		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
 		endCmd(cmd);
 	}
-
+#if !defined(_DURANGO)
 	static bool cameraMouseMove(const RawMouseMoveEventData* data)
 	{
 		pCameraController->onMouseMove(data);
@@ -1422,7 +1452,7 @@ public:
 		pCameraController->onMouseWheel(data);
 		return true;
 	}
-    
+#endif
 #ifdef TARGET_IOS
     static bool cameraTouch(const TouchEventData* data)
     {

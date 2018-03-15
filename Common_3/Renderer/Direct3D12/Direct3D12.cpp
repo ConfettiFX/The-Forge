@@ -4297,8 +4297,12 @@ namespace RENDERER_CPP_NAMESPACE {
 			D3D12_RESOURCE_BARRIER* pBarrier = &barriers[transitionCount];
 			Buffer* pBuffer = pTransBarrier->pBuffer;
 
-			// Only transition GPU visible resources
-			if (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
+			// Only transition GPU visible resources.
+			// Note: General CPU_TO_GPU resources have to stay in generic read state. They are created in upload heap.
+			// There is one corner case: CPU_TO_GPU resources with UAV usage can have state transition. And they are created in custom heap.
+			if (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY 
+				|| pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU 
+				|| (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && pBuffer->mDesc.mUsage == BUFFER_USAGE_STORAGE_UAV))
 			{
 				//if (!(pBuffer->mCurrentState & pTransBarrier->mNewState) && pBuffer->mCurrentState != pTransBarrier->mNewState)
 				if (pBuffer->mCurrentState != pTransBarrier->mNewState && pBuffer->mCurrentState != pTransBarrier->mNewState)

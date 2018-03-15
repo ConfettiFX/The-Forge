@@ -60,7 +60,20 @@
 #error PLATFORM NOT SUPPORTED
 #endif
 
-
+#ifdef _DURANGO
+// Durango load assets from 'Layout\Image\Loose'
+const char* pszRoots[] =
+{
+	"Shaders/Binary/",									// FSR_BinShaders
+	"Shaders/",											// FSR_SrcShaders
+	"Shaders/Binary/",									// FSR_BinShaders_Common
+	"Shaders/",											// FSR_SrcShaders_Common
+	"Textures/",										// FSR_Textures
+	"Meshes/",											// FSR_Meshes
+	"Fonts/",											// FSR_Builtin_Fonts
+	"",													// FSR_OtherFiles
+};
+#else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
@@ -73,6 +86,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Fonts/",					// FSR_Builtin_Fonts
 	"",														// FSR_OtherFiles
 };
+#endif
 
 LogManager gLogManager;
 
@@ -529,10 +543,12 @@ public:
 
 		pCameraController->setMotionParameters(camParameters);
 
+#if !defined(_DURANGO)
 		registerRawMouseMoveEvent(cameraMouseMove);
 		registerMouseButtonEvent(cameraMouseButton);
 		registerMouseWheelEvent(cameraMouseWheel);
-        
+#endif
+
 #ifdef TARGET_IOS
         registerTouchEvent(cameraTouch);
         registerTouchMoveEvent(cameraTouchMove);
@@ -896,70 +912,7 @@ public:
 
 		return pDepthBuffer != NULL;
 	}
-
-	// Generates an array of vertices and normals for a sphere
-	void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int numberOfDivisions)
-	{
-		float numStacks = (float)numberOfDivisions;
-		float numSlices = (float)numberOfDivisions;
-		float radius = 1.0f; // Diameter of 1
-
-		tinystl::vector<vec3> vertices;
-		tinystl::vector<vec3> normals;
-
-
-		for (int i = 0; i < numberOfDivisions; i++)
-		{
-			for (int j = 0; j < numberOfDivisions; j++)
-			{
-				// Sectioned into quads, utilizing two triangles
-				vec3 topLeftPoint = { (float)(-cos(2.0f * PI * i / numStacks) * sin(PI * (j + 1.0f) / numSlices)),
-					(float)(-cos(PI * (j + 1.0f) / numSlices)),
-					(float)(sin(2.0f * PI * i / numStacks) * sin(PI * (j + 1.0f) / numSlices)) };
-				vec3 topRightPoint = { (float)(-cos(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * (j + 1.0) / numSlices)),
-					(float)(-cos(PI * (j + 1.0) / numSlices)),
-					(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * (j + 1.0) / numSlices)) };
-				vec3 botLeftPoint = { (float)(-cos(2.0f * PI * i / numStacks) * sin(PI * j / numSlices)),
-					(float)(-cos(PI * j / numSlices)),
-					(float)(sin(2.0f * PI * i / numStacks) * sin(PI * j / numSlices)) };
-				vec3 botRightPoint = { (float)(-cos(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)),
-					(float)(-cos(PI * j / numSlices)),
-					(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)) };
-
-				// Top right triangle
-				vertices.push_back(radius * topLeftPoint);
-				vertices.push_back(radius * botRightPoint);
-				vertices.push_back(radius * topRightPoint);
-				normals.push_back(normalize(topLeftPoint));
-				normals.push_back(normalize(botRightPoint));
-				normals.push_back(normalize(topRightPoint));
-
-				// Bot left triangle
-				vertices.push_back(radius * topLeftPoint);
-				vertices.push_back(radius * botLeftPoint);
-				vertices.push_back(radius * botRightPoint);
-				normals.push_back(normalize(topLeftPoint));
-				normals.push_back(normalize(botLeftPoint));
-				normals.push_back(normalize(botRightPoint));
-			}
-		}
-
-
-		*pNumberOfPoints = (uint32_t)vertices.size() * 3 * 2;
-		(*ppPoints) = (float *)conf_malloc(sizeof(float) * (*pNumberOfPoints));
-
-		for (uint32_t i = 0; i < (uint32_t)vertices.size(); i++)
-		{
-			vec3 vertex = vertices[i];
-			vec3 normal = normals[i];
-			(*ppPoints)[i * 6 + 0] = vertex.getX();
-			(*ppPoints)[i * 6 + 1] = vertex.getY();
-			(*ppPoints)[i * 6 + 2] = vertex.getZ();
-			(*ppPoints)[i * 6 + 3] = normal.getX();
-			(*ppPoints)[i * 6 + 4] = normal.getY();
-			(*ppPoints)[i * 6 + 5] = normal.getZ();
-		}
-	}
+	
 
 #if defined(VULKAN)
 	void transitionRenderTargets()
@@ -996,6 +949,7 @@ public:
 
 	// Camera controller functionality
 #if USE_CAMERACONTROLLER
+#if !defined(_DURANGO)
 	static bool cameraMouseMove(const RawMouseMoveEventData* data)
 	{
 		pCameraController->onMouseMove(data);
@@ -1013,7 +967,7 @@ public:
 		pCameraController->onMouseWheel(data);
 		return true;
 	}
-    
+#endif
 #ifdef TARGET_IOS
     static bool cameraTouch(const TouchEventData* data)
     {

@@ -1458,7 +1458,9 @@ bool Image::iLoadSTBIFP32FromMemory(const char *buffer, uint32_t memSize, const 
 	}
 
 	requiredCmp = cmp;
-#if defined(METAL) || defined(VULKAN)
+
+// These APIs do not support 96bpp, enforce required component number to be 4 so that hdr format can be automatically converted to 128bpp
+#if defined(METAL) || defined(VULKAN) || defined(_DURANGO)
 	if (cmp == 3)
 		requiredCmp = 4;
 #endif

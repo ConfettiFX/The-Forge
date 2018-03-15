@@ -31,37 +31,39 @@
 #include "../../Common_3/OS/Interfaces/IUIManager.h"
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 
-/************************************************************************/
-/* SETTINGS
-/************************************************************************/
-// we won't be using a dedicated command list for Panini projection post process.
-// instead, the app that uses Panini will provide the command list.
-#define USE_DEDICATED_COMMAND_LIST 0
 
 /************************************************************************/
 /* DATA
 /************************************************************************/
+Renderer*			pRendererPanini = nullptr;
+Queue*				pQGfxPanini = nullptr;
+Queue*				pQCompPanini = nullptr;
+Gui*				pGuiPanini = nullptr;
+GpuProfiler*		pProfilerPanini = nullptr;
+
+Texture*		pSourceTexture = nullptr;
+
+float*				pFov = nullptr;
+
 Shader*				pShaderPanini = nullptr;
 RootSignature*		pRootSignaturePaniniPostProcess = nullptr;
 Sampler*			pSamplerTrilinearAniso = nullptr;
 DepthState*			pDepthStateDisable = nullptr;
 RasterizerState*	pRasterizerStateCullNone = nullptr;
-Pipeline*			pPipielinePaniniPostProcess = nullptr;
+Pipeline*			pPipelinePaniniPostProcess = nullptr;
+VertexLayout		vertexLayoutPanini = {};
+
+bool				hasInitializedMode = false; // Check if any of the initialization modes has been called
 
 Buffer*				pVertexBufferTessellatedQuad = nullptr;
 Buffer*				pIndexBufferTessellatedQuad = nullptr;
 
-#if USE_DEDICATED_COMMAND_LIST
-CmdPool*			pPaniniCmdPool = nullptr;
-Cmd**				ppPaniniCmds = nullptr;
-#endif
+
 
 // Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
 const unsigned gPaniniDistortionTessellation[2] = { 64, 32 };
 
-// either the static Panini parameters will be used
-PaniniParameters	gPaniniParametersStatic;
-bool				bUsingStaticPaniniParams = false;
+
 // or the dynamic gui controls will be used depending on initPanini() call.
 struct PaniniGUI
 {
@@ -155,87 +157,14 @@ void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffe
 	addResource(&ibDesc);
 }
 
-bool initializeRenderingResources(Renderer* pRenderer, RenderTarget* pRenderTarget)
-{
-	// SHADER
-	//----------------------------------------------------------------------------------------------------------------
-	ShaderLoadDesc paniniPass = {};
-	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0, FSR_SrcShaders_Common };
-	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0, FSR_SrcShaders_Common };
-	addShader(pRenderer, &paniniPass, &pShaderPanini);
-
-	// SAMPLERS & STATES
-	//----------------------------------------------------------------------------------------------------------------
-	addSampler(pRenderer, &pSamplerTrilinearAniso, FILTER_TRILINEAR_ANISO, FILTER_BILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f);
-	addRasterizerState(&pRasterizerStateCullNone, CULL_MODE_NONE);
-	addDepthState(pRenderer, &pDepthStateDisable, false, false);
-
-
-	// ROOT SIGNATURE
-	//----------------------------------------------------------------------------------------------------------------
-	RootSignatureDesc paninniRootDesc = {};
-	paninniRootDesc.mStaticSamplers["uSampler"] = pSamplerTrilinearAniso;
-	addRootSignature(pRenderer, 1, &pShaderPanini, &pRootSignaturePaniniPostProcess, &paninniRootDesc);
-
-
-	// PIPELINE
-	//----------------------------------------------------------------------------------------------------------------
-	VertexLayout vertexLayoutPanini = {};
-	vertexLayoutPanini.mAttribCount = 1;
-	vertexLayoutPanini.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-	vertexLayoutPanini.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-	vertexLayoutPanini.mAttribs[0].mBinding = 0;
-	vertexLayoutPanini.mAttribs[0].mLocation = 0;
-	vertexLayoutPanini.mAttribs[0].mOffset = 0;
-
-	GraphicsPipelineDesc pipelineSettings = { 0 };
-	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-	pipelineSettings.mRenderTargetCount = 1;
-	pipelineSettings.pDepthState = pDepthStateDisable;
-	pipelineSettings.pColorFormats = &pRenderTarget->mDesc.mFormat;
-	pipelineSettings.pSrgbValues = &pRenderTarget->mDesc.mSrgb;
-	pipelineSettings.mSampleCount = pRenderTarget->mDesc.mSampleCount;
-	pipelineSettings.mSampleQuality = pRenderTarget->mDesc.mSampleQuality;
-	pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-	pipelineSettings.pRootSignature = pRootSignaturePaniniPostProcess;
-	pipelineSettings.pShaderProgram = pShaderPanini;
-	pipelineSettings.pVertexLayout = &vertexLayoutPanini;
-	addPipeline(pRenderer, &pipelineSettings, &pPipielinePaniniPostProcess);
-
-	createTessellatedQuadBuffers(&pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, gPaniniDistortionTessellation[0], gPaniniDistortionTessellation[1]);
-
-
-#if USE_DEDICATED_COMMAND_LIST
-	// COMMAND LIST
-	//----------------------------------------------------------------------------------------------------------------
-	addCmdPool(pRenderer, pGraphicsQueue, false, &pPaniniCmdPool);
-	addCmd_n(pPaniniCmdPool, false, imageCount, &ppPaniniCmds);
-#endif
-
-	return true;
-}
-
-
 /************************************************************************/
 /* INTERFACE FUNCTIONS
 /************************************************************************/
-#if USE_DEDICATED_COMMAND_LIST
-bool initPanini(Renderer* pRenderer, RenderTarget* pRenderTarget, Queue* pGraphicsQueue, uint32_t imageCount)
-#else
-bool AppPanini::Init(Renderer* pRenderer, RenderTarget* pRenderTarget, Gui* pGuiWindow, void (*pfnPaniniToggleCallback)(bool))
-#endif
+
+bool AppPanini::SetCallbackToggle(void (*pfnPaniniToggleCallback)(bool))
 {
-	ASSERT(pRenderer);
-	ASSERT(pRenderTarget);
-	ASSERT(pGuiWindow);
 	ASSERT(pfnPaniniToggleCallback);
 
-	bool bSuccess = initializeRenderingResources(pRenderer, pRenderTarget);
-	if (!bSuccess)
-	{
-		LOGERRORF("Error initializing Panini Projection Post Process rendering resources.");
-		return false;
-	}
 
 	// UI SETTINGS
 	//----------------------------------------------------------------------------------------------------------------
@@ -243,10 +172,10 @@ bool AppPanini::Init(Renderer* pRenderer, RenderTarget* pRenderTarget, Gui* pGui
 	tinystl::vector<UIProperty>& dynamicProps = gPaniniSettingsDynamic.mDynamicUIControls.mDynamicProperties;	// shorthand
 
 	UIProperty fov("Camera Horizontal FoV", params.FoVH, 30.0f, 179.0f, 1.0f);
-	addProperty(pGuiWindow, &fov);
+	addProperty(pGuiPanini, &fov);
 	
 	UIProperty toggle("Enable Panini Projection", gPaniniSettingsDynamic.mEnablePaniniProjection);
-	addProperty(pGuiWindow, &toggle);
+	addProperty(pGuiPanini, &toggle);
 	
 	dynamicProps.push_back(UIProperty("Panini D Parameter", params.D, 0.0f, 1.0f, 0.001f));
 	dynamicProps.push_back(UIProperty("Panini S Parameter", params.S, 0.0f, 1.0f, 0.001f));
@@ -254,57 +183,158 @@ bool AppPanini::Init(Renderer* pRenderer, RenderTarget* pRenderTarget, Gui* pGui
 	
 	if (gPaniniSettingsDynamic.mEnablePaniniProjection)
 	{
-		gPaniniSettingsDynamic.mDynamicUIControls.ShowDynamicProperties(pGuiWindow);
+		gPaniniSettingsDynamic.mDynamicUIControls.ShowDynamicProperties(pGuiPanini);
 	}
 
-	gPaniniSettingsDynamic.pGui = pGuiWindow;
+	gPaniniSettingsDynamic.pGui = pGuiPanini;
 	g_pfnPaniniToggleCallback = pfnPaniniToggleCallback;
 
-	return bSuccess;
-}
-
-bool AppPanini::Init(Renderer* pRenderer, RenderTarget* pRenderTarget, PaniniParameters params)
-{
-	ASSERT(pRenderer);
-	ASSERT(pRenderTarget);
-
-	bool bSuccess = initializeRenderingResources(pRenderer, pRenderTarget);
-	if (!bSuccess)
-	{
-		LOGERRORF("Error initializing Panini Projection Post Process rendering resources.");
-		return false;
-	}
-
-	gPaniniParametersStatic = params;
-	bUsingStaticPaniniParams = true;
+	hasInitializedMode = true;
 	
-	return bSuccess;
+return true;
 }
 
-void AppPanini::Exit(Renderer* pRenderer)
+
+bool AppPanini::Init(Renderer* renderer, Queue* gfxQ, Queue* cmpQ, Gui* gui, GpuProfiler* profiler)
 {
-	ASSERT(pRenderer);
+	pRendererPanini = renderer;
+	pQGfxPanini = gfxQ;
+	pQCompPanini = cmpQ;
+	pGuiPanini = gui;
+	pProfilerPanini = profiler;
 
-	removeShader(pRenderer, pShaderPanini);
 
-	removeSampler(pRenderer, pSamplerTrilinearAniso);
+	// SHADER
+	//----------------------------------------------------------------------------------------------------------------
+	ShaderLoadDesc paniniPass = {};
+	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0, FSR_SrcShaders_Common };
+	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0, FSR_SrcShaders_Common };
+	addShader(pRendererPanini, &paniniPass, &pShaderPanini);
+
+	// SAMPLERS & STATES
+	//----------------------------------------------------------------------------------------------------------------
+	addSampler(pRendererPanini, &pSamplerTrilinearAniso, FILTER_TRILINEAR_ANISO, FILTER_BILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f);
+	addRasterizerState(&pRasterizerStateCullNone, CULL_MODE_NONE);
+	addDepthState(pRendererPanini, &pDepthStateDisable, false, false);
+
+
+	// ROOT SIGNATURE
+	//----------------------------------------------------------------------------------------------------------------
+	RootSignatureDesc paninniRootDesc = {};
+
+	paninniRootDesc.mStaticSamplers["uSampler"] = pSamplerTrilinearAniso;
+	addRootSignature(pRendererPanini, 1, &pShaderPanini, &pRootSignaturePaniniPostProcess, &paninniRootDesc);
+
+	// Vertexlayout panini
+	//----------------------------------------------------------------------------------------------------------------
+	vertexLayoutPanini.mAttribCount = 1;
+	vertexLayoutPanini.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+	vertexLayoutPanini.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+	vertexLayoutPanini.mAttribs[0].mBinding = 0;
+	vertexLayoutPanini.mAttribs[0].mLocation = 0;
+	vertexLayoutPanini.mAttribs[0].mOffset = 0;
+
+	createTessellatedQuadBuffers(&pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, gPaniniDistortionTessellation[0], gPaniniDistortionTessellation[1]);
+
+	return true;
+}
+
+void AppPanini::Exit()
+{
+	removeShader(pRendererPanini, pShaderPanini);
+
+	removeSampler(pRendererPanini, pSamplerTrilinearAniso);
 	removeRasterizerState(pRasterizerStateCullNone);
 	removeDepthState(pDepthStateDisable);
 
-	removeRootSignature(pRenderer, pRootSignaturePaniniPostProcess);
-	removePipeline(pRenderer, pPipielinePaniniPostProcess);
+	removeRootSignature(pRendererPanini, pRootSignaturePaniniPostProcess);
 
 	removeResource(pVertexBufferTessellatedQuad);
 	removeResource(pIndexBufferTessellatedQuad);
 
-#if USE_DEDICATED_COMMAND_LIST
-	removeCmd_n(pPaniniCmdPool, imageCount, ppPaniniCmds);
-	removeCmdPool(pRenderer, pPaniniCmdPool);
-#endif
+	if (pPipelinePaniniPostProcess)
+	{
+		removePipeline(pRendererPanini, pPipelinePaniniPostProcess);
+	}
 }
 
+bool AppPanini::Load(RenderTarget** rts)
+{
 
-void AppPanini::Update(float* pFieldOfView)
+	GraphicsPipelineDesc pipelineSettings = { 0 };
+	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+	pipelineSettings.mRenderTargetCount = 1;
+	pipelineSettings.pDepthState = pDepthStateDisable;
+	pipelineSettings.pColorFormats = &rts[0]->mDesc.mFormat;
+	pipelineSettings.pSrgbValues = &rts[0]->mDesc.mSrgb;
+	pipelineSettings.mSampleCount = rts[0]->mDesc.mSampleCount;
+	pipelineSettings.mSampleQuality = rts[0]->mDesc.mSampleQuality;
+	pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+	pipelineSettings.pRootSignature = pRootSignaturePaniniPostProcess;
+	pipelineSettings.pShaderProgram = pShaderPanini;
+	pipelineSettings.pVertexLayout = &vertexLayoutPanini;
+	addPipeline(pRendererPanini, &pipelineSettings, &pPipelinePaniniPostProcess);
+
+	return true;
+}
+
+void AppPanini::Unload() {
+
+	if (pPipelinePaniniPostProcess)
+	{
+		removePipeline(pRendererPanini, pPipelinePaniniPostProcess);
+	}
+}
+
+void AppPanini::Draw(Cmd* cmd)
+{
+	ASSERT(cmd);
+	ASSERT(pSourceTexture);
+
+	// panini parameters will either be controlled by GUI OR will be set during initPanini() function (bUsingStaticPaniniParams=true)
+	ASSERT((gPaniniSettingsDynamic.pGui));
+
+	
+	if (!hasInitializedMode)
+	{
+		LOGERRORF("Panini has not been initialized in dynamic or static mode, please call InitDynamic() or InitStatic() after Init()");
+		return;
+	}
+	//beginCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App
+
+	if (pProfilerPanini)
+	{ 
+		cmdBeginGpuTimestampQuery(cmd, pProfilerPanini, "Panini Projection Pass");
+	}
+	
+	// set pipeline state 
+	DescriptorData params[2] = {};
+	params[0].pName = "uTex";
+	params[0].ppTextures = &pSourceTexture;
+	params[1].pName = "PaniniRootConstants";
+	params[1].pRootConstant = &gPaniniSettingsDynamic.mParams;
+	cmdBindDescriptors(cmd, pRootSignaturePaniniPostProcess, 2, params);
+	cmdBindPipeline(cmd, pPipelinePaniniPostProcess);
+
+	// draw
+	const uint32_t numIndices = gPaniniDistortionTessellation[0] * gPaniniDistortionTessellation[1] * 6;
+	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad);
+	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad);
+	cmdDrawIndexed(cmd, numIndices, 0);
+
+	if (pProfilerPanini)
+	{
+		cmdEndGpuTimestampQuery(cmd, pProfilerPanini);
+	}
+	// do some drawing
+}
+
+void AppPanini::SetFovPtr(float* pFieldOfView)
+{
+	pFov = pFieldOfView;
+}
+
+void AppPanini::Update(float deltaTime)
 {
 	ASSERT(g_pfnPaniniToggleCallback);
 
@@ -328,66 +358,18 @@ void AppPanini::Update(float* pFieldOfView)
 	}
 
 	// update projection matrix parameters of the app of it has a dynamic GUI
-	if (pFieldOfView)
+	if (pFov)
 	{
-		*pFieldOfView = gPaniniSettingsDynamic.mParams.FoVH * (PI / 180.0f);
+		*pFov = gPaniniSettingsDynamic.mParams.FoVH * (PI / 180.0f);
 	}
 	else
 	{
 		LOGWARNINGF("Panini Projection post process has been initialized with dynamic GUI but the FoV" \
-					" parameter passed to updatePanini() is null. Changing FoV through the GUI will have no effect");
+			" parameter passed to updatePanini() is null. Changing FoV through the GUI will have no effect");
 	}
 }
 
-
-void AppPanini::UpdateParameters(PaniniParameters paniniParams)
+void AppPanini::SetSourceTexture(Texture* pTex)
 {
-	if (gPaniniSettingsDynamic.pGui)
-	{
-		gPaniniSettingsDynamic.mParams = paniniParams;
-	}
-	else
-	{
-		gPaniniParametersStatic = paniniParams;
-	}
+	pSourceTexture = pTex;
 }
-
-// Draws the Panini Projection distortion to the @pPaniniOutputRenderTarget. 
-void AppPanini::Draw(Cmd* cmd, Texture* pInputTexture, GpuProfiler* pGraphicsGpuProfiler /*= nullptr*/)
-{
-	ASSERT(cmd);
-	ASSERT(pInputTexture);
-
-	// panini parameters will either be controlled by GUI OR will be set during initPanini() function (bUsingStaticPaniniParams=true)
-	ASSERT((gPaniniSettingsDynamic.pGui || bUsingStaticPaniniParams));
-
-	//beginCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App
-
-	if (pGraphicsGpuProfiler)
-	{
-		cmdBeginGpuTimestampQuery(cmd, pGraphicsGpuProfiler, "Panini Projection Pass");
-	}
-
-	// set pipeline state 
-	DescriptorData params[2] = {};
-	params[0].pName = "uTex";
-	params[0].ppTextures = &pInputTexture;
-	params[1].pName = "PaniniRootConstants";
-	params[1].pRootConstant = gPaniniSettingsDynamic.pGui ? &gPaniniSettingsDynamic.mParams : &gPaniniParametersStatic;
-	cmdBindDescriptors(cmd, pRootSignaturePaniniPostProcess, 2, params);
-	cmdBindPipeline(cmd, pPipielinePaniniPostProcess);
-
-	// draw
-	const uint32_t numIndices = gPaniniDistortionTessellation[0] * gPaniniDistortionTessellation[1] * 6;
-	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad);
-	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad);
-	cmdDrawIndexed(cmd, numIndices, 0);
-
-	if (pGraphicsGpuProfiler)
-	{
-		cmdEndGpuTimestampQuery(cmd, pGraphicsGpuProfiler);
-	}
-
-	//endCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App
-}
-

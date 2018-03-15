@@ -77,6 +77,7 @@ struct UniformBlock
 
 const uint32_t		gImageCount = 3;
 const int			gSphereResolution = 30; // Increase for higher resolution spheres
+const float			gSphereDiameter = 0.5f;
 const uint			gNumPlanets = 11;       // Sun, Mercury -> Neptune, Pluto, Moon
 const uint			gTimeOffset = 600000;   // For visually better starting locations 
 const float			gRotSelfScale = 0.0004f;
@@ -259,7 +260,7 @@ public:
 
 		// Generate sphere vertex buffer
 		float* pSpherePoints;
-		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution);
+		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
 
 		uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
 		BufferLoadDesc sphereVbDesc = {};
@@ -835,6 +836,7 @@ public:
 		pCameraController->lookAt(lookAt);
 	}
 
+#if !defined(_DURANGO)
 	static bool cameraMouseMove(const RawMouseMoveEventData* data)
 	{
 		pCameraController->onMouseMove(data);
@@ -852,7 +854,8 @@ public:
 		pCameraController->onMouseWheel(data);
 		return true;
 	}
-    
+#endif
+
 #ifdef TARGET_IOS
     static bool cameraTouch(const TouchEventData* data)
     {

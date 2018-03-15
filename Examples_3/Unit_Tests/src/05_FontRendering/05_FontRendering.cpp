@@ -64,6 +64,20 @@
 #error PLATFORM NOT SUPPORTED
 #endif
 
+#ifdef _DURANGO
+// Durango load assets from 'Layout\Image\Loose'
+const char* pszRoots[] =
+{
+	"Shaders/Binary/",	// FSR_BinShaders
+	"Shaders/",		// FSR_SrcShaders
+	"Shaders/Binary/",			// FSR_BinShaders_Common
+	"Shaders/",					// FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",						// FSR_Meshes
+	"Fonts/",						// FSR_Builtin_Fonts
+	"",															// FSR_OtherFiles
+};
+#else
 // Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
@@ -76,6 +90,7 @@ const char* pszRoots[] =
 	"../../..//UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
 	"",															// FSR_OtherFiles
 };
+#endif
 
 LogManager gLogManager;
 /************************************************************************/
@@ -367,7 +382,7 @@ public:
 
 		// PROCESS INPUT
 		//-------------------------------------------------------------------------------------
-#ifndef TARGET_IOS
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
 		const int offset = getKeyDown(KEY_SHIFT) ? -1 : +1;	// shift+space = previous text
 		if (getKeyUp(KEY_SPACE))
 		{

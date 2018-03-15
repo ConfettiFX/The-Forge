@@ -55,7 +55,6 @@
 
 #define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
-
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
@@ -66,7 +65,20 @@
 #error PLATFORM NOT SUPPORTED
 #endif
 
-
+#ifdef _DURANGO
+// Durango load assets from 'Layout\Image\Loose'
+const char* pszRoots[] =
+{
+	"Shaders/Binary/",	// FSR_BinShaders
+	"Shaders/",		// FSR_SrcShaders
+	"Shaders/Binary/",			// FSR_BinShaders_Common
+	"Shaders/",					// FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",						// FSR_Meshes
+	"Fonts/",						// FSR_Builtin_Fonts
+	"",															// FSR_OtherFiles
+};
+#else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
@@ -79,6 +91,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
 	"",													// FSR_OtherFiles
 };
+#endif
 
 LogManager gLogManager;
 
@@ -175,6 +188,7 @@ GpuProfiler*				pGpuProfiler = nullptr;
 
 
 const int					gSphereResolution = 30; // Increase for higher resolution spheres
+const float					gSphereDiameter = 0.5f;
 int							gNumOfSpherePoints;
 
 // How many objects in x and y direction
@@ -525,18 +539,20 @@ public:
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
         addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
 
+		RootSignatureDesc brdfRootDesc = {};
+		brdfRootDesc.mStaticSamplers["envSampler"] = pSamplerBilinear;
+		addRootSignature(pRenderer, 1, &pShaderBRDF, &pRootSigBRDF, &brdfRootDesc);
+
 		RootSignatureDesc skyboxRootDesc = {};
 		skyboxRootDesc.mStaticSamplers["skyboxSampler"] = pSamplerBilinear;
-
-		addRootSignature(pRenderer, 1, &pShaderBRDF, &pRootSigBRDF);
-        addRootSignature(pRenderer, 1, &pSkyboxShader, &pSkyboxRootSignature, &skyboxRootDesc);
+		addRootSignature(pRenderer, 1, &pSkyboxShader, &pSkyboxRootSignature, &skyboxRootDesc);
 
 		// Create depth state and rasterizer state
 		addDepthState(pRenderer, &pDepth, true, true);
 		addRasterizerState(&pRasterstateDefault, CULL_MODE_NONE);
 
 		float* pSPherePoints;
-		generateSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution);
+		generateSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution, gSphereDiameter);
 
 		uint64_t sphereDataSize = gNumOfSpherePoints * sizeof(float);
 
@@ -781,10 +797,12 @@ public:
 
 		pCameraController->setMotionParameters(camParameters);
 
+#if !defined(_DURANGO)
 		registerRawMouseMoveEvent(cameraMouseMove);
 		registerMouseButtonEvent(cameraMouseButton);
 		registerMouseWheelEvent(cameraMouseWheel);
-        
+#endif
+
 #ifdef TARGET_IOS
         registerTouchEvent(cameraTouch);
         registerTouchMoveEvent(cameraTouchMove);
@@ -1099,6 +1117,7 @@ public:
 
 	// Camera controller functionality
 #if USE_CAMERACONTROLLER
+#if !defined(_DURANGO)
 	static bool cameraMouseMove(const RawMouseMoveEventData* data)
 	{
 		pCameraController->onMouseMove(data);
@@ -1129,6 +1148,7 @@ public:
         pCameraController->onTouchMove(data);
         return true;
     }
+#endif
 #endif
 #endif
 };

@@ -29,6 +29,14 @@
 
 #extension GL_GOOGLE_include_directive : enable
 
+#define REPEAT_TEN(base) CASE(base) CASE(base+1) CASE(base+2) CASE(base+3) CASE(base+4) CASE(base+5) CASE(base+6) CASE(base+7) CASE(base+8) CASE(base+9)
+#define REPEAT_HUNDRED(base)	REPEAT_TEN(base) REPEAT_TEN(base+10) REPEAT_TEN(base+20) REPEAT_TEN(base+30) REPEAT_TEN(base+40) REPEAT_TEN(base+50) \
+								REPEAT_TEN(base+60) REPEAT_TEN(base+70) REPEAT_TEN(base+80) REPEAT_TEN(base+90)
+
+#define CASE_LIST CASE(0)	REPEAT_HUNDRED(1) REPEAT_HUNDRED(101) \
+							REPEAT_TEN(201) REPEAT_TEN(211) REPEAT_TEN(221) REPEAT_TEN(231) REPEAT_TEN(241) \
+							CASE(251) CASE(252) CASE(253) CASE(254) CASE(255)
+
 #include "packing.h"
 #include "shading.h"
 #include "non_uniform_resource_index.h"
@@ -203,7 +211,7 @@ void main()
 		uint alpha1_opaque0 = (alphaBit_drawID_triID >> 31);
 
 		// This is the start vertex of the current draw batch
-		uint startIndex = indirectDrawArgs[NonUniformResourceIndex(alpha1_opaque0)].indirectDrawArgsData[drawID * 8 + 2];
+		uint startIndex = (alpha1_opaque0 == 0) ? indirectDrawArgs[0].indirectDrawArgsData[drawID * 8 + 2] : indirectDrawArgs[1].indirectDrawArgsData[drawID * 8 + 2];
 
 		uint triIdx0 = (triangleID * 3 + 0) + startIndex;
 		uint triIdx1 = (triangleID * 3 + 1) + startIndex;
@@ -292,9 +300,30 @@ void main()
 		uint materialBaseSlot = BaseMaterialBuffer(alpha1_opaque0 == 1, 1);
 		uint materialID = indirectMaterialBufferData[materialBaseSlot + drawID];
 
-		// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
-		// Reconstruct normal map Z from X and Y
-		vec2 normalMapRG = textureGrad(sampler2D(normalMaps[NonUniformResourceIndex(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
+#ifdef GL_AMD_gcn_shader
+		vec2 normalMapRG;
+		vec4 diffuseColor;
+		vec3 specularData;
+		bool isTwoSided;
+
+		switch (materialID)
+		{
+			// define an enum
+#define CASE(id) case id: \
+normalMapRG = textureGrad(sampler2D(normalMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY).rg; \
+diffuseColor = textureGrad(sampler2D(diffuseMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
+specularData = textureGrad(sampler2D(specularMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY).xyz; \
+isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[id].twoSided == 1); \
+break;
+			CASE_LIST
+		}
+#undef CASE
+#else
+		normalMapRG = textureGrad(sampler2D(normalMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
+		diffuseColor = textureGrad(sampler2D(diffuseMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
+		specularData = textureGrad(sampler2D(specularMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
+		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
+#endif
 
 		vec3 reconstructedNormalMap;
 		reconstructedNormalMap.xy = normalMapRG * 2 - 1;
@@ -308,15 +337,11 @@ void main()
 
 		// Sample Diffuse color
 		vec4 posLS = uniformsData.transform[VIEW_SHADOW].vp * vec4(position, 1);
-		vec4 diffuseColor = textureGrad(sampler2D(diffuseMaps[NonUniformResourceIndex(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
-		vec3 specularData = textureGrad(sampler2D(specularMaps[NonUniformResourceIndex(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
 #if USE_AMBIENT_OCCLUSION
 		float ao = texelFetch(sampler2D(aoTex, depthSampler), ivec2(gl_FragCoord.xy), 0).r;
 #else
 		float ao = 1.0f;
 #endif
-
-		bool isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[NonUniformResourceIndex(materialID)].twoSided == 1);
 
 		shadedColor = calculateIllumination(normal, uniformsData.camPos.xyz, uniformsData.esmControl, uniformsData.lightDir.xyz, isTwoSided, posLS, position, shadowMap, diffuseColor.xyz, specularData.xyz, ao, depthSampler);
 
@@ -332,6 +357,7 @@ void main()
 			shadedColor += pointLightShade(lightsBuffer[lightId].position.xyz, lightsBuffer[lightId].color.xyz, uniformsData.camPos.xyz, position, normal, specularData, isTwoSided);
 		}
 	}
-    // Output final pixel color
+
+	// Output final pixel color
 	oColor = vec4(shadedColor, 1);
 }

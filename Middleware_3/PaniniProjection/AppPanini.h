@@ -22,6 +22,8 @@
 * under the License.
 */
 
+#include "../../Common_3/OS/Interfaces/IMiddleware.h"
+
 // forward decls
 struct Renderer;
 struct RenderTarget;
@@ -94,64 +96,39 @@ struct PaniniParameters
 /************************************************************************/
 /*						 INTERFACE
 /************************************************************************/
-class AppPanini
+class AppPanini : public IMiddleware
 {
 public:
-	// INITIALIZES PANINI IN DYNAMNIC MODE
-	//
-	// initializes Panini Projection post process resources and adds dynamic properties 
-	// to the GUI for changing Panini parameters during runtime. 
-	//
-	// @pRenderer				: pointer to the renderer required by the renderer interface functions
-	// @pRenderTarget			: format of the render target is used for creating the pipeline state object
-	// @pGuiWindow				: pointer to the GUI window to add the dynamic Panini controls from where
-	//							  the user can change the Panini parameters during runtime
+
+
+	// our init function should only be called once
+	// the middleware has to keep these pointers
+	virtual bool Init(Renderer* const renderer, Queue* const gfxQ, Queue* const cmpQ, Gui* const gui, GpuProfiler* const profiler) final;
+	virtual void Exit() final;
+
+	// when app is loaded, app is provided of the render targets to load
+	// app is responsible to keep track of these render targets until load is called again
+	// app will use the -first- rendertarget as texture to render to
+	// make sure to always supply at least one render target with texture!
+	virtual bool Load(RenderTarget** rts) final;
+	virtual void Unload() final;
+
+	// draws Panini Projection into first render target supplied at the Load call
+	virtual void Draw(Cmd* cmd) final;
+
+	virtual void Update(float deltaTime) final;
+
+	// Sets the callback for enabling/disabling panini projection
 	// @pfnPaniniToggleCallback	: callback function for handling rendering resources when Panini projection is enabled/disabled. In
 	//							  an ideal case, we would directly use the swapchain buffer in the App if Panini post process is disabled to
 	//							  avoid redundant draw calls / render target copies. This function reports back if the post process is enabled/disabled.
-	//
-	bool Init(Renderer* pRenderer, RenderTarget* pRenderTarget, Gui* pGuiWindow, void(*pfnPaniniToggleCallback)(bool));
-
-	// INITIALIZES PANINI IN STATIC MODE
-	//
-	// initializes Panini Projection post process resources and parameters. This function doesn't
-	// configure Panini Projection post process to dynamically change the parameters through GUI.
-	//
-	// @pRenderer				: pointer to the renderer required by the renderer interface functions
-	// @pRenderTarget			: format of the render target is used for creating the pipeline state object
-	// @paniniParams			: sets the parameters for Panini post process during initialization. Call initPanini()
-	//							  with the `Gui* pGuiWindow` parameter if you want GUI for changing panini parameters during runtime.
-	//
-	bool Init(Renderer* pRenderer, RenderTarget* pRenderTarget, PaniniParameters paniniParams);
-
-	// releases resources of the Panini Projection post process. 
-	// Exit() should be called before releasing the pRenderer.
-	//
-	void Exit(Renderer* pRenderer);
+	bool SetCallbackToggle(void(*pfnPaniniToggleCallback)(bool));
 
 
-	// Panini Post Process doesn't have render target resources, hence empty Load/Unload functions.
-	//
-	bool Load() { return true; }
-	void Unload() {}
-	
+	// Set FOV ptr
+	void SetFovPtr(float* pFieldOfView);
 
-	// Updates dynamic GUI controls and the projection parameters. updatePanini() should be 
-	// called in the update loop of the App if the Panini post process is initialized using a GUI.
-	//
-	void Update(float* pFieldOfView);
+	// Set texture to render to
+	void SetSourceTexture(Texture* pTex);
 
-	// draws Panini Projection into currently bound render target
-	//
-	// @cmd							: command list provided by the calling app. drawPanini() won't call cmdBegin() and cmdEnd()
-	// @pPaniniInputTexture			: texture that contains the drawn scene
-	// @pGraphicsGpuProfiler		: [OPTIONAL] GPU profiler specified by the calling app to display Panini performance numbers
-	//
-	void Draw(Cmd* cmd, Texture* pPaniniInputTexture, GpuProfiler* pGraphicsGpuProfiler = nullptr);
-
-	//-----------------------------------------------------------------------------------------------------------------------------
-
-	// Updates the Panini parameters. This is the only way to update Panini parameters if Panini is initialized in STATIC MODE. 
-	// 
-	void UpdateParameters(PaniniParameters paniniParams);
 };

@@ -1137,7 +1137,8 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 		shaderDefines += (pMacros[i].definition + pMacros[i].value);
 	}
 
-#ifdef _DURANGO
+#if 0 //#ifdef _DURANGO
+	// Using Durango application data storage requires appmanifest(from application) changes.
 	String binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
 		FileSystem::GetFileName(fileName) + String::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
 #else

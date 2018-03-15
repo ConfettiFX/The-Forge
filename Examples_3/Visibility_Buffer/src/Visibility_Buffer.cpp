@@ -1801,6 +1801,9 @@ public:
 		msaaRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		msaaRTDesc.mWidth = width;
 		msaaRTDesc.pDebugName = L"MSAA RT";
+		// Disabling compression data will avoid decompression phase before resolve pass.
+		// However, the shading pass will require more memory bandwidth.
+		// We measured with and without compression and without compression is faster in our case.
 		msaaRTDesc.mFlags = TEXTURE_CREATION_FLAG_NO_COMPRESSION;
 		addRenderTarget(pRenderer, &msaaRTDesc, &pRenderTargetMSAA);
 
