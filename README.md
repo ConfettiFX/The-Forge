@@ -2,7 +2,7 @@
 The Forge is a cross-platform rendering framework supporting
 - PC with DirectX 12 / Vulkan
 - macOS with Metal 2
-- iOS with Metal 2 (in development)
+- iOS with Metal 2
 - Android with Vulkan (in development)
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 (in development) (only available for accredited developers on request)
@@ -16,7 +16,7 @@ Particularly, The Forge supports cross-platform
 Future plans are:
 - Unified shader generation
 
-The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom 3D engines.
+The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. It was designed with -what we call in the moment- a next-gen rendering feature set in mind.
 
 # Build Status
 
@@ -24,8 +24,35 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
-## Release 1.01 - January 25th, 2018
+## Release 1.03 - February 14th, 2018 - iOS Alpha
+First of all: thanks a lot for the amount of feedback and support we received from the community. I think the amount of code changes in this release is a reflection of the strong feeback. Keep it coming!
+* Abstracted the application level by using the interface in IApp.h
+* Refactored addShader, it now loads binary shaders and the interface is more abstract. This reduced the number of lines of code in every example. This is an intermediate step to achieving a more unified cross-platform shader system
+* Upgraded the BRDF example to PBR
+* Removed Panini projection feature to add it into the new Middleware_3 folder
+* Added the Fluid Studio memory manager after getting permission from the original author
+* Fixed all bugs in issue tracker
+* First iOS support. Please see iOS software and hardware requirements below.
+  * Added support for on-tile textures
+  * In the moment there is no UI and the camera and the input system is basic. We are planning to add https://github.com/jkuhlmann/gainput in the future
+* PC: 
+  * Added a Visual Studio extension that allows to compile shaders with a right mouse click on the shader file (need to be installed from the Tools folder or by clicking on the PRE_BUILD.bat file)
+  * Improved GPU recognition: in case a notebook has an integrated GPU and a discreete GPU: it will pick the discreete GPU under certain conditions
+  * Now use raw mouse input to workaround the problems with the last Windows 10 update
+  * Better synchronization between CPU and GPU  
+  * Moved to Visual Studio 2017 and Windows SDK 16299.91 (Fall Creators Update) and Vulkan SDK 1.0.68
+* XBOX One: numerous performance improvements (check the non-public repository history log)
 
+Any rendering framework needs a test farm that makes sure it is running on all the devices and OS'es supported. Our current testing setup is based on Jenkins and only supports a rather narrow range of hardware devices. We will add more hardware devices over time; this also depends when and how we get ahold of them. Considering that the feature set of The Forge is forward looking with support for Vulkan, DirectX 12 and Metal 2, we will leave out a lot of older hardware. We already started a conversation with Intel and Apple about the challenges we have and we will get in touch with driver teams from Samsung, Qualcomm,Google, AMD, NVIDIA and others to provide feedback on drivers.
+
+## Release 1.02 - January 31st, 2018
+* Fixed all the issues mentioned in the issue tracker.
+* Removed the NVX commands, we don't use them and they seem to confuse people.
+* Dealing with multiple resolutions on PC is now a bit easier. We need to expose this in the GUI, so that you can switch in full-screen between -let's say- 1080p and 4k back and forth
+* For macOS the procedural planet unit test works now too. That should bring macOS on par with PC on the macOS platforms we are currently testing. All unit tests and the Visibility Buffer work.
+* We improved performance of the Visibility Buffer on macOS a bit more. Now if you have a comparable GPU on the PC, the performance should be on a similar level on macOS and PC.
+
+## Release 1.01 - January 25th, 2018
 * Mainly improved the performance of the macOS build. macOS is now using the same art assets as the PC and the performance of the triangle filtering compute shader is improved. 
 * Reduced the size of the art assets because we only need one version of San Miguel for all platforms now. 
 * macOS now runs the Hardware Tessellation unit test. 
@@ -37,37 +64,50 @@ Very first release.
   
 # PC Requirements:
 
-1. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with the latest driver ...
+1. Windows 10 with latest update
 
-2. Visual Studio 2015 with Windows SDK / DirectX version 15063
+2. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with the latest driver ...
+
+3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-3. Vulkan SDK 1.0.65 
+4. Vulkan SDK 1.0.68 
 https://vulkan.lunarg.com/
 
 We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards and drivers. We are currently not testing Intel GPU based hardware. We are planning to integrate an Intel GPU based system into our build system in the future.
 
 # macOS Requirements:
 
-1. macOS 10.13.3 Beta (17D34a)
+1. macOS: 10.13.3 Beta (17D39a)
 
-2. XCode Version 9.2 (9C40b)
+2. XCode: Version 9.2 (9C40b)
 
-3. The Forge is currently tested on 
+3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
 * iMac with AMD RADEON 580 (Part No. MNED2xx/A)
 
-We are occasionally testing on Intel GPU based MacBooks but we are running into what we believe driver problems. We are going to address those challenges in the future. In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+We are occasionally testing on Intel GPU based MacBooks but we are running into -what we believe- driver problems. We are going to address those challenges in the future. In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
-We will get better with testing :-)
+
+# iOS Requirements:
+
+1. iOS: 11.2.5
+
+2. XCode: see macOS
+
+To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU (see [GPU Processors](https://developer.apple.com/library/content/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/HardwareGPUInformation/HardwareGPUInformation.html) or see iOS_Family in this table [iOS_GPUFamily3_v3](https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf)). This is required to support the hardware tessellation unit test and the ExecuteIndirect unit test (requires indirect buffer support). The Visibility Buffer doesn't run on current iOS devices because the [texture argument buffer](https://developer.apple.com/documentation/metal/fundamental_components/gpu_resources/understanding_argument_buffers) on those devices is limited to 31 (see [Metal Feature Set Table](https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf) and look for the entry "Maximum number of entries in the texture argument table, per graphics or compute function") , while on macOS it is 128, which we need for the bindless texture array. 
+
+We are currently testing on 
+* iPhone 7 (Model A1778)
+
 
 # Install
-Run PRE_BUILD.bat to download and unzip the art assets.
+Run PRE_BUILD.bat. It will download and unzip the art assets and install the shader builder extension for Visual Studio.
 
 
 
 # Unit Tests
-In the moment there are the following unit tests in The Forge:
+There are the following unit tests in The Forge:
 
 ## 1. Transformation
 
@@ -107,11 +147,11 @@ This unit test shows the current state of our font rendering library that is bas
 
 ![Image of the Font Rendering Unit test](Screenshots/05_FontRendering.PNG)
 
-## 6. BRDF
+## 6. Physically-Based Rendering
 
-The BRDF example shows a simple BRDF model. In the future we might replace this with a better PBR model.
+The Physically-Based Rendering example shows the PBR model from the following [Unreal Engine 4 paper](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf). 
 
-![Image of the BRDF Unit test](Screenshots/06_BRDF.PNG)
+![Image of the PBR Unit test](Screenshots/06_PBR.PNG)
 
 ## 7. Hardware Tessellation
 
@@ -156,3 +196,4 @@ The Forge utilizes the following Open-Source libraries:
 * [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 * [GeometryFX](https://gpuopen.com/gaming-product/geometryfx/)
 * [WinPixEventRuntime](https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
+* [Fluid Studios Memory Manager] (http://www.paulnettle.com/)
