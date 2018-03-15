@@ -24,16 +24,6 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
-## Release 1.05 - March 15th, 2018
- * Added a IMiddleware interface that is now used by Panini Projection. This will be refined and used by more middleware packages in the future
- * More unified math library compatible with the PS4 math library
- * PC Vulkan
-   * Upgraded to Vulkan 1.1.70.1
-   * We are now using volk -the metaloader for Vulkan- and load all Vulkan functions dynamically to bypass the loader overhead
-   * Due to lack of support of "NonUniformResourceIndex" for Vulkan, we had to create an "interesting workaround" in the Visibility Buffer demo
-* XBOX One: major update! Numerous changes and performance optimizations please check the log file of the internal repository
-
-
 ## Release 1.04 - February 23rd, 2018 - iOS Improvements
 * Added code for our automated test framework
 * Removed some old left-over code that was copied into the TinySTL code base. Now the whole codebase is more consistent with TinySTL
@@ -100,7 +90,7 @@ Very first release.
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan SDK 1.1.70.1
+4. Vulkan SDK 1.0.68 
 https://vulkan.lunarg.com/
 
 We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards and drivers. We are currently not testing Intel GPU based hardware. We are planning to integrate an Intel GPU based system into our build system in the future.
@@ -226,4 +216,3 @@ The Forge utilizes the following Open-Source libraries:
 * [GeometryFX](https://gpuopen.com/gaming-product/geometryfx/)
 * [WinPixEventRuntime](https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
-* [volk Metaloader for Vulkan](https://github.com/zeux/volk)
