@@ -22,21 +22,17 @@
  * under the License.
 */
 
-#ifndef _CFX_MATH_TYPES_
-#define _CFX_MATH_TYPES_
+#pragma once
 
-/*
-	This file contains the includes of all the math types
-	 and helper functions.
-	To upgrade older projects this file (and MatrixHelpers.h)
-	 should be included instead of Vector.h.
-*/
+// ModifiedSonyMath ReadMe:
+// - All you need to do is include the public header file vectormath.hpp. It will expose the relevant parts of 
+//	 the library for you and try to select the SSE implementation if supported.
+#include "../../ThirdParty/OpenSource/ModifiedSonyMath/vectormath.hpp"
 
-#include "FloatUtil.h"
-#include "half.h"
+typedef Vector2 vec2;
+typedef Vector3 vec3;
+typedef Vector4 vec4;
 
-#include "mat2.h"
-#include "mat3.h"
-#include "mat4.h"
-
-#endif
+typedef Matrix2 mat2;
+typedef Matrix3 mat3;
+typedef Matrix4 mat4;

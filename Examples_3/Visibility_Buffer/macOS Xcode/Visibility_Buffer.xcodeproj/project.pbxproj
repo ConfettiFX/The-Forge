@@ -28,12 +28,10 @@
 		C97EC0592010DFF60044D188 /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C97EC0342010C0120044D188 /* libzlibstatic.a */; };
 		C97EC05A2010DFF80044D188 /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C97EC0362010C0740044D188 /* libassimp.a */; };
 		C9DCF6601FEAAA77008BFA67 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6501FEAA827008BFA67 /* AppDelegate.m */; };
-		C9DCF6611FEAAA7B008BFA67 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6531FEAA828008BFA67 /* GameViewController.mm */; };
 		C9DCF6621FEAAA7D008BFA67 /* iOSBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6511FEAA827008BFA67 /* iOSBase.cpp */; };
 		C9DCF6631FEAAA7F008BFA67 /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF64E1FEAA827008BFA67 /* iOSFileSystem.mm */; };
 		C9DCF6641FEAAA82008BFA67 /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6561FEAA828008BFA67 /* iOSLogManager.cpp */; };
 		C9DCF6651FEAAA85008BFA67 /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6541FEAA828008BFA67 /* iOSThreadManager.cpp */; };
-		C9DCF6661FEAAA87008BFA67 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6551FEAA828008BFA67 /* main.mm */; };
 		C9DCF66D1FEAAD5B008BFA67 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF66A1FEAAD5B008BFA67 /* Fontstash.cpp */; };
 		D24758201FA0E89A00E62C0D /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D247581F1FA0E89A00E62C0D /* FileSystem.cpp */; };
 		D26E80611F471B2300C043F1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D26E805F1F471B2300C043F1 /* Main.storyboard */; };
@@ -48,11 +46,7 @@
 		D26E80FD1F4720F900C043F1 /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0B1EF94A1E005AC8C7 /* NuklearGUIDriver.cpp */; };
 		D26E80FE1F4720F900C043F1 /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0D1EF94A1E005AC8C7 /* UI.cpp */; };
 		D26E80FF1F4720F900C043F1 /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0F1EF94A1E005AC8C7 /* UIRenderer.cpp */; };
-		D26E81031F47211D00C043F1 /* FloatUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */; };
-		D26E81041F47211D00C043F1 /* half.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB71EF81FC5005AC8C7 /* half.cpp */; };
 		D26E81051F47211D00C043F1 /* IntersectionHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB91EF81FC5005AC8C7 /* IntersectionHelpers.cpp */; };
-		D26E81061F47211D00C043F1 /* mat2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBB1EF81FC5005AC8C7 /* mat2.cpp */; };
-		D26E81081F47211D00C043F1 /* Noise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CC21EF81FC5005AC8C7 /* Noise.cpp */; };
 		D26E810C1F47212500C043F1 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
 		D26E810D1F47212E00C043F1 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2B157221F1CBB5E0037A8C8 /* ResourceLoader.cpp */; };
 		D26E810E1F47212E00C043F1 /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CDF1EF81FC5005AC8C7 /* MetalRenderer.mm */; };
@@ -70,11 +64,6 @@
 		D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
 		EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA463C951EF81E8F005AC8C7 /* Assets.xcassets */; };
 		EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */; };
-		EA463CF01EF81FC5005AC8C7 /* FloatUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */; };
-		EA463CF11EF81FC5005AC8C7 /* half.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB71EF81FC5005AC8C7 /* half.cpp */; };
-		EA463CF21EF81FC5005AC8C7 /* IntersectionHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CB91EF81FC5005AC8C7 /* IntersectionHelpers.cpp */; };
-		EA463CF31EF81FC5005AC8C7 /* mat2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBB1EF81FC5005AC8C7 /* mat2.cpp */; };
-		EA463CF51EF81FC5005AC8C7 /* Noise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CC21EF81FC5005AC8C7 /* Noise.cpp */; };
 		EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
 		EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD21EF81FC5005AC8C7 /* AppDelegate.m */; };
 		EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */; };
@@ -695,7 +684,6 @@
 				D26E810C1F47212500C043F1 /* Image.cpp in Sources */,
 				D26E810D1F47212E00C043F1 /* ResourceLoader.cpp in Sources */,
 				D26E810F1F47213700C043F1 /* tinyexr.cpp in Sources */,
-				C9DCF6611FEAAA7B008BFA67 /* GameViewController.mm in Sources */,
 				D26E80F81F4720E400C043F1 /* PlatformEvents.cpp in Sources */,
 				C9DCF6641FEAAA82008BFA67 /* iOSLogManager.cpp in Sources */,
 				D26E80FA1F4720E400C043F1 /* Timer.cpp in Sources */,
@@ -703,8 +691,6 @@
 				D26E80FE1F4720F900C043F1 /* UI.cpp in Sources */,
 				C9DCF6631FEAAA7F008BFA67 /* iOSFileSystem.mm in Sources */,
 				C9DCF6621FEAAA7D008BFA67 /* iOSBase.cpp in Sources */,
-				D26E81031F47211D00C043F1 /* FloatUtil.cpp in Sources */,
-				D26E81081F47211D00C043F1 /* Noise.cpp in Sources */,
 				D26E80F71F4720DF00C043F1 /* GuiCameraController.cpp in Sources */,
 				D26E81051F47211D00C043F1 /* IntersectionHelpers.cpp in Sources */,
 				D26E80F61F4720DD00C043F1 /* FpsCameraController.cpp in Sources */,
@@ -713,18 +699,15 @@
 				D26E810E1F47212E00C043F1 /* MetalRenderer.mm in Sources */,
 				C9DCF6651FEAAA85008BFA67 /* iOSThreadManager.cpp in Sources */,
 				C97EC0212010BAC50044D188 /* MetalShaderReflection.mm in Sources */,
-				D26E81061F47211D00C043F1 /* mat2.cpp in Sources */,
 				D26E80FB1F4720EC00C043F1 /* LogManager.cpp in Sources */,
 				D26E81111F47214200C043F1 /* Geometry.cpp in Sources */,
 				C97EC0222010BAC90044D188 /* CommonShaderReflection.cpp in Sources */,
 				D26E81101F47213D00C043F1 /* Visibility_Buffer.cpp in Sources */,
-				C9DCF6661FEAAA87008BFA67 /* main.mm in Sources */,
 				D26E80FF1F4720F900C043F1 /* UIRenderer.cpp in Sources */,
 				C97EC01E2010BA570044D188 /* Fontstash.cpp in Sources */,
 				C9DCF6601FEAAA77008BFA67 /* AppDelegate.m in Sources */,
 				C97EC0232010BACC0044D188 /* GpuProfiler.cpp in Sources */,
 				D26E80F91F4720E400C043F1 /* ThreadSystem.cpp in Sources */,
-				D26E81041F47211D00C043F1 /* half.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -738,13 +721,9 @@
 				C96E13312007C1CD004363F0 /* macOSFileSystem.mm in Sources */,
 				EA463D141EF94A1E005AC8C7 /* UIRenderer.cpp in Sources */,
 				D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */,
-				EA463CF21EF81FC5005AC8C7 /* IntersectionHelpers.cpp in Sources */,
 				EA463D131EF94A1E005AC8C7 /* UI.cpp in Sources */,
-				EA463CF11EF81FC5005AC8C7 /* half.cpp in Sources */,
 				C9DCF66D1FEAAD5B008BFA67 /* Fontstash.cpp in Sources */,
 				D2B157271F1CD2CA0037A8C8 /* Visibility_Buffer.cpp in Sources */,
-				EA463CF01EF81FC5005AC8C7 /* FloatUtil.cpp in Sources */,
-				EA463CF31EF81FC5005AC8C7 /* mat2.cpp in Sources */,
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				B28506F71F4FB0280013C61A /* MemoryTrackingManager.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
@@ -759,7 +738,6 @@
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */,
 				EA463D011EF81FC5005AC8C7 /* MetalRenderer.mm in Sources */,
-				EA463CF51EF81FC5005AC8C7 /* Noise.cpp in Sources */,
 				D278835C1F320D1800F4362D /* GuiCameraController.cpp in Sources */,
 				EA463D021EF81FC5005AC8C7 /* tinyexr.cpp in Sources */,
 				EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */,

@@ -113,6 +113,7 @@ Fontstash::Fontstash(UIRenderer* renderer, int width, int height)
 {
 	impl = conf_placement_new<_Impl_FontStash>(conf_calloc(1, sizeof(_Impl_FontStash)));
 	impl->init(renderer, width, height);
+	m_fFontMaxSize = min(width, height) / 10.0f; // see fontstash.h, line 1271, for fontSize calculation
 }
 
 Fontstash::~Fontstash()
@@ -161,6 +162,10 @@ int Fontstash::getFontID(const char* identification)
 
 void Fontstash::drawText(const char* message, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
 {
+	// clamp the font size to max size. 
+	// Precomputed font texture puts limitation to the maximum size.
+	size = min(size, m_fFontMaxSize);
+
 	FONScontext* fs=impl->fontStashContext;
 	fonsSetSize(fs, size);
 	fonsSetFont(fs, fontID);

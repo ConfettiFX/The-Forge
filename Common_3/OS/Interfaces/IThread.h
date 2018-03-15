@@ -23,7 +23,7 @@
 */
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Math/FloatUtil.h"
+#include "../Math/MathTypes.h"
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 
 #ifndef _THREAD_H_

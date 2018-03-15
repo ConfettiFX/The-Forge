@@ -230,7 +230,6 @@ namespace RENDERER_CPP_NAMESPACE {
    const char* gVkWantedDeviceExtensions[] =
    {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
       VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 	  VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
 	  VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
@@ -238,45 +237,33 @@ namespace RENDERER_CPP_NAMESPACE {
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 	  VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-	  VK_NV_EXTERNAL_MEMORY_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	  VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
 #endif
+	  /************************************************************************/
+	  // NVIDIA Specific Extensions
+	  /************************************************************************/
+	  VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
+	  /************************************************************************/
+	  // AMD Specific Extensions
+	  /************************************************************************/
 	  VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	  VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
 	  VK_AMD_GCN_SHADER_EXTENSION_NAME,
+	  /************************************************************************/
+	  // VR Extensions
+	  /************************************************************************/
+	  VK_KHR_DISPLAY_EXTENSION_NAME,
+	  VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME,
+	  /************************************************************************/
+	  /************************************************************************/
    };
 
-   // These functions will need to be loaded in
-   static PFN_vkCreateDebugReportCallbackEXT					trVkCreateDebugReportCallbackEXT = NULL;
-   static PFN_vkDestroyDebugReportCallbackEXT					trVkDestroyDebugReportCallbackEXT = NULL;
-   static PFN_vkDebugReportMessageEXT							trVkDebugReportMessageEXT = NULL;
-
-   // Function pointers loaded from debug marker extension
-   static PFN_vkDebugMarkerSetObjectTagEXT						pfnDebugMarkerSetObjectTag = NULL;
-   static PFN_vkDebugMarkerSetObjectNameEXT						pfnDebugMarkerSetObjectName = NULL;
-   static PFN_vkCmdDebugMarkerBeginEXT							pfnCmdDebugMarkerBegin = NULL;
-   static PFN_vkCmdDebugMarkerEndEXT							pfnCmdDebugMarkerEnd = NULL;
-   static PFN_vkCmdDebugMarkerInsertEXT							pfnCmdDebugMarkerInsert = NULL;
-   static bool													gDebugMarkerExtension = false;
-   static bool													gRenderDocLayerEnabled = false;
-
-   // Function pointers loaded from dedicated allocation extension
-   static PFN_vkGetBufferMemoryRequirements2KHR					pfnGetBufferMemoryRequirements2 = NULL;
-   static PFN_vkGetImageMemoryRequirements2KHR					pfnGetImageMemoryRequirements2 = NULL;
-   static bool													gDedicatedAllocationExtension = false;
-
-   // Function pointers loaded from external memory extension
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-   static PFN_vkGetMemoryWin32HandleKHR							pfnGetMemoryWin32HandleKHR = NULL;
-#endif
-   static PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV pfnvkGetPhysicalDeviceExternalImageFormatPropertiesNV = NULL;
-   static bool													gExternalMemoryExtension = false;
-
-   // Function pointers loaded from AMD draw indirect count extension
-   static PFN_vkCmdDrawIndexedIndirectCountAMD					pfnvkCmdDrawIndexedIndirectCountAMD = NULL;
-   static PFN_vkCmdDrawIndirectCountAMD							pfnvkCmdDrawIndirectCountAMD = NULL;
-   static bool													gDrawIndirectCountAMDExtension = false;
+	static bool	gDebugMarkerExtension = false;
+	static bool	gRenderDocLayerEnabled = false;
+	static bool	gDedicatedAllocationExtension = false;
+	static bool	gExternalMemoryExtension = false;
+	static bool	gDrawIndirectCountAMDExtension = false;
 	// =================================================================================================
 	// IMPLEMENTATION
 	// =================================================================================================
@@ -1398,6 +1385,13 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
 #endif
 
+			VkResult vkRes = volkInitialize();
+			if (vkRes != VK_SUCCESS)
+			{
+				LOGERROR("Failed to initialize Vulkan");
+				return;
+			}
+
 			CreateInstance(app_name, pRenderer);
 			AddDevice(pRenderer);
 
@@ -1410,6 +1404,27 @@ namespace RENDERER_CPP_NAMESPACE {
 			{
 				createInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 			}
+
+			VmaVulkanFunctions vulkanFunctions = {};
+			vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+			vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+			vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+			vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+			vulkanFunctions.vkCreateImage = vkCreateImage;
+			vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+			vulkanFunctions.vkDestroyImage = vkDestroyImage;
+			vulkanFunctions.vkFreeMemory = vkFreeMemory;
+			vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+			vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+			vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+			vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+			vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+			vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+			vulkanFunctions.vkMapMemory = vkMapMemory;
+			vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+
+			createInfo.pVulkanFunctions = &vulkanFunctions;
+
 			vmaCreateAllocator(&createInfo, &pRenderer->pVmaAllocator);
 
 			add_descriptor_heap(pRenderer, gDefaultDescriptorSets, 0, gDescriptorHeapPoolSizes, VK_DESCRIPTOR_TYPE_RANGE_SIZE, &pRenderer->pDescriptorPool);
@@ -1568,8 +1583,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pDesc != NULL);
 
 		uint32_t queueFamilyIndex = -1;
-		VkQueueFamilyProperties queueFamilyProps = {};
 		VkQueueFlags requiredFlags = util_to_vk_queue_flags(pDesc->mType);
+		uint32_t queueIndex = -1;
 		bool found = false;
 
 		// Try to find a dedicated queue of this type
@@ -1580,7 +1595,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags] < pRenderer->pVkActiveQueueFamilyProperties[index].queueCount) {
 				found = true;
 				queueFamilyIndex = index;
-				queueFamilyProps = pRenderer->pVkActiveQueueFamilyProperties[index];
+				queueIndex = pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
 				break;
 			}
 		}
@@ -1594,10 +1609,19 @@ namespace RENDERER_CPP_NAMESPACE {
 					pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags] < pRenderer->pVkActiveQueueFamilyProperties[index].queueCount) {
 					found = true;
 					queueFamilyIndex = index;
-					queueFamilyProps = pRenderer->pVkActiveQueueFamilyProperties[index];
+					queueIndex = pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
 					break;
 				}
 			}
+		}
+
+		if (!found)
+		{
+			found = true;
+			queueFamilyIndex = 0;
+			queueIndex = 0;
+
+			LOGWARNINGF("Could not find queue of type %u. Using default queue", (uint32_t)pDesc->mType);
 		}
 
 		if (found)
@@ -1607,15 +1631,13 @@ namespace RENDERER_CPP_NAMESPACE {
 			pQueueToCreate->mVkQueueFamilyIndex = queueFamilyIndex;
 			pQueueToCreate->pRenderer = pRenderer;
 			pQueueToCreate->mQueueDesc = *pDesc;
-			pQueueToCreate->mVkQueueIndex = pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
+			pQueueToCreate->mVkQueueIndex = queueIndex;
 			//get queue handle
 			vkGetDeviceQueue(pRenderer->pDevice, pQueueToCreate->mVkQueueFamilyIndex, pQueueToCreate->mVkQueueIndex, &(pQueueToCreate->pVkQueue));
 			ASSERT(VK_NULL_HANDLE != pQueueToCreate->pVkQueue);
 			*ppQueue = pQueueToCreate;
 
-#if !defined(USE_RENDER_DOC)
 			++pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
-#endif
 		}
 		else
 		{
@@ -1626,10 +1648,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	void removeQueue(Queue* pQueue)
 	{
 		ASSERT(pQueue != NULL);
-#if !defined(USE_RENDER_DOC)
 		VkQueueFlags queueFlags = pQueue->pRenderer->pVkActiveQueueFamilyProperties[pQueue->mVkQueueFamilyIndex].queueFlags;
 		--pQueue->pRenderer->mUsedQueueCount[pQueue->pRenderer->mActiveGPUIndex][queueFlags];
-#endif
 		SAFE_FREE(pQueue);
 	}
 
@@ -2303,7 +2323,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		textureDesc.mMipLevels = 1;
 		textureDesc.mSampleCount = pDesc->mSampleCount;
 		textureDesc.mSampleQuality = pDesc->mSampleQuality;
-		textureDesc.mStartState = (pDesc->mUsage == RENDER_TARGET_USAGE_COLOR) ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_DEPTH_WRITE;
+		textureDesc.mStartState = (pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_DEPTH_WRITE;
 		// Set this by default to be able to sample the rendertarget in shader
 		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
 		textureDesc.mWidth = pDesc->mWidth;
@@ -3665,7 +3685,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				pImageBarrier->subresourceRange.baseMipLevel = 0;
 				pImageBarrier->subresourceRange.levelCount = pTexture->mDesc.mMipLevels;
 				pImageBarrier->subresourceRange.baseArrayLayer = 0;
-				pImageBarrier->subresourceRange.layerCount = pTexture->mDesc.mArraySize * pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1;
+				pImageBarrier->subresourceRange.layerCount = pTexture->mDesc.mArraySize * (pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1);
 
 				pImageBarrier->srcAccessMask = util_to_vk_access_flags(pTexture->mCurrentState);
 				pImageBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
@@ -4584,13 +4604,12 @@ namespace RENDERER_CPP_NAMESPACE {
 			ASSERT(VK_SUCCESS == vk_res);
 		}
 
+		// Load Vulkan instance functions
+		volkLoadInstance(pRenderer->pVKInstance);
+
 		// Debug
 		{
-			trVkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(pRenderer->pVKInstance, "vkCreateDebugReportCallbackEXT");
-			trVkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(pRenderer->pVKInstance, "vkDestroyDebugReportCallbackEXT");
-			trVkDebugReportMessageEXT = (PFN_vkDebugReportMessageEXT)vkGetInstanceProcAddr(pRenderer->pVKInstance, "vkDebugReportMessageEXT");
-
-			if (( trVkCreateDebugReportCallbackEXT) && ( trVkDestroyDebugReportCallbackEXT) && ( trVkDebugReportMessageEXT)) {
+			if ((vkCreateDebugReportCallbackEXT) && (vkDestroyDebugReportCallbackEXT) && (vkDebugReportMessageEXT)) {
 				DECLARE_ZERO(VkDebugReportCallbackCreateInfoEXT, create_info);
 				create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
 				create_info.pNext = NULL;
@@ -4601,12 +4620,12 @@ namespace RENDERER_CPP_NAMESPACE {
 					// VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | Performance warnings are not very vaild on desktop
 					VK_DEBUG_REPORT_ERROR_BIT_EXT |
 					VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-				VkResult res = trVkCreateDebugReportCallbackEXT(pRenderer->pVKInstance, &create_info, NULL, &(pRenderer->pDebugReport));
+				VkResult res = vkCreateDebugReportCallbackEXT(pRenderer->pVKInstance, &create_info, NULL, &(pRenderer->pDebugReport));
 				if (VK_SUCCESS != res) {
 					internal_log(LOG_TYPE_ERROR, "vkCreateDebugReportCallbackEXT failed - disabling Vulkan debug callbacks", "internal_vk_init_instance");
-					trVkCreateDebugReportCallbackEXT = NULL;
-					trVkDestroyDebugReportCallbackEXT = NULL;
-					trVkDebugReportMessageEXT = NULL;
+					vkCreateDebugReportCallbackEXT = NULL;
+					vkDestroyDebugReportCallbackEXT = NULL;
+					vkDebugReportMessageEXT = NULL;
 				}
 			}
 		}
@@ -4616,8 +4635,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVKInstance);
 
-		if ((trVkDestroyDebugReportCallbackEXT) && (VK_NULL_HANDLE != pRenderer->pDebugReport)) {
-			trVkDestroyDebugReportCallbackEXT(pRenderer->pVKInstance, pRenderer->pDebugReport, NULL);
+		if ((vkDestroyDebugReportCallbackEXT) && (VK_NULL_HANDLE != pRenderer->pDebugReport)) {
+			vkDestroyDebugReportCallbackEXT(pRenderer->pVKInstance, pRenderer->pDebugReport, NULL);
 		}
 		vkDestroyInstance(pRenderer->pVKInstance, NULL);
 	}
@@ -4687,7 +4706,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				}
 			}
 
-			//if no present or no graphics queues then go to next gpu
+			//if no graphics queues then go to next gpu
 			if (graphics_queue_family_index == UINT32_MAX)
 				continue;
 
@@ -4829,25 +4848,10 @@ namespace RENDERER_CPP_NAMESPACE {
 		vk_res = vkCreateDevice(pRenderer->pActiveGPU, &create_info, NULL, &(pRenderer->pDevice));
 		ASSERT(VK_SUCCESS == vk_res);
 
-		queue_priorities.clear();
+		// Load Vulkan device functions to bypass loader
+		volkLoadDevice(pRenderer->pDevice);
 
-		// Get function pointers from loaded extensions
-		if (gDebugMarkerExtension)
-		{
-			LOGINFOF("Successfully loaded Debug Marker extension");
-			// Load debug marker functions
-			pfnDebugMarkerSetObjectTag = (PFN_vkDebugMarkerSetObjectTagEXT)vkGetDeviceProcAddr(pRenderer->pDevice, "vkDebugMarkerSetObjectTagEXT");
-			pfnDebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(pRenderer->pDevice, "vkDebugMarkerSetObjectNameEXT");
-			pfnCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDebugMarkerBeginEXT");
-			pfnCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDebugMarkerEndEXT");
-			pfnCmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDebugMarkerInsertEXT");
-		}
-		else
-		{
-#if defined(USE_RENDERDOC)
-			LOGINFO("Debug marker extension not found. Try running from inside a Vulkan graphics debugger (e.g. RenderDoc)");
-#endif
-		}
+		queue_priorities.clear();
 
 		gDedicatedAllocationExtension = dedicatedAllocationExtension && memoryReq2Extension;
 
@@ -4858,28 +4862,16 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (gDedicatedAllocationExtension)
 		{
 			LOGINFOF("Successfully loaded Dedicated Allocation extension");
-			// Load dedicated allocation functions
-			pfnGetBufferMemoryRequirements2 = (PFN_vkGetBufferMemoryRequirements2KHR)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetBufferMemoryRequirements2KHR");
-			pfnGetImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2KHR)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetImageMemoryRequirements2KHR");
 		}
 
 		if (gExternalMemoryExtension)
 		{
 			LOGINFOF("Successfully loaded External Memory extension");
-			pfnvkGetPhysicalDeviceExternalImageFormatPropertiesNV = (PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV)
-				vkGetInstanceProcAddr(pRenderer->pVKInstance, "vkGetPhysicalDeviceExternalImageFormatPropertiesNV");
-			// Load memory import export functions
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-			pfnGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(pRenderer->pDevice, "vkGetMemoryWin32HandleKHR");
-#endif
 		}
 
 		if (gDrawIndirectCountAMDExtension)
 		{
 			LOGINFOF("Successfully loaded AMD Draw Indirect extension");
-			// Load indirect draw functions which take a counter buffer to determine the number of draw commands
-			pfnvkCmdDrawIndexedIndirectCountAMD = (PFN_vkCmdDrawIndexedIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDrawIndexedIndirectCountAMD");
-			pfnvkCmdDrawIndirectCountAMD = (PFN_vkCmdDrawIndirectCountAMD)vkGetDeviceProcAddr(pRenderer->pDevice, "vkCmdDrawIndirectCountAMD");
 		}
 	}
 
@@ -4939,15 +4931,15 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		if (pCommandSignature->mDrawType == INDIRECT_DRAW)
 		{
-			if (pCounterBuffer && gDrawIndirectCountAMDExtension)
-				pfnvkCmdDrawIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
+			if (pCounterBuffer && vkCmdDrawIndirectCountAMD)
+				vkCmdDrawIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 			else
 				vkCmdDrawIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 		}
 		else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
 		{
-			if (pCounterBuffer && gDrawIndirectCountAMDExtension)
-				pfnvkCmdDrawIndexedIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
+			if (pCounterBuffer && vkCmdDrawIndexedIndirectCountAMD)
+				vkCmdDrawIndexedIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 			else
 				vkCmdDrawIndexedIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 		}
@@ -4961,7 +4953,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	/************************************************************************/
 	void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	{
-		if (pfnCmdDebugMarkerBegin)
+		if (gDebugMarkerExtension)
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
@@ -4970,7 +4962,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			markerInfo.color[2] = b;
 			markerInfo.color[3] = 1.0f;
 			markerInfo.pMarkerName = pName;
-			pfnCmdDebugMarkerBegin(pCmd->pVkCmdBuf, &markerInfo);
+			vkCmdDebugMarkerBeginEXT(pCmd->pVkCmdBuf, &markerInfo);
 		}
 	}
 	void cmdBeginDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...)
@@ -4985,15 +4977,15 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	void cmdEndDebugMarker(Cmd* pCmd)
 	{
-		if (pfnCmdDebugMarkerEnd)
+		if (gDebugMarkerExtension)
 		{
-			pfnCmdDebugMarkerEnd(pCmd->pVkCmdBuf);
+			vkCmdDebugMarkerEndEXT(pCmd->pVkCmdBuf);
 		}
 	}
 
 	void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	{
-		if (pfnCmdDebugMarkerInsert)
+		if (gDebugMarkerExtension)
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
@@ -5002,7 +4994,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			markerInfo.color[2] = b;
 			markerInfo.color[3] = 1.0f;
 			markerInfo.pMarkerName = pName;
-			pfnCmdDebugMarkerInsert(pCmd->pVkCmdBuf, &markerInfo);
+			vkCmdDebugMarkerInsertEXT(pCmd->pVkCmdBuf, &markerInfo);
 		}
 	}
 	/************************************************************************/
@@ -5014,14 +5006,14 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pBuffer);
 		ASSERT(pName);
 
-		if (pfnDebugMarkerSetObjectName)
+		if (gDebugMarkerExtension)
 		{
 			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
 			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
 			nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT;
 			nameInfo.object = (uint64_t)pBuffer->pVkBuffer;
 			nameInfo.pObjectName = pName;
-			pfnDebugMarkerSetObjectName(pRenderer->pDevice, &nameInfo);
+			vkDebugMarkerSetObjectNameEXT(pRenderer->pDevice, &nameInfo);
 		}
 	}
 
@@ -5031,14 +5023,14 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pTexture);
 		ASSERT(pName);
 
-		if (pfnDebugMarkerSetObjectName)
+		if (gDebugMarkerExtension)
 		{
 			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
 			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
 			nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
 			nameInfo.object = (uint64_t)pTexture->pVkImage;
 			nameInfo.pObjectName = pName;
-			pfnDebugMarkerSetObjectName(pRenderer->pDevice, &nameInfo);
+			vkDebugMarkerSetObjectNameEXT(pRenderer->pDevice, &nameInfo);
 		}
 	}
 	/************************************************************************/
@@ -5048,4 +5040,6 @@ namespace RENDERER_CPP_NAMESPACE {
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 } // namespace RENDERER_CPP_NAMESPACE
 #endif
+
+#include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
 #endif

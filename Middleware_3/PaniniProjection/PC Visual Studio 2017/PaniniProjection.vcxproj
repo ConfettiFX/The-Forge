@@ -147,94 +147,40 @@
     <ClInclude Include="../AppPanini.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\Shaders\PCVulkan\panini_projection.frag">
+    <CustomBuild Include="..\Shaders\PCVulkan\panini_projection.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-$(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
+"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"
+</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
 $(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-$(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-$(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin;%(Outputs)</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
     </CustomBuild>
-    <CustomBuild Include="..\..\Shaders\PCVulkan\panini_projection.vert">
+    <CustomBuild Include="..\Shaders\PCVulkan\panini_projection.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-$(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
+"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"
+</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
 $(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-$(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-$(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%(Filename)%(Extension).bin</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(Identity)\..\Binary\%(Filename)%(Extension).bin;%(Outputs)</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Shaders\PCDX12\panini_projection.frag">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-fxc.exe %(FullPath) /E VSMain /T vs_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).vert.bin
-fxc.exe %(FullPath) /E PSMain /T ps_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).frag.bin</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to hlsl bytecode</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename).vert.bin;%(FullPath)\..\Binary\%(Filename).frag.bin;%(Outputs)</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-fxc.exe %(FullPath) /E VSMain /T vs_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).vert.bin
-fxc.exe %(FullPath) /E PSMain /T ps_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).frag.bin</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to hlsl bytecode</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename).vert.bin;%(FullPath)\..\Binary\%(Filename).frag.bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-    </None>
-    <None Include="..\..\Shaders\PCDX12\panini_projection.vert">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-fxc.exe %(FullPath) /E VSMain /T vs_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).vert.bin
-fxc.exe %(FullPath) /E PSMain /T ps_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).frag.bin</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to hlsl bytecode</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename).vert.bin;%(FullPath)\..\Binary\%(Filename).frag.bin;%(Outputs)</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat"
-fxc.exe %(FullPath) /E VSMain /T vs_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).vert.bin
-fxc.exe %(FullPath) /E PSMain /T ps_5_1 $(HLSLCompileFlags) /Fo %(FullPath)\..\Binary\%(Filename).frag.bin</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to hlsl bytecode</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename).vert.bin;%(FullPath)\..\Binary\%(Filename).frag.bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-    </None>
+    <None Include="..\Shaders\PCDX12\panini_projection.frag" />
+    <None Include="..\Shaders\PCDX12\panini_projection.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

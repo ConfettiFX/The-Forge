@@ -150,10 +150,10 @@ typedef struct GpuProfileDrawDesc
 typedef struct UISettings
 {
 	const char* pDefaultFontName;
-
 	TextDrawDesc mDefaultFrameTimeTextDrawDesc	= TextDrawDesc(0, 0xff00ffff, 18);
 	TextDrawDesc mDefaultTextDrawDesc			= TextDrawDesc(0, 0xffffffff, 16);
 	GpuProfileDrawDesc mDefaultGpuProfileDrawDesc;
+	float mMaxFontSize							= 0.0f; // if 0, UI Manager will assign 51.2f as default value. Internal font texture size will be fontsize * 10.0f
 } UISettings;
 
 typedef struct GuiDesc

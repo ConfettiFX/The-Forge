@@ -692,6 +692,101 @@ inline void print(const Point2 & pnt, const char * name)
 
 #endif // VECTORMATH_DEBUG
 
+//========================================= #ConfettiMathExtensionsBegin ================================================
+
+// ========================================================
+// A 2x2 matrix in array-of-structures format
+// ========================================================
+struct Matrix2
+{
+	Vector2 mCol0;
+	Vector2 mCol1;
+
+	Matrix2() {}
+	Matrix2(const Vector2 &col0, const Vector2 &col1) 
+	{
+		mCol0 = col0;
+		mCol1 = col1;
+	}
+	Matrix2(const float m00, const float m01, const float m10, const float m11) 
+	{
+		mCol0 = Vector2(m00, m10);
+		mCol1 = Vector2(m01, m11);
+	}
+
+	const Vector2 getCol(int col) const;
+	float getElem(int col, int row) const;
+
+	static inline const Matrix2 identity() { return Matrix2(1, 0, 0, 1); }
+	static inline const Matrix2 rotate(const float radians);
+};
+
+inline Matrix2 operator + (const Matrix2 &m, const Matrix2 &n);
+inline Matrix2 operator - (const Matrix2 &m, const Matrix2 &n);
+inline Matrix2 operator - (const Matrix2 &m);
+
+inline Matrix2 operator * (const Matrix2 &m, const Matrix2 &n);
+inline Vector2 operator * (const Matrix2 &m, const Vector2 &v);
+inline Matrix2 operator * (const Matrix2 &m, const float x);
+
+inline float det(const Matrix2 &m);
+inline Matrix2 operator ! (const Matrix2 &m);
+
+
+
+// ================================================================================================
+// Matrix2 implementation
+// ================================================================================================
+
+inline Matrix2 operator + (const Matrix2 &m, const Matrix2 &n) { return Matrix2(m.mCol0 + n.mCol0, m.mCol1 + n.mCol1); }
+inline Matrix2 operator - (const Matrix2 &m, const Matrix2 &n) { return Matrix2(m.mCol0 - n.mCol0, m.mCol1 - n.mCol1); }
+inline Matrix2 operator - (const Matrix2 &m) { return Matrix2(-m.mCol0, -m.mCol1); }
+
+/*
+[q,		r			]
+[s,		t			]
+[a,b][a*q+b*s,	a*r+b*t		]
+[c,d][c*q+d*s,	c*r+b*t		]
+*/
+
+inline Matrix2 operator * (const Matrix2 &m, const Matrix2 &n) 
+{
+	return Matrix2(
+		m.getCol(0)*n.getCol(0).getX() + m.getCol(1)*n.getCol(0).getY(),
+		m.getCol(0)*n.getCol(1).getX() + m.getCol(1)*n.getCol(1).getY()
+	);
+}
+
+inline Vector2 operator * (const Matrix2 &m, const Vector2 &v) { return Vector2(m.mCol0*v.getX() + m.mCol1*v.getY()); }
+inline Matrix2 operator * (const Matrix2 &m, const float x)    { return Matrix2(m.mCol0 * x, m.mCol1 * x); }
+inline float det(const Matrix2 &m) { return (m.mCol0.getX() * m.mCol1.getY() - m.mCol1.getX() * m.mCol0.getY()); }
+
+inline Matrix2 operator ! (const Matrix2 &m) 
+{
+	float invDet = 1.0f / det(m);
+
+	return Matrix2(
+		m.mCol1.getY(), -m.mCol1.getX(),
+		-m.mCol0.getY(), m.mCol0.getX()) * invDet;
+}
+
+inline const Matrix2 Matrix2::rotate(const float angle)
+{
+	float cosA = cosf(angle), sinA = sinf(angle);
+	return Matrix2(cosA, sinA, -sinA, cosA);
+}
+
+inline const Vector2 Matrix2::getCol(int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline float Matrix2::getElem(int col, int row) const
+{
+	return getCol(col)[row];
+}
+//========================================= #ConfettiMathExtensionsEnd ==================================================
+
 } // namespace Vectormath
 
 #endif // VECTORMATH_VEC2D_HPP

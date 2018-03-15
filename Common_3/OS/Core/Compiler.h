@@ -36,7 +36,6 @@
 #endif
 
 
-//TODO: This can probably be put in a better file
 #if __cplusplus >= 201103
 #define DEFINE_ALIGNED(def, a) alignas(a) def
 #else

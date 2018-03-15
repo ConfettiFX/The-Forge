@@ -37,8 +37,7 @@
 #if defined(_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
-
-#include <vulkan/vulkan.h>
+#include "../../Common_3/ThirdParty/OpenSource/volk/volk.h"
 #elif defined(METAL)
 #import <MetalKit/MetalKit.h>
 #endif

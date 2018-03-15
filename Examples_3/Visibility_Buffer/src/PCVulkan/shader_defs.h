@@ -71,14 +71,7 @@
 // Size for the material buffer assuming each draw call uses one material index.
 // The 4 values here stands for the 4 types of rendering passes used in the demo:
 // alpha_tested_view0, opaque_view0, alpha_tested_view1, opaque_view1
-#define MATERIAL_BUFFER_SIZE (MAX_DRAWS_INDIRECT*4)
-
-// These values are offsets used to point to the material data depending on the 
-// type of geometry and on the culling view
-#define MATERIAL_BASE_ALPHA0 0
-#define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
-#define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
-#define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
+#define MATERIAL_BUFFER_SIZE (MAX_DRAWS_INDIRECT * 2 * NUM_CULLING_VIEWPORTS)
 
 // This function is used to get the offset of the current material base index depending
 // on the type of geometry and on the culling view.
@@ -88,18 +81,7 @@ static uint BaseMaterialBuffer(bool alpha, uint viewID)
 uint BaseMaterialBuffer(bool alpha, uint viewID)
 #endif
 {
-	if (alpha) {
-		if (viewID == 0)
-			return MATERIAL_BASE_ALPHA0;
-		else
-			return MATERIAL_BASE_ALPHA1;
-	}
-	else {
-		if (viewID == 0)
-			return MATERIAL_BASE_NOALPHA0;
-		else
-			return MATERIAL_BASE_NOALPHA1;
-	}
+	return (viewID * 2 + (alpha ? 0 : 1)) * MAX_DRAWS_INDIRECT;
 }
 
 struct RootConstant

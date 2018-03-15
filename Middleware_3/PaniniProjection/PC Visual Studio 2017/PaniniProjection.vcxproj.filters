@@ -20,14 +20,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\Shaders\PCVulkan\panini_projection.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\..\Shaders\PCVulkan\panini_projection.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="../AppPanini.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -38,10 +30,18 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Shaders\PCDX12\panini_projection.frag">
+    <CustomBuild Include="..\Shaders\PCVulkan\panini_projection.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\Shaders\PCVulkan\panini_projection.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shaders\PCDX12\panini_projection.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\..\Shaders\PCDX12\panini_projection.vert">
+    <None Include="..\Shaders\PCDX12\panini_projection.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
   </ItemGroup>

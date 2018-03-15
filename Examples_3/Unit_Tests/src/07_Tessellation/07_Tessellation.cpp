@@ -42,7 +42,6 @@
 #include "../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
-#include "../../Common_3/OS/Math/Noise.h"
 #include "../../Common_3/OS/Math/MathTypes.h"
 
 //ui
@@ -163,6 +162,20 @@ HiresTimer gTimer;
 #error PLATFORM NOT SUPPORTED
 #endif
 
+#ifdef _DURANGO
+// Durango load assets from 'Layout\Image\Loose'
+const char* pszRoots[] =
+{
+	"Shaders/Binary/",	// FSR_BinShaders
+	"Shaders/",		// FSR_SrcShaders
+	"Shaders/Binary/",			// FSR_BinShaders_Common
+	"Shaders/",					// FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",						// FSR_Meshes
+	"Fonts/",						// FSR_Builtin_Fonts
+	"",															// FSR_OtherFiles
+};
+#else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
@@ -175,6 +188,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
 	"",															// FSR_OtherFiles
 };
+#endif
 
 const uint32_t	 gImageCount = 3;
 
@@ -594,10 +608,12 @@ public:
 
 		pCameraController->setMotionParameters(cmp);
 
+#if !defined(_DURANGO)
 		registerRawMouseMoveEvent(cameraMouseMove);
 		registerMouseButtonEvent(cameraMouseButton);
 		registerMouseWheelEvent(cameraMouseWheel);
-        
+#endif
+
 #ifdef TARGET_IOS
         registerTouchEvent(cameraTouch);
         registerTouchMoveEvent(cameraTouchMove);
@@ -713,10 +729,12 @@ public:
 		/************************************************************************/
 #if USE_CAMERACONTROLLER
 #ifndef TARGET_IOS
+#if !defined(_DURANGO)
 		if (getKeyDown(KEY_F))
 		{
 			RecenterCameraView(170.0f);
 		}
+#endif
 #endif
 
 		pCameraController->update(deltaTime);
@@ -1057,6 +1075,7 @@ public:
 
 	/// Camera controller functionality
 #if USE_CAMERACONTROLLER
+#if !defined(_DURANGO)
 	static bool cameraMouseMove(const RawMouseMoveEventData* data)
 	{
 		pCameraController->onMouseMove(data);
@@ -1074,7 +1093,8 @@ public:
 		pCameraController->onMouseWheel(data);
 		return true;
 	}
-    
+#endif
+
 #ifdef TARGET_IOS
     static bool cameraTouch(const TouchEventData* data)
     {

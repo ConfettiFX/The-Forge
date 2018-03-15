@@ -48,31 +48,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\FloatUtil.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\half.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\IntersectionHelpers.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\mat2.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\mat3.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\mat4.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\Noise.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\vmInclude.h">
       <Filter>OS\Math</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h">
@@ -114,38 +90,17 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\Fontstash.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\float2.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\float3.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\float4.h">
-      <Filter>OS\Math</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Math\FloatUtil.cpp">
-      <Filter>OS\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Math\half.cpp">
-      <Filter>OS\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Math\IntersectionHelpers.cpp">
-      <Filter>OS\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Math\mat2.cpp">
-      <Filter>OS\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Math\Noise.cpp">
-      <Filter>OS\Math</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>

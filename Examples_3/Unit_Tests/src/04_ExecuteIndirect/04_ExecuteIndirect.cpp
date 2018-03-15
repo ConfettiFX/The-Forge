@@ -115,8 +115,8 @@ const char* pszRoots[] =
 {
     "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/Binary/",		// FSR_BinShaders
     "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/",			// FSR_SrcShaders
-    "../../../../../Middleware_3/Shaders/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders_Common
-    "../../../../../Middleware_3/Shaders/" RESOURCE_DIR "/",		// FSR_SrcShaders_Common
+    "../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders_Common
+    "../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/",		// FSR_SrcShaders_Common
     "../../../UnitTestResources/Textures/",							// FSR_Textures
     "../../../UnitTestResources/Meshes/",							// FSR_Meshes
     "../../../UnitTestResources/Fonts/",							// FSR_Builtin_Fonts
@@ -398,6 +398,8 @@ public:
 		postProcRTDesc.mType = RENDER_TARGET_TYPE_2D;
 		postProcRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
+
+
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -730,6 +732,7 @@ public:
 			0
 		};
 
+		
 		UIProperty renderingModeProp = UIProperty("Rendering Mode: ", gRenderingMode, enumNames, enumValues);
 		UIProperty useThreadsProp = UIProperty("Multithreaded CPU Update", gUseThreads);
 
@@ -763,7 +766,14 @@ public:
 #endif
 
 #ifndef TARGET_IOS
-		gPanini.Init(pRenderer, pSwapChain->ppSwapchainRenderTargets[0], pGuiWindow, paniniToggleCallback);
+
+		gPanini.Init(pRenderer, pGraphicsQueue, nullptr, pGuiWindow, pGpuProfiler);
+		gPanini.SetCallbackToggle(paniniToggleCallback);
+
+		RenderTarget* rts[1];
+		rts[0] = pIntermediateRenderTarget;
+		bool bSuccess = gPanini.Load(rts);
+		gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
 #endif
 
 		return true;
@@ -774,7 +784,7 @@ public:
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
 
 #ifndef TARGET_IOS
-		gPanini.Exit(pRenderer);
+		gPanini.Exit();
 #endif
 
 		removeRenderTarget(pRenderer, pDepthBuffer);
@@ -896,9 +906,13 @@ public:
 		postProcRTDesc.mType = RENDER_TARGET_TYPE_2D;
 		postProcRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
+
 		
 #ifndef TARGET_IOS
-		bool bSuccess = gPanini.Load();
+		RenderTarget* rts[1];
+		rts[0] = pIntermediateRenderTarget;
+		bool bSuccess = gPanini.Load(rts);
+		gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
 #else
         bool bSuccess = true;
 #endif
@@ -953,7 +967,8 @@ public:
 
 		updateGui(pUIManager, pGuiWindow, deltaTime);
 #ifndef TARGET_IOS
-		gPanini.Update(&gHorizontalFoV);
+		gPanini.SetFovPtr(&gHorizontalFoV);
+		gPanini.Update(deltaTime);
 #endif
 	}
 
@@ -1125,11 +1140,18 @@ public:
 			computeParams[3].ppBuffers = &pIndirectBuffer[frameIdx];
 			cmdBindDescriptors(cmd, pComputeRoot, 4, computeParams);
 
+			BufferBarrier uavBarrier = { pIndirectBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS };
+			cmdResourceBarrier(cmd, 1, &uavBarrier, 0, NULL, false);
+
 			cmdBindPipeline(cmd, pComputePipeline);
 			cmdDispatch(cmd, uint32_t(ceil(gNumAsteroids / 128.0f)), 1, 1);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Asteroid rendering");
+
+			BufferBarrier srvBarrier = { pIndirectBuffer[gFrameIndex], RESOURCE_STATE_INDIRECT_ARGUMENT };
+			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL, false);
+
 			// Execute indirect
 			cmdBeginRender(cmd, 1, &pSceneRenderTarget, pDepthBuffer);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -1190,10 +1212,10 @@ public:
 		cmdBeginRender(cmd, 1, &pSwapchainRenderTarget, NULL, pLoadAction);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSwapchainRenderTarget->mDesc.mWidth, (float)pSwapchainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSwapchainRenderTarget->mDesc.mWidth, pSwapchainRenderTarget->mDesc.mHeight);
-
+		
 		if (gbPaniniEnabled)
 		{
-			gPanini.Draw(cmd, pIntermediateRenderTarget->pTexture, pGpuProfiler);
+			gPanini.Draw(cmd);
 			//cmdEndRender(cmd, 1, &pSwapchainRenderTarget, NULL);
 		}
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
