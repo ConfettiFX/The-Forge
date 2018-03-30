@@ -29,8 +29,10 @@ typedef struct GpuTimer
 	const static int32_t LENGTH_OF_HISTORY = 60;
 	tinystl::string mName;
 	uint32_t		mIndex;
-	uint32_t        mHistoryIndex;
+	uint32_t		mHistoryIndex;
 
+	int64_t			mStartGpuTime;
+	int64_t			mEndGpuTime;
 	int64_t			mGpuTime;
 	int64_t			mGpuHistory[LENGTH_OF_HISTORY];
 	

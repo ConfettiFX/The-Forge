@@ -58,7 +58,10 @@ void addUIManagerInterface(Renderer* pRenderer, const UISettings* pUISettings, U
 		// as they query the fontstash using this identifier to get the default font ID.
 		//  - UIAppComponentTextOnly
 		//  - NuklearGUIDriver
-		uint32 uiMaxFrontSize = pUISettings->mMaxFontSize ? uint32(pUISettings->mMaxFontSize * 10.0f) : 512; // see fontstash.h, line 1271, for fontSize calculation
+
+		// Figure out the max font size for the current configuration
+		uint32 uiMaxFrontSize = pUISettings->mMaxFontSize ? uint32(pUISettings->mMaxFontSize) : uint32(UIMaxFontSize::UI_MAX_FONT_SIZE_512);
+		// Add and initialize the fontstash 
 		pUIManager->mDefaultFontstashID = pUIManager->pUIRenderer->addFontstash(uiMaxFrontSize, uiMaxFrontSize);
 		Fontstash* pFont = pUIManager->pUIRenderer->getFontstash(pUIManager->mDefaultFontstashID);
 #ifndef TARGET_IOS

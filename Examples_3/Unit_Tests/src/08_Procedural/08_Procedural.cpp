@@ -272,12 +272,6 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 #endif
 
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
 		TextureLoadDesc textureDesc = {};
 #ifndef TARGET_IOS
 		textureDesc.mRoot = FSR_Textures;
@@ -349,68 +343,6 @@ public:
 		bgVbDesc.pData = bgVertex;
 		bgVbDesc.ppBuffer = &pBGVertexBuffer;
 		addResource(&bgVbDesc);
-
-		// Create vertex layout
-		VertexLayout vertexLayoutSphere = {};
-		vertexLayoutSphere.mAttribCount = 2;
-
-		vertexLayoutSphere.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutSphere.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayoutSphere.mAttribs[0].mBinding = 0;
-		vertexLayoutSphere.mAttribs[0].mLocation = 0;
-		vertexLayoutSphere.mAttribs[0].mOffset = 0;
-
-		vertexLayoutSphere.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayoutSphere.mAttribs[1].mFormat = ImageFormat::RGB32F;
-		vertexLayoutSphere.mAttribs[1].mBinding = 0;
-		vertexLayoutSphere.mAttribs[1].mLocation = 1;
-		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
-
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-		pipelineSettings.pRootSignature = pRootSigBRDF;
-		pipelineSettings.pShaderProgram = pShaderBRDF;
-		pipelineSettings.pVertexLayout = &vertexLayoutSphere;
-		pipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
-
-		// Create vertex layout
-		VertexLayout vertexLayoutBG = {};
-		vertexLayoutBG.mAttribCount = 2;
-
-		vertexLayoutBG.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutBG.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayoutBG.mAttribs[0].mBinding = 0;
-		vertexLayoutBG.mAttribs[0].mLocation = 0;
-		vertexLayoutBG.mAttribs[0].mOffset = 0;
-
-		vertexLayoutBG.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayoutBG.mAttribs[1].mFormat = ImageFormat::RGB32F;
-		vertexLayoutBG.mAttribs[1].mBinding = 0;
-		vertexLayoutBG.mAttribs[1].mLocation = 1;
-		vertexLayoutBG.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
-
-		GraphicsPipelineDesc pipelineSettingsBG = { 0 };
-		pipelineSettingsBG.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettingsBG.mRenderTargetCount = 1;
-		pipelineSettingsBG.pDepthState = pDepth;
-		pipelineSettingsBG.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettingsBG.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettingsBG.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettingsBG.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettingsBG.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-		pipelineSettingsBG.pRootSignature = pRootSigBG;
-		pipelineSettingsBG.pShaderProgram = pShaderBG;
-		pipelineSettingsBG.pVertexLayout = &vertexLayoutBG;
-		pipelineSettingsBG.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettingsBG, &pPipelineBG);
 
 		// Create a screenSize uniform buffer
 
@@ -555,10 +487,6 @@ public:
 #endif
 #endif
 
-#if defined(VULKAN)
-		transitionRenderTargets();
-#endif
-
 		return true;
 	}
 
@@ -609,16 +537,12 @@ public:
 		removeDepthState(pDepth);
 		removeResource(pEnvTex);
 
-		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeRasterizerState(pRasterstateDefault);
 
 		removeSampler(pRenderer, pSamplerEnv);
 
 		removeShader(pRenderer, pShaderBRDF);
 		removeShader(pRenderer, pShaderBG);
-
-		removePipeline(pRenderer, pPipelineBRDF);
-		removePipeline(pRenderer, pPipelineBG);
 
 		removeRootSignature(pRenderer, pRootSigBRDF);
 		removeRootSignature(pRenderer, pRootSigBG);
@@ -630,7 +554,6 @@ public:
 		// Remove resource loader and renderer
 		removeResourceLoaderInterface(pRenderer);
 
-		removeSwapChain(pRenderer, pSwapChain);
 		removeQueue(pGraphicsQueue);
 
 		removeRenderer(pRenderer);
@@ -644,12 +567,82 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
+		// Create vertex layout
+		VertexLayout vertexLayoutSphere = {};
+		vertexLayoutSphere.mAttribCount = 2;
+
+		vertexLayoutSphere.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutSphere.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutSphere.mAttribs[0].mBinding = 0;
+		vertexLayoutSphere.mAttribs[0].mLocation = 0;
+		vertexLayoutSphere.mAttribs[0].mOffset = 0;
+
+		vertexLayoutSphere.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayoutSphere.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayoutSphere.mAttribs[1].mBinding = 0;
+		vertexLayoutSphere.mAttribs[1].mLocation = 1;
+		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
+
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = pDepth;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pRootSignature = pRootSigBRDF;
+		pipelineSettings.pShaderProgram = pShaderBRDF;
+		pipelineSettings.pVertexLayout = &vertexLayoutSphere;
+		pipelineSettings.pRasterizerState = pRasterstateDefault;
+		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
+
+		// Create vertex layout
+		VertexLayout vertexLayoutBG = {};
+		vertexLayoutBG.mAttribCount = 2;
+
+		vertexLayoutBG.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutBG.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutBG.mAttribs[0].mBinding = 0;
+		vertexLayoutBG.mAttribs[0].mLocation = 0;
+		vertexLayoutBG.mAttribs[0].mOffset = 0;
+
+		vertexLayoutBG.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayoutBG.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayoutBG.mAttribs[1].mBinding = 0;
+		vertexLayoutBG.mAttribs[1].mLocation = 1;
+		vertexLayoutBG.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
+
+		GraphicsPipelineDesc pipelineSettingsBG = { 0 };
+		pipelineSettingsBG.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettingsBG.mRenderTargetCount = 1;
+		pipelineSettingsBG.pDepthState = pDepth;
+		pipelineSettingsBG.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettingsBG.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettingsBG.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettingsBG.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettingsBG.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettingsBG.pRootSignature = pRootSigBG;
+		pipelineSettingsBG.pShaderProgram = pShaderBG;
+		pipelineSettingsBG.pVertexLayout = &vertexLayoutBG;
+		pipelineSettingsBG.pRasterizerState = pRasterstateDefault;
+		addPipeline(pRenderer, &pipelineSettingsBG, &pPipelineBG);
+
+#if defined(VULKAN)
+		transitionRenderTargets();
+#endif
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+
+		removePipeline(pRenderer, pPipelineBRDF);
+		removePipeline(pRenderer, pPipelineBG);
+
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
 	}

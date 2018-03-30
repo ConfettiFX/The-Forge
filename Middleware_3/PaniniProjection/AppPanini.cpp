@@ -251,11 +251,6 @@ void AppPanini::Exit()
 
 	removeResource(pVertexBufferTessellatedQuad);
 	removeResource(pIndexBufferTessellatedQuad);
-
-	if (pPipelinePaniniPostProcess)
-	{
-		removePipeline(pRendererPanini, pPipelinePaniniPostProcess);
-	}
 }
 
 bool AppPanini::Load(RenderTarget** rts)

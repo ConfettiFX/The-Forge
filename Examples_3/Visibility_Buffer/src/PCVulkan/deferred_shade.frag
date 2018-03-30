@@ -63,27 +63,25 @@ void main()
 {
 	// Load gBuffer data from render target
 #if(SAMPLE_COUNT > 1)
-    vec4 normalData = texelFetch(sampler2DMS(gBufferNormal, depthSampler),ivec2(gl_FragCoord.xy), gl_SampleID);
+	float  depth = texelFetch(sampler2DMS(gBufferDepth, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID).r;
 #else
-    vec4 normalData = texelFetch(sampler2D(gBufferNormal, depthSampler), ivec2(gl_FragCoord.xy), 0);
+    float depth = texelFetch(sampler2D(gBufferDepth, depthSampler), ivec2(gl_FragCoord.xy), 0).r;
 #endif
-
-	if (normalData.x == 0 && normalData.y == 0 && normalData.z == 0)
-	{
+	// Since we don't have a skydome, this code is added here to avoid shading the sky.
+  	if (depth == 1.0f)
+    {
 		discard;
-		return;
-	}
-
+    }
 #if(SAMPLE_COUNT > 1)
 	vec3 colorData = texelFetch(sampler2DMS(gBufferColor, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID).rgb;
     vec4 specularData = texelFetch(sampler2DMS(gBufferSpecular, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID);
 	vec4 simulation = texelFetch(sampler2DMS(gBufferSimulation, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID);
-    float  depth = texelFetch(sampler2DMS(gBufferDepth, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID).r;
+    vec4 normalData = texelFetch(sampler2DMS(gBufferNormal, depthSampler),ivec2(gl_FragCoord.xy), gl_SampleID);
 #else
 	vec3 colorData = texelFetch(sampler2D(gBufferColor, depthSampler), ivec2(gl_FragCoord.xy), 0).rgb;
     vec4 specularData = texelFetch(sampler2D(gBufferSpecular, depthSampler), ivec2(gl_FragCoord.xy), 0);
 	vec4 simulation = texelFetch(sampler2D(gBufferSimulation, depthSampler), ivec2(gl_FragCoord.xy), 0);
-    float depth = texelFetch(sampler2D(gBufferDepth, depthSampler), ivec2(gl_FragCoord.xy), 0).r;
+    vec4 normalData = texelFetch(sampler2D(gBufferNormal, depthSampler), ivec2(gl_FragCoord.xy), 0);
 #endif
 
 #if USE_AMBIENT_OCCLUSION

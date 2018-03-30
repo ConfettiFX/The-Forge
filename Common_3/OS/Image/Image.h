@@ -110,7 +110,8 @@ public:
   // Image Format Loading from mData
   bool iLoadDDSFromMemory(const char* memory, uint32_t memsize, const bool useMipMaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
   bool iLoadPVRFromMemory(const char* memory, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-  bool iLoadKTXFromMemory(const char* memory, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
+  // #TODO: Implement this method
+  //bool iLoadKTXFromMemory(const char* memory, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
   bool iLoadSTBIFromMemory(const char *buffer, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
   bool iLoadSTBIFP32FromMemory(const char *buffer, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
   bool iLoadEXRFP32FromMemory(const char *buffer, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);

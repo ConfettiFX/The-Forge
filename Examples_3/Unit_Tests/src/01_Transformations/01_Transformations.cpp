@@ -204,12 +204,6 @@ public:
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 
 		// Loads Skybox Textures
@@ -275,35 +269,6 @@ public:
 		// Need to free memory;
 		conf_free(pSpherePoints);
 
-		//layout and pipeline for sphere draw
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGB32F;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pSphereShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
-		addPipeline(pRenderer, &pipelineSettings, &pSpherePipeline);
-
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
 			10.0f,  -10.0f, -10.0f,6.0f, // -z
@@ -358,20 +323,6 @@ public:
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
 		addResource(&skyboxVbDesc);
-
-		//layout and pipeline for skybox draw
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 1;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
-		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
@@ -557,15 +508,11 @@ public:
         
 		removeSampler(pRenderer, pSamplerSkyBox);
 		removeShader(pRenderer, pSphereShader);
-		removePipeline(pRenderer, pSpherePipeline);
 		removeShader(pRenderer, pSkyBoxDrawShader);
-		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removeRootSignature(pRenderer, pRootSignature);
 
 		removeDepthState(pDepth);
 		removeRasterizerState(pSkyboxRast);
-
-		Unload();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -590,12 +537,59 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
+		//layout and pipeline for sphere draw
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = pDepth;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pSphereShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRasterizerState = pSkyboxRast;
+		addPipeline(pRenderer, &pipelineSettings, &pSpherePipeline);
+
+		//layout and pipeline for skybox draw
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 1;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		pipelineSettings.pDepthState = NULL;
+		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
+		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+
+		removePipeline(pRenderer, pSkyBoxDrawPipeline);
+		removePipeline(pRenderer, pSpherePipeline);
+
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
 	}

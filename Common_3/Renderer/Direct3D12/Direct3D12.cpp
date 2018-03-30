@@ -79,6 +79,17 @@ extern "C"
 namespace RENDERER_CPP_NAMESPACE {
 #endif
 
+	// Array used to translate 'Filter' into 'D3D12_PRIMITIVE_TOPOLOGY'
+	const D3D12_FILTER gDX12FilterTranslator[] =
+	{
+		D3D12_FILTER_MIN_MAG_MIP_POINT,
+		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
+		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+		D3D12_FILTER_ANISOTROPIC,
+		D3D12_FILTER_ANISOTROPIC
+	};
+
 	D3D12_BLEND_OP gDx12BlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
 	{
 		D3D12_BLEND_OP_ADD,
@@ -4668,35 +4679,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	bool isImageFormatSupported(ImageFormat::Enum format)
 	{
-		//verifies that given image format is valid
-		bool result = false;
-		switch (format) {
-			// 1 channel
-		case ImageFormat::R8: result = true; break;
-		case ImageFormat::R16: result = true; break;
-		case ImageFormat::R16F: result = true; break;
-		case ImageFormat::R32UI: result = true; break;
-		case ImageFormat::R32F: result = true; break;
-			// 2 channel
-		case ImageFormat::RG8: result = true; break;
-		case ImageFormat::RG16: result = true; break;
-		case ImageFormat::RG16F: result = true; break;
-		case ImageFormat::RG32UI: result = true; break;
-		case ImageFormat::RG32F: result = true; break;
-			// 3 channel
-		case ImageFormat::RGB8: result = true; break;
-		case ImageFormat::RGB16: result = true; break;
-		case ImageFormat::RGB16F: result = true; break;
-		case ImageFormat::RGB32UI: result = true; break;
-		case ImageFormat::RGB32F: result = true; break;
-			// 4 channel
-		case ImageFormat::RGBA8: result = true; break;
-		case ImageFormat::RGBA16: result = true; break;
-		case ImageFormat::RGBA16F: result = true; break;
-		case ImageFormat::RGBA32UI: result = true; break;
-		case ImageFormat::RGBA32F: result = true; break;
-		}
-		return result;
+		return gDX12FormatTranslator[format] != DXGI_FORMAT_UNKNOWN;
 	}
 
 	uint32_t calculateVertexLayoutStride(const VertexLayout* pVertexLayout)
@@ -4745,28 +4728,17 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 		return result;
 	}
-	// Array used to translate 'Filter' into 'D3D12_PRIMITIVE_TOPOLOGY'
-	const D3D12_FILTER gDX12FilterTranslator[] =
-	{
-		D3D12_FILTER_MIN_MAG_MIP_POINT,
-		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
-		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
-		D3D12_FILTER_MIN_MAG_MIP_LINEAR,
-		D3D12_FILTER_ANISOTROPIC,
-		D3D12_FILTER_ANISOTROPIC
-	};
-
 	// -------------------------------------------------------------------------------------------------
 	// Internal utility functions
 	// -------------------------------------------------------------------------------------------------
 	D3D12_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode  mipMapMode)
 	{
-    UNREF_PARAM(magFilter);
-    UNREF_PARAM(mipMapMode);
+		UNREF_PARAM(magFilter);
+		UNREF_PARAM(mipMapMode);
 		return gDX12FilterTranslator[minFilter];
 		
 #if 0 //Unreachable
-    // control bit : minFilter  magFilter   mipMapMode
+		// control bit : minFilter  magFilter   mipMapMode
 		//     point   :     00         00          00
 		//     linear  :     01         01          01
 		// ex : trilinear == 010101

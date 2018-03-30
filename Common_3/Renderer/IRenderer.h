@@ -678,6 +678,10 @@ typedef struct Buffer {
 } Buffer;
 
 typedef struct ClearValue {
+// Anonymous structures generates warnings in C++11. 
+// See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs
+#pragma warning( push )
+#pragma warning( disable : 4201) // warning C4201: nonstandard extension used: nameless struct/union
 	union {
 		struct {
 			float r;
@@ -690,6 +694,7 @@ typedef struct ClearValue {
 			uint32 stencil;
 		};
 	};
+#pragma warning( pop )
 } ClearValue;
 
 typedef struct LoadActionsDesc {

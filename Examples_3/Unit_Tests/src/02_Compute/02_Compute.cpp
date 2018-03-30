@@ -200,12 +200,6 @@ public:
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-
-		if (!addSwapChain())
-			return false;
-
-		if (!addJuliaFractalUAV())
-			return false;
         
 #ifdef TARGET_IOS
         // Add virtual joystick texture.
@@ -235,21 +229,6 @@ public:
 		addRootSignature(pRenderer, 1, &pShader, &pRootSignature, &rootDesc);
 
 		addRootSignature(pRenderer, 1, &pComputeShader, &pComputeRootSignature);
-
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 0;
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.pRasterizerState = pRast;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pShader;
-		addPipeline(pRenderer, &pipelineSettings, &pPipeline);
 
 		ComputePipelineDesc computePipelineDesc = { 0 };
 		computePipelineDesc.pRootSignature = pComputeRootSignature;
@@ -331,8 +310,6 @@ public:
 
 		removeUIManagerInterface(pRenderer, pUIManager);
 
-		Unload();
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
@@ -352,7 +329,6 @@ public:
 
 		removeShader(pRenderer, pShader);
 		removeShader(pRenderer, pComputeShader);
-		removePipeline(pRenderer, pPipeline);
 		removePipeline(pRenderer, pComputePipeline);
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pComputeRootSignature);
@@ -371,12 +347,30 @@ public:
 		if (!addJuliaFractalUAV())
 			return false;
 
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 0;
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.pRasterizerState = pRast;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pShader;
+		addPipeline(pRenderer, &pipelineSettings, &pPipeline);
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+
+		removePipeline(pRenderer, pPipeline);
+
 		removeResource(pTextureComputeOutput);
 		removeSwapChain(pRenderer, pSwapChain);
 	}

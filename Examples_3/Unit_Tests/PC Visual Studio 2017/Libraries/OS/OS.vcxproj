@@ -35,7 +35,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\ImageKTXImpl.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />

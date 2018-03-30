@@ -377,30 +377,6 @@ public:
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
 
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
-#if defined(VULKAN)
-		transitionRenderTargets();
-#endif
-		RenderTargetDesc postProcRTDesc = {};
-		postProcRTDesc.mArraySize = 1;
-		postProcRTDesc.mClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
-		postProcRTDesc.mDepth = 1;
-		postProcRTDesc.mFormat = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		postProcRTDesc.mHeight = mSettings.mHeight;
-		postProcRTDesc.mWidth = mSettings.mWidth;
-		postProcRTDesc.mSampleCount = SAMPLE_COUNT_1;
-		postProcRTDesc.mSampleQuality = 0;
-		postProcRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		postProcRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
-
-
-
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
 		for (int i = 0; i < 6; ++i)
@@ -469,54 +445,6 @@ public:
 			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
 		addSampler(pRenderer, &pSkyBoxSampler, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
 			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
-
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = sizeof(vec4);
-
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pBlendState = pBlend;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pRasterizerState = pBasicRast;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-		pipelineSettings.pRootSignature = pBasicRoot;
-		pipelineSettings.pShaderProgram = pBasicShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pBasicPipeline);
-
-		pipelineSettings.pRootSignature = pIndirectRoot;
-		pipelineSettings.pShaderProgram = pIndirectShader;
-		addPipeline(pRenderer, &pipelineSettings, &pIndirectPipeline);
-
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 1;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		pipelineSettings.pBlendState = NULL;
-		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
-		pipelineSettings.pRootSignature = pSkyBoxRoot;
-		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
 
 		ComputePipelineDesc computePipelineDesc = {};
 		computePipelineDesc.pShaderProgram = pComputeShader;
@@ -766,14 +694,8 @@ public:
 #endif
 
 #ifndef TARGET_IOS
-
 		gPanini.Init(pRenderer, pGraphicsQueue, nullptr, pGuiWindow, pGpuProfiler);
 		gPanini.SetCallbackToggle(paniniToggleCallback);
-
-		RenderTarget* rts[1];
-		rts[0] = pIntermediateRenderTarget;
-		bool bSuccess = gPanini.Load(rts);
-		gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
 #endif
 
 		return true;
@@ -786,10 +708,6 @@ public:
 #ifndef TARGET_IOS
 		gPanini.Exit();
 #endif
-
-		removeRenderTarget(pRenderer, pDepthBuffer);
-		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
 
 #if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
@@ -847,10 +765,7 @@ public:
 		removeShader(pRenderer, pIndirectShader);
 		removeShader(pRenderer, pComputeShader);
 
-		removePipeline(pRenderer, pBasicPipeline);
-		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removePipeline(pRenderer, pComputePipeline);
-		removePipeline(pRenderer, pIndirectPipeline);
 
 		removeRootSignature(pRenderer, pBasicRoot);
 		removeRootSignature(pRenderer, pSkyBoxRoot);
@@ -891,9 +806,58 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = sizeof(vec4);
+
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pBlendState = pBlend;
+		pipelineSettings.pDepthState = pDepth;
+		pipelineSettings.pRasterizerState = pBasicRast;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pRootSignature = pBasicRoot;
+		pipelineSettings.pShaderProgram = pBasicShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		addPipeline(pRenderer, &pipelineSettings, &pBasicPipeline);
+
+		pipelineSettings.pRootSignature = pIndirectRoot;
+		pipelineSettings.pShaderProgram = pIndirectShader;
+		addPipeline(pRenderer, &pipelineSettings, &pIndirectPipeline);
+
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 1;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		pipelineSettings.pBlendState = NULL;
+		pipelineSettings.pDepthState = NULL;
+		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pRootSignature = pSkyBoxRoot;
+		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
+		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+
 #if defined(VULKAN)
 		transitionRenderTargets();
 #endif
+
 		RenderTargetDesc postProcRTDesc = {};
 		postProcRTDesc.mArraySize = 1;
 		postProcRTDesc.mClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -923,9 +887,15 @@ public:
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+
+		removePipeline(pRenderer, pBasicPipeline);
+		removePipeline(pRenderer, pSkyBoxDrawPipeline);
+		removePipeline(pRenderer, pIndirectPipeline);
+
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
+
 #ifndef TARGET_IOS
 		gPanini.Unload();
 #endif

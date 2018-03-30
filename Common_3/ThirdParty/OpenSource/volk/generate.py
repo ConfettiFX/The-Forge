@@ -38,10 +38,10 @@ def is_descendant_type(types, name, base):
 	type = types.get(name)
 	if not type:
 		return False
-	parent = type.get('parent')
-	if not parent:
+	parents = type.get('parent')
+	if not parents:
 		return False
-	return is_descendant_type(types, parent, base)
+	return any([is_descendant_type(types, parent, base) for parent in parents.split(',')])
 
 def defined(key):
 	return 'defined(' + key + ')'
@@ -132,16 +132,16 @@ if __name__ == "__main__":
 				type = 'VkInstance'
 
 			if is_descendant_type(types, type, 'VkDevice'):
-				blocks['LOAD_DEVICE'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");' + "\n"
-				blocks['DEVICE_TABLE'] += '\tPFN_' + name + ' ' + name + ";\n"
-				blocks['LOAD_DEVICE_TABLE'] += '\ttable->' + name + ' = (PFN_' + name + ')load(context, "' + name + '");' + "\n"
+				blocks['LOAD_DEVICE'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");\n'
+				blocks['DEVICE_TABLE'] += '\tPFN_' + name + ' ' + name + ';\n'
+				blocks['LOAD_DEVICE_TABLE'] += '\ttable->' + name + ' = (PFN_' + name + ')load(context, "' + name + '");\n'
 			elif is_descendant_type(types, type, 'VkInstance'):
-				blocks['LOAD_INSTANCE'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");' + "\n"
+				blocks['LOAD_INSTANCE'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");\n'
 			elif type != '':
-				blocks['LOAD_LOADER'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");' + "\n"
+				blocks['LOAD_LOADER'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");\n'
 
-			blocks['PROTOTYPES_H'] += 'extern PFN_' + name + ' ' + name + ";\n"
-			blocks['PROTOTYPES_C'] += 'PFN_' + name + ' ' + name + ";\n"
+			blocks['PROTOTYPES_H'] += 'extern PFN_' + name + ' ' + name + ';\n'
+			blocks['PROTOTYPES_C'] += 'PFN_' + name + ' ' + name + ';\n'
 
 		for key in block_keys:
 			if blocks[key].endswith(ifdef):

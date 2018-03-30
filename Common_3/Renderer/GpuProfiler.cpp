@@ -72,6 +72,8 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 
 		uint32_t historyIndex = pRoot->mGpuTimer.mHistoryIndex;
 		
+		pRoot->mGpuTimer.mStartGpuTime = timeStamp1;
+		pRoot->mGpuTimer.mEndGpuTime = timeStamp2;
 		pRoot->mGpuTimer.mGpuTime = elapsedTime;
 		pRoot->mGpuTimer.mGpuHistory[historyIndex] = elapsedTime;
 
@@ -271,16 +273,7 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 		pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], 
 		0, pGpuProfiler->mCurrentTimerCount * 2);
 
-
-	ReadRange range = {};
-	range.mOffset = 0;
-	range.mSize = max(sizeof(uint64_t) * 2, (pGpuProfiler->mCurrentTimerCount) * sizeof(uint64_t) * 2);
-
-	// readback n + 1 frame
 	uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;
-	mapBuffer(pCmd->pCmdPool->pRenderer, pGpuProfiler->pReadbackBuffer[nextIndex], &range);
-	pGpuProfiler->pTimeStamp = (uint64_t*)pGpuProfiler->pReadbackBuffer[nextIndex]->pCpuMappedAddress;
-
 	pGpuProfiler->mBufferIndex = nextIndex;
 
 	clearChildren(&pGpuProfiler->mRoot);
@@ -307,6 +300,13 @@ void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 
 		pGpuProfiler->mCumulativeCpuTimeInternal += getAverageCpuTime(pGpuProfiler, &pGpuProfiler->mRoot.mChildren[i]->mGpuTimer);
 	}
+
+	// readback n + 1 frame
+	ReadRange range = {};
+	range.mOffset = 0;
+	range.mSize = max(sizeof(uint64_t) * 2, (pGpuProfiler->mCurrentTimerCount) * sizeof(uint64_t) * 2);
+	mapBuffer(pCmd->pCmdPool->pRenderer, pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], &range);
+	pGpuProfiler->pTimeStamp = (uint64_t*)pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex]->pCpuMappedAddress;
 
 	calculateTimes(pCmd, pGpuProfiler, &pGpuProfiler->mRoot);
 

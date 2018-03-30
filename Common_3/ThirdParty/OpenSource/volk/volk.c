@@ -37,6 +37,8 @@ VkResult volkInitialize()
 #else
 	void* module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
 	if (!module)
+		module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+	if (!module)
 		return VK_ERROR_INITIALIZATION_FAILED;
 
 	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
@@ -49,16 +51,16 @@ VkResult volkInitialize()
 
 uint32_t volkGetInstanceVersion()
 {
-	if (!vkCreateInstance)
-		return 0;
-
 #if defined(VK_VERSION_1_1)
 	uint32_t apiVersion = 0;
 	if (vkEnumerateInstanceVersion && vkEnumerateInstanceVersion(&apiVersion) == VK_SUCCESS)
 		return apiVersion;
 #endif
 
-	return VK_API_VERSION_1_0;
+	if (vkCreateInstance)
+		return VK_API_VERSION_1_0;
+
+	return 0;
 }
 
 void volkLoadInstance(VkInstance instance)
@@ -383,6 +385,10 @@ static void volkGenLoadDevice(void* context, PFN_vkVoidFunction (*load)(void*, c
 #if defined(VK_AMD_shader_info)
 	vkGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)load(context, "vkGetShaderInfoAMD");
 #endif /* defined(VK_AMD_shader_info) */
+#if defined(VK_ANDROID_external_memory_android_hardware_buffer)
+	vkGetAndroidHardwareBufferPropertiesANDROID = (PFN_vkGetAndroidHardwareBufferPropertiesANDROID)load(context, "vkGetAndroidHardwareBufferPropertiesANDROID");
+	vkGetMemoryAndroidHardwareBufferANDROID = (PFN_vkGetMemoryAndroidHardwareBufferANDROID)load(context, "vkGetMemoryAndroidHardwareBufferANDROID");
+#endif /* defined(VK_ANDROID_external_memory_android_hardware_buffer) */
 #if defined(VK_ANDROID_native_buffer)
 	vkAcquireImageANDROID = (PFN_vkAcquireImageANDROID)load(context, "vkAcquireImageANDROID");
 	vkGetSwapchainGrallocUsageANDROID = (PFN_vkGetSwapchainGrallocUsageANDROID)load(context, "vkGetSwapchainGrallocUsageANDROID");
@@ -684,6 +690,10 @@ static void volkGenLoadDeviceTable(struct VolkDeviceTable* table, void* context,
 #if defined(VK_AMD_shader_info)
 	table->vkGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)load(context, "vkGetShaderInfoAMD");
 #endif /* defined(VK_AMD_shader_info) */
+#if defined(VK_ANDROID_external_memory_android_hardware_buffer)
+	table->vkGetAndroidHardwareBufferPropertiesANDROID = (PFN_vkGetAndroidHardwareBufferPropertiesANDROID)load(context, "vkGetAndroidHardwareBufferPropertiesANDROID");
+	table->vkGetMemoryAndroidHardwareBufferANDROID = (PFN_vkGetMemoryAndroidHardwareBufferANDROID)load(context, "vkGetMemoryAndroidHardwareBufferANDROID");
+#endif /* defined(VK_ANDROID_external_memory_android_hardware_buffer) */
 #if defined(VK_ANDROID_native_buffer)
 	table->vkAcquireImageANDROID = (PFN_vkAcquireImageANDROID)load(context, "vkAcquireImageANDROID");
 	table->vkGetSwapchainGrallocUsageANDROID = (PFN_vkGetSwapchainGrallocUsageANDROID)load(context, "vkGetSwapchainGrallocUsageANDROID");
@@ -1016,6 +1026,10 @@ PFN_vkCmdDrawIndirectCountAMD vkCmdDrawIndirectCountAMD;
 #if defined(VK_AMD_shader_info)
 PFN_vkGetShaderInfoAMD vkGetShaderInfoAMD;
 #endif /* defined(VK_AMD_shader_info) */
+#if defined(VK_ANDROID_external_memory_android_hardware_buffer)
+PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID;
+PFN_vkGetMemoryAndroidHardwareBufferANDROID vkGetMemoryAndroidHardwareBufferANDROID;
+#endif /* defined(VK_ANDROID_external_memory_android_hardware_buffer) */
 #if defined(VK_ANDROID_native_buffer)
 PFN_vkAcquireImageANDROID vkAcquireImageANDROID;
 PFN_vkGetSwapchainGrallocUsageANDROID vkGetSwapchainGrallocUsageANDROID;

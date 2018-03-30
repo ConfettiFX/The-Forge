@@ -40,6 +40,15 @@ enum UIPropertyType
 	UI_PROPERTY_TEXTINPUT
 };
 
+enum UIMaxFontSize
+{
+	UI_MAX_FONT_SIZE_UNDEFINED = 0, // Undefined size, will defaults to use UI_MAX_FONT_SIZE_512
+	UI_MAX_FONT_SIZE_128 = 128, // Max font size is 12.8f
+	UI_MAX_FONT_SIZE_256 = 256, // Max font size is 25.6f
+	UI_MAX_FONT_SIZE_512 = 512, // Max font size is 51.2f
+	UI_MAX_FONT_SIZE_1024 = 1024 // Max font size is 102.4f
+};
+
 typedef void(*UIButtonFn)(void*);
 typedef void(*PropertyChangedCallback)(const class UIProperty* pProp);
 
@@ -82,6 +91,11 @@ public:
 	unsigned int flags;
 	void* source;
 	PropertyChangedCallback callback = NULL;
+
+// Anonymous structures generates warnings in C++11. 
+// See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs
+#pragma warning( push )
+#pragma warning( disable : 4201) // warning C4201: nonstandard extension used: nameless struct/union
 	union Settings
 	{
 		struct
@@ -118,6 +132,7 @@ public:
 			void* pUserData;
 		};
 	} settings;
+#pragma warning( pop ) 
 
 	char uiState[8];
 
@@ -153,7 +168,7 @@ typedef struct UISettings
 	TextDrawDesc mDefaultFrameTimeTextDrawDesc	= TextDrawDesc(0, 0xff00ffff, 18);
 	TextDrawDesc mDefaultTextDrawDesc			= TextDrawDesc(0, 0xffffffff, 16);
 	GpuProfileDrawDesc mDefaultGpuProfileDrawDesc;
-	float mMaxFontSize							= 0.0f; // if 0, UI Manager will assign 51.2f as default value. Internal font texture size will be fontsize * 10.0f
+	UIMaxFontSize mMaxFontSize							= UIMaxFontSize::UI_MAX_FONT_SIZE_512; // Default size is 512
 } UISettings;
 
 typedef struct GuiDesc

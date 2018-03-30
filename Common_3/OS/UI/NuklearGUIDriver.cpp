@@ -49,6 +49,10 @@ struct InputInstruction
 		ITYPE_MOUSESCROLL,
 	};
 	Type type;
+// Anonymous structures generates warnings in C++11. 
+// See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs
+#pragma warning( push )
+#pragma warning( disable : 4201) // warning C4201: nonstandard extension used: nameless struct/union
 	union {
 		struct { int mousex; int mousey; int mousebutton; bool mousedown; };
 		struct { int scrollx; int scrolly; int scrollamount; };
@@ -56,6 +60,7 @@ struct InputInstruction
 		struct { unsigned int charUnicode; };
 		struct { int joystickbutton; bool joystickdown; };
 	};
+#pragma warning( pop )
 };
 
 class _Impl_NuklearGUIDriver

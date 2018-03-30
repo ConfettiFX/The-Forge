@@ -14,7 +14,7 @@
 #endif
 
 /* VOLK_GENERATE_VERSION */
-#define VOLK_HEADER_VERSION 70
+#define VOLK_HEADER_VERSION 71
 /* VOLK_GENERATE_VERSION */
 
 #ifndef VK_NO_PROTOTYPES
@@ -219,6 +219,10 @@ struct VolkDeviceTable
 #if defined(VK_AMD_shader_info)
 	PFN_vkGetShaderInfoAMD vkGetShaderInfoAMD;
 #endif /* defined(VK_AMD_shader_info) */
+#if defined(VK_ANDROID_external_memory_android_hardware_buffer)
+	PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID;
+	PFN_vkGetMemoryAndroidHardwareBufferANDROID vkGetMemoryAndroidHardwareBufferANDROID;
+#endif /* defined(VK_ANDROID_external_memory_android_hardware_buffer) */
 #if defined(VK_ANDROID_native_buffer)
 	PFN_vkAcquireImageANDROID vkAcquireImageANDROID;
 	PFN_vkGetSwapchainGrallocUsageANDROID vkGetSwapchainGrallocUsageANDROID;
@@ -547,6 +551,10 @@ extern PFN_vkCmdDrawIndirectCountAMD vkCmdDrawIndirectCountAMD;
 #if defined(VK_AMD_shader_info)
 extern PFN_vkGetShaderInfoAMD vkGetShaderInfoAMD;
 #endif /* defined(VK_AMD_shader_info) */
+#if defined(VK_ANDROID_external_memory_android_hardware_buffer)
+extern PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID;
+extern PFN_vkGetMemoryAndroidHardwareBufferANDROID vkGetMemoryAndroidHardwareBufferANDROID;
+#endif /* defined(VK_ANDROID_external_memory_android_hardware_buffer) */
 #if defined(VK_ANDROID_native_buffer)
 extern PFN_vkAcquireImageANDROID vkAcquireImageANDROID;
 extern PFN_vkGetSwapchainGrallocUsageANDROID vkGetSwapchainGrallocUsageANDROID;
