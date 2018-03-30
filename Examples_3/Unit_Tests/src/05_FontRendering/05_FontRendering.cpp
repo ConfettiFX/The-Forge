@@ -168,9 +168,6 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		finishResourceLoading();
 
-		if (!addSwapChain())
-			return false;
-
 		// UI setup
 		UISettings uiSettings = {};
 		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
@@ -353,7 +350,6 @@ public:
 		removeCmdPool(pRenderer, pCmdPool);
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 		removeResourceLoaderInterface(pRenderer);
-		removeSwapChain(pRenderer, pSwapChain);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}

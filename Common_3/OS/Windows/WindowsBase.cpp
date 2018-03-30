@@ -912,19 +912,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pApp = app;
 
 	//Used for automated testing, if enabled app will exit after 120 frames
-	bool testing = false;
+#ifdef AUTOMATED_TESTING
 	uint32_t testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
-
-	//search for --test in command line arguments
-	if (argc > 1)
-	{
-		for(int i = 0 ; i < argc ; i++)
-		{
-			if (strcmp(argv[i], "--testing"))
-				testing = true;
-		}
-	}
+#endif
 
 
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
@@ -954,6 +945,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	if (!pApp->Init())
 		return EXIT_FAILURE;
 
+	if (!pApp->Load())
+		return EXIT_FAILURE;
+
 	registerWindowResizeEvent(onResize);
 
 	while (isRunning())
@@ -967,15 +961,15 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		pApp->Update(deltaTime);
 		pApp->Draw();
 		
+#ifdef AUTOMATED_TESTING
 		//used in automated tests only.
-		if (testing)
-		{
 			testingFrameCount++;
 			if (testingFrameCount >= testingDesiredFrameCount)
 				break;
-		}
+#endif
 	}
 
+	pApp->Unload();
 	pApp->Exit();
 
 	return 0;

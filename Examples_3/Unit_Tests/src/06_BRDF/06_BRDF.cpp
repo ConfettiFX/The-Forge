@@ -506,12 +506,6 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
         
 #ifdef TARGET_IOS
         // Add virtual joystick texture.
@@ -566,37 +560,6 @@ public:
 		addResource(&sphereVbDesc);
 
 		conf_free(pSPherePoints);
-
-		// Create vertex layout
-		VertexLayout vertexLayoutSphere = {};
-		vertexLayoutSphere.mAttribCount = 2;
-
-		vertexLayoutSphere.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutSphere.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayoutSphere.mAttribs[0].mBinding = 0;
-		vertexLayoutSphere.mAttribs[0].mLocation = 0;
-		vertexLayoutSphere.mAttribs[0].mOffset = 0;
-
-		vertexLayoutSphere.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayoutSphere.mAttribs[1].mFormat = ImageFormat::RGB32F;
-		vertexLayoutSphere.mAttribs[1].mBinding = 0;
-		vertexLayoutSphere.mAttribs[1].mLocation = 1;
-		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
-
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-		pipelineSettings.pRootSignature = pRootSigBRDF;
-		pipelineSettings.pShaderProgram = pShaderBRDF;
-		pipelineSettings.pVertexLayout = &vertexLayoutSphere;
-		pipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
         
         //Generate sky box vertex buffer
         float skyBoxPoints[] = {
@@ -652,30 +615,6 @@ public:
         skyboxVbDesc.pData = skyBoxPoints;
         skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
         addResource(&skyboxVbDesc);
-        
-        //layout and pipeline for skybox draw
-        VertexLayout vertexLayoutSkybox = {};
-        vertexLayoutSkybox.mAttribCount = 1;
-        vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        vertexLayoutSkybox.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-        vertexLayoutSkybox.mAttribs[0].mBinding = 0;
-        vertexLayoutSkybox.mAttribs[0].mLocation = 0;
-        vertexLayoutSkybox.mAttribs[0].mOffset = 0;
-        
-        pipelineSettings = { 0 };
-        pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipelineSettings.mRenderTargetCount = 1;
-        pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-        pipelineSettings.pRootSignature = pSkyboxRootSignature;
-        pipelineSettings.pShaderProgram = pSkyboxShader;
-        pipelineSettings.pVertexLayout = &vertexLayoutSkybox;
-        pipelineSettings.pRasterizerState = pRasterstateDefault;
-        addPipeline(pRenderer, &pipelineSettings, &pSkyboxPipeline);
 
 		// Create a uniform buffer per obj
 		for (int y = 0; y < gAmountObjectsinY; ++y)
@@ -808,10 +747,6 @@ public:
         registerTouchMoveEvent(cameraTouchMove);
 #endif
 #endif
-
-#if defined(VULKAN)
-		transitionRenderTargets();
-#endif
 		return true;
 	}
 
@@ -852,8 +787,6 @@ public:
 		removeShader(pRenderer, pShaderBRDF);
         removeShader(pRenderer, pSkyboxShader);
 
-		removeRenderTarget(pRenderer, pDepthBuffer);
-
 		for (int i = 0; i < gAmountObjectsinY*gAmountObjectsinX; ++i)
 		{
 			removeResource(gSphereBuffers[i]);
@@ -863,13 +796,8 @@ public:
 		removeRasterizerState(pRasterstateDefault);
 		removeSampler(pRenderer, pSamplerBilinear);
 
-		removePipeline(pRenderer, pPipelineBRDF);
-        removePipeline(pRenderer, pSkyboxPipeline);
-
 		removeRootSignature(pRenderer, pRootSigBRDF);
         removeRootSignature(pRenderer, pSkyboxRootSignature);
-
-		removeSwapChain(pRenderer, pSwapChain);
 
 		// Remove commands and command pool&
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
@@ -889,12 +817,75 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
+		// Create vertex layout
+		VertexLayout vertexLayoutSphere = {};
+		vertexLayoutSphere.mAttribCount = 2;
+
+		vertexLayoutSphere.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutSphere.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutSphere.mAttribs[0].mBinding = 0;
+		vertexLayoutSphere.mAttribs[0].mLocation = 0;
+		vertexLayoutSphere.mAttribs[0].mOffset = 0;
+
+		vertexLayoutSphere.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayoutSphere.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayoutSphere.mAttribs[1].mBinding = 0;
+		vertexLayoutSphere.mAttribs[1].mLocation = 1;
+		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
+
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = pDepth;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pRootSignature = pRootSigBRDF;
+		pipelineSettings.pShaderProgram = pShaderBRDF;
+		pipelineSettings.pVertexLayout = &vertexLayoutSphere;
+		pipelineSettings.pRasterizerState = pRasterstateDefault;
+		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
+
+		//layout and pipeline for skybox draw
+		VertexLayout vertexLayoutSkybox = {};
+		vertexLayoutSkybox.mAttribCount = 1;
+		vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutSkybox.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
+		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
+		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
+
+		pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = NULL;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pRootSignature = pSkyboxRootSignature;
+		pipelineSettings.pShaderProgram = pSkyboxShader;
+		pipelineSettings.pVertexLayout = &vertexLayoutSkybox;
+		pipelineSettings.pRasterizerState = pRasterstateDefault;
+		addPipeline(pRenderer, &pipelineSettings, &pSkyboxPipeline);
+
+#if defined(VULKAN)
+		transitionRenderTargets();
+#endif
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+
+		removePipeline(pRenderer, pPipelineBRDF);
+		removePipeline(pRenderer, pSkyboxPipeline);
+
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
 	}

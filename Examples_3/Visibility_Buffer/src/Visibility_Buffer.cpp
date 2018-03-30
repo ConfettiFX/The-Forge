@@ -524,9 +524,6 @@ public:
 			addSemaphore(pRenderer, &pComputeCompleteSemaphores[i]);
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		if (!addRenderTargets())
-			return false;
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
@@ -711,51 +708,6 @@ public:
 
 		LOGINFOF("Load textures : %f ms", textureLoadTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
-		// Vertex layout used by all geometry passes (shadow, visibility, deferred)
-		/************************************************************************/
-#if !defined(METAL)
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 4;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::R32UI;
-		vertexLayout.mAttribs[1].mBinding = 1;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[2].mFormat = ImageFormat::R32UI;
-		vertexLayout.mAttribs[2].mBinding = 2;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		//vertexLayout.mAttribs[2].mOffset = sizeof(uint32_t);
-		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
-		vertexLayout.mAttribs[3].mFormat = ImageFormat::R32UI;
-		vertexLayout.mAttribs[3].mBinding = 3;
-		vertexLayout.mAttribs[3].mLocation = 3;
-		//vertexLayout.mAttribs[3].mOffset = sizeof(uint32_t) + sizeof(uint32_t);
-
-		VertexLayout vertexLayoutPosAndTex = {};
-		vertexLayoutPosAndTex.mAttribCount = 2;
-		vertexLayoutPosAndTex.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutPosAndTex.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
-		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
-		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutPosAndTex.mAttribs[1].mFormat = ImageFormat::R32UI;
-		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
-		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
-
-		// Position only vertex stream that is used in shadow opaque pass
-		VertexLayout vertexLayoutPositionOnly = {};
-		vertexLayoutPositionOnly.mAttribCount = 1;
-		vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutPositionOnly.mAttribs[0].mFormat = ImageFormat::RGB32F;
-		vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
-		vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
-		vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
-#endif
-		/************************************************************************/
 		// Setup root signatures
 		/************************************************************************/
 		RootSignatureDesc geomPassRootDesc = {};
@@ -846,6 +798,370 @@ public:
 		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 1, indirectArgs };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
+#endif
+
+		// Create geometry for light rendering
+		createCubeBuffers(pRenderer, pCmdPool, &pVertexBufferCube, &pIndexBufferCube);
+		/************************************************************************/
+		// Setup compute pipelines for triangle filtering
+		/************************************************************************/
+		ComputePipelineDesc pipelineDesc = { pShaderClearBuffers, pRootSignatureClearBuffers };
+		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineClearBuffers);
+
+		// Create the compute pipeline for GPU triangle filtering
+		pipelineDesc = { pShaderTriangleFiltering, pRootSignatureTriangleFiltering };
+		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineTriangleFiltering);
+
+#ifndef METAL
+		pipelineDesc = { pShaderBatchCompaction, pRootSignatureBatchCompaction };
+		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineBatchCompaction);
+#endif
+
+		// Setup the clearing light clusters pipeline
+		pipelineDesc = { pShaderClearLightClusters, pRootSignatureClearLightClusters };
+		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineClearLightClusters);
+
+		// Setup the compute the light clusters pipeline
+		pipelineDesc = { pShaderClusterLights, pRootSignatureClusterLights };
+		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
+		/************************************************************************/
+		// Setup the UI components for text rendering, UI controls...
+		/************************************************************************/
+		UISettings uiSettings = {};
+		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
+		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
+		addGui(pUIManager, &guiDesc, &pGuiWindow);
+
+		// Light Settings
+		//---------------------------------------------------------------------------------
+		// offset max angle for sun control so the light won't bleed with
+		// small glancing angles, i.e., when lightDir is almost parallel to the plane
+		const float maxAngleOffset = 0.017f;
+		UIProperty sunX("Sun Control X", gAppSettings.mSunControl.x, -PI, PI, 0.001f);
+		addProperty(pGuiWindow, &sunX);
+
+		UIProperty sunY("Sun Control Y", gAppSettings.mSunControl.y, -PI, PI, 0.001f);
+		addProperty(pGuiWindow, &sunY);
+
+		UIProperty esm("Shadow Control", gAppSettings.mEsmControl, 0, 200.0f);
+		addProperty(pGuiWindow, &esm);
+
+		UIProperty localLight("Enable Random Point Lights", gAppSettings.mRenderLocalLights);
+		addProperty(pGuiWindow, &localLight);
+
+#if !defined(_DURANGO) && !defined(METAL)
+		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
+		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
+		for (uint32_t i = 0; i < _countof(wantedResolutions); ++i)
+		{
+			bool duplicate = false;
+			for (uint32_t j = 0; j < (uint32_t)gResolutions.size(); ++j)
+			{
+				if (wantedResolutions[i].mWidth == gResolutions[j].mWidth && wantedResolutions[i].mHeight == gResolutions[j].mHeight)
+				{
+					duplicate = true;
+					break;
+				}
+			}
+			if (!duplicate && getResolutionSupport(getMonitor(0), &wantedResolutions[i]))
+			{
+				gResolutions.emplace_back(wantedResolutions[i]);
+			}
+		}
+		addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
+		{
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+			setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->source)]);
+			pVisibilityBuffer->Unload();
+			pVisibilityBuffer->Load();
+		}, &gResolutionProperty);
+#endif
+		/************************************************************************/
+		// Rendering Settings
+		/************************************************************************/
+		static const char* renderModeNames[] = {
+			"Visibility Buffer",
+			"Deferred Shading",
+			nullptr
+		};
+		static const RenderMode renderModeValues[] = {
+			RENDERMODE_VISBUFF,
+			RENDERMODE_DEFERRED,
+		};
+		UIProperty renderMode("Render Mode", gAppSettings.mRenderMode, renderModeNames, renderModeValues);
+		addProperty(pGuiWindow, &renderMode);
+
+		UIProperty holdProp = UIProperty("Hold filtered results", gAppSettings.mHoldFilteredResults);
+		addProperty(pGuiWindow, &holdProp);
+
+		UIProperty filtering("Triangle Filtering", gAppSettings.mFilterTriangles);
+		addProperty(pGuiWindow, &filtering);
+
+		UIProperty cluster("Cluster Culling", gAppSettings.mClusterCulling);
+		addProperty(pGuiWindow, &cluster);
+
+		UIProperty asyncCompute("Async Compute", gAppSettings.mAsyncCompute);
+		addProperty(pGuiWindow, &asyncCompute);
+
+#if MSAASAMPLECOUNT == 1
+		UIProperty debugTargets("Draw Debug Targets", gAppSettings.mDrawDebugTargets);
+		addProperty(pGuiWindow, &debugTargets);
+#endif
+		/************************************************************************/
+		// HDAO Settings
+		/************************************************************************/
+		UIProperty toggleAO("Enable HDAO", gAppSettings.mEnableHDAO);
+		addProperty(pGuiWindow, &toggleAO);
+
+		tinystl::vector<UIProperty>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
+		dynamicPropsAO.push_back(UIProperty("AO accept radius", gAppSettings.mAcceptRadius, 0, 10));
+		dynamicPropsAO.push_back(UIProperty("AO reject radius", gAppSettings.mRejectRadius, 0, 10));
+		dynamicPropsAO.push_back(UIProperty("AO intensity radius", gAppSettings.mAOIntensity, 0, 10));
+		dynamicPropsAO.push_back(UIProperty("AO Quality", gAppSettings.mAOQuality, 1, 4));
+		if (gAppSettings.mEnableHDAO)
+		{
+			gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
+		}
+
+#if !defined(_DURANGO) && !defined(METAL)
+		if (!pWindow->fullScreen)
+			removeProperty(pGuiWindow, gResolutionProperty);
+#endif
+		/************************************************************************/
+		// Setup the fps camera for navigating through the scene
+		/************************************************************************/
+		vec3 startPosition(1306.29614f, 490.245087f, 86.3251801f);
+		vec3 startLookAt = startPosition + vec3(-0.882f - 0.441f, -0.372f, 1.0f);
+		CameraMotionParameters camParams;
+		camParams.acceleration = 1300 * 2.5f;
+		camParams.braking = 1300 * 2.5f;
+		camParams.maxSpeed = 200 * 2.5f;
+		pCameraController = createFpsCameraController(startPosition, startLookAt);
+		pCameraController->setMotionParameters(camParams);
+		requestMouseCapture(true);
+		/************************************************************************/
+		/************************************************************************/
+		// Finish the resource loading process since the next code depends on the loaded resources
+		finishResourceLoading();
+
+		gDiffuseMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gDiffuseMaps.size());
+		gNormalMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gNormalMaps.size());
+		gSpecularMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gSpecularMaps.size());
+
+		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
+		{
+			memcpy(&gDiffuseMapsStorage[i], gDiffuseMaps[i], sizeof(Texture));
+			gDiffuseMapsPacked.push_back(&gDiffuseMapsStorage[i]);
+		}
+		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
+		{
+			memcpy(&gNormalMapsStorage[i], gNormalMaps[i], sizeof(Texture));
+			gNormalMapsPacked.push_back(&gNormalMapsStorage[i]);
+		}
+		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
+		{
+			memcpy(&gSpecularMapsStorage[i], gSpecularMaps[i], sizeof(Texture));
+			gSpecularMapsPacked.push_back(&gSpecularMapsStorage[i]);
+		}
+
+		HiresTimer setupBuffersTimer;
+		addTriangleFilteringBuffers();
+		LOGINFOF("Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
+
+#ifdef _DURANGO
+		// When async compute is on, we need to transition some resources in the graphics queue
+		// because they can't be transitioned by the compute queue (incompatible)
+		if (gAppSettings.mAsyncCompute)
+			setResourcesToComputeCompliantState(0, true);
+#endif
+
+		LOGINFOF("Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
+
+#ifndef _DURANGO
+		registerRawMouseMoveEvent(onMouseMoveHandler);
+		registerMouseButtonEvent(onMouseButtonHandler);
+		registerMouseWheelEvent(onMouseWheelHandler);
+#endif
+
+		return true;
+	}
+
+	void Exit()
+	{
+		waitForFences(pGraphicsQueue, 3, pRenderCompleteFences);
+		waitForFences(pComputeQueue, 3, pComputeCompleteFences);
+
+		removeTriangleFilteringBuffers();
+
+		destroyCameraController(pCameraController);
+
+		removeGui(pUIManager, pGuiWindow);
+		removeUIManagerInterface(pRenderer, pUIManager);
+
+		// Destroy geometry for light rendering
+		destroyBuffers(pRenderer, pVertexBufferCube, pIndexBufferCube);
+
+		// Destroy triangle filtering pipelines
+		removePipeline(pRenderer, pPipelineClusterLights);
+		removePipeline(pRenderer, pPipelineClearLightClusters);
+		removePipeline(pRenderer, pPipelineTriangleFiltering);
+#if !defined(METAL)
+		removePipeline(pRenderer, pPipelineBatchCompaction);
+#endif
+		removePipeline(pRenderer, pPipelineClearBuffers);
+
+		removeRootSignature(pRenderer, pRootSignatureResolve);
+		removeRootSignature(pRenderer, pRootSignatureAO);
+		removeRootSignature(pRenderer, pRootSignatureClusterLights);
+		removeRootSignature(pRenderer, pRootSignatureClearLightClusters);
+#if !defined(METAL)
+		removeRootSignature(pRenderer, pRootSignatureBatchCompaction);
+#endif
+		removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
+		removeRootSignature(pRenderer, pRootSignatureClearBuffers);
+		removeRootSignature(pRenderer, pRootSignatureDeferredShadePointLight);
+		removeRootSignature(pRenderer, pRootSignatureDeferredShade);
+		removeRootSignature(pRenderer, pRootSignatureDeferredPass);
+		removeRootSignature(pRenderer, pRootSignatureVBShade);
+		removeRootSignature(pRenderer, pRootSignatureVBPass);
+
+		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
+		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
+		/************************************************************************/
+		// Remove loaded scene
+		/************************************************************************/
+		// Destroy scene buffers
+#if !defined(METAL)
+		removeResource(pIndexBufferAll);
+#endif
+		removeResource(pVertexBufferPosition);
+		removeResource(pVertexBufferTexCoord);
+		removeResource(pVertexBufferNormal);
+		removeResource(pVertexBufferTangent);
+
+		// Destroy clusters
+		for (uint32_t i = 0; i < pScene->numMeshes; ++i)
+		{
+			conf_free(pScene->meshes[i].clusters);
+			conf_free(pScene->meshes[i].clusterCompacts);
+		}
+		// Remove Textures
+		for (uint32_t i = 0; i < pScene->numMaterials; ++i)
+		{
+			removeResource(gDiffuseMaps[i]);
+			removeResource(gNormalMaps[i]);
+			removeResource(gSpecularMaps[i]);
+		}
+
+		removeScene(pScene);
+
+		conf_free(gDiffuseMapsStorage);
+		conf_free(gNormalMapsStorage);
+		conf_free(gSpecularMapsStorage);
+		/************************************************************************/
+		/************************************************************************/
+		removeShaders();
+
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		// Remove default fences, semaphores
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeFence(pRenderer, pComputeCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
+		}
+
+		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmdPool(pRenderer, pCmdPool);
+		removeQueue(pGraphicsQueue);
+
+		removeCmd_n(pComputeCmdPool, gImageCount, ppComputeCmds);
+		removeCmdPool(pRenderer, pComputeCmdPool);
+		removeQueue(pComputeQueue);
+
+		removeSampler(pRenderer, pSamplerTrilinearAniso);
+		removeSampler(pRenderer, pSamplerBilinear);
+		removeSampler(pRenderer, pSamplerPointClamp);
+
+		removeBlendState(pBlendStateOneZero);
+
+		removeDepthState(pDepthStateEnable);
+		removeDepthState(pDepthStateDisable);
+
+		removeRasterizerState(pRasterizerStateCullBack);
+		removeRasterizerState(pRasterizerStateCullFront);
+		removeRasterizerState(pRasterizerStateCullNone);
+		removeRasterizerState(pRasterizerStateCullBackMS);
+		removeRasterizerState(pRasterizerStateCullFrontMS);
+		removeRasterizerState(pRasterizerStateCullNoneMS);
+
+		removeGpuProfiler(pRenderer, pGraphicsGpuProfiler);
+		removeGpuProfiler(pRenderer, pComputeGpuProfiler);
+
+		removeResourceLoaderInterface(pRenderer);
+		removeRenderer(pRenderer);
+	}
+
+	// Setup the render targets used in this demo.
+	// The only render target that is being currently used stores the results of the Visibility Buffer pass.
+	// As described earlier, this render target uses 32 bit per pixel to store draw / triangle IDs that will be
+	// loaded later by the shade step to reconstruct interpolated triangle data per pixel.
+	bool Load()
+	{
+		gFrameCount = 0;
+
+		if (!addRenderTargets())
+			return false;
+
+		/************************************************************************/
+		// Vertex layout used by all geometry passes (shadow, visibility, deferred)
+		/************************************************************************/
+#if !defined(METAL)
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 4;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::R32UI;
+		vertexLayout.mAttribs[1].mBinding = 1;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[2].mFormat = ImageFormat::R32UI;
+		vertexLayout.mAttribs[2].mBinding = 2;
+		vertexLayout.mAttribs[2].mLocation = 2;
+		//vertexLayout.mAttribs[2].mOffset = sizeof(uint32_t);
+		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
+		vertexLayout.mAttribs[3].mFormat = ImageFormat::R32UI;
+		vertexLayout.mAttribs[3].mBinding = 3;
+		vertexLayout.mAttribs[3].mLocation = 3;
+		//vertexLayout.mAttribs[3].mOffset = sizeof(uint32_t) + sizeof(uint32_t);
+
+		VertexLayout vertexLayoutPosAndTex = {};
+		vertexLayoutPosAndTex.mAttribCount = 2;
+		vertexLayoutPosAndTex.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutPosAndTex.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
+		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
+		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutPosAndTex.mAttribs[1].mFormat = ImageFormat::R32UI;
+		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
+		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
+
+		// Position only vertex stream that is used in shadow opaque pass
+		VertexLayout vertexLayoutPositionOnly = {};
+		vertexLayoutPositionOnly.mAttribCount = 1;
+		vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutPositionOnly.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
+		vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
+		vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
 #endif
 		/************************************************************************/
 		// Setup the Shadow Pass Pipeline
@@ -1076,31 +1392,6 @@ public:
 		deferredPointLightPipelineSettings.pVertexLayout = &vertexLayoutPointLightShade;
 
 		addPipeline(pRenderer, &deferredPointLightPipelineSettings, &pPipelineDeferredShadePointLightSrgb);
-
-		// Create geometry for light rendering
-		createCubeBuffers(pRenderer, pCmdPool, &pVertexBufferCube, &pIndexBufferCube);
-		/************************************************************************/
-		// Setup compute pipelines for triangle filtering
-		/************************************************************************/
-		ComputePipelineDesc pipelineDesc = { pShaderClearBuffers, pRootSignatureClearBuffers };
-		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineClearBuffers);
-
-		// Create the compute pipeline for GPU triangle filtering
-		pipelineDesc = { pShaderTriangleFiltering, pRootSignatureTriangleFiltering };
-		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineTriangleFiltering);
-
-#ifndef METAL
-		pipelineDesc = { pShaderBatchCompaction, pRootSignatureBatchCompaction };
-		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineBatchCompaction);
-#endif
-
-		// Setup the clearing light clusters pipeline
-		pipelineDesc = { pShaderClearLightClusters, pRootSignatureClearLightClusters };
-		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineClearLightClusters);
-
-		// Setup the compute the light clusters pipeline
-		pipelineDesc = { pShaderClusterLights, pRootSignatureClusterLights };
-		addComputePipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
 		/************************************************************************/
 		// Setup HDAO post process pipeline
 		/************************************************************************/
@@ -1135,200 +1426,19 @@ public:
 		resolvePipelineSettings.pShaderProgram = pShaderResolve;
 		addPipeline(pRenderer, &resolvePipelineSettings, &pPipelineResolve);
 		addPipeline(pRenderer, &resolvePipelineSettings, &pPipelineResolvePost);
-		/************************************************************************/
-		// Setup the UI components for text rendering, UI controls...
-		/************************************************************************/
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
-
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
-		addGui(pUIManager, &guiDesc, &pGuiWindow);
-
-		// Light Settings
-		//---------------------------------------------------------------------------------
-		// offset max angle for sun control so the light won't bleed with
-		// small glancing angles, i.e., when lightDir is almost parallel to the plane
-		const float maxAngleOffset = 0.017f;
-		UIProperty sunX("Sun Control X", gAppSettings.mSunControl.x, -PI, PI, 0.001f);
-		addProperty(pGuiWindow, &sunX);
-
-		UIProperty sunY("Sun Control Y", gAppSettings.mSunControl.y, -PI, PI, 0.001f);
-		addProperty(pGuiWindow, &sunY);
-
-		UIProperty esm("Shadow Control", gAppSettings.mEsmControl, 0, 200.0f);
-		addProperty(pGuiWindow, &esm);
-
-		UIProperty localLight("Enable Random Point Lights", gAppSettings.mRenderLocalLights);
-		addProperty(pGuiWindow, &localLight);
-
-#if !defined(_DURANGO) && !defined(METAL)
-		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
-		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
-		for (uint32_t i = 0; i < _countof(wantedResolutions); ++i)
-		{
-			bool duplicate = false;
-			for (uint32_t j = 0; j < (uint32_t)gResolutions.size(); ++j)
-			{
-				if (wantedResolutions[i].mWidth == gResolutions[j].mWidth && wantedResolutions[i].mHeight == gResolutions[j].mHeight)
-				{
-					duplicate = true;
-					break;
-				}
-			}
-			if (!duplicate && getResolutionSupport(getMonitor(0), &wantedResolutions[i]))
-			{
-				gResolutions.emplace_back(wantedResolutions[i]);
-			}
-		}
-		addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
-		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
-			setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->source)]);
-			pVisibilityBuffer->Unload();
-			pVisibilityBuffer->Load();
-		}, &gResolutionProperty);
-#endif
-		/************************************************************************/
-		// Rendering Settings
-		/************************************************************************/
-		static const char* renderModeNames[] = {
-			"Visibility Buffer",
-			"Deferred Shading",
-			nullptr
-		};
-		static const RenderMode renderModeValues[] = {
-			RENDERMODE_VISBUFF,
-			RENDERMODE_DEFERRED,
-		};
-		UIProperty renderMode("Render Mode", gAppSettings.mRenderMode, renderModeNames, renderModeValues);
-		addProperty(pGuiWindow, &renderMode);
-
-		UIProperty holdProp = UIProperty("Hold filtered results", gAppSettings.mHoldFilteredResults);
-		addProperty(pGuiWindow, &holdProp);
-
-		UIProperty filtering("Triangle Filtering", gAppSettings.mFilterTriangles);
-		addProperty(pGuiWindow, &filtering);
-
-		UIProperty cluster("Cluster Culling", gAppSettings.mClusterCulling);
-		addProperty(pGuiWindow, &cluster);
-
-		UIProperty asyncCompute("Async Compute", gAppSettings.mAsyncCompute);
-		addProperty(pGuiWindow, &asyncCompute);
-
-#if MSAASAMPLECOUNT == 1
-		UIProperty debugTargets("Draw Debug Targets", gAppSettings.mDrawDebugTargets);
-		addProperty(pGuiWindow, &debugTargets);
-#endif
-		/************************************************************************/
-		// HDAO Settings
-		/************************************************************************/
-		UIProperty toggleAO("Enable HDAO", gAppSettings.mEnableHDAO);
-		addProperty(pGuiWindow, &toggleAO);
-
-		tinystl::vector<UIProperty>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
-		dynamicPropsAO.push_back(UIProperty("AO accept radius", gAppSettings.mAcceptRadius, 0, 10));
-		dynamicPropsAO.push_back(UIProperty("AO reject radius", gAppSettings.mRejectRadius, 0, 10));
-		dynamicPropsAO.push_back(UIProperty("AO intensity radius", gAppSettings.mAOIntensity, 0, 10));
-		dynamicPropsAO.push_back(UIProperty("AO Quality", gAppSettings.mAOQuality, 1, 4));
-		if (gAppSettings.mEnableHDAO)
-		{
-			gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
-		}
-
-#if !defined(_DURANGO) && !defined(METAL)
-		if (!pWindow->fullScreen)
-			removeProperty(pGuiWindow, gResolutionProperty);
-#endif
-		/************************************************************************/
-		// Setup the fps camera for navigating through the scene
-		/************************************************************************/
-		vec3 startPosition(1306.29614f, 490.245087f, 86.3251801f);
-		vec3 startLookAt = startPosition + vec3(-0.882f - 0.441f, -0.372f, 1.0f);
-		CameraMotionParameters camParams;
-		camParams.acceleration = 1300 * 2.5f;
-		camParams.braking = 1300 * 2.5f;
-		camParams.maxSpeed = 200 * 2.5f;
-		pCameraController = createFpsCameraController(startPosition, startLookAt);
-		pCameraController->setMotionParameters(camParams);
-		requestMouseCapture(true);
-		/************************************************************************/
-		/************************************************************************/
-		// Finish the resource loading process since the next code depends on the loaded resources
-		finishResourceLoading();
-
-		gDiffuseMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gDiffuseMaps.size());
-		gNormalMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gNormalMaps.size());
-		gSpecularMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gSpecularMaps.size());
-
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
-		{
-			memcpy(&gDiffuseMapsStorage[i], gDiffuseMaps[i], sizeof(Texture));
-			gDiffuseMapsPacked.push_back(&gDiffuseMapsStorage[i]);
-		}
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
-		{
-			memcpy(&gNormalMapsStorage[i], gNormalMaps[i], sizeof(Texture));
-			gNormalMapsPacked.push_back(&gNormalMapsStorage[i]);
-		}
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
-		{
-			memcpy(&gSpecularMapsStorage[i], gSpecularMaps[i], sizeof(Texture));
-			gSpecularMapsPacked.push_back(&gSpecularMapsStorage[i]);
-		}
-
-		HiresTimer setupBuffersTimer;
-		addTriangleFilteringBuffers();
-		LOGINFOF("Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
-
-#ifdef _DURANGO
-		// When async compute is on, we need to transition some resources in the graphics queue
-		// because they can't be transitioned by the compute queue (incompatible)
-		if (gAppSettings.mAsyncCompute)
-			setResourcesToComputeCompliantState(0, true);
-#endif
-
-		LOGINFOF("Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
-
-#ifndef _DURANGO
-		registerRawMouseMoveEvent(onMouseMoveHandler);
-		registerMouseButtonEvent(onMouseButtonHandler);
-		registerMouseWheelEvent(onMouseWheelHandler);
-#endif
 
 		return true;
 	}
 
-	void Exit()
+	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 3, pRenderCompleteFences);
-		waitForFences(pComputeQueue, 3, pComputeCompleteFences);
-
-		removeTriangleFilteringBuffers();
-
-		destroyCameraController(pCameraController);
-
-		removeGui(pUIManager, pGuiWindow);
-		removeUIManagerInterface(pRenderer, pUIManager);
-
-		// Destroy geometry for light rendering
-		destroyBuffers(pRenderer, pVertexBufferCube, pIndexBufferCube);
-
+		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences);
 
 		for (uint32_t i = 0; i < 4; ++i)
 			removePipeline(pRenderer, pPipelineAO[i]);
 		removePipeline(pRenderer, pPipelineResolve);
 		removePipeline(pRenderer, pPipelineResolvePost);
-
-		// Destroy triangle filtering pipelines
-		removePipeline(pRenderer, pPipelineClusterLights);
-		removePipeline(pRenderer, pPipelineClearLightClusters);
-		removePipeline(pRenderer, pPipelineTriangleFiltering);
-#if !defined(METAL)
-		removePipeline(pRenderer, pPipelineBatchCompaction);
-#endif
-		removePipeline(pRenderer, pPipelineClearBuffers);
 
 		// Destroy graphics pipelines
 		removePipeline(pRenderer, pPipelineDeferredShadePointLightSrgb);
@@ -1350,121 +1460,6 @@ public:
 
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 			removePipeline(pRenderer, pPipelineShadowPass[i]);
-
-		removeRootSignature(pRenderer, pRootSignatureResolve);
-		removeRootSignature(pRenderer, pRootSignatureAO);
-		removeRootSignature(pRenderer, pRootSignatureClusterLights);
-		removeRootSignature(pRenderer, pRootSignatureClearLightClusters);
-#if !defined(METAL)
-		removeRootSignature(pRenderer, pRootSignatureBatchCompaction);
-#endif
-		removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
-		removeRootSignature(pRenderer, pRootSignatureClearBuffers);
-		removeRootSignature(pRenderer, pRootSignatureDeferredShadePointLight);
-		removeRootSignature(pRenderer, pRootSignatureDeferredShade);
-		removeRootSignature(pRenderer, pRootSignatureDeferredPass);
-		removeRootSignature(pRenderer, pRootSignatureVBShade);
-		removeRootSignature(pRenderer, pRootSignatureVBPass);
-
-		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
-		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
-		/************************************************************************/
-		// Remove loaded scene
-		/************************************************************************/
-		// Destroy scene buffers
-#if !defined(METAL)
-		removeResource(pIndexBufferAll);
-#endif
-		removeResource(pVertexBufferPosition);
-		removeResource(pVertexBufferTexCoord);
-		removeResource(pVertexBufferNormal);
-		removeResource(pVertexBufferTangent);
-
-		// Destroy clusters
-		for (uint32_t i = 0; i < pScene->numMeshes; ++i)
-		{
-			conf_free(pScene->meshes[i].clusters);
-			conf_free(pScene->meshes[i].clusterCompacts);
-		}
-		// Remove Textures
-		for (uint32_t i = 0; i < pScene->numMaterials; ++i)
-		{
-			removeResource(gDiffuseMaps[i]);
-			removeResource(gNormalMaps[i]);
-			removeResource(gSpecularMaps[i]);
-		}
-
-		removeScene(pScene);
-
-		conf_free(gDiffuseMapsStorage);
-		conf_free(gNormalMapsStorage);
-		conf_free(gSpecularMapsStorage);
-		/************************************************************************/
-		/************************************************************************/
-		removeShaders();
-
-		removeRenderTargets();
-
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		// Remove default fences, semaphores
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeFence(pRenderer, pComputeCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
-		}
-
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
-		removeQueue(pGraphicsQueue);
-
-		removeCmd_n(pComputeCmdPool, gImageCount, ppComputeCmds);
-		removeCmdPool(pRenderer, pComputeCmdPool);
-		removeQueue(pComputeQueue);
-
-		removeSampler(pRenderer, pSamplerTrilinearAniso);
-		removeSampler(pRenderer, pSamplerBilinear);
-		removeSampler(pRenderer, pSamplerPointClamp);
-
-		removeBlendState(pBlendStateOneZero);
-
-		removeDepthState(pDepthStateEnable);
-		removeDepthState(pDepthStateDisable);
-
-		removeRasterizerState(pRasterizerStateCullBack);
-		removeRasterizerState(pRasterizerStateCullFront);
-		removeRasterizerState(pRasterizerStateCullNone);
-		removeRasterizerState(pRasterizerStateCullBackMS);
-		removeRasterizerState(pRasterizerStateCullFrontMS);
-		removeRasterizerState(pRasterizerStateCullNoneMS);
-
-		removeGpuProfiler(pRenderer, pGraphicsGpuProfiler);
-		removeGpuProfiler(pRenderer, pComputeGpuProfiler);
-
-		removeResourceLoaderInterface(pRenderer);
-		removeRenderer(pRenderer);
-	}
-
-	// Setup the render targets used in this demo.
-	// The only render target that is being currently used stores the results of the Visibility Buffer pass.
-	// As described earlier, this render target uses 32 bit per pixel to store draw / triangle IDs that will be
-	// loaded later by the shade step to reconstruct interpolated triangle data per pixel.
-	bool Load()
-	{
-		gFrameCount = 0;
-
-		if (!addRenderTargets())
-			return false;
-
-		return true;
-	}
-
-	void Unload()
-	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
-		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences);
 
 		removeRenderTargets();
 	}

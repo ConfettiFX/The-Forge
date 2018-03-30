@@ -96,7 +96,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		VK_STENCIL_OP_INCREMENT_AND_WRAP,
 		VK_STENCIL_OP_DECREMENT_AND_WRAP,
 		VK_STENCIL_OP_INCREMENT_AND_CLAMP,
-		VK_STENCIL_OP_DECREMENT_AND_WRAP,
+		VK_STENCIL_OP_DECREMENT_AND_CLAMP,
 	};
 
 	VkCullModeFlagBits gVkCullModeTranslator[CullMode::MAX_CULL_MODES] =
@@ -225,6 +225,13 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
       VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 	  VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+	  /************************************************************************/
+	  // VR Extensions
+	  /************************************************************************/
+	  VK_KHR_DISPLAY_EXTENSION_NAME,
+	  VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME,
+	  /************************************************************************/
+	  /************************************************************************/
    };
 
    const char* gVkWantedDeviceExtensions[] =
@@ -250,11 +257,6 @@ namespace RENDERER_CPP_NAMESPACE {
 	  VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	  VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
 	  VK_AMD_GCN_SHADER_EXTENSION_NAME,
-	  /************************************************************************/
-	  // VR Extensions
-	  /************************************************************************/
-	  VK_KHR_DISPLAY_EXTENSION_NAME,
-	  VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME,
 	  /************************************************************************/
 	  /************************************************************************/
    };
@@ -2140,11 +2142,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			case TEXTURE_TYPE_CUBE: image_type = VK_IMAGE_TYPE_2D; break;
 			}
 
-			VkExternalMemoryImageCreateInfoKHR externalInfo = {};
-			externalInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR;
-			externalInfo.pNext = NULL;
-			externalInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-
 			DECLARE_ZERO(VkImageCreateInfo, add_info);
 			add_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			add_info.pNext = NULL;
@@ -2192,6 +2189,10 @@ namespace RENDERER_CPP_NAMESPACE {
 				mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 			mem_reqs.usage = (VmaMemoryUsage)VMA_MEMORY_USAGE_GPU_ONLY;
 
+			VkExternalMemoryImageCreateInfoKHR externalInfo = {
+				VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR, NULL
+			};
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 			VkImportMemoryWin32HandleInfoKHR importInfo = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR, NULL };
 #endif
@@ -2201,10 +2202,17 @@ namespace RENDERER_CPP_NAMESPACE {
 			{
 				add_info.pNext = &externalInfo;
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-				importInfo.handle = (HANDLE)pDesc->pNativeHandle;
-				importInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-#endif
+				struct ImportHandleInfo
+				{
+					void* pHandle;
+					VkExternalMemoryHandleTypeFlagBitsKHR mHandleType;
+				};
+
+				ImportHandleInfo* pHandleInfo = (ImportHandleInfo*)pDesc->pNativeHandle;
+				importInfo.handle = pHandleInfo->pHandle;
+				importInfo.handleType = pHandleInfo->mHandleType;
+
+				externalInfo.handleTypes = pHandleInfo->mHandleType;
 
 				mem_reqs.pUserData = &importInfo;
 				// Allocate external (importable / exportable) memory as dedicated memory to avoid adding unnecessary complexity to the Vulkan Memory Allocator
@@ -4080,34 +4088,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	bool isImageFormatSupported(ImageFormat::Enum format)
 	{
-		bool result = false;
-		switch (format) {
-			// 1 channel
-		case ImageFormat::R8: result = true; break;
-		case ImageFormat::R16: result = true; break;
-		case ImageFormat::R16F: result = true; break;
-		case ImageFormat::R32UI: result = true; break;
-		case ImageFormat::R32F: result = true; break;
-			// 2 channel
-		case ImageFormat::RG8: result = true; break;
-		case ImageFormat::RG16: result = true; break;
-		case ImageFormat::RG16F: result = true; break;
-		case ImageFormat::RG32UI: result = true; break;
-		case ImageFormat::RG32F: result = true; break;
-			// 3 channel
-		case ImageFormat::RGB8: result = true; break;
-		case ImageFormat::RGB16: result = true; break;
-		case ImageFormat::RGB16F: result = true; break;
-		case ImageFormat::RGB32UI: result = true; break;
-		case ImageFormat::RGB32F: result = true; break;
-			// 4 channel
-		case ImageFormat::BGRA8: result = true; break;
-		case ImageFormat::RGBA16: result = true; break;
-		case ImageFormat::RGBA16F: result = true; break;
-		case ImageFormat::RGBA32UI: result = true; break;
-		case ImageFormat::RGBA32F: result = true; break;
-		}
-		return result;
+		return gVkFormatTranslator[format] != VK_FORMAT_UNDEFINED;
 	}
 
 	uint32_t calculateVertexLayoutStride(const VertexLayout* pVertexLayout)
@@ -4931,14 +4912,14 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		if (pCommandSignature->mDrawType == INDIRECT_DRAW)
 		{
-			if (pCounterBuffer && vkCmdDrawIndirectCountAMD)
+			if (pCounterBuffer && gDrawIndirectCountAMDExtension)
 				vkCmdDrawIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 			else
 				vkCmdDrawIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 		}
 		else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
 		{
-			if (pCounterBuffer && vkCmdDrawIndexedIndirectCountAMD)
+			if (pCounterBuffer && gDrawIndirectCountAMDExtension)
 				vkCmdDrawIndexedIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 			else
 				vkCmdDrawIndexedIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);

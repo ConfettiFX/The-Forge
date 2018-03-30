@@ -120,8 +120,8 @@ struct ViewPortState
 
 struct GraphVertex
 {
-	vec2 mPosition;
 	vec4 mColor;
+	vec2 mPosition;
 };
 
 struct CpuGraph
@@ -316,9 +316,6 @@ public:
 		HiresTimer timer;
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 
-		if (!addSwapChain())
-			return false;
-
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
 		{
@@ -386,28 +383,7 @@ public:
 		Shader* shaders[] = { pShader, pSkyBoxDrawShader };
 		addRootSignature(pRenderer, 2, shaders, &pRootSignature, &skyBoxRootDesc);
 
-		//vertexlayout and pipeline for particles
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 1;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::R32UI;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_POINT_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pBlendState = gParticleBlend;
-		pipelineSettings.pRasterizerState = gSkyboxRast;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pPipeline);
+		addRootSignature(pRenderer, 1, &pGraphShader, &pGraphRootSignature);
 
 		gTextureIndex = 0;
 
@@ -474,62 +450,6 @@ public:
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
 		addResource (&skyboxVbDesc);
 
-		//layout and pipeline for skybox draw
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 1;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pRasterizerState = gSkyboxRast;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
-
-		/********** layout and pipeline for graph draw*****************/
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = (sizeof(GraphVertex) > 24 ? ImageFormat::RGBA32F : ImageFormat::RG32F); // Handle the case when padding is added to the struct (yielding 32 bytes instead of 24) on macOS
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(vertexLayout.mAttribs[0].mFormat);
-		addRootSignature(pRenderer, 1, &pGraphShader, &pGraphRootSignature);
-
-		pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pRootSignature = pGraphRootSignature;
-		pipelineSettings.pShaderProgram = pGraphShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pGraphLinePipeline);
-
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-		addPipeline(pRenderer, &pipelineSettings, &pGraphTrianglePipeline);
-
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_LIST;
-		addPipeline(pRenderer, &pipelineSettings, &pGraphLineListPipeline);
-		/********************************************************************/
-
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
@@ -545,16 +465,16 @@ public:
 		LOGINFOF ("Load Time %lld", timer.GetUSec (false) / 1000);
 
 		// generate partcile data
-		unsigned int gSeed = 23232323;
+		unsigned int particleSeed = 23232323; //we have gseed as global declaration, pick a name that is not gseed
 		for (int i = 0; i < 6 * 9; ++i) {
-			RND_GEN(gSeed);
+			RND_GEN(particleSeed);
 		}
 		uint32_t* seedArray = NULL;
 		seedArray = (uint32_t*)conf_malloc(gTotalParticleCount * sizeof(uint32_t));
 		for (int i = 0; i < gTotalParticleCount; ++i)
 		{
-			RND_GEN(gSeed);
-			seedArray[i] = gSeed;
+			RND_GEN(particleSeed);
+			seedArray[i] = particleSeed;
 		}
 		uint64_t parDataSize = sizeof(uint32_t)* (uint64_t)gTotalParticleCount;
 		uint32_t parDataStride = sizeof(uint32_t);
@@ -706,18 +626,11 @@ public:
 		removeShader(pRenderer, pShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeShader(pRenderer, pGraphShader);
-		removePipeline(pRenderer, pPipeline);
-		removePipeline(pRenderer, pSkyBoxDrawPipeline);
-		removePipeline(pRenderer, pGraphLineListPipeline);
-		removePipeline(pRenderer, pGraphLinePipeline);
-		removePipeline(pRenderer, pGraphTrianglePipeline);
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pGraphRootSignature);
 
 		removeBlendState(gParticleBlend);
 		removeRasterizerState(gSkyboxRast);
-
-		Unload();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -750,12 +663,97 @@ public:
 		if (!addSwapChain())
 			return false;
 
+		//vertexlayout and pipeline for particles
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 1;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::R32UI;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_POINT_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pBlendState = gParticleBlend;
+		pipelineSettings.pRasterizerState = gSkyboxRast;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		addPipeline(pRenderer, &pipelineSettings, &pPipeline);
+
+		//layout and pipeline for skybox draw
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 1;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pRasterizerState = gSkyboxRast;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+
+		/********** layout and pipeline for graph draw*****************/
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = (sizeof(GraphVertex) > 24 ? ImageFormat::RGBA32F : ImageFormat::RG32F); // Handle the case when padding is added to the struct (yielding 32 bytes instead of 24) on macOS
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(vertexLayout.mAttribs[0].mFormat);
+
+		pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pRootSignature = pGraphRootSignature;
+		pipelineSettings.pShaderProgram = pGraphShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		addPipeline(pRenderer, &pipelineSettings, &pGraphLinePipeline);
+
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+		addPipeline(pRenderer, &pipelineSettings, &pGraphTrianglePipeline);
+
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_LIST;
+		addPipeline(pRenderer, &pipelineSettings, &pGraphLineListPipeline);
+		/********************************************************************/
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+
+		removePipeline(pRenderer, pPipeline);
+		removePipeline(pRenderer, pSkyBoxDrawPipeline);
+		removePipeline(pRenderer, pGraphLineListPipeline);
+		removePipeline(pRenderer, pGraphLinePipeline);
+		removePipeline(pRenderer, pGraphTrianglePipeline);
+
 		removeSwapChain(pRenderer, pSwapChain);
 	}
 

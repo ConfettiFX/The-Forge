@@ -1702,7 +1702,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
     return false;
   }
 
-  char* memoryArray = new char[header.m_contentsSize];
+  char* memoryArray = (char*)conf_calloc(header.m_contentsSize, sizeof(char));
   sce::Gnf::Contents *gnfContents = NULL;
   gnfContents = (sce::Gnf::Contents*) memoryArray;
 
@@ -1746,7 +1746,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
   //
   // we do this because on the addTexture level, we would like to have all this data to allocate and load the data
   //
-  pAdditionalData = new unsigned char[header.m_contentsSize];
+  pAdditionalData = (unsigned char*)conf_calloc(header.m_contentsSize, sizeof(unsigned char));
   memcpy(pAdditionalData, gnfContents, header.m_contentsSize);
 
   // storing all the pixel data in pixels
@@ -1788,7 +1788,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
   memread(pixels, 1, size, mpoint);
   }
   */
-  delete(gnfContents);
+  conf_free(gnfContents);
 
   return !result;
 }
@@ -1824,17 +1824,15 @@ static ImageLoaderDefinition gImageLoaders[] =
   { ".dds", &Image::iLoadDDSFromMemory },
 #endif
   { ".pvr", &Image::iLoadPVRFromMemory },
+  // #TODO: Add KTX loader
 #ifdef _WIN32
-  { ".ktx", &Image::iLoadKTXFromMemory },
+  { ".ktx", NULL },
 #endif
   { ".exr", &Image::iLoadEXRFP32FromMemory },
 #if defined(ORBIS)
   { ".gnf", &Image::iLoadGNFFromMemory },
 #endif
 };
-
-
-
 
 void Image::loadFromMemoryXY(const void *mem, const int topLeftX, const int topLeftY, const int bottomRightX, const int bottomRightY, const int pitch)
 {

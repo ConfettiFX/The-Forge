@@ -313,12 +313,6 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 #endif
 
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-        
 #ifdef TARGET_IOS
         // Add virtual joystick texture.
         TextureLoadDesc textureDesc = {};
@@ -367,67 +361,6 @@ public:
 			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
 
 		addRasterizerState(&pWireframeRast, CULL_MODE_NONE, 0, 0.0f, FILL_MODE_WIREFRAME);
-
-		VertexLayout vertexLayout = {};
-#ifndef METAL
-		vertexLayout.mAttribCount = 4;
-#else
-		vertexLayout.mAttribCount = 5;
-#endif
-
-		//v0 -- position (Metal)
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		//v1
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD1;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
-
-		//v2
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD2;
-		vertexLayout.mAttribs[2].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[2].mBinding = 0;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[2].mOffset = 8 * sizeof(float);
-
-		//up
-		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD3;
-		vertexLayout.mAttribs[3].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[3].mBinding = 0;
-		vertexLayout.mAttribs[3].mLocation = 3;
-		vertexLayout.mAttribs[3].mOffset = 12 * sizeof(float);
-
-#ifdef METAL
-		// widthDir
-		vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
-		vertexLayout.mAttribs[4].mFormat = ImageFormat::RGBA32F;
-		vertexLayout.mAttribs[4].mBinding = 0;
-		vertexLayout.mAttribs[4].mLocation = 4;
-		vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
-#endif
-
-		GraphicsPipelineDesc pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
-		pipelineSettings.pRasterizerState = pRast;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRootSignature = pGrassRootSignature;
-		pipelineSettings.pShaderProgram = pGrassShader;
-		addPipeline(pRenderer, &pipelineSettings, &pGrassPipeline);
-		pipelineSettings.pRasterizerState = pWireframeRast;
-		addPipeline(pRenderer, &pipelineSettings, &pGrassPipelineForWireframe);
 
 #ifdef METAL
 		ComputePipelineDesc grassVertexHullPipelineDesc = { 0 };
@@ -620,10 +553,6 @@ public:
 #endif
 #endif
 
-#if defined(VULKAN)
-		transitionRenderTargets();
-#endif
-
 		LOGINFOF("Load time %f ms", StartTime.GetUSec(true) / 1000.0f);
 		return true;
 	}
@@ -670,8 +599,6 @@ public:
 		removeSampler(pRenderer, pSampler);
 		removeDepthState(pDepth);
 
-		removeRenderTarget(pRenderer, pDepthBuffer);
-
 		removeRasterizerState(pRast);
 		removeRasterizerState(pWireframeRast);
 		removeResource(pGrassUniformBuffer);
@@ -682,11 +609,9 @@ public:
 #endif
 		removeShader(pRenderer, pComputeShader);
 
-		removePipeline(pRenderer, pGrassPipeline);
 #ifdef METAL
 		removePipeline(pRenderer, pGrassVertexHullPipeline);
 #endif
-		removePipeline(pRenderer, pGrassPipelineForWireframe);
 		removePipeline(pRenderer, pComputePipeline);
 
 		removeRootSignature(pRenderer, pGrassRootSignature);
@@ -699,7 +624,6 @@ public:
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 #endif
 		removeResourceLoaderInterface(pRenderer);
-		removeSwapChain(pRenderer, pSwapChain);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
@@ -712,12 +636,81 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
+		VertexLayout vertexLayout = {};
+#ifndef METAL
+		vertexLayout.mAttribCount = 4;
+#else
+		vertexLayout.mAttribCount = 5;
+#endif
+
+		//v0 -- position (Metal)
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		//v1
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD1;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
+
+		//v2
+		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD2;
+		vertexLayout.mAttribs[2].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[2].mBinding = 0;
+		vertexLayout.mAttribs[2].mLocation = 2;
+		vertexLayout.mAttribs[2].mOffset = 8 * sizeof(float);
+
+		//up
+		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD3;
+		vertexLayout.mAttribs[3].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[3].mBinding = 0;
+		vertexLayout.mAttribs[3].mLocation = 3;
+		vertexLayout.mAttribs[3].mOffset = 12 * sizeof(float);
+
+#ifdef METAL
+		// widthDir
+		vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
+		vertexLayout.mAttribs[4].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[4].mBinding = 0;
+		vertexLayout.mAttribs[4].mLocation = 4;
+		vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
+#endif
+
+		GraphicsPipelineDesc pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
+		pipelineSettings.pRasterizerState = pRast;
+		pipelineSettings.pDepthState = pDepth;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRootSignature = pGrassRootSignature;
+		pipelineSettings.pShaderProgram = pGrassShader;
+		addPipeline(pRenderer, &pipelineSettings, &pGrassPipeline);
+		pipelineSettings.pRasterizerState = pWireframeRast;
+		addPipeline(pRenderer, &pipelineSettings, &pGrassPipelineForWireframe);
+
+#if defined(VULKAN)
+		transitionRenderTargets();
+#endif
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+
+		removePipeline(pRenderer, pGrassPipeline);
+		removePipeline(pRenderer, pGrassPipelineForWireframe);
+
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
 	}

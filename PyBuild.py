@@ -22,13 +22,13 @@
 # under the License.
 
 import os
+import os.path
 import fnmatch #Checks for matching expression in name
 import time    #used for timing process in case one hangs without crashing
 import platform #Used for determining running OS
 import subprocess #Used for spawning processes
 import sys        #system module
 import argparse #Used for argument parsing
-import psutil  #TODO: MAKE SURE THIS PACKAGE IS INSTALLED (Use setupTools ?)
 import traceback
 
 successfulBuilds = [] #holds all successfull builds
@@ -37,19 +37,19 @@ failedBuilds = [] #holds all failed builds
 successfulTests = [] #holds all successfull tests
 failedTests = [] #holds all failed tests
 
-maxIdleTime = 10  #10 seconds of max idle time with cpu usage null
+maxIdleTime = 20  #10 seconds of max idle time with cpu usage null
 
 def PrintResults():
 	if len(successfulBuilds) > 0:
 		print ("Successful Builds list:")
 		for build in successfulBuilds:
-			print(build['name'], build['conf'])
+			print(build['name'], build['conf'], build['platform'])
 	
 	print ("")
 	if len(failedBuilds) > 0:
 		print ("Failed Builds list:")
 		for build in failedBuilds:
-			print(build['name'], build['conf'])
+			print(build['name'], build['conf'], build['platform'])
 			
 	if len(successfulTests) > 0:
 		print ("Successful tests list:")
@@ -87,52 +87,113 @@ def FindMSBuild17():
 	
 	return msbuildPath
 
+def AddTestingPreProcessor():
+	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp"]
+	
+	for filename in fileList:
+		if not os.path.exists(filename):
+			continue
+		with open(filename,'r+') as f:
+			lines = f.readlines()
+			for i, line in enumerate(lines):
+				if line.startswith('#include') :
+					lines[i]=line.replace(line,"#define AUTOMATED_TESTING 1\n" +line)
+					break
+
+			f.seek(0)
+			for line in lines:
+				f.write(line)
+
+def RemoveTestingPreProcessor():
+	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp"]
+	
+	for filename in fileList:
+		if not os.path.exists(filename):
+			continue
+		with open(filename,'r+') as f:
+			lines = f.readlines()
+			f.seek(0)
+			for line in lines:
+				if "#define AUTOMATED_TESTING" not in line :
+					f.write(line)
+			f.truncate()
+
 def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 	try:
+		import psutil  #TODO: MAKE SURE THIS PACKAGE IS INSTALLED
+		
 		print("Executing command: " + ' '.join(cmdList))
+		#print("Current Working Directory: " +  os.getcwd())
 
 		#open subprocess without piping output
 		# otherwise process blocks until we call communicate or wait
 		proc = subprocess.Popen(cmdList)
-
+		
 		#get start time of process
 		startTime = time.time()
 		currentTime = 0
 		
-		readCount = 0
-		while proc.poll() is None:
-			#gets the psutil process which is used for cpu percentage
-			psUtilProc = None
-			try:
-				#try to get psutil process, it can fail if process is done
-				psUtilProc = psutil.Process(proc.pid)
-			except psutil.NoSuchProcess:
-				break
+		#gets the psutil process which is used for cpu percentage
+		psUtilProc = None
+		try:
+			#try to get psutil process, it can fail if process is done
+			#time.sleep(0.1)
+			psUtilProc = psutil.Process(proc.pid)
+		except psutil.NoSuchProcess:
+			#print("No such process")
+			#print("Current Process: " + str(proc.pid))
+			pass
+		except psutil.ZombieProcess:
+			#print("Zombie process")
+			#print("Current Process: " + str(proc.pid))
+			pass
+		except psutil.AccessDenied:
+			#print("Access Denied") #mac may cause issues here
+			pass
 
+		readCount = 0
+		memoryPercent = 0
+		while proc.poll() is None:
 			#monitor cpu usage in case application hangs
 			cpuUsage = 0
+			memoryUsage = 0
 			diskReadCount = 0
 			#try catch because cpu_percent will throw exception if process has exited
 			try:
-				cpuUsage = psUtilProc.cpu_percent(interval=0.05)
+				cpuUsage = psUtilProc.cpu_percent(interval=0.1)
+				memoryUsage = psUtilProc.memory_percent()
 				#apparently mac process does not have disk_io_counters
 				if platform.system() == "Windows":
 					diskReadCount = psUtilProc.io_counters().read_count
 			except psutil.NoSuchProcess:
-				break
+				#print("No such process")
+				pass
+				#break
 			except psutil.AccessDenied:
-				break
-
+				#print("Access Denied")
+				pass
+			except psutil.ZombieProcess:
+				#print("Zombie process")
+				pass
+				#break
+			
+			#print('--------------------------------------------')
+			#print('Cpu Usage:' + str(cpuUsage))
+			#print('Disk Read Count:' + str(readCount))
+			#print('Memory Usage:' + str(memoryUsage))
+			#print('--------------------------------------------')
+			
 			#if cpu usage less than 1% then increment counter
-			if cpuUsage < 1.0 and readCount <= diskReadCount:
+			if cpuUsage < 1.0 and readCount <= diskReadCount and memoryUsage <= memoryPercent:
 				currentTime = time.time() - startTime
 			else:
-			#process is active so we need to reset time that is used to detect
-			#crashing process
+				#process is active so we need to reset time that is used to detect
+				#crashing process
 				startTime = time.time()
 			
 			#update number of times read is called
 			readCount = diskReadCount
+			memoryPercent = memoryUsage
 
 			#current 'idle' time has reached our max duration
 			#then kill process
@@ -141,8 +202,8 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 		
 		#used to get return code
 		rc = proc.wait()
-
-		if rc != 0:
+		if rc != 0:			
+			#print("Process returned error")
 			return rc
 
 	except Exception as ex:
@@ -153,9 +214,10 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 		print("-------------------------------------")
 		return -1  #error return code
 	
+	print("Success")
 	return 0 #success error code
 
-def ExecuteCommand(cmdList,outStream=subprocess.PIPE):
+def ExecuteCommand(cmdList,outStream):
 	try:
 		print("Executing command: " + ' '.join(cmdList))
 		proc = subprocess.Popen(cmdList, outStream)
@@ -176,14 +238,14 @@ def ExecuteCommand(cmdList,outStream=subprocess.PIPE):
 	
 	return 0 #success error code
 
-def ExecuteBuild(cmdList, fileName, configuration):
-	returnCode = ExecuteCommand(cmdList)
+def ExecuteBuild(cmdList, fileName, configuration, platform):
+	returnCode = ExecuteCommand(cmdList, subprocess.PIPE)
 	
 	if returnCode != 0:
 		print("FAILED BUILDING ", fileName, configuration)
-		failedBuilds.append({'name':fileName,'conf':configuration})
+		failedBuilds.append({'name':fileName,'conf':configuration, 'platform':platform})
 	else:
-		successfulBuilds.append({'name':fileName,'conf':configuration})
+		successfulBuilds.append({'name':fileName,'conf':configuration, 'platform':platform})
 	
 	return returnCode
 
@@ -195,6 +257,7 @@ def ExecuteTest(cmdList, fileName, regularCommand):
 	
 	if returnCode != 0:
 		print("FAILED TESTING ", fileName)
+		print("Return code: ", returnCode)
 		failedTests.append({'name':fileName})
 	else:
 		successfulTests.append({'name':fileName})
@@ -228,7 +291,7 @@ def GetFilesPathByExtension(rootToSearch, extension, wantDirectory):
 def TestXcodeProjects(iosTesting, macOSTesting):
 	errorOccured = False
 
-	projects = GetFilesPathByExtension("./Examples_3/Unit_Tests/macOS Xcode/Bin/Release/","app", True)
+	projects = GetFilesPathByExtension("./Examples_3/","app", True)
 	iosApps = []
 	osxApps = []
 	appsToTest = []
@@ -260,10 +323,10 @@ def TestXcodeProjects(iosTesting, macOSTesting):
 		retCode = -1
 		print(rootPath)
 		if "_iOS" in filename:
-			command = ["ios-deploy","-b",filename + ".app","-I", "-a","--testing"]
+			command = ["ios-deploy","--uninstall","-b",filename + ".app","-I"]
 			retCode = ExecuteTest(command, filename, True)
 		else:
-			command = ["./" + filename + ".app/Contents/MacOS/" + filename,"--testing"]
+			command = ["./" + filename + ".app/Contents/MacOS/" + filename]
 			retCode = ExecuteTest(command, filename, False)
 			
 		if retCode != 0:
@@ -293,7 +356,7 @@ def BuildXcodeProjects():
 			#create command for xcodebuild
 			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
 			command = ["xcodebuild","-scheme", filename,"-configuration",conf,"build"]
-			sucess = ExecuteBuild(command, filename,conf)
+			sucess = ExecuteBuild(command, filename,conf, "macOS")
 			if sucess != 0:
 				errorOccured = True
 
@@ -302,7 +365,7 @@ def BuildXcodeProjects():
 			if filename != "Visibility_Buffer":
 				filename = filename +"_iOS" 
 				command = ["xcodebuild","-scheme", filename,"-configuration",conf,"build","-allowProvisioningDeviceRegistration"]
-				sucess = ExecuteBuild(command, filename,conf)
+				sucess = ExecuteBuild(command, filename,conf, "iOS")
 				if sucess != 0:
 					errorOccured = True
 			
@@ -321,7 +384,7 @@ def TestWindowsProjects():
 
 	for proj in projects:
 		#we don't want to build Xbox one solutions when building PC
-		if "PC Visual Studio 2017" and "Release" in proj:
+		if "PC Visual Studio 2017" in proj and "Release" in proj:
 			fileList.append(proj)
 
 	for proj in fileList:
@@ -341,7 +404,7 @@ def TestWindowsProjects():
 
 		filename = proj.split(os.sep)[-1]
 
-		command = ["./"+filename,"--testing"]
+		command = [filename]
 
 		if "ReleaseVk" in proj:
 			filename = "VK_" + filename
@@ -359,10 +422,16 @@ def TestWindowsProjects():
 		return -1
 	return 0	
 
-def BuildWindowsProjects():
+def BuildWindowsProjects(xboxDefined):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
+	pcConfigurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
+	pcPlatform = "x64"
+	
+	xboxConfigurations = ["Debug","Release"]
+	xboxPlatform = "Durango"
+	
 	if msBuildPath == "":
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
 		sys.exit(-1)
@@ -372,8 +441,12 @@ def BuildWindowsProjects():
 
 	for proj in projects:
 		#we don't want to build Xbox one solutions when building PC
-		if "PC Visual Studio 2017" in proj:
-			fileList.append(proj)
+		if xboxDefined:
+			if "PC Visual Studio 2017" in proj or "XBOXOne" in proj:
+				fileList.append(proj)
+		else:
+			if "PC Visual Studio 2017" in proj:
+				fileList.append(proj)
 
 	for proj in fileList:
 		#get current path for sln file
@@ -389,15 +462,22 @@ def BuildWindowsProjects():
 		currDir = os.getcwd()
 		#change working directory to sln file
 		os.chdir(rootPath)
-		configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
+		
+		configurations = pcConfigurations
+		platform = pcPlatform
+		
 		filename = proj.split(os.sep)[-1]
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
 		if filename == "Aura.sln":
 			configurations = ["DebugDx", "ReleaseDx"]
-		
+			
+		if "XBOXOne" in proj:
+			configurations = xboxConfigurations
+			platform = xboxPlatform
+				
 		for conf in configurations:
-			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=x64","/m","/nr:false","/clp:Summary","/verbosity:minimal"]
-			retCode = ExecuteBuild(command, filename,conf)
+			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/nr:false","/clp:Summary","/verbosity:minimal"]
+			retCode = ExecuteBuild(command, filename,conf, platform)
 			
 			if retCode != 0:
 				errorOccured = True
@@ -412,6 +492,8 @@ def MainLogic():
 
 	#TODO: Maybe use simpler library for args
 	parser = argparse.ArgumentParser(description='Process the Forge builds')
+	parser.add_argument('--prebuild', action="store_true", help='If enabled, will run PRE_BUILD to update assets.')
+	parser.add_argument('--xbox', action="store_true", help='Enable xbox building')
 	parser.add_argument('--testing', action="store_true", help='Test the apps on current platform')
 	parser.add_argument('--ios', action="store_true", help='Needs --testing. Enable iOS testing')
 	parser.add_argument('--macos', action="store_true", help='Needs --testing. Enable macOS testing')
@@ -423,7 +505,20 @@ def MainLogic():
 	#change path to scripts location
 	os.chdir(sys.path[0])
 	returnCode = 0
+		
+	if arguments.xbox is not True or "XboxOneXDKLatest" not in os.environ:
+		arguments.xbox = False
+	
+	print("Adding defines for automated testing")
+	AddTestingPreProcessor()
 
+	#PRE_BUILD step
+	if os.path.isdir("./Art") == False or arguments.prebuild ==  True:
+		if platform.system() == "Windows":
+			ExecuteCommand(["PRE_BUILD.bat"], subprocess.PIPE)
+		else:
+			ExecuteCommand(["sh","PRE_BUILD.sh"], subprocess.PIPE)
+	
 	if arguments.testing:
 		#Build for Mac OS (Darwin system)
 		if platform.system() == "Darwin":
@@ -435,10 +530,14 @@ def MainLogic():
 		if platform.system() == "Darwin":
 			returnCode = BuildXcodeProjects()
 		elif platform.system() == "Windows":
-			returnCode = BuildWindowsProjects()
+			returnCode = BuildWindowsProjects(arguments.xbox)
 
 	PrintResults()
-
+	
+	#Clean up 
+	print("Removing defines that got added for automated testing")
+	RemoveTestingPreProcessor()
+	
 	#return for jenkins
 	sys.exit(returnCode)
 
