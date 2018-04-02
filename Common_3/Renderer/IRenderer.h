@@ -37,6 +37,9 @@
 #if defined(_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
+#if defined(__linux__)
+#define VK_USE_PLATFORM_XLIB_KHR //Use Xlib or Xcb as display server, defaults to Xlib
+#endif
 #include "../../Common_3/ThirdParty/OpenSource/volk/volk.h"
 #elif defined(METAL)
 #import <MetalKit/MetalKit.h>
@@ -965,6 +968,7 @@ typedef struct RootSignatureDesc
 		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_RW_BUFFER] = 32U;
 		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_UNIFORM_BUFFER] = 32U;
 		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_SAMPLER] = 32U;
+		mStaticSamplers = tinystl::unordered_map<tinystl::string, Sampler*>();
 	}
 	uint32_t											mMaxBindlessDescriptors[DESCRIPTOR_TYPE_COUNT];
 	tinystl::unordered_map<tinystl::string, Sampler*>	mStaticSamplers;
@@ -1117,6 +1121,7 @@ typedef enum FenceStatus
 {
 	FENCE_STATUS_COMPLETE = 0,
 	FENCE_STATUS_INCOMPLETE,
+	FENCE_STATUS_NOTSUBMITTED,
 } FenceStatus;
 
 typedef struct Fence {
@@ -1420,6 +1425,7 @@ typedef struct SwapChainDesc {
 	ClearValue			mColorClearValue;
 	/// Set whether this swapchain using srgb color space
 	bool				mSrgb;
+	/// Set whether swap chain will be presented using vsync
 	bool				mEnableVsync;
 } SwapChainDesc;
 

@@ -1102,9 +1102,13 @@ bool save_byte_code(const String& binaryShaderName, const tinystl::vector<char>&
 }
 
 #if defined(DIRECT3D12)
-#define RENDERER_API "PXDX12"
+#define RENDERER_API "PCDX12"
 #elif defined(VULKAN)
-#define RENDERER_API "PCVulkan"
+	#if defined(_WIN32)
+	#define RENDERER_API "PCVulkan"
+	#elif defined(__linux__)
+	#define RENDERER_API "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RENDERER_API "OSXMetal"
 #endif

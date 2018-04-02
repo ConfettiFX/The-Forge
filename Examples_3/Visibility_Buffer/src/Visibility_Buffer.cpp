@@ -1537,8 +1537,12 @@ public:
 
 			if (gAppSettings.mRenderLocalLights)
 			{
+				/************************************************************************/
+				// Synchronization
+				/************************************************************************/
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(computeCmd, pComputeGpuProfiler, "Compute Light Clusters", true);
+				cmdSynchronizeResources(computeCmd, 1, &pLightClustersCount[computeFrameIdx], 0, NULL, false);
 				computeLightClusters(computeCmd, computeFrameIdx);
 				cmdEndGpuTimestampQuery(computeCmd, pComputeGpuProfiler);
 			}
@@ -1577,17 +1581,18 @@ public:
 				triangleFilteringPass(graphicsCmd, pGraphicsGpuProfiler, graphicsFrameIdx);
 			}
 
-			if (!gAppSettings.mAsyncCompute)
+			if (!gAppSettings.mAsyncCompute || !gAppSettings.mFilterTriangles)
 			{
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Clear Light Clusters", true);
 				clearLightClusters(graphicsCmd, (graphicsFrameIdx + 1) % gImageCount);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
 
-			if (!gAppSettings.mAsyncCompute && gAppSettings.mRenderLocalLights)
+			if ((!gAppSettings.mAsyncCompute || !gAppSettings.mFilterTriangles) && gAppSettings.mRenderLocalLights)
 			{
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Compute Light Clusters", true);
+				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[(graphicsFrameIdx + 1) % gImageCount], 0, NULL, false);
 				computeLightClusters(graphicsCmd, (graphicsFrameIdx + 1) % gImageCount);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
@@ -2604,7 +2609,7 @@ public:
 		/************************************************************************/
 		// Culling data
 		/************************************************************************/
-		currentFrame->gPerFrameUniformData.cullingViewports[VIEW_SHADOW].sampleCount = MSAASAMPLECOUNT;
+		currentFrame->gPerFrameUniformData.cullingViewports[VIEW_SHADOW].sampleCount = 1;
 		currentFrame->gPerFrameUniformData.cullingViewports[VIEW_SHADOW].windowSize = { (float)gShadowMapSize, (float)gShadowMapSize };
 
 		currentFrame->gPerFrameUniformData.cullingViewports[VIEW_CAMERA].sampleCount = MSAASAMPLECOUNT;
@@ -3224,7 +3229,6 @@ public:
 	// Executes a compute shader to clear (reset) the the light clusters on the GPU
 	void clearLightClusters(Cmd *cmd, uint32_t frameIdx)
 	{
-		UNREF_PARAM(frameIdx);
 		cmdBindPipeline(cmd, pPipelineClearLightClusters);
 
 		DescriptorData params[1] = {};
@@ -3238,7 +3242,6 @@ public:
 	// Executes a compute shader that computes the light clusters on the GPU
 	void computeLightClusters(Cmd *cmd, uint32_t frameIdx)
 	{
-		UNREF_PARAM(frameIdx);
 		cmdBindPipeline(cmd, pPipelineClusterLights);
 
 		DescriptorData params[4] = {};

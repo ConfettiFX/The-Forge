@@ -242,7 +242,7 @@ void UIRenderer::beginRender(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget
 
 		ImageFormat::Enum colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
 		bool srgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = {};
-		ImageFormat::Enum depthStencilFormat = ImageFormat::None;
+		ImageFormat::Enum depthStencilFormat = ImageFormat::NONE;
 		SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
 		uint32_t sampleQuality = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleQuality : pDepthStencil->mDesc.mSampleQuality;
 		for (uint32_t i = 0; i < renderTargetCount; ++i)

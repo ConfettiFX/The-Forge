@@ -144,7 +144,7 @@
 #define BUTTON_RIGHT	0x0008
 
 #elif defined(LINUX)
-
+#include <X11/keysym.h>
 #define KEY_LEFT      XK_Left
 #define KEY_RIGHT     XK_Right
 #define KEY_UP        XK_Up
@@ -219,6 +219,17 @@
 #define KEY_X int('x')
 #define KEY_Y int('y')
 #define KEY_Z int('z')
+
+// TODO: Linux game pad key mapping
+#define BUTTON_MENU     0x0
+#define BUTTON_A        0x0
+#define BUTTON_B        0x0
+#define BUTTON_X        0x0
+#define BUTTON_Y        0x0
+#define BUTTON_UP       0x0
+#define BUTTON_DOWN     0x0
+#define BUTTON_LEFT     0x0
+#define BUTTON_RIGHT    0x0
 
 #elif defined(_ANDROID)
 
