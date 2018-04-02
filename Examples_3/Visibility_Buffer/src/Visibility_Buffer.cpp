@@ -1592,7 +1592,7 @@ public:
 			{
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Compute Light Clusters", true);
-				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[graphicsFrameIdx], 0, NULL, false);
+				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[(graphicsFrameIdx + 1) % gImageCount], 0, NULL, false);
 				computeLightClusters(graphicsCmd, (graphicsFrameIdx + 1) % gImageCount);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
