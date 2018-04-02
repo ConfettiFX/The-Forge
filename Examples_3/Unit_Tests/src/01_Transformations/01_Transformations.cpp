@@ -147,6 +147,8 @@ const char*			pSkyBoxImageFileNames[] =
 #define RESOURCE_DIR "OSXMetal"
 #elif defined(_DURANGO)
 #define RESOURCE_DIR "PCDX12"
+#elif defined(LINUX)
+#define RESOURCE_DIR "LINUXVulkan"
 #else
 #error PLATFORM NOT SUPPORTED
 #endif
@@ -667,6 +669,13 @@ public:
 	void Draw()
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
+		FenceStatus fenceStatus;
+		getFenceStatus(pNextFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
@@ -765,13 +774,6 @@ public:
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
 	}
 
 	String GetName()

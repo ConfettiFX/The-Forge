@@ -29,7 +29,10 @@
 #include "../OS/Interfaces/ILogManager.h"
 #include "../OS/Interfaces/IUIManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
-
+#if __linux__
+#include <linux/limits.h> //PATH_MAX declaration
+#define MAX_PATH PATH_MAX
+#endif
 extern void getTimestampFrequency(Queue* pQueue, double* pFrequency);
 extern void addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap);
 extern void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap);

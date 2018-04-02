@@ -37,6 +37,13 @@
 #include  <stdio.h>
 #include  <stdlib.h>
 #endif
+#ifdef __linux__
+#include <unistd.h>
+#include <limits.h>  // for UINT_MAX
+#include <sys/stat.h>  // for mkdir
+#include <sys/errno.h> // for errno
+#include <sys/wait.h>
+#endif
 
 static const char* pszFileAccessFlags[] =
 {
@@ -962,6 +969,18 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 	}
 
 	return exitCode;
+#elif defined(__linux__)
+		tinystl::vector<const char*> argPtrs; 
+		String cmd(fixedFileName.c_str());
+		char* space = " ";
+		cmd.append(space, space+1);
+		for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
+		{
+			cmd.append(arguments[i].begin(), arguments[i].end());
+		}
+		
+		int res = system(cmd.c_str());
+		return res;
 #else
 	pid_t pid = fork();
 	if (!pid)

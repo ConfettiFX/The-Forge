@@ -39,6 +39,7 @@ using namespace metal;
 #define ENABLE_CULL_BACKFACE         1
 #define ENABLE_CULL_FRUSTUM          1
 #define ENABLE_CULL_SMALL_PRIMITIVES 1
+#define ENABLE_GUARD_BAND				0
 
 struct SceneVertexPos
 {
@@ -149,11 +150,13 @@ bool FilterTriangle(float4 vertices[3], float2 windowSize, uint samples, uint tw
         
         int2 minBB = int2(1 << 30, 1 << 30);
         int2 maxBB = -minBB;
-        
+#if ENABLE_GUARD_BAND			        
         bool insideGuardBand = true;
+#endif
         for (uint i=0; i<3; i++)
         {
             float2 screenSpacePositionFP = vertices[i].xy * windowSize;
+#if ENABLE_GUARD_BAND			
             // Check if we should overflow after conversion
             if (screenSpacePositionFP.x < -(1<<23) ||
                 screenSpacePositionFP.x >  (1<<23) ||
@@ -162,13 +165,15 @@ bool FilterTriangle(float4 vertices[3], float2 windowSize, uint samples, uint tw
             {
                 insideGuardBand = false;
             }
+#endif
             // Scale based on distance from center to msaa sample point
             int2 screenSpacePosition = int2(screenSpacePositionFP * (SUBPIXEL_SAMPLES * samples));
             minBB = min(screenSpacePosition, minBB);
             maxBB = max(screenSpacePosition, maxBB);
         }
-        
+#if ENABLE_GUARD_BAND			        
         if (insideGuardBand)
+#endif
         {
             const uint SUBPIXEL_SAMPLE_CENTER = SUBPIXEL_SAMPLES / 2;
             const uint SUBPIXEL_SAMPLE_SIZE = SUBPIXEL_SAMPLES - 1;

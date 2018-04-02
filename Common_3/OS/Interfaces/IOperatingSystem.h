@@ -25,7 +25,6 @@
 #pragma once
 
 #if defined(_WIN32)
-
 #include <sys/stat.h>
 #if !defined(_DURANGO)
 #include <shlwapi.h>
@@ -49,6 +48,13 @@ typedef HINSTANCE HINST;
 #else
 #include <stdint.h>
 typedef uint64_t uint64;
+#endif
+#endif
+
+#if defined(__linux__)
+#define VK_USE_PLATFORM_XLIB_KHR
+#if defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_XCB_KHR)
+#include <X11/Xutil.h>
 #endif
 #endif
 
@@ -94,12 +100,24 @@ inline int getRectHeight(const RectDesc& rect)
 
 typedef struct WindowsDesc
 {
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+ 	Display *display;
+ 	Window xlib_window;
+ 	Atom xlib_wm_delete_window;
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+ 	Display *display;
+ 	xcb_connection_t *connection;
+ 	xcb_screen_t *screen;
+ 	xcb_window_t xcb_window;
+ 	xcb_intern_atom_reply_t *atom_wm_delete_window;
+#else
+	WindowHandle handle = NULL; //hWnd
+#endif	
 	RectDesc windowedRect;
 	RectDesc fullscreenRect;
 	RectDesc clientRect;
 	bool fullScreen = false;
 	unsigned windowsFlags = 0;
-	WindowHandle handle = NULL;
 	IconHandle bigIcon = NULL;
 	IconHandle smallIcon = NULL;
 

@@ -83,7 +83,7 @@ public:
   uint GetDepth(const int mipMapLevel) const;
   uint GetMipMapCount() const { return mMipMapCount; }
   uint GetMipMapCountFromDimensions() const;
-  uint GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::None) const;
+  uint GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
   uint GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
   bool GetColorRange(float &min, float &max);
   bool Normalize();
@@ -94,7 +94,7 @@ public:
   bool GenerateMipMaps(const uint32_t mipMaps = ALL_MIPLEVELS);
 
   uint GetArrayCount() const { return mArrayCount; }
-  uint GetMipMappedSize(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS, ImageFormat::Enum srcFormat = ImageFormat::None) const;
+  uint GetMipMappedSize(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
   static uint GetMipMappedSize(uint width, uint height, uint depth, uint startMip, uint numLevels, ImageFormat::Enum format);
 
   ImageFormat::Enum getFormat() const { return mFormat; }

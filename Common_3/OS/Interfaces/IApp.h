@@ -145,5 +145,14 @@ int main(int argc, const char* argv[])                          \
     appClass app;												\
     return macOSMain(argc, argv, &app);							\
 }
+#elif defined(__linux__)
+#define DEFINE_APPLICATION_MAIN(appClass)						\
+extern int LinuxMain(int argc, char** argv, IApp* app);			\
+																\
+int main(int argc, char** argv)									\
+{																\
+	appClass app;												\
+	return LinuxMain(argc, argv, &app);							\
+}
 #else
 #endif

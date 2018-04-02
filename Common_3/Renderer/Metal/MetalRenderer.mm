@@ -1555,7 +1555,7 @@ namespace RENDERER_CPP_NAMESPACE {
         }
         
         // assign pixel format form depth attachment
-        if (pDesc->mDepthStencilFormat != ImageFormat::None )
+        if (pDesc->mDepthStencilFormat != ImageFormat::NONE )
         {
             renderPipelineDesc.depthAttachmentPixelFormat = util_to_mtl_pixel_format(pDesc->mDepthStencilFormat, false);
 #ifndef TARGET_IOS

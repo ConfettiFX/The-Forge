@@ -45,7 +45,7 @@ namespace ImageFormat
 {
   enum Enum
   {
-    None = 0,
+    NONE = 0,
 
     // Unsigned formats
     R8 = 1,

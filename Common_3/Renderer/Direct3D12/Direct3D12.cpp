@@ -79,7 +79,7 @@ extern "C"
 namespace RENDERER_CPP_NAMESPACE {
 #endif
 
-	// Array used to translate 'Filter' into 'D3D12_PRIMITIVE_TOPOLOGY'
+	// Array used to translate sampling filter
 	const D3D12_FILTER gDX12FilterTranslator[] =
 	{
 		D3D12_FILTER_MIN_MAG_MIP_POINT,
@@ -245,7 +245,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		DXGI_FORMAT_UNKNOWN, // D32S8 = 83,
 	};
 	const DXGI_FORMAT gDX12FormatTranslator[] = {
-		DXGI_FORMAT_UNKNOWN,							// ImageFormat::None
+		DXGI_FORMAT_UNKNOWN,							// ImageFormat::NONE
 		DXGI_FORMAT_R8_UNORM,							// ImageFormat::R8
 		DXGI_FORMAT_R8G8_UNORM,							// ImageFormat::RG8
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8 not directly supported
@@ -1997,7 +1997,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		desc.Stereo = false;
 		desc.SampleDesc.Count = 1; // If multisampling is needed, we'll resolve it later
 		desc.SampleDesc.Quality = pSwapChain->mDesc.mSampleQuality;
-		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
 		desc.BufferCount = pSwapChain->mDesc.mImageCount;
 		desc.Scaling = DXGI_SCALING_STRETCH;
 #ifdef _DURANGO
@@ -2107,7 +2107,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			pBuffer->mDesc.mSize = round_up_64(pBuffer->mDesc.mSize, pRenderer->pActiveGpuSettings->mUniformBufferAlignment);
 		}
 
-		// Buffer will be used multiple times every frame
 		DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 		//Alignment must be 64KB (D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) or 0, which is effectively 64KB.
@@ -2231,7 +2230,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 	{
-    UNREF_PARAM(pRenderer);
+		UNREF_PARAM(pRenderer);
 		ASSERT(pRenderer);
 		ASSERT(pBuffer);
 
@@ -2255,7 +2254,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange = NULL)
 	{
-    UNREF_PARAM(pRenderer);
+		UNREF_PARAM(pRenderer);
 		ASSERT(pBuffer->mDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to map non-cpu accessible resource");
 
 		D3D12_RANGE range = { pBuffer->mPositionInHeap, pBuffer->mPositionInHeap + pBuffer->mDesc.mSize };
@@ -2270,7 +2269,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 	{
-    UNREF_PARAM(pRenderer);
+		UNREF_PARAM(pRenderer);
 		ASSERT(pBuffer->mDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to unmap non-cpu accessible resource");
 
 		pBuffer->pDxResource->Unmap(0, NULL);
@@ -2828,12 +2827,12 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 #if defined(_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
-		UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+		UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
 		UINT compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-		compile_flags |= (D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
+		compile_flags |= (D3DCOMPILE_DEBUG | D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
 
 		int major;
 		int minor;
@@ -4679,6 +4678,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	// -------------------------------------------------------------------------------------------------
 	bool isImageFormatSupported(ImageFormat::Enum format)
 	{
+		//verifies that given image format is valid
 		return gDX12FormatTranslator[format] != DXGI_FORMAT_UNKNOWN;
 	}
 
@@ -4689,42 +4689,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		uint32_t result = 0;
 		for (uint32_t i = 0; i < pVertexLayout->mAttribCount; ++i) {
 			result += calculateImageFormatStride(pVertexLayout->mAttribs[i].mFormat);
-		}
-		return result;
-	}
-
-	ImageFormat::Enum convertDXToInternalImageFormat(DXGI_FORMAT format)
-	{
-		ImageFormat::Enum result = ImageFormat::None;
-		switch (format) {
-			// 1 channel
-		case DXGI_FORMAT_R8_UNORM: result = ImageFormat::R8; break;
-		case DXGI_FORMAT_R16_UNORM: result = ImageFormat::R16; break;
-		case DXGI_FORMAT_R16_FLOAT: result = ImageFormat::R16F; break;
-		case DXGI_FORMAT_R32_UINT: result = ImageFormat::R32UI; break;
-		case DXGI_FORMAT_R32_FLOAT: result = ImageFormat::R32F; break;
-			// 2 channel
-		case DXGI_FORMAT_R8G8_UNORM: result = ImageFormat::RG8; break;
-		case DXGI_FORMAT_R16G16_UNORM: result = ImageFormat::RG16; break;
-		case DXGI_FORMAT_R16G16_FLOAT: result = ImageFormat::RG16F; break;
-		case DXGI_FORMAT_R32G32_UINT: result = ImageFormat::RG32UI; break;
-		case DXGI_FORMAT_R32G32_FLOAT: result = ImageFormat::RG32F; break;
-			// 3 channel
-		case DXGI_FORMAT_R32G32B32_UINT: result = ImageFormat::RGB32UI; break;
-		case DXGI_FORMAT_R32G32B32_FLOAT: result = ImageFormat::RGB32F; break;
-			// 4 channel
-		case DXGI_FORMAT_B8G8R8A8_UNORM: result = ImageFormat::BGRA8; break;
-		case DXGI_FORMAT_R8G8B8A8_UNORM: result = ImageFormat::RGBA8; break;
-		case DXGI_FORMAT_R16G16B16A16_UNORM: result = ImageFormat::RGBA16; break;
-		case DXGI_FORMAT_R16G16B16A16_FLOAT: result = ImageFormat::RGBA16F; break;
-		case DXGI_FORMAT_R32G32B32A32_UINT: result = ImageFormat::RGBA32UI; break;
-		case DXGI_FORMAT_R32G32B32A32_FLOAT: result = ImageFormat::RGBA32F; break;
-			// Depth/stencil
-		case DXGI_FORMAT_D16_UNORM: result = ImageFormat::D16; break;
-		case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT: result = ImageFormat::X8D24PAX32; break;
-		case DXGI_FORMAT_D32_FLOAT: result = ImageFormat::D32F; break;
-		case DXGI_FORMAT_D24_UNORM_S8_UINT: result = ImageFormat::D24S8; break;
-		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: result = ImageFormat::D32S8; break;
 		}
 		return result;
 	}

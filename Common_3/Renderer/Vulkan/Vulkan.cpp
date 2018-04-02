@@ -940,7 +940,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	  ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
 
 	  uint32_t colorAttachmentCount = pDesc->mRenderTargetCount;
-	  uint32_t depthAttachmentCount = (pDesc->mDepthStencilFormat != ImageFormat::None) ? 1 : 0;
+	  uint32_t depthAttachmentCount = (pDesc->mDepthStencilFormat != ImageFormat::NONE) ? 1 : 0;
 
 	  VkAttachmentDescription* attachments = NULL;
 	  VkAttachmentReference* color_attachment_refs = NULL;
@@ -1943,7 +1943,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		swapChainCreateInfo.imageColorSpace = surface_format.colorSpace;
 		swapChainCreateInfo.imageExtent = extent;
 		swapChainCreateInfo.imageArrayLayers = 1;
-		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		swapChainCreateInfo.imageSharingMode = sharing_mode;
 		swapChainCreateInfo.queueFamilyIndexCount = queue_family_index_count;
 		swapChainCreateInfo.pQueueFamilyIndices = queue_family_indices;
@@ -3420,7 +3420,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		{
 			ImageFormat::Enum colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
 			bool srgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = {};
-			ImageFormat::Enum depthStencilFormat = ImageFormat::None;
+			ImageFormat::Enum depthStencilFormat = ImageFormat::NONE;
 			SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
 			for (uint32_t i = 0; i < renderTargetCount; ++i)
 			{
@@ -3938,11 +3938,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			ASSERT(ppSignalSemaphores);
 		}
 
-		//// Performance optimization for Windows
-#if _WIN32_WINNT  < _WIN32_WINNT_WIN10
-		vmaUnmapPersistentlyMappedMemory(pVmaAllocator);
-#endif
-
 		ASSERT(VK_NULL_HANDLE != pQueue->pVkQueue);
 
 		cmdCount = cmdCount > MAX_SUBMIT_CMDS ? MAX_SUBMIT_CMDS : cmdCount;
@@ -3993,10 +3988,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(VK_SUCCESS == vk_res);
 
 		pFence->mSubmitted = true;
-
-#if _WIN32_WINNT  < _WIN32_WINNT_WIN10
-		vmaMapPersistentlyMappedMemory(pVmaAllocator);
-#endif
 	}
 
 	void queuePresent(Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
@@ -4081,8 +4072,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			*pFenceStatus = vkRes == VK_SUCCESS ? FENCE_STATUS_COMPLETE : FENCE_STATUS_INCOMPLETE;
 		}
 	}
-
-
 	// -------------------------------------------------------------------------------------------------
 	// Utility functions
 	// -------------------------------------------------------------------------------------------------
@@ -4148,14 +4137,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 	}
 
-	// This function always returns zero for Vulkan for now because
-	// of how the counter are configured.
-	VkDeviceSize util_vk_determine_storage_counter_offset(VkDeviceSize buffer_size)
-	{
-		VkDeviceSize result = 0;
-		return result;
-	}
-
 	VkFormat util_to_vk_image_format(ImageFormat::Enum format, bool srgb)
 	{
 		VkFormat result = VK_FORMAT_UNDEFINED;
@@ -4184,7 +4165,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	ImageFormat::Enum util_to_internal_image_format(VkFormat format)
 	{
-		ImageFormat::Enum result = ImageFormat::None;
+		ImageFormat::Enum result = ImageFormat::NONE;
 		switch (format) {
 			// 1 channel
 		case VK_FORMAT_R8_UNORM: result = ImageFormat::R8; break;

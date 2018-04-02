@@ -493,7 +493,7 @@ const ImageFormatString* getFormatStrings()
 {
   static const ImageFormatString formatStrings[] =
   {
-    { ImageFormat::None,   "NONE" },
+    { ImageFormat::NONE,   "NONE" },
 
     { ImageFormat::R8,     "R8" },
     { ImageFormat::RG8,    "RG8" },
@@ -578,7 +578,7 @@ ImageFormat::Enum ImageFormat::GetFormatFromString(char *string)
     if (stricmp(string, getFormatStrings()[i].string) == 0)
       return getFormatStrings()[i].format;
   }
-  return ImageFormat::None;
+  return ImageFormat::NONE;
 }
 
 int ImageFormat::GetChannelCount(const ImageFormat::Enum format)
@@ -637,7 +637,7 @@ Image::Image() {
   mDepth = 0;
   mMipMapCount = 0;
   mArrayCount = 0;
-  mFormat = ImageFormat::None;
+  mFormat = ImageFormat::NONE;
   mAdditionalDataSize = 0;
   pAdditionalData = NULL;
   mIsRendertarget = false;
@@ -711,7 +711,7 @@ void Image::Clear()
   mDepth = 0;
   mMipMapCount = 0;
   mArrayCount = 0;
-  mFormat = ImageFormat::None;
+  mFormat = ImageFormat::NONE;
 
   mAdditionalDataSize = 0;
 }
@@ -769,7 +769,7 @@ uint Image::GetArraySliceSize(const uint mipMapLevel, ImageFormat::Enum srcForma
   int w = GetWidth(mipMapLevel);
   int h = GetHeight(mipMapLevel);
 
-  if (srcFormat == ImageFormat::None)
+  if (srcFormat == ImageFormat::NONE)
     srcFormat = mFormat;
 
   int size;
@@ -960,7 +960,7 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
   uint h = GetHeight(firstMipMapLevel);
   uint d = GetDepth(firstMipMapLevel);
 
-  if (srcFormat == ImageFormat::None)
+  if (srcFormat == ImageFormat::NONE)
     srcFormat = mFormat;
 
   // PVR formats get special case
