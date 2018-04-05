@@ -26,12 +26,7 @@
 
 struct Renderer;
 struct RenderTarget;
-struct Texture;
 struct Cmd;
-struct GpuProfiler;
-struct Queue;
-struct Gui;
-
 
 class IMiddleware
 {
@@ -39,7 +34,7 @@ public:
 
 	// Our init function should only be called once
 	// The middleware has to keep these pointers
-	virtual bool Init(Renderer* const renderer, Queue* const gfxQ, Queue* const cmpQ, Gui* const gui, GpuProfiler* const profiler) = 0;
+	virtual bool Init(Renderer* renderer) = 0;
 	virtual void Exit() = 0;
 
 	// When app is loaded, app is provided of the render targets to load

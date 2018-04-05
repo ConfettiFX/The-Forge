@@ -66,8 +66,10 @@
 //Math
 #include "../../Common_3/OS/Math/MathTypes.h"
 
+#if !defined(TARGET_IOS) && !defined(LINUX)
 //PostProcess
 #include "../../Middleware_3/PaniniProjection/AppPanini.h"
+#endif
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -86,7 +88,11 @@ HiresTimer mFrameTimer;
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #elif defined(_DURANGO)
@@ -342,10 +348,13 @@ float					skyBoxPoints[] = {
 };
 
 // Panini Projection state and parameter variables
-AppPanini		gPanini;
-RenderTarget*	pIntermediateRenderTarget = nullptr;
-bool			gbPaniniEnabled = false;
-float			gHorizontalFoV = 90.0f;
+#if !defined(TARGET_IOS) && !defined(LINUX)
+AppPanini			gPanini;
+PaniniParameters	gPaniniParams;
+#endif
+DynamicUIControls	gPaniniControls;
+RenderTarget*		pIntermediateRenderTarget = nullptr;
+bool				gbPaniniEnabled = false;
 void paniniToggleCallback(bool bPaniniToggle){ gbPaniniEnabled = bPaniniToggle; }
 
 class ExecuteIndirect : public IApp
@@ -659,14 +668,28 @@ public:
 			RenderingMode_GPUUpdate,
 			0
 		};
-
-		
+		/************************************************************************/
+		/************************************************************************/
 		UIProperty renderingModeProp = UIProperty("Rendering Mode: ", gRenderingMode, enumNames, enumValues);
 		UIProperty useThreadsProp = UIProperty("Multithreaded CPU Update", gUseThreads);
+		UIProperty paniniProp = UIProperty("Enable Panini Projection", gbPaniniEnabled);
 
 		addProperty(pGuiWindow, &renderingModeProp);
 		addProperty(pGuiWindow, &useThreadsProp);
-
+		addProperty(pGuiWindow, &paniniProp);
+		/************************************************************************/
+		// Panini props
+		/************************************************************************/
+#if !defined(TARGET_IOS) && !defined(LINUX)		
+		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
+		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Panini D Parameter", gPaniniParams.D, 0.0f, 1.0f, 0.001f));
+		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Panini S Parameter", gPaniniParams.S, 0.0f, 1.0f, 0.001f));
+		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Screen Scale", gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
+		if (gbPaniniEnabled)
+			gPaniniControls.ShowDynamicProperties(pGuiWindow);
+#endif
+		/************************************************************************/
+		/************************************************************************/
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3 camPos{ -121.4f, 69.9f, -562.8f };
@@ -693,9 +716,8 @@ public:
 #endif
 #endif
 
-#ifndef TARGET_IOS
-		gPanini.Init(pRenderer, pGraphicsQueue, nullptr, pGuiWindow, pGpuProfiler);
-		gPanini.SetCallbackToggle(paniniToggleCallback);
+#if !defined(TARGET_IOS) && !defined(LINUX)
+		gPanini.Init(pRenderer);
 #endif
 
 		return true;
@@ -705,7 +727,7 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
 
-#ifndef TARGET_IOS
+#if !defined(TARGET_IOS) && !defined(LINUX)
 		gPanini.Exit();
 #endif
 
@@ -872,7 +894,7 @@ public:
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
 		
-#ifndef TARGET_IOS
+#if !defined(TARGET_IOS) && !defined(LINUX)
 		RenderTarget* rts[1];
 		rts[0] = pIntermediateRenderTarget;
 		bool bSuccess = gPanini.Load(rts);
@@ -896,7 +918,7 @@ public:
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
 
-#ifndef TARGET_IOS
+#if !defined(TARGET_IOS) && !defined(LINUX)
 		gPanini.Unload();
 #endif
 	}
@@ -936,9 +958,28 @@ public:
 #endif
 
 		updateGui(pUIManager, pGuiWindow, deltaTime);
-#ifndef TARGET_IOS
-		gPanini.SetFovPtr(&gHorizontalFoV);
-		gPanini.Update(deltaTime);
+
+		static bool paniniEnabled = gbPaniniEnabled;
+		if (paniniEnabled != gbPaniniEnabled)
+		{
+			if (gbPaniniEnabled)
+			{
+				gPaniniControls.ShowDynamicProperties(pGuiWindow);
+			}
+			else
+			{
+				gPaniniControls.HideDynamicProperties(pGuiWindow);
+			}
+
+			paniniEnabled = gbPaniniEnabled;
+		}
+
+#if !defined(TARGET_IOS) && !defined(LINUX)
+		if (gbPaniniEnabled)
+		{
+			gPanini.SetParams(gPaniniParams);
+			gPanini.Update(deltaTime);
+		}
 #endif
 	}
 
@@ -968,7 +1009,11 @@ public:
 		mat4 viewMat = mat4::lookAt(vec3(24.0f, 24.0f, 24.0f), vec3(0, 0, 0), vec3(0, 1, 0));
 #endif
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-		mat4 projMat = mat4::perspective(gHorizontalFoV, aspectInverse, 0.1f, 10000.0f);
+#if !defined(TARGET_IOS) && !defined(LINUX)
+		mat4 projMat = mat4::perspective(gPaniniParams.FoVH * (float)PI / 180.0f, aspectInverse, 0.1f, 10000.0f);
+#else
+		mat4 projMat = mat4::perspective(90.0f * (float)PI / 180.0f, aspectInverse, 0.1f, 10000.0f);
+#endif
 		mat4 viewProjMat = projMat * viewMat;
 
 		// Load screen cleaning command
@@ -1182,12 +1227,17 @@ public:
 		cmdBeginRender(cmd, 1, &pSwapchainRenderTarget, NULL, pLoadAction);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSwapchainRenderTarget->mDesc.mWidth, (float)pSwapchainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSwapchainRenderTarget->mDesc.mWidth, pSwapchainRenderTarget->mDesc.mHeight);
-		
+
+#if !defined(TARGET_IOS) && !defined(LINUX)
 		if (gbPaniniEnabled)
 		{
+			gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Panini Projection Pass");
 			gPanini.Draw(cmd);
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 			//cmdEndRender(cmd, 1, &pSwapchainRenderTarget, NULL);
 		}
+#endif
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 
 
@@ -1263,7 +1313,7 @@ public:
 
 	String GetName()
 	{
-		return "04_ExecuteIndirect";
+		return "_04_ExecuteIndirect";
 	}
 
 	bool addSwapChain()

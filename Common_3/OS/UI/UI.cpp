@@ -752,7 +752,7 @@ UIAppComponentGui::UIAppComponentGui(const TextDrawDesc* settings) : driver()
 		registerMouseButtonEvent(uiMouseButton);
 		registerMouseMoveEvent(uiMouseMove);
 		registerMouseWheelEvent(uiMouseWheel);
-#elif !defined(TARGET_IOS)
+#elif !defined(TARGET_IOS) && !defined(LINUX)
         registerJoystickButtonEvent(uiJoystickButton);
 #else
         registerTouchEvent(uiTouch);
@@ -790,7 +790,7 @@ void UIAppComponentGui::unload()
 
 void processJoystickDownState(UI* ui, int selectedID)
 {
-#if !defined(TARGET_IOS)
+#if !defined(TARGET_IOS) && !defined(LINUX)
 	if (getJoystickButtonDown(BUTTON_LEFT))
 	{
 		ui->getProperty(selectedID).modify(-1);

@@ -50,6 +50,7 @@
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "comsuppw.lib")
 #endif
+#elif defined(__linux__)
 #else
 #include <mach/mach.h>
 #include <mach/processor_info.h>
@@ -181,6 +182,7 @@ IWbemLocator*			pLocator;
 uint64_t*				pOldTimeStamp;
 uint64_t*				pOldPprocUsage;
 #endif
+#elif(__linux__)
 #else
 NSLock*					CPUUsageLock;
 processor_info_array_t	prevCpuInfo;
@@ -236,7 +238,11 @@ const char*				pSkyBoxImageFileNames[] =
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
@@ -356,16 +362,16 @@ public:
 #endif
 
 		ShaderLoadDesc graphShader = {};
-		graphShader.mStages[0] = { "graph.vert", NULL, 0, FSR_SrcShaders };
-		graphShader.mStages[1] = { "graph.frag", NULL, 0, FSR_SrcShaders };
+		graphShader.mStages[0] = { "Graph.vert", NULL, 0, FSR_SrcShaders };
+		graphShader.mStages[1] = { "Graph.frag", NULL, 0, FSR_SrcShaders };
 
 		ShaderLoadDesc particleShader = {};
-		particleShader.mStages[0] = { "particle.vert", NULL, 0, FSR_SrcShaders };
-		particleShader.mStages[1] = { "particle.frag", NULL, 0, FSR_SrcShaders };
+		particleShader.mStages[0] = { "Particle.vert", NULL, 0, FSR_SrcShaders };
+		particleShader.mStages[1] = { "Particle.frag", NULL, 0, FSR_SrcShaders };
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyShader.mStages[0] = { "Skybox.vert", NULL, 0, FSR_SrcShaders };
+		skyShader.mStages[1] = { "Skybox.frag", NULL, 0, FSR_SrcShaders };
 
 		addShader(pRenderer, &particleShader, &pShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -1061,7 +1067,7 @@ public:
 
 	String GetName()
 	{
-		return "03_MultiThread";
+		return "_03_MultiThread";
 	}
 
 	bool addSwapChain()
@@ -1145,6 +1151,7 @@ public:
 
 		pEnumerator->Release();
 #endif
+#elif(__linux__)
 #else
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;

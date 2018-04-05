@@ -95,7 +95,11 @@ HiresTimer gTimer;
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #elif defined(_DURANGO)
@@ -473,7 +477,7 @@ public:
 		BufferUpdateDesc cbvUpdate = { pUniformBuffer, &gUniformData };
 		updateResource(&cbvUpdate);
 
-		const uint32_t* pThreadGroupSize = pComputeShader->mNumThreadsPerGroup;
+		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
 
@@ -566,7 +570,7 @@ public:
 
 	String GetName()
 	{
-		return "02_Compute";
+		return "_02_Compute";
 	}
 
 	bool addSwapChain()

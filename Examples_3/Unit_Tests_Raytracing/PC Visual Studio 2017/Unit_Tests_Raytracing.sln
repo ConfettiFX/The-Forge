@@ -1,0 +1,139 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{21A6980D-04AA-430D-BE3D-74F151226C8B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6CF62059-3AC3-43CD-A29E-2F1E01EA4115}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssimpImporter", "Libraries\Tools\AssimpImporter.vcxproj", "{1018594F-0769-4244-BED4-CEB06EBBAE22}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererDX12", "Libraries\RendererDX12\RendererDX12.vcxproj", "{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "01_InitRaytracing", "01_Transformations.vcxproj", "{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Renderer", "Renderer", "{016A0DC4-66BC-490F-AD81-14CFF4FDFA9C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{EC7D6A22-5A14-4BC4-8867-C4CFC47CB0D3}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.h = ..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.h
+		..\..\..\Common_3\Renderer\Direct3D12\Direct3D12MemoryAllocator.h = ..\..\..\Common_3\Renderer\Direct3D12\Direct3D12MemoryAllocator.h
+		..\..\..\Common_3\Renderer\GpuProfiler.h = ..\..\..\Common_3\Renderer\GpuProfiler.h
+		..\..\..\Common_3\Renderer\IMemoryAllocator.h = ..\..\..\Common_3\Renderer\IMemoryAllocator.h
+		..\..\..\Common_3\Renderer\IRenderer.h = ..\..\..\Common_3\Renderer\IRenderer.h
+		..\..\..\Common_3\Renderer\IShaderReflection.h = ..\..\..\Common_3\Renderer\IShaderReflection.h
+		..\..\..\Common_3\Renderer\ResourceLoader.h = ..\..\..\Common_3\Renderer\ResourceLoader.h
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_AccelerationStructure", "02_AccelerationStructure.vcxproj", "{C1584561-681E-4FAC-8653-A88BE87B8FA5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03_RaytracingPipeline", "03_RaytracingPipeline.vcxproj", "{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_Triangle", "04_Triangle.vcxproj", "{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05_Instancing", "05_Instancing.vcxproj", "{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DebugDx|x64 = DebugDx|x64
+		DebugDx|x86 = DebugDx|x86
+		ReleaseDx|x64 = ReleaseDx|x64
+		ReleaseDx|x86 = ReleaseDx|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1018594F-0769-4244-BED4-CEB06EBBAE22}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{1018594F-0769-4244-BED4-CEB06EBBAE22}.DebugDx|x64.Build.0 = DebugDx|x64
+		{1018594F-0769-4244-BED4-CEB06EBBAE22}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{1018594F-0769-4244-BED4-CEB06EBBAE22}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{1018594F-0769-4244-BED4-CEB06EBBAE22}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{1018594F-0769-4244-BED4-CEB06EBBAE22}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}.DebugDx|x64.Build.0 = DebugDx|x64
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.DebugDx|x64.Build.0 = DebugDx|x64
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.DebugDx|x64.Build.0 = DebugDx|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5}.DebugDx|x64.Build.0 = DebugDx|x64
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}.DebugDx|x64.Build.0 = DebugDx|x64
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}.DebugDx|x64.Build.0 = DebugDx|x64
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.DebugDx|x64.Build.0 = DebugDx|x64
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1018594F-0769-4244-BED4-CEB06EBBAE22} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {016A0DC4-66BC-490F-AD81-14CFF4FDFA9C}
+		{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{EC7D6A22-5A14-4BC4-8867-C4CFC47CB0D3} = {016A0DC4-66BC-490F-AD81-14CFF4FDFA9C}
+		{C1584561-681E-4FAC-8653-A88BE87B8FA5} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {054F0AB9-69CA-4FF1-BD3C-D8DF03ABFA5B}
+	EndGlobalSection
+EndGlobal

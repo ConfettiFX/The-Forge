@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		281FA9EE20333E9200CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.png */; };
 		288F63122035B28C00B758DE /* proceduralPlanet.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */; };
-		288F63152035B30D00B758DE /* background.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63132035B30D00B758DE /* background.frag.metal */; };
-		288F63162035B30D00B758DE /* background.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63142035B30D00B758DE /* background.vert.metal */; };
-		288F631A2035BB4E00B758DE /* background.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63142035B30D00B758DE /* background.vert.metal */; };
-		288F631B2035BB5000B758DE /* background.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63132035B30D00B758DE /* background.frag.metal */; };
+		288F63152035B30D00B758DE /* backGround.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63132035B30D00B758DE /* backGround.frag.metal */; };
+		288F63162035B30D00B758DE /* backGround.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63142035B30D00B758DE /* backGround.vert.metal */; };
+		288F631A2035BB4E00B758DE /* backGround.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63142035B30D00B758DE /* backGround.vert.metal */; };
+		288F631B2035BB5000B758DE /* backGround.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63132035B30D00B758DE /* backGround.frag.metal */; };
 		288F631C2035BB5500B758DE /* proceduralPlanet.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */; };
 		28A5AE18201F7D41000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE16201F7D41000E571F /* Main.storyboard */; };
 		28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE19201F7D41000E571F /* Assets.xcassets */; };
@@ -82,8 +82,8 @@
 /* Begin PBXFileReference section */
 		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
 		288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = proceduralPlanet.frag.metal; path = ../../../src/08_Procedural/OSXMetal/proceduralPlanet.frag.metal; sourceTree = "<group>"; };
-		288F63132035B30D00B758DE /* background.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = background.frag.metal; path = ../../../src/08_Procedural/OSXMetal/background.frag.metal; sourceTree = "<group>"; };
-		288F63142035B30D00B758DE /* background.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = background.vert.metal; path = ../../../src/08_Procedural/OSXMetal/background.vert.metal; sourceTree = "<group>"; };
+		288F63132035B30D00B758DE /* backGround.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = backGround.frag.metal; path = ../../../src/08_Procedural/OSXMetal/backGround.frag.metal; sourceTree = "<group>"; };
+		288F63142035B30D00B758DE /* backGround.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = backGround.vert.metal; path = ../../../src/08_Procedural/OSXMetal/backGround.vert.metal; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 08_Procedural_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_Procedural_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AE17201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -212,8 +212,8 @@
 		28A5AE2D201F7D82000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
-				288F63142035B30D00B758DE /* background.vert.metal */,
-				288F63132035B30D00B758DE /* background.frag.metal */,
+				288F63142035B30D00B758DE /* backGround.vert.metal */,
+				288F63132035B30D00B758DE /* backGround.frag.metal */,
 				28A5AE36201F7DE7000E571F /* proceduralPlanet.vert.metal */,
 				288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */,
 			);
@@ -541,8 +541,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				288F631A2035BB4E00B758DE /* background.vert.metal in Resources */,
-				288F631B2035BB5000B758DE /* background.frag.metal in Resources */,
+				288F631A2035BB4E00B758DE /* backGround.vert.metal in Resources */,
+				288F631B2035BB5000B758DE /* backGround.frag.metal in Resources */,
 				28A5AE38201F7DF5000E571F /* proceduralPlanet.vert.metal in Resources */,
 				288F631C2035BB5500B758DE /* proceduralPlanet.frag.metal in Resources */,
 				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
@@ -577,7 +577,7 @@
 				28A5AE47201F7F17000E571F /* iOSThreadManager.cpp in Sources */,
 				28A5AE4B201F7F17000E571F /* AppDelegate.m in Sources */,
 				28A5AE51201F7F41000E571F /* UIManager.cpp in Sources */,
-				288F63162035B30D00B758DE /* background.vert.metal in Sources */,
+				288F63162035B30D00B758DE /* backGround.vert.metal in Sources */,
 				28A5AE5C201F7F50000E571F /* MetalShaderReflection.mm in Sources */,
 				28A5AE53201F7F41000E571F /* UI.cpp in Sources */,
 				28A5AE4F201F7F41000E571F /* GuiCameraController.cpp in Sources */,
@@ -586,7 +586,7 @@
 				28A5AE52201F7F41000E571F /* NuklearGUIDriver.cpp in Sources */,
 				28A5AE5E201F7F50000E571F /* MetalRenderer.mm in Sources */,
 				28A5AE5D201F7F50000E571F /* ResourceLoader.cpp in Sources */,
-				288F63152035B30D00B758DE /* background.frag.metal in Sources */,
+				288F63152035B30D00B758DE /* backGround.frag.metal in Sources */,
 				28A5AE4C201F7F27000E571F /* FileSystem.cpp in Sources */,
 				28A5AE4D201F7F41000E571F /* MemoryTrackingManager.cpp in Sources */,
 				28A5AE48201F7F17000E571F /* iOSLogManager.cpp in Sources */,

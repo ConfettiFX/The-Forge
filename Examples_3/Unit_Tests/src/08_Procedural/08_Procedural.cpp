@@ -53,7 +53,11 @@
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
@@ -298,8 +302,8 @@ public:
 		proceduralPlanet.mStages[1] = { "proceduralPlanet.frag", NULL, 0, FSR_SrcShaders };
 
 		ShaderLoadDesc bgStars = {};
-		bgStars.mStages[0] = { "background.vert", NULL, 0, FSR_SrcShaders };
-		bgStars.mStages[1] = { "background.frag", NULL, 0, FSR_SrcShaders };
+		bgStars.mStages[0] = { "backGround.vert", NULL, 0, FSR_SrcShaders };
+		bgStars.mStages[1] = { "backGround.frag", NULL, 0, FSR_SrcShaders };
 
 		addSampler(pRenderer, &pSamplerEnv, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT);
@@ -868,7 +872,7 @@ public:
 
 	String GetName()
 	{
-		return "08_Procedural";
+		return "_08_Procedural";
 	}
 
 	bool addSwapChain()

@@ -159,14 +159,11 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	pGpuProfiler->mCpuTimeStampFrequency = (double)getTimerFrequency();
 #endif
 
-#if defined(VULKAN)
-	pGpuProfiler->mGpuTimeStampFrequency *= 1e+9;
-#endif
-
 	pGpuProfiler->mMaxTimerCount = maxTimers;
 	pGpuProfiler->pGpuTimerPool = (GpuTimerTree*)conf_calloc(maxTimers, sizeof(*pGpuProfiler->pGpuTimerPool));
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->mRoot;
-
+	pGpuProfiler->mCurrentPoolIndex = 0;
+	
 	*ppGpuProfiler = pGpuProfiler;
 }
 
@@ -198,16 +195,16 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 #if defined(DIRECT3D12) || defined(VULKAN)
 
 	// hash name
-	char buffer[MAX_PATH];
-	sprintf(buffer, "%s_%u", pName, pGpuProfiler->mCurrentTimerCount);
-	uint32_t hash = tinystl::hash(buffer);
+	char _buffer[MAX_PATH] = {}; //Initialize to empty
+	sprintf(_buffer, "%s_%u", pName, pGpuProfiler->mCurrentTimerCount);
+	uint32_t _hash = tinystl::hash(_buffer);
 
 	GpuTimerTree* node = nullptr;
-	if (pGpuProfiler->mGpuPoolHash.find(hash) == pGpuProfiler->mGpuPoolHash.end())
+	if (pGpuProfiler->mGpuPoolHash.find(_hash) == pGpuProfiler->mGpuPoolHash.end())
 	{
 		// frist time seeing this
 		node = &pGpuProfiler->pGpuTimerPool[pGpuProfiler->mCurrentPoolIndex];
-		pGpuProfiler->mGpuPoolHash[hash] = pGpuProfiler->mCurrentPoolIndex;
+		pGpuProfiler->mGpuPoolHash[_hash] = pGpuProfiler->mCurrentPoolIndex;
 
 		++pGpuProfiler->mCurrentPoolIndex;
 
@@ -218,7 +215,7 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	}
 	else
 	{
-		uint32_t index = pGpuProfiler->mGpuPoolHash[hash];
+		uint32_t index = pGpuProfiler->mGpuPoolHash[_hash];
 		node = &pGpuProfiler->pGpuTimerPool[index];
 	}
 

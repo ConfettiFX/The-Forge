@@ -1,6 +1,8 @@
 # The Forge
 The Forge is a cross-platform rendering framework supporting
-- PC with DirectX 12 / Vulkan
+- PC Windows 10 with DirectX 12 / Vulkan
+- PC Windows 10 with DirectX Ray Tracing API
+- PC Linux Ubuntu 16.04.4 LTS with Vulkan
 - macOS with Metal 2
 - iOS with Metal 2
 - Android with Vulkan (in development)
@@ -16,7 +18,7 @@ Particularly, The Forge supports cross-platform
 Future plans are:
 - Unified shader generation
 
-The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. It was designed with -what we call in the moment- a next-gen rendering feature set in mind.
+The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
  
 # Build Status
 
@@ -24,6 +26,28 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+## Release 1.06 - April 5th, 2018 - Linux Ubuntu 16.04.4 LTS Alpha Support and Ray Tracing Interface used by DirectX Ray Tracing (DXR)
+ * Addded initial support for Ubuntu 16.04.4 LTS with the AMD Pro Driver and RADEON RX 480 / Vega. Please see the Linux requirement list below for the required software packages and hardware support. Known Issues:
+   * Panini Projection not working in 04_ExecuteIndirect
+   * In 03_MultiThread the CPU Graph is not drawing
+   * Visibility Buffer is not implemented in the moment
+ * Implemented a common interface for Ray Tracing and the first "user" is the DXR. There are now five simple unit tests for DXR. Please read our critical view on DXR [here](http://diaryofagraphicsprogrammer.blogspot.com/2018/04/ray-tracing-with-directx-ray-tracing.html).
+ * Published a blog entry that offers details for the Triangle Visibility Buffer implementation in The Forge [here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html).
+ * Hiding the code for automated testing behind a #define
+ * Changed the architecture for Load / Unload, now they are independent and graphics pipeline creation was moved to Load / Unload to cover render target format changes, MSAA changes etc.
+ * Vulkan: 
+   * Fixed a stencil op translation bug 
+   * Updated the Vulkan Memory Allocator and the Volk meta loader open-source libraries to latest
+   * Updated Vulkan to support Linux Ubuntu 16.04.4 LTS
+   * Fix small primitive culling by sending correct sample count for shadow map viewport
+   * Add barrier between light cluster clearing and compute to fix race condition on AMD cards in Visibility Buffer
+and others
+ * macOS / iOS
+   * fixed issue #27: fixed the window name for 08_Procedural on macOS
+   * upgraded to Xcode 9.3 (9E145), macOS 10.13.4 (17E199), iOS 11.3 (15E216)
+ * XBOX One: smaller bug fixes, please check the log
+
+
 ## Release 1.05 - March 15th, 2018
  * Added a IMiddleware interface that is now used by Panini Projection. This will be refined and used by more middleware packages in the future
  * More unified math library compatible with the PS4 math library
@@ -91,7 +115,7 @@ Any rendering framework needs a test farm that makes sure it is running on all t
 Very first release.
 
   
-# PC Requirements:
+# PC Windows Requirements:
 
 1. Windows 10 with latest update
 
@@ -103,13 +127,17 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 4. Vulkan SDK 1.1.70.1
 https://vulkan.lunarg.com/
 
+5. Ray Tracing 
+ * DirectX Raytracing Experimental SDK v0.09.01
+ * Windows 10 RS4 builds more info at [DXR](http://aka.ms/DXR)
+
 We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards and drivers. We are currently not testing Intel GPU based hardware. We are planning to integrate an Intel GPU based system into our build system in the future.
 
 # macOS Requirements:
 
-1. macOS: 10.13.3 Beta (17D39a)
+1. macOS: 10.13.4 (17E199)
 
-2. XCode: Version 9.2 (9C40b)
+2. XCode: 9.3 (9E145)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -120,7 +148,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 11.2.5
+1. iOS: 11.3 (15E216)
 
 2. XCode: see macOS
 
@@ -129,9 +157,36 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 We are currently testing on 
 * iPhone 7 (Model A1778)
 
+# PC Linux Requirements:
 
-# Install
-Run PRE_BUILD.bat. It will download and unzip the art assets and install the shader builder extension for Visual Studio.
+1. [Ubuntu 16.04.4 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: Linux 4.13.0-37-generic
+
+2. [AMDGpu-Pro 17.50](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-Release-Notes.aspx)
+
+3. GPU Profilers
+* [RGP v1.11](https://github.com/GPUOpen-Tools/Radeon-GPUProfiler/releases) should be working out of the box
+* [RenderDoc v1.0(2018-03-06)](https://renderdoc.org/builds)
+  * Goto the binary folder under renderdoc_1.0/bin
+  * Open a terminal
+  * Configure RenderDoc by running 
+	./renderdoccmd vulkanregister
+  * Verify unit tests work as expect by running
+	./renderdoccmd test --type=unit
+  * After register step is done, you can now use qt-ui based RenderDoc to capture the frame:
+	renderdoc_1.0/bin/qrenderdoc
+
+4. Workspace file is provided for [codelite](https://codelite.org/)
+
+5. Vulkan SDK Version: [1.1.70.1](https://vulkan.lunarg.com/sdk/home)
+
+6. The Forge is currently tested on Ubuntu with the following GPUs:
+ * AMD RADEON RX 480
+ * AMD RADEON VEGA 56
+We will be testing on NVIDIA GPUs soon.
+
+
+# Install 
+For PC Windows and consoles run PRE_BUILD.bat. For the other platforms run the script. It will download and unzip the art assets and on PC install the shader builder extension for Visual Studio.
 
 
 
@@ -152,7 +207,7 @@ This unit test shows a Julia 4D fractal running in a compute shader. In the futu
 
 ## 3. Multi-Threaded Rendering
 
-This unit test shows the usage of [the open source fiber-based Task Scheduler](https://github.com/SergeyMakeev/TaskScheduler) to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on [a demo by Intel called Stardust](https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application).
+This unit test shows how to generate a large number of command buffers on all platforms supported by The Forge. This unit test is based on [a demo by Intel called Stardust](https://software.intel.com/en-us/articles/using-vulkan-graphics-api-to-render-a-cloud-of-animated-particles-in-stardust-application).
 
 ![Image of the Multi-Threaded command buffer generation example](Screenshots/03_MultiThreading.PNG)
 
@@ -195,7 +250,7 @@ In the spirit of the shadertoy examples this unit test shows a procedurally gene
 
 
 # Examples
-There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks (e.g. <a href="http://www.conffx.com/Visibility_Buffer_GDCE.pdf" target="_blank">Triangle Visibility Buffer</a>).
+There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
 
 ![Image of the Visibility Buffer](Screenshots/Visibility_Buffer.png)
 

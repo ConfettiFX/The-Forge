@@ -12,7 +12,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="07_Tessellation" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="QvC-M9-y7g">
+        <window title="08_Procedural" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="0.0" y="0.0" width="1920" height="1080"/>
@@ -36,9 +36,9 @@
         <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
         <menu title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
             <items>
-                <menuItem title="Metal Example: 07_Tessellation" id="1Xt-HY-uBw" userLabel="Metal Example - 05_StructuredBuffer">
+                <menuItem title="Metal Example: 08_Procedural" id="1Xt-HY-uBw" userLabel="Metal Example - 05_StructuredBuffer">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="Metal Example: 07_Tessellation" systemMenu="apple" id="uQy-DD-JDr">
+                    <menu key="submenu" title="Metal Example: 08_Procedural" systemMenu="apple" id="uQy-DD-JDr">
                         <items>
                             <menuItem title="Hide Metal Mac Template" keyEquivalent="h" id="Olw-nP-bQN">
                                 <connections>

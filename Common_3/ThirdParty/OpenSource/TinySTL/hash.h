@@ -69,6 +69,10 @@ namespace tinystl
 		return hash_string((const char*)&value, sizeof(value));
 	}
 
+#if defined(__linux__)
+#define __forceinline __attribute__((always_inline))
+#endif
+
 	template <typename T> static __forceinline T align_up_with_mask(T value, uint64_t mask)
 	{
 		return (T)(((uint64_t)value + mask) & ~mask);

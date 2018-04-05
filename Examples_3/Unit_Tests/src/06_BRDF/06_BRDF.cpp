@@ -58,7 +58,11 @@
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
@@ -390,7 +394,7 @@ void computePBRMaps()
     params[0].pName = "dstTexture";
     params[0].ppTextures = &pBRDFIntegrationMap;
     cmdBindDescriptors(cmd, pBRDFIntegrationRootSignature, 1, params);
-    const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mNumThreadsPerGroup;
+    const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
     cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
 	TextureBarrier srvBarrier = { pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE };
@@ -403,7 +407,7 @@ void computePBRMaps()
     params[1].pName = "dstBuffer";
     params[1].ppBuffers = &pSkyBuffer;
     cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
-    pThreadGroupSize = pPanoToCubeShader->mNumThreadsPerGroup;
+    pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
     cmdDispatch(cmd, gSkyboxSize / pThreadGroupSize[0], gSkyboxSize / pThreadGroupSize[1], 6);
     endCmd(cmd);
     queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
@@ -426,7 +430,7 @@ void computePBRMaps()
     params[2].pName = "skyboxSampler";
     params[2].ppSamplers = &pSkyboxSampler;
     cmdBindDescriptors(cmd, pIrradianceRootSignature, 3, params);
-    pThreadGroupSize = pIrradianceShader->mNumThreadsPerGroup;
+    pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
     cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
     cmdBindPipeline(cmd, pSpecularPipeline);
     params[0].pName = "srcTexture";
@@ -436,7 +440,7 @@ void computePBRMaps()
     params[2].pName = "skyboxSampler";
     params[2].ppSamplers = &pSkyboxSampler;
     cmdBindDescriptors(cmd, pSpecularRootSignature, 3, params);
-    pThreadGroupSize = pSpecularShader->mNumThreadsPerGroup;
+    pThreadGroupSize = pSpecularShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
     cmdDispatch(cmd, gSpecularSize / pThreadGroupSize[0], gSpecularSize / pThreadGroupSize[1], 6);
     endCmd(cmd);
     queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
@@ -1052,7 +1056,7 @@ public:
 
 	String GetName()
 	{
-		return "06_BRDF";
+		return "_06_BRDF";
 	}
 
 	bool addSwapChain()

@@ -1584,7 +1584,7 @@ public:
 			if (!gAppSettings.mAsyncCompute || !gAppSettings.mFilterTriangles)
 			{
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Clear Light Clusters", true);
-				clearLightClusters(graphicsCmd, (graphicsFrameIdx + 1) % gImageCount);
+				clearLightClusters(graphicsCmd, (graphicsFrameIdx) % gImageCount);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
 
@@ -1592,8 +1592,9 @@ public:
 			{
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Compute Light Clusters", true);
-				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[(graphicsFrameIdx + 1) % gImageCount], 0, NULL, false);
-				computeLightClusters(graphicsCmd, (graphicsFrameIdx + 1) % gImageCount);
+				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[(graphicsFrameIdx) % gImageCount], 0, NULL, false);
+				computeLightClusters(graphicsCmd, (graphicsFrameIdx) % gImageCount);
+				cmdSynchronizeResources(graphicsCmd, 1, &pLightClusters[(graphicsFrameIdx) % gImageCount], 0, NULL, false);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
 
@@ -3286,7 +3287,7 @@ public:
 		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
 
 		// This compute shader executes one thread per triangle and one group per batch
-		ASSERT(pShaderTriangleFiltering->mNumThreadsPerGroup[0] == CLUSTER_SIZE);
+		ASSERT(pShaderTriangleFiltering->mReflection.mStageReflections[0].mNumThreadsPerGroup[0] == CLUSTER_SIZE);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 
 		// Reset batch chunk to start adding triangles to it

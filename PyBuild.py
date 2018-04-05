@@ -468,7 +468,7 @@ def BuildWindowsProjects(xboxDefined):
 		
 		filename = proj.split(os.sep)[-1]
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		if filename == "Aura.sln":
+		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
 			configurations = ["DebugDx", "ReleaseDx"]
 			
 		if "XBOXOne" in proj:

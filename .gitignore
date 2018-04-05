@@ -45,6 +45,7 @@ Art/
 **/PCDX12/Binary/
 **/PCVulkan/Binary/
 **/OSXMetal/Binary/
+**/PCDX12/Compiled/
 
 # Obj folders
 **/obj/
