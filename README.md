@@ -182,7 +182,11 @@ We are currently testing on
 6. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
  * AMD RADEON VEGA 56
+
+Make sure VulkanSDK environment variables are configured correctly.
+Please read the "Set up the Runtime Environment" and "Environment Variable Persistence" [here:](https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html)
 We will be testing on NVIDIA GPUs soon.
+
 
 
 # Install 
