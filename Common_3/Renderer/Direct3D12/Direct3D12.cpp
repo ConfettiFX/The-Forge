@@ -571,7 +571,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	/************************************************************************/
 	// Static Descriptor Heap Implementation
 	/************************************************************************/
-	static void add_descriptor_heap(Renderer* pRenderer, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, uint32_t numDescriptors, DescriptorStoreHeap** ppDescHeap)
+	void add_descriptor_heap(Renderer* pRenderer, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, uint32_t numDescriptors, DescriptorStoreHeap** ppDescHeap)
 	{
 		if (fnHookAddDescriptorHeap != NULL)
 			numDescriptors = fnHookAddDescriptorHeap(type, numDescriptors);
@@ -606,14 +606,14 @@ namespace RENDERER_CPP_NAMESPACE {
 	}
 
 	/// Resets the CPU Handle to start of heap and clears all stored resource ids
-	static void reset_descriptor_heap(DescriptorStoreHeap* pHeap)
+	void reset_descriptor_heap(DescriptorStoreHeap* pHeap)
 	{
 		pHeap->mStartCpuHandle = pHeap->pCurrentHeap->GetCPUDescriptorHandleForHeapStart();
 		pHeap->mStartGpuHandle = pHeap->pCurrentHeap->GetGPUDescriptorHandleForHeapStart();
 		memset(pHeap->flags, 0, pHeap->mNumDescriptors / 32 * sizeof(uint32_t));
 	}
 
-	static void remove_descriptor_heap(DescriptorStoreHeap* pHeap)
+	void remove_descriptor_heap(DescriptorStoreHeap* pHeap)
 	{
 		SAFE_RELEASE(pHeap->pCurrentHeap);
 		SAFE_FREE(pHeap->flags);
@@ -625,7 +625,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pHeap);
 	}
 
-	static D3D12_CPU_DESCRIPTOR_HANDLE add_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, uint32_t numDescriptors)
+	D3D12_CPU_DESCRIPTOR_HANDLE add_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, uint32_t numDescriptors, uint32_t* pDescriptorIndex = NULL)
 	{
 		int result = -1;
 		MutexLock lockGuard(*pHeap->pAllocationMutex);
@@ -663,6 +663,8 @@ namespace RENDERER_CPP_NAMESPACE {
 
 					if ((uint32_t)handles.size() == numDescriptors)
 					{
+						if (pDescriptorIndex)
+							*pDescriptorIndex = (uint32_t)((handles.front().ptr - pHeap->mStartCpuHandle.ptr) / pHeap->mDescriptorSize);
 						return handles.front();
 					}
 				}
@@ -670,10 +672,12 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 
 		ASSERT(result != -1 && "Out of descriptors");
+		if (pDescriptorIndex)
+			*pDescriptorIndex = (uint32_t)((handles.front().ptr - pHeap->mStartCpuHandle.ptr) / pHeap->mDescriptorSize);
 		return handles.front();
 	}
 
-	static void add_gpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_CPU_DESCRIPTOR_HANDLE* pStartCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* pStartGpuHandle, uint32_t numDescriptors)
+	void add_gpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_CPU_DESCRIPTOR_HANDLE* pStartCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* pStartGpuHandle, uint32_t numDescriptors)
 	{
 		int result = -1;
 		MutexLock lockGuard(*pHeap->pAllocationMutex);
@@ -1462,6 +1466,9 @@ namespace RENDERER_CPP_NAMESPACE {
 	static volatile uint64_t	gBufferIds	= 0;
 	static volatile uint64_t	gTextureIds	= 0;
 	static volatile uint64_t	gSamplerIds	= 0;
+
+	static uint32_t				gMaxRootConstantsPerRootParam = 4U;
+	static RootSignatureDesc	gDefaultRootSignatureDesc = {};
 	// -------------------------------------------------------------------------------------------------
 	// Logging functions
 	// -------------------------------------------------------------------------------------------------
@@ -1690,7 +1697,17 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 
 		create_default_resources(pRenderer);
-
+		/************************************************************************/
+		/************************************************************************/
+		// Set Default Root Signature Limits
+		gDefaultRootSignatureDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = 256U;
+		gDefaultRootSignatureDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_RW_TEXTURE] = 32U;
+		gDefaultRootSignatureDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_BUFFER] = 32U;
+		gDefaultRootSignatureDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_RW_BUFFER] = 32U;
+		gDefaultRootSignatureDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_UNIFORM_BUFFER] = 32U;
+		gDefaultRootSignatureDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_SAMPLER] = 32U;
+		/************************************************************************/
+		/************************************************************************/
 		if (fnHookPostInitRenderer != NULL)
 			fnHookPostInitRenderer(pRenderer);
 
@@ -2168,7 +2185,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM) {
 			pBuffer->mDxCbvDesc.BufferLocation = pBuffer->pDxResource->GetGPUVirtualAddress() + pBuffer->mPositionInHeap;
 			pBuffer->mDxCbvDesc.SizeInBytes = (UINT)pBuffer->mDesc.mSize;
-			add_cbv(pRenderer, &pBuffer->mDxCbvDesc, &pBuffer->mDxCbvHandle);
+			if (!(pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
+				add_cbv(pRenderer, &pBuffer->mDxCbvDesc, &pBuffer->mDxCbvHandle);
 		}
 
 		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_INDEX) {
@@ -2203,7 +2221,8 @@ namespace RENDERER_CPP_NAMESPACE {
 				pBuffer->mDxSrvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
 			}
 
-			add_srv(pRenderer, pBuffer->pDxResource, &pBuffer->mDxSrvDesc, &pBuffer->mDxSrvHandle);
+			if (!(pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
+				add_srv(pRenderer, pBuffer->pDxResource, &pBuffer->mDxSrvDesc, &pBuffer->mDxSrvHandle);
 		}
 
 		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV) {
@@ -2219,8 +2238,11 @@ namespace RENDERER_CPP_NAMESPACE {
 				pBuffer->mDxUavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
 			}
 
-			ID3D12Resource* pCounterResource = pBuffer->mDesc.pCounterBuffer ? pBuffer->mDesc.pCounterBuffer->pDxResource : NULL;
-			add_uav(pRenderer, pBuffer->pDxResource, pCounterResource, &pBuffer->mDxUavDesc, &pBuffer->mDxUavHandle);
+			if (!(pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
+			{
+				ID3D12Resource* pCounterResource = pBuffer->mDesc.pCounterBuffer ? pBuffer->mDesc.pCounterBuffer->pDxResource : NULL;
+				add_uav(pRenderer, pBuffer->pDxResource, pCounterResource, &pBuffer->mDxUavDesc, &pBuffer->mDxUavHandle);
+			}
 		}
 
 		pBuffer->mBufferId = (++gBufferIds << 8U) + Thread::GetCurrentThreadID();
@@ -2236,15 +2258,15 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		destroyBuffer(pRenderer->pResourceAllocator, pBuffer);
 
-		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM)
+		if ((pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM) && !(pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
 		{
 			remove_cbv(pRenderer, &pBuffer->mDxCbvHandle);
 		}
-		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV)
+		if ((pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV) && !(pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
 		{
 			remove_srv(pRenderer, &pBuffer->mDxSrvHandle);
 		}
-		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV)
+		if ((pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV) && !(pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
 		{
 			remove_uav(pRenderer, &pBuffer->mDxUavHandle);
 		}
@@ -2914,58 +2936,54 @@ namespace RENDERER_CPP_NAMESPACE {
 		pShaderProgram->mStages = pDesc->mStages;
 
 		uint32_t reflectionCount = 0;
+		tinystl::vector<ID3DBlob*> blobs(SHADER_STAGE_COUNT);
 
 		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 		{
 			ShaderStage stage_mask = (ShaderStage)(1 << i);
 			const BinaryShaderStageDesc* pStage = NULL;
-			ID3DBlob** compiled_code = NULL;
 
 			if (stage_mask == (pShaderProgram->mStages & stage_mask))
 			{
 				switch (stage_mask) {
 				case SHADER_STAGE_VERT: {
 					pStage = &pDesc->mVert;
-					compiled_code = &(pShaderProgram->pDxVert);
 				} break;
 				case SHADER_STAGE_HULL: {
 					pStage = &pDesc->mHull;
-					compiled_code = &(pShaderProgram->pDxHull);
 				} break;
 				case SHADER_STAGE_DOMN: {
 					pStage = &pDesc->mDomain;
-					compiled_code = &(pShaderProgram->pDxDomn);
 				} break;
 				case SHADER_STAGE_GEOM: {
 					pStage = &pDesc->mGeom;
-					compiled_code = &(pShaderProgram->pDxGeom);
 				} break;
 				case SHADER_STAGE_FRAG: {
 					pStage = &pDesc->mFrag;
-					compiled_code = &(pShaderProgram->pDxFrag);
 				} break;
 				case SHADER_STAGE_COMP: {
 					pStage = &pDesc->mComp;
-					compiled_code = &(pShaderProgram->pDxComp);
 				} break;
 				}
 
-				D3DCreateBlob(pStage->mByteCodeSize, compiled_code);
-				memcpy((*compiled_code)->GetBufferPointer(), pStage->pByteCode, pStage->mByteCodeSize);
+				D3DCreateBlob(pStage->mByteCodeSize, &blobs[reflectionCount]);
+				memcpy(blobs[reflectionCount]->GetBufferPointer(), pStage->pByteCode, pStage->mByteCodeSize);
 
 				createShaderReflection(
-					(uint8_t*)((*compiled_code)->GetBufferPointer()),
-					(uint32_t)(*compiled_code)->GetBufferSize(),
+					(uint8_t*)(blobs[reflectionCount]->GetBufferPointer()),
+					(uint32_t)blobs[reflectionCount]->GetBufferSize(),
 					stage_mask,
 					&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
 
-				if (stage_mask == SHADER_STAGE_COMP)
-					memcpy(pShaderProgram->mNumThreadsPerGroup, pShaderProgram->mReflection.mStageReflections[reflectionCount].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
-				else if (stage_mask == SHADER_STAGE_TESC)
-					memcpy(&pShaderProgram->mNumControlPoint, &pShaderProgram->mReflection.mStageReflections[reflectionCount].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
-
 				reflectionCount++;
 			}
+		}
+
+		pShaderProgram->pShaderBlobs = (ID3DBlob**)conf_calloc(reflectionCount, sizeof(ID3DBlob*));
+		for (uint32_t i = 0; i < reflectionCount; ++i)
+		{
+			blobs[i]->QueryInterface(__uuidof(ID3DBlob), (void**)&pShaderProgram->pShaderBlobs[i]);
+			blobs[i]->Release();
 		}
 
 		createPipelineReflection(
@@ -2981,14 +2999,11 @@ namespace RENDERER_CPP_NAMESPACE {
 		UNREF_PARAM(pRenderer);
 
 		//remove given shader
-		SAFE_RELEASE(pShaderProgram->pDxVert);
-		SAFE_RELEASE(pShaderProgram->pDxHull);
-		SAFE_RELEASE(pShaderProgram->pDxDomn);
-		SAFE_RELEASE(pShaderProgram->pDxGeom);
-		SAFE_RELEASE(pShaderProgram->pDxFrag);
-		SAFE_RELEASE(pShaderProgram->pDxComp);
+		for (uint32_t i = 0; i < pShaderProgram->mReflection.mStageReflectionCount; ++i)
+			SAFE_RELEASE(pShaderProgram->pShaderBlobs[i]);
 		destroyPipelineReflection(&pShaderProgram->mReflection);
 
+		SAFE_FREE(pShaderProgram->pShaderBlobs);
 		SAFE_FREE(pShaderProgram);
 	}
 
@@ -3105,9 +3120,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		pRootParam->Constants.ShaderRegister = pDesc->mDesc.reg;
 		pRootParam->Constants.RegisterSpace = pDesc->mDesc.set;
 	}
-
-	static const uint32_t gMaxRootConstantsPerRootParam = 4U;
-	static const RootSignatureDesc gDefaultRootSignatureDesc = {};
 
 	void addRootSignature(Renderer* pRenderer, uint32_t numShaders, Shader* const* ppShaders, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
 	{
@@ -3674,25 +3686,25 @@ namespace RENDERER_CPP_NAMESPACE {
 		DECLARE_ZERO(D3D12_SHADER_BYTECODE, DS);
 		DECLARE_ZERO(D3D12_SHADER_BYTECODE, HS);
 		DECLARE_ZERO(D3D12_SHADER_BYTECODE, GS);
-		if (pShaderProgram->pDxVert) {
-			VS.BytecodeLength = pShaderProgram->pDxVert->GetBufferSize();
-			VS.pShaderBytecode = pShaderProgram->pDxVert->GetBufferPointer();
+		if (pShaderProgram->mStages & SHADER_STAGE_VERT) {
+			VS.BytecodeLength = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mVertexStageIndex]->GetBufferSize();
+			VS.pShaderBytecode = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mVertexStageIndex]->GetBufferPointer();
 		}
-		if (pShaderProgram->pDxFrag) {
-			PS.BytecodeLength = pShaderProgram->pDxFrag->GetBufferSize();
-			PS.pShaderBytecode = pShaderProgram->pDxFrag->GetBufferPointer();
+		if (pShaderProgram->mStages & SHADER_STAGE_FRAG) {
+			PS.BytecodeLength = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mPixelStageIndex]->GetBufferSize();
+			PS.pShaderBytecode = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mPixelStageIndex]->GetBufferPointer();
 		}
-		if (pShaderProgram->pDxDomn) {
-			DS.BytecodeLength = pShaderProgram->pDxDomn->GetBufferSize();
-			DS.pShaderBytecode = pShaderProgram->pDxDomn->GetBufferPointer();
+		if (pShaderProgram->mStages & SHADER_STAGE_HULL) {
+			HS.BytecodeLength = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mHullStageIndex]->GetBufferSize();
+			HS.pShaderBytecode = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mHullStageIndex]->GetBufferPointer();
 		}
-		if (pShaderProgram->pDxHull) {
-			HS.BytecodeLength = pShaderProgram->pDxHull->GetBufferSize();
-			HS.pShaderBytecode = pShaderProgram->pDxHull->GetBufferPointer();
+		if (pShaderProgram->mStages & SHADER_STAGE_DOMN) {
+			DS.BytecodeLength = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mDomainStageIndex]->GetBufferSize();
+			DS.pShaderBytecode = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mDomainStageIndex]->GetBufferPointer();
 		}
-		if (pShaderProgram->pDxGeom) {
-			GS.BytecodeLength = pShaderProgram->pDxGeom->GetBufferSize();
-			GS.pShaderBytecode = pShaderProgram->pDxGeom->GetBufferPointer();
+		if (pShaderProgram->mStages & SHADER_STAGE_GEOM) {
+			GS.BytecodeLength = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mGeometryStageIndex]->GetBufferSize();
+			GS.pShaderBytecode = pShaderProgram->pShaderBlobs[pShaderProgram->mReflection.mGeometryStageIndex]->GetBufferPointer();
 		}
 
 		DECLARE_ZERO(D3D12_STREAM_OUTPUT_DESC, stream_output_desc);
@@ -3844,7 +3856,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		case PRIMITIVE_TOPO_TRI_STRIP: topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP; break;
 		case PRIMITIVE_TOPO_PATCH_LIST:
 		{
-			uint32_t controlPoint = pPipeline->mGraphics.pShaderProgram->mNumControlPoint;
+			const PipelineReflection* pReflection = &pPipeline->mGraphics.pShaderProgram->mReflection;
+			uint32_t controlPoint = pReflection->mStageReflections[pReflection->mHullStageIndex].mNumControlPoint;
 			topology = (D3D_PRIMITIVE_TOPOLOGY)(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (controlPoint - 1));
 		}
 		break;
@@ -3864,6 +3877,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pDesc);
 		ASSERT(pDesc->pShaderProgram);
 		ASSERT(pDesc->pRootSignature);
+		ASSERT(pDesc->pShaderProgram->pShaderBlobs[0]);
 
 		//allocate new pipeline
 		Pipeline* pPipeline = (Pipeline*)conf_calloc(1, sizeof(*pPipeline));
@@ -3875,10 +3889,8 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		//add pipeline specifying its for compute purposes
 		DECLARE_ZERO(D3D12_SHADER_BYTECODE, CS);
-		if (pDesc->pShaderProgram->pDxComp) {
-			CS.BytecodeLength = pDesc->pShaderProgram->pDxComp->GetBufferSize();
-			CS.pShaderBytecode = pDesc->pShaderProgram->pDxComp->GetBufferPointer();
-		}
+		CS.BytecodeLength = pDesc->pShaderProgram->pShaderBlobs[0]->GetBufferSize();
+		CS.pShaderBytecode = pDesc->pShaderProgram->pShaderBlobs[0]->GetBufferPointer();
 
 		DECLARE_ZERO(D3D12_CACHED_PIPELINE_STATE, cached_pso_desc);
 		cached_pso_desc.pCachedBlob = NULL;
@@ -5013,7 +5025,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	D3D12_RESOURCE_STATES util_to_dx_resource_state(ResourceState state)
 	{
-		D3D12_RESOURCE_STATES ret = D3D12_RESOURCE_STATE_COMMON;
+		D3D12_RESOURCE_STATES ret = (D3D12_RESOURCE_STATES)state;
 
 		// These states cannot be combined with other states so we just do an == check
 		if (state == RESOURCE_STATE_GENERIC_READ)

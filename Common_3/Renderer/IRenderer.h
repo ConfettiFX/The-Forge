@@ -523,6 +523,8 @@ typedef enum BufferCreationFlags
 	BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT = 0x04,
 	/// Use ESRAM to store this buffer
 	BUFFER_CREATION_FLAG_ESRAM = 0x08,
+	/// Flag to specify not to allocate descriptors for the resource
+	BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION = 0x10,
 } BufferCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, BufferCreationFlags)
 
@@ -959,17 +961,6 @@ typedef struct DescriptorSetLayout
 
 typedef struct RootSignatureDesc
 {
-    //TODO: Remove constructor to keep C-Style interface
-	RootSignatureDesc()
-	{
-		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = 256U;
-		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_RW_TEXTURE] = 32U;
-		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_BUFFER] = 32U;
-		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_RW_BUFFER] = 32U;
-		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_UNIFORM_BUFFER] = 32U;
-		mMaxBindlessDescriptors[DESCRIPTOR_TYPE_SAMPLER] = 32U;
-		mStaticSamplers = tinystl::unordered_map<tinystl::string, Sampler*>();
-	}
 	uint32_t											mMaxBindlessDescriptors[DESCRIPTOR_TYPE_COUNT];
 	tinystl::unordered_map<tinystl::string, Sampler*>	mStaticSamplers;
 #if defined(VULKAN)
@@ -1233,31 +1224,19 @@ typedef struct BinaryShaderDesc
 } BinaryShaderDesc;
 
 typedef struct Shader {
-	Renderer*               pRenderer;
+	Renderer*				pRenderer;
 	ShaderStage				mStages;
 	PipelineReflection		mReflection;
 
-	uint32_t				mNumThreadsPerGroup[3];
-	uint32_t				mNumControlPoint;
-
 #if defined(VULKAN)
-	VkShaderModule			pVkVert;
-	VkShaderModule			pVkTesc;
-	VkShaderModule			pVkTese;
-	VkShaderModule			pVkGeom;
-	VkShaderModule			pVkFrag;
-	VkShaderModule			pVkComp;
+	VkShaderModule*			pShaderModules;
 #elif defined(DIRECT3D12)
-	ID3DBlob*				pDxVert;
-	ID3DBlob*				pDxHull;
-	ID3DBlob*				pDxDomn;
-	ID3DBlob*				pDxGeom;
-	ID3DBlob*				pDxFrag;
-	ID3DBlob*				pDxComp;
+	ID3DBlob**				pShaderBlobs;
 #elif defined(METAL)
 	id<MTLFunction>			mtlVertexShader;
 	id<MTLFunction>			mtlFragmentShader;
 	id<MTLFunction>			mtlComputeShader;
+	uint32_t				mNumThreadsPerGroup[3];
 #endif
 } Shader;
 

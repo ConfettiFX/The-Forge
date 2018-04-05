@@ -25,39 +25,36 @@
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 
 // forward decls
-struct Renderer;
-struct RenderTarget;
 struct Texture;
-struct Cmd;
 struct GpuProfiler;
-struct Queue;
-struct Gui;
+struct Buffer;
+struct Shader;
+struct RootSignature;
+struct Pipeline;
+struct Sampler;
+struct DepthState;
+struct RasterizerState;
 
 /************************************************************************/
 /*						 HOW TO USE THIS MODULE
 /************************************************************************/
 //
-// - Init()		should be called at the end of App.Init() from the calling app. There are two options for initializing Panini Projection post process:
-//		[1] (DYNAMIC_MODE) Init() with GUI controls. The Panini Parameters can be dynamically changed from the GUI.
-//		[2]  (STATIC_MODE) Init() with panini parameters. This mode doesn't support changing of parameters through GUI. However, the
-//								  user can call updatePaniniParameters() to change panini parameters if its initialized without a GUI.
+// - Init()		Compiles the panini shader, creates the vertex and index buffer for panini projection
 //
-// - Load() / Unload() are empty functions for Panini Projection as the App is responsible for managing Render Targets
+// - Load()		Links the shader compiled in Init to create the panini projection pipeline
+//				Uses the input render target to provide output format information to pipeline creation
 //
-// - Update()	should be called if the Panini Post Process is initialized with a GUI to update the dynamic GUI 
-//				controls and the projection parameters
+// - Unload()	Destroys the pipeline
 //
-// - Draw()		should be called before drawing the GUI and after drawing the scene into an intermediate render target, whose pTexture
-//				is passed as an input parameter
+// - Update()	Empty update
+//
+// - Draw()		Runs the panini projection shader on the active render pass. Call SetParams before calling this function to update the panini params
 //
 // - Exit()		should be called when exiting the app to clean up Panini rendering resources.
 //
 // Panini Post Process takes a texture as input which contains the rendered scene, applies Panini distortion to it and outputs to currently bound render target. 
 // See UnitTests - 04_ExecuteIndirect project for example use case for this module.
 //
-
-
-
 /************************************************************************/
 /*						 PANINI PROJECTION
 /************************************************************************/
@@ -91,44 +88,49 @@ struct PaniniParameters
 	//				be in order to fit the image to screen.
 	float scale = 1.0f;
 };
-
-
 /************************************************************************/
 /*						 INTERFACE
 /************************************************************************/
 class AppPanini : public IMiddleware
 {
 public:
-
-
 	// our init function should only be called once
 	// the middleware has to keep these pointers
-	virtual bool Init(Renderer* const renderer, Queue* const gfxQ, Queue* const cmpQ, Gui* const gui, GpuProfiler* const profiler) final;
-	virtual void Exit() final;
+	bool Init(Renderer* renderer);
+	void Exit();
 
 	// when app is loaded, app is provided of the render targets to load
 	// app is responsible to keep track of these render targets until load is called again
 	// app will use the -first- rendertarget as texture to render to
 	// make sure to always supply at least one render target with texture!
-	virtual bool Load(RenderTarget** rts) final;
-	virtual void Unload() final;
+	bool Load(RenderTarget** rts);
+	void Unload();
 
 	// draws Panini Projection into first render target supplied at the Load call
-	virtual void Draw(Cmd* cmd) final;
+	void Update(float deltaTime) {}
+	void Draw(Cmd* cmd);
 
-	virtual void Update(float deltaTime) final;
-
-	// Sets the callback for enabling/disabling panini projection
-	// @pfnPaniniToggleCallback	: callback function for handling rendering resources when Panini projection is enabled/disabled. In
-	//							  an ideal case, we would directly use the swapchain buffer in the App if Panini post process is disabled to
-	//							  avoid redundant draw calls / render target copies. This function reports back if the post process is enabled/disabled.
-	bool SetCallbackToggle(void(*pfnPaniniToggleCallback)(bool));
-
-
-	// Set FOV ptr
-	void SetFovPtr(float* pFieldOfView);
-
-	// Set texture to render to
+	// Set input texture to sample from
 	void SetSourceTexture(Texture* pTex);
+	// Sets the parameters to be sent to the panini projection shader
+	void SetParams(const PaniniParameters& params) { mParams = params; }
 
+private:
+	Renderer*			pRenderer;
+	Texture*			pSourceTexture = nullptr;
+
+	Shader*				pShaderPanini = nullptr;
+	RootSignature*		pRootSignaturePaniniPostProcess = nullptr;
+	Sampler*			pSamplerTrilinearAniso = nullptr;
+	DepthState*			pDepthStateDisable = nullptr;
+	RasterizerState*	pRasterizerStateCullNone = nullptr;
+	Pipeline*			pPipelinePaniniPostProcess = nullptr;
+
+	Buffer*				pVertexBufferTessellatedQuad = nullptr;
+	Buffer*				pIndexBufferTessellatedQuad = nullptr;
+
+	PaniniParameters	mParams;
+
+	// Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
+	const unsigned		gPaniniDistortionTessellation[2] = { 64, 32 };
 };

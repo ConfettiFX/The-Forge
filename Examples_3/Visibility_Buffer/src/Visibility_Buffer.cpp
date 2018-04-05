@@ -3287,7 +3287,7 @@ public:
 		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
 
 		// This compute shader executes one thread per triangle and one group per batch
-		ASSERT(pShaderTriangleFiltering->mNumThreadsPerGroup[0] == CLUSTER_SIZE);
+		ASSERT(pShaderTriangleFiltering->mReflection.mStageReflections[0].mNumThreadsPerGroup[0] == CLUSTER_SIZE);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 
 		// Reset batch chunk to start adding triangles to it

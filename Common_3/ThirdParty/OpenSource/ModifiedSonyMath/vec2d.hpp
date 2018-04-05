@@ -463,7 +463,12 @@ inline const Vector2 operator * (float scalar, const Vector2 & vec)
 
 inline const Vector2 absPerElem(const Vector2 & vec)
 {
+#if defined(__linux__)
+// linux build uses c++11 standard
+    return Vector2(std::fabs(vec.getX()), std::fabs(vec.getY()));
+#else
     return Vector2(std::fabsf(vec.getX()), std::fabsf(vec.getY()));
+#endif
 }
 
 inline const Vector2 maxPerElem(const Vector2 & vec0, const Vector2 & vec1)
@@ -506,13 +511,23 @@ inline float lengthSqr(const Vector2 & vec)
 
 inline float length(const Vector2 & vec)
 {
+#if __linux__
+// linux build uses c++11 standard
+    return std::sqrt(lengthSqr(vec));
+#else
     return std::sqrtf(lengthSqr(vec));
+#endif	
 }
 
 inline const Vector2 normalize(const Vector2 & vec)
 {
     const float lenSqr = lengthSqr(vec);
+#if __linux__
+// linux build uses c++11 standard
+    const float lenInv = (1.0f / std::sqrt(lenSqr));
+#else
     const float lenInv = (1.0f / std::sqrtf(lenSqr));
+#endif	
     return Vector2((vec.getX() * lenInv), (vec.getY() * lenInv));
 }
 
@@ -628,7 +643,12 @@ inline Point2 & Point2::operator -= (const Vector2 & vec)
 
 inline const Point2 absPerElem(const Point2 & pnt)
 {
+#if __linux__
+// linux build uses c++11 standard
+    return Point2(std::fabs(pnt.getX()), std::fabs(pnt.getY()));
+#else
     return Point2(std::fabsf(pnt.getX()), std::fabsf(pnt.getY()));
+#endif	
 }
 
 inline const Point2 maxPerElem(const Point2 & pnt0, const Point2 & pnt1)

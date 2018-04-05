@@ -142,13 +142,15 @@ const char*			pSkyBoxImageFileNames[] =
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #elif defined(_DURANGO)
 #define RESOURCE_DIR "PCDX12"
-#elif defined(LINUX)
-#define RESOURCE_DIR "LINUXVulkan"
 #else
 #error PLATFORM NOT SUPPORTED
 #endif
@@ -778,7 +780,7 @@ public:
 
 	String GetName()
 	{
-		return "01_Transformations";
+		return "_01_Transformations";
 	}
 
 	bool addSwapChain()

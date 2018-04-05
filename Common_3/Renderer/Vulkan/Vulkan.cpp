@@ -39,6 +39,13 @@
 #include <Windows.h>
 #endif
 
+#if defined(__linux__)
+#define stricmp(a, b) strcasecmp(a, b)
+#define vsprintf_s vsnprintf
+#define strncpy_s strncpy
+#define vsnprintf_s vsnprintf
+#endif
+
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 namespace RENDERER_CPP_NAMESPACE {
 #endif
@@ -222,6 +229,10 @@ namespace RENDERER_CPP_NAMESPACE {
       VK_KHR_SURFACE_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
       VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+      VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+      VK_KHR_XCB_SURFACE_EXTENSION_NAME,
 #endif
       VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 	  VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
@@ -1181,7 +1192,10 @@ namespace RENDERER_CPP_NAMESPACE {
 	  ASSERT(pQueue);
 	  ASSERT(pFrequency);
 
-	  *pFrequency = (double)pQueue->pRenderer->pVkActiveGPUProperties->limits.timestampPeriod;
+	  // The framework is using ticks per sec as frequency. Vulkan is nano sec per tick. 
+	  // Handle the conversion logic here.
+	  *pFrequency = 1.0f/((double)pQueue->pRenderer->pVkActiveGPUProperties->limits.timestampPeriod/*ns/tick number of nanoseconds required for a timestamp query to be incremented by 1*/
+							* 1e-9); // convert to ticks/sec (DX12 standard)
   }
 
   void addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap)
@@ -1516,7 +1530,9 @@ namespace RENDERER_CPP_NAMESPACE {
 		add_info.flags = 0;
 		VkResult vk_res = vkCreateSemaphore(pRenderer->pDevice, &add_info, NULL, &(pSemaphore->pVkSemaphore));
 		ASSERT(VK_SUCCESS == vk_res);
-
+		// Set signal inital state.
+		pSemaphore->mSignaled = false;
+		
 		*ppSemaphore = pSemaphore;
 	}
 
@@ -1777,13 +1793,39 @@ namespace RENDERER_CPP_NAMESPACE {
 		// Create surface
 		/************************************************************************/
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVKInstance);
+		VkResult vk_res;
+		// Create a WSI surface for the window:
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
 		DECLARE_ZERO(VkWin32SurfaceCreateInfoKHR, add_info);
 		add_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 		add_info.pNext = NULL;
 		add_info.flags = 0;
 		add_info.hinstance = ::GetModuleHandle(NULL);
 		add_info.hwnd = (HWND)pDesc->pWindow->handle;
-		VkResult vk_res = vkCreateWin32SurfaceKHR(pRenderer->pVKInstance, &add_info, NULL, &pSwapChain->pVkSurface);
+		vk_res = vkCreateWin32SurfaceKHR(pRenderer->pVKInstance, &add_info, NULL, &pSwapChain->pVkSurface);
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+		DECLARE_ZERO(VkXlibSurfaceCreateInfoKHR, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+		add_info.pNext = NULL;
+		add_info.flags = 0;
+		add_info.dpy = pDesc->pWindow->display; //TODO
+		add_info.window = pDesc->pWindow->xlib_window; //TODO
+
+		vk_res = vkCreateXlibSurfaceKHR(pRenderer->pVKInstance, &add_info, NULL, &pSwapChain->pVkSurface);
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+		DECLARE_ZERO(VkXcbSurfaceCreateInfoKHR, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+		add_info.pNext = NULL;
+		add_info.flags = 0;
+		add_info.connection = pDesc->pWindow->connection; //TODO
+		add_info.window = pDesc->pWindow->xcb_window; //TODO
+
+		vk_res = vkCreateXcbSurfaceKHR(pRenderer->pVKInstance, &add_info, NULL, &pSwapChain->pVkSurface);
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+		// Add IOS support here
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+		// Add MacOS support here
+#endif
 		ASSERT(VK_SUCCESS == vk_res);
 		/************************************************************************/
 		// Create swap chain
@@ -1914,6 +1956,11 @@ namespace RENDERER_CPP_NAMESPACE {
 					if ((VK_SUCCESS == res) && (VK_TRUE == supports_present)) {
 						presentQueueFamilyIndex = index;
 						break;
+					}
+					else
+					{
+						// No present queue family available. Something goes wrong.
+						ASSERT(0);
 					}
 				}
 			}
@@ -2202,6 +2249,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			{
 				add_info.pNext = &externalInfo;
 
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
 				struct ImportHandleInfo
 				{
 					void* pHandle;
@@ -2217,6 +2265,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				mem_reqs.pUserData = &importInfo;
 				// Allocate external (importable / exportable) memory as dedicated memory to avoid adding unnecessary complexity to the Vulkan Memory Allocator
 				mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+#endif
 			}
 			else if (gExternalMemoryExtension && pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
 			{
@@ -2462,6 +2511,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		uint32_t counter = 0;
 		ShaderReflection stageReflections[SHADER_STAGE_COUNT];
+		tinystl::vector<VkShaderModule> modules(SHADER_STAGE_COUNT);
 
 		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i) {
 			ShaderStage stage_mask = (ShaderStage)(1 << i);
@@ -2472,60 +2522,61 @@ namespace RENDERER_CPP_NAMESPACE {
 				create_info.flags = 0;
 				switch (stage_mask) {
 				case SHADER_STAGE_VERT: {
-					createShaderReflection((const uint8_t*)pDesc->mVert.pByteCode, (uint32_t)pDesc->mVert.mByteCodeSize, SHADER_STAGE_VERT, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mVert.pByteCode, (uint32_t)pDesc->mVert.mByteCodeSize, SHADER_STAGE_VERT, &stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mVert.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mVert.pByteCode;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkVert));
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_TESC: {
-					createShaderReflection((const uint8_t*)pDesc->mHull.pByteCode, (uint32_t)pDesc->mHull.mByteCodeSize, SHADER_STAGE_TESC, &stageReflections[counter++]);
-
-					memcpy(&pShaderProgram->mNumControlPoint, &stageReflections[counter - 1].mNumControlPoint, sizeof(pShaderProgram->mNumControlPoint));
+					createShaderReflection((const uint8_t*)pDesc->mHull.pByteCode, (uint32_t)pDesc->mHull.mByteCodeSize, SHADER_STAGE_TESC, &stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mHull.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mHull.pByteCode;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTesc));
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_TESE: {
-					createShaderReflection((const uint8_t*)pDesc->mDomain.pByteCode, (uint32_t)pDesc->mDomain.mByteCodeSize, SHADER_STAGE_TESE, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mDomain.pByteCode, (uint32_t)pDesc->mDomain.mByteCodeSize, SHADER_STAGE_TESE, &stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mDomain.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mDomain.pByteCode;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkTese));
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_GEOM: {
-					createShaderReflection((const uint8_t*)pDesc->mGeom.pByteCode, (uint32_t)pDesc->mGeom.mByteCodeSize, SHADER_STAGE_GEOM, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mGeom.pByteCode, (uint32_t)pDesc->mGeom.mByteCodeSize, SHADER_STAGE_GEOM, &stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mGeom.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mGeom.pByteCode;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkGeom));
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_FRAG: {
-					createShaderReflection((const uint8_t*)pDesc->mFrag.pByteCode, (uint32_t)pDesc->mFrag.mByteCodeSize, SHADER_STAGE_FRAG, &stageReflections[counter++]);
+					createShaderReflection((const uint8_t*)pDesc->mFrag.pByteCode, (uint32_t)pDesc->mFrag.mByteCodeSize, SHADER_STAGE_FRAG, &stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mFrag.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mFrag.pByteCode;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkFrag));
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				case SHADER_STAGE_COMP: {
-					createShaderReflection((const uint8_t*)pDesc->mComp.pByteCode, (uint32_t)pDesc->mComp.mByteCodeSize, SHADER_STAGE_COMP, &stageReflections[counter++]);
-
-					memcpy(pShaderProgram->mNumThreadsPerGroup, stageReflections[counter - 1].mNumThreadsPerGroup, sizeof(pShaderProgram->mNumThreadsPerGroup));
+					createShaderReflection((const uint8_t*)pDesc->mComp.pByteCode, (uint32_t)pDesc->mComp.mByteCodeSize, SHADER_STAGE_COMP, &stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mComp.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mComp.pByteCode;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(pShaderProgram->pVkComp));
+					VkResult vk_res = vkCreateShaderModule(pRenderer->pDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
 				}
+
+				++counter;
 			}
 		}
+
+		pShaderProgram->pShaderModules = (VkShaderModule*)conf_calloc(counter, sizeof(VkShaderModule));
+		memcpy(pShaderProgram->pShaderModules, modules.data(), counter * sizeof(VkShaderModule));
 
 		createPipelineReflection(stageReflections, counter, &pShaderProgram->mReflection);
 
@@ -2538,32 +2589,33 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
 
-		if (VK_NULL_HANDLE != pShaderProgram->pVkVert) {
-			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkVert, NULL);
+		if (pShaderProgram->mStages & SHADER_STAGE_VERT) {
+			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pShaderModules[pShaderProgram->mReflection.mVertexStageIndex], NULL);
 		}
 
-		if (VK_NULL_HANDLE != pShaderProgram->pVkTesc) {
-			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkTesc, NULL);
+		if (pShaderProgram->mStages & SHADER_STAGE_TESC) {
+			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pShaderModules[pShaderProgram->mReflection.mHullStageIndex], NULL);
 		}
 
-		if (VK_NULL_HANDLE != pShaderProgram->pVkTese) {
-			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkTese, NULL);
+		if (pShaderProgram->mStages & SHADER_STAGE_TESE) {
+			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pShaderModules[pShaderProgram->mReflection.mDomainStageIndex], NULL);
 		}
 
-		if (VK_NULL_HANDLE != pShaderProgram->pVkGeom) {
-			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkGeom, NULL);
+		if (pShaderProgram->mStages & SHADER_STAGE_GEOM) {
+			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pShaderModules[pShaderProgram->mReflection.mGeometryStageIndex], NULL);
 		}
 
-		if (VK_NULL_HANDLE != pShaderProgram->pVkFrag) {
-			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkFrag, NULL);
+		if (pShaderProgram->mStages & SHADER_STAGE_FRAG) {
+			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pShaderModules[pShaderProgram->mReflection.mPixelStageIndex], NULL);
 		}
 
-		if (VK_NULL_HANDLE != pShaderProgram->pVkComp) {
-			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pVkComp, NULL);
+		if (pShaderProgram->mStages & SHADER_STAGE_COMP) {
+			vkDestroyShaderModule(pRenderer->pDevice, pShaderProgram->pShaderModules[0], NULL);
 		}
 
 		destroyPipelineReflection(&pShaderProgram->mReflection);
 
+		SAFE_FREE(pShaderProgram->pShaderModules);
 		SAFE_FREE(pShaderProgram);
 	}
 
@@ -2890,7 +2942,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		addRenderPass(pRenderer, &renderPassDesc, &pRenderPass);
 
 		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
-		ASSERT((VK_NULL_HANDLE != pShaderProgram->pVkVert) || (VK_NULL_HANDLE != pShaderProgram->pVkTesc) || (VK_NULL_HANDLE != pShaderProgram->pVkTese) || (VK_NULL_HANDLE != pShaderProgram->pVkGeom) || (VK_NULL_HANDLE != pShaderProgram->pVkFrag));
+		for (uint32_t i = 0; i < pShaderProgram->mReflection.mStageReflectionCount; ++i)
+			ASSERT(VK_NULL_HANDLE != pShaderProgram->pShaderModules[i]);
 
 		// Pipeline
 		{
@@ -2907,27 +2960,27 @@ namespace RENDERER_CPP_NAMESPACE {
 					case SHADER_STAGE_VERT: {
 						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mVertexStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
-						stages[stage_count].module = pShaderProgram->pVkVert;
+						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->mReflection.mVertexStageIndex];
 					} break;
 					case SHADER_STAGE_TESC: {
 						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mHullStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-						stages[stage_count].module = pShaderProgram->pVkTesc;
+						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->mReflection.mHullStageIndex];
 					} break;
 					case SHADER_STAGE_TESE: {
 						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mDomainStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-						stages[stage_count].module = pShaderProgram->pVkTese;
+						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->mReflection.mDomainStageIndex];
 					} break;
 					case SHADER_STAGE_GEOM: {
 						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mGeometryStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-						stages[stage_count].module = pShaderProgram->pVkGeom;
+						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->mReflection.mGeometryStageIndex];
 					} break;
 					case SHADER_STAGE_FRAG: {
 						stages[stage_count].pName = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mPixelStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-						stages[stage_count].module = pShaderProgram->pVkFrag;
+						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->mReflection.mPixelStageIndex];
 					} break;
 					}
 					++stage_count;
@@ -2997,10 +3050,13 @@ namespace RENDERER_CPP_NAMESPACE {
 			ia.primitiveRestartEnable = VK_FALSE;
 
 			DECLARE_ZERO(VkPipelineTessellationStateCreateInfo, ts);
-			ts.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-			ts.pNext = NULL;
-			ts.flags = 0;
-			ts.patchControlPoints = pShaderProgram->mNumControlPoint;
+			if ((pShaderProgram->mStages & SHADER_STAGE_TESC) && (pShaderProgram->mStages & SHADER_STAGE_TESE))
+			{
+				ts.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+				ts.pNext = NULL;
+				ts.flags = 0;
+				ts.patchControlPoints = pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mHullStageIndex].mNumControlPoint;
+			}
 
 			DECLARE_ZERO(VkPipelineViewportStateCreateInfo, vs);
 			vs.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -3092,7 +3148,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			add_info.pVertexInputState = &vi;
 			add_info.pInputAssemblyState = &ia;
 
-			if (pShaderProgram->pVkTesc != NULL && pShaderProgram->pVkTese != NULL)
+			if ((pShaderProgram->mStages & SHADER_STAGE_TESC) && (pShaderProgram->mStages & SHADER_STAGE_TESE))
 				add_info.pTessellationState = &ts;
 			else
 				add_info.pTessellationState = NULL; // set tessellation state to null if we have no tessellation
@@ -3124,7 +3180,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pDesc->pShaderProgram);
 		ASSERT(pDesc->pRootSignature);
 		ASSERT(pRenderer->pDevice != VK_NULL_HANDLE);
-		ASSERT(pDesc->pShaderProgram->pVkComp != VK_NULL_HANDLE);
+		ASSERT(pDesc->pShaderProgram->pShaderModules[0] != VK_NULL_HANDLE);
 
 		Pipeline* pPipeline = (Pipeline*)conf_calloc(1, sizeof(*pPipeline));
 		ASSERT(pPipeline);
@@ -3139,7 +3195,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			stage.pNext = NULL;
 			stage.flags = 0;
 			stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-			stage.module = pDesc->pShaderProgram->pVkComp;
+			stage.module = pDesc->pShaderProgram->pShaderModules[0];
 			stage.pName = pDesc->pShaderProgram->mReflection.mStageReflections[0].pEntryPoint;
 			stage.pSpecializationInfo = NULL;
 
@@ -4070,6 +4126,10 @@ namespace RENDERER_CPP_NAMESPACE {
 			}
 
 			*pFenceStatus = vkRes == VK_SUCCESS ? FENCE_STATUS_COMPLETE : FENCE_STATUS_INCOMPLETE;
+		}
+		else
+		{
+			*pFenceStatus = FENCE_STATUS_NOTSUBMITTED;
 		}
 	}
 	// -------------------------------------------------------------------------------------------------

@@ -155,7 +155,11 @@ HiresTimer gTimer;
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
@@ -794,7 +798,7 @@ public:
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 #endif
 
-		const uint32_t* pThreadGroupSize = pComputeShader->mNumThreadsPerGroup;
+		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 
 #ifndef METAL
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
@@ -963,7 +967,7 @@ public:
 
 	String GetName()
 	{
-		return "07_Tessellation";
+		return "_07_Tessellation";
 	}
 
 	bool addSwapChain()

@@ -57,7 +57,11 @@
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
@@ -453,7 +457,7 @@ public:
 
 	String GetName()
 	{
-		return "05_FontRendering";
+		return "_05_FontRendering";
 	}
 
 	bool addSwapChain()

@@ -25,11 +25,26 @@
 #pragma once
 
 #include <stdint.h>
-
-#ifdef API_EXPORT
-#define SPIRV_INTERFACE extern __declspec( dllexport )
+#if defined _WIN32 || defined __CYGWIN__ || defined __MINGW32__
+  #ifdef API_EXPORT
+    #ifdef __GNUC__
+      #define SPIRV_INTERFACE __attribute__ ((dllexport))
+    #else
+      #define SPIRV_INTERFACE __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
+    #endif
+  #else
+    #ifdef __GNUC__
+      #define SPIRV_INTERFACE __attribute__ ((dllimport))
+    #else
+      #define SPIRV_INTERFACE __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
+    #endif
+  #endif
 #else
-#define SPIRV_INTERFACE  extern __declspec( dllimport )
+  #if __GNUC__ >= 4
+    #define SPIRV_INTERFACE __attribute__ ((visibility ("default")))
+  #else
+    #define SPIRV_INTERFACE
+  #endif
 #endif
 
 #if defined( _WIN32 )

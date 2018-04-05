@@ -40,6 +40,10 @@
 // For sprintf: contains va_start, etc.
 #include <stdarg.h>
 #include <ctype.h>
+#if defined(__linux__)
+// For ptrdiff_t, etc
+#include <stddef.h>
+#endif
 
 // disable the unsecare function warning on vsnprintf and sprintf with Microsoft compiler
 #if defined(_MSC_VER)
