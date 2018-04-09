@@ -1189,10 +1189,16 @@ namespace RENDERER_CPP_NAMESPACE {
         SAFE_FREE(pRenderTarget);
     }
     
-    void addSampler(Renderer* pRenderer, Sampler** ppSampler, FilterType minFilter, FilterType magFilter, MipMapMode  mipMapMode, AddressMode addressU, AddressMode addressV, AddressMode addressW, float mipLosBias, float maxAnisotropy)
+    void addSampler(Renderer* pRenderer, Sampler** ppSampler,
+	FilterType minFilter, FilterType magFilter,
+	MipMapMode  mipMapMode,
+	AddressMode addressU, AddressMode addressV, AddressMode addressW,
+	float mipLosBias, float maxAnisotropy,
+	CompareMode compareFunc)
     {
         ASSERT(pRenderer);
         ASSERT(pRenderer->pDevice != nil);
+		ASSERT(compareFunc < MAX_COMPARE_MODES);
         
         Sampler* pSampler = (Sampler*)conf_calloc(1, sizeof(*pSampler));
         ASSERT(pSampler);
@@ -1202,10 +1208,11 @@ namespace RENDERER_CPP_NAMESPACE {
         samplerDesc.minFilter = (minFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
         samplerDesc.magFilter = (magFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
         samplerDesc.mipFilter = (mipMapMode == MIPMAP_MODE_NEAREST ? MTLSamplerMipFilterNearest : MTLSamplerMipFilterLinear);
-        samplerDesc.maxAnisotropy = (maxAnisotropy==0 ? 1 : maxAnisotropy);  // 0 is not allowed in Metal
+        samplerDesc.maxAnisotropy = (maxAnisotropy == 0 ? 1 : maxAnisotropy);  // 0 is not allowed in Metal
         samplerDesc.sAddressMode = gMtlAddressModeTranslator[addressU];
         samplerDesc.tAddressMode = gMtlAddressModeTranslator[addressV];
         samplerDesc.rAddressMode = gMtlAddressModeTranslator[addressW];
+		samplerDesc.compareFunction = gMtlComparisonFunctionTranslator[compareFunc];
         
         pSampler->mtlSamplerState = [pRenderer->pDevice newSamplerStateWithDescriptor:samplerDesc];
         pSampler->mSamplerId = (++gSamplerIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());

@@ -2450,10 +2450,16 @@ namespace RENDERER_CPP_NAMESPACE {
 		SAFE_FREE(pRenderTarget);
 	}
 
-	void addSampler(Renderer* pRenderer, Sampler** pp_sampler, FilterType minFilter, FilterType magFilter, MipMapMode  mipMapMode, AddressMode addressU, AddressMode addressV, AddressMode addressW, float mipLosBias, float maxAnisotropy)
+	void addSampler(Renderer* pRenderer, Sampler** pp_sampler,
+		FilterType minFilter, FilterType magFilter,
+		MipMapMode  mipMapMode,
+		AddressMode addressU, AddressMode addressV, AddressMode addressW,
+		float mipLosBias, float maxAnisotropy,
+		CompareMode compareFunc)
 	{
 		ASSERT(pRenderer);
 		ASSERT(VK_NULL_HANDLE != pRenderer->pDevice);
+		ASSERT(compareFunc < MAX_COMPARE_MODES);
 
 		Sampler* pSampler = (Sampler*)conf_calloc(1, sizeof(*pSampler));
 		ASSERT(pSampler);
@@ -2473,8 +2479,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		add_info.mipLodBias = mipLosBias;
 		add_info.anisotropyEnable = VK_FALSE;
 		add_info.maxAnisotropy = maxAnisotropy;
-		add_info.compareEnable = VK_FALSE;
-		add_info.compareOp = VK_COMPARE_OP_NEVER;
+		add_info.compareEnable = (gVkComparisonFuncTranslator[compareFunc] != VK_COMPARE_OP_NEVER) ? VK_TRUE : VK_FALSE;
+		add_info.compareOp = gVkComparisonFuncTranslator[compareFunc];
 		add_info.minLod = 0.0f;
 		add_info.maxLod = magFilter >= FILTER_LINEAR ? FLT_MAX : 0.0f;
 		add_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
@@ -3956,8 +3962,21 @@ namespace RENDERER_CPP_NAMESPACE {
 				pImageIndex);
 			ASSERT(VK_SUCCESS == vk_res);
 
+			pFence->mSubmitted = true;
+
+			// If swapchain is out of date, let caller know by setting image index to -1
+			if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				*pImageIndex = -1;
+				vkResetFences(pRenderer->pDevice, 1, &pFence->pVkFence);
+				pFence->mSubmitted = false;
+				return;
+			}
+
 			vk_res = vkWaitForFences(pRenderer->pDevice, 1, &pFence->pVkFence, VK_TRUE, UINT64_MAX);
 			ASSERT(VK_SUCCESS == vk_res);
+			vkResetFences(pRenderer->pDevice, 1, &pFence->pVkFence);
+			pFence->mSubmitted = false;
 		}
 		else
 		{
@@ -3968,6 +3987,14 @@ namespace RENDERER_CPP_NAMESPACE {
 				VK_NULL_HANDLE,
 				pImageIndex);
 			ASSERT(VK_SUCCESS == vk_res);
+
+			// If swapchain is out of date, let caller know by setting image index to -1
+			if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				*pImageIndex = -1;
+				pSignalSemaphore->mSignaled = true;
+				return;
+			}
 
 			pSignalSemaphore->mSignaled = true;
 		}

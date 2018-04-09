@@ -2799,9 +2799,15 @@ namespace RENDERER_CPP_NAMESPACE {
 	inline bool hasMipmaps(const FilterType filter) { return (filter >= FILTER_BILINEAR); }
 	inline bool hasAniso(const FilterType filter) { return (filter >= FILTER_BILINEAR_ANISO); }
 
-	void addSampler(Renderer* pRenderer, Sampler** ppSampler, FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, AddressMode addressU, AddressMode addressV, AddressMode addressW, float mipLosBias, float maxAnisotropy)
+	void addSampler(Renderer* pRenderer, Sampler** ppSampler,
+		FilterType minFilter, FilterType magFilter,
+		MipMapMode mipMapMode,
+		AddressMode addressU, AddressMode addressV, AddressMode addressW,
+		float mipLosBias, float maxAnisotropy,
+		CompareMode compareFunc)
 	{
 		ASSERT(pRenderer);
+		ASSERT(compareFunc < MAX_COMPARE_MODES);
 
 		//allocate new sampler
 		Sampler* pSampler = (Sampler*)conf_calloc(1, sizeof(*pSampler));
@@ -2818,7 +2824,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		pSampler->mDxSamplerDesc.AddressW = util_to_dx_texture_address_mode(addressW);
 		pSampler->mDxSamplerDesc.MipLODBias = mipLosBias;
 		pSampler->mDxSamplerDesc.MaxAnisotropy = (hasAniso(minFilter) || hasAniso(magFilter)) ? (UINT)maxAnisotropy : 1U;
-		pSampler->mDxSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+		pSampler->mDxSamplerDesc.ComparisonFunc = gDx12ComparisonFuncTranslator[compareFunc];
 		pSampler->mDxSamplerDesc.BorderColor[0] = 0.0f;
 		pSampler->mDxSamplerDesc.BorderColor[1] = 0.0f;
 		pSampler->mDxSamplerDesc.BorderColor[2] = 0.0f;

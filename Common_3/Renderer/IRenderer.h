@@ -1634,7 +1634,12 @@ ApiExport uint32_t calculateVertexLayoutStride(const VertexLayout* p_vertex_layo
 
 ApiExport void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* p_desc, RenderTarget** pp_render_target, void* pNativeHandle = NULL);
 ApiExport void removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target);
-ApiExport void addSampler(Renderer* pRenderer, Sampler** pp_sampler, FilterType minFilter = FILTER_LINEAR, FilterType magFilter = FILTER_LINEAR, MipMapMode mipMapMode = MIPMAP_MODE_LINEAR, AddressMode addressU = ADDRESS_MODE_CLAMP_TO_BORDER, AddressMode addressV = ADDRESS_MODE_CLAMP_TO_BORDER, AddressMode addressW = ADDRESS_MODE_CLAMP_TO_BORDER, float mipLosBias = 0.0f, float maxAnisotropy = 0.0f);
+ApiExport void addSampler(Renderer* pRenderer, Sampler** pp_sampler,
+	FilterType minFilter = FILTER_LINEAR, FilterType magFilter = FILTER_LINEAR,
+	MipMapMode mipMapMode = MIPMAP_MODE_LINEAR,
+	AddressMode addressU = ADDRESS_MODE_CLAMP_TO_BORDER, AddressMode addressV = ADDRESS_MODE_CLAMP_TO_BORDER, AddressMode addressW = ADDRESS_MODE_CLAMP_TO_BORDER,
+	float mipLosBias = 0.0f, float maxAnisotropy = 0.0f,
+	CompareMode compareFunc = CMP_NEVER);
 ApiExport void removeSampler(Renderer* pRenderer, Sampler* p_sampler);
 
 // shader functions
