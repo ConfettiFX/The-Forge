@@ -304,42 +304,14 @@ static void* imageLoadAllocationFunc(Image* pImage, uint64_t memoryRequirement, 
 	return range.pData;
 }
 
-static void upload_texture_data(TextureLoadDesc* pTextureFileDesc, const Image& img, ResourceLoader* pLoader)
+static void cmd_upload_texture_data(Cmd* pCmd, ResourceLoader* pLoader, Texture* pTexture, const Image& img)
 {
-	TextureType textureType = TEXTURE_TYPE_2D;
-	if (img.Is3D())
-		textureType = TEXTURE_TYPE_3D;
-	else if (img.IsCube())
-		textureType = TEXTURE_TYPE_CUBE;
-
-	TextureDesc desc = { };
-	desc.mType = textureType;
-	desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
-	desc.mWidth = img.GetWidth();
-	desc.mHeight = img.GetHeight();
-	desc.mDepth = img.GetDepth();
-	desc.mBaseArrayLayer = 0;
-	desc.mArraySize = img.GetArrayCount();
-	desc.mBaseMipLevel = 0;
-	desc.mMipLevels = img.GetMipMapCount();
-	desc.mSampleCount = SAMPLE_COUNT_1;
-	desc.mSampleQuality = 0;
-	desc.mFormat = img.getFormat();
-	desc.mClearValue = ClearValue();
-	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
-	desc.mStartState = RESOURCE_STATE_COMMON;
-	desc.pNativeHandle = NULL;
-	desc.mSrgb = pTextureFileDesc->mSrgb;
-	desc.mHostVisible = false;
-
-	addTexture(pLoader->pRenderer, &desc, pTextureFileDesc->ppTexture);
-	Texture* pTexture = *pTextureFileDesc->ppTexture;
 	ASSERT(pTexture);
 
 	// Only need transition for vulkan and durango since resource will auto promote to copy dest on copy queue in PC dx12
 #if defined(VULKAN) || defined(_DURANGO)
 	TextureBarrier barrier = { pTexture, RESOURCE_STATE_COPY_DEST };
-	cmdResourceBarrier(pLoader->pCopyCmd, 0, NULL, 1, &barrier, false);
+	cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, false);
 #endif
 	MappedMemoryRange range = consumeResourceLoaderMemory(pTexture->mTextureSize, RESOURCE_TEXTURE_ALIGNMENT, pLoader);
 
@@ -415,12 +387,12 @@ static void upload_texture_data(TextureLoadDesc* pTextureFileDesc, const Image& 
 
 	// calculate number of subresources
 	int numSubresources = (int)(dest - texData);
-	cmdUpdateSubresources(pLoader->pCopyCmd, 0, numSubresources, texData, range.pBuffer, range.mOffset, pTexture);
+	cmdUpdateSubresources(pCmd, 0, numSubresources, texData, range.pBuffer, range.mOffset, pTexture);
 
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 #if defined(VULKAN) || defined(_DURANGO)
 	barrier = { pTexture, util_determine_resource_start_state(pTexture->mDesc.mUsage) };
-	cmdResourceBarrier(pLoader->pCopyCmd, 0, NULL, 1, &barrier, true);
+	cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, true);
 #endif
 }
 
@@ -433,7 +405,34 @@ static void cmdLoadTextureFile(TextureLoadDesc* pTextureFileDesc, ResourceLoader
 	bool res = img.loadImage(pTextureFileDesc->pFilename, pTextureFileDesc->mUseMipmaps, imageLoadAllocationFunc, pLoader, pTextureFileDesc->mRoot);
 	if (res)
 	{
-		upload_texture_data(pTextureFileDesc, img, pLoader);
+		TextureType textureType = TEXTURE_TYPE_2D;
+		if (img.Is3D())
+			textureType = TEXTURE_TYPE_3D;
+		else if (img.IsCube())
+			textureType = TEXTURE_TYPE_CUBE;
+
+		TextureDesc desc = {};
+		desc.mType = textureType;
+		desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
+		desc.mWidth = img.GetWidth();
+		desc.mHeight = img.GetHeight();
+		desc.mDepth = img.GetDepth();
+		desc.mBaseArrayLayer = 0;
+		desc.mArraySize = img.GetArrayCount();
+		desc.mBaseMipLevel = 0;
+		desc.mMipLevels = img.GetMipMapCount();
+		desc.mSampleCount = SAMPLE_COUNT_1;
+		desc.mSampleQuality = 0;
+		desc.mFormat = img.getFormat();
+		desc.mClearValue = ClearValue();
+		desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+		desc.mStartState = RESOURCE_STATE_COMMON;
+		desc.pNativeHandle = NULL;
+		desc.mSrgb = pTextureFileDesc->mSrgb;
+		desc.mHostVisible = false;
+
+		addTexture(pLoader->pRenderer, &desc, pTextureFileDesc->ppTexture);
+		cmd_upload_texture_data(pLoader->pCopyCmd, pLoader, *pTextureFileDesc->ppTexture, img);
 	}
 	img.Destroy();
 }
@@ -441,7 +440,37 @@ static void cmdLoadTextureFile(TextureLoadDesc* pTextureFileDesc, ResourceLoader
 static void cmdLoadTextureImage(TextureLoadDesc* pTextureImage, ResourceLoader* pLoader)
 {
 	ASSERT(pTextureImage->ppTexture);
-	upload_texture_data(pTextureImage, *pTextureImage->pImage, pLoader);
+	Image& img = *pTextureImage->pImage;
+
+	TextureType textureType = TEXTURE_TYPE_2D;
+	if (img.Is3D())
+		textureType = TEXTURE_TYPE_3D;
+	else if (img.IsCube())
+		textureType = TEXTURE_TYPE_CUBE;
+
+	TextureDesc desc = {};
+	desc.mType = textureType;
+	desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
+	desc.mWidth = img.GetWidth();
+	desc.mHeight = img.GetHeight();
+	desc.mDepth = img.GetDepth();
+	desc.mBaseArrayLayer = 0;
+	desc.mArraySize = img.GetArrayCount();
+	desc.mBaseMipLevel = 0;
+	desc.mMipLevels = img.GetMipMapCount();
+	desc.mSampleCount = SAMPLE_COUNT_1;
+	desc.mSampleQuality = 0;
+	desc.mFormat = img.getFormat();
+	desc.mClearValue = ClearValue();
+	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+	desc.mStartState = RESOURCE_STATE_COMMON;
+	desc.pNativeHandle = NULL;
+	desc.mSrgb = pTextureImage->mSrgb;
+	desc.mHostVisible = false;
+
+	addTexture(pLoader->pRenderer, &desc, pTextureImage->ppTexture);
+
+	cmd_upload_texture_data(pLoader->pCopyCmd, pLoader, *pTextureImage->ppTexture, *pTextureImage->pImage);
 }
 
 static void cmdLoadEmptyTexture(TextureLoadDesc* pEmptyTexture, ResourceLoader* pLoader)
@@ -527,6 +556,11 @@ static void cmdUpdateResource(Cmd* pCmd, BufferUpdateDesc* pBufferUpdate, Resour
 	}
 }
 
+static void cmdUpdateResource(Cmd* pCmd, TextureUpdateDesc* pTextureUpdate, ResourceLoader* pLoader)
+{
+	cmd_upload_texture_data(pCmd, pLoader, pTextureUpdate->pTexture, *pTextureUpdate->pImage);
+}
+
 void cmdUpdateResource(Cmd* pCmd, ResourceUpdateDesc* pResourceUpdate, ResourceLoader* pLoader)
 {
 	switch (pResourceUpdate->mType)
@@ -535,6 +569,7 @@ void cmdUpdateResource(Cmd* pCmd, ResourceUpdateDesc* pResourceUpdate, ResourceL
 		cmdUpdateResource(pCmd, &pResourceUpdate->buf, pLoader);
 		break;
 	case RESOURCE_TYPE_TEXTURE:
+		cmdUpdateResource(pCmd, &pResourceUpdate->tex, pLoader);
 		break;
 	default:
 		break;
@@ -804,6 +839,37 @@ void updateResource(BufferUpdateDesc* pBufferUpdate, bool batch /* = false*/)
 	else
 	{
 		cmdUpdateResource(NULL, pBufferUpdate, pMainResourceLoader);
+	}
+}
+
+void updateResource(TextureUpdateDesc* pTextureUpdate, bool batch)
+{
+	if (!batch)
+	{
+		// TODO : Make updating resources thread safe. This lock is a temporary solution
+		MutexLock lock(gResourceQueueMutex);
+
+		Cmd* pCmd = pMainResourceLoader->pCopyCmd;
+
+		beginCmd(pCmd);
+		cmdUpdateResource(pCmd, pTextureUpdate, pMainResourceLoader);
+		endCmd(pCmd);
+
+		queueSubmit(pCopyQueue, 1, &pCmd, pWaitFence, 0, 0, 0, 0);
+		waitForFences(pCopyQueue, 1, &pWaitFence);
+		cleanupResourceLoader(pMainResourceLoader);
+	}
+	else
+	{
+		Cmd* pCmd = pMainResourceLoader->pBatchCopyCmd;
+
+		if (!pMainResourceLoader->mOpen)
+		{
+			beginCmd(pCmd);
+			pMainResourceLoader->mOpen = true;
+		}
+
+		cmdUpdateResource(pCmd, pTextureUpdate, pMainResourceLoader);
 	}
 }
 

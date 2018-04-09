@@ -66,7 +66,7 @@ public:
   Image(const Image &img);
 
   unsigned char *Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
-  void RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d);
+  void RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
   void Destroy();
   void Clear();
 
@@ -74,6 +74,8 @@ public:
   unsigned char *GetPixels (const uint mipMapLevel) const;
   unsigned char *GetPixels (unsigned char* pDstData, const uint mipMapLevel, const uint dummy);
   unsigned char *GetPixels(const uint mipMapLevel, const uint arraySlice) const;
+
+  void SetPixels(unsigned char* pixelData) { mOwnsMemory = false; pData = pixelData; }
 
   uint GetWidth() const { return mWidth; }
   uint GetHeight() const { return mHeight; }

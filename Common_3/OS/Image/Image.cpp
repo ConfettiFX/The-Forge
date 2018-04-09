@@ -679,12 +679,15 @@ unsigned char *Image::Create(const ImageFormat::Enum fmt, const int w, const int
   return pData;
 }
 
-void Image::RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d) {
+void Image::RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize)
+{
 	//Redefine image that was loaded in
 	mFormat = fmt;
 	mWidth = w;
 	mHeight = h;
 	mDepth = d;
+	mMipMapCount = mipMapCount;
+	mArrayCount = arraySize;
 }
 
 void Image::Destroy()

@@ -76,13 +76,8 @@ typedef struct BufferUpdateDesc
 
 typedef struct TextureUpdateDesc
 {
-	Texture* pTexture;
-
-	Buffer* pBuffer = NULL;
-	void* pRawData = NULL;
-
-	uint32_t mStartMip;
-	uint32_t mMipLevelCount;
+	Texture*	pTexture;
+	Image*		pImage;
 } TextureUpdateDesc;
 
 typedef enum ResourceType
@@ -137,6 +132,7 @@ void addResource(BufferLoadDesc* pBuffer, bool threaded = false);
 void addResource(TextureLoadDesc* pTexture, bool threaded = false);
 void addResources(uint32_t resourceCount, ResourceLoadDesc* pResources, bool threaded = false);
 
+void updateResource(TextureUpdateDesc* pBuffer, bool batch = false);
 void updateResource(BufferUpdateDesc* pBuffer, bool batch = false);
 void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources);
 
