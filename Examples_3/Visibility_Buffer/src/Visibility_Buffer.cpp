@@ -26,8 +26,6 @@
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/GpuProfiler.h"
-#include "../../../Common_3/OS/UI/UI.h"
-#include "../../../Common_3/OS/UI/UIRenderer.h"
 #include "../../../Common_3/OS/Core/RingBuffer.h"
 #include "../../../Common_3/OS/Image/Image.h"
 #include "../../../Common_3/OS/Interfaces/ILogManager.h"
@@ -35,9 +33,12 @@
 #include "../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../Common_3/OS/Interfaces/IUIManager.h"
 #include "../../../Common_3/OS/Interfaces/IApp.h"
 #include "Geometry.h"
+
+#include "../../../Middleware_3/UI/AppUI.h"
+#include "../../../Common_3/OS/Core/DebugRenderer.h"
+
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 #if defined(_DURANGO)
@@ -62,11 +63,22 @@ HiresTimer gTimer;
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
+	#if defined(_WIN32)
+	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(LINUX)
+	#define RESOURCE_DIR "LINUXVulkan"
+	#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
 #error PLATFORM NOT SUPPORTED
+#endif
+
+#if defined(LINUX)
+//_countof is MSVS macro, add define for linux. a is expected to be static array type
+#define _countof(a)                               \
+  ((sizeof(a) / sizeof(*(a))) /                     \
+  static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
 #endif
 
 #define SCENE_SCALE 1.0f
@@ -443,8 +455,9 @@ Buffer*							pLightClustersCount[gImageCount] = { nullptr };
 Buffer*							pLightClusters[gImageCount] = { nullptr };
 uint64_t						gFrameCount = 0;
 Scene*							pScene = nullptr;
-UIManager*						pUIManager = nullptr;
-Gui*							pGuiWindow = nullptr;
+UIApp							gAppUI;
+GuiComponent*					pGuiWindow = nullptr;
+DebugTextDrawDesc				gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
@@ -486,6 +499,46 @@ const uint32_t					pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 // App implementation
 /************************************************************************/
+uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, PropertyChangedCallback onResolutionChanged)
+{
+#if !defined(_DURANGO) && !defined(METAL)
+	if (pUIManager)
+	{
+		struct ResolutionData
+		{
+			tinystl::vector<String> resNameContainer;
+			tinystl::vector<const char*> resNamePointers;
+			tinystl::vector<uint32_t> resValues;
+		};
+
+		static tinystl::unordered_map<GuiComponent*, ResolutionData> guiResolution;
+		ResolutionData& data = guiResolution[pUIManager];
+
+		data.resNameContainer.clear();
+		data.resNamePointers.clear();
+		data.resValues.clear();
+
+		for (uint32_t i = 0; i < resCount; ++i)
+		{
+			data.resNameContainer.push_back(String::format("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
+			data.resValues.push_back(i);
+		}
+
+		data.resNamePointers.resize(data.resNameContainer.size() + 1);
+		for (uint32_t i = 0; i < (uint32_t)data.resNameContainer.size(); ++i)
+		{
+			data.resNamePointers[i] = data.resNameContainer[i];
+		}
+		data.resNamePointers[data.resNamePointers.size() - 1] = nullptr;
+
+		UIProperty property = UIProperty("Screen Resolution", resolutionIndex, data.resNamePointers.data(), data.resValues.data(), onResolutionChanged);
+		return pUIManager->AddProperty(property);
+	}
+
+#endif
+	return -1;
+}
+
 class VisibilityBuffer : public IApp
 {
 public:
@@ -528,6 +581,7 @@ public:
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer, gMemoryBudget);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler);
 		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler);
@@ -646,6 +700,7 @@ public:
 		vbNormalDesc.ppBuffer = &pVertexBufferNormal;
 		vbNormalDesc.mDesc.pDebugName = L"Vertex Normal Buffer Desc";
 		addResource(&vbNormalDesc);
+		LOGINFOF("S %u", (uint32_t)vbNormalDesc.mDesc.mSize);
 
 		// Vertex tangent buffer for the scene
 		BufferLoadDesc vbTangentDesc = {};
@@ -827,13 +882,14 @@ public:
 		/************************************************************************/
 		// Setup the UI components for text rendering, UI controls...
 		/************************************************************************/
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
-		addGui(pUIManager, &guiDesc, &pGuiWindow);
+		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
 		// Light Settings
 		//---------------------------------------------------------------------------------
@@ -841,18 +897,18 @@ public:
 		// small glancing angles, i.e., when lightDir is almost parallel to the plane
 		const float maxAngleOffset = 0.017f;
 		UIProperty sunX("Sun Control X", gAppSettings.mSunControl.x, -PI, PI, 0.001f);
-		addProperty(pGuiWindow, &sunX);
+		pGuiWindow->AddProperty(sunX);
 
 		UIProperty sunY("Sun Control Y", gAppSettings.mSunControl.y, -PI, PI, 0.001f);
-		addProperty(pGuiWindow, &sunY);
+		pGuiWindow->AddProperty(sunY);
 
 		UIProperty esm("Shadow Control", gAppSettings.mEsmControl, 0, 200.0f);
-		addProperty(pGuiWindow, &esm);
+		pGuiWindow->AddProperty(esm);
 
 		UIProperty localLight("Enable Random Point Lights", gAppSettings.mRenderLocalLights);
-		addProperty(pGuiWindow, &localLight);
+		pGuiWindow->AddProperty(localLight);
 
-#if !defined(_DURANGO) && !defined(METAL)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
 		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
 		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
 		for (uint32_t i = 0; i < _countof(wantedResolutions); ++i)
@@ -871,13 +927,14 @@ public:
 				gResolutions.emplace_back(wantedResolutions[i]);
 			}
 		}
+		gResolutionProperty =
 		addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
 			setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->source)]);
 			pVisibilityBuffer->Unload();
 			pVisibilityBuffer->Load();
-		}, &gResolutionProperty);
+		});
 #endif
 		/************************************************************************/
 		// Rendering Settings
@@ -892,29 +949,29 @@ public:
 			RENDERMODE_DEFERRED,
 		};
 		UIProperty renderMode("Render Mode", gAppSettings.mRenderMode, renderModeNames, renderModeValues);
-		addProperty(pGuiWindow, &renderMode);
+		pGuiWindow->AddProperty(renderMode);
 
 		UIProperty holdProp = UIProperty("Hold filtered results", gAppSettings.mHoldFilteredResults);
-		addProperty(pGuiWindow, &holdProp);
+		pGuiWindow->AddProperty(holdProp);
 
 		UIProperty filtering("Triangle Filtering", gAppSettings.mFilterTriangles);
-		addProperty(pGuiWindow, &filtering);
+		pGuiWindow->AddProperty(filtering);
 
 		UIProperty cluster("Cluster Culling", gAppSettings.mClusterCulling);
-		addProperty(pGuiWindow, &cluster);
+		pGuiWindow->AddProperty(cluster);
 
 		UIProperty asyncCompute("Async Compute", gAppSettings.mAsyncCompute);
-		addProperty(pGuiWindow, &asyncCompute);
+		pGuiWindow->AddProperty(asyncCompute);
 
 #if MSAASAMPLECOUNT == 1
 		UIProperty debugTargets("Draw Debug Targets", gAppSettings.mDrawDebugTargets);
-		addProperty(pGuiWindow, &debugTargets);
+		pGuiWindow->AddProperty(debugTargets);
 #endif
 		/************************************************************************/
 		// HDAO Settings
 		/************************************************************************/
 		UIProperty toggleAO("Enable HDAO", gAppSettings.mEnableHDAO);
-		addProperty(pGuiWindow, &toggleAO);
+		pGuiWindow->AddProperty(toggleAO);
 
 		tinystl::vector<UIProperty>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
 		dynamicPropsAO.push_back(UIProperty("AO accept radius", gAppSettings.mAcceptRadius, 0, 10));
@@ -926,9 +983,9 @@ public:
 			gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
 		}
 
-#if !defined(_DURANGO) && !defined(METAL)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
 		if (!pWindow->fullScreen)
-			removeProperty(pGuiWindow, gResolutionProperty);
+			pGuiWindow->RemoveProperty(gResolutionProperty);
 #endif
 		/************************************************************************/
 		// Setup the fps camera for navigating through the scene
@@ -991,15 +1048,16 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 3, pRenderCompleteFences);
-		waitForFences(pComputeQueue, 3, pComputeCompleteFences);
+		waitForFences(pGraphicsQueue, 3, pRenderCompleteFences, true);
+		waitForFences(pComputeQueue, 3, pComputeCompleteFences, true);
 
 		removeTriangleFilteringBuffers();
 
 		destroyCameraController(pCameraController);
 
-		removeGui(pUIManager, pGuiWindow);
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		// Destroy geometry for light rendering
 		destroyBuffers(pRenderer, pVertexBufferCube, pIndexBufferCube);
@@ -1118,10 +1176,53 @@ public:
 		if (!addRenderTargets())
 			return false;
 
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+			return false;
+
 		/************************************************************************/
 		// Vertex layout used by all geometry passes (shadow, visibility, deferred)
 		/************************************************************************/
 #if !defined(METAL)
+#if defined(LINUX)
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 4;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[1].mBinding = 1;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[2].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[2].mBinding = 2;
+		vertexLayout.mAttribs[2].mLocation = 2;
+		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
+		vertexLayout.mAttribs[3].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[3].mBinding = 3;
+		vertexLayout.mAttribs[3].mLocation = 3;
+
+		VertexLayout vertexLayoutPosAndTex = {};
+		vertexLayoutPosAndTex.mAttribCount = 2;
+		vertexLayoutPosAndTex.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutPosAndTex.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
+		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
+		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutPosAndTex.mAttribs[1].mFormat = ImageFormat::RG32F;
+		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
+		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
+
+		// Position only vertex stream that is used in shadow opaque pass
+		VertexLayout vertexLayoutPositionOnly = {};
+		vertexLayoutPositionOnly.mAttribCount = 1;
+		vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutPositionOnly.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
+		vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
+		vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
+#else
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 4;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -1136,12 +1237,10 @@ public:
 		vertexLayout.mAttribs[2].mFormat = ImageFormat::R32UI;
 		vertexLayout.mAttribs[2].mBinding = 2;
 		vertexLayout.mAttribs[2].mLocation = 2;
-		//vertexLayout.mAttribs[2].mOffset = sizeof(uint32_t);
 		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
 		vertexLayout.mAttribs[3].mFormat = ImageFormat::R32UI;
 		vertexLayout.mAttribs[3].mBinding = 3;
 		vertexLayout.mAttribs[3].mLocation = 3;
-		//vertexLayout.mAttribs[3].mOffset = sizeof(uint32_t) + sizeof(uint32_t);
 
 		VertexLayout vertexLayoutPosAndTex = {};
 		vertexLayoutPosAndTex.mAttribCount = 2;
@@ -1162,6 +1261,7 @@ public:
 		vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
 		vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
 		vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
+#endif
 #endif
 		/************************************************************************/
 		// Setup the Shadow Pass Pipeline
@@ -1432,8 +1532,10 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
-		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences);
+		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences, true);
+
+		gAppUI.Unload();
 
 		for (uint32_t i = 0; i < 4; ++i)
 			removePipeline(pRenderer, pPipelineAO[i]);
@@ -1474,7 +1576,8 @@ public:
 #endif
 
 		updateUniformData(deltaTime);
-		updateGui(pUIManager, pGuiWindow, deltaTime);
+
+		gAppUI.Update(deltaTime);
 
 		updateDynamicUIElements();
 	}
@@ -1493,7 +1596,7 @@ public:
 			FenceStatus fenceStatus;
 			getFenceStatus(pNextFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-				waitForFences(pGraphicsQueue, 1, &pNextFence);
+				waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
 
 		/************************************************************************/
@@ -1508,14 +1611,14 @@ public:
 			FenceStatus fenceStatus;
 			getFenceStatus(pNextComputeFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-				waitForFences(pComputeQueue, 1, &pNextComputeFence);
+				waitForFences(pComputeQueue, 1, &pNextComputeFence, false);
 
 			// check to see if we can reuse the resoucres yet..
 			// should be replaced with a semaphore
 			Fence* pNextGraphicsFence = pRenderCompleteFences[computeFrameIdx];
 			getFenceStatus(pNextGraphicsFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-				waitForFences(pGraphicsQueue, 1, &pNextGraphicsFence);
+				waitForFences(pGraphicsQueue, 1, &pNextGraphicsFence, false);
 			/************************************************************************/
 			// Update uniform buffer to gpu
 			/************************************************************************/
@@ -1697,7 +1800,8 @@ public:
 
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = width;
 		swapChainDesc.mHeight = height;
 		swapChainDesc.mImageCount = gImageCount;
@@ -1903,8 +2007,8 @@ public:
 			deferredShade[i].mStages[1] = { "deferred_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
 		}
 
-		deferredPointlights.mStages[0] = { "deferred_shade_pointLight.vert", shadingMacros[0], 1, FSR_SrcShaders };
-		deferredPointlights.mStages[1] = { "deferred_shade_pointLight.frag", shadingMacros[0], 1, FSR_SrcShaders };
+		deferredPointlights.mStages[0] = { "deferred_shade_pointlight.vert", shadingMacros[0], 1, FSR_SrcShaders };
+		deferredPointlights.mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[0], 1, FSR_SrcShaders };
 
 		// Resolve shader
 		resolvePass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, FSR_SrcShaders };
@@ -2551,7 +2655,7 @@ public:
 		{
 			endCmd(ppCmds[frameIdx]);
 			queueSubmit(pGraphicsQueue, 1, ppCmds, pRenderCompleteFences[0], 0, nullptr, 0, nullptr);
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0]);
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
 		}
 	}
 #endif
@@ -2680,23 +2784,24 @@ public:
 				gAppSettings.mDynamicUIControlsAO.HideDynamicProperties(pGuiWindow);
 			}
 		}
-#if !defined(_DURANGO) && !defined(METAL)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
 		if (pWindow->fullScreen != gWasFullscreen)
 		{
 			gWasFullscreen = pWindow->fullScreen;
 			if (gWasFullscreen)
 			{
+				gResolutionProperty =
 				addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
 				{
-					waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+					waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
 					setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->source)]);
 					pVisibilityBuffer->Unload();
 					pVisibilityBuffer->Load();
-				}, &gResolutionProperty);
+				});
 			}
 			else
 			{
-				removeProperty(pGuiWindow, gResolutionProperty);
+				pGuiWindow->RemoveProperty(gResolutionProperty);
 			}
 		}
 #endif
@@ -3934,10 +4039,9 @@ public:
 		UNREF_PARAM(frameIdx);
 #if !defined(TARGET_IOS)
 		cmdBeginRender(cmd, 1, &pScreenRenderTarget, NULL);
-		cmdUIBeginRender(cmd, pUIManager, 1, &pScreenRenderTarget, NULL);
 
 		gTimer.GetUSec(true);
-		cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 15.0f), "CPU ", gTimer.GetUSecAverage() / 1000.0f);
+		drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if 1
 		// NOTE: Realtime GPU Profiling is not supported on Metal.
@@ -3948,25 +4052,25 @@ public:
 			{
 				float time = max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f,
 					(float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-				cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", time);
+				drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", time), &gFrameTimeDraw);
 
-				cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 65.0f), "Compute Queue ", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-				cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 90.0f), pComputeGpuProfiler);
-				cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 300.0f), "Graphics Queue ", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f);
-				cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 325.0f), pGraphicsGpuProfiler);
+				drawDebugText(cmd, 8.0f, 65.0f, String::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+				drawDebugGpuProfile(cmd, 8.0f, 90.0f, pComputeGpuProfiler, NULL);
+				drawDebugText(cmd, 8.0f, 300.0f, String::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+				drawDebugGpuProfile(cmd, 8.0f, 325.0f, pGraphicsGpuProfiler, NULL);
 			}
 			else
 			{
 				float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
-				cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", time);
+				drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", time), &gFrameTimeDraw);
 
-				cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 65.0f), pGraphicsGpuProfiler);
+				drawDebugGpuProfile(cmd, 8.0f, 65.0f, pGraphicsGpuProfiler, NULL);
 			}
 		}
 		else
 		{
-			cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f);
-			cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 65.0f), pGraphicsGpuProfiler);
+			drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+			drawDebugGpuProfile(cmd, 8.0f, 65.0f, pGraphicsGpuProfiler, NULL);
 		}
 #endif
 
@@ -3980,46 +4084,46 @@ public:
 			{
 				RenderTarget* pVBRTs[] = { pRenderTargetVBPass, pRenderTargetAO };
 
-				vec2 screenSize = { (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight };
-				vec2 texSize = screenSize * scale;
-				vec2 texPos = screenSize + vec2(0.0f, -texSize.getY());
+				float2 screenSize = { (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight };
+				float2 texSize = screenSize * scale;
+				float2 texPos = screenSize + float2(0.0f, -texSize.getY());
 
 				for (uint32_t i = 0; i < sizeof(pVBRTs) / sizeof(pVBRTs[0]); ++i)
 				{
 					texPos.setX(texPos.getX() - texSize.getX());
-					cmdUIDrawTexturedQuad(cmd, pUIManager, texPos, texSize, pVBRTs[i]->pTexture);
+					drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pVBRTs[i]->pTexture, 1.0f, 1.0f, 1.0f);
 				}
 
 				screenSize = { (float)pRenderTargetVBPass->mDesc.mHeight, (float)pRenderTargetVBPass->mDesc.mHeight };
 				texSize = screenSize * scale;
 				texPos.setX(texPos.getX() - texSize.getX());
-				cmdUIDrawTexturedQuad(cmd, pUIManager, texPos, texSize, pRenderTargetShadow->pTexture);
+				drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pRenderTargetShadow->pTexture, 1.0f, 1.0f, 1.0f);
 			}
 			else
 			{
 				RenderTarget* pDeferredRTs[] = { pRenderTargetDeferredPass[0], pRenderTargetDeferredPass[1], pRenderTargetDeferredPass[2], pRenderTargetAO };
 
-				vec2 screenSize = { (float)pDeferredRTs[0]->mDesc.mWidth, (float)pDeferredRTs[0]->mDesc.mHeight };
-				vec2 texSize = screenSize * scale;
-				vec2 texPos = screenSize + vec2(0.0f, -texSize.getY());
+				float2 screenSize = { (float)pDeferredRTs[0]->mDesc.mWidth, (float)pDeferredRTs[0]->mDesc.mHeight };
+				float2 texSize = screenSize * scale;
+				float2 texPos = screenSize + float2(0.0f, -texSize.getY());
 
 				for (uint32_t i = 0; i < sizeof(pDeferredRTs) / sizeof(pDeferredRTs[0]); ++i)
 				{
 					texPos.setX(texPos.getX() - texSize.getX());
-					cmdUIDrawTexturedQuad(cmd, pUIManager, texPos, texSize, pDeferredRTs[i]->pTexture);
+					drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pDeferredRTs[i]->pTexture, 1.0f, 1.0f, 1.0f);
 				}
 
 				screenSize = { (float)pDeferredRTs[0]->mDesc.mHeight, (float)pDeferredRTs[0]->mDesc.mHeight };
 				texSize = screenSize * scale;
 				texPos.setX(texPos.getX() - texSize.getX());
-				cmdUIDrawTexturedQuad(cmd, pUIManager, texPos, texSize, pRenderTargetShadow->pTexture);
+				drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pRenderTargetShadow->pTexture, 1.0f, 1.0f, 1.0f);
 			}
 		}
 #endif
-		cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
+		gAppUI.Gui(pGuiWindow);
 #endif
 
-		cmdUIEndRender(cmd, pUIManager);
+		gAppUI.Draw(cmd);
 
 		cmdEndRender(cmd, 1, &pScreenRenderTarget, NULL);
 #endif

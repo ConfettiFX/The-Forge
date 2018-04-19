@@ -217,6 +217,7 @@ struct aiColor3D
     }
 
     /** Access a specific color component */
+#if !defined(LINUX)
     float& operator[](unsigned int i) {
     //    return *(&r + i);
         if ( 0 == i ) {
@@ -228,7 +229,7 @@ struct aiColor3D
         }
         return r;
     }
-
+#endif
     /** Check whether a color is black */
     bool IsBlack() const {
         static const float epsilon = 10e-3f;

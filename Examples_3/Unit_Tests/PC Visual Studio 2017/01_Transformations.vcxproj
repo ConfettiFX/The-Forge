@@ -190,29 +190,29 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">

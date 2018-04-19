@@ -21,17 +21,18 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\FpsCameraController.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\GuiCameraController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\Fontstash.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\NuklearGUIDriver.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UIManager.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UIRenderer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\Fontstash.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h" />
@@ -43,14 +44,12 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IUIManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\Fontstash.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\NuklearGUIDriver.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\UI.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\UIRenderer.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\UIShaders.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Fontstash.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp" />
@@ -116,25 +115,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
@@ -144,7 +143,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -167,7 +167,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -193,7 +194,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -220,7 +222,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>

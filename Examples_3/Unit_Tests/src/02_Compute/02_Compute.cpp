@@ -28,26 +28,27 @@
 // using Julia 4D demonstration
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //ui
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 /// Camera Controller
 #define GUI_CAMERACONTROLLER 1
@@ -169,7 +170,7 @@ Texture*            pVirtualJoystickTex = nullptr;
 uint32_t			gFrameIndex = 0;
 UniformBlock		gUniformData;
 
-UIManager*			pUIManager = nullptr;
+UIApp				gAppUI;
 GpuProfiler*		pGpuProfiler = nullptr;
 ICameraController*	pCameraController = nullptr;
 
@@ -177,6 +178,8 @@ struct ObjectProperty
 {
   float rotX = 0, rotY = 0;
 } gObjSettings;
+
+DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 
 class Compute : public IApp
 {
@@ -203,6 +206,8 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
         
 #ifdef TARGET_IOS
@@ -267,9 +272,10 @@ public:
 		normalize(gCameraProp.mCameraRight);
 #endif
 
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
@@ -306,13 +312,15 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
 #if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
 #endif
 
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -351,6 +359,9 @@ public:
 		if (!addJuliaFractalUAV())
 			return false;
 
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+			return false;
+
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 0;
 		GraphicsPipelineDesc pipelineSettings = { 0 };
@@ -371,7 +382,9 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipeline);
 
@@ -492,6 +505,7 @@ public:
 		cmdBindDescriptors(cmd, pComputeRootSignature, 2, params);
 
 		cmdDispatch(cmd, pTextureComputeOutput->mDesc.mWidth / pThreadGroupSize[0], pTextureComputeOutput->mDesc.mHeight / pThreadGroupSize[1], pThreadGroupSize[2]);
+
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		TextureBarrier barriers[] = {
@@ -514,39 +528,38 @@ public:
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		static HiresTimer timer;
-		cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
+		gTimer.GetUSec(true);
         
 #ifdef TARGET_IOS
-        // Draw the camera controller's virtual joysticks.
-        float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-        float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-        
-        vec2 joystickSize = vec2(extSide);
-        vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        vec2 leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        vec2 rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
-        
-        joystickSize = vec2(intSide);
-        leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+		// Draw the camera controller's virtual joysticks.
+		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
+		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
+
+		float2 joystickSize = float2(extSide);
+		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
+		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
+		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+
+		joystickSize = float2(intSide);
+		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
+		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
+		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
 
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", timer.GetUSec(true) / 1000.0f);
+		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 40 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
+		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
-		cmdUIDrawGpuProfileData(cmd, pUIManager, { 8, 65 }, pGpuProfiler);
-		cmdUIEndRender(cmd, pUIManager);
+		gAppUI.Draw(cmd);
 
 		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 
@@ -560,24 +573,27 @@ public:
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
+		HiresTimer timer;
 		// Stall if CPU is running "Swap Chain Buffer Count - 1" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+		LOGINFOF("WAIT %f", timer.GetUSec(true) / 1000.0f);
 	}
 
 	String GetName()
 	{
-		return "_02_Compute";
+		return "UnitTest_02_Compute";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;

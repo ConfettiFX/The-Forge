@@ -28,23 +28,24 @@
 #define MAX_PLANETS 20 // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 /// Camera Controller
 #define GUI_CAMERACONTROLLER 1
@@ -124,7 +125,7 @@ PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 ICameraController*	pCameraController = nullptr;
 
 /// UI
-UIManager*			pUIManager = NULL;
+UIApp				gAppUI;
 
 FileSystem			gFileSystem;
 LogManager			gLogManager;
@@ -183,15 +184,14 @@ const char* pszRoots[] =
 };
 #endif
 
+DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+
 class Transformations : public IApp
 {
 public:
 	bool Init()
 	{
 		// window and renderer setup
-		int width = mSettings.mWidth;
-		int height = mSettings.mHeight;
-
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
 
@@ -209,6 +209,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -442,9 +443,10 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.3f, 0.3f, 0.4f, 1.0f);
 
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
@@ -490,13 +492,15 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 #if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
 #endif
 
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		removeResource(pProjViewUniformBuffer);
 		removeResource(pSkyboxUniformBuffer);
@@ -539,6 +543,9 @@ public:
 			return false;
 
 		if (!addDepthBuffer())
+			return false;
+
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -589,7 +596,9 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removePipeline(pRenderer, pSpherePipeline);
@@ -676,7 +685,7 @@ public:
 		FenceStatus fenceStatus;
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 			
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
@@ -739,34 +748,33 @@ public:
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, NULL);
-		cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
         
 #ifdef TARGET_IOS
-        // Draw the camera controller's virtual joysticks.
-        float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-        float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-        
-        vec2 joystickSize = vec2(extSide);
-        vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        vec2 leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        vec2 rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
-        
-        joystickSize = vec2(intSide);
-        leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+		// Draw the camera controller's virtual joysticks.
+		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
+		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
+
+		float2 joystickSize = float2(extSide);
+		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
+		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
+		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+
+		joystickSize = float2(intSide);
+		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
+		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
+		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
-        
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", gTimer.GetUSecAverage() / 1000.0f);
-		cmdUIEndRender(cmd, pUIManager);
+
+		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.Draw(cmd);
 		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 		cmdEndDebugMarker(cmd);
 
@@ -780,14 +788,15 @@ public:
 
 	String GetName()
 	{
-		return "_01_Transformations";
+		return "UnitTest_01_Transformations";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;

@@ -26,6 +26,21 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+## Release 1.07 - April 19th, 2018 - Full-featured Linux Ubuntu 16.04.4 LTS Support 
+ * Moved NuklearUI into the middleware folder; still WIP
+ * Windows: 
+    * First pass of Linked Multi-GPU support for DirectX 12 and Vulkan; new unit test only supported on Windows. Requires NVIDIA Beta Driver 389.20 or later for support on Vulkan. NVIDIA only, not tested on a set of AMD GPUs so far 
+    * DXR:
+      * Added support for local root signatures
+      * Added new unit tests showing usage of local root signature and shadow rendering
+      * Update FallbackLayer Release binaries
+ * Linux: all the unit tests (except: 09) and the Visibility Buffer are now supported on the hardware and software configuration described below
+ * macOS: upgraded to latest OS
+ * Fixed issues:
+   * #39 "Font Rendering"
+   * #38 "Resources.aps"
+   * #29 "Problem in ImageFormat::GetBytesPerPixel()"
+
 ## Release 1.06 - April 5th, 2018 - Linux Ubuntu 16.04.4 LTS Alpha Support and Ray Tracing Interface used by DirectX Ray Tracing (DXR)
  * Addded initial support for Ubuntu 16.04.4 LTS with the AMD Pro Driver and RADEON RX 480 / Vega. Please see the Linux requirement list below for the required software packages and hardware support. Known Issues:
    * Panini Projection not working in 04_ExecuteIndirect
@@ -120,12 +135,14 @@ Very first release.
 1. Windows 10 with latest update
 
 2. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with the latest driver ...
+Requires NVIDIA Beta Driver 389.20 to support Linked Multi-GPU on Vulkan 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 4. Vulkan SDK 1.1.70.1
 https://vulkan.lunarg.com/
+
 
 5. Ray Tracing 
  * DirectX Raytracing Experimental SDK v0.09.01
@@ -135,7 +152,7 @@ We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards
 
 # macOS Requirements:
 
-1. macOS: 10.13.4 (17E199)
+1. macOS: 10.13.5 Beta (17F45c)
 
 2. XCode: 9.3 (9E145)
 
@@ -262,7 +279,7 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 
 # Releases / Maintenance
 Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
-We are looking for people that want to become platform maintainers for certain platforms.
+
 
 
 # Open-Source Libraries

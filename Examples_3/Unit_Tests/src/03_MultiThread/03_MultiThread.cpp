@@ -25,20 +25,21 @@
 #define _USE_MATH_DEFINES
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IThread.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IThread.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
 
-#include "../../Common_3/OS/Math/MathTypes.h"
-#include "../../Common_3/OS/Image/Image.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Image/Image.h"
 
 // for cpu usage query
 #if defined(_WIN32)
@@ -50,22 +51,18 @@
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "comsuppw.lib")
 #endif
-#elif defined(__linux__)
+#elif defined(LINUX)
 #else
 #include <mach/mach.h>
 #include <mach/processor_info.h>
 #include <mach/mach_host.h>
 #endif
 
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-//ui
-#include "../../Common_3/OS/UI/UI.h"
-#include "../../Common_3/OS/UI/UIRenderer.h"
-
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 // startdust hash function, use this to generate all the seed and update the position of all particles
 #define RND_GEN(x) (x = x * 196314165 + 907633515)
@@ -121,8 +118,8 @@ struct ViewPortState
 
 struct GraphVertex
 {
-	vec4 mColor;
 	vec2 mPosition;
+	vec4 mColor;
 };
 
 struct CpuGraph
@@ -182,7 +179,9 @@ IWbemLocator*			pLocator;
 uint64_t*				pOldTimeStamp;
 uint64_t*				pOldPprocUsage;
 #endif
-#elif(__linux__)
+#elif(LINUX)
+uint64_t*				pOldTimeStamp;
+uint64_t*				pOldPprocUsage;
 #else
 NSLock*					CPUUsageLock;
 processor_info_array_t	prevCpuInfo;
@@ -206,7 +205,7 @@ float					gPaletteFactor;
 uint					gTextureIndex;
 
 GpuProfiler*			pGpuProfilers[gThreadCount] = { nullptr };
-UIManager*				pUIManager = nullptr;
+UIApp					gAppUI;
 ICameraController*		pCameraController = nullptr;
 
 FileSystem				gFileSystem;
@@ -277,6 +276,8 @@ const char* pszRoots[] =
 };
 #endif
 
+DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+
 class MultiThread : public IApp
 {
 public:
@@ -321,6 +322,7 @@ public:
 
 		HiresTimer timer;
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
@@ -551,9 +553,10 @@ public:
 			addResource(&vbDesc);
 		}
 
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
 
@@ -589,7 +592,7 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
 #if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
@@ -598,7 +601,9 @@ public:
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 			removeGpuProfiler(pRenderer, pGpuProfilers[i]);
 
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		removeResource(pProjViewUniformBuffer);
 		removeResource(pSkyboxUniformBuffer);
@@ -667,6 +672,9 @@ public:
 	bool Load()
 	{
 		if (!addSwapChain())
+			return false;
+
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
 		//vertexlayout and pipeline for particles
@@ -752,7 +760,9 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipeline);
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
@@ -956,47 +966,49 @@ public:
 		cmdDraw(cmd, 36, 0);
 
 		static HiresTimer timer;
-		cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
+		timer.GetUSec(true);
         
 #ifdef TARGET_IOS
-        // Draw the camera controller's virtual joysticks.
-        float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-        float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-        
-        vec2 joystickSize = vec2(extSide);
-        vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        vec2 leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        vec2 rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
-        
-        joystickSize = vec2(intSide);
-        leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+		// Draw the camera controller's virtual joysticks.
+		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
+		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
+
+		float2 joystickSize = float2(extSide);
+		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
+		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
+		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+
+		joystickSize = float2(intSide);
+		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
+		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
+		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
 		
-        cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", timer.GetUSec(true) / 1000.0f);
+		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if !defined(METAL)
-		cmdUIDrawText(cmd, pUIManager, { 8, 65 }, "Particle CPU Times");
+		drawDebugText(cmd, 8, 65, "Particle CPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			cmdUIDrawFrameTime(cmd, pUIManager, { 8, 90.0f + i * 25.0f }, String::format("- Thread %u  ", i), (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f);
+			drawDebugText(cmd, 8, 90.0f + i * 25.0f,
+				String::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f), &gFrameTimeDraw);
 		}
 
-		cmdUIDrawText(cmd, pUIManager, { 8, 105 + gThreadCount * 25.0f }, "Particle GPU Times");
+		drawDebugText(cmd, 8, 105 + gThreadCount * 25.0f, "Particle GPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			cmdUIDrawFrameTime(cmd, pUIManager, { 8, (130 + gThreadCount * 25.0f) + i * 25.0f }, String::format("- Thread %u  ", i), (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f);
+			drawDebugText(cmd, 8, (130 + gThreadCount * 25.0f) + i * 25.0f,
+				String::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		}
 #endif
-		cmdUIEndRender(cmd, pUIManager);
 
+		gAppUI.Draw(cmd);
 		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 		endCmd(cmd);
 
@@ -1062,19 +1074,20 @@ public:
 		FenceStatus fenceStatus;
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	String GetName()
 	{
-		return "_03_MultiThread";
+		return "UnitTest_03_MultiThread";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
@@ -1101,6 +1114,46 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
+#if defined(LINUX)
+	enum CPUStates
+	{
+		S_USER = 0,
+	    S_NICE,
+	    S_SYSTEM,
+	    S_IDLE,
+	    S_IOWAIT,
+	    S_IRQ,
+	    S_SOFTIRQ,
+	    S_STEAL,
+	    S_GUEST,
+	    S_GUEST_NICE,
+
+		NUM_CPU_STATES
+	};
+	typedef struct CPUData
+	{
+		String cpu;
+		size_t times[NUM_CPU_STATES];
+	} CPUData;
+
+	size_t GetIdleTime(const CPUData & e)
+	{
+		return  e.times[S_IDLE] +
+				e.times[S_IOWAIT];
+	}
+
+	size_t GetActiveTime(const CPUData & e)
+	{
+		return  e.times[S_USER] +
+				e.times[S_NICE] +
+				e.times[S_SYSTEM] +
+				e.times[S_IRQ] +
+				e.times[S_SOFTIRQ] +
+				e.times[S_STEAL] +
+				e.times[S_GUEST] +
+				e.times[S_GUEST_NICE];
+	}
+#endif
 
 	void CalCpuUsage()
 	{
@@ -1150,8 +1203,43 @@ public:
 		}
 
 		pEnumerator->Release();
-#endif
-#elif(__linux__)
+#endif //#if defined(_DURANGO)
+#elif(LINUX)
+		tinystl::vector<CPUData> entries;
+		entries.reserve(gCoresCount);
+		// Open cpu stat file
+		File fileStat = {};
+		fileStat.Open("/proc/stat", FM_ReadBinary, FSR_OtherFiles);
+
+		FILE* statHandle = (FILE*)fileStat.GetHandle();
+		if (statHandle) 
+		{
+			// While eof not detected, keep parsing the stat file
+			while (!feof(statHandle))
+			{
+				entries.emplace_back(CPUData());
+				CPUData & entry = entries.back();		
+				char dummyCpuName[256]; // dummy cpu name, not used.
+				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName, 
+							&entry.times[0], &entry.times[1], &entry.times[2], &entry.times[3],
+							&entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
+							&entry.times[8], &entry.times[9]);
+			} 
+			// Close the cpu stat file
+			fileStat.Close();
+		}
+
+		for (uint32_t i = 0; i < gCoresCount; i++) 
+		{
+			float ACTIVE_TIME	= static_cast<float>(GetActiveTime(entries[i]));
+			float IDLE_TIME	= static_cast<float>(GetIdleTime(entries[i]));
+		
+			pCoresLoadData[i] = (ACTIVE_TIME - pOldPprocUsage[i]) / ((float)(IDLE_TIME + ACTIVE_TIME) - pOldTimeStamp[i])* 100.0f;
+			
+			pOldPprocUsage[i] = ACTIVE_TIME;
+			pOldTimeStamp[i] = IDLE_TIME + ACTIVE_TIME;
+		}
+
 #else
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;
@@ -1256,6 +1344,14 @@ public:
 			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
 		}
 #endif
+#elif defined(LINUX)
+		int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
+		gCoresCount = numCPU;
+				if (gCoresCount)
+		{
+			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
+			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
+		}
 #elif defined(__APPLE__)
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;

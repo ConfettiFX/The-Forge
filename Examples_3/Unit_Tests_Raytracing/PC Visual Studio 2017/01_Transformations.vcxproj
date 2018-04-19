@@ -44,20 +44,21 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Unit_Tests_Raytracing.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">

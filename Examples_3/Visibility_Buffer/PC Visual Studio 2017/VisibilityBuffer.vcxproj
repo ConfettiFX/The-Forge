@@ -1065,7 +1065,8 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -1087,7 +1088,8 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -1114,7 +1116,8 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -1147,7 +1150,8 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>

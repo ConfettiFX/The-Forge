@@ -44,11 +44,6 @@
 		28A5ACCE201F69A4000E571F /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */; };
 		28A5ACCF201F69A9000E571F /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2E0807B1F478CDC0042AB54 /* FpsCameraController.cpp */; };
 		28A5ACD0201F69A9000E571F /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2E0807C1F478CDC0042AB54 /* GuiCameraController.cpp */; };
-		28A5ACD1201F69B3000E571F /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D091EF94A1E005AC8C7 /* Fontstash.cpp */; };
-		28A5ACD2201F69B3000E571F /* UIManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46221FD997AB00564C8B /* UIManager.cpp */; };
-		28A5ACD3201F69B3000E571F /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0B1EF94A1E005AC8C7 /* NuklearGUIDriver.cpp */; };
-		28A5ACD4201F69B3000E571F /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0D1EF94A1E005AC8C7 /* UI.cpp */; };
-		28A5ACD5201F69B3000E571F /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0F1EF94A1E005AC8C7 /* UIRenderer.cpp */; };
 		28A5ACDB201F69C3000E571F /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
 		28A5ACDC201F69CE000E571F /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46281FD998B600564C8B /* GpuProfiler.cpp */; };
 		28A5ACDD201F69CE000E571F /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46261FD9985700564C8B /* CommonShaderReflection.cpp */; };
@@ -66,11 +61,20 @@
 		28A5ACE9201F6B65000E571F /* 04_ExecuteIndirect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D28782F11F0A7F98004DC624 /* 04_ExecuteIndirect.cpp */; };
 		5C85A3882029FF2E00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3872029FF2E00AB83C6 /* macOSBase.mm */; };
 		5C85A39B202A0E9D00AB83C6 /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A399202A0E9A00AB83C6 /* iOSBase.mm */; };
+		5CA4AFCC2088FAB7005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFCB2088FAB6005BB7C6 /* DebugRenderer.cpp */; };
+		5CA4AFCD2088FAB7005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFCB2088FAB6005BB7C6 /* DebugRenderer.cpp */; };
+		5CD2BC112080FF0C008E3A2C /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC082080FF0C008E3A2C /* UIRenderer.cpp */; };
+		5CD2BC122080FF0C008E3A2C /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC082080FF0C008E3A2C /* UIRenderer.cpp */; };
+		5CD2BC132080FF0C008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC0D2080FF0C008E3A2C /* AppUI.cpp */; };
+		5CD2BC142080FF0C008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC0D2080FF0C008E3A2C /* AppUI.cpp */; };
+		5CD2BC152080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC0F2080FF0C008E3A2C /* NuklearGUIDriver.cpp */; };
+		5CD2BC162080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC0F2080FF0C008E3A2C /* NuklearGUIDriver.cpp */; };
+		5CD2BC172080FF0C008E3A2C /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC102080FF0C008E3A2C /* Fontstash.cpp */; };
+		5CD2BC182080FF0C008E3A2C /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC102080FF0C008E3A2C /* Fontstash.cpp */; };
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
 		B21AD0F7202E80E100CF5DD7 /* PaniniProjection_iOS.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */; };
 		B21AD0F8202E80FC00CF5DD7 /* PaniniProjection.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = B21AD0F2202E80C100CF5DD7 /* PaniniProjection.lib */; };
 		C91D46211FD9976D00564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */; };
-		C91D46231FD997AB00564C8B /* UIManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46221FD997AB00564C8B /* UIManager.cpp */; };
 		C91D46251FD9984A00564C8B /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = C91D46241FD9984900564C8B /* MetalShaderReflection.mm */; };
 		C91D46271FD9985700564C8B /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46261FD9985700564C8B /* CommonShaderReflection.cpp */; };
 		C91D46291FD998B700564C8B /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46281FD998B600564C8B /* GpuProfiler.cpp */; };
@@ -93,10 +97,6 @@
 		EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
 		EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
-		EA463D111EF94A1E005AC8C7 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D091EF94A1E005AC8C7 /* Fontstash.cpp */; };
-		EA463D121EF94A1E005AC8C7 /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0B1EF94A1E005AC8C7 /* NuklearGUIDriver.cpp */; };
-		EA463D131EF94A1E005AC8C7 /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0D1EF94A1E005AC8C7 /* UI.cpp */; };
-		EA463D141EF94A1E005AC8C7 /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D0F1EF94A1E005AC8C7 /* UIRenderer.cpp */; };
 		EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 /* End PBXBuildFile section */
 
@@ -132,6 +132,17 @@
 		28A5ACC5201F6999000E571F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = iOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C85A3872029FF2E00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
 		5C85A399202A0E9A00AB83C6 /* iOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSBase.mm; path = iOS/iOSBase.mm; sourceTree = "<group>"; };
+		5CA4AFCA2088FAB6005BB7C6 /* DebugRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebugRenderer.h; sourceTree = "<group>"; };
+		5CA4AFCB2088FAB6005BB7C6 /* DebugRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DebugRenderer.cpp; sourceTree = "<group>"; };
+		5CD2BC082080FF0C008E3A2C /* UIRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = UIRenderer.cpp; path = ../../Middleware_3/UI/UIRenderer.cpp; sourceTree = "<group>"; };
+		5CD2BC092080FF0C008E3A2C /* NuklearGUIDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NuklearGUIDriver.h; path = ../../Middleware_3/UI/NuklearGUIDriver.h; sourceTree = "<group>"; };
+		5CD2BC0A2080FF0C008E3A2C /* UIShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIShaders.h; path = ../../Middleware_3/UI/UIShaders.h; sourceTree = "<group>"; };
+		5CD2BC0B2080FF0C008E3A2C /* UIRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIRenderer.h; path = ../../Middleware_3/UI/UIRenderer.h; sourceTree = "<group>"; };
+		5CD2BC0C2080FF0C008E3A2C /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/UI/Fontstash.h; sourceTree = "<group>"; };
+		5CD2BC0D2080FF0C008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
+		5CD2BC0E2080FF0C008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
+		5CD2BC0F2080FF0C008E3A2C /* NuklearGUIDriver.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = NuklearGUIDriver.cpp; path = ../../Middleware_3/UI/NuklearGUIDriver.cpp; sourceTree = "<group>"; };
+		5CD2BC102080FF0C008E3A2C /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/UI/Fontstash.cpp; sourceTree = "<group>"; };
 		5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../../../../Common_3/Renderer/ResourceLoader.cpp; sourceTree = SOURCE_ROOT; };
 		B21AD0EE202E7D4500CF5DD7 /* PaniniProjection_iOS.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection_iOS.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/Debug/PaniniProjection_iOS.lib"; sourceTree = "<group>"; };
 		B21AD0F2202E80C100CF5DD7 /* PaniniProjection.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/PaniniProjection.lib"; sourceTree = "<group>"; };
@@ -139,7 +150,6 @@
 		B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection_iOS.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/PaniniProjection_iOS.lib"; sourceTree = "<group>"; };
 		B263E338202E6D7700457D44 /* PaniniProjection.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/Debug/PaniniProjection.lib"; sourceTree = "<group>"; };
 		C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
-		C91D46221FD997AB00564C8B /* UIManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = UIManager.cpp; sourceTree = "<group>"; };
 		C91D46241FD9984900564C8B /* MetalShaderReflection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalShaderReflection.mm; path = Metal/MetalShaderReflection.mm; sourceTree = "<group>"; };
 		C91D46261FD9985700564C8B /* CommonShaderReflection.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = CommonShaderReflection.cpp; sourceTree = "<group>"; };
 		C91D46281FD998B600564C8B /* GpuProfiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GpuProfiler.cpp; sourceTree = "<group>"; };
@@ -195,14 +205,6 @@
 		EA463CE71EF81FC5005AC8C7 /* LogManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogManager.h; path = ../../../../Common_3/OS/Logging/LogManager.h; sourceTree = SOURCE_ROOT; };
 		EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../../Common_3/OS/Core/ThreadSystem.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Timer.cpp; path = ../../../../Common_3/OS/Core/Timer.cpp; sourceTree = SOURCE_ROOT; };
-		EA463D091EF94A1E005AC8C7 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../../../Common_3/OS/UI/Fontstash.cpp; sourceTree = SOURCE_ROOT; };
-		EA463D0A1EF94A1E005AC8C7 /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../../../Common_3/OS/UI/Fontstash.h; sourceTree = SOURCE_ROOT; };
-		EA463D0B1EF94A1E005AC8C7 /* NuklearGUIDriver.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = NuklearGUIDriver.cpp; path = ../../../../Common_3/OS/UI/NuklearGUIDriver.cpp; sourceTree = SOURCE_ROOT; };
-		EA463D0C1EF94A1E005AC8C7 /* NuklearGUIDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NuklearGUIDriver.h; path = ../../../../Common_3/OS/UI/NuklearGUIDriver.h; sourceTree = SOURCE_ROOT; };
-		EA463D0D1EF94A1E005AC8C7 /* UI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = UI.cpp; path = ../../../../Common_3/OS/UI/UI.cpp; sourceTree = SOURCE_ROOT; };
-		EA463D0E1EF94A1E005AC8C7 /* UI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UI.h; path = ../../../../Common_3/OS/UI/UI.h; sourceTree = SOURCE_ROOT; };
-		EA463D0F1EF94A1E005AC8C7 /* UIRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = UIRenderer.cpp; path = ../../../../Common_3/OS/UI/UIRenderer.cpp; sourceTree = SOURCE_ROOT; };
-		EA463D101EF94A1E005AC8C7 /* UIRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIRenderer.h; path = ../../../../Common_3/OS/UI/UIRenderer.h; sourceTree = SOURCE_ROOT; };
 		EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PlatformEvents.cpp; path = ../../../../Common_3/OS/Core/PlatformEvents.cpp; sourceTree = SOURCE_ROOT; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = 04_ExecuteIndirect/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -308,6 +310,22 @@
 				28A5ACC0201F6999000E571F /* iOSThreadManager.cpp */,
 			);
 			name = iOS;
+			sourceTree = "<group>";
+		};
+		5CD2BC072080FF00008E3A2C /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				5CD2BC0D2080FF0C008E3A2C /* AppUI.cpp */,
+				5CD2BC0E2080FF0C008E3A2C /* AppUI.h */,
+				5CD2BC102080FF0C008E3A2C /* Fontstash.cpp */,
+				5CD2BC0C2080FF0C008E3A2C /* Fontstash.h */,
+				5CD2BC0F2080FF0C008E3A2C /* NuklearGUIDriver.cpp */,
+				5CD2BC092080FF0C008E3A2C /* NuklearGUIDriver.h */,
+				5CD2BC082080FF0C008E3A2C /* UIRenderer.cpp */,
+				5CD2BC0B2080FF0C008E3A2C /* UIRenderer.h */,
+				5CD2BC0A2080FF0C008E3A2C /* UIShaders.h */,
+			);
+			name = UI;
 			sourceTree = "<group>";
 		};
 		D2111E801F44588B0014FFE6 /* MemoryManager */ = {
@@ -427,11 +445,11 @@
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
+				5CD2BC072080FF00008E3A2C /* UI */,
 				28A5ACBB201F6988000E571F /* iOS */,
 				EA463CB41EF81FC5005AC8C7 /* FileSystem */,
 				D2111E801F44588B0014FFE6 /* MemoryManager */,
 				D2E0807A1F478CCB0042AB54 /* Camera */,
-				EA463D081EF94A0C005AC8C7 /* UI */,
 				EA463CCB1EF81FC5005AC8C7 /* Math */,
 				EA463CD01EF81FC5005AC8C7 /* Image */,
 				EA463CDA1EF81FC5005AC8C7 /* macOS */,
@@ -492,6 +510,8 @@
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				5CA4AFCB2088FAB6005BB7C6 /* DebugRenderer.cpp */,
+				5CA4AFCA2088FAB6005BB7C6 /* DebugRenderer.h */,
 				EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
@@ -512,22 +532,6 @@
 			name = Common_3;
 			path = ../../../../Common_3;
 			sourceTree = SOURCE_ROOT;
-		};
-		EA463D081EF94A0C005AC8C7 /* UI */ = {
-			isa = PBXGroup;
-			children = (
-				EA463D091EF94A1E005AC8C7 /* Fontstash.cpp */,
-				EA463D0A1EF94A1E005AC8C7 /* Fontstash.h */,
-				C91D46221FD997AB00564C8B /* UIManager.cpp */,
-				EA463D0B1EF94A1E005AC8C7 /* NuklearGUIDriver.cpp */,
-				EA463D0C1EF94A1E005AC8C7 /* NuklearGUIDriver.h */,
-				EA463D0D1EF94A1E005AC8C7 /* UI.cpp */,
-				EA463D0E1EF94A1E005AC8C7 /* UI.h */,
-				EA463D0F1EF94A1E005AC8C7 /* UIRenderer.cpp */,
-				EA463D101EF94A1E005AC8C7 /* UIRenderer.h */,
-			);
-			path = UI;
-			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -572,7 +576,7 @@
 		EA463C831EF81E8F005AC8C7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0910;
+				LastUpgradeCheck = 0930;
 				ORGANIZATIONNAME = Jesus;
 				TargetAttributes = {
 					28A5AC78201F682F000E571F = {
@@ -652,11 +656,11 @@
 				28A5ACE0201F69CE000E571F /* MetalRenderer.mm in Sources */,
 				28A5ACCE201F69A4000E571F /* MemoryTrackingManager.cpp in Sources */,
 				28A5ACCD201F699F000E571F /* FileSystem.cpp in Sources */,
+				5CD2BC182080FF0C008E3A2C /* Fontstash.cpp in Sources */,
 				28A5ACAB201F6899000E571F /* ExecuteIndirect.vert.metal in Sources */,
 				28A5ACAD201F6899000E571F /* ComputeUpdate.comp.metal in Sources */,
 				28A5ACE5201F69F1000E571F /* Timer.cpp in Sources */,
 				28A5ACE1201F69E8000E571F /* tinyexr.cpp in Sources */,
-				28A5ACD4201F69B3000E571F /* UI.cpp in Sources */,
 				28A5ACDB201F69C3000E571F /* Image.cpp in Sources */,
 				5C85A39B202A0E9D00AB83C6 /* iOSBase.mm in Sources */,
 				28A5ACDE201F69CE000E571F /* MetalShaderReflection.mm in Sources */,
@@ -667,20 +671,20 @@
 				28A5ACD0201F69A9000E571F /* GuiCameraController.cpp in Sources */,
 				28A5ACCF201F69A9000E571F /* FpsCameraController.cpp in Sources */,
 				28A5ACCC201F6999000E571F /* AppDelegate.m in Sources */,
-				28A5ACD3201F69B3000E571F /* NuklearGUIDriver.cpp in Sources */,
 				28A5ACE8201F69FF000E571F /* TextureGen.cpp in Sources */,
 				28A5ACE7201F69FF000E571F /* simplexnoise1234.cpp in Sources */,
+				5CD2BC122080FF0C008E3A2C /* UIRenderer.cpp in Sources */,
 				288F630B2035B00900B758DE /* basic.frag.metal in Sources */,
+				5CD2BC162080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */,
 				28A5ACDF201F69CE000E571F /* ResourceLoader.cpp in Sources */,
 				28A5ACAC201F6899000E571F /* basic.vert.metal in Sources */,
-				28A5ACD5201F69B3000E571F /* UIRenderer.cpp in Sources */,
 				28A5ACE2201F69F1000E571F /* LogManager.cpp in Sources */,
 				28A5ACDC201F69CE000E571F /* GpuProfiler.cpp in Sources */,
 				28A5ACE6201F69FF000E571F /* AsteroidSim.cpp in Sources */,
-				28A5ACD2201F69B3000E571F /* UIManager.cpp in Sources */,
-				28A5ACD1201F69B3000E571F /* Fontstash.cpp in Sources */,
+				5CD2BC142080FF0C008E3A2C /* AppUI.cpp in Sources */,
 				28A5ACE4201F69F1000E571F /* ThreadSystem.cpp in Sources */,
 				28A5ACE9201F6B65000E571F /* 04_ExecuteIndirect.cpp in Sources */,
+				5CA4AFCD2088FAB7005BB7C6 /* DebugRenderer.cpp in Sources */,
 				288F630C2035B00900B758DE /* ExecuteIndirect.frag.metal in Sources */,
 				288F630D2035B00900B758DE /* skybox.frag.metal in Sources */,
 				28A5ACAA201F6899000E571F /* skybox.vert.metal in Sources */,
@@ -692,25 +696,24 @@
 			buildActionMask = 2147483647;
 			files = (
 				5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */,
-				EA463D141EF94A1E005AC8C7 /* UIRenderer.cpp in Sources */,
 				D2A520601F4ED89900C9B029 /* TextureGen.cpp in Sources */,
-				EA463D131EF94A1E005AC8C7 /* UI.cpp in Sources */,
 				D28782F21F0A7F98004DC624 /* 04_ExecuteIndirect.cpp in Sources */,
 				C91D46251FD9984A00564C8B /* MetalShaderReflection.mm in Sources */,
+				5CD2BC172080FF0C008E3A2C /* Fontstash.cpp in Sources */,
 				5C85A3882029FF2E00AB83C6 /* macOSBase.mm in Sources */,
-				C91D46231FD997AB00564C8B /* UIManager.cpp in Sources */,
+				5CD2BC152080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */,
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				EA463CEE1EF81FC5005AC8C7 /* FileSystem.cpp in Sources */,
+				5CD2BC112080FF0C008E3A2C /* UIRenderer.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
-				EA463D121EF94A1E005AC8C7 /* NuklearGUIDriver.cpp in Sources */,
 				C91D46271FD9985700564C8B /* CommonShaderReflection.cpp in Sources */,
 				EA463D001EF81FC5005AC8C7 /* macOSThreadManager.cpp in Sources */,
 				EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */,
 				C91D46211FD9976D00564C8B /* MemoryTrackingManager.cpp in Sources */,
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
-				EA463D111EF94A1E005AC8C7 /* Fontstash.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */,
 				D2E0807E1F478CDC0042AB54 /* GuiCameraController.cpp in Sources */,
+				5CA4AFCC2088FAB7005BB7C6 /* DebugRenderer.cpp in Sources */,
 				C9DF3AF420067771000D674E /* macOSFileSystem.mm in Sources */,
 				D2A5205F1F4ED89900C9B029 /* simplexnoise1234.cpp in Sources */,
 				D2A5205E1F4ED89900C9B029 /* AsteroidSim.cpp in Sources */,
@@ -720,6 +723,7 @@
 				EA463D021EF81FC5005AC8C7 /* tinyexr.cpp in Sources */,
 				EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */,
 				EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */,
+				5CD2BC132080FF0C008E3A2C /* AppUI.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -781,7 +785,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-4-ExecuteIndirect-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos11.2;
+				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -813,7 +817,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-4-ExecuteIndirect-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos11.2;
+				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -941,7 +945,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx10.13;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -963,7 +967,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx10.13;
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};

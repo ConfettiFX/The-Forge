@@ -72,9 +72,9 @@ typedef struct ResourceLoader
 	Buffer* pStagingBuffer;
 	uint64_t mCurrentPos;
 
-	Cmd* pCopyCmd;
-	Cmd* pBatchCopyCmd;
-	CmdPool* pCopyCmdPool;
+	Cmd* pCopyCmd[MAX_GPUS];
+	Cmd* pBatchCopyCmd[MAX_GPUS];
+	CmdPool* pCopyCmdPool[MAX_GPUS];
 
 	tinystl::vector<Buffer*> mTempStagingBuffers;
     
@@ -103,9 +103,9 @@ static void addResourceLoader (Renderer* pRenderer, uint64_t mSize, ResourceLoad
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	addBuffer (pRenderer, &bufferDesc, &pLoader->pStagingBuffer);
 
-	addCmdPool(pLoader->pRenderer, pCopyQueue, false, &pLoader->pCopyCmdPool);
-	addCmd(pLoader->pCopyCmdPool, false, &pLoader->pCopyCmd);
-	addCmd(pLoader->pCopyCmdPool, false, &pLoader->pBatchCopyCmd);
+	addCmdPool(pLoader->pRenderer, pCopyQueue, false, &pLoader->pCopyCmdPool[0]);
+	addCmd(pLoader->pCopyCmdPool[0], false, &pLoader->pCopyCmd[0]);
+	addCmd(pLoader->pCopyCmdPool[0], false, &pLoader->pBatchCopyCmd[0]);
 
 	*ppLoader = pLoader;
 }
@@ -118,14 +118,22 @@ static void cleanupResourceLoader(ResourceLoader* pLoader)
 	pLoader->mTempStagingBuffers.clear();
 }
 
-static void removeResourceLoader (ResourceLoader* pLoader)
+static void removeResourceLoader(ResourceLoader* pLoader)
 {
-	removeBuffer (pLoader->pRenderer, pLoader->pStagingBuffer);
+	removeBuffer(pLoader->pRenderer, pLoader->pStagingBuffer);
 	cleanupResourceLoader(pLoader);
 
-	removeCmd(pLoader->pCopyCmdPool, pLoader->pCopyCmd);
-	removeCmd(pLoader->pCopyCmdPool, pLoader->pBatchCopyCmd);
-	removeCmdPool(pLoader->pRenderer, pLoader->pCopyCmdPool);
+	for (uint32_t i = 0; i < MAX_GPUS; ++i)
+	{
+		if (i == 0)
+			removeCmd(pLoader->pCopyCmdPool[i], pLoader->pBatchCopyCmd[i]);
+
+		if (pLoader->pCopyCmdPool[i])
+		{
+			removeCmd(pLoader->pCopyCmdPool[i], pLoader->pCopyCmd[i]);
+			removeCmdPool(pLoader->pRenderer, pLoader->pCopyCmdPool[i]);
+		}
+	}
 
 	pLoader->mTempStagingBuffers.~vector();
 
@@ -233,7 +241,7 @@ static MappedMemoryRange consumeResourceUpdateMemory(uint64_t memoryRequirement,
 	return{ pDstData, pLoader->pStagingBuffer, currentOffset, memoryRequirement };
 }
 
-static void cmdLoadBuffer(BufferLoadDesc* pBufferDesc, ResourceLoader* pLoader)
+static void cmdLoadBuffer(Cmd* pCmd, BufferLoadDesc* pBufferDesc, ResourceLoader* pLoader)
 {
 	ASSERT (pBufferDesc->ppBuffer);
 
@@ -256,7 +264,7 @@ static void cmdLoadBuffer(BufferLoadDesc* pBufferDesc, ResourceLoader* pLoader)
 			else
 				memset(range.pData, NULL, pBuffer->mDesc.mSize);
 
-			cmdUpdateBuffer(pLoader->pCopyCmd, range.mOffset, pBuffer->mPositionInHeap, range.mSize, range.pBuffer, pBuffer);
+			cmdUpdateBuffer(pCmd, range.mOffset, pBuffer->mPositionInHeap, range.mSize, range.pBuffer, pBuffer);
 		}
 		else
 		{
@@ -281,7 +289,7 @@ static void cmdLoadBuffer(BufferLoadDesc* pBufferDesc, ResourceLoader* pLoader)
 #ifdef _DURANGO
 		// XBox One needs explicit resource transitions
 		BufferBarrier bufferBarriers[] = { { pBuffer, state } };
-		cmdResourceBarrier(pLoader->pCopyCmd, 1, bufferBarriers, 0, NULL, false);
+		cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, false);
 #else
 		// Resource will automatically transition so just set the next state without a barrier
 		pBuffer->mCurrentState = state;
@@ -304,42 +312,14 @@ static void* imageLoadAllocationFunc(Image* pImage, uint64_t memoryRequirement, 
 	return range.pData;
 }
 
-static void upload_texture_data(TextureLoadDesc* pTextureFileDesc, const Image& img, ResourceLoader* pLoader)
+static void cmd_upload_texture_data(Cmd* pCmd, ResourceLoader* pLoader, Texture* pTexture, const Image& img)
 {
-	TextureType textureType = TEXTURE_TYPE_2D;
-	if (img.Is3D())
-		textureType = TEXTURE_TYPE_3D;
-	else if (img.IsCube())
-		textureType = TEXTURE_TYPE_CUBE;
-
-	TextureDesc desc = { };
-	desc.mType = textureType;
-	desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
-	desc.mWidth = img.GetWidth();
-	desc.mHeight = img.GetHeight();
-	desc.mDepth = img.GetDepth();
-	desc.mBaseArrayLayer = 0;
-	desc.mArraySize = img.GetArrayCount();
-	desc.mBaseMipLevel = 0;
-	desc.mMipLevels = img.GetMipMapCount();
-	desc.mSampleCount = SAMPLE_COUNT_1;
-	desc.mSampleQuality = 0;
-	desc.mFormat = img.getFormat();
-	desc.mClearValue = ClearValue();
-	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
-	desc.mStartState = RESOURCE_STATE_COMMON;
-	desc.pNativeHandle = NULL;
-	desc.mSrgb = pTextureFileDesc->mSrgb;
-	desc.mHostVisible = false;
-
-	addTexture(pLoader->pRenderer, &desc, pTextureFileDesc->ppTexture);
-	Texture* pTexture = *pTextureFileDesc->ppTexture;
 	ASSERT(pTexture);
 
 	// Only need transition for vulkan and durango since resource will auto promote to copy dest on copy queue in PC dx12
 #if defined(VULKAN) || defined(_DURANGO)
 	TextureBarrier barrier = { pTexture, RESOURCE_STATE_COPY_DEST };
-	cmdResourceBarrier(pLoader->pCopyCmd, 0, NULL, 1, &barrier, false);
+	cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, false);
 #endif
 	MappedMemoryRange range = consumeResourceLoaderMemory(pTexture->mTextureSize, RESOURCE_TEXTURE_ALIGNMENT, pLoader);
 
@@ -415,16 +395,16 @@ static void upload_texture_data(TextureLoadDesc* pTextureFileDesc, const Image& 
 
 	// calculate number of subresources
 	int numSubresources = (int)(dest - texData);
-	cmdUpdateSubresources(pLoader->pCopyCmd, 0, numSubresources, texData, range.pBuffer, range.mOffset, pTexture);
+	cmdUpdateSubresources(pCmd, 0, numSubresources, texData, range.pBuffer, range.mOffset, pTexture);
 
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 #if defined(VULKAN) || defined(_DURANGO)
 	barrier = { pTexture, util_determine_resource_start_state(pTexture->mDesc.mUsage) };
-	cmdResourceBarrier(pLoader->pCopyCmd, 0, NULL, 1, &barrier, true);
+	cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, true);
 #endif
 }
 
-static void cmdLoadTextureFile(TextureLoadDesc* pTextureFileDesc, ResourceLoader* pLoader)
+static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, ResourceLoader* pLoader)
 {
 	ASSERT (pTextureFileDesc->ppTexture);
 
@@ -433,18 +413,77 @@ static void cmdLoadTextureFile(TextureLoadDesc* pTextureFileDesc, ResourceLoader
 	bool res = img.loadImage(pTextureFileDesc->pFilename, pTextureFileDesc->mUseMipmaps, imageLoadAllocationFunc, pLoader, pTextureFileDesc->mRoot);
 	if (res)
 	{
-		upload_texture_data(pTextureFileDesc, img, pLoader);
+		TextureType textureType = TEXTURE_TYPE_2D;
+		if (img.Is3D())
+			textureType = TEXTURE_TYPE_3D;
+		else if (img.IsCube())
+			textureType = TEXTURE_TYPE_CUBE;
+
+		TextureDesc desc = {};
+		desc.mType = textureType;
+		desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
+		desc.mWidth = img.GetWidth();
+		desc.mHeight = img.GetHeight();
+		desc.mDepth = img.GetDepth();
+		desc.mBaseArrayLayer = 0;
+		desc.mArraySize = img.GetArrayCount();
+		desc.mBaseMipLevel = 0;
+		desc.mMipLevels = img.GetMipMapCount();
+		desc.mSampleCount = SAMPLE_COUNT_1;
+		desc.mSampleQuality = 0;
+		desc.mFormat = img.getFormat();
+		desc.mClearValue = ClearValue();
+		desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+		desc.mStartState = RESOURCE_STATE_COMMON;
+		desc.pNativeHandle = NULL;
+		desc.mSrgb = pTextureFileDesc->mSrgb;
+		desc.mHostVisible = false;
+		desc.mNodeIndex = pTextureFileDesc->mNodeIndex;
+
+		addTexture(pLoader->pRenderer, &desc, pTextureFileDesc->ppTexture);
+		cmd_upload_texture_data(pCmd, pLoader, *pTextureFileDesc->ppTexture, img);
 	}
 	img.Destroy();
 }
 
-static void cmdLoadTextureImage(TextureLoadDesc* pTextureImage, ResourceLoader* pLoader)
+static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, ResourceLoader* pLoader)
 {
 	ASSERT(pTextureImage->ppTexture);
-	upload_texture_data(pTextureImage, *pTextureImage->pImage, pLoader);
+	Image& img = *pTextureImage->pImage;
+
+	TextureType textureType = TEXTURE_TYPE_2D;
+	if (img.Is3D())
+		textureType = TEXTURE_TYPE_3D;
+	else if (img.IsCube())
+		textureType = TEXTURE_TYPE_CUBE;
+
+	TextureDesc desc = {};
+	desc.mType = textureType;
+	desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
+	desc.mWidth = img.GetWidth();
+	desc.mHeight = img.GetHeight();
+	desc.mDepth = img.GetDepth();
+	desc.mBaseArrayLayer = 0;
+	desc.mArraySize = img.GetArrayCount();
+	desc.mBaseMipLevel = 0;
+	desc.mMipLevels = img.GetMipMapCount();
+	desc.mSampleCount = SAMPLE_COUNT_1;
+	desc.mSampleQuality = 0;
+	desc.mFormat = img.getFormat();
+	desc.mClearValue = ClearValue();
+	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+	desc.mStartState = RESOURCE_STATE_COMMON;
+	desc.pNativeHandle = NULL;
+	desc.mSrgb = pTextureImage->mSrgb;
+	desc.mHostVisible = false;
+	desc.mNodeIndex = pTextureImage->mNodeIndex;
+
+	addTexture(pLoader->pRenderer, &desc, pTextureImage->ppTexture);
+
+	cmd_upload_texture_data(pCmd, pLoader, *pTextureImage->ppTexture, *pTextureImage->pImage);
 }
 
-static void cmdLoadEmptyTexture(TextureLoadDesc* pEmptyTexture, ResourceLoader* pLoader)
+static void cmdLoadEmptyTexture(Cmd* pCmd, TextureLoadDesc* pEmptyTexture, ResourceLoader* pLoader)
 {
 	ASSERT(pEmptyTexture->ppTexture);
 	pEmptyTexture->pDesc->mStartState = util_determine_resource_start_state(pEmptyTexture->pDesc->mUsage);
@@ -453,24 +492,24 @@ static void cmdLoadEmptyTexture(TextureLoadDesc* pEmptyTexture, ResourceLoader* 
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 #if defined(VULKAN) || defined(_DURANGO)
 	TextureBarrier barrier = { *pEmptyTexture->ppTexture, pEmptyTexture->pDesc->mStartState };
-	cmdResourceBarrier(pLoader->pCopyCmd, 0, NULL, 1, &barrier, true);
+	cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, true);
 #endif
 }
 
-static void cmdLoadResource(ResourceLoadDesc* pResourceLoadDesc, ResourceLoader* pLoader)
+static void cmdLoadResource(Cmd* pCmd, ResourceLoadDesc* pResourceLoadDesc, ResourceLoader* pLoader)
 {
 	switch (pResourceLoadDesc->mType)
 	{
 	case RESOURCE_TYPE_BUFFER:
-		cmdLoadBuffer (&pResourceLoadDesc->buf, pLoader);
+		cmdLoadBuffer(pCmd, &pResourceLoadDesc->buf, pLoader);
 		break;
 	case RESOURCE_TYPE_TEXTURE:
 		if (pResourceLoadDesc->tex.pFilename)
-			cmdLoadTextureFile(&pResourceLoadDesc->tex, pLoader);
+			cmdLoadTextureFile(pCmd, &pResourceLoadDesc->tex, pLoader);
 		else if (pResourceLoadDesc->tex.pImage)
-			cmdLoadTextureImage(&pResourceLoadDesc->tex, pLoader);
+			cmdLoadTextureImage(pCmd, &pResourceLoadDesc->tex, pLoader);
 		else
-			cmdLoadEmptyTexture(&pResourceLoadDesc->tex, pLoader);
+			cmdLoadEmptyTexture(pCmd, &pResourceLoadDesc->tex, pLoader);
 		break;
 	default:
 		break;
@@ -527,6 +566,11 @@ static void cmdUpdateResource(Cmd* pCmd, BufferUpdateDesc* pBufferUpdate, Resour
 	}
 }
 
+static void cmdUpdateResource(Cmd* pCmd, TextureUpdateDesc* pTextureUpdate, ResourceLoader* pLoader)
+{
+	cmd_upload_texture_data(pCmd, pLoader, pTextureUpdate->pTexture, *pTextureUpdate->pImage);
+}
+
 void cmdUpdateResource(Cmd* pCmd, ResourceUpdateDesc* pResourceUpdate, ResourceLoader* pLoader)
 {
 	switch (pResourceUpdate->mType)
@@ -535,6 +579,7 @@ void cmdUpdateResource(Cmd* pCmd, ResourceUpdateDesc* pResourceUpdate, ResourceL
 		cmdUpdateResource(pCmd, &pResourceUpdate->buf, pLoader);
 		break;
 	case RESOURCE_TYPE_TEXTURE:
+		cmdUpdateResource(pCmd, &pResourceUpdate->tex, pLoader);
 		break;
 	default:
 		break;
@@ -543,8 +588,8 @@ void cmdUpdateResource(Cmd* pCmd, ResourceUpdateDesc* pResourceUpdate, ResourceL
 //////////////////////////////////////////////////////////////////////////
 // Resource Loader Globals
 //////////////////////////////////////////////////////////////////////////
-static Queue* pCopyQueue = NULL;
-static Fence* pWaitFence = NULL;
+static Queue* pCopyQueue[MAX_GPUS] = { NULL };
+static Fence* pWaitFence[MAX_GPUS] = { NULL };
 
 static ResourceLoader* pMainResourceLoader = NULL;
 static ThreadPool* pThreadPool = NULL;
@@ -563,7 +608,8 @@ static void loadThread(void* pThreadData)
 
 	ResourceLoader* pLoader = pThread->pLoader;
 
-	beginCmd (pLoader->pCopyCmd);
+	Cmd* pCmd = pLoader->pCopyCmd[0];
+	beginCmd(pCmd);
 
 	while (true)
 	{
@@ -576,7 +622,7 @@ static void loadThread(void* pThreadData)
 			ResourceLoadDesc* item = gResourceQueue.front();
 			gResourceQueue.erase(gResourceQueue.begin());
 			gResourceQueueMutex.Release();
-			cmdLoadResource (item, pLoader);
+			cmdLoadResource(pCmd, item, pLoader);
 			if (item->mType == RESOURCE_TYPE_TEXTURE && item->tex.pFilename)
 				conf_free((char*)item->tex.pFilename);
 			conf_free(item);
@@ -588,7 +634,7 @@ static void loadThread(void* pThreadData)
 		}
 	}
 
-	endCmd(pLoader->pCopyCmd);
+	endCmd(pCmd);
 }
 
 void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, bool useThreads)
@@ -597,9 +643,12 @@ void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, boo
 
 	gUseThreads = useThreads && numCores > 1;
 
+	memset(pCopyQueue, 0, sizeof(pCopyQueue));
+	memset(pWaitFence, 0, sizeof(pWaitFence));
+
 	QueueDesc desc = { QUEUE_FLAG_NONE, QUEUE_PRIORITY_NORMAL, CMD_POOL_COPY };
-	addQueue(pRenderer, &desc, &pCopyQueue);
-	addFence(pRenderer, &pWaitFence);
+	addQueue(pRenderer, &desc, &pCopyQueue[0]);
+	addFence(pRenderer, &pWaitFence[0]);
 
 	if (useThreads)
 	{
@@ -616,7 +665,7 @@ void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, boo
 
 			ResourceThread* thread = (ResourceThread*)conf_calloc(1, sizeof(*thread));
 
-			addResourceLoader (pRenderer, memoryBudget, &thread->pLoader, pCopyQueue);
+			addResourceLoader(pRenderer, memoryBudget, &thread->pLoader, pCopyQueue[0]);
 
 			thread->pRenderer = pRenderer;
 			// Consider worst case budget for each thread
@@ -630,15 +679,20 @@ void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, boo
 		}
 	}
 
-	addResourceLoader(pRenderer, memoryBudget, &pMainResourceLoader, pCopyQueue);
+	addResourceLoader(pRenderer, memoryBudget, &pMainResourceLoader, pCopyQueue[0]);
 }
 
 void removeResourceLoaderInterface(Renderer* pRenderer)
 {
 	removeResourceLoader(pMainResourceLoader);
 
-	removeQueue(pCopyQueue);
-	removeFence(pRenderer, pWaitFence);
+	for (uint32_t i = 0; i < MAX_GPUS; ++i)
+	{
+		if (pCopyQueue[i])
+			removeQueue(pCopyQueue[i]);
+		if (pWaitFence[i])
+			removeFence(pRenderer, pWaitFence[i]);
+	}
 }
 
 void addResource(ResourceLoadDesc* pResourceLoadDesc, bool threaded /* = false */)
@@ -650,15 +704,41 @@ void addResource(ResourceLoadDesc* pResourceLoadDesc, bool threaded /* = false *
 
 	if (!threaded || !gUseThreads)
 	{
+		uint32_t nodeIndex = 0;
+		if (pResourceLoadDesc->mType == RESOURCE_TYPE_BUFFER)
+		{
+			nodeIndex = pResourceLoadDesc->buf.mDesc.mNodeIndex;
+		}
+		else if (pResourceLoadDesc->mType == RESOURCE_TYPE_TEXTURE)
+		{
+			if (pResourceLoadDesc->tex.pFilename || pResourceLoadDesc->tex.pImage)
+				nodeIndex = pResourceLoadDesc->tex.mNodeIndex;
+			else
+				nodeIndex = pResourceLoadDesc->tex.pDesc->mNodeIndex;
+		}
+
 		gResourceQueueMutex.Acquire();
-		beginCmd(pMainResourceLoader->pCopyCmd);
+		if (!pCopyQueue[nodeIndex])
+		{
+			QueueDesc queueDesc = {};
+			queueDesc.mType = CMD_POOL_COPY;
+			queueDesc.mNodeIndex = nodeIndex;
+			addQueue(pMainResourceLoader->pRenderer, &queueDesc, &pCopyQueue[nodeIndex]);
+			addCmdPool(pMainResourceLoader->pRenderer, pCopyQueue[nodeIndex], false, &pMainResourceLoader->pCopyCmdPool[nodeIndex]);
+			addCmd(pMainResourceLoader->pCopyCmdPool[nodeIndex], false, &pMainResourceLoader->pCopyCmd[nodeIndex]);
+		}
+		if (!pWaitFence[nodeIndex])
+			addFence(pMainResourceLoader->pRenderer, &pWaitFence[nodeIndex]);
 
-		cmdLoadResource(pResourceLoadDesc, pMainResourceLoader);
+		Queue* pQueue = pCopyQueue[nodeIndex];
+		Cmd* pCmd = pMainResourceLoader->pCopyCmd[nodeIndex];
+		Fence* pFence = pWaitFence[nodeIndex];
+		beginCmd(pCmd);
+		cmdLoadResource(pCmd, pResourceLoadDesc, pMainResourceLoader);
+		endCmd(pCmd);
 
-		endCmd (pMainResourceLoader->pCopyCmd);
-
-		queueSubmit(pCopyQueue, 1, &pMainResourceLoader->pCopyCmd, pWaitFence, 0, 0, 0, 0);
-		waitForFences(pCopyQueue, 1, &pWaitFence);
+		queueSubmit(pQueue, 1, &pCmd, pFence, 0, 0, 0, 0);
+		waitForFences(pQueue, 1, &pFence, false);
 		cleanupResourceLoader(pMainResourceLoader);
 
 		pMainResourceLoader->mCurrentPos = 0;
@@ -689,20 +769,8 @@ void addResource(TextureLoadDesc* pTexture, bool threaded)
 
 	if (!threaded || !gUseThreads)
 	{
-		ResourceLoadDesc resourceLoadDesc = *pTexture;
-		gResourceQueueMutex.Acquire();
-		beginCmd(pMainResourceLoader->pCopyCmd);
-
-		cmdLoadResource(&resourceLoadDesc, pMainResourceLoader);
-
-		endCmd(pMainResourceLoader->pCopyCmd);
-
-		queueSubmit(pCopyQueue, 1, &pMainResourceLoader->pCopyCmd, pWaitFence, 0, 0, 0, 0);
-		waitForFences(pCopyQueue, 1, &pWaitFence);
-		cleanupResourceLoader(pMainResourceLoader);
-
-		pMainResourceLoader->mCurrentPos = 0;
-		gResourceQueueMutex.Release();
+		ResourceLoadDesc res = { *pTexture };
+		addResource(&res, threaded);
 	}
 	else
 	{
@@ -720,55 +788,6 @@ void addResource(TextureLoadDesc* pTexture, bool threaded)
 	}
 }
 
-void addResources(uint32_t resourceCount, ResourceLoadDesc* pResources, bool threaded /* = false */)
-{
-	if (threaded && !gUseThreads)
-	{
-		LOGWARNING("Threaded Option specified for loading but no threads were created in initResourceLoaderInterface - Using single threaded loading");
-	}
-
-	if (!threaded || !gUseThreads)
-	{
-		gResourceQueueMutex.Acquire();
-		beginCmd(pMainResourceLoader->pCopyCmd);
-
-		for (uint32_t i = 0; i < resourceCount; ++i)
-		{
-			cmdLoadResource(&pResources[i], pMainResourceLoader);
-		}
-
-		endCmd(pMainResourceLoader->pCopyCmd);
-
-		queueSubmit(pCopyQueue, 1, &pMainResourceLoader->pCopyCmd, pWaitFence, 0, 0, 0, 0);
-		waitForFences(pCopyQueue, 1, &pWaitFence);
-		cleanupResourceLoader(pMainResourceLoader);
-
-		pMainResourceLoader->mCurrentPos = 0;
-		gResourceQueueMutex.Release();
-	}
-	else
-	{
-		gResourceQueueMutex.Acquire();
-		for (uint32_t i = 0; i < resourceCount; ++i)
-		{
-			ResourceLoadDesc* pResource = (ResourceLoadDesc*)conf_malloc(sizeof(ResourceLoadDesc));
-			if (pResources[i].mType == RESOURCE_TYPE_TEXTURE && pResources[i].tex.pFilename)
-			{
-				pResource->mType = RESOURCE_TYPE_TEXTURE;
-				pResource->tex = pResources[i].tex;
-				pResource->tex.pFilename = (char*)conf_calloc(strlen(pResources[i].tex.pFilename) + 1, sizeof(char));
-				memcpy((char*)pResource->tex.pFilename, pResources[i].tex.pFilename, strlen(pResources[i].tex.pFilename));
-			}
-			else
-			{
-				memcpy(pResource, &pResources[i], sizeof(ResourceLoadDesc));
-			}
-			gResourceQueue.emplace_back(pResource);
-		}
-		gResourceQueueMutex.Release();
-	}
-}
-
 void updateResource(BufferUpdateDesc* pBufferUpdate, bool batch /* = false*/)
 {
 	if (pBufferUpdate->pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBufferUpdate->pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
@@ -778,19 +797,19 @@ void updateResource(BufferUpdateDesc* pBufferUpdate, bool batch /* = false*/)
             // TODO : Make updating resources thread safe. This lock is a temporary solution
             MutexLock lock(gResourceQueueMutex);
 
-			Cmd* pCmd = pMainResourceLoader->pCopyCmd;
+			Cmd* pCmd = pMainResourceLoader->pCopyCmd[0];
 
             beginCmd(pCmd);
             cmdUpdateResource(pCmd, pBufferUpdate, pMainResourceLoader);
             endCmd(pCmd);
 
-            queueSubmit(pCopyQueue, 1, &pCmd, pWaitFence, 0, 0, 0, 0);
-            waitForFences(pCopyQueue, 1, &pWaitFence);
+            queueSubmit(pCopyQueue[0], 1, &pCmd, pWaitFence[0], 0, 0, 0, 0);
+            waitForFences(pCopyQueue[0], 1, &pWaitFence[0], false);
 			cleanupResourceLoader(pMainResourceLoader);
         }
         else
         {
-			Cmd* pCmd = pMainResourceLoader->pBatchCopyCmd;
+			Cmd* pCmd = pMainResourceLoader->pBatchCopyCmd[0];
 
             if (!pMainResourceLoader->mOpen)
             {
@@ -807,9 +826,40 @@ void updateResource(BufferUpdateDesc* pBufferUpdate, bool batch /* = false*/)
 	}
 }
 
+void updateResource(TextureUpdateDesc* pTextureUpdate, bool batch)
+{
+	if (!batch)
+	{
+		// TODO : Make updating resources thread safe. This lock is a temporary solution
+		MutexLock lock(gResourceQueueMutex);
+
+		Cmd* pCmd = pMainResourceLoader->pCopyCmd[0];
+
+		beginCmd(pCmd);
+		cmdUpdateResource(pCmd, pTextureUpdate, pMainResourceLoader);
+		endCmd(pCmd);
+
+		queueSubmit(pCopyQueue[0], 1, &pCmd, pWaitFence[0], 0, 0, 0, 0);
+		waitForFences(pCopyQueue[0], 1, &pWaitFence[0], false);
+		cleanupResourceLoader(pMainResourceLoader);
+	}
+	else
+	{
+		Cmd* pCmd = pMainResourceLoader->pBatchCopyCmd[0];
+
+		if (!pMainResourceLoader->mOpen)
+		{
+			beginCmd(pCmd);
+			pMainResourceLoader->mOpen = true;
+		}
+
+		cmdUpdateResource(pCmd, pTextureUpdate, pMainResourceLoader);
+	}
+}
+
 void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources)
 {
-	Cmd* pCmd = pMainResourceLoader->pCopyCmd;
+	Cmd* pCmd = pMainResourceLoader->pCopyCmd[0];
 
 	beginCmd(pCmd);
 
@@ -820,8 +870,8 @@ void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources)
 
 	endCmd(pCmd);
 
-	queueSubmit(pCopyQueue, 1, &pCmd, pWaitFence, 0, 0, 0, 0);
-	waitForFences(pCopyQueue, 1, &pWaitFence);
+	queueSubmit(pCopyQueue[0], 1, &pCmd, pWaitFence[0], 0, 0, 0, 0);
+	waitForFences(pCopyQueue[0], 1, &pWaitFence[0], false);
 	cleanupResourceLoader(pMainResourceLoader);
 }
 
@@ -829,10 +879,10 @@ void flushResourceUpdates()
 {
     if (pMainResourceLoader->mOpen)
     {
-        endCmd(pMainResourceLoader->pBatchCopyCmd);
+        endCmd(pMainResourceLoader->pBatchCopyCmd[0]);
         
-        queueSubmit(pCopyQueue, 1, &pMainResourceLoader->pBatchCopyCmd, pWaitFence, 0, 0, 0, 0);
-        waitForFences(pCopyQueue, 1, &pWaitFence);
+        queueSubmit(pCopyQueue[0], 1, &pMainResourceLoader->pBatchCopyCmd[0], pWaitFence[0], 0, 0, 0, 0);
+        waitForFences(pCopyQueue[0], 1, &pWaitFence[0], false);
 
 		cleanupResourceLoader(pMainResourceLoader);
         pMainResourceLoader->mOpen = false;
@@ -865,13 +915,13 @@ void finishResourceLoading()
 		Cmd* pCmds[MAX_LOAD_THREADS + 1];
 		for (uint32_t i = 0; i < (uint32_t)gResourceThreads.size(); ++i)
 		{
-			pCmds[i] = gResourceThreads[i]->pLoader->pCopyCmd;
+			pCmds[i] = gResourceThreads[i]->pLoader->pCopyCmd[0];
 		}
 
-		pCmds[(uint32_t)gResourceThreads.size()] = pMainResourceLoader->pCopyCmd;
+		pCmds[(uint32_t)gResourceThreads.size()] = pMainResourceLoader->pCopyCmd[0];
 
-		queueSubmit(pCopyQueue, (uint32_t)gResourceThreads.size(), pCmds, pWaitFence, 0, 0, 0, 0);
-		waitForFences(pCopyQueue, 1, &pWaitFence);
+		queueSubmit(pCopyQueue[0], (uint32_t)gResourceThreads.size(), pCmds, pWaitFence[0], 0, 0, 0, 0);
+		waitForFences(pCopyQueue[0], 1, &pWaitFence[0], false);
 		cleanupResourceLoader(pMainResourceLoader);
 
 		for (uint32_t i = 0; i < (uint32_t)gResourceThreads.size(); ++i)

@@ -25,30 +25,32 @@
 // Unit Test to create Bottom and Top Level Acceleration Structures using Raytracing API.
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 // Raytracing
-#include "../../CommonRaytracing_3/Interfaces/IRaytracing.h"
+#include "../../../../CommonRaytracing_3/Interfaces/IRaytracing.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
 // Shader
-#include "PCDX12/Compiled/Raytracing.h"
+#include "PCDX12/Compiled/RayGen.h"
+#include "PCDX12/Compiled/ClosestHit.h"
+#include "PCDX12/Compiled/Miss.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[FSR_Count] =
@@ -63,9 +65,7 @@ const char* pszRoots[FSR_Count] =
 	"",										// FSR_OtherFiles
 };
 
-const uint32_t gImageCount = 3;
-
-class UnitTest_RaytracingPipeline : public IApp
+class UnitTest_Triangle : public IApp
 {
 public:
 	bool Init()
@@ -91,9 +91,8 @@ public:
 		}
 
 		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler);
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 		/************************************************************************/
 		// 02 Creation Acceleration Structure
 		/************************************************************************/
@@ -160,7 +159,7 @@ public:
 		cmdBuildAccelerationStructure(ppCmds[0], pRaytracing, pScratchBuffer, pTopLevelAS);
 		endCmd(ppCmds[0]);
 		queueSubmit(pQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
-		waitForFences(pQueue, 1, &pRenderCompleteFences[0]);
+		waitForFences(pQueue, 1, &pRenderCompleteFences[0], false);
 
 		// Safe to remove scratch buffer since the GPU is done using it
 		removeResource(pScratchBuffer);
@@ -182,34 +181,40 @@ public:
 		// 03 - Create Raytracing Pipeline
 		/************************************************************************/
 		const char* pNames[] = { "rayGen", "miss", "chs" };
-		const char* pHitGroup = "hitGroup";
-		addRaytracingShader(pRaytracing, gShader_Raytracing, sizeof(gShader_Raytracing), pNames, 3, &pShader);
+		addRaytracingShader(pRaytracing, gShader_RayGen, sizeof(gShader_RayGen), pNames[0], &pShaderRayGen);
+		addRaytracingShader(pRaytracing, gShader_ClosestHit, sizeof(gShader_ClosestHit), pNames[2], &pShaderHit);
+		addRaytracingShader(pRaytracing, gShader_Miss, sizeof(gShader_Miss), pNames[1], &pShaderMiss);
 
 		RaytracingHitGroup hitGroup = {};
-		hitGroup.pClosestHitShaderName = pNames[2];
-		hitGroup.pHitGroupName = pHitGroup;
+		hitGroup.pClosestHitShader = pShaderHit;
+		hitGroup.pHitGroupName = "hitGroup";
 
+		RaytracingShader* pShaders[] = { pShaderRayGen, pShaderHit, pShaderMiss };
 		RaytracingPipelineDesc pipelineDesc = {};
 		pipelineDesc.mAttributeSize = sizeof(float2);
 		pipelineDesc.mMaxTraceRecursionDepth = 1;
 		pipelineDesc.mPayloadSize = sizeof(float3);
 		pipelineDesc.pGlobalRootSignature = pRootSignature;
-		pipelineDesc.mShaderCount = 1;
+		pipelineDesc.pRayGenShader = pShaderRayGen;
+		pipelineDesc.ppMissShaders = &pShaderMiss;
+		pipelineDesc.mMissShaderCount = 1;
 		pipelineDesc.pHitGroups = &hitGroup;
 		pipelineDesc.mHitGroupCount = 1;
-		pipelineDesc.ppShaders = &pShader;
 		addRaytracingPipeline(pRaytracing, &pipelineDesc, &pPipeline);
 		/************************************************************************/
 		// 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
 		/************************************************************************/
+		RaytracingShaderTableRecordDesc rayGenRecord = { "rayGen" };
+		RaytracingShaderTableRecordDesc missRecord = { "miss" };
+		RaytracingShaderTableRecordDesc hitRecord = { "hitGroup" };
+
 		RaytracingShaderTableDesc shaderTableDesc = {};
 		shaderTableDesc.pPipeline = pPipeline;
-		shaderTableDesc.mRayGenShaderCount = 1;
-		shaderTableDesc.ppRayGenShaders = &pNames[0];
+		shaderTableDesc.pRayGenShader = &rayGenRecord;
 		shaderTableDesc.mMissShaderCount = 1;
-		shaderTableDesc.ppMissShaders = &pNames[1];
+		shaderTableDesc.pMissShaders = &missRecord;
 		shaderTableDesc.mHitGroupCount = 1;
-		shaderTableDesc.ppHitGroups = &pHitGroup;
+		shaderTableDesc.pHitGroups = &hitRecord;
 		addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
 		/************************************************************************/
 		/************************************************************************/
@@ -218,15 +223,18 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx]);
+		waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx], true);
 
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
 		removeRaytracingShaderTable(pRaytracing, pShaderTable);
 		removeRaytracingPipeline(pRaytracing, pPipeline);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeRaytracingShader(pRaytracing, pShader);
+		removeRaytracingShader(pRaytracing, pShaderRayGen);
+		removeRaytracingShader(pRaytracing, pShaderHit);
+		removeRaytracingShader(pRaytracing, pShaderMiss);
 		removeResource(pVertexBuffer);
 		removeAccelerationStructure(pRaytracing, pTopLevelAS);
 		removeAccelerationStructure(pRaytracing, pBottomLevelAS);
@@ -275,17 +283,19 @@ public:
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mSrgb = false;
 		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.pQueue = pQueue;
+		swapChainDesc.ppPresentQueues = &pQueue;
+		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.pWindow = pWindow;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		/************************************************************************/
 		/************************************************************************/
+
 		return true;
 	}
 
 	void Unload()
 	{
-		waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx]);
+		waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx], true);
 
 		removeSwapChain(pRenderer, pSwapChain);
 		removeResource(pComputeOutput);
@@ -302,7 +312,7 @@ public:
 		FenceStatus fenceStatus = {};
 		getFenceStatus(pRenderCompleteFences[mFrameIdx], &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx]);
+			waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx], false);
 
 		Cmd* pCmd = ppCmds[mFrameIdx];
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[mFrameIdx];
@@ -352,9 +362,7 @@ public:
 		cmdBeginRender(pCmd, 1, &pRenderTarget, NULL, NULL);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
-		cmdUIBeginRender(pCmd, pUIManager, 1, &pRenderTarget, NULL);
-		cmdUIDrawGpuProfileData(pCmd, pUIManager, { 15.0f, 40.0f }, pGpuProfiler);
-		cmdUIEndRender(pCmd, pUIManager);
+		drawDebugGpuProfile(pCmd, 15.0f, 40.0f, pGpuProfiler, NULL);
 		cmdEndRender(pCmd, 1, &pRenderTarget, NULL);
 
 		TextureBarrier presentBarrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
@@ -376,6 +384,8 @@ public:
 	// Data
 	/************************************************************************/
 private:
+	static const uint32_t	gImageCount = 3;
+
 	Renderer*				pRenderer;
 	Raytracing*				pRaytracing;
 	Queue*					pQueue;
@@ -385,7 +395,9 @@ private:
 	Buffer*					pVertexBuffer;
 	AccelerationStructure*	pBottomLevelAS;
 	AccelerationStructure*	pTopLevelAS;
-	RaytracingShader*		pShader;
+	RaytracingShader*		pShaderRayGen;
+	RaytracingShader*		pShaderHit;
+	RaytracingShader*		pShaderMiss;
 	RootSignature*			pRootSignature;
 	RaytracingPipeline*		pPipeline;
 	RaytracingShaderTable*	pShaderTable;
@@ -394,8 +406,7 @@ private:
 	Semaphore*				pRenderCompleteSemaphores[gImageCount];
 	Semaphore*				pImageAcquiredSemaphore;
 	GpuProfiler*			pGpuProfiler;
-	UIManager*				pUIManager;
 	uint32_t				mFrameIdx;
 };
 
-DEFINE_APPLICATION_MAIN(UnitTest_RaytracingPipeline)
+DEFINE_APPLICATION_MAIN(UnitTest_Triangle)

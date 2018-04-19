@@ -972,6 +972,12 @@ namespace RENDERER_CPP_NAMESPACE {
         
         pCmd->pCmdPool = pCmdPool;
         pCmd->mtlEncoderFence = [pCmdPool->pRenderer->pDevice newFence];
+		
+		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
+		{
+			pCmd->pBoundColorFormats = (uint32_t*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(uint32_t));
+			pCmd->pBoundSrgbValues = (bool*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(bool));
+		}
         
         *ppCmd = pCmd;
     }
@@ -980,6 +986,13 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pCmd);
         pCmd->mtlEncoderFence = nil;
         pCmd->mtlCommandBuffer = nil;
+		
+		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
+		{
+			SAFE_FREE(pCmd->pBoundColorFormats);
+			SAFE_FREE(pCmd->pBoundSrgbValues);
+		}
+		
         SAFE_FREE(pCmd);
     }
     
@@ -1029,7 +1042,7 @@ namespace RENDERER_CPP_NAMESPACE {
         pSwapChain->pMTKView.colorPixelFormat = util_to_mtl_pixel_format(pSwapChain->mDesc.mColorFormat, pSwapChain->mDesc.mSrgb);
         
         // Create present command buffer for the swapchain.
-        pSwapChain->presentCommandBuffer = [pSwapChain->mDesc.pQueue->mtlCommandQueue commandBuffer];
+        pSwapChain->presentCommandBuffer = [pSwapChain->mDesc.ppPresentQueues[0]->mtlCommandQueue commandBuffer];
         
         // Create the swapchain RT descriptor.
         RenderTargetDesc descColor = {};
@@ -1189,10 +1202,16 @@ namespace RENDERER_CPP_NAMESPACE {
         SAFE_FREE(pRenderTarget);
     }
     
-    void addSampler(Renderer* pRenderer, Sampler** ppSampler, FilterType minFilter, FilterType magFilter, MipMapMode  mipMapMode, AddressMode addressU, AddressMode addressV, AddressMode addressW, float mipLosBias, float maxAnisotropy)
+    void addSampler(Renderer* pRenderer, Sampler** ppSampler,
+	FilterType minFilter, FilterType magFilter,
+	MipMapMode  mipMapMode,
+	AddressMode addressU, AddressMode addressV, AddressMode addressW,
+	float mipLosBias, float maxAnisotropy,
+	CompareMode compareFunc)
     {
         ASSERT(pRenderer);
         ASSERT(pRenderer->pDevice != nil);
+		ASSERT(compareFunc < MAX_COMPARE_MODES);
         
         Sampler* pSampler = (Sampler*)conf_calloc(1, sizeof(*pSampler));
         ASSERT(pSampler);
@@ -1202,10 +1221,11 @@ namespace RENDERER_CPP_NAMESPACE {
         samplerDesc.minFilter = (minFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
         samplerDesc.magFilter = (magFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
         samplerDesc.mipFilter = (mipMapMode == MIPMAP_MODE_NEAREST ? MTLSamplerMipFilterNearest : MTLSamplerMipFilterLinear);
-        samplerDesc.maxAnisotropy = (maxAnisotropy==0 ? 1 : maxAnisotropy);  // 0 is not allowed in Metal
+        samplerDesc.maxAnisotropy = (maxAnisotropy == 0 ? 1 : maxAnisotropy);  // 0 is not allowed in Metal
         samplerDesc.sAddressMode = gMtlAddressModeTranslator[addressU];
         samplerDesc.tAddressMode = gMtlAddressModeTranslator[addressV];
         samplerDesc.rAddressMode = gMtlAddressModeTranslator[addressW];
+		samplerDesc.compareFunction = gMtlComparisonFunctionTranslator[compareFunc];
         
         pSampler->mtlSamplerState = [pRenderer->pDevice newSamplerStateWithDescriptor:samplerDesc];
         pSampler->mSamplerId = (++gSamplerIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
@@ -1307,7 +1327,7 @@ namespace RENDERER_CPP_NAMESPACE {
                     *compiled_code = function;
                 }
                 
-                createShaderReflection(pShaderProgram, (const uint8_t*)source.c_str(), source.size(), stage_mask, &stageReflections[shaderReflectionCounter++]);
+                createShaderReflection(pShaderProgram, (const uint8_t*)source.c_str(), (uint32_t)source.size(), stage_mask, &stageReflections[shaderReflectionCounter++]);
             }
         }
         
@@ -1362,7 +1382,7 @@ namespace RENDERER_CPP_NAMESPACE {
                 id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
                 *compiled_code = function;
                 
-                createShaderReflection(pShaderProgram, (const uint8_t*)pStage->mSource.c_str(), pStage->mSource.size(), stage_mask, &pShaderProgram->mReflection.mStageReflections[reflectionCount++]);
+                createShaderReflection(pShaderProgram, (const uint8_t*)pStage->mSource.c_str(), (uint32_t)pStage->mSource.size(), stage_mask, &pShaderProgram->mReflection.mStageReflections[reflectionCount++]);
             }
         }
         
@@ -1874,6 +1894,9 @@ namespace RENDERER_CPP_NAMESPACE {
                     const ClearValue& clearValue = pLoadActions->mClearColorValues[i];
                     pCmd->pRenderPassDesc.colorAttachments[i].clearColor = MTLClearColorMake(clearValue.r, clearValue.g, clearValue.b, clearValue.a);
                 }
+				
+				pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
+				pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
             }
             
             if (pDepthStencil != nil)
@@ -1927,6 +1950,8 @@ namespace RENDERER_CPP_NAMESPACE {
                     pCmd->pRenderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
                     if(isStencilEnabled) pCmd->pRenderPassDesc.stencilAttachment.clearStencil = 0;
                 }
+				
+				pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
             }
             else
             {
@@ -1935,6 +1960,12 @@ namespace RENDERER_CPP_NAMESPACE {
                 pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
                 pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
             }
+			
+			SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
+			pCmd->mBoundWidth = renderTargetCount ? ppRenderTargets[0]->mDesc.mWidth : pDepthStencil->mDesc.mWidth;
+			pCmd->mBoundHeight = renderTargetCount ? ppRenderTargets[0]->mDesc.mHeight : pDepthStencil->mDesc.mHeight;
+			pCmd->mBoundSampleCount = sampleCount;
+			pCmd->mBoundRenderTargetCount = renderTargetCount;
             
             bool switchedEncoders = util_sync_encoders(pCmd, CMD_POOL_DIRECT); // Check if we need to sync different types of encoders (only on direct cmds).
             util_end_current_encoders(pCmd);
@@ -2469,7 +2500,7 @@ namespace RENDERER_CPP_NAMESPACE {
         pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
     }
     
-    void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences)
+    void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal)
     {
         ASSERT(pQueue);
         ASSERT(fenceCount);
@@ -2908,6 +2939,10 @@ namespace RENDERER_CPP_NAMESPACE {
                     else internal_log(LOG_TYPE_ERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
 #endif
                     break;
+                default:
+                    internal_log(LOG_TYPE_ERROR,"Texture Type is not supported or is undefined.", "addTexture");
+                    break;
+                    
             }
             textureDesc.pixelFormat = pTexture->mtlPixelFormat;
             textureDesc.width = pTexture->mDesc.mWidth;

@@ -25,26 +25,26 @@
 // Unit Test to create Bottom and Top Level Acceleration Structures using Raytracing API.
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 // Raytracing
-#include "../../CommonRaytracing_3/Interfaces/IRaytracing.h"
+#include "../../../../CommonRaytracing_3/Interfaces/IRaytracing.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[FSR_Count] =
@@ -140,7 +140,7 @@ public:
 		cmdBuildAccelerationStructure(pCmd, pRaytracing, pScratchBuffer, pTopLevelAS);
 		endCmd(pCmd);
 		queueSubmit(pQueue, 1, &pCmd, pFence, 0, NULL, 0, NULL);
-		waitForFences(pQueue, 1, &pFence);
+		waitForFences(pQueue, 1, &pFence, false);
 
 		// Safe to remove scratch buffer since the GPU is done using it
 		removeResource(pScratchBuffer);

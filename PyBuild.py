@@ -30,6 +30,7 @@ import subprocess #Used for spawning processes
 import sys        #system module
 import argparse #Used for argument parsing
 import traceback
+import signal #used for handling ctrl+c keyboard interrupt
 
 successfulBuilds = [] #holds all successfull builds
 failedBuilds = [] #holds all failed builds
@@ -355,7 +356,7 @@ def BuildXcodeProjects():
 		for conf in configurations:					
 			#create command for xcodebuild
 			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
-			command = ["xcodebuild","-scheme", filename,"-configuration",conf,"build"]
+			command = ["xcodebuild","clean","-scheme", filename,"-configuration",conf,"build"]
 			sucess = ExecuteBuild(command, filename,conf, "macOS")
 			if sucess != 0:
 				errorOccured = True
@@ -364,7 +365,7 @@ def BuildXcodeProjects():
 			#TODO: Search to verify file exists
 			if filename != "Visibility_Buffer":
 				filename = filename +"_iOS" 
-				command = ["xcodebuild","-scheme", filename,"-configuration",conf,"build","-allowProvisioningDeviceRegistration"]
+				command = ["xcodebuild","clean","-scheme", filename,"-configuration",conf,"build","-allowProvisioningDeviceRegistration"]
 				sucess = ExecuteBuild(command, filename,conf, "iOS")
 				if sucess != 0:
 					errorOccured = True
@@ -476,7 +477,7 @@ def BuildWindowsProjects(xboxDefined):
 			platform = xboxPlatform
 				
 		for conf in configurations:
-			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/nr:false","/clp:Summary","/verbosity:minimal"]
+			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/nr:false","/clp:Summary","/verbosity:minimal","/t:Rebuild"]
 			retCode = ExecuteBuild(command, filename,conf, platform)
 			
 			if retCode != 0:
@@ -487,6 +488,16 @@ def BuildWindowsProjects(xboxDefined):
 	if errorOccured == True:
 		return -1
 	return 0	
+
+def CleanupHandler(signum, frame):
+	print("Bye.")
+	#need to change to rootpath otherwise
+	#os won't find the files to modify
+	os.chdir(sys.path[0])
+	
+	#Remove all defines for automated testing
+	RemoveTestingPreProcessor()
+	exit(1)
 
 def MainLogic():
 
@@ -501,11 +512,16 @@ def MainLogic():
 	#TODO: remove the test in parse_args
 	#arguments = parser.parse_args()
 	arguments = parser.parse_args()
+	
+	#add cleanup handler in case app gets interrupted
+	#keyboard interrupt
+	#removing defines
+	signal.signal(signal.SIGINT, CleanupHandler)
 
 	#change path to scripts location
 	os.chdir(sys.path[0])
 	returnCode = 0
-		
+	
 	if arguments.xbox is not True or "XboxOneXDKLatest" not in os.environ:
 		arguments.xbox = False
 	

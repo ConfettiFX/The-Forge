@@ -86,25 +86,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
@@ -114,7 +114,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>API_EXPORT;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -136,7 +137,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>API_EXPORT;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -160,7 +162,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>API_EXPORT;NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -186,7 +189,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>API_EXPORT;NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\;$(GLFW_DIR)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>

@@ -66,34 +66,31 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\NuklearGUIDriver.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\UI.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\UIRenderer.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IUIManager.h">
-      <Filter>OS\Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\Fontstash.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\UI\UIShaders.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Fontstash.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
   </ItemGroup>
@@ -128,15 +125,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\NuklearGUIDriver.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UIRenderer.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
@@ -146,14 +134,23 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\GuiCameraController.cpp">
       <Filter>OS\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UIManager.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\Fontstash.cpp">
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\Fontstash.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
+      <Filter>OS\Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
