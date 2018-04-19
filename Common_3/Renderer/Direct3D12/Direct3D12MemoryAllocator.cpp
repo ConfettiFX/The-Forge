@@ -553,6 +553,10 @@ long createBuffer(
 				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
 				heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
 				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+				heapProps.CreationNodeMask = (1 << pBuffer->mDesc.mNodeIndex);
+				heapProps.VisibleNodeMask = heapProps.CreationNodeMask;
+				for (uint32_t i = 0; i < pBuffer->mDesc.mSharedNodeIndexCount; ++i)
+					heapProps.VisibleNodeMask |= (1 << pBuffer->mDesc.pSharedNodeIndices[i]);
 
 				res = allocator->m_hDevice->CreateCommittedResource(
 					&heapProps, D3D12_HEAP_FLAG_NONE,
@@ -561,8 +565,14 @@ long createBuffer(
 			}
 			else
 			{
+				D3D12_HEAP_PROPERTIES heapProps = gHeapProperties[pBuffer->pDxAllocation->GetMemoryTypeIndex()].mProps;
+				heapProps.CreationNodeMask = (1 << pBuffer->mDesc.mNodeIndex);
+				heapProps.VisibleNodeMask = heapProps.CreationNodeMask;
+				for (uint32_t i = 0; i < pBuffer->mDesc.mSharedNodeIndexCount; ++i)
+					heapProps.VisibleNodeMask |= (1 << pBuffer->mDesc.pSharedNodeIndices[i]);
+
 				res = allocator->m_hDevice->CreateCommittedResource(
-					&gHeapProperties[pBuffer->pDxAllocation->GetMemoryTypeIndex()].mProps, D3D12_HEAP_FLAG_NONE,
+					&heapProps, D3D12_HEAP_FLAG_NONE,
 					pCreateInfo->pDesc, pCreateInfo->mStartState, NULL,
 					IID_ARGS(&pBuffer->pDxResource));
 			}
@@ -653,10 +663,14 @@ long createTexture(
 			else if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_SHARED_BIT)
 				heapFlags |= D3D12_HEAP_FLAG_SHARED;
 
-			D3D12_HEAP_PROPERTIES props = gHeapProperties[pTexture->pDxAllocation->GetMemoryTypeIndex()].mProps;
+			D3D12_HEAP_PROPERTIES heapProps = gHeapProperties[pTexture->pDxAllocation->GetMemoryTypeIndex()].mProps;
+			heapProps.CreationNodeMask = (1 << pTexture->mDesc.mNodeIndex);
+			heapProps.VisibleNodeMask = heapProps.CreationNodeMask;
+			for (uint32_t i = 0; i < pTexture->mDesc.mSharedNodeIndexCount; ++i)
+				heapProps.VisibleNodeMask |= (1 << pTexture->mDesc.pSharedNodeIndices[i]);
 
 			res = allocator->m_hDevice->CreateCommittedResource(
-				&props, heapFlags,
+				&heapProps, heapFlags,
 				pCreateInfo->pDesc, pCreateInfo->mStartState, pCreateInfo->pClearValue,
 				IID_ARGS(&pTexture->pDxResource));
 
@@ -1780,16 +1794,15 @@ HRESULT ResourceAllocator::AllocateMemoryOfType(
 				desc.SampleDesc = { 1, 0 };
 				desc.DepthOrArraySize = 1;
 
-				const D3D12_HEAP_PROPERTIES* pHeapProps = &gHeapProperties[memTypeIndex].mProps;
-
+				D3D12_HEAP_PROPERTIES heapProps = gHeapProperties[memTypeIndex].mProps;
 				D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
-				if (pHeapProps->Type == D3D12_HEAP_TYPE_UPLOAD)
+				if (heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
 					state = D3D12_RESOURCE_STATE_GENERIC_READ;
-				else if (pHeapProps->Type == D3D12_HEAP_TYPE_READBACK)
+				else if (heapProps.Type == D3D12_HEAP_TYPE_READBACK)
 					state = D3D12_RESOURCE_STATE_COPY_DEST;
 
 				ID3D12Resource* mem = NULL;
-				res = m_hDevice->CreateCommittedResource(pHeapProps, D3D12_HEAP_FLAG_NONE, &desc, state, NULL, IID_ARGS(&mem));
+				res = m_hDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, state, NULL, IID_ARGS(&mem));
 				mem->SetName(L"BLOCK RESOURCE");
 
 				if (!SUCCEEDED(res))

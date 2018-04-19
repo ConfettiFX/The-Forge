@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="VisibilityBuffer" Database="VisibilityBuffer.tags">
+  <Project Name="OSBase" Path="OSBase/OSBase.project" Active="No"/>
+  <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
+  <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
+  <Project Name="VisibilityBuffer" Path="VisibilityBuffer/VisibilityBuffer.project" Active="Yes"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
+      <Environment/>
+      <Project Name="OS" ConfigName="Debug"/>
+      <Project Name="Renderer" ConfigName="Debug"/>
+      <Project Name="SpirVTools" ConfigName="Debug"/>
+      <Project Name="VisibilityBuffer" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="no">
+      <Environment/>
+      <Project Name="OS" ConfigName="Release"/>
+      <Project Name="Renderer" ConfigName="Release"/>
+      <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="VisibilityBuffer" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

@@ -28,26 +28,27 @@
 // using Responsive Real-Time Grass Rendering for General 3D Scenes
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //ui
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 /// Camera Controller
 #define GUI_CAMERACONTROLLER 1
@@ -152,6 +153,9 @@ LogManager gLogManager;
 Timer gAccumTimer;
 HiresTimer gTimer;
 
+UIApp gAppUI = {};
+GuiComponent* pGui;
+
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
@@ -211,9 +215,6 @@ Fence*           pRenderCompleteFences[gImageCount] = { nullptr };
 Semaphore*       pImageAcquiredSemaphore = nullptr;
 Semaphore*       pRenderCompleteSemaphores[gImageCount] = { nullptr };
 
-
-
-
 Sampler*         pSampler = nullptr;
 DepthState*      pDepth = nullptr;
 RasterizerState* pRast = nullptr;
@@ -260,13 +261,7 @@ uint32_t         gFrameIndex = 0;
 
 GrassUniformBlock gGrassUniformData;
 
-// UI
-Gui*	   pGuiWindow = nullptr;
-UIManager* pUIManager = nullptr;
-
-GpuProfiler* pGpuProfilerforGrass = nullptr;
-GpuProfiler* pGpuProfiler = nullptr;
-
+GpuProfiler*	pGpuProfiler = nullptr;
 
 unsigned StartTime = 0;
 
@@ -274,6 +269,8 @@ struct ObjectProperty
 {
 	float rotX = 0, rotY = 0;
 } gObjSettings;
+
+DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 
 class Tessellation : public IApp
 {
@@ -313,6 +310,8 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+
 #ifndef METAL
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 #endif
@@ -480,16 +479,15 @@ public:
 		normalize(gCameraProp.mCameraRight);
 #endif
 
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
-
 		GuiDesc guiDesc = {};
-
 		guiDesc.mStartSize = vec2(300.0f, 250.0f);
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
-		addGui(pUIManager, &guiDesc, &pGuiWindow);
+
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
 		static const char* enumNames[] = {
 			"SOLID",
@@ -513,23 +511,14 @@ public:
 			0
 		};
 
-		UIProperty fillModeProp = UIProperty("Fill Mode : ", gFillMode, enumNames, enumValues);
-		UIProperty windModeProp = UIProperty("Wind Mode : ", gWindMode, enumWindNames, enumWindValues);
+		pGui->AddProperty(UIProperty("Fill Mode : ", gFillMode, enumNames, enumValues));
+		pGui->AddProperty(UIProperty("Wind Mode : ", gWindMode, enumWindNames, enumWindValues));
 
-		UIProperty windSpeedProp = UIProperty("Wind Speed : ", gWindSpeed, 1.0f, 100.0f);
-		UIProperty windWidthProp = UIProperty("Wave Width : ", gWindWidth, 1.0f, 20.0f);
-		UIProperty windStrProp = UIProperty("Wind Strength : ", gWindStrength, 1.0f, 100.0f);
+		pGui->AddProperty(UIProperty("Wind Speed : ", gWindSpeed, 1.0f, 100.0f));
+		pGui->AddProperty(UIProperty("Wave Width : ", gWindWidth, 1.0f, 20.0f));
+		pGui->AddProperty(UIProperty("Wind Strength : ", gWindStrength, 1.0f, 100.0f));
 
-		UIProperty maxLevelProp = UIProperty("Max Tessellation Level : ", gMaxTessellationLevel, 1, 10);
-
-		addProperty(pGuiWindow, &fillModeProp);
-		addProperty(pGuiWindow, &windModeProp);
-
-		addProperty(pGuiWindow, &windSpeedProp);
-		addProperty(pGuiWindow, &windWidthProp);
-		addProperty(pGuiWindow, &windStrProp);
-
-		addProperty(pGuiWindow, &maxLevelProp);
+		pGui->AddProperty(UIProperty("Max Tessellation Level : ", gMaxTessellationLevel, 1, 10));
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
@@ -563,9 +552,12 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 		destroyCameraController(pCameraController);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		removeResource(pBladeStorageBuffer);
 		removeResource(pCulledBladeStorageBuffer);
@@ -580,9 +572,6 @@ public:
 #ifdef TARGET_IOS
         removeResource(pVirtualJoystickTex);
 #endif
-
-		removeGui(pUIManager, pGuiWindow);
-		removeUIManagerInterface(pRenderer, pUIManager);
 
 		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
 
@@ -638,6 +627,9 @@ public:
 			return false;
 
 		if (!addDepthBuffer())
+			return false;
+
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
 		VertexLayout vertexLayout = {};
@@ -710,7 +702,9 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pGrassPipeline);
 		removePipeline(pRenderer, pGrassPipelineForWireframe);
@@ -769,7 +763,7 @@ public:
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
-		updateGui(pUIManager, pGuiWindow, deltaTime);
+		gAppUI.Update(deltaTime);
 		/************************************************************************/
 		/************************************************************************/
 	}
@@ -911,42 +905,42 @@ public:
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		static HiresTimer timer;
-		cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
+		timer.GetUSec(true);
+
+		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
         
 #ifdef TARGET_IOS
         // Draw the camera controller's virtual joysticks.
         float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
         float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
         
-        vec2 joystickSize = vec2(extSide);
+        float2 joystickSize = float2(extSide);
         vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        vec2 leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
+        float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
         vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        vec2 rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+        float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
         
-        joystickSize = vec2(intSide);
+        joystickSize = float2(intSide);
         leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
+        leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
         rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+        rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
 
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", timer.GetUSec(true) / 1000.0f);
 #ifndef METAL // Metal doesn't support GPU profilers
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 40 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
+		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
 #ifndef TARGET_IOS
-		cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
+		gAppUI.Gui(pGui);
 #endif
 
-		cmdUIDrawGpuProfileData(cmd, pUIManager, { 8, 65 }, pGpuProfiler);
-		cmdUIEndRender(cmd, pUIManager);
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+		gAppUI.Draw(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
@@ -962,19 +956,20 @@ public:
 		FenceStatus fenceStatus;
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	String GetName()
 	{
-		return "_07_Tessellation";
+		return "UnitTest_07_Tessellation";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
@@ -1050,7 +1045,7 @@ public:
 		cmdResourceBarrier(ppCmds[0], 0, NULL, 1, &barrier, false);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, ppCmds, pRenderCompleteFences[0], 0, NULL, 0, NULL);
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
 	}
 #endif
 

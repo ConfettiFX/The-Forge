@@ -14,6 +14,8 @@
     <File Name="../../../../Common_3/OS/Core/RingBuffer.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>
+    <File Name="../../../../Common_3/OS/Core/DebugRenderer.cpp"/>
+    <File Name="../../../../Common_3/OS/Core/DebugRenderer.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Image">
     <File Name="../../../../Common_3/OS/Image/Image.cpp"/>
@@ -63,16 +65,15 @@
     <File Name="../../../../Common_3/OS/MemoryTracking/MemoryTrackingManager.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="UI">
-    <File Name="../../../../Common_3/OS/UI/Fontstash.cpp"/>
-    <File Name="../../../../Common_3/OS/UI/Fontstash.h"/>
-    <File Name="../../../../Common_3/OS/UI/NuklearGUIDriver.cpp"/>
-    <File Name="../../../../Common_3/OS/UI/NuklearGUIDriver.h"/>
-    <File Name="../../../../Common_3/OS/UI/UI.cpp"/>
-    <File Name="../../../../Common_3/OS/UI/UI.h"/>
-    <File Name="../../../../Common_3/OS/UI/UIManager.cpp"/>
-    <File Name="../../../../Common_3/OS/UI/UIRenderer.cpp"/>
-    <File Name="../../../../Common_3/OS/UI/UIRenderer.h"/>
-    <File Name="../../../../Common_3/OS/UI/UIShaders.h"/>
+    <File Name="../../../../Middleware_3/UI/AppUI.cpp"/>
+    <File Name="../../../../Middleware_3/UI/AppUI.h"/>
+    <File Name="../../../../Middleware_3/UI/Fontstash.cpp"/>
+    <File Name="../../../../Middleware_3/UI/Fontstash.h"/>
+    <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.cpp"/>
+    <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.h"/>
+    <File Name="../../../../Middleware_3/UI/UIRenderer.cpp"/>
+    <File Name="../../../../Middleware_3/UI/UIRenderer.h"/>
+    <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Windows">
     <File Name="../../../../Common_3/OS/Windows/resource.h" ExcludeProjConfig="Debug;Release"/>

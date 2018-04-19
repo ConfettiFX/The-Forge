@@ -27,26 +27,27 @@
 
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
 
 //Renderer
-#include "../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 
 /// Camera Controller
@@ -132,10 +133,10 @@ struct UniformLightData
 	Light mLights[16]; // array of lights seem to be broken so just a single light for now
 };
 
-const uint32_t			    gImageCount = 3;
+const uint32_t				gImageCount = 3;
 
-Renderer*				    pRenderer = nullptr;
-UIManager*					pUIManager = nullptr;
+Renderer*					pRenderer = nullptr;
+UIApp						gAppUI;
 
 Queue*						pGraphicsQueue = nullptr;
 CmdPool*					pCmdPool = nullptr;
@@ -152,18 +153,18 @@ Shader*						pShaderBRDF = nullptr;
 Pipeline*					pPipelineBRDF = nullptr;
 RootSignature*				pRootSigBRDF = nullptr;
 
-Buffer*                     pSkyboxVertexBuffer = nullptr;
-Shader*                     pSkyboxShader = nullptr;
-Pipeline*                   pSkyboxPipeline = nullptr;
-RootSignature*              pSkyboxRootSignature = nullptr;
+Buffer*						pSkyboxVertexBuffer = nullptr;
+Shader*						pSkyboxShader = nullptr;
+Pipeline*					pSkyboxPipeline = nullptr;
+RootSignature*				pSkyboxRootSignature = nullptr;
 
-Texture*                    pSkybox = nullptr;
-Texture*                    pBRDFIntegrationMap = nullptr;
-Texture*                    pIrradianceMap = nullptr;
-Texture*                    pSpecularMap = nullptr;
+Texture*					pSkybox = nullptr;
+Texture*					pBRDFIntegrationMap = nullptr;
+Texture*					pIrradianceMap = nullptr;
+Texture*					pSpecularMap = nullptr;
 
 #ifdef TARGET_IOS
-Texture*                    pVirtualJoystickTex = nullptr;
+Texture*					pVirtualJoystickTex = nullptr;
 #endif
 
 UniformObjData				pUniformDataMVP;
@@ -211,6 +212,8 @@ tinystl::vector<Buffer*>	gSphereBuffers;
 
 ICameraController*			pCameraController = nullptr;
 
+DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+
 void transitionRenderTargets()
 {
 	// Transition render targets to desired state
@@ -223,7 +226,7 @@ void transitionRenderTargets()
 	cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers, false);
 	endCmd(ppCmds[0]);
 	queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0]);
+	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
 }
 
 // Compute PBR maps (skybox, BRDF Integration Map, Irradiance Map and Specular Map).
@@ -411,11 +414,11 @@ void computePBRMaps()
     cmdDispatch(cmd, gSkyboxSize / pThreadGroupSize[0], gSkyboxSize / pThreadGroupSize[1], 6);
     endCmd(cmd);
     queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-    waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence);
+    waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
     
     // Upload the cubemap skybox's CPU image contents to the GPU.
     memcpy(skyboxImgBuff, pSkyBuffer->pCpuMappedAddress, skyboxSize);
-    TextureLoadDesc skyboxUpload;
+	TextureLoadDesc skyboxUpload = {};
     skyboxUpload.pImage = &skyboxImg;
     skyboxUpload.ppTexture = &pSkybox;
     addResource(&skyboxUpload);
@@ -444,16 +447,16 @@ void computePBRMaps()
     cmdDispatch(cmd, gSpecularSize / pThreadGroupSize[0], gSpecularSize / pThreadGroupSize[1], 6);
     endCmd(cmd);
     queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-    waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence);
+    waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
     
     // Upload both the irradiance and specular maps to GPU.
     memcpy(irrImgBuff, pIrrBuffer->pCpuMappedAddress, irrSize);
     memcpy(specImgBuff, pSpecBuffer->pCpuMappedAddress, specSize);
-    TextureLoadDesc irrUpload;
+	TextureLoadDesc irrUpload = {};
     irrUpload.pImage = &irrImg;
     irrUpload.ppTexture = &pIrradianceMap;
     addResource(&irrUpload);
-    TextureLoadDesc specUpload;
+	TextureLoadDesc specUpload = {};
     specUpload.pImage = &specImg;
     specUpload.ppTexture = &pSpecularMap;
     addResource(&specUpload);
@@ -510,6 +513,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
         
 #ifdef TARGET_IOS
         // Add virtual joystick texture.
@@ -722,9 +726,10 @@ public:
 		updateResource(&lightBuffUpdateDesc);
 
 		// Create UI
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
@@ -756,11 +761,13 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 #if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
 #endif
+
+		removeDebugRendererInterface();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)	
 		{
@@ -786,7 +793,7 @@ public:
         removeResource(pSkyboxVertexBuffer);
 		removeResource(pSphereVertexBuffer);
 
-		removeUIManagerInterface(pRenderer, pUIManager);
+		gAppUI.Exit();
 
 		removeShader(pRenderer, pShaderBRDF);
         removeShader(pRenderer, pSkyboxShader);
@@ -819,6 +826,9 @@ public:
 			return false;
 
 		if (!addDepthBuffer())
+			return false;
+
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
 		// Create vertex layout
@@ -885,7 +895,9 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipelineBRDF);
 		removePipeline(pRenderer, pSkyboxPipeline);
@@ -1003,38 +1015,40 @@ public:
 
 		// Prepare UI command buffers
 		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, NULL);
-		cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
+
 		static HiresTimer gTimer;
-        
+		gTimer.GetUSec(true);
+
 #ifdef TARGET_IOS
-        // Draw the camera controller's virtual joysticks.
-        float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-        float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-        
-        vec2 joystickSize = vec2(extSide);
-        vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        vec2 leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        vec2 rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
-        
-        joystickSize = vec2(intSide);
-        leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+		// Draw the camera controller's virtual joysticks.
+		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
+		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
+
+		float2 joystickSize = float2(extSide);
+		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
+		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
+		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+
+		joystickSize = float2(intSide);
+		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
+		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
+		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
-        
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", gTimer.GetUSec(true) / 1000.0f);
+
+		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 30 }, "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
+		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 
-		cmdUIEndRender(cmd, pUIManager);
+		gAppUI.Draw(cmd);
+
 		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 
 		// Transition our texture to present state
@@ -1050,20 +1064,21 @@ public:
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 		{
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
 	}
 
 	String GetName()
 	{
-		return "_06_BRDF";
+		return "UnitTest_06_BRDF";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;

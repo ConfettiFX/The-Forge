@@ -49,7 +49,7 @@ typedef struct SceneVertexPos
 
 typedef struct SceneVertexTexCoord
 {
-#if defined(METAL)
+#if defined(METAL) || defined(LINUX)
     float u,v;      // texture coords
 #else
 	uint32_t texCoord;
@@ -58,7 +58,7 @@ typedef struct SceneVertexTexCoord
 
 typedef struct SceneVertexNormal
 {
-#if defined(METAL)
+#if defined(METAL) || defined(LINUX)
 	float nx, ny, nz; // normals
 #else
 	uint32_t normal;
@@ -67,7 +67,7 @@ typedef struct SceneVertexNormal
 
 typedef struct SceneVertexTangent
 {
-#if defined(METAL)
+#if defined(METAL) || defined(LINUX)
 	float tx, ty, tz; // tangents
 #else
 	uint32_t tangent;

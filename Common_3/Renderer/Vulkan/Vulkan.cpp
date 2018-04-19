@@ -242,6 +242,10 @@ namespace RENDERER_CPP_NAMESPACE {
 	  VK_KHR_DISPLAY_EXTENSION_NAME,
 	  VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME,
 	  /************************************************************************/
+	  // Multi GPU Extensions
+	  /************************************************************************/
+	  VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME,
+	  /************************************************************************/
 	  /************************************************************************/
    };
 
@@ -269,6 +273,10 @@ namespace RENDERER_CPP_NAMESPACE {
 	  VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
 	  VK_AMD_GCN_SHADER_EXTENSION_NAME,
 	  /************************************************************************/
+	  // Multi GPU Extensions
+	  /************************************************************************/
+	  VK_KHR_DEVICE_GROUP_EXTENSION_NAME,
+	  /************************************************************************/
 	  /************************************************************************/
    };
 
@@ -277,6 +285,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	static bool	gDedicatedAllocationExtension = false;
 	static bool	gExternalMemoryExtension = false;
 	static bool	gDrawIndirectCountAMDExtension = false;
+	static bool gDeviceGroupCreationExtension = false;
 	// =================================================================================================
 	// IMPLEMENTATION
 	// =================================================================================================
@@ -318,97 +327,11 @@ namespace RENDERER_CPP_NAMESPACE {
 	void RemoveInstance(Renderer* pRenderer);
 	void AddDevice(Renderer* pRenderer);
 	void RemoveDevice(Renderer* pRenderer);
-  /************************************************************************/
-  // Memory Manager Data Structures
-  /************************************************************************/
-  // Memory allocation #2 after VmaAllocator_T definition
 
-  typedef struct DynamicMemoryAllocator
-  {
-	  /// Size of mapped resources to be created
-	  uint64_t mSize;
-	  /// Current offset in the used page
-	  uint64_t mCurrentPos;
-	  /// Buffer alignment
-	  uint64_t mAlignment;
-	  Buffer* pBuffer;
-
-	  Mutex* pAllocationMutex;
-  } DynamicMemoryAllocator;
-
-  void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-  void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-  void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-  void removeTexture(Renderer* pRenderer, Texture* pTexture);
-
-  void add_dynamic_memory_allocator(Renderer* pRenderer, uint64_t size, DynamicMemoryAllocator** ppAllocator)
-  {
-	  ASSERT(pRenderer);
-
-	  DynamicMemoryAllocator* pAllocator = (DynamicMemoryAllocator*)conf_calloc(1, sizeof(*pAllocator));
-	  pAllocator->mCurrentPos = 0;
-	  pAllocator->mSize = size;
-	  pAllocator->pAllocationMutex = conf_placement_new<Mutex>(conf_calloc(1, sizeof(Mutex)));
-
-	  BufferDesc desc = {};
-	  desc.mUsage = (BufferUsage)(BUFFER_USAGE_INDEX | BUFFER_USAGE_VERTEX | BUFFER_USAGE_UNIFORM);
-	  desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	  desc.mSize = pAllocator->mSize;
-	  desc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	  addBuffer(pRenderer, &desc, &pAllocator->pBuffer);
-
-	  pAllocator->mAlignment = pRenderer->pActiveGpuSettings->mUniformBufferAlignment;
-
-	  *ppAllocator = pAllocator;
-  }
-
-  void remove_dynamic_memory_allocator(Renderer* pRenderer, DynamicMemoryAllocator* pAllocator)
-  {
-	  ASSERT(pAllocator);
-
-	  removeBuffer(pRenderer, pAllocator->pBuffer);
-
-	  pAllocator->pAllocationMutex->~Mutex();
-	  conf_free(pAllocator->pAllocationMutex);
-
-	  SAFE_FREE(pAllocator);
-  }
-
-  void reset_dynamic_memory_allocator(DynamicMemoryAllocator* pAllocator)
-  {
-	  ASSERT(pAllocator);
-	  pAllocator->mCurrentPos = 0;
-  }
-
-  void consume_dynamic_memory_allocator(DynamicMemoryAllocator* p_linear_allocator, uint64_t size, void** ppCpuAddress, uint64_t* pOffset, VkBuffer* ppVkBuffer = NULL)
-  {
-	  MutexLock lock(*p_linear_allocator->pAllocationMutex);
-
-	  if (p_linear_allocator->mCurrentPos + size > p_linear_allocator->mSize)
-		  reset_dynamic_memory_allocator(p_linear_allocator);
-
-	  *ppCpuAddress = (uint8_t*)p_linear_allocator->pBuffer->pCpuMappedAddress + p_linear_allocator->mCurrentPos;
-	  *pOffset = p_linear_allocator->mCurrentPos;
-	  if (ppVkBuffer)
-		  *ppVkBuffer = p_linear_allocator->pBuffer->pVkBuffer;
-
-	  // Increment position by multiple of 256 to use CBVs in same heap as other buffers
-	  p_linear_allocator->mCurrentPos += round_up_64(size, p_linear_allocator->mAlignment);
-  }
-
-  void consume_dynamic_memory_allocator_lock_free(DynamicMemoryAllocator* p_linear_allocator, uint64_t size, void** ppCpuAddress, uint64_t* pOffset, VkBuffer* ppVkBuffer = NULL)
-  {
-	  if (p_linear_allocator->mCurrentPos + size > p_linear_allocator->mSize)
-		  reset_dynamic_memory_allocator(p_linear_allocator);
-
-	  *ppCpuAddress = (uint8_t*)p_linear_allocator->pBuffer->pCpuMappedAddress + p_linear_allocator->mCurrentPos;
-	  *pOffset = p_linear_allocator->mCurrentPos;
-	  if (ppVkBuffer)
-		  *ppVkBuffer = p_linear_allocator->pBuffer->pVkBuffer;
-
-	  // Increment position by multiple of 256 to use CBVs in same heap as other buffers
-	  p_linear_allocator->mCurrentPos += round_up_64(size, p_linear_allocator->mAlignment);
-  }
+	void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+	void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+	void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+	void removeTexture(Renderer* pRenderer, Texture* pTexture);
   /************************************************************************/
   // DescriptorInfo Heap Defines
   /************************************************************************/
@@ -732,7 +655,9 @@ namespace RENDERER_CPP_NAMESPACE {
 	  // This way we will call updateDescriptorSet for a particular set of descriptors only once
 	  // Then we only need to do a look up into the mDescriptorSetMap with pHash[setIndex] as the key and retrieve the DescriptorSet* value
 	  uint64_t* pHash = (uint64_t*)alloca(setCount * sizeof(uint64_t));
-
+	  // Initialize this memory to zero
+	  memset(pHash, 0, setCount * sizeof(uint64_t));
+	  
 	  // Loop through input params to check for new data
 	  for (uint32_t i = 0; i < numDescriptors; ++i)
 	  {
@@ -1134,19 +1059,19 @@ namespace RENDERER_CPP_NAMESPACE {
   using FrameBufferMapNode = tinystl::unordered_hash_node<uint64_t, struct FrameBuffer*>;
 
   // RenderPass map per thread (this will make lookups lock free and we only need a lock when inserting a RenderPass Map for the first time)
-  tinystl::unordered_map<ThreadID, RenderPassMap >	mRenderPassMap;
+  tinystl::unordered_map<ThreadID, RenderPassMap >	gRenderPassMap;
   // FrameBuffer map per thread (this will make lookups lock free and we only need a lock when inserting a FrameBuffer map for the first time)
-  tinystl::unordered_map<ThreadID, FrameBufferMap >	mFrameBufferMap;
+  tinystl::unordered_map<ThreadID, FrameBufferMap >	gFrameBufferMap;
   Mutex												gRenderPassMutex;
 
   RenderPassMap& get_render_pass_map()
   {
-	  tinystl::unordered_hash_node<ThreadID, RenderPassMap>* pNode = mRenderPassMap.find(Thread::GetCurrentThreadID()).node;
+	  tinystl::unordered_hash_node<ThreadID, RenderPassMap>* pNode = gRenderPassMap.find(Thread::GetCurrentThreadID()).node;
 	  if (pNode == NULL)
 	  {
 		  // Only need a lock when creating a new renderpass map for this thread
 		  MutexLock lock(gRenderPassMutex);
-		  return mRenderPassMap.insert({ Thread::GetCurrentThreadID(),{} }).first->second;
+		  return gRenderPassMap.insert({ Thread::GetCurrentThreadID(),{} }).first->second;
 	  }
 	  else
 	  {
@@ -1156,12 +1081,12 @@ namespace RENDERER_CPP_NAMESPACE {
 
   FrameBufferMap& get_frame_buffer_map()
   {
-	  tinystl::unordered_hash_node<ThreadID, FrameBufferMap>* pNode = mFrameBufferMap.find(Thread::GetCurrentThreadID()).node;
+	  tinystl::unordered_hash_node<ThreadID, FrameBufferMap>* pNode = gFrameBufferMap.find(Thread::GetCurrentThreadID()).node;
 	  if (pNode == NULL)
 	  {
 		  // Only need a lock when creating a new framebuffer map for this thread
 		  MutexLock lock(gRenderPassMutex);
-		  return mFrameBufferMap.insert({ Thread::GetCurrentThreadID(),{} }).first->second;
+		  return gFrameBufferMap.insert({ Thread::GetCurrentThreadID(),{} }).first->second;
 	  }
 	  else
 	  {
@@ -1371,6 +1296,28 @@ namespace RENDERER_CPP_NAMESPACE {
 		return ImageFormat::BGRA8;
 	}
 	/************************************************************************/
+	// Multi GPU Helper Functions
+	/************************************************************************/
+	uint32_t util_calculate_shared_device_mask(uint32_t gpuCount)
+	{
+		return (1 << gpuCount) - 1;
+	}
+
+	void util_calculate_device_indices(Renderer* pRenderer, uint32_t nodeIndex, uint32_t* pSharedNodeIndices, uint32_t sharedNodeIndexCount, uint32_t* pIndices)
+	{
+		for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
+			pIndices[i] = i;
+
+		pIndices[nodeIndex] = nodeIndex;
+		/************************************************************************/
+		// Set the node indices which need sharing access to the creation node
+		// Example: Texture created on GPU0 but GPU1 will need to access it, GPU2 does not care
+		//			pIndices = { 0, 0, 2 }
+		/************************************************************************/
+		for (uint32_t i = 0; i < sharedNodeIndexCount; ++i)
+			pIndices[pSharedNodeIndices[i]] = nodeIndex;
+	}
+	/************************************************************************/
 	// Globals
 	/************************************************************************/
 	static volatile uint64_t gBufferIds = 0;
@@ -1461,13 +1408,16 @@ namespace RENDERER_CPP_NAMESPACE {
 		destroy_default_resources(pRenderer);
 
 		// Remove the renderpasses
-		for (tinystl::unordered_hash_node<ThreadID, RenderPassMap>& t : mRenderPassMap)
+		for (tinystl::unordered_hash_node<ThreadID, RenderPassMap>& t : gRenderPassMap)
 			for (RenderPassMapNode& it : t.second)
 				removeRenderPass(pRenderer, it.second);
 
-		for (tinystl::unordered_hash_node<ThreadID, FrameBufferMap>& t : mFrameBufferMap)
+		for (tinystl::unordered_hash_node<ThreadID, FrameBufferMap>& t : gFrameBufferMap)
 			for (FrameBufferMapNode& it : t.second)
 				removeFrameBuffer(pRenderer, it.second);
+
+		gRenderPassMap.clear();
+		gFrameBufferMap.clear();
 
 		// Destroy the Vulkan bits
 		remove_descriptor_heap(pRenderer, pRenderer->pDescriptorPool);
@@ -1604,16 +1554,17 @@ namespace RENDERER_CPP_NAMESPACE {
 		VkQueueFlags requiredFlags = util_to_vk_queue_flags(pDesc->mType);
 		uint32_t queueIndex = -1;
 		bool found = false;
+		const uint32_t nodeIndex = pDesc->mNodeIndex;
 
 		// Try to find a dedicated queue of this type
-		for (uint32_t index = 0; index < pRenderer->mVkActiveQueueFamilyPropertyCount; ++index) {
-			VkQueueFlags queueFlags = pRenderer->pVkActiveQueueFamilyProperties[index].queueFlags;
+		for (uint32_t index = 0; index < pRenderer->mVkQueueFamilyPropertyCount[nodeIndex]; ++index) {
+			VkQueueFlags queueFlags = pRenderer->mVkQueueFamilyProperties[nodeIndex][index].queueFlags;
 			if ((queueFlags & requiredFlags) &&
 				((queueFlags & ~requiredFlags) == 0) &&
-				pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags] < pRenderer->pVkActiveQueueFamilyProperties[index].queueCount) {
+				pRenderer->mUsedQueueCount[nodeIndex][queueFlags] < pRenderer->mVkQueueFamilyProperties[nodeIndex][index].queueCount) {
 				found = true;
 				queueFamilyIndex = index;
-				queueIndex = pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
+				queueIndex = pRenderer->mUsedQueueCount[nodeIndex][queueFlags];
 				break;
 			}
 		}
@@ -1621,13 +1572,13 @@ namespace RENDERER_CPP_NAMESPACE {
 		// If hardware doesn't provide a dedicated queue try to find a non-dedicated one
 		if (!found)
 		{
-			for (uint32_t index = 0; index < pRenderer->mVkActiveQueueFamilyPropertyCount; ++index) {
-				VkQueueFlags queueFlags = pRenderer->pVkActiveQueueFamilyProperties[index].queueFlags;
+			for (uint32_t index = 0; index < pRenderer->mVkQueueFamilyPropertyCount[nodeIndex]; ++index) {
+				VkQueueFlags queueFlags = pRenderer->mVkQueueFamilyProperties[nodeIndex][index].queueFlags;
 				if ((queueFlags & requiredFlags) &&
-					pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags] < pRenderer->pVkActiveQueueFamilyProperties[index].queueCount) {
+					pRenderer->mUsedQueueCount[nodeIndex][queueFlags] < pRenderer->mVkQueueFamilyProperties[nodeIndex][index].queueCount) {
 					found = true;
 					queueFamilyIndex = index;
-					queueIndex = pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
+					queueIndex = pRenderer->mUsedQueueCount[nodeIndex][queueFlags];
 					break;
 				}
 			}
@@ -1644,7 +1595,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		if (found)
 		{
-			VkQueueFlags queueFlags = pRenderer->pVkActiveQueueFamilyProperties[queueFamilyIndex].queueFlags;
+			VkQueueFlags queueFlags = pRenderer->mVkQueueFamilyProperties[nodeIndex][queueFamilyIndex].queueFlags;
 			Queue* pQueueToCreate = (Queue*)conf_calloc(1, sizeof(*pQueueToCreate));
 			pQueueToCreate->mVkQueueFamilyIndex = queueFamilyIndex;
 			pQueueToCreate->pRenderer = pRenderer;
@@ -1655,7 +1606,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			ASSERT(VK_NULL_HANDLE != pQueueToCreate->pVkQueue);
 			*ppQueue = pQueueToCreate;
 
-			++pRenderer->mUsedQueueCount[pRenderer->mActiveGPUIndex][queueFlags];
+			++pRenderer->mUsedQueueCount[nodeIndex][queueFlags];
 		}
 		else
 		{
@@ -1666,8 +1617,9 @@ namespace RENDERER_CPP_NAMESPACE {
 	void removeQueue(Queue* pQueue)
 	{
 		ASSERT(pQueue != NULL);
-		VkQueueFlags queueFlags = pQueue->pRenderer->pVkActiveQueueFamilyProperties[pQueue->mVkQueueFamilyIndex].queueFlags;
-		--pQueue->pRenderer->mUsedQueueCount[pQueue->pRenderer->mActiveGPUIndex][queueFlags];
+		const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
+		VkQueueFlags queueFlags = pQueue->pRenderer->mVkQueueFamilyProperties[nodeIndex][pQueue->mVkQueueFamilyIndex].queueFlags;
+		--pQueue->pRenderer->mUsedQueueCount[nodeIndex][queueFlags];
 		SAFE_FREE(pQueue);
 	}
 
@@ -1689,6 +1641,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 
 		pCmdPool->pRenderer = pRenderer;
+		pCmdPool->pQueue = pQueue;
 
 		DECLARE_ZERO(VkCommandPoolCreateInfo, add_info);
 		add_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1726,6 +1679,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pCmd);
 
 		pCmd->pCmdPool = pCmdPool;
+		pCmd->mNodeIndex = pCmdPool->pQueue->mQueueDesc.mNodeIndex;
 
 		DECLARE_ZERO(VkCommandBufferAllocateInfo, alloc_info);
 		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1735,6 +1689,12 @@ namespace RENDERER_CPP_NAMESPACE {
 		alloc_info.commandBufferCount = 1;
 		VkResult vk_res = vkAllocateCommandBuffers(pCmdPool->pRenderer->pDevice, &alloc_info, &(pCmd->pVkCmdBuf));
 		ASSERT(VK_SUCCESS == vk_res);
+
+		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
+		{
+			pCmd->pBoundColorFormats = (uint32_t*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(uint32_t));
+			pCmd->pBoundSrgbValues = (bool*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(bool));
+		}
 
 		*ppCmd = pCmd;
 	}
@@ -1749,6 +1709,12 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		if (pCmd->pDescriptorPool)
 			remove_descriptor_heap(pCmdPool->pRenderer, pCmd->pDescriptorPool);
+
+		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
+		{
+			SAFE_FREE(pCmd->pBoundColorFormats);
+			SAFE_FREE(pCmd->pBoundSrgbValues);
+		}
 
 		vkFreeCommandBuffers(pCmdPool->pRenderer->pDevice, pCmdPool->pVkCmdPool, 1, &(pCmd->pVkCmdBuf));
 
@@ -1931,17 +1897,18 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE;
 		uint32_t queue_family_index_count = 0;
-		uint32_t queue_family_indices[2] = { pDesc->pQueue->mVkQueueFamilyIndex, 0 };
+		uint32_t queue_family_indices[2] = { pDesc->ppPresentQueues[0]->mVkQueueFamilyIndex, 0 };
 		uint32_t presentQueueFamilyIndex = -1;
+		uint32_t nodeIndex = 0;
 
 		// Check if hardware provides dedicated present queue
-		if (0 != pRenderer->mVkActiveQueueFamilyPropertyCount)
+		if (0 != pRenderer->mVkQueueFamilyPropertyCount[nodeIndex])
 		{
-			for (uint32_t index = 0; index < pRenderer->mVkActiveQueueFamilyPropertyCount; ++index) {
+			for (uint32_t index = 0; index < pRenderer->mVkQueueFamilyPropertyCount[nodeIndex]; ++index) {
 				VkBool32 supports_present = VK_FALSE;
 				VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(pRenderer->pActiveGPU, index, pSwapChain->pVkSurface, &supports_present);
 				if ((VK_SUCCESS == res) && (VK_TRUE == supports_present) &&
-					pSwapChain->mDesc.pQueue->mVkQueueFamilyIndex != index) {
+					pSwapChain->mDesc.ppPresentQueues[0]->mVkQueueFamilyIndex != index) {
 					presentQueueFamilyIndex = index;
 					break;
 				}
@@ -1950,7 +1917,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			// If there is no dedicated present queue, just find the first available queue which supports present
 			if (presentQueueFamilyIndex == -1)
 			{
-				for (uint32_t index = 0; index < pRenderer->mVkActiveQueueFamilyPropertyCount; ++index) {
+				for (uint32_t index = 0; index < pRenderer->mVkQueueFamilyPropertyCount[nodeIndex]; ++index) {
 					VkBool32 supports_present = VK_FALSE;
 					VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(pRenderer->pActiveGPU, index, pSwapChain->pVkSurface, &supports_present);
 					if ((VK_SUCCESS == res) && (VK_TRUE == supports_present)) {
@@ -2105,8 +2072,36 @@ namespace RENDERER_CPP_NAMESPACE {
 		BufferCreateInfo alloc_info = { &add_info };
 		VkResult vk_res = (VkResult)createBuffer(pRenderer->pVmaAllocator, &alloc_info, &vma_mem_reqs, pBuffer);
 		ASSERT(VK_SUCCESS == vk_res);
-		pBuffer->mCurrentState = RESOURCE_STATE_UNDEFINED;
+		/************************************************************************/
+		// Buffer to be used on multiple GPUs
+		/************************************************************************/
+		if (pDesc->pSharedNodeIndices || pDesc->mNodeIndex)
+		{
+			/************************************************************************/
+			// Set all the device indices to the index of the device where we will create the buffer
+			/************************************************************************/
+			uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mNumOfGPUs * sizeof(uint32_t));
+			util_calculate_device_indices(pRenderer, pDesc->mNodeIndex, pDesc->pSharedNodeIndices, pDesc->mSharedNodeIndexCount, pIndices);
+			/************************************************************************/
+			// #TODO : Move this to the Vulkan memory allocator
+			/************************************************************************/
+			VkBindBufferMemoryInfoKHR bindInfo = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR };
+			VkBindBufferMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO_KHR };
+			bindDeviceGroup.deviceIndexCount = 2;
+			bindDeviceGroup.pDeviceIndices = pIndices;
+			bindInfo.buffer = pBuffer->pVkBuffer;
+			bindInfo.memory = pBuffer->pVkMemory->GetMemory();
+			bindInfo.memoryOffset = pBuffer->pVkMemory->GetOffset();
+			bindInfo.pNext = &bindDeviceGroup;
+			vkBindBufferMemory2KHR(pRenderer->pDevice, 1, &bindInfo);
+			/************************************************************************/
+			/************************************************************************/
+		}
 
+		pBuffer->mCurrentState = RESOURCE_STATE_UNDEFINED;
+		/************************************************************************/
+		// Set descriptor data
+		/************************************************************************/
 		if ((pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM)
 			|| (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV)
 			|| (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV))
@@ -2124,7 +2119,8 @@ namespace RENDERER_CPP_NAMESPACE {
 				pBuffer->mVkBufferInfo.offset = 0;
 			}
 		}
-
+		/************************************************************************/
+		/************************************************************************/
 		pBuffer->mBufferId = (++gBufferIds << 8U) + Thread::GetCurrentThreadID();
 
 		*pp_buffer = pBuffer;
@@ -2281,11 +2277,37 @@ namespace RENDERER_CPP_NAMESPACE {
 			TextureCreateInfo alloc_info = { &add_info };
 			VkResult vk_res = (VkResult)createTexture(pRenderer->pVmaAllocator, &alloc_info, &mem_reqs, pTexture);
 			ASSERT(VK_SUCCESS == vk_res);
+			/************************************************************************/
+			// Texture to be used on multiple GPUs
+			/************************************************************************/
+			if (pDesc->pSharedNodeIndices || pDesc->mNodeIndex)
+			{
+				/************************************************************************/
+				// Set all the device indices to the index of the device where we will create the texture
+				/************************************************************************/
+				uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mNumOfGPUs * sizeof(uint32_t));
+				util_calculate_device_indices(pRenderer, pDesc->mNodeIndex, pDesc->pSharedNodeIndices, pDesc->mSharedNodeIndexCount, pIndices);
+				/************************************************************************/
+				// #TODO : Move this to the Vulkan memory allocator
+				/************************************************************************/
+				VkBindImageMemoryInfoKHR bindInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO_KHR };
+				VkBindImageMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR };
+				bindDeviceGroup.deviceIndexCount = 2;
+				bindDeviceGroup.pDeviceIndices = pIndices;
+				bindInfo.image = pTexture->pVkImage;
+				bindInfo.memory = pTexture->pVkMemory->GetMemory();
+				bindInfo.memoryOffset = pTexture->pVkMemory->GetOffset();
+				bindInfo.pNext = &bindDeviceGroup;
+				vkBindImageMemory2KHR(pRenderer->pDevice, 1, &bindInfo);
+				/************************************************************************/
+				/************************************************************************/
+			}
 
 			pTexture->mCurrentState = RESOURCE_STATE_UNDEFINED;
 		}
-
+		/************************************************************************/
 		// Create image view
+		/************************************************************************/
 		{
 			VkImageViewType view_type = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
 			switch (pTexture->mDesc.mType)
@@ -2335,7 +2357,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		pTexture->mVkTextureView.imageView = pTexture->pVkImageView;
 
-		if (additionalFlags != 0)
+		if (additionalFlags != 0 && !(pTexture->mDesc.mUsage & TEXTURE_USAGE_UNORDERED_ACCESS))
 		{
 			if (additionalFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 				pTexture->mVkTextureView.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -2380,12 +2402,22 @@ namespace RENDERER_CPP_NAMESPACE {
 		textureDesc.mMipLevels = 1;
 		textureDesc.mSampleCount = pDesc->mSampleCount;
 		textureDesc.mSampleQuality = pDesc->mSampleQuality;
-		textureDesc.mStartState = (pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_DEPTH_WRITE;
-		// Set this by default to be able to sample the rendertarget in shader
-		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
 		textureDesc.mWidth = pDesc->mWidth;
 		textureDesc.pNativeHandle = pNativeHandle;
 		textureDesc.mSrgb = pDesc->mSrgb;
+		textureDesc.mNodeIndex = pDesc->mNodeIndex;
+		textureDesc.pSharedNodeIndices = pDesc->pSharedNodeIndices;
+		textureDesc.mSharedNodeIndexCount = pDesc->mSharedNodeIndexCount;
+
+		if (pDesc->mUsage & RENDER_TARGET_USAGE_COLOR)
+			textureDesc.mStartState |= RESOURCE_STATE_RENDER_TARGET;
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)
+			textureDesc.mStartState |= RESOURCE_STATE_DEPTH_WRITE;
+
+		// Set this by default to be able to sample the rendertarget in shader
+		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+		if (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)
+			textureDesc.mUsage |= TEXTURE_USAGE_UNORDERED_ACCESS;
 
 		switch (pDesc->mType)
 		{
@@ -2483,7 +2515,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		add_info.compareOp = gVkComparisonFuncTranslator[compareFunc];
 		add_info.minLod = 0.0f;
 		add_info.maxLod = magFilter >= FILTER_LINEAR ? FLT_MAX : 0.0f;
-		add_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+		add_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		add_info.unnormalizedCoordinates = VK_FALSE;
 
 		VkResult vk_res = vkCreateSampler(pRenderer->pDevice, &add_info, NULL, &(pSampler->pVkSampler));
@@ -3406,10 +3438,19 @@ namespace RENDERER_CPP_NAMESPACE {
 		vkResetCommandBuffer(pCmd->pVkCmdBuf, 0);
 
 		DECLARE_ZERO(VkCommandBufferBeginInfo, begin_info);
-		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;;
+		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		begin_info.pNext = NULL;
 		begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 		begin_info.pInheritanceInfo = NULL;
+
+		VkDeviceGroupCommandBufferBeginInfoKHR deviceGroupBeginInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_COMMAND_BUFFER_BEGIN_INFO_KHR };
+		deviceGroupBeginInfo.pNext = NULL;
+		if (pCmd->pCmdPool->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		{
+			deviceGroupBeginInfo.deviceMask = (1 << pCmd->mNodeIndex);
+			begin_info.pNext = &deviceGroupBeginInfo;
+		}
+
 		VkResult vk_res = vkBeginCommandBuffer(pCmd->pVkCmdBuf, &begin_info);
 		ASSERT(VK_SUCCESS == vk_res);
 
@@ -3452,6 +3493,9 @@ namespace RENDERER_CPP_NAMESPACE {
 			};
 			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
 			frameBufferHash = tinystl::hash_state(&ppRenderTargets[i]->pTexture->mTextureId, 1, frameBufferHash);
+
+			pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
+			pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
 		}
 		if (pDepthStencil)
 		{
@@ -3462,7 +3506,13 @@ namespace RENDERER_CPP_NAMESPACE {
 			};
 			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
 			frameBufferHash = tinystl::hash_state(&pDepthStencil->pTexture->mTextureId, 1, frameBufferHash);
+
+			pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
 		}
+
+		SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
+		pCmd->mBoundSampleCount = sampleCount;
+		pCmd->mBoundRenderTargetCount = renderTargetCount;
 
 		RenderPassMap& renderPassMap = get_render_pass_map();
 		FrameBufferMap& frameBufferMap = get_frame_buffer_map();
@@ -3483,7 +3533,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			ImageFormat::Enum colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
 			bool srgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = {};
 			ImageFormat::Enum depthStencilFormat = ImageFormat::NONE;
-			SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
 			for (uint32_t i = 0; i < renderTargetCount; ++i)
 			{
 				colorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
@@ -3529,6 +3578,9 @@ namespace RENDERER_CPP_NAMESPACE {
 		render_area.offset.y = 0;
 		render_area.extent.width = pFrameBuffer->mWidth;
 		render_area.extent.height = pFrameBuffer->mHeight;
+
+		pCmd->mBoundWidth = pFrameBuffer->mWidth;
+		pCmd->mBoundHeight = pFrameBuffer->mHeight;
 
 		DECLARE_ZERO(VkRenderPassBeginInfo, begin_info);
 		begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -4052,6 +4104,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			if (!ppSignalSemaphores[i]->mSignaled)
 			{
 				signal_semaphores[signalCount] = ppSignalSemaphores[i]->pVkSemaphore;
+				ppSignalSemaphores[i]->mCurrentNodeIndex = pQueue->mQueueDesc.mNodeIndex;
 				ppSignalSemaphores[signalCount]->mSignaled = true;
 				++signalCount;
 			}
@@ -4067,6 +4120,43 @@ namespace RENDERER_CPP_NAMESPACE {
 		submit_info.pCommandBuffers = cmds;
 		submit_info.signalSemaphoreCount = signalCount;
 		submit_info.pSignalSemaphores = signal_semaphores;
+
+		const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
+		VkDeviceGroupSubmitInfo deviceGroupSubmitInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO_KHR };
+		uint32_t* pDeviceMasks = NULL;
+		uint32_t* pSignalIndices = NULL;
+		uint32_t* pWaitIndices = NULL;
+
+		if (pQueue->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		{
+			deviceGroupSubmitInfo.pNext = NULL;
+			deviceGroupSubmitInfo.commandBufferCount = submit_info.commandBufferCount;
+			deviceGroupSubmitInfo.signalSemaphoreCount = submit_info.signalSemaphoreCount;
+			deviceGroupSubmitInfo.waitSemaphoreCount = submit_info.waitSemaphoreCount;
+
+			pDeviceMasks = (uint32_t*)alloca(deviceGroupSubmitInfo.commandBufferCount * sizeof(uint32_t));
+			pSignalIndices = (uint32_t*)alloca(deviceGroupSubmitInfo.signalSemaphoreCount * sizeof(uint32_t));
+			pWaitIndices = (uint32_t*)alloca(deviceGroupSubmitInfo.waitSemaphoreCount * sizeof(uint32_t));
+
+			for (uint32_t i = 0; i < deviceGroupSubmitInfo.commandBufferCount; ++i)
+			{
+				pDeviceMasks[i] = (1 << ppCmds[i]->mNodeIndex);
+			}
+			for (uint32_t i = 0; i < deviceGroupSubmitInfo.signalSemaphoreCount; ++i)
+			{
+				pSignalIndices[i] = pQueue->mQueueDesc.mNodeIndex;
+			}
+			for (uint32_t i = 0; i < deviceGroupSubmitInfo.waitSemaphoreCount; ++i)
+			{
+				pWaitIndices[i] = ppWaitSemaphores[i]->mCurrentNodeIndex;
+			}
+
+			deviceGroupSubmitInfo.pCommandBufferDeviceMasks = pDeviceMasks;
+			deviceGroupSubmitInfo.pSignalSemaphoreDeviceIndices = pSignalIndices;
+			deviceGroupSubmitInfo.pWaitSemaphoreDeviceIndices = pWaitIndices;
+			submit_info.pNext = &deviceGroupSubmitInfo;
+		}
+
 		VkResult vk_res = vkQueueSubmit(pQueue->pVkQueue, 1, &submit_info, pFence->pVkFence);
 		ASSERT(VK_SUCCESS == vk_res);
 
@@ -4115,7 +4205,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			ASSERT(VK_SUCCESS == vk_res);
 	}
 
-	void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences)
+	void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal)
 	{
 		ASSERT(pQueue);
 		ASSERT(fenceCount);
@@ -4573,7 +4663,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		app_info.pEngineName = "TheForge";
 		app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		app_info.apiVersion = VK_MAKE_VERSION(1, 0, 51);
+		app_info.apiVersion = VK_API_VERSION_1_1;
 
 		// Instance
 		{
@@ -4596,7 +4686,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			uint32_t extension_count = 0;
             const int wanted_extenstion_count = sizeof(gVkWantedInstanceExtensions) / sizeof(gVkWantedInstanceExtensions[0]);
 			// Layer extensions
-			for (uint32_t i = 0; i < pRenderer->mInstanceLayers.size(); ++i) {
+			for (uint32_t i = -1; i < pRenderer->mInstanceLayers.size(); ++i) {
 				const char* layer_name = pRenderer->mInstanceLayers[i];
 				uint32_t count = 0;
 				vkEnumerateInstanceExtensionProperties(layer_name, &count, NULL);
@@ -4631,6 +4721,8 @@ namespace RENDERER_CPP_NAMESPACE {
                               pRenderer->gVkInstanceExtensions[extension_count++] = gVkWantedInstanceExtensions[k];
                               // clear wanted extenstion so we dont load it more then once
                               //gVkWantedInstanceExtensions[k] = "";
+							  if (strcmp(gVkWantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
+								  gDeviceGroupCreationExtension = true;
                               break;
                           }
                        }
@@ -4694,16 +4786,59 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVKInstance);
 
-		VkResult vk_res = vkEnumeratePhysicalDevices(pRenderer->pVKInstance, &(pRenderer->mNumOfGPUs), NULL);
-		ASSERT(VK_SUCCESS == vk_res);
-		ASSERT(pRenderer->mNumOfGPUs > 0);
+		VkDeviceGroupDeviceCreateInfoKHR deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
+		tinystl::vector<VkPhysicalDeviceGroupPropertiesKHR> props;
+		VkResult vk_res = VK_RESULT_MAX_ENUM;
 
-		if (pRenderer->mNumOfGPUs > MAX_GPUS) {
-			pRenderer->mNumOfGPUs = MAX_GPUS;
+		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		{
+			// (not shown) fill out devCreateInfo as usual.
+			uint32_t deviceGroupCount = 0;
+
+			// Query the number of device groups
+			vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVKInstance, &deviceGroupCount, NULL);
+
+			// Allocate and initialize structures to query the device groups
+			props.resize(deviceGroupCount);
+			for (uint32_t i = 0; i < deviceGroupCount; ++i) {
+				props[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
+				props[i].pNext = NULL;
+			}
+			vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVKInstance, &deviceGroupCount, props.data());
+			ASSERT(VK_SUCCESS == vk_res);
+
+			// If the first device group has more than one physical device. create
+			// a logical device using all of the physical devices.
+			if (props[0].physicalDeviceCount > 1)
+			{
+				deviceGroupInfo.physicalDeviceCount = props[0].physicalDeviceCount;
+				deviceGroupInfo.pPhysicalDevices = props[0].physicalDevices;
+				pRenderer->mNumOfGPUs = deviceGroupInfo.physicalDeviceCount;
+				ASSERT(pRenderer->mNumOfGPUs > 1);
+
+				if (pRenderer->mNumOfGPUs > MAX_GPUS)
+				{
+					pRenderer->mNumOfGPUs = MAX_GPUS;
+				}
+
+				for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
+					pRenderer->pGPUs[i] = deviceGroupInfo.pPhysicalDevices[i];
+			}
 		}
+		else
+		{
+			vk_res = vkEnumeratePhysicalDevices(pRenderer->pVKInstance, &(pRenderer->mNumOfGPUs), NULL);
+			ASSERT(VK_SUCCESS == vk_res);
+			ASSERT(pRenderer->mNumOfGPUs > 0);
 
-		vk_res = vkEnumeratePhysicalDevices(pRenderer->pVKInstance, &(pRenderer->mNumOfGPUs), pRenderer->pGPUs);
-		ASSERT(VK_SUCCESS == vk_res);
+			if (pRenderer->mNumOfGPUs > MAX_GPUS)
+			{
+				pRenderer->mNumOfGPUs = MAX_GPUS;
+			}
+
+			vk_res = vkEnumeratePhysicalDevices(pRenderer->pVKInstance, &(pRenderer->mNumOfGPUs), pRenderer->pGPUs);
+			ASSERT(VK_SUCCESS == vk_res);
+		}
 
 		typedef struct VkQueueFamily
 		{
@@ -4716,7 +4851,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		// Find gpu that supports atleast graphics
 		pRenderer->mActiveGPUIndex = UINT32_MAX;
 		DECLARE_ZERO(VkQueueFamilyProperties, mQueueProperties);
-		for (uint32_t gpu_index = 0; gpu_index < pRenderer->mNumOfGPUs; ++gpu_index) {
+		for (uint32_t gpu_index = 0; gpu_index < pRenderer->mNumOfGPUs; ++gpu_index)
+		{
 			VkPhysicalDevice gpu = pRenderer->pGPUs[gpu_index];
 			uint32_t count = 0;
 			//get count of queue families
@@ -4807,8 +4943,6 @@ namespace RENDERER_CPP_NAMESPACE {
 		pRenderer->pVkActiveGPUProperties = &pRenderer->mVkGpuProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pVkActiveGpuMemoryProperties = &pRenderer->mVkGpuMemoryProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[pRenderer->mActiveGPUIndex];
-		pRenderer->mVkActiveQueueFamilyPropertyCount = pRenderer->mVkQueueFamilyPropertyCount[pRenderer->mActiveGPUIndex];
-		pRenderer->pVkActiveQueueFamilyProperties = pRenderer->mVkQueueFamilyProperties[pRenderer->mActiveGPUIndex];
 
 		uint32_t queueCount = 1;
 
@@ -4894,6 +5028,13 @@ namespace RENDERER_CPP_NAMESPACE {
 		create_info.enabledExtensionCount = extension_count;
 		create_info.ppEnabledExtensionNames = pRenderer->gVkDeviceExtensions;
 		create_info.pEnabledFeatures = &gpu_features;
+		/************************************************************************/
+		// Add Device Group Extension if requested and available
+		/************************************************************************/
+		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		{
+			create_info.pNext = &deviceGroupInfo;
+		}
 		vk_res = vkCreateDevice(pRenderer->pActiveGPU, &create_info, NULL, &(pRenderer->pDevice));
 		ASSERT(VK_SUCCESS == vk_res);
 

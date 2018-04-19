@@ -47,31 +47,32 @@
 #include "Random.h"
 
 //TinySTL
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
 
 //Renderer
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 //PostProcess
-#include "../../Middleware_3/PaniniProjection/AppPanini.h"
+#include "../../../../Middleware_3/PaniniProjection/AppPanini.h"
 #endif
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 #define GUI_CAMERACONTROLLER 1
 #define FPS_CAMERACONTROLLER 2
@@ -119,14 +120,14 @@ const char* pszRoots[] =
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-    "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/Binary/",		// FSR_BinShaders
-    "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/",			// FSR_SrcShaders
+    "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/Binary/",							// FSR_BinShaders
+    "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/",								// FSR_SrcShaders
     "../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders_Common
-    "../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/",		// FSR_SrcShaders_Common
-    "../../../UnitTestResources/Textures/",							// FSR_Textures
-    "../../../UnitTestResources/Meshes/",							// FSR_Meshes
-    "../../../UnitTestResources/Fonts/",							// FSR_Builtin_Fonts
-    "",																// FSR_OtherFiles
+    "../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/",			// FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",												// FSR_Textures
+	"../../../UnitTestResources/Meshes/",												// FSR_Meshes
+	"../../../UnitTestResources/Fonts/",												// FSR_Builtin_Fonts
+	"",																					// FSR_OtherFiles
 };
 #endif
 
@@ -282,11 +283,11 @@ Buffer*					pStaticAsteroidBuffer = nullptr;
 Buffer*					pDynamicAsteroidBuffer = nullptr;
 
 // UI
-UIManager*				pUIManager = nullptr;
-Gui*					pGuiWindow = nullptr;
+UIApp					gAppUI;
+GuiComponent*			pGui;
 ICameraController*		pCameraController = nullptr;
 #ifdef TARGET_IOS
-Texture*                pVirtualJoystickTex = nullptr;
+Texture*				pVirtualJoystickTex = nullptr;
 #endif
 
 GpuProfiler*			pGpuProfiler = nullptr;
@@ -348,14 +349,14 @@ float					skyBoxPoints[] = {
 };
 
 // Panini Projection state and parameter variables
-#if !defined(TARGET_IOS) && !defined(LINUX)
-AppPanini			gPanini;
-PaniniParameters	gPaniniParams;
+#if !defined(TARGET_IOS)
+AppPanini				gPanini;
+PaniniParameters		gPaniniParams;
 #endif
-DynamicUIControls	gPaniniControls;
-RenderTarget*		pIntermediateRenderTarget = nullptr;
-bool				gbPaniniEnabled = false;
-void paniniToggleCallback(bool bPaniniToggle){ gbPaniniEnabled = bPaniniToggle; }
+DynamicUIControls		gPaniniControls;
+RenderTarget*			pIntermediateRenderTarget = nullptr;
+bool					gbPaniniEnabled = false;
+DebugTextDrawDesc		gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 
 class ExecuteIndirect : public IApp
 {
@@ -385,6 +386,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
+		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -648,13 +650,12 @@ public:
 		finishResourceLoading();
 
 		/* UI and Camera Setup */
+		if (!gAppUI.Init(pRenderer))
+			return false;
 
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
-
+		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 		GuiDesc guiDesc = {};
-		addGui(pUIManager, &guiDesc, &pGuiWindow);
+		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
 		static const char* enumNames[] = {
 			"Instanced Rendering",
@@ -674,19 +675,19 @@ public:
 		UIProperty useThreadsProp = UIProperty("Multithreaded CPU Update", gUseThreads);
 		UIProperty paniniProp = UIProperty("Enable Panini Projection", gbPaniniEnabled);
 
-		addProperty(pGuiWindow, &renderingModeProp);
-		addProperty(pGuiWindow, &useThreadsProp);
-		addProperty(pGuiWindow, &paniniProp);
+		pGui->AddProperty(renderingModeProp);
+		pGui->AddProperty(useThreadsProp);
+		pGui->AddProperty(paniniProp);
 		/************************************************************************/
 		// Panini props
 		/************************************************************************/
-#if !defined(TARGET_IOS) && !defined(LINUX)		
+#if !defined(TARGET_IOS)	
 		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
 		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Panini D Parameter", gPaniniParams.D, 0.0f, 1.0f, 0.001f));
 		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Panini S Parameter", gPaniniParams.S, 0.0f, 1.0f, 0.001f));
 		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Screen Scale", gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
 		if (gbPaniniEnabled)
-			gPaniniControls.ShowDynamicProperties(pGuiWindow);
+			gPaniniControls.ShowDynamicProperties(pGui);
 #endif
 		/************************************************************************/
 		/************************************************************************/
@@ -716,7 +717,7 @@ public:
 #endif
 #endif
 
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 		gPanini.Init(pRenderer);
 #endif
 
@@ -725,7 +726,7 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
 #if !defined(TARGET_IOS) && !defined(LINUX)
 		gPanini.Exit();
@@ -735,8 +736,9 @@ public:
 		destroyCameraController(pCameraController);
 #endif
 
-		removeGui(pUIManager, pGuiWindow);
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
@@ -828,6 +830,9 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+			return false;
+
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -894,7 +899,7 @@ public:
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
 		
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 		RenderTarget* rts[1];
 		rts[0] = pIntermediateRenderTarget;
 		bool bSuccess = gPanini.Load(rts);
@@ -908,7 +913,9 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pBasicPipeline);
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
@@ -918,7 +925,7 @@ public:
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
 
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 		gPanini.Unload();
 #endif
 	}
@@ -957,24 +964,24 @@ public:
 		}
 #endif
 
-		updateGui(pUIManager, pGuiWindow, deltaTime);
+		gAppUI.Update(deltaTime);
 
 		static bool paniniEnabled = gbPaniniEnabled;
 		if (paniniEnabled != gbPaniniEnabled)
 		{
 			if (gbPaniniEnabled)
 			{
-				gPaniniControls.ShowDynamicProperties(pGuiWindow);
+				gPaniniControls.ShowDynamicProperties(pGui);
 			}
 			else
 			{
-				gPaniniControls.HideDynamicProperties(pGuiWindow);
+				gPaniniControls.HideDynamicProperties(pGui);
 			}
 
 			paniniEnabled = gbPaniniEnabled;
 		}
 
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 		if (gbPaniniEnabled)
 		{
 			gPanini.SetParams(gPaniniParams);
@@ -988,7 +995,7 @@ public:
 		// Sync all frames in flight in case there is a change in the render modes
 		if (gPreviousRenderingMode != gRenderingMode)
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences);
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
 			gPreviousRenderingMode = gRenderingMode;
 		}
 
@@ -1009,7 +1016,7 @@ public:
 		mat4 viewMat = mat4::lookAt(vec3(24.0f, 24.0f, 24.0f), vec3(0, 0, 0), vec3(0, 1, 0));
 #endif
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 		mat4 projMat = mat4::perspective(gPaniniParams.FoVH * (float)PI / 180.0f, aspectInverse, 0.1f, 10000.0f);
 #else
 		mat4 projMat = mat4::perspective(90.0f * (float)PI / 180.0f, aspectInverse, 0.1f, 10000.0f);
@@ -1228,7 +1235,7 @@ public:
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSwapchainRenderTarget->mDesc.mWidth, (float)pSwapchainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSwapchainRenderTarget->mDesc.mWidth, pSwapchainRenderTarget->mDesc.mHeight);
 
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS)
 		if (gbPaniniEnabled)
 		{
 			gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
@@ -1243,32 +1250,34 @@ public:
 
 
 		static HiresTimer timer;
-		cmdUIBeginRender(cmd, pUIManager, 1, &pSwapchainRenderTarget, NULL);
+		timer.GetUSec(true);
         
 #ifdef TARGET_IOS
-        // Draw the camera controller's virtual joysticks.
-        float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-        float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-        
-        vec2 joystickSize = vec2(extSide);
-        vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        vec2 leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        vec2 rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
-        
-        joystickSize = vec2(intSide);
-        leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = vec2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, leftJoystickPos, joystickSize, pVirtualJoystickTex);
-        rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = vec2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-        cmdUIDrawTexturedQuad(cmd, pUIManager, rightJoystickPos, joystickSize, pVirtualJoystickTex);
+		// Draw the camera controller's virtual joysticks.
+		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
+		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
+
+		float2 joystickSize = float2(extSide);
+		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
+		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
+		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+
+		joystickSize = float2(intSide);
+		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
+		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
+		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
+		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
         
-		cmdUIDrawFrameTime(cmd, pUIManager, { 8, 15 }, "CPU ", timer.GetUSec(true) / 1000.0f);
-		cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f);
+		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+#ifndef METAL
+		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+#endif
 
 		char buff[256] = "";
 		char modeStr[128] = "Instanced";
@@ -1278,16 +1287,18 @@ public:
 			strcpy(modeStr, "GPU update");
 
 		sprintf(buff, "SPACE - Rendering mode - %s", modeStr);
-		cmdUIDrawText(cmd, pUIManager, { 8, 65 }, buff);
+		drawDebugText(cmd, 8, 65, buff, NULL);
 
 #ifndef TARGET_IOS
-		cmdUIDrawText(cmd, pUIManager, { 8, 80 }, "F1 - Toggle UI");
-		cmdUIDrawGUI(cmd, pUIManager, pGuiWindow);
+		drawDebugText(cmd, 8, 80, "F1 - Toggle UI", NULL);
+		gAppUI.Gui(pGui);
 #endif
 
-		cmdUIDrawGpuProfileData(cmd, pUIManager, vec2(8.0f, 110.0f), pGpuProfiler);
+#ifndef METAL
+		drawDebugGpuProfile(cmd, 8, 110, pGpuProfiler, NULL);
+#endif
 
-		cmdUIEndRender(cmd, pUIManager);
+		gAppUI.Draw(cmd);
 
 		cmdEndRender(cmd, 1, &pSwapchainRenderTarget, NULL);
 		barrier = { pSwapchainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
@@ -1308,19 +1319,20 @@ public:
 		FenceStatus fenceStatus;
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	String GetName()
 	{
-		return "_04_ExecuteIndirect";
+		return "UnitTest_04_ExecuteIndirect";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
@@ -1363,7 +1375,7 @@ public:
 		cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers, false);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
 	}
 	/************************************************************************/
 	// Camera

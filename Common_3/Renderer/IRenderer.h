@@ -581,6 +581,7 @@ typedef struct QueryHeapDesc
 {
 	QueryType	mType;
 	uint32_t	mQueryCount;
+	uint32_t	mNodeIndex;
 } QueryHeapDesc;
 
 typedef struct QueryDesc
@@ -605,7 +606,7 @@ typedef struct BufferDesc
 	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
 	BufferUsage							mUsage;
 	/// Size of the buffer (in bytes)
-	uint64_t                            mSize;
+	uint64_t							mSize;
 	/// Decides which memory heap buffer will use (default, upload, readback)
 	ResourceMemoryUsage					mMemoryUsage;
 	/// Creation flags of the buffer
@@ -630,6 +631,9 @@ typedef struct BufferDesc
 	BufferFeatureFlags					mFeatures;
 	/// Debug name used in gpu profile
 	wchar_t*							pDebugName;
+	uint32_t*							pSharedNodeIndices;
+	uint32_t							mNodeIndex;
+	uint32_t							mSharedNodeIndexCount;
 } BufferDesc;
 
 typedef struct Buffer {
@@ -753,6 +757,9 @@ typedef struct TextureDesc
 	bool					mHostVisible;
 	/// Debug name used in gpu profile
 	wchar_t*				pDebugName;
+	uint32_t*				pSharedNodeIndices;
+	uint32_t				mSharedNodeIndexCount;
+	uint32_t				mNodeIndex;
 } TextureDesc;
 
 typedef struct Texture {
@@ -834,10 +841,14 @@ typedef struct RenderTargetDesc
 	RenderTargetUsage		mUsage;
 	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
 	uint32_t				mSampleQuality;
-	/// Set whether rendertarget is srgb
-    bool					mSrgb;
 	/// Debug name used in gpu profile
 	wchar_t*				pDebugName;
+	/// Set whether rendertarget is srgb
+	bool					mSrgb;
+	/// Gpu index to create resource
+	uint32_t*				pSharedNodeIndices;
+	uint32_t				mSharedNodeIndexCount;
+	uint32_t				mNodeIndex;
 } RenderTargetDesc;
 
 typedef struct RenderTarget
@@ -1063,14 +1074,19 @@ typedef struct Cmd {
 	CmdPool*								pCmdPool;
 
 	const RootSignature*					pBoundRootSignature;
+	uint32_t*								pBoundColorFormats;
+	bool*									pBoundSrgbValues;
+	uint32_t								mBoundDepthStencilFormat;
+	uint32_t								mBoundRenderTargetCount;
+	SampleCount								mBoundSampleCount;
+	uint32_t								mBoundSampleQuality;
+	uint32_t								mBoundWidth;
+	uint32_t								mBoundHeight;
 #if defined(DIRECT3D12)
 	// For now each command list will have its own allocator until we get the command allocator pool logic working
 	ID3D12CommandAllocator*					pDxCmdAlloc;
 	ID3D12GraphicsCommandList*				pDxCmdList;
-
 	D3D12_RESOURCE_BARRIER					pBatchBarriers[MAX_BATCH_BARRIERS];
-	uint32_t								mBatchBarrierCount;
-
 	// Small ring buffer to be used for copying root constant data in case the root constant was converted to root cbv
 	struct UniformRingBuffer*				pRootConstantRingBuffer;
 	D3D12_CPU_DESCRIPTOR_HANDLE				mViewCpuHandle;
@@ -1079,14 +1095,17 @@ typedef struct Cmd {
 	D3D12_CPU_DESCRIPTOR_HANDLE				mSamplerCpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE				mSamplerGpuHandle;
 	uint64_t								mSamplerPosition;
+	uint32_t								mBatchBarrierCount;
+	uint32_t								mNodeIndex;
 #elif defined(VULKAN)
 	VkCommandBuffer							pVkCmdBuf;
 
 	VkImageMemoryBarrier					pBatchImageMemoryBarriers[MAX_BATCH_BARRIERS];
-	uint32_t								mBatchImageMemoryBarrierCount;
 	VkBufferMemoryBarrier					pBatchBufferMemoryBarriers[MAX_BATCH_BARRIERS];
-	uint32_t								mBatchBufferMemoryBarrierCount;
 	struct DescriptorStoreHeap*				pDescriptorPool;
+	uint32_t								mBatchImageMemoryBarrierCount;
+	uint32_t								mBatchBufferMemoryBarrierCount;
+	uint32_t								mNodeIndex;
 #elif defined(METAL)
 	id<MTLCommandBuffer>					mtlCommandBuffer;
     id<MTLFence>                            mtlEncoderFence; // Used to sync different types of encoders recording in the same Cmd.
@@ -1103,9 +1122,10 @@ typedef struct Cmd {
 
 typedef struct QueueDesc
 {
-	QueueFlag mFlag;
-	QueuePriority mPriority;
-	CmdPoolType mType; //same types for cmd pool and queue
+	QueueFlag		mFlag;
+	QueuePriority	mPriority;
+	CmdPoolType		mType;
+	uint32_t		mNodeIndex;
 }QueueDesc;
 
 typedef enum FenceStatus
@@ -1149,10 +1169,11 @@ typedef struct Semaphore {
 	// already does the synchronization in this case
 	Fence*								pFence;
 #elif defined(VULKAN)
-	VkSemaphore                         pVkSemaphore;
+	VkSemaphore							pVkSemaphore;
+	uint32_t							mCurrentNodeIndex;
 	bool								mSignaled;
 #elif defined(METAL)
-	dispatch_semaphore_t                pMtlSemaphore;
+	dispatch_semaphore_t				pMtlSemaphore;
 #endif
 } Semaphore;
 
@@ -1386,8 +1407,10 @@ typedef struct SubresourceDataDesc
 typedef struct SwapChainDesc {
 	/// Window handle
 	WindowsDesc*		pWindow;
-	/// Queue which will be flushed on swapchain present
-	Queue*				pQueue;
+	/// Queues which should be allowed to present
+	Queue**				ppPresentQueues;
+	/// Number of present queues
+	uint32_t			mPresentQueueCount;
 	/// Number of backbuffers in this swapchain
 	uint32_t			mImageCount;
 	/// Width of the swapchain
@@ -1446,9 +1469,17 @@ typedef enum ShaderTarget {
 	shader_target_6_0,
 } DXShaderTarget;
 
+typedef enum GpuMode
+{
+	GPU_MODE_SINGLE = 0,
+	GPU_MODE_LINKED,
+	// #TODO GPU_MODE_UNLINKED,
+} GpuMode;
+
 typedef struct RendererDesc {
 	LogFn							pLogFn;
 	ShaderTarget					mShaderTarget;
+	GpuMode							mGpuMode;
 #if defined(VULKAN)
 	tinystl::vector<String>			mInstanceLayers;
 	tinystl::vector<String>			mInstanceExtensions;
@@ -1493,8 +1524,8 @@ typedef struct Renderer {
 
 	// API specific descriptor heap and memory allocator
 	struct DescriptorStoreHeap*			pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-	struct DescriptorStoreHeap*			pCbvSrvUavHeap;
-	struct DescriptorStoreHeap*			pSamplerHeap;
+	struct DescriptorStoreHeap*			pCbvSrvUavHeap[MAX_GPUS];
+	struct DescriptorStoreHeap*			pSamplerHeap[MAX_GPUS];
 	struct ResourceAllocator*			pResourceAllocator;
 #elif (DIRECT3D12)
 	IDXGIFactory5*						pDXGIFactory;
@@ -1512,8 +1543,8 @@ typedef struct Renderer {
 
 	// API specific descriptor heap and memory allocator
 	struct DescriptorStoreHeap*			pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-	struct DescriptorStoreHeap*			pCbvSrvUavHeap;
-	struct DescriptorStoreHeap*			pSamplerHeap;
+	struct DescriptorStoreHeap*			pCbvSrvUavHeap[MAX_GPUS];
+	struct DescriptorStoreHeap*			pSamplerHeap[MAX_GPUS];
 	struct ResourceAllocator*			pResourceAllocator;
 #elif defined (VULKAN)
 	VkInstance							pVKInstance;
@@ -1526,8 +1557,6 @@ typedef struct Renderer {
 	uint32_t							mActiveGPUIndex;
 	VkPhysicalDeviceMemoryProperties*	pVkActiveGpuMemoryProperties;
 	VkPhysicalDeviceProperties*			pVkActiveGPUProperties;
-	VkQueueFamilyProperties*			pVkActiveQueueFamilyProperties;
-	uint32_t							mVkActiveQueueFamilyPropertyCount;
 	VkDevice							pDevice;
 	VkDebugReportCallbackEXT			pDebugReport;
 	tinystl::vector<const char*>		mInstanceLayers;
@@ -1721,7 +1750,7 @@ ApiExport void acquireNextImage(Renderer* pRenderer, SwapChain* p_swap_chain, Se
 ApiExport void queueSubmit(Queue* p_queue, uint32_t cmd_count, Cmd** pp_cmds, Fence* pFence, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores, uint32_t signal_semaphore_count, Semaphore** pp_signal_semaphores);
 ApiExport void queuePresent(Queue* p_queue, SwapChain* p_swap_chain, uint32_t swap_chain_image_index, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores);
 ApiExport void getFenceStatus(Fence* p_fence, FenceStatus* p_fence_status);
-ApiExport void waitForFences(Queue* p_queue, uint32_t fence_count, Fence** pp_fences);
+ApiExport void waitForFences(Queue* p_queue, uint32_t fence_count, Fence** pp_fences, bool signal);
 
 // image related functions
 ApiExport bool isImageFormatSupported(ImageFormat::Enum format);

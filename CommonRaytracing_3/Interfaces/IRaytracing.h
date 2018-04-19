@@ -141,9 +141,10 @@ typedef struct AccelerationStructureDesc
 /************************************************************************/
 typedef struct RaytracingHitGroup
 {
-	const char*			pIntersectionShaderName;
-	const char*			pAnyHitShaderName;
-	const char*			pClosestHitShaderName;
+	RootSignature*		pRootSignature;
+	RaytracingShader*	pIntersectionShader;
+	RaytracingShader*	pAnyHitShader;
+	RaytracingShader*	pClosestHitShader;
 	const char*			pHitGroupName;
 } RaytracingHitGroup;
 /************************************************************************/
@@ -160,10 +161,12 @@ typedef struct RaytracingHitGroup
 typedef struct RaytracingPipelineDesc
 {
 	RootSignature*		pGlobalRootSignature;
-	// #TODO Local Root Signatures
-	RaytracingShader**	ppShaders;
-	unsigned			mShaderCount;
+	RaytracingShader*	pRayGenShader;
+	RootSignature*		pRayGenRootSignature;
+	RaytracingShader**	ppMissShaders;
+	RootSignature**		ppMissRootSignatures;
 	RaytracingHitGroup*	pHitGroups;
+	unsigned			mMissShaderCount;
 	unsigned			mHitGroupCount;
 	// #TODO : Remove this after adding shader reflection for raytracing shaders
 	unsigned			mPayloadSize;
@@ -172,22 +175,22 @@ typedef struct RaytracingPipelineDesc
 	unsigned			mMaxTraceRecursionDepth;
 } RaytracingPipelineDesc;
 
+typedef struct RaytracingShaderTableRecordDesc
+{
+	const char*		pName;
+	RootSignature*	pRootSignature;
+	DescriptorData* pRootData;
+	unsigned		mRootDataCount;
+} RaytracingShaderTableRecordDesc;
+
 typedef struct RaytracingShaderTableDesc
 {
-	RaytracingPipeline*	pPipeline;
-	const char**		ppRayGenShaders;
-	const char**		ppMissShaders;
-	const char**		ppHitGroups;
-	unsigned			mRayGenShaderCount;
-	unsigned			mMissShaderCount;
-	unsigned			mHitGroupCount;
-	// #TODO: Local Root Signature Arguments
-/*
-	// Array of descriptor data associated to each shader from the ppShader array
-	DescriptorData**	ppShaderData;
-	// Number of descriptors in each element of ppShaderData array
-	unsigned*			pShaderDataCount;
-*/
+	RaytracingPipeline*					pPipeline;
+	RaytracingShaderTableRecordDesc*	pRayGenShader;
+	RaytracingShaderTableRecordDesc*	pMissShaders;
+	RaytracingShaderTableRecordDesc*	pHitGroups;
+	unsigned							mMissShaderCount;
+	unsigned							mHitGroupCount;
 } RaytracingShaderTableDesc;
 
 typedef struct RaytracingDispatchDesc
@@ -206,7 +209,7 @@ ApiExport void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 ApiExport void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc, uint32_t* pScratchBufferSize, AccelerationStructure** ppAccelerationStructure);
 ApiExport void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 
-ApiExport void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char** ppNames, unsigned nameCount, RaytracingShader** ppShader);
+ApiExport void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char* pName, RaytracingShader** ppShader);
 ApiExport void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader);
 
 ApiExport void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);

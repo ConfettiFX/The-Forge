@@ -32,6 +32,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{EC7D
 		..\..\..\Common_3\Renderer\Direct3D12\Direct3D12MemoryAllocator.h = ..\..\..\Common_3\Renderer\Direct3D12\Direct3D12MemoryAllocator.h
 		..\..\..\Common_3\Renderer\GpuProfiler.h = ..\..\..\Common_3\Renderer\GpuProfiler.h
 		..\..\..\Common_3\Renderer\IMemoryAllocator.h = ..\..\..\Common_3\Renderer\IMemoryAllocator.h
+		..\..\..\CommonRaytracing_3\Interfaces\IRaytracing.h = ..\..\..\CommonRaytracing_3\Interfaces\IRaytracing.h
 		..\..\..\Common_3\Renderer\IRenderer.h = ..\..\..\Common_3\Renderer\IRenderer.h
 		..\..\..\Common_3\Renderer\IShaderReflection.h = ..\..\..\Common_3\Renderer\IShaderReflection.h
 		..\..\..\Common_3\Renderer\ResourceLoader.h = ..\..\..\Common_3\Renderer\ResourceLoader.h
@@ -58,6 +59,24 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_Triangle", "04_Triangle.
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05_Instancing", "05_Instancing.vcxproj", "{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "06_LocalRootSignature", "06_LocalRootSignature.vcxproj", "{A71C2756-B15F-4188-BF0D-72B812F30412}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "07_InstancedLocalRootSignature", "07_InstancedLocalRootSignature.vcxproj", "{84AD6F9F-12E1-420B-94C1-233CE83BA878}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "08_MultipleGeometries", "08_MultipleGeometries.vcxproj", "{808840FF-01EA-40E8-8789-F72C29BB256A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
 		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
@@ -119,6 +138,24 @@ Global
 		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
 		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
 		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{A71C2756-B15F-4188-BF0D-72B812F30412}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{A71C2756-B15F-4188-BF0D-72B812F30412}.DebugDx|x64.Build.0 = DebugDx|x64
+		{A71C2756-B15F-4188-BF0D-72B812F30412}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{A71C2756-B15F-4188-BF0D-72B812F30412}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{A71C2756-B15F-4188-BF0D-72B812F30412}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{A71C2756-B15F-4188-BF0D-72B812F30412}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878}.DebugDx|x64.Build.0 = DebugDx|x64
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{808840FF-01EA-40E8-8789-F72C29BB256A}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{808840FF-01EA-40E8-8789-F72C29BB256A}.DebugDx|x64.Build.0 = DebugDx|x64
+		{808840FF-01EA-40E8-8789-F72C29BB256A}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{808840FF-01EA-40E8-8789-F72C29BB256A}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{808840FF-01EA-40E8-8789-F72C29BB256A}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{808840FF-01EA-40E8-8789-F72C29BB256A}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -132,6 +169,9 @@ Global
 		{B0FCEDCA-3C74-4D66-B44D-69E33DB33BEE} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{34FAC7A6-C49E-4402-AF99-F6C6E2FA4DDF} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 		{7BF3A84E-257D-4018-9E16-B0AED6DBEECB} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{A71C2756-B15F-4188-BF0D-72B812F30412} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{84AD6F9F-12E1-420B-94C1-233CE83BA878} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
+		{808840FF-01EA-40E8-8789-F72C29BB256A} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {054F0AB9-69CA-4FF1-BD3C-D8DF03ABFA5B}

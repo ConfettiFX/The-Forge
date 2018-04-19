@@ -24,15 +24,16 @@
 
 #include "IRenderer.h"
 #include "GpuProfiler.h"
-#include "ResourceLoader.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../OS/Interfaces/ILogManager.h"
-#include "../OS/Interfaces/IUIManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
 #if __linux__
 #include <linux/limits.h> //PATH_MAX declaration
 #define MAX_PATH PATH_MAX
 #endif
+
+extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
+extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern void getTimestampFrequency(Queue* pQueue, double* pFrequency);
 extern void addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap);
 extern void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap);
@@ -132,27 +133,28 @@ double getAverageCpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, uint32_t maxTimers)
 {
 	GpuProfiler* pGpuProfiler = (GpuProfiler*)conf_calloc(1, sizeof(*pGpuProfiler));
+	ASSERT(pGpuProfiler);
 
 #if defined(DIRECT3D12) || defined(VULKAN)
-	QueryHeapDesc queryHeapDesc = { QUERY_TYPE_TIMESTAMP, maxTimers * 2 };
+	const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
+	QueryHeapDesc queryHeapDesc = {};
+	queryHeapDesc.mNodeIndex = nodeIndex;
+	queryHeapDesc.mQueryCount = maxTimers * 2;
+	queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
+
+	BufferDesc bufDesc = {};
+	bufDesc.mUsage = BUFFER_USAGE_UPLOAD;
+	bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+	bufDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	bufDesc.mSize = maxTimers * sizeof(uint64_t) * 2;
+	bufDesc.pDebugName = L"GPU Profiler ReadBack Buffer";
+	bufDesc.mNodeIndex = nodeIndex;
+	bufDesc.mStartState = RESOURCE_STATE_COPY_DEST;
 
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
 		addQueryHeap(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryHeap[i]);
-	}
-
-	BufferLoadDesc bufDesc = {};
-	bufDesc.mDesc.mUsage = BUFFER_USAGE_UPLOAD;
-	bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-	bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-	bufDesc.mDesc.mSize = maxTimers * sizeof(uint64_t) * 2;
-	bufDesc.pData = NULL;
-	bufDesc.mDesc.pDebugName = L"GPU Profilter ReadBack Buffer Desc";
-
-	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
-	{
-		bufDesc.ppBuffer = &pGpuProfiler->pReadbackBuffer[i];
-		addResource(&bufDesc);
+		addBuffer(pRenderer, &bufDesc, &pGpuProfiler->pReadbackBuffer[i]);
 	}
 
 	getTimestampFrequency(pQueue, &pGpuProfiler->mGpuTimeStampFrequency);
@@ -172,7 +174,7 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 #if defined(DIRECT3D12) || defined(VULKAN)
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
-		removeResource(pGpuProfiler->pReadbackBuffer[i]);
+		removeBuffer(pRenderer, pGpuProfiler->pReadbackBuffer[i]);
 		removeQueryHeap(pRenderer, pGpuProfiler->pQueryHeap[i]);
 	}
 #endif

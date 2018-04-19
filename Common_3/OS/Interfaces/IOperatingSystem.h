@@ -186,6 +186,11 @@ typedef unsigned __int64 uint64;
 typedef unsigned long DWORD;
 typedef unsigned int UINT;
 //typedef bool BOOL;
+#elif defined(__linux__)
+typedef unsigned long DWORD;
+typedef unsigned int UINT;
+typedef int64_t  int64;
+typedef uint64_t uint64;
 #else
 typedef   signed long long  int64;
 typedef unsigned long long uint64;

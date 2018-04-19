@@ -38,17 +38,15 @@
 
 typedef struct BufferLoadDesc
 {
-	Buffer** ppBuffer;
+	Buffer**	ppBuffer;
 	const void* pData;
-	BufferDesc mDesc;
+	BufferDesc	mDesc;
 	/// Force Reset buffer to NULL
-	bool mForceReset = false;
+	bool		mForceReset;
 } BufferLoadDesc;
 
 typedef struct TextureLoadDesc
 {
-	TextureLoadDesc() : pFilename(NULL), pImage(NULL), mSrgb(false), pDesc() {}
-
 	Texture**		ppTexture;
 	/// Load texture from image
 	Image*			pImage;
@@ -56,8 +54,9 @@ typedef struct TextureLoadDesc
 	TextureDesc*	pDesc;
 	/// Load texture from disk
 	const char*		pFilename;
-	bool			mUseMipmaps;
 	FSRoot			mRoot;
+	uint32_t		mNodeIndex;
+	bool			mUseMipmaps;
 	bool			mSrgb;
 
 } TextureLoadDesc;
@@ -130,7 +129,6 @@ void removeResourceLoaderInterface(Renderer* pRenderer);
 
 void addResource(BufferLoadDesc* pBuffer, bool threaded = false);
 void addResource(TextureLoadDesc* pTexture, bool threaded = false);
-void addResources(uint32_t resourceCount, ResourceLoadDesc* pResources, bool threaded = false);
 
 void updateResource(BufferUpdateDesc* pBuffer, bool batch = false);
 void updateResource(TextureUpdateDesc* pTexture, bool batch = false);

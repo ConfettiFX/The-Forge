@@ -32,26 +32,24 @@
 
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
-// UI
-#include "../../Common_3/OS/UI/UIRenderer.h"
-
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 
 #if defined(DIRECT3D12)
@@ -111,9 +109,9 @@ struct Fonts
 
 struct TextObject
 {
-	String		 mText;
-	TextDrawDesc mDrawDesc;
-	vec2		 mPosition;
+	String				mText;
+	DebugTextDrawDesc	mDrawDesc;
+	float2				mPosition;
 };
 
 struct SceneData
@@ -130,7 +128,7 @@ Queue*			pGraphicsQueue = nullptr;
 CmdPool*		pCmdPool = nullptr;
 Cmd**			ppCmds = nullptr;
 GpuProfiler*	pGpuProfiler = nullptr;
-UIManager*		pUIManager = nullptr;
+UIApp			gAppUI;
 HiresTimer		gTimer;
 
 SwapChain*		pSwapChain = nullptr;
@@ -169,15 +167,14 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer);
+		initDebugRendererInterface(pRenderer, NULL);
+
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		finishResourceLoading();
 
 		// UI setup
-		UISettings uiSettings = {};
-		uiSettings.pDefaultFontName = "TitilliumText/TitilliumText-Bold.ttf";
-		addUIManagerInterface(pRenderer, &uiSettings, &pUIManager);
-
-		requestMouseCapture(false);
+		if (!gAppUI.Init(pRenderer))
+			return false;
 
 		// setup scene text
 		FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
@@ -185,15 +182,16 @@ public:
 		fontRoot = FSRoot::FSR_Absolute;
 #endif
 
-		UIRenderer* pUIRenderer = pUIManager->pUIRenderer;	// shorthand
-		gFonts.titilliumBold = pUIRenderer->addFont("TitilliumText/TitilliumText-Bold.ttf", "TitilliumText-Bold", fontRoot);
-		gFonts.comicRelief = pUIRenderer->addFont("ComicRelief/ComicRelief.ttf", "Comic Relief", fontRoot);
-		gFonts.crimsonSerif = pUIRenderer->addFont("Crimson/Crimson-Roman.ttf", "Crimson Serif", fontRoot);
-		gFonts.monoSpace = pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC.ttf", "Inconsolata", fontRoot);
-		gFonts.monoSpaceBold = pUIRenderer->addFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", "InconsolataBold", fontRoot);
+		gFonts.titilliumBold = addDebugFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", fontRoot));
+		gFonts.comicRelief = addDebugFont(FileSystem::FixPath("ComicRelief/ComicRelief.ttf", fontRoot));
+		gFonts.crimsonSerif = addDebugFont(FileSystem::FixPath("Crimson/Crimson-Roman.ttf", fontRoot));
+		gFonts.monoSpace = addDebugFont(FileSystem::FixPath("InconsolataLGC/Inconsolata-LGC.ttf", fontRoot));
+		gFonts.monoSpaceBold = addDebugFont(FileSystem::FixPath("InconsolataLGC/Inconsolata-LGC-Bold.ttf", fontRoot));
+
+		requestMouseCapture(false);
 
 		tinystl::vector<TextObject> sceneTexts;
-		TextDrawDesc drawDescriptor;
+		DebugTextDrawDesc drawDescriptor;
 		const char* txt = "";
 
 		// This demo was created with a target resolution of 1920x1080.
@@ -283,9 +281,9 @@ public:
 		const int   fontIDs[] = { gFonts.titilliumBold, gFonts.crimsonSerif, gFonts.comicRelief, gFonts.monoSpace };
 
 		drawDescriptor.mFontSize = 30.0f * scalingFactor;
-		vec2 labelPos = vec2(mSettings.mWidth * 0.18f, mSettings.mHeight * 0.30f);
-		vec2 alphabetPos = vec2(mSettings.mWidth * 0.31f, mSettings.mHeight * 0.30f);
-		vec2 offset = vec2(0, drawDescriptor.mFontSize * 1.8f);
+		float2 labelPos = float2(mSettings.mWidth * 0.18f, mSettings.mHeight * 0.30f);
+		float2 alphabetPos = float2(mSettings.mWidth * 0.31f, mSettings.mHeight * 0.30f);
+		float2 offset = float2(0, drawDescriptor.mFontSize * 1.8f);
 		for (int i = 0; i < 4; ++i)
 		{
 			// font label
@@ -326,7 +324,7 @@ public:
 		drawDescriptor.mFontID = gFonts.crimsonSerif;
 		for (int i = 0; i < 11; i++)
 		{
-			sceneTexts.push_back({ string1[i], drawDescriptor, vec2(mSettings.mWidth * 0.20f, drawDescriptor.mFontSize * float(i) + mSettings.mHeight * 0.55f) });
+			sceneTexts.push_back({ string1[i], drawDescriptor, float2(mSettings.mWidth * 0.20f, drawDescriptor.mFontSize * float(i) + mSettings.mHeight * 0.55f) });
 		}
 		//--------------------------------------------------------------------------
 
@@ -339,9 +337,11 @@ public:
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
-		removeUIManagerInterface(pRenderer, pUIManager);
+		removeDebugRendererInterface();
+
+		gAppUI.Exit();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -368,7 +368,7 @@ public:
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex]);
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 		removeSwapChain(pRenderer, pSwapChain);
 	}
 
@@ -377,7 +377,6 @@ public:
 		const float w = (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth;
 		const float h = (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight;
 		const float aspectRatio = w / h;
-		const UIRenderer* pUIRenderer = pUIManager->pUIRenderer;
 		const tinystl::vector<TextObject>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
 
 		// PROCESS INPUT
@@ -393,6 +392,8 @@ public:
 
 	void Draw()
 	{
+		gTimer.GetUSec(true);
+
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 		pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
@@ -416,27 +417,29 @@ public:
 
 		// draw text
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Render Text");
-		cmdUIBeginRender(cmd, pUIManager, 1, &pRenderTarget, NULL);
 
 		if (!gSceneData.sceneTextArray.empty())
 		{
 			const tinystl::vector<TextObject>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
 			for (int i = 0; i < texts.size(); ++i)
 			{
-				const TextDrawDesc* desc = &texts[i].mDrawDesc;
-				cmdUIDrawText(cmd, pUIManager, texts[i].mPosition, texts[i].mText, desc);
+				const DebugTextDrawDesc* desc = &texts[i].mDrawDesc;
+				drawDebugText(cmd, texts[i].mPosition.x, texts[i].mPosition.y, texts[i].mText, desc);
 			}
 		}
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		// draw profiler timings text
-		TextDrawDesc uiTextDesc;	// default
+		DebugTextDrawDesc uiTextDesc;	// default
 		uiTextDesc.mFontColor = 0xff444444;
 		uiTextDesc.mFontSize = 18;
-		cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 15.0f), "CPU ", gTimer.GetUSec(true) / 1000.0f, &uiTextDesc);
-		cmdUIDrawFrameTime(cmd, pUIManager, vec2(8.0f, 40.0f), "GPU ", (float)pGpuProfiler->mCumulativeTime * 1000.0f, &uiTextDesc);
-		cmdUIEndRender(cmd, pUIManager);
+		drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
+#ifndef METAL
+		drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
+#endif
+
+		gAppUI.Draw(cmd);
 
 		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
@@ -452,19 +455,20 @@ public:
 		FenceStatus fenceStatus;
 		getFenceStatus(pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence);
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	String GetName()
 	{
-		return "_05_FontRendering";
+		return "UnitTest_05_FontRendering";
 	}
 
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
-		swapChainDesc.pQueue = pGraphicsQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;

@@ -377,7 +377,7 @@ int ImageFormat::GetBytesPerPixel(const ImageFormat::Enum format)
   };
 
 
-  ASSERT(format <= ImageFormat::D32F);
+  ASSERT(format <= ImageFormat::D32F || format == ImageFormat::BGRA8);
 
   return bytesPP[format];
 }

@@ -42,7 +42,6 @@ public:
 	virtual bool Load(RenderTarget** rts) = 0;
 	virtual void Unload() = 0;
 
-	virtual void Draw(Cmd* cmd) = 0;
-	
 	virtual void Update(float deltaTime) = 0;
+	virtual void Draw(Cmd* cmd) = 0;
 };

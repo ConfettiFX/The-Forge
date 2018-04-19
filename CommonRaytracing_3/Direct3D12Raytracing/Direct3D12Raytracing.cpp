@@ -6,6 +6,7 @@
 
 // OS
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/ThirdParty/OpenSource/TinySTL/unordered_set.h"
 
 // Renderer
 #include "../Interfaces/IRaytracing.h"
@@ -44,6 +45,7 @@ extern void reset_descriptor_heap(struct DescriptorStoreHeap* pHeap);
 extern void remove_descriptor_heap(struct DescriptorStoreHeap* pHeap);
 extern D3D12_CPU_DESCRIPTOR_HANDLE add_cpu_descriptor_handles(struct DescriptorStoreHeap* pHeap, uint32_t numDescriptors, uint32_t* pDescriptorIndex = NULL);
 extern void add_gpu_descriptor_handles(struct DescriptorStoreHeap* pHeap, D3D12_CPU_DESCRIPTOR_HANDLE* pStartCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* pStartGpuHandle, uint32_t numDescriptors);
+extern void remove_gpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_GPU_DESCRIPTOR_HANDLE* startHandle, uint64_t numDescriptors);
 /************************************************************************/
 // Static initialization of DX Raytracing API
 /************************************************************************/
@@ -131,9 +133,8 @@ struct Raytracing
 
 struct RaytracingShader
 {
-	WCHAR**		ppExports;
 	ID3DBlob*	pShaderBlob;
-	uint32_t	mExportCount;
+	LPCWSTR		pName;
 };
 
 struct AccelerationStructure
@@ -158,9 +159,15 @@ struct RaytracingPipeline
 
 struct RaytracingShaderTable
 {
-	RaytracingPipeline* pPipeline;
-	Buffer*				pBuffer;
-	uint64_t			mMaxEntrySize;
+	RaytracingPipeline*			pPipeline;
+	Buffer*						pBuffer;
+	D3D12_GPU_DESCRIPTOR_HANDLE	mViewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	D3D12_GPU_DESCRIPTOR_HANDLE	mSamplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t					mViewDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t					mSamplerDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint64_t					mMaxEntrySize;
+	uint64_t					mMissRecordSize;
+	uint64_t					mHitGroupRecordSize;
 };
 
 void initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
@@ -366,13 +373,12 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 	conf_free(pAccelerationStructure);
 }
 
-void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char** ppNames, unsigned nameCount, RaytracingShader** ppShader)
+void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char* pName, RaytracingShader** ppShader)
 {
 	ASSERT(pRaytracing);
 	ASSERT(pByteCode);
 	ASSERT(byteCodeSize);
-	ASSERT(ppNames);
-	ASSERT(nameCount);
+	ASSERT(pName);
 	ASSERT(ppShader);
 
 	RaytracingShader* pShader = (RaytracingShader*)conf_calloc(1, sizeof(*pShader));
@@ -381,13 +387,8 @@ void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode
 	D3DCreateBlob(byteCodeSize, &pShader->pShaderBlob);
 	memcpy(pShader->pShaderBlob->GetBufferPointer(), pByteCode, byteCodeSize);
 
-	pShader->mExportCount = nameCount;
-	pShader->ppExports = (WCHAR**)conf_calloc(pShader->mExportCount, sizeof(*pShader->ppExports));
-	for (uint32_t i = 0; i < pShader->mExportCount; ++i)
-	{
-		pShader->ppExports[i] = (WCHAR*)conf_calloc(strlen(ppNames[i]) + 1, sizeof(WCHAR));
-		mbstowcs(pShader->ppExports[i], ppNames[i], strlen(ppNames[i]));
-	}
+	pShader->pName = (WCHAR*)conf_calloc(strlen(pName) + 1, sizeof(WCHAR));
+	mbstowcs((WCHAR*)pShader->pName, pName, strlen(pName));
 
 	*ppShader = pShader;
 }
@@ -399,10 +400,7 @@ void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader)
 
 	pShader->pShaderBlob->Release();
 
-	for (uint32_t i = 0; i < pShader->mExportCount; ++i)
-		conf_free(pShader->ppExports[i]);
-
-	conf_free(pShader->ppExports);
+	conf_free((WCHAR*)pShader->pName);
 	conf_free(pShader);
 }
 
@@ -419,6 +417,7 @@ static const RootSignatureDesc gDefaultRootSignatureDesc = {};
 extern void create_descriptor_table_1_0(uint32_t numDescriptors, DescriptorInfo** tableRef, D3D12_DESCRIPTOR_RANGE* pRange, D3D12_ROOT_PARAMETER* pRootParam);
 extern void create_root_descriptor_1_0(const DescriptorInfo* pDesc, D3D12_ROOT_PARAMETER* pRootParam);
 extern void create_root_constant_1_0(const DescriptorInfo* pDesc, D3D12_ROOT_PARAMETER* pRootParam);
+extern const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex);
 
 void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
 {
@@ -492,7 +491,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 			}
 		}
 		// No support for arrays of constant buffers to be used as root descriptors as this might bloat the root signature size
-		else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER && pDesc->mDesc.size == 1)
+		else if ((pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER && pDesc->mDesc.size == 1) || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 		{
 			// D3D12 has no special syntax to declare root constants like Vulkan
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
@@ -761,162 +760,6 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 	*ppRootSignature = pRootSignature;
 }
 
-struct DxilLibrary
-{
-	DxilLibrary(ID3DBlob* pBlob, WCHAR** entryPoint, uint32_t entryPointCount) : pShaderBlob(pBlob)
-	{
-		stateSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
-		stateSubobject.pDesc = &dxilLibDesc;
-
-		dxilLibDesc = {};
-		exportDesc.resize(entryPointCount);
-		exportName.resize(entryPointCount);
-		if (pBlob)
-		{
-			dxilLibDesc.DXILLibrary.pShaderBytecode = pBlob->GetBufferPointer();
-			dxilLibDesc.DXILLibrary.BytecodeLength = pBlob->GetBufferSize();
-			dxilLibDesc.NumExports = entryPointCount;
-			dxilLibDesc.pExports = exportDesc.data();
-
-			for (uint32_t i = 0; i < entryPointCount; i++)
-			{
-				exportName[i] = entryPoint[i];
-				exportDesc[i].Name = exportName[i];
-				exportDesc[i].Flags = D3D12_EXPORT_FLAG_NONE;
-				exportDesc[i].ExportToRename = nullptr;
-			}
-		}
-	}
-
-	DxilLibrary() : DxilLibrary(nullptr, nullptr, 0) {}
-
-	D3D12_DXIL_LIBRARY_DESC dxilLibDesc = {};
-	D3D12_STATE_SUBOBJECT stateSubobject{};
-	ID3DBlob* pShaderBlob;
-	tinystl::vector<D3D12_EXPORT_DESC> exportDesc;
-	tinystl::vector<const WCHAR*> exportName;
-};
-
-struct HitProgram
-{
-	HitProgram(const char* intersectionExport, const char* ahsExport, const char* chsExport, const char* name)
-	{
-		desc = {};
-		if (intersectionExport)
-		{
-			desc.IntersectionShaderImport = (LPCWSTR)conf_calloc(strlen(intersectionExport) + 1, sizeof(WCHAR));
-			mbstowcs((WCHAR*)desc.IntersectionShaderImport, intersectionExport, strlen(intersectionExport));
-		}
-		if (ahsExport)
-		{
-			desc.AnyHitShaderImport = (LPCWSTR)conf_calloc(strlen(ahsExport) + 1, sizeof(WCHAR));
-			mbstowcs((WCHAR*)desc.AnyHitShaderImport, ahsExport, strlen(ahsExport));
-		}
-		if (chsExport)
-		{
-			desc.ClosestHitShaderImport = (LPCWSTR)conf_calloc(strlen(chsExport) + 1, sizeof(WCHAR));
-			mbstowcs((WCHAR*)desc.ClosestHitShaderImport, chsExport, strlen(chsExport));
-		}
-		{
-			desc.HitGroupExport = (LPCWSTR)conf_calloc(strlen(name) + 1, sizeof(WCHAR));
-			mbstowcs((WCHAR*)desc.HitGroupExport, name, strlen(name));
-		}
-
-		subObject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
-		subObject.pDesc = &desc;
-	}
-	~HitProgram()
-	{
-		if (desc.AnyHitShaderImport)
-			conf_free((WCHAR*)desc.AnyHitShaderImport);
-		if (desc.ClosestHitShaderImport)
-			conf_free((WCHAR*)desc.ClosestHitShaderImport);
-		if (desc.HitGroupExport)
-			conf_free((WCHAR*)desc.HitGroupExport);
-		if (desc.IntersectionShaderImport)
-			conf_free((WCHAR*)desc.IntersectionShaderImport);
-	}
-
-	D3D12_HIT_GROUP_DESC desc;
-	D3D12_STATE_SUBOBJECT subObject;
-};
-
-struct ExportAssociation
-{
-	ExportAssociation(const WCHAR** exportNames, uint32_t exportCount, const D3D12_STATE_SUBOBJECT* pSubobjectToAssociate)
-	{
-		exports.resize(exportCount);
-		for (uint32_t i = 0; i < exportCount; ++i)
-		{
-			exports[i] = exportNames[i];
-		}
-
-		association.NumExports = exportCount;
-		association.pExports = exports.data();
-		association.pSubobjectToAssociate = pSubobjectToAssociate;
-
-		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-		subobject.pDesc = &association;
-	}
-
-	D3D12_STATE_SUBOBJECT subobject = {};
-	tinystl::vector<const WCHAR*> exports;
-	D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION association = {};
-};
-
-struct LocalRootSignature
-{
-	LocalRootSignature(ID3D12RootSignature* pRootSignature)
-	{
-		pInterface = pRootSignature;
-		subobject.pDesc = &pInterface;
-		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-	}
-	ID3D12RootSignature* pInterface = nullptr;
-	D3D12_STATE_SUBOBJECT subobject = {};
-};
-
-struct GlobalRootSignature
-{
-	GlobalRootSignature(ID3D12RootSignature* pRootSignature)
-	{
-		pInterface = pRootSignature;
-		subobject.pDesc = &pInterface;
-		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE;
-	}
-	ID3D12RootSignature* pInterface = nullptr;
-	D3D12_STATE_SUBOBJECT subobject = {};
-};
-
-struct ShaderConfig
-{
-	ShaderConfig(uint32_t maxAttributeSizeInBytes, uint32_t maxPayloadSizeInBytes)
-	{
-		shaderConfig.MaxAttributeSizeInBytes = maxAttributeSizeInBytes;
-		shaderConfig.MaxPayloadSizeInBytes = maxPayloadSizeInBytes;
-
-		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
-		subobject.pDesc = &shaderConfig;
-	}
-
-	D3D12_RAYTRACING_SHADER_CONFIG shaderConfig = {};
-	D3D12_STATE_SUBOBJECT subobject = {};
-};
-
-struct PipelineConfig
-{
-	PipelineConfig(uint32_t maxTraceRecursionDepth)
-	{
-		config.MaxTraceRecursionDepth = maxTraceRecursionDepth;
-
-		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
-		subobject.pDesc = &config;
-	}
-
-	D3D12_RAYTRACING_PIPELINE_CONFIG config = {};
-	D3D12_STATE_SUBOBJECT subobject = {};
-};
-
 void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc* pDesc, RaytracingPipeline** ppPipeline)
 {
 	ASSERT(pRaytracing);
@@ -928,74 +771,217 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 	/************************************************************************/
 	// Pipeline Creation
 	/************************************************************************/
-	D3D12_STATE_SUBOBJECT subobjects[10] = {};
-	uint32_t index = 0;
+	tinystl::vector<D3D12_STATE_SUBOBJECT> subobjects;
+	tinystl::vector<tinystl::pair<uint32_t, D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION*> > exportAssociationsDelayed;
+	// Reserve average number of subobject space in the beginning
+	subobjects.reserve(10);
 	/************************************************************************/
 	// Step 1 - Create DXIL Libraries
 	/************************************************************************/
-	tinystl::vector<DxilLibrary*> dxilLibraries(pDesc->mShaderCount);
-	for (uint32_t i = 0; i < pDesc->mShaderCount; ++i)
+	tinystl::vector<D3D12_DXIL_LIBRARY_DESC> dxilLibDescs;
+	tinystl::vector<D3D12_STATE_SUBOBJECT> stateSubobject = {};
+	tinystl::vector<D3D12_EXPORT_DESC*> exportDesc = {};
+
+	D3D12_DXIL_LIBRARY_DESC rayGenDesc = {};
+	D3D12_EXPORT_DESC rayGenExportDesc = {};
+	rayGenExportDesc.ExportToRename = NULL;
+	rayGenExportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
+	rayGenExportDesc.Name = pDesc->pRayGenShader->pName;
+
+	rayGenDesc.DXILLibrary.BytecodeLength = pDesc->pRayGenShader->pShaderBlob->GetBufferSize();
+	rayGenDesc.DXILLibrary.pShaderBytecode = pDesc->pRayGenShader->pShaderBlob->GetBufferPointer();
+	rayGenDesc.NumExports = 1;
+	rayGenDesc.pExports = &rayGenExportDesc;
+
+	dxilLibDescs.emplace_back(rayGenDesc);
+
+	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
-		dxilLibraries[i] = conf_placement_new<DxilLibrary>
-			(conf_calloc(1, sizeof(DxilLibrary)),
-				pDesc->ppShaders[i]->pShaderBlob, pDesc->ppShaders[i]->ppExports, pDesc->ppShaders[i]->mExportCount);
-		subobjects[index++] = dxilLibraries[i]->stateSubobject;
+		D3D12_EXPORT_DESC* pMissExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pMissExportDesc));
+		pMissExportDesc->ExportToRename = NULL;
+		pMissExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
+		pMissExportDesc->Name = pDesc->ppMissShaders[i]->pName;
+
+		D3D12_DXIL_LIBRARY_DESC missDesc = {};
+		missDesc.DXILLibrary.BytecodeLength = pDesc->ppMissShaders[i]->pShaderBlob->GetBufferSize();
+		missDesc.DXILLibrary.pShaderBytecode = pDesc->ppMissShaders[i]->pShaderBlob->GetBufferPointer();
+		missDesc.NumExports = 1;
+		missDesc.pExports = pMissExportDesc;
+
+		exportDesc.emplace_back(pMissExportDesc);
+		dxilLibDescs.emplace_back(missDesc);
+	}
+
+	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
+	{
+		if (pDesc->pHitGroups[i].pIntersectionShader)
+		{
+			D3D12_EXPORT_DESC* pIntersectionExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pIntersectionExportDesc));
+			pIntersectionExportDesc->ExportToRename = NULL;
+			pIntersectionExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
+			pIntersectionExportDesc->Name = pDesc->pHitGroups[i].pIntersectionShader->pName;
+
+			D3D12_DXIL_LIBRARY_DESC intersectionDesc = {};
+			intersectionDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pIntersectionShader->pShaderBlob->GetBufferSize();
+			intersectionDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pIntersectionShader->pShaderBlob->GetBufferPointer();
+			intersectionDesc.NumExports = 1;
+			intersectionDesc.pExports = pIntersectionExportDesc;
+
+			exportDesc.emplace_back(pIntersectionExportDesc);
+			dxilLibDescs.emplace_back(intersectionDesc);
+		}
+		if (pDesc->pHitGroups[i].pAnyHitShader)
+		{
+			D3D12_EXPORT_DESC* pAnyHitExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pAnyHitExportDesc));
+			pAnyHitExportDesc->ExportToRename = NULL;
+			pAnyHitExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
+			pAnyHitExportDesc->Name = pDesc->pHitGroups[i].pAnyHitShader->pName;
+
+			D3D12_DXIL_LIBRARY_DESC anyHitDesc = {};
+			anyHitDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pAnyHitShader->pShaderBlob->GetBufferSize();
+			anyHitDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pAnyHitShader->pShaderBlob->GetBufferPointer();
+			anyHitDesc.NumExports = 1;
+			anyHitDesc.pExports = pAnyHitExportDesc;
+
+			exportDesc.emplace_back(pAnyHitExportDesc);
+			dxilLibDescs.emplace_back(anyHitDesc);
+		}
+		if (pDesc->pHitGroups[i].pClosestHitShader)
+		{
+			D3D12_EXPORT_DESC* pClosestHitExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pClosestHitExportDesc));
+			pClosestHitExportDesc->ExportToRename = NULL;
+			pClosestHitExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
+			pClosestHitExportDesc->Name = pDesc->pHitGroups[i].pClosestHitShader->pName;
+
+			D3D12_DXIL_LIBRARY_DESC closestHitDesc = {};
+			closestHitDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pClosestHitShader->pShaderBlob->GetBufferSize();
+			closestHitDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pClosestHitShader->pShaderBlob->GetBufferPointer();
+			closestHitDesc.NumExports = 1;
+			closestHitDesc.pExports = pClosestHitExportDesc;
+
+			exportDesc.emplace_back(pClosestHitExportDesc);
+			dxilLibDescs.emplace_back(closestHitDesc);
+		}
+	}
+
+	for (uint32_t i = 0; i < (uint32_t)dxilLibDescs.size(); ++i)
+	{
+		D3D12_STATE_SUBOBJECT subobject = {};
+		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
+		subobject.pDesc = &dxilLibDescs[i];
+		subobjects.emplace_back(subobject);
 	}
 	/************************************************************************/
 	// Step 2 - Create Hit Groups
 	/************************************************************************/
-	tinystl::vector<HitProgram*> hitPrograms(pDesc->mHitGroupCount);
+	tinystl::vector<D3D12_HIT_GROUP_DESC> hitGroupDescs(pDesc->mHitGroupCount);
+	tinystl::vector<D3D12_STATE_SUBOBJECT> hitGroupObjects(pDesc->mHitGroupCount);
+	tinystl::vector<WCHAR*> hitGroupNames(pDesc->mHitGroupCount);
+
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
 	{
+		const RaytracingHitGroup* pHitGroup = &pDesc->pHitGroups[i];
 		ASSERT(pDesc->pHitGroups[i].pHitGroupName);
-		hitPrograms[i] = conf_placement_new<HitProgram>
-			(conf_calloc(1, sizeof(HitProgram)),
-				pDesc->pHitGroups[i].pIntersectionShaderName,
-			pDesc->pHitGroups[i].pAnyHitShaderName, pDesc->pHitGroups[i].pClosestHitShaderName,
-			pDesc->pHitGroups[i].pHitGroupName);
+		hitGroupNames[i] = (WCHAR*)conf_calloc(strlen(pDesc->pHitGroups[i].pHitGroupName) + 1, sizeof(WCHAR));
+		mbstowcs(hitGroupNames[i], pDesc->pHitGroups[i].pHitGroupName, strlen(pDesc->pHitGroups[i].pHitGroupName));
 
-		subobjects[index++] = hitPrograms[i]->subObject;
+		hitGroupDescs[i].AnyHitShaderImport = pHitGroup->pAnyHitShader ? pHitGroup->pAnyHitShader->pName : NULL;
+		hitGroupDescs[i].ClosestHitShaderImport = pHitGroup->pClosestHitShader ? pHitGroup->pClosestHitShader->pName : NULL;
+		hitGroupDescs[i].HitGroupExport = hitGroupNames[i];
+		hitGroupDescs[i].IntersectionShaderImport = pHitGroup->pIntersectionShader ? pHitGroup->pIntersectionShader->pName : NULL;
+
+		hitGroupObjects[i].Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
+		hitGroupObjects[i].pDesc = &hitGroupDescs[i];
+		subobjects.emplace_back(hitGroupObjects[i]);
 	}
-	/************************************************************************/
-	// Step 3 - Shader Config
-	/************************************************************************/
-	// Collect Shader Exports
-	tinystl::vector<const WCHAR*> shaderConfigExports;
-	for (uint32_t i = 0; i < (uint32_t)dxilLibraries.size(); ++i)
-	{
-		for (uint32_t j = 0; j < (uint32_t)dxilLibraries[i]->exportName.size(); ++j)
-			shaderConfigExports.emplace_back(dxilLibraries[i]->exportName[i]);
-	}
-	for (uint32_t i = 0; i < (uint32_t)hitPrograms.size(); ++i)
-	{
-		shaderConfigExports.emplace_back(hitPrograms[i]->desc.HitGroupExport);
-	}
-	// Bind the payload size to the programs
-	ShaderConfig shaderConfig(pDesc->mAttributeSize, pDesc->mPayloadSize);
-	subobjects[index] = shaderConfig.subobject;
-	uint32_t shaderConfigIndex = index++;
-	ExportAssociation configAssociation(shaderConfigExports.data(), (uint32_t)shaderConfigExports.size(), &(subobjects[shaderConfigIndex]));
-	subobjects[index++] = configAssociation.subobject;
 	/************************************************************************/
 	// Step 4 = Pipeline Config
 	/************************************************************************/
-	PipelineConfig config = PipelineConfig(pDesc->mMaxTraceRecursionDepth);
-	subobjects[index++] = config.subobject;
+	D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};
+	pipelineConfig.MaxTraceRecursionDepth = pDesc->mMaxTraceRecursionDepth;
+	D3D12_STATE_SUBOBJECT pipelineConfigObject = {};
+	pipelineConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
+	pipelineConfigObject.pDesc = &pipelineConfig;
+	subobjects.emplace_back(pipelineConfigObject);
 	/************************************************************************/
 	// Step 5 - Global Root Signature
 	/************************************************************************/
-	GlobalRootSignature globalRootSignature = GlobalRootSignature(pDesc->pGlobalRootSignature->pDxRootSignature);
-	subobjects[index++] = globalRootSignature.subobject;
+	D3D12_STATE_SUBOBJECT globalRootSignatureObject = {};
+	globalRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE;
+	globalRootSignatureObject.pDesc = pDesc->pGlobalRootSignature ? &pDesc->pGlobalRootSignature->pDxRootSignature : NULL;
+	subobjects.emplace_back(globalRootSignatureObject);
 	/************************************************************************/
-	// #TODO Step 6 - Local Root Signatures
+	// Step 6 - Local Root Signatures
 	/************************************************************************/
+	// Local Root Signature for Ray Generation Shader
+	D3D12_STATE_SUBOBJECT rayGenRootSignatureObject = {};
+	D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION rayGenRootSignatureAssociation = {};
+	if (pDesc->pRayGenRootSignature)
+	{
+		rayGenRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
+		rayGenRootSignatureObject.pDesc = &pDesc->pRayGenRootSignature->pDxRootSignature;
+		subobjects.emplace_back(rayGenRootSignatureObject);
+
+		rayGenRootSignatureAssociation.NumExports = 1;
+		rayGenRootSignatureAssociation.pExports = &pDesc->pRayGenShader->pName;
+
+		exportAssociationsDelayed.push_back({ (uint32_t)subobjects.size() - 1, &rayGenRootSignatureAssociation });
+	}
+
+	// Local Root Signatures for Miss Shaders
+	tinystl::vector<D3D12_STATE_SUBOBJECT> missRootSignatures(pDesc->mMissShaderCount);
+	tinystl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> missRootSignaturesAssociation(pDesc->mMissShaderCount);
+	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
+	{
+		if (pDesc->ppMissRootSignatures && pDesc->ppMissRootSignatures[i])
+		{
+			missRootSignatures[i].Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
+			missRootSignatures[i].pDesc = &pDesc->ppMissRootSignatures[i]->pDxRootSignature;
+			subobjects.emplace_back(missRootSignatures[i]);
+
+			missRootSignaturesAssociation[i].NumExports = 1;
+			missRootSignaturesAssociation[i].pExports = &pDesc->ppMissShaders[i]->pName;
+
+			exportAssociationsDelayed.push_back({ (uint32_t)subobjects.size() - 1, &missRootSignaturesAssociation[i] });
+		}
+	}
+
+	// Local Root Signatures for Hit Groups
+	tinystl::vector<D3D12_STATE_SUBOBJECT> hitGroupRootSignatures(pDesc->mHitGroupCount);
+	tinystl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> hitGroupRootSignatureAssociation(pDesc->mHitGroupCount);
+	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
+	{
+		if (pDesc->pHitGroups[i].pRootSignature)
+		{
+			hitGroupRootSignatures[i].Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
+			hitGroupRootSignatures[i].pDesc = &pDesc->pHitGroups[i].pRootSignature->pDxRootSignature;
+			subobjects.emplace_back(hitGroupRootSignatures[i]);
+
+			hitGroupRootSignatureAssociation[i].NumExports = 1;
+			hitGroupRootSignatureAssociation[i].pExports = &hitGroupDescs[i].HitGroupExport;
+
+			exportAssociationsDelayed.push_back({ (uint32_t)subobjects.size() - 1, &hitGroupRootSignatureAssociation[i] });
+		}
+	}
+	/************************************************************************/
+	// Export Associations
+	/************************************************************************/
+	for (uint32_t i = 0; i < (uint32_t)exportAssociationsDelayed.size(); ++i)
+	{
+		exportAssociationsDelayed[i].second->pSubobjectToAssociate = &subobjects[exportAssociationsDelayed[i].first];
+
+		D3D12_STATE_SUBOBJECT exportAssociationObject = {};
+		exportAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
+		exportAssociationObject.pDesc = exportAssociationsDelayed[i].second;
+		subobjects.push_back(exportAssociationObject);
+	}
 	/************************************************************************/
 	// Step 7 - Create State Object
 	/************************************************************************/
 	D3D12_STATE_OBJECT_DESC pipelineDesc = {};
 	pipelineDesc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
-	pipelineDesc.NumSubobjects = index;
-	pipelineDesc.pSubobjects = subobjects;
+	pipelineDesc.NumSubobjects = (UINT)subobjects.size();
+	pipelineDesc.pSubobjects = subobjects.data();
 
 	// Create the state object.
 	if (gRaytracingStaticInitializer.mFallback)
@@ -1011,17 +997,11 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 	/************************************************************************/
 	// Clean up
 	/************************************************************************/
-	for (uint32_t i = 0; i < (uint32_t)dxilLibraries.size(); ++i)
-	{
-		dxilLibraries[i]->~DxilLibrary();
-		conf_free(dxilLibraries[i]);
-	}
+	for (uint32_t i = 0; i < (uint32_t)exportDesc.size(); ++i)
+		conf_free(exportDesc[i]);
 
-	for (uint32_t i = 0; i < (uint32_t)hitPrograms.size(); ++i)
-	{
-		hitPrograms[i]->~HitProgram();
-		conf_free(hitPrograms[i]);
-	}
+	for (uint32_t i = 0; i < (uint32_t)hitGroupNames.size(); ++i)
+		conf_free(hitGroupNames[i]);
 	/************************************************************************/
 	/************************************************************************/
 	*ppPipeline = pPipeline;
@@ -1039,6 +1019,10 @@ void removeRaytracingPipeline(Raytracing* pRaytracing, RaytracingPipeline* pPipe
 
 	conf_free(pPipeline);
 }
+
+static const uint32_t gLocalRootConstantSize = sizeof(UINT);
+static const uint32_t gLocalRootDescriptorSize = sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+static const uint32_t gLocalRootDescriptorTableSize = sizeof(D3D12_GPU_DESCRIPTOR_HANDLE);
 
 void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
 {
@@ -1060,16 +1044,60 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 
 	ASSERT(shaderIdentifierSize);
 
-	const uint32_t shaderCount = pDesc->mRayGenShaderCount + pDesc->mMissShaderCount + pDesc->mHitGroupCount;
-	uint64_t maxShaderTableSize = shaderIdentifierSize;
+	const uint32_t recordCount = 1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount;
+	uint64_t maxShaderTableSize = 0;
 	/************************************************************************/
-	// #TODO Calculate max size for each element in the shader table
+	// Calculate max size for each element in the shader table
 	/************************************************************************/
+	auto CalculateMaxShaderRecordSize = [&](const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount)
+	{
+		for (uint32_t i = 0; i < shaderCount; ++i)
+		{
+			tinystl::unordered_set<const DescriptorSetLayout*> addedTables;
+			const RaytracingShaderTableRecordDesc* pRecord = &pRecords[i];
+			uint32_t shaderSize = 0;
+			for (uint32_t desc = 0; desc < pRecord->mRootDataCount; ++desc)
+			{
+				uint32_t descIndex = -1;
+				const DescriptorInfo* pDesc = get_descriptor(pRecord->pRootSignature, pRecord->pRootData[desc].pName, &descIndex);
+				ASSERT(pDesc);
 
+				switch (pDesc->mDxType)
+				{
+				case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+					shaderSize += pDesc->mDesc.size * gLocalRootConstantSize;
+					break;
+				case D3D12_ROOT_PARAMETER_TYPE_CBV:
+				case D3D12_ROOT_PARAMETER_TYPE_SRV:
+				case D3D12_ROOT_PARAMETER_TYPE_UAV:
+					shaderSize += gLocalRootDescriptorSize;
+					break;
+				case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+				{
+					const DescriptorSetLayout* pTableLayout = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
+						&pRecord->pRootSignature->pSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pViewTableLayouts[pDesc->mUpdateFrquency];
+					if (addedTables.find(pTableLayout) == addedTables.end())
+						shaderSize += gLocalRootDescriptorTableSize;
+					else
+						addedTables.insert(pTableLayout);
+					break;
+				}
+				default:
+					break;
+				}
+			}
+
+			maxShaderTableSize = max(maxShaderTableSize, shaderSize);
+		}
+	};
+
+	CalculateMaxShaderRecordSize(pDesc->pRayGenShader, 1);
+	CalculateMaxShaderRecordSize(pDesc->pMissShaders, pDesc->mMissShaderCount);
+	CalculateMaxShaderRecordSize(pDesc->pHitGroups, pDesc->mHitGroupCount);
 	/************************************************************************/
 	// Align max size
 	/************************************************************************/
-	maxShaderTableSize = round_up_64(maxShaderTableSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+	maxShaderTableSize = round_up_64(shaderIdentifierSize + maxShaderTableSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 	pTable->mMaxEntrySize = maxShaderTableSize;
 	/************************************************************************/
 	// Create shader table buffer
@@ -1078,7 +1106,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	bufferDesc.mUsage = BUFFER_USAGE_UPLOAD;
 	bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	bufferDesc.mSize = maxShaderTableSize * shaderCount;
+	bufferDesc.mSize = maxShaderTableSize * recordCount;
 	addBuffer(pRaytracing->pRenderer, &bufferDesc, &pTable->pBuffer);
 	/************************************************************************/
 	// Copy shader identifiers into the buffer
@@ -1089,13 +1117,16 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 
 	uint32_t index = 0;
 
-	auto FillShaderIdentifiers = [&](const char** ppShaders, uint32_t shaderCount)
+	auto FillShaderIdentifiers = [&](const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount)
 	{
 		for (uint32_t i = 0; i < shaderCount; ++i)
 		{
+			tinystl::unordered_set<const DescriptorSetLayout*> addedTables;
+
+			const RaytracingShaderTableRecordDesc* pRecord = &pRecords[i];
 			void* pIdentifier = NULL;
-			WCHAR* pName = (WCHAR*)conf_calloc(strlen(ppShaders[i]) + 1, sizeof(WCHAR));
-			mbstowcs(pName, ppShaders[i], strlen(ppShaders[i]));
+			WCHAR* pName = (WCHAR*)conf_calloc(strlen(pRecord->pName) + 1, sizeof(WCHAR));
+			mbstowcs(pName, pRecord->pName, strlen(pRecord->pName));
 
 			if (gRaytracingStaticInitializer.mFallback)
 				pIdentifier = pDesc->pPipeline->pFallbackPipeline->GetShaderIdentifier(pName);
@@ -1105,19 +1136,163 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 			ASSERT(pIdentifier);
 			conf_free(pName);
 
-			memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + maxShaderTableSize * index++, pIdentifier, shaderIdentifierSize);
+			uint64_t currentPosition = maxShaderTableSize * index++;
+			memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, pIdentifier, shaderIdentifierSize);
+
+			if (!pRecord->pRootSignature)
+				continue;
+
+			currentPosition += shaderIdentifierSize;
+			/************************************************************************/
+			// #NOTE : User can specify root data in any order but we need to fill
+			// it into the buffer based on the root index associated with each root data entry
+			// So we collect them here and do a lookup when looping through the descriptor array
+			// from the root signature
+			/************************************************************************/
+			tinystl::unordered_map<uint32_t, const DescriptorData*> data;
+			for (uint32_t desc = 0; desc < pRecord->mRootDataCount; ++desc)
+			{
+				data.insert({ tinystl::hash(pRecord->pRootData[desc].pName), &pRecord->pRootData[desc] });
+			}
+
+			for (uint32_t desc = 0; desc < pRecord->pRootSignature->mDescriptorCount; ++desc)
+			{
+				uint32_t descIndex = -1;
+				const DescriptorInfo* pDesc = &pRecord->pRootSignature->pDescriptors[desc];
+				const DescriptorData* pData = data.find(tinystl::hash(pDesc->mDesc.name)).node->second;
+
+				switch (pDesc->mDxType)
+				{
+				case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+				{
+					memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, pData->pRootConstant, pDesc->mDesc.size * sizeof(uint32_t));
+					currentPosition += pDesc->mDesc.size * sizeof(uint32_t);
+					break;
+				}
+				case D3D12_ROOT_PARAMETER_TYPE_CBV:
+				case D3D12_ROOT_PARAMETER_TYPE_SRV:
+				case D3D12_ROOT_PARAMETER_TYPE_UAV:
+				{
+					// Root Descriptors need to be aligned to 8 byte address
+					currentPosition = round_up_64(currentPosition, gLocalRootDescriptorSize);
+					D3D12_GPU_VIRTUAL_ADDRESS cbvAddress = pData->ppBuffers[0]->pDxResource->GetGPUVirtualAddress() + pData->ppBuffers[0]->mPositionInHeap + pData->mOffset;
+					memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, &cbvAddress, sizeof(D3D12_GPU_VIRTUAL_ADDRESS));
+					currentPosition += gLocalRootDescriptorSize;
+					break;
+				}
+				case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+				{
+					const DescriptorSetLayout* pTableLayout = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
+						&pRecord->pRootSignature->pSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pViewTableLayouts[pDesc->mUpdateFrquency];
+					// Construct a new descriptor table from shader visible heap
+					if (addedTables.find(pTableLayout) == addedTables.end())
+					{
+						D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+						D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+						if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
+						{
+							add_gpu_descriptor_handles(pRaytracing->pRenderer->pSamplerHeap[0], &cpuHandle, &gpuHandle, pTableLayout->mCumulativeDescriptorCount);
+							pTable->mSamplerGpuDescriptorHandle[pDesc->mUpdateFrquency] = gpuHandle;
+							pTable->mSamplerDescriptorCount[pDesc->mUpdateFrquency] = pTableLayout->mCumulativeDescriptorCount;
+
+							for (uint32_t i = 0; i < pTableLayout->mDescriptorCount; ++i)
+							{
+								const DescriptorInfo* pTableDesc = &pRecord->pRootSignature->pDescriptors[pTableLayout->pDescriptorIndices[i]];
+								const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
+								for (uint32_t samplerIndex = 0; samplerIndex < pTableData->mCount; ++samplerIndex)
+								{
+									pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+										{ cpuHandle.ptr + (pTableDesc->mHandleIndex + samplerIndex) * pRaytracing->pRenderer->pSamplerHeap[0]->mDescriptorSize },
+										pTableData->ppSamplers[samplerIndex]->mDxSamplerHandle,
+										D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+								}
+							}
+						}
+						else
+						{
+							add_gpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], &cpuHandle, &gpuHandle, pTableLayout->mCumulativeDescriptorCount);
+							pTable->mViewGpuDescriptorHandle[pDesc->mUpdateFrquency] = gpuHandle;
+							pTable->mViewDescriptorCount[pDesc->mUpdateFrquency] = pTableLayout->mCumulativeDescriptorCount;
+
+							for (uint32_t i = 0; i < pTableLayout->mDescriptorCount; ++i)
+							{
+								const DescriptorInfo* pTableDesc = &pRecord->pRootSignature->pDescriptors[pTableLayout->pDescriptorIndices[i]];
+								const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
+								const DescriptorType type = pTableDesc->mDesc.type;
+								switch (type)
+								{
+								case DESCRIPTOR_TYPE_TEXTURE:
+									for (uint32_t textureIndex = 0; textureIndex < pTableData->mCount; ++textureIndex)
+									{
+										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
+											pTableData->ppTextures[textureIndex]->mDxSrvHandle,
+											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+									}
+									break;
+								case DESCRIPTOR_TYPE_RW_TEXTURE:
+									for (uint32_t textureIndex = 0; textureIndex < pTableData->mCount; ++textureIndex)
+									{
+										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
+											pTableData->ppTextures[textureIndex]->mDxUavHandle,
+											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+									}
+									break;
+								case DESCRIPTOR_TYPE_BUFFER:
+									for (uint32_t bufferIndex = 0; bufferIndex < pTableData->mCount; ++bufferIndex)
+									{
+										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + bufferIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
+											pTableData->ppBuffers[bufferIndex]->mDxSrvHandle,
+											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+									}
+									break;
+								case DESCRIPTOR_TYPE_RW_BUFFER:
+									for (uint32_t bufferIndex = 0; bufferIndex < pTableData->mCount; ++bufferIndex)
+									{
+										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + bufferIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
+											pTableData->ppBuffers[bufferIndex]->mDxUavHandle,
+											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+									}
+									break;
+									// #TODO : Add DESCRIPTOR_TYPE_UNIFORM_BUFFER if needed.
+									// Currently we use root descriptors for uniform buffers in raytracing root signature
+								default:
+									break;
+								}
+							}
+						}
+
+						// Root Descriptor Tables need to be aligned to 8 byte address
+						currentPosition = round_up_64(currentPosition, gLocalRootDescriptorSize);
+						memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, &gpuHandle, sizeof(D3D12_GPU_DESCRIPTOR_HANDLE));
+						currentPosition += gLocalRootDescriptorTableSize;
+					}
+					else
+					{
+						addedTables.insert(pTableLayout);
+					}
+					break;
+				}
+				default:
+					break;
+				}
+			}
 		}
 	};
 
-	FillShaderIdentifiers(pDesc->ppRayGenShaders, pDesc->mRayGenShaderCount);
-	FillShaderIdentifiers(pDesc->ppMissShaders, pDesc->mMissShaderCount);
-	FillShaderIdentifiers(pDesc->ppHitGroups, pDesc->mHitGroupCount);
+	FillShaderIdentifiers(pDesc->pRayGenShader, 1);
+
+	pTable->mMissRecordSize = maxShaderTableSize * pDesc->mMissShaderCount;
+	FillShaderIdentifiers(pDesc->pMissShaders, pDesc->mMissShaderCount);
+
+	pTable->mHitGroupRecordSize = maxShaderTableSize * pDesc->mHitGroupCount;
+	FillShaderIdentifiers(pDesc->pHitGroups, pDesc->mHitGroupCount);
 
 	if (pRtsoProps)
 		pRtsoProps->Release();
-	/************************************************************************/
-	// #TODO Copy descriptor data into the buffer
-	/************************************************************************/
 	/************************************************************************/
 	/************************************************************************/
 	*ppTable = pTable;
@@ -1129,6 +1304,15 @@ void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable*
 	ASSERT(pTable);
 
 	removeBuffer(pRaytracing->pRenderer, pTable->pBuffer);
+
+	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
+	{
+		if (pTable->mViewGpuDescriptorHandle[i].ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL)
+			remove_gpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], &pTable->mViewGpuDescriptorHandle[i], pTable->mViewDescriptorCount[i]);
+
+		if (pTable->mSamplerGpuDescriptorHandle[i].ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL)
+			remove_gpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], &pTable->mSamplerGpuDescriptorHandle[i], pTable->mSamplerDescriptorCount[i]);
+	}
 
 	conf_free(pTable);
 }
@@ -1166,8 +1350,8 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Buffer* p
 		if (buildDesc.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
 		{
 			ID3D12DescriptorHeap* pHeaps[2] = {
-				pRaytracing->pRenderer->pCbvSrvUavHeap->pCurrentHeap,
-				pRaytracing->pRenderer->pSamplerHeap->pCurrentHeap
+				pRaytracing->pRenderer->pCbvSrvUavHeap[0]->pCurrentHeap,
+				pRaytracing->pRenderer->pSamplerHeap[0]->pCurrentHeap
 			};
 			pFallbackCmd->SetDescriptorHeaps(ARRAYSIZE(pHeaps), pHeaps);
 		}
@@ -1195,16 +1379,19 @@ void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatc
 	// #TODO: Support for different offsets into the shader table
 	/************************************************************************/
 	D3D12_GPU_VIRTUAL_ADDRESS startAddress = pDesc->pShaderTable->pBuffer->pDxResource->GetGPUVirtualAddress() + pShaderTable->pBuffer->mPositionInHeap;
+
 	D3D12_GPU_VIRTUAL_ADDRESS_RANGE rayGenShaderRecord = {};
 	rayGenShaderRecord.SizeInBytes = pShaderTable->mMaxEntrySize;
 	rayGenShaderRecord.StartAddress = startAddress + pShaderTable->mMaxEntrySize * 0;
+
 	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE missShaderTable = {};
-	missShaderTable.SizeInBytes = pShaderTable->mMaxEntrySize;
-	missShaderTable.StartAddress = startAddress + pShaderTable->mMaxEntrySize * 1;
+	missShaderTable.SizeInBytes = pShaderTable->mMissRecordSize;
+	missShaderTable.StartAddress = startAddress + pShaderTable->mMaxEntrySize;
 	missShaderTable.StrideInBytes = pShaderTable->mMaxEntrySize;
+
 	D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE hitGroupTable = {};
-	hitGroupTable.SizeInBytes = pShaderTable->mMaxEntrySize;
-	hitGroupTable.StartAddress = startAddress + pShaderTable->mMaxEntrySize * 2;
+	hitGroupTable.SizeInBytes = pShaderTable->mHitGroupRecordSize;
+	hitGroupTable.StartAddress = startAddress + pShaderTable->mMaxEntrySize + pShaderTable->mMissRecordSize;
 	hitGroupTable.StrideInBytes = pShaderTable->mMaxEntrySize;
 	/************************************************************************/
 	/************************************************************************/
@@ -1221,8 +1408,8 @@ void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatc
 		fallbackDispatchDesc.HitGroupTable = hitGroupTable;
 
 		ID3D12DescriptorHeap* pHeaps[2] = {
-			pRaytracing->pRenderer->pCbvSrvUavHeap->pCurrentHeap,
-			pRaytracing->pRenderer->pSamplerHeap->pCurrentHeap
+			pRaytracing->pRenderer->pCbvSrvUavHeap[0]->pCurrentHeap,
+			pRaytracing->pRenderer->pSamplerHeap[0]->pCurrentHeap
 		};
 		// Set the descriptor heaps on the fallback command list since it will need them in the dispatch call
 		pFallbackCmd->SetDescriptorHeaps(ARRAYSIZE(pHeaps), pHeaps);
@@ -1336,7 +1523,7 @@ WRAPPED_GPU_POINTER util_create_fallback_wrapped_pointer(Raytracing* pRaytracing
 	uint32_t descriptorHeapIndex = 0;
 	if (!pRaytracing->pFallbackDevice->UsingRaytracingDriver())
 	{
-		bottomLevelDescriptor = add_cpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap, 1, &descriptorHeapIndex);
+		bottomLevelDescriptor = add_cpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], 1, &descriptorHeapIndex);
 		pRaytracing->pRenderer->pDevice->CreateUnorderedAccessView(resource, nullptr, &rawBufferUavDesc, bottomLevelDescriptor);
 	}
 	return pRaytracing->pFallbackDevice->GetWrappedPointerSimple((UINT)descriptorHeapIndex, resource->GetGPUVirtualAddress());

@@ -103,29 +103,29 @@
     <CustomBuild Include="..\src\PCVulkan\resolve.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\visibilityBuffer_shade.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_shade.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\deferred_shade_pointlight.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\HDAO.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\resolve.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\shadow_pass_alpha.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\PCVulkan\visibilityBuffer_pass_alpha.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\PCVulkan\visibilityBuffer_pass_alpha.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\PCVulkan\shadow_pass_alpha.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\PCVulkan\deferred_shade.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\PCVulkan\deferred_shade_pointlight.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\PCVulkan\HDAO.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\PCVulkan\resolve.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\PCVulkan\visibilityBuffer_shade.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
     <None Include="..\src\PCDX12\batch_compaction.comp">
       <Filter>Shaders\PCDirectX12</Filter>
     </None>

@@ -28,13 +28,12 @@
 #include "../../Common_3/Renderer/ResourceLoader.h"
 #include "../../Common_3/Renderer/GpuProfiler.h"
 
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 /************************************************************************/
 /* HELPER FUNCTIONS
 /************************************************************************/
-void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffer, unsigned tessellationX, unsigned tessellationY)
+void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, Buffer** ppIndexBuffer, unsigned tessellationX, unsigned tessellationY)
 {
 	ASSERT(tessellationX >= 1);
 	ASSERT(tessellationY >= 1);
@@ -63,7 +62,8 @@ void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffe
 
 	BufferLoadDesc vbDesc = {};
 	vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
-	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	vbDesc.mDesc.mMemoryUsage = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	vbDesc.mDesc.mFlags = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.mDesc.mSize = vertices.size() * sizeof(vec4);
 	vbDesc.mDesc.mVertexStride = sizeof(vec4);
 	vbDesc.pData = vertices.data();
@@ -104,7 +104,8 @@ void createTessellatedQuadBuffers(Buffer** ppVertexBuffer, Buffer** ppIndexBuffe
 
 	BufferLoadDesc ibDesc = {};
 	ibDesc.mDesc.mUsage = BUFFER_USAGE_INDEX;
-	ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	ibDesc.mDesc.mMemoryUsage = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	ibDesc.mDesc.mFlags = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	ibDesc.mDesc.mSize = indices.size() * sizeof(uint16_t);
 	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 	ibDesc.pData = indices.data();
@@ -138,7 +139,7 @@ bool AppPanini::Init(Renderer* renderer)
 	paninniRootDesc.mStaticSamplers["uSampler"] = pSamplerTrilinearAniso;
 	addRootSignature(pRenderer, 1, &pShaderPanini, &pRootSignaturePaniniPostProcess, &paninniRootDesc);
 
-	createTessellatedQuadBuffers(&pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, gPaniniDistortionTessellation[0], gPaniniDistortionTessellation[1]);
+	createTessellatedQuadBuffers(pRenderer, &pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, gPaniniDistortionTessellation[0], gPaniniDistortionTessellation[1]);
 
 	return true;
 }

@@ -43,8 +43,8 @@
 #define MAX_KEYS 256
 #define MAX_CURSOR_DELTA 200
 
-#define GETX(l) (int(l & 0xFFFF))
-#define GETY(l) (int(l) >> 16)
+#define GETX(l) ((int)LOWORD(l))
+#define GETY(l) ((int)HIWORD(l))
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 

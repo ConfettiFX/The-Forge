@@ -25,29 +25,31 @@
 // Unit Test to create Bottom and Top Level Acceleration Structures using Raytracing API.
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../Common_3/OS/Interfaces/IUIManager.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 // Raytracing
-#include "../../CommonRaytracing_3/Interfaces/IRaytracing.h"
+#include "../../../../CommonRaytracing_3/Interfaces/IRaytracing.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
 // Shader
-#include "PCDX12/Compiled/Raytracing.h"
+#include "PCDX12/Compiled/RayGen.h"
+#include "PCDX12/Compiled/ClosestHit.h"
+#include "PCDX12/Compiled/Miss.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[FSR_Count] =
@@ -143,7 +145,7 @@ public:
 		cmdBuildAccelerationStructure(pCmd, pRaytracing, pScratchBuffer, pTopLevelAS);
 		endCmd(pCmd);
 		queueSubmit(pQueue, 1, &pCmd, pFence, 0, NULL, 0, NULL);
-		waitForFences(pQueue, 1, &pFence);
+		waitForFences(pQueue, 1, &pFence, false);
 
 		// Safe to remove scratch buffer since the GPU is done using it
 		removeResource(pScratchBuffer);
@@ -163,21 +165,25 @@ public:
 		// 03 - Create Raytracing Pipeline
 		/************************************************************************/
 		const char* pNames[] = { "rayGen", "miss", "chs" };
-		addRaytracingShader(pRaytracing, gShader_Raytracing, sizeof(gShader_Raytracing), pNames, 3, &pShader);
+		addRaytracingShader(pRaytracing, gShader_RayGen, sizeof(gShader_RayGen), pNames[0], &pShaderRayGen);
+		addRaytracingShader(pRaytracing, gShader_ClosestHit, sizeof(gShader_ClosestHit), pNames[2], &pShaderHit);
+		addRaytracingShader(pRaytracing, gShader_Miss, sizeof(gShader_Miss), pNames[1], &pShaderMiss);
 
 		RaytracingHitGroup hitGroup = {};
-		hitGroup.pClosestHitShaderName = pNames[2];
+		hitGroup.pClosestHitShader = pShaderHit;
 		hitGroup.pHitGroupName = "hitGroup";
 
+		RaytracingShader* pShaders[] = { pShaderRayGen, pShaderHit, pShaderMiss };
 		RaytracingPipelineDesc pipelineDesc = {};
 		pipelineDesc.mAttributeSize = sizeof(float2);
 		pipelineDesc.mMaxTraceRecursionDepth = 1;
 		pipelineDesc.mPayloadSize = sizeof(float3);
 		pipelineDesc.pGlobalRootSignature = pRootSignature;
-		pipelineDesc.mShaderCount = 1;
+		pipelineDesc.pRayGenShader = pShaderRayGen;
+		pipelineDesc.ppMissShaders = &pShaderMiss;
+		pipelineDesc.mMissShaderCount = 1;
 		pipelineDesc.pHitGroups = &hitGroup;
 		pipelineDesc.mHitGroupCount = 1;
-		pipelineDesc.ppShaders = &pShader;
 		addRaytracingPipeline(pRaytracing, &pipelineDesc, &pPipeline);
 		/************************************************************************/
 		/************************************************************************/
@@ -188,7 +194,9 @@ public:
 	{
 		removeRaytracingPipeline(pRaytracing, pPipeline);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeRaytracingShader(pRaytracing, pShader);
+		removeRaytracingShader(pRaytracing, pShaderRayGen);
+		removeRaytracingShader(pRaytracing, pShaderHit);
+		removeRaytracingShader(pRaytracing, pShaderMiss);
 		removeResource(pVertexBuffer);
 		removeAccelerationStructure(pRaytracing, pTopLevelAS);
 		removeAccelerationStructure(pRaytracing, pBottomLevelAS);
@@ -235,7 +243,9 @@ private:
 	Buffer*					pVertexBuffer;
 	AccelerationStructure*	pBottomLevelAS;
 	AccelerationStructure*	pTopLevelAS;
-	RaytracingShader*		pShader;
+	RaytracingShader*		pShaderRayGen;
+	RaytracingShader*		pShaderHit;
+	RaytracingShader*		pShaderMiss;
 	RootSignature*			pRootSignature;
 	RaytracingPipeline*		pPipeline;
 };

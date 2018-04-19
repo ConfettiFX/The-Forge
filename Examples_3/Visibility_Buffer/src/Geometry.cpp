@@ -322,11 +322,7 @@ Scene* loadScene(const char* fileName)
         const float3& tangent = tangents[v];
         const float2& tc = texcoords[v];
         
-#ifndef METAL
-        scene->normals[v].normal = encodeDir(normal);
-        scene->tangents[v].tangent = encodeDir(tangent);
-        scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
-#else
+#if defined(METAL) || defined(LINUX)
         scene->normals[v].nx = normal.x;
         scene->normals[v].ny = normal.y;
         scene->normals[v].nz = normal.z;
@@ -337,6 +333,10 @@ Scene* loadScene(const char* fileName)
         
         scene->texCoords[v].u = tc.x;
         scene->texCoords[v].v = 1.0f - tc.y;
+#else
+        scene->normals[v].normal = encodeDir(normal);
+        scene->tangents[v].tangent = encodeDir(tangent);
+        scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
 #endif
     }
 
@@ -346,12 +346,12 @@ Scene* loadScene(const char* fileName)
 
 		assimpScene.Read(&batch.materialId, sizeof(uint32_t));
         assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
-#ifndef METAL
-		assimpScene.Read(&batch.startIndex, sizeof(uint32_t));
-        assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
-#else
+#if defined(METAL)
         assimpScene.Read(&batch.startVertex, sizeof(uint32_t));
         assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
+#else
+	assimpScene.Read(&batch.startIndex, sizeof(uint32_t));
+        assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
 #endif
 	}
 
