@@ -2087,7 +2087,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			/************************************************************************/
 			VkBindBufferMemoryInfoKHR bindInfo = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR };
 			VkBindBufferMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO_KHR };
-			bindDeviceGroup.deviceIndexCount = 2;
+			bindDeviceGroup.deviceIndexCount = pRenderer->mNumOfGPUs;
 			bindDeviceGroup.pDeviceIndices = pIndices;
 			bindInfo.buffer = pBuffer->pVkBuffer;
 			bindInfo.memory = pBuffer->pVkMemory->GetMemory();
@@ -2292,7 +2292,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				/************************************************************************/
 				VkBindImageMemoryInfoKHR bindInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO_KHR };
 				VkBindImageMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR };
-				bindDeviceGroup.deviceIndexCount = 2;
+				bindDeviceGroup.deviceIndexCount = pRenderer->mNumOfGPUs;
 				bindDeviceGroup.pDeviceIndices = pIndices;
 				bindInfo.image = pTexture->pVkImage;
 				bindInfo.memory = pTexture->pVkMemory->GetMemory();
