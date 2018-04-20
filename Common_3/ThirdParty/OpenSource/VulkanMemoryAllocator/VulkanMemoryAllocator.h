@@ -6885,6 +6885,12 @@ VkResult VmaBlockVector::CreateBlock(VkDeviceSize blockSize, size_t* pNewBlockIn
 	VkMemoryAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	allocInfo.memoryTypeIndex = m_MemoryTypeIndex;
 	allocInfo.allocationSize = blockSize;
+
+	if (createInfo.pUserData)
+	{
+		allocInfo.pNext = createInfo.pUserData;
+	}
+
 	VkDeviceMemory mem = VK_NULL_HANDLE;
 	VkResult res = m_hAllocator->AllocateVulkanMemory(&allocInfo, &mem);
 	if (res < 0)
@@ -7675,6 +7681,15 @@ VkResult VmaAllocator_T::AllocateDedicatedMemory(
 			dedicatedAllocInfo.image = dedicatedImage;
 			allocInfo.pNext = &dedicatedAllocInfo;
 		}
+	}
+
+	// TODO: Fix this hack by adding correct way to use the external memory extension
+	// For now, if user data is not null, we assume its for an external memory extension pNext chain
+	if (pUserData)
+	{
+		allocInfo.pNext = pUserData;
+		if (m_UseKhrDedicatedAllocation && (dedicatedBuffer || dedicatedImage))
+			((VkExportMemoryAllocateInfoKHR*)pUserData)->pNext = &dedicatedAllocInfo;
 	}
 
 	// Allocate VkDeviceMemory.
