@@ -4224,7 +4224,7 @@ private:
 	// after this call.
 	void IncrementallySortBlocks();
 
-	VkResult CreateBlock(VkDeviceSize blockSize, size_t* pNewBlockIndex);
+	VkResult CreateBlock(const VmaAllocationCreateInfo& createInfo, VkDeviceSize blockSize, size_t* pNewBlockIndex);
 };
 
 struct VmaPool_T
@@ -6490,7 +6490,7 @@ VkResult VmaBlockVector::CreateMinBlocks()
 {
 	for (size_t i = 0; i < m_MinBlockCount; ++i)
 	{
-		VkResult res = CreateBlock(m_PreferredBlockSize, VMA_NULL);
+		VkResult res = CreateBlock({}, m_PreferredBlockSize, VMA_NULL);
 		if (res != VK_SUCCESS)
 		{
 			return res;
@@ -6620,7 +6620,7 @@ VkResult VmaBlockVector::Allocate(
 		}
 
 		size_t newBlockIndex = 0;
-		VkResult res = CreateBlock(newBlockSize, &newBlockIndex);
+		VkResult res = CreateBlock(createInfo, newBlockSize, &newBlockIndex);
 		// Allocation of this size failed? Try 1/2, 1/4, 1/8 of m_PreferredBlockSize.
 		if (m_IsCustomPool == false)
 		{
@@ -6631,7 +6631,7 @@ VkResult VmaBlockVector::Allocate(
 				{
 					newBlockSize = smallerNewBlockSize;
 					++newBlockSizeShift;
-					res = CreateBlock(newBlockSize, &newBlockIndex);
+					res = CreateBlock(createInfo, newBlockSize, &newBlockIndex);
 				}
 				else
 				{
@@ -6880,11 +6880,17 @@ void VmaBlockVector::IncrementallySortBlocks()
 	}
 }
 
-VkResult VmaBlockVector::CreateBlock(VkDeviceSize blockSize, size_t* pNewBlockIndex)
+VkResult VmaBlockVector::CreateBlock(const VmaAllocationCreateInfo& createInfo, VkDeviceSize blockSize, size_t* pNewBlockIndex)
 {
 	VkMemoryAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	allocInfo.memoryTypeIndex = m_MemoryTypeIndex;
 	allocInfo.allocationSize = blockSize;
+
+	if (createInfo.pUserData)
+	{
+		allocInfo.pNext = createInfo.pUserData;
+	}
+
 	VkDeviceMemory mem = VK_NULL_HANDLE;
 	VkResult res = m_hAllocator->AllocateVulkanMemory(&allocInfo, &mem);
 	if (res < 0)
@@ -7675,6 +7681,15 @@ VkResult VmaAllocator_T::AllocateDedicatedMemory(
 			dedicatedAllocInfo.image = dedicatedImage;
 			allocInfo.pNext = &dedicatedAllocInfo;
 		}
+	}
+
+	// TODO: Fix this hack by adding correct way to use the external memory extension
+	// For now, if user data is not null, we assume its for an external memory extension pNext chain
+	if (pUserData)
+	{
+		allocInfo.pNext = pUserData;
+		if (m_UseKhrDedicatedAllocation && (dedicatedBuffer || dedicatedImage))
+			((VkExportMemoryAllocateInfoKHR*)pUserData)->pNext = &dedicatedAllocInfo;
 	}
 
 	// Allocate VkDeviceMemory.
