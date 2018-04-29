@@ -1,4 +1,4 @@
-![The Forge Logo](Screenshots/TheForge-on-white.jpg)
+# ![The Forge Logo](Screenshots/TheForge-on-white.jpg)
 
 The Forge is a cross-platform rendering framework supporting
 - PC Windows 10 with DirectX 12 / Vulkan
