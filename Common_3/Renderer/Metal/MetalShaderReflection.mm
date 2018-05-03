@@ -329,7 +329,7 @@ void addShaderResource(ShaderResource* pResources, uint32_t idx, DescriptorType 
     *ppCurrentName += pResources[idx].name_size + 1;
 }
 
-void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
     if(pOutReflection == NULL)
     {
@@ -348,7 +348,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         computePipelineDesc.computeFunction = shader->mtlComputeShader;
         
         MTLComputePipelineReflection* ref;
-        id<MTLComputePipelineState> pipelineState = [shader->pRenderer->pDevice newComputePipelineStateWithDescriptor: computePipelineDesc options: MTLPipelineOptionBufferTypeInfo reflection: &ref error: &error];
+        id<MTLComputePipelineState> pipelineState = [pRenderer->pDevice newComputePipelineStateWithDescriptor: computePipelineDesc options: MTLPipelineOptionBufferTypeInfo reflection: &ref error: &error];
         
         if (!pipelineState)
         {
@@ -403,7 +403,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         
         uint maxColorAttachments = MAX_RENDER_TARGET_ATTACHMENTS;
 #ifdef TARGET_IOS
-        if(![shader->pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1]) maxColorAttachments = 4;
+        if(![pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1]) maxColorAttachments = 4;
 #endif
         for(uint i = 0; i < maxColorAttachments; i++)
         {
@@ -451,7 +451,7 @@ void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t 
         renderPipelineDesc.vertexDescriptor = vertexDesc;
         
         MTLRenderPipelineReflection *ref;
-        id<MTLRenderPipelineState> pipelineState = [shader->pRenderer->pDevice newRenderPipelineStateWithDescriptor:renderPipelineDesc options:MTLPipelineOptionBufferTypeInfo reflection:&ref error:&error];
+        id<MTLRenderPipelineState> pipelineState = [pRenderer->pDevice newRenderPipelineStateWithDescriptor:renderPipelineDesc options:MTLPipelineOptionBufferTypeInfo reflection:&ref error:&error];
         if (!pipelineState)
         {
             NSLog(@ "Error generation render pipeline object: %@", error);

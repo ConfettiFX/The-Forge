@@ -64,11 +64,14 @@ static bool uiTouchMove(const TouchEventData* pData);
 /************************************************************************/
 // UI singular property
 UIProperty::UIProperty(const char* description, float& value, float min/*=0.0f*/, float max/*=1.0f*/,
-	float increment/*=0.1f*/, bool expScale/*=false*/) :
+	float increment/*=0.1f*/, bool expScale/*=false*/, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_FLOAT),
 	flags(FLAG_VISIBLE),
-	source(&value)
+	source(&value),
+	color(color),
+	tree(tree)
 {
 	settings.fMin = min;
 	settings.fMax = max;
@@ -77,11 +80,14 @@ UIProperty::UIProperty(const char* description, float& value, float min/*=0.0f*/
 }
 
 UIProperty::UIProperty(const char* description, int steps, float& value,
-	float min/*=0.0f*/, float max/*=1.0f*/) :
+	float min/*=0.0f*/, float max/*=1.0f*/, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_FLOAT),
 	flags(FLAG_VISIBLE),
-	source(&value)
+	source(&value),
+	color(color),
+	tree(tree)
 {
 	settings.fMin = min;
 	settings.fMax = max;
@@ -90,11 +96,15 @@ UIProperty::UIProperty(const char* description, int steps, float& value,
 }
 
 UIProperty::UIProperty(const char* description, int& value, int min/*=-100*/, int max/*=100*/,
-	int increment/*=1*/) :
+	int increment/*=1*/, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_INT),
 	flags(FLAG_VISIBLE),
-	source(&value)
+	source(&value),
+	color(color),
+	tree(tree)
+
 {
 	settings.iMin = min;
 	settings.iMax = max;
@@ -103,45 +113,67 @@ UIProperty::UIProperty(const char* description, int& value, int min/*=-100*/, in
 
 UIProperty::UIProperty(const char* description, unsigned int& value,
 	unsigned int min/*=0*/, unsigned int max/*=100*/,
-	unsigned int increment/*=1*/) :
+	unsigned int increment/*=1*/, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_UINT),
 	flags(FLAG_VISIBLE),
-	source(&value)
+	source(&value),
+	color(color),
+	tree(tree)
 {
 	settings.uiMin = min;
 	settings.uiMax = max;
 	settings.uiIncrement = increment;
 }
 
-UIProperty::UIProperty(const char* description, bool& value) :
+UIProperty::UIProperty(const char* description, bool& value, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_BOOL),
 	flags(FLAG_VISIBLE),
-	source(&value)
+	source(&value),
+	color(color),
+	tree(tree)
 {
 }
 
 // TODO: must fix this in order to work on all compilers due to the callback function UIButtonFn
 #ifdef _WIN32
-UIProperty::UIProperty(const char* description, UIButtonFn fn, void* userdata) :
+UIProperty::UIProperty(const char* description, UIButtonFn fn, void* userdata, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_BUTTON),
 	flags(FLAG_VISIBLE),
-	source(fn)
+	source(fn),
+	color(color),
+	tree(tree)
 {
 	settings.pUserData = userdata;
 }
 #endif
 
-UIProperty::UIProperty(const char* description, char* value, unsigned int length) :
+UIProperty::UIProperty(const char* description, char* value, unsigned int length, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_TEXTINPUT),
 	flags(FLAG_VISIBLE),
-	source(value)
+	source(value),
+	color(color)
 {
 	settings.sLen = length;
 }
+
+UIProperty::UIProperty(const char* description, uint32_t color /*=0xAFAFAFFF*/,
+	const char* tree /*=none*/) :
+	description(description),
+	type(UI_PROPERTY_TEXT),
+	flags(FLAG_VISIBLE),
+	color(color),
+	tree(tree)
+{
+}
+
 
 void UIProperty::setSettings(int steps, float min, float max)
 {
@@ -726,6 +758,7 @@ void UIApp::Update(float deltaTime)
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 		pImpl->mComponentsToUpdate[i]->pGui->update();
 
+
 	pImpl->mComponentsToUpdate.clear();
 }
 
@@ -733,7 +766,8 @@ void UIApp::Draw(Cmd* pCmd)
 {
 	pImpl->pUIRenderer->beginRender(
 		pImpl->mWidth, pImpl->mHeight,
-		(ImageFormat::Enum)pCmd->pBoundColorFormats[0], pCmd->pBoundSrgbValues[0],
+		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
+		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
 		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
 
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)

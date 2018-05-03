@@ -343,14 +343,18 @@ public:
 		ShaderLoadDesc computeShader = {};
 		computeShader.mStages[0] = { "compute.comp", NULL, 0, FSR_SrcShaders };
 
-		addShader(pRenderer, &computeShader, &pComputeShader);
-		addRootSignature(pRenderer, 1, &pComputeShader, &pComputeRootSignature);
-
 		addShader(pRenderer, &grassShader, &pGrassShader);
-		addRootSignature(pRenderer, 1, &pGrassShader, &pGrassRootSignature);
+		addShader(pRenderer, &computeShader, &pComputeShader);
+
+		RootSignatureDesc grassRootDesc = { &pGrassShader, 1 };
+		RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
+		addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
+		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 #ifdef METAL
 		addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
-		addRootSignature(pRenderer, 1, &pGrassVertexHullShader, &pGrassVertexHullRootSignature);
+
+		RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
+		addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
 #endif
 
 		ComputePipelineDesc computePipelineDesc = { 0 };
@@ -358,12 +362,26 @@ public:
 		computePipelineDesc.pShaderProgram = pComputeShader;
 		addComputePipeline(pRenderer, &computePipelineDesc, &pComputePipeline);
 
-		addDepthState(pRenderer, &pDepth, true, true);
-		addRasterizerState(&pRast, CULL_MODE_NONE, 0, 0.0f, FILL_MODE_SOLID);
-		addSampler(pRenderer, &pSampler, FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
-		addRasterizerState(&pWireframeRast, CULL_MODE_NONE, 0, 0.0f, FILL_MODE_WIREFRAME);
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
+
+		SamplerDesc samplerDesc = {
+			FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+
+		RasterizerStateDesc rasterizerStateWireframeDesc = {};
+		rasterizerStateWireframeDesc.mCullMode = CULL_MODE_NONE;
+		rasterizerStateWireframeDesc.mFillMode = FILL_MODE_WIREFRAME;
+		addRasterizerState(pRenderer, &rasterizerStateWireframeDesc, &pWireframeRast);
 
 #ifdef METAL
 		ComputePipelineDesc grassVertexHullPipelineDesc = { 0 };
@@ -848,7 +866,7 @@ public:
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 #endif
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -876,7 +894,7 @@ public:
 #endif
 		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, nullptr, 0);
 
-		cmdEndRender(cmd, 1, &pRenderTarget, pDepthBuffer);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
 		BufferBarrier uavBarriers[] = {
 			{ pBladeNumBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
@@ -900,7 +918,7 @@ public:
 		cmd = ppUICmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -954,7 +972,7 @@ public:
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}

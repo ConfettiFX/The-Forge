@@ -182,11 +182,11 @@ void initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 
 	if (gRaytracingStaticInitializer.mFallback)
 	{
-		D3D12CreateRaytracingFallbackDevice(pRenderer->pDevice, CreateRaytracingFallbackDeviceFlags::ForceComputeFallback, 0, IID_PPV_ARGS(&pRaytracing->pFallbackDevice));
+		D3D12CreateRaytracingFallbackDevice(pRenderer->pDxDevice, CreateRaytracingFallbackDeviceFlags::ForceComputeFallback, 0, IID_PPV_ARGS(&pRaytracing->pFallbackDevice));
 	}
 	else
 	{
-		pRenderer->pDevice->QueryInterface(&pRaytracing->pDxrDevice);
+		pRenderer->pDxDevice->QueryInterface(&pRaytracing->pDxrDevice);
 	}
 
 	*ppRaytracing = pRaytracing;
@@ -232,22 +232,22 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 
 				if (pGeom->pIndexBuffer)
 				{
-					pOut->Triangles.IndexBuffer = pGeom->pIndexBuffer->mDxIndexBufferView.BufferLocation;
+					pOut->Triangles.IndexBuffer = pGeom->pIndexBuffer->mDxGpuAddress;
 					pOut->Triangles.IndexCount = (UINT)pGeom->pIndexBuffer->mDesc.mSize /
 						(pGeom->pIndexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t));
-					pOut->Triangles.IndexFormat = pGeom->pIndexBuffer->mDxIndexBufferView.Format;
+					pOut->Triangles.IndexFormat = pGeom->pIndexBuffer->mDxIndexFormat;
 ;				}
 
-				pOut->Triangles.VertexBuffer.StartAddress = pGeom->pVertexBuffer->mDxVertexBufferView.BufferLocation;
-				pOut->Triangles.VertexBuffer.StrideInBytes = pGeom->pVertexBuffer->mDxVertexBufferView.StrideInBytes;
-				pOut->Triangles.VertexCount = pGeom->pVertexBuffer->mDxVertexBufferView.SizeInBytes / pGeom->pVertexBuffer->mDxVertexBufferView.StrideInBytes;
-				if (pGeom->pVertexBuffer->mDxVertexBufferView.StrideInBytes == sizeof(float))
+				pOut->Triangles.VertexBuffer.StartAddress = pGeom->pVertexBuffer->mDxGpuAddress;
+				pOut->Triangles.VertexBuffer.StrideInBytes = (UINT)pGeom->pVertexBuffer->mDesc.mVertexStride;
+				pOut->Triangles.VertexCount = (UINT)pGeom->pVertexBuffer->mDesc.mSize / (UINT)pGeom->pVertexBuffer->mDesc.mVertexStride;
+				if (pOut->Triangles.VertexBuffer.StrideInBytes == sizeof(float))
 					pOut->Triangles.VertexFormat = DXGI_FORMAT_R32_FLOAT;
-				else if (pGeom->pVertexBuffer->mDxVertexBufferView.StrideInBytes == sizeof(float) * 2)
+				else if (pOut->Triangles.VertexBuffer.StrideInBytes == sizeof(float) * 2)
 					pOut->Triangles.VertexFormat = DXGI_FORMAT_R32G32_FLOAT;
-				else if (pGeom->pVertexBuffer->mDxVertexBufferView.StrideInBytes == sizeof(float) * 3)
+				else if (pOut->Triangles.VertexBuffer.StrideInBytes == sizeof(float) * 3)
 					pOut->Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-				else if (pGeom->pVertexBuffer->mDxVertexBufferView.StrideInBytes == sizeof(float) * 4)
+				else if (pOut->Triangles.VertexBuffer.StrideInBytes == sizeof(float) * 4)
 					pOut->Triangles.VertexFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			}
 			// #TODO
@@ -439,6 +439,11 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		&pRootSignature->pDescriptorNameToIndexMap);
 
 	const RootSignatureDesc* pRootSignatureDesc = pRootDesc ? pRootDesc : &gDefaultRootSignatureDesc;
+
+	tinystl::unordered_map<String, Sampler*> staticSamplerMap;
+	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
+		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
+
 	tinystl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
 	tinystl::vector <tinystl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
 	/************************************************************************/
@@ -475,7 +480,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 		{
 			// If the sampler is a static sampler, no need to put it in the descriptor table
-			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = pRootSignatureDesc->mStaticSamplers.find(pDesc->mDesc.name).node;
+			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
 
 			if (pNode)
 			{
@@ -551,9 +556,9 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		samplerRange_1_0[i].resize(layouts[i].mSamplerTable.size());
 	}
 
-	pRootSignature->pViewTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pViewTableLayouts));
-	pRootSignature->pSamplerTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pSamplerTableLayouts));
-	pRootSignature->pRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pRootDescriptorLayouts));
+	pRootSignature->pDxViewTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxViewTableLayouts));
+	pRootSignature->pDxSamplerTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxSamplerTableLayouts));
+	pRootSignature->pDxRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxRootDescriptorLayouts));
 	pRootSignature->mDescriptorCount = resourceCount;
 
 	pRootSignature->mRootConstantCount = (uint32_t)layouts[0].mRootConstants.size();
@@ -586,7 +591,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		UpdateFrequencyLayoutInfo& layout = layouts[i];
 		if (layout.mConstantParams.size())
 		{
-			RootDescriptorLayout& root = pRootSignature->pRootDescriptorLayouts[i];
+			RootDescriptorLayout& root = pRootSignature->pDxRootDescriptorLayouts[i];
 
 			root.mRootDescriptorCount = (uint32_t)layout.mConstantParams.size();
 			root.pDescriptorIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
@@ -649,7 +654,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 			D3D12_ROOT_PARAMETER rootParam_1_0;
 			create_descriptor_table_1_0((uint32_t)layout.mCbvSrvUavTable.size(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
 
-			DescriptorSetLayout& table = pRootSignature->pViewTableLayouts[i];
+			DescriptorSetLayout& table = pRootSignature->pDxViewTableLayouts[i];
 
 			// Store some of the binding info which will be required later when binding the descriptor table
 			// We need the root index when calling SetRootDescriptorTable
@@ -681,7 +686,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 			D3D12_ROOT_PARAMETER rootParam_1_0;
 			create_descriptor_table_1_0((uint32_t)layout.mSamplerTable.size(), layout.mSamplerTable.data(), samplerRange_1_0[i].data(), &rootParam_1_0);
 
-			DescriptorSetLayout& table = pRootSignature->pSamplerTableLayouts[i];
+			DescriptorSetLayout& table = pRootSignature->pDxSamplerTableLayouts[i];
 
 			// Store some of the binding info which will be required later when binding the descriptor table
 			// We need the root index when calling SetRootDescriptorTable
@@ -749,7 +754,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 
 		ASSERT(pRootSignature->pDxSerializedRootSignatureString);
 
-		hr = pRaytracing->pRenderer->pDevice->CreateRootSignature(0,
+		hr = pRaytracing->pRenderer->pDxDevice->CreateRootSignature(0,
 			pRootSignature->pDxSerializedRootSignatureString->GetBufferPointer(),
 			pRootSignature->pDxSerializedRootSignatureString->GetBufferSize(),
 			IID_PPV_ARGS(&pRootSignature->pDxRootSignature));
@@ -1075,7 +1080,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 				case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
 				{
 					const DescriptorSetLayout* pTableLayout = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
-						&pRecord->pRootSignature->pSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pViewTableLayouts[pDesc->mUpdateFrquency];
+						&pRecord->pRootSignature->pDxSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pDxViewTableLayouts[pDesc->mUpdateFrquency];
 					if (addedTables.find(pTableLayout) == addedTables.end())
 						shaderSize += gLocalRootDescriptorTableSize;
 					else
@@ -1183,7 +1188,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 				case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
 				{
 					const DescriptorSetLayout* pTableLayout = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
-						&pRecord->pRootSignature->pSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pViewTableLayouts[pDesc->mUpdateFrquency];
+						&pRecord->pRootSignature->pDxSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pDxViewTableLayouts[pDesc->mUpdateFrquency];
 					// Construct a new descriptor table from shader visible heap
 					if (addedTables.find(pTableLayout) == addedTables.end())
 					{
@@ -1199,9 +1204,10 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 							{
 								const DescriptorInfo* pTableDesc = &pRecord->pRootSignature->pDescriptors[pTableLayout->pDescriptorIndices[i]];
 								const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
-								for (uint32_t samplerIndex = 0; samplerIndex < pTableData->mCount; ++samplerIndex)
+								const uint32_t arrayCount = max(1U, pTableData->mCount);
+								for (uint32_t samplerIndex = 0; samplerIndex < arrayCount; ++samplerIndex)
 								{
-									pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+									pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 										{ cpuHandle.ptr + (pTableDesc->mHandleIndex + samplerIndex) * pRaytracing->pRenderer->pSamplerHeap[0]->mDescriptorSize },
 										pTableData->ppSamplers[samplerIndex]->mDxSamplerHandle,
 										D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -1219,39 +1225,40 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 								const DescriptorInfo* pTableDesc = &pRecord->pRootSignature->pDescriptors[pTableLayout->pDescriptorIndices[i]];
 								const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
 								const DescriptorType type = pTableDesc->mDesc.type;
+								const uint32_t arrayCount = max(1U, pTableData->mCount);
 								switch (type)
 								{
 								case DESCRIPTOR_TYPE_TEXTURE:
-									for (uint32_t textureIndex = 0; textureIndex < pTableData->mCount; ++textureIndex)
+									for (uint32_t textureIndex = 0; textureIndex < arrayCount; ++textureIndex)
 									{
-										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
 											pTableData->ppTextures[textureIndex]->mDxSrvHandle,
 											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 									}
 									break;
 								case DESCRIPTOR_TYPE_RW_TEXTURE:
-									for (uint32_t textureIndex = 0; textureIndex < pTableData->mCount; ++textureIndex)
+									for (uint32_t textureIndex = 0; textureIndex < arrayCount; ++textureIndex)
 									{
-										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
 											pTableData->ppTextures[textureIndex]->mDxUavHandle,
 											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 									}
 									break;
 								case DESCRIPTOR_TYPE_BUFFER:
-									for (uint32_t bufferIndex = 0; bufferIndex < pTableData->mCount; ++bufferIndex)
+									for (uint32_t bufferIndex = 0; bufferIndex < arrayCount; ++bufferIndex)
 									{
-										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + bufferIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
 											pTableData->ppBuffers[bufferIndex]->mDxSrvHandle,
 											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 									}
 									break;
 								case DESCRIPTOR_TYPE_RW_BUFFER:
-									for (uint32_t bufferIndex = 0; bufferIndex < pTableData->mCount; ++bufferIndex)
+									for (uint32_t bufferIndex = 0; bufferIndex < arrayCount; ++bufferIndex)
 									{
-										pRaytracing->pRenderer->pDevice->CopyDescriptorsSimple(1,
+										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + bufferIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
 											pTableData->ppBuffers[bufferIndex]->mDxUavHandle,
 											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -1524,7 +1531,7 @@ WRAPPED_GPU_POINTER util_create_fallback_wrapped_pointer(Raytracing* pRaytracing
 	if (!pRaytracing->pFallbackDevice->UsingRaytracingDriver())
 	{
 		bottomLevelDescriptor = add_cpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], 1, &descriptorHeapIndex);
-		pRaytracing->pRenderer->pDevice->CreateUnorderedAccessView(resource, nullptr, &rawBufferUavDesc, bottomLevelDescriptor);
+		pRaytracing->pRenderer->pDxDevice->CreateUnorderedAccessView(resource, nullptr, &rawBufferUavDesc, bottomLevelDescriptor);
 	}
 	return pRaytracing->pFallbackDevice->GetWrappedPointerSimple((UINT)descriptorHeapIndex, resource->GetGPUVirtualAddress());
 }

@@ -34,22 +34,21 @@ static void enable_debug_layer_hook(Renderer* pRenderer)
 #endif
 }
 
-
-static ImageFormat::Enum getRecommendedSwapchainFormat(bool hintHDR)
+static ImageFormat::Enum get_recommended_swapchain_format(bool hintHDR)
 {
   return ImageFormat::BGRA8;
 }
 
-static uint32_t getSwapChainImageIndex(SwapChain* pSwapChain)
+static uint32_t get_swap_chain_image_index(SwapChain* pSwapChain)
 {
-	return pSwapChain->pSwapChain->GetCurrentBackBufferIndex();
+	return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex();
 }
 
 void initHooks()
 {
 	fnHookEnableDebugLayer = enable_debug_layer_hook;
-	fnHookGetRecommendedSwapChainFormat = getRecommendedSwapchainFormat;
-	fnHookGetSwapChainImageIndex = getSwapChainImageIndex;
+	fnHookGetRecommendedSwapChainFormat = get_recommended_swapchain_format;
+	fnHookGetSwapChainImageIndex = get_swap_chain_image_index;
 }
 #endif
 

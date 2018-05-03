@@ -33,9 +33,25 @@
 
 FileHandle _openFile(const char* filename, const char* flags)
 {
-  NSString *fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:filename] ofType:@""];
-  filename = [fileUrl fileSystemRepresentation];
-    
+	//first we need to look into main bundle which has read-only access
+	NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:filename] ofType:@""];
+	
+	//there is no write permission for files in bundle,
+	//iOS can only write in documents
+	//if 'w' flag is present then look in documents folder of Application (Appdata equivalent)
+	//if file has been found in bundle but we want to write to it that means we have to use the one in Documents.
+	if(strstr(flags,"w") != NULL) {
+		NSString * documentsDirectory = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+		fileUrl = [documentsDirectory stringByAppendingString:[NSString stringWithUTF8String:filename]];
+	}
+	
+	//No point in calling fopen if file path is null
+	if(fileUrl == nil)
+		return NULL;
+	
+	filename = [fileUrl fileSystemRepresentation];
+	
+
   FILE* fp = fopen(filename, flags);
   return fp;
 }
@@ -52,7 +68,7 @@ void _flushFile(FileHandle handle)
 
 size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
 {
-  return fread(buffer, 1, byteCount, (::FILE*)handle);
+  return fread(buffer, byteCount, 1, (::FILE*)handle);
 }
 
 bool _seekFile(FileHandle handle, long offset, int origin)
@@ -67,7 +83,7 @@ long _tellFile(FileHandle handle)
 
 size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
 {
-  return fwrite(buffer, 1, byteCount, (::FILE*)handle);
+  return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
 String _getCurrentDir()

@@ -3,8 +3,8 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../../AppPanini.cpp"/>
-    <File Name="../../AppPanini.h"/>
+    <File Name="../../Panini.cpp"/>
+    <File Name="../../Panini.h"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>

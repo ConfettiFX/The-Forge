@@ -229,15 +229,29 @@ public:
 		addShader(pRenderer, &displayShader, &pShader);
 		addShader(pRenderer, &computeShader, &pComputeShader);
 
-		addRasterizerState(&pRast, CULL_MODE_NONE);
-		addSampler(pRenderer, &pSampler, FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
 
+		SamplerDesc samplerDesc = {
+			FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+
+		const char* pStaticSamplers[] = { "uSampler0" };
 		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplers["uSampler0"] = pSampler;
-		addRootSignature(pRenderer, 1, &pShader, &pRootSignature, &rootDesc);
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSampler;
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pShader;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		addRootSignature(pRenderer, 1, &pComputeShader, &pComputeRootSignature);
+		RootSignatureDesc computeRootDesc = {};
+		computeRootDesc.mShaderCount = 1;
+		computeRootDesc.ppShaders = &pComputeShader;
+		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
 		ComputePipelineDesc computePipelineDesc = { 0 };
 		computePipelineDesc.pRootSignature = pComputeRootSignature;
@@ -514,7 +528,7 @@ public:
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -561,7 +575,7 @@ public:
 
 		gAppUI.Draw(cmd);
 
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		barriers[1] = { pTextureComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -577,10 +591,9 @@ public:
 		// Stall if CPU is running "Swap Chain Buffer Count - 1" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-		LOGINFOF("WAIT %f", timer.GetUSec(true) / 1000.0f);
 	}
 
 	String GetName()

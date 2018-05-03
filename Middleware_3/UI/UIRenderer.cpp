@@ -48,8 +48,6 @@ static const uint32_t gMaxVerticesPerMesh = 1024;
 
 static uint32_t gWindowWidth = 0;
 static uint32_t gWindowHeight = 0;
-
-
 /************************************************************************
 ** UI RENDERER
 ************************************************************************/
@@ -79,33 +77,82 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	String psTexturedRedAlphaFile = "builtin_textured_red_alpha";
 	String psTexturedFile = "builtin_textured";
 
-	String vsPlain = builtin_plain;
-	String psPlain = builtin_plain;
-	String vsTextured = builtin_textured;
-	String psTextured = builtin_textured;
-	String psTexturedRedAlpha = builtin_textured_red_alpha;
+	String vsPlain = mtl_builtin_plain;
+	String psPlain = mtl_builtin_plain;
+	String vsTextured = mtl_builtin_textured;
+	String psTextured = mtl_builtin_textured;
+	String psTexturedRedAlpha = mtl_builtin_textured_red_alpha;
 
 	ShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsPlainFile, vsPlain, "VSMain" }, { psPlainFile, psPlain, "PSMain" } };
 	ShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedRedAlphaFile, psTexturedRedAlpha, "PSMain" } };
 	ShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedFile, psTextured, "PSMain" } };
-#elif defined(DIRECT3D12) || defined(VULKAN)
-	BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-	{ (char*)builtin_plain_vert, sizeof(builtin_plain_vert) }, { (char*)builtin_plain_frag, sizeof(builtin_plain_frag) } };
-	BinaryShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-	{ (char*)builtin_textured_vert, sizeof(builtin_textured_vert) },{ (char*)builtin_textured_red_alpha_frag, sizeof(builtin_textured_red_alpha_frag) } };
-	BinaryShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-	{ (char*)builtin_textured_vert, sizeof(builtin_textured_vert) },{ (char*)builtin_textured_frag, sizeof(builtin_textured_frag) } };
-#endif
-
 	addShader(pRenderer, &plainShader, &pBuiltinPlainShader);
 	addShader(pRenderer, &texShader, &pBuiltinTextShader);
 	addShader(pRenderer, &textureShader, &pBuiltinTextureShader);
+#elif defined(DIRECT3D12) || defined(VULKAN)
+	char* pPlainVert = NULL; uint32_t plainVertSize = 0;
+	char* pPlainFrag = NULL; uint32_t plainFragSize = 0;
+	char* pTextureVert = NULL; uint32_t textureVertSize = 0;
+	char* pTextureFrag = NULL; uint32_t textureFragSize = 0;
+	char* pTextureRedAlphaFrag = NULL; uint32_t textureRedAlphaFragSize = 0;
 
-	addSampler(pRenderer, &pDefaultSampler, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-		ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
-	addBlendState(&pBlendAlpha, BlendConstant::BC_SRC_ALPHA, BC_ONE_MINUS_SRC_ALPHA, BC_ONE, BC_ZERO);
-	addDepthState(pRenderer, &pDepthNone, false, false);
-	addRasterizerState(&pRasterizerNoCull, CullMode::CULL_MODE_NONE, 0, 0.0f, FillMode::FILL_MODE_SOLID, false, true);
+	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12)
+	{
+		pPlainVert = (char*)d3d12_builtin_plain_vert; plainVertSize = sizeof(d3d12_builtin_plain_vert);
+		pPlainFrag = (char*)d3d12_builtin_plain_frag; plainFragSize = sizeof(d3d12_builtin_plain_frag);
+		pTextureVert = (char*)d3d12_builtin_textured_vert; textureVertSize = sizeof(d3d12_builtin_textured_vert);
+		pTextureFrag = (char*)d3d12_builtin_textured_frag; textureFragSize = sizeof(d3d12_builtin_textured_frag);
+		pTextureRedAlphaFrag = (char*)d3d12_builtin_textured_red_alpha_frag; textureRedAlphaFragSize = sizeof(d3d12_builtin_textured_red_alpha_frag);
+	}
+	else if (pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
+	{
+		pPlainVert = (char*)vk_builtin_plain_vert; plainVertSize = sizeof(vk_builtin_plain_vert);
+		pPlainFrag = (char*)vk_builtin_plain_frag; plainFragSize = sizeof(vk_builtin_plain_frag);
+		pTextureVert = (char*)vk_builtin_textured_vert; textureVertSize = sizeof(vk_builtin_textured_vert);
+		pTextureFrag = (char*)vk_builtin_textured_frag; textureFragSize = sizeof(vk_builtin_textured_frag);
+		pTextureRedAlphaFrag = (char*)vk_builtin_textured_red_alpha_frag; textureRedAlphaFragSize = sizeof(vk_builtin_textured_red_alpha_frag);
+	}
+
+	BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)pPlainVert, plainVertSize },{ (char*)pPlainFrag, plainFragSize } };
+	BinaryShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)pTextureVert, textureVertSize },{ (char*)pTextureRedAlphaFrag, textureRedAlphaFragSize } };
+	BinaryShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)pTextureVert, textureVertSize },{ (char*)pTextureFrag, textureFragSize } };
+	addShaderBinary(pRenderer, &plainShader, &pBuiltinPlainShader);
+	addShaderBinary(pRenderer, &texShader, &pBuiltinTextShader);
+	addShaderBinary(pRenderer, &textureShader, &pBuiltinTextureShader);
+#endif
+
+	SamplerDesc samplerDesc = {
+		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+		ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+	};
+	addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
+
+	BlendStateDesc blendStateDesc = {};
+	blendStateDesc.mDstAlphaFactor = BC_ZERO;
+	blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mMask = ALL;
+	blendStateDesc.mSrcAlphaFactor = BC_ONE;
+	blendStateDesc.mSrcFactor = BC_SRC_ALPHA;
+	blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+	addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
+
+	DepthStateDesc depthStateDesc = {};
+	depthStateDesc.mDepthTest = false;
+	depthStateDesc.mDepthWrite = false;
+	addDepthState(pRenderer, &depthStateDesc, &pDepthNone);
+	
+	DepthStateDesc depthStateEnableDesc = {};
+	depthStateEnableDesc.mDepthTest = true;
+	depthStateEnableDesc.mDepthWrite = true;
+	depthStateEnableDesc.mDepthFunc = CMP_LEQUAL;
+	addDepthState(pRenderer, &depthStateEnableDesc, &pDepthEnable);
+
+	RasterizerStateDesc rasterizerStateDesc = {};
+	rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+	addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerNoCull);
 
 	BufferDesc vbDesc = {};
 	vbDesc.mUsage = BUFFER_USAGE_VERTEX;
@@ -113,26 +160,30 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	vbDesc.mSize = gMaxVerticesPerMesh * sizeof(float2);
 	vbDesc.mVertexStride = sizeof(float2);
 	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	addMeshRingBuffer(gMaxDrawCallsPerFrame, &vbDesc, NULL, &pPlainMeshRingBuffer);
+	addMeshRingBuffer(pRenderer, gMaxDrawCallsPerFrame, &vbDesc, NULL, &pPlainMeshRingBuffer);
 
 	vbDesc.mSize = gMaxVerticesPerMesh * sizeof(TexVertex);
 	vbDesc.mVertexStride = sizeof(TexVertex);
-	addMeshRingBuffer(gMaxDrawCallsPerFrame, &vbDesc, NULL, &pTextureMeshRingBuffer);
+	addMeshRingBuffer(pRenderer, gMaxDrawCallsPerFrame, &vbDesc, NULL, &pTextureMeshRingBuffer);
 
 	addUniformRingBuffer(pRenderer, gMaxDrawCallsPerFrame * 2 * (uint32_t)pRenderer->pActiveGpuSettings->mUniformBufferAlignment, &pUniformRingBuffer);
 
-	RootSignatureDesc plainRootDesc = {};
-	RootSignatureDesc textureRootDesc = {};
+	RootSignatureDesc plainRootDesc = { &pBuiltinPlainShader, 1 };
+	RootSignatureDesc textureRootDesc = { &pBuiltinTextShader, 1 };
 #if defined(VULKAN)
-	plainRootDesc.mDynamicUniformBuffers.push_back("uniformBlockVS");
-	textureRootDesc.mDynamicUniformBuffers.push_back("uniformBlockVS");
-	plainRootDesc.mDynamicUniformBuffers.push_back("uniformBlockPS");
-	textureRootDesc.mDynamicUniformBuffers.push_back("uniformBlockPS");
+	const char* pDynamicUniformBuffers[] = { "uniformBlockVS", "uniformBlockPS" };
+	plainRootDesc.mDynamicUniformBufferCount = 2;
+	plainRootDesc.ppDynamicUniformBufferNames = pDynamicUniformBuffers;
+	textureRootDesc.mDynamicUniformBufferCount = 2;
+	textureRootDesc.ppDynamicUniformBufferNames = pDynamicUniformBuffers;
 #endif
-	textureRootDesc.mStaticSamplers["uSampler0"] = pDefaultSampler;
+	const char* pStaticSamplers[] = { "uSampler0" };
+	textureRootDesc.mStaticSamplerCount = 1;
+	textureRootDesc.ppStaticSamplerNames = pStaticSamplers;
+	textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 
-	addRootSignature(pRenderer, 1, &pBuiltinPlainShader, &pRootSignaturePlainMesh, &plainRootDesc);
-	addRootSignature(pRenderer, 1, &pBuiltinTextShader, &pRootSignatureTextureMesh, &textureRootDesc);
+	addRootSignature(pRenderer, &plainRootDesc, &pRootSignaturePlainMesh);
+	addRootSignature(pRenderer, &textureRootDesc, &pRootSignatureTextureMesh);
 
 	registerWindowResizeEvent(onWindowResize);
 }
@@ -176,6 +227,7 @@ UIRenderer::~UIRenderer()
 
 	removeSampler(pRenderer, pDefaultSampler);
 	removeBlendState(pBlendAlpha);
+	removeDepthState(pDepthEnable);
 	removeDepthState(pDepthNone);
 	removeRasterizerState(pRasterizerNoCull);
 
@@ -185,7 +237,7 @@ UIRenderer::~UIRenderer()
 
 Texture* UIRenderer::addTexture(Image* image, uint32_t flags)
 {
-  UNREF_PARAM(flags);
+	UNREF_PARAM(flags);
 	Texture* pTexture = NULL;
 
 	TextureLoadDesc textureDesc = {};
@@ -201,13 +253,24 @@ void UIRenderer::removeTexture(Texture* tex)
 	mTextureRemoveQueue.emplace_back(tex);
 }
 
-void UIRenderer::beginRender(uint32_t w, uint32_t h, ImageFormat::Enum outputFormat, bool srgb, SampleCount sampleCount, uint32_t sampleQuality)
+void UIRenderer::beginRender(uint32_t w, uint32_t h,
+	uint32_t outputFormatCount, ImageFormat::Enum* outputFormats, bool* srgbValues,
+	ImageFormat::Enum depthStencilFormat, SampleCount sampleCount, uint32_t sampleQuality)
 {
 	gWindowWidth = w;
 	gWindowHeight = h;
 	uint64_t hash = 0;
-	uint32_t values[] = { (uint32_t)outputFormat, srgb ? 1U : 0U, (uint32_t)sampleCount, sampleQuality };
-	hash = tinystl::hash_state(values, 4, hash);
+	const uint32_t numHashValues = (outputFormatCount * 2) + 3;
+	uint32_t* values = (uint32_t*)alloca(numHashValues * sizeof(uint32_t));
+	for (uint32_t i = 0; i < outputFormatCount; ++i)
+	{
+		values[i * 2] = outputFormats[i];
+		values[i * 2 + 1] = srgbValues[i];
+	}
+	values[outputFormatCount * 2] = depthStencilFormat;
+	values[outputFormatCount * 2 + 1] = sampleCount;
+	values[outputFormatCount * 2 + 2] = sampleQuality;
+	hash = tinystl::hash_state(values, numHashValues, hash);
 
 	PipelineMapNode* pNode = mPipelineTextureMesh.find(hash).node;
 	if (!pNode)
@@ -229,11 +292,12 @@ void UIRenderer::beginRender(uint32_t w, uint32_t h, ImageFormat::Enum outputFor
 		GraphicsPipelineDesc pipelineDesc = { 0 };
 		pipelineDesc.pBlendState = pBlendAlpha;
 		pipelineDesc.pDepthState = pDepthNone;
+		pipelineDesc.mDepthStencilFormat = depthStencilFormat;
 		pipelineDesc.pRasterizerState = pRasterizerNoCull;
 		pipelineDesc.pVertexLayout = &vertexLayout;
-		pipelineDesc.mRenderTargetCount = 1;
-		pipelineDesc.pColorFormats = &outputFormat;
-		pipelineDesc.pSrgbValues = &srgb;
+		pipelineDesc.mRenderTargetCount = outputFormatCount;
+		pipelineDesc.pColorFormats = outputFormats;
+		pipelineDesc.pSrgbValues = srgbValues;
 		pipelineDesc.mSampleCount = sampleCount;
 		pipelineDesc.mSampleCount = sampleCount;
 		pipelineDesc.mSampleQuality = sampleQuality;

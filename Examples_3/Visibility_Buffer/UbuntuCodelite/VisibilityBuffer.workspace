@@ -5,14 +5,14 @@
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
   <Project Name="VisibilityBuffer" Path="VisibilityBuffer/VisibilityBuffer.project" Active="Yes"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="VisibilityBuffer" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>

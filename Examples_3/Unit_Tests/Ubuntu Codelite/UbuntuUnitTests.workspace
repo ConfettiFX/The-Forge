@@ -6,12 +6,13 @@
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
   <Project Name="02_Compute" Path="02_Compute/02_Compute.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
-  <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="Yes"/>
+  <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="No"/>
   <Project Name="05_FontRendering" Path="05_FontRendering/05_FontRendering.project" Active="No"/>
   <Project Name="06_BRDF" Path="06_BRDF/06_BRDF.project" Active="No"/>
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
   <Project Name="PaniniProjection" Path="../../../Middleware_3/PaniniProjection/UbuntuCodelite/PaniniProjection/PaniniProjection.project"/>
+  <Project Name="09_MultiGPU" Path="09_MultiGPU/09_MultiGPU.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
@@ -27,6 +28,7 @@
       <Project Name="07_Tessellation" ConfigName="Debug"/>
       <Project Name="08_Procedural" ConfigName="Debug"/>
       <Project Name="PaniniProjection" ConfigName="Debug"/>
+      <Project Name="09_MultiGPU" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
@@ -42,6 +44,7 @@
       <Project Name="07_Tessellation" ConfigName="Release"/>
       <Project Name="08_Procedural" ConfigName="Release"/>
       <Project Name="PaniniProjection" ConfigName="Release"/>
+      <Project Name="09_MultiGPU" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

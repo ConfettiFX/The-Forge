@@ -309,21 +309,35 @@ public:
 		bgStars.mStages[0] = { "backGround.vert", NULL, 0, FSR_SrcShaders };
 		bgStars.mStages[1] = { "backGround.frag", NULL, 0, FSR_SrcShaders };
 
-		addSampler(pRenderer, &pSamplerEnv, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
-			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT);
+		SamplerDesc samplerDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
+			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
+		};
+		addSampler(pRenderer, &samplerDesc, &pSamplerEnv);
 
 		addShader(pRenderer, &bgStars, &pShaderBG);
 		addShader(pRenderer, &proceduralPlanet, &pShaderBRDF);
 
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplers["uSampler0"] = pSamplerEnv;
+		const char* pStaticSamplerName[] = { "uSampler0" };
+		RootSignatureDesc bgRootDesc = { &pShaderBG, 1 };
+		RootSignatureDesc brdfRootDesc = { &pShaderBRDF, 1 };
+		brdfRootDesc.mStaticSamplerCount = 1;
+		brdfRootDesc.ppStaticSamplerNames = pStaticSamplerName;
+		brdfRootDesc.ppStaticSamplers = &pSamplerEnv;
 
-		addRootSignature(pRenderer, 1, &pShaderBG, &pRootSigBG);
-		addRootSignature(pRenderer, 1, &pShaderBRDF, &pRootSigBRDF, &rootDesc);
+		addRootSignature(pRenderer, &bgRootDesc, &pRootSigBG);
+		addRootSignature(pRenderer, &brdfRootDesc, &pRootSigBRDF);
 
 		// Create depth state and rasterizer state
-		addRasterizerState(&pRasterstateDefault, CULL_MODE_FRONT);
-		addDepthState(pRenderer, &pDepth, true, true);
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterstateDefault);
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
 		float* pSPherePoints;
 		generateSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution);
@@ -748,7 +762,7 @@ public:
 		TextureBarrier barriers[] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 		/************************************************************************/
@@ -801,7 +815,6 @@ public:
 
 		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
 		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
-		cmdEndRender(cmd, 1, &pRenderTarget, pDepthBuffer);
 
 #ifndef METAL
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -819,7 +832,7 @@ public:
 
 		// Prepare UI command buffers
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -863,7 +876,7 @@ public:
 
 		// Transition our texture to present state
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -873,7 +886,7 @@ public:
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 		{
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);

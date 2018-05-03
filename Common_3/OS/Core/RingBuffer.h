@@ -25,34 +25,36 @@
 #pragma once
 
 #include "../../Renderer/IRenderer.h"
-#include "../../Renderer/ResourceLoader.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
 
+#if !defined(RENDERER_DLL_IMPORT)
+API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+#endif
 /************************************************************************/
 /* RING BUFFER MANAGEMENT                                               */
 /************************************************************************/
 typedef struct MeshRingBuffer
 {
-	Buffer** ppVertexBufferPool;
-	Buffer** ppIndexBufferPool;
+	Renderer*	pRenderer;
+	Buffer**	ppVertexBufferPool;
+	Buffer**	ppIndexBufferPool;
 
-	uint32_t mMaxDrawCallCount;
-	uint32_t mMaxVertexCount;
-	uint32_t mMaxIndexCount;
-	uint32_t mCurrentVertexBufferCount;
-	uint32_t mCurrentIndexBufferCount;
+	uint32_t	mMaxDrawCallCount;
+	uint32_t	mMaxVertexCount;
+	uint32_t	mMaxIndexCount;
+	uint32_t	mCurrentVertexBufferCount;
+	uint32_t	mCurrentIndexBufferCount;
 } MeshRingBuffer;
 
 typedef struct UniformRingBuffer
 {
-	Buffer** ppUniformBuffers;
-
-	uint32_t mUniformBufferAlignment;
-	uint32_t mMaxUniformBufferSize;
-	uint32_t mUniformBufferCount;
-	uint32_t mUniformIndex;
-	uint32_t mUniformOffset;
+	Renderer*	pRenderer;
+	Buffer*		pUniformBuffer;
+	uint32_t	mUniformBufferAlignment;
+	uint32_t	mMaxUniformBufferSize;
+	uint32_t	mUniformOffset;
 } UniformRingBuffer;
 
 typedef struct UniformBufferOffset
@@ -61,36 +63,27 @@ typedef struct UniformBufferOffset
 	uint64_t	mOffset;
 } UniformBufferOffset;
 
-static inline void addMeshRingBuffer(uint32_t maxDraws, const BufferDesc* pVertexBufferDesc, const BufferDesc* pIndexBufferDesc, MeshRingBuffer** ppRingBuffer)
+static inline void addMeshRingBuffer(Renderer* pRenderer, uint32_t maxDraws, const BufferDesc* pVertexBufferDesc, const BufferDesc* pIndexBufferDesc, MeshRingBuffer** ppRingBuffer)
 {
 	MeshRingBuffer* pRingBuffer = (MeshRingBuffer*)conf_calloc(1, sizeof(MeshRingBuffer));
-
+	pRingBuffer->pRenderer = pRenderer;
 	pRingBuffer->mMaxDrawCallCount = maxDraws;
 	pRingBuffer->mMaxVertexCount = (uint32_t)(pVertexBufferDesc->mSize / pVertexBufferDesc->mVertexStride);
 	pRingBuffer->mMaxIndexCount = (uint32_t)(pIndexBufferDesc ? pIndexBufferDesc->mSize / (pIndexBufferDesc->mIndexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t)) : 0);
-
-	BufferLoadDesc vbDesc = {};
-	BufferLoadDesc ibDesc = {};
-
-	vbDesc.mDesc = *pVertexBufferDesc;
-	vbDesc.pData = NULL;
 
 	pRingBuffer->ppVertexBufferPool = (Buffer**)conf_calloc(maxDraws, sizeof(Buffer*));
 	if (pIndexBufferDesc)
 	{
 		pRingBuffer->ppIndexBufferPool = (Buffer**)conf_calloc(maxDraws, sizeof(Buffer*));
-		ibDesc.mDesc = *pIndexBufferDesc;
 	}
 
 	for (uint32_t i = 0; i < maxDraws; ++i)
 	{
-		vbDesc.ppBuffer = &pRingBuffer->ppVertexBufferPool[i];
-		addResource(&vbDesc);
+		addBuffer(pRenderer, pVertexBufferDesc, &pRingBuffer->ppVertexBufferPool[i]);
 
 		if (pRingBuffer->ppIndexBufferPool)
 		{
-			ibDesc.ppBuffer = &pRingBuffer->ppIndexBufferPool[i];
-			addResource(&ibDesc);
+			addBuffer(pRenderer, pIndexBufferDesc, &pRingBuffer->ppIndexBufferPool[i]);
 		}
 	}
 
@@ -101,9 +94,9 @@ static inline void removeMeshRingBuffer(MeshRingBuffer* pRingBuffer)
 {
 	for (uint32_t i = 0; i < pRingBuffer->mMaxDrawCallCount; ++i)
 	{
-		removeResource(pRingBuffer->ppVertexBufferPool[i]);
+		removeBuffer(pRingBuffer->pRenderer, pRingBuffer->ppVertexBufferPool[i]);
 		if (pRingBuffer->ppIndexBufferPool)
-			removeResource(pRingBuffer->ppIndexBufferPool[i]);
+			removeBuffer(pRingBuffer->pRenderer, pRingBuffer->ppIndexBufferPool[i]);
 	}
 
 	conf_free(pRingBuffer->ppVertexBufferPool);
@@ -138,47 +131,31 @@ static inline Buffer* getIndexBuffer(MeshRingBuffer* pRingBuffer)
 static void addUniformRingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, UniformRingBuffer** ppRingBuffer)
 {
 	UniformRingBuffer* pRingBuffer = (UniformRingBuffer*)conf_calloc(1, sizeof(UniformRingBuffer));
+	pRingBuffer->pRenderer = pRenderer;
 
 	const uint32_t uniformBufferAlignment = (uint32_t)pRenderer->pActiveGpuSettings->mUniformBufferAlignment;
-#if !defined(DIRECT3D12)
 	const uint32_t maxUniformBufferSize = requiredUniformBufferSize;
-#else
-	const uint32_t maxUniformBufferSize = 65536U;
-#endif
-	pRingBuffer->mUniformBufferCount = max(1U, requiredUniformBufferSize / maxUniformBufferSize);
 	pRingBuffer->mUniformBufferAlignment = uniformBufferAlignment;
 	pRingBuffer->mMaxUniformBufferSize = maxUniformBufferSize;
-	pRingBuffer->ppUniformBuffers = (Buffer**)conf_calloc(pRingBuffer->mUniformBufferCount, sizeof(Buffer*));
 
-	BufferLoadDesc ubDesc = {};
-	ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
-	ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	ubDesc.mDesc.mSize = maxUniformBufferSize;
-	ubDesc.pData = NULL;
-	for (uint32_t i = 0; i < pRingBuffer->mUniformBufferCount; ++i)
-	{
-		ubDesc.ppBuffer = &pRingBuffer->ppUniformBuffers[i];
-		addResource(&ubDesc);
-	}
+	BufferDesc ubDesc = {};
+	ubDesc.mUsage = BUFFER_USAGE_UNIFORM;
+	ubDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	ubDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+	ubDesc.mSize = maxUniformBufferSize;
+	addBuffer(pRenderer, &ubDesc, &pRingBuffer->pUniformBuffer);
 
 	*ppRingBuffer = pRingBuffer;
 }
 
 static void removeUniformRingBuffer(UniformRingBuffer* pRingBuffer)
 {
-	for (uint32_t i = 0; i < pRingBuffer->mUniformBufferCount; ++i)
-	{
-		removeResource(pRingBuffer->ppUniformBuffers[i]);
-	}
-
-	conf_free(pRingBuffer->ppUniformBuffers);
+	removeBuffer(pRingBuffer->pRenderer, pRingBuffer->pUniformBuffer);
 	conf_free(pRingBuffer);
 }
 
 static inline void resetUniformRingBuffer(UniformRingBuffer* pRingBuffer)
 {
-	pRingBuffer->mUniformIndex = 0;
 	pRingBuffer->mUniformOffset = 0;
 }
 
@@ -188,11 +165,6 @@ static UniformBufferOffset getUniformBufferOffset(UniformRingBuffer* pRingBuffer
 
 	if (pRingBuffer->mUniformOffset + alignedSize >= pRingBuffer->mMaxUniformBufferSize)
 	{
-		if (pRingBuffer->mUniformIndex + 1 < pRingBuffer->mUniformBufferCount)
-			++pRingBuffer->mUniformIndex;
-		else
-			pRingBuffer->mUniformIndex = 0;
-
 		pRingBuffer->mUniformOffset = 0;
 	}
 	else
@@ -200,5 +172,5 @@ static UniformBufferOffset getUniformBufferOffset(UniformRingBuffer* pRingBuffer
 		pRingBuffer->mUniformOffset += alignedSize;
 	}
 
-	return{ pRingBuffer->ppUniformBuffers[pRingBuffer->mUniformIndex], (uint64_t)pRingBuffer->mUniformOffset };
+	return{ pRingBuffer->pUniformBuffer, (uint64_t)pRingBuffer->mUniformOffset };
 }

@@ -379,19 +379,45 @@ public:
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &graphShader, &pGraphShader);
 
-		addSampler(pRenderer, &pSampler, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT);
-		addSampler(pRenderer, &pSamplerSkyBox, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
+		SamplerDesc samplerDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
+		};
+		SamplerDesc skyBoxSamplerDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+		addSampler(pRenderer, &skyBoxSamplerDesc, &pSamplerSkyBox);
 
-		addBlendState(&gParticleBlend, BC_ONE, BC_ONE, BC_ONE, BC_ONE, BM_ADD, BM_ADD, 15);
-		addRasterizerState(&gSkyboxRast, CULL_MODE_NONE);
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcAlphaFactor = BC_ONE;
+		blendStateDesc.mDstAlphaFactor = BC_ONE;
+		blendStateDesc.mSrcFactor = BC_ONE;
+		blendStateDesc.mDstFactor = BC_ONE;
+		blendStateDesc.mMask = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		addBlendState(pRenderer, &blendStateDesc, &gParticleBlend);
 
-		RootSignatureDesc skyBoxRootDesc = {};
-		skyBoxRootDesc.mStaticSamplers["uSkyboxSampler"] = pSamplerSkyBox;
-		skyBoxRootDesc.mStaticSamplers["uSampler0"] = pSampler;
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &gSkyboxRast);
+
+		const char* pStaticSamplerNames[] = { "uSampler0", "uSkyboxSampler" };
+		Sampler* pSamplers[] = { pSampler, pSamplerSkyBox };
 		Shader* shaders[] = { pShader, pSkyBoxDrawShader };
-		addRootSignature(pRenderer, 2, shaders, &pRootSignature, &skyBoxRootDesc);
+		RootSignatureDesc skyBoxRootDesc = {};
+		skyBoxRootDesc.mStaticSamplerCount = 2;
+		skyBoxRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		skyBoxRootDesc.ppStaticSamplers = pSamplers;
+		skyBoxRootDesc.mShaderCount = 2;
+		skyBoxRootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
 
-		addRootSignature(pRenderer, 1, &pGraphShader, &pGraphRootSignature);
+		RootSignatureDesc graphRootDesc = {};
+		graphRootDesc.mShaderCount = 1;
+		graphRootDesc.ppShaders = &pGraphShader;
+		addRootSignature(pRenderer, &graphRootDesc, &pGraphRootSignature);
 
 		gTextureIndex = 0;
 
@@ -939,7 +965,7 @@ public:
 
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 		//// draw skybox
@@ -1009,7 +1035,6 @@ public:
 #endif
 
 		gAppUI.Draw(cmd);
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 		endCmd(cmd);
 
 		beginCmd(ppGraphCmds[frameIdx]);
@@ -1022,7 +1047,7 @@ public:
 			pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
 			pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
-			cmdBeginRender(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL);
+			cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL);
 			cmdSetViewport(ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth, pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -1043,9 +1068,9 @@ public:
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLinePipeline);
 			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx]);
 			cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
-
-			cmdEndRender(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL);
 		}
+
+		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL);
 
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 1, &barrier, true);
@@ -1072,7 +1097,7 @@ public:
 		// Stall if CPU is running "Swap Chain Buffer Count - 1" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
@@ -1509,7 +1534,7 @@ public:
 		Cmd* cmd = data->ppCmds[data->mFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, data->pGpuProfiler);
-		cmdBeginRender(cmd, 1, &data->pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 1, &data->pRenderTarget, NULL, NULL);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data->pRenderTarget->mDesc.mWidth, (float)data->pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, data->pRenderTarget->mDesc.mWidth, data->pRenderTarget->mDesc.mHeight);
 
@@ -1530,7 +1555,6 @@ public:
 
 		for (int i = 0; i < (data->mDrawCount / 1000); ++i)  // in startdust project, they want to show how fast that vulkan can execute draw command, so each thread record a lot of commands
 			cmdDrawInstanced(cmd, 1000, data->mStartPoint + (i * 1000), 1);
-		cmdEndRender(cmd, 1, &data->pRenderTarget, NULL);
 
 		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
 		endCmd(cmd);

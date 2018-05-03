@@ -41,7 +41,9 @@ enum UIPropertyType
 	UI_PROPERTY_BOOL,
 	UI_PROPERTY_ENUM,
 	UI_PROPERTY_BUTTON,
-	UI_PROPERTY_TEXTINPUT
+	UI_PROPERTY_TEXTINPUT,
+	UI_PROPERTY_TEXT,
+
 };
 
 enum UIMaxFontSize
@@ -65,21 +67,24 @@ public:
 		FLAG_VISIBLE = 1 << 0,
 	};
 
-	UIProperty(const char* description, int steps, float& value, float min = 0.0f, float max = 1.0f);
-	UIProperty(const char* description, float& value, float min = 0.0f, float max = 1.0f, float increment = 0.02f, bool expScale = false);
-	UIProperty(const char* description, int& value, int min = -100, int max = 100, int increment = 1);
-	UIProperty(const char* description, unsigned int& value, unsigned int min = 0, unsigned int max = 100, unsigned int increment = 1);
-	UIProperty(const char* description, bool& value);
-	UIProperty(const char* description, UIButtonFn fn, void* userdata);
-	UIProperty(const char* description, char* value, unsigned int length);
+	UIProperty(const char* description, int steps, float& value, float min = 0.0f, float max = 1.0f, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, float& value, float min = 0.0f, float max = 1.0f, float increment = 0.02f, bool expScale = false, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, int& value, int min = -100, int max = 100, int increment = 1, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, unsigned int& value, unsigned int min = 0, unsigned int max = 100, unsigned int increment = 1, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, bool& value, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, UIButtonFn fn, void* userdata, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, char* value, unsigned int length, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
+	UIProperty(const char* description, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
 
 	template <class T>
-	UIProperty(const char* description, T& value, const char** enumNames, const T* enumValues, PropertyChangedCallback callback = NULL) :
+	UIProperty(const char* description, T& value, const char** enumNames, const T* enumValues, PropertyChangedCallback callback = NULL, uint32_t color = 0xAFAFAFFF, const char* tree = "none") :
 		description(description),
 		type(UI_PROPERTY_ENUM),
 		flags(FLAG_VISIBLE),
 		source(&value),
-		callback(callback)
+		callback(callback),
+		color(color),
+		tree(tree)
 	{
 		settings.eByteSize = sizeof(T);
 		settings.eNames = enumNames;
@@ -90,11 +95,20 @@ public:
 
 	void setSettings(int steps, float min, float max);
 
+	//*********************************************************/
+	// The order of member variables declaration must match the order in which they are initialized in the constructor. 
+	// Otherwise g++ compiler will rearrange the initializer and viariables may be initialized to unknown value
+	// For more info, search for keyword [-Wreorder]
+	//*********************************************************/
 	const char* description;
 	UIPropertyType type;
 	unsigned int flags;
 	void* source;
 	PropertyChangedCallback callback = nullptr;
+	uint32_t color; 
+	const char* tree = "none";
+
+	bool shouldDraw = false;
 
 // Anonymous structures generates warnings in C++11. 
 // See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs

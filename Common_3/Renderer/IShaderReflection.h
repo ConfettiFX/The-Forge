@@ -24,13 +24,6 @@
 
 #pragma once
 
-//#include <stdint.h>
-
-// forward decl
-namespace confetti {
-   class File;
-}
-
 static const uint32_t MAX_SHADER_STAGE_COUNT = 5;
 
 struct VertexInput
@@ -140,13 +133,7 @@ struct PipelineReflection
    uint32_t mVariableCount;
 };
 
-#ifdef METAL
-void createShaderReflection(Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
-#else
-void createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
-#endif
 void destroyShaderReflection(ShaderReflection* pReflection);
-
 
 void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection);
 void destroyPipelineReflection(PipelineReflection* pReflection);

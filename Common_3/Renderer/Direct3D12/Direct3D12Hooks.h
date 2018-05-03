@@ -62,11 +62,13 @@ typedef void(*PFN_HOOK_RESOURCE_ALLOCATION_INFO)(
 	D3D12_RESOURCE_ALLOCATION_INFO& info, UINT64 alignment);
 
 typedef bool(*PFN_HOOK_SPECIAL_BUFFER_ALLOCATION)(
+	Renderer* pRenderer,
 	Buffer* pBuffer,
 	const BufferCreateInfo* pCreateInfo,
 	ResourceAllocator* allocator);
 
 typedef bool(*PFN_HOOK_SPECIAL_TEXTURE_ALLOCATION)(
+	Renderer* pRenderer,
 	Texture* pBuffer,
 	const TextureCreateInfo* pCreateInfo,
 	ResourceAllocator* allocator);
@@ -83,8 +85,8 @@ extern PFN_HOOK_HEAP_DESC							fnHookHeapDesc;
 extern PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT	fnHookGetRecommendedSwapChainFormat;
 extern PFN_HOOK_MODIFY_SWAP_CHAIN_DESC				fnHookModifySwapChainDesc;
 extern PFN_HOOK_GET_SWAP_CHAIN_IMAGE_INDEX			fnHookGetSwapChainImageIndex;
-extern PFN_HOOK_SHADER_COMPILE_FLAGS                fnHookShaderCompileFlags;
-extern PFN_HOOK_RESOURCE_ALLOCATION_INFO            fnHookResourceAllocationInfo;
+extern PFN_HOOK_SHADER_COMPILE_FLAGS				fnHookShaderCompileFlags;
+extern PFN_HOOK_RESOURCE_ALLOCATION_INFO			fnHookResourceAllocationInfo;
 extern PFN_HOOK_SPECIAL_BUFFER_ALLOCATION			fnHookSpecialBufferAllocation;
 extern PFN_HOOK_SPECIAL_TEXTURE_ALLOCATION			fnHookSpecialTextureAllocation;
 extern PFN_HOOK_RESOURCE_FLAGS						fnHookResourceFlags;

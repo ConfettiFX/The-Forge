@@ -59,7 +59,7 @@ public:
 
 	void		setScissor(Cmd* pCmd, const RectDesc* rect);
 
-	void		beginRender(uint32_t w, uint32_t h, ImageFormat::Enum outputFormat, bool srgb, SampleCount sampleCount, uint32_t sampleQuality);
+	void		beginRender(uint32_t w, uint32_t h, uint32_t outputFormatCount, ImageFormat::Enum* outputFormats, bool* srgbValues, ImageFormat::Enum depthStencilFormat, SampleCount sampleCount, uint32_t sampleQuality);
 	void		reset();
 
 	Texture*	addTexture(Image* image, uint32_t flags);
@@ -90,6 +90,7 @@ private:
 	/// Default states
 	BlendState*						pBlendAlpha;
 	DepthState*						pDepthNone;
+	DepthState*						pDepthEnable;
 	RasterizerState*				pRasterizerNoCull;
 	Sampler*						pDefaultSampler;
 

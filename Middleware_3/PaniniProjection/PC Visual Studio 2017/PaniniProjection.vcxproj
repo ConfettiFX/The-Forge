@@ -141,12 +141,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="../AppPanini.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="../AppPanini.h" />
-  </ItemGroup>
-  <ItemGroup>
     <CustomBuild Include="..\Shaders\PCVulkan\panini_projection.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
@@ -181,6 +175,12 @@ $(VULKAN_SDK)\bin\glslangValidator.exe -V %(Identity) -o %(Identity)\..\Binary\%
   <ItemGroup>
     <None Include="..\Shaders\PCDX12\panini_projection.frag" />
     <None Include="..\Shaders\PCDX12\panini_projection.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Panini.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Panini.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

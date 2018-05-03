@@ -186,6 +186,14 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		if (gCurrentWindow)
 		{
+			if (wParam == SIZE_MINIMIZED)
+			{
+				gCurrentWindow->minimized = true;
+			}
+			else
+			{
+				gCurrentWindow->minimized = false;
+			}
 			RectDesc rect = { 0 };
 			if (gCurrentWindow->fullScreen)
 			{
@@ -958,6 +966,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 			deltaTime = 0.05f;
 
 		handleMessages();
+
+		// If window is minimized let other processes take over
+		if (window.minimized)
+		{
+			Thread::Sleep(1);
+			continue;
+		}
+
 		pApp->Update(deltaTime);
 		pApp->Draw();
 		
