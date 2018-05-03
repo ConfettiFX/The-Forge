@@ -48,7 +48,7 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Middleware_3/PaniniProjection/AppPanini.h"
+#include "../../../../Middleware_3/PaniniProjection/Panini.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -198,7 +198,7 @@ const char* pszRoots[] =
 DebugTextDrawDesc		gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 ClearValue				gClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 ClearValue				gClearDepth = { 1.0f, 0 };
-AppPanini				gAppPanini = {};
+Panini				gPanini = {};
 PaniniParameters		gPaniniParams = {};
 bool					gMultiGPU = true;
 bool					gMultiGPURestart = false;
@@ -259,16 +259,31 @@ public:
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
 
-		addSampler(pRenderer, &pSamplerSkyBox, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
+		SamplerDesc samplerDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
 
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplers["uSampler0"] = pSamplerSkyBox;
 		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		addRootSignature(pRenderer, 2, shaders, &pRootSignature, &rootDesc);
+		const char* pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		addRasterizerState(&pSkyboxRast, CULL_MODE_NONE);
-		addDepthState(pRenderer, &pDepth, true, true);
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
 		// Generate sphere vertex buffer
 		if (!pSpherePoints)
@@ -548,7 +563,7 @@ public:
 		normalize(gCameraProp.mCameraRight);
 #endif
 
-		if (!gAppPanini.Init(pRenderer))
+		if (!gPanini.Init(pRenderer))
 			return false;
 
 		return true;
@@ -569,7 +584,7 @@ public:
 			conf_free(pSpherePoints);
 		}
 
-		gAppPanini.Exit();
+		gPanini.Exit();
 		gAppUI.Exit();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -643,7 +658,7 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-		if (!gAppPanini.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gPanini.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -697,7 +712,7 @@ public:
 		for (uint32_t i = 0; i < gViewCount; ++i)
 			waitForFences(pGraphicsQueue[i], 1, &pRenderCompleteFences[i][gFrameIndex], true);
 
-		gAppPanini.Unload();
+		gPanini.Unload();
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
@@ -743,7 +758,7 @@ public:
 		// update camera with time 
 		mat4 viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / ((float)mSettings.mWidth * 0.5f);
-		const float horizontal_fov = PI / 2.0f;
+		const float horizontal_fov = gPaniniParams.FoVH * PI / 180.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		gUniformData.mProjectView = projMat * viewMat;
 
@@ -785,8 +800,8 @@ public:
 		/************************************************************************/
 
 		gAppUI.Update(deltaTime);
-		gAppPanini.SetParams(gPaniniParams);
-		gAppPanini.Update(deltaTime);
+		gPanini.SetParams(gPaniniParams);
+		gPanini.Update(deltaTime);
 
 		static bool prevMultiGPU = gMultiGPU;
 		if (prevMultiGPU != gMultiGPU)
@@ -838,7 +853,7 @@ public:
 				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
-			cmdBeginRender(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
 
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
@@ -876,7 +891,7 @@ public:
 			cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-			cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
 			TextureBarrier srvBarriers[] = {
 				{ pRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
@@ -895,19 +910,19 @@ public:
 				barriers[gViewCount] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 				cmdResourceBarrier(cmd, 0, NULL, 1 + gViewCount, barriers, false);
 
-				cmdBeginRender(cmd, 1, &pRenderTarget, NULL, &loadActions);
+				cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions);
 
 				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Panini Projection");
 
 				cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth * 0.5f, (float)mSettings.mHeight, 0.0f, 1.0f);
 				cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
-				gAppPanini.SetSourceTexture(pRenderTargets[0][gFrameIndex]->pTexture);
-				gAppPanini.Draw(cmd);
+				gPanini.SetSourceTexture(pRenderTargets[0][gFrameIndex]->pTexture);
+				gPanini.Draw(cmd);
 
 				cmdSetViewport(cmd, (float)mSettings.mWidth * 0.5f, 0.0f, (float)mSettings.mWidth * 0.5f, (float)mSettings.mHeight, 0.0f, 1.0f);
 				cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
-				gAppPanini.SetSourceTexture(pRenderTargets[1][gFrameIndex]->pTexture);
-				gAppPanini.Draw(cmd);
+				gPanini.SetSourceTexture(pRenderTargets[1][gFrameIndex]->pTexture);
+				gPanini.Draw(cmd);
 
 				cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
@@ -942,7 +957,7 @@ public:
 
 				gAppUI.Draw(cmd);
 
-				cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
 				for (uint32_t i = 0; i < gViewCount; ++i)
 					barriers[i] = { pRenderTargets[i][gFrameIndex]->pTexture, RESOURCE_STATE_RENDER_TARGET };
@@ -972,7 +987,7 @@ public:
 		{
 			Fence* pNextFence = pRenderCompleteFences[i][(gFrameIndex + 1) % gImageCount];
 			FenceStatus fenceStatus;
-			getFenceStatus(pNextFence, &fenceStatus);
+			getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			{
 				waitForFences(pGraphicsQueue[i], 1, &pNextFence, false);

@@ -52,7 +52,7 @@ void _flushFile(FileHandle handle)
 
 size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
 {
-  return fread(buffer, 1, byteCount, (::FILE*)handle);
+  return fread(buffer, byteCount, 1, (::FILE*)handle);
 }
 
 bool _seekFile(FileHandle handle, long offset, int origin)
@@ -67,7 +67,7 @@ long _tellFile(FileHandle handle)
 
 size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
 {
-  return fwrite(buffer, 1, byteCount, (::FILE*)handle);
+  return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
 size_t _getFileLastModifiedTime(const char* _fileName)

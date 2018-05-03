@@ -34,10 +34,9 @@
 #endif
 
 #include "Direct3D12Hooks.h"
+#include "Direct3D12MemoryAllocator.h"
 
-#include "..\IMemoryAllocator.h"
-
-void destroyTexture(
+void d3d12_destroyTexture(
 	ResourceAllocator* allocator,
 	Texture* pTexture)
 {
@@ -470,7 +469,7 @@ void resourceAllocSetAllocationUserData(
 		allocation->SetUserData(pUserData);
 }
 
-long createBuffer(
+long d3d12_createBuffer(
 	ResourceAllocator* allocator,
 	const BufferCreateInfo* pCreateInfo,
 	const AllocatorMemoryRequirements* pMemoryRequirements,
@@ -519,7 +518,7 @@ long createBuffer(
 			}
 			else
 			{
-				if (fnHookSpecialBufferAllocation != NULL && fnHookSpecialBufferAllocation(pBuffer, pCreateInfo, allocator))
+				if (fnHookSpecialBufferAllocation != NULL && fnHookSpecialBufferAllocation(allocator->pRenderer, pBuffer, pCreateInfo, allocator))
 				{
 					LOGINFOF("Allocated memory in special platform-specific buffer");
 				}
@@ -602,7 +601,7 @@ long createBuffer(
 	return res;
 }
 
-void destroyBuffer(
+void d3d12_destroyBuffer(
 	ResourceAllocator* allocator,
 	Buffer* pBuffer)
 {
@@ -620,7 +619,7 @@ void destroyBuffer(
 	}
 }
 
-long createTexture(
+long d3d12_createTexture(
 	ResourceAllocator* allocator,
 	const TextureCreateInfo* pCreateInfo,
 	const AllocatorMemoryRequirements* pMemoryRequirements,
@@ -642,7 +641,7 @@ long createTexture(
 	{
 		if (pTexture->pDxAllocation->GetType() == ResourceAllocation::ALLOCATION_TYPE_BLOCK)
 		{
-			if (fnHookSpecialTextureAllocation != NULL && fnHookSpecialTextureAllocation(pTexture, pCreateInfo, allocator))
+			if (fnHookSpecialTextureAllocation != NULL && fnHookSpecialTextureAllocation(allocator->pRenderer, pTexture, pCreateInfo, allocator))
 			{
 				LOGINFOF("Allocated memory in special platform-specific buffer");
 			}
@@ -664,10 +663,10 @@ long createTexture(
 				heapFlags |= D3D12_HEAP_FLAG_SHARED;
 
 			D3D12_HEAP_PROPERTIES heapProps = gHeapProperties[pTexture->pDxAllocation->GetMemoryTypeIndex()].mProps;
-			heapProps.CreationNodeMask = (1 << pTexture->mDesc.mNodeIndex);
+			heapProps.CreationNodeMask = (1 << pCreateInfo->pTextureDesc->mNodeIndex);
 			heapProps.VisibleNodeMask = heapProps.CreationNodeMask;
-			for (uint32_t i = 0; i < pTexture->mDesc.mSharedNodeIndexCount; ++i)
-				heapProps.VisibleNodeMask |= (1 << pTexture->mDesc.pSharedNodeIndices[i]);
+			for (uint32_t i = 0; i < pCreateInfo->pTextureDesc->mSharedNodeIndexCount; ++i)
+				heapProps.VisibleNodeMask |= (1 << pCreateInfo->pTextureDesc->pSharedNodeIndices[i]);
 
 			res = allocator->m_hDevice->CreateCommittedResource(
 				&heapProps, heapFlags,

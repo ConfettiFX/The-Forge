@@ -112,6 +112,7 @@ Texture*            pVirtualJoystickTex = nullptr;
 #endif
 DepthState*			pDepth = nullptr;
 RasterizerState*	pSkyboxRast = nullptr;
+RasterizerState*	pSphereRast = nullptr;
 
 Buffer*				pProjViewUniformBuffer = nullptr;
 Buffer*				pSkyboxUniformBuffer = nullptr;
@@ -246,16 +247,35 @@ public:
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
 
-		addSampler(pRenderer, &pSamplerSkyBox, FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
+		SamplerDesc samplerDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
 
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplers["uSampler0"] = pSamplerSkyBox;
 		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		addRootSignature(pRenderer, 2, shaders, &pRootSignature, &rootDesc);
+		const char* pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		addRasterizerState(&pSkyboxRast, CULL_MODE_NONE);
-		addDepthState(pRenderer, &pDepth, true, true);
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
+
+		RasterizerStateDesc sphereRasterizerStateDesc = {};
+		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+		addRasterizerState(pRenderer, &sphereRasterizerStateDesc, &pSphereRast);
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
 		// Generate sphere vertex buffer
 		float* pSpherePoints;
@@ -520,6 +540,7 @@ public:
 		removeRootSignature(pRenderer, pRootSignature);
 
 		removeDepthState(pDepth);
+		removeRasterizerState(pSphereRast);
 		removeRasterizerState(pSkyboxRast);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -574,7 +595,7 @@ public:
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pRasterizerState = pSphereRast;
 		addPipeline(pRenderer, &pipelineSettings, &pSpherePipeline);
 
 		//layout and pipeline for skybox draw
@@ -683,7 +704,7 @@ public:
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 			
@@ -708,7 +729,7 @@ public:
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -743,11 +764,9 @@ public:
 		cmdBindDescriptors(cmd, pRootSignature, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets);
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
 		cmdEndDebugMarker(cmd);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, NULL);
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
         
@@ -775,7 +794,7 @@ public:
 
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.Draw(cmd);
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 		cmdEndDebugMarker(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };

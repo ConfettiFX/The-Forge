@@ -9377,25 +9377,39 @@ void vmaDestroyImage(
 
 #endif // #ifdef VMA_IMPLEMENTATION
 
-long createBuffer(MemoryAllocator* allocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, Buffer* pBuffer)
+typedef struct BufferCreateInfo
+{
+	const VkBufferCreateInfo*	pDesc;
+} BufferCreateInfo;
+
+typedef struct TextureCreateInfo
+{
+	const TextureDesc*			pTextureDesc;
+	VkImageCreateInfo*			pDesc;
+} TextureCreateInfo;
+
+typedef struct VmaAllocator_T MemoryAllocator;
+typedef struct VmaAllocationCreateInfo AllocatorMemoryRequirements;
+
+long vk_createBuffer(MemoryAllocator* allocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, Buffer* pBuffer)
 {
 	VmaAllocationInfo allocInfo = {};
-	VkResult vkRes = vmaCreateBuffer(allocator, pCreateInfo->pDesc, pMemoryRequirements, &pBuffer->pVkBuffer, &pBuffer->pVkMemory, &allocInfo);
+	VkResult vkRes = vmaCreateBuffer(allocator, pCreateInfo->pDesc, pMemoryRequirements, &pBuffer->pVkBuffer, &pBuffer->pVkAllocation, &allocInfo);
 	pBuffer->pCpuMappedAddress = allocInfo.pMappedData;
 	return (long)vkRes;
 }
 
-void destroyBuffer(MemoryAllocator* pAllocator, Buffer* pBuffer)
+void vk_destroyBuffer(MemoryAllocator* pAllocator, Buffer* pBuffer)
 {
-	vmaDestroyBuffer(pAllocator, pBuffer->pVkBuffer, pBuffer->pVkMemory);
+	vmaDestroyBuffer(pAllocator, pBuffer->pVkBuffer, pBuffer->pVkAllocation);
 }
 
-long createTexture(MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, struct Texture* pTexture)
+long vk_createTexture(MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, struct Texture* pTexture)
 {
-	return (long)vmaCreateImage(pAllocator, pCreateInfo->pDesc, pMemoryRequirements, &pTexture->pVkImage, &pTexture->pVkMemory, NULL);
+	return (long)vmaCreateImage(pAllocator, pCreateInfo->pDesc, pMemoryRequirements, &pTexture->pVkImage, &pTexture->pVkAllocation, NULL);
 }
 
-void destroyTexture(MemoryAllocator* pAllocator, Texture* pTexture)
+void vk_destroyTexture(MemoryAllocator* pAllocator, Texture* pTexture)
 {
-	vmaDestroyImage(pAllocator, pTexture->pVkImage, pTexture->pVkMemory);
+	vmaDestroyImage(pAllocator, pTexture->pVkImage, pTexture->pVkAllocation);
 }

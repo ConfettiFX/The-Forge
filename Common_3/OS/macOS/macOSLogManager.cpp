@@ -96,8 +96,8 @@ void _InfoMsg(int line, const char *file, const char *string, ...)
   va_start(arglist, string);
   vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
   va_end(arglist);
-
-  _OutputDebugString(buf);
+  
+  printf("Info: %s", buf);
 }
 
 void _OutputDebugString(const char *str, ...)
@@ -127,19 +127,7 @@ void _FailedAssert(const char *file, int line, const char *statement)
 
 void _PrintUnicode(const String& str, bool error)
 {
-  // If the output stream has been redirected, use fprintf instead of WriteConsoleW,
-  // though it means that proper Unicode output will not work
-  FILE* out = error ? stderr : stdout;
-  if (!isatty(fileno(out)))
-    fprintf(out, "%s", str.c_str());
-  else
-  {
-    if (error)
-      std::cerr << str.c_str(); // use this for now because WriteCosnoleW sometimes cause blocking
-    else
-      std::cout << str.c_str();
-  }
-
+    
   outputLogString(str.c_str());
 }
 

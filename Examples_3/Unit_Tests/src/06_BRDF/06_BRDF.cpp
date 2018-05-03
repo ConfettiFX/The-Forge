@@ -252,7 +252,10 @@ void computePBRMaps()
     Pipeline* pSpecularPipeline = nullptr;
     Sampler* pSkyboxSampler = nullptr;
     
-    addSampler(pRenderer, &pSkyboxSampler, FILTER_TRILINEAR, FILTER_TRILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16);
+	SamplerDesc samplerDesc = {
+		FILTER_TRILINEAR, FILTER_TRILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+	};
+    addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
     
     // Load the skybox panorama texture.
     TextureLoadDesc panoDesc = {};
@@ -362,15 +365,19 @@ void computePBRMaps()
 	ShaderLoadDesc specularShaderDesc = {};
 	specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", NULL, 0, FSR_SrcShaders };
 
-    
     addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
-    addRootSignature(pRenderer, 1, &pPanoToCubeShader, &pPanoToCubeRootSignature);
     addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
-    addRootSignature(pRenderer, 1, &pBRDFIntegrationShader, &pBRDFIntegrationRootSignature);
     addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
-    addRootSignature(pRenderer, 1, &pIrradianceShader, &pIrradianceRootSignature);
     addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
-    addRootSignature(pRenderer, 1, &pSpecularShader, &pSpecularRootSignature);
+
+	RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
+	RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
+	RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
+	RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
+    addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
+    addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
+    addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
+    addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
     
     ComputePipelineDesc pipelineSettings = { 0 };
     pipelineSettings.pShaderProgram = pPanoToCubeShader;
@@ -528,7 +535,11 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		computePBRMaps();
 
-		addSampler(pRenderer, &pSamplerBilinear, FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR);
+		SamplerDesc samplerDesc = {
+			FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
  
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
 		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, FSR_SrcShaders };
@@ -541,17 +552,30 @@ public:
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
         addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
 
-		RootSignatureDesc brdfRootDesc = {};
-		brdfRootDesc.mStaticSamplers["envSampler"] = pSamplerBilinear;
-		addRootSignature(pRenderer, 1, &pShaderBRDF, &pRootSigBRDF, &brdfRootDesc);
+		const char* pBRDFSamplerName = "envSampler";
+		const char* pSkyboxamplerName = "skyboxSampler";
+		RootSignatureDesc brdfRootDesc = { &pShaderBRDF, 1 };
+		brdfRootDesc.mStaticSamplerCount = 1;
+		brdfRootDesc.ppStaticSamplerNames = &pBRDFSamplerName;
+		brdfRootDesc.ppStaticSamplers = &pSamplerBilinear;
+		addRootSignature(pRenderer, &brdfRootDesc, &pRootSigBRDF);
 
-		RootSignatureDesc skyboxRootDesc = {};
-		skyboxRootDesc.mStaticSamplers["skyboxSampler"] = pSamplerBilinear;
-		addRootSignature(pRenderer, 1, &pSkyboxShader, &pSkyboxRootSignature, &skyboxRootDesc);
+		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
+		skyboxRootDesc.mStaticSamplerCount = 1;
+		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxamplerName;
+		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
+		addRootSignature(pRenderer, &skyboxRootDesc, &pSkyboxRootSignature);
 
 		// Create depth state and rasterizer state
-		addDepthState(pRenderer, &pDepth, true, true);
-		addRasterizerState(&pRasterstateDefault, CULL_MODE_NONE);
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		addDepthState(pRenderer, &depthStateDesc, &pDepth);
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterstateDefault);
 
 		float* pSPherePoints;
 		generateSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution, gSphereDiameter);
@@ -961,12 +985,11 @@ public:
 
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-
 		// Transfer our render target to a render target state
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
 
-		cmdBeginRender(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
         
@@ -1008,14 +1031,6 @@ public:
 			cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
 		}
 
-		cmdEndRender(cmd, 1, &pRenderTarget, pDepthBuffer);
-
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
-
-
-		// Prepare UI command buffers
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, NULL);
-
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
@@ -1049,11 +1064,12 @@ public:
 
 		gAppUI.Draw(cmd);
 
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
 		// Transition our texture to present state
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
+		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
@@ -1061,7 +1077,7 @@ public:
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 		{
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);

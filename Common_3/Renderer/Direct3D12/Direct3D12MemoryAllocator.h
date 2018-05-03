@@ -27,6 +27,24 @@
 
 #include "../../OS/Interfaces/IMemoryManager.h"
 
+typedef struct ResourceAllocator MemoryAllocator;
+
+typedef struct BufferCreateInfo
+{
+	const D3D12_RESOURCE_DESC*	pDesc;
+	D3D12_RESOURCE_STATES		mStartState;
+	wchar_t*					pDebugName;
+} BufferCreateInfo;
+
+typedef struct TextureCreateInfo
+{
+	const TextureDesc*			pTextureDesc;
+	const D3D12_RESOURCE_DESC*	pDesc;
+	const D3D12_CLEAR_VALUE*	pClearValue;
+	D3D12_RESOURCE_STATES		mStartState;
+	wchar_t*					pDebugName;
+} TextureCreateInfo;
+
 ////////////////////////////////////////////////////////////////////////////////
 /** \defgroup general General
 @{
@@ -68,6 +86,7 @@ typedef uint32_t AllocatorFlags;
 /// Description of a Allocator to be created.
 typedef struct AllocatorCreateInfo
 {
+	Renderer* pRenderer;
 	/// Flags for created allocator. Use AllocatorFlagBits enum.
 	AllocatorFlags flags;
 	/// Vulkan physical device.
@@ -1772,6 +1791,7 @@ private:
 // Main allocator object.
 struct ResourceAllocator
 {
+	Renderer* pRenderer;
 	bool m_UseMutex;
 	ID3D12Device* m_hDevice;
 	bool m_AllocationCallbacksSpecified;
@@ -2020,9 +2040,5 @@ static HRESULT AllocateMemoryForImage(
 
 ////////////////////////////////////////////////////////////////////////////////
 // Public interface
-
-void destroyTexture(
-	ResourceAllocator* allocator,
-	Texture* pTexture);
 
 #endif // #ifdef RESOURCE_IMPLEMENTATION

@@ -51,7 +51,7 @@ static DescriptorType sD3D12_TO_DESCRIPTOR[] =
 };
 
 
-void createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
 	//Check to see if parameters are valid
 	if (shaderCode == NULL)

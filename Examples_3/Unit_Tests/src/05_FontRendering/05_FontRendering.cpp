@@ -411,7 +411,7 @@ public:
 
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
-		cmdBeginRender(cmd, 1, &pRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -441,7 +441,7 @@ public:
 
 		gAppUI.Draw(cmd);
 
-		cmdEndRender(cmd, 1, &pRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
@@ -453,7 +453,7 @@ public:
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
-		getFenceStatus(pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}

@@ -356,7 +356,7 @@ def BuildXcodeProjects():
 		for conf in configurations:					
 			#create command for xcodebuild
 			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
-			command = ["xcodebuild","clean","-scheme", filename,"-configuration",conf,"build"]
+			command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build"]
 			sucess = ExecuteBuild(command, filename,conf, "macOS")
 			if sucess != 0:
 				errorOccured = True
@@ -365,7 +365,7 @@ def BuildXcodeProjects():
 			#TODO: Search to verify file exists
 			if filename != "Visibility_Buffer":
 				filename = filename +"_iOS" 
-				command = ["xcodebuild","clean","-scheme", filename,"-configuration",conf,"build","-allowProvisioningDeviceRegistration"]
+				command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build","-allowProvisioningDeviceRegistration"]
 				sucess = ExecuteBuild(command, filename,conf, "iOS")
 				if sucess != 0:
 					errorOccured = True

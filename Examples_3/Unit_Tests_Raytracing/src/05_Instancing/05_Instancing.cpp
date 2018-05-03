@@ -321,7 +321,7 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &mFrameIdx);
 
 		FenceStatus fenceStatus = {};
-		getFenceStatus(pRenderCompleteFences[mFrameIdx], &fenceStatus);
+		getFenceStatus(pRenderer, pRenderCompleteFences[mFrameIdx], &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx], false);
 
@@ -370,11 +370,10 @@ public:
 		TextureBarrier rtBarrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &rtBarrier, false);
 
-		cmdBeginRender(pCmd, 1, &pRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, NULL);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
 		drawDebugGpuProfile(pCmd, 15.0f, 40.0f, pGpuProfiler, NULL);
-		cmdEndRender(pCmd, 1, &pRenderTarget, NULL);
 
 		TextureBarrier presentBarrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &presentBarrier, true);

@@ -72,7 +72,12 @@ uint32_t addDebugFont(const char* pDebugFontPath)
 
 void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTextDrawDesc* pDrawDesc)
 {
-	pUIRenderer->beginRender(pCmd->mBoundWidth, pCmd->mBoundHeight, (ImageFormat::Enum)pCmd->pBoundColorFormats[0], pCmd->pBoundSrgbValues[0], pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+	pUIRenderer->beginRender(
+		pCmd->mBoundWidth, pCmd->mBoundHeight,
+		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
+		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
+		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+
 	const DebugTextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
 	pUIRenderer->getFontstash(0)->drawText(pCmd, pText, x, y,
 		pDesc->mFontID, pDesc->mFontColor,
@@ -81,7 +86,12 @@ void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTe
 
 void drawDebugTexture(Cmd* pCmd, float x, float y, float w, float h, Texture* pTexture, float r, float g, float b)
 {
-	pUIRenderer->beginRender(pCmd->mBoundWidth, pCmd->mBoundHeight, (ImageFormat::Enum)pCmd->pBoundColorFormats[0], pCmd->pBoundSrgbValues[0], pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+	pUIRenderer->beginRender(
+		pCmd->mBoundWidth, pCmd->mBoundHeight,
+		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
+		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
+		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+
 	// the last variable can be used to create a border
 	TexVertex pVertices[] = { MAKETEXQUAD(x, y, x + w, y + h, 0) };
 	int nVertices = sizeof(pVertices) / sizeof(pVertices[0]);
@@ -91,7 +101,12 @@ void drawDebugTexture(Cmd* pCmd, float x, float y, float w, float h, Texture* pT
 
 void drawDebugGpuProfile(Cmd* pCmd, float x, float y, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc)
 {
-	pUIRenderer->beginRender(pCmd->mBoundWidth, pCmd->mBoundHeight, (ImageFormat::Enum)pCmd->pBoundColorFormats[0], pCmd->pBoundSrgbValues[0], pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+	pUIRenderer->beginRender(
+		pCmd->mBoundWidth, pCmd->mBoundHeight,
+		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
+		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
+		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+
 	Fontstash* pFontStash = pUIRenderer->getFontstash(0);
 	const GpuProfileDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultGpuProfileDrawDesc;
 	float2 pos = { x, y };

@@ -58,6 +58,12 @@ typedef uint64_t uint64;
 #endif
 #endif
 
+#ifdef _WIN32
+#define CALLTYPE __cdecl
+#else
+#define CALLTYPE
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include "../../OS/Math/MathTypes.h"
