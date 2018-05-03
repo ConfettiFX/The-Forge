@@ -26,6 +26,24 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+## Release 1.08 - May 3rd, 2018 - The Forge in a DLL / New Vulkan Extension support / macOS/iOS clean up
+ * We re-architected the rendering interface. If you use an older version, there are a lot of breaking changes in this update
+   * replaced begin / endRender with cmdBindRendertargets
+   * made the renderer compile into a DLL, so that you can have a Vulkan and a DirectX 12 DLL and switch between them during run-time. There is a new unit test showing this functionality. Removed more C++ constructs to make that happen
+* DirectX 12: fixed bug in sampler comparison
+* Vulkan (Windows and Linux): 
+  * upgraded to Vulkan SDK 1.1.73.0 
+  * added support for VK_EXT_descriptor_indexing and GL_EXT_nonuniform_qualifier
+  * added support for NonUniformResourceIndex; in case it is supported it should be used now on Windows and Linux
+  * fixed minimize bug
+* macOS / iOS: 
+  * updated to macOS 10.13.5 Beta (17F59b) / iOS 11.3.1 (15E302)
+  * modified FileSystem so that macOS resembles the windows version in its behaviour
+  * logging is working now on macOS / iOS: fixed issue #26 "No logging on macOS". To access iOS Logs after the application finished. Open the Devices and Simulator window in XCode and download the container for the app. The log can be found in the Contents of the container, in Appdata/Documents folder
+  * Threads on macOS and iOS were not being joined on destruction, now they are
+  * Building for macOS now only outputs errors and warnings, reducing the output to only the important info
+* NuklearUI: added a new tree branch system to enable tabs in the future
+
 ## Release 1.07 - April 19th, 2018 - Full-featured Linux Ubuntu 16.04.4 LTS Support 
  * Moved NuklearUI into the middleware folder; still WIP
  * Windows: 
@@ -140,7 +158,7 @@ Requires NVIDIA Beta Driver 389.20 to support Linked Multi-GPU on Vulkan
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan SDK 1.1.70.1
+4. Vulkan SDK 1.1.73.0
 https://vulkan.lunarg.com/
 
 
@@ -152,7 +170,7 @@ We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards
 
 # macOS Requirements:
 
-1. macOS: 10.13.5 Beta (17F45c)
+1. macOS: macOS 10.13.5 Beta (17F59b)
 
 2. XCode: 9.3 (9E145)
 
@@ -165,7 +183,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 11.3 (15E216)
+1. iOS: iOS 11.3.1 (15E302)
 
 2. XCode: see macOS
 
@@ -178,7 +196,7 @@ We are currently testing on
 
 1. [Ubuntu 16.04.4 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: Linux 4.13.0-37-generic
 
-2. [AMDGpu-Pro 17.50](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-Release-Notes.aspx)
+2. [AMDGpu-Pro 17.50](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-Release-Notes.aspx); some of the new extensions are only available with an upcoming driver
 
 3. GPU Profilers
 * [RGP v1.11](https://github.com/GPUOpen-Tools/Radeon-GPUProfiler/releases) should be working out of the box
@@ -194,7 +212,7 @@ We are currently testing on
 
 4. Workspace file is provided for [codelite](https://codelite.org/)
 
-5. Vulkan SDK Version: [1.1.70.1](https://vulkan.lunarg.com/sdk/home)
+5. Vulkan SDK Version: [1.1.73.0](https://vulkan.lunarg.com/sdk/home)
 
 6. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
@@ -269,6 +287,17 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 In the spirit of the shadertoy examples this unit test shows a procedurally generated planet.
 
 ![Image of the Procedural Unit test](Screenshots/08_Procedural.PNG)
+
+## 9. Multi-GPU (Driver support only on PC Windows)
+This unit test shows a typical VR Multi-GPU configuration. One eye is rendered by one GPU and the other eye by the other one.
+
+![Image of the Multi-GPU Unit test](Screenshots/09_MultiGPU.png)
+
+## 10. The Forge in a DLL (Windows PC-only)
+This unit test shows how to generate two DLLs, one holding the DirectX 12 API and one holding the Vulkan API and how to change between them those APIs during run-time. 
+
+![Image of the The Forge in a DLL Unit test](Screenshots/10_TheForgeInDLL.png)
+
 
 
 # Examples
