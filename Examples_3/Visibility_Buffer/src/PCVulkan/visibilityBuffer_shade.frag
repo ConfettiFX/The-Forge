@@ -26,8 +26,13 @@
 
 // USERMACRO: SAMPLE_COUNT [1,2,4]
 // USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
+// USERMACRO: VK_EXT_DESCRIPTOR_INDEXING_ENABLED [0,1]
+// USERMACRO: VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED [0,1]
 
 #extension GL_GOOGLE_include_directive : enable
+#if VK_EXT_DESCRIPTOR_INDEXING_ENABLED
+#extension GL_EXT_nonuniform_qualifier : enable
+#endif
 
 #define REPEAT_TEN(base) CASE(base) CASE(base+1) CASE(base+2) CASE(base+3) CASE(base+4) CASE(base+5) CASE(base+6) CASE(base+7) CASE(base+8) CASE(base+9)
 #define REPEAT_HUNDRED(base)	REPEAT_TEN(base) REPEAT_TEN(base+10) REPEAT_TEN(base+20) REPEAT_TEN(base+30) REPEAT_TEN(base+40) REPEAT_TEN(base+50) \
@@ -300,12 +305,21 @@ void main()
 		uint materialBaseSlot = BaseMaterialBuffer(alpha1_opaque0 == 1, 1);
 		uint materialID = indirectMaterialBufferData[materialBaseSlot + drawID];
 
-#ifdef GL_AMD_gcn_shader
 		vec2 normalMapRG;
 		vec4 diffuseColor;
 		vec3 specularData;
 		bool isTwoSided;
-
+#if VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED
+		normalMapRG = textureGrad(sampler2D(normalMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
+		diffuseColor = textureGrad(sampler2D(diffuseMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
+		specularData = textureGrad(sampler2D(specularMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
+		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
+#elif VK_EXT_DESCRIPTOR_INDEXING_ENABLED
+		normalMapRG = textureGrad(sampler2D(normalMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
+		diffuseColor = textureGrad(sampler2D(diffuseMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
+		specularData = textureGrad(sampler2D(specularMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
+		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
+#else
 		switch (materialID)
 		{
 			// define an enum
@@ -313,16 +327,11 @@ void main()
 normalMapRG = textureGrad(sampler2D(normalMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY).rg; \
 diffuseColor = textureGrad(sampler2D(diffuseMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
 specularData = textureGrad(sampler2D(specularMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY).xyz; \
-isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[id].twoSided == 1); \
+isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1); \
 break;
 			CASE_LIST
 		}
 #undef CASE
-#else
-		normalMapRG = textureGrad(sampler2D(normalMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
-		diffuseColor = textureGrad(sampler2D(diffuseMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
-		specularData = textureGrad(sampler2D(specularMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
-		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
 #endif
 
 		vec3 reconstructedNormalMap;

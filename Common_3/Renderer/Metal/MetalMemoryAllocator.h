@@ -28,6 +28,21 @@
 #include "../../OS/Interfaces/IMemoryManager.h"
 #include "../../OS/Interfaces/ILogManager.h"
 
+typedef struct ResourceAllocator MemoryAllocator;
+
+typedef struct BufferCreateInfo
+{
+	const uint64_t		mSize;
+	//const uint64_t	mAlignment;
+} BufferCreateInfo;
+
+typedef struct TextureCreateInfo
+{
+	MTLTextureDescriptor*		pDesc;
+	const bool					mIsRT;
+	const bool					mIsMS;
+} TextureCreateInfo;
+
 // -------------------------------------------------------------------------------------------------
 // General enums and structs
 // -------------------------------------------------------------------------------------------------

@@ -520,6 +520,9 @@ unsigned File::Write(const void* data, unsigned size)
 		mWriteSyncNeeded = false;
 	}
 
+	// fwrite returns how many bytes were written.
+	// which should be the same as size.
+	// If not, then it's a write error.
 	if (_writeFile(data, size, pHandle) != 1)
 	{
 		// Return to the position where the write began
@@ -710,6 +713,12 @@ String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 	if (root == FSR_Absolute)
 		return pszFileName;
 
+#ifdef TARGET_IOS
+	//on iOS all assets are stored in the root of the app bundle.
+	//so getting any resource will be at the root.
+	return pszFileName;
+#endif
+	
 	ASSERT(root < FSR_Count);
 	String res;
 	if (pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU

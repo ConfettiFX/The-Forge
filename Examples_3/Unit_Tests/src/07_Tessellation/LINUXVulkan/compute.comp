@@ -164,9 +164,9 @@ void main() {
 	float r = h / L;
 
 	
-    blade.v1.xyz = posV0 + r*(v1 - posV0);
+    	blade.v1.xyz = posV0 + r*(v1 - posV0);
 	blade.v2.xyz = blade.v1.xyz + r*(v2 - v1);
-    blades[index] = blade;
+    	blades[index] = blade;
 	
 	posV0 = blade.v0.xyz;
 	posV1 = blade.v1.xyz;
@@ -237,4 +237,3 @@ void main() {
 		culledBlades[atomicAdd(vertexCount , 1)] = blade;
 	}
 }
- 

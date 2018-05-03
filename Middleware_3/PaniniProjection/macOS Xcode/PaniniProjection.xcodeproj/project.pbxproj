@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B21AD0BA202E6F2C00CF5DD7 /* AppPanini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B21AD0B8202E6F2B00CF5DD7 /* AppPanini.cpp */; };
-		B21AD0BB202E6F2C00CF5DD7 /* AppPanini.h in Headers */ = {isa = PBXBuildFile; fileRef = B21AD0B9202E6F2B00CF5DD7 /* AppPanini.h */; };
-		B21AD0F0202E7D6700CF5DD7 /* AppPanini.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = B21AD0B9202E6F2B00CF5DD7 /* AppPanini.h */; };
-		B21AD0F1202E7E0A00CF5DD7 /* AppPanini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B21AD0B8202E6F2B00CF5DD7 /* AppPanini.cpp */; };
+		B2D41F9E208AB9D7006CA662 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2D41F9C208AB9D6006CA662 /* Panini.cpp */; };
+		B2D41F9F208AB9D7006CA662 /* Panini.h in Headers */ = {isa = PBXBuildFile; fileRef = B2D41F9D208AB9D6006CA662 /* Panini.h */; };
+		B2D41FA0208AB9E0006CA662 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2D41F9C208AB9D6006CA662 /* Panini.cpp */; };
+		B2D41FA1208AB9E4006CA662 /* Panini.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = B2D41F9D208AB9D6006CA662 /* Panini.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -20,21 +20,21 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
-				B21AD0F0202E7D6700CF5DD7 /* AppPanini.h in CopyFiles */,
+				B2D41FA1208AB9E4006CA662 /* Panini.h in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		B21AD0B8202E6F2B00CF5DD7 /* AppPanini.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppPanini.cpp; path = ../AppPanini.cpp; sourceTree = "<group>"; };
-		B21AD0B9202E6F2B00CF5DD7 /* AppPanini.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppPanini.h; path = ../AppPanini.h; sourceTree = "<group>"; };
 		B21AD0D0202E7AE800CF5DD7 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B21AD0D1202E7AE800CF5DD7 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21AD0E5202E7C2800CF5DD7 /* PaniniProjection_iOS.lib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = PaniniProjection_iOS.lib; sourceTree = BUILT_PRODUCTS_DIR; };
 		B263E327202E627800457D44 /* PaniniProjection.lib */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = PaniniProjection.lib; sourceTree = BUILT_PRODUCTS_DIR; };
 		B263E332202E698900457D44 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B263E333202E698900457D44 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B2D41F9C208AB9D6006CA662 /* Panini.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Panini.cpp; path = ../Panini.cpp; sourceTree = "<group>"; };
+		B2D41F9D208AB9D6006CA662 /* Panini.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = Panini.h; path = ../Panini.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,8 +58,8 @@
 		B263E31A202E60A400457D44 = {
 			isa = PBXGroup;
 			children = (
-				B21AD0B8202E6F2B00CF5DD7 /* AppPanini.cpp */,
-				B21AD0B9202E6F2B00CF5DD7 /* AppPanini.h */,
+				B2D41F9C208AB9D6006CA662 /* Panini.cpp */,
+				B2D41F9D208AB9D6006CA662 /* Panini.h */,
 				B263E328202E627800457D44 /* Products */,
 				B263E331202E698900457D44 /* Frameworks */,
 			);
@@ -92,7 +92,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B21AD0BB202E6F2C00CF5DD7 /* AppPanini.h in Headers */,
+				B2D41F9F208AB9D7006CA662 /* Panini.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,7 +174,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B21AD0F1202E7E0A00CF5DD7 /* AppPanini.cpp in Sources */,
+				B2D41FA0208AB9E0006CA662 /* Panini.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -182,7 +182,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B21AD0BA202E6F2C00CF5DD7 /* AppPanini.cpp in Sources */,
+				B2D41F9E208AB9D7006CA662 /* Panini.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -57,9 +57,8 @@ LogManager::LogManager(LogLevel level /* = LogLevel::LL_Debug */) :
 	pLogFile(nullptr)
 {
 	pLogInstance = this;
-#ifndef METAL // TODO: fix this
+
 	Open(FileSystem::GetCurrentDir() + "Log.log");
-#endif
 
 	Thread::SetMainThread();
 }

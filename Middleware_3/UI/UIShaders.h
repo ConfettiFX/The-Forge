@@ -22,7 +22,6 @@
  * under the License.
 */
 
-#if defined(DIRECT3D12)
 /*
 cbuffer uniformBlockVS : register(b0)
 {
@@ -45,7 +44,7 @@ float4 PSMain() : SV_Target
 };
 */
 
-const unsigned char builtin_plain_vert[] =
+const unsigned char d3d12_builtin_plain_vert[] =
 {
 	68,  88,  66,  67,  12,  23,
 	111,  89,  60, 157,  13, 239,
@@ -171,7 +170,7 @@ const unsigned char builtin_plain_vert[] =
 	0,   0,   0,   0,   0,   0
 };
 
-const unsigned char builtin_plain_frag[] =
+const unsigned char d3d12_builtin_plain_frag[] =
 {
 	68,  88,  66,  67,  51, 213,
 	219, 141, 150, 247, 181, 139,
@@ -338,7 +337,7 @@ float4 PSMain(PsIn In) : SV_Target
 #endif
 };
 */
-const unsigned char builtin_textured_vert[] =
+const unsigned char d3d12_builtin_textured_vert[] =
 {
 	68,  88,  66,  67,   9,   4,
 	29, 164,  38, 222, 209, 208,
@@ -510,7 +509,7 @@ const unsigned char builtin_textured_vert[] =
 	0,   0,   0,   0,   0,   0
 };
 
-const unsigned char builtin_textured_frag[] =
+const unsigned char d3d12_builtin_textured_frag[] =
 {
 	68,  88,  66,  67, 166,  16,
 	116, 218,  75,  81, 226, 154,
@@ -691,7 +690,7 @@ float4 PSMain(PsIn In) : SV_Target
 };
 )";
 */
-const BYTE builtin_textured_red_alpha_frag[] =
+const unsigned char d3d12_builtin_textured_red_alpha_frag[] =
 {
 	68,  88,  66,  67,  96,  27,
 	250, 114,  10, 245, 239,  37,
@@ -849,7 +848,6 @@ const BYTE builtin_textured_red_alpha_frag[] =
 	0,   0
 };
 
-#elif defined(VULKAN)
 /*
 #version 450 core
 
@@ -868,7 +866,7 @@ gl_Position.xy = gl_Position.xy * scaleBias.xy + scaleBias.zw;
 */
 // Overload400-PrecQual.2000 12-Apr-2017
 #pragma once
-const uint32_t builtin_plain_vert[] = {
+const uint32_t vk_builtin_plain_vert[] = {
 	0x07230203,0x00010000,0x00080002,0x0000002d,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x0007000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000d,0x00000012,0x00030003,
@@ -930,7 +928,7 @@ oColor = color;
 */
 // Overload400-PrecQual.2000 12-Apr-2017
 #pragma once
-const uint32_t builtin_plain_frag[] = {
+const uint32_t vk_builtin_plain_frag[] = {
 	0x07230203,0x00010000,0x00080002,0x00000012,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x0006000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x00030010,0x00000004,
@@ -974,7 +972,7 @@ texcoord = texCoord;
 */
 // Overload400-PrecQual.2000 12-Apr-2017
 #pragma once
-const uint32_t builtin_textured_vert[] = {
+const uint32_t vk_builtin_textured_vert[] = {
 	0x07230203,0x00010000,0x00080002,0x00000031,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x0009000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000d,0x00000012,0x0000002e,
@@ -1047,7 +1045,7 @@ oColor = vec4(texture(sampler2D(uTex0, uSampler0), texcoord).xyz, 1.0f) * color;
 */
 // Overload400-PrecQual.2000 12-Apr-2017
 #pragma once
-const uint32_t builtin_textured_frag[] = {
+const uint32_t vk_builtin_textured_frag[] = {
 	0x07230203,0x00010000,0x00080002,0x00000029,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x00000016,0x00030010,
@@ -1108,7 +1106,7 @@ oColor = vec4(1.0, 1.0, 1.0, texture(sampler2D(uTex0, uSampler0), texcoord)) * c
 */
 // Overload400-PrecQual.2000 12-Apr-2017
 #pragma once
-const uint32_t builtin_textured_red_alpha_frag[] = {
+const uint32_t vk_builtin_textured_red_alpha_frag[] = {
 	0x07230203,0x00010000,0x00080004,0x0000002a,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000015,0x0000001d,0x00030010,
@@ -1145,8 +1143,8 @@ const uint32_t builtin_textured_red_alpha_frag[] = {
 	0x00000023,0x00000025,0x0004003d,0x00000017,0x00000028,0x00000027,0x00050085,0x00000017,
 	0x00000029,0x00000020,0x00000028,0x0003003e,0x0000001d,0x00000029,0x000100fd,0x00010038
 };
-#elif defined(METAL)
-const char* builtin_plain = R"(
+
+const char* mtl_builtin_plain = R"(
 #include <metal_stdlib>
 using namespace metal;
 
@@ -1181,7 +1179,7 @@ fragment float4 PSMain( constant UniformBlock1& uniformBlockPS [[buffer(0)]]) {
 }
 )";
 
-const char* builtin_textured = R"(
+const char* mtl_builtin_textured = R"(
 #include <metal_stdlib>
 using namespace metal;
 
@@ -1225,7 +1223,7 @@ fragment float4 PSMain(PsIn In [[stage_in]],
 };
 )";
 
-const char* builtin_textured_red_alpha = R"(
+const char* mtl_builtin_textured_red_alpha = R"(
 #include <metal_stdlib>
 using namespace metal;
 
@@ -1244,4 +1242,3 @@ fragment float4 PSMain(PsIn In [[stage_in]], texture2d<float,access::sample> uTe
 	return float4(1.0, 1.0, 1.0, uTex0.sample(uSampler0, In.texCoord).r) * uniformBlockPS.color;
 };
 )";
-#endif

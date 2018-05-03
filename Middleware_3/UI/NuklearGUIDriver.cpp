@@ -437,6 +437,209 @@ void NuklearGUIDriver::clear()
 	nk_clear(&impl->context);
 }
 
+
+
+inline void AddProperty(_Impl_NuklearGUIDriver* impl, UIProperty& pProp, uint32_t propCount, float w)
+{
+
+	UIProperty& prop = pProp;
+
+	if (!(prop.flags & UIProperty::FLAG_VISIBLE))
+		return;
+
+	if (!prop.source)
+		return;
+
+	//width of window divided by max columns, taking into account padding
+	float colWidth = w / 3 - 12;
+	int cols = 2;
+	switch (prop.type)
+	{
+	case UI_PROPERTY_FLOAT:
+	case UI_PROPERTY_INT:
+	case UI_PROPERTY_UINT:
+		cols = 3;
+		break;
+	default:
+		break;
+	}
+
+	nk_layout_row_begin(&impl->context, NK_STATIC, 30.f, cols);
+	nk_layout_row_push(&impl->context, colWidth);
+
+	// Translate colours back by bitshifting
+	nk_color col;
+	col.r = (prop.color & 0xFF000000) >> 24;
+	col.g = (prop.color & 0x00FF0000) >> 16;
+	col.b = (prop.color & 0x0000FF00) >> 8;
+	col.a = (prop.color & 0x000000FF);
+
+	nk_label_colored_wrap(&impl->context, prop.description, nk_color(col));
+	nk_layout_row_push(&impl->context, cols == 2 ? 2 * colWidth : colWidth);
+	switch (prop.type)
+	{
+	case UI_PROPERTY_TEXT:
+	{
+		break;
+	}
+
+	case UI_PROPERTY_FLOAT:
+	{
+		float& currentValue = *(float*)prop.source;
+		float oldValue = currentValue;
+		nk_slider_float(&impl->context, prop.settings.fMin, (float*)prop.source, prop.settings.fMax, prop.settings.fIncrement);
+		if (impl->wantKeyboardInput)
+			currentValue = oldValue;
+
+		// * edit box
+		char buffer[200];
+		sprintf(buffer, "%.3f", currentValue);
+		//nk_property_float(&impl->context, prop.description, prop.settings.fMin, (float*)prop.source, prop.settings.fMax, prop.settings.fIncrement, prop.settings.fIncrement / 10);
+		nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT | NK_EDIT_SIG_ENTER, buffer, 200, nk_filter_float);
+		if (result_flags == NK_EDIT_ACTIVE)
+			impl->needKeyboardInputNextFrame = true;
+
+		if (result_flags != NK_EDIT_INACTIVE)
+		{
+			impl->needKeyboardInputNextFrame = false;
+			currentValue = (float)atof(buffer);
+		}
+
+
+		if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
+			nk_edit_unfocus(&impl->context);
+
+		// actualize changes
+		if (currentValue != oldValue)
+		{
+			changedProperty(&prop);
+		}
+
+		break;
+	}
+	case UI_PROPERTY_INT:
+	{
+		int& currentValue = *(int*)prop.source;
+
+		int oldValue = currentValue;
+		nk_slider_int(&impl->context, prop.settings.iMin, (int*)prop.source, prop.settings.iMax, prop.settings.iIncrement);
+		if (impl->wantKeyboardInput)
+			currentValue = oldValue;
+		// * edit box
+		char buffer[200];
+		sprintf(buffer, "%i", currentValue);
+		nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT | NK_EDIT_SIG_ENTER, buffer, 200, nk_filter_decimal);
+		if (result_flags == NK_EDIT_ACTIVE)
+			impl->needKeyboardInputNextFrame = true;
+
+		if (result_flags != NK_EDIT_INACTIVE)
+		{
+			impl->needKeyboardInputNextFrame = false;
+			currentValue = (int)atoi(buffer);
+		}
+
+		if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
+			nk_edit_unfocus(&impl->context);
+
+		// actualize changes
+		if (currentValue != oldValue)
+		{
+			changedProperty(&prop);
+		}
+		break;
+	}
+
+	case UI_PROPERTY_UINT:
+	{
+		int& currentValue = *(int*)prop.source;
+		int oldValue = currentValue;
+		nk_slider_int(&impl->context, prop.settings.uiMin > 0 ? prop.settings.uiMin : 0, (int*)prop.source, prop.settings.uiMax, prop.settings.iIncrement);
+		if (impl->wantKeyboardInput)
+			currentValue = oldValue;
+		// * edit box
+		char buffer[200];
+		sprintf(buffer, "%u", currentValue);
+		nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT | NK_EDIT_SIG_ENTER, buffer, 200, nk_filter_decimal);
+		if (result_flags == NK_EDIT_ACTIVE)
+			impl->needKeyboardInputNextFrame = true;
+
+		if (result_flags != NK_EDIT_INACTIVE)
+		{
+			impl->needKeyboardInputNextFrame = false;
+			currentValue = (int)atoi(buffer);
+		}
+
+
+		if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
+			nk_edit_unfocus(&impl->context);
+
+		// actualize changes
+		if (currentValue != oldValue)
+		{
+			changedProperty(&prop);
+		}
+
+		break;
+	}
+	case UI_PROPERTY_BOOL:
+	{
+		bool& currentValue = *(bool*)prop.source;
+		int value = (currentValue) ? 0 : 1;
+		nk_checkbox_label(&impl->context, currentValue ? "True" : "False", &value);
+		if (currentValue != (value == 0))
+		{
+			currentValue = (value == 0);
+			changedProperty(&prop);
+		}
+		break;
+	}
+	case UI_PROPERTY_ENUM:
+	{
+		ASSERT(prop.settings.eByteSize == 4);
+
+		int current = prop.enumComputeIndex();
+		int previous = current;
+		int cnt = 0;
+		for (int vi = 0; prop.settings.eNames[vi] != 0; vi++)
+			cnt = (int)vi;
+
+		nk_combobox(&impl->context, prop.settings.eNames, cnt + 1, &current, 16, nk_vec2(colWidth * 2, 16 * 5));
+
+		if (previous != current)
+		{
+			*(int*)prop.source = ((int*)prop.settings.eValues)[current];
+			changedProperty(&prop);
+		}
+		break;
+	}
+	case UI_PROPERTY_BUTTON:
+	{
+		if (nk_button_label(&impl->context, prop.description))
+		{
+			if (prop.source)
+				((UIButtonFn)prop.source)(prop.settings.pUserData);
+			changedProperty(&prop);
+		}
+		break;
+	}
+	case UI_PROPERTY_TEXTINPUT:
+	{
+		nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT, (char*)prop.source, prop.settings.sLen, nk_filter_ascii);
+		if (result_flags == NK_EDIT_ACTIVE)
+		{
+			impl->needKeyboardInputNextFrame = true;
+		}
+
+		if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
+		{
+			nk_edit_unfocus(&impl->context);
+			changedProperty(&prop);
+		}
+	}
+	}
+		
+}
+
 void NuklearGUIDriver::window(const char* pTitle,
 	float x, float y, float w, float h,
 	float& oX, float& oY, float& oW, float& oH,
@@ -447,6 +650,9 @@ void NuklearGUIDriver::window(const char* pTitle,
 
 	int result = nk_begin(&impl->context, pTitle, nk_rect(x, y, w, h),
 		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE);
+	
+	// Trees are indexed based on name with a list of the properties part of the tree
+	tinystl::unordered_map<const char*, tinystl::vector<UIProperty>> map;
 
 	struct nk_rect r = nk_window_get_bounds(&impl->context);
 	if (!result)
@@ -461,177 +667,43 @@ void NuklearGUIDriver::window(const char* pTitle,
 	{
 		for (uint32_t i = 0; i < propCount; ++i)
 		{
-			UIProperty& prop = pProps[i];
-			if (!(prop.flags & UIProperty::FLAG_VISIBLE))
-				continue;
-
-			if (!prop.source)
-				continue;
-
-			//width of window divided by max columns, taking into account padding
-			float colWidth = w / 3 - 12;
-			int cols = 2;
-			switch (prop.type)
+			// If no tree, just add property
+			if (pProps[i].tree == "none")
 			{
-			case UI_PROPERTY_FLOAT:
-			case UI_PROPERTY_INT:
-			case UI_PROPERTY_UINT:
-				cols = 3;
-				break;
-			default:
-				break;
+				AddProperty(impl, pProps[i], propCount, w);
 			}
 
-			nk_layout_row_begin(&impl->context, NK_STATIC, 30.f, cols);
-			nk_layout_row_push(&impl->context, colWidth);
-			nk_label_wrap(&impl->context, prop.description);
-			nk_layout_row_push(&impl->context, cols == 2 ? 2 * colWidth : colWidth);
-			switch (prop.type)
+			// if there is a tree, map the properties to their respective tree index
+			else
 			{
-			case UI_PROPERTY_FLOAT:
-			{
-				float& currentValue = *(float*)prop.source;
-				float oldValue = currentValue;
-				nk_slider_float(&impl->context, prop.settings.fMin, (float*)prop.source, prop.settings.fMax, prop.settings.fIncrement);
-				if (impl->wantKeyboardInput)
-					currentValue = oldValue;
-
-				// * edit box
-				char buffer[200];
-				sprintf(buffer, "%.3f", currentValue);
-				//nk_property_float(&impl->context, prop.description, prop.settings.fMin, (float*)prop.source, prop.settings.fMax, prop.settings.fIncrement, prop.settings.fIncrement / 10);
-				nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT | NK_EDIT_SIG_ENTER, buffer, 200, nk_filter_float);
-				if (result_flags == NK_EDIT_ACTIVE)
-					impl->needKeyboardInputNextFrame = true;
-
-				if (result_flags != NK_EDIT_INACTIVE)
-					currentValue = (float)atof(buffer);
-
-				if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
-					nk_edit_unfocus(&impl->context);
-
-				// actualize changes
-				if (currentValue != oldValue)
-				{
-					changedProperty(&prop);
-				}
-
-				break;
+				map[pProps[i].tree].push_back(pProps[i]);
 			}
-			case UI_PROPERTY_INT:
-			{
-				int& currentValue = *(int*)prop.source;
-
-				int oldValue = currentValue;
-				nk_slider_int(&impl->context, prop.settings.iMin, (int*)prop.source, prop.settings.iMax, prop.settings.iIncrement);
-				if (impl->wantKeyboardInput)
-					currentValue = oldValue;
-				// * edit box
-				char buffer[200];
-				sprintf(buffer, "%i", currentValue);
-				nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT | NK_EDIT_SIG_ENTER, buffer, 200, nk_filter_decimal);
-				if (result_flags == NK_EDIT_ACTIVE)
-					impl->needKeyboardInputNextFrame = true;
-
-				if (result_flags != NK_EDIT_INACTIVE)
-					currentValue = (int)atoi(buffer);
-
-				if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
-					nk_edit_unfocus(&impl->context);
-
-				// actualize changes
-				if (currentValue != oldValue)
+		
+		}
+	
+		// This ID is to make sure that trees do not share same ID's
+		int id = 0;
+		// Go through all the trees and add the properties for every tree 
+		for (tinystl::unordered_hash_iterator<tinystl::unordered_hash_node<char const*, tinystl::vector<UIProperty>>> local_it = map.begin(); local_it != map.end(); ++local_it)
+		{
+			// Every tree has their own unique ID
+			++id;
+			
+			// begin 
+			if (nk_tree_push_id(&impl->context, NK_TREE_TAB, local_it.node->first, NK_MINIMIZED, id)) {
+				
+				for (int i = 0; i < local_it.node->second.size(); ++i)
 				{
-					changedProperty(&prop);
-				}
-				break;
-			}
-			case UI_PROPERTY_UINT:
-			{
-				int& currentValue = *(int*)prop.source;
-				int oldValue = currentValue;
-				nk_slider_int(&impl->context, prop.settings.uiMin > 0 ? prop.settings.uiMin : 0, (int*)prop.source, prop.settings.uiMax, prop.settings.iIncrement);
-				if (impl->wantKeyboardInput)
-					currentValue = oldValue;
-				// * edit box
-				char buffer[200];
-				sprintf(buffer, "%u", currentValue);
-				nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT | NK_EDIT_SIG_ENTER, buffer, 200, nk_filter_decimal);
-				if (result_flags == NK_EDIT_ACTIVE)
-					impl->needKeyboardInputNextFrame = true;
-
-				if (result_flags != NK_EDIT_INACTIVE)
-					currentValue = (int)atoi(buffer);
-
-				if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
-					nk_edit_unfocus(&impl->context);
-
-				// actualize changes
-				if (currentValue != oldValue)
-				{
-					changedProperty(&prop);
+					AddProperty(impl, local_it.node->second[i], propCount, w);
 				}
 
-				break;
-			}
-			case UI_PROPERTY_BOOL:
-			{
-				bool& currentValue = *(bool*)prop.source;
-				int value = (currentValue) ? 0 : 1;
-				nk_checkbox_label(&impl->context, currentValue ? "True" : "False", &value);
-				if (currentValue != (value == 0))
-				{
-					currentValue = (value == 0);
-					changedProperty(&prop);
-				}
-				break;
-			}
-			case UI_PROPERTY_ENUM:
-			{
-				ASSERT(prop.settings.eByteSize == 4);
+				// all code between push and pop will be seen as part of the UI tree
+				nk_tree_pop(&impl->context);
 
-				int current = prop.enumComputeIndex();
-				int previous = current;
-				int cnt = 0;
-				for (int vi = 0; prop.settings.eNames[vi] != 0; vi++)
-					cnt = (int)vi;
-
-				nk_combobox(&impl->context, prop.settings.eNames, cnt + 1, &current, 16, nk_vec2(colWidth * 2, 16 * 5));
-
-				if (previous != current)
-				{
-					*(int*)prop.source = ((int*)prop.settings.eValues)[current];
-					changedProperty(&prop);
-				}
-				break;
-			}
-			case UI_PROPERTY_BUTTON:
-			{
-				if (nk_button_label(&impl->context, prop.description))
-				{
-					if (prop.source)
-						((UIButtonFn)prop.source)(prop.settings.pUserData);
-					changedProperty(&prop);
-				}
-				break;
-			}
-			case UI_PROPERTY_TEXTINPUT:
-			{
-				nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT, (char*)prop.source, prop.settings.sLen, nk_filter_ascii);
-				if (result_flags == NK_EDIT_ACTIVE)
-				{
-					impl->needKeyboardInputNextFrame = true;
-				}
-
-				if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
-				{
-					nk_edit_unfocus(&impl->context);
-					changedProperty(&prop);
-				}
-			}
 			}
 		}
 	}
+
 	nk_end(&impl->context);
 
 	impl->wantKeyboardInput = impl->needKeyboardInputNextFrame;

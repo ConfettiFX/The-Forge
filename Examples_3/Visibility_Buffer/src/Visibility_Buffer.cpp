@@ -501,7 +501,7 @@ const uint32_t					pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, PropertyChangedCallback onResolutionChanged)
 {
-#if !defined(_DURANGO) && !defined(METAL)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
 	if (pUIManager)
 	{
 		struct ResolutionData
@@ -597,21 +597,52 @@ public:
 		/************************************************************************/
 		// Setup default depth, blend, rasterizer, sampler states
 		/************************************************************************/
-		addDepthState(pRenderer, &pDepthStateEnable, true, true);
-		addDepthState(pRenderer, &pDepthStateDisable, false, false);
-		addRasterizerState(&pRasterizerStateCullFront, CULL_MODE_FRONT);
-		addRasterizerState(&pRasterizerStateCullNone, CULL_MODE_NONE);
-		addRasterizerState(&pRasterizerStateCullBack, CULL_MODE_BACK);
-		addRasterizerState(&pRasterizerStateCullFrontMS, CULL_MODE_FRONT, 0, 0, FILL_MODE_SOLID, true);
-		addRasterizerState(&pRasterizerStateCullNoneMS, CULL_MODE_NONE, 0, 0, FILL_MODE_SOLID, true);
-		addRasterizerState(&pRasterizerStateCullBackMS, CULL_MODE_BACK, 0, 0, FILL_MODE_SOLID, true);
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		DepthStateDesc depthStateDisableDesc = {};
+		addDepthState(pRenderer, &depthStateDesc, &pDepthStateEnable);
+		addDepthState(pRenderer, &depthStateDisableDesc, &pDepthStateDisable);
 
-		addBlendState(&pBlendStateOneZero, BC_ONE, BC_ONE, BC_ZERO, BC_ZERO);
+		RasterizerStateDesc rasterizerStateCullFrontDesc = { CULL_MODE_FRONT };
+		RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
+		RasterizerStateDesc rasterizerStateCullBackDesc = { CULL_MODE_BACK };
+		RasterizerStateDesc rasterizerStateCullFrontMsDesc = { CULL_MODE_FRONT, 0, 0, FILL_MODE_SOLID, true };
+		RasterizerStateDesc rasterizerStateCullNoneMsDesc = { CULL_MODE_NONE, 0, 0, FILL_MODE_SOLID, true };
+		RasterizerStateDesc rasterizerStateCullBackMsDesc = { CULL_MODE_BACK, 0, 0, FILL_MODE_SOLID, true };
+		addRasterizerState(pRenderer, &rasterizerStateCullFrontDesc, &pRasterizerStateCullFront);
+		addRasterizerState(pRenderer, &rasterizerStateCullNoneDesc, &pRasterizerStateCullNone);
+		addRasterizerState(pRenderer, &rasterizerStateCullBackDesc, &pRasterizerStateCullBack);
+		addRasterizerState(pRenderer, &rasterizerStateCullFrontMsDesc, &pRasterizerStateCullFrontMS);
+		addRasterizerState(pRenderer, &rasterizerStateCullNoneMsDesc, &pRasterizerStateCullNoneMS);
+		addRasterizerState(pRenderer, &rasterizerStateCullBackMsDesc, &pRasterizerStateCullBackMS);
+
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcAlphaFactor = BC_ZERO;
+		blendStateDesc.mDstAlphaFactor = BC_ZERO;
+		blendStateDesc.mSrcFactor = BC_ONE;
+		blendStateDesc.mDstFactor = BC_ONE;
+		blendStateDesc.mMask = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		addBlendState(pRenderer, &blendStateDesc, &pBlendStateOneZero);
 
 		// Create sampler for VB render target
-		addSampler(pRenderer, &pSamplerTrilinearAniso, FILTER_TRILINEAR_ANISO, FILTER_BILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f);
-		addSampler(pRenderer, &pSamplerBilinear, FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f);
-		addSampler(pRenderer, &pSamplerPointClamp, FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE);
+		SamplerDesc trilinearDesc = {
+			FILTER_TRILINEAR_ANISO, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f
+		};
+		SamplerDesc bilinearDesc = {
+			FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
+		};
+		SamplerDesc pointDesc = {
+			FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &trilinearDesc, &pSamplerTrilinearAniso);
+		addSampler(pRenderer, &bilinearDesc, &pSamplerBilinear);
+		addSampler(pRenderer, &pointDesc, &pSamplerPointClamp);
 		/************************************************************************/
 		// Load the scene using the SceneLoader class, which uses Assimp
 		/************************************************************************/
@@ -765,61 +796,76 @@ public:
 		/************************************************************************/
 		// Setup root signatures
 		/************************************************************************/
-		RootSignatureDesc geomPassRootDesc = {};
-		// Set max number of bindless textures in the root signature
-		geomPassRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
-		geomPassRootDesc.mStaticSamplers["textureFilter"] = pSamplerPointClamp;
-
-		RootSignatureDesc deferredPassRootDesc = {};
-		// Set max number of bindless textures in the root signature
-		deferredPassRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
-		deferredPassRootDesc.mStaticSamplers["textureFilter"] = pSamplerTrilinearAniso;
-
-		RootSignatureDesc shadeRootDesc = {};
-		// Set max number of bindless textures in the root signature
-		shadeRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
-		shadeRootDesc.mStaticSamplers["depthSampler"] = pSamplerBilinear;
-		shadeRootDesc.mStaticSamplers["textureSampler"] = pSamplerBilinear;
-
-		RootSignatureDesc paninniRootDesc = {};
-		paninniRootDesc.mStaticSamplers["uSampler"] = pSamplerPointClamp;
-
-		RootSignatureDesc aoRootDesc = {};
-		aoRootDesc.mStaticSamplers["g_SamplePoint"] = pSamplerPointClamp;
-
-		// Root signature description for bindless
-		RootSignatureDesc triangleFilteringRootDesc = {};
-#if defined(VULKAN)
-		triangleFilteringRootDesc.mDynamicUniformBuffers.push_back("batchData");
-#endif
-
 		// Graphics root signatures
+		const char* pTextureSamplerName = "textureFilter";
+		const char* pShadingSamplerNames[] = { "depthSampler", "textureSampler" };
+		Sampler* pShadingSamplers[] = { pSamplerBilinear, pSamplerBilinear };
+		const char* pAoSamplerName = "g_SamplePoint";
+
 		Shader* pShaders[gNumGeomSets * 2] = {};
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
             pShaders[i * 2] = pShaderVisibilityBufferPass[i];
 			pShaders[i * 2 + 1] = pShaderShadowPass[i];
 		}
-		addRootSignature(pRenderer, gNumGeomSets * 2, pShaders, &pRootSignatureVBPass, &geomPassRootDesc);
-		addRootSignature(pRenderer, gNumGeomSets, pShaderDeferredPass, &pRootSignatureDeferredPass, &deferredPassRootDesc);
+		RootSignatureDesc vbRootDesc = { pShaders, gNumGeomSets * 2 };
+		vbRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
+		vbRootDesc.ppStaticSamplerNames = &pTextureSamplerName;
+		vbRootDesc.ppStaticSamplers = &pSamplerPointClamp;
+		vbRootDesc.mStaticSamplerCount = 1;
+		addRootSignature(pRenderer, &vbRootDesc, &pRootSignatureVBPass);
 
-		addRootSignature(pRenderer, 2, pShaderVisibilityBufferShade, &pRootSignatureVBShade, &shadeRootDesc);
-		addRootSignature(pRenderer, 2, pShaderDeferredShade, &pRootSignatureDeferredShade, &shadeRootDesc);
-		addRootSignature(pRenderer, 1, &pShaderDeferredShadePointLight, &pRootSignatureDeferredShadePointLight, &shadeRootDesc);
+		RootSignatureDesc deferredPassRootDesc = { pShaderDeferredPass, gNumGeomSets };
+		deferredPassRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
+		deferredPassRootDesc.ppStaticSamplerNames = &pTextureSamplerName;
+		deferredPassRootDesc.ppStaticSamplers = &pSamplerTrilinearAniso;
+		deferredPassRootDesc.mStaticSamplerCount = 1;
+		addRootSignature(pRenderer, &deferredPassRootDesc, &pRootSignatureDeferredPass);
 
-		addRootSignature(pRenderer, 4, pShaderAO, &pRootSignatureAO, &aoRootDesc);
-		addRootSignature(pRenderer, 1, &pShaderResolve, &pRootSignatureResolve);
+		RootSignatureDesc shadeRootDesc = { pShaderVisibilityBufferShade, 2 };
+		// Set max number of bindless textures in the root signature
+		shadeRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
+		shadeRootDesc.ppStaticSamplerNames = pShadingSamplerNames;
+		shadeRootDesc.ppStaticSamplers = pShadingSamplers;
+		shadeRootDesc.mStaticSamplerCount = 2;
+		addRootSignature(pRenderer, &shadeRootDesc, &pRootSignatureVBShade);
+
+		shadeRootDesc.ppShaders = pShaderDeferredShade;
+		addRootSignature(pRenderer, &shadeRootDesc, &pRootSignatureDeferredShade);
+
+		shadeRootDesc.ppShaders = &pShaderDeferredShadePointLight;
+		shadeRootDesc.mShaderCount = 1;
+		addRootSignature(pRenderer, &shadeRootDesc, &pRootSignatureDeferredShadePointLight);
+
+		RootSignatureDesc aoRootDesc = { pShaderAO, 4 };
+		aoRootDesc.ppStaticSamplerNames = &pAoSamplerName;
+		aoRootDesc.ppStaticSamplers = &pSamplerPointClamp;
+		aoRootDesc.mStaticSamplerCount = 1;
+		addRootSignature(pRenderer, &aoRootDesc, &pRootSignatureAO);
+
+		RootSignatureDesc resolveRootDesc = { &pShaderResolve, 1 };
+		addRootSignature(pRenderer, &resolveRootDesc, &pRootSignatureResolve);
 
 		// Triangle filtering root signatures
-		addRootSignature(pRenderer, 1, &pShaderClearBuffers, &pRootSignatureClearBuffers);
-		addRootSignature(pRenderer, 1, &pShaderTriangleFiltering, &pRootSignatureTriangleFiltering, &triangleFilteringRootDesc);
+		RootSignatureDesc clearBuffersRootDesc = { &pShaderClearBuffers, 1 };
+		addRootSignature(pRenderer, &clearBuffersRootDesc, &pRootSignatureClearBuffers);
+		RootSignatureDesc triangleFilteringRootDesc = { &pShaderTriangleFiltering, 1 };
+#if defined(VULKAN)
+		const char* pBatchBufferName = "batchData";
+		triangleFilteringRootDesc.mDynamicUniformBufferCount = 1;
+		triangleFilteringRootDesc.ppDynamicUniformBufferNames = &pBatchBufferName;
+#endif
+		addRootSignature(pRenderer, &triangleFilteringRootDesc, &pRootSignatureTriangleFiltering);
 
 #if !defined(METAL)
-		addRootSignature(pRenderer, 1, &pShaderBatchCompaction, &pRootSignatureBatchCompaction);
+		RootSignatureDesc batchCompactionRootDesc = { &pShaderBatchCompaction, 1 };
+		addRootSignature(pRenderer, &batchCompactionRootDesc, &pRootSignatureBatchCompaction);
 #endif
 
-		addRootSignature(pRenderer, 1, &pShaderClearLightClusters, &pRootSignatureClearLightClusters);
-		addRootSignature(pRenderer, 1, &pShaderClusterLights, &pRootSignatureClusterLights);
+		RootSignatureDesc clearLightRootDesc = { &pShaderClearLightClusters, 1 };
+		addRootSignature(pRenderer, &clearLightRootDesc, &pRootSignatureClearLightClusters);
+		RootSignatureDesc clusterRootDesc = { &pShaderClusterLights, 1 };
+		addRootSignature(pRenderer, &clusterRootDesc, &pRootSignatureClusterLights);
 		/************************************************************************/
 		// Setup indirect command signatures
 		/************************************************************************/
@@ -1594,7 +1640,7 @@ public:
 			// check to see if we can use the cmd buffer
 			Fence* pNextFence = pRenderCompleteFences[(graphicsFrameIdx) % gImageCount];
 			FenceStatus fenceStatus;
-			getFenceStatus(pNextFence, &fenceStatus);
+			getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 				waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
@@ -1609,14 +1655,14 @@ public:
 			// check to see if we can use the cmd buffer
 			Fence* pNextComputeFence = pComputeCompleteFences[computeFrameIdx];
 			FenceStatus fenceStatus;
-			getFenceStatus(pNextComputeFence, &fenceStatus);
+			getFenceStatus(pRenderer, pNextComputeFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 				waitForFences(pComputeQueue, 1, &pNextComputeFence, false);
 
 			// check to see if we can reuse the resoucres yet..
 			// should be replaced with a semaphore
 			Fence* pNextGraphicsFence = pRenderCompleteFences[computeFrameIdx];
-			getFenceStatus(pNextGraphicsFence, &fenceStatus);
+			getFenceStatus(pRenderer, pNextGraphicsFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 				waitForFences(pGraphicsQueue, 1, &pNextGraphicsFence, false);
 			/************************************************************************/
@@ -1999,7 +2045,7 @@ public:
 
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			shadingMacros[i][1].value = String::format("%d", i);
+			shadingMacros[i][1].value = String::format("%d", i);//USE_AMBIENT_OCCLUSION
 			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, FSR_SrcShaders };
 			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
 
@@ -2819,14 +2865,14 @@ public:
 		loadActions.mClearDepth = pRenderTargetShadow->mDesc.mClearValue;
 
 		// Start render pass and apply load actions
-		cmdBeginRender(cmd, 0, NULL, pRenderTargetShadow, &loadActions);
+		cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadow, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadow->mDesc.mWidth, (float)pRenderTargetShadow->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetShadow->mDesc.mWidth, pRenderTargetShadow->mDesc.mHeight);
 
 #if defined(METAL)
 		Buffer* filteredTrianglesBuffer = (gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_SHADOW] : pIndexBufferAll);
 
-		DescriptorData shadowParams[3];
+		DescriptorData shadowParams[3] = {};
 		shadowParams[0].pName = "vertexPos";
 		shadowParams[0].ppBuffers = &pVertexBufferPosition;
 		shadowParams[1].pName = "uniforms";
@@ -2901,7 +2947,7 @@ public:
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #endif
 
-		cmdEndRender(cmd, 0, NULL, pRenderTargetShadow);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Render the scene to perform the Visibility Buffer pass. In this pass the (filtered) scene geometry is rendered
@@ -2919,14 +2965,14 @@ public:
 		loadActions.mClearDepth = pDepthBuffer->mDesc.mClearValue;
 
 		// Start render pass and apply load actions
-		cmdBeginRender(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mDesc.mWidth, pRenderTargetVBPass->mDesc.mHeight);
 
 #if defined(METAL)
 		Buffer* filteredTrianglesBuffer = (gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll);
 
-		DescriptorData vbPassParams[4];
+		DescriptorData vbPassParams[4] = {};
 		vbPassParams[0].pName = "vertexPos";
 		vbPassParams[0].ppBuffers = &pVertexBufferPosition;
 		vbPassParams[1].pName = "vertexTexcoord";
@@ -2982,7 +3028,7 @@ public:
 		}
 #endif
 
-		cmdEndRender(cmd, 1, &pRenderTargetVBPass, pDepthBuffer);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by DrawVisibilityBufferPass
@@ -3001,7 +3047,7 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = pDestinationRenderTarget->mDesc.mClearValue;
 
-		cmdBeginRender(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
@@ -3074,7 +3120,7 @@ public:
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
 
-		cmdEndRender(cmd, 1, &pDestinationRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Render the scene to perform the Deferred geometry pass. In this pass the (filtered) scene geometry is rendered
@@ -3094,7 +3140,7 @@ public:
 		loadActions.mClearDepth = pDepthBuffer->mDesc.mClearValue;
 
 		// Start render pass and apply load actions
-		cmdBeginRender(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth, (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth, pRenderTargetDeferredPass[0]->mDesc.mHeight);
 
@@ -3104,7 +3150,7 @@ public:
 #if defined(METAL)
 		Buffer* filteredTrianglesBuffer = (gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll);
 
-		DescriptorData deferredPassParams[7];
+		DescriptorData deferredPassParams[7] = {};
 		deferredPassParams[0].pName = "vertexPos";
 		deferredPassParams[0].ppBuffers = &pVertexBufferPosition;
 		deferredPassParams[1].pName = "vertexTexcoord";
@@ -3188,7 +3234,7 @@ public:
 		}
 #endif
 
-		cmdEndRender(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by DrawDeferredPass
@@ -3206,7 +3252,7 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = pDestinationRenderTarget->mDesc.mClearValue;
 
-		cmdBeginRender(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
@@ -3234,7 +3280,7 @@ public:
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
 
-		cmdEndRender(cmd, 1, &pDestinationRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Render light geometry on the screen to evaluate lighting at those points.
@@ -3246,7 +3292,7 @@ public:
 #else
 		pDestinationRenderTarget = pScreenRenderTarget;
 #endif
-		cmdBeginRender(cmd, 1, &pDestinationRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, NULL);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
@@ -3273,7 +3319,7 @@ public:
 		cmdBindIndexBuffer(cmd, pIndexBufferCube);
 		cmdDrawIndexedInstanced(cmd, 36, 0, LIGHT_COUNT);
 
-		cmdEndRender(cmd, 1, &pDestinationRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Reads the depth buffer to apply ambient occlusion post process
@@ -3298,7 +3344,7 @@ public:
 		data.g_fQ = mainProj[2][2];
 		data.g_fQTimesZNear = mainProj[3][2];
 
-		cmdBeginRender(cmd, 1, &pRenderTargetAO, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTargetAO, NULL, NULL);
 		DescriptorData params[2] = {};
 		params[0].pName = "g_txDepth";
 		params[0].ppTextures = &pDepthBuffer->pTexture;
@@ -3307,7 +3353,7 @@ public:
 		cmdBindDescriptors(cmd, pRootSignatureAO, 2, params);
 		cmdBindPipeline(cmd, pPipelineAO[gAppSettings.mAOQuality - 1]);
 		cmdDraw(cmd, 3, 0);
-		cmdEndRender(cmd, 1, &pRenderTargetAO, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	void resolveMSAA(Cmd* cmd, RenderTarget* msaaRT, RenderTarget* destRT)
@@ -3321,7 +3367,7 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = destRT->mDesc.mClearValue;
 
-		cmdBeginRender(cmd, 1, &destRT, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &destRT, NULL, &loadActions);
 		DescriptorData params[2] = {};
 		params[0].pName = "msaaSource";
 		params[0].ppTextures = &msaaRT->pTexture;
@@ -3329,7 +3375,8 @@ public:
 		cmdBindDescriptors(cmd, pRootSignatureResolve, 1, params);
 		cmdBindPipeline(cmd, pPipelineResolve);
 		cmdDraw(cmd, 3, 0);
-		cmdEndRender(cmd, 1, &destRT, NULL);
+
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 
 	// Executes a compute shader to clear (reset) the the light clusters on the GPU
@@ -4038,7 +4085,7 @@ public:
 	{
 		UNREF_PARAM(frameIdx);
 #if !defined(TARGET_IOS)
-		cmdBeginRender(cmd, 1, &pScreenRenderTarget, NULL);
+		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL);
 
 		gTimer.GetUSec(true);
 		drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -4124,9 +4171,9 @@ public:
 #endif
 
 		gAppUI.Draw(cmd);
-
-		cmdEndRender(cmd, 1, &pScreenRenderTarget, NULL);
 #endif
+
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 	}
 	/************************************************************************/
 	// Event handling
