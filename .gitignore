@@ -41,11 +41,15 @@
 # Art
 Art/
 
-# Vulkan Binary Shaders
+# Binary Shaders
 **/PCDX12/Binary/
 **/PCVulkan/Binary/
 **/OSXMetal/Binary/
 **/PCDX12/Compiled/
+
+# Automatically Generated Files
+**/Renderer/IRendererDLL.h
+**/Renderer/RendererDLL.cpp
 
 # Obj folders
 **/obj/

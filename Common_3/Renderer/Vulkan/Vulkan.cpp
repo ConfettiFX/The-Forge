@@ -320,7 +320,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	// Internal utility functions (may become external one day)
 	VkSampleCountFlagBits	util_to_vk_sample_count(SampleCount sampleCount);
 	VkFormat				util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
-
+#if !defined(RENDERER_DLL_IMPORT)
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 	API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
@@ -330,6 +330,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
 	API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+#endif
   /************************************************************************/
   // DescriptorInfo Heap Defines
   /************************************************************************/
@@ -626,21 +627,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	// Get renderer shader macros
 	/************************************************************************/
-	// renderer shader macros allocated on stack
-	ShaderMacro _rendererShaderDefines[2];
-	const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
-	{
-		// Set shader macro based on runtime information
-		_rendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
-		_rendererShaderDefines[0].value = String::format("%d", static_cast<int>(gDescriptorIndexingExtension));
-		_rendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
-		_rendererShaderDefines[1].value =
-			String::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
-
-		RendererShaderDefinesDesc defineDesc = { _rendererShaderDefines , 2 };
-		return defineDesc;
-	}
-
 	VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] =
 	{
 		VK_PIPELINE_BIND_POINT_MAX_ENUM,
@@ -1947,6 +1933,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		vkDestroyDevice(pRenderer->pVkDevice, NULL);
 	}
+#if !defined(RENDERER_DLL_IMPORT)
 	/************************************************************************/
 	// Renderer Init Remove
 	/************************************************************************/
@@ -3132,6 +3119,21 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	// Shader Functions
 	/************************************************************************/
+	// renderer shader macros allocated on stack
+	ShaderMacro _rendererShaderDefines[2];
+	const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
+	{
+		// Set shader macro based on runtime information
+		_rendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
+		_rendererShaderDefines[0].value = String::format("%d", static_cast<int>(gDescriptorIndexingExtension));
+		_rendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
+		_rendererShaderDefines[1].value =
+			String::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
+
+		RendererShaderDefinesDesc defineDesc = { _rendererShaderDefines , 2 };
+		return defineDesc;
+	}
+
 	void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 	{
 		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
@@ -5250,6 +5252,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 } // namespace RENDERER_CPP_NAMESPACE
 #endif
-
+#endif
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
 #endif
