@@ -1,0 +1,10 @@
+version: 1.0.{build}
+
+build_script:
+- premake4 vs2010
+- cd Build/vs2010
+- MsBuild TaskScheduler.sln /t:Rebuild /p:Configuration=Release
+
+test_script:
+- cd ..\..\Bin
+- TaskSchedulerTests.exe 3
