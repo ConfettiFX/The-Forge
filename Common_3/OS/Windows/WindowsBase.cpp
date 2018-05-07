@@ -943,7 +943,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	window.fullScreen = pSettings->mFullScreen;
 	window.maximized = false;
-	openWindow(pApp->GetName(), &window);
+
+	if (!pSettings->mExternalWindow)
+		openWindow(pApp->GetName(), &window);
 
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
