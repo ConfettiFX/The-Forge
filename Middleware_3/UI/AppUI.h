@@ -233,6 +233,8 @@ public:
 	virtual bool load(class UIRenderer* renderer, int fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
 	virtual void unload() = 0;
 
+	virtual void* getContext() = 0;
+
 	virtual void clear() = 0;
 	virtual void processInput() = 0;
 	virtual void window(const char* pTitle, float x, float y, float z, float w, float& oX, float& oY, float& oW, float& oH, class UIProperty* pProps, unsigned int propCount) = 0;

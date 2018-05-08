@@ -458,7 +458,7 @@ unsigned File::Read(void* dest, unsigned size)
 		mReadSyncNeeded = false;
 	}
 
-	_readFile(dest, size, pHandle);
+	size = (unsigned int)_readFile(dest, size, pHandle);
 	mWriteSyncNeeded = true;
 	mPosition += size;
 	return size;

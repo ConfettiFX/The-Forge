@@ -131,11 +131,11 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
 
 	BlendStateDesc blendStateDesc = {};
-	blendStateDesc.mDstAlphaFactor = BC_ZERO;
-	blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
-	blendStateDesc.mMask = ALL;
-	blendStateDesc.mSrcAlphaFactor = BC_ONE;
 	blendStateDesc.mSrcFactor = BC_SRC_ALPHA;
+	blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mSrcAlphaFactor = BC_SRC_ALPHA;
+	blendStateDesc.mDstAlphaFactor = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mMask = ALL;
 	blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
 	addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
 
@@ -152,6 +152,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 
 	RasterizerStateDesc rasterizerStateDesc = {};
 	rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+	rasterizerStateDesc.mScissor = true;
 	addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerNoCull);
 
 	BufferDesc vbDesc = {};

@@ -262,6 +262,11 @@ void NuklearGUIDriver::unload()
 {
 }
 
+void* NuklearGUIDriver::getContext()
+{
+	return &impl->context;
+}
+
 void NuklearGUIDriver::onChar(const KeyboardCharEventData* data)
 {
 	if (impl->inputInstructionCount >= sizeof(impl->inputInstructions) / sizeof(impl->inputInstructions[0])) return;
