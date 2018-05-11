@@ -908,6 +908,9 @@ static IApp* pApp = NULL;
 
 static void onResize(const WindowResizeEventData* pData)
 {
+	if (!isRunning())
+		return;
+
 	pApp->mSettings.mWidth = getRectWidth(pData->rect);
 	pApp->mSettings.mHeight = getRectHeight(pData->rect);
 	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
