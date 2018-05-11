@@ -89,6 +89,7 @@ void LogManager::Open(const String& fileName)
 	{
 		pLogFile->~File();
 		conf_free(pLogFile);
+		pLogFile = NULL;
 		Write(LogLevel::LL_Error, "Failed to create log file " + fileName);
 	}
 }
