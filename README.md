@@ -29,7 +29,7 @@ The intended usage of The Forge is to enable developers to quickly build their o
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
-## Release 1.09 - May 17th, 2018 - Linux Unbuntu 18.04 LTS support 
+## Release 1.09 - May 17th, 2018 - Linux Ubuntu 18.04 LTS support 
 * The Forge now supports Ubuntu 18.04 LTS and is tested with AMD and NVIDIA cards with latest drivers (see a description of our testing setup below)
 * Vulkan (PC and Linux): 
   * added VK_EXT_DEBUG_UTILS_EXTENSION_NAME support but excluded it for debugging with RenderDoc because RenderDoc doesn't support the extension currently
