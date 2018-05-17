@@ -19,17 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\09_MultiGPU\09_MultiGPU.cpp" />
+    <ClCompile Include="..\src\10_MultiGPU\10_MultiGPU.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_MultiGPU\PCDX12\basic.frag" />
-    <None Include="..\src\09_MultiGPU\PCDX12\basic.vert" />
-    <None Include="..\src\09_MultiGPU\PCDX12\skybox.frag" />
-    <None Include="..\src\09_MultiGPU\PCDX12\skybox.vert" />
-    <None Include="..\src\09_MultiGPU\PCVulkan\basic.frag" />
-    <None Include="..\src\09_MultiGPU\PCVulkan\basic.vert" />
-    <None Include="..\src\09_MultiGPU\PCVulkan\skybox.frag" />
-    <None Include="..\src\09_MultiGPU\PCVulkan\skybox.vert" />
+    <None Include="..\src\10_MultiGPU\PCDX12\basic.frag" />
+    <None Include="..\src\10_MultiGPU\PCDX12\basic.vert" />
+    <None Include="..\src\10_MultiGPU\PCDX12\skybox.frag" />
+    <None Include="..\src\10_MultiGPU\PCDX12\skybox.vert" />
+    <None Include="..\src\10_MultiGPU\PCVulkan\basic.frag" />
+    <None Include="..\src\10_MultiGPU\PCVulkan\basic.vert" />
+    <None Include="..\src\10_MultiGPU\PCVulkan\skybox.frag" />
+    <None Include="..\src\10_MultiGPU\PCVulkan\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3C4D4A39-3CD2-4462-A655-8F18CF045F2B}</ProjectGuid>

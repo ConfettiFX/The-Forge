@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include <MTPlatform.h>
-#include <MTTools.h>
-#include <MTAppInterop.h>
+#include "MTPlatform.h"
+#include "MTTools.h"
+#include "MTAppInterop.h"
 
 namespace MT
 {

@@ -196,7 +196,7 @@ UIRenderer::~UIRenderer()
 	{
 		mFontStashes[i]->~Fontstash();
 		conf_free(mFontStashes[i]);
-		mFontStashes[i] = nullptr;
+		mFontStashes[i] = NULL;
 	}
 
 	removeShader(pRenderer, pBuiltinPlainShader);

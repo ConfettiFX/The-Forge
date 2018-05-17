@@ -221,75 +221,75 @@ const uint32_t			gImageCount = 3;
 AsteroidSimulation		gAsteroidSim;
 tinystl::vector<Subset>	gAsteroidSubsets;
 ThreadData				gThreadData[gNumSubsets];
-Texture*				pAsteroidTex = nullptr;
+Texture*				pAsteroidTex = NULL;
 bool					gUseThreads = true;
 int						gRenderingMode = RenderingMode_GPUUpdate;
 int						gPreviousRenderingMode = gRenderingMode;
 
-Renderer*				pRenderer = nullptr;
+Renderer*				pRenderer = NULL;
 
-Queue*					pGraphicsQueue = nullptr;
-CmdPool*				pCmdPool = nullptr;
-Cmd**					ppCmds = nullptr;
-CmdPool*				pComputeCmdPool = nullptr;
-Cmd**					ppComputeCmds = nullptr;
-CmdPool*				pUICmdPool = nullptr;
-Cmd**					ppUICmds = nullptr;
-DepthState*				pDepth = nullptr;
+Queue*					pGraphicsQueue = NULL;
+CmdPool*				pCmdPool = NULL;
+Cmd**					ppCmds = NULL;
+CmdPool*				pComputeCmdPool = NULL;
+Cmd**					ppComputeCmds = NULL;
+CmdPool*				pUICmdPool = NULL;
+Cmd**					ppUICmds = NULL;
+DepthState*				pDepth = NULL;
 
-SwapChain*				pSwapChain = nullptr;
-RenderTarget*			pDepthBuffer = nullptr;
-Fence*					pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*				pImageAcquiredSemaphore = nullptr;
-Semaphore*				pRenderCompleteSemaphores[gImageCount] = { nullptr };
+SwapChain*				pSwapChain = NULL;
+RenderTarget*			pDepthBuffer = NULL;
+Fence*					pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*				pImageAcquiredSemaphore = NULL;
+Semaphore*				pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 // Basic shader variables, used by instanced rendering.
-Shader*					pBasicShader = nullptr;
-Pipeline*				pBasicPipeline = nullptr;
-RasterizerState*		pBasicRast = nullptr;
-RootSignature*			pBasicRoot = nullptr;
-Sampler*				pBasicSampler = nullptr;
+Shader*					pBasicShader = NULL;
+Pipeline*				pBasicPipeline = NULL;
+RasterizerState*		pBasicRast = NULL;
+RootSignature*			pBasicRoot = NULL;
+Sampler*				pBasicSampler = NULL;
 
 // Execute Indirect variables
-Shader*					pIndirectShader = nullptr;
-Pipeline*				pIndirectPipeline = nullptr;
-RootSignature*			pIndirectRoot = nullptr;
+Shader*					pIndirectShader = NULL;
+Pipeline*				pIndirectPipeline = NULL;
+RootSignature*			pIndirectRoot = NULL;
 Buffer*					pIndirectBuffer[gImageCount] = {};
-Buffer*					pIndirectUniformBuffer = nullptr;
-CommandSignature*		pIndirectCommandSignature = nullptr;
-CommandSignature*		pIndirectSubsetCommandSignature = nullptr;
+Buffer*					pIndirectUniformBuffer = NULL;
+CommandSignature*		pIndirectCommandSignature = NULL;
+CommandSignature*		pIndirectSubsetCommandSignature = NULL;
 
 // Compute shader variables
-Shader*					pComputeShader = nullptr;
-Pipeline*				pComputePipeline = nullptr;
-RootSignature*			pComputeRoot = nullptr;
+Shader*					pComputeShader = NULL;
+Pipeline*				pComputePipeline = NULL;
+RootSignature*			pComputeRoot = NULL;
 Buffer*					pComputeUniformBuffer[gImageCount] = {};
 
 // Skybox Variables
-Shader*					pSkyBoxDrawShader = nullptr;
-Pipeline*				pSkyBoxDrawPipeline = nullptr;
-RasterizerState*		pSkyboxRast = nullptr;
-RootSignature*			pSkyBoxRoot = nullptr;
-Sampler*				pSkyBoxSampler = nullptr;
-Buffer*					pSkyboxUniformBuffer = nullptr;
-Buffer*					pSkyBoxVertexBuffer = nullptr;
+Shader*					pSkyBoxDrawShader = NULL;
+Pipeline*				pSkyBoxDrawPipeline = NULL;
+RasterizerState*		pSkyboxRast = NULL;
+RootSignature*			pSkyBoxRoot = NULL;
+Sampler*				pSkyBoxSampler = NULL;
+Buffer*					pSkyboxUniformBuffer = NULL;
+Buffer*					pSkyBoxVertexBuffer = NULL;
 Texture*				pSkyBoxTextures[6];
 
 // Necessary buffers
-Buffer*					pAsteroidVertexBuffer = nullptr;
-Buffer*					pAsteroidIndexBuffer = nullptr;
-Buffer*					pStaticAsteroidBuffer = nullptr;
-Buffer*					pDynamicAsteroidBuffer = nullptr;
+Buffer*					pAsteroidVertexBuffer = NULL;
+Buffer*					pAsteroidIndexBuffer = NULL;
+Buffer*					pStaticAsteroidBuffer = NULL;
+Buffer*					pDynamicAsteroidBuffer = NULL;
 
 // UI
 UIApp					gAppUI;
 GuiComponent*			pGui;
-ICameraController*		pCameraController = nullptr;
+ICameraController*		pCameraController = NULL;
 #ifdef TARGET_IOS
-Texture*				pVirtualJoystickTex = nullptr;
+Texture*				pVirtualJoystickTex = NULL;
 #endif
 
-GpuProfiler*			pGpuProfiler = nullptr;
+GpuProfiler*			pGpuProfiler = NULL;
 
 uint32_t				gFrameIndex = 0;
 
@@ -353,7 +353,7 @@ Panini				gPanini;
 PaniniParameters		gPaniniParams;
 #endif
 DynamicUIControls		gPaniniControls;
-RenderTarget*			pIntermediateRenderTarget = nullptr;
+RenderTarget*			pIntermediateRenderTarget = NULL;
 bool					gbPaniniEnabled = false;
 DebugTextDrawDesc		gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 
@@ -741,7 +741,7 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
-#if !defined(TARGET_IOS) && !defined(LINUX)
+#if !defined(TARGET_IOS) //&& !defined(LINUX) caused crash in Linux(as we are creating gPanini resources for Linux)
 		gPanini.Exit();
 #endif
 
@@ -750,7 +750,7 @@ public:
 #endif
 
 		removeDebugRendererInterface();
-
+        
 		gAppUI.Exit();
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
@@ -1204,7 +1204,7 @@ public:
 			cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer);
-			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer[gFrameIndex], 0, nullptr, 0);
+			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer[gFrameIndex], 0, NULL, 0);
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
@@ -1219,7 +1219,7 @@ public:
 		cmd = ppUICmds[frameIdx];
 		beginCmd(cmd);
 
-		LoadActionsDesc* pLoadAction = nullptr;
+		LoadActionsDesc* pLoadAction = NULL;
 
 		// we want to clear the render target for Panini post process if its enabled.
 		// create the load action here, and assign the pLoadAction pointer later on if necessary.
@@ -1872,7 +1872,7 @@ public:
 			cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer);
-			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect, 0, nullptr, 0);
+			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect, 0, NULL, 0);
 			conf_free(argData);
 		}
 

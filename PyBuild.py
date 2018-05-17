@@ -31,6 +31,8 @@ import sys        #system module
 import argparse #Used for argument parsing
 import traceback
 import signal #used for handling ctrl+c keyboard interrupt
+import xml.etree.ElementTree as ET  #used for parsing XML ubuntu project file
+
 
 successfulBuilds = [] #holds all successfull builds
 failedBuilds = [] #holds all failed builds
@@ -89,7 +91,7 @@ def FindMSBuild17():
 	return msbuildPath
 
 def AddTestingPreProcessor():
-	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp"]
+	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp", "Common_3/OS/Linux/LinuxBase.cpp"]
 	
 	for filename in fileList:
 		if not os.path.exists(filename):
@@ -106,7 +108,7 @@ def AddTestingPreProcessor():
 				f.write(line)
 
 def RemoveTestingPreProcessor():
-	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp"]
+	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp", "Common_3/OS/Linux/LinuxBase.cpp"]
 	
 	for filename in fileList:
 		if not os.path.exists(filename):
@@ -377,6 +379,106 @@ def BuildXcodeProjects():
 		return -1
 	return 0
 
+#this needs the vulkan environment variables set up correctly
+#if they are not in ~/.profile then they need to be set up for every subprocess
+#If it is in ~/.profile then it needs to be maintaned by updating the version number in ~/.profile.
+def BuildLinuxProjects():
+	errorOccured = False
+	
+	projsToBuild = GetFilesPathByExtension("./Examples_3/","workspace", False)
+	for projectPath in projsToBuild:
+		#get working directory (excluding the workspace in path)
+		rootPath = os.sep.join(projectPath.split(os.sep)[0:-1])
+		#save current work dir
+		currDir = os.getcwd()
+		#change dir to workspace location
+		os.chdir(rootPath)
+		configurations = ["Debug", "Release"]
+		for conf in configurations:					
+			#create command for xcodebuild
+			#filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
+			filename = projectPath.split(os.sep)[-1]
+			
+			#need to parse xml configuration to get every project
+			xmlTree = ET.parse("./"+filename)
+			xmlRoot = xmlTree.getroot()
+
+			ubuntuProjects = []
+			for child in xmlRoot:
+				if child.tag == "Project":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection":
+						ubuntuProjects.append(child.attrib["Name"])
+			
+			for proj in ubuntuProjects:
+				command = ["codelite-make","-w",filename,"-p", proj,"-c",conf]
+				#sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
+				sucess = ExecuteCommand(command, subprocess.PIPE)
+				
+				if sucess != 0:
+					errorOccured = True
+				
+				command = ["make", "clean"]
+				sucess = ExecuteCommand(command, subprocess.PIPE)
+
+				command = ["make", "-s"]
+				sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
+				
+				if sucess != 0:
+					errorOccured = True
+
+		#set working dir to initial
+		os.chdir(currDir)
+	
+	if errorOccured == True:
+		return -1
+	return 0
+
+
+#this needs the vulkan environment variables set up correctly
+#if they are not in ~/.profile then they need to be set up for every subprocess
+#If it is in ~/.profile then it needs to be maintaned by updating the version number in ~/.profile.
+def TestLinuxProjects():
+	errorOccured = False
+	
+	projsToTest = GetFilesPathByExtension("./Examples_3/","workspace", False)
+	for projectPath in projsToTest:
+		#get working directory (excluding the workspace in path)
+		rootPath = os.sep.join(projectPath.split(os.sep)[0:-1])
+		#save current work dir
+		currDir = os.getcwd()
+		#change dir to workspace location
+		os.chdir(rootPath)
+		configurations = ["Debug", "Release"]
+		for conf in configurations:					
+			#create command for xcodebuild
+			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
+			#filename = projectPath.split(os.sep)[-1]
+			
+			#need to parse xml configuration to get every project
+			xmlTree = ET.parse("./"+filename + ".workspace")
+			xmlRoot = xmlTree.getroot()
+
+			ubuntuProjects = []
+			for child in xmlRoot:
+				if child.tag == "Project":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection":
+						ubuntuProjects.append(child.attrib["Name"])
+			
+			for proj in ubuntuProjects:
+				exePath = os.path.join(os.getcwd(),proj,conf,proj)
+				command = [exePath]
+				sucess = ExecuteTest(command, proj ,False)
+
+				if sucess != 0:
+					errorOccured = True
+
+		#set working dir to initial
+		os.chdir(currDir)
+	
+	if errorOccured == True:
+		return -1
+	return 0
+
 def TestWindowsProjects():
 	errorOccured = False
 	
@@ -535,18 +637,24 @@ def MainLogic():
 		else:
 			ExecuteCommand(["sh","PRE_BUILD.sh"], subprocess.PIPE)
 	
+	systemOS = platform.system()
+	print systemOS
 	if arguments.testing:
 		#Build for Mac OS (Darwin system)
-		if platform.system() == "Darwin":
+		if systemOS == "Darwin":
 			returnCode = TestXcodeProjects(arguments.ios, arguments.macos)
-		elif platform.system() == "Windows":
+		elif systemOS == "Windows":
 			returnCode = TestWindowsProjects()
+		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
+			returnCode = TestLinuxProjects()
 	else:
 		#Build for Mac OS (Darwin system)
-		if platform.system() == "Darwin":
+		if systemOS== "Darwin":
 			returnCode = BuildXcodeProjects()
-		elif platform.system() == "Windows":
+		elif systemOS == "Windows":
 			returnCode = BuildWindowsProjects(arguments.xbox)
+		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
+			returnCode = BuildLinuxProjects()
 
 	PrintResults()
 	

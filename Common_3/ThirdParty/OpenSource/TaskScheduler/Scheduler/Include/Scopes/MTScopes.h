@@ -25,7 +25,7 @@
 #ifndef __MT_STACK__
 #define __MT_STACK__
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 #include <array>
 #include <limits>
 

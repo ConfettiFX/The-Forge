@@ -21,8 +21,8 @@
 // 	THE SOFTWARE.
 
 #pragma once
-#include <MTTypes.h>
-#include <MTPlatform.h>
+#include "MTTypes.h"
+#include "MTPlatform.h"
 
 namespace MT
 {

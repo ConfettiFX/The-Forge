@@ -21,8 +21,8 @@
 // 	THE SOFTWARE.
 #pragma once
 
-#include <MTConfig.h>
-#include <MTTypes.h>
+#include "MTConfig.h"
+#include "MTTypes.h"
 
 
 //

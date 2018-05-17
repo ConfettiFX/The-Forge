@@ -148,7 +148,7 @@ extern "C" {
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
+	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, NULL);
 	\endcode
 
 	Don't forget to destroy your objects when no longer needed:
@@ -212,7 +212,7 @@ extern "C" {
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
+	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, NULL);
 	\endcode
 
 	\section choosing_memory_type_required_preferred_flags Required and preferred flags
@@ -232,7 +232,7 @@ extern "C" {
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
+	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, NULL);
 	\endcode
 
 	A memory type is chosen that has all the required flags and as many preferred
@@ -263,7 +263,7 @@ extern "C" {
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
+	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, NULL);
 	\endcode
 
 	\section choosing_memory_type_custom_memory_pools Custom memory pools
@@ -454,7 +454,7 @@ extern "C" {
 	VmaAllocationInfo allocInfo;
 	vmaCreateBuffer(allocator, &bufCreateInfo, &allocCreateInfo, &buf, &alloc, &allocInfo);
 
-	if(allocInfo.pUserData != nullptr)
+	if(allocInfo.pUserData != NULL)
 	{
 	// Allocation ended up in mappable memory.
 	// It's persistently mapped. You can access it directly.
@@ -635,8 +635,8 @@ extern "C" {
 	\code
 	struct MyBuffer
 	{
-	VkBuffer m_Buf = nullptr;
-	VmaAllocation m_Alloc = nullptr;
+	VkBuffer m_Buf = NULL;
+	VmaAllocation m_Alloc = NULL;
 
 	// Called when the buffer is really needed in the current frame.
 	void EnsureBuffer();
@@ -668,7 +668,7 @@ extern "C" {
 	allocCreateInfo.flags = VMA_ALLOCATION_CREATE_CAN_BECOME_LOST_BIT |
 	VMA_ALLOCATION_CREATE_CAN_MAKE_OTHER_LOST_BIT;
 
-	vmaCreateBuffer(allocator, &bufCreateInfo, &allocCreateInfo, &m_Buf, &m_Alloc, nullptr);
+	vmaCreateBuffer(allocator, &bufCreateInfo, &allocCreateInfo, &m_Buf, &m_Alloc, NULL);
 	}
 	\endcode
 
@@ -751,7 +751,7 @@ extern "C" {
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	vmaCreateBuffer(allocator, &bufferInfo, &allocCreateInfo, &buffer, &allocation, nullptr);
+	vmaCreateBuffer(allocator, &bufferInfo, &allocCreateInfo, &buffer, &allocation, NULL);
 	\endcode
 
 	The pointer may be later retrieved as VmaAllocationInfo::pUserData:
@@ -791,7 +791,7 @@ extern "C" {
 
 	VkImage image;
 	VmaAllocation allocation;
-	vmaCreateImage(allocator, &imageInfo, &allocCreateInfo, &image, &allocation, nullptr);
+	vmaCreateImage(allocator, &imageInfo, &allocCreateInfo, &image, &allocation, NULL);
 	\endcode
 
 	The value of `pUserData` pointer of the allocation will be different than the one
@@ -2000,7 +2000,7 @@ extern "C" {
 	std::vector<VmaAllocation> allocations = ...;
 
 	std::vector<VkBool32> allocationsChanged(allocations.size());
-	vmaDefragment(allocator, allocations.data(), allocations.size(), allocationsChanged.data(), nullptr, nullptr);
+	vmaDefragment(allocator, allocations.data(), allocations.size(), allocationsChanged.data(), NULL, NULL);
 
 	for(size_t i = 0; i < allocations.size(); ++i)
 	{
@@ -2009,10 +2009,10 @@ extern "C" {
 	VmaAllocationInfo allocInfo;
 	vmaGetAllocationInfo(allocator, allocations[i], &allocInfo);
 
-	vkDestroyBuffer(device, buffers[i], nullptr);
+	vkDestroyBuffer(device, buffers[i], NULL);
 
 	VkBufferCreateInfo bufferInfo = ...;
-	vkCreateBuffer(device, &bufferInfo, nullptr, &buffers[i]);
+	vkCreateBuffer(device, &bufferInfo, NULL, &buffers[i]);
 
 	// You can make dummy call to vkGetBufferMemoryRequirements here to silence validation layer warning.
 
@@ -2234,8 +2234,8 @@ remove them if not needed.
 #endif
 
 #ifndef VMA_NULL
-// Value used as null pointer. Define it to e.g.: nullptr, NULL, 0, (void*)0.
-#define VMA_NULL   nullptr
+// Value used as null pointer. Define it to e.g.: NULL, NULL, 0, (void*)0.
+#define VMA_NULL   NULL
 #endif
 
 #if defined(__APPLE__) || defined(__ANDROID__)

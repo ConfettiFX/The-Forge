@@ -21,8 +21,8 @@
 // 	THE SOFTWARE.
 
 #pragma once
-#include <MTConfig.h>
-#include <MTAppInterop.h>
+#include "MTConfig.h"
+#include "MTAppInterop.h"
 
 
 #if defined(MT_DEBUG) || defined(MT_INSTRUMENTED_BUILD)

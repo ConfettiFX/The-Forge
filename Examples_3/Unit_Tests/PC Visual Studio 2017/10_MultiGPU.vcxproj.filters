@@ -15,33 +15,33 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\09_MultiGPU\09_MultiGPU.cpp">
+    <ClCompile Include="..\src\10_MultiGPU\10_MultiGPU.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_MultiGPU\PCDX12\basic.frag">
+    <None Include="..\src\10_MultiGPU\PCDX12\basic.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCDX12\basic.vert">
+    <None Include="..\src\10_MultiGPU\PCDX12\basic.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCDX12\skybox.frag">
+    <None Include="..\src\10_MultiGPU\PCDX12\skybox.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCDX12\skybox.vert">
+    <None Include="..\src\10_MultiGPU\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCVulkan\basic.frag">
+    <None Include="..\src\10_MultiGPU\PCVulkan\basic.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCVulkan\basic.vert">
+    <None Include="..\src\10_MultiGPU\PCVulkan\basic.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCVulkan\skybox.frag">
+    <None Include="..\src\10_MultiGPU\PCVulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_MultiGPU\PCVulkan\skybox.vert">
+    <None Include="..\src\10_MultiGPU\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

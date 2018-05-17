@@ -731,7 +731,6 @@ public:
 		vbNormalDesc.ppBuffer = &pVertexBufferNormal;
 		vbNormalDesc.mDesc.pDebugName = L"Vertex Normal Buffer Desc";
 		addResource(&vbNormalDesc);
-		LOGINFOF("S %u", (uint32_t)vbNormalDesc.mDesc.mSize);
 
 		// Vertex tangent buffer for the scene
 		BufferLoadDesc vbTangentDesc = {};

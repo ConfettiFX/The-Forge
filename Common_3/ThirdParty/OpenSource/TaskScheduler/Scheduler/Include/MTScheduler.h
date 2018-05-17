@@ -22,18 +22,18 @@
 
 #pragma once
 
-#include <MTConfig.h>
-#include <MTColorTable.h>
-#include <MTTools.h>
-#include <MTPlatform.h>
-#include <MTQueueMPMC.h>
-#include <MTArrayView.h>
-#include <MTThreadContext.h>
-#include <MTFiberContext.h>
-#include <MTAppInterop.h>
-#include <MTTaskPool.h>
-#include <MTStackRequirements.h>
-#include <Scopes/MTScopes.h>
+#include "MTConfig.h"
+#include "MTColorTable.h"
+#include "MTTools.h"
+#include "MTPlatform.h"
+#include "MTQueueMPMC.h"
+#include "MTArrayView.h"
+#include "MTThreadContext.h"
+#include "MTFiberContext.h"
+#include "MTAppInterop.h"
+#include "MTTaskPool.h"
+#include "MTStackRequirements.h"
+#include "Scopes/MTScopes.h"
 
 /*
 	You can inject some profiler code right into the task scope using this macro.
@@ -141,7 +141,7 @@ namespace MT
 
 
 #ifdef MT_INSTRUMENTED_BUILD
-#include <MTProfilerEventListener.h>
+#include "MTProfilerEventListener.h"
 
 #define MT_DECLARE_TASK(TYPE, STACK_REQUIREMENTS, TASK_PRIORITY, DEBUG_COLOR) \
 	static const mt_char* GetDebugID() \

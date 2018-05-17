@@ -93,7 +93,7 @@ struct ThreadData
 
 struct ObjectProperty
 {
-	float rotX = 0, rotY = 0;
+	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
 const uint32_t	gSampleCount = 60;
@@ -133,42 +133,42 @@ const int				gTotalParticleCount = 2000000;
 uint32_t				gGraphWidth = 200;
 uint32_t				gGraphHeight = 100;
 
-Renderer*				pRenderer = nullptr;
+Renderer*				pRenderer = NULL;
 
-Queue*					pGraphicsQueue = nullptr;
-CmdPool*				pCmdPool = nullptr;
-Cmd**					ppCmds = nullptr;
-CmdPool*				pGraphCmdPool = nullptr;
-Cmd**					ppGraphCmds = nullptr;
+Queue*					pGraphicsQueue = NULL;
+CmdPool*				pCmdPool = NULL;
+Cmd**					ppCmds = NULL;
+CmdPool*				pGraphCmdPool = NULL;
+Cmd**					ppGraphCmds = NULL;
 
-Fence*					pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*				pImageAcquiredSemaphore = nullptr;
-Semaphore*				pRenderCompleteSemaphores[gImageCount] = { nullptr };
+Fence*					pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*				pImageAcquiredSemaphore = NULL;
+Semaphore*				pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-SwapChain*				pSwapChain = nullptr;
+SwapChain*				pSwapChain = NULL;
 
-Shader*					pShader = nullptr;
-Shader*					pSkyBoxDrawShader = nullptr;
-Shader*					pGraphShader = nullptr;
-Buffer*					pParticleVertexBuffer = nullptr;
-Buffer*					pProjViewUniformBuffer = nullptr;
-Buffer*					pSkyboxUniformBuffer = nullptr;
-Buffer*					pSkyBoxVertexBuffer = nullptr;
-Buffer*					pBackGroundVertexBuffer[gImageCount] = { nullptr };
-Pipeline*				pPipeline = nullptr;
-Pipeline*				pSkyBoxDrawPipeline = nullptr;
-Pipeline*				pGraphLinePipeline = nullptr;
-Pipeline*				pGraphLineListPipeline = nullptr;
-Pipeline*				pGraphTrianglePipeline = nullptr;
-RootSignature*			pRootSignature = nullptr;
-RootSignature*			pGraphRootSignature = nullptr;
+Shader*					pShader = NULL;
+Shader*					pSkyBoxDrawShader = NULL;
+Shader*					pGraphShader = NULL;
+Buffer*					pParticleVertexBuffer = NULL;
+Buffer*					pProjViewUniformBuffer = NULL;
+Buffer*					pSkyboxUniformBuffer = NULL;
+Buffer*					pSkyBoxVertexBuffer = NULL;
+Buffer*					pBackGroundVertexBuffer[gImageCount] = { NULL };
+Pipeline*				pPipeline = NULL;
+Pipeline*				pSkyBoxDrawPipeline = NULL;
+Pipeline*				pGraphLinePipeline = NULL;
+Pipeline*				pGraphLineListPipeline = NULL;
+Pipeline*				pGraphTrianglePipeline = NULL;
+RootSignature*			pRootSignature = NULL;
+RootSignature*			pGraphRootSignature = NULL;
 Texture*				pTextures[5];
 Texture*				pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-Texture*                pVirtualJoystickTex = nullptr;
+Texture*                pVirtualJoystickTex = NULL;
 #endif
-Sampler*				pSampler = nullptr;
-Sampler*				pSamplerSkyBox = nullptr;
+Sampler*				pSampler = NULL;
+Sampler*				pSamplerSkyBox = NULL;
 uint32_t				gFrameIndex = 0;
 
 #if defined(_WIN32)
@@ -204,15 +204,15 @@ uint32_t				gSeed;
 float					gPaletteFactor;
 uint					gTextureIndex;
 
-GpuProfiler*			pGpuProfilers[gThreadCount] = { nullptr };
+GpuProfiler*			pGpuProfilers[gThreadCount] = { NULL };
 UIApp					gAppUI;
-ICameraController*		pCameraController = nullptr;
+ICameraController*		pCameraController = NULL;
 
 FileSystem				gFileSystem;
 ThreadPool				gThreadSystem;
 LogManager				gLogManager;
 
-GraphVertex mBackGroundPoints[gImageCount][gSampleCount];
+GraphVertex gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
 CpuGraph*     pCpuGraph;
 
@@ -857,20 +857,20 @@ public:
 #endif
 
 		const float k_wrapAround = (float)(M_PI * 2.0);
-		if (gObjSettings.rotX > k_wrapAround)
-			gObjSettings.rotX -= k_wrapAround;
-		if (gObjSettings.rotX < -k_wrapAround)
-			gObjSettings.rotX += k_wrapAround;
-		if (gObjSettings.rotY > k_wrapAround)
-			gObjSettings.rotY -= k_wrapAround;
-		if (gObjSettings.rotY < -k_wrapAround)
-			gObjSettings.rotY += k_wrapAround;
+		if (gObjSettings.mRotX > k_wrapAround)
+			gObjSettings.mRotX -= k_wrapAround;
+		if (gObjSettings.mRotX < -k_wrapAround)
+			gObjSettings.mRotX += k_wrapAround;
+		if (gObjSettings.mRotY > k_wrapAround)
+			gObjSettings.mRotY -= k_wrapAround;
+		if (gObjSettings.mRotY < -k_wrapAround)
+			gObjSettings.mRotY += k_wrapAround;
 		/************************************************************************/
 		// Compute matrices
 		/************************************************************************/
 		// update camera with time 
 #if USE_CAMERACONTROLLER
-		mat4 modelMat = mat4::rotationX(gObjSettings.rotX) * mat4::rotationY(gObjSettings.rotY);
+		mat4 modelMat = mat4::rotationX(gObjSettings.mRotX) * mat4::rotationY(gObjSettings.mRotY);
 		mat4 viewMat = pCameraController->getViewMatrix();
 #else
 		mat4 modelMat = mat4::rotationY(gObjSettings.rotY) * mat4::rotationX(gObjSettings.rotX);
@@ -1430,72 +1430,72 @@ public:
 	void CpuGraphBackGroundUpdate(Cmd* cmd, uint32_t frameIdx)
 	{
 		// background data
-		mBackGroundPoints[frameIdx][0].mPosition = vec2(-1.0f, -1.0f);
-		mBackGroundPoints[frameIdx][0].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
-		mBackGroundPoints[frameIdx][1].mPosition = vec2(1.0f, -1.0f);
-		mBackGroundPoints[frameIdx][1].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
-		mBackGroundPoints[frameIdx][2].mPosition = vec2(-1.0f, 1.0f);
-		mBackGroundPoints[frameIdx][2].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
-		mBackGroundPoints[frameIdx][3].mPosition = vec2(1.0f, 1.0f);
-		mBackGroundPoints[frameIdx][3].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		gBackGroundPoints[frameIdx][0].mPosition = vec2(-1.0f, -1.0f);
+		gBackGroundPoints[frameIdx][0].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		gBackGroundPoints[frameIdx][1].mPosition = vec2(1.0f, -1.0f);
+		gBackGroundPoints[frameIdx][1].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		gBackGroundPoints[frameIdx][2].mPosition = vec2(-1.0f, 1.0f);
+		gBackGroundPoints[frameIdx][2].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		gBackGroundPoints[frameIdx][3].mPosition = vec2(1.0f, 1.0f);
+		gBackGroundPoints[frameIdx][3].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
 
 		const float woff = 2.0f / gGraphWidth;
 		const float hoff = 2.0f / gGraphHeight;
 
-		mBackGroundPoints[frameIdx][4].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
-		mBackGroundPoints[frameIdx][4].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][5].mPosition = vec2(1.0f - woff, -1.0f + hoff);
-		mBackGroundPoints[frameIdx][5].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][6].mPosition = vec2(1.0f - woff, -1.0f + hoff);
-		mBackGroundPoints[frameIdx][6].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][7].mPosition = vec2(1.0f - woff, 1.0f - hoff);
-		mBackGroundPoints[frameIdx][7].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][8].mPosition = vec2(1.0f - woff, 1.0f - hoff);
-		mBackGroundPoints[frameIdx][8].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][9].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
-		mBackGroundPoints[frameIdx][9].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][10].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
-		mBackGroundPoints[frameIdx][10].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		mBackGroundPoints[frameIdx][11].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
-		mBackGroundPoints[frameIdx][11].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][4].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
+		gBackGroundPoints[frameIdx][4].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][5].mPosition = vec2(1.0f - woff, -1.0f + hoff);
+		gBackGroundPoints[frameIdx][5].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][6].mPosition = vec2(1.0f - woff, -1.0f + hoff);
+		gBackGroundPoints[frameIdx][6].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][7].mPosition = vec2(1.0f - woff, 1.0f - hoff);
+		gBackGroundPoints[frameIdx][7].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][8].mPosition = vec2(1.0f - woff, 1.0f - hoff);
+		gBackGroundPoints[frameIdx][8].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][9].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
+		gBackGroundPoints[frameIdx][9].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][10].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
+		gBackGroundPoints[frameIdx][10].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		gBackGroundPoints[frameIdx][11].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
+		gBackGroundPoints[frameIdx][11].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
 
 		for (int i = 1; i <= 6; ++i)
 		{
-			mBackGroundPoints[frameIdx][12 + i * 2].mPosition = vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), -1.0f);
-			mBackGroundPoints[frameIdx][12 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
-			mBackGroundPoints[frameIdx][13 + i * 2].mPosition = vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), 1.0f);
-			mBackGroundPoints[frameIdx][13 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			gBackGroundPoints[frameIdx][12 + i * 2].mPosition = vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), -1.0f);
+			gBackGroundPoints[frameIdx][12 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			gBackGroundPoints[frameIdx][13 + i * 2].mPosition = vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), 1.0f);
+			gBackGroundPoints[frameIdx][13 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
 		}
 		// start from 24
 
 		for (int i = 1; i <= 9; ++i)
 		{
-			mBackGroundPoints[frameIdx][24 + i * 2].mPosition = vec2(-1.0f, -1.0f + i * (2.0f / 10.0f));
-			mBackGroundPoints[frameIdx][24 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
-			mBackGroundPoints[frameIdx][25 + i * 2].mPosition = vec2(1.0f, -1.0f + i * (2.0f / 10.0f));
-			mBackGroundPoints[frameIdx][25 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			gBackGroundPoints[frameIdx][24 + i * 2].mPosition = vec2(-1.0f, -1.0f + i * (2.0f / 10.0f));
+			gBackGroundPoints[frameIdx][24 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			gBackGroundPoints[frameIdx][25 + i * 2].mPosition = vec2(1.0f, -1.0f + i * (2.0f / 10.0f));
+			gBackGroundPoints[frameIdx][25 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
 		}
 		//start from 42
 
-		mBackGroundPoints[frameIdx][42].mPosition = vec2(-1.0f, -1.0f);
-		mBackGroundPoints[frameIdx][42].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
-		mBackGroundPoints[frameIdx][43].mPosition = vec2(1.0f, -1.0f);
-		mBackGroundPoints[frameIdx][43].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
-		mBackGroundPoints[frameIdx][44].mPosition = vec2(-1.0f, 1.0f);
-		mBackGroundPoints[frameIdx][44].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
-		mBackGroundPoints[frameIdx][45].mPosition = vec2(1.0f, 1.0f);
-		mBackGroundPoints[frameIdx][45].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][42].mPosition = vec2(-1.0f, -1.0f);
+		gBackGroundPoints[frameIdx][42].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][43].mPosition = vec2(1.0f, -1.0f);
+		gBackGroundPoints[frameIdx][43].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][44].mPosition = vec2(-1.0f, 1.0f);
+		gBackGroundPoints[frameIdx][44].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][45].mPosition = vec2(1.0f, 1.0f);
+		gBackGroundPoints[frameIdx][45].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
 
-		mBackGroundPoints[frameIdx][42].mPosition = vec2(-1.0f, -1.0f);
-		mBackGroundPoints[frameIdx][42].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
-		mBackGroundPoints[frameIdx][43].mPosition = vec2(1.0f, -1.0f);
-		mBackGroundPoints[frameIdx][43].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
-		mBackGroundPoints[frameIdx][44].mPosition = vec2(-1.0f, 1.0f);
-		mBackGroundPoints[frameIdx][44].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
-		mBackGroundPoints[frameIdx][45].mPosition = vec2(1.0f, 1.0f);
-		mBackGroundPoints[frameIdx][45].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][42].mPosition = vec2(-1.0f, -1.0f);
+		gBackGroundPoints[frameIdx][42].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][43].mPosition = vec2(1.0f, -1.0f);
+		gBackGroundPoints[frameIdx][43].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][44].mPosition = vec2(-1.0f, 1.0f);
+		gBackGroundPoints[frameIdx][44].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		gBackGroundPoints[frameIdx][45].mPosition = vec2(1.0f, 1.0f);
+		gBackGroundPoints[frameIdx][45].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
 
-		BufferUpdateDesc backgroundVbUpdate = { pBackGroundVertexBuffer[frameIdx], mBackGroundPoints[frameIdx] };
+		BufferUpdateDesc backgroundVbUpdate = { pBackGroundVertexBuffer[frameIdx], gBackGroundPoints[frameIdx] };
 		updateResource(&backgroundVbUpdate, true);
 	}
 

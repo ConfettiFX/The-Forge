@@ -361,11 +361,11 @@ public:
 protected:
 	const uint32_t *stream(const Instruction &instr) const
 	{
-		// If we're not going to use any arguments, just return nullptr.
+		// If we're not going to use any arguments, just return NULL.
 		// We want to avoid case where we return an out of range pointer
 		// that trips debug assertions on some platforms.
 		if (!instr.length)
-			return nullptr;
+			return NULL;
 
 		if (instr.offset + instr.length > spirv.size())
 			SPIRV_CROSS_THROW("Compiler::stream() out of range.");
@@ -377,8 +377,8 @@ protected:
 	std::vector<Variant> ids;
 	std::vector<Meta> meta;
 
-	SPIRFunction *current_function = nullptr;
-	SPIRBlock *current_block = nullptr;
+	SPIRFunction *current_function = NULL;
+	SPIRBlock *current_block = NULL;
 	std::vector<uint32_t> global_variables;
 	std::vector<uint32_t> aliased_variables;
 	std::unordered_set<uint32_t> active_interface_variables;
@@ -406,7 +406,7 @@ protected:
 		if (ids.at(id).get_type() == T::type)
 			return &get<T>(id);
 		else
-			return nullptr;
+			return NULL;
 	}
 
 	template <typename T>
@@ -421,7 +421,7 @@ protected:
 		if (ids.at(id).get_type() == T::type)
 			return &get<T>(id);
 		else
-			return nullptr;
+			return NULL;
 	}
 
 	uint32_t entry_point = 0;

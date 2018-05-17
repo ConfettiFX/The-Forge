@@ -52,7 +52,7 @@
 //
 #if ! defined(__cplusplus)
 #error "D3D12 requires C++! Sorry!"
-#endif 
+#endif
 
 // Pull in minimal Windows headers
 #if ! defined(NOMINMAX)
@@ -80,10 +80,6 @@ extern long d3d12_createBuffer(MemoryAllocator* pAllocator, const BufferCreateIn
 extern void d3d12_destroyBuffer(MemoryAllocator* pAllocator, struct Buffer* pBuffer);
 extern long d3d12_createTexture(MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, Texture* pTexture);
 extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
-
-#if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
-namespace RENDERER_CPP_NAMESPACE {
-#endif
 
 	// Array used to translate sampling filter
 	const D3D12_FILTER gDX12FilterTranslator[] =
@@ -1607,7 +1603,7 @@ namespace RENDERER_CPP_NAMESPACE {
 #ifdef _DURANGO
 		// Create the DX12 API device object.
 		HRESULT hres = D3D12CreateDevice(
-			nullptr,
+			NULL,
 			feature_levels[0],
 			IID_ARGS(&pRenderer->pDxDevice)
 		);
@@ -1777,6 +1773,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	/************************************************************************/
 	// Functions not exposed in IRenderer but still need to be exported in dll
 	/************************************************************************/
+#if !defined(RENDERER_DLL_IMPORT) && !defined(ENABLE_RENDERER_API_SWITCHING)
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 	API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
@@ -1787,6 +1784,12 @@ namespace RENDERER_CPP_NAMESPACE {
 	API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
 	API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 	API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+#endif
+
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
+namespace d3d12 {
+#endif
+#if !defined(RENDERER_DLL_IMPORT)
 	/************************************************************************/
 	// Renderer Init Remove
 	/************************************************************************/
@@ -2806,6 +2809,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) || (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
 		// Assert that render target is not used as both color and depth attachment
 		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) && (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
+		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL) && (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)) && "Cannot use depth stencil as UAV");
 
 		RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc(1, sizeof(*pRenderTarget));
 		pRenderTarget->mDesc = *pDesc;
@@ -2860,7 +2864,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			break;
 		}
 
-		addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
+		::addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
 		RenderTargetType type = pRenderTarget->mDesc.mType;
 		switch (type)
@@ -2965,7 +2969,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 	void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	{
-		removeTexture(pRenderer, pRenderTarget->pTexture);
+		::removeTexture(pRenderer, pRenderTarget->pTexture);
 
 		if (pRenderTarget->mDesc.mUsage == RENDER_TARGET_USAGE_COLOR)
 		{
@@ -3663,7 +3667,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		ID3DBlob* error_msgs = NULL;
 #ifdef _DURANGO
 		DECLARE_ZERO(D3D12_ROOT_SIGNATURE_DESC, desc);
-		CD3DX12_ROOT_SIGNATURE_DESC::Init(desc, (UINT)rootParams_1_0.size(), rootParams_1_0.empty() == false ? rootParams_1_0.data() : nullptr, (UINT)staticSamplerDescs.size(), staticSamplerDescs.data(), rootSignatureFlags);
+		CD3DX12_ROOT_SIGNATURE_DESC::Init(desc, (UINT)rootParams_1_0.size(), rootParams_1_0.empty() == false ? rootParams_1_0.data() : NULL, (UINT)staticSamplerDescs.size(), staticSamplerDescs.data(), rootSignatureFlags);
 
 		hres = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &pRootSignature->pDxSerializedRootSignatureString, &error_msgs);
 #else
@@ -5074,7 +5078,7 @@ namespace RENDERER_CPP_NAMESPACE {
 			Src.pResource = pIntermediate->pDxResource;
 			Src.PlacedFootprint = pLayouts[i];
 
-			pCmd->pDxCmdList->CopyTextureRegion(&Dst, 0, 0, 0, &Src, nullptr);
+			pCmd->pDxCmdList->CopyTextureRegion(&Dst, 0, 0, 0, &Src, NULL);
 		}
 	}
 	/************************************************************************/
@@ -5352,7 +5356,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, false);
 #endif
 		if (!pCounterBuffer)
-			pCmd->pDxCmdList->ExecuteIndirect(pCommandSignature->pDxCommandSignautre, maxCommandCount, pIndirectBuffer->pDxResource, bufferOffset, nullptr, 0);
+			pCmd->pDxCmdList->ExecuteIndirect(pCommandSignature->pDxCommandSignautre, maxCommandCount, pIndirectBuffer->pDxResource, bufferOffset, NULL, 0);
 		else
 			pCmd->pDxCmdList->ExecuteIndirect(pCommandSignature->pDxCommandSignautre, maxCommandCount, pIndirectBuffer->pDxResource, bufferOffset, pCounterBuffer->pDxResource, counterBufferOffset);
 	}
@@ -5526,4 +5530,8 @@ namespace RENDERER_CPP_NAMESPACE {
 	/************************************************************************/
 	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION
+#endif
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
+}
+#endif
 #endif

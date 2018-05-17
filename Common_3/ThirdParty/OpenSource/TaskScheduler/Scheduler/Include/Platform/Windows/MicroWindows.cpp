@@ -21,7 +21,7 @@
 // 	THE SOFTWARE.
 
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 
 #if MT_PLATFORM_WINDOWS 
 

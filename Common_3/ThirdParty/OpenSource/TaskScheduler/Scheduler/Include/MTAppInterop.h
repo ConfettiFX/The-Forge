@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 
 #if MT_MSVC_COMPILER_FAMILY
 #include <crtdefs.h>

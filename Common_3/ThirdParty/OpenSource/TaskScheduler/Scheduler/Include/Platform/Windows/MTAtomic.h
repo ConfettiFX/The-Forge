@@ -25,7 +25,7 @@
 #ifndef __MT_ATOMIC__
 #define __MT_ATOMIC__
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 #include <intrin.h>
 #include <cstdint>
 #include <type_traits>

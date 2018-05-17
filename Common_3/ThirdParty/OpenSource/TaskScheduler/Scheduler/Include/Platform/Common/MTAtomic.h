@@ -22,12 +22,12 @@
 
 #pragma once
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 
 #if MT_MSVC_COMPILER_FAMILY 
-#include <Platform/Windows/MTAtomic.h>
+#include "Platform/Windows/MTAtomic.h"
 #elif MT_PLATFORM_POSIX || MT_PLATFORM_OSX
-#include <Platform/Posix/MTAtomic.h>
+#include "Platform/Posix/MTAtomic.h"
 #else
 #endif
 

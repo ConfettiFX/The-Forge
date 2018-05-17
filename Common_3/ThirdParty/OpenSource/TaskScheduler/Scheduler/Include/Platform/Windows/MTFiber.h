@@ -25,7 +25,7 @@
 #ifndef __MT_FIBER__
 #define __MT_FIBER__
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 
 
 #if MT_PTR64

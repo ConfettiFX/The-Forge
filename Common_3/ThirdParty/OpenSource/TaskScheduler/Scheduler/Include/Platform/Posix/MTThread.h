@@ -25,7 +25,7 @@
 #ifndef __MT_THREAD__
 #define __MT_THREAD__
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
@@ -47,8 +47,8 @@
     #define MAP_STACK (0)
 #endif
 
-#include <Platform/Common/MTThread.h>
-#include <MTAppInterop.h>
+#include "Platform/Common/MTThread.h"
+#include "MTAppInterop.h"
 
 namespace MT
 {

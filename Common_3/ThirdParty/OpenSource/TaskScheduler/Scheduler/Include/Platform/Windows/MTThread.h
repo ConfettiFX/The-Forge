@@ -24,7 +24,7 @@
 #ifndef __MT_THREAD__
 #define __MT_THREAD__
 
-#include <Platform/Common/MTThread.h>
+#include "Platform/Common/MTThread.h"
 
 namespace MT
 {

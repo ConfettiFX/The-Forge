@@ -54,7 +54,7 @@ LogManager::LogManager(LogLevel level /* = LogLevel::LL_Debug */) :
 	mRecordTimestamp(true),
 	mInWrite(false),
 	mQuietMode(false),
-	pLogFile(nullptr)
+	pLogFile(NULL)
 {
 	pLogInstance = this;
 
@@ -66,7 +66,7 @@ LogManager::LogManager(LogLevel level /* = LogLevel::LL_Debug */) :
 LogManager::~LogManager()
 {
 	Close();
-	pLogInstance =nullptr;
+	pLogInstance =NULL;
 }
 
 void LogManager::Open(const String& fileName)
@@ -101,7 +101,7 @@ void LogManager::Close()
 		pLogFile->Close();
 		pLogFile->~File();
 		conf_free(pLogFile);
-		pLogFile = nullptr;
+		pLogFile = NULL;
 	}
 }
 

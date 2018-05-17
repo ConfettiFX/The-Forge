@@ -150,7 +150,7 @@ bool Panini::Init(Renderer* renderer)
 	paninniRootDesc.ppStaticSamplers = &pSamplerPointWrap;
 	addRootSignature(pRenderer, &paninniRootDesc, &pRootSignaturePaniniPostProcess);
 
-	createTessellatedQuadBuffers(pRenderer, &pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, gPaniniDistortionTessellation[0], gPaniniDistortionTessellation[1]);
+	createTessellatedQuadBuffers(pRenderer, &pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, mPaniniDistortionTessellation[0], mPaniniDistortionTessellation[1]);
 
 	return true;
 }
@@ -220,7 +220,7 @@ void Panini::Draw(Cmd* cmd)
 	cmdBindPipeline(cmd, pPipelinePaniniPostProcess);
 
 	// draw
-	const uint32_t numIndices = gPaniniDistortionTessellation[0] * gPaniniDistortionTessellation[1] * 6;
+	const uint32_t numIndices = mPaniniDistortionTessellation[0] * mPaniniDistortionTessellation[1] * 6;
 	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad);
 	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad);
 	cmdDrawIndexed(cmd, numIndices, 0);

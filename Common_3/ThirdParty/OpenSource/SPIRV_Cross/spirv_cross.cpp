@@ -477,7 +477,7 @@ bool Compiler::is_matrix(const SPIRType &type) const
 
 ShaderResources Compiler::get_shader_resources() const
 {
-	return get_shader_resources(nullptr);
+	return get_shader_resources(NULL);
 }
 
 ShaderResources Compiler::get_shader_resources(const unordered_set<uint32_t> &active_variables) const
@@ -1648,7 +1648,7 @@ void Compiler::parse(const Instruction &instruction)
 		uint32_t type = ops[0];
 
 		auto &ctype = get<SPIRType>(type);
-		SPIRConstant *constant = nullptr;
+		SPIRConstant *constant = NULL;
 
 		// We can have constants which are structs and arrays.
 		// In this case, our SPIRConstant will be a list of other SPIRConstant ids which we
@@ -1791,7 +1791,7 @@ void Compiler::parse(const Instruction &instruction)
 			    "Cannot end a function before ending the current block.\n"
 			    "Likely cause: If this SPIR-V was created from glslang HLSL, make sure the entry point is valid.");
 		}
-		current_function = nullptr;
+		current_function = NULL;
 		break;
 	}
 
@@ -1824,7 +1824,7 @@ void Compiler::parse(const Instruction &instruction)
 		uint32_t target = ops[0];
 		current_block->terminator = SPIRBlock::Direct;
 		current_block->next_block = target;
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -1838,7 +1838,7 @@ void Compiler::parse(const Instruction &instruction)
 		current_block->false_block = ops[2];
 
 		current_block->terminator = SPIRBlock::Select;
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -1861,7 +1861,7 @@ void Compiler::parse(const Instruction &instruction)
 		// If we jump to next block, make it break instead since we're inside a switch case block at that point.
 		multiselect_merge_targets.insert(current_block->next_block);
 
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -1870,7 +1870,7 @@ void Compiler::parse(const Instruction &instruction)
 		if (!current_block)
 			SPIRV_CROSS_THROW("Trying to end a non-existing block.");
 		current_block->terminator = SPIRBlock::Kill;
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -1879,7 +1879,7 @@ void Compiler::parse(const Instruction &instruction)
 		if (!current_block)
 			SPIRV_CROSS_THROW("Trying to end a non-existing block.");
 		current_block->terminator = SPIRBlock::Return;
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -1889,7 +1889,7 @@ void Compiler::parse(const Instruction &instruction)
 			SPIRV_CROSS_THROW("Trying to end a non-existing block.");
 		current_block->terminator = SPIRBlock::Return;
 		current_block->return_value = ops[0];
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -1898,7 +1898,7 @@ void Compiler::parse(const Instruction &instruction)
 		if (!current_block)
 			SPIRV_CROSS_THROW("Trying to end a non-existing block.");
 		current_block->terminator = SPIRBlock::Unreachable;
-		current_block = nullptr;
+		current_block = NULL;
 		break;
 	}
 
@@ -3111,7 +3111,7 @@ void Compiler::analyze_variable_scope(SPIRFunction &entry)
 
 		Compiler &compiler;
 		std::unordered_map<uint32_t, std::unordered_set<uint32_t>> accessed_variables_to_block;
-		const SPIRBlock *current_block = nullptr;
+		const SPIRBlock *current_block = NULL;
 	} handler(*this);
 
 	// First, we map out all variable access within a function.

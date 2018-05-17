@@ -25,7 +25,7 @@
 #ifndef __MT_EVENT__
 #define __MT_EVENT__
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 
 
 

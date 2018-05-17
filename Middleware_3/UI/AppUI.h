@@ -104,7 +104,7 @@ public:
 	UIPropertyType type;
 	unsigned int flags;
 	void* source;
-	PropertyChangedCallback callback = nullptr;
+	PropertyChangedCallback callback = NULL;
 	uint32_t color; 
 	const char* tree = "none";
 

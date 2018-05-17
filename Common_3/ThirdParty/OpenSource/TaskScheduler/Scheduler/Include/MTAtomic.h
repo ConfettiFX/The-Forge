@@ -25,9 +25,9 @@
 #ifndef __MT_ATOMIC_MAIN__
 #define __MT_ATOMIC_MAIN__
 
-#include <MTTypes.h>
-#include <MTDebug.h>
-#include <Platform/Common/MTAtomic.h>
+#include "MTTypes.h"
+#include "MTDebug.h"
+#include "Platform/Common/MTAtomic.h"
 
 
 #endif

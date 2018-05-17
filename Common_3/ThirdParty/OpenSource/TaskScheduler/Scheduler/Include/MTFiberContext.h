@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include <MTTools.h>
-#include <MTPlatform.h>
-#include <MTTaskBucket.h>
+#include "MTTools.h"
+#include "MTPlatform.h"
+#include "MTTaskBucket.h"
 
 #ifdef Yield
 	#undef Yield

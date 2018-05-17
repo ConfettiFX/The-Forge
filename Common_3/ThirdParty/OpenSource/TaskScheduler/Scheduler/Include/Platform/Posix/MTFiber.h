@@ -56,7 +56,7 @@
     #define MAP_STACK (0)
 #endif
 
-#include <MTAppInterop.h>
+#include "MTAppInterop.h"
 #include "MTAtomic.h"
 
 #endif

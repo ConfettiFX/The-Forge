@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <MTConfig.h>
+#include "MTConfig.h"
 #include <stdint.h>
 
 #define MT_USED_IN_ASSERT(x) (void)(x)

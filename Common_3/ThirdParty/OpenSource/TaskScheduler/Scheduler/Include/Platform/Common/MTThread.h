@@ -24,7 +24,7 @@
 
 #define MT_CPUCORE_ANY (0xffffffff)
 
-#include <Platform/Common/MTAtomic.h>
+#include "Platform/Common/MTAtomic.h"
 
 namespace MT
 {

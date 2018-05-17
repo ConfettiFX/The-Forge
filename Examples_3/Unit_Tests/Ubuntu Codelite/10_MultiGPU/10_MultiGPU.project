@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="09_MultiGPU" InternalType="Console">
+<CodeLite_Project Name="10_MultiGPU" InternalType="Console">
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../../src/09_MultiGPU/09_MultiGPU.cpp"/>
+    <File Name="../../src/10_MultiGPU/10_MultiGPU.cpp"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include <MTTools.h>
-#include <MTPlatform.h>
-#include <MTArrayView.h>
-#include <MTColorTable.h>
-#include <MTStackRequirements.h>
+#include "MTTools.h"
+#include "MTPlatform.h"
+#include "MTArrayView.h"
+#include "MTColorTable.h"
+#include "MTStackRequirements.h"
 
 
 namespace MT

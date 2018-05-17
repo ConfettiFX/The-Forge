@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <MTTypes.h>
+#include "MTTypes.h"
 
 namespace MT
 {

@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include <MTTools.h>
-#include <MTPlatform.h>
-#include <MTTaskQueue.h>
-#include <MTConcurrentRingBuffer.h>
-#include <MTGroupedTask.h>
+#include "MTTools.h"
+#include "MTPlatform.h"
+#include "MTTaskQueue.h"
+#include "MTConcurrentRingBuffer.h"
+#include "MTGroupedTask.h"
 
 
 #ifdef MT_INSTRUMENTED_BUILD

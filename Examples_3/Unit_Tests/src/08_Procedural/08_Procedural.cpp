@@ -145,39 +145,39 @@ struct UniformLightData
 
 const uint32_t				gImageCount = 3;
 
-Texture*					pEnvTex = nullptr;
-Sampler*					pSamplerEnv = nullptr;
+Texture*					pEnvTex = NULL;
+Sampler*					pSamplerEnv = NULL;
 
 #ifdef TARGET_IOS
-Texture*                    pVirtualJoystickTex = nullptr;
+Texture*                    pVirtualJoystickTex = NULL;
 #endif
 
-Renderer*					pRenderer = nullptr;
+Renderer*					pRenderer = NULL;
 
 UIApp						gAppUI;
 GuiComponent*				pGui;
 
-Queue*						pGraphicsQueue = nullptr;
-CmdPool*					pCmdPool = nullptr;
-Cmd**						ppCmds = nullptr;
+Queue*						pGraphicsQueue = NULL;
+CmdPool*					pCmdPool = NULL;
+Cmd**						ppCmds = NULL;
 
-CmdPool*					pUICmdPool = nullptr;
-Cmd**						ppUICmds = nullptr;
+CmdPool*					pUICmdPool = NULL;
+Cmd**						ppUICmds = NULL;
 
-SwapChain*					pSwapChain = nullptr;
+SwapChain*					pSwapChain = NULL;
 
-RenderTarget*				pDepthBuffer = nullptr;
-Fence*						pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*					pImageAcquiredSemaphore = nullptr;
-Semaphore*					pRenderCompleteSemaphores[gImageCount] = { nullptr };
+RenderTarget*				pDepthBuffer = NULL;
+Fence*						pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*					pImageAcquiredSemaphore = NULL;
+Semaphore*					pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*						pShaderBRDF = nullptr;
-Pipeline*					pPipelineBRDF = nullptr;
-RootSignature*				pRootSigBRDF = nullptr;
+Shader*						pShaderBRDF = NULL;
+Pipeline*					pPipelineBRDF = NULL;
+RootSignature*				pRootSigBRDF = NULL;
 
-Shader*						pShaderBG = nullptr;
-Pipeline*					pPipelineBG = nullptr;
-RootSignature*				pRootSigBG = nullptr;
+Shader*						pShaderBG = NULL;
+Pipeline*					pPipelineBG = NULL;
+RootSignature*				pRootSigBG = NULL;
 
 UniformObjData				gUniformDataMVP;
 ScreenSize					gScreenSizeData;
@@ -189,20 +189,20 @@ UniformCamData				gUniformDataCamera;
 Buffer*						pBufferUniformLights[gImageCount];
 UniformLightData			gUniformDataLights;
 
-Shader*						pShaderPostProc = nullptr;
-Pipeline*					pPipelinePostProc = nullptr;
+Shader*						pShaderPostProc = NULL;
+Pipeline*					pPipelinePostProc = NULL;
 
-DepthState*					pDepth = nullptr;
-RasterizerState*			pRasterstateDefault = nullptr;
+DepthState*					pDepth = NULL;
+RasterizerState*			pRasterstateDefault = NULL;
 
 // Vertex buffers
-Buffer*						pSphereVertexBuffer = nullptr;
-Buffer*						pBGVertexBuffer = nullptr;
+Buffer*						pSphereVertexBuffer = NULL;
+Buffer*						pBGVertexBuffer = NULL;
 
 uint32_t					gFrameIndex = 0;
 
-GpuProfiler*				pGpuProfiler = nullptr;
-ICameraController*			pCameraController = nullptr;
+GpuProfiler*				pGpuProfiler = NULL;
+ICameraController*			pCameraController = NULL;
 
 #ifndef TARGET_IOS
 const int					gSphereResolution = 1024; // Increase for higher resolution spheres
@@ -229,7 +229,7 @@ static float				gPolarCapsAttitude = 1.1f;
 static float				gTerrainExp = 0.35f;
 static float				gTerrainSeed = 0.0f;
 
-float						bgVertex[256];
+float						gBgVertex[256];
 
 tinystl::vector<Buffer*>	gSphereBuffers[gImageCount];
 Buffer*						pScreenSizeBuffer;
@@ -362,13 +362,13 @@ public:
 		bgVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bgVbDesc.mDesc.mSize = bgDataSize;
 		bgVbDesc.mDesc.mVertexStride = sizeof(float) * 6; // 3 for vertex, 3 for normal
-		bgVbDesc.pData = bgVertex;
+		bgVbDesc.pData = gBgVertex;
 		bgVbDesc.ppBuffer = &pBGVertexBuffer;
 		addResource(&bgVbDesc);
 
 		// Create a screenSize uniform buffer
 
-		Buffer* screeSizeBuffer = nullptr;
+		Buffer* screeSizeBuffer = NULL;
 
 		BufferLoadDesc buffDesc = {};
 		buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
@@ -391,7 +391,7 @@ public:
 
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
-			Buffer* tBuffer = nullptr;
+			Buffer* tBuffer = NULL;
 			buffObjDesc.ppBuffer = &tBuffer;
 			addResource(&buffObjDesc);
 			gSphereBuffers[frameIdx].push_back(tBuffer);

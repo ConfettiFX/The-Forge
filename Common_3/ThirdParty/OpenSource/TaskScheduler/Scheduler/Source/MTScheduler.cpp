@@ -20,8 +20,8 @@
 // 	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // 	THE SOFTWARE.
 
-#include <MTScheduler.h>
-#include <MTStaticVector.h>
+#include "../Include/MTScheduler.h"
+#include "../Include/MTStaticVector.h"
 #include <string.h> // for memset
 
 

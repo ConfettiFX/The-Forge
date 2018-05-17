@@ -483,8 +483,8 @@ here if you need other then default behavior depending on your environment.
 #endif
 
 #ifndef RESOURCE_NULL
-// Value used as null pointer. Define it to e.g.: nullptr, NULL, 0, (void*)0.
-#define RESOURCE_NULL   nullptr
+// Value used as null pointer. Define it to e.g.: NULL, NULL, 0, (void*)0.
+#define RESOURCE_NULL   NULL
 #endif
 
 #ifndef RESOURCE_ALIGN_OF

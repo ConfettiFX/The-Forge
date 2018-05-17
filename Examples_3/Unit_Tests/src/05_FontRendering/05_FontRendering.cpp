@@ -122,20 +122,20 @@ struct SceneData
 
 const uint32_t	gImageCount = 3;
 
-Renderer*		pRenderer = nullptr;
-RenderTarget*	pRenderTarget = nullptr;
-Queue*			pGraphicsQueue = nullptr;
-CmdPool*		pCmdPool = nullptr;
-Cmd**			ppCmds = nullptr;
-GpuProfiler*	pGpuProfiler = nullptr;
+Renderer*		pRenderer = NULL;
+RenderTarget*	pRenderTarget = NULL;
+Queue*			pGraphicsQueue = NULL;
+CmdPool*		pCmdPool = NULL;
+Cmd**			ppCmds = NULL;
+GpuProfiler*	pGpuProfiler = NULL;
 UIApp			gAppUI;
 HiresTimer		gTimer;
 
-SwapChain*		pSwapChain = nullptr;
+SwapChain*		pSwapChain = NULL;
 
-Fence*			pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*		pImageAcquiredSemaphore = nullptr;
-Semaphore*		pRenderCompleteSemaphores[gImageCount] = { nullptr };
+Fence*			pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		pImageAcquiredSemaphore = NULL;
+Semaphore*		pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 uint32_t		gFrameIndex = 0;
 
