@@ -1638,6 +1638,7 @@ typedef struct Renderer {
 	VkPhysicalDeviceMemoryProperties*	pVkActiveGpuMemoryProperties;
 	VkPhysicalDeviceProperties*			pVkActiveGPUProperties;
 	VkDevice							pVkDevice;
+	VkDebugUtilsMessengerEXT			pVkDebugUtilsMessenger;
 	VkDebugReportCallbackEXT			pVkDebugReport;
 	tinystl::vector<const char*>		mInstanceLayers;
 	uint32_t							mVkUsedQueueCount[MAX_GPUS][16];

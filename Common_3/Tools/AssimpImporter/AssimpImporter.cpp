@@ -286,7 +286,7 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 	unsigned int flags = aiProcess_CalcTangentSpace | // calculate tangents and bitangents if possible
 		aiProcess_ValidateDataStructure;
 
-	const aiScene* pScene = aiImportFileExWithProperties(filename, flags, nullptr, propertyStore);
+	const aiScene* pScene = aiImportFileExWithProperties(filename, flags, NULL, propertyStore);
 
 	if (pScene == NULL)
 		return false;

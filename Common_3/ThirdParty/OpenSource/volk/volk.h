@@ -18,11 +18,11 @@
 /* VOLK_GENERATE_VERSION */
 
 #ifndef VK_NO_PROTOTYPES
-#	define VK_NO_PROTOTYPES
+#define VK_NO_PROTOTYPES
 #endif
 
 #ifndef VULKAN_H_
-#	include <vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 #endif
 
 #ifdef __cplusplus

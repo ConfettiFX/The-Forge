@@ -104,7 +104,7 @@ public:
 	UIPropertyType type;
 	unsigned int flags;
 	void* source;
-	PropertyChangedCallback callback = nullptr;
+	PropertyChangedCallback callback = NULL;
 	uint32_t color; 
 	const char* tree = "none";
 
@@ -232,6 +232,8 @@ public:
 
 	virtual bool load(class UIRenderer* renderer, int fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
 	virtual void unload() = 0;
+
+	virtual void* getContext() = 0;
 
 	virtual void clear() = 0;
 	virtual void processInput() = 0;

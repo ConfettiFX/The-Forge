@@ -85,37 +85,37 @@ const float			gRotSelfScale = 0.0004f;
 const float			gRotOrbitYScale = 0.001f;
 const float			gRotOrbitZScale = 0.00001f;
 
-Renderer*			pRenderer = nullptr;
+Renderer*			pRenderer = NULL;
 
-Queue*				pGraphicsQueue = nullptr;
-CmdPool*			pCmdPool = nullptr;
-Cmd**				ppCmds = nullptr;
+Queue*				pGraphicsQueue = NULL;
+CmdPool*			pCmdPool = NULL;
+Cmd**				ppCmds = NULL;
 
-SwapChain*			pSwapChain = nullptr;
-RenderTarget*		pDepthBuffer = nullptr;
-Fence*				pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*			pImageAcquiredSemaphore = nullptr;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { nullptr };
+SwapChain*			pSwapChain = NULL;
+RenderTarget*		pDepthBuffer = NULL;
+Fence*				pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*			pImageAcquiredSemaphore = NULL;
+Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*				pSphereShader = nullptr;
-Buffer*				pSphereVertexBuffer = nullptr;
-Pipeline*			pSpherePipeline = nullptr;
+Shader*				pSphereShader = NULL;
+Buffer*				pSphereVertexBuffer = NULL;
+Pipeline*			pSpherePipeline = NULL;
 
-Shader*				pSkyBoxDrawShader = nullptr;
-Buffer*				pSkyBoxVertexBuffer = nullptr;
-Pipeline*			pSkyBoxDrawPipeline = nullptr;
-RootSignature*		pRootSignature = nullptr;
-Sampler*			pSamplerSkyBox = nullptr;
+Shader*				pSkyBoxDrawShader = NULL;
+Buffer*				pSkyBoxVertexBuffer = NULL;
+Pipeline*			pSkyBoxDrawPipeline = NULL;
+RootSignature*		pRootSignature = NULL;
+Sampler*			pSamplerSkyBox = NULL;
 Texture*			pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-Texture*            pVirtualJoystickTex = nullptr;
+Texture*            pVirtualJoystickTex = NULL;
 #endif
-DepthState*			pDepth = nullptr;
-RasterizerState*	pSkyboxRast = nullptr;
-RasterizerState*	pSphereRast = nullptr;
+DepthState*			pDepth = NULL;
+RasterizerState*	pSkyboxRast = NULL;
+RasterizerState*	pSphereRast = NULL;
 
-Buffer*				pProjViewUniformBuffer = nullptr;
-Buffer*				pSkyboxUniformBuffer = nullptr;
+Buffer*				pProjViewUniformBuffer = NULL;
+Buffer*				pSkyboxUniformBuffer = NULL;
 
 uint32_t			gFrameIndex = 0;
 
@@ -123,7 +123,7 @@ int					gNumberOfSpherePoints;
 UniformBlock		gUniformData;
 PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 
-ICameraController*	pCameraController = nullptr;
+ICameraController*	pCameraController = NULL;
 
 /// UI
 UIApp				gAppUI;

@@ -196,7 +196,7 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	sprintf(_buffer, "%s_%u", pName, pGpuProfiler->mCurrentTimerCount);
 	uint32_t _hash = tinystl::hash(_buffer);
 
-	GpuTimerTree* node = nullptr;
+	GpuTimerTree* node = NULL;
 	if (pGpuProfiler->mGpuPoolHash.find(_hash) == pGpuProfiler->mGpuPoolHash.end())
 	{
 		// frist time seeing this

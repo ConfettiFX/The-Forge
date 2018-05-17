@@ -1,0 +1,224 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{604d24fe-b9b8-4cfc-b11f-a843d86328b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{4c26721a-0e41-44aa-bf82-504ae9916ff5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{4ea6e913-8c39-4c8d-ab90-af48104ba225}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{73c7697d-0e9d-412c-8028-db7d1dc84b6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS">
+      <UniqueIdentifier>{7bd9a2a0-6a06-4e16-9c74-cf9767f970db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Interfaces">
+      <UniqueIdentifier>{8605395c-fb23-455c-b11e-50d282c4b76f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\MemoryTracking">
+      <UniqueIdentifier>{c58d09d1-6c8f-4991-afe1-da12cdd08852}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Windows">
+      <UniqueIdentifier>{b414903d-30d7-4260-83a1-c7ee90bef017}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Math">
+      <UniqueIdentifier>{91d900f9-04dd-4b54-adb2-4fab68425134}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Logging">
+      <UniqueIdentifier>{66c32808-9a3d-4685-ad29-038188eb7541}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Image">
+      <UniqueIdentifier>{f84d90dd-066b-4801-8ec1-c18487a37ab2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Core">
+      <UniqueIdentifier>{d898429f-eea2-4f3d-bc8f-fa63b4e0bc16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\UI">
+      <UniqueIdentifier>{822cfa04-5888-4035-8466-3adb3cfd1f2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Camera">
+      <UniqueIdentifier>{122f004c-62ab-470d-8f56-03bd6dd797bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{0a82b10f-f254-4a59-98c0-5084c675b679}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies">
+      <UniqueIdentifier>{1245178a-18b1-4236-aa72-10ceb1e5400a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\11_RendererDLL\11_RendererDLL.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\MemoryTracking\MemoryTrackingManager.cpp">
+      <Filter>OS\MemoryTracking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Windows\WindowsLogManager.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Windows\WindowsThreadManager.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Logging\LogManager.cpp">
+      <Filter>OS\Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Image\Image.cpp">
+      <Filter>OS\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Core\FileSystem.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Core\PlatformEvents.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Core\Timer.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\UI\Fontstash.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\UI\AppUI.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\UI\UIRenderer.cpp">
+      <Filter>OS\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Camera\FpsCameraController.cpp">
+      <Filter>OS\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Camera\GuiCameraController.cpp">
+      <Filter>OS\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Renderer\GpuProfiler.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Renderer\ResourceLoader.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Renderer\RendererDLL.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\11_RendererDLL\PCDX12\basic.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCDX12\basic.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCDX12\skybox.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCDX12\skybox.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCVulkan\skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\11_RendererDLL\PCVulkan\skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IApp.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ICameraController.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ILogManager.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IMemoryManager.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IMiddleware.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IThread.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ITimeManager.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Math\MathTypes.h">
+      <Filter>OS\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Logging\LogManager.h">
+      <Filter>OS\Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Image\Image.h">
+      <Filter>OS\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Image\ImageEnums.h">
+      <Filter>OS\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Core\Compiler.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Core\DebugRenderer.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Core\RingBuffer.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\UI\Fontstash.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\UI\UIRenderer.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h">
+      <Filter>OS\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\Renderer\GpuProfiler.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\Renderer\ResourceLoader.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

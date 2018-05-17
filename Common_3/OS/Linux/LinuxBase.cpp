@@ -46,6 +46,8 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
+//#define AUTOMATED_TESTING 1
+
 namespace
 {
 	bool isCaptured = false;
@@ -268,6 +270,21 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 									  0, visualInfo->depth, InputOutput, visualInfo->visual,
                                       CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
 
+
+    //Added
+    //set window title name
+    XStoreName(winDesc->display, winDesc->xlib_window,app_name);
+      
+    char windowName[200];
+    sprintf(windowName , "%s",app_name);  
+    
+    //set hint name for window
+    XClassHint hint;
+    hint.res_class = windowName;//class name
+    hint.res_name = windowName;//application name
+    XSetClassHint(winDesc->display, winDesc->xlib_window,&hint);
+
+    
     XSelectInput(winDesc->display, winDesc->xlib_window, 
 		ExposureMask | 
 		KeyPressMask |      //Key press
@@ -350,6 +367,12 @@ void handleMessages(WindowsDesc* winDesc)
 				}
 				break;
 			}
+            
+            case DestroyNotify:
+            {
+                LOGINFO("Destroying the window");
+                break;
+            }
 			case ButtonRelease:
 			{
 				// Handle mouse release event
@@ -473,6 +496,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 	while (isRunning())
 	{
+
 		float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
@@ -486,7 +510,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		//used in automated tests only.
 			testingFrameCount++;
 			if (testingFrameCount >= testingDesiredFrameCount)
-				break;
+				gAppRunning = false;
 #endif
 	}
 

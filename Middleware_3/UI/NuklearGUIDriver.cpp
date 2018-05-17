@@ -262,6 +262,11 @@ void NuklearGUIDriver::unload()
 {
 }
 
+void* NuklearGUIDriver::getContext()
+{
+	return &impl->context;
+}
+
 void NuklearGUIDriver::onChar(const KeyboardCharEventData* data)
 {
 	if (impl->inputInstructionCount >= sizeof(impl->inputInstructions) / sizeof(impl->inputInstructions[0])) return;
@@ -625,11 +630,17 @@ inline void AddProperty(_Impl_NuklearGUIDriver* impl, UIProperty& pProp, uint32_
 	case UI_PROPERTY_TEXTINPUT:
 	{
 		nk_flags result_flags = nk_edit_string_zero_terminated(&impl->context, NK_EDIT_FIELD | NK_EDIT_AUTO_SELECT, (char*)prop.source, prop.settings.sLen, nk_filter_ascii);
+
 		if (result_flags == NK_EDIT_ACTIVE)
 		{
 			impl->needKeyboardInputNextFrame = true;
 		}
 
+		if (result_flags != NK_EDIT_INACTIVE)
+		{
+			impl->needKeyboardInputNextFrame = false;
+		}
+		
 		if (result_flags & NK_EDIT_COMMITED || impl->escWasPressed)
 		{
 			nk_edit_unfocus(&impl->context);
@@ -668,7 +679,8 @@ void NuklearGUIDriver::window(const char* pTitle,
 		for (uint32_t i = 0; i < propCount; ++i)
 		{
 			// If no tree, just add property
-			if (pProps[i].tree == "none")
+            //added strstr since direct comparison (pProps[i].tree =="none") was not working on linux           
+			if (strstr(pProps[i].tree,"none"))
 			{
 				AddProperty(impl, pProps[i], propCount, w);
 			}

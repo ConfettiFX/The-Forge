@@ -458,7 +458,7 @@ unsigned File::Read(void* dest, unsigned size)
 		mReadSyncNeeded = false;
 	}
 
-	_readFile(dest, size, pHandle);
+	size = (unsigned int)_readFile(dest, size, pHandle);
 	mWriteSyncNeeded = true;
 	mPosition += size;
 	return size;
@@ -904,7 +904,7 @@ bool FileSystem::CreateDir(const String& pathName)
 	}
 
 #ifdef _WIN32
-	bool success = (CreateDirectoryA(RemoveTrailingSlash(pathName).c_str(), nullptr) == TRUE) ||
+	bool success = (CreateDirectoryA(RemoveTrailingSlash(pathName).c_str(), NULL) == TRUE) ||
 		(GetLastError() == ERROR_ALREADY_EXISTS);
 #else
 	bool success = mkdir(GetNativePath(RemoveTrailingSlash(pathName)).c_str(), S_IRWXU) == 0 || errno == EEXIST;
@@ -962,7 +962,7 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 	startupInfo.hStdOutput = stdOut;
 	startupInfo.hStdError = stdOut;
 
-	if (!CreateProcessA(nullptr, (LPSTR)commandLine.c_str(), nullptr, nullptr, stdOut ? TRUE : FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInfo))
+	if (!CreateProcessA(NULL, (LPSTR)commandLine.c_str(), NULL, NULL, stdOut ? TRUE : FALSE, CREATE_NO_WINDOW, NULL, NULL, &startupInfo, &processInfo))
 		return -1;
 
 	WaitForSingleObject(processInfo.hProcess, INFINITE);

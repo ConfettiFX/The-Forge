@@ -135,36 +135,36 @@ struct UniformLightData
 
 const uint32_t				gImageCount = 3;
 
-Renderer*					pRenderer = nullptr;
+Renderer*					pRenderer = NULL;
 UIApp						gAppUI;
 
-Queue*						pGraphicsQueue = nullptr;
-CmdPool*					pCmdPool = nullptr;
-Cmd**						ppCmds = nullptr;
+Queue*						pGraphicsQueue = NULL;
+CmdPool*					pCmdPool = NULL;
+Cmd**						ppCmds = NULL;
 
-SwapChain*					pSwapChain = nullptr;
+SwapChain*					pSwapChain = NULL;
 
-RenderTarget*				pDepthBuffer = nullptr;
-Fence*						pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*					pImageAcquiredSemaphore = nullptr;
-Semaphore*					pRenderCompleteSemaphores[gImageCount] = { nullptr };
+RenderTarget*				pDepthBuffer = NULL;
+Fence*						pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*					pImageAcquiredSemaphore = NULL;
+Semaphore*					pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*						pShaderBRDF = nullptr;
-Pipeline*					pPipelineBRDF = nullptr;
-RootSignature*				pRootSigBRDF = nullptr;
+Shader*						pShaderBRDF = NULL;
+Pipeline*					pPipelineBRDF = NULL;
+RootSignature*				pRootSigBRDF = NULL;
 
-Buffer*						pSkyboxVertexBuffer = nullptr;
-Shader*						pSkyboxShader = nullptr;
-Pipeline*					pSkyboxPipeline = nullptr;
-RootSignature*				pSkyboxRootSignature = nullptr;
+Buffer*						pSkyboxVertexBuffer = NULL;
+Shader*						pSkyboxShader = NULL;
+Pipeline*					pSkyboxPipeline = NULL;
+RootSignature*				pSkyboxRootSignature = NULL;
 
-Texture*					pSkybox = nullptr;
-Texture*					pBRDFIntegrationMap = nullptr;
-Texture*					pIrradianceMap = nullptr;
-Texture*					pSpecularMap = nullptr;
+Texture*					pSkybox = NULL;
+Texture*					pBRDFIntegrationMap = NULL;
+Texture*					pIrradianceMap = NULL;
+Texture*					pSpecularMap = NULL;
 
 #ifdef TARGET_IOS
-Texture*					pVirtualJoystickTex = nullptr;
+Texture*					pVirtualJoystickTex = NULL;
 #endif
 
 UniformObjData				pUniformDataMVP;
@@ -176,20 +176,20 @@ UniformCamData				pUniformDataCamera;
 Buffer*						pBufferUniformLights;
 UniformLightData			pUniformDataLights;
 
-Shader*						pShaderPostProc = nullptr;
-Pipeline*					pPipelinePostProc = nullptr;
+Shader*						pShaderPostProc = NULL;
+Pipeline*					pPipelinePostProc = NULL;
 
-DepthState*					pDepth = nullptr;
-RasterizerState*			pRasterstateDefault = nullptr;
-Sampler*					pSamplerBilinear = nullptr;
+DepthState*					pDepth = NULL;
+RasterizerState*			pRasterstateDefault = NULL;
+Sampler*					pSamplerBilinear = NULL;
 
 // Vertex buffers
-Buffer*						pSphereVertexBuffer = nullptr;
+Buffer*						pSphereVertexBuffer = NULL;
 
 uint32_t					gFrameIndex = 0;
 
 
-GpuProfiler*				pGpuProfiler = nullptr;
+GpuProfiler*				pGpuProfiler = NULL;
 
 
 const int					gSphereResolution = 30; // Increase for higher resolution spheres
@@ -210,7 +210,7 @@ const uint32_t gSpecularMips = 5;
 
 tinystl::vector<Buffer*>	gSphereBuffers;
 
-ICameraController*			pCameraController = nullptr;
+ICameraController*			pCameraController = NULL;
 
 DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 
@@ -233,24 +233,24 @@ void transitionRenderTargets()
 void computePBRMaps()
 {
     // Temporary resources that will be loaded on PBR preprocessing.
-    Texture* pPanoSkybox = nullptr;
-    Buffer* pSkyBuffer = nullptr;
-    Buffer* pIrrBuffer = nullptr;
-    Buffer* pSpecBuffer = nullptr;
+    Texture* pPanoSkybox = NULL;
+    Buffer* pSkyBuffer = NULL;
+    Buffer* pIrrBuffer = NULL;
+    Buffer* pSpecBuffer = NULL;
     
-    Shader* pPanoToCubeShader = nullptr;
-    RootSignature* pPanoToCubeRootSignature = nullptr;
-    Pipeline* pPanoToCubePipeline = nullptr;
-    Shader* pBRDFIntegrationShader = nullptr;
-    RootSignature* pBRDFIntegrationRootSignature = nullptr;
-    Pipeline* pBRDFIntegrationPipeline = nullptr;
-    Shader* pIrradianceShader = nullptr;
-    RootSignature* pIrradianceRootSignature = nullptr;
-    Pipeline* pIrradiancePipeline = nullptr;
-    Shader* pSpecularShader = nullptr;
-    RootSignature* pSpecularRootSignature = nullptr;
-    Pipeline* pSpecularPipeline = nullptr;
-    Sampler* pSkyboxSampler = nullptr;
+    Shader* pPanoToCubeShader = NULL;
+    RootSignature* pPanoToCubeRootSignature = NULL;
+    Pipeline* pPanoToCubePipeline = NULL;
+    Shader* pBRDFIntegrationShader = NULL;
+    RootSignature* pBRDFIntegrationRootSignature = NULL;
+    Pipeline* pBRDFIntegrationPipeline = NULL;
+    Shader* pIrradianceShader = NULL;
+    RootSignature* pIrradianceRootSignature = NULL;
+    Pipeline* pIrradiancePipeline = NULL;
+    Shader* pSpecularShader = NULL;
+    RootSignature* pSpecularRootSignature = NULL;
+    Pipeline* pSpecularPipeline = NULL;
+    Sampler* pSkyboxSampler = NULL;
     
 	SamplerDesc samplerDesc = {
 		FILTER_TRILINEAR, FILTER_TRILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
@@ -311,7 +311,7 @@ void computePBRMaps()
     skyboxBufferDesc.mDesc.mElementCount = skyboxSize;
     skyboxBufferDesc.mDesc.mSize = skyboxSize;
 #endif
-    skyboxBufferDesc.pData = nullptr;
+    skyboxBufferDesc.pData = NULL;
     skyboxBufferDesc.ppBuffer = &pSkyBuffer;
     addResource(&skyboxBufferDesc);
     
@@ -329,7 +329,7 @@ void computePBRMaps()
     irradianceBufferDesc.mDesc.mElementCount = irrSize;
     irradianceBufferDesc.mDesc.mSize = irrSize;
 #endif
-    irradianceBufferDesc.pData = nullptr;
+    irradianceBufferDesc.pData = NULL;
     irradianceBufferDesc.ppBuffer = &pIrrBuffer;
     addResource(&irradianceBufferDesc);
     
@@ -348,7 +348,7 @@ void computePBRMaps()
     specularBufferDesc.mDesc.mSize = specSize;
 #endif
 	
-    specularBufferDesc.pData = nullptr;
+    specularBufferDesc.pData = NULL;
     specularBufferDesc.ppBuffer = &pSpecBuffer;
     addResource(&specularBufferDesc);
     
@@ -653,7 +653,7 @@ public:
 		{
 			for (int x = 0; x < gAmountObjectsinX; ++x)
 			{
-				Buffer* tBuffer = nullptr;
+				Buffer* tBuffer = NULL;
 
 				BufferLoadDesc buffDesc = {};
 				buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;

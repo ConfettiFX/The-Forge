@@ -654,7 +654,7 @@ struct SPIRVariable : IVariant
 	// Set to true while we're inside the for loop.
 	bool loop_variable_enable = false;
 
-	SPIRFunction::Parameter *parameter = nullptr;
+	SPIRFunction::Parameter *parameter = NULL;
 };
 
 struct SPIRConstant : IVariant
@@ -887,7 +887,7 @@ public:
 	T &get()
 	{
 		if (!holder)
-			SPIRV_CROSS_THROW("nullptr");
+			SPIRV_CROSS_THROW("NULL");
 		if (T::type != type)
 			SPIRV_CROSS_THROW("Bad cast");
 		return *static_cast<T *>(holder.get());
@@ -897,7 +897,7 @@ public:
 	const T &get() const
 	{
 		if (!holder)
-			SPIRV_CROSS_THROW("nullptr");
+			SPIRV_CROSS_THROW("NULL");
 		if (T::type != type)
 			SPIRV_CROSS_THROW("Bad cast");
 		return *static_cast<const T *>(holder.get());

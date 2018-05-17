@@ -564,7 +564,7 @@ public:
 
 				if (errorMessageID != ERROR_CLASS_ALREADY_EXISTS)
 				{
-					LPSTR messageBuffer = nullptr;
+					LPSTR messageBuffer = NULL;
 					size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 						NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 					String message(messageBuffer, size);
@@ -908,6 +908,9 @@ static IApp* pApp = NULL;
 
 static void onResize(const WindowResizeEventData* pData)
 {
+	if (!isRunning())
+		return;
+
 	pApp->mSettings.mWidth = getRectWidth(pData->rect);
 	pApp->mSettings.mHeight = getRectHeight(pData->rect);
 	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
@@ -943,7 +946,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	window.fullScreen = pSettings->mFullScreen;
 	window.maximized = false;
-	openWindow(pApp->GetName(), &window);
+
+	if (!pSettings->mExternalWindow)
+		openWindow(pApp->GetName(), &window);
 
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);

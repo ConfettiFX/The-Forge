@@ -56,7 +56,7 @@
 
 #define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
-ICameraController* pCameraController = nullptr;
+ICameraController* pCameraController = NULL;
 
 // Grass Parameters
 static const unsigned int NUM_BLADES = 1 << 16;
@@ -70,19 +70,12 @@ static const unsigned int NUM_BLADES = 1 << 16;
 
 enum
 {
-	WindMode_Straight = 0,
-	WindMode_Radial = 1,
+	WIND_MODE_STRAIGHT = 0,
+	WIND_MODE_RADIAL = 1,
 };
 
-enum
-{
-	FillMode_Solid = 0,
-	FillMode_Wireframe = 1
-};
-
-
-static int gFillMode = FillMode_Solid;
-static int gWindMode = WindMode_Straight;
+static int gFillMode = FILL_MODE_SOLID;
+static int gWindMode = WIND_MODE_STRAIGHT;
 static int gMaxTessellationLevel = 5;
 
 static float gWindSpeed = 25.0f;
@@ -97,35 +90,35 @@ struct GrassUniformBlock
 	mat4 mProj;
 	mat4 mViewProj;
 
-	float deltaTime;
-	float totalTime;
+	float mDeltaTime;
+	float mTotalTime;
 	
-	int gWindMode;
-	int gMaxTessellationLevel;
+	int mWindMode;
+	int mMaxTessellationLevel;
 
- 	float windSpeed;
- 	float windWidth;
- 	float windStrength;
+ 	float mWindSpeed;
+ 	float mWindWidth;
+ 	float mWindStrength;
 };
 
 struct Blade
 {
 	// Position and direction
-	vec4 v0;
+	vec4 mV0;
 	// Bezier point and height
-	vec4 v1;
+	vec4 mV1;
 	// Physical model guide and width
-	vec4 v2;
+	vec4 mV2;
 	// Up vector and stiffness coefficient
-	vec4 up;
+	vec4 mUp;
 };
 
 struct BladeDrawIndirect
 {
-	uint32_t vertexCount;
-	uint32_t instanceCount;
-	uint32_t firstVertex;
-	uint32_t firstInstance;
+	uint32_t mVertexCount;
+	uint32_t mInstanceCount;
+	uint32_t mFirstVertex;
+	uint32_t mFirstInstance;
 };
 
 #ifdef METAL
@@ -145,7 +138,7 @@ struct HullOut
 };
 #endif
 
-tinystl::vector<Blade> blades;
+tinystl::vector<Blade> gBlades;
 
 FileSystem gFileSystem;
 ThreadPool gThreadSystem;
@@ -200,74 +193,74 @@ const char* pszRoots[] =
 
 const uint32_t	 gImageCount = 3;
 
-Renderer*    pRenderer = nullptr;
+Renderer*    pRenderer = NULL;
 
-Queue*           pGraphicsQueue = nullptr;
-CmdPool*         pCmdPool = nullptr;
-Cmd**            ppCmds = nullptr;
+Queue*           pGraphicsQueue = NULL;
+CmdPool*         pCmdPool = NULL;
+Cmd**            ppCmds = NULL;
 
-CmdPool*         pUICmdPool = nullptr;
-Cmd**            ppUICmds = nullptr;
+CmdPool*         pUICmdPool = NULL;
+Cmd**            ppUICmds = NULL;
 
-SwapChain*       pSwapChain = nullptr;
-RenderTarget*    pDepthBuffer = nullptr;
-Fence*           pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*       pImageAcquiredSemaphore = nullptr;
-Semaphore*       pRenderCompleteSemaphores[gImageCount] = { nullptr };
+SwapChain*       pSwapChain = NULL;
+RenderTarget*    pDepthBuffer = NULL;
+Fence*           pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*       pImageAcquiredSemaphore = NULL;
+Semaphore*       pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Sampler*         pSampler = nullptr;
-DepthState*      pDepth = nullptr;
-RasterizerState* pRast = nullptr;
-RasterizerState* pWireframeRast = nullptr;
+Sampler*         pSampler = NULL;
+DepthState*      pDepth = NULL;
+RasterizerState* pRast = NULL;
+RasterizerState* pWireframeRast = NULL;
 
-RenderTarget*	 PGrassRenderTarget = nullptr;
+RenderTarget*	 PGrassRenderTarget = NULL;
 
-Buffer*          pGrassUniformBuffer = nullptr;
-Buffer*          pBladeStorageBuffer = nullptr;
-Buffer*          pCulledBladeStorageBuffer = nullptr;
+Buffer*          pGrassUniformBuffer = NULL;
+Buffer*          pBladeStorageBuffer = NULL;
+Buffer*          pCulledBladeStorageBuffer = NULL;
 
-Buffer*          pBladeNumBuffer = nullptr;
+Buffer*          pBladeNumBuffer = NULL;
 
 #ifdef METAL
-Buffer*         pTessFactorsBuffer = nullptr;
-Buffer*         pHullOutputBuffer = nullptr;
+Buffer*         pTessFactorsBuffer = NULL;
+Buffer*         pHullOutputBuffer = NULL;
 #endif
 
-CommandSignature* pIndirectCommandSignature = nullptr;
+CommandSignature* pIndirectCommandSignature = NULL;
 
-Shader*          pGrassShader = nullptr;
-Pipeline*        pGrassPipeline = nullptr;
+Shader*          pGrassShader = NULL;
+Pipeline*        pGrassPipeline = NULL;
 #ifdef METAL
-Shader*          pGrassVertexHullShader = nullptr;
-Pipeline*        pGrassVertexHullPipeline = nullptr;
+Shader*          pGrassVertexHullShader = NULL;
+Pipeline*        pGrassVertexHullPipeline = NULL;
 #endif
 
-Pipeline*        pGrassPipelineForWireframe = nullptr;
+Pipeline*        pGrassPipelineForWireframe = NULL;
 
-RootSignature*   pGrassRootSignature = nullptr;
+RootSignature*   pGrassRootSignature = NULL;
 #ifdef METAL
-RootSignature*   pGrassVertexHullRootSignature = nullptr;
+RootSignature*   pGrassVertexHullRootSignature = NULL;
 #endif
 
 #ifdef TARGET_IOS
-Texture*         pVirtualJoystickTex = nullptr;
+Texture*         pVirtualJoystickTex = NULL;
 #endif
 
-Shader*          pComputeShader = nullptr;
-Pipeline*        pComputePipeline = nullptr;
-RootSignature*   pComputeRootSignature = nullptr;
+Shader*          pComputeShader = NULL;
+Pipeline*        pComputePipeline = NULL;
+RootSignature*   pComputeRootSignature = NULL;
 
 uint32_t         gFrameIndex = 0;
 
 GrassUniformBlock gGrassUniformData;
 
-GpuProfiler*	pGpuProfiler = nullptr;
+GpuProfiler*	pGpuProfiler = NULL;
 
-unsigned StartTime = 0;
+unsigned gStartTime = 0;
 
 struct ObjectProperty
 {
-	float rotX = 0, rotY = 0;
+	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
 DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
@@ -277,17 +270,17 @@ class Tessellation : public IApp
 public:
 	bool Init()
 	{
-		HiresTimer StartTime;
+		HiresTimer startTime;
 
 		initNoise();
 
 		initBlades();
 
 		BladeDrawIndirect indirectDraw;
-		indirectDraw.vertexCount = NUM_BLADES;
-		indirectDraw.instanceCount = 1;
-		indirectDraw.firstVertex = 0;
-		indirectDraw.firstInstance = 0;
+		indirectDraw.mVertexCount = NUM_BLADES;
+		indirectDraw.mInstanceCount = 1;
+		indirectDraw.mFirstVertex = 0;
+		indirectDraw.mFirstInstance = 0;
 
 		// renderer for swapchains
 		RendererDesc settings = { 0 };
@@ -409,7 +402,7 @@ public:
 		sbBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sbBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
 
-		sbBladeDesc.pData = blades.data();
+		sbBladeDesc.pData = gBlades.data();
 		sbBladeDesc.ppBuffer = &pBladeStorageBuffer;
 		addResource(&sbBladeDesc);
 
@@ -423,7 +416,7 @@ public:
 		sbCulledBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sbCulledBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
 
-		sbCulledBladeDesc.pData = blades.data();
+		sbCulledBladeDesc.pData = gBlades.data();
 		sbCulledBladeDesc.ppBuffer = &pCulledBladeStorageBuffer;
 		addResource(&sbCulledBladeDesc);
 
@@ -478,9 +471,9 @@ public:
 		cmdDesc.pRootSignature = pGrassRootSignature;
 		addIndirectCommandSignature(pRenderer, &cmdDesc, &pIndirectCommandSignature);
 
-		gGrassUniformData.totalTime = 0.0f;
-		gGrassUniformData.gMaxTessellationLevel = gMaxTessellationLevel;
-		gGrassUniformData.gWindMode = gWindMode;
+		gGrassUniformData.mTotalTime = 0.0f;
+		gGrassUniformData.mMaxTessellationLevel = gMaxTessellationLevel;
+		gGrassUniformData.mWindMode = gWindMode;
 
 #if !USE_CAMERACONTROLLER
 		// initial camera properties
@@ -513,8 +506,8 @@ public:
 			NULL
 		};
 		static const int enumValues[] = {
-			FillMode_Solid,
-			FillMode_Wireframe,
+			FILL_MODE_SOLID,
+			FILL_MODE_WIREFRAME,
 			0
 		};
 
@@ -524,8 +517,8 @@ public:
 			NULL
 		};
 		static const int enumWindValues[] = {
-			WindMode_Straight,
-			WindMode_Radial,
+			WIND_MODE_STRAIGHT,
+			WIND_MODE_RADIAL,
 			0
 		};
 
@@ -564,7 +557,7 @@ public:
 #endif
 #endif
 
-		LOGINFOF("Load time %f ms", StartTime.GetUSec(true) / 1000.0f);
+		LOGINFOF("Load time %f ms", startTime.GetUSec(true) / 1000.0f);
 		return true;
 	}
 
@@ -760,21 +753,21 @@ public:
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 
-		gGrassUniformData.deltaTime = deltaTime;
+		gGrassUniformData.mDeltaTime = deltaTime;
 		gGrassUniformData.mProj = projMat;
 		gGrassUniformData.mView = viewMat;
 		gGrassUniformData.mViewProj = gGrassUniformData.mProj * gGrassUniformData.mView;
 		gGrassUniformData.mInvView = inverse(viewMat);
 		gGrassUniformData.mWorld = mat4::identity();
 
-		gGrassUniformData.totalTime = (float)(getSystemTime() - StartTime) / 1000.0f;;
+		gGrassUniformData.mTotalTime = (float)(getSystemTime() - gStartTime) / 1000.0f;;
 
-		gGrassUniformData.gMaxTessellationLevel = gMaxTessellationLevel;
-		gGrassUniformData.gWindMode = gWindMode;
+		gGrassUniformData.mMaxTessellationLevel = gMaxTessellationLevel;
+		gGrassUniformData.mWindMode = gWindMode;
 
-		gGrassUniformData.windSpeed = gWindSpeed;
-		gGrassUniformData.windWidth = gWindWidth;
-		gGrassUniformData.windStrength = gWindStrength;
+		gGrassUniformData.mWindSpeed = gWindSpeed;
+		gGrassUniformData.mWindWidth = gWindWidth;
+		gGrassUniformData.mWindStrength = gWindStrength;
 
 		BufferUpdateDesc cbvUpdate = { pGrassUniformBuffer, &gGrassUniformData };
 		updateResource(&cbvUpdate);
@@ -892,7 +885,7 @@ public:
 		Buffer* tessBuffers[] = { pTessFactorsBuffer, pHullOutputBuffer };
 		cmdBindVertexBuffer(cmd, 2, tessBuffers);
 #endif
-		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, nullptr, 0);
+		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, NULL, 0);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
@@ -1025,7 +1018,7 @@ public:
 
 	void initBlades()
 	{
-		blades.reserve(NUM_BLADES);
+		gBlades.reserve(NUM_BLADES);
 
 		for (unsigned int i = 0; i < NUM_BLADES; i++) {
 			Blade currentBlade;// = Blade();
@@ -1038,21 +1031,21 @@ public:
 			float z = (generateRandomFloat() - 0.5f) * PLANE_SIZE;
 			float direction = generateRandomFloat() * 2.f * 3.14159265f;
 			vec3 bladePosition(x, y, z);
-			currentBlade.v0 = vec4(bladePosition, direction);
+			currentBlade.mV0 = vec4(bladePosition, direction);
 
 			// Bezier point and height (v1)
 			float height = MIN_HEIGHT + (generateRandomFloat() * (MAX_HEIGHT - MIN_HEIGHT));
-			currentBlade.v1 = vec4(bladePosition + bladeUp * height, height);
+			currentBlade.mV1 = vec4(bladePosition + bladeUp * height, height);
 
 			// Physical model guide and width (v2)
 			float width = MIN_WIDTH + (generateRandomFloat() * (MAX_WIDTH - MIN_WIDTH));
-			currentBlade.v2 = vec4(bladePosition + bladeUp * height, width);
+			currentBlade.mV2 = vec4(bladePosition + bladeUp * height, width);
 
 			// Up vector and stiffness coefficient (up)
 			float stiffness = MIN_BEND + (generateRandomFloat() * (MAX_BEND - MIN_BEND));
-			currentBlade.up = vec4(bladeUp, stiffness);
+			currentBlade.mUp = vec4(bladeUp, stiffness);
 
-			blades.push_back(currentBlade);
+			gBlades.push_back(currentBlade);
 		}
 	}
 #if defined(VULKAN)

@@ -139,44 +139,44 @@ const char* pszRoots[] =
 
 const uint32_t		gImageCount = 3;
 
-Renderer*			pRenderer = nullptr;
-Buffer*				pUniformBuffer = nullptr;
+Renderer*			pRenderer = NULL;
+Buffer*				pUniformBuffer = NULL;
 
-Queue*				pGraphicsQueue = nullptr;
-CmdPool*			pCmdPool = nullptr;
-Cmd**				ppCmds = nullptr;
-Sampler*			pSampler = nullptr;
-RasterizerState*	pRast = nullptr;
+Queue*				pGraphicsQueue = NULL;
+CmdPool*			pCmdPool = NULL;
+Cmd**				ppCmds = NULL;
+Sampler*			pSampler = NULL;
+RasterizerState*	pRast = NULL;
 
-Fence*				pRenderCompleteFences[gImageCount] = { nullptr };
-Semaphore*			pImageAcquiredSemaphore = nullptr;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { nullptr };
+Fence*				pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*			pImageAcquiredSemaphore = NULL;
+Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-SwapChain*			pSwapChain = nullptr;
+SwapChain*			pSwapChain = NULL;
 
-Shader*				pShader = nullptr;
-Pipeline*			pPipeline = nullptr;
-RootSignature*		pRootSignature = nullptr;
+Shader*				pShader = NULL;
+Pipeline*			pPipeline = NULL;
+RootSignature*		pRootSignature = NULL;
 
-Shader*				pComputeShader = nullptr;
-Pipeline*			pComputePipeline = nullptr;
-RootSignature*		pComputeRootSignature = nullptr;
-Texture*			pTextureComputeOutput = nullptr;
+Shader*				pComputeShader = NULL;
+Pipeline*			pComputePipeline = NULL;
+RootSignature*		pComputeRootSignature = NULL;
+Texture*			pTextureComputeOutput = NULL;
 
 #ifdef TARGET_IOS
-Texture*            pVirtualJoystickTex = nullptr;
+Texture*            pVirtualJoystickTex = NULL;
 #endif
 
 uint32_t			gFrameIndex = 0;
 UniformBlock		gUniformData;
 
 UIApp				gAppUI;
-GpuProfiler*		pGpuProfiler = nullptr;
-ICameraController*	pCameraController = nullptr;
+GpuProfiler*		pGpuProfiler = NULL;
+ICameraController*	pCameraController = NULL;
 
 struct ObjectProperty
 {
-  float rotX = 0, rotY = 0;
+  float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
 DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
@@ -447,14 +447,14 @@ public:
 		pCameraController->update(deltaTime);
 
 		const float k_wrapAround = (float)(M_PI * 2.0);
-		if (gObjSettings.rotX > k_wrapAround)
-			gObjSettings.rotX -= k_wrapAround;
-		if (gObjSettings.rotX < -k_wrapAround)
-			gObjSettings.rotX += k_wrapAround;
-		if (gObjSettings.rotY > k_wrapAround)
-			gObjSettings.rotY -= k_wrapAround;
-		if (gObjSettings.rotY < -k_wrapAround)
-			gObjSettings.rotY += k_wrapAround;
+		if (gObjSettings.mRotX > k_wrapAround)
+			gObjSettings.mRotX -= k_wrapAround;
+		if (gObjSettings.mRotX < -k_wrapAround)
+			gObjSettings.mRotX += k_wrapAround;
+		if (gObjSettings.mRotY > k_wrapAround)
+			gObjSettings.mRotY -= k_wrapAround;
+		if (gObjSettings.mRotY < -k_wrapAround)
+			gObjSettings.mRotY += k_wrapAround;
 
 		UpdateMu(deltaTime, &gMuT, gMuA, gMuB);
 		Interpolate(gMuC, gMuT, gMuA, gMuB);
@@ -464,7 +464,7 @@ public:
 		// Compute matrices
 		/************************************************************************/
 #if USE_CAMERACONTROLLER
-		mat4 rotMat = mat4::rotationX(gObjSettings.rotX) * mat4::rotationY(gObjSettings.rotY);
+		mat4 rotMat = mat4::rotationX(gObjSettings.mRotX) * mat4::rotationY(gObjSettings.mRotY);
 		mat4 viewMat = pCameraController->getViewMatrix();
 #else
 		mat4 rotMat = mat4::rotationX(gObjSettings.rotX) * mat4::rotationY(gObjSettings.rotY);

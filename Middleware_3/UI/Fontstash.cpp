@@ -170,7 +170,7 @@ float Fontstash::measureText(float* out_bounds, const char* message, float x, fl
 
 float Fontstash::measureText(float* out_bounds, const char* message, int messageLength, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=0.0f*/, float blur/*=0.0f*/)
 {
-	if(out_bounds == nullptr)
+	if(out_bounds == NULL)
 		return 0;
 
 	FONScontext* fs=impl->fontStashContext;

@@ -27,7 +27,19 @@
 #define RENDERER_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
 #define MAX_FRAMES_IN_FLIGHT 3U
+/************************************************************************/
+// Debugging Macros
+/************************************************************************/
+// Uncomment this to enable render doc capture support
+//#define USE_RENDER_DOC
 
+// Debug Utils Extension is still WIP and does not work with all Validation Layers
+// Leave it upto user to enable this
+#ifndef USE_RENDER_DOC
+//#define USE_DEBUG_UTILS_EXTENSION
+#endif
+/************************************************************************/
+/************************************************************************/
 #if defined(_WIN32)
 // Pull in minimal Windows headers
 #if ! defined(NOMINMAX)
@@ -44,10 +56,6 @@
 #define vsprintf_s vsnprintf
 #define strncpy_s strncpy
 #define vsnprintf_s vsnprintf
-#endif
-
-#if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
-namespace RENDERER_CPP_NAMESPACE {
 #endif
 
 #include "../IRenderer.h"
@@ -241,7 +249,12 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
       VK_KHR_XCB_SURFACE_EXTENSION_NAME,
 #endif
-      VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+	  // Render-Doc does not support the new debug utils extension yet
+#ifdef USE_DEBUG_UTILS_EXTENSION
+	  VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+#else
+	  VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+#endif
 	  VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
 	  /************************************************************************/
 	  // VR Extensions
@@ -261,10 +274,13 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
       VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 	  VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
 	  VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
-	  VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 	  VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+	  // Render-Doc does not support the new debug utils extension yet so we need to use the debug marker extension
+#ifndef USE_DEBUG_UTILS_EXTENSION
+	  VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
+#endif
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	  VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
 #endif
@@ -289,7 +305,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	  /************************************************************************/
    };
 
-	static bool	gDebugMarkerExtension = false;
+#ifdef USE_DEBUG_UTILS_EXTENSION
+	static bool	gDebugUtilsExtension = false;
+#endif
 	static bool	gRenderDocLayerEnabled = false;
 	static bool	gDedicatedAllocationExtension = false;
 	static bool	gExternalMemoryExtension = false;
@@ -297,6 +315,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	static bool	gDeviceGroupCreationExtension = false;
 	static bool	gDescriptorIndexingExtension = false;
 	static bool	gAMDGCNShaderExtension = false;
+
+	static bool	gDebugMarkerSupport = false;
 	/************************************************************************/
 	// IMPLEMENTATION
 	/************************************************************************/
@@ -320,7 +340,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	// Internal utility functions (may become external one day)
 	VkSampleCountFlagBits	util_to_vk_sample_count(SampleCount sampleCount);
 	VkFormat				util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
-
+#if !defined(RENDERER_DLL_IMPORT) && !defined(ENABLE_RENDERER_API_SWITCHING)
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 	API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
@@ -330,6 +350,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
 	API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+#endif
   /************************************************************************/
   // DescriptorInfo Heap Defines
   /************************************************************************/
@@ -338,7 +359,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 	VkDescriptorPoolSize gDescriptorHeapPoolSizes[VK_DESCRIPTOR_TYPE_RANGE_SIZE] =
 	{
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, gDefaultDescriptorPoolSize },
+	{ VK_DESCRIPTOR_TYPE_SAMPLER, gDefaultDescriptorPoolSize },
 		// Not used in framework
 	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
 	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gDefaultDescriptorPoolSize * 4 },
@@ -626,21 +647,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	// Get renderer shader macros
 	/************************************************************************/
-	// renderer shader macros allocated on stack
-	ShaderMacro _rendererShaderDefines[2];
-	const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
-	{
-		// Set shader macro based on runtime information
-		_rendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
-		_rendererShaderDefines[0].value = String::format("%d", static_cast<int>(gDescriptorIndexingExtension));
-		_rendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
-		_rendererShaderDefines[1].value =
-			String::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
-
-		RendererShaderDefinesDesc defineDesc = { _rendererShaderDefines , 2 };
-		return defineDesc;
-	}
-
 	VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] =
 	{
 		VK_PIPELINE_BIND_POINT_MAX_ENUM,
@@ -721,9 +727,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				attachments[ssidx].flags = 0;
 				attachments[ssidx].format = util_to_vk_image_format(pDesc->pColorFormats[i], pDesc->pSrgbValues[i]);
 				attachments[ssidx].samples = sample_count;
-				attachments[ssidx].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				attachments[ssidx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				attachments[ssidx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				attachments[ssidx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				attachments[ssidx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				attachments[ssidx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 				attachments[ssidx].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				attachments[ssidx].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -740,9 +746,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			attachments[idx].flags = 0;
 			attachments[idx].format = util_to_vk_image_format(pDesc->mDepthStencilFormat, false);
 			attachments[idx].samples = sample_count;
-			attachments[idx].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			attachments[idx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[idx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachments[idx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			attachments[idx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[idx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachments[idx].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			attachments[idx].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -934,15 +940,47 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	}
 
 	// Proxy debug callback for Vulkan layers
+#ifdef USE_DEBUG_UTILS_EXTENSION
+	static VkBool32 VKAPI_PTR internal_debug_report_callback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT				messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+		void*										pUserData)
+	{
+		const char* pLayerPrefix = pCallbackData->pMessageIdName;
+		const char* pMessage = pCallbackData->pMessage;
+		int32_t messageCode = pCallbackData->messageIdNumber;
+		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+		{
+			LOGINFOF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
+		}
+		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+		{
+			// Code 64 is vkCmdClearAttachments issued before any draws
+			// We ignore this since we dont use load store actions
+			// Instead we clear the attachments in the DirectX way
+			if (messageCode == 64)
+				return VK_FALSE;
+
+			LOGWARNINGF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
+		}
+		else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+		{
+			LOGERRORF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
+		}
+
+		return VK_FALSE;
+	}
+#else
 	static VKAPI_ATTR VkBool32 VKAPI_CALL internal_debug_report_callback(
-		VkDebugReportFlagsEXT      flags,
-		VkDebugReportObjectTypeEXT objectType,
-		uint64_t                   object,
-		size_t                     location,
-		int32_t                    messageCode,
-		const char*                pLayerPrefix,
-		const char*                pMessage,
-		void*                      pUserData
+		VkDebugReportFlagsEXT		flags,
+		VkDebugReportObjectTypeEXT	objectType,
+		uint64_t					object,
+		size_t						location,
+		int32_t						messageCode,
+		const char*					pLayerPrefix,
+		const char*					pMessage,
+		void*						pUserData
 	)
 	{
 		if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
@@ -952,7 +990,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			// Vulkan SDK 1.0.68 fixes the Dedicated memory binding validation error bugs
 #if VK_HEADER_VERSION < 68
 			// Disable warnings for bind memory for dedicated allocations extension
-			if(gDedicatedAllocationExtension && messageCode != 11 && messageCode != 12)
+			if (gDedicatedAllocationExtension && messageCode != 11 && messageCode != 12)
 #endif
 				LOGWARNINGF("[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
 		}
@@ -965,6 +1003,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		return VK_FALSE;
 	}
+#endif
 	/************************************************************************/
 	// Create default resources to be used a null descriptors in case user does not specify some descriptors
 	/************************************************************************/
@@ -1521,6 +1560,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		app_info.apiVersion = VK_API_VERSION_1_1;
 
+		VkResult vk_res = VK_RESULT_MAX_ENUM;
+
 		// Instance
 		{
            // check to see if the layers are present
@@ -1579,6 +1620,10 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
                               //gVkWantedInstanceExtensions[k] = "";
 							  if (strcmp(gVkWantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
 								  gDeviceGroupCreationExtension = true;
+#ifdef USE_DEBUG_UTILS_EXTENSION
+							  if (strcmp(gVkWantedInstanceExtensions[k], VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+								  gDebugUtilsExtension = true;
+#endif
                               break;
                           }
                        }
@@ -1597,7 +1642,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			create_info.ppEnabledLayerNames = pRenderer->mInstanceLayers.data();
 			create_info.enabledExtensionCount = extension_count;
 			create_info.ppEnabledExtensionNames = pRenderer->gVkInstanceExtensions;
-			VkResult vk_res = vkCreateInstance(&create_info, NULL, &(pRenderer->pVkInstance));
+			vk_res = vkCreateInstance(&create_info, NULL, &(pRenderer->pVkInstance));
 			ASSERT(VK_SUCCESS == vk_res);
 		}
 
@@ -1606,25 +1651,44 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		// Debug
 		{
-			if ((vkCreateDebugReportCallbackEXT) && (vkDestroyDebugReportCallbackEXT) && (vkDebugReportMessageEXT)) {
-				DECLARE_ZERO(VkDebugReportCallbackCreateInfoEXT, create_info);
-				create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-				create_info.pNext = NULL;
-				create_info.pfnCallback = internal_debug_report_callback;
+#ifdef USE_DEBUG_UTILS_EXTENSION
+			if (gDebugUtilsExtension)
+			{
+				VkDebugUtilsMessengerCreateInfoEXT create_info = {};
+				create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+				create_info.pfnUserCallback = internal_debug_report_callback;
+				create_info.messageSeverity =
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+				create_info.messageType =
+					VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+				create_info.flags = 0;
 				create_info.pUserData = NULL;
-				create_info.flags = 
-					VK_DEBUG_REPORT_WARNING_BIT_EXT |
-					// VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | Performance warnings are not very vaild on desktop
-					VK_DEBUG_REPORT_ERROR_BIT_EXT |
-					VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-				VkResult res = vkCreateDebugReportCallbackEXT(pRenderer->pVkInstance, &create_info, NULL, &(pRenderer->pVkDebugReport));
-				if (VK_SUCCESS != res) {
-					internal_log(LOG_TYPE_ERROR, "vkCreateDebugReportCallbackEXT failed - disabling Vulkan debug callbacks", "internal_vk_init_instance");
-					vkCreateDebugReportCallbackEXT = NULL;
-					vkDestroyDebugReportCallbackEXT = NULL;
-					vkDebugReportMessageEXT = NULL;
+				VkResult res = vkCreateDebugUtilsMessengerEXT(pRenderer->pVkInstance, &create_info, NULL, &(pRenderer->pVkDebugUtilsMessenger));
+				if (VK_SUCCESS != res)
+				{
+					internal_log(LOG_TYPE_ERROR, "vkCreateDebugUtilsMessengerEXT failed - disabling Vulkan debug callbacks", "internal_vk_init_instance");
 				}
 			}
+#else
+			DECLARE_ZERO(VkDebugReportCallbackCreateInfoEXT, create_info);
+			create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+			create_info.pNext = NULL;
+			create_info.pfnCallback = internal_debug_report_callback;
+			create_info.pUserData = NULL;
+			create_info.flags =
+				VK_DEBUG_REPORT_WARNING_BIT_EXT |
+				// VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | Performance warnings are not very vaild on desktop
+				VK_DEBUG_REPORT_ERROR_BIT_EXT |
+				VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+			VkResult res = vkCreateDebugReportCallbackEXT(pRenderer->pVkInstance, &create_info, NULL, &(pRenderer->pVkDebugReport));
+			if (VK_SUCCESS != res)
+			{
+				internal_log(LOG_TYPE_ERROR, "vkCreateDebugReportCallbackEXT failed - disabling Vulkan debug callbacks", "internal_vk_init_instance");
+			}
+#endif
 		}
 	}
 
@@ -1632,9 +1696,18 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	{
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
 
-		if ((vkDestroyDebugReportCallbackEXT) && (VK_NULL_HANDLE != pRenderer->pVkDebugReport)) {
+#ifdef USE_DEBUG_UTILS_EXTENSION
+		if (pRenderer->pVkDebugUtilsMessenger)
+		{
+			vkDestroyDebugUtilsMessengerEXT(pRenderer->pVkInstance, pRenderer->pVkDebugUtilsMessenger, NULL);
+		}
+#else
+		if (pRenderer->pVkDebugReport)
+		{
 			vkDestroyDebugReportCallbackEXT(pRenderer->pVkInstance, pRenderer->pVkDebugReport, NULL);
 		}
+#endif
+
 		vkDestroyInstance(pRenderer->pVkInstance, NULL);
 	}
 
@@ -1850,8 +1923,10 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 					for (uint32_t k = 0; k < wanted_extenstion_count; ++k) {
 						if (strcmp(gVkWantedDeviceExtensions[k], properties[j].extensionName) == 0) {
 							pRenderer->gVkDeviceExtensions[extension_count++] = gVkWantedDeviceExtensions[k];
+#ifndef USE_DEBUG_UTILS_EXTENSION
 							if (strcmp(gVkWantedDeviceExtensions[k], VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0)
-								gDebugMarkerExtension = true;
+								gDebugMarkerSupport = true;
+#endif
 							if (strcmp(gVkWantedDeviceExtensions[k], VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) == 0)
 								dedicatedAllocationExtension = true;
 							if (strcmp(gVkWantedDeviceExtensions[k], VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME) == 0)
@@ -1936,6 +2011,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		{
 			LOGINFOF("Successfully loaded Descriptor Indexing extension");
 		}
+
+#ifdef USE_DEBUG_UTILS_EXTENSION
+		gDebugMarkerSupport =
+			vkCmdBeginDebugUtilsLabelEXT &&
+			vkCmdEndDebugUtilsLabelEXT &&
+			vkCmdInsertDebugUtilsLabelEXT &&
+			vkSetDebugUtilsObjectNameEXT;
+#endif
 	}
 
 	void RemoveDevice(Renderer* pRenderer)
@@ -1947,6 +2030,11 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		vkDestroyDevice(pRenderer->pVkDevice, NULL);
 	}
+
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
+namespace vk {
+#endif
+#if !defined(RENDERER_DLL_IMPORT)
 	/************************************************************************/
 	// Renderer Init Remove
 	/************************************************************************/
@@ -1967,10 +2055,11 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 #if defined(_DEBUG)
 			// this turns on all validation layers
 			pRenderer->mInstanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
+
 			// this turns on render doc layer for gpu capture
 #ifdef USE_RENDER_DOC
 			pRenderer->mInstanceLayers.push_back("VK_LAYER_RENDERDOC_Capture");
-#endif
 #endif
 
 			VkResult vkRes = volkInitialize();
@@ -2299,7 +2388,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		ASSERT(ppCmd);
 
 		for (uint32_t i = 0; i < cmdCount; ++i) {
-			addCmd(pCmdPool, secondary, &(ppCmd[i]));
+			::addCmd(pCmdPool, secondary, &(ppCmd[i]));
 		}
 
 		*pppCmd = ppCmd;
@@ -2310,7 +2399,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		ASSERT(ppCmd);
 
 		for (uint32_t i = 0; i < cmdCount; ++i) {
-			removeCmd(pCmdPool, ppCmd[i]);
+			::removeCmd(pCmdPool, ppCmd[i]);
 		}
 
 		SAFE_FREE(ppCmd);
@@ -2973,9 +3062,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		ASSERT(pDesc);
 		ASSERT(ppRenderTarget);
 
+		// Assert that render target is used as either color or depth attachment
+		ASSERT(((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) || (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
+		// Assert that render target is not used as both color and depth attachment
+		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) && (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
+		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL) && (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)) && "Cannot use depth stencil as UAV");
+
 		RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc(1, sizeof(*pRenderTarget));
 		pRenderTarget->mDesc = *pDesc;
-		sizeof(Texture);
 		TextureDesc textureDesc = {};
 		textureDesc.mBaseArrayLayer = pDesc->mBaseArrayLayer;
 		textureDesc.mArraySize = pDesc->mArraySize;
@@ -3041,15 +3135,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			}
 		}
 
-		addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
+		::addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
 		*ppRenderTarget = pRenderTarget;
 	}
 
-
 	void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	{
-		removeTexture(pRenderer, pRenderTarget->pTexture);
+		::removeTexture(pRenderer, pRenderTarget->pTexture);
 		SAFE_FREE(pRenderTarget);
 	}
 
@@ -3132,6 +3225,21 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	// Shader Functions
 	/************************************************************************/
+	// renderer shader macros allocated on stack
+	ShaderMacro _rendererShaderDefines[2];
+	const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
+	{
+		// Set shader macro based on runtime information
+		_rendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
+		_rendererShaderDefines[0].value = String::format("%d", static_cast<int>(gDescriptorIndexingExtension));
+		_rendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
+		_rendererShaderDefines[1].value =
+			String::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
+
+		RendererShaderDefinesDesc defineDesc = { _rendererShaderDefines , 2 };
+		return defineDesc;
+	}
+
 	void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 	{
 		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
@@ -4009,6 +4117,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 
 		pCmd->pVkActiveRenderPass = VK_NULL_HANDLE;
+		pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
+		pCmd->mBoundRenderTargetCount = 0;
+
 		cmdFlushBarriers(pCmd);
 
 		VkResult vk_res = vkEndCommandBuffer(pCmd->pVkCmdBuf);
@@ -4024,6 +4135,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		{
 			vkCmdEndRenderPass(pCmd->pVkCmdBuf);
 			pCmd->pVkActiveRenderPass = VK_NULL_HANDLE;
+			pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
+			pCmd->mBoundRenderTargetCount = 0;
 		}
 
 		if (!renderTargetCount && !pDepthStencil)
@@ -5163,8 +5276,18 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	{
-		if (gDebugMarkerExtension)
+		if (gDebugMarkerSupport)
 		{
+#ifdef USE_DEBUG_UTILS_EXTENSION
+			VkDebugUtilsLabelEXT markerInfo = {};
+			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			markerInfo.color[0] = r;
+			markerInfo.color[1] = g;
+			markerInfo.color[2] = b;
+			markerInfo.color[3] = 1.0f;
+			markerInfo.pLabelName = pName;
+			vkCmdBeginDebugUtilsLabelEXT(pCmd->pVkCmdBuf, &markerInfo);
+#else
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
 			markerInfo.color[0] = r;
@@ -5173,30 +5296,36 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			markerInfo.color[3] = 1.0f;
 			markerInfo.pMarkerName = pName;
 			vkCmdDebugMarkerBeginEXT(pCmd->pVkCmdBuf, &markerInfo);
+#endif
 		}
-	}
-	void cmdBeginDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...)
-	{
-		va_list argptr;
-		va_start(argptr, pFormat);
-		char buffer[65536];
-		vsnprintf_s(buffer, sizeof(buffer), pFormat, argptr);
-		va_end(argptr);
-		cmdBeginDebugMarker(pCmd, r, g, b, buffer);
 	}
 
 	void cmdEndDebugMarker(Cmd* pCmd)
 	{
-		if (gDebugMarkerExtension)
+		if (gDebugMarkerSupport)
 		{
+#ifdef USE_DEBUG_UTILS_EXTENSION
+			vkCmdEndDebugUtilsLabelEXT(pCmd->pVkCmdBuf);
+#else
 			vkCmdDebugMarkerEndEXT(pCmd->pVkCmdBuf);
+#endif
 		}
 	}
 
 	void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	{
-		if (gDebugMarkerExtension)
+		if (gDebugMarkerSupport)
 		{
+#ifdef USE_DEBUG_UTILS_EXTENSION
+			VkDebugUtilsLabelEXT markerInfo = {};
+			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			markerInfo.color[0] = r;
+			markerInfo.color[1] = g;
+			markerInfo.color[2] = b;
+			markerInfo.color[3] = 1.0f;
+			markerInfo.pLabelName = pName;
+			vkCmdInsertDebugUtilsLabelEXT(pCmd->pVkCmdBuf, &markerInfo);
+#else
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
 			markerInfo.color[0] = r;
@@ -5205,6 +5334,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			markerInfo.color[3] = 1.0f;
 			markerInfo.pMarkerName = pName;
 			vkCmdDebugMarkerInsertEXT(pCmd->pVkCmdBuf, &markerInfo);
+
+#endif
 		}
 	}
 	/************************************************************************/
@@ -5216,14 +5347,23 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		ASSERT(pBuffer);
 		ASSERT(pName);
 
-		if (gDebugMarkerExtension)
+		if (gDebugMarkerSupport)
 		{
+#ifdef USE_DEBUG_UTILS_EXTENSION
+			VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+			nameInfo.objectHandle = (uint64_t)pBuffer->pVkBuffer;
+			nameInfo.pObjectName = pName;
+			vkSetDebugUtilsObjectNameEXT(pRenderer->pVkDevice, &nameInfo);
+#else
 			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
 			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
 			nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT;
 			nameInfo.object = (uint64_t)pBuffer->pVkBuffer;
 			nameInfo.pObjectName = pName;
 			vkDebugMarkerSetObjectNameEXT(pRenderer->pVkDevice, &nameInfo);
+#endif
 		}
 	}
 
@@ -5233,23 +5373,33 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		ASSERT(pTexture);
 		ASSERT(pName);
 
-		if (gDebugMarkerExtension)
+		if (gDebugMarkerSupport)
 		{
+#ifdef USE_DEBUG_UTILS_EXTENSION
+			VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
+			nameInfo.objectHandle = (uint64_t)pTexture->pVkImage;
+			nameInfo.pObjectName = pName;
+			vkSetDebugUtilsObjectNameEXT(pRenderer->pVkDevice, &nameInfo);
+#else
 			VkDebugMarkerObjectNameInfoEXT nameInfo = {};
 			nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
 			nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
 			nameInfo.object = (uint64_t)pTexture->pVkImage;
 			nameInfo.pObjectName = pName;
 			vkDebugMarkerSetObjectNameEXT(pRenderer->pVkDevice, &nameInfo);
+
+#endif
 		}
 	}
 	/************************************************************************/
 	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION
 
-#if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
 } // namespace RENDERER_CPP_NAMESPACE
 #endif
-
+#endif
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
 #endif

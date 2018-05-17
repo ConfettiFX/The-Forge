@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Workspace Name="UbuntuUnitTests" Database="">
-  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="No"/>
+<CodeLite_Workspace Name="UbuntuUnitTests" Database="" Version="10.0.0">
+  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="Yes"/>
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
@@ -11,10 +11,9 @@
   <Project Name="06_BRDF" Path="06_BRDF/06_BRDF.project" Active="No"/>
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
-  <Project Name="PaniniProjection" Path="../../../Middleware_3/PaniniProjection/UbuntuCodelite/PaniniProjection/PaniniProjection.project"/>
-  <Project Name="09_MultiGPU" Path="09_MultiGPU/09_MultiGPU.project" Active="Yes"/>
+  <Project Name="PaniniProjection" Path="../../../Middleware_3/PaniniProjection/UbuntuCodelite/PaniniProjection/PaniniProjection.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -28,9 +27,8 @@
       <Project Name="07_Tessellation" ConfigName="Debug"/>
       <Project Name="08_Procedural" ConfigName="Debug"/>
       <Project Name="PaniniProjection" ConfigName="Debug"/>
-      <Project Name="09_MultiGPU" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="01_Transformation" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
@@ -44,7 +42,6 @@
       <Project Name="07_Tessellation" ConfigName="Release"/>
       <Project Name="08_Procedural" ConfigName="Release"/>
       <Project Name="PaniniProjection" ConfigName="Release"/>
-      <Project Name="09_MultiGPU" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

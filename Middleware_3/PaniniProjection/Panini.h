@@ -21,6 +21,10 @@
 * specific language governing permissions and limitations
 * under the License.
 */
+#ifndef  NULL
+#define NULL 0
+#endif // ! NULL
+#define NULL 0
 
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 
@@ -117,20 +121,20 @@ public:
 
 private:
 	Renderer*			pRenderer;
-	Texture*			pSourceTexture = nullptr;
+	Texture*			pSourceTexture = NULL;
 
-	Shader*				pShaderPanini = nullptr;
-	RootSignature*		pRootSignaturePaniniPostProcess = nullptr;
-	Sampler*			pSamplerPointWrap = nullptr;
-	DepthState*			pDepthStateDisable = nullptr;
-	RasterizerState*	pRasterizerStateCullNone = nullptr;
-	Pipeline*			pPipelinePaniniPostProcess = nullptr;
+	Shader*				pShaderPanini = NULL;
+	RootSignature*		pRootSignaturePaniniPostProcess = NULL;
+	Sampler*			pSamplerPointWrap = NULL;
+	DepthState*			pDepthStateDisable = NULL;
+	RasterizerState*	pRasterizerStateCullNone = NULL;
+	Pipeline*			pPipelinePaniniPostProcess = NULL;
 
-	Buffer*				pVertexBufferTessellatedQuad = nullptr;
-	Buffer*				pIndexBufferTessellatedQuad = nullptr;
+	Buffer*				pVertexBufferTessellatedQuad = NULL;
+	Buffer*				pIndexBufferTessellatedQuad = NULL;
 
 	PaniniParameters	mParams;
 
 	// Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
-	const unsigned		gPaniniDistortionTessellation[2] = { 64, 32 };
+	const unsigned		mPaniniDistortionTessellation[2] = { 64, 32 };
 };

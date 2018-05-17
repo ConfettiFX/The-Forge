@@ -1116,7 +1116,7 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
 {
   DDSHeader header;
 
-  if (memory == nullptr || memSize == 0)
+  if (memory == NULL || memSize == 0)
     return false;
 
   MemoryBuffer file(memory, (unsigned)memSize);
@@ -1416,7 +1416,7 @@ bool Image::iLoadSTBIFromMemory(const char *buffer, uint32_t memSize, const bool
 
   stbi_uc* uncompressed = stbi_load_from_memory((stbi_uc*) buffer, (int) memSize, &w, &h, &cmp, requiredCmp);
 
-  if (uncompressed == nullptr)
+  if (uncompressed == NULL)
 	  return false;
 
   if (pAllocator && !useMipmaps)
