@@ -50,7 +50,7 @@ static const char* pszFileAccessFlags[] =
 	"rb",	//!< 	FM_ReadBinary		= 0,
 	"wb",	//!< 	FM_WriteBinary,
 	"w+b",	//!< 	FM_ReadWriteBinary,
-	"r",	//!< 	FM_Read,
+	"rb",	//!< 	FM_Read,
 	"w",	//!< 	FM_Write,
 	"w+",	//!< 	FM_ReadWrite,
 	"--",   //!<	FM_Count

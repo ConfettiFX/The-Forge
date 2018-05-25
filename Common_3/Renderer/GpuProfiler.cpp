@@ -32,7 +32,7 @@
 #define MAX_PATH PATH_MAX
 #endif
 
-#if !defined(RENDERER_DLL_IMPORT)
+#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);

@@ -89,6 +89,7 @@ enum FSRoot {
 
 	FSR_Meshes, // Meshes
 	FSR_Builtin_Fonts,
+	FSR_GpuConfig,
 	FSR_OtherFiles,
 
 	// libraries will want there own directories

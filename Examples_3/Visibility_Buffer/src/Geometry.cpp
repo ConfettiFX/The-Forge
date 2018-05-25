@@ -475,7 +475,7 @@ Scene* loadScene(const char* fileName)
     uint32_t originalIdx = 0;
     for (uint32_t i = 0; i < scene->numMeshes; i++)
     {
-        scene->meshes[i].startVertex = scene->positions.size();
+        scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
         
         uint32_t idxCount = originalScene.meshes[i].vertexCount; // Index count is stored in the vertex count member when reading the mesh on Metal.
         for (uint32_t j = 0; j < idxCount; j++)

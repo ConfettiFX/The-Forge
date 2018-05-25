@@ -36,27 +36,9 @@
     <File Name="../../../../Common_3/OS/Interfaces/ITimeManager.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IUIManager.h"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="iOS">
-    <File Name="../../../../Common_3/OS/iOS/AppDelegate.h" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/iOS/AppDelegate.m" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/iOS/iOSBase.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/iOS/iOSBase.mm" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/iOS/iOSFileSystem.mm" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/iOS/iOSLogManager.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/iOS/iOSThreadManager.cpp" ExcludeProjConfig="Debug;Release"/>
-  </VirtualDirectory>
   <VirtualDirectory Name="Logging">
     <File Name="../../../../Common_3/OS/Logging/LogManager.cpp"/>
     <File Name="../../../../Common_3/OS/Logging/LogManager.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="macOS">
-    <File Name="../../../../Common_3/OS/macOS/AppDelegate.h" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/macOS/AppDelegate.m" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/macOS/macOSBase.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/macOS/macOSBase.mm" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/macOS/macOSFileSystem.mm" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/macOS/macOSLogManager.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/macOS/macOSThreadManager.cpp" ExcludeProjConfig="Debug;Release"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Math">
     <File Name="../../../../Common_3/OS/Math/MathTypes.h"/>
@@ -74,15 +56,6 @@
     <File Name="../../../../Middleware_3/UI/UIRenderer.cpp"/>
     <File Name="../../../../Middleware_3/UI/UIRenderer.h"/>
     <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="Windows">
-    <File Name="../../../../Common_3/OS/Windows/resource.h" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/Windows/Resources.aps" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/Windows/Resources.rc" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/Windows/WindowsBase.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/Windows/WindowsFileSystem.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/Windows/WindowsLogManager.cpp" ExcludeProjConfig="Debug;Release"/>
-    <File Name="../../../../Common_3/OS/Windows/WindowsThreadManager.cpp" ExcludeProjConfig="Debug;Release"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Linux">
     <File Name="../../../../Common_3/OS/Linux/LinuxBase.cpp"/>

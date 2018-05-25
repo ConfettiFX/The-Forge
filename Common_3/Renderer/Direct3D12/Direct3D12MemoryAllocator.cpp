@@ -1650,13 +1650,15 @@ ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo) :
 	memset(&m_pBlockVectors, 0, sizeof(m_pBlockVectors));
 	memset(&m_HasEmptyBlock, 0, sizeof(m_HasEmptyBlock));
 	memset(&m_pOwnAllocations, 0, sizeof(m_pOwnAllocations));
-
 	m_PreferredLargeHeapBlockSize = (pCreateInfo->preferredLargeHeapBlockSize != 0) ?
 		pCreateInfo->preferredLargeHeapBlockSize : static_cast<UINT64>(RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE);
 	m_PreferredSmallHeapBlockSize = (pCreateInfo->preferredSmallHeapBlockSize != 0) ?
 		pCreateInfo->preferredSmallHeapBlockSize : static_cast<UINT64>(RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE);
 
 	m_PhysicalDevice->GetDesc(&m_PhysicalDeviceProperties);
+
+	pRenderer = pCreateInfo->pRenderer;
+
 
 	for (size_t i = 0; i < GetMemoryTypeCount(); ++i)
 	{

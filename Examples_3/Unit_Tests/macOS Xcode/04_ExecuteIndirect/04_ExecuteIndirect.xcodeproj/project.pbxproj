@@ -72,8 +72,12 @@
 		5CD2BC172080FF0C008E3A2C /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC102080FF0C008E3A2C /* Fontstash.cpp */; };
 		5CD2BC182080FF0C008E3A2C /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC102080FF0C008E3A2C /* Fontstash.cpp */; };
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
-		B21AD0F7202E80E100CF5DD7 /* PaniniProjection_iOS.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */; };
-		B21AD0F8202E80FC00CF5DD7 /* PaniniProjection.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = B21AD0F2202E80C100CF5DD7 /* PaniniProjection.lib */; };
+		B2CDF4DD20B760DE000DC071 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DB20B760DE000DC071 /* Panini.cpp */; };
+		B2CDF4DE20B760DE000DC071 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DB20B760DE000DC071 /* Panini.cpp */; };
+		B2CDF4E120B760EB000DC071 /* panini_projection.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */; };
+		B2CDF4E220B760EB000DC071 /* panini_projection.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */; };
+		B2CDF4E320B760EB000DC071 /* panini_projection.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */; };
+		B2CDF4E420B760EB000DC071 /* panini_projection.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */; };
 		C91D46211FD9976D00564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */; };
 		C91D46251FD9984A00564C8B /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = C91D46241FD9984900564C8B /* MetalShaderReflection.mm */; };
 		C91D46271FD9985700564C8B /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46261FD9985700564C8B /* CommonShaderReflection.cpp */; };
@@ -149,6 +153,10 @@
 		B21AD0F4202E80D200CF5DD7 /* PaniniProjection_iOS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PaniniProjection_iOS; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/include/PaniniProjection_iOS"; sourceTree = "<group>"; };
 		B21AD0F6202E80E100CF5DD7 /* PaniniProjection_iOS.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection_iOS.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/PaniniProjection_iOS.lib"; sourceTree = "<group>"; };
 		B263E338202E6D7700457D44 /* PaniniProjection.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = PaniniProjection.lib; path = "../../../../Middleware_3/PaniniProjection/macOS Xcode/Bin/Debug/PaniniProjection.lib"; sourceTree = "<group>"; };
+		B2CDF4DB20B760DE000DC071 /* Panini.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Panini.cpp; path = ../../../../Middleware_3/PaniniProjection/Panini.cpp; sourceTree = "<group>"; };
+		B2CDF4DC20B760DE000DC071 /* Panini.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Panini.h; path = ../../../../Middleware_3/PaniniProjection/Panini.h; sourceTree = "<group>"; };
+		B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panini_projection.frag.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/OSXMetal/panini_projection.frag.metal; sourceTree = "<group>"; };
+		B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panini_projection.vert.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/OSXMetal/panini_projection.vert.metal; sourceTree = "<group>"; };
 		C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C91D46241FD9984900564C8B /* MetalShaderReflection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalShaderReflection.mm; path = Metal/MetalShaderReflection.mm; sourceTree = "<group>"; };
 		C91D46261FD9985700564C8B /* CommonShaderReflection.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = CommonShaderReflection.cpp; sourceTree = "<group>"; };
@@ -214,7 +222,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B21AD0F7202E80E100CF5DD7 /* PaniniProjection_iOS.lib in Frameworks */,
 				28A5ACB5201F68D1000E571F /* Metal.framework in Frameworks */,
 				28A5ACB6201F68D1000E571F /* MetalKit.framework in Frameworks */,
 			);
@@ -224,7 +231,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B21AD0F8202E80FC00CF5DD7 /* PaniniProjection.lib in Frameworks */,
 				28A5ACB2201F68CA000E571F /* MetalKit.framework in Frameworks */,
 				28A5ACB0201F68C4000E571F /* Metal.framework in Frameworks */,
 			);
@@ -328,6 +334,25 @@
 			name = UI;
 			sourceTree = "<group>";
 		};
+		B2CDF4D820B760C3000DC071 /* Panini */ = {
+			isa = PBXGroup;
+			children = (
+				B2CDF4DB20B760DE000DC071 /* Panini.cpp */,
+				B2CDF4DC20B760DE000DC071 /* Panini.h */,
+				B2CDF4DA20B760CE000DC071 /* Shaders */,
+			);
+			name = Panini;
+			sourceTree = "<group>";
+		};
+		B2CDF4DA20B760CE000DC071 /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */,
+				B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */,
+			);
+			name = Shaders;
+			sourceTree = "<group>";
+		};
 		D2111E801F44588B0014FFE6 /* MemoryManager */ = {
 			isa = PBXGroup;
 			children = (
@@ -350,6 +375,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				B2CDF4D820B760C3000DC071 /* Panini */,
 				EA463CEC1EF81FC5005AC8C7 /* Common_3 */,
 				EA463C941EF81E8F005AC8C7 /* 04_ExecuteIndirect */,
 				28A5AC7A201F682F000E571F /* 04_ExecuteIndirect_iOS */,
@@ -655,10 +681,13 @@
 				28A5ACDD201F69CE000E571F /* CommonShaderReflection.cpp in Sources */,
 				28A5ACE0201F69CE000E571F /* MetalRenderer.mm in Sources */,
 				28A5ACCE201F69A4000E571F /* MemoryTrackingManager.cpp in Sources */,
+				B2CDF4E420B760EB000DC071 /* panini_projection.vert.metal in Sources */,
+				B2CDF4DE20B760DE000DC071 /* Panini.cpp in Sources */,
 				28A5ACCD201F699F000E571F /* FileSystem.cpp in Sources */,
 				5CD2BC182080FF0C008E3A2C /* Fontstash.cpp in Sources */,
 				28A5ACAB201F6899000E571F /* ExecuteIndirect.vert.metal in Sources */,
 				28A5ACAD201F6899000E571F /* ComputeUpdate.comp.metal in Sources */,
+				B2CDF4E220B760EB000DC071 /* panini_projection.frag.metal in Sources */,
 				28A5ACE5201F69F1000E571F /* Timer.cpp in Sources */,
 				28A5ACE1201F69E8000E571F /* tinyexr.cpp in Sources */,
 				28A5ACDB201F69C3000E571F /* Image.cpp in Sources */,
@@ -702,6 +731,7 @@
 				5CD2BC172080FF0C008E3A2C /* Fontstash.cpp in Sources */,
 				5C85A3882029FF2E00AB83C6 /* macOSBase.mm in Sources */,
 				5CD2BC152080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */,
+				B2CDF4E320B760EB000DC071 /* panini_projection.vert.metal in Sources */,
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				EA463CEE1EF81FC5005AC8C7 /* FileSystem.cpp in Sources */,
 				5CD2BC112080FF0C008E3A2C /* UIRenderer.cpp in Sources */,
@@ -709,6 +739,7 @@
 				C91D46271FD9985700564C8B /* CommonShaderReflection.cpp in Sources */,
 				EA463D001EF81FC5005AC8C7 /* macOSThreadManager.cpp in Sources */,
 				EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */,
+				B2CDF4DD20B760DE000DC071 /* Panini.cpp in Sources */,
 				C91D46211FD9976D00564C8B /* MemoryTrackingManager.cpp in Sources */,
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */,
@@ -723,6 +754,7 @@
 				EA463D021EF81FC5005AC8C7 /* tinyexr.cpp in Sources */,
 				EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */,
 				EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */,
+				B2CDF4E120B760EB000DC071 /* panini_projection.frag.metal in Sources */,
 				5CD2BC132080FF0C008E3A2C /* AppUI.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

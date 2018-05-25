@@ -13,6 +13,15 @@
     <Filter Include="Shaders\PCDX12">
       <UniqueIdentifier>{2e78201c-7434-45a8-996a-46fb1d57d926}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Panini">
+      <UniqueIdentifier>{d7dfe476-7d4a-40e2-9dfe-d28735883c82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Panini\PCDX12">
+      <UniqueIdentifier>{585b7702-ad30-47e5-9b84-af0cd824dba3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Panini\PCVulkan">
+      <UniqueIdentifier>{4233eb5d-f951-40b6-9ed2-27067835eebc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\04_ExecuteIndirect\04_ExecuteIndirect.cpp">
@@ -30,6 +39,9 @@
     <ClCompile Include="..\src\04_ExecuteIndirect\TextureGen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\PaniniProjection\Panini.cpp">
+      <Filter>Panini</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\04_ExecuteIndirect\AsteroidSim.h">
@@ -43,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="..\src\04_ExecuteIndirect\TextureGen.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h">
+      <Filter>Panini</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -89,6 +104,18 @@
     </None>
     <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag">
+      <Filter>Panini\PCDX12</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert">
+      <Filter>Panini\PCDX12</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.frag">
+      <Filter>Panini\PCVulkan</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.vert">
+      <Filter>Panini\PCVulkan</Filter>
     </None>
   </ItemGroup>
 </Project>

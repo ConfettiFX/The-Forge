@@ -249,6 +249,10 @@ void UIProperty::modify(int steps)
 	{
 
 	}break;
+	case UI_PROPERTY_TEXT:
+	{
+		
+	}break;
 	}
 }
 

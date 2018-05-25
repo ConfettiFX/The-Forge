@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Middleware_3\PaniniProjection\Panini.cpp" />
     <ClCompile Include="..\src\04_ExecuteIndirect\04_ExecuteIndirect.cpp" />
     <ClCompile Include="..\src\04_ExecuteIndirect\AsteroidSim.cpp" />
     <ClCompile Include="..\src\04_ExecuteIndirect\Random.h" />
@@ -26,6 +27,7 @@
     <ClCompile Include="..\src\04_ExecuteIndirect\TextureGen.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\AsteroidSim.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\NoiseOctaves.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\simplexnoise1234.h" />
@@ -223,6 +225,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.frag" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.vert" />
     <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.frag" />
     <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.vert" />
     <None Include="..\src\04_ExecuteIndirect\PCDX12\ComputeUpdate.comp" />
@@ -328,7 +334,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;PaniniProjection.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -365,7 +371,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>RendererDX12.lib;OS.lib;PaniniProjection.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -406,7 +412,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;PaniniProjection.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -447,7 +453,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>RendererDX12.lib;OS.lib;PaniniProjection.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

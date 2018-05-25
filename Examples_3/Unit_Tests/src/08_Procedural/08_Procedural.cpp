@@ -76,6 +76,7 @@ const char* pszRoots[] =
 	"Textures/",										// FSR_Textures
 	"Meshes/",											// FSR_Meshes
 	"Fonts/",											// FSR_Builtin_Fonts
+	"",													// FSR_GpuConfig
 	"",													// FSR_OtherFiles
 };
 #else
@@ -89,6 +90,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Textures/",					// FSR_Textures
 	"../../../UnitTestResources/Meshes/",					// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",					// FSR_Builtin_Fonts
+	"../../../src/08_Procedural/GPUCfg/gpu.cfg",			// FSR_GpuConfig
 	"",														// FSR_OtherFiles
 };
 #endif

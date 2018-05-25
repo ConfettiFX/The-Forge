@@ -28,7 +28,7 @@
 #include "../OS/Interfaces/IMemoryManager.h"
 
 // buffer functions
-#if !defined(RENDERER_DLL_IMPORT)
+#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
@@ -320,7 +320,7 @@ static void cmd_upload_texture_data(Cmd* pCmd, ResourceLoader* pLoader, Texture*
 	uint nSlices = img.IsCube() ? 6 : 1;
 
 #if defined(DIRECT3D12) || defined(METAL)
-	if (pCmd->pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pCmd->pRenderer->mSettings.mApi == RENDERER_API_METAL)
+	if (pCmd->pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12 || pCmd->pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pCmd->pRenderer->mSettings.mApi == RENDERER_API_METAL)
 	{
 		for (uint32_t n = 0; n < img.GetArrayCount(); ++n)
 		{
@@ -1088,7 +1088,7 @@ void mtl_compileShader(Renderer* pRenderer, const String& fileName, const String
     else ErrorMsg("Failed to compile shader %s", fileName.c_str());
 }
 #endif
-#if defined(DIRECT3D12) && !defined(RENDERER_DLL_IMPORT)
+#if defined(DIRECT3D12) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 #endif
 

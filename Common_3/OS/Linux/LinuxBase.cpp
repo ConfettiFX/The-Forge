@@ -46,7 +46,6 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-//#define AUTOMATED_TESTING 1
 
 namespace
 {

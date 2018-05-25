@@ -579,7 +579,7 @@ def BuildWindowsProjects(xboxDefined):
 			platform = xboxPlatform
 				
 		for conf in configurations:
-			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/nr:false","/clp:Summary","/verbosity:minimal","/t:Rebuild"]
+			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Rebuild"]
 			retCode = ExecuteBuild(command, filename,conf, platform)
 			
 			if retCode != 0:
