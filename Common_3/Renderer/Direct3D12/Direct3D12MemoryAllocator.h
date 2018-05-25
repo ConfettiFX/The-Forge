@@ -33,7 +33,7 @@ typedef struct BufferCreateInfo
 {
 	const D3D12_RESOURCE_DESC*	pDesc;
 	D3D12_RESOURCE_STATES		mStartState;
-	wchar_t*					pDebugName;
+	const wchar_t*					pDebugName;
 } BufferCreateInfo;
 
 typedef struct TextureCreateInfo
@@ -42,7 +42,7 @@ typedef struct TextureCreateInfo
 	const D3D12_RESOURCE_DESC*	pDesc;
 	const D3D12_CLEAR_VALUE*	pClearValue;
 	D3D12_RESOURCE_STATES		mStartState;
-	wchar_t*					pDebugName;
+	const wchar_t*					pDebugName;
 } TextureCreateInfo;
 
 ////////////////////////////////////////////////////////////////////////////////

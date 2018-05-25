@@ -561,6 +561,16 @@ typedef enum TextureCreationFlags
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
+typedef enum GPUPresetLevel {
+    GPU_PRESET_NONE = 0,
+		GPU_PRESET_OFFICE,
+    GPU_PRESET_LOW,
+    GPU_PRESET_MEDIUM,
+    GPU_PRESET_HIGH,
+		GPU_PRESET_ULTRA,
+    GPU_PRESET_COUNT
+} GPUPresetLevel;
+
 typedef struct BufferBarrier
 {
 	struct Buffer*	pBuffer;
@@ -642,7 +652,7 @@ typedef struct BufferDesc
 	/// Flags specifying the special features of the buffer(typeless buffer,...) (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
 	BufferFeatureFlags					mFeatures;
 	/// Debug name used in gpu profile
-	wchar_t*							pDebugName;
+	const wchar_t*							pDebugName;
 	uint32_t*							pSharedNodeIndices;
 	uint32_t							mNodeIndex;
 	uint32_t							mSharedNodeIndexCount;
@@ -762,7 +772,7 @@ typedef struct TextureDesc
 	/// Is the texture CPU accessible (applicable on hardware supporting CPU mapped textures (UMA))
 	bool					mHostVisible;
 	/// Debug name used in gpu profile
-	wchar_t*				pDebugName;
+	const wchar_t*				pDebugName;
 	uint32_t*				pSharedNodeIndices;
 	uint32_t				mSharedNodeIndexCount;
 	uint32_t				mNodeIndex;
@@ -845,7 +855,7 @@ typedef struct RenderTargetDesc
 	uint32_t				mSampleQuality;
 	const void*				pNativeHandle;
 	/// Debug name used in gpu profile
-	wchar_t*				pDebugName;
+	const wchar_t*				pDebugName;
 	/// Set whether rendertarget is srgb
 	bool					mSrgb;
 	/// Gpu index to create resource
@@ -1570,13 +1580,19 @@ typedef struct RendererDesc {
 #endif
 } RendererDesc;
 
+typedef struct GPUVendorPreset {
+    String mVendorId;
+    String mModelId;
+    GPUPresetLevel mPresetLevel;
+} GPUVendorPreset;
+
 typedef struct GPUSettings
 {
 	uint64_t	mUniformBufferAlignment;
 	uint32_t	mMaxVertexInputBindings;
 	bool		mMultiDrawIndirect;
 	uint32_t	mMaxRootSignatureDWORDS;
-
+  	GPUVendorPreset  mGpuVendorPreset;
 } GPUSettings;
 
 typedef struct Renderer {
@@ -1605,6 +1621,7 @@ typedef struct Renderer {
 	struct DescriptorStoreHeap*			pCbvSrvUavHeap[MAX_GPUS];
 	struct DescriptorStoreHeap*			pSamplerHeap[MAX_GPUS];
 	struct ResourceAllocator*			pResourceAllocator;
+	uint32_t							mDxLinkedNodeCount;
 #elif defined(DIRECT3D12)
 	IDXGIFactory5*						pDXGIFactory;
 	IDXGIAdapter3*						pDxGPUs[MAX_GPUS];
@@ -1624,6 +1641,7 @@ typedef struct Renderer {
 	struct DescriptorStoreHeap*			pCbvSrvUavHeap[MAX_GPUS];
 	struct DescriptorStoreHeap*			pSamplerHeap[MAX_GPUS];
 	struct ResourceAllocator*			pResourceAllocator;
+	uint32_t							mDxLinkedNodeCount;
 #endif
 #if defined (VULKAN)
 	VkInstance							pVkInstance;
@@ -1642,6 +1660,7 @@ typedef struct Renderer {
 	VkDebugReportCallbackEXT			pVkDebugReport;
 	tinystl::vector<const char*>		mInstanceLayers;
 	uint32_t							mVkUsedQueueCount[MAX_GPUS][16];
+	uint32_t							mVkLinkedNodeCount;
 
 	Texture*							pDefaultTexture;
 	Buffer*								pDefaultBuffer;
@@ -1706,7 +1725,7 @@ typedef struct CommandSignature
 #define API_INTERFACE
 #endif
 
-#if !defined(RENDERER_DLL_IMPORT)
+#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 // API functions
 // allocates memory and initializes the renderer -> returns pRenderer
 //

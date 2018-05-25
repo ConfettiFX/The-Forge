@@ -127,6 +127,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Textures/",												// FSR_Textures
 	"../../../UnitTestResources/Meshes/",												// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",												// FSR_Builtin_Fonts
+	"../../../src/04_ExecuteIndirect/GPUCfg/",									// FSR_GpuConfig
 	"",																					// FSR_OtherFiles
 };
 #endif

@@ -102,6 +102,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">

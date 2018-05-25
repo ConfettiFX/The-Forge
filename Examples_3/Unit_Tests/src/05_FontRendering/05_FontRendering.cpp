@@ -77,6 +77,7 @@ const char* pszRoots[] =
 	"Textures/",						// FSR_Textures
 	"Meshes/",						// FSR_Meshes
 	"Fonts/",						// FSR_Builtin_Fonts
+	"",								// FSR_GpuConfig
 	"",															// FSR_OtherFiles
 };
 #else
@@ -85,11 +86,12 @@ const char* pszRoots[] =
 {
 	"../../..//src/05_FontRendering/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
 	"../../..//src/05_FontRendering/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"../../..//src/00_Common/" RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
-	"../../..//src/00_Common/" RESOURCE_DIR "/",				// FSR_SrcShaders_Common
+	"",															// FSR_BinShaders_Common
+	"",															// FSR_SrcShaders_Common
 	"../../..//UnitTestResources/Textures/",					// FSR_Textures
 	"../../..//UnitTestResources/Meshes/",						// FSR_Meshes
 	"../../..//UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
+	"../../../src/05_FontRendering/GPUCfg/",				// FSR_GpuConfig
 	"",															// FSR_OtherFiles
 };
 #endif

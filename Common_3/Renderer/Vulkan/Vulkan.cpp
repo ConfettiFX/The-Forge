@@ -34,10 +34,9 @@
 //#define USE_RENDER_DOC
 
 // Debug Utils Extension is still WIP and does not work with all Validation Layers
-// Leave it upto user to enable this
-#ifndef USE_RENDER_DOC
-//#define USE_DEBUG_UTILS_EXTENSION
-#endif
+// Disable this to use the old debug report and debug marker extensions
+// Debug Utils requires the Nightly Build of RenderDoc
+#define USE_DEBUG_UTILS_EXTENSION
 /************************************************************************/
 /************************************************************************/
 #if defined(_WIN32)
@@ -62,6 +61,7 @@
 #include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
+#include "../../OS/Core/GPUConfig.h"
 
 #include "../../OS/Interfaces/IMemoryManager.h"
 
@@ -340,7 +340,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	// Internal utility functions (may become external one day)
 	VkSampleCountFlagBits	util_to_vk_sample_count(SampleCount sampleCount);
 	VkFormat				util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
-#if !defined(RENDERER_DLL_IMPORT) && !defined(ENABLE_RENDERER_API_SWITCHING)
+#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 	API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
@@ -414,7 +414,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	// Static DescriptorInfo Heap Implementation
 	/************************************************************************/
-	void add_descriptor_heap(Renderer* pRenderer, uint32_t numDescriptorSets, VkDescriptorPoolCreateFlags flags, VkDescriptorPoolSize* pPoolSizes, uint32_t numPoolSizes, DescriptorStoreHeap** ppHeap)
+	static void add_descriptor_heap(Renderer* pRenderer, uint32_t numDescriptorSets, VkDescriptorPoolCreateFlags flags, VkDescriptorPoolSize* pPoolSizes, uint32_t numPoolSizes, DescriptorStoreHeap** ppHeap)
 	{
 		DescriptorStoreHeap* pHeap = (DescriptorStoreHeap*)conf_calloc(1, sizeof(*pHeap));
 		pHeap->pAllocationMutex = conf_placement_new<Mutex>(conf_calloc(1, sizeof(Mutex)));
@@ -436,14 +436,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		*ppHeap = pHeap;
 	}
 
-	void reset_descriptor_heap(Renderer* pRenderer, DescriptorStoreHeap* pHeap)
+	static void reset_descriptor_heap(Renderer* pRenderer, DescriptorStoreHeap* pHeap)
 	{
 		VkResult res = vkResetDescriptorPool(pRenderer->pVkDevice, pHeap->pCurrentHeap, pHeap->mFlags);
 		pHeap->mUsedDescriptorSetCount = 0;
 		ASSERT(VK_SUCCESS == res);
 	}
 
-	void remove_descriptor_heap(Renderer* pRenderer, DescriptorStoreHeap* pHeap)
+	static void remove_descriptor_heap(Renderer* pRenderer, DescriptorStoreHeap* pHeap)
 	{
 		pHeap->pAllocationMutex->~Mutex();
 		conf_free(pHeap->pAllocationMutex);
@@ -451,7 +451,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		SAFE_FREE(pHeap);
 	}
 
-	void consume_descriptor_sets_lock_free(Renderer* pRenderer, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet** pSets, uint32_t numDescriptorSets, DescriptorStoreHeap* pHeap)
+	static void consume_descriptor_sets_lock_free(Renderer* pRenderer, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet** pSets, uint32_t numDescriptorSets, DescriptorStoreHeap* pHeap)
 	{
 		DECLARE_ZERO(VkDescriptorSetAllocateInfo, alloc_info);
 		alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -466,7 +466,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		pHeap->mUsedDescriptorSetCount += numDescriptorSets;
 	}
 
-	void consume_descriptor_sets(Renderer* pRenderer, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet** pSets, uint32_t numDescriptorSets, DescriptorStoreHeap* pHeap)
+	static void consume_descriptor_sets(Renderer* pRenderer, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet** pSets, uint32_t numDescriptorSets, DescriptorStoreHeap* pHeap)
 	{
 		MutexLock lock(*pHeap->pAllocationMutex);
 		consume_descriptor_sets_lock_free(pRenderer, pLayouts, pSets, numDescriptorSets, pHeap);
@@ -506,7 +506,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 	static Mutex gDescriptorMutex;
 
-	void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager)
+	static void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager)
 	{
 		DescriptorManager* pManager = (DescriptorManager*)conf_calloc(1, sizeof(*pManager));
 		pManager->pRootSignature = pRootSignature;
@@ -575,7 +575,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		*ppManager = pManager;
 	}
 
-	void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
+	static void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
 	{
 		const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 		const uint32_t frameCount = MAX_FRAMES_IN_FLIGHT;
@@ -611,7 +611,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	// This function returns the descriptor manager belonging to this thread
 	// If a descriptor manager does not exist for this thread, a new one is created
 	// With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
-	DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
+	static DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
 	{
 		tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
 		if (pNode == NULL)
@@ -629,7 +629,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 	}
 
-	const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
+	static const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
 	{
 		DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
 		if (it.node)
@@ -687,7 +687,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		uint32_t			mArraySize;
 	} FrameBuffer;
 
-	void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass** ppRenderPass)
+	static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass** ppRenderPass)
 	{
 		RenderPass* pRenderPass = (RenderPass*)conf_calloc(1, sizeof(*pRenderPass));
 		pRenderPass->mDesc = *pDesc;
@@ -792,13 +792,13 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		*ppRenderPass = pRenderPass;
 	}
 
-	void remove_render_pass(Renderer* pRenderer, RenderPass* pRenderPass)
+	static void remove_render_pass(Renderer* pRenderer, RenderPass* pRenderPass)
 	{
 		vkDestroyRenderPass(pRenderer->pVkDevice, pRenderPass->pRenderPass, NULL);
 		SAFE_FREE(pRenderPass);
 	}
 
-	void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, FrameBuffer** ppFrameBuffer)
+	static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, FrameBuffer** ppFrameBuffer)
 	{
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 
@@ -861,7 +861,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		*ppFrameBuffer = pFrameBuffer;
 	}
 
-	void remove_framebuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
+	static void remove_framebuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
 	{
 		ASSERT(pRenderer);
 		ASSERT(pFrameBuffer);
@@ -885,7 +885,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	tinystl::unordered_map<ThreadID, FrameBufferMap >	gFrameBufferMap;
 	Mutex												gRenderPassMutex;
 
-	RenderPassMap& get_render_pass_map()
+	static RenderPassMap& get_render_pass_map()
 	{
 		tinystl::unordered_hash_node<ThreadID, RenderPassMap>* pNode = gRenderPassMap.find(Thread::GetCurrentThreadID()).node;
 		if (pNode == NULL)
@@ -900,7 +900,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 	}
 
-	FrameBufferMap& get_frame_buffer_map()
+	static FrameBufferMap& get_frame_buffer_map()
 	{
 		tinystl::unordered_hash_node<ThreadID, FrameBufferMap>* pNode = gFrameBufferMap.find(Thread::GetCurrentThreadID()).node;
 		if (pNode == NULL)
@@ -1007,7 +1007,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	// Create default resources to be used a null descriptors in case user does not specify some descriptors
 	/************************************************************************/
-	void create_default_resources(Renderer* pRenderer)
+	static void create_default_resources(Renderer* pRenderer)
 	{
 		TextureDesc textureDesc = {};
 		textureDesc.mArraySize = 1;
@@ -1062,7 +1062,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRenderer->pDefaultRasterizerState);
 	}
 
-	void destroy_default_resources(Renderer* pRenderer)
+	static void destroy_default_resources(Renderer* pRenderer)
 	{
 		removeTexture(pRenderer, pRenderer->pDefaultTexture);
 		removeBuffer(pRenderer, pRenderer->pDefaultBuffer);
@@ -1078,20 +1078,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	static volatile uint64_t gBufferIds = 0;
 	static volatile uint64_t gTextureIds = 0;
 	static volatile uint64_t gSamplerIds = 0;
-	/************************************************************************/
-	// Internal Root Signature Function
-	/************************************************************************/
-	typedef struct UpdateFrequencyLayoutInfo
-	{
-		/// Array of all bindings in the descriptor set
-		tinystl::vector <VkDescriptorSetLayoutBinding> mBindings;
-		/// Array of all descriptors in this descriptor set
-		tinystl::vector <DescriptorInfo*> mDescriptors;
-		/// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		tinystl::vector <DescriptorInfo*> mDynamicDescriptors;
-		/// Hash map to get index of the descriptor in the root signature
-		tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
-	} UpdateFrequencyLayoutInfo;
 	/************************************************************************/
 	// Internal utility functions
 	/************************************************************************/
@@ -1519,7 +1505,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 	void util_calculate_device_indices(Renderer* pRenderer, uint32_t nodeIndex, uint32_t* pSharedNodeIndices, uint32_t sharedNodeIndexCount, uint32_t* pIndices)
 	{
-		for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
+		for (uint32_t i = 0; i < pRenderer->mVkLinkedNodeCount; ++i)
 			pIndices[i] = i;
 
 		pIndices[nodeIndex] = nodeIndex;
@@ -1692,7 +1678,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 	}
 
-	void RemoveInstance(Renderer* pRenderer)
+	static void RemoveInstance(Renderer* pRenderer)
 	{
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
 
@@ -1711,7 +1697,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		vkDestroyInstance(pRenderer->pVkInstance, NULL);
 	}
 
-	void AddDevice(Renderer* pRenderer)
+	static void AddDevice(Renderer* pRenderer)
 	{
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
 
@@ -1738,36 +1724,34 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 			// If the first device group has more than one physical device. create
 			// a logical device using all of the physical devices.
-			if (props[0].physicalDeviceCount > 1)
+			for (uint32_t i = 0; i < deviceGroupCount; ++i)
 			{
-				deviceGroupInfo.physicalDeviceCount = props[0].physicalDeviceCount;
-				deviceGroupInfo.pPhysicalDevices = props[0].physicalDevices;
-				pRenderer->mNumOfGPUs = deviceGroupInfo.physicalDeviceCount;
-				ASSERT(pRenderer->mNumOfGPUs > 1);
-
-				if (pRenderer->mNumOfGPUs > MAX_GPUS)
+				if (props[i].physicalDeviceCount > 1)
 				{
-					pRenderer->mNumOfGPUs = MAX_GPUS;
+					deviceGroupInfo.physicalDeviceCount = props[i].physicalDeviceCount;
+					deviceGroupInfo.pPhysicalDevices = props[i].physicalDevices;
+					pRenderer->mVkLinkedNodeCount = deviceGroupInfo.physicalDeviceCount;
+					break;
 				}
-
-				for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
-					pRenderer->pVkGPUs[i] = deviceGroupInfo.pPhysicalDevices[i];
 			}
 		}
-		else
+
+		if (!pRenderer->mVkLinkedNodeCount)
 		{
-			vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &(pRenderer->mNumOfGPUs), NULL);
-			ASSERT(VK_SUCCESS == vk_res);
-			ASSERT(pRenderer->mNumOfGPUs > 0);
-
-			if (pRenderer->mNumOfGPUs > MAX_GPUS)
-			{
-				pRenderer->mNumOfGPUs = MAX_GPUS;
-			}
-
-			vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &(pRenderer->mNumOfGPUs), pRenderer->pVkGPUs);
-			ASSERT(VK_SUCCESS == vk_res);
+			pRenderer->mSettings.mGpuMode = GPU_MODE_SINGLE;
 		}
+
+		vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &(pRenderer->mNumOfGPUs), NULL);
+		ASSERT(VK_SUCCESS == vk_res);
+		ASSERT(pRenderer->mNumOfGPUs > 0);
+
+		if (pRenderer->mNumOfGPUs > MAX_GPUS)
+		{
+			pRenderer->mNumOfGPUs = MAX_GPUS;
+		}
+
+		vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &(pRenderer->mNumOfGPUs), pRenderer->pVkGPUs);
+		ASSERT(VK_SUCCESS == vk_res);
 
 		typedef struct VkQueueFamily
 		{
@@ -1870,12 +1854,25 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			pRenderer->mGpuSettings[i].mUniformBufferAlignment = pRenderer->mVkGpuProperties[i].limits.minUniformBufferOffsetAlignment;
 			pRenderer->mGpuSettings[i].mMaxVertexInputBindings = pRenderer->mVkGpuProperties[i].limits.maxVertexInputBindings;
 			pRenderer->mGpuSettings[i].mMultiDrawIndirect = pRenderer->mVkGpuProperties[i].limits.maxDrawIndirectCount > 1;
+
+			//save vendor and model Id as string
+			char hexChar[10];
+			sprintf(hexChar, "%#x", pRenderer->mVkGpuProperties[i].deviceID);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId = String(hexChar);
+			sprintf(hexChar, "%#x", pRenderer->mVkGpuProperties[i].vendorID);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId = String(hexChar);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
+
 		}
 
+		
 		pRenderer->pVkActiveGPUProperties = &pRenderer->mVkGpuProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pVkActiveGpuMemoryProperties = &pRenderer->mVkGpuMemoryProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[pRenderer->mActiveGPUIndex];
-
+		
+		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId.c_str());
+		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId.c_str());
+		
 		uint32_t queueCount = 1;
 
 		// need a queue_priorite for each queue in the queue family we create
@@ -1969,7 +1966,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		/************************************************************************/
 		// Add Device Group Extension if requested and available
 		/************************************************************************/
-		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
 		{
 			create_info.pNext = &deviceGroupInfo;
 		}
@@ -2021,7 +2018,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 #endif
 	}
 
-	void RemoveDevice(Renderer* pRenderer)
+	static void RemoveDevice(Renderer* pRenderer)
 	{
 		for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
 		{
@@ -2031,10 +2028,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		vkDestroyDevice(pRenderer->pVkDevice, NULL);
 	}
 
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 namespace vk {
 #endif
-#if !defined(RENDERER_DLL_IMPORT)
 	/************************************************************************/
 	// Renderer Init Remove
 	/************************************************************************/
@@ -2071,7 +2067,7 @@ namespace vk {
 
 			CreateInstance(app_name, pRenderer);
 			AddDevice(pRenderer);
-
+			setGPUPresetLevel(pRenderer);
 			VmaAllocatorCreateInfo createInfo = { 0 };
 			createInfo.device = pRenderer->pVkDevice;
 			createInfo.physicalDevice = pRenderer->pVkActiveGPU;
@@ -2735,19 +2731,19 @@ namespace vk {
 		/************************************************************************/
 		// Buffer to be used on multiple GPUs
 		/************************************************************************/
-		if (pDesc->pSharedNodeIndices || pDesc->mNodeIndex)
+		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex))
 		{
 			/************************************************************************/
 			// Set all the device indices to the index of the device where we will create the buffer
 			/************************************************************************/
-			uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mNumOfGPUs * sizeof(uint32_t));
+			uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mVkLinkedNodeCount * sizeof(uint32_t));
 			util_calculate_device_indices(pRenderer, pDesc->mNodeIndex, pDesc->pSharedNodeIndices, pDesc->mSharedNodeIndexCount, pIndices);
 			/************************************************************************/
 			// #TODO : Move this to the Vulkan memory allocator
 			/************************************************************************/
 			VkBindBufferMemoryInfoKHR bindInfo = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR };
 			VkBindBufferMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO_KHR };
-			bindDeviceGroup.deviceIndexCount = pRenderer->mNumOfGPUs;
+			bindDeviceGroup.deviceIndexCount = pRenderer->mVkLinkedNodeCount;
 			bindDeviceGroup.pDeviceIndices = pIndices;
 			bindInfo.buffer = pBuffer->pVkBuffer;
 			bindInfo.memory = pBuffer->pVkAllocation->GetMemory();
@@ -2939,19 +2935,19 @@ namespace vk {
 			/************************************************************************/
 			// Texture to be used on multiple GPUs
 			/************************************************************************/
-			if (pDesc->pSharedNodeIndices || pDesc->mNodeIndex)
+			if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex))
 			{
 				/************************************************************************/
 				// Set all the device indices to the index of the device where we will create the texture
 				/************************************************************************/
-				uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mNumOfGPUs * sizeof(uint32_t));
+				uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mVkLinkedNodeCount * sizeof(uint32_t));
 				util_calculate_device_indices(pRenderer, pDesc->mNodeIndex, pDesc->pSharedNodeIndices, pDesc->mSharedNodeIndexCount, pIndices);
 				/************************************************************************/
 				// #TODO : Move this to the Vulkan memory allocator
 				/************************************************************************/
 				VkBindImageMemoryInfoKHR bindInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO_KHR };
 				VkBindImageMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR };
-				bindDeviceGroup.deviceIndexCount = pRenderer->mNumOfGPUs;
+				bindDeviceGroup.deviceIndexCount = pRenderer->mVkLinkedNodeCount;
 				bindDeviceGroup.pDeviceIndices = pIndices;
 				bindInfo.image = pTexture->pVkImage;
 				bindInfo.memory = pTexture->pVkAllocation->GetMemory();
@@ -3359,6 +3355,18 @@ namespace vk {
 	/************************************************************************/
 	// Root Signature Functions
 	/************************************************************************/
+	typedef struct UpdateFrequencyLayoutInfo
+	{
+		/// Array of all bindings in the descriptor set
+		tinystl::vector <VkDescriptorSetLayoutBinding> mBindings;
+		/// Array of all descriptors in this descriptor set
+		tinystl::vector <DescriptorInfo*> mDescriptors;
+		/// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		tinystl::vector <DescriptorInfo*> mDynamicDescriptors;
+		/// Hash map to get index of the descriptor in the root signature
+		tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
+	} UpdateFrequencyLayoutInfo;
+
 	void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 	{
 		RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
@@ -4093,7 +4101,7 @@ namespace vk {
 
 		VkDeviceGroupCommandBufferBeginInfoKHR deviceGroupBeginInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_COMMAND_BUFFER_BEGIN_INFO_KHR };
 		deviceGroupBeginInfo.pNext = NULL;
-		if (pCmd->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		if (pCmd->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
 		{
 			deviceGroupBeginInfo.deviceMask = (1 << pCmd->mNodeIndex);
 			begin_info.pNext = &deviceGroupBeginInfo;
@@ -4434,6 +4442,7 @@ namespace vk {
 
 		if (pm->pCurrentCmd != pCmd)
 		{
+			pm->pCurrentCmd = pCmd;
 			pm->mFrameIdx = (pm->mFrameIdx + 1) % MAX_FRAMES_IN_FLIGHT;
 		}
 
@@ -4967,7 +4976,7 @@ namespace vk {
 		uint32_t* pSignalIndices = NULL;
 		uint32_t* pWaitIndices = NULL;
 
-		if (pQueue->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+		if (pQueue->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
 		{
 			deviceGroupSubmitInfo.pNext = NULL;
 			deviceGroupSubmitInfo.commandBufferCount = submit_info.commandBufferCount;
@@ -5397,9 +5406,8 @@ namespace vk {
 	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION
 
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 } // namespace RENDERER_CPP_NAMESPACE
-#endif
 #endif
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
 #endif

@@ -12,15 +12,15 @@
     <File Name="../../src/04_ExecuteIndirect/simplexnoise1234.h"/>
     <File Name="../../src/04_ExecuteIndirect/TextureGen.cpp"/>
     <File Name="../../src/04_ExecuteIndirect/TextureGen.h"/>
+    <File Name="../../../../Middleware_3/PaniniProjection/Panini.cpp"/>
+    <File Name="../../../../Middleware_3/PaniniProjection/Panini.h"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
-    <Project Name="PaniniProjection"/>
   </Dependencies>
   <Dependencies Name="Release">
-    <Project Name="PaniniProjection"/>
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
@@ -48,14 +48,12 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Middleware_3/PaniniProjection/UbuntuCodelite/PaniniProjection/Debug/"/>
         <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libPaniniProjection.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -104,13 +102,11 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Middleware_3/PaniniProjection/UbuntuCodelite/PaniniProjection/Release/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libPaniniProjection.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>

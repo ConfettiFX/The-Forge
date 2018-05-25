@@ -22,6 +22,8 @@
  * under the License.
 */
 
+//#define PIXELPUZZLE
+
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
@@ -37,6 +39,9 @@
 #include "Geometry.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
+#if defined(PIXELPUZZLE)
+#include "../../../Middleware_3/PixelPuzzle/PixelPuzzle.h"
+#endif
 #include "../../../Common_3/OS/Core/DebugRenderer.h"
 
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
@@ -51,7 +56,7 @@
 #endif
 
 #if !defined(METAL)
-#define MSAASAMPLECOUNT 2
+#define MSAASAMPLECOUNT 1
 #else
 #define MSAASAMPLECOUNT 1
 #endif
@@ -102,8 +107,8 @@ const char* pszRoots[FSR_Count] =
 	"CompiledShaders/",													// FSR_BinShaders
 #endif
 	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders
-	"../../../src/" RESOURCE_DIR "/Binary/",							// FSR_BinShaders_Common (Currently just in same folder as other shaders)
-	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders_Common
+	"../../../../../Middleware_3/PixelPuzzle/Shaders/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders_Common
+	"../../../../../Middleware_3/PixelPuzzle/Shaders/" RESOURCE_DIR "/",		// FSR_SrcShaders_Common
 	"../../../../../Art/SanMiguel_2/",									// FSR_Textures
 	"../../../../../Art/SanMiguel_2/",									// FSR_Meshes
 	"../../../Resources/Fonts/",										// Fonts
@@ -118,8 +123,10 @@ const char* pszRoots[FSR_Count] =
 #endif  // !defined(TARGET_IOS)
 #ifdef _DURANGO
 	"",
+	"",
 	"Shaders/",															// FSR_Lib0_SrcShaders
 #else
+	"../../../src/GPUCfg/",												// FSR_GpuConfig
 	"../../../Resources/",												// FSR_OtherFiles
 #endif
 };
@@ -217,6 +224,9 @@ typedef struct AppSettings
 	float mAOIntensity = 3.0f;
 	int   mAOQuality = 2;
 } AppSettings;
+
+
+
 /************************************************************************/
 // Constants
 /************************************************************************/
@@ -250,6 +260,8 @@ struct PerFrameData
 	uint32_t gCulledClusters = 0;
 	uint32_t gDrawCount[gNumGeomSets];
 };
+
+
 /************************************************************************/
 // Settings
 /************************************************************************/
@@ -458,6 +470,101 @@ Scene*							pScene = nullptr;
 UIApp							gAppUI;
 GuiComponent*					pGuiWindow = nullptr;
 DebugTextDrawDesc				gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+
+#if defined(PIXELPUZZLE)
+/************************************************************************/
+// Pixel Puzzle data
+/************************************************************************/
+
+PixelPuzzle					gPixelPuzzle;
+
+tinystl::string				currentOperatingFile;
+
+
+Shader*						pShaderDepthCopy = nullptr;
+Shader*						pShaderFinalPass = nullptr;
+
+Pipeline*					pPipelineFinalPass = nullptr;
+Pipeline*					pPipelineDepthCopy = nullptr;
+
+RootSignature*				pRootSigFinalPass = nullptr;
+RootSignature*				pRootsignatureDepthCopy = nullptr;
+
+RenderTarget*				pIntermediateRenderTarget = nullptr;
+RenderTarget*				pIntermediateDepthTarget = nullptr;
+
+
+// Should probably think of a better name for this...
+struct GUISwitcher
+{
+	DynamicUIControls controls;
+	bool isActive = true; // determine if the window should be actively shown, something can be inactive but still show when active
+	bool shouldShow = true; // determine if the window should show when its active
+
+	void Update(GuiComponent* pGui)
+	{
+		// If gui element is active
+		if (isActive)
+		{
+			// Should the gui element show and it is currently not being shown?
+			if (shouldShow && !isShowing)
+			{
+				controls.ShowDynamicProperties(pGui);
+				isShowing = true;
+			}
+		}
+
+		// if showing
+		if (isShowing)
+		{
+			// If it shouldnt show or is active, disable gui window
+			if (!shouldShow || !isActive)
+			{
+				controls.HideDynamicProperties(pGui);
+				isShowing = false;
+			}
+		}
+	}
+
+private:
+	bool isShowing = false;
+
+};
+
+char gFilepathLoadOrSave[256] = "Preset01";
+
+static void SavePresetCallback(void* arg)
+{
+	gPixelPuzzle.SavePreset(gFilepathLoadOrSave);
+}
+
+static void LoadPresetCallback(void* arg)
+{
+	gPixelPuzzle.LoadPreset(gFilepathLoadOrSave);
+}
+
+DynamicUIControls	gBloom;
+GuiComponent*		pGuiPixelPuzzle;
+
+
+GUISwitcher	gPixelPuzzleBloomEnabled;
+GUISwitcher	gPixelPuzzleBloomVariables;
+
+GUISwitcher gPixelPuzzleManualExposure;
+GUISwitcher gPixelPuzzleAutoExposure;
+GUISwitcher gPixelPuzzleAperturePriority;
+GUISwitcher gPixelPuzzleShutterPriority;
+
+GUISwitcher gPixelPuzzleTonemappingGeneric;
+GUISwitcher	gPixelPuzzleReinhardWhiteClamp;
+GUISwitcher	gPixelPuzzleAdaptiveLog;
+GUISwitcher	gPixelPuzzleExponential;
+GUISwitcher	gPixelPuzzleHable;
+GUISwitcher	gPixelPuzzleHableReinhardApprox;
+
+int					gPreviousTonemapper = -1;
+
+#endif
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
@@ -466,6 +573,7 @@ FilterBatchChunk*				pFilterBatchChunk[gImageCount] = { nullptr };
 #else
 const uint32_t					gSmallBatchChunkCount = max(1U, 512U / CLUSTER_SIZE) * 16U;
 FilterBatchChunk*				pFilterBatchChunk[gImageCount][gSmallBatchChunkCount] = { nullptr };
+UniformRingBuffer*				pFilterBatchDataBuffer[gImageCount] = { nullptr };
 #endif
 /************************************************************************/
 // GPU Profilers
@@ -865,6 +973,15 @@ public:
 		addRootSignature(pRenderer, &clearLightRootDesc, &pRootSignatureClearLightClusters);
 		RootSignatureDesc clusterRootDesc = { &pShaderClusterLights, 1 };
 		addRootSignature(pRenderer, &clusterRootDesc, &pRootSignatureClusterLights);
+
+#if defined(PIXELPUZZLE)
+		// Root signatures for Pixel Puzzle preparation
+		RootSignatureDesc depthShaderRootSigDesc = { &pShaderDepthCopy, 1 };
+		addRootSignature(pRenderer, &depthShaderRootSigDesc, &pRootsignatureDepthCopy);
+
+		RootSignatureDesc finalShaderRootSigDesc = { &pShaderFinalPass, 1 };
+		addRootSignature(pRenderer, &finalShaderRootSigDesc, &pRootSigFinalPass);
+#endif
 		/************************************************************************/
 		// Setup indirect command signatures
 		/************************************************************************/
@@ -930,17 +1047,26 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
+#if defined(PIXELPUZZLE)
+		if (!gPixelPuzzle.Init(pRenderer))
+			return false;
+		gPixelPuzzle.pGpuProfiler = pGraphicsGpuProfiler;
+
+#endif
+
 		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
+#if defined(PIXELPUZZLE)
+		pGuiPixelPuzzle = gAppUI.AddGuiComponent("PixelPuzzle", &guiDesc);
+#endif
 		// Light Settings
 		//---------------------------------------------------------------------------------
 		// offset max angle for sun control so the light won't bleed with
 		// small glancing angles, i.e., when lightDir is almost parallel to the plane
-		const float maxAngleOffset = 0.017f;
 		UIProperty sunX("Sun Control X", gAppSettings.mSunControl.x, -PI, PI, 0.001f);
 		pGuiWindow->AddProperty(sunX);
 
@@ -1079,6 +1205,396 @@ public:
 		if (gAppSettings.mAsyncCompute)
 			setResourcesToComputeCompliantState(0, true);
 #endif
+#if defined(PIXELPUZZLE)
+		// ISOSpeed
+
+		static const char* isoNames[CameraSettings::ISOSPEED_KEY_SIZE + 1] =
+		{
+			CameraSettings::ISO_SPEED_STRINGS[0],	CameraSettings::ISO_SPEED_STRINGS[1],
+			CameraSettings::ISO_SPEED_STRINGS[2],	CameraSettings::ISO_SPEED_STRINGS[3],
+			CameraSettings::ISO_SPEED_STRINGS[4],	CameraSettings::ISO_SPEED_STRINGS[5],
+			CameraSettings::ISO_SPEED_STRINGS[6],	CameraSettings::ISO_SPEED_STRINGS[7],
+			CameraSettings::ISO_SPEED_STRINGS[8],	CameraSettings::ISO_SPEED_STRINGS[9],
+			CameraSettings::ISO_SPEED_STRINGS[10],	CameraSettings::ISO_SPEED_STRINGS[11],
+			CameraSettings::ISO_SPEED_STRINGS[12],	CameraSettings::ISO_SPEED_STRINGS[13],
+			CameraSettings::ISO_SPEED_STRINGS[14],	CameraSettings::ISO_SPEED_STRINGS[15],
+			CameraSettings::ISO_SPEED_STRINGS[16],	CameraSettings::ISO_SPEED_STRINGS[17],
+			CameraSettings::ISO_SPEED_STRINGS[18],	CameraSettings::ISO_SPEED_STRINGS[19],
+			CameraSettings::ISO_SPEED_STRINGS[20],	CameraSettings::ISO_SPEED_STRINGS[21],
+			CameraSettings::ISO_SPEED_STRINGS[22],	CameraSettings::ISO_SPEED_STRINGS[23],
+			0
+		};
+
+		static const CameraSettings::ISOSpeedKey isoValues[CameraSettings::ISOSPEED_KEY_SIZE] =
+		{
+			CameraSettings::ISO50,					CameraSettings::ISO64,
+			CameraSettings::ISO80,					CameraSettings::ISO100,
+			CameraSettings::ISO125,					CameraSettings::ISO160,
+			CameraSettings::ISO200,					CameraSettings::ISO250,
+			CameraSettings::ISO320,					CameraSettings::ISO400,
+			CameraSettings::ISO500,					CameraSettings::ISO640,
+			CameraSettings::ISO800,					CameraSettings::ISO1000,
+			CameraSettings::ISO1250,				CameraSettings::ISO1600,
+			CameraSettings::ISO2000,				CameraSettings::ISO2500,
+			CameraSettings::ISO3000,				CameraSettings::ISO3200,
+			CameraSettings::ISO4000,				CameraSettings::ISO5000,
+			CameraSettings::ISO6400,				CameraSettings::ISO12800,
+		};
+
+
+
+		// pertureSize
+
+		// CameraSettings::ApertureSizeKey	ApertureSize;
+		static const char* apertureNames[CameraSettings::APERTURE_KEY_SIZE + 1] =
+		{
+			CameraSettings::APERTURE_SIZE_STRINGS[0],		CameraSettings::APERTURE_SIZE_STRINGS[1],
+			CameraSettings::APERTURE_SIZE_STRINGS[2],		CameraSettings::APERTURE_SIZE_STRINGS[3],
+			CameraSettings::APERTURE_SIZE_STRINGS[4],		CameraSettings::APERTURE_SIZE_STRINGS[5],
+			CameraSettings::APERTURE_SIZE_STRINGS[6],		CameraSettings::APERTURE_SIZE_STRINGS[7],
+			CameraSettings::APERTURE_SIZE_STRINGS[8],		CameraSettings::APERTURE_SIZE_STRINGS[9],
+			CameraSettings::APERTURE_SIZE_STRINGS[10],		CameraSettings::APERTURE_SIZE_STRINGS[11],
+			CameraSettings::APERTURE_SIZE_STRINGS[12],		CameraSettings::APERTURE_SIZE_STRINGS[13],
+			CameraSettings::APERTURE_SIZE_STRINGS[14],		CameraSettings::APERTURE_SIZE_STRINGS[15],
+			CameraSettings::APERTURE_SIZE_STRINGS[16],		CameraSettings::APERTURE_SIZE_STRINGS[17],
+			CameraSettings::APERTURE_SIZE_STRINGS[18],
+			0
+		};
+
+		static const CameraSettings::ApertureSizeKey apertureValues[CameraSettings::APERTURE_KEY_SIZE] =
+		{
+			CameraSettings::F_0_5,							CameraSettings::F_0_7,
+			CameraSettings::F_1,							CameraSettings::F_1_4,
+			CameraSettings::F_2,							CameraSettings::F_2_8,
+			CameraSettings::F_4,							CameraSettings::F_5_6,
+			CameraSettings::F_8,							CameraSettings::F_11,
+			CameraSettings::F_16,							CameraSettings::F_22,
+			CameraSettings::F_32,							CameraSettings::F_45,
+			CameraSettings::F_64,							CameraSettings::F_90,
+			CameraSettings::F_128,							CameraSettings::F_256,
+			CameraSettings::F_512,
+		};
+
+
+
+		// ExposureMode
+
+		static const char* exposureNames[CameraSettings::EXPOSURE_MODE_KEY_SIZE + 1] =
+		{
+			CameraSettings::EXPOSURE_MODE_STRINGS[0],
+			CameraSettings::EXPOSURE_MODE_STRINGS[1],
+			CameraSettings::EXPOSURE_MODE_STRINGS[2],
+			CameraSettings::EXPOSURE_MODE_STRINGS[3],
+			0
+		};
+
+		static const CameraSettings::ExposureModeKey exposureValues[CameraSettings::EXPOSURE_MODE_KEY_SIZE] =
+		{
+			CameraSettings::MANUAL_EXPOSURE,
+			CameraSettings::AUTO_EXPOSURE,
+			CameraSettings::APERTURE_PRIORITY,
+			CameraSettings::SHUTTER_PRIORITY,
+		};
+
+
+
+		// EVOffset
+
+		// CameraSettings::EVKey				EVOffset;
+		static const char* evNames[CameraSettings::EV_KEY_SIZE + 1] =
+		{
+			CameraSettings::EV_STRINGS[0],		CameraSettings::EV_STRINGS[1],
+			CameraSettings::EV_STRINGS[2],		CameraSettings::EV_STRINGS[3],
+			CameraSettings::EV_STRINGS[4],		CameraSettings::EV_STRINGS[5],
+			CameraSettings::EV_STRINGS[6],		CameraSettings::EV_STRINGS[7],
+			CameraSettings::EV_STRINGS[8],		CameraSettings::EV_STRINGS[9],
+			CameraSettings::EV_STRINGS[10],		CameraSettings::EV_STRINGS[11],
+			CameraSettings::EV_STRINGS[12],		CameraSettings::EV_STRINGS[13],
+			CameraSettings::EV_STRINGS[14],		CameraSettings::EV_STRINGS[15],
+			CameraSettings::EV_STRINGS[16],		CameraSettings::EV_STRINGS[17],
+			CameraSettings::EV_STRINGS[18],		CameraSettings::EV_STRINGS[19],
+			CameraSettings::EV_STRINGS[20],		CameraSettings::EV_STRINGS[21],
+			CameraSettings::EV_STRINGS[22],		CameraSettings::EV_STRINGS[23],
+			CameraSettings::EV_STRINGS[24],		CameraSettings::EV_STRINGS[25],
+			CameraSettings::EV_STRINGS[26],		CameraSettings::EV_STRINGS[27],
+			CameraSettings::EV_STRINGS[28],		CameraSettings::EV_STRINGS[29],
+			CameraSettings::EV_STRINGS[30],		CameraSettings::EV_STRINGS[31],
+			CameraSettings::EV_STRINGS[32],
+			0
+		};
+
+		static const CameraSettings::EVKey evValues[CameraSettings::EV_KEY_SIZE] =
+		{
+			CameraSettings::MINUS_5,			CameraSettings::MINUS_4_5,
+			CameraSettings::MINUS_4,			CameraSettings::MINUS_3_5,
+			CameraSettings::MINUS_3,			CameraSettings::MINUS_2_5,
+			CameraSettings::MINUS_2,			CameraSettings::MINUS_1_5,
+			CameraSettings::MINUS_1,			CameraSettings::MINUS_0_5,
+			CameraSettings::ZERO,				CameraSettings::PLUS_0_5,
+			CameraSettings::PLUS_1,				CameraSettings::PLUS_1_5,
+			CameraSettings::PLUS_2,				CameraSettings::PLUS_2_5,
+			CameraSettings::PLUS_3,				CameraSettings::PLUS_3_5,
+			CameraSettings::PLUS_4,				CameraSettings::PLUS_4_5,
+			CameraSettings::PLUS_5,				CameraSettings::PLUS_5_5,
+			CameraSettings::PLUS_6,				CameraSettings::PLUS_6_5,
+			CameraSettings::PLUS_7,				CameraSettings::PLUS_7_5,
+			CameraSettings::PLUS_8,				CameraSettings::PLUS_8_5,
+			CameraSettings::PLUS_9,				CameraSettings::PLUS_9_5,
+			CameraSettings::PLUS_10,			CameraSettings::PLUS_10_5,
+			CameraSettings::PLUS_11,
+		};
+
+
+		static const char* enumNames[] = {
+			"NONE",
+			"HABLE_OPERATOR",
+			"HABLE_REINHARD_APPROX",
+			"REINHARD",
+			"REINHARD_WHITE_CLAMP",
+			"ADAPTIVE_LOG",
+			"EXPONENTIAL",
+			"SCURVE",
+			"FILMIC_ALU",
+			NULL
+		};
+		static const int enumValues[] = {
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			0
+		};
+
+
+
+		// NoiseMode
+
+		static const char* noiseNames[CameraSettings::NOISE_KEY_SIZE + 1] =
+		{
+			CameraSettings::NOISE_STRINGS[0],
+			CameraSettings::NOISE_STRINGS[1],
+			CameraSettings::NOISE_STRINGS[2],
+			CameraSettings::NOISE_STRINGS[3],
+			0
+		};
+
+		static const CameraSettings::NoiseKey noiseValues[CameraSettings::NOISE_KEY_SIZE] =
+		{
+			CameraSettings::NO_NOISE,
+			CameraSettings::SCOTOPIC_VISION,
+			CameraSettings::ANALOG_CAMERA_NOISE,
+			CameraSettings::DIGITAL_CAMERA_NOISE,
+		};
+
+		static const CameraSettings::CameraBokehShape bokehValues[3] =
+		{
+			CameraSettings::BOKEH_CIRCLE_SHAPE,
+			CameraSettings::BOKEH_SQUARE_SHAPE,
+			CameraSettings::BOKEH_STAR_SHAPE
+		};
+
+		static const char* bokehNames[3] =
+		{
+			"Circle Bokeh",
+			"Square Bokeh",
+			"Star Bokeh",
+		};
+
+		PostFXCamera::Controls minRef = PostFXCamera::MIN;
+		PostFXCamera::Controls maxRef = PostFXCamera::MAX;
+		/************************************************************************/
+		/************************************************************************/
+		int tonemapper = gPixelPuzzle.GetCamera()->Settings.Tonemapper;
+
+
+		UIProperty textInputProperty = UIProperty("Filepath", gFilepathLoadOrSave, 256);
+
+
+
+
+		UIProperty focalProperty = UIProperty("Focal length", gPixelPuzzle.GetCamera()->Settings.FocalLength, minRef.FocalLength, maxRef.FocalLength, (maxRef.FocalLength - minRef.FocalLength) / 100.0f, false, 0xAFAFAFFF, "Depth of Field");
+		UIProperty focusPositionProperty = UIProperty("Focal position", gPixelPuzzle.GetCamera()->Settings.FocusPositionControl, minRef.FocusPositionControl, maxRef.FocusPositionControl, (maxRef.FocusPositionControl - minRef.FocusPositionControl) / 100.0f, false, 0xAFAFAFFF, "Depth of Field");
+		UIProperty nearBlurProperty = UIProperty("Near blur", gPixelPuzzle.GetCamera()->Settings.NearBlurStrength, minRef.NearBlurStrength, maxRef.NearBlurStrength, (maxRef.NearBlurStrength - minRef.NearBlurStrength) / 100.0f, false, 0xAFAFAFFF, "Depth of Field");
+		UIProperty farBlurProperty = UIProperty("Far blur", gPixelPuzzle.GetCamera()->Settings.FarBlurStrength, minRef.FarBlurStrength, maxRef.FarBlurStrength, (maxRef.FarBlurStrength - minRef.FarBlurStrength) / 100.0f, false, 0xAFAFAFFF, "Depth of Field");
+
+		UIProperty bokehShapeProperty = UIProperty("Bokeh Shape", gPixelPuzzle.GetCamera()->Settings.BokehShape, bokehNames, bokehValues, NULL, 0xAFAFAFFF, "Depth of Field");
+
+
+		UIProperty loadPresetbuttonProperty = UIProperty("Load Preset", LoadPresetCallback, nullptr, 0xAFAFAFFF);
+		UIProperty savePresetbuttonProperty = UIProperty("Save Preset", SavePresetCallback, nullptr, 0xAFAFAFFF);
+
+
+		// Camera simulation properties
+		UIProperty cameraSimulationProperty = UIProperty("CameraSimulation Enabled", gPixelPuzzle.GetCamera()->Settings.CameraSimulation, 0xAFAFAFFF, "Physical Camera");
+
+		UIProperty noiseModeProperty = UIProperty("Noise Mode", gPixelPuzzle.GetCamera()->Settings.NoiseMode, noiseNames, noiseValues, NULL, 0xAFAFAFFF, "Physical Camera");
+		UIProperty noiseEnabledProperty = UIProperty("Noise toggle", gPixelPuzzle.GetCamera()->Settings.NoiseEnabled, 0xAFAFAFFF, "Physical Camera");
+		UIProperty noiseIntensityProperty = UIProperty("Noise intensity", gPixelPuzzle.GetCamera()->Settings.NoiseIntensity, minRef.NoiseIntensity, maxRef.NoiseIntensity, (maxRef.NoiseIntensity - minRef.NoiseIntensity) / 100.0f, false, 0xAFAFAFFF, "Physical Camera");
+
+		UIProperty isoSpeedProperty = UIProperty("ISO Speed", gPixelPuzzle.GetCamera()->Settings.ISOSpeed, isoNames, isoValues, NULL, 0xAFAFAFFF, "Physical Camera");
+		UIProperty apertureSizeProperty = UIProperty("Aperture Size", gPixelPuzzle.GetCamera()->Settings.ApertureSize, apertureNames, apertureValues, NULL, 0xAFAFAFFF, "Physical Camera");
+		UIProperty evOffsetProperty = UIProperty("EV Offset", gPixelPuzzle.GetCamera()->Settings.EVOffset, evNames, evValues, NULL, 0xAFAFAFFF, "Physical Camera");
+
+		UIProperty shutterAngleProperty = UIProperty("Shutter Angle", gPixelPuzzle.GetCamera()->Settings.ShutterAngle, minRef.ShutterAngle, maxRef.ShutterAngle, (maxRef.ShutterAngle - minRef.ShutterAngle) / 100.0f, false, 0xAFAFAFFF, "Physical Camera");
+		UIProperty adaptionRateProperty = UIProperty("Adaption rate", gPixelPuzzle.GetCamera()->Settings.AdaptionRate, minRef.AdaptionRate, maxRef.AdaptionRate, (maxRef.AdaptionRate - minRef.AdaptionRate) / 100.0f, false, 0xAFAFAFFF, "Physical Camera");
+
+		UIProperty exposureModeProperty = UIProperty("Exposure Mode", gPixelPuzzle.GetCamera()->Settings.ExposureMode, exposureNames, exposureValues, NULL, 0xAFAFAFFF, "Physical Camera");
+
+		// Color Filter properties 
+		UIProperty colorCorrectTextProperty = UIProperty("Color Multiply", 0xFFFFFFFF, "Color Filters");
+
+		UIProperty colorCorrectRProperty = UIProperty("R", gPixelPuzzle.GetCamera()->Settings.ColorCorrectR, minRef.ColorCorrectR, maxRef.ColorCorrectR, (maxRef.ColorCorrectR - minRef.ColorCorrectR) / 100.0f, false, 0xFF5252FF, "Color Filters");
+		UIProperty colorCorrectGProperty = UIProperty("G", gPixelPuzzle.GetCamera()->Settings.ColorCorrectG, minRef.ColorCorrectG, maxRef.ColorCorrectG, (maxRef.ColorCorrectG - minRef.ColorCorrectG) / 100.0f, false, 0x5260FFFF, "Color Filters");
+		UIProperty colorCorrectBProperty = UIProperty("B", gPixelPuzzle.GetCamera()->Settings.ColorCorrectB, minRef.ColorCorrectB, maxRef.ColorCorrectB, (maxRef.ColorCorrectB - minRef.ColorCorrectB) / 100.0f, false, 0x52FF58FF, "Color Filters");
+
+		UIProperty colorAddTextProperty = UIProperty("Color Add", 0xFFFFFFFF, "Color Filters");
+
+		UIProperty colorAddRProperty = UIProperty("R", gPixelPuzzle.GetCamera()->Settings.ColorAddR, minRef.ColorAddR, maxRef.ColorAddR, (maxRef.ColorAddR - minRef.ColorAddR) / 100.0f, false, 0xFF5252FF, "Color Filters");
+		UIProperty colorAddGProperty = UIProperty("G", gPixelPuzzle.GetCamera()->Settings.ColorAddG, minRef.ColorAddG, maxRef.ColorAddG, (maxRef.ColorAddG - minRef.ColorAddG) / 100.0f, false, 0x52FF58FF, "Color Filters");
+		UIProperty colorAddBProperty = UIProperty("B", gPixelPuzzle.GetCamera()->Settings.ColorAddB, minRef.ColorAddB, maxRef.ColorAddB, (maxRef.ColorAddB - minRef.ColorAddB) / 100.0f, false, 0x5260FFFF, "Color Filters");
+
+		UIProperty colorSaturationProperty = UIProperty("Saturation", gPixelPuzzle.GetCamera()->Settings.Saturation, minRef.Saturation, maxRef.Saturation, (maxRef.Saturation - minRef.Saturation) / 100.0f, false, 0xAFAFAFFF, "Color Filters");
+		UIProperty colorContrastProperty = UIProperty("Contrast", gPixelPuzzle.GetCamera()->Settings.Contrast, minRef.Contrast, maxRef.Contrast, (maxRef.Contrast - minRef.Contrast) / 100.0f, false, 0xAFAFAFFF, "Color Filters");
+
+
+		UIProperty tonemappingTextProperty = UIProperty("Tonemapping", 0xFFFFFFFF, "Tonemapping and Bloom");
+		UIProperty tonemappingSettingsTextProperty = UIProperty("Tonemapping settings", 0xFFFFFFFF, "Tonemapping and Bloom");
+
+		UIProperty tonemappingProperty = UIProperty("Tonemapping Enabled", gPixelPuzzle.GetCamera()->Settings.EnableTonemapping, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty tonemapperModeProperty = UIProperty("Tonemapper: ", gPixelPuzzle.GetCamera()->Settings.currentToneMapper, enumNames, enumValues, NULL, 0xAFAFAFFF, "Tonemapping and Bloom");
+
+
+		UIProperty middleGrayProperty = UIProperty("MiddleGray", gPixelPuzzle.GetCamera()->Settings.MiddleGray, minRef.MiddleGray, maxRef.MiddleGray, (maxRef.MiddleGray - minRef.MiddleGray) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty whiteProperty = UIProperty("White", gPixelPuzzle.GetCamera()->Settings.White, minRef.White, maxRef.White, (maxRef.White - minRef.White) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty shoulderStrengthProperty = UIProperty("ShoulderStrength", gPixelPuzzle.GetCamera()->Settings.ShoulderStrength, minRef.ShoulderStrength, maxRef.ShoulderStrength, (maxRef.ShoulderStrength - minRef.ShoulderStrength) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty linearStrengthProperty = UIProperty("LinearStrength", gPixelPuzzle.GetCamera()->Settings.LinearStrength, minRef.LinearStrength, maxRef.LinearStrength, (maxRef.LinearStrength - minRef.LinearStrength) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty linearAngleProperty = UIProperty("LinearAngle", gPixelPuzzle.GetCamera()->Settings.LinearAngle, minRef.LinearAngle, maxRef.LinearAngle, (maxRef.LinearAngle - minRef.LinearAngle) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty toeStrengthProperty = UIProperty("ToeStrength", gPixelPuzzle.GetCamera()->Settings.ToeStrength, minRef.ToeStrength, maxRef.ToeStrength, (maxRef.ToeStrength - minRef.ToeStrength) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty toeNumeratorProperty = UIProperty("ToeNumerator", gPixelPuzzle.GetCamera()->Settings.ToeNumerator, minRef.ToeNumerator, maxRef.ToeNumerator, (maxRef.ToeNumerator - minRef.ToeNumerator) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty toeDenominator = UIProperty("ToeDenominator", gPixelPuzzle.GetCamera()->Settings.ToeDenominator, minRef.ToeDenominator, maxRef.ToeDenominator, (maxRef.ToeDenominator - minRef.ToeDenominator) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty adaptiveLogBias = UIProperty("AdaptiveLogBias", gPixelPuzzle.GetCamera()->Settings.AdaptiveLogBias, minRef.AdaptiveLogBias, maxRef.AdaptiveLogBias, (maxRef.AdaptiveLogBias - minRef.AdaptiveLogBias) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+
+		UIProperty crossoverProperty = UIProperty("Crossoverproperty", gPixelPuzzle.GetCamera()->Settings.CrossOverPoint, minRef.CrossOverPoint, maxRef.CrossOverPoint, (maxRef.CrossOverPoint - minRef.CrossOverPoint) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+
+		// Bloom properties
+		UIProperty bloomTextProperty = UIProperty("Bloom settings", 0xFFFFFFFF, "Tonemapping and Bloom");
+		UIProperty bloomProperty = UIProperty("Bloom Enabled", gPixelPuzzle.GetCamera()->Settings.BloomEnabled, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty bloomValueProperty = UIProperty("Bloom", gPixelPuzzle.GetCamera()->Settings.Bloom, minRef.Bloom, maxRef.Bloom, (maxRef.Bloom - minRef.Bloom) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty bloomWidthProperty = UIProperty("Bloom width", gPixelPuzzle.GetCamera()->Settings.BloomWidth, minRef.BloomWidth, maxRef.BloomWidth, (maxRef.BloomWidth - minRef.BloomWidth) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+		UIProperty brightThresholdProperty = UIProperty("Brightpass threshold", gPixelPuzzle.GetCamera()->Settings.BloomBrightpassThreshold, minRef.BloomBrightpassThreshold, maxRef.BloomBrightpassThreshold, (maxRef.BloomBrightpassThreshold - minRef.BloomBrightpassThreshold) / 100.0f, false, 0xAFAFAFFF, "Tonemapping and Bloom");
+
+
+		pGuiPixelPuzzle->AddProperty(textInputProperty);
+		pGuiPixelPuzzle->AddProperty(loadPresetbuttonProperty);
+		pGuiPixelPuzzle->AddProperty(savePresetbuttonProperty);
+
+
+		pGuiPixelPuzzle->AddProperty(noiseModeProperty);
+		pGuiPixelPuzzle->AddProperty(noiseEnabledProperty);
+		pGuiPixelPuzzle->AddProperty(noiseIntensityProperty);
+
+
+		pGuiPixelPuzzle->AddProperty(exposureModeProperty);
+		pGuiPixelPuzzle->AddProperty(adaptionRateProperty);
+
+		// Manual has all the options EXCEPT exposure target
+		gPixelPuzzleManualExposure.controls.mDynamicProperties.emplace_back(isoSpeedProperty);
+		gPixelPuzzleManualExposure.controls.mDynamicProperties.emplace_back(shutterAngleProperty);
+		gPixelPuzzleManualExposure.controls.mDynamicProperties.emplace_back(apertureSizeProperty);
+
+		// Auto exposure only has the exposure target
+		gPixelPuzzleAutoExposure.controls.mDynamicProperties.emplace_back(evOffsetProperty);
+
+		// Aperture priority allows changing the size of the aperture
+		gPixelPuzzleAperturePriority.controls.mDynamicProperties.emplace_back(isoSpeedProperty);
+		gPixelPuzzleAperturePriority.controls.mDynamicProperties.emplace_back(apertureSizeProperty);
+
+		// Shutter angle should allow changing the shutter angle
+		gPixelPuzzleShutterPriority.controls.mDynamicProperties.emplace_back(isoSpeedProperty);
+		gPixelPuzzleShutterPriority.controls.mDynamicProperties.emplace_back(shutterAngleProperty);
+
+		// Physical camera
+		//pGui->AddProperty(testTextInput);
+		pGuiPixelPuzzle->AddProperty(cameraSimulationProperty);
+
+		pGuiPixelPuzzle->AddProperty(focalProperty);
+		pGuiPixelPuzzle->AddProperty(focusPositionProperty);
+		pGuiPixelPuzzle->AddProperty(nearBlurProperty);
+		pGuiPixelPuzzle->AddProperty(farBlurProperty);
+		pGuiPixelPuzzle->AddProperty(bokehShapeProperty);
+
+
+		// Color correction
+		pGuiPixelPuzzle->AddProperty(colorCorrectTextProperty);
+		pGuiPixelPuzzle->AddProperty(colorCorrectRProperty);
+		pGuiPixelPuzzle->AddProperty(colorCorrectGProperty);
+		pGuiPixelPuzzle->AddProperty(colorCorrectBProperty);
+
+		pGuiPixelPuzzle->AddProperty(colorAddTextProperty);
+		pGuiPixelPuzzle->AddProperty(colorAddRProperty);
+		pGuiPixelPuzzle->AddProperty(colorAddGProperty);
+		pGuiPixelPuzzle->AddProperty(colorAddBProperty);
+		pGuiPixelPuzzle->AddProperty(colorSaturationProperty);
+		pGuiPixelPuzzle->AddProperty(colorContrastProperty);
+
+
+
+		// Tonemapping text and enabling properties
+		pGuiPixelPuzzle->AddProperty(tonemappingTextProperty);
+		pGuiPixelPuzzle->AddProperty(tonemappingProperty);
+
+
+		// Reinhard white clamp
+		gPixelPuzzleReinhardWhiteClamp.controls.mDynamicProperties.emplace_back(whiteProperty);
+
+		// Adaptive log
+		gPixelPuzzleAdaptiveLog.controls.mDynamicProperties.emplace_back(whiteProperty);
+
+		// <<< mBias should be here, still don't know which mBias it should be
+
+		// Exponential
+		gPixelPuzzleExponential.controls.mDynamicProperties.emplace_back(whiteProperty);
+
+
+		// Hable
+		gPixelPuzzleHable.controls.mDynamicProperties.emplace_back(linearStrengthProperty);
+		gPixelPuzzleHable.controls.mDynamicProperties.emplace_back(linearAngleProperty);
+		gPixelPuzzleHable.controls.mDynamicProperties.emplace_back(toeStrengthProperty);
+		gPixelPuzzleHable.controls.mDynamicProperties.emplace_back(toeNumeratorProperty);
+		gPixelPuzzleHable.controls.mDynamicProperties.emplace_back(toeDenominator);
+		gPixelPuzzleHable.controls.mDynamicProperties.emplace_back(whiteProperty);
+
+
+		// Hable reinhard approx
+		gPixelPuzzleHableReinhardApprox.controls.mDynamicProperties.emplace_back(shoulderStrengthProperty);
+		gPixelPuzzleHableReinhardApprox.controls.mDynamicProperties.emplace_back(toeStrengthProperty);
+		gPixelPuzzleHableReinhardApprox.controls.mDynamicProperties.emplace_back(crossoverProperty);
+		gPixelPuzzleHableReinhardApprox.controls.mDynamicProperties.emplace_back(whiteProperty);
+
+
+		// Bloom enabled button
+		gPixelPuzzleBloomEnabled.controls.mDynamicProperties.emplace_back(bloomProperty);
+
+		// What tonemapper 
+		gPixelPuzzleTonemappingGeneric.controls.mDynamicProperties.emplace_back(tonemappingSettingsTextProperty);
+		gPixelPuzzleTonemappingGeneric.controls.mDynamicProperties.emplace_back(tonemapperModeProperty);
+
+		gPixelPuzzleTonemappingGeneric.controls.mDynamicProperties.emplace_back(middleGrayProperty);
+
+		// Bloom variable
+		gPixelPuzzleBloomVariables.controls.mDynamicProperties.emplace_back(bloomTextProperty);
+		gPixelPuzzleBloomVariables.controls.mDynamicProperties.emplace_back(bloomValueProperty);
+		gPixelPuzzleBloomVariables.controls.mDynamicProperties.emplace_back(bloomWidthProperty);
+		gPixelPuzzleBloomVariables.controls.mDynamicProperties.emplace_back(brightThresholdProperty);
+
+
+		gPixelPuzzle.GetCamera()->ClampSettings(gPixelPuzzle.GetCamera()->Settings);
+#endif
 
 		LOGINFOF("Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
 
@@ -1087,6 +1603,8 @@ public:
 		registerMouseButtonEvent(onMouseButtonHandler);
 		registerMouseWheelEvent(onMouseWheelHandler);
 #endif
+
+
 
 		return true;
 	}
@@ -1104,8 +1622,13 @@ public:
 
 		gAppUI.Exit();
 
+#if defined(PIXELPUZZLE)
+		gPixelPuzzle.Exit();
+#endif
+
 		// Destroy geometry for light rendering
 		destroyBuffers(pRenderer, pVertexBufferCube, pIndexBufferCube);
+
 
 		// Destroy triangle filtering pipelines
 		removePipeline(pRenderer, pPipelineClusterLights);
@@ -1131,6 +1654,11 @@ public:
 		removeRootSignature(pRenderer, pRootSignatureVBShade);
 		removeRootSignature(pRenderer, pRootSignatureVBPass);
 
+#if defined(PIXELPUZZLE)
+		// Remove resources for Pixel Puzzle
+		removeRootSignature(pRenderer, pRootSigFinalPass);
+		removeRootSignature(pRenderer, pRootsignatureDepthCopy);
+#endif
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
 		/************************************************************************/
@@ -1224,6 +1752,81 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
+
+#if defined(PIXELPUZZLE)
+		RenderTargetDesc postProcRTDesc = {};
+		postProcRTDesc.mArraySize = 1;
+		postProcRTDesc.mClearValue = { 0.2109f, 0.6470f, 0.8470f, 1.0f };
+		postProcRTDesc.mDepth = 1;
+		postProcRTDesc.mFormat = ImageFormat::RG11B10F;
+		postProcRTDesc.mHeight = mSettings.mHeight;
+		postProcRTDesc.mWidth = mSettings.mWidth;
+		postProcRTDesc.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		postProcRTDesc.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		postProcRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		postProcRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR | RENDER_TARGET_USAGE_UNORDERED_ACCESS;
+			addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
+
+		RenderTargetDesc postProcDepthRTDesc = {};
+		postProcDepthRTDesc.mArraySize = 1;
+		postProcDepthRTDesc.mClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+		postProcDepthRTDesc.mDepth = 1;
+		postProcDepthRTDesc.mFormat = ImageFormat::R32F;
+		postProcDepthRTDesc.mHeight = mSettings.mHeight;
+		postProcDepthRTDesc.mWidth = mSettings.mWidth;
+		postProcDepthRTDesc.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		postProcDepthRTDesc.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		postProcDepthRTDesc.mType = RENDER_TARGET_TYPE_2D;
+		postProcDepthRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR | RENDER_TARGET_USAGE_UNORDERED_ACCESS;
+		addRenderTarget(pRenderer, &postProcDepthRTDesc, &pIntermediateDepthTarget);
+
+		RenderTarget* rts[3];
+		// Create a set target function for pixel puzzle
+
+#if (MSAASAMPLECOUNT > 1)
+		rts[0] = pRenderTargetMSAA;
+#else
+		rts[0] = pIntermediateRenderTarget;
+#endif
+		rts[1] = pIntermediateDepthTarget;
+		rts[2] = pSwapChain->ppSwapchainRenderTargets[0];
+
+		if (!gPixelPuzzle.Load(rts))
+			return false;
+#endif
+		/************************************************************************/
+		// Pipelines needed for pixel puzzle
+		/************************************************************************/
+
+#if defined(PIXELPUZZLE)
+		VertexLayout vertexLayoutCopyShaders = {};
+		vertexLayoutCopyShaders.mAttribCount = 0;
+		GraphicsPipelineDesc pipelineSettingsDepthCopy = { 0 };
+		pipelineSettingsDepthCopy.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettingsDepthCopy.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettingsDepthCopy.mRenderTargetCount = 1;
+		pipelineSettingsDepthCopy.pColorFormats = &pIntermediateDepthTarget->mDesc.mFormat;
+		pipelineSettingsDepthCopy.pSrgbValues = &pIntermediateDepthTarget->mDesc.mSrgb;
+		pipelineSettingsDepthCopy.mSampleCount = pIntermediateDepthTarget->mDesc.mSampleCount;
+		pipelineSettingsDepthCopy.mSampleQuality = pIntermediateDepthTarget->mDesc.mSampleQuality;
+		pipelineSettingsDepthCopy.pVertexLayout = &vertexLayoutCopyShaders;
+		pipelineSettingsDepthCopy.pRootSignature = pRootsignatureDepthCopy;
+		pipelineSettingsDepthCopy.pShaderProgram = pShaderDepthCopy;
+		addPipeline(pRenderer, &pipelineSettingsDepthCopy, &pPipelineDepthCopy);
+
+		GraphicsPipelineDesc pipelineSettingsFinalPass = { 0 };
+		pipelineSettingsFinalPass.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettingsFinalPass.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettingsFinalPass.mRenderTargetCount = 1;
+		pipelineSettingsFinalPass.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		pipelineSettingsFinalPass.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		pipelineSettingsFinalPass.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettingsFinalPass.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettingsFinalPass.pVertexLayout = &vertexLayoutCopyShaders;
+		pipelineSettingsFinalPass.pRootSignature = pRootSigFinalPass;
+		pipelineSettingsFinalPass.pShaderProgram = pShaderFinalPass;
+		addPipeline(pRenderer, &pipelineSettingsFinalPass, &pPipelineFinalPass);
+#endif
 		/************************************************************************/
 		// Vertex layout used by all geometry passes (shadow, visibility, deferred)
 		/************************************************************************/
@@ -1412,9 +2015,17 @@ public:
 			vbShadePipelineSettings.pSrgbValues = &pRenderTargetMSAA->mDesc.mSrgb;
 			vbShadePipelineSettings.mSampleQuality = pRenderTargetMSAA->mDesc.mSampleQuality;
 #else
+
+#if defined(PIXELPUZZLE)
+			vbShadePipelineSettings.pColorFormats = &pIntermediateRenderTarget->mDesc.mFormat;
+			vbShadePipelineSettings.pSrgbValues = &pIntermediateRenderTarget->mDesc.mSrgb;
+			vbShadePipelineSettings.mSampleQuality = pIntermediateRenderTarget->mDesc.mSampleQuality;
+#else
 			vbShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
 			vbShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 			vbShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+#endif
+		
 #endif
 
 #if defined(_DURANGO) && 1
@@ -1504,9 +2115,15 @@ public:
 			deferredShadePipelineSettings.pSrgbValues = &pRenderTargetMSAA->mDesc.mSrgb;
 			deferredShadePipelineSettings.mSampleQuality = pRenderTargetMSAA->mDesc.mSampleQuality;
 #else
+#if defined(PIXELPUZZLE)
+			deferredShadePipelineSettings.pColorFormats = &pIntermediateRenderTarget->mDesc.mFormat;
+			deferredShadePipelineSettings.pSrgbValues = &pIntermediateRenderTarget->mDesc.mSrgb;
+			deferredShadePipelineSettings.mSampleQuality = pIntermediateRenderTarget->mDesc.mSampleQuality;
+#else
 			deferredShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
 			deferredShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 			deferredShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+#endif
 #endif
 			addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadeSrgb[i]);
 		}
@@ -1582,6 +2199,19 @@ public:
 
 		gAppUI.Unload();
 
+#if defined(PIXELPUZZLE)
+		gPixelPuzzle.Unload();
+
+		// Destroy resources for Pixel Puzzle
+		removePipeline(pRenderer, pPipelineDepthCopy);
+		removePipeline(pRenderer, pPipelineFinalPass);
+
+		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
+		removeRenderTarget(pRenderer, pIntermediateDepthTarget);
+#endif
+		
+		
+
 		for (uint32_t i = 0; i < 4; ++i)
 			removePipeline(pRenderer, pPipelineAO[i]);
 		removePipeline(pRenderer, pPipelineResolve);
@@ -1624,6 +2254,142 @@ public:
 
 		gAppUI.Update(deltaTime);
 
+#if defined(PIXELPUZZLE)
+		gPixelPuzzle.Update(deltaTime);
+
+		/* PIXEL PUZZLE GUI LOGIC */
+		if (gPreviousTonemapper != gPixelPuzzle.GetCamera()->Settings.currentToneMapper)
+		{
+			gPixelPuzzleHable.shouldShow = false;
+			gPixelPuzzleHableReinhardApprox.shouldShow = false;
+			gPixelPuzzleReinhardWhiteClamp.shouldShow = false;
+			gPixelPuzzleAdaptiveLog.shouldShow = false;
+			gPixelPuzzleExponential.shouldShow = false;
+
+			switch (gPixelPuzzle.GetCamera()->Settings.currentToneMapper)
+			{
+			case 0: // none
+
+				break;
+
+			case 1: // HABLE
+
+				gPixelPuzzleHable.shouldShow = true;
+				break;
+			case 2: // HABLE REINHARD
+				gPixelPuzzleHableReinhardApprox.shouldShow = true;
+				break;
+			case 3: // REINHARD
+
+				break;
+			case 4: // REINHARD WHITE CLAMP
+				gPixelPuzzleReinhardWhiteClamp.shouldShow = true;
+				break;
+			case 5: // ADAPTIVE LOG
+				gPixelPuzzleAdaptiveLog.shouldShow = true;
+				break;
+			case 6: // EXPONENTIAL
+				gPixelPuzzleExponential.shouldShow = true;
+				break;
+
+			case 7: // SCURVE
+				break;
+
+			case 8: // FILMIC ALU
+
+				break;
+			}
+			gPreviousTonemapper = gPixelPuzzle.GetCamera()->Settings.currentToneMapper;
+		}
+
+
+
+		// these menu items should not show up if tonemapping is disabled
+		if (gPixelPuzzle.GetCamera()->Settings.EnableTonemapping)
+		{
+			gPixelPuzzleTonemappingGeneric.isActive = true;
+			gPixelPuzzleHable.isActive = true;
+			gPixelPuzzleHableReinhardApprox.isActive = true;
+			gPixelPuzzleReinhardWhiteClamp.isActive = true;
+			gPixelPuzzleAdaptiveLog.isActive = true;
+			gPixelPuzzleExponential.isActive = true;
+			gPixelPuzzleBloomEnabled.isActive = true;
+			gPixelPuzzleBloomVariables.isActive = true;
+		}
+		else
+		{
+			gPixelPuzzleTonemappingGeneric.isActive = false;
+			gPixelPuzzleHable.isActive = false;
+			gPixelPuzzleHableReinhardApprox.isActive = false;
+			gPixelPuzzleReinhardWhiteClamp.isActive = false;
+			gPixelPuzzleAdaptiveLog.isActive = false;
+			gPixelPuzzleExponential.isActive = false;
+			gPixelPuzzleBloomEnabled.isActive = false;
+			gPixelPuzzleBloomVariables.isActive = false;
+		}
+
+		// Don't show mBloom variables if mBloom is disabled
+		if (gPixelPuzzle.GetCamera()->Settings.BloomEnabled)
+		{
+			gPixelPuzzleBloomVariables.shouldShow = true;
+
+			for (uint32_t i = 0; i < gPixelPuzzleBloomVariables.controls.mDynamicProperties.size(); ++i)
+			{
+				gPixelPuzzleBloomVariables.controls.mDynamicProperties[i].flags = UIProperty::FLAG_VISIBLE;
+			}
+		}
+		else
+		{
+			for (uint32_t i = 0; i < gPixelPuzzleBloomVariables.controls.mDynamicProperties.size(); ++i)
+			{
+				gPixelPuzzleBloomVariables.controls.mDynamicProperties[i].flags = UIProperty::FLAG_NONE;
+			}
+			gPixelPuzzleBloomVariables.shouldShow = false;
+		}
+
+		gPixelPuzzleManualExposure.shouldShow = false;
+		gPixelPuzzleAutoExposure.shouldShow = false;
+		gPixelPuzzleAperturePriority.shouldShow = false;
+		gPixelPuzzleShutterPriority.shouldShow = false;
+
+		switch (gPixelPuzzle.GetCamera()->Settings.ExposureMode)
+		{
+		case CameraSettings::ExposureModeKey::MANUAL_EXPOSURE:
+			gPixelPuzzleManualExposure.shouldShow = true;
+			break;
+
+		case CameraSettings::ExposureModeKey::AUTO_EXPOSURE:
+			gPixelPuzzleAutoExposure.shouldShow = true;
+			break;
+
+		case CameraSettings::ExposureModeKey::APERTURE_PRIORITY:
+			gPixelPuzzleAperturePriority.shouldShow = true;
+			break;
+
+		case CameraSettings::ExposureModeKey::SHUTTER_PRIORITY:
+			gPixelPuzzleShutterPriority.shouldShow = true;
+			break;
+		
+		}
+
+
+		gPixelPuzzleManualExposure.Update(pGuiPixelPuzzle);
+		gPixelPuzzleAutoExposure.Update(pGuiPixelPuzzle);
+		gPixelPuzzleAperturePriority.Update(pGuiPixelPuzzle);
+		gPixelPuzzleShutterPriority.Update(pGuiPixelPuzzle);
+
+		gPixelPuzzleBloomEnabled.Update(pGuiPixelPuzzle);
+		gPixelPuzzleBloomVariables.Update(pGuiPixelPuzzle);
+
+		// The order of the updates decides how the GUI is layout, tonemapping generic first, then hable etc.
+		gPixelPuzzleTonemappingGeneric.Update(pGuiPixelPuzzle);
+		gPixelPuzzleHable.Update(pGuiPixelPuzzle);
+		gPixelPuzzleHableReinhardApprox.Update(pGuiPixelPuzzle);
+		gPixelPuzzleReinhardWhiteClamp.Update(pGuiPixelPuzzle);
+		gPixelPuzzleAdaptiveLog.Update(pGuiPixelPuzzle);
+		gPixelPuzzleExponential.Update(pGuiPixelPuzzle);
+	
+#endif
 		updateDynamicUIElements();
 	}
 
@@ -1716,7 +2482,12 @@ public:
 		{
 			Cmd* graphicsCmd = NULL;
 
+#if defined(PIXELPUZZLE)
+			// For pixel Puzzle
+			pScreenRenderTarget = pIntermediateRenderTarget;
+#else
 			pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[graphicsFrameIdx];
+#endif
 			// Get command list to store rendering commands for this frame
 			graphicsCmd = ppCmds[graphicsFrameIdx];
 			// Submit all render commands for this frame
@@ -1801,13 +2572,52 @@ public:
 #endif
 #endif
 
+
+#if defined(PIXELPUZZLE)
+			cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Pixel Puzzle", true);
+
+			TextureBarrier barrierRt[1] = { pIntermediateDepthTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
+			cmdResourceBarrier(graphicsCmd, 0, NULL, 1, barrierRt, false);
+
+
+			TextureBarrier depthBarrier = { pDepthBuffer->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
+			cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &depthBarrier, false);
+
+			// MSAA resolve happens in this pass, next to rendering the depth to a UAV compatible RT
+			RenderToDepthBuffer(graphicsCmd, pDepthBuffer->pTexture, pIntermediateDepthTarget);
+
+
+			TextureBarrier barrierTwo[3] = { { pScreenRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },{ pSwapChain->ppSwapchainRenderTargets[graphicsFrameIdx]->pTexture, RESOURCE_STATE_RENDER_TARGET },{ pDepthBuffer->pTexture , RESOURCE_STATE_DEPTH_WRITE } };
+			cmdResourceBarrier(graphicsCmd, 0, NULL, 3, barrierTwo, false);
+
+
+#if (MSAASAMPLECOUNT > 1)
+
+			TextureBarrier barrierMSAA = {pRenderTargetMSAA->pTexture, RESOURCE_STATE_SHADER_RESOURCE};
+			cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &barrierMSAA, false);
+#endif
+
+			gPixelPuzzle.Draw(graphicsCmd);
+			cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
+
+			Texture* pDestination = gPixelPuzzle.GetFinalDestinationTexture();
+			cmdSynchronizeResources(graphicsCmd, 0, nullptr, 1, &pDestination, false);
+			RenderToFinalImage(graphicsCmd, gPixelPuzzle.GetFinalDestinationTexture(), pSwapChain->ppSwapchainRenderTargets[graphicsFrameIdx]);
+
+
+			pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[graphicsFrameIdx];
+#endif
 			cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "UI Pass", true);
 			drawGUI(graphicsCmd, graphicsFrameIdx);
 			cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 
+#if defined(PIXELPUZZLE)
+			TextureBarrier barrierPresent = { pScreenRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
+			cmdResourceBarrier(graphicsCmd, 0, NULL, 1, &barrierPresent, false);
+#else
 			barriers[0].mNewState = RESOURCE_STATE_PRESENT;
 			cmdResourceBarrier(graphicsCmd, 0, NULL, 1, barriers, true);
-
+#endif
 			cmdEndGpuFrameProfile(graphicsCmd, pGraphicsGpuProfiler);
 
 			endCmd(graphicsCmd);
@@ -1835,6 +2645,8 @@ public:
 		return "Visibility Buffer";
 	}
     
+
+
 	/************************************************************************/
 	// Add render targets
 	/************************************************************************/
@@ -1853,8 +2665,12 @@ public:
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
 		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
-		swapChainDesc.mSrgb = true;
 
+#if defined(PIXELPUZZLE)
+		swapChainDesc.mSrgb = false;
+#else
+		swapChainDesc.mSrgb = true;
+#endif
 		swapChainDesc.mEnableVsync = false;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		/************************************************************************/
@@ -1943,7 +2759,12 @@ public:
 		msaaRTDesc.mArraySize = 1;
 		msaaRTDesc.mClearValue = optimizedColorClearWhite;
 		msaaRTDesc.mDepth = 1;
+
+#if defined(PIXELPUZZLE)
+		msaaRTDesc.mFormat = ImageFormat::RG11B10F;
+#else
 		msaaRTDesc.mFormat = ImageFormat::RGBA8;
+#endif
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		msaaRTDesc.mSampleQuality = 0;
@@ -2027,6 +2848,8 @@ public:
 #endif
 		ShaderLoadDesc clearLights = {};
 		ShaderLoadDesc clusterLights = {};
+		ShaderLoadDesc depthCopyShader = {};
+		ShaderLoadDesc finalShaderDesc = {};
 
 		shadowPass.mStages[0] = { "shadow_pass.vert", NULL, 0, FSR_SrcShaders };
 		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0, FSR_SrcShaders };
@@ -2081,6 +2904,19 @@ public:
 		// Cluster lights compute shader
 		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL, FSRoot::FSR_SrcShaders };
 
+
+#if defined(PIXELPUZZLE)
+		// Depth copy vertex and fragment shaders
+		depthCopyShader.mStages[0] = { "display.vert", shadingMacros[0], 1, FSR_SrcShaders_Common };
+		depthCopyShader.mStages[1] = { "copyDepth.frag", shadingMacros[0], 1, FSR_SrcShaders_Common };
+
+		finalShaderDesc.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders_Common };
+		finalShaderDesc.mStages[1] = { "display.frag", NULL, 0, FSR_SrcShaders_Common };
+
+
+		addShader(pRenderer, &depthCopyShader, &pShaderDepthCopy);
+		addShader(pRenderer, &finalShaderDesc, &pShaderFinalPass);
+#endif
 		addShader(pRenderer, &shadowPass, &pShaderShadowPass[GEOMSET_OPAQUE]);
 		addShader(pRenderer, &shadowPassAlpha, &pShaderShadowPass[GEOMSET_ALPHATESTED]);
 		addShader(pRenderer, &vbPass, &pShaderVisibilityBufferPass[GEOMSET_OPAQUE]);
@@ -2106,6 +2942,10 @@ public:
 
 	void removeShaders()
 	{
+#if defined(PIXELPUZZLE)
+		removeShader(pRenderer, pShaderDepthCopy);
+		removeShader(pRenderer, pShaderFinalPass);
+#endif
 		removeShader(pRenderer, pShaderShadowPass[GEOMSET_OPAQUE]);
 		removeShader(pRenderer, pShaderShadowPass[GEOMSET_ALPHATESTED]);
 		removeShader(pRenderer, pShaderVisibilityBufferPass[GEOMSET_OPAQUE]);
@@ -2409,16 +3249,19 @@ public:
 			ubDesc.mDesc.pDebugName = L"Uniform Buffer Desc";
 			addResource(&ubDesc);
 #else
+			uint32_t bufferSizeTotal = 0;
 			for (uint32_t j = 0; j < gSmallBatchChunkCount; ++j)
 			{
 				const uint32_t bufferSize = BATCH_COUNT * sizeof(FilterBatchData);
+				bufferSizeTotal += bufferSize;
 				pFilterBatchChunk[i][j] = (FilterBatchChunk*)conf_malloc(sizeof(FilterBatchChunk));
 				pFilterBatchChunk[i][j]->batches = (FilterBatchData*)conf_calloc(1, bufferSize);
 				pFilterBatchChunk[i][j]->currentBatchCount = 0;
 				pFilterBatchChunk[i][j]->currentDrawCallCount = 0;
 
-				addUniformRingBuffer(pRenderer, bufferSize, &pFilterBatchChunk[i][j]->pRingBuffer);
 			}
+
+			addUniformRingBuffer(pRenderer, bufferSizeTotal, &pFilterBatchDataBuffer[i]);
 #endif
 		}
 #ifndef METAL
@@ -2617,10 +3460,11 @@ public:
 #else
 			for (uint32_t j = 0; j < gSmallBatchChunkCount; ++j)
 			{
-				removeUniformRingBuffer(pFilterBatchChunk[i][j]->pRingBuffer);
 				conf_free(pFilterBatchChunk[i][j]->batches);
 				conf_free(pFilterBatchChunk[i][j]);
 			}
+
+			removeUniformRingBuffer(pFilterBatchDataBuffer[i]);
 #endif
 		}
 #ifndef METAL
@@ -2806,6 +3650,34 @@ public:
 		if (getKeyUp(KEY_T))
 			gAppSettings.mDrawDebugTargets = !gAppSettings.mDrawDebugTargets;
 
+#if defined(PIXELPUZZLE)
+		// Pixel puzzle preset loading
+		if (getKeyUp(KEY_1))
+		{
+			gPixelPuzzle.LoadPreset("Preset01");
+		}
+		else if (getKeyUp(KEY_2))
+		{
+			gPixelPuzzle.LoadPreset("Preset02");
+		}
+		else if (getKeyUp(KEY_3))
+		{
+			gPixelPuzzle.LoadPreset("Preset03");
+		}
+		else if (getKeyUp(KEY_4))
+		{
+			gPixelPuzzle.LoadPreset("Preset04");
+		}
+		else if (getKeyUp(KEY_5))
+		{
+			gPixelPuzzle.LoadPreset("Preset05");
+		}
+		else if (getKeyUp(KEY_6))
+		{
+			gPixelPuzzle.LoadPreset("Preset06");
+		}
+#endif
+
 #endif
 #endif
 	}
@@ -2854,6 +3726,54 @@ public:
 	/************************************************************************/
 	// Rendering
 	/************************************************************************/
+
+
+#if defined(PIXELPUZZLE)
+	// The middleware does not know if the final image supports UAV, swapchains do not support UAV texture access for example
+	// As such instead of using a compute shader to render to the final render target, we draw a fullscreen triangle and render it the old-fashioned way
+	void RenderToFinalImage(Cmd* const cmd, Texture* pSrc, RenderTarget* pDstCol)
+	{
+		TextureBarrier barrier = { pSrc, RESOURCE_STATE_SHADER_RESOURCE };
+		cmdResourceBarrier(cmd, 0, nullptr, 1, &barrier, false);
+
+		cmdBindRenderTargets(cmd, 1, &pDstCol, NULL, NULL);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDstCol->mDesc.mWidth, (float)pDstCol->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pDstCol->mDesc.mWidth, pDstCol->mDesc.mHeight);
+
+		cmdBindPipeline(cmd, pPipelineFinalPass);
+
+		DescriptorData params[2] = {};
+		params[0].pName = "uTex0";
+		params[0].ppTextures = &pSrc;
+		params[1].pName = "uSampler0";
+		params[1].ppSamplers = &pSamplerPointClamp;
+		cmdBindDescriptors(cmd, pRootSigFinalPass, 2, params);
+		cmdDraw(cmd, 3, 0);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+	}
+	// Utility function for rendering to the depth buffer
+	void RenderToDepthBuffer(Cmd* const cmd, Texture* pSrc, RenderTarget* pDstDepth)
+	{
+		TextureBarrier depthBarrier = { pSrc, RESOURCE_STATE_SHADER_RESOURCE };
+		cmdResourceBarrier(cmd, 0, NULL, 1, &depthBarrier, false);
+
+
+		cmdBindRenderTargets(cmd, 1, &pDstDepth, NULL, NULL);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDstDepth->mDesc.mWidth, (float)pDstDepth->mDesc.mHeight, 0.0f, 1.0f);
+
+		cmdBindPipeline(cmd, pPipelineDepthCopy);
+
+		DescriptorData params[2] = {};
+		params[0].pName = "uTex0";
+		params[0].ppTextures = &pSrc;
+		//params[1].pName = "uSampler0";
+		//params[1].ppSamplers = &pSamplerPointClamp;
+		cmdBindDescriptors(cmd, pRootsignatureDepthCopy, 1, params);
+		cmdDraw(cmd, 3, 0);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+	}
+#endif
+
 	// Render the shadow mapping pass. This pass updates the shadow map texture
 	void drawShadowMapPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameIdx)
 	{
@@ -3454,7 +4374,7 @@ public:
 			return;
 
 		uint32_t batchSize = batchChunk->currentBatchCount * sizeof(SmallBatchData);
-		UniformBufferOffset offset = getUniformBufferOffset(batchChunk->pRingBuffer, batchSize);
+		UniformBufferOffset offset = getUniformBufferOffset(pFilterBatchDataBuffer[frameIdx], batchSize);
 		BufferUpdateDesc updateDesc = { offset.pUniformBuffer, batchChunk->batches, 0, offset.mOffset, batchSize };
 		updateResource(&updateDesc, true);
 
@@ -4073,9 +4993,13 @@ public:
 		}
 
 #if (MSAASAMPLECOUNT > 1)
+	
+		// Pixel Puzzle needs the unresolved MSAA texture
+#if !defined(PIXELPUZZLE)
 		cmdBeginGpuTimestampQuery(cmd, pGraphicsGpuProfiler, "Resolve Pass", true);
 		resolveMSAA(cmd, pRenderTargetMSAA, pScreenRenderTarget);
 		cmdEndGpuTimestampQuery(cmd, pGraphicsGpuProfiler);
+#endif
 #endif
 	}
 
@@ -4167,6 +5091,10 @@ public:
 		}
 #endif
 		gAppUI.Gui(pGuiWindow);
+#if defined(PIXELPUZZLE)
+		gAppUI.Gui(pGuiPixelPuzzle);
+#endif
+
 #endif
 
 		gAppUI.Draw(cmd);

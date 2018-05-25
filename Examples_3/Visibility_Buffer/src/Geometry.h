@@ -158,7 +158,6 @@ typedef struct FilterBatchChunk
 #if defined(METAL)
     Buffer* batchDataBuffer; // GPU buffer containing all batch data
 #else
-	struct UniformRingBuffer* pRingBuffer;
 #endif
 } FilterBatchChunk;
 

@@ -37,6 +37,7 @@
 #include "MetalMemoryAllocator.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
 #include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Core/GPUConfig.h"
 
 #define MAX_BUFFER_BINDINGS 31
 
@@ -865,7 +866,170 @@ namespace RENDERER_CPP_NAMESPACE {
     {
         return ImageFormat::BGRA8;
     }
-
+#ifndef TARGET_IOS
+    // Returns the CFDictionary that contains the system profiler data type described in inDataType.
+    CFDictionaryRef findDictionaryForDataType(const CFArrayRef inArray, CFStringRef inDataType)
+    {
+        UInt8 i;
+        CFDictionaryRef theDictionary;
+        
+        // Search the array of dictionaries for a CFDictionary that matches
+        for (i = 0; i < CFArrayGetCount(inArray); i++)
+        {
+            theDictionary = (CFDictionaryRef)CFArrayGetValueAtIndex(inArray, i);
+            
+            // If the CFDictionary at this index has a key/value pair with the value equal to inDataType, retain and return it.
+            if (CFDictionaryContainsValue(theDictionary, inDataType))
+            {
+                // Retain the dictionary.  Caller is responsible for releasing it.
+                CFRetain(theDictionary);
+                return (theDictionary);
+            }
+        }
+        
+        return (NULL);
+    }
+    
+    // Returns the CFArray of “item” dictionaries.
+    CFArrayRef getItemsArrayFromDictionary(const CFDictionaryRef inDictionary)
+    {
+        CFArrayRef itemsArray;
+        
+        // Retrieve the CFDictionary that has a key/value pair with the key equal to “_items”.
+        itemsArray = (CFArrayRef) CFDictionaryGetValue(inDictionary, CFSTR("_items"));
+        if (itemsArray != NULL)
+            CFRetain(itemsArray);
+        
+        return (itemsArray);
+    }
+    //Used to call system profiler to retrieve GPU information such as vendor id and model id
+    void retrieveSystemProfilerInformation(String &outVendorId)
+    {
+        FILE *sys_profile;
+        size_t bytesRead = 0;
+        char streamBuffer[1024 * 512];
+        UInt8 i = 0;
+        CFDataRef xmlData;
+        CFDictionaryRef hwInfoDict;
+        CFArrayRef itemsArray;
+        CFIndex arrayCount;
+        
+        // popen will fork and invoke the system_profiler command and return a stream reference with its result data
+        sys_profile = popen("system_profiler SPDisplaysDataType -xml", "r");
+        // Read the stream into a memory buffer
+        bytesRead = fread(streamBuffer, sizeof(char), sizeof(streamBuffer), sys_profile);
+        // Close the stream
+        pclose(sys_profile);
+        // Create a CFDataRef with the xml data
+        xmlData = CFDataCreate(kCFAllocatorDefault, (UInt8 *)streamBuffer, bytesRead);
+        // CFPropertyListCreateFromXMLData reads in the XML data and will parse it into a CFArrayRef for us.
+        CFStringRef errorString;
+        //read xml data
+        CFArrayRef propertyArray =((CFArrayRef)CFPropertyListCreateWithData(kCFAllocatorDefault, xmlData, kCFPropertyListImmutable, NULL, (CFErrorRef *)&errorString));
+        
+        // This will be the dictionary that contains all the Hardware information that system_profiler knows about.
+        hwInfoDict = findDictionaryForDataType(propertyArray, CFSTR("SPDisplaysDataType"));
+        if (hwInfoDict != NULL)
+        {
+            itemsArray = getItemsArrayFromDictionary(hwInfoDict);
+            
+            if (itemsArray != NULL)
+            {
+                // Find out how many items in this category – each one is a dictionary
+                arrayCount = CFArrayGetCount(itemsArray);
+                
+                for (i = 0; i < arrayCount; i++)
+                {
+                    CFMutableStringRef outputString;
+                    
+                    // Create a mutable CFStringRef with the dictionary value found with key “machine_name”
+                    // This is the machine_name of this mac machine.
+                    // Here you can give any value in key tag,to get its corresponding content
+                    outputString = CFStringCreateMutableCopy(kCFAllocatorDefault, 0, (CFStringRef)CFDictionaryGetValue((CFDictionaryRef)CFArrayGetValueAtIndex(itemsArray, i), CFSTR("spdisplays_device-id")));
+                    NSString * outNS =(__bridge NSString *)outputString;
+                    outVendorId = [outNS.lowercaseString UTF8String];
+                    //your code here
+                    //(you can append output string OR modify your function according to your need )
+                    CFRelease(outputString);
+                }
+                
+                CFRelease(itemsArray);
+            }
+            
+            CFRelease(hwInfoDict);
+        }
+    }
+    //Used to go through the given registry ID for the select device.
+    //Multiple id's can be found so they get filtered using the inModel id that was taken
+    //from system profile
+    void displayGraphicsInfo(uint64_t regId,String inModel, GPUVendorPreset &vendorVecOut)
+    {
+        // Get dictionary of all the PCI Devices
+        //CFMutableDictionaryRef matchDict = IOServiceMatching("IOPCIDevice");
+        CFMutableDictionaryRef matchDict = IORegistryEntryIDMatching(regId);
+        // Create an iterator
+        io_iterator_t iterator;
+        
+        if (IOServiceGetMatchingServices(kIOMasterPortDefault,matchDict,&iterator) == kIOReturnSuccess)
+        {
+            // Iterator for devices found
+            io_registry_entry_t regEntry;
+            
+            while ((regEntry = IOIteratorNext(iterator)))
+            {
+                // Put this services object into a dictionary object.
+                CFMutableDictionaryRef serviceDictionary;
+                if (IORegistryEntryCreateCFProperties(regEntry,
+                                                      &serviceDictionary,
+                                                      kCFAllocatorDefault,
+                                                      kNilOptions) != kIOReturnSuccess)
+                {
+                    // Service dictionary creation failed.
+                    IOObjectRelease(regEntry);
+                    continue;
+                }
+                NSString * ioPCIMatch = nil;
+                //on macbook IOPCIPrimaryMatch is used
+                if(CFDictionaryContainsKey(serviceDictionary, CFSTR("IOPCIPrimaryMatch"))) {
+                   ioPCIMatch = (NSString *)CFDictionaryGetValue(serviceDictionary, CFSTR("IOPCIPrimaryMatch"));
+                }
+                else
+                {
+                    //on iMac IOPCIMatch is used
+                    ioPCIMatch = (NSString *)CFDictionaryGetValue(serviceDictionary, CFSTR("IOPCIMatch"));
+                }
+                
+                if(ioPCIMatch)
+                {
+                    //get list of vendors from PCI Match above
+                    //this is a reflection of the display kext
+                    NSArray * vendors = [ioPCIMatch componentsSeparatedByString:@" "];
+                    for(id vendor in vendors) {
+                        NSString * modelId = [vendor substringToIndex:6];
+                        NSString * vendorId = [vendor substringFromIndex:6];
+                        vendorId = [@"0x" stringByAppendingString:vendorId];
+                        String modelIdString = [modelId.lowercaseString UTF8String];
+                        //filter out unwated model id's
+                        if(modelIdString != inModel)
+                            continue;
+                        
+                        vendorVecOut.mModelId =modelIdString;
+                        vendorVecOut.mVendorId =[vendorId.lowercaseString UTF8String];
+                        vendorVecOut.mPresetLevel = GPUPresetLevel::GPU_PRESET_NONE;
+                        break;
+                    }
+                }
+                
+                // Release the dictionary
+                CFRelease(serviceDictionary);
+                // Release the serviceObject
+                IOObjectRelease(regEntry);
+            }
+            // Release the iterator
+            IOObjectRelease(iterator);
+        }
+    }
+#endif
     void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
     {
         Renderer* pRenderer = (Renderer*)conf_calloc(1, sizeof(*pRenderer));
@@ -876,20 +1040,39 @@ namespace RENDERER_CPP_NAMESPACE {
 
         // Copy settings
         memcpy(&(pRenderer->mSettings), settings, sizeof(*settings));
-		pRenderer->mSettings.mApi = RENDERER_API_METAL;
+        pRenderer->mSettings.mApi = RENDERER_API_METAL;
         
         // Initialize the Metal bits
         {
             // Get the systems default device.
             pRenderer->pDevice = MTLCreateSystemDefaultDevice();
             
+            //get gpu vendor and model id.
+            //TODO: Parse gpu.cfg to figure out preset level.
+            GPUVendorPreset gpuVendor;
+            gpuVendor.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
+#ifndef TARGET_IOS
+            String outModelId;
+            retrieveSystemProfilerInformation(outModelId);
+            displayGraphicsInfo(pRenderer->pDevice.registryID,outModelId, gpuVendor);
+          
+            LOGINFOF("Current Gpu Name: %s", [pRenderer->pDevice.name UTF8String]);
+            LOGINFOF("Current Gpu Vendor ID: %s", gpuVendor.mVendorId.c_str());
+            LOGINFOF("Current Gpu Model ID: %s", gpuVendor.mModelId.c_str());
+#else
+            gpuVendor.mVendorId = "Apple";
+            gpuVendor.mModelId = "iOS";
+#endif
             // Set the default GPU settings.
             pRenderer->mNumOfGPUs = 1;
             pRenderer->mGpuSettings[0].mMaxVertexInputBindings = MAX_VERTEX_BINDINGS; // there are no special vertex buffers for input in Metal, only regular buffers
             pRenderer->mGpuSettings[0].mUniformBufferAlignment = 256;
             pRenderer->mGpuSettings[0].mMultiDrawIndirect = false; // multi draw indirect is not supported on Metal: only single draw indirect
+            pRenderer->mGpuSettings[0].mGpuVendorPreset = gpuVendor;
             pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
-            
+#ifndef TARGET_IOS
+			setGPUPresetLevel(pRenderer);
+#endif
             // Create a resource allocator.
             AllocatorCreateInfo info = { 0 };
             info.device = pRenderer->pDevice;
@@ -1127,7 +1310,14 @@ namespace RENDERER_CPP_NAMESPACE {
             uint64_t minAlignment = pRenderer->pActiveGpuSettings->mUniformBufferAlignment;
             pBuffer->mDesc.mSize = round_up_64(pBuffer->mDesc.mSize, minAlignment);
         }
-        
+      
+        //Use isLowPower to determine if running intel integrated gpu
+        //There's currently an intel driver bug with placed resources so we need to create
+        //new resources that are GPU only in their own memory space
+        //0x8086 is intel vendor id
+        if(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId == "0x8086" && (ResourceMemoryUsage)pBuffer->mDesc.mMemoryUsage & RESOURCE_MEMORY_USAGE_GPU_ONLY)
+          pBuffer->mDesc.mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+      
         // Get the proper memory requiremnets for the given buffer.
         AllocatorMemoryRequirements mem_reqs = { 0 };
         mem_reqs.usage = (ResourceMemoryUsage)pBuffer->mDesc.mMemoryUsage;

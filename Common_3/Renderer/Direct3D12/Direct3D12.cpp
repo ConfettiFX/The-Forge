@@ -39,6 +39,7 @@
 #include "../../OS/Core/RingBuffer.h"
 #include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
+#include "../../OS/Core/GPUConfig.h"
 
 #include "Direct3D12Hooks.h"
 
@@ -493,7 +494,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	/************************************************************************/
 	// Static Descriptor Heap Implementation
 	/************************************************************************/
-	void add_descriptor_heap(ID3D12Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, uint32_t numDescriptors, uint32_t nodeMask, DescriptorStoreHeap** ppDescHeap)
+	static void add_descriptor_heap(ID3D12Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, uint32_t numDescriptors, uint32_t nodeMask, DescriptorStoreHeap** ppDescHeap)
 	{
 		if (fnHookAddDescriptorHeap != NULL)
 			numDescriptors = fnHookAddDescriptorHeap(type, numDescriptors);
@@ -528,14 +529,14 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	}
 
 	/// Resets the CPU Handle to start of heap and clears all stored resource ids
-	void reset_descriptor_heap(DescriptorStoreHeap* pHeap)
+	static void reset_descriptor_heap(DescriptorStoreHeap* pHeap)
 	{
 		pHeap->mStartCpuHandle = pHeap->pCurrentHeap->GetCPUDescriptorHandleForHeapStart();
 		pHeap->mStartGpuHandle = pHeap->pCurrentHeap->GetGPUDescriptorHandleForHeapStart();
 		memset(pHeap->flags, 0, pHeap->mNumDescriptors / 32 * sizeof(uint32_t));
 	}
 
-	void remove_descriptor_heap(DescriptorStoreHeap* pHeap)
+	static void remove_descriptor_heap(DescriptorStoreHeap* pHeap)
 	{
 		SAFE_RELEASE(pHeap->pCurrentHeap);
 		SAFE_FREE(pHeap->flags);
@@ -720,7 +721,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 	Mutex gDescriptorMutex;
 
-	void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager)
+	static void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager)
 	{
 		DescriptorManager* pManager = (DescriptorManager*)conf_calloc(1, sizeof(*pManager));
 		pManager->pRootSignature = pRootSignature;
@@ -780,9 +781,9 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		*ppManager = pManager;
 	}
 
-	void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
+	static void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
 	{
-    UNREF_PARAM(pRenderer);
+		UNREF_PARAM(pRenderer);
 		const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 		const uint32_t frameCount = MAX_FRAMES_IN_FLIGHT;
 
@@ -816,7 +817,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	// This function returns the descriptor manager belonging to this thread
 	// If a descriptor manager does not exist for this thread, a new one is created
 	// With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
-	DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
+	static DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
 	{
 		tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode = pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
 		if (pNode == NULL)
@@ -848,7 +849,6 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			return NULL;
 		}
 	}
-
 	/************************************************************************/
 	// Get renderer shader macros
 	/************************************************************************/
@@ -865,10 +865,9 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	static volatile uint64_t	gSamplerIds	= 0;
 
 	static uint32_t				gMaxRootConstantsPerRootParam = 4U;
-	// -------------------------------------------------------------------------------------------------
+	/************************************************************************/
 	// Logging functions
-	// -------------------------------------------------------------------------------------------------
-
+	/************************************************************************/
 	// Proxy log callback
 	static void internal_log(LogType type, const char* msg, const char* component)
 	{
@@ -891,73 +890,73 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		}
 	}
 
-	void add_srv(Renderer* pRenderer, ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void add_srv(Renderer* pRenderer, ID3D12Resource* pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		*pHandle = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], 1);
 		pRenderer->pDxDevice->CreateShaderResourceView(pResource, pSrvDesc, *pHandle);
 	}
 
-	void remove_srv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void remove_srv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		remove_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], pHandle, 1);
 	}
 
-	void add_uav(Renderer* pRenderer, ID3D12Resource* pResource, ID3D12Resource* pCounterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pUavDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void add_uav(Renderer* pRenderer, ID3D12Resource* pResource, ID3D12Resource* pCounterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* pUavDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		*pHandle = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], 1);
 		pRenderer->pDxDevice->CreateUnorderedAccessView(pResource, pCounterResource, pUavDesc, *pHandle);
 	}
 
-	void remove_uav(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void remove_uav(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		remove_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], pHandle, 1);
 	}
 
-	void add_cbv(Renderer* pRenderer, const D3D12_CONSTANT_BUFFER_VIEW_DESC* pCbvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void add_cbv(Renderer* pRenderer, const D3D12_CONSTANT_BUFFER_VIEW_DESC* pCbvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		*pHandle = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], 1);
 		pRenderer->pDxDevice->CreateConstantBufferView(pCbvDesc, *pHandle);
 	}
 
-	void remove_cbv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void remove_cbv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		remove_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV], pHandle, 1);
 	}
 
-	void add_rtv(Renderer* pRenderer, ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pRtvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void add_rtv(Renderer* pRenderer, ID3D12Resource* pResource, const D3D12_RENDER_TARGET_VIEW_DESC* pRtvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		*pHandle = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV], 1);
 		pRenderer->pDxDevice->CreateRenderTargetView(pResource, pRtvDesc, *pHandle);
 	}
 
-	void remove_rtv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void remove_rtv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		remove_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV], pHandle, 1);
 	}
 
-	void add_dsv(Renderer* pRenderer, ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDsvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void add_dsv(Renderer* pRenderer, ID3D12Resource* pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC* pDsvDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		*pHandle = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV], 1);
 		pRenderer->pDxDevice->CreateDepthStencilView(pResource, pDsvDesc, *pHandle);
 	}
 
-	void remove_dsv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void remove_dsv(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		remove_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV], pHandle, 1);
 	}
 
-	void add_sampler(Renderer* pRenderer, const D3D12_SAMPLER_DESC* pSamplerDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void add_sampler(Renderer* pRenderer, const D3D12_SAMPLER_DESC* pSamplerDesc, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		*pHandle = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER], 1);
 		pRenderer->pDxDevice->CreateSampler(pSamplerDesc, *pHandle);
 	}
 
-	void remove_sampler(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+	static void remove_sampler(Renderer* pRenderer, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 	{
 		remove_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER], pHandle, 1);
 	}
 
-	void create_default_resources(Renderer* pRenderer)
+	static void create_default_resources(Renderer* pRenderer)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Format = DXGI_FORMAT_R8_UINT;
@@ -1001,7 +1000,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRenderer->pDefaultRasterizerState);
 	}
 
-	void destroy_default_resources(Renderer* pRenderer)
+	static void destroy_default_resources(Renderer* pRenderer)
 	{
 		remove_srv(pRenderer, &pRenderer->mSrvNullDescriptor);
 		remove_uav(pRenderer, &pRenderer->mUavNullDescriptor);
@@ -1567,7 +1566,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	uint32_t util_calculate_shared_node_mask(Renderer* pRenderer)
 	{
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
-			return (1 << pRenderer->mNumOfGPUs) - 1;
+			return (1 << pRenderer->mDxLinkedNodeCount) - 1;
 		else
 			return 0;
 	}
@@ -1582,7 +1581,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	/************************************************************************/
 	// Internal init functions
 	/************************************************************************/
-	void AddDevice (Renderer* pRenderer)
+	static void AddDevice(Renderer* pRenderer)
 	{
 #if defined( _DEBUG ) || defined ( PROFILE )
 		//add debug layer if in debug mode
@@ -1648,6 +1647,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			IDXGIAdapter3* pGpu = NULL;
 			D3D_FEATURE_LEVEL mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
 			SIZE_T mDedicatedVideoMemory = 0;
+			uint32_t mVendorId;
+			uint32_t mDeviceId;
 		} GpuDesc;
 
 		GpuDesc gpuDesc[MAX_GPUS] = {};
@@ -1670,6 +1671,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 						{
 							gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = feature_levels[level];
 							gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
+							gpuDesc[pRenderer->mNumOfGPUs].mVendorId = desc.VendorId;
+							gpuDesc[pRenderer->mNumOfGPUs].mDeviceId = desc.DeviceId;
 							++pRenderer->mNumOfGPUs;
 							break;
 						}
@@ -1704,7 +1707,21 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			pRenderer->mGpuSettings[i].mUniformBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 			pRenderer->mGpuSettings[i].mMultiDrawIndirect = true;
 			pRenderer->mGpuSettings[i].mMaxVertexInputBindings = 32U;
-
+#ifndef _DURANGO
+			//save vendor and model Id as string
+			char hexChar[10];
+			//convert deviceId and assign it
+			sprintf(hexChar, "%#x", gpuDesc[i].mDeviceId);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId = String(hexChar);
+			//convert modelId and assign it
+			sprintf(hexChar, "%#x", gpuDesc[i].mVendorId);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId = String(hexChar);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel= GPUPresetLevel::GPU_PRESET_LOW;
+#else 
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId = "XboxOne";
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId = "XboxOne";
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = GPUPresetLevel::GPU_PRESET_HIGH;
+#endif
 			// Determine root signature size for this gpu driver
 			DXGI_ADAPTER_DESC adapterDesc;
 			pRenderer->pDxGPUs[i]->GetDesc(&adapterDesc);
@@ -1716,6 +1733,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		pRenderer->pDxActiveGPU = pRenderer->pDxGPUs[0];
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
 		LOGINFOF("GPU[0] is selected as default GPU");
+		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId.c_str());
+		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId.c_str());
 
 		ASSERT(pRenderer->pDxActiveGPU != NULL);
 
@@ -1747,7 +1766,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		//pRenderer->mSettings.mDxFeatureLevel = target_feature_level;  // this is not used anywhere?
 	}
 
-	void RemoveDevice(Renderer* pRenderer)
+	static void RemoveDevice(Renderer* pRenderer)
 	{
 		SAFE_RELEASE(pRenderer->pDXGIFactory);
 
@@ -1770,10 +1789,13 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		SAFE_RELEASE(pRenderer->pDxDevice);
 #endif
 	}
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+namespace d3d12 {
+#endif
+
 	/************************************************************************/
 	// Functions not exposed in IRenderer but still need to be exported in dll
 	/************************************************************************/
-#if !defined(RENDERER_DLL_IMPORT) && !defined(ENABLE_RENDERER_API_SWITCHING)
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 	API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
@@ -1784,12 +1806,6 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
 	API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 	API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
-#endif
-
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
-namespace d3d12 {
-#endif
-#if !defined(RENDERER_DLL_IMPORT)
 	/************************************************************************/
 	// Renderer Init Remove
 	/************************************************************************/
@@ -1819,7 +1835,9 @@ namespace d3d12 {
 			/************************************************************************/
 			if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
 			{
-				pRenderer->mNumOfGPUs = pRenderer->pDxDevice->GetNodeCount();
+				pRenderer->mDxLinkedNodeCount = pRenderer->pDxDevice->GetNodeCount();
+				if (pRenderer->mDxLinkedNodeCount < 2)
+					pRenderer->mSettings.mGpuMode = GPU_MODE_SINGLE;
 			}
 			/************************************************************************/
 			/************************************************************************/
@@ -1832,7 +1850,11 @@ namespace d3d12 {
 					&pRenderer->pCPUDescriptorHeaps[i]);
 			}
 
-			for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
+			uint32_t gpuCount = 1;
+			if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
+				gpuCount = pRenderer->mDxLinkedNodeCount;
+
+			for (uint32_t i = 0; i < gpuCount; ++i)
 			{
 				if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && i > 0)
 					break;
@@ -1859,6 +1881,11 @@ namespace d3d12 {
 			createAllocator(&info, &pRenderer->pResourceAllocator);
 		}
 
+#ifndef _DURANGO
+		//Xbox doesn't need gpucfg
+		setGPUPresetLevel(pRenderer);
+#endif
+			
 		create_default_resources(pRenderer);
 		/************************************************************************/
 		/************************************************************************/
@@ -1883,11 +1910,12 @@ namespace d3d12 {
 			remove_descriptor_heap(pRenderer->pCPUDescriptorHeaps[i]);
 		}
 
-		for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
-		{
-			if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && i > 0)
-				break;
+		uint32_t gpuCount = 1;
+		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
+			gpuCount = pRenderer->mDxLinkedNodeCount;
 
+		for (uint32_t i = 0; i < gpuCount; ++i)
+		{
 			remove_descriptor_heap(pRenderer->pCbvSrvUavHeap[i]);
 			remove_descriptor_heap(pRenderer->pSamplerHeap[i]);
 		}
@@ -2864,7 +2892,7 @@ namespace d3d12 {
 			break;
 		}
 
-		::addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
+		addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
 		RenderTargetType type = pRenderTarget->mDesc.mType;
 		switch (type)
@@ -2969,7 +2997,7 @@ namespace d3d12 {
 
 	void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	{
-		::removeTexture(pRenderer, pRenderTarget->pTexture);
+		removeTexture(pRenderer, pRenderTarget->pTexture);
 
 		if (pRenderTarget->mDesc.mUsage == RENDER_TARGET_USAGE_COLOR)
 		{
@@ -4437,6 +4465,7 @@ namespace d3d12 {
 		{
 			if (pm->pCurrentCmd != pCmd)
 			{
+				pm->pCurrentCmd = pCmd;
 				pm->mFrameIdx = (pm->mFrameIdx + 1) % MAX_FRAMES_IN_FLIGHT;
 			}
 
@@ -5531,7 +5560,6 @@ namespace d3d12 {
 	/************************************************************************/
 #endif // RENDERER_IMPLEMENTATION
 #endif
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_API_SWITCHING)
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 }
-#endif
 #endif

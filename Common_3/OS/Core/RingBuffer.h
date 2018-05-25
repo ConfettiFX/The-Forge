@@ -28,7 +28,7 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
 
-#if !defined(RENDERER_DLL_IMPORT)
+#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 #endif
@@ -163,14 +163,19 @@ static UniformBufferOffset getUniformBufferOffset(UniformRingBuffer* pRingBuffer
 {
 	uint32_t alignedSize = round_up(memoryRequirement, (uint32_t)pRingBuffer->mUniformBufferAlignment);
 
-	if (pRingBuffer->mUniformOffset + alignedSize >= pRingBuffer->mMaxUniformBufferSize)
+	if (alignedSize > pRingBuffer->mMaxUniformBufferSize)
 	{
-		pRingBuffer->mUniformOffset = 0;
-	}
-	else
-	{
-		pRingBuffer->mUniformOffset += alignedSize;
+		ASSERT(false && "Ring Buffer too small for memory requirement");
+		return { NULL, 0 };
 	}
 
-	return{ pRingBuffer->pUniformBuffer, (uint64_t)pRingBuffer->mUniformOffset };
+	if (pRingBuffer->mUniformOffset + alignedSize >= pRingBuffer->mMaxUniformBufferSize)
+	{
+		resetUniformRingBuffer(pRingBuffer);
+	}
+
+	UniformBufferOffset ret = { pRingBuffer->pUniformBuffer, (uint64_t)pRingBuffer->mUniformOffset };
+	pRingBuffer->mUniformOffset += alignedSize;
+
+	return ret;
 }

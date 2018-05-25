@@ -96,7 +96,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	char* pTextureFrag = NULL; uint32_t textureFragSize = 0;
 	char* pTextureRedAlphaFrag = NULL; uint32_t textureRedAlphaFragSize = 0;
 
-	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12)
+	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
 	{
 		pPlainVert = (char*)d3d12_builtin_plain_vert; plainVertSize = sizeof(d3d12_builtin_plain_vert);
 		pPlainFrag = (char*)d3d12_builtin_plain_frag; plainFragSize = sizeof(d3d12_builtin_plain_frag);

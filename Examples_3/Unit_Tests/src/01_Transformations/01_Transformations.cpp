@@ -180,7 +180,8 @@ const char* pszRoots[] =
     "",															// FSR_SrcShaders_Common
     "../../../UnitTestResources/Textures/",						// FSR_Textures
     "../../../UnitTestResources/Meshes/",						// FSR_Meshes
-    "../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
+	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
+	"../../../src/01_Transformations/GPUCfg/",					// FSR_GpuConfig
     "",															// FSR_OtherFiles
 };
 #endif

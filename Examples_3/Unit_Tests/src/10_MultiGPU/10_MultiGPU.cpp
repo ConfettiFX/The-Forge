@@ -178,6 +178,7 @@ const char* pszRoots[] =
 	"Textures/",						// FSR_Textures
 	"Meshes/",						// FSR_Meshes
 	"Fonts/",						// FSR_Builtin_Fonts
+	"",					// FSR_GpuConfig
 	"",															// FSR_OtherFiles
 };
 #else
@@ -191,6 +192,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Textures/",												// FSR_Textures
 	"../../../UnitTestResources/Meshes/",												// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",												// FSR_Builtin_Fonts
+	"../../../src/10_MultiGPU/GPUCfg/",													// FSR_GpuConfig
 	"",																					// FSR_OtherFiles
 };
 #endif
@@ -213,7 +215,7 @@ public:
 		RendererDesc settings = { 0 };
 		settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
 		initRenderer(GetName(), &settings, &pRenderer);
-		if (pRenderer->mNumOfGPUs < 2 && gMultiGPU)
+		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
 			LOGWARNINGF("Multi GPU will be disabled since the system only has one GPU");
 			gMultiGPU = false;
