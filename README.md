@@ -25,13 +25,13 @@ The intended usage of The Forge is to enable developers to quickly build their o
  
 # Build Status
 
-* Windows ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Linux)
+* Windows ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Windows)
 * macOS ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Apple)
 * Linux ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Linux)
 # News
 
 ## Release 1.10 - May 25th, 2018 - Intel-GPU support on macOS / Windows | Generic GPU config system | New API switching on Windows
-* Added a GPU tracking system that helps to switch on and off features and exclude certain GPUs from running The Forge. There is support on macOS and PC now, We will consider excluding machines based on performance with the GPU tracking system. The database is a simple text file that can be changed at any point in time
+* Added a GPU tracking system that helps to switch on and off features and exclude certain GPUs from running The Forge. There is support on macOS, Linux and Windows now, We will consider excluding machines based on performance with the GPU tracking system. The database is a simple text file that can be changed at any point in time
 * PC Windows - based on user feedback, we changed the run-time switching functionality substantially from using two DLLs to being able to just be statically bound
 * Intel-GPU support:
   * Intel updated their drivers for The Forge and the new driver fixed some of the issues we saw. The Vulkan run-time crashes and the DirectX 12 driver has problems with alpha testing. Please see the PC Windows requirement list below for driver version and tested hardware
