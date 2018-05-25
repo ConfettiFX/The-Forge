@@ -25,11 +25,20 @@ The intended usage of The Forge is to enable developers to quickly build their o
  
 # Build Status
 
-* Windows [![Build status](https://ci.appveyor.com/api/projects/status/0w2qj3fs8u4utojr/branch/master?svg=true)](https://ci.appveyor.com/project/manaskulkarni786/the-forge/branch/master)
-* macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
-
+* Windows ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Linux)
+* macOS ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Apple)
+* Linux ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Linux)
 # News
-## Release 1.09 - May 17th, 2018 - Linux Ubuntu 18.04 LTS support 
+
+## Release 1.10 - May 25th, 2018 - Intel-GPU support on macOS / Windows | Generic GPU config system | New API switching on Windows
+* Added a GPU tracking system that helps to switch on and off features and exclude certain GPUs from running The Forge. There is support on macOS and PC now, We will consider excluding machines based on performance with the GPU tracking system. The database is a simple text file that can be changed at any point in time
+* PC Windows - based on user feedback, we changed the run-time switching functionality substantially from using two DLLs to being able to just be statically bound
+* Intel-GPU support:
+  * Intel updated their drivers for The Forge and the new driver fixed some of the issues we saw. The Vulkan run-time crashes and the DirectX 12 driver has problems with alpha testing. Please see the PC Windows requirement list below for driver version and tested hardware
+  * The macOS version of The Forge supports now recent Intel-GPU based MacBook Pro machines. Please see the list of hardware we currently test on below. Fixed issue #28 "Visibility Buffer on MacBookPro13,1 not rendered correctly"
+
+
+## Release 1.09 - May 17th, 2018 - Linux Unbuntu 18.04 LTS support 
 * The Forge now supports Ubuntu 18.04 LTS and is tested with AMD and NVIDIA cards with latest drivers (see a description of our testing setup below)
 * Vulkan (PC and Linux): 
   * added VK_EXT_DEBUG_UTILS_EXTENSION_NAME support but excluded it for debugging with RenderDoc because RenderDoc doesn't support the extension currently
@@ -164,8 +173,10 @@ Very first release.
 
 1. Windows 10 with latest update
 
-2. NVIDIA 9x0 or higher or AMD 5x0 or higher GPU with the latest driver ...
-Requires NVIDIA Beta Driver 389.20 to support Linked Multi-GPU on Vulkan 
+2. Drivers
+* AMD / NVIDIA - latest drivers should work. On Vulkan, at least NVIDIA Beta Driver 389.20 are required to support Linked Multi-GPU. 
+* Intel - need to install the latest driver (currently 24.20.100.6094, May 22nd) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/27803/Intel-Graphics-Driver-for-Windows-10). As mentioned above this driver still doesn't have full DirectX 12 and Vulkan support.
+
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
@@ -178,20 +189,27 @@ https://vulkan.lunarg.com/
  * DirectX Raytracing Experimental SDK v0.09.01
  * Windows 10 RS4 builds more info at [DXR](http://aka.ms/DXR)
 
-We are testing on a wide range of in-house AMD 5x and NVIDIA 9x and higher cards and drivers. We are currently not testing Intel GPU based hardware. We are planning to integrate an Intel GPU based system into our build system in the future.
+6. The Forge is currently tested on 
+* AMD 5x, VEGA GPUs (various)
+* NVIDIA GeForce 9x, 10x GPUs (various)
+* Intel Skull Canyon
+
 
 # macOS Requirements:
 
-1. macOS: macOS 10.13.5 Beta (17F59b)
+1. macOS: 10.13.5 Beta (17F70a)
 
-2. XCode: 9.3 (9E145)
+2. XCode: 9.3.1 (9E501) 
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
 * iMac with AMD RADEON 580 (Part No. MNED2xx/A)
+* MacBook Pro 13 inch (MacBookPro13,2) 
+* Macbook Pro 13 inch (MacbookPro14,2)
 
-We are occasionally testing on Intel GPU based MacBooks but we are running into -what we believe- driver problems. We are going to address those challenges in the future. In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
+
 
 # iOS Requirements:
 
@@ -204,6 +222,7 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 We are currently testing on 
 * iPhone 7 (Model A1778)
 
+
 # PC Linux Requirements:
 
 1. [Ubuntu 18.04 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: 4.15.0-20-generic
@@ -212,23 +231,11 @@ We are currently testing on
 * [AMDGpu-Pro 18.20 Early Preview](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-18.20-Early-Preview-Release-Notes.aspx)
 * [NVIDIA Linux x86_64/AMD64/EM64T 390.59 and 396.24](http://www.nvidia.com/object/unix.html)
 
-3. GPU Profilers
-* [RGP v1.11 for AMD GPUs](https://github.com/GPUOpen-Tools/Radeon-GPUProfiler/releases) should be working out of the box
-* [RenderDoc v1.0(2018-03-06) for NVIDIA And AMD Gpus](https://renderdoc.org/builds)
-  * Goto the binary folder under renderdoc_1.0/bin
-  * Open a terminal
-  * Configure RenderDoc by running 
-	./renderdoccmd vulkanregister
-  * Verify unit tests work as expect by running
-	./renderdoccmd test --type=unit
-  * After register step is done, you can now use qt-ui based RenderDoc to capture the frame:
-	renderdoc_1.0/bin/qrenderdoc
+3. Workspace file is provided for [codelite](https://codelite.org/)
 
-4. Workspace file is provided for [codelite](https://codelite.org/)
+4. Vulkan SDK Version: [1.1.73.0](https://vulkan.lunarg.com/sdk/home)
 
-5. Vulkan SDK Version: [1.1.73.0](https://vulkan.lunarg.com/sdk/home)
-
-6. The Forge is currently tested on Ubuntu with the following GPUs:
+5. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
  * AMD RADEON VEGA 56
  * NVIDIA GeForce GTX 950
@@ -239,7 +246,7 @@ Please read the "Set up the Runtime Environment" and "Environment Variable Persi
 
 
 # Install 
-For PC Windows and consoles run PRE_BUILD.bat. For the other platforms run the script. It will download and unzip the art assets and on PC install the shader builder extension for Visual Studio.
+For PC Windows run PRE_BUILD.bat. For the other platforms run the shell script. It will download and unzip the art assets and only on PC install the shader builder extension for Visual Studio.
 
 
 
@@ -322,7 +329,7 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 # Releases / Maintenance
 Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
 
-# Products using The Forge
+# Products
 We would appreciate it if you could send us a link in case your product uses The Forge:
 
 
