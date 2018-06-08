@@ -26,6 +26,7 @@
 
 #include "../../Common_3/OS/Interfaces/IOperatingSystem.h"
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
+#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 
 #ifndef _WIN32
 #include <unistd.h>  // for sleep()

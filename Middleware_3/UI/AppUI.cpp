@@ -522,7 +522,7 @@ private:
 /************************************************************************/
 // Event Handlers
 /************************************************************************/
-#ifndef _DURANGO
+#if !defined(_DURANGO) && !defined(TARGET_IOS)
 static bool uiKeyboardChar(const KeyboardCharEventData* pData)
 {
 	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
@@ -598,6 +598,7 @@ static bool uiMouseWheel(const MouseWheelEventData* pData)
 }
 #endif
 
+//unused functions below on macos. Used on iOS and rest of platforms.
 static bool uiJoystickButton(const JoystickButtonEventData* pData)
 {
 #if !defined(TARGET_IOS)

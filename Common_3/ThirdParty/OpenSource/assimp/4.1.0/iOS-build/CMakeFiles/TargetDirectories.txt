@@ -1,0 +1,14 @@
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/CMakeFiles/install.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/CMakeFiles/uninstall.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/CMakeFiles/ALL_BUILD.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/CMakeFiles/ZERO_CHECK.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/zlib/CMakeFiles/install.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/zlib/CMakeFiles/zlibstatic.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/zlib/CMakeFiles/zlib.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/zlib/CMakeFiles/ALL_BUILD.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/zlib/CMakeFiles/ZERO_CHECK.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/CMakeFiles/install.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/irrXML/CMakeFiles/install.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/irrXML/CMakeFiles/IrrXML.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/code/CMakeFiles/install.dir
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/code/CMakeFiles/assimp.dir

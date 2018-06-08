@@ -193,72 +193,72 @@ const char* pszRoots[] =
 };
 #endif
 
-const uint32_t	 gImageCount = 3;
+const uint32_t		gImageCount = 3;
 
-Renderer*    pRenderer = NULL;
+Renderer*			pRenderer = NULL;
 
-Queue*           pGraphicsQueue = NULL;
-CmdPool*         pCmdPool = NULL;
-Cmd**            ppCmds = NULL;
+Queue*				pGraphicsQueue = NULL;
+CmdPool*			pCmdPool = NULL;
+Cmd**				ppCmds = NULL;
 
-CmdPool*         pUICmdPool = NULL;
-Cmd**            ppUICmds = NULL;
+CmdPool*			pUICmdPool = NULL;
+Cmd**				ppUICmds = NULL;
 
-SwapChain*       pSwapChain = NULL;
-RenderTarget*    pDepthBuffer = NULL;
-Fence*           pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*       pImageAcquiredSemaphore = NULL;
-Semaphore*       pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*			pSwapChain = NULL;
+RenderTarget*		pDepthBuffer = NULL;
+Fence*				pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*			pImageAcquiredSemaphore = NULL;
+Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Sampler*         pSampler = NULL;
-DepthState*      pDepth = NULL;
-RasterizerState* pRast = NULL;
-RasterizerState* pWireframeRast = NULL;
+Sampler*			pSampler = NULL;
+DepthState*			pDepth = NULL;
+RasterizerState*	pRast = NULL;
+RasterizerState*	pWireframeRast = NULL;
 
-RenderTarget*	 PGrassRenderTarget = NULL;
+RenderTarget*		PGrassRenderTarget = NULL;
 
-Buffer*          pGrassUniformBuffer = NULL;
-Buffer*          pBladeStorageBuffer = NULL;
-Buffer*          pCulledBladeStorageBuffer = NULL;
+Buffer*				pGrassUniformBuffer[gImageCount] = { NULL };
+Buffer*				pBladeStorageBuffer = NULL;
+Buffer*				pCulledBladeStorageBuffer = NULL;
 
-Buffer*          pBladeNumBuffer = NULL;
+Buffer*				pBladeNumBuffer = NULL;
 
 #ifdef METAL
-Buffer*         pTessFactorsBuffer = NULL;
-Buffer*         pHullOutputBuffer = NULL;
+Buffer*				pTessFactorsBuffer = NULL;
+Buffer*				pHullOutputBuffer = NULL;
 #endif
 
-CommandSignature* pIndirectCommandSignature = NULL;
+CommandSignature*	pIndirectCommandSignature = NULL;
 
-Shader*          pGrassShader = NULL;
-Pipeline*        pGrassPipeline = NULL;
+Shader*				pGrassShader = NULL;
+Pipeline*			pGrassPipeline = NULL;
 #ifdef METAL
-Shader*          pGrassVertexHullShader = NULL;
-Pipeline*        pGrassVertexHullPipeline = NULL;
+Shader*				pGrassVertexHullShader = NULL;
+Pipeline*			pGrassVertexHullPipeline = NULL;
 #endif
 
-Pipeline*        pGrassPipelineForWireframe = NULL;
+Pipeline*			pGrassPipelineForWireframe = NULL;
 
-RootSignature*   pGrassRootSignature = NULL;
+RootSignature*		pGrassRootSignature = NULL;
 #ifdef METAL
-RootSignature*   pGrassVertexHullRootSignature = NULL;
+RootSignature*		pGrassVertexHullRootSignature = NULL;
 #endif
 
 #ifdef TARGET_IOS
-Texture*         pVirtualJoystickTex = NULL;
+Texture*			pVirtualJoystickTex = NULL;
 #endif
 
-Shader*          pComputeShader = NULL;
-Pipeline*        pComputePipeline = NULL;
-RootSignature*   pComputeRootSignature = NULL;
+Shader*				pComputeShader = NULL;
+Pipeline*			pComputePipeline = NULL;
+RootSignature*		pComputeRootSignature = NULL;
 
-uint32_t         gFrameIndex = 0;
+uint32_t			gFrameIndex = 0;
 
-GrassUniformBlock gGrassUniformData;
+GrassUniformBlock	gGrassUniformData;
 
-GpuProfiler*	pGpuProfiler = NULL;
+GpuProfiler*		pGpuProfiler = NULL;
 
-unsigned gStartTime = 0;
+unsigned			gStartTime = 0;
 
 struct ObjectProperty
 {
@@ -391,9 +391,11 @@ public:
 		ubGrassDesc.mDesc.mSize = sizeof(GrassUniformBlock);
 		ubGrassDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubGrassDesc.pData = NULL;
-		ubGrassDesc.ppBuffer = &pGrassUniformBuffer;
-		addResource(&ubGrassDesc);
-
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubGrassDesc.ppBuffer = &pGrassUniformBuffer[i];
+			addResource(&ubGrassDesc);
+		}
 
 		BufferLoadDesc sbBladeDesc = {};
 		sbBladeDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
@@ -607,7 +609,8 @@ public:
 
 		removeRasterizerState(pRast);
 		removeRasterizerState(pWireframeRast);
-		removeResource(pGrassUniformBuffer);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pGrassUniformBuffer[i]);
 
 		removeShader(pRenderer, pGrassShader);
 #ifdef METAL
@@ -770,9 +773,6 @@ public:
 		gGrassUniformData.mWindSpeed = gWindSpeed;
 		gGrassUniformData.mWindWidth = gWindWidth;
 		gGrassUniformData.mWindStrength = gWindStrength;
-
-		BufferUpdateDesc cbvUpdate = { pGrassUniformBuffer, &gGrassUniformData };
-		updateResource(&cbvUpdate);
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -798,6 +798,12 @@ public:
 
 		tinystl::vector<Cmd*> allCmds;
 
+        //update grass uniform buffer
+        //this need to be done after acquireNextImage because we are using gFrameIndex which
+        //gets changed when acquireNextImage is called.
+        BufferUpdateDesc cbvUpdate = { pGrassUniformBuffer[gFrameIndex], &gGrassUniformData };
+        updateResource(&cbvUpdate);
+        
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
@@ -816,7 +822,7 @@ public:
 
 
 		computeParams[0].pName = "GrassUniformBlock";
-		computeParams[0].ppBuffers = &pGrassUniformBuffer;
+		computeParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
 
 		computeParams[1].pName = "Blades";
 		computeParams[1].ppBuffers = &pBladeStorageBuffer;
@@ -848,7 +854,7 @@ public:
 		DescriptorData vertexHullParams[5] = {};
 		cmdBindPipeline(cmd, pGrassVertexHullPipeline);
 		vertexHullParams[0].pName = "GrassUniformBlock";
-		vertexHullParams[0].ppBuffers = &pGrassUniformBuffer;
+		vertexHullParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
 		vertexHullParams[1].pName = "vertexInput";
 		vertexHullParams[1].ppBuffers = &pCulledBladeStorageBuffer;
 		vertexHullParams[2].pName = "drawInfo";
@@ -877,7 +883,7 @@ public:
 
 		DescriptorData grassParams[1] = {};
 		grassParams[0].pName = "GrassUniformBlock";
-		grassParams[0].ppBuffers = &pGrassUniformBuffer;
+		grassParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
 		cmdBindDescriptors(cmd, pGrassRootSignature, 1, grassParams);
 
 #ifndef METAL

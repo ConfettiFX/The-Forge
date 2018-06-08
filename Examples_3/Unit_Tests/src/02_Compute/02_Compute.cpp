@@ -141,7 +141,7 @@ const char* pszRoots[] =
 const uint32_t		gImageCount = 3;
 
 Renderer*			pRenderer = NULL;
-Buffer*				pUniformBuffer = NULL;
+Buffer*				pUniformBuffer[gImageCount] = { NULL };
 
 Queue*				pGraphicsQueue = NULL;
 CmdPool*			pCmdPool = NULL;
@@ -265,8 +265,11 @@ public:
 		ubDesc.mDesc.mSize = sizeof(UniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
-		ubDesc.ppBuffer = &pUniformBuffer;
-		addResource(&ubDesc);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pUniformBuffer[i];
+			addResource(&ubDesc);
+		}
 
 		// Width and height needs to be same as Texture's
 		gUniformData.mHeight = mSettings.mHeight;
@@ -348,7 +351,8 @@ public:
         removeResource(pVirtualJoystickTex);
 #endif
 
-		removeResource(pUniformBuffer);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pUniformBuffer[i]);
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 		removeSampler(pRenderer, pSampler);
@@ -409,10 +413,10 @@ public:
 
 	void Update(float deltaTime)
 	{
+#if USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER && !defined(TARGET_IOS)
 		const float autoModeTimeoutReset = 3.0f;
 		static float autoModeTimeout = 0.0f;
-
-#if USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER && !defined(TARGET_IOS)
+		
 		if (getKeyDown(KEY_W) || getKeyDown(KEY_UP))
 		{
 			gObjSettings.rotX += gCameraYRotateScale;
@@ -502,7 +506,7 @@ public:
 
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		BufferUpdateDesc cbvUpdate = { pUniformBuffer, &gUniformData };
+		BufferUpdateDesc cbvUpdate = { pUniformBuffer[gFrameIndex], &gUniformData };
 		updateResource(&cbvUpdate);
 
 		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
@@ -514,7 +518,7 @@ public:
 
 		DescriptorData params[2] = {};
 		params[0].pName = "uniformBlock";
-		params[0].ppBuffers = &pUniformBuffer;
+		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
 		params[1].pName = "outputTexture";
 		params[1].ppTextures = &pTextureComputeOutput;
 		cmdBindDescriptors(cmd, pComputeRootSignature, 2, params);

@@ -133,6 +133,7 @@ static bool captureMouse(bool shouldCapture)
     return true;
 }
 
+#if !defined(METAL)
 // TODO: Add multiple monitor handling functionality.
 static void collectMonitorInfo()
 {
@@ -144,6 +145,7 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
     // TODO: Implement.
     ASSERT(0);
 }
+#endif
 
 bool isRunning()
 {

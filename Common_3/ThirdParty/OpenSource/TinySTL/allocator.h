@@ -29,8 +29,12 @@
 
 #include "stddef.h"
 
+#ifndef conf_malloc
 extern void* conf_malloc(size_t size);
+#endif
+#ifndef conf_free
 extern void conf_free(void* ptr);
+#endif
 
 namespace tinystl {
 	struct allocator {

@@ -376,6 +376,8 @@ int ImageFormat::GetBytesPerPixel(const ImageFormat::Enum format)
     2, 4, 4, 4,       // Depth
   };
 
+	if (format == ImageFormat::BGRA8)
+		return 4;
 
   ASSERT(format <= ImageFormat::D32F || format == ImageFormat::BGRA8);
 
@@ -480,7 +482,7 @@ bool ImageFormat::IsPackedFormat(const ImageFormat::Enum format)
 
 bool ImageFormat::IsPlainFormat(const ImageFormat::Enum format)
 {
-  return (format <= ImageFormat::RGBA32UI);
+	return (format <= ImageFormat::RGBA32UI) || (format == ImageFormat::BGRA8);
 }
 
 struct ImageFormatString
@@ -583,7 +585,9 @@ ImageFormat::Enum ImageFormat::GetFormatFromString(char *string)
 
 int ImageFormat::GetChannelCount(const ImageFormat::Enum format)
 {
-
+	// #REMOVE
+	if (format == ImageFormat::BGRA8)
+		return 4;
   static const int channelCount[] = {
     0,
     1, 2, 3, 4,       //  8-bit unsigned
@@ -1797,45 +1801,51 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 }
 # endif
 
-
-
-
 // Image loading
 // struct of table for file format to loading function 
 struct ImageLoaderDefinition
 {
-  typedef bool (Image::*ImageLoaderFunction)(const char* memory, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData);
-  const char* Extension;
-  ImageLoaderFunction Loader;
+  String Extension;
+  Image::ImageLoaderFunction Loader;
 };
 
-static ImageLoaderDefinition gImageLoaders[] =
+static tinystl::vector<ImageLoaderDefinition> gImageLoaders;
+
+struct StaticImageLoader
 {
+	StaticImageLoader()
+	{
 #if !defined(NO_STBI)
-  { ".hdr", &Image::iLoadSTBIFP32FromMemory },
-  { ".jpg", &Image::iLoadSTBIFromMemory },
-  { ".jpeg", &Image::iLoadSTBIFromMemory },
-  { ".png", &Image::iLoadSTBIFromMemory },
-  { ".tga", &Image::iLoadSTBIFromMemory },
-  { ".bmp", &Image::iLoadSTBIFromMemory },
-  { ".gif", &Image::iLoadSTBIFromMemory },
-  { ".psd", &Image::iLoadSTBIFromMemory },
-  { ".pic", &Image::iLoadSTBIFromMemory },
-  { ".ppm", &Image::iLoadSTBIFromMemory },
+		gImageLoaders.push_back({ ".hdr", &Image::iLoadSTBIFP32FromMemory });
+		gImageLoaders.push_back({ ".jpg", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".jpeg", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".png", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".tga", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".bmp", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".gif", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".psd", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".pic", &Image::iLoadSTBIFromMemory });
+		gImageLoaders.push_back({ ".ppm", &Image::iLoadSTBIFromMemory });
 #endif
 #if !defined(TARGET_IOS)
-  { ".dds", &Image::iLoadDDSFromMemory },
+		gImageLoaders.push_back({ ".dds", &Image::iLoadDDSFromMemory });
 #endif
-  { ".pvr", &Image::iLoadPVRFromMemory },
-  // #TODO: Add KTX loader
+		gImageLoaders.push_back({ ".pvr", &Image::iLoadPVRFromMemory });
+			// #TODO: Add KTX loader
 #ifdef _WIN32
-  { ".ktx", NULL },
+		gImageLoaders.push_back({ ".ktx", NULL });
 #endif
-  { ".exr", &Image::iLoadEXRFP32FromMemory },
+		gImageLoaders.push_back({ ".exr", &Image::iLoadEXRFP32FromMemory });
 #if defined(ORBIS)
-  { ".gnf", &Image::iLoadGNFFromMemory },
+		gImageLoaders.push_back({ ".gnf", &Image::iLoadGNFFromMemory });
 #endif
-};
+	}
+} gImageLoaderInst;
+
+void Image::AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc)
+{
+	gImageLoaders.push_back({ pExtension, pFunc });
+}
 
 void Image::loadFromMemoryXY(const void *mem, const int topLeftX, const int topLeftY, const int bottomRightX, const int bottomRightY, const int pitch)
 {
@@ -1898,7 +1908,7 @@ bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFun
   // try loading the format
   bool loaded = false;
   bool support = false;
-  for (int i = 0; i < sizeof(gImageLoaders) / sizeof(gImageLoaders[0]); i++)
+  for (int i = 0; i < (int)gImageLoaders.size(); i++)
   {
     if (stricmp(extension, gImageLoaders[i].Extension) == 0)
     {
@@ -1985,7 +1995,17 @@ bool Image::Convert(const ImageFormat::Enum newFormat) {
         dest += 4;
         src += 3;
       } while (--nPixels);
-    }
+	} else if (mFormat == ImageFormat::RGBA8 && newFormat == ImageFormat::BGRA8) {
+		// Fast path for RGBA8->BGRA8 (just swizzle)
+		do {
+			dest[0] = src[2];
+			dest[1] = src[1];
+			dest[2] = src[0];
+			dest[3] = src[3];
+			dest += 4;
+			src += 4;
+		} while (--nPixels);
+	}
     else {
       int srcSize = ImageFormat::GetBytesPerPixel(mFormat);
       int nSrcChannels = ImageFormat::GetChannelCount(mFormat);

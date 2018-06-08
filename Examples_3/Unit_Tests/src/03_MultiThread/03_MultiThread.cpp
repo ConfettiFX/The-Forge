@@ -151,8 +151,8 @@ Shader*					pShader = NULL;
 Shader*					pSkyBoxDrawShader = NULL;
 Shader*					pGraphShader = NULL;
 Buffer*					pParticleVertexBuffer = NULL;
-Buffer*					pProjViewUniformBuffer = NULL;
-Buffer*					pSkyboxUniformBuffer = NULL;
+Buffer*					pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*					pSkyboxUniformBuffer[gImageCount] = { NULL };
 Buffer*					pSkyBoxVertexBuffer = NULL;
 Buffer*					pBackGroundVertexBuffer[gImageCount] = { NULL };
 Pipeline*				pPipeline = NULL;
@@ -491,12 +491,15 @@ public:
 		ubDesc.mDesc.mSize = sizeof(mat4);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
-		ubDesc.ppBuffer = &pProjViewUniformBuffer;
-		addResource(&ubDesc);
-		ubDesc.ppBuffer = &pSkyboxUniformBuffer;
-		addResource(&ubDesc);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
+			addResource(&ubDesc);
+			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+			addResource(&ubDesc);
+		}
 
-		finishResourceLoading ();
+		finishResourceLoading();
 		LOGINFOF ("Load Time %lld", timer.GetUSec (false) / 1000);
 
 		// generate partcile data
@@ -632,8 +635,11 @@ public:
 
 		gAppUI.Exit();
 
-		removeResource(pProjViewUniformBuffer);
-		removeResource(pSkyboxUniformBuffer);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pProjViewUniformBuffer[i]);
+			removeResource(pSkyboxUniformBuffer[i]);
+		}
 		removeResource(pParticleVertexBuffer);
 		removeResource(pSkyBoxVertexBuffer);
 
@@ -950,10 +956,10 @@ public:
 		Cmd* cmd = ppCmds[frameIdx];
 		beginCmd(cmd);
 
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer, &gProjectView, 0, 0, sizeof(gProjectView) };
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gProjectView, 0, 0, sizeof(gProjectView) };
 		updateResource(&viewProjCbv);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer, &gSkyboxProjectView, 0, 0, sizeof(gSkyboxProjectView) };
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gSkyboxProjectView, 0, 0, sizeof(gSkyboxProjectView) };
 		updateResource(&skyboxViewProjCbv);
 
 		for (uint32_t i = 0; i < gCoresCount; ++i)
@@ -985,7 +991,7 @@ public:
 		params[5].pName = "BackText";
 		params[5].ppTextures = &pSkyBoxTextures[5];
 		params[6].pName = "uniformBlock";
-		params[6].ppBuffers = &pSkyboxUniformBuffer;
+		params[6].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
 		cmdBindDescriptors(cmd, pRootSignature, 7, params);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
@@ -1545,7 +1551,7 @@ public:
 		params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
 		params[0].ppTextures = pTextures;
 		params[1].pName = "uniformBlock";
-		params[1].ppBuffers = &pProjViewUniformBuffer;
+		params[1].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		params[2].pName = "particleRootConstant";
 		params[2].pRootConstant = &gParticleData;
 		cmdBindDescriptors(cmd, pRootSignature, 3, params);

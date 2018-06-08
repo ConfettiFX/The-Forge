@@ -172,7 +172,7 @@ struct IndirectArguments
 #elif defined(VULKAN)
     IndirectDrawIndexArguments mDrawArgs;
     uint32_t pad1, pad2, pad3; // This one is just padding
-#else defined(METAL) // Padding messes up the expected indirect data layout on Metal.
+#elif defined(METAL) // Padding messes up the expected indirect data layout on Metal.
     IndirectDrawIndexArguments mDrawArgs;
 #endif
 };
@@ -256,7 +256,7 @@ Shader*					pIndirectShader = NULL;
 Pipeline*				pIndirectPipeline = NULL;
 RootSignature*			pIndirectRoot = NULL;
 Buffer*					pIndirectBuffer[gImageCount] = {};
-Buffer*					pIndirectUniformBuffer = NULL;
+Buffer*					pIndirectUniformBuffer[gImageCount] = { NULL };
 CommandSignature*		pIndirectCommandSignature = NULL;
 CommandSignature*		pIndirectSubsetCommandSignature = NULL;
 
@@ -272,7 +272,7 @@ Pipeline*				pSkyBoxDrawPipeline = NULL;
 RasterizerState*		pSkyboxRast = NULL;
 RootSignature*			pSkyBoxRoot = NULL;
 Sampler*				pSkyBoxSampler = NULL;
-Buffer*					pSkyboxUniformBuffer = NULL;
+Buffer*					pSkyboxUniformBuffer[gImageCount] = { NULL };
 Buffer*					pSkyBoxVertexBuffer = NULL;
 Texture*				pSkyBoxTextures[6];
 
@@ -507,10 +507,13 @@ public:
 		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		bufDesc.mDesc.mSize = sizeof(UniformViewProj);
 		bufDesc.pData = NULL;
-		bufDesc.ppBuffer = &pIndirectUniformBuffer;
-		addResource(&bufDesc);
-		bufDesc.ppBuffer = &pSkyboxUniformBuffer;
-		addResource(&bufDesc);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			bufDesc.ppBuffer = &pIndirectUniformBuffer[i];
+			addResource(&bufDesc);
+			bufDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+			addResource(&bufDesc);
+		}
 
 		bufDesc = {};
 		bufDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV;
@@ -742,7 +745,7 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
-#if !defined(TARGET_IOS) //&& !defined(LINUX) caused crash in Linux(as we are creating gPanini resources for Linux)
+#if !defined(TARGET_IOS)
 		gPanini.Exit();
 #endif
 
@@ -764,18 +767,23 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeResource(pSkyboxUniformBuffer);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pSkyboxUniformBuffer[i]);
+
 		removeResource(pSkyBoxVertexBuffer);
 		removeResource(pAsteroidVertexBuffer);
 		removeResource(pAsteroidIndexBuffer);
 		removeResource(pStaticAsteroidBuffer);
 		removeResource(pDynamicAsteroidBuffer);
+
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pIndirectBuffer[i]);
 			removeResource(pComputeUniformBuffer[i]);
 		}
-		removeResource(pIndirectUniformBuffer);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pIndirectUniformBuffer[i]);
 		removeResource(pAsteroidTex);
 
 		for (uint32_t i = 0; i < 6; ++i)
@@ -1053,12 +1061,12 @@ public:
 
 		UniformViewProj viewProjUniformData;
 		viewProjUniformData.mProjectView = viewProjMat;
-		BufferUpdateDesc indirectUniformUpdate = { pIndirectUniformBuffer, &viewProjUniformData };
+		BufferUpdateDesc indirectUniformUpdate = { pIndirectUniformBuffer[gFrameIndex], &viewProjUniformData };
 		updateResource(&indirectUniformUpdate);
 
 		viewMat.setTranslation(vec3(0));
 		viewProjUniformData.mProjectView = projMat * viewMat;
-		BufferUpdateDesc skyboxUniformUpdate = { pSkyboxUniformBuffer, &viewProjUniformData };
+		BufferUpdateDesc skyboxUniformUpdate = { pSkyboxUniformBuffer[gFrameIndex], &viewProjUniformData };
 		updateResource(&skyboxUniformUpdate);
 
 		TextureBarrier barrier = { pSceneRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
@@ -1070,7 +1078,7 @@ public:
 
 		DescriptorData skyboxParams[8] = {};
 		skyboxParams[0].pName = "uniformBlock";
-		skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer;
+		skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
 		skyboxParams[1].pName = "RightText";
 		skyboxParams[1].ppTextures = &pSkyBoxTextures[0];
 		skyboxParams[2].pName = "LeftText";
@@ -1191,7 +1199,7 @@ public:
 
 			DescriptorData indirectParams[5] = {};
 			indirectParams[0].pName = "uniformBlock";
-			indirectParams[0].ppBuffers = &pIndirectUniformBuffer;
+			indirectParams[0].ppBuffers = &pIndirectUniformBuffer[gFrameIndex];
 			indirectParams[1].pName = "asteroidsStatic";
 			indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
 			indirectParams[2].pName = "asteroidsDynamic";
@@ -1860,7 +1868,7 @@ public:
 
 			DescriptorData indirectParams[5] = {};
 			indirectParams[0].pName = "uniformBlock";
-			indirectParams[0].ppBuffers = &pIndirectUniformBuffer;
+			indirectParams[0].ppBuffers = &pIndirectUniformBuffer[gFrameIndex];
 			indirectParams[1].pName = "asteroidsStatic";
 			indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
 			indirectParams[2].pName = "asteroidsDynamic";

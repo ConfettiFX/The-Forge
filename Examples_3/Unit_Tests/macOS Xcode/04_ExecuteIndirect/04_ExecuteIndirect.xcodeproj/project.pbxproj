@@ -8,9 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		281FA9E720333E3D00CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9E620333E3D00CD5D9C /* circlepad.png */; };
-		288F630B2035B00900B758DE /* basic.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63082035B00900B758DE /* basic.frag.metal */; };
-		288F630C2035B00900B758DE /* ExecuteIndirect.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63092035B00900B758DE /* ExecuteIndirect.frag.metal */; };
-		288F630D2035B00900B758DE /* skybox.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F630A2035B00900B758DE /* skybox.frag.metal */; };
 		288F630E2035B20200B758DE /* basic.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63082035B00900B758DE /* basic.frag.metal */; };
 		288F630F2035B20800B758DE /* ExecuteIndirect.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63092035B00900B758DE /* ExecuteIndirect.frag.metal */; };
 		288F63102035B20C00B758DE /* skybox.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F630A2035B00900B758DE /* skybox.frag.metal */; };
@@ -24,10 +21,6 @@
 		28A5ACA3201F6889000E571F /* Skybox_front5.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC9D201F6889000E571F /* Skybox_front5.png */; };
 		28A5ACA4201F6889000E571F /* Skybox_top3.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC9E201F6889000E571F /* Skybox_top3.png */; };
 		28A5ACA5201F6889000E571F /* Skybox_back6.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC9F201F6889000E571F /* Skybox_back6.png */; };
-		28A5ACAA201F6899000E571F /* skybox.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA6201F6899000E571F /* skybox.vert.metal */; };
-		28A5ACAB201F6899000E571F /* ExecuteIndirect.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA7201F6899000E571F /* ExecuteIndirect.vert.metal */; };
-		28A5ACAC201F6899000E571F /* basic.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA8201F6899000E571F /* basic.vert.metal */; };
-		28A5ACAD201F6899000E571F /* ComputeUpdate.comp.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ACA9201F6899000E571F /* ComputeUpdate.comp.metal */; };
 		28A5ACB0201F68C4000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACAF201F68C4000E571F /* Metal.framework */; };
 		28A5ACB2201F68CA000E571F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACB1201F68CA000E571F /* MetalKit.framework */; };
 		28A5ACB5201F68D1000E571F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28A5ACB3201F68D1000E571F /* Metal.framework */; };
@@ -74,10 +67,6 @@
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
 		B2CDF4DD20B760DE000DC071 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DB20B760DE000DC071 /* Panini.cpp */; };
 		B2CDF4DE20B760DE000DC071 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DB20B760DE000DC071 /* Panini.cpp */; };
-		B2CDF4E120B760EB000DC071 /* panini_projection.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */; };
-		B2CDF4E220B760EB000DC071 /* panini_projection.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */; };
-		B2CDF4E320B760EB000DC071 /* panini_projection.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */; };
-		B2CDF4E420B760EB000DC071 /* panini_projection.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */; };
 		C91D46211FD9976D00564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46201FD9976D00564C8B /* MemoryTrackingManager.cpp */; };
 		C91D46251FD9984A00564C8B /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = C91D46241FD9984900564C8B /* MetalShaderReflection.mm */; };
 		C91D46271FD9985700564C8B /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D46261FD9985700564C8B /* CommonShaderReflection.cpp */; };
@@ -602,7 +591,7 @@
 		EA463C831EF81E8F005AC8C7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 0940;
 				ORGANIZATIONNAME = Jesus;
 				TargetAttributes = {
 					28A5AC78201F682F000E571F = {
@@ -681,13 +670,9 @@
 				28A5ACDD201F69CE000E571F /* CommonShaderReflection.cpp in Sources */,
 				28A5ACE0201F69CE000E571F /* MetalRenderer.mm in Sources */,
 				28A5ACCE201F69A4000E571F /* MemoryTrackingManager.cpp in Sources */,
-				B2CDF4E420B760EB000DC071 /* panini_projection.vert.metal in Sources */,
 				B2CDF4DE20B760DE000DC071 /* Panini.cpp in Sources */,
 				28A5ACCD201F699F000E571F /* FileSystem.cpp in Sources */,
 				5CD2BC182080FF0C008E3A2C /* Fontstash.cpp in Sources */,
-				28A5ACAB201F6899000E571F /* ExecuteIndirect.vert.metal in Sources */,
-				28A5ACAD201F6899000E571F /* ComputeUpdate.comp.metal in Sources */,
-				B2CDF4E220B760EB000DC071 /* panini_projection.frag.metal in Sources */,
 				28A5ACE5201F69F1000E571F /* Timer.cpp in Sources */,
 				28A5ACE1201F69E8000E571F /* tinyexr.cpp in Sources */,
 				28A5ACDB201F69C3000E571F /* Image.cpp in Sources */,
@@ -703,10 +688,8 @@
 				28A5ACE8201F69FF000E571F /* TextureGen.cpp in Sources */,
 				28A5ACE7201F69FF000E571F /* simplexnoise1234.cpp in Sources */,
 				5CD2BC122080FF0C008E3A2C /* UIRenderer.cpp in Sources */,
-				288F630B2035B00900B758DE /* basic.frag.metal in Sources */,
 				5CD2BC162080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */,
 				28A5ACDF201F69CE000E571F /* ResourceLoader.cpp in Sources */,
-				28A5ACAC201F6899000E571F /* basic.vert.metal in Sources */,
 				28A5ACE2201F69F1000E571F /* LogManager.cpp in Sources */,
 				28A5ACDC201F69CE000E571F /* GpuProfiler.cpp in Sources */,
 				28A5ACE6201F69FF000E571F /* AsteroidSim.cpp in Sources */,
@@ -714,9 +697,6 @@
 				28A5ACE4201F69F1000E571F /* ThreadSystem.cpp in Sources */,
 				28A5ACE9201F6B65000E571F /* 04_ExecuteIndirect.cpp in Sources */,
 				5CA4AFCD2088FAB7005BB7C6 /* DebugRenderer.cpp in Sources */,
-				288F630C2035B00900B758DE /* ExecuteIndirect.frag.metal in Sources */,
-				288F630D2035B00900B758DE /* skybox.frag.metal in Sources */,
-				28A5ACAA201F6899000E571F /* skybox.vert.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -731,7 +711,6 @@
 				5CD2BC172080FF0C008E3A2C /* Fontstash.cpp in Sources */,
 				5C85A3882029FF2E00AB83C6 /* macOSBase.mm in Sources */,
 				5CD2BC152080FF0C008E3A2C /* NuklearGUIDriver.cpp in Sources */,
-				B2CDF4E320B760EB000DC071 /* panini_projection.vert.metal in Sources */,
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				EA463CEE1EF81FC5005AC8C7 /* FileSystem.cpp in Sources */,
 				5CD2BC112080FF0C008E3A2C /* UIRenderer.cpp in Sources */,
@@ -754,7 +733,6 @@
 				EA463D021EF81FC5005AC8C7 /* tinyexr.cpp in Sources */,
 				EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */,
 				EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */,
-				B2CDF4E120B760EB000DC071 /* panini_projection.frag.metal in Sources */,
 				5CD2BC132080FF0C008E3A2C /* AppUI.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -869,6 +847,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = NO;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -876,6 +855,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -923,6 +903,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = NO;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -930,6 +911,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;

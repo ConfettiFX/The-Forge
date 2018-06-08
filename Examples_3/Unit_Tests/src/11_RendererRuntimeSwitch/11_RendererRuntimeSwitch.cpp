@@ -113,8 +113,8 @@ Texture*            pVirtualJoystickTex = NULL;
 DepthState*			pDepth = NULL;
 RasterizerState*	pSkyboxRast = NULL;
 
-Buffer*				pProjViewUniformBuffer = NULL;
-Buffer*				pSkyboxUniformBuffer = NULL;
+Buffer*				pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*				pSkyboxUniformBuffer[gImageCount] = { NULL };
 
 uint32_t			gFrameIndex = 0;
 
@@ -351,10 +351,13 @@ public:
 		ubDesc.mDesc.mSize = sizeof(UniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
-		ubDesc.ppBuffer = &pProjViewUniformBuffer;
-		addResource(&ubDesc);
-		ubDesc.ppBuffer = &pSkyboxUniformBuffer;
-		addResource(&ubDesc);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
+			addResource(&ubDesc);
+			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+			addResource(&ubDesc);
+		}
 
 		finishResourceLoading();
 
@@ -535,8 +538,12 @@ public:
 
 		gAppUI.Exit();
 
-		removeResource(pProjViewUniformBuffer);
-		removeResource(pSkyboxUniformBuffer);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pProjViewUniformBuffer[i]);
+			removeResource(pSkyboxUniformBuffer[i]);
+		}
+
 		removeResource(pSphereVertexBuffer);
 		removeResource(pSkyBoxVertexBuffer);
 
@@ -702,13 +709,13 @@ public:
 			gUniformData.mColor[i] = gPlanetInfoData[i].mColor;
 		}
 
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer, &gUniformData };
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
 		updateResource(&viewProjCbv);
 
 		viewMat.setTranslation(vec3(0));
 		gUniformData.mProjectView = projMat * viewMat;
 
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer, &gUniformData };
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformData };
 		updateResource(&skyboxViewProjCbv);
 
 		gAppUI.Update(deltaTime);
@@ -770,7 +777,7 @@ public:
 
 		DescriptorData params[7] = {};
 		params[0].pName = "uniformBlock";
-		params[0].ppBuffers = &pSkyboxUniformBuffer;
+		params[0].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
 		params[1].pName = "RightText";
 		params[1].ppTextures = &pSkyBoxTextures[0];
 		params[2].pName = "LeftText";
@@ -791,7 +798,7 @@ public:
 		////// draw planets
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Planets");
 		cmdBindPipeline(cmd, pSpherePipeline);
-		params[0].ppBuffers = &pProjViewUniformBuffer;
+		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		cmdBindDescriptors(cmd, pRootSignature, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets);

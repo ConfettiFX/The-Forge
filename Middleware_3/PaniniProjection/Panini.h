@@ -21,10 +21,10 @@
 * specific language governing permissions and limitations
 * under the License.
 */
+
 #ifndef  NULL
 #define NULL 0
 #endif // ! NULL
-#define NULL 0
 
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 
@@ -41,7 +41,7 @@ struct RasterizerState;
 
 /************************************************************************/
 /*						 HOW TO USE THIS MODULE
-/************************************************************************/
+*************************************************************************/
 //
 // - Init()		Compiles the panini shader, creates the vertex and index buffer for panini projection
 //
@@ -61,7 +61,7 @@ struct RasterizerState;
 //
 /************************************************************************/
 /*						 PANINI PROJECTION
-/************************************************************************/
+*************************************************************************/
 //
 // The Pannini projection is a mathematical rule for constructing perspective images with very wide fields of view. 
 // source:	http://tksharpless.net/vedutismo/Pannini/
@@ -94,7 +94,7 @@ struct PaniniParameters
 };
 /************************************************************************/
 /*						 INTERFACE
-/************************************************************************/
+*************************************************************************/
 class Panini : public IMiddleware
 {
 public:

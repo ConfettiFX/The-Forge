@@ -9,15 +9,11 @@
 /* Begin PBXBuildFile section */
 		281FA9EC20333E7900CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9EB20333E7900CD5D9C /* circlepad.png */; };
 		283F14722019EB8C005026E7 /* 07_Tessellation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 283F14712019EB8C005026E7 /* 07_Tessellation.cpp */; };
-		288F63182035B94500B758DE /* grass.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63172035B94500B758DE /* grass.frag.metal */; };
 		288F63192035BB1600B758DE /* grass.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63172035B94500B758DE /* grass.frag.metal */; };
 		28A5ADB7201F7587000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADB5201F7587000E571F /* Main.storyboard */; };
 		28A5ADB9201F7587000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADB8201F7587000E571F /* Assets.xcassets */; };
 		28A5ADBC201F7587000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADBA201F7587000E571F /* LaunchScreen.storyboard */; };
 		28A5ADC6201F75E0000E571F /* TitilliumText in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADC5201F75E0000E571F /* TitilliumText */; };
-		28A5ADCA201F75F0000E571F /* grass.domain.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ADC7201F75F0000E571F /* grass.domain.vert.metal */; };
-		28A5ADCB201F75F0000E571F /* compute.comp.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ADC8201F75F0000E571F /* compute.comp.metal */; };
-		28A5ADCC201F75F0000E571F /* grass_verthull.comp.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ADC9201F75F0000E571F /* grass_verthull.comp.metal */; };
 		28A5ADCD201F761A000E571F /* 07_Tessellation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 283F14712019EB8C005026E7 /* 07_Tessellation.cpp */; };
 		28A5ADDB201F762C000E571F /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ADD3201F762C000E571F /* iOSThreadManager.cpp */; };
 		28A5ADDC201F762C000E571F /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5ADD4201F762C000E571F /* iOSLogManager.cpp */; };
@@ -503,7 +499,7 @@
 		EA463C831EF81E8F005AC8C7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 0940;
 				ORGANIZATIONNAME = Jesus;
 				TargetAttributes = {
 					28A5ADA6201F7587000E571F = {
@@ -578,9 +574,7 @@
 				28A5ADE1201F764C000E571F /* MemoryTrackingManager.cpp in Sources */,
 				5CD2BC4C2080FF51008E3A2C /* NuklearGUIDriver.cpp in Sources */,
 				28A5ADF6201F765F000E571F /* ThreadSystem.cpp in Sources */,
-				28A5ADCA201F75F0000E571F /* grass.domain.vert.metal in Sources */,
 				5CD2BC482080FF51008E3A2C /* UIRenderer.cpp in Sources */,
-				288F63182035B94500B758DE /* grass.frag.metal in Sources */,
 				28A5ADE2201F764C000E571F /* FpsCameraController.cpp in Sources */,
 				28A5ADF1201F765F000E571F /* ResourceLoader.cpp in Sources */,
 				28A5ADDC201F762C000E571F /* iOSLogManager.cpp in Sources */,
@@ -589,8 +583,6 @@
 				28A5ADCD201F761A000E571F /* 07_Tessellation.cpp in Sources */,
 				28A5ADDB201F762C000E571F /* iOSThreadManager.cpp in Sources */,
 				5CA4AFB52088F9E9005BB7C6 /* DebugRenderer.cpp in Sources */,
-				28A5ADCB201F75F0000E571F /* compute.comp.metal in Sources */,
-				28A5ADCC201F75F0000E571F /* grass_verthull.comp.metal in Sources */,
 				28A5ADF3201F765F000E571F /* tinyexr.cpp in Sources */,
 				28A5ADE3201F764C000E571F /* GuiCameraController.cpp in Sources */,
 				28A5ADF4201F765F000E571F /* LogManager.cpp in Sources */,
@@ -744,6 +736,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -751,6 +744,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -798,6 +792,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -805,6 +800,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;

@@ -264,7 +264,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	  /************************************************************************/
 	  // Multi GPU Extensions
 	  /************************************************************************/
+#if !defined(USE_RENDER_DOC)
 	  VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME,
+#endif
       /************************************************************************/
    };
 
@@ -277,12 +279,16 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 	  VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+	  VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+	  VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
 	  // Render-Doc does not support the new debug utils extension yet so we need to use the debug marker extension
 #ifndef USE_DEBUG_UTILS_EXTENSION
 	  VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 #endif
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 	  VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+	  VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
+	  VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME,
 #endif
 	  /************************************************************************/
 	  // NVIDIA Specific Extensions
@@ -1752,6 +1758,56 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &(pRenderer->mNumOfGPUs), pRenderer->pVkGPUs);
 		ASSERT(VK_SUCCESS == vk_res);
+		/************************************************************************/
+		// Sort gpus to get discrete gpus first
+		// If we have multiple discrete gpus sort them by VRAM size
+		// To find VRAM in Vulkan, loop through all the heaps and find if the
+		// heap has the DEVICE_LOCAL_BIT flag set
+		/************************************************************************/
+		qsort(pRenderer->pVkGPUs, pRenderer->mNumOfGPUs, sizeof(pRenderer->pVkGPUs[0]), [](const void* lhs, const void* rhs) {
+			VkPhysicalDeviceProperties lhsProps = {};
+			VkPhysicalDeviceMemoryProperties lhsMemoryProps = {};
+			VkPhysicalDevice lhsGpu = *(VkPhysicalDevice*)lhs;
+			VkPhysicalDevice rhsGpu = *(VkPhysicalDevice*)rhs;
+			VkPhysicalDeviceProperties rhsProps = {};
+			VkPhysicalDeviceMemoryProperties rhsMemoryProps = {};
+			vkGetPhysicalDeviceProperties(lhsGpu, &lhsProps);
+			vkGetPhysicalDeviceMemoryProperties(lhsGpu, &lhsMemoryProps);
+			vkGetPhysicalDeviceProperties(rhsGpu, &rhsProps);
+			vkGetPhysicalDeviceMemoryProperties(rhsGpu, &rhsMemoryProps);
+
+			if (lhsProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+				rhsProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+			{
+				return -1;
+			}
+			else if (lhsProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU &&
+				rhsProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+			{
+				return 1;
+			}
+			else
+			{
+				VkDeviceSize totalLhsVram = 0;
+				VkDeviceSize totalRhsVram = 0;
+				for (uint32_t i = 0; i < lhsMemoryProps.memoryHeapCount; ++i)
+				{
+					if (VK_MEMORY_HEAP_DEVICE_LOCAL_BIT & lhsMemoryProps.memoryHeaps[i].flags)
+						totalLhsVram += lhsMemoryProps.memoryHeaps[i].size;
+				}
+				for (uint32_t i = 0; i < rhsMemoryProps.memoryHeapCount; ++i)
+				{
+					if (VK_MEMORY_HEAP_DEVICE_LOCAL_BIT & rhsMemoryProps.memoryHeaps[i].flags)
+						totalRhsVram += rhsMemoryProps.memoryHeaps[i].size;
+				}
+
+				return totalLhsVram > totalRhsVram ? -1 : 1;
+			}
+		});
+
+		// Find gpu that supports atleast graphics
+		pRenderer->mActiveGPUIndex = UINT32_MAX;
+		DECLARE_ZERO(VkQueueFamilyProperties, mQueueProperties);
 
 		typedef struct VkQueueFamily
 		{
@@ -1761,9 +1817,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}VkQueueFamily;
 		tinystl::vector<VkQueueFamily> queueFamilies;
 
-		// Find gpu that supports atleast graphics
-		pRenderer->mActiveGPUIndex = UINT32_MAX;
-		DECLARE_ZERO(VkQueueFamilyProperties, mQueueProperties);
 		for (uint32_t gpu_index = 0; gpu_index < pRenderer->mNumOfGPUs; ++gpu_index)
 		{
 			VkPhysicalDevice gpu = pRenderer->pVkGPUs[gpu_index];
@@ -3404,10 +3457,31 @@ namespace vk {
 				if (pRes->type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 					setIndex = 0;
 
-				if (pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node == 0)
+				tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode =
+					pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
+				if (!pNode)
 				{
 					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
 					shaderResources.emplace_back(pRes);
+				}
+				else
+				{
+					if (shaderResources[pNode->second]->reg != pRes->reg)
+					{
+						ErrorMsg("\nFailed to create root signature\n"
+							"Shared shader resource %s has mismatching binding. All shader resources "
+							"shared by multiple shaders specified in addRootSignature "
+							"have the same binding and set", pRes->name);
+						return;
+					}
+					if (shaderResources[pNode->second]->set != pRes->set)
+					{
+						ErrorMsg("\nFailed to create root signature\n"
+							"Shared shader resource %s has mismatching set. All shader resources "
+							"shared by multiple shaders specified in addRootSignature "
+							"have the same binding and set", pRes->name);
+						return;
+					}
 				}
 			}
 		}

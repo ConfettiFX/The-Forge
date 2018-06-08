@@ -24,11 +24,11 @@
 
 /********************************************************************************************************/
 /* THE FORGE - FONT RENDERING DEMO
-/*
-/* The purpose of this demo is to show how to use the font system Fontstash with The Forge.
-/* All the features the font library supports are showcased here, such as font spacing, blurring,
-/* different text sizes and different fonts.
-/********************************************************************************************************/
+*
+* The purpose of this demo is to show how to use the font system Fontstash with The Forge.
+* All the features the font library supports are showcased here, such as font spacing, blurring,
+* different text sizes and different fonts.
+*********************************************************************************************************/
 
 
 //tiny stl
@@ -99,7 +99,7 @@ const char* pszRoots[] =
 LogManager gLogManager;
 /************************************************************************/
 /* SCENE VARIABLES
-/************************************************************************/
+*************************************************************************/
 struct Fonts
 {	// src: https://fontlibrary.org
 	int titilliumBold;
@@ -145,7 +145,7 @@ SceneData		gSceneData;
 Fonts			gFonts;
 /************************************************************************/
 /* APP FUNCTIONS
-/************************************************************************/
+*************************************************************************/
 class FontRendering : public IApp
 {
 public:
@@ -378,9 +378,7 @@ public:
 	{
 		const float w = (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth;
 		const float h = (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight;
-		const float aspectRatio = w / h;
-		const tinystl::vector<TextObject>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
-
+		
 		// PROCESS INPUT
 		//-------------------------------------------------------------------------------------
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
