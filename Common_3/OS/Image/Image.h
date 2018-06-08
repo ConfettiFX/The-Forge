@@ -148,6 +148,10 @@ protected:
   unsigned char *pAdditionalData;
   bool mIsRendertarget;
   bool mOwnsMemory;
+
+public:
+  typedef bool (Image::*ImageLoaderFunction)(const char* memory, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData);
+  static void AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc);
 };
 
 static inline uint32_t calculateImageFormatStride (ImageFormat::Enum format)

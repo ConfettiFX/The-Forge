@@ -79,25 +79,25 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -124,7 +124,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\bin64\assimp.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
@@ -152,7 +152,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\bin64\assimp.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -184,7 +184,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\bin64\assimp.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
@@ -216,7 +216,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\3.3.1\bin64\assimp.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

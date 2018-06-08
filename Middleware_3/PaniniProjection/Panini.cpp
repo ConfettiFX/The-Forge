@@ -32,7 +32,7 @@
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 /************************************************************************/
 /* HELPER FUNCTIONS
-/************************************************************************/
+************************************************************************/
 void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, Buffer** ppIndexBuffer, unsigned tessellationX, unsigned tessellationY)
 {
 	ASSERT(tessellationX >= 1);
@@ -114,7 +114,7 @@ void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, 
 }
 /************************************************************************/
 /* INTERFACE FUNCTIONS
-/************************************************************************/
+************************************************************************/
 bool Panini::Init(Renderer* renderer)
 {
 	pRenderer = renderer;

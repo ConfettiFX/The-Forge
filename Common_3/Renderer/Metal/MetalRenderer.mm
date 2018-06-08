@@ -139,7 +139,7 @@ namespace RENDERER_CPP_NAMESPACE {
 #else
         MTLPixelFormatBGRA8Unorm,
 #endif
-        
+		
         MTLPixelFormatR16Unorm,
         MTLPixelFormatRG16Unorm,
         MTLPixelFormatInvalid, //RGB16 not directly supported

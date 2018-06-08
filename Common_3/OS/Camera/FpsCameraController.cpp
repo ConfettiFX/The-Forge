@@ -44,18 +44,24 @@
 
 #if defined(_DURANGO) || defined(TARGET_IOS)
 static const float k_rotationSpeed = 0.03f;
-static const float k_movementSpeed = 16.0f;
+#if defined(_DURANGO)
+	static const float k_movementSpeed = 16.0f;
+#endif
 #else
 static const float k_rotationSpeed = 0.003f;
 #endif
 static const float k_scrollSpeed = -5.0f;
+#if !defined(METAL)
 static const float k_xRotLimit = (float)(M_PI_2 - 0.1);
+#endif
 
+#if defined(TARGET_IOS) || defined(_DURANGO)
 static const float k_vJoystickIntRadius = 0.25f;
 static const float k_vJoystickExtRadius = 0.33f;
 static const float k_vJoystickRange = k_vJoystickExtRadius - k_vJoystickIntRadius;
 static const float k_vJoystickDeadzone = k_vJoystickRange / 10.0f;
 static const float k_vJoystickRecovery = k_vJoystickRange * 8.0f;
+#endif
 
 static const vec2 k_vLeftJoystickCenter = vec2(0.175f, 0.75f);
 static const vec2 k_vRightJoystickCenter = vec2(0.80f, 0.75f);

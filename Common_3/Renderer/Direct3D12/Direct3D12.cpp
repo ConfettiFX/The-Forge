@@ -177,7 +177,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		DXGI_FORMAT_R16G16_TYPELESS,
 		DXGI_FORMAT_UNKNOWN,
 		DXGI_FORMAT_R16G16B16A16_TYPELESS,
-		DXGI_FORMAT_R16_TYPELESS,
+		DXGI_FORMAT_R8_TYPELESS,
 		DXGI_FORMAT_R16G16_TYPELESS,
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8S not directly supported
 		DXGI_FORMAT_R16G16B16A16_TYPELESS,
@@ -1685,7 +1685,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 		ASSERT (pRenderer->mNumOfGPUs > 0);
 		// Sort GPUs to get highest feature level gpu at front
-		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof (GpuDesc), [](const void* lhs, const void* rhs) {
+		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof(GpuDesc), [](const void* lhs, const void* rhs) {
 			GpuDesc* gpu1 = (GpuDesc*)lhs;
 			GpuDesc* gpu2 = (GpuDesc*)rhs;
 			// Check feature level first, sort the greatest feature level gpu to the front
@@ -3314,6 +3314,23 @@ namespace d3d12 {
 				// shader stage in this case
 				else
 				{
+					if (shaderResources[pNode->second].reg != pRes->reg)
+					{
+						ErrorMsg("\nFailed to create root signature\n"
+							"Shared shader resource %s has mismatching register. All shader resources "
+							"shared by multiple shaders specified in addRootSignature "
+							"have the same register and space", pRes->name);
+						return;
+					}
+					if (shaderResources[pNode->second].set != pRes->set)
+					{
+						ErrorMsg("\nFailed to create root signature\n"
+							"Shared shader resource %s has mismatching space. All shader resources "
+							"shared by multiple shaders specified in addRootSignature "
+							"have the same register and space", pRes->name);
+						return;
+					}
+
 					for (ShaderResource& res : shaderResources)
 					{
 						if (tinystl::hash(res.name) == pNode->first)

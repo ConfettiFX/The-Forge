@@ -10,6 +10,13 @@
 #ifndef VECTORMATH_COMMON_HPP
 #define VECTORMATH_COMMON_HPP
 
+#ifndef conf_malloc
+extern void* conf_malloc(size_t size);
+#endif
+#ifndef conf_free
+extern void conf_free(void* ptr);
+#endif
+
 namespace Vectormath
 {
 
@@ -96,7 +103,6 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
 #endif
 
 #include "../../../OS/Core/Compiler.h"
-#include "../TinySTL/vector.h"
 
 /*
 * Copyright (c) 2018 Confetti Interactive Inc.
@@ -775,61 +781,48 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 	float numStacks = (float)numberOfDivisions;
 	float numSlices = (float)numberOfDivisions;
 
-	tinystl::vector<Vector3> vertices;
-	tinystl::vector<Vector3> normals;
-
+	uint32_t numberOfPoints = numberOfDivisions * numberOfDivisions * 6;
+	float3* pPoints = (float3*)conf_malloc(numberOfPoints * sizeof(float3) * 2);
+	uint32_t vertexCounter = 0;
 
 	for (int i = 0; i < numberOfDivisions; i++)
 	{
 		for (int j = 0; j < numberOfDivisions; j++)
 		{
 			// Sectioned into quads, utilizing two triangles
-			Vector3 topLeftPoint = { (float)(-cos(2.0f * PI * i / numStacks) * sin(PI * (j + 1.0f) / numSlices)),
+			Vector3 topLeftPoint = Vector3{ (float)(-cos(2.0f * PI * i / numStacks) * sin(PI * (j + 1.0f) / numSlices)),
 				(float)(-cos(PI * (j + 1.0f) / numSlices)),
-				(float)(sin(2.0f * PI * i / numStacks) * sin(PI * (j + 1.0f) / numSlices)) };
-			Vector3 topRightPoint = { (float)(-cos(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * (j + 1.0) / numSlices)),
+				(float)(sin(2.0f * PI * i / numStacks) * sin(PI * (j + 1.0f) / numSlices)) } * radius;
+			Vector3 topRightPoint = Vector3{ (float)(-cos(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * (j + 1.0) / numSlices)),
 				(float)(-cos(PI * (j + 1.0) / numSlices)),
-				(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * (j + 1.0) / numSlices)) };
-			Vector3 botLeftPoint = { (float)(-cos(2.0f * PI * i / numStacks) * sin(PI * j / numSlices)),
+				(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * (j + 1.0) / numSlices)) } * radius;
+			Vector3 botLeftPoint = Vector3{ (float)(-cos(2.0f * PI * i / numStacks) * sin(PI * j / numSlices)),
 				(float)(-cos(PI * j / numSlices)),
-				(float)(sin(2.0f * PI * i / numStacks) * sin(PI * j / numSlices)) };
-			Vector3 botRightPoint = { (float)(-cos(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)),
+				(float)(sin(2.0f * PI * i / numStacks) * sin(PI * j / numSlices)) } * radius;
+			Vector3 botRightPoint = Vector3{ (float)(-cos(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)),
 				(float)(-cos(PI * j / numSlices)),
-				(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)) };
+				(float)(sin(2.0f * PI * (i + 1.0) / numStacks) * sin(PI * j / numSlices)) } * radius;
 
 			// Top right triangle
-			vertices.push_back(radius * topLeftPoint);
-			vertices.push_back(radius * botRightPoint);
-			vertices.push_back(radius * topRightPoint);
-			normals.push_back(normalize(topLeftPoint));
-			normals.push_back(normalize(botRightPoint));
-			normals.push_back(normalize(topRightPoint));
+			pPoints[vertexCounter++] = v3ToF3(topLeftPoint);
+			pPoints[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
+			pPoints[vertexCounter++] = v3ToF3(botRightPoint);
+			pPoints[vertexCounter++] = v3ToF3(normalize(botRightPoint));
+			pPoints[vertexCounter++] = v3ToF3(topRightPoint);
+			pPoints[vertexCounter++] = v3ToF3(normalize(topRightPoint));
 
 			// Bot left triangle
-			vertices.push_back(radius * topLeftPoint);
-			vertices.push_back(radius * botLeftPoint);
-			vertices.push_back(radius * botRightPoint);
-			normals.push_back(normalize(topLeftPoint));
-			normals.push_back(normalize(botLeftPoint));
-			normals.push_back(normalize(botRightPoint));
+			pPoints[vertexCounter++] = v3ToF3(topLeftPoint);
+			pPoints[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
+			pPoints[vertexCounter++] = v3ToF3(botLeftPoint);
+			pPoints[vertexCounter++] = v3ToF3(normalize(botLeftPoint));
+			pPoints[vertexCounter++] = v3ToF3(botRightPoint);
+			pPoints[vertexCounter++] = v3ToF3(normalize(botRightPoint));
 		}
 	}
 
-
-	*pNumberOfPoints = (uint32_t)vertices.size() * 3 * 2;
-	(*ppPoints) = (float *)conf_malloc(sizeof(float) * (*pNumberOfPoints));
-
-	for (uint32_t i = 0; i < (uint32_t)vertices.size(); i++)
-	{
-		Vector3 vertex = vertices[i];
-		Vector3 normal = normals[i];
-		(*ppPoints)[i * 6 + 0] = vertex.getX();
-		(*ppPoints)[i * 6 + 1] = vertex.getY();
-		(*ppPoints)[i * 6 + 2] = vertex.getZ();
-		(*ppPoints)[i * 6 + 3] = normal.getX();
-		(*ppPoints)[i * 6 + 4] = normal.getY();
-		(*ppPoints)[i * 6 + 5] = normal.getZ();
-	}
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	(*ppPoints) = (float*)pPoints;
 }
 
 #define MAKEQUAD(x0, y0, x1, y1, o)\

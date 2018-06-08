@@ -26,9 +26,9 @@
 
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/unordered_set.h"
 
-#include "../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/include/assimp/cimport.h"
-#include "../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/include/assimp/scene.h"
-#include "../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/include/assimp/postprocess.h"
+#include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/cimport.h"
+#include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
+#include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"

@@ -291,7 +291,7 @@ def GetFilesPathByExtension(rootToSearch, extension, wantDirectory):
 
 	return filesPathList
 
-def TestXcodeProjects(iosTesting, macOSTesting):
+def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 	errorOccured = False
 
 	projects = GetFilesPathByExtension("./Examples_3/","app", True)
@@ -324,9 +324,16 @@ def TestXcodeProjects(iosTesting, macOSTesting):
 		os.chdir(rootPath)
 		command = []
 		retCode = -1
-		print(rootPath)
+
 		if "_iOS" in filename:
-			command = ["ios-deploy","--uninstall","-b",filename + ".app","-I"]
+			#if specific ios id was passed then run for that device
+			#otherwise run on first device available
+			print iosDeviceId
+			if iosDeviceId == "-1" or iosDeviceId == "": 
+				command = ["ios-deploy","--uninstall","-b",filename + ".app","-I"]
+			else:
+				command = ["ios-deploy","--uninstall","-b",filename + ".app","-I", "--id", iosDeviceId]
+			
 			retCode = ExecuteTest(command, filename, True)
 		else:
 			command = ["./" + filename + ".app/Contents/MacOS/" + filename]
@@ -343,7 +350,7 @@ def TestXcodeProjects(iosTesting, macOSTesting):
 	else:
 		return 0
 
-def BuildXcodeProjects():
+def BuildXcodeProjects(skipIosBuild, skipIosCodeSigning):
 	errorOccured = False
 	
 	projsToBuild = GetFilesPathByExtension("./Examples_3/","xcodeproj", True)
@@ -365,9 +372,15 @@ def BuildXcodeProjects():
 
 			#assuming every xcodeproj has an iOS equivalent. 
 			#TODO: Search to verify file exists
-			if filename != "Visibility_Buffer":
-				filename = filename +"_iOS" 
-				command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build","-allowProvisioningDeviceRegistration"]
+			if filename != "Visibility_Buffer" and skipIosBuild == False:
+				filename = filename + "_iOS" 
+				command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build"]
+				if skipIosCodeSigning:
+					command.extend([
+					"CODE_SIGN_IDENTITY=\"\"",
+					"CODE_SIGNING_REQUIRED=\"NO\"",
+					"CODE_SIGN_ENTITLEMENTS=\"\"",
+					"CODE_SIGNING_ALLOWED=\"NO\""])
 				sucess = ExecuteBuild(command, filename,conf, "iOS")
 				if sucess != 0:
 					errorOccured = True
@@ -592,24 +605,37 @@ def BuildWindowsProjects(xboxDefined):
 	return 0	
 
 def CleanupHandler(signum, frame):
+	global setDefines
 	print("Bye.")
+
 	#need to change to rootpath otherwise
 	#os won't find the files to modify
 	os.chdir(sys.path[0])
+
+	if setDefines == True:
+		#Remove all defines for automated testing
+		print("Removing defines that got added for automated testing")
+		RemoveTestingPreProcessor()
 	
-	#Remove all defines for automated testing
-	RemoveTestingPreProcessor()
 	exit(1)
 
-def MainLogic():
+#create global variable for interrupt handler
+setDefines = False
 
+def MainLogic():
+	global setDefines
 	#TODO: Maybe use simpler library for args
 	parser = argparse.ArgumentParser(description='Process the Forge builds')
-	parser.add_argument('--prebuild', action="store_true", help='If enabled, will run PRE_BUILD to update assets.')
+	parser.add_argument('--prebuild', action="store_true", help='If enabled, will run PRE_BUILD if assets do not exist.')
+	parser.add_argument('--forceprebuild', action="store_true", help='If enabled, will call PRE_BUILD even if assets exist.')
 	parser.add_argument('--xbox', action="store_true", help='Enable xbox building')
+	parser.add_argument("--skipiosbuild", action="store_true", default=False, help='Disable iOS building')
+	parser.add_argument("--skipioscodesigning", action="store_true", default=False, help='Disable iOS code signing')
 	parser.add_argument('--testing', action="store_true", help='Test the apps on current platform')
 	parser.add_argument('--ios', action="store_true", help='Needs --testing. Enable iOS testing')
+	parser.add_argument("--iosid", type=str, default="-1", help='Use a specific ios device. Id taken from ios-deploy --detect.')
 	parser.add_argument('--macos', action="store_true", help='Needs --testing. Enable macOS testing')
+	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
 
 	#TODO: remove the test in parse_args
 	#arguments = parser.parse_args()
@@ -627,22 +653,28 @@ def MainLogic():
 	if arguments.xbox is not True or "XboxOneXDKLatest" not in os.environ:
 		arguments.xbox = False
 	
-	print("Adding defines for automated testing")
-	AddTestingPreProcessor()
+	setDefines = arguments.defines
+	if setDefines == True:
+		print("Adding defines for automated testing")
+		AddTestingPreProcessor()
 
 	#PRE_BUILD step
-	if os.path.isdir("./Art") == False or arguments.prebuild ==  True:
-		if platform.system() == "Windows":
-			ExecuteCommand(["PRE_BUILD.bat"], subprocess.PIPE)
-		else:
-			ExecuteCommand(["sh","PRE_BUILD.sh"], subprocess.PIPE)
+	#if only the prebuild argument is provided but Art folder exists then PRE_BUILd isn't run
+	#if only the forceprebuild argument is provided PRE_BUILD runs even if art folder exists
+	#this is good for jenkins as we don't want to call PRE_BUILD if art asset exists
+	if arguments.prebuild ==  True or arguments.forceprebuild == True:
+		if os.path.isdir("./Art") == False or arguments.forceprebuild == True:
+			if platform.system() == "Windows":
+				ExecuteCommand(["PRE_BUILD.bat"], subprocess.PIPE)
+			else:
+				ExecuteCommand(["sh","PRE_BUILD.sh"], subprocess.PIPE)
 	
 	systemOS = platform.system()
 	print systemOS
 	if arguments.testing:
 		#Build for Mac OS (Darwin system)
 		if systemOS == "Darwin":
-			returnCode = TestXcodeProjects(arguments.ios, arguments.macos)
+			returnCode = TestXcodeProjects(arguments.ios, arguments.macos, arguments.iosid)
 		elif systemOS == "Windows":
 			returnCode = TestWindowsProjects()
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
@@ -650,7 +682,7 @@ def MainLogic():
 	else:
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
-			returnCode = BuildXcodeProjects()
+			returnCode = BuildXcodeProjects(arguments.skipiosbuild, arguments.skipioscodesigning)
 		elif systemOS == "Windows":
 			returnCode = BuildWindowsProjects(arguments.xbox)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
@@ -659,8 +691,9 @@ def MainLogic():
 	PrintResults()
 	
 	#Clean up 
-	print("Removing defines that got added for automated testing")
-	RemoveTestingPreProcessor()
+	if arguments.defines:
+		print("Removing defines that got added for automated testing")
+		RemoveTestingPreProcessor()
 	
 	#return for jenkins
 	sys.exit(returnCode)

@@ -22,27 +22,27 @@
  * under the License.
 */
 
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/Importer.hpp"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/Exporter.hpp"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/scene.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/postprocess.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/metadata.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/config.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/cimport.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/scene.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/postprocess.h"
-#include "../../ThirdParty/OpenSource/assimp/3.3.1/include/assimp/DefaultLogger.hpp"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/Importer.hpp"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/Exporter.hpp"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/metadata.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/config.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/cimport.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
+#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/DefaultLogger.hpp"
 
 #include "AssimpImporter.h"
 #include "../../OS/Interfaces/ILogManager.h" //NOTE: this should be the last include in a .cpp
 #include "../../OS/Interfaces/IMemoryManager.h" //NOTE: this should be the last include in a .cpp
 
-static inline mat4 AssimpMat4ToMatrix(const aiMatrix4x4& mat)
-{
-	mat4 result;
-	memcpy(&result, &mat, sizeof(float) * 16);
-	return transpose(result);
-}
+//static inline mat4 AssimpMat4ToMatrix(const aiMatrix4x4& mat)
+//{
+//	mat4 result;
+//	memcpy(&result, &mat, sizeof(float) * 16);
+//	return transpose(result);
+//}
 
 static tinystl::string ExtractSceneNameFromFileName(const char* input)
 {
@@ -111,10 +111,10 @@ static void CreateGeom(const aiMesh* mesh, const char* name, Mesh* pMesh)
 	BB.vMin = float3(minX - offsetX, minY - offsetY, minZ - offsetZ);
 	BB.vMax = float3(maxX - offsetX, maxY - offsetY, maxZ - offsetZ);
 
-	const int sizeVerts = mesh->mNumVertices * 3;
-	const int sizeNorm = mesh->mNumVertices * 3;
-	const int sizeTang = mesh->mNumVertices * 3;
-	const int sizeBino = mesh->mNumVertices * 3;
+//	const int sizeVerts = mesh->mNumVertices * 3;
+//	const int sizeNorm = mesh->mNumVertices * 3;
+//	const int sizeTang = mesh->mNumVertices * 3;
+//	const int sizeBino = mesh->mNumVertices * 3;
 	const int sizeUV = mesh->HasTextureCoords(0) ? mesh->mNumVertices * 2 : 0;
 	const int sizeInde = mesh->mNumFaces * 3;
 
@@ -224,20 +224,29 @@ static void CollectMaterials(const aiScene* pScene, Model* pModel, tinystl::unor
 			{
 				const aiMaterialProperty* pProp = aiMaterial->mProperties[propIndex];
 				MaterialProperty prop = {};
-				prop.mDataSize = min(pProp->mDataLength, MAX_ELEMENTS_PER_PROPERTY * sizeof(float));
+				const long unsigned int dataLength = pProp->mDataLength;
+				prop.mDataSize = (uint32_t) min(dataLength, MAX_ELEMENTS_PER_PROPERTY * sizeof(float));
 
 				switch (pProp->mType)
 				{
-				case aiPropertyTypeInfo::aiPTI_Integer:
-					prop.mIntVal = (*((int*)pProp->mData));
-					break;
-				case aiPropertyTypeInfo::aiPTI_Float:
-				{
-					float* pFloat = (float*)pProp->mData;
-					for (uint32_t v = 0; v < prop.mDataSize / sizeof(float); ++v)
-						prop.mFloatVal[v] = pFloat[v];
-					break;
-				}
+					case aiPropertyTypeInfo::aiPTI_Integer:
+						prop.mIntVal = (*((int*)pProp->mData));
+						break;
+					case aiPropertyTypeInfo::aiPTI_Float:
+					{
+						float* pFloat = (float*)pProp->mData;
+						for (uint32_t v = 0; v < prop.mDataSize / sizeof(float); ++v)
+							prop.mFloatVal[v] = pFloat[v];
+						break;
+					}
+					//TODO: Add Support for following types
+					case aiPropertyTypeInfo::aiPTI_Double:
+					case aiPropertyTypeInfo::aiPTI_Buffer:
+					case aiPropertyTypeInfo::_aiPTI_Force32Bit:
+					case aiPropertyTypeInfo::aiPTI_String:
+					{
+						break;
+					}
 				}
 
 				pModel->mMaterialList[matIndex].mProperties.insert({ String(pProp->mKey.C_Str()), prop });
@@ -272,24 +281,32 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 	aiPropertyStore* propertyStore = aiCreatePropertyStore();
 	tinystl::unordered_map<tinystl::string, size_t> uniqueNameMap;
 
-	//Prefer fast loading over high quality loading
-	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_FAVOUR_SPEED, 1);
-
-	//Tell Assimp to not import a bunch of useless layers of objects
+	////Tell Assimp to not import a bunch of useless layers of objects
 	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_IMPORT_FBX_READ_ALL_GEOMETRY_LAYERS, 0);
+	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_IMPORT_FBX_READ_TEXTURES, 1);
+	aiSetImportPropertyFloat(propertyStore, AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 66.0f);
 
-	const unsigned int chunkSize = 65535;
-	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_PP_SLM_TRIANGLE_LIMIT, chunkSize);
-	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
-	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_PP_PTV_NORMALIZE, 1);
+	unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality;
+	flags |= aiProcess_GenSmoothNormals |
+		aiProcess_CalcTangentSpace |
+		aiProcess_GenUVCoords |
+		aiProcess_ImproveCacheLocality |
+		aiProcess_FindDegenerates |
+		aiProcess_FindInvalidData |
+		aiProcess_FixInfacingNormals |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_ConvertToLeftHanded;
+	flags &= ~aiProcess_SortByPType;
+	flags &= ~aiProcess_FindInstances;
 
-	unsigned int flags = aiProcess_CalcTangentSpace | // calculate tangents and bitangents if possible
-		aiProcess_ValidateDataStructure;
+	const aiScene* pScene = aiImportFileExWithProperties(filename, flags, nullptr, propertyStore);
 
-	const aiScene* pScene = aiImportFileExWithProperties(filename, flags, NULL, propertyStore);
-
+    // If the import failed, report it
 	if (pScene == NULL)
-		return false;
+    {
+        LOGERRORF( "%s", aiGetErrorString());
+        return false;
+    }
 
 	pModel->mSceneName = ExtractSceneNameFromFileName(filename);
 

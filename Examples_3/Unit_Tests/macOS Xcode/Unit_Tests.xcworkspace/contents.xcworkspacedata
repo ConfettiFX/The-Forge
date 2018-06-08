@@ -17,7 +17,7 @@
       location = "group:05_FontRendering/05_FontRendering.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:06_BRDF/06_BRDF.xcodeproj">
+      location = "group:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:07_Tessellation/07_Tessellation.xcodeproj">

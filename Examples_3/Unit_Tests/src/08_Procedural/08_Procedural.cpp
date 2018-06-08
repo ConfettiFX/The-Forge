@@ -816,8 +816,6 @@ public:
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
 
 		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
-		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
-
 #ifndef METAL
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #endif

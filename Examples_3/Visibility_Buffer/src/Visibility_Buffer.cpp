@@ -37,6 +37,7 @@
 #include "Geometry.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
+
 #include "../../../Common_3/OS/Core/DebugRenderer.h"
 
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
@@ -102,7 +103,7 @@ const char* pszRoots[FSR_Count] =
 	"CompiledShaders/",													// FSR_BinShaders
 #endif
 	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders
-	"../../../src/" RESOURCE_DIR "/Binary/",							// FSR_BinShaders_Common
+	"../../../src/" RESOURCE_DIR "/Binary/",							// FSR_BinShaders_Common (Currently just in same folder as other shaders)
 	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders_Common
 	"../../../../../Art/SanMiguel_2/",									// FSR_Textures
 	"../../../../../Art/SanMiguel_2/",									// FSR_Meshes
@@ -465,7 +466,6 @@ Scene*							pScene = nullptr;
 UIApp							gAppUI;
 GuiComponent*					pGuiWindow = nullptr;
 DebugTextDrawDesc				gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
-
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
@@ -1088,6 +1088,7 @@ public:
 		if (gAppSettings.mAsyncCompute)
 			setResourcesToComputeCompliantState(0, true);
 #endif
+
 		LOGINFOF("Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
 
 #ifndef _DURANGO
@@ -1425,9 +1426,10 @@ public:
 			vbShadePipelineSettings.mSampleQuality = pRenderTargetMSAA->mDesc.mSampleQuality;
 #else
 
-			vbShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-			vbShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-			vbShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;		
+		vbShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		vbShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		vbShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		
 #endif
 
 #if defined(_DURANGO) && 1
@@ -1517,9 +1519,11 @@ public:
 			deferredShadePipelineSettings.pSrgbValues = &pRenderTargetMSAA->mDesc.mSrgb;
 			deferredShadePipelineSettings.mSampleQuality = pRenderTargetMSAA->mDesc.mSampleQuality;
 #else
-			deferredShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-			deferredShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
-			deferredShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+
+		deferredShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+		deferredShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
+		deferredShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+
 #endif
 			addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadeSrgb[i]);
 		}
@@ -1593,7 +1597,7 @@ public:
 		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences, true);
 
-		gAppUI.Unload();
+		gAppUI.Unload();		
 
 		for (uint32_t i = 0; i < 4; ++i)
 			removePipeline(pRenderer, pPipelineAO[i]);
@@ -1815,12 +1819,16 @@ public:
 #endif
 #endif
 
+
+
 			cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "UI Pass", true);
 			drawGUI(graphicsCmd, graphicsFrameIdx);
 			cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 
+
 			barriers[0].mNewState = RESOURCE_STATE_PRESENT;
 			cmdResourceBarrier(graphicsCmd, 0, NULL, 1, barriers, true);
+
 			cmdEndGpuFrameProfile(graphicsCmd, pGraphicsGpuProfiler);
 
 			endCmd(graphicsCmd);
@@ -1868,7 +1876,6 @@ public:
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
 		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
-
 		swapChainDesc.mSrgb = true;
 		swapChainDesc.mEnableVsync = false;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -1958,7 +1965,6 @@ public:
 		msaaRTDesc.mArraySize = 1;
 		msaaRTDesc.mClearValue = optimizedColorClearWhite;
 		msaaRTDesc.mDepth = 1;
-
 		msaaRTDesc.mFormat = ImageFormat::RGBA8;
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
@@ -2098,7 +2104,6 @@ public:
 		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL, FSRoot::FSR_SrcShaders };
 		// Cluster lights compute shader
 		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL, FSRoot::FSR_SrcShaders };
-
 
 		addShader(pRenderer, &shadowPass, &pShaderShadowPass[GEOMSET_OPAQUE]);
 		addShader(pRenderer, &shadowPassAlpha, &pShaderShadowPass[GEOMSET_ALPHATESTED]);
@@ -4096,7 +4101,7 @@ public:
 			cmdEndGpuTimestampQuery(cmd, pGraphicsGpuProfiler);
 		}
 
-#if (MSAASAMPLECOUNT > 1)	
+#if (MSAASAMPLECOUNT > 1)
 		// Pixel Puzzle needs the unresolved MSAA texture
 		cmdBeginGpuTimestampQuery(cmd, pGraphicsGpuProfiler, "Resolve Pass", true);
 		resolveMSAA(cmd, pRenderTargetMSAA, pScreenRenderTarget);
@@ -4192,6 +4197,7 @@ public:
 		}
 #endif
 		gAppUI.Gui(pGuiWindow);
+
 #endif
 
 		gAppUI.Draw(cmd);
