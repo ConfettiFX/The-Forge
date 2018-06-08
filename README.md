@@ -22,16 +22,31 @@ Future plans are:
 - Unified shader generation
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
+
+<a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="Screenshots/twitter.png" 
+alt="StarVR" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
  
 # Build Status
 
-* Windows ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Windows)
-* macOS ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Apple)
-* Linux ![Build status](http://98.187.254.136:9000/buildStatus/icon?job=Github_Forge/TheForge_Git_Linux)
+* Windows [![Build status](https://ci.appveyor.com/api/projects/status/0w2qj3fs8u4utojr/branch/master?svg=true)](https://ci.appveyor.com/project/wolfgangfengel/the-forge/branch/master)
+* macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
+
 # News
 
+## Release 1.11 - June 8th, 2018 - New Material Playground | New Vulkan extensions | GPU Workbench
+* Replaced the PBR unit test with a Material Playground. In the future this Material Playground will be used in the same way games develop their materials on playgrounds like this. There should be materials like eye, skin, hair, various leather / metal / cloth etc.. This is work in progress.
+* Updated assimp for all platforms to 4.1
+* Vulkan (Windows & Linux): added the following extensions:
+  * VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
+  * VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME
+* macOS / iOS: upgraded to latest beta for testing
+* We build a GPU testing PC that can cycle through seven different GPUs; four of them also in Crossfire/SLI. At some point we will publish an article how you can create one on your own. Here is a picture:
+
+![Image of GPU Workbench](Screenshots/Workbench.jpg)
+
+
 ## Release 1.10 - May 25th, 2018 - Intel-GPU support on macOS / Windows | Generic GPU config system | New API switching on Windows
-* Added a GPU tracking system that helps to switch on and off features and exclude certain GPUs from running The Forge. There is support on macOS, Linux and Windows now, We will consider excluding machines based on performance with the GPU tracking system. The database is a simple text file that can be changed at any point in time
+* Added a GPU tracking system that helps to switch on and off features and exclude certain GPUs from running The Forge. There is support on macOS and PC now, We will consider excluding machines based on performance with the GPU tracking system. The database is a simple text file that can be changed at any point in time
 * PC Windows - based on user feedback, we changed the run-time switching functionality substantially from using two DLLs to being able to just be statically bound
 * Intel-GPU support:
   * Intel updated their drivers for The Forge and the new driver fixed some of the issues we saw. The Vulkan run-time crashes and the DirectX 12 driver has problems with alpha testing. Please see the PC Windows requirement list below for driver version and tested hardware
@@ -197,9 +212,9 @@ https://vulkan.lunarg.com/
 
 # macOS Requirements:
 
-1. macOS: 10.13.5 Beta (17F70a)
+1. macOS: 10.14 Beta (18A293u)
 
-2. XCode: 9.3.1 (9E501) 
+2. XCode: 10.0 beta (10L176w) 
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -213,7 +228,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: iOS 11.3.1 (15E302)
+1. iOS: 11.4 (15F79) 
 
 2. XCode: see macOS
 
@@ -291,11 +306,11 @@ This unit test shows the current state of our font rendering library that is bas
 
 ![Image of the Font Rendering Unit test](Screenshots/05_FontRendering.PNG)
 
-## 6. Physically-Based Rendering
+## 6. Material Playground
 
-The Physically-Based Rendering example shows the PBR model from this [Unreal Engine 4 paper](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf). 
+This unit test will show a wide range of game related materials in the future.
 
-![Image of the PBR Unit test](Screenshots/06_PBR.PNG)
+![Image of the Material Playground Unit test](Screenshots/06_MaterialPlayground.png)
 
 ## 7. Hardware Tessellation
 
@@ -313,10 +328,10 @@ This unit test shows a typical VR Multi-GPU configuration. One eye is rendered b
 
 ![Image of the Multi-GPU Unit test](Screenshots/09_MultiGPU.png)
 
-## 10. The Forge in a DLL (Windows PC-only)
-This unit test shows how to generate two DLLs, one holding the DirectX 12 API and one holding the Vulkan API and how to change between them those APIs during run-time. 
+## 10. The Forge switching between Vulkan and DirectX 12 during Run-time (Windows PC-only)
+This unit test shows how to switch between the Vulkan and DirectX 12 graphics API during run-time. 
 
-![Image of the The Forge in a DLL Unit test](Screenshots/10_TheForgeInDLL.png)
+![Image of the The Forge Switching Unit test](Screenshots/10_TheForgeInDLL.png)
 
 
 
