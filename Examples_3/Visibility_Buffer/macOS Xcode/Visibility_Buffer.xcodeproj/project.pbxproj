@@ -36,11 +36,11 @@
 		C9DCF6631FEAAA7F008BFA67 /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF64E1FEAA827008BFA67 /* iOSFileSystem.mm */; };
 		C9DCF6641FEAAA82008BFA67 /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6561FEAA828008BFA67 /* iOSLogManager.cpp */; };
 		C9DCF6651FEAAA85008BFA67 /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6541FEAA828008BFA67 /* iOSThreadManager.cpp */; };
+		D018D75F20CB9AF9000BEB0D /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75C20CB9AF9000BEB0D /* IrrXML.a */; };
+		D018D76020CB9AF9000BEB0D /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75D20CB9AF9000BEB0D /* assimp.a */; };
+		D018D76120CB9AF9000BEB0D /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75E20CB9AF9000BEB0D /* zlibstatic.a */; };
 		D0ADCF5420C2451C0031B732 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0ADCF5220C2451C0031B732 /* AssimpImporter.cpp */; };
 		D0ADCF5520C2451C0031B732 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0ADCF5220C2451C0031B732 /* AssimpImporter.cpp */; };
-		D0ADCF5720C245750031B732 /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0ADCF5620C245740031B732 /* assimp.a */; };
-		D0ADCF5920C245890031B732 /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0ADCF5820C245890031B732 /* IrrXML.a */; };
-		D0ADCF5B20C245AF0031B732 /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0ADCF5A20C245AE0031B732 /* zlibstatic.a */; };
 		D0ADCF5D20C246630031B732 /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0ADCF5C20C246630031B732 /* assimp.a */; };
 		D0ADCF5F20C2467B0031B732 /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0ADCF5E20C2467B0031B732 /* IrrXML.a */; };
 		D0ADCF6120C246960031B732 /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0ADCF6020C246960031B732 /* zlibstatic.a */; };
@@ -174,6 +174,9 @@
 		C9DCF6541FEAA828008BFA67 /* iOSThreadManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSThreadManager.cpp; path = ../../../Common_3/OS/iOS/iOSThreadManager.cpp; sourceTree = SOURCE_ROOT; };
 		C9DCF6561FEAA828008BFA67 /* iOSLogManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSLogManager.cpp; path = ../../../Common_3/OS/iOS/iOSLogManager.cpp; sourceTree = SOURCE_ROOT; };
 		C9DCF65F1FEAA86D008BFA67 /* MetalMemoryAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalMemoryAllocator.h; path = ../../../Common_3/Renderer/Metal/MetalMemoryAllocator.h; sourceTree = SOURCE_ROOT; };
+		D018D75C20CB9AF9000BEB0D /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
+		D018D75D20CB9AF9000BEB0D /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
+		D018D75E20CB9AF9000BEB0D /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		D0ADCF5220C2451C0031B732 /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssimpImporter.cpp; path = Tools/AssimpImporter/AssimpImporter.cpp; sourceTree = "<group>"; };
 		D0ADCF5320C2451C0031B732 /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AssimpImporter.h; path = Tools/AssimpImporter/AssimpImporter.h; sourceTree = "<group>"; };
 		D0ADCF5620C245740031B732 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/code/Release/assimp.a"; sourceTree = "<group>"; };
@@ -238,9 +241,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D0ADCF5B20C245AF0031B732 /* zlibstatic.a in Frameworks */,
-				D0ADCF5920C245890031B732 /* IrrXML.a in Frameworks */,
-				D0ADCF5720C245750031B732 /* assimp.a in Frameworks */,
+				D018D75F20CB9AF9000BEB0D /* IrrXML.a in Frameworks */,
+				D018D76020CB9AF9000BEB0D /* assimp.a in Frameworks */,
+				D018D76120CB9AF9000BEB0D /* zlibstatic.a in Frameworks */,
 				C97EC03B2010C09B0044D188 /* MetalKit.framework in Frameworks */,
 				C97EC03A2010C0990044D188 /* Metal.framework in Frameworks */,
 				C97EC03C2010C09E0044D188 /* ModelIO.framework in Frameworks */,
@@ -382,11 +385,14 @@
 			isa = PBXGroup;
 			children = (
 				D0ADCF6020C246960031B732 /* zlibstatic.a */,
+				D018D75D20CB9AF9000BEB0D /* assimp.a */,
 				D0ADCF5E20C2467B0031B732 /* IrrXML.a */,
 				D0ADCF5C20C246630031B732 /* assimp.a */,
 				D0ADCF5A20C245AE0031B732 /* zlibstatic.a */,
 				D0ADCF5820C245890031B732 /* IrrXML.a */,
 				D0ADCF5620C245740031B732 /* assimp.a */,
+				D018D75C20CB9AF9000BEB0D /* IrrXML.a */,
+				D018D75E20CB9AF9000BEB0D /* zlibstatic.a */,
 				C97EC0362010C0740044D188 /* libassimp.a */,
 				C97EC0342010C0120044D188 /* libzlibstatic.a */,
 				C97EC0322010BEE80044D188 /* Metal.framework */,
@@ -888,7 +894,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -930,7 +936,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 			};
@@ -960,7 +966,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx10.13;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -985,7 +991,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx10.13;
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};

@@ -6,11 +6,11 @@
 
 #IncludeRegexTransform: 
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/./../../code/StringComparison.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/./../../code/StringComparison.h
 assimp/ai_assert.h
 -
 StringComparison.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/./../../code/StringComparison.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/./../../code/StringComparison.h
 string.h
 -
 stdint.h
@@ -18,7 +18,7 @@ stdint.h
 string
 -
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/./../../code/fast_atof.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/./../../code/fast_atof.h
 cmath
 -
 limits
@@ -30,7 +30,7 @@ stdexcept
 assimp/defs.h
 -
 StringComparison.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/./../../code/StringComparison.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/./../../code/StringComparison.h
 assimp/DefaultLogger.hpp
 -
 stdint.h
@@ -38,43 +38,43 @@ stdint.h
 assimp/Compiler/pstdint.h
 -
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/CXMLReaderImpl.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/CXMLReaderImpl.h
 irrXML.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrXML.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrXML.h
 irrString.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrString.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrString.h
 irrArray.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrArray.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrArray.h
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/heapsort.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/heapsort.h
 irrTypes.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrTypes.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrTypes.h
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrArray.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrArray.h
 irrTypes.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrTypes.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrTypes.h
 heapsort.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/heapsort.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/heapsort.h
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrString.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrString.h
 irrTypes.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrTypes.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrTypes.h
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrTypes.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrTypes.h
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrXML.cpp
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrXML.cpp
 irrXML.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrXML.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrXML.h
 irrString.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrString.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrString.h
 irrArray.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrArray.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrArray.h
 ./../../code/fast_atof.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/./../../code/fast_atof.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/./../../code/fast_atof.h
 CXMLReaderImpl.h
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/CXMLReaderImpl.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/CXMLReaderImpl.h
 
-/home/confetti/Desktop/Tools/assimp-4.1.0/contrib/irrXML/irrXML.h
+/Users/root1/Documents/Confetti/TheForge/Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/irrXML/irrXML.h
 stdio.h
 -
 irrXML.h
@@ -149,8 +149,8 @@ include/assimp/color4.h
 include/assimp/config.h
 
 include/assimp/defs.h
-assimp/config.h
--
+config.h
+include/assimp/config.h
 
 include/assimp/matrix3x3.h
 defs.h
