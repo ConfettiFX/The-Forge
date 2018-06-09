@@ -67,12 +67,12 @@
 		C97778A71FD14F4D00346FED /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = C97778A61FD14F4D00346FED /* MetalRenderer.mm */; };
 		D0A2A70E20C2327000B29354 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0A2A70C20C2327000B29354 /* AssimpImporter.cpp */; };
 		D0A2A70F20C2327000B29354 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0A2A70C20C2327000B29354 /* AssimpImporter.cpp */; };
-		D0A2A71320C232DC00B29354 /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0A2A71220C232DC00B29354 /* assimp.a */; };
-		D0A2A71420C232F700B29354 /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0A2A71020C232BB00B29354 /* assimp.a */; };
-		D0A2A71820C235A800B29354 /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0A2A71720C235A800B29354 /* IrrXML.a */; };
-		D0A2A71A20C235D900B29354 /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0A2A71920C235D900B29354 /* zlibstatic.a */; };
-		D0A2A71C20C2367000B29354 /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0A2A71B20C2367000B29354 /* IrrXML.a */; };
-		D0A2A71E20C2368B00B29354 /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0A2A71D20C2368B00B29354 /* zlibstatic.a */; };
+		D0D223C020CB877C00910DF0 /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D223BD20CB877C00910DF0 /* assimp.a */; };
+		D0D223C120CB877C00910DF0 /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D223BE20CB877C00910DF0 /* IrrXML.a */; };
+		D0D223C220CB877C00910DF0 /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D223BF20CB877C00910DF0 /* zlibstatic.a */; };
+		D0D223C620CB87A600910DF0 /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D223C320CB87A600910DF0 /* zlibstatic.a */; };
+		D0D223C720CB87A600910DF0 /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D223C420CB87A600910DF0 /* assimp.a */; };
+		D0D223C820CB87A600910DF0 /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D223C520CB87A600910DF0 /* IrrXML.a */; };
 		D205E2841F9F9EC600040CCE /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D205E2821F9F9EC600040CCE /* FileSystem.cpp */; };
 		D20D92121F3879C5004B3A42 /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */; };
 		D20D92131F3879C5004B3A42 /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */; };
@@ -151,6 +151,12 @@
 		D0A2A71920C235D900B29354 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/contrib/zlib/Release/zlibstatic.a"; sourceTree = "<group>"; };
 		D0A2A71B20C2367000B29354 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/irrXML/Release-iphoneos/IrrXML.a"; sourceTree = "<group>"; };
 		D0A2A71D20C2368B00B29354 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/contrib/zlib/Release-iphoneos/zlibstatic.a"; sourceTree = "<group>"; };
+		D0D223BD20CB877C00910DF0 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
+		D0D223BE20CB877C00910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
+		D0D223BF20CB877C00910DF0 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		D0D223C320CB87A600910DF0 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		D0D223C420CB87A600910DF0 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
+		D0D223C520CB87A600910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		D205E2821F9F9EC600040CCE /* FileSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FileSystem.cpp; path = Core/FileSystem.cpp; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RingBuffer.h; path = Core/RingBuffer.h; sourceTree = "<group>"; };
 		D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GuiCameraController.cpp; sourceTree = "<group>"; };
@@ -199,9 +205,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D0A2A71E20C2368B00B29354 /* zlibstatic.a in Frameworks */,
-				D0A2A71C20C2367000B29354 /* IrrXML.a in Frameworks */,
-				D0A2A71320C232DC00B29354 /* assimp.a in Frameworks */,
+				D0D223C020CB877C00910DF0 /* assimp.a in Frameworks */,
+				D0D223C120CB877C00910DF0 /* IrrXML.a in Frameworks */,
+				D0D223C220CB877C00910DF0 /* zlibstatic.a in Frameworks */,
 				28A5AD9C201F7411000E571F /* Metal.framework in Frameworks */,
 				28A5AD9D201F7411000E571F /* MetalKit.framework in Frameworks */,
 			);
@@ -211,9 +217,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D0A2A71A20C235D900B29354 /* zlibstatic.a in Frameworks */,
-				D0A2A71820C235A800B29354 /* IrrXML.a in Frameworks */,
-				D0A2A71420C232F700B29354 /* assimp.a in Frameworks */,
+				D0D223C620CB87A600910DF0 /* zlibstatic.a in Frameworks */,
+				D0D223C720CB87A600910DF0 /* assimp.a in Frameworks */,
+				D0D223C820CB87A600910DF0 /* IrrXML.a in Frameworks */,
 				28A5ADA1201F7429000E571F /* MetalKit.framework in Frameworks */,
 				28A5ADA2201F7429000E571F /* Metal.framework in Frameworks */,
 			);
@@ -286,10 +292,16 @@
 		28A5AD99201F7411000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D0D223C420CB87A600910DF0 /* assimp.a */,
+				D0D223C520CB87A600910DF0 /* IrrXML.a */,
 				D0A2A71D20C2368B00B29354 /* zlibstatic.a */,
 				D0A2A71B20C2367000B29354 /* IrrXML.a */,
 				D0A2A71920C235D900B29354 /* zlibstatic.a */,
 				D0A2A71720C235A800B29354 /* IrrXML.a */,
+				D0D223BD20CB877C00910DF0 /* assimp.a */,
+				D0D223BE20CB877C00910DF0 /* IrrXML.a */,
+				D0D223BF20CB877C00910DF0 /* zlibstatic.a */,
+				D0D223C320CB87A600910DF0 /* zlibstatic.a */,
 				D0A2A71520C2357500B29354 /* libIrrXML.a */,
 				D0A2A71020C232BB00B29354 /* assimp.a */,
 				D0A2A71220C232DC00B29354 /* assimp.a */,
@@ -755,6 +767,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
+				ENABLE_BITCODE = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
@@ -788,6 +801,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
+				ENABLE_BITCODE = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
