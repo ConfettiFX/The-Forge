@@ -33,6 +33,22 @@ alt="StarVR" width="20" height="20" border="0" /> Join the channel at https://tw
 
 # News
 
+## Release 1.12 - June 21st, 2018 - Support of Typed Buffers | New unit test Pixel-Projected Projections | Updated Material Playground unit test
+* New unit test Pixel-Projected Projections: this unit test shows reflections that are ray traced. It is an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [Implementation of Optimized Pixel-Projected Reflections for Planar Reflections](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
+Sponza was added to the Art folder for this unit test.
+* Updated unit test Material Playground: started out with Materials that can be summed up in the category Metal
+* Extended the GPU config system further by adding more GPUs and classifying them with also better support for the GPU Workbench
+* DirectX 12 / Vulkan: 
+  * added support for passing offsets, sizes through arrays in DescriptorData
+  * added typed buffer support
+  * upgraded to the 1.1.77.0 Vulkan SDK and updated volk for this
+* macOS: V-Sync is now switchable
+* Added 3D ability to the text rendering library: it was used to render the labels in the Material Playground unit test
+* Resolved issues (zeros issues now? ... please keep them coming!):
+  * #23 Request: Support V-Sync off on Metal unit tests..
+  * #56 getUSec function in WindowsBase.cpp seem buggy
+
+
 ## Release 1.11 - June 8th, 2018 - New Material Playground | New Vulkan extensions | GPU Workbench
 * Replaced the PBR unit test with a Material Playground. In the future this Material Playground will be used in the same way games develop their materials on playgrounds like this. There should be materials like eye, skin, hair, various leather / metal / cloth etc.. This is work in progress.
 * Updated assimp for all platforms to 4.1
@@ -196,7 +212,7 @@ Very first release.
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan SDK 1.1.73.0
+4. Vulkan SDK 1.1.77.0
 https://vulkan.lunarg.com/
 
 
@@ -248,7 +264,7 @@ We are currently testing on
 
 3. Workspace file is provided for [codelite](https://codelite.org/)
 
-4. Vulkan SDK Version: [1.1.73.0](https://vulkan.lunarg.com/sdk/home)
+4. Vulkan SDK Version: [1.1.77.0](https://vulkan.lunarg.com/sdk/home)
 
 5. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
@@ -323,15 +339,20 @@ In the spirit of the shadertoy examples this unit test shows a procedurally gene
 
 ![Image of the Procedural Unit test](Screenshots/08_Procedural.PNG)
 
-## 9. Multi-GPU (Driver support only on PC Windows)
+## 9. Pixel-Projected Projections
+This unit test shows reflections that are ray traced. It is an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [IMPLEMENTATION OF OPTIMIZED PIXEL-PROJECTED REFLECTIONS FOR PLANAR REFLECTORS](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
+
+![Image of the Pixel-Projected Reflections Unit test](Screenshots/09_Pixel-ProjectedReflections.png)
+
+## 10. Multi-GPU (Driver support only on PC Windows)
 This unit test shows a typical VR Multi-GPU configuration. One eye is rendered by one GPU and the other eye by the other one.
 
-![Image of the Multi-GPU Unit test](Screenshots/09_MultiGPU.png)
+![Image of the Multi-GPU Unit test](Screenshots/10_MultiGPU.png)
 
-## 10. The Forge switching between Vulkan and DirectX 12 during Run-time (Windows PC-only)
+## 11. The Forge switching between Vulkan and DirectX 12 during Run-time (Windows PC-only)
 This unit test shows how to switch between the Vulkan and DirectX 12 graphics API during run-time. 
 
-![Image of the The Forge Switching Unit test](Screenshots/10_TheForgeInDLL.png)
+![Image of the The Forge Switching Unit test](Screenshots/11_TheForgeInDLL.png)
 
 
 
