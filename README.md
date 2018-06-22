@@ -33,7 +33,7 @@ alt="StarVR" width="20" height="20" border="0" /> Join the channel at https://tw
 
 # News
 
-## Release 1.12 - June 21st, 2018 - Support of Typed Buffers | New unit test Pixel-Projected Projections | Updated Material Playground unit test
+## Release 1.12 - June 22nd, 2018 - Support of Typed Buffers | New unit test Pixel-Projected Projections | Updated Material Playground unit test
 * New unit test Pixel-Projected Projections: this unit test shows reflections that are ray traced. It is an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [Implementation of Optimized Pixel-Projected Reflections for Planar Reflections](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
 Sponza was added to the Art folder for this unit test.
 * Updated unit test Material Playground: started out with Materials that can be summed up in the category Metal
