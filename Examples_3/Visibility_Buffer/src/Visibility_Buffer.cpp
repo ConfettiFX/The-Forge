@@ -230,6 +230,7 @@ const char*		gSceneName = "SanMiguel.cmesh";
 
 // Number of in-flight buffers
 const uint32_t gImageCount = 3;
+bool gToggleVSync = false;
 
 // Constants
 const uint32_t gShadowMapSize = 1024;
@@ -559,6 +560,9 @@ public:
 		/************************************************************************/
 		RendererDesc settings = {};
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -590,7 +594,7 @@ public:
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer, gMemoryBudget);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler);
 		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler);
@@ -940,11 +944,16 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
+		pGuiWindow->AddProperty(vsyncProp);
+#endif
 
 		// Light Settings
 		//---------------------------------------------------------------------------------
@@ -1630,6 +1639,14 @@ public:
 
 	void Update(float deltaTime)
 	{
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		{
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+#endif
+
 		// Process user input
 		handleKeyboardInput(deltaTime);
 
@@ -3447,7 +3464,7 @@ public:
 	// - pIndirectDrawArguments: the vertexCount member of this structure is calculated in order to
 	//                           indicate the renderer the amount of vertices per batch to render.
 #if defined(METAL)
-	void filterTriangles(Cmd *cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk, uint32_t bufferOffset)
+	void filterTriangles(Cmd *cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk, uint64_t bufferOffset)
 	{
 		// Check if there are batches to filter
 		if (batchChunk->currentBatchCount == 0)
@@ -3462,7 +3479,7 @@ public:
 
 		DescriptorData params[1] = {};
 		params[0].pName = "perBatch";
-		params[0].mOffset = bufferOffset;
+		params[0].pOffsets = &bufferOffset;
 		params[0].ppBuffers = &batchDataBuffer;
 		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
 
@@ -3489,7 +3506,7 @@ public:
 
 		DescriptorData params[1] = {};
 		params[0].pName = "batchData";
-		params[0].mOffset = offset.mOffset;
+		params[0].pOffsets = &offset.mOffset;
 		params[0].ppBuffers = &offset.pUniformBuffer;
 		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);

@@ -76,6 +76,7 @@ public:
   unsigned char *GetPixels(const uint mipMapLevel, const uint arraySlice) const;
 
   void SetPixels(unsigned char* pixelData) { mOwnsMemory = false; pData = pixelData; }
+  void SetName(const String& name) { mLoadFileName = name; }
 
   uint GetWidth() const { return mWidth; }
   uint GetHeight() const { return mHeight; }
@@ -84,6 +85,7 @@ public:
   uint GetHeight(const int mipMapLevel) const;
   uint GetDepth(const int mipMapLevel) const;
   uint GetMipMapCount() const { return mMipMapCount; }
+  const String& GetName() const { return mLoadFileName; }
   uint GetMipMapCountFromDimensions() const;
   uint GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
   uint GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
@@ -125,6 +127,7 @@ public:
 
   //load image
   bool loadImage(const char *fileName, bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL, FSRoot root = FSR_Textures);
+  bool loadFromMemory(void const* mem, uint32_t size, bool mipMapCount, char const* extension, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
 
   bool iSwap(const int c0, const int c1);
 
@@ -154,7 +157,7 @@ public:
   static void AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc);
 };
 
-static inline uint32_t calculateImageFormatStride (ImageFormat::Enum format)
+static inline uint32_t calculateImageFormatStride(ImageFormat::Enum format)
 {
 	uint32_t result = 0;
 	switch (format) {

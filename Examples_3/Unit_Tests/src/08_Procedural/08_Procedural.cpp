@@ -146,7 +146,7 @@ struct UniformLightData
 };
 
 const uint32_t				gImageCount = 3;
-
+bool						gToggleVSync = false;
 Texture*					pEnvTex = NULL;
 Sampler*					pSamplerEnv = NULL;
 
@@ -259,6 +259,9 @@ public:
 	{
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -277,7 +280,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 #ifndef METAL
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 #endif
@@ -456,7 +459,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartSize = vec2(300.0f, 360.0f);
@@ -473,6 +476,11 @@ public:
 		UIProperty PolarCapsAttitude = UIProperty("PolarCaps Attitude : ", gPolarCapsAttitude, 0.0f, 3.0f, 0.01f);
 		UIProperty TerrainExp = UIProperty("Terrain Exp : ", gTerrainExp, 0.0f, 1.0f, 0.01f);
 		UIProperty TerrainSeed = UIProperty("Terrain Seed : ", gTerrainSeed, 0.0f, 100.0f, 1.0f);
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
+		pGui->AddProperty(vsyncProp);
+#endif
 
 		pGui->AddProperty(sunX);
 		pGui->AddProperty(sunY);
@@ -678,6 +686,13 @@ public:
 
 	void Update(float deltaTime)
 	{
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		{
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+#endif
+
 		gEplasedTime += deltaTime;
 
 
@@ -895,7 +910,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_08_Procedural";
+		return "08_Procedural";
 	}
 
 	bool addSwapChain()

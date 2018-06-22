@@ -2,7 +2,6 @@
 
 #include "../../Renderer/IRenderer.h"
 #include "../../Renderer/GpuProfiler.h"
-#include "../../OS/Math/MathTypes.h"
 
 #include "../../../Middleware_3/UI/UIRenderer.h"
 #include "../../../Middleware_3/UI/Fontstash.h"
@@ -48,14 +47,14 @@ static void draw_gpu_profile_recurse(Cmd* pCmd, Fontstash* pFontStash, float2& s
 #endif
 }
 
-void initDebugRendererInterface(Renderer* pRenderer, const char* pDebugFontPath)
+void initDebugRendererInterface(Renderer* pRenderer, const char* pDebugFontPath, FSRoot root)
 {
 	pUIRenderer = conf_placement_new<UIRenderer>(conf_calloc(1, sizeof(*pUIRenderer)), pRenderer);
 	pUIRenderer->addFontstash(512, 512);
 
 	if (pDebugFontPath)
 	{
-		pUIRenderer->getFontstash(0)->defineFont("default", pDebugFontPath);
+		pUIRenderer->getFontstash(0)->defineFont("default", pDebugFontPath, root);
 	}
 }
 
@@ -65,9 +64,9 @@ void removeDebugRendererInterface()
 	conf_free(pUIRenderer);
 }
 
-uint32_t addDebugFont(const char* pDebugFontPath)
+uint32_t addDebugFont(const char* pDebugFontPath, FSRoot root)
 {
-	return pUIRenderer->getFontstash(0)->defineFont("default", pDebugFontPath);
+	return pUIRenderer->getFontstash(0)->defineFont("default", pDebugFontPath, root);
 }
 
 void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTextDrawDesc* pDrawDesc)
@@ -83,6 +82,22 @@ void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTe
 		pDesc->mFontID, pDesc->mFontColor,
 		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
 }
+
+//text rendering in world space
+void drawDebugText(Cmd* pCmd, const mat4& mProjView,const mat4& mWorldMat, const char* pText,const DebugTextDrawDesc* pDrawDesc) {
+	
+	pUIRenderer->beginRender(
+		pCmd->mBoundWidth, pCmd->mBoundHeight,
+		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
+		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
+		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
+
+	const DebugTextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
+	pUIRenderer->getFontstash(0)->drawText(pCmd, pText,mProjView,mWorldMat,
+		pDesc->mFontID, pDesc->mFontColor,
+		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
+}
+
 
 void drawDebugTexture(Cmd* pCmd, float x, float y, float w, float h, Texture* pTexture, float r, float g, float b)
 {

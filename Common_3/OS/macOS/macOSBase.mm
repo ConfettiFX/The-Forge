@@ -355,6 +355,10 @@ int macOSMain(int argc, const char** argv, IApp* app)
     _view = (MTKView *)self.view;
     _view.delegate = self;
     _view.device = _device;
+    _view.paused = NO;
+    _view.enableSetNeedsDisplay = NO;
+    _view.preferredFramesPerSecond = 60.0;
+    
     [_view.window makeFirstResponder:self];
     isCaptured = false;
     
@@ -431,10 +435,14 @@ int macOSMain(int argc, const char** argv, IApp* app)
 // Called whenever the view needs to render
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
-    @autoreleasepool
+   @autoreleasepool
     {
         [_application update];
         updateKeys();
+        //this is needed for NON Vsync mode.
+        //This enables to force update the display
+        if(_view.enableSetNeedsDisplay == YES)
+            [_view setNeedsDisplay:YES];
     }
 }
 
@@ -573,8 +581,25 @@ uint32_t testingMaxFrameCount = 120;
         pApp->pWindow = &gCurrentWindow;
 
 		@autoreleasepool {
-			pApp->Init();
-			pApp->Load();
+			//if init fails then exit the app
+			if(!pApp->Init())
+			{
+				for (NSWindow *window in [NSApplication sharedApplication].windows) {
+					[window close];
+				}
+				
+				[NSApp terminate:nil];
+			}
+			
+			//if load fails then exit the app
+			if(!pApp->Load())
+			{
+				for (NSWindow *window in [NSApplication sharedApplication].windows) {
+					[window close];
+				}
+				
+				[NSApp terminate:nil];
+			}
 		}
 	}
 

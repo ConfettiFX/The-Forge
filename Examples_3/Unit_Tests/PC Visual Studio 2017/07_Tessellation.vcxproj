@@ -22,7 +22,7 @@
     <ClCompile Include="..\src\07_Tessellation\07_Tessellation.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\compute.comp">
+    <None Include="..\src\07_Tessellation\PCVulkan\compute.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -44,12 +44,16 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.tesc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </ExcludedFromBuild>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.tesc">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -71,12 +75,16 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.tese">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </ExcludedFromBuild>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.tese">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -98,12 +106,16 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </ExcludedFromBuild>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -125,12 +137,16 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </ExcludedFromBuild>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -152,11 +168,15 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
-    </CustomBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\07_Tessellation\PCDX12\compute.comp" />

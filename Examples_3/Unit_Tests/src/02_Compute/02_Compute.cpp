@@ -192,6 +192,9 @@ public:
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -207,7 +210,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
         
@@ -293,7 +296,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
@@ -603,7 +606,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_02_Compute";
+		return "02_Compute";
 	}
 
 	bool addSwapChain()

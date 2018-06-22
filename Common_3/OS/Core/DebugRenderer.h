@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h>
+#include "../../OS/Math/MathTypes.h"
+#include "../Interfaces/IFileSystem.h"
 
 typedef struct Renderer Renderer;
 typedef struct Cmd Cmd;
@@ -26,11 +27,14 @@ typedef struct GpuProfileDrawDesc
 	DebugTextDrawDesc mDrawDesc = DebugTextDrawDesc(0, 0xFF00CCAA, 15);
 } GpuProfileDrawDesc;
 
-void initDebugRendererInterface(Renderer* pRenderer, const char* pDebugFontPath);
+void initDebugRendererInterface(Renderer* pRenderer, const char* pDebugFontPath, FSRoot root);
 void removeDebugRendererInterface();
 
-uint32_t addDebugFont(const char* pFontPath);
+uint32_t addDebugFont(const char* pFontPath, FSRoot root);
 
 void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTextDrawDesc* pDrawDesc);
+
+//Use this if you need textRendering in WorldSpace 
+void drawDebugText(Cmd* pCmd, const mat4& mProjView ,const mat4& mWorldMat,const char* pText, const DebugTextDrawDesc* pDrawDesc);
 void drawDebugGpuProfile(Cmd* pCmd, float x, float y, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc);
 void drawDebugTexture(Cmd* pCmd, float x, float y, float w, float h, Texture* pTexture, float r, float g, float b);

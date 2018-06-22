@@ -39,6 +39,15 @@ struct TexVertex
 	float2 texCoord;
 };
 
+struct uniformBlockVS {
+	
+	vec4 scaleBias;
+	vec2 TextureSize;
+	mat4 mProjView;
+	mat4 mWorldMat;
+};
+
+
 class Fontstash;
 class Image;
 struct TextDrawDesc;
@@ -54,6 +63,9 @@ public:
 	~UIRenderer();
 
 	void		drawTexturedR8AsAlpha(Cmd* pCmd, PrimitiveTopology primitives, TexVertex *vertices, const uint32_t nVertices, Texture* texture, const float4* color);
+	
+	//for rendering text in world space
+	void		drawTexturedR8AsAlpha(Cmd* pCmd, PrimitiveTopology primitives, TexVertex *vertices, const uint32_t nVertices, Texture* texture, const float4* color,const mat4& projView,const mat4& worldMat);
 	void		drawTextured(Cmd* pCmd, PrimitiveTopology primitives, TexVertex* vertices, const uint32_t nVertices, Texture* texture, const float4* color);
 	void		drawPlain(Cmd* pCmd, PrimitiveTopology primitives, float2* vertices, const uint32_t nVertices, const float4* color);
 
@@ -83,8 +95,10 @@ private:
 	/// Texture mesh pipeline data
 	Shader*							pBuiltinTextShader;
 	Shader*							pBuiltinTextureShader;
+	Shader*							pBuiltin3DTextShader;
 	RootSignature*					pRootSignatureTextureMesh;
 	PipelineMap						mPipelineTextMesh;
+	PipelineMap						mPipeline3DTextMesh;
 	PipelineMap						mPipelineTextureMesh;
 
 	/// Default states
@@ -103,9 +117,14 @@ private:
 	/// Ring buffers for dynamic vertex buffers / index buffers 
 	struct MeshRingBuffer*			pPlainMeshRingBuffer;
 	struct MeshRingBuffer*			pTextureMeshRingBuffer;
+	
 
 	/// Mutable data
 	PipelineVector*					pCurrentPipelinePlainMesh;
 	PipelineVector*					pCurrentPipelineTextMesh;
+	PipelineVector*					pCurrentPipeline3DTextMesh;
 	PipelineVector*					pCurrentPipelineTextureMesh;
+	
+	mat4 							mProjectionView;
+	mat4							mWorldMat;
 };

@@ -667,7 +667,8 @@ unsigned MemoryBuffer::Write(const void* data, unsigned size)
 
 	return size;
 }
-
+/************************************************************************/
+/************************************************************************/
 String FileSystem::mModifiedRootPaths[FSRoot::FSR_Count] = { "" };
 String FileSystem::mProgramDir = "";
 
@@ -1022,3 +1023,26 @@ bool FileSystem::Delete(const String& fileName)
 	return remove(GetNativePath(fileName).c_str()) == 0;
 #endif
 }
+
+void FileSystem::GetFilesWithExtension(const String& dir, const String& ext, tinystl::vector<String>& files)
+{
+	String path = GetNativePath(AddTrailingSlash(dir));
+#ifdef _WIN32
+	WIN32_FIND_DATAA fd;
+	HANDLE hFind = ::FindFirstFileA(path + "*" + ext, &fd);
+	uint32_t fileIndex = (uint32_t)files.size();
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			files.resize(fileIndex + 1);
+			//copy the strings to avoid the memory being cleaned up by windows.
+			files[fileIndex] = "";
+			files[fileIndex++] = path + fd.cFileName;
+		} while (::FindNextFileA(hFind, &fd));
+		::FindClose(hFind);
+	}
+#endif
+}
+/************************************************************************/
+/************************************************************************/

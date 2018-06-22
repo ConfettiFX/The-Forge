@@ -71,11 +71,6 @@ int64_t HiresTimer::GetUSec(bool reset)
 	if (reset)
 		mStartTime = currentTime;
 
-#ifdef _WIN32
-	elapsedTime *= (int64_t)1e6;
-	elapsedTime /= getTimerFrequency();
-#endif
-
 	mHistory[mHistoryIndex] = elapsedTime;
 	mHistoryIndex = (mHistoryIndex + 1) % LENGTH_OF_HISTORY;
 

@@ -1611,7 +1611,8 @@ bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const b
   {
   case 1: mFormat = ImageFormat::R32F; break;
   case 2: mFormat = ImageFormat::RG32F; break;
-  case 3: mFormat = ImageFormat::RGB32F; break;
+  // RGB32F format not supported on all APIs so convert to RGBA32F
+  case 3: mFormat = ImageFormat::RGB32F; Convert(ImageFormat::RGBA32F); break;
   case 4: mFormat = ImageFormat::RGBA32F; break;
   }
 
@@ -1869,6 +1870,22 @@ void Image::loadFromMemoryXY(const void *mem, const int topLeftX, const int topL
 		start += rowOffset_dest;
 		from += pitch;
 	}
+}
+
+bool Image::loadFromMemory(void const* mem, uint32_t size, bool useMipmaps, char const* extension, memoryAllocationFunc pAllocator, void* pUserData)
+{
+	// try loading the format
+	bool loaded = false;
+	for (uint32_t i = 0; i < (uint32_t)gImageLoaders.size(); ++i)
+	{
+		ImageLoaderDefinition const& def = gImageLoaders[i];
+		if (stricmp(extension, def.Extension) == 0)
+		{
+			loaded = (this->*(def.Loader))((char const*)mem, size, useMipmaps, pAllocator, pUserData);
+			break;
+		}
+	}
+	return loaded;
 }
 
 bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -592,7 +592,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0940;
-				ORGANIZATIONNAME = Jesus;
+				ORGANIZATIONNAME = "Confetti-FX";
 				TargetAttributes = {
 					28A5AC78201F682F000E571F = {
 						CreatedOnToolsVersion = 9.2;
@@ -607,7 +607,7 @@
 				};
 			};
 			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "04_ExecuteIndirect" */;
-			compatibilityVersion = "Xcode 3.2";
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -791,7 +791,10 @@
 				);
 				INFOPLIST_FILE = 04_ExecuteIndirect_iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-4-ExecuteIndirect-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -823,7 +826,10 @@
 				);
 				INFOPLIST_FILE = 04_ExecuteIndirect_iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-4-ExecuteIndirect-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -955,7 +961,10 @@
 					../,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/04_ExecuteIndirect/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -977,7 +986,10 @@
 					../,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/04_ExecuteIndirect/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";

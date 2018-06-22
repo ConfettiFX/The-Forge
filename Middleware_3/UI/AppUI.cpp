@@ -138,20 +138,17 @@ UIProperty::UIProperty(const char* description, bool& value, uint32_t color /*=0
 {
 }
 
-// TODO: must fix this in order to work on all compilers due to the callback function UIButtonFn
-#ifdef _WIN32
 UIProperty::UIProperty(const char* description, UIButtonFn fn, void* userdata, uint32_t color /*=0xAFAFAFFF*/,
 	const char* tree /*=none*/) :
 	description(description),
 	type(UI_PROPERTY_BUTTON),
 	flags(FLAG_VISIBLE),
-	source(fn),
+	source(*(void**)&fn),
 	color(color),
 	tree(tree)
 {
 	settings.pUserData = userdata;
 }
-#endif
 
 UIProperty::UIProperty(const char* description, char* value, unsigned int length, uint32_t color /*=0xAFAFAFFF*/,
 	const char* tree /*=none*/) :
@@ -727,9 +724,9 @@ void UIApp::Unload()
 {
 }
 
-uint32_t UIApp::LoadFont(const char* pFontPath)
+uint32_t UIApp::LoadFont(const char* pFontPath, uint32_t root)
 {
-	uint32_t fontID = (uint32_t)pImpl->pUIRenderer->getFontstash(0)->defineFont("default", pFontPath);
+	uint32_t fontID = (uint32_t)pImpl->pUIRenderer->getFontstash(0)->defineFont("default", pFontPath, root);
 	ASSERT(fontID != -1);
 
 	return fontID;

@@ -83,6 +83,7 @@ struct UniformBlock
 
 const uint32_t		gImageCount = 3;
 const uint32_t		gViewCount = 2;
+bool				gToggleVSync = false;
 // Simulate heavy gpu workload by rendering high resolution spheres
 const int			gSphereResolution = 1024; // Increase for higher resolution spheres
 const float			gSphereDiameter = 0.5f;
@@ -206,7 +207,7 @@ bool					gMultiGPU = true;
 bool					gMultiGPURestart = false;
 float*					pSpherePoints;
 
-class UnitTest_10_MultiGPU : public IApp
+class MultiGPU : public IApp
 {
 public:
 	bool Init()
@@ -215,6 +216,11 @@ public:
 		RendererDesc settings = { 0 };
 		settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
 			LOGWARNINGF("Multi GPU will be disabled since the system only has one GPU");
@@ -249,7 +255,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		ShaderLoadDesc skyShader = {};
 		skyShader.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
@@ -513,11 +519,16 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = { 0.0f, -100.0f };
 		guiDesc.mStartSize = { guiDesc.mStartSize.getX() * 0.5f, guiDesc.mStartSize.getY() * 0.4f };
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
+		pGui->AddProperty(vsyncProp);
+#endif
 
 		pGui->AddProperty(UIProperty("Enable Multi GPU", gMultiGPU));
 		pGui->AddProperty(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
@@ -731,6 +742,12 @@ public:
 
 	void Update(float deltaTime)
 	{
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		{
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+#endif
 		/************************************************************************/
 		// Input
 		/************************************************************************/
@@ -1001,7 +1018,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_10_MultiGPU";
+		return "10_MultiGPU";
 	}
 
 	bool addSwapChain()
@@ -1128,4 +1145,4 @@ public:
 
 };
 
-DEFINE_APPLICATION_MAIN(UnitTest_10_MultiGPU)
+DEFINE_APPLICATION_MAIN(MultiGPU)

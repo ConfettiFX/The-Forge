@@ -1180,7 +1180,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 				{
 					// Root Descriptors need to be aligned to 8 byte address
 					currentPosition = round_up_64(currentPosition, gLocalRootDescriptorSize);
-					D3D12_GPU_VIRTUAL_ADDRESS cbvAddress = pData->ppBuffers[0]->pDxResource->GetGPUVirtualAddress() + pData->ppBuffers[0]->mPositionInHeap + pData->mOffset;
+					D3D12_GPU_VIRTUAL_ADDRESS cbvAddress = pData->ppBuffers[0]->pDxResource->GetGPUVirtualAddress() + pData->ppBuffers[0]->mPositionInHeap + pData->pOffsets[0];
 					memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, &cbvAddress, sizeof(D3D12_GPU_VIRTUAL_ADDRESS));
 					currentPosition += gLocalRootDescriptorSize;
 					break;

@@ -48,7 +48,7 @@ struct ObjectData
     float4x4 worldMat;
     float roughness;
     float metalness;
-	int pbrMaterials;
+    int objectId;
 };
 
 struct LightData {
@@ -151,19 +151,21 @@ fragment float4 stageMain(VSOutput In [[stage_in]],
 	float3 N = In.normal;
 
 
-	 if(cbObject.pbrMaterials!=-1) {
+	 if(cbObject.objectId!=-1) {
         N = getNormalFromMap(normalMap, defaultSampler, In.texCoord, In.pos, N);
         float3 val = albedoMap.sample(defaultSampler, In.texCoord,0.0).rgb;
         albedo = float3(pow(val.x,2.2f),pow(val.y,2.2f),pow(val.z,2.2f));
         _metalness   = metallicMap.sample(defaultSampler, In.texCoord).r;
         _roughness = roughnessMap.sample(defaultSampler, In.texCoord).r;
         ao =   aoMap.sample(defaultSampler, In.texCoord).r ;
+        if(cbObject.objectId==2) {
+            albedo  = float3(0.1f, 0.1f, 0.1f);
+            _roughness = 2.0f; ;
+        }else if(cbObject.objectId==3) {
+            albedo  = float3(0.8f, 0.1f, 0.1f);
+        }
 	}
 
-	if(cbObject.pbrMaterials==2) {
-		albedo  = float3(0.7f, 0.7f, 0.7f);
-		ao = 1.0f;
-	}
 	N = normalize(N);
 	float3 V = normalize(cbCamera.camPos - In.pos);
 	float3 R = normalize(reflect(-V, N));

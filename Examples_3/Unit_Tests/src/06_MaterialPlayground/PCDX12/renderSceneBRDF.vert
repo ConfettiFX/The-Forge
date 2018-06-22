@@ -42,7 +42,7 @@ cbuffer cbObject : register(b1) {
 	float4x4 worldMat;
 	float roughness;
 	float metalness;
-	int pbrMaterials;
+	int objectId;
 }
 
 cbuffer cbLights : register(b2) {

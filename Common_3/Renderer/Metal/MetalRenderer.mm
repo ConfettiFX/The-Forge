@@ -439,7 +439,7 @@ namespace RENDERER_CPP_NAMESPACE {
             // Create a DescriptorData structure for a default resource.
             pManager->pDescriptorDataArray[i].pName = "";
             pManager->pDescriptorDataArray[i].mCount = 1;
-            pManager->pDescriptorDataArray[i].mOffset = 0;
+            pManager->pDescriptorDataArray[i].pOffsets = NULL;
             
             // Metal requires that the bound textures match the texture type present in the shader.
             Texture** ppDefaultTexture = nil;
@@ -535,7 +535,8 @@ namespace RENDERER_CPP_NAMESPACE {
             DescriptorInfo* descInfo = &pManager->pRootSignature->pDescriptors[i];
 
             pManager->pDescriptorDataArray[i].mCount = 1;
-            pManager->pDescriptorDataArray[i].mOffset = 0;
+            pManager->pDescriptorDataArray[i].pOffsets = NULL;
+			pManager->pDescriptorDataArray[i].pSizes = NULL;
             
             // Metal requires that the bound textures match the texture type present in the shader.
             Texture** ppDefaultTexture = nil;
@@ -627,7 +628,7 @@ namespace RENDERER_CPP_NAMESPACE {
             // Replace the default DescriptorData by the new data pased into this function.
             pManager->pDescriptorDataArray[descIndex].pName = pParam->pName;
             pManager->pDescriptorDataArray[descIndex].mCount = arrayCount;
-            pManager->pDescriptorDataArray[descIndex].mOffset = pParam->mOffset;
+            pManager->pDescriptorDataArray[descIndex].pOffsets = pParam->pOffsets;
             switch(pDesc->mDesc.type)
             {
                 case DESCRIPTOR_TYPE_RW_TEXTURE:
@@ -726,11 +727,11 @@ namespace RENDERER_CPP_NAMESPACE {
                         else
                         {
                             if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
-                                [pCmd->mtlRenderEncoder setVertexBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + descriptorData->mOffset) atIndex:descriptorInfo->mDesc.reg];
+                                [pCmd->mtlRenderEncoder setVertexBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
                             if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
-                                [pCmd->mtlRenderEncoder setFragmentBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + descriptorData->mOffset) atIndex:descriptorInfo->mDesc.reg];
+                                [pCmd->mtlRenderEncoder setFragmentBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
                             if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
-                                [pCmd->mtlComputeEncoder setBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + descriptorData->mOffset) atIndex:descriptorInfo->mDesc.reg];
+                                [pCmd->mtlComputeEncoder setBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
                         }
                         break;
                     }
@@ -1009,13 +1010,14 @@ namespace RENDERER_CPP_NAMESPACE {
                         NSString * vendorId = [vendor substringFromIndex:6];
                         vendorId = [@"0x" stringByAppendingString:vendorId];
                         String modelIdString = [modelId.lowercaseString UTF8String];
+						String vendorIdString = [vendorId.lowercaseString UTF8String];
                         //filter out unwated model id's
                         if(modelIdString != inModel)
                             continue;
                         
-                        vendorVecOut.mModelId =modelIdString;
-                        vendorVecOut.mVendorId =[vendorId.lowercaseString UTF8String];
-                        vendorVecOut.mPresetLevel = GPUPresetLevel::GPU_PRESET_NONE;
+                        strncpy(vendorVecOut.mModelId,modelIdString.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
+						strncpy(vendorVecOut.mVendorId,vendorIdString.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
+                        vendorVecOut.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
                         break;
                     }
                 }
@@ -1055,13 +1057,15 @@ namespace RENDERER_CPP_NAMESPACE {
             String outModelId;
             retrieveSystemProfilerInformation(outModelId);
             displayGraphicsInfo(pRenderer->pDevice.registryID,outModelId, gpuVendor);
-          
-            LOGINFOF("Current Gpu Name: %s", [pRenderer->pDevice.name UTF8String]);
-            LOGINFOF("Current Gpu Vendor ID: %s", gpuVendor.mVendorId.c_str());
-            LOGINFOF("Current Gpu Model ID: %s", gpuVendor.mModelId.c_str());
+			String mDeviceName =[pRenderer->pDevice.name UTF8String];
+			strncpy(gpuVendor.mGpuName, mDeviceName.c_str(),MAX_GPU_VENDOR_STRING_LENGTH);
+            LOGINFOF("Current Gpu Name: %s", gpuVendor.mGpuName);
+            LOGINFOF("Current Gpu Vendor ID: %s", gpuVendor.mVendorId);
+            LOGINFOF("Current Gpu Model ID: %s", gpuVendor.mModelId);
 #else
-            gpuVendor.mVendorId = "Apple";
-            gpuVendor.mModelId = "iOS";
+            strncpy(gpuVendor.mVendorId, "Apple",MAX_GPU_VENDOR_STRING_LENGTH);
+            strncpy(gpuVendor.mModelId, "iOS",MAX_GPU_VENDOR_STRING_LENGTH);
+
 #endif
             // Set the default GPU settings.
             pRenderer->mNumOfGPUs = 1;
@@ -1072,6 +1076,24 @@ namespace RENDERER_CPP_NAMESPACE {
             pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
 #ifndef TARGET_IOS
 			setGPUPresetLevel(pRenderer);
+			//exit app if gpu being used has an office preset.
+			if(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+			{
+				ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);
+				
+				//remove allocated name
+				SAFE_FREE(pRenderer->pName);
+				//set device to null
+				pRenderer->pDevice = nil;
+				//remove allocated renderer
+				SAFE_FREE(pRenderer);
+				
+				LOGERROR("Selected GPU has an office Preset in gpu.cfg");
+				LOGERROR("Office Preset is not supported by the Forge");
+				
+				ppRenderer = NULL;
+				return;
+			}
 #endif
             // Create a resource allocator.
             AllocatorCreateInfo info = { 0 };
@@ -1199,11 +1221,11 @@ namespace RENDERER_CPP_NAMESPACE {
         pCmd->mtlEncoderFence = nil;
         pCmd->mtlCommandBuffer = nil;
 		
-		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-		{
+		if (pCmd->pBoundColorFormats)
 			SAFE_FREE(pCmd->pBoundColorFormats);
+
+		if (pCmd->pBoundSrgbValues)
 			SAFE_FREE(pCmd->pBoundSrgbValues);
-		}
 		
         SAFE_FREE(pCmd);
     }
@@ -1231,6 +1253,26 @@ namespace RENDERER_CPP_NAMESPACE {
         
         SAFE_FREE(ppCmd);
     }
+	
+	
+	void toggleVSync(Renderer* pRenderer, SwapChain** pSwapchain)
+	{
+#if !defined(TARGET_IOS)
+		(*pSwapchain)->mDesc.mEnableVsync = !(*pSwapchain)->mDesc.mEnableVsync;
+		//only available on mac OS.
+		//VSync seems to be necessary on iOS.
+		if(!(*pSwapchain)->mDesc.mEnableVsync)
+		{
+			(*pSwapchain)->pMTKView.enableSetNeedsDisplay = YES;
+			(*pSwapchain)->pMTKView.paused = YES;
+		}
+		else
+		{
+			(*pSwapchain)->pMTKView.enableSetNeedsDisplay = NO;
+			(*pSwapchain)->pMTKView.paused = NO;
+		}
+#endif
+	}
     
     void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
     {
@@ -1246,9 +1288,29 @@ namespace RENDERER_CPP_NAMESPACE {
         pSwapChain->pMTKView.device = pRenderer->pDevice;
         pSwapChain->pMTKView.autoresizesSubviews = TRUE;
         pSwapChain->pMTKView.preferredFramesPerSecond = 60.0;
+		pSwapChain->pMTKView.enableSetNeedsDisplay = NO;
+		pSwapChain->pMTKView.paused = NO;
+		
 #if !defined(TARGET_IOS)
+		//only available on mac OS.
+		//VSync seems to be necessary on iOS.
+		if(!pDesc->mEnableVsync)
+		{
+			pSwapChain->pMTKView.enableSetNeedsDisplay = YES;
+			pSwapChain->pMTKView.paused = YES;
+		}
+		
+		//no need to have vsync on layers otherwise we will wait on semaphores
+		//get a copy of the layer for nextDrawables
+		CAMetalLayer * layer = (CAMetalLayer *)pSwapChain->pMTKView.layer;
+		
+		pSwapChain->pMTKView.layer = layer;
+		//This needs to be set to false to have working non-vsync
+		//otherwise present drawables will wait on vsync.
+		layer.displaySyncEnabled = false;
         pSwapChain->pMTKView.wantsLayer = YES;
 #endif
+        pSwapChain->mMTKDrawable = nil;
         
         // Set the view pixel format to match the swapchain's pixel format.
         pSwapChain->pMTKView.colorPixelFormat = util_to_mtl_pixel_format(pSwapChain->mDesc.mColorFormat, pSwapChain->mDesc.mSrgb);
@@ -1315,7 +1377,7 @@ namespace RENDERER_CPP_NAMESPACE {
         //There's currently an intel driver bug with placed resources so we need to create
         //new resources that are GPU only in their own memory space
         //0x8086 is intel vendor id
-        if(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId == "0x8086" && (ResourceMemoryUsage)pBuffer->mDesc.mMemoryUsage & RESOURCE_MEMORY_USAGE_GPU_ONLY)
+        if(strcmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId, "0x8086") == 0 && (ResourceMemoryUsage)pBuffer->mDesc.mMemoryUsage & RESOURCE_MEMORY_USAGE_GPU_ONLY)
           pBuffer->mDesc.mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
       
         // Get the proper memory requiremnets for the given buffer.
@@ -2604,15 +2666,21 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pRenderer->pDevice != nil);
         ASSERT(pSwapChain);
         ASSERT(pSignalSemaphore || pFence);
-        
-        id<CAMetalDrawable> drawable = pSwapChain->pMTKView.currentDrawable;
-        
+		
+		CAMetalLayer * layer = (CAMetalLayer *)pSwapChain->pMTKView.layer;
+#ifndef TARGET_IOS
+		if(pSwapChain->mMTKDrawable == nil)
+			pSwapChain->mMTKDrawable = [layer nextDrawable];
+#else
+		if(pSwapChain->mMTKDrawable == nil)
+			pSwapChain->mMTKDrawable = [layer nextDrawable];
+#endif
         // Look for the render target containing this texture.
         // If not found: assign it to an empty slot
         for (uint32_t i=0; i<pSwapChain->mDesc.mImageCount; i++)
         {
             RenderTarget* renderTarget = pSwapChain->ppSwapchainRenderTargets[i];
-            if (renderTarget->pTexture->mtlTexture == drawable.texture)
+            if (renderTarget->pTexture->mtlTexture == pSwapChain->mMTKDrawable.texture)
             {
                 *pImageIndex = i;
                 return;
@@ -2625,11 +2693,11 @@ namespace RENDERER_CPP_NAMESPACE {
             RenderTarget* renderTarget = pSwapChain->ppSwapchainRenderTargets[i];
             if (renderTarget->pTexture->mtlTexture == nil)
             {
-                renderTarget->pTexture->mtlTexture = drawable.texture;
+                renderTarget->pTexture->mtlTexture = pSwapChain->mMTKDrawable.texture;
                 
                 // Update the swapchain RT size according to the new drawable's size.
-                renderTarget->pTexture->mDesc.mWidth = (uint32_t)drawable.texture.width;
-                renderTarget->pTexture->mDesc.mHeight = (uint32_t)drawable.texture.height;
+                renderTarget->pTexture->mDesc.mWidth = (uint32_t)pSwapChain->mMTKDrawable.texture.width;
+                renderTarget->pTexture->mDesc.mHeight = (uint32_t)pSwapChain->mMTKDrawable.texture.height;
                 pSwapChain->ppSwapchainRenderTargets[i]->mDesc.mWidth = renderTarget->pTexture->mDesc.mWidth;
                 pSwapChain->ppSwapchainRenderTargets[i]->mDesc.mHeight = renderTarget->pTexture->mDesc.mHeight;
                 
@@ -2704,12 +2772,16 @@ namespace RENDERER_CPP_NAMESPACE {
             ASSERT(ppWaitSemaphores);
         }
         ASSERT(pQueue->mtlCommandQueue != nil);
-        
+		
+		@autoreleasepool
+		{
 #ifndef TARGET_IOS
-        [pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->pMTKView.currentDrawable];
+			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #else
-        [pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->pMTKView.currentDrawable afterMinimumDuration:1.0/pSwapChain->pMTKView.preferredFramesPerSecond];
+        [pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable afterMinimumDuration:1.0/pSwapChain->pMTKView.preferredFramesPerSecond];
+			//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->pMTKView.currentDrawable];
 #endif
+		}
         
         for (uint32_t i=0; i<waitSemaphoreCount; i++)
         {
@@ -2720,6 +2792,7 @@ namespace RENDERER_CPP_NAMESPACE {
         
         // after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
         pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
+		pSwapChain->mMTKDrawable = nil;
     }
     
     void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal)
@@ -3032,7 +3105,8 @@ namespace RENDERER_CPP_NAMESPACE {
                         break;
                     case DESCRIPTOR_TYPE_BUFFER:
                         [pCmd->mtlRenderEncoder useResource:descData->ppBuffers[i]->mtlBuffer usage:(MTLResourceUsageRead | MTLResourceUsageSample)];
-                        [argumentEncoder setBuffer:descData->ppBuffers[i]->mtlBuffer offset:descData->ppBuffers[i]->mPositionInHeap atIndex:i];
+                        [argumentEncoder setBuffer:descData->ppBuffers[i]->mtlBuffer offset:(descData->ppBuffers[i]->mPositionInHeap +
+						(descData->pOffsets ? descData->pOffsets[i] : 0)) atIndex:i];
                         break;
                     case DESCRIPTOR_TYPE_TEXTURE:
                         [pCmd->mtlRenderEncoder useResource:descData->ppTextures[i]->mtlTexture usage:MTLResourceUsageRead];

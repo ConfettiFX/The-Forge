@@ -196,7 +196,10 @@ public:
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
-
+		//check for init success
+		if (!pRenderer)
+			return false;
+		
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
@@ -211,7 +214,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -469,7 +472,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
@@ -813,7 +816,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_01_Transformations";
+		return "01_Transformations";
 	}
 
 	bool addSwapChain()

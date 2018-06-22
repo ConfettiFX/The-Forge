@@ -292,6 +292,9 @@ public:
 		RendererDesc settings = { 0 };
 		// settings.pLogFn = RendererLog;
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -323,7 +326,7 @@ public:
 
 		HiresTimer timer;
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
@@ -586,7 +589,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
 
@@ -1111,7 +1114,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_03_MultiThread";
+		return "03_MultiThread";
 	}
 
 	bool addSwapChain()

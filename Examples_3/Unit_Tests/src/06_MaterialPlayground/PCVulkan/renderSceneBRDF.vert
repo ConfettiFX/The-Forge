@@ -39,7 +39,7 @@ layout (std140, set=1, binding=0) uniform cbObject {
 	uniform mat4 worldMat;
 	uniform float roughness;
 	uniform float metalness;
-	uniform int   pbrMaterials;
+	uniform int   objectId;
 };
 
 layout(location = 0) out vec3 normal;

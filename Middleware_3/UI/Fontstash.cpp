@@ -48,6 +48,8 @@ public:
 		height = 0; 
 		renderer = NULL;
 		fontStashContext = NULL;
+		
+		bText3D  = false;
 	}
 
 	~_Impl_FontStash() 
@@ -97,7 +99,6 @@ public:
 	static void fonsImplementationModifyTexture(void* userPtr, int* rect, const unsigned char* data);
 	static void fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
 	static void fonsImplementationRemoveTexture(void* userPtr);
-
 	FONScontext* fontStashContext;
 
 	Image img;
@@ -108,6 +109,9 @@ public:
 	Cmd* pCmd;
 
 	tinystl::vector<void*> fontBuffers;
+	bool bText3D;
+	mat4 mProjView;
+	mat4 mWorldMat;
 };
 
 
@@ -124,12 +128,12 @@ Fontstash::~Fontstash()
 	conf_free(impl);
 }
 
-int Fontstash::defineFont(const char* identification, const char* filename)
+int Fontstash::defineFont(const char* identification, const char* filename, uint32_t root)
 {
 	FONScontext* fs=impl->fontStashContext;
 
 	File file = File();
-	file.Open(filename, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
+	file.Open(filename, FileMode::FM_ReadBinary, (FSRoot)root);
 	unsigned bytes = file.GetSize();
 	void* buffer = conf_malloc(bytes);
 	file.Read(buffer, bytes);
@@ -148,6 +152,7 @@ int Fontstash::getFontID(const char* identification)
 
 void Fontstash::drawText(Cmd* pCmd, const char* message, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
 {
+	impl->bText3D = false;
 	impl->pCmd = pCmd;
 	// clamp the font size to max size. 
 	// Precomputed font texture puts limitation to the maximum size.
@@ -161,6 +166,28 @@ void Fontstash::drawText(Cmd* pCmd, const char* message, float x, float y, int f
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
 	fonsDrawText(fs, x,y, message,NULL);
+}
+
+
+void Fontstash::drawText(Cmd* pCmd, const char* message,const mat4& projView,const mat4& worldMat,int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
+{
+	
+	impl->bText3D = true;
+	impl->mProjView = projView;
+	impl->mWorldMat = worldMat;
+	impl->pCmd = pCmd;
+	// clamp the font size to max size. 
+	// Precomputed font texture puts limitation to the maximum size.
+	size = min(size, m_fFontMaxSize);
+
+	FONScontext* fs=impl->fontStashContext;
+	fonsSetSize(fs, size);
+	fonsSetFont(fs, fontID);
+	fonsSetColor(fs, color);
+	fonsSetSpacing(fs, spacing);
+	fonsSetBlur(fs, blur);
+	fonsSetAlign(fs, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
+	fonsDrawText(fs, 0.0f,0.0f, message,NULL);
 }
 
 float Fontstash::measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
@@ -181,7 +208,6 @@ float Fontstash::measureText(float* out_bounds, const char* message, int message
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
 	return fonsTextBounds(fs, x, y, message, message+messageLength, out_bounds);
-
 }
 
 // --  FONS renderer implementation --
@@ -248,8 +274,16 @@ void _Impl_FontStash::fonsImplementationRenderText(void* userPtr, const float* v
 	float4 color;
 	for(int i=0; i<4; i++)
 		color[i] = ((float)colorByte[i])/255.0f;
-
-	ctx->renderer->drawTexturedR8AsAlpha(ctx->pCmd, PrimitiveTopology::PRIMITIVE_TOPO_TRI_LIST, vtx, nverts, ctx->tex, &color);
+	
+	
+	//started here
+	if(ctx->bText3D) {
+		
+		ctx->renderer->drawTexturedR8AsAlpha(ctx->pCmd, PrimitiveTopology::PRIMITIVE_TOPO_TRI_LIST, vtx, nverts, ctx->tex, &color,ctx->mProjView,ctx->mWorldMat);
+	}else {
+		
+		ctx->renderer->drawTexturedR8AsAlpha(ctx->pCmd, PrimitiveTopology::PRIMITIVE_TOPO_TRI_LIST, vtx, nverts, ctx->tex, &color);
+	}
 }
 
 void _Impl_FontStash::fonsImplementationRemoveTexture(void* userPtr)
