@@ -1647,11 +1647,15 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			IDXGIAdapter3* pGpu = NULL;
 			D3D_FEATURE_LEVEL mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
 			SIZE_T mDedicatedVideoMemory = 0;
-			uint32_t mVendorId;
-			uint32_t mDeviceId;
+			char mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
+			char mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH];
+			char mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];
+			char mName[MAX_GPU_VENDOR_STRING_LENGTH];
+			GPUPresetLevel mPreset;
 		} GpuDesc;
 
 		GpuDesc gpuDesc[MAX_GPUS] = {};
+
 
 		IDXGIAdapter3* adapter = NULL;
 		for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
@@ -1667,12 +1671,26 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 					if (SUCCEEDED (D3D12CreateDevice(adapter, feature_levels[level], __uuidof(pRenderer->pDxDevice), NULL)))
 					{
 						hres = adapter->QueryInterface(IID_ARGS(&gpuDesc[pRenderer->mNumOfGPUs].pGpu));
-						if (SUCCEEDED (hres))
+						if (SUCCEEDED(hres))
 						{
 							gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = feature_levels[level];
 							gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
-							gpuDesc[pRenderer->mNumOfGPUs].mVendorId = desc.VendorId;
-							gpuDesc[pRenderer->mNumOfGPUs].mDeviceId = desc.DeviceId;
+
+							//save vendor and model Id as string
+							//char hexChar[10];
+							//convert deviceId and assign it
+							sprintf(gpuDesc[pRenderer->mNumOfGPUs].mDeviceId, "%#x\0", desc.DeviceId);
+							//convert modelId and assign it
+							sprintf(gpuDesc[pRenderer->mNumOfGPUs].mVendorId, "%#x\0", desc.VendorId);
+							//convert Revision Id
+							sprintf(gpuDesc[pRenderer->mNumOfGPUs].mRevisionId, "%#x\0", desc.Revision);
+							
+							//get preset for current gpu description
+							gpuDesc[pRenderer->mNumOfGPUs].mPreset = getGPUPresetLevel(gpuDesc[pRenderer->mNumOfGPUs].mVendorId, gpuDesc[pRenderer->mNumOfGPUs].mDeviceId, gpuDesc[pRenderer->mNumOfGPUs].mRevisionId);
+							
+							//save gpu name (Some situtations this can show description instead of name)
+							//char sName[MAX_PATH];
+							wcstombs(gpuDesc[pRenderer->mNumOfGPUs].mName, desc.Description, MAX_PATH);
 							++pRenderer->mNumOfGPUs;
 							break;
 						}
@@ -1682,14 +1700,19 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 			adapter->Release();
 		}
-
 		ASSERT (pRenderer->mNumOfGPUs > 0);
-		// Sort GPUs to get highest feature level gpu at front
+
+		// Sort GPUs by poth Preset and highest feature level gpu at front
+		//Prioritize Preset first
 		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof(GpuDesc), [](const void* lhs, const void* rhs) {
 			GpuDesc* gpu1 = (GpuDesc*)lhs;
 			GpuDesc* gpu2 = (GpuDesc*)rhs;
 			// Check feature level first, sort the greatest feature level gpu to the front
-			if ((int)gpu1->mMaxSupportedFeatureLevel != (int)gpu2->mMaxSupportedFeatureLevel)
+			if ((int)gpu1->mPreset != (int)gpu2->mPreset)
+			{
+				return gpu1->mPreset > gpu2->mPreset ? -1 : 1;
+			}
+			else if ((int)gpu1->mMaxSupportedFeatureLevel != (int)gpu2->mMaxSupportedFeatureLevel)
 			{
 				return (int)gpu2->mMaxSupportedFeatureLevel - (int)gpu1->mMaxSupportedFeatureLevel;
 			}
@@ -1708,35 +1731,62 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			pRenderer->mGpuSettings[i].mMultiDrawIndirect = true;
 			pRenderer->mGpuSettings[i].mMaxVertexInputBindings = 32U;
 #ifndef _DURANGO
-			//save vendor and model Id as string
-			char hexChar[10];
-			//convert deviceId and assign it
-			sprintf(hexChar, "%#x", gpuDesc[i].mDeviceId);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId = String(hexChar);
-			//convert modelId and assign it
-			sprintf(hexChar, "%#x", gpuDesc[i].mVendorId);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId = String(hexChar);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel= GPUPresetLevel::GPU_PRESET_LOW;
+			//assign device ID
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, gpuDesc[i].mDeviceId, MAX_GPU_VENDOR_STRING_LENGTH);
+			//assign vendor ID
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, gpuDesc[i].mVendorId, MAX_GPU_VENDOR_STRING_LENGTH);
+			//assign Revision ID
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId, gpuDesc[i].mRevisionId, MAX_GPU_VENDOR_STRING_LENGTH);
+			//get name from api
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mGpuName, gpuDesc[i].mName, MAX_GPU_VENDOR_STRING_LENGTH);
+			//get preset
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = gpuDesc[i].mPreset;
 #else 
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId = "XboxOne";
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId = "XboxOne";
+			//Default XBox values
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, "XboxOne", MAX_GPU_VENDOR_STRING_LENGTH);
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, "XboxOne", MAX_GPU_VENDOR_STRING_LENGTH);
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId, "0x00", MAX_GPU_VENDOR_STRING_LENGTH);
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mGpuName, "XboxOne", MAX_GPU_VENDOR_STRING_LENGTH);
+
 			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = GPUPresetLevel::GPU_PRESET_HIGH;
 #endif
 			// Determine root signature size for this gpu driver
 			DXGI_ADAPTER_DESC adapterDesc;
 			pRenderer->pDxGPUs[i]->GetDesc(&adapterDesc);
 			pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = gRootSignatureDWORDS[util_to_internal_gpu_vendor(adapterDesc.VendorId)];
-			LOGINFOF("GPU[%i] detected. Vendor ID: %x GPU Name: %S",i, adapterDesc.VendorId, adapterDesc.Description);
+			LOGINFOF("GPU[%i] detected. Vendor ID: %x, Revision ID: %x, GPU Name: %S",i, adapterDesc.VendorId, adapterDesc.Revision, adapterDesc.Description);
 		}
 
+		uint32_t gpuIndex = 0;
+#if defined(ACTIVE_TESTING_GPU) && !defined(_DURANGO) && defined(AUTOMATED_TESTING)
+		//Read active GPU if AUTOMATED_TESTING and ACTIVE_TESTING_GPU are defined
+		GPUVendorPreset activeTestingPreset;
+		bool activeTestingGpu = getActiveGpuConfig(activeTestingPreset);
+		if(activeTestingGpu) {
+			for(uint32_t i = 0 ; i < pRenderer->mNumOfGPUs ; i++) {
+				if(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId == activeTestingPreset.mVendorId 
+					&& pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId == activeTestingPreset.mModelId) 
+				{
+					//if revision ID is valid then use it to select active GPU
+					if (pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId != "0x00" && pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId != activeTestingPreset.mRevisionId)
+						continue;
+					gpuIndex = i ;
+					break;
+				}
+			}		
+		}
+#endif
 		// Get the latest and greatest feature level gpu
-		pRenderer->pDxActiveGPU = pRenderer->pDxGPUs[0];
-		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
-		LOGINFOF("GPU[0] is selected as default GPU");
-		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId.c_str());
-		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId.c_str());
-
+		pRenderer->pDxActiveGPU = pRenderer->pDxGPUs[gpuIndex];
 		ASSERT(pRenderer->pDxActiveGPU != NULL);
+		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[gpuIndex];
+		
+		//print selected GPU information
+		LOGINFOF("GPU[%d] is selected as default GPU", gpuIndex);
+		LOGINFOF("Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+		LOGINFOF("Revision id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mRevisionId);
 
 		// Load functions
 		{
@@ -1759,8 +1809,17 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		}
 
 #ifndef _DURANGO
-		hres = D3D12CreateDevice(pRenderer->pDxActiveGPU, gpuDesc[0].mMaxSupportedFeatureLevel, IID_ARGS(&pRenderer->pDxDevice));
-		ASSERT (SUCCEEDED (hres));
+		hres = D3D12CreateDevice(pRenderer->pDxActiveGPU, gpuDesc[gpuIndex].mMaxSupportedFeatureLevel, IID_ARGS(&pRenderer->pDxDevice));
+		ASSERT(SUCCEEDED(hres));
+		// #TODO - Let user specify these through RendererSettings
+		//ID3D12InfoQueue* pd3dInfoQueue = nullptr;
+		//HRESULT hr = pRenderer->pDxDevice->QueryInterface(IID_ARGS(&pd3dInfoQueue));
+		//if (SUCCEEDED(hr))
+		//{
+		//	pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
+		//	pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+		//	pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, false);
+		//}
 #endif
 
 		//pRenderer->mSettings.mDxFeatureLevel = target_feature_level;  // this is not used anywhere?
@@ -1830,6 +1889,31 @@ namespace d3d12 {
 		// Initialize the D3D12 bits
 		{
 			AddDevice(pRenderer);
+
+#ifndef _DURANGO
+			//anything below LOW preset is not supported and we will exit
+			if (pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+			{
+				//have the condition in the assert as well so its cleared when the assert message box appears
+
+				ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);
+
+				SAFE_FREE(pRenderer->pName);
+
+				//remove device and any memory we allocated in just above as this is the first function called
+				//when initializing the forge
+				RemoveDevice(pRenderer);
+				SAFE_FREE(pRenderer);
+				LOGERROR("Selected GPU has an Office Preset in gpu.cfg.");
+				LOGERROR("Office preset is not supported by The Forge.");
+
+				//return NULL pRenderer so that client can gracefully handle exit
+				//This is better than exiting from here in case client has allocated memory or has fallbacks
+				ppRenderer = NULL;
+				return;
+			}
+#endif
+
 			/************************************************************************/
 			// Multi GPU - SLI Node Count
 			/************************************************************************/
@@ -1880,11 +1964,6 @@ namespace d3d12 {
 			info.physicalDevice = pRenderer->pDxActiveGPU;
 			createAllocator(&info, &pRenderer->pResourceAllocator);
 		}
-
-#ifndef _DURANGO
-		//Xbox doesn't need gpucfg
-		setGPUPresetLevel(pRenderer);
-#endif
 			
 		create_default_resources(pRenderer);
 		/************************************************************************/
@@ -2146,11 +2225,11 @@ namespace d3d12 {
 		if (pCmd->pRootConstantRingBuffer)
 			removeUniformRingBuffer(pCmd->pRootConstantRingBuffer);
 
-		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-		{
+		if (pCmd->pBoundColorFormats)
 			SAFE_FREE(pCmd->pBoundColorFormats);
+
+		if (pCmd->pBoundSrgbValues)
 			SAFE_FREE(pCmd->pBoundSrgbValues);
-		}
 
 		//remove command from pool
 		SAFE_RELEASE(pCmd->pDxCmdAlloc);
@@ -2188,6 +2267,27 @@ namespace d3d12 {
 		}
 
 		SAFE_FREE(ppCmd);
+	}
+
+	void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
+	{
+#ifndef _DURANGO
+		ASSERT(*ppSwapChain);
+
+		//set descriptor vsync boolean
+		(*ppSwapChain)->mDesc.mEnableVsync = !(*ppSwapChain)->mDesc.mEnableVsync;
+		if (!(*ppSwapChain)->mDesc.mEnableVsync)
+		{
+			(*ppSwapChain)->mFlags |= DXGI_PRESENT_ALLOW_TEARING;
+		}
+		else
+		{
+			(*ppSwapChain)->mFlags &= ~DXGI_PRESENT_ALLOW_TEARING;
+		}
+
+		//toggle vsync present flag (this can go up to 4 but we don't need to refresh on nth vertical sync)
+		(*ppSwapChain)->mDxSyncInterval = ((*ppSwapChain)->mDxSyncInterval + 1) % 2;
+#endif
 	}
 
 	void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
@@ -2441,7 +2541,13 @@ namespace d3d12 {
 			srvDesc.Buffer.NumElements = (UINT)(pBuffer->mDesc.mElementCount);
 			srvDesc.Buffer.StructureByteStride = (UINT)(pBuffer->mDesc.mStructStride);
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-			if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW) {
+			if (pDesc->mFormat != ImageFormat::NONE)
+			{
+				srvDesc.Format = util_to_dx_image_format(pDesc->mFormat, false);
+			}
+			if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW)
+			{
+				ASSERT(pDesc->mFormat == ImageFormat::NONE && "Raw buffer views only support R32 typeless format");
 				srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 				srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
 			}
@@ -2459,7 +2565,21 @@ namespace d3d12 {
 			uavDesc.Buffer.StructureByteStride = (UINT)(pBuffer->mDesc.mStructStride);
 			uavDesc.Buffer.CounterOffsetInBytes = 0;
 			uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-			if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW) {
+			if (pDesc->mFormat != ImageFormat::NONE)
+			{
+				uavDesc.Format = util_to_dx_image_format(pDesc->mFormat, false);
+				D3D12_FEATURE_DATA_FORMAT_SUPPORT FormatSupport = { uavDesc.Format, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE };
+				HRESULT hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &FormatSupport, sizeof(FormatSupport));
+				if (!SUCCEEDED(hr) || !(FormatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD))
+				{
+					// Format does not support UAV Typed Load
+					LOGWARNINGF("Cannot use Typed UAV for buffer format %u", (uint32_t)pDesc->mFormat);
+					uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+				}
+			}
+			if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW)
+			{
+				ASSERT(pDesc->mFormat == ImageFormat::NONE && "Raw buffer views only support R32 typeless format");
 				uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 				uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
 			}
@@ -4209,6 +4329,7 @@ namespace d3d12 {
 		pCmd->pBoundRootSignature = NULL;
 		pCmd->mViewPosition = 0;
 		pCmd->mSamplerPosition = 0;
+		pCmd->mTransientCBVPosition = 0;
 	}
 
 	void endCmd(Cmd* pCmd)
@@ -4556,7 +4677,7 @@ namespace d3d12 {
 
 				if (pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 				{
-					cbv = pParam->ppBuffers[0]->mDxGpuAddress + pParam->mOffset;
+					cbv = pParam->ppBuffers[0]->mDxGpuAddress + (pParam->pOffsets ? pParam->pOffsets[0] : 0);
 				}
 				// If this descriptor is a root constant which was converted to a root cbv, use the internal ring buffer
 				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
@@ -4721,11 +4842,16 @@ namespace d3d12 {
 				}
 				break;
 			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+			{
 				if (!pParam->ppBuffers)
 				{
 					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
+
+				const uint32_t maxTransientCBVsPerCmd = 256U;
+				UINT64 descriptorSize = pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->mDescriptorSize;
+
 				for (uint32_t j = 0; j < arrayCount; ++j)
 				{
 					if (!pParam->ppBuffers[j])
@@ -4733,10 +4859,38 @@ namespace d3d12 {
 						LOGERRORF("Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
+
 					pHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[j]->mBufferId, 1, pHash[setIndex]);
-					pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppBuffers[j]->mDxCbvHandle;
+
+					if ((pParam->ppBuffers[j]->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION) ||
+						(pParam->pOffsets && pParam->pOffsets[j] != 0))
+					{
+						if (pCmd->mTransientCBVs.ptr == D3D12_GPU_VIRTUAL_ADDRESS_NULL)
+						{
+							pCmd->mTransientCBVs = add_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV],
+								maxTransientCBVsPerCmd);
+						}
+
+						D3D12_CPU_DESCRIPTOR_HANDLE handle = { pCmd->mTransientCBVs.ptr + pCmd->mTransientCBVPosition * descriptorSize };
+						++pCmd->mTransientCBVPosition;
+						D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+						cbvDesc.BufferLocation = pParam->ppBuffers[j]->mDxGpuAddress + pParam->pOffsets[j];
+						cbvDesc.SizeInBytes = (pParam->pSizes ? (UINT)pParam->pSizes[i] : min(65536, (UINT)pParam->ppBuffers[j]->mDesc.mSize));
+						pRenderer->pDxDevice->CreateConstantBufferView(&cbvDesc, handle);
+						pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = handle;
+
+						if (pParam->pOffsets)
+							pHash[setIndex] = tinystl::hash_state(&pParam->pOffsets[j], 1, pHash[setIndex]);
+						if (pParam->pSizes)
+							pHash[setIndex] = tinystl::hash_state(&pParam->pSizes[j], 1, pHash[setIndex]);
+					}
+					else
+					{
+						pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppBuffers[j]->mDxCbvHandle;
+					}
 				}
 				break;
+			}
 			default:
 				break;
 			}

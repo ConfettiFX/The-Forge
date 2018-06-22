@@ -14,15 +14,15 @@
 #endif
 
 /* VOLK_GENERATE_VERSION */
-#define VOLK_HEADER_VERSION 71
+#define VOLK_HEADER_VERSION 78
 /* VOLK_GENERATE_VERSION */
 
 #ifndef VK_NO_PROTOTYPES
-#define VK_NO_PROTOTYPES
+#	define VK_NO_PROTOTYPES
 #endif
 
 #ifndef VULKAN_H_
-#include <vulkan/vulkan.h>
+#	include <vulkan/vulkan.h>
 #endif
 
 #ifdef __cplusplus
@@ -37,6 +37,15 @@ struct VolkDeviceTable;
  * Returns VK_SUCCESS on success and VK_ERROR_INITIALIZATION_FAILED otherwise.
  */
 VkResult volkInitialize();
+
+/**
+ * Initialize library by providing a custom handler to load global symbols.
+ *
+ * This function can be used instead of volkInitialize.
+ * The handler function pointer will be asked to load global Vulkan symbols which require no instance
+ * (such as vkCreateInstance, vkEnumerateInstance* and vkEnumerateInstanceVersion if available).
+ */
+void volkInitializeCustom(PFN_vkGetInstanceProcAddr handler);
 
 /**
  * Get Vulkan instance version supported by the Vulkan loader, or 0 if Vulkan isn't supported
@@ -290,6 +299,10 @@ struct VolkDeviceTable
 #if defined(VK_KHR_display_swapchain)
 	PFN_vkCreateSharedSwapchainsKHR vkCreateSharedSwapchainsKHR;
 #endif /* defined(VK_KHR_display_swapchain) */
+#if defined(VK_KHR_draw_indirect_count)
+	PFN_vkCmdDrawIndexedIndirectCountKHR vkCmdDrawIndexedIndirectCountKHR;
+	PFN_vkCmdDrawIndirectCountKHR vkCmdDrawIndirectCountKHR;
+#endif /* defined(VK_KHR_draw_indirect_count) */
 #if defined(VK_KHR_external_fence_fd)
 	PFN_vkGetFenceFdKHR vkGetFenceFdKHR;
 	PFN_vkImportFenceFdKHR vkImportFenceFdKHR;
@@ -656,6 +669,10 @@ extern PFN_vkGetPhysicalDeviceDisplayPropertiesKHR vkGetPhysicalDeviceDisplayPro
 #if defined(VK_KHR_display_swapchain)
 extern PFN_vkCreateSharedSwapchainsKHR vkCreateSharedSwapchainsKHR;
 #endif /* defined(VK_KHR_display_swapchain) */
+#if defined(VK_KHR_draw_indirect_count)
+extern PFN_vkCmdDrawIndexedIndirectCountKHR vkCmdDrawIndexedIndirectCountKHR;
+extern PFN_vkCmdDrawIndirectCountKHR vkCmdDrawIndirectCountKHR;
+#endif /* defined(VK_KHR_draw_indirect_count) */
 #if defined(VK_KHR_external_fence_capabilities)
 extern PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR vkGetPhysicalDeviceExternalFencePropertiesKHR;
 #endif /* defined(VK_KHR_external_fence_capabilities) */
@@ -689,6 +706,12 @@ extern PFN_vkImportSemaphoreFdKHR vkImportSemaphoreFdKHR;
 extern PFN_vkGetSemaphoreWin32HandleKHR vkGetSemaphoreWin32HandleKHR;
 extern PFN_vkImportSemaphoreWin32HandleKHR vkImportSemaphoreWin32HandleKHR;
 #endif /* defined(VK_KHR_external_semaphore_win32) */
+#if defined(VK_KHR_get_display_properties2)
+extern PFN_vkGetDisplayModeProperties2KHR vkGetDisplayModeProperties2KHR;
+extern PFN_vkGetDisplayPlaneCapabilities2KHR vkGetDisplayPlaneCapabilities2KHR;
+extern PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR vkGetPhysicalDeviceDisplayPlaneProperties2KHR;
+extern PFN_vkGetPhysicalDeviceDisplayProperties2KHR vkGetPhysicalDeviceDisplayProperties2KHR;
+#endif /* defined(VK_KHR_get_display_properties2) */
 #if defined(VK_KHR_get_memory_requirements2)
 extern PFN_vkGetBufferMemoryRequirements2KHR vkGetBufferMemoryRequirements2KHR;
 extern PFN_vkGetImageMemoryRequirements2KHR vkGetImageMemoryRequirements2KHR;

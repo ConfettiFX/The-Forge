@@ -59,6 +59,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	/// Texture mesh pipeline data
 	pBuiltinTextShader(NULL),
 	pBuiltinTextureShader(NULL),
+	pBuiltin3DTextShader(NULL),
 	pRootSignatureTextureMesh(NULL),
 	/// Default states
 	pBlendAlpha(NULL),
@@ -82,19 +83,23 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	String vsTextured = mtl_builtin_textured;
 	String psTextured = mtl_builtin_textured;
 	String psTexturedRedAlpha = mtl_builtin_textured_red_alpha;
+	String vsText = mtl_builtin_text;
 
 	ShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsPlainFile, vsPlain, "VSMain" }, { psPlainFile, psPlain, "PSMain" } };
 	ShaderDesc texShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedRedAlphaFile, psTexturedRedAlpha, "PSMain" } };
 	ShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsTextured, "VSMain" }, { psTexturedFile, psTextured, "PSMain" } };
+	ShaderDesc text3dShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { vsTexturedFile, vsText, "VSMain" }, { psTexturedRedAlphaFile, psTexturedRedAlpha, "PSMain" } };
 	addShader(pRenderer, &plainShader, &pBuiltinPlainShader);
 	addShader(pRenderer, &texShader, &pBuiltinTextShader);
 	addShader(pRenderer, &textureShader, &pBuiltinTextureShader);
+	addShader(pRenderer, &text3dShader, &pBuiltin3DTextShader);
 #elif defined(DIRECT3D12) || defined(VULKAN)
 	char* pPlainVert = NULL; uint32_t plainVertSize = 0;
 	char* pPlainFrag = NULL; uint32_t plainFragSize = 0;
 	char* pTextureVert = NULL; uint32_t textureVertSize = 0;
 	char* pTextureFrag = NULL; uint32_t textureFragSize = 0;
 	char* pTextureRedAlphaFrag = NULL; uint32_t textureRedAlphaFragSize = 0;
+	char* pText3dVert = NULL; uint32_t text3dVertSize = 0;
 
 	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
 	{
@@ -103,6 +108,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 		pTextureVert = (char*)d3d12_builtin_textured_vert; textureVertSize = sizeof(d3d12_builtin_textured_vert);
 		pTextureFrag = (char*)d3d12_builtin_textured_frag; textureFragSize = sizeof(d3d12_builtin_textured_frag);
 		pTextureRedAlphaFrag = (char*)d3d12_builtin_textured_red_alpha_frag; textureRedAlphaFragSize = sizeof(d3d12_builtin_textured_red_alpha_frag);
+		pText3dVert = (char*)d3d12_builtin_3dtext_vert; text3dVertSize = sizeof(d3d12_builtin_3dtext_vert);
 	}
 	else if (pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
 	{
@@ -111,6 +117,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 		pTextureVert = (char*)vk_builtin_textured_vert; textureVertSize = sizeof(vk_builtin_textured_vert);
 		pTextureFrag = (char*)vk_builtin_textured_frag; textureFragSize = sizeof(vk_builtin_textured_frag);
 		pTextureRedAlphaFrag = (char*)vk_builtin_textured_red_alpha_frag; textureRedAlphaFragSize = sizeof(vk_builtin_textured_red_alpha_frag);
+		pText3dVert = (char*)vk_builtin_3Dtext_vert; text3dVertSize = sizeof(vk_builtin_3Dtext_vert);
 	}
 
 	BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
@@ -119,9 +126,13 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	{ (char*)pTextureVert, textureVertSize },{ (char*)pTextureRedAlphaFrag, textureRedAlphaFragSize } };
 	BinaryShaderDesc textureShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
 	{ (char*)pTextureVert, textureVertSize },{ (char*)pTextureFrag, textureFragSize } };
+	BinaryShaderDesc textShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+	{ (char*)pText3dVert, text3dVertSize },{ (char*)pTextureRedAlphaFrag, textureRedAlphaFragSize } };
 	addShaderBinary(pRenderer, &plainShader, &pBuiltinPlainShader);
 	addShaderBinary(pRenderer, &texShader, &pBuiltinTextShader);
 	addShaderBinary(pRenderer, &textureShader, &pBuiltinTextureShader);
+	addShaderBinary(pRenderer, &textShaderDesc, &pBuiltin3DTextShader);
+	
 #endif
 
 	SamplerDesc samplerDesc = {
@@ -170,7 +181,7 @@ UIRenderer::UIRenderer(Renderer* renderer) :
 	addUniformRingBuffer(pRenderer, gMaxDrawCallsPerFrame * 2 * (uint32_t)pRenderer->pActiveGpuSettings->mUniformBufferAlignment, &pUniformRingBuffer);
 
 	RootSignatureDesc plainRootDesc = { &pBuiltinPlainShader, 1 };
-	RootSignatureDesc textureRootDesc = { &pBuiltinTextShader, 1 };
+	RootSignatureDesc textureRootDesc = { &pBuiltinTextShader,1 };
 #if defined(VULKAN)
 	const char* pDynamicUniformBuffers[] = { "uniformBlockVS", "uniformBlockPS" };
 	plainRootDesc.mDynamicUniformBufferCount = 2;
@@ -202,6 +213,7 @@ UIRenderer::~UIRenderer()
 	removeShader(pRenderer, pBuiltinPlainShader);
 	removeShader(pRenderer, pBuiltinTextShader);
 	removeShader(pRenderer, pBuiltinTextureShader);
+	removeShader(pRenderer, pBuiltin3DTextShader);
 
 	for (PipelineMapNode& node : mPipelinePlainMesh)
 	{
@@ -213,6 +225,7 @@ UIRenderer::~UIRenderer()
 
 			removePipeline(pRenderer, mPipelinePlainMesh[hash][i]);
 			removePipeline(pRenderer, mPipelineTextMesh[hash][i]);
+			removePipeline(pRenderer, mPipeline3DTextMesh[hash][i]);
 			removePipeline(pRenderer, mPipelineTextureMesh[hash][i]);
 		}
 	}
@@ -258,6 +271,7 @@ void UIRenderer::beginRender(uint32_t w, uint32_t h,
 	uint32_t outputFormatCount, ImageFormat::Enum* outputFormats, bool* srgbValues,
 	ImageFormat::Enum depthStencilFormat, SampleCount sampleCount, uint32_t sampleQuality)
 {
+	
 	gWindowWidth = w;
 	gWindowHeight = h;
 	uint64_t hash = 0;
@@ -305,6 +319,7 @@ void UIRenderer::beginRender(uint32_t w, uint32_t h,
 
 		PipelineVector pipelinePlainMesh = PipelineVector(PrimitiveTopology::PRIMITIVE_TOPO_COUNT);
 		PipelineVector pipelineTextMesh = PipelineVector(PrimitiveTopology::PRIMITIVE_TOPO_COUNT);
+		PipelineVector pipeline3DTextMesh = PipelineVector(PrimitiveTopology::PRIMITIVE_TOPO_COUNT);
 		PipelineVector pipelineTextureMesh = PipelineVector(PrimitiveTopology::PRIMITIVE_TOPO_COUNT);
 
 		for (uint32_t i = 0; i < PrimitiveTopology::PRIMITIVE_TOPO_COUNT; ++i)
@@ -319,23 +334,33 @@ void UIRenderer::beginRender(uint32_t w, uint32_t h,
 			vertexLayout.mAttribCount = 1;
 			addPipeline(pRenderer, &pipelineDesc, &pipelinePlainMesh[i]);
 
+
 			pipelineDesc.pShaderProgram = pBuiltinTextShader;
 			pipelineDesc.pRootSignature = pRootSignatureTextureMesh;
 			vertexLayout.mAttribCount = 2;
 			addPipeline(pRenderer, &pipelineDesc, &pipelineTextMesh[i]);
-
+			
+			pipelineDesc.pDepthState = pDepthEnable;
+			pipelineDesc.pShaderProgram = pBuiltin3DTextShader;
+			pipelineDesc.pRootSignature = pRootSignatureTextureMesh;
+			vertexLayout.mAttribCount = 2;
+			addPipeline(pRenderer, &pipelineDesc, &pipeline3DTextMesh[i]);
+			
+			pipelineDesc.pDepthState = pDepthNone;
 			pipelineDesc.pShaderProgram = pBuiltinTextureShader;
 			addPipeline(pRenderer, &pipelineDesc, &pipelineTextureMesh[i]);
 		}
 
 		pCurrentPipelinePlainMesh = &mPipelinePlainMesh.insert({ hash, pipelinePlainMesh }).first->second;
 		pCurrentPipelineTextMesh = &mPipelineTextMesh.insert({ hash, pipelineTextMesh }).first->second;
+		pCurrentPipeline3DTextMesh = &mPipeline3DTextMesh.insert({ hash, pipeline3DTextMesh }).first->second;
 		pCurrentPipelineTextureMesh = &mPipelineTextureMesh.insert({ hash, pipelineTextureMesh }).first->second;
 	}
 	else
 	{
 		pCurrentPipelinePlainMesh = &mPipelinePlainMesh[hash];
 		pCurrentPipelineTextMesh = &mPipelineTextMesh[hash];
+		pCurrentPipeline3DTextMesh = &mPipeline3DTextMesh[hash];
 		pCurrentPipelineTextureMesh = &mPipelineTextureMesh[hash];
 	}
 }
@@ -414,10 +439,10 @@ void UIRenderer::drawTexturedR8AsAlpha(Cmd* pCmd, PrimitiveTopology primitives, 
 	DescriptorData params[3] = {};
 	params[0].pName = "uniformBlockVS";
 	params[0].ppBuffers = &vs.pUniformBuffer;
-	params[0].mOffset = vs.mOffset;
+	params[0].pOffsets = &vs.mOffset;
 	params[1].pName = "uniformBlockPS";
 	params[1].ppBuffers = &ps.pUniformBuffer;
-	params[1].mOffset = ps.mOffset;
+	params[1].pOffsets = &ps.mOffset;
 	params[2].pName = "uTex0";
 	params[2].ppTextures = &texture;
 	cmdBindPipeline(pCmd, pCurrentPipelineTextMesh->operator[](primitives));
@@ -447,10 +472,10 @@ void UIRenderer::drawPlain(Cmd* pCmd, PrimitiveTopology primitives, float2* vert
 	DescriptorData params[2] = {};
 	params[0].pName = "uniformBlockVS";
 	params[0].ppBuffers = &vs.pUniformBuffer;
-	params[0].mOffset = vs.mOffset;
+	params[0].pOffsets = &vs.mOffset;
 	params[1].pName = "uniformBlockPS";
 	params[1].ppBuffers = &ps.pUniformBuffer;
-	params[1].mOffset = ps.mOffset;
+	params[1].pOffsets = &ps.mOffset;
 
 	cmdBindPipeline(pCmd, pCurrentPipelinePlainMesh->operator[](primitives));
 	cmdBindDescriptors(pCmd, pRootSignaturePlainMesh, 2, params);
@@ -480,10 +505,10 @@ void UIRenderer::drawTextured(Cmd* pCmd, PrimitiveTopology primitives, TexVertex
 	DescriptorData params[3] = {};
 	params[0].pName = "uniformBlockVS";
 	params[0].ppBuffers = &vs.pUniformBuffer;
-	params[0].mOffset = vs.mOffset;
+	params[0].pOffsets = &vs.mOffset;
 	params[1].pName = "uniformBlockPS";
 	params[1].ppBuffers = &ps.pUniformBuffer;
-	params[1].mOffset = ps.mOffset;
+	params[1].pOffsets = &ps.mOffset;
 	params[2].pName = "uTex0";
 	params[2].ppTextures = &texture;
 	cmdBindPipeline(pCmd, pCurrentPipelineTextureMesh->operator[](primitives));
@@ -495,4 +520,47 @@ void UIRenderer::drawTextured(Cmd* pCmd, PrimitiveTopology primitives, TexVertex
 void UIRenderer::setScissor(Cmd* pCmd, const RectDesc* rect)
 {
 	cmdSetScissor(pCmd, max(0, rect->left), max(0, rect->top), getRectWidth(*rect), getRectHeight(*rect));
+}
+
+void UIRenderer::drawTexturedR8AsAlpha(Cmd* pCmd, PrimitiveTopology primitives, TexVertex *vertices, const uint32_t nVertices, Texture* texture, const float4* color,const mat4& projView , const mat4& worldMat) 
+{
+	
+	ASSERT(primitives != PRIMITIVE_TOPO_PATCH_LIST && "Primitive type not supported for UI rendering");
+	
+	uint32_t vertexDataSize = sizeof(TexVertex) * nVertices;
+	vec4 pos = vec4(-2.0f / (float)gWindowWidth, -2.0f / (float)gWindowHeight, -1.0f, 1.0f);
+
+	uniformBlockVS uniBuffer;
+	uniBuffer.scaleBias = pos;
+	uniBuffer.TextureSize = vec2((float)texture->mDesc.mWidth, (float)texture->mDesc.mHeight);
+	uniBuffer.mProjView = projView;
+	uniBuffer.mWorldMat = worldMat;	
+
+	Buffer* buffer = getVertexBuffer(pTextureMeshRingBuffer);
+	UniformBufferOffset vs = getUniformBufferOffset(pUniformRingBuffer, sizeof(uniBuffer));
+	UniformBufferOffset ps = getUniformBufferOffset(pUniformRingBuffer, sizeof(*color));
+
+	BufferUpdateDesc vbUpdate = { buffer, vertices, 0, 0, vertexDataSize };
+	updateResource(&vbUpdate);
+	
+	BufferUpdateDesc updateDesc = { vs.pUniformBuffer, &uniBuffer, 0, vs.mOffset, sizeof(uniBuffer) };
+	updateResource(&updateDesc);
+	
+	updateDesc = { ps.pUniformBuffer, color, 0, ps.mOffset, sizeof(*color) };
+	updateResource(&updateDesc);
+
+	DescriptorData params[3] = {};
+	params[0].pName = "uniformBlockVS";
+	params[0].ppBuffers = &vs.pUniformBuffer;
+	params[0].pOffsets = &vs.mOffset;
+	params[1].pName = "uniformBlockPS";
+	params[1].ppBuffers = &ps.pUniformBuffer;
+	params[1].pOffsets = &ps.mOffset;
+	params[2].pName = "uTex0";
+	params[2].ppTextures = &texture;
+	cmdBindDescriptors(pCmd, pRootSignatureTextureMesh, 3, params);
+	cmdBindPipeline(pCmd, pCurrentPipeline3DTextMesh->operator[](primitives));
+	cmdBindVertexBuffer(pCmd, 1, &buffer);
+	cmdDraw(pCmd,nVertices, 0);
+
 }

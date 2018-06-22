@@ -175,7 +175,7 @@ DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 
 RendererApi gTargetApi = RENDERER_API_D3D12;
 
-class UnitTest_11_RendererRuntimeSwitch : public IApp
+class RendererRuntimeSwitch : public IApp
 {
 public:
 	bool Init()
@@ -186,6 +186,9 @@ public:
 		RendererDesc settings = { 0 };
 		settings.mApi = gTargetApi;
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		if (settings.mApi == RENDERER_API_VULKAN)
 		{
@@ -210,7 +213,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -465,7 +468,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = { 0.0f, -100.0f };
 		guiDesc.mStartSize = { guiDesc.mStartSize.getX() * 0.5f, guiDesc.mStartSize.getY() * 0.4f };
@@ -846,7 +849,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_11_RendererRuntimeSwitch";
+		return "11_RendererRuntimeSwitch";
 	}
 
 	bool addSwapChain()
@@ -937,4 +940,4 @@ public:
 
 };
 
-DEFINE_APPLICATION_MAIN(UnitTest_11_RendererRuntimeSwitch)
+DEFINE_APPLICATION_MAIN(RendererRuntimeSwitch)

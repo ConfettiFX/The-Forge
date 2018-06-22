@@ -290,6 +290,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	  VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME,
 #endif
+	  VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 	  /************************************************************************/
 	  // NVIDIA Specific Extensions
 	  /************************************************************************/
@@ -317,12 +318,16 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	static bool	gRenderDocLayerEnabled = false;
 	static bool	gDedicatedAllocationExtension = false;
 	static bool	gExternalMemoryExtension = false;
-	static bool	gAMDDrawIndirectCountExtension = false;
+	static bool	gDrawIndirectCountExtension = false;
 	static bool	gDeviceGroupCreationExtension = false;
 	static bool	gDescriptorIndexingExtension = false;
+	static bool	gAMDDrawIndirectCountExtension = false;
 	static bool	gAMDGCNShaderExtension = false;
 
 	static bool	gDebugMarkerSupport = false;
+
+	PFN_vkCmdDrawIndirectCountKHR pfnVkCmdDrawIndirectCountKHR = NULL;
+	PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 	/************************************************************************/
 	// IMPLEMENTATION
 	/************************************************************************/
@@ -496,11 +501,11 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		/// Array of Write descriptor sets per update frequency used to update descriptor set in vkUpdateDescriptorSets
 		VkWriteDescriptorSet*		pWriteSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Array of buffer descriptors per update frequency.
-		VkDescriptorBufferInfo*	pBufferInfo[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		VkDescriptorBufferInfo*		pBufferInfo[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Array of image descriptors per update frequency
-		VkDescriptorImageInfo*	pImageInfo[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		VkDescriptorImageInfo*		pImageInfo[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		VkBufferView*				pBufferViews[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Triple buffered Hash map to check if a descriptor table with a descriptor hash already exists to avoid redundant copy descriptors operations
-		/// 
 		DescriptorSetMap			mStaticDescriptorSetMap[MAX_FRAMES_IN_FLIGHT];
 		/// Triple buffered array of number of descriptor tables allocated per update frequency
 		/// Only used for recording stats
@@ -536,9 +541,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			{
 				pManager->pWriteSets[setIndex] = (VkWriteDescriptorSet*)conf_calloc(descCount, sizeof(VkWriteDescriptorSet));
 				if (pLayout->mCumulativeBufferDescriptorCount)
+				{
 					pManager->pBufferInfo[setIndex] = (VkDescriptorBufferInfo*)conf_calloc(pLayout->mCumulativeBufferDescriptorCount, sizeof(VkDescriptorBufferInfo));
+					pManager->pBufferViews[setIndex] = (VkBufferView*)conf_calloc(pLayout->mCumulativeBufferDescriptorCount, sizeof(VkBufferView));
+				}
 				if (pLayout->mCumulativeImageDescriptorCount)
+				{
 					pManager->pImageInfo[setIndex] = (VkDescriptorImageInfo*)conf_calloc(pLayout->mCumulativeImageDescriptorCount, sizeof(VkDescriptorImageInfo));
+				}
 
 				// Fill the write descriptors with default values during initialize so the only thing we change in cmdBindDescriptors is the the VkBuffer / VkImageView objects
 				for (uint32_t i = 0; i < descCount; ++i)
@@ -571,9 +581,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 					// Assign the buffer descriptor range associated with this write descriptor set
 					// The offset of the range is the offset of the descriptor from start of the set (mHandleIndex) + the array index
 					if (pLayout->mCumulativeBufferDescriptorCount)
+					{
 						pManager->pWriteSets[setIndex][i].pBufferInfo = &pManager->pBufferInfo[setIndex][pDesc->mHandleIndex];
+						pManager->pWriteSets[setIndex][i].pTexelBufferView = &pManager->pBufferViews[setIndex][pDesc->mHandleIndex];
+					}
 					if (pLayout->mCumulativeImageDescriptorCount)
+					{
 						pManager->pWriteSets[setIndex][i].pImageInfo = &pManager->pImageInfo[setIndex][pDesc->mHandleIndex];
+					}
 				}
 			}
 		}
@@ -608,6 +623,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				SAFE_FREE(pManager->pWriteSets[setIndex]);
 				SAFE_FREE(pManager->pBufferInfo[setIndex]);
 				SAFE_FREE(pManager->pImageInfo[setIndex]);
+				SAFE_FREE(pManager->pBufferViews[setIndex]);
 			}
 		}
 
@@ -1287,7 +1303,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		return result;
 	}
 
-	VkBufferUsageFlags util_to_vk_buffer_usage(BufferUsage usage)
+	VkBufferUsageFlags util_to_vk_buffer_usage(BufferUsage usage, bool typed)
 	{
 		VkBufferUsageFlags result = 0;
 		if (usage & BUFFER_USAGE_UPLOAD) {
@@ -1298,9 +1314,13 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 		if (usage & BUFFER_USAGE_STORAGE_UAV) {
 			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			if (typed)
+				result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
 		}
 		if (usage & BUFFER_USAGE_STORAGE_SRV) {
 			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			if (typed)
+				result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 		}
 		if (usage & BUFFER_USAGE_INDEX) {
 			result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -1474,6 +1494,10 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		case DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
 			return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+		case DESCRIPTOR_TYPE_TEXEL_BUFFER:
+			return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+		case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
+			return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
 		default:
 			ASSERT("Invalid DescriptorInfo Type");
 			return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -1758,6 +1782,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &(pRenderer->mNumOfGPUs), pRenderer->pVkGPUs);
 		ASSERT(VK_SUCCESS == vk_res);
+
 		/************************************************************************/
 		// Sort gpus to get discrete gpus first
 		// If we have multiple discrete gpus sort them by VRAM size
@@ -1776,6 +1801,41 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			vkGetPhysicalDeviceProperties(rhsGpu, &rhsProps);
 			vkGetPhysicalDeviceMemoryProperties(rhsGpu, &rhsMemoryProps);
 
+			char lhsDevId[MAX_GPU_VENDOR_STRING_LENGTH];
+			sprintf(lhsDevId, "%#x", lhsProps.deviceID);
+			
+			char lhsVendId[MAX_GPU_VENDOR_STRING_LENGTH];
+			sprintf(lhsVendId, "%#x", lhsProps.vendorID);
+			
+			char rhsDevId[MAX_GPU_VENDOR_STRING_LENGTH];
+			sprintf(rhsDevId, "%#x", rhsProps.deviceID);
+			
+			char rhsVendId[MAX_GPU_VENDOR_STRING_LENGTH];
+			sprintf(rhsVendId, "%#x", rhsProps.vendorID);
+			
+			//TODO: Fix once vulkan adds support for revision ID
+			GPUPresetLevel lhsPreset = getGPUPresetLevel(lhsVendId, lhsDevId, "0x00");
+			GPUPresetLevel rhsPreset = getGPUPresetLevel(rhsVendId, rhsDevId, "0x00");
+
+#if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
+			//todo : ADD Revision
+			GPUVendorPreset activeTestingPreset;
+			bool activeTestingGpu = getActiveGpuConfig(activeTestingPreset);
+			if (activeTestingGpu) {
+				if (lhsVendId == activeTestingPreset.mVendorId &&
+					lhsDevId == activeTestingPreset.mModelId)
+				{
+					return -1;
+				}
+				else
+					if (rhsVendId == activeTestingPreset.mVendorId &&
+						rhsDevId == activeTestingPreset.mModelId)
+				{
+					return 1;
+				}
+			}
+#endif
+
 			if (lhsProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
 				rhsProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 			{
@@ -1788,20 +1848,29 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			}
 			else
 			{
-				VkDeviceSize totalLhsVram = 0;
-				VkDeviceSize totalRhsVram = 0;
-				for (uint32_t i = 0; i < lhsMemoryProps.memoryHeapCount; ++i)
+				//compare by preset if both gpu's are of same type (integrated vs discrete)
+				if (lhsPreset != rhsPreset)
 				{
-					if (VK_MEMORY_HEAP_DEVICE_LOCAL_BIT & lhsMemoryProps.memoryHeaps[i].flags)
-						totalLhsVram += lhsMemoryProps.memoryHeaps[i].size;
+					return lhsPreset > rhsPreset ? -1 : 1;
 				}
-				for (uint32_t i = 0; i < rhsMemoryProps.memoryHeapCount; ++i)
-				{
-					if (VK_MEMORY_HEAP_DEVICE_LOCAL_BIT & rhsMemoryProps.memoryHeaps[i].flags)
-						totalRhsVram += rhsMemoryProps.memoryHeaps[i].size;
-				}
+				else 
+				{ 
+					//if presets are the same then sort by vram size
+					VkDeviceSize totalLhsVram = 0;
+					VkDeviceSize totalRhsVram = 0;
+					for (uint32_t i = 0; i < lhsMemoryProps.memoryHeapCount; ++i)
+					{
+						if (VK_MEMORY_HEAP_DEVICE_LOCAL_BIT & lhsMemoryProps.memoryHeaps[i].flags)
+							totalLhsVram += lhsMemoryProps.memoryHeaps[i].size;
+					}
+					for (uint32_t i = 0; i < rhsMemoryProps.memoryHeapCount; ++i)
+					{
+						if (VK_MEMORY_HEAP_DEVICE_LOCAL_BIT & rhsMemoryProps.memoryHeaps[i].flags)
+							totalRhsVram += rhsMemoryProps.memoryHeaps[i].size;
+					}
 
-				return totalLhsVram > totalRhsVram ? -1 : 1;
+					return totalLhsVram > totalRhsVram ? -1 : 1;
+				}
 			}
 		});
 
@@ -1816,10 +1885,11 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			VkQueueFlags	mQueueFlags;
 		}VkQueueFamily;
 		tinystl::vector<VkQueueFamily> queueFamilies;
-
+		
 		for (uint32_t gpu_index = 0; gpu_index < pRenderer->mNumOfGPUs; ++gpu_index)
 		{
 			VkPhysicalDevice gpu = pRenderer->pVkGPUs[gpu_index];
+
 			uint32_t count = 0;
 			//get count of queue families
 			vkGetPhysicalDeviceQueueFamilyProperties(gpu, &count, NULL);
@@ -1868,8 +1938,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				break;
 			}
 		}
-
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkActiveGPU);
+
 
 		uint32_t count = 0;
 		VkLayerProperties layers[100];
@@ -1909,22 +1979,22 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			pRenderer->mGpuSettings[i].mMultiDrawIndirect = pRenderer->mVkGpuProperties[i].limits.maxDrawIndirectCount > 1;
 
 			//save vendor and model Id as string
-			char hexChar[10];
-			sprintf(hexChar, "%#x", pRenderer->mVkGpuProperties[i].deviceID);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId = String(hexChar);
-			sprintf(hexChar, "%#x", pRenderer->mVkGpuProperties[i].vendorID);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId = String(hexChar);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
+			sprintf(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, "%#x", pRenderer->mVkGpuProperties[i].deviceID);
+			sprintf(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, "%#x", pRenderer->mVkGpuProperties[i].vendorID);
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mGpuName, pRenderer->mVkGpuProperties[i].deviceName, MAX_GPU_VENDOR_STRING_LENGTH);
 
+			//TODO: Fix once vulkan adds support for revision ID
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId, "0x00", MAX_GPU_VENDOR_STRING_LENGTH);
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = getGPUPresetLevel(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId);	
 		}
-
 		
 		pRenderer->pVkActiveGPUProperties = &pRenderer->mVkGpuProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pVkActiveGpuMemoryProperties = &pRenderer->mVkGpuMemoryProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[pRenderer->mActiveGPUIndex];
 		
-		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId.c_str());
-		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId.c_str());
+		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+		LOGINFOF("Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
 		
 		uint32_t queueCount = 1;
 
@@ -1987,6 +2057,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 							if (strcmp(gVkWantedDeviceExtensions[k], VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
 								externalMemoryWin32Extension = true;
 #endif
+							if (strcmp(gVkWantedDeviceExtensions[k], VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME) == 0)
+								gDrawIndirectCountExtension = true;
 							if (strcmp(gVkWantedDeviceExtensions[k], VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME) == 0)
 								gAMDDrawIndirectCountExtension = true;
 							if (strcmp(gVkWantedDeviceExtensions[k], VK_AMD_GCN_SHADER_EXTENSION_NAME) == 0)
@@ -2047,8 +2119,16 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			LOGINFOF("Successfully loaded External Memory extension");
 		}
 
-		if (gAMDDrawIndirectCountExtension)
+		if (gDrawIndirectCountExtension)
 		{
+			pfnVkCmdDrawIndirectCountKHR = vkCmdDrawIndirectCountKHR;
+			pfnVkCmdDrawIndexedIndirectCountKHR = vkCmdDrawIndexedIndirectCountKHR;
+			LOGINFOF("Successfully loaded Draw Indirect extension");
+		}
+		else if (gAMDDrawIndirectCountExtension)
+		{
+			pfnVkCmdDrawIndirectCountKHR = vkCmdDrawIndirectCountAMD;
+			pfnVkCmdDrawIndexedIndirectCountKHR = vkCmdDrawIndexedIndirectCountAMD;
 			LOGINFOF("Successfully loaded AMD Draw Indirect extension");
 		}
 
@@ -2120,7 +2200,29 @@ namespace vk {
 
 			CreateInstance(app_name, pRenderer);
 			AddDevice(pRenderer);
-			setGPUPresetLevel(pRenderer);
+			//anything below LOW preset is not supported and we will exit
+			if (pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
+			{
+				//have the condition in the assert as well so its cleared when the assert message box appears
+
+				ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);
+
+				SAFE_FREE(pRenderer->pName);
+
+				//remove device and any memory we allocated in just above as this is the first function called
+				//when initializing the forge
+				RemoveDevice(pRenderer);
+				RemoveInstance(pRenderer);
+				SAFE_FREE(pRenderer);
+				LOGERROR("Selected GPU has an Office Preset in gpu.cfg.");
+				LOGERROR("Office preset is not supported by The Forge.");
+
+				//return NULL pRenderer so that client can gracefully handle exit
+				//This is better than exiting from here in case client has allocated memory or has fallbacks
+				ppRenderer = NULL;
+				return;
+			}
+
 			VmaAllocatorCreateInfo createInfo = { 0 };
 			createInfo.device = pRenderer->pVkDevice;
 			createInfo.physicalDevice = pRenderer->pVkActiveGPU;
@@ -2418,11 +2520,11 @@ namespace vk {
 		if (pCmd->pDescriptorPool)
 			remove_descriptor_heap(pCmd->pRenderer, pCmd->pDescriptorPool);
 
-		if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-		{
+		if (pCmd->pBoundColorFormats)
 			SAFE_FREE(pCmd->pBoundColorFormats);
+
+		if (pCmd->pBoundSrgbValues)
 			SAFE_FREE(pCmd->pBoundSrgbValues);
-		}
 
 		vkFreeCommandBuffers(pCmd->pRenderer->pVkDevice, pCmdPool->pVkCmdPool, 1, &(pCmd->pVkCmdBuf));
 
@@ -2452,6 +2554,16 @@ namespace vk {
 		}
 
 		SAFE_FREE(ppCmd);
+	}
+	
+	void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
+	{
+		//toggle vsync on or off
+		//for Vulkan we need to remove the SwapChain and recreate it with correct vsync option
+		(*ppSwapChain)->mDesc.mEnableVsync = !(*ppSwapChain)->mDesc.mEnableVsync;
+		SwapChainDesc desc = (*ppSwapChain)->mDesc;
+		removeSwapChain(pRenderer, *ppSwapChain);
+		addSwapChain(pRenderer, &desc, ppSwapChain);
 	}
 
 	void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
@@ -2761,7 +2873,7 @@ namespace vk {
 		add_info.pNext = NULL;
 		add_info.flags = 0;
 		add_info.size = pBuffer->mDesc.mSize;
-		add_info.usage = util_to_vk_buffer_usage(pBuffer->mDesc.mUsage);
+		add_info.usage = util_to_vk_buffer_usage(pBuffer->mDesc.mUsage, pDesc->mFormat != ImageFormat::NONE);
 		add_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		add_info.queueFamilyIndexCount = 0;
 		add_info.pQueueFamilyIndices = NULL;
@@ -2828,6 +2940,45 @@ namespace vk {
 				pBuffer->mVkBufferInfo.offset = 0;
 			}
 		}
+
+		if (add_info.usage & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)
+		{
+			VkBufferViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL };
+			viewInfo.buffer = pBuffer->pVkBuffer;
+			viewInfo.flags = 0;
+			viewInfo.format = util_to_vk_image_format(pDesc->mFormat, false);
+			viewInfo.offset = pDesc->mFirstElement * pDesc->mStructStride;
+			viewInfo.range = pDesc->mElementCount * pDesc->mStructStride;
+			VkFormatProperties formatProps = {};
+			vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, viewInfo.format, &formatProps);
+			if (!(formatProps.bufferFeatures & VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT))
+			{
+				LOGWARNINGF("Failed to create uniform texel buffer view for format %u", (uint32_t)pDesc->mFormat);
+			}
+			else
+			{
+				vkCreateBufferView(pRenderer->pVkDevice, &viewInfo, NULL, &pBuffer->pVkUniformTexelView);
+			}
+		}
+		if (add_info.usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
+		{
+			VkBufferViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL };
+			viewInfo.buffer = pBuffer->pVkBuffer;
+			viewInfo.flags = 0;
+			viewInfo.format = util_to_vk_image_format(pDesc->mFormat, false);
+			viewInfo.offset = pDesc->mFirstElement * pDesc->mStructStride;
+			viewInfo.range = pDesc->mElementCount * pDesc->mStructStride;
+			VkFormatProperties formatProps = {};
+			vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, viewInfo.format, &formatProps);
+			if (!(formatProps.bufferFeatures & VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT))
+			{
+				LOGWARNINGF("Failed to create storage texel buffer view for format %u", (uint32_t)pDesc->mFormat);
+			}
+			else
+			{
+				vkCreateBufferView(pRenderer->pVkDevice, &viewInfo, NULL, &pBuffer->pVkStorageTexelView);
+			}
+		}
 		/************************************************************************/
 		/************************************************************************/
 		pBuffer->mBufferId = (++gBufferIds << 8U) + Thread::GetCurrentThreadID();
@@ -2841,6 +2992,17 @@ namespace vk {
 		ASSERT(pBuffer);
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 		ASSERT(VK_NULL_HANDLE != pBuffer->pVkBuffer);
+
+		if (pBuffer->pVkUniformTexelView)
+		{
+			vkDestroyBufferView(pRenderer->pVkDevice, pBuffer->pVkUniformTexelView, NULL);
+			pBuffer->pVkUniformTexelView = VK_NULL_HANDLE;
+		}
+		if (pBuffer->pVkStorageTexelView)
+		{
+			vkDestroyBufferView(pRenderer->pVkDevice, pBuffer->pVkStorageTexelView, NULL);
+			pBuffer->pVkStorageTexelView = VK_NULL_HANDLE;
+		}
 
 		vk_destroyBuffer(pRenderer->pVmaAllocator, pBuffer);
 
@@ -3636,7 +3798,11 @@ namespace vk {
 				DescriptorInfo* pDesc = layout.mDescriptors[descIndex];
 				pDesc->mIndexInParent = descIndex;
 				table.mCumulativeDescriptorCount += pDesc->mDesc.size;
-				if (pDesc->mDesc.type == DESCRIPTOR_TYPE_BUFFER || pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_BUFFER || pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+				if (pDesc->mDesc.type == DESCRIPTOR_TYPE_BUFFER ||
+					pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_BUFFER ||
+					pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+					pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXEL_BUFFER ||
+					pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXEL_BUFFER)
 				{
 					pDesc->mHandleIndex = table.mCumulativeBufferDescriptorCount;
 					table.mCumulativeBufferDescriptorCount += pDesc->mDesc.size;
@@ -4618,10 +4784,21 @@ namespace vk {
 
 					// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
 					pm->pBufferInfo[setIndex][pDesc->mHandleIndex + i] = pParam->ppBuffers[i]->mVkBufferInfo;
+
+					if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
+						pm->pBufferViews[setIndex][pDesc->mHandleIndex + i] = pParam->ppBuffers[i]->pVkUniformTexelView;
+					else if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+						pm->pBufferViews[setIndex][pDesc->mHandleIndex + i] = pParam->ppBuffers[i]->pVkStorageTexelView;
+
 					// Only store the offset provided in pParam if the descriptor is not dynamic
 					// For dynamic descriptors the offsets are bound in vkCmdBindDescriptorSets
 					if (pDesc->mVkType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-						pm->pBufferInfo[setIndex][pDesc->mHandleIndex + i].offset = pParam->mOffset;
+					{
+						if (pParam->pOffsets)
+							pm->pBufferInfo[setIndex][pDesc->mHandleIndex + i].offset = pParam->pOffsets[i];
+						if (pParam->pSizes)
+							pm->pBufferInfo[setIndex][pDesc->mHandleIndex + i].range = pParam->pSizes[i];
+					}
 				}
 
 				if (pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER)
@@ -4630,13 +4807,17 @@ namespace vk {
 					// Dynamic uniform buffer descriptors using the same VkBuffer object can be bound at different offsets without the need for vkUpdateDescriptorSets
 					if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 					{
-						pm->pDynamicOffsets[setIndex][pDesc->mDynamicUniformIndex] = (uint32_t)pParam->mOffset;
+						// Dynamic uniform buffers cannot form arrays so jut use element 0
+						pm->pDynamicOffsets[setIndex][pDesc->mDynamicUniformIndex] = (uint32_t)pParam->pOffsets[0];
 					}
 					// If descriptor is not of type uniform buffer dynamic, hash the offset value
 					// Non dynamic uniform buffer descriptors using the same VkBuffer object but different offset values are considered as different descriptors
 					else
 					{
-						pHash[setIndex] = tinystl::hash_state(&pParam->mOffset, 1, pHash[setIndex]);
+						if (pParam->pOffsets)
+							pHash[setIndex] = tinystl::hash_state(&pParam->pOffsets[i], 1, pHash[setIndex]);
+						if (pParam->pSizes)
+							pHash[setIndex] = tinystl::hash_state(&pParam->pSizes[i], 1, pHash[setIndex]);
 					}
 				}
 			}
@@ -5234,15 +5415,15 @@ namespace vk {
 	{
 		if (pCommandSignature->mDrawType == INDIRECT_DRAW)
 		{
-			if (pCounterBuffer && gAMDDrawIndirectCountExtension)
-				vkCmdDrawIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
+			if (pCounterBuffer && pfnVkCmdDrawIndirectCountKHR)
+				pfnVkCmdDrawIndirectCountKHR(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 			else
 				vkCmdDrawIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 		}
 		else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
 		{
-			if (pCounterBuffer && gAMDDrawIndirectCountExtension)
-				vkCmdDrawIndexedIndirectCountAMD(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
+			if (pCounterBuffer && pfnVkCmdDrawIndexedIndirectCountKHR)
+				pfnVkCmdDrawIndexedIndirectCountKHR(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 			else
 				vkCmdDrawIndexedIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mDrawCommandStride);
 		}

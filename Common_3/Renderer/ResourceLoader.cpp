@@ -27,6 +27,15 @@
 #include "../OS/Interfaces/ILogManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
 
+//this is needed for unix as PATH_MAX is defined intead of MAX_PATH
+#ifndef _WIN32
+//linux needs limits.h for PATH_MAX
+#ifdef LINUX
+#include<limits.h> 
+#endif
+#define MAX_PATH PATH_MAX
+#endif
+
 // buffer functions
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
@@ -432,6 +441,11 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 		desc.mHostVisible = false;
 		desc.mNodeIndex = pTextureFileDesc->mNodeIndex;
 
+		wchar_t debugName[MAX_PATH] = {};
+		String filename = FileSystem::GetFileNameAndExtension(img.GetName());
+		mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
+		desc.pDebugName = debugName;
+
 		addTexture(pLoader->pRenderer, &desc, pTextureFileDesc->ppTexture);
 
 		// Only need transition for vulkan and durango since resource will auto promote to copy dest on copy queue in PC dx12
@@ -449,6 +463,10 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 			TextureBarrier postCopyBarrier = { *pTextureFileDesc->ppTexture, util_determine_resource_start_state(desc.mUsage) };
 			cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
 		}
+	}
+	else
+	{
+		*pTextureFileDesc->ppTexture = NULL;
 	}
 
 	img.Destroy();
@@ -485,6 +503,11 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 	desc.mSrgb = pTextureImage->mSrgb;
 	desc.mHostVisible = false;
 	desc.mNodeIndex = pTextureImage->mNodeIndex;
+
+	wchar_t debugName[MAX_PATH] = {};
+	String filename = FileSystem::GetFileNameAndExtension(img.GetName());
+	mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
+	desc.pDebugName = debugName;
 
 	addTexture(pLoader->pRenderer, &desc, pTextureImage->ppTexture);
 
@@ -1238,7 +1261,14 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 		break;
 	}
 
-	String binaryShaderName = FileSystem::GetProgramDir() + "/" + pRenderer->pName + String("/") + rendererApi + String("/CompiledShadersBinary/") +
+	String appName(pRenderer->pName);
+#ifdef LINUX
+
+	String lowerStr = appName.to_lower();
+	appName = lowerStr!=pRenderer->pName ? lowerStr : lowerStr+"_";
+#endif
+	
+	String binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + String("/") + rendererApi + String("/CompiledShadersBinary/") +
 		FileSystem::GetFileName(fileName) + String::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
 #endif
 

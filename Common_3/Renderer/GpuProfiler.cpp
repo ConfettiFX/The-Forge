@@ -122,7 +122,7 @@ double getAverageCpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 	if (elapsedTime < 0)
 		elapsedTime = 0;
 
-	return (elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / pGpuProfiler->mCpuTimeStampFrequency;
+	return ((double)elapsedTime / GpuTimer::LENGTH_OF_HISTORY);
 }
 
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, uint32_t maxTimers)

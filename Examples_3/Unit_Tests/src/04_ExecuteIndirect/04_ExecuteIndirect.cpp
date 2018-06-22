@@ -224,6 +224,7 @@ tinystl::vector<Subset>	gAsteroidSubsets;
 ThreadData				gThreadData[gNumSubsets];
 Texture*				pAsteroidTex = NULL;
 bool					gUseThreads = true;
+bool					gToggleVSync = false;
 int						gRenderingMode = RenderingMode_GPUUpdate;
 int						gPreviousRenderingMode = gRenderingMode;
 
@@ -365,6 +366,9 @@ public:
 	{
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -386,7 +390,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -670,7 +674,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
@@ -691,6 +695,11 @@ public:
 		UIProperty renderingModeProp = UIProperty("Rendering Mode: ", gRenderingMode, enumNames, enumValues);
 		UIProperty useThreadsProp = UIProperty("Multithreaded CPU Update", gUseThreads);
 		UIProperty paniniProp = UIProperty("Enable Panini Projection", gbPaniniEnabled);
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
+		pGui->AddProperty(vsyncProp);
+#endif
 
 		pGui->AddProperty(renderingModeProp);
 		pGui->AddProperty(useThreadsProp);
@@ -954,6 +963,13 @@ public:
 
 	void Update(float deltaTime)
 	{
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		{
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+#endif
+
 		frameTime = deltaTime;
 
 #if USE_CAMERACONTROLLER
@@ -1341,9 +1357,9 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_04_ExecuteIndirect";
+		return "04_ExecuteIndirect";
 	}
-
+	
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
@@ -1357,7 +1373,7 @@ public:
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
-
+		
 		return pSwapChain != NULL;
 	}
 

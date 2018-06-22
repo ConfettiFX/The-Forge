@@ -124,7 +124,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
@@ -152,7 +152,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -184,7 +184,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
@@ -216,7 +216,7 @@
       <AdditionalDependencies>assimp.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp-vc140-mt.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

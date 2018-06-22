@@ -376,8 +376,11 @@ uint32_t testingMaxFrameCount = 120;
         pApp->pWindow = &gCurrentWindow;
         
         @autoreleasepool {
-            pApp->Init();
-			pApp->Load();
+            if(!pApp->Init())
+				exit(0);
+			
+			if(!pApp->Load())
+				exit(0);
         }
     }
     

@@ -253,7 +253,6 @@ void sleep(unsigned mSec);
 
 // High res timer functions
 int64_t getUSec();
-int64_t getMSec();
 int64_t getTimerFrequency();
 
 //

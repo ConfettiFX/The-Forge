@@ -44,7 +44,7 @@ cbuffer cbObject : register(b1) {
 	float4x4 worldMat;
 	float roughness;
 	float metalness;
-	int pbrMaterials;
+	int objectId;
 }
 
 cbuffer cbLights : register(b2) {
@@ -161,7 +161,7 @@ float4 main(VSOutput input) : SV_TARGET
 
 	float3 N = normalize(input.normal);
 
-	if(pbrMaterials!=-1) {
+	if(objectId!=-1) {
 
 		 N = getNormalFromMap(input.uv ,input.pos,input.normal);
 		 float3 val = albedoMap.Sample(defaultSampler,input.uv).rgb;
@@ -169,17 +169,17 @@ float4 main(VSOutput input) : SV_TARGET
 		_metalness   = metallicMap.Sample(defaultSampler, input.uv).r;
 		_roughness = roughnessMap.Sample( defaultSampler, input.uv).r;
 		ao =   aoMap.Sample(defaultSampler, input.uv).r;
+
+		if(objectId==2) {
+	
+			albedo  = float3(0.1f, 0.1f, 0.1f);
+			_roughness = 2.0f; 
+		}else if(objectId==3) {
+			albedo  = float3(0.8f, 0.1f, 0.1f);
+		}
 	}
 
-
-	if(pbrMaterials==2) {
-		
-		//N = normalize(normal);
-		albedo  = float3(0.7f, 0.7f, 0.7f);
-		//_roughness = roughness;
-		//_metalness = metalness;
-		ao = 1.0f;//texture(sampler2D(aoMap, defaultSampler), uv).r;
-	}
+	
 
 	float3 V = normalize(camPos - input.pos);
 	float3 R = reflect(-V, N);

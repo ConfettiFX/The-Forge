@@ -881,14 +881,7 @@ int64_t getUSec()
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
-	return counter.QuadPart;
-}
-
-int64_t getMSec()
-{
-	LARGE_INTEGER curr;
-	QueryPerformanceCounter(&curr);
-	return curr.QuadPart * (int64_t)1e3;
+	return counter.QuadPart * (int64_t)1e6 / getTimerFrequency();
 }
 
 int64_t getTimerFrequency()

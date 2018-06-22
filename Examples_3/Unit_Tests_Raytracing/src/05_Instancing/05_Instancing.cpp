@@ -92,7 +92,7 @@ public:
 
 		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler);
 
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		/************************************************************************/
 		// 02 Creation Acceleration Structure
 		/************************************************************************/

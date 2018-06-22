@@ -1,0 +1,89 @@
+/*
+* Copyright (c) 2018 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#version 450 core
+
+const float Pi = 3.14159265359;
+const int SampleCount = 1024;
+
+
+layout(set = 0, binding = 0) uniform texture2D srcTexture;
+
+layout(std430, set = 0, binding = 1) buffer dstBuffer
+{
+	vec4 storeVal[];
+};
+
+layout(set = 0, binding = 2) uniform sampler skyboxSampler;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+const vec2 invAtan = vec2(0.1591f, 0.3183f);
+const uint nMips = 11;
+const uint maxSize = 1024;
+
+void main()
+{
+	uvec3 threadPos = gl_GlobalInvocationID;
+
+	uint pixelOffset = 0;
+	for (uint mip = 0; mip < nMips; mip++)
+	{
+		uint mipSize = maxSize >> mip;
+		if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
+
+		vec2 texcoords = vec2(float(threadPos.x + 0.5) / mipSize, 1.0f - float(threadPos.y + 0.5) / mipSize);
+		vec3 sphereDir;
+		if (threadPos.z <= 0) {
+			sphereDir = normalize(vec3(0.5, -(texcoords.y - 0.5), -(texcoords.x - 0.5)));
+		}
+		else if (threadPos.z <= 1) {
+			sphereDir = normalize(vec3(-0.5, -(texcoords.y - 0.5), texcoords.x - 0.5));
+		}
+		else if (threadPos.z <= 2) {
+			sphereDir = normalize(vec3(texcoords.x - 0.5, -0.5, -(texcoords.y - 0.5)));
+		}
+		else if (threadPos.z <= 3) {
+			sphereDir = normalize(vec3(texcoords.x - 0.5, 0.5, texcoords.y - 0.5));
+		}
+		else if (threadPos.z <= 4) {
+			sphereDir = normalize(vec3(texcoords.x - 0.5, -(texcoords.y - 0.5), 0.5));
+		}
+		else if (threadPos.z <= 5) {
+			sphereDir = normalize(vec3(-(texcoords.x - 0.5), -(texcoords.y - 0.5), -0.5));
+		}
+
+		vec2 panoUVs = vec2(atan(sphereDir.z, sphereDir.x), asin(sphereDir.y));
+		panoUVs *= invAtan;
+		panoUVs += 0.5f;
+
+		vec4 outColor = texture(sampler2D(srcTexture, skyboxSampler), panoUVs);
+
+		pixelOffset += threadPos.z * mipSize * mipSize;
+		uint pixelId = pixelOffset + threadPos.y * mipSize + threadPos.x;
+		storeVal[pixelId] = outColor;
+		pixelOffset += (6 - threadPos.z) * mipSize * mipSize;
+	}
+
+}

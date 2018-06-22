@@ -154,6 +154,9 @@ public:
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -169,7 +172,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer);
-		initDebugRendererInterface(pRenderer, NULL);
+		initDebugRendererInterface(pRenderer, NULL, FSRoot(-1));
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		finishResourceLoading();
@@ -184,11 +187,11 @@ public:
 		fontRoot = FSRoot::FSR_Absolute;
 #endif
 
-		gFonts.titilliumBold = addDebugFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", fontRoot));
-		gFonts.comicRelief = addDebugFont(FileSystem::FixPath("ComicRelief/ComicRelief.ttf", fontRoot));
-		gFonts.crimsonSerif = addDebugFont(FileSystem::FixPath("Crimson/Crimson-Roman.ttf", fontRoot));
-		gFonts.monoSpace = addDebugFont(FileSystem::FixPath("InconsolataLGC/Inconsolata-LGC.ttf", fontRoot));
-		gFonts.monoSpaceBold = addDebugFont(FileSystem::FixPath("InconsolataLGC/Inconsolata-LGC-Bold.ttf", fontRoot));
+		gFonts.titilliumBold = addDebugFont("TitilliumText/TitilliumText-Bold.ttf", fontRoot);
+		gFonts.comicRelief = addDebugFont("ComicRelief/ComicRelief.ttf", fontRoot);
+		gFonts.crimsonSerif = addDebugFont("Crimson/Crimson-Roman.ttf", fontRoot);
+		gFonts.monoSpace = addDebugFont("InconsolataLGC/Inconsolata-LGC.ttf", fontRoot);
+		gFonts.monoSpaceBold = addDebugFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", fontRoot);
 
 		requestMouseCapture(false);
 
@@ -460,7 +463,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_05_FontRendering";
+		return "05_FontRendering";
 	}
 
 	bool addSwapChain()

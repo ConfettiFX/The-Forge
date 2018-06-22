@@ -56,6 +56,18 @@ void ReflectBoundResources(
       resource.binding = pCompiler->get_decoration(resource.SPIRV_code.id, spv::DecorationBinding);
 
       spirv_cross::SPIRType type = pCompiler->get_type(resource.SPIRV_code.type_id);
+
+	  // Special case for textureBuffer / imageBuffer
+	  // textureBuffer is considered as separate image  with dimension buffer in SpirV but they require a buffer descriptor of type uniform texel buffer
+	  // imageBuffer is considered as storage image with dimension buffer in SpirV but they require a buffer descriptor of type storage texel buffer
+	  if (type.image.dim == spv::Dim::DimBuffer)
+	  {
+		  if (spriv_type == SPIRV_TYPE_IMAGES)
+			resource.type = SPIRV_TYPE_UNIFORM_TEXEL_BUFFERS;
+		  else if (spriv_type == SPIRV_TYPE_STORAGE_IMAGES)
+			  resource.type = SPIRV_TYPE_STORAGE_TEXEL_BUFFERS;
+	  }
+
       //if(spriv_type != SPIRV_TYPE_UNIFORM_BUFFERS)
       {
          if(type.array.size())

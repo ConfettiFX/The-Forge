@@ -216,9 +216,9 @@ class File : public Deserializer, public Serializer
 public:
 	File();
 
-	bool Open(const String& fileName, FileMode mode, FSRoot root);
-	void Close();
-	void Flush();
+	virtual bool Open(const String& fileName, FileMode mode, FSRoot root);
+	virtual void Close();
+	virtual void Flush();
 
 	unsigned Read(void* dest, unsigned size) override;
 	unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) override;
@@ -226,14 +226,13 @@ public:
 
 	String ReadText();
 
-	unsigned GetChecksum() override;
-
-	const String& GetName() const override { return mFileName; }
-	FileMode GetMode() const { return mMode; }
-	bool IsOpen() const { return pHandle != NULL; }
-	bool IsReadOnly() const { return mMode == FileMode::FM_Read || mMode == FileMode::FM_ReadBinary; }
-	bool IsWriteOnly() const { return mMode == FileMode::FM_Write || mMode == FileMode::FM_WriteBinary; }
-	void* GetHandle() const { return pHandle; }
+	virtual unsigned GetChecksum() override;
+	virtual const String& GetName() const override { return mFileName; }
+	virtual FileMode GetMode() const { return mMode; }
+	virtual bool IsOpen() const { return pHandle != NULL; }
+	virtual bool IsReadOnly() const { return mMode == FileMode::FM_Read || mMode == FileMode::FM_ReadBinary; }
+	virtual bool IsWriteOnly() const { return mMode == FileMode::FM_Write || mMode == FileMode::FM_WriteBinary; }
+	virtual void* GetHandle() const { return pHandle; }
 
 protected:
 	String mFileName;
@@ -286,6 +285,7 @@ public:
 	static String	GetProgramDir() { return GetPath(_getExePath()); }
 	static String	GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
 	static String	GetAppPreferencesDir(const String& org, const String& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
+	static void		GetFilesWithExtension(const String& dir, const String& ext, tinystl::vector<String>& files);
 
 	static void		SetCurrentDir(const String& path) { _setCurrentDir(path.c_str()); }
 

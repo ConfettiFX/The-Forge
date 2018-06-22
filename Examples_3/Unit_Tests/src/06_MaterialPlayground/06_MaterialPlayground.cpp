@@ -107,9 +107,10 @@ LogManager gLogManager;
 
 
 #define MAX_IN_ROW  4
-#define TOTAL_SPHERE 16
+#define TOTAL_OBJECTS 5
 
 #define LOAD_MATERIAL_BALL
+#define TOTAL_TEXTURES 25
 
 struct Vertex {
     float3 mPos;
@@ -130,7 +131,7 @@ struct UniformObjData
 	mat4 mWorldMat;
 	float mRoughness = 0.04f;
 	float mMetallic = 0.0f;
-	int pbrMaterials = -1;
+	int objectId = -1;
 };
 
 struct Light
@@ -150,15 +151,43 @@ struct UniformLightData
 	int mCurrAmountOfLights = 0;
 };
 
+//To Show dynamic properties
+struct DynamicUiProp {
+	
+	DynamicUIControls mUIControl;
+	bool bShow;
+	bool bDirty;
+	
+	DynamicUiProp() {
+		bShow = false;
+		bDirty = true;
+	}
+	
+	void Update(GuiComponent* pGui) {
+		
+		if(bDirty == bShow) {
+			
+			return;
+		}
+		
+		bDirty = bShow;
+		bShow == true ? mUIControl.ShowDynamicProperties(pGui) : mUIControl.HideDynamicProperties(pGui);
+	}
+};
+
 
 const uint32_t				gImageCount = 3;
 
 Renderer*					pRenderer = NULL;
 UIApp						gAppUI;
+GuiComponent*			    pGui;
 
 Queue*						pGraphicsQueue = NULL;
 CmdPool*					pCmdPool = NULL;
 Cmd**						ppCmds = NULL;
+
+CmdPool*					pUICmdPool = NULL;
+Cmd**						ppUICmds = NULL;
 
 SwapChain*					pSwapChain = NULL;
 
@@ -182,14 +211,14 @@ Texture*					pIrradianceMap = NULL;
 Texture*					pSpecularMap = NULL;
 
 //added
-Texture*			        pMaterialTextures[5*TOTAL_SPHERE];
+Texture*			        pMaterialTextures[TOTAL_TEXTURES];
 
 #ifdef TARGET_IOS
 Texture*					pVirtualJoystickTex = NULL;
 #endif
 
 UniformObjData				pUniformDataMVP;
-
+DynamicUiProp 				gMetalSelector;
 
 /************************************************************************/
 // Vertex buffers for the model
@@ -201,9 +230,12 @@ Buffer*						pSurfaceVertexBufferPosition = NULL;
 Buffer*						pSurfaceIndexBuffer = NULL;
 Buffer* 					pSurfaceBuffer = NULL;
 
-Buffer*						pBufferUniformCamera;
-Buffer*                     pBufferUniformCameraSky;
-UniformCamData				pUniformDataCamera;
+tinystl::vector<Buffer*>	gPlateBuffers;
+
+Buffer*						pBufferUniformCamera[gImageCount] = { NULL };
+Buffer*                     pBufferUniformCameraSky[gImageCount] = { NULL };
+UniformCamData				gUniformDataCamera;
+UniformCamData				gUniformDataSky;
 
 Buffer*						pBufferUniformLights;
 UniformLightData			pUniformDataLights;
@@ -214,26 +246,27 @@ Pipeline*					pPipelinePostProc = NULL;
 DepthState*					pDepth = NULL;
 RasterizerState*			pRasterstateDefault = NULL;
 Sampler*					pSamplerBilinear = NULL;
-Sampler*                    pSamplerLinear = NULL;
+Sampler*					pSamplerLinear = NULL;
 
 // Vertex buffers
 Buffer*						pSphereVertexBuffer = NULL;
 
 uint32_t					gFrameIndex = 0;
 
-
 GpuProfiler*				pGpuProfiler = NULL;
 
-BlendState*						pBlendStateOneZero = nullptr;
+BlendState*					pBlendStateOneZero = nullptr;
 
+//for toggling VSync
+bool						gToggleVSync = false;
 
 const int					gSphereResolution = 30; // Increase for higher resolution spheres
 const float					gSphereDiameter = 0.5f;
 int							gNumOfSpherePoints;
 
 // How many objects in x and y direction
-const int					gAmountObjectsinX = 4;//TOTAL_SPHERE < MAX_IN_ROW ? TOTAL_SPHERE : MAX_IN_ROW;
-const int					gAmountObjectsinY = 4;//TOTAL_SPHERE <=MAX_IN_ROW ? 1 : ceil(TOTAL_SPHERE/(float)MAX_IN_ROW);
+const int					gAmountObjectsinX = 5;
+const int					gAmountObjectsinY = 1;
 
 // PBR Texture values (these values are mirrored on the shaders).
 const uint32_t gBRDFIntegrationSize = 512;
@@ -244,38 +277,89 @@ const uint32_t gSpecularSize = 128;
 const uint32_t gSpecularMips = 5;
 
 tinystl::vector<Buffer*>	gSphereBuffers;
+tinystl::vector<UniformObjData> gUniformMVPs;
 
 ICameraController*			pCameraController = NULL;
 
 DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+DebugTextDrawDesc gMaterialPropDraw = DebugTextDrawDesc(0, 0xff00ffff, 25);
 
 int gTotalIndices = 0;
 int gSurfaceIndices =0;
 
+tinystl::vector<String> gMaterialNames;
+
+enum {
+	
+	Default_Mat=0,
+	Metal_Mat,
+	TotalMaterial
+};
+
+enum {	
+	Default_Albedo=-1,
+	RustedIron,
+	Copper,
+	Titanium,
+	GreasedMetal,
+	Plastic,
+	Gold,
+	TotalMetals
+};
+
+static const char* matEnumNames[] = {
+	"Default", 
+	"Metal",
+	NULL
+};
+
+static const int matEnumValues[] = {
+	Default_Mat,
+	Metal_Mat,
+	0
+};		
+		
 const char*		pTextureName[] =
 {
-	
 	"albedoMap",
 	"normalMap",
 	"metallicMap",
 	"roughnessMap",
 	"aoMap"
 };
+
 				
 const char*		gModelName =  "matBall.obj";
 const char*		gSurfaceModelName =  "cube.obj";
 
 #define ATTACH_TEXTURES
 //5 textures per pbr material
-#define TOTAL_IMGS 5
-const char*		pMaterialImageFileNames[] =
-{
-	"rusted_iron/albedo.png",
-	"rusted_iron/normal.png",
-	"rusted_iron/metallic.png",
-	"rusted_iron/roughness.png",
-	"rusted_iron/ao.png"
+#define TEXTURE_COUNT 5
+
+static const char* metalEnumNames[] = {
+	"Rusted Iron",
+	"Copper",
+	"Greased Metal",
+	"Gold", 
+	"Titanium",
+	NULL
+};	
+
+static const int metalEumValues[] = {
+	RustedIron,
+	Copper,
+	GreasedMetal,
+	Gold,
+	Titanium,
+	0
 };
+
+int gMaterialType = Default_Mat;
+int gMetalMaterial  = RustedIron;
+
+mat4 gTextProjView;
+tinystl::vector<mat4> gTextWorldMats;
+
 
 void transitionRenderTargets()
 {
@@ -367,7 +451,7 @@ void computePBRMaps()
     skyboxBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 #ifndef METAL
     skyboxBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-    skyboxBufferDesc.mDesc.mElementCount = skyboxSize;
+    skyboxBufferDesc.mDesc.mElementCount = skyboxSize / skyboxBufferDesc.mDesc.mStructStride;
     skyboxBufferDesc.mDesc.mSize = skyboxBufferDesc.mDesc.mStructStride * skyboxBufferDesc.mDesc.mElementCount;
 #else
     skyboxBufferDesc.mDesc.mStructStride = sizeof(float);
@@ -563,6 +647,39 @@ void computePBRMaps()
 }
 
 
+//loadTexture Names
+//Add Texture names here
+
+void loadTextureNames() {
+
+	//load Metal
+	gMaterialNames.push_back("rusted_iron/albedo.png");
+	gMaterialNames.push_back("rusted_iron/normal.png");
+	gMaterialNames.push_back("rusted_iron/metallic.png");
+	gMaterialNames.push_back("rusted_iron/roughness.png");
+	gMaterialNames.push_back("rusted_iron/ao.png");
+	gMaterialNames.push_back("copper/albedo.png");
+	gMaterialNames.push_back("copper/normal.png");
+	gMaterialNames.push_back("copper/metallic.png");
+	gMaterialNames.push_back("copper/roughness.png");
+	gMaterialNames.push_back("copper/ao.png");
+	gMaterialNames.push_back("grease/albedo.png");
+	gMaterialNames.push_back("grease/normal.png");
+	gMaterialNames.push_back("grease/metallic.png");
+	gMaterialNames.push_back("grease/roughness.png");
+	gMaterialNames.push_back("grease/ao.png");
+	gMaterialNames.push_back("gold/albedo.png");
+	gMaterialNames.push_back("gold/normal.png");
+	gMaterialNames.push_back("gold/metallic.png");
+	gMaterialNames.push_back("gold/roughness.png");
+	gMaterialNames.push_back("gold/ao.png");
+	
+	gMaterialNames.push_back("titanium/albedo.png");
+	gMaterialNames.push_back("titanium/normal.png");
+	gMaterialNames.push_back("titanium/metallic.png");
+	gMaterialNames.push_back("titanium/roughness.png");
+	gMaterialNames.push_back("titanium/ao.png");
+}
 //loadModels
 void loadModels()
 {
@@ -635,7 +752,6 @@ void loadModels()
 	vbPosDesc1.ppBuffer = &pSurfaceVertexBufferPosition;
 	vbPosDesc1.mDesc.pDebugName = L"Surface Vertex Position Buffer Desc";
 	addResource(&vbPosDesc1);
-
 }
 
 // Generates an array of vertices and normals for a sphere
@@ -725,15 +841,6 @@ void createSpherePoints(Vertex **ppPoints, int *pNumberOfPoints, int numberOfDiv
 		vertex.mPos = float3(vertices[i].getX(), vertices[i].getY(), vertices[i].getZ());
 		vertex.mNormal= float3(normals[i].getX(), normals[i].getY(), normals[i].getZ());
 		
-		/*  (*ppPoints)[i * 8 + 6] = uv.getX();
-		(*ppPoints)[i * 8 + 7] = uv.getY();*/
-
-
-		/*    θ = atan 2(N .Y ,N . X)
-		ϕ = acos(N .Z)
-		(u , v) = (θ/2π ,ϕ / π)
-		*/
-
 		float theta = atan2f(normals[i].getY(), normals[i].getX());
 		float phi = acosf(normals[i].getZ());
 
@@ -741,10 +848,6 @@ void createSpherePoints(Vertex **ppPoints, int *pNumberOfPoints, int numberOfDiv
 		vertex.mUv.y = (phi / PI);
 
 		(*ppPoints)[i] = vertex;
-		//uv for each vertex
-		// (*ppPoints)[i * 8 + 6] = normal.getX()/2 + 0.5f;
-		//(*ppPoints)[i * 8 + 7] = normal.getY()/2 + 0.5f;
-
 	}
 }
 
@@ -753,8 +856,13 @@ class MaterialPlayground : public IApp
 public:
 	bool Init()
 	{
+
+		loadTextureNames();
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -763,6 +871,9 @@ public:
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
 
+		addCmdPool(pRenderer, pGraphicsQueue, false, &pUICmdPool);
+		addCmd_n(pUICmdPool, false, gImageCount, &ppUICmds);
+		
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			addFence(pRenderer, &pRenderCompleteFences[i]);
@@ -771,11 +882,10 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
-		
-		tinystl::vector<Image> toLoad(TOTAL_IMGS);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+        
         //adding material textures
-        for(int i = 0 ; i <TOTAL_IMGS ; ++i) 
+        for(int i = 0 ; i <gMaterialNames.size(); ++i)
         {
             TextureLoadDesc textureDesc = {};
 #ifndef TARGET_IOS
@@ -783,14 +893,8 @@ public:
 #else
             textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
 #endif
-			toLoad[i].loadImage(pMaterialImageFileNames[i],true);
-			
-#ifdef TARGET_IOS
-			if(toLoad[i].getFormat() == ImageFormat::RGBA8)
-				toLoad[i].Convert(ImageFormat::BGRA8);
-#endif
 			textureDesc.mUseMipmaps = true;
-			textureDesc.pImage = &toLoad[i];
+			textureDesc.pFilename = gMaterialNames[i].c_str();
             textureDesc.ppTexture = &pMaterialTextures[i];
             addResource(&textureDesc, true);
         }
@@ -865,6 +969,16 @@ public:
 		buffDesc.pData = NULL;
 		buffDesc.ppBuffer = &pSurfaceBuffer;
 		addResource(&buffDesc);
+		
+		//for matballs
+		for(int i = 0 ; i <TOTAL_OBJECTS ; ++i) {
+			
+			Buffer* buff = NULL;
+			buffDesc.ppBuffer = &buff;
+			addResource(&buffDesc);
+			gPlateBuffers.push_back(buff);
+		}
+		
 #else
 		uint64_t sphereDataSize = gNumOfSpherePoints * sizeof(Vertex);
 
@@ -963,10 +1077,13 @@ public:
 		ubCamDesc.mDesc.mSize = sizeof(UniformCamData);
 		ubCamDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT; // not sure if persistent mapping is needed here
 		ubCamDesc.pData = NULL;
-		ubCamDesc.ppBuffer = &pBufferUniformCamera;
-		addResource(&ubCamDesc);
-        ubCamDesc.ppBuffer = &pBufferUniformCameraSky;
-        addResource(&ubCamDesc);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubCamDesc.ppBuffer = &pBufferUniformCamera[i];
+			addResource(&ubCamDesc);
+			ubCamDesc.ppBuffer = &pBufferUniformCameraSky[i];
+			addResource(&ubCamDesc);
+		}
 
 		// Uniform buffer for light data
 		BufferLoadDesc ubLightsDesc = {};
@@ -983,18 +1100,19 @@ public:
 		// prepare resources
 
 		// Update the uniform buffer for the objects
-        float baseX = 2.5f;
+        float baseX = 4.5f;
         float baseY = -4.5f;
 		float baseZ = 9.0f;
 		float offsetX = 0.1f;
 		float offsetY = 0.0f;
-		float offsetZ = 5.0f;
+		float offsetZ = 10.0f;
 		float scaleVal = 1.0f;
 		int y =0;
 		int x = 0;
+		float roughDelta = 1.0f;
 #ifdef LOAD_MATERIAL_BALL
-        baseX = 8.0f;
-        offsetX = 5.0f;
+        baseX = 17.0f;
+        offsetX = 8.0f;
 		offsetY = 1.5f;
 		scaleVal = 1.5f;//0.2
 #endif
@@ -1004,36 +1122,51 @@ public:
 			{
 				
 #ifdef LOAD_MATERIAL_BALL
-				mat4 modelmat = mat4::translation(vec3(baseX - x - offsetX * x, baseY, baseZ - y - offsetZ * y)) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
+				mat4 modelmat = mat4::translation(vec3(baseX - x - offsetX * x, baseY, baseZ - y - offsetZ*y )) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
 #else
 				mat4 modelmat = mat4::translation(vec3(baseX - x - offsetX * x, baseY + y + offsetY * y, 0.0f)) * mat4::scale(vec3(scaleVal));
 #endif
 				pUniformDataMVP.mWorldMat = modelmat;
 				pUniformDataMVP.mMetallic = x / (float)gAmountObjectsinX;
-				pUniformDataMVP.mRoughness = y / (float)gAmountObjectsinY + 0.04f;
-				pUniformDataMVP.pbrMaterials = 1;
+				pUniformDataMVP.mRoughness = y / (float)gAmountObjectsinY + 0.04f + roughDelta;
+				pUniformDataMVP.objectId = -1;
 				int comb = x + y * gAmountObjectsinX;
 				//if not enough materials specified then set pbrMaterials to -1
-				if(comb>=TOTAL_IMGS/5) {
-					pUniformDataMVP.pbrMaterials = -1;
-				}
+
 #if !defined(ATTACH_TEXTURES)
 	pUniformDataMVP.pbrMaterials = -1;
 #endif
+
+				gUniformMVPs.push_back(pUniformDataMVP);
 				BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[(x + y * gAmountObjectsinX)], &pUniformDataMVP };
 				updateResource(&objBuffUpdateDesc);
+				roughDelta -= .25f;
+{			
+				//plates
+				modelmat = mat4::translation(vec3(baseX - x - offsetX * x, -5.9f, baseZ - y - offsetZ*y+3)) * mat4::scale(vec3(3.0f, 0.1f, 1.0f));
+				pUniformDataMVP.mWorldMat = modelmat;
+				pUniformDataMVP.mMetallic = 1;
+				pUniformDataMVP.mRoughness =  1.1f;
+				pUniformDataMVP.objectId = 3;
+				BufferUpdateDesc objBuffUpdateDesc1 = { gPlateBuffers[comb], &pUniformDataMVP };
+				updateResource(&objBuffUpdateDesc1);
 				
+				//text
+				gTextWorldMats.push_back(mat4::translation(vec3(baseX - x - offsetX * x, -6.8f, baseZ - y - offsetZ*y +3))*mat4::rotationX(-PI/2)*mat4::scale(vec3(16.0f, 10.0f, 1.0f)));
+}
 			}
 		}
 		
 #ifdef LOAD_MATERIAL_BALL
+		//surface
 		mat4 modelmat = mat4::translation(vec3(0.0f, -6.0f, 0.0f)) * mat4::scale(vec3(50.0f, 0.2f, 40.0f));
 		pUniformDataMVP.mWorldMat = modelmat;
 		pUniformDataMVP.mMetallic = 0;
 		pUniformDataMVP.mRoughness =  0.04f;
-		pUniformDataMVP.pbrMaterials = 2;
+		pUniformDataMVP.objectId = 2;
 		BufferUpdateDesc objBuffUpdateDesc = { pSurfaceBuffer, &pUniformDataMVP };
 		updateResource(&objBuffUpdateDesc);
+	
 #endif
 		
 		// Add light to scene
@@ -1073,14 +1206,34 @@ public:
 
 		// Create UI
 		if (!gAppUI.Init(pRenderer))
+			return false;
 	
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
+	    GuiDesc guiDesc = {};
+		guiDesc.mStartSize = vec2(300.0f, 200.0f);
+		guiDesc.mStartPosition = vec2(300.0f, guiDesc.mStartSize.getY());
+		pGui = gAppUI.AddGuiComponent("Select Material", &guiDesc);
+		
+		/************************************************************************/
+		/************************************************************************/
+		UIProperty materialTypeProp = UIProperty("Material : ", gMaterialType, matEnumNames, matEnumValues);
+		pGui->AddProperty(materialTypeProp);
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
+		pGui->AddProperty(vsyncProp);
+#endif
+
+		UIProperty pbrMaterialProp = UIProperty("Sub Type: ", gMetalMaterial, metalEnumNames, metalEumValues);
+		gMetalSelector.mUIControl.mDynamicProperties.push_back(pbrMaterialProp);
+		//gMetalSelector.mUIControl.ShowDynamicProperties(pGui);
+		
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
 		
 #ifdef LOAD_MATERIAL_BALL
-		vec3 camPos{ 0.0f, 0.0f, 25.0f };
+		vec3 camPos{ 0.0f, 8.0f, 30.0f };
 #else
 		vec3 camPos{ 0.0f, 0.0f, 10.0f };
 #endif
@@ -1139,8 +1292,12 @@ public:
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
-        removeResource(pBufferUniformCameraSky);
-        removeResource(pBufferUniformCamera);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pBufferUniformCameraSky[i]);
+			removeResource(pBufferUniformCamera[i]);
+		}
+
 		removeResource(pBufferUniformLights);
         removeResource(pSkyboxVertexBuffer);
         
@@ -1150,6 +1307,10 @@ public:
         removeResource(pVertexBufferPosition);
 		
 		removeResource(pSurfaceBuffer);
+		for(int j = 0 ; j < TOTAL_OBJECTS ; ++j) {
+			
+			removeResource(gPlateBuffers[j]);
+		}
 		removeResource(pSurfaceVertexBufferPosition);
 		
 #else
@@ -1174,12 +1335,15 @@ public:
         removeRootSignature(pRenderer, pSkyboxRootSignature);
 
 		// Remove commands and command pool&
+		removeCmd_n(pUICmdPool, gImageCount, ppUICmds);
+		removeCmdPool(pRenderer, pUICmdPool);
+		
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 		removeQueue(pGraphicsQueue);
 		
 		
-		for (uint i = 0; i < TOTAL_IMGS; ++i)
+		for (uint i = 0; i < gMaterialNames.size(); ++i)
             removeResource(pMaterialTextures[i]);
 
 		// Remove resource loader and renderer
@@ -1216,12 +1380,12 @@ public:
 		vertexLayoutSphere.mAttribs[1].mBinding = 0;
 		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float);
 
-    //texture
-    vertexLayoutSphere.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-    vertexLayoutSphere.mAttribs[2].mFormat = ImageFormat::RG32F;
-    vertexLayoutSphere.mAttribs[2].mLocation = 2;
-    vertexLayoutSphere.mAttribs[2].mBinding = 0;
-    vertexLayoutSphere.mAttribs[2].mOffset = 6 * sizeof(float); // first attribute contains 3 floats
+		//texture
+		vertexLayoutSphere.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutSphere.mAttribs[2].mFormat = ImageFormat::RG32F;
+		vertexLayoutSphere.mAttribs[2].mLocation = 2;
+		vertexLayoutSphere.mAttribs[2].mBinding = 0;
+		vertexLayoutSphere.mAttribs[2].mOffset = 6 * sizeof(float); // first attribute contains 3 floats
 
 		GraphicsPipelineDesc pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -1287,6 +1451,14 @@ public:
 
 	void Update(float deltaTime)
 	{
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		{
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+#endif
+
 #if USE_CAMERACONTROLLER
 #ifndef TARGET_IOS
 #ifdef _DURANGO
@@ -1307,17 +1479,26 @@ public:
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-		pUniformDataCamera.mProjectView = projMat * viewMat;
-		pUniformDataCamera.mCamPos = pCameraController->getViewPosition();
-        
-        BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera, &pUniformDataCamera };
-        updateResource(&camBuffUpdateDesc);
-        
-        viewMat.setTranslation(vec3(0));
-        pUniformDataCamera.mProjectView = projMat * viewMat;
-        
-        BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky, &pUniformDataCamera };
-        updateResource(&skyboxViewProjCbv);
+		gUniformDataCamera.mProjectView = projMat * viewMat;
+		gTextProjView = gUniformDataCamera.mProjectView;
+		gUniformDataCamera.mCamPos = pCameraController->getViewPosition();
+
+		viewMat.setTranslation(vec3(0));
+		gUniformDataSky = gUniformDataCamera;
+		gUniformDataSky.mProjectView = projMat * viewMat;
+
+				
+		int val = -1;
+		gMaterialType == Default_Mat ? (val =-1) : (val=1);
+		for(size_t totalBuf = 0  ; totalBuf < gUniformMVPs.size() ; ++totalBuf) {
+			
+			gUniformMVPs[totalBuf].objectId = val;
+			BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[totalBuf], &gUniformMVPs[totalBuf] };
+			updateResource(&objBuffUpdateDesc);
+		}
+
+		gAppUI.Update(deltaTime);
+		
 	}
 
 	void Draw()
@@ -1325,6 +1506,12 @@ public:
 		// This will acquire the next swapchain image
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+
+		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
+		updateResource(&camBuffUpdateDesc);
+
+		BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky[gFrameIndex], &gUniformDataSky };
+		updateResource(&skyboxViewProjCbv);
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -1335,6 +1522,7 @@ public:
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { 1.0f, 0.0f }; // Clear depth to the far plane and stencil to 0
 
+		tinystl::vector<Cmd*> allCmds;
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
@@ -1352,7 +1540,7 @@ public:
         cmdBindPipeline(cmd, pSkyboxPipeline);
         DescriptorData skyParams[2] = {};
         skyParams[0].pName = "uniformBlock";
-        skyParams[0].ppBuffers = &pBufferUniformCameraSky;
+        skyParams[0].ppBuffers = &pBufferUniformCameraSky[gFrameIndex];
         skyParams[1].pName = "skyboxTex";
         skyParams[1].ppTextures = &pSkybox;
         cmdBindDescriptors(cmd, pSkyboxRootSignature, 2, skyParams);
@@ -1365,7 +1553,7 @@ public:
 		// These params stays the same, we alternate our next param
 		DescriptorData params[13] = {};
 		params[0].pName = "cbCamera";
-		params[0].ppBuffers = &pBufferUniformCamera;
+		params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
 		params[1].pName = "cbLights";
 		params[1].ppBuffers = &pBufferUniformLights;
         params[2].pName = "brdfIntegrationMap";
@@ -1382,30 +1570,36 @@ public:
         params[12].pName = "envSampler";
         params[12].ppSamplers = &pSamplerBilinear;
 #endif
-        //since there are 5 texturesmaps 
-        int totalMaterials = TOTAL_IMGS/5;
-		
+      
+		int matId = 0;
+		//these checks can be be removed if resources are correct
+		gMetalMaterial = gMetalMaterial>=TotalMetals ? Default_Albedo : gMetalMaterial;
+		matId = gMetalMaterial== Default_Albedo? 0 : gMetalMaterial;
+		//matId *= TEXTURE_COUNT;
+		//matId = matId >= gMaterialNames.size() ? gMetalMaterial = matId = 0 : matId;
+
 #ifdef LOAD_MATERIAL_BALL
         Buffer* pVertexBuffers[] = { pVertexBufferPosition };
         cmdBindVertexBuffer(cmd, 1, pVertexBuffers);
 #endif
-
+		
         for (int i = 0; i < gSphereBuffers.size(); ++i)
         {
-            // Add the uniform buffer for every sphere
+            // Add the uniform buffer for eveWry sphere
             params[5].pName = "cbObject";
             params[5].ppBuffers = &gSphereBuffers[i];
-
+			
             //binding pbr material textures
-            for(int j = 0 ; j <5 && i<totalMaterials; ++j) {
+            for(int j = 0 ; j <5; ++j) {
 
                 int index = j+5*i;
-                //added
+				//int index = j+5*matId;
                 params[6+j].pName = pTextureName[j];
-                params[6+j].ppTextures = &pMaterialTextures[index];
+                params[6+j].ppTextures = &pMaterialTextures[matId+index];
+				//params[6+j].ppTextures = &pMaterialTextures[index];
             }
             
-//13 entries on apple becuase we need to bind samplers (2 extra)
+//13 entries on apple because we need to bind samplers (2 extra)
 #ifdef METAL
             //draw sphere
             cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
@@ -1416,6 +1610,7 @@ public:
 #ifdef LOAD_MATERIAL_BALL
 
 			cmdDraw(cmd, gTotalIndices, 0);
+			
 #else
             cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
             cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1);
@@ -1428,8 +1623,14 @@ public:
 
 		params[5].pName = "cbObject";
 		params[5].ppBuffers = &pSurfaceBuffer;
+		
+		for(int j = 0 ; j <5 ; ++j) {
+
+			params[6+j].pName = pTextureName[j];
+			params[6+j].ppTextures = &pMaterialTextures[j];
+		}
         
-//13 entries on apple becuase we need to bind samplers (2 extra)
+//13 entries on apple because we need to bind samplers (2 extra)
 #ifdef METAL
         cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
 #else
@@ -1438,7 +1639,48 @@ public:
        
 		cmdDraw(cmd, gSurfaceIndices, 0);
 #endif
+
+		//draw the label plates
+		if(gMaterialType == Metal_Mat) {
+			
+#ifdef LOAD_MATERIAL_BALL
+
+		for(int j = 0 ; j <5 ; ++j) {
+
+			params[6+j].pName = pTextureName[j];
+			params[6+j].ppTextures = &pMaterialTextures[j+4];
+		}
 		
+		for(int j = 0 ; j < TOTAL_OBJECTS ; ++j) {
+			
+			params[5].pName = "cbObject";
+			params[5].ppBuffers = &gPlateBuffers[j];
+  
+//13 entries on apple because we need to bind samplers (2 extra)
+#ifdef METAL
+			cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
+#else
+			cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
+#endif
+       
+			cmdDraw(cmd, gSurfaceIndices, 0);
+#endif		
+			}		
+		}
+
+		
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppUICmds[gFrameIndex];
+		beginCmd(cmd);
+
+		// Prepare UI command buffers
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+
+
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
@@ -1463,24 +1705,36 @@ public:
 		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
 		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
 #endif
-
+		//draw text
+#ifdef LOAD_MATERIAL_BALL		
+		if(gMaterialType == Metal_Mat) {
+			
+			for(int i = 0 ; i< TOTAL_OBJECTS ; ++i) {
+				
+				drawDebugText(cmd,gTextProjView,gTextWorldMats[i],String::format(metalEnumNames[i]),&gMaterialPropDraw);
+			}
+		}
+#endif
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
 		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 
+		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		//cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
 
 		// Transition our texture to present state
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
+		allCmds.push_back(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		//queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
@@ -1494,7 +1748,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_06_MaterialPlayground";
+		return "06_MaterialPlayground";
 	}
 
 	bool addSwapChain()

@@ -3,14 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		281FA9E520333E2400CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9E420333E2400CD5D9C /* circlepad.png */; };
-		288F63022035A1F300B758DE /* Graph.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F62FF2035A1F300B758DE /* Graph.frag.metal */; };
-		288F63032035A1F300B758DE /* Skybox.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63002035A1F300B758DE /* Skybox.frag.metal */; };
-		288F63042035A1F300B758DE /* Particle.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 288F63012035A1F300B758DE /* Particle.frag.metal */; };
 		288F63052035A85B00B758DE /* Graph.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F62FF2035A1F300B758DE /* Graph.frag.metal */; };
 		288F63062035A86000B758DE /* Particle.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63012035A1F300B758DE /* Particle.frag.metal */; };
 		288F63072035A86400B758DE /* Skybox.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63002035A1F300B758DE /* Skybox.frag.metal */; };
@@ -29,9 +26,6 @@
 		28A5AC34201F5916000E571F /* Palette_Purple.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC29201F5916000E571F /* Palette_Purple.png */; };
 		28A5AC35201F5916000E571F /* Skybox_bottom4.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC2A201F5916000E571F /* Skybox_bottom4.png */; };
 		28A5AC36201F5916000E571F /* Palette_Rainbow.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC2B201F5916000E571F /* Palette_Rainbow.png */; };
-		28A5AC3A201F5927000E571F /* Skybox.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AC37201F5927000E571F /* Skybox.vert.metal */; };
-		28A5AC3B201F5927000E571F /* Graph.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AC38201F5927000E571F /* Graph.vert.metal */; };
-		28A5AC3C201F5927000E571F /* Particle.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AC39201F5927000E571F /* Particle.vert.metal */; };
 		28A5AC4A201F5945000E571F /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AC42201F5945000E571F /* iOSThreadManager.cpp */; };
 		28A5AC4B201F5945000E571F /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AC43201F5945000E571F /* iOSLogManager.cpp */; };
 		28A5AC4D201F5945000E571F /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28A5AC45201F5945000E571F /* iOSFileSystem.mm */; };
@@ -545,7 +539,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0940;
-				ORGANIZATIONNAME = Jesus;
+				ORGANIZATIONNAME = "Confetti-FX";
 				TargetAttributes = {
 					28A5ABFF201F58BF000E571F = {
 						CreatedOnToolsVersion = 9.2;
@@ -560,7 +554,7 @@
 				};
 			};
 			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "03_MultiThread" */;
-			compatibilityVersion = "Xcode 3.2";
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -628,29 +622,23 @@
 				28A5AC68201F5D50000E571F /* 03_MultiThread.cpp in Sources */,
 				28A5AC62201F5989000E571F /* MetalRenderer.mm in Sources */,
 				28A5AC65201F59A5000E571F /* PlatformEvents.cpp in Sources */,
-				28A5AC3B201F5927000E571F /* Graph.vert.metal in Sources */,
 				28A5AC5E201F5986000E571F /* CommonShaderReflection.cpp in Sources */,
 				28A5AC51201F5957000E571F /* FpsCameraController.cpp in Sources */,
 				28A5AC5F201F5986000E571F /* GpuProfiler.cpp in Sources */,
-				28A5AC3A201F5927000E571F /* Skybox.vert.metal in Sources */,
-				288F63042035A1F300B758DE /* Particle.frag.metal in Sources */,
 				28A5AC66201F59A5000E571F /* ThreadSystem.cpp in Sources */,
 				28A5AC4E201F5945000E571F /* AppDelegate.m in Sources */,
 				28A5AC61201F5986000E571F /* ResourceLoader.cpp in Sources */,
 				28A5AC52201F5957000E571F /* GuiCameraController.cpp in Sources */,
 				28A5AC50201F5951000E571F /* MemoryTrackingManager.cpp in Sources */,
 				5C85A398202A0E8C00AB83C6 /* iOSBase.mm in Sources */,
-				28A5AC3C201F5927000E571F /* Particle.vert.metal in Sources */,
 				28A5AC4F201F594D000E571F /* FileSystem.cpp in Sources */,
 				28A5AC4A201F5945000E571F /* iOSThreadManager.cpp in Sources */,
 				5CD2BC062080FEF3008E3A2C /* Fontstash.cpp in Sources */,
-				288F63032035A1F300B758DE /* Skybox.frag.metal in Sources */,
 				28A5AC5D201F597A000E571F /* Image.cpp in Sources */,
 				5CD2BC042080FEF3008E3A2C /* NuklearGUIDriver.cpp in Sources */,
 				28A5AC4B201F5945000E571F /* iOSLogManager.cpp in Sources */,
 				28A5AC63201F5990000E571F /* tinyexr.cpp in Sources */,
 				5CD2BC022080FEF3008E3A2C /* AppUI.cpp in Sources */,
-				288F63022035A1F300B758DE /* Graph.frag.metal in Sources */,
 				28A5AC4D201F5945000E571F /* iOSFileSystem.mm in Sources */,
 				5CD2BC002080FEF3008E3A2C /* UIRenderer.cpp in Sources */,
 				28A5AC64201F5997000E571F /* LogManager.cpp in Sources */,
@@ -746,7 +734,10 @@
 				);
 				INFOPLIST_FILE = 03_MultiThread_iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-3-MultiThread-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -778,7 +769,10 @@
 				);
 				INFOPLIST_FILE = 03_MultiThread_iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-3-MultiThread-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -910,7 +904,10 @@
 					../,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/03_MultiThread/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.03-MultiThread";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -932,7 +929,10 @@
 					../,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/03_MultiThread/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.03-MultiThread";
 				PRODUCT_NAME = "$(TARGET_NAME)";

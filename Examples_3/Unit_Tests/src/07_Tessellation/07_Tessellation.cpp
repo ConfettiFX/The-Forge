@@ -82,6 +82,8 @@ static float gWindSpeed = 25.0f;
 static float gWindWidth = 6.0f;
 static float gWindStrength = 15.0f;
 
+bool	gToggleVSync = false;
+
 struct GrassUniformBlock
 {
 	mat4 mWorld;
@@ -287,6 +289,9 @@ public:
 		// renderer for swapchains
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -305,7 +310,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 #ifndef METAL
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
@@ -501,7 +506,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
 		static const char* enumNames[] = {
@@ -534,6 +539,11 @@ public:
 		pGui->AddProperty(UIProperty("Wind Strength : ", gWindStrength, 1.0f, 100.0f));
 
 		pGui->AddProperty(UIProperty("Max Tessellation Level : ", gMaxTessellationLevel, 1, 10));
+
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
+		pGui->AddProperty(vsyncProp);
+#endif
 
 #if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
@@ -731,6 +741,14 @@ public:
 
 	void Update(float deltaTime)
 	{
+		//check for Vsync toggle
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
+		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		{
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+#endif
+
 		/************************************************************************/
 		// Update camera
 		/************************************************************************/
@@ -980,7 +998,7 @@ public:
 
 	String GetName()
 	{
-		return "UnitTest_07_Tessellation";
+		return "07_Tessellation";
 	}
 
 	bool addSwapChain()

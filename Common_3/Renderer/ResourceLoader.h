@@ -47,17 +47,17 @@ typedef struct BufferLoadDesc
 
 typedef struct TextureLoadDesc
 {
-	Texture**		ppTexture;
+	Texture**				ppTexture;
 	/// Load texture from image
-	Image*			pImage;
+	Image*					pImage;
 	/// Load empty texture
-	TextureDesc*	pDesc;
+	TextureDesc*			pDesc;
 	/// Load texture from disk
-	const char*		pFilename;
-	FSRoot			mRoot;
-	uint32_t		mNodeIndex;
-	bool			mUseMipmaps;
-	bool			mSrgb;
+	const char*				pFilename;
+	FSRoot					mRoot;
+	uint32_t				mNodeIndex;
+	bool					mUseMipmaps;
+	bool					mSrgb;
 
 } TextureLoadDesc;
 

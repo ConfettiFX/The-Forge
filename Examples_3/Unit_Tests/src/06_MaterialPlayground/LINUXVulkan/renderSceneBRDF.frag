@@ -44,7 +44,7 @@ layout (std140, set=1, binding=0) uniform cbObject {
 	uniform mat4 worldMat;
 	float roughness;
 	float metalness;
-	int pbrMaterials;
+	int objectId;
 };
 
 layout (std140, set=2, binding=0) uniform cbLights {
@@ -142,8 +142,6 @@ vec3 getNormalFromMap()
 
 void main()
 {
-  
-
 	// default albedo 
 	vec3 albedo = vec3(0.5f, 0.0f, 0.0f);
 
@@ -154,23 +152,24 @@ void main()
 	vec3 N = normalize(normal);
 
 	//this means pbr materials is set for these so sample from textures
-	if(pbrMaterials!=-1) {
+	if(objectId!=-1) {
 
 		 N = getNormalFromMap();
 		albedo = pow(texture(sampler2D(albedoMap, defaultSampler),uv).rgb,vec3(2.2)) ;
 		_metalness   = texture(sampler2D(metallicMap, defaultSampler), uv).r;
 		_roughness = texture(sampler2D(roughnessMap, defaultSampler), uv).r;
 		ao = texture(sampler2D(aoMap, defaultSampler), uv).r;
+
+		if(objectId==2) {
+			albedo  = vec3(0.1f, 0.1f, 0.1f);
+			_roughness = 2.0f; 
+		}else if(objectId==3) {
+			albedo  = vec3(0.8f, 0.1f, 0.1f);
+			
+		}
 	} 
 
-	if(pbrMaterials==2) {
-		
-		//N = normalize(normal);
-		albedo  = vec3(0.7f, 0.7f, 0.7f);
-		//_roughness = roughness;
-		//_metalness = metalness;
-		ao = 1.0f;//texture(sampler2D(aoMap, defaultSampler), uv).r;
-	}
+
 
 	vec3 V = normalize(camPos - pos);
 	vec3 R = reflect(-V, N);

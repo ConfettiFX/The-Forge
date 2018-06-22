@@ -99,14 +99,14 @@ public:
 		if (!mAppUI.Init(pRenderer))
 			return false;
 
-		mAppUI.LoadFont(FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		mAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
-		initDebugRendererInterface(pRenderer, FileSystem::FixPath("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts));
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		/************************************************************************/
 		// 02 Creation Acceleration Structure
 		/************************************************************************/
-		// Create Triangle Vertex Buffer
-		const float3 triangleVertices[] =
+		// Create Vertex Buffer
+		const float3 vertices[] =
 		{
 			float3(0,          1,  0),
 			float3(0.866f,  -0.5f, 0),
@@ -115,9 +115,9 @@ public:
 		BufferLoadDesc vbDesc = {};
 		vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
 		vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		vbDesc.mDesc.mSize = sizeof(triangleVertices);
+		vbDesc.mDesc.mSize = sizeof(vertices);
 		vbDesc.mDesc.mVertexStride = sizeof(float3);
-		vbDesc.pData = triangleVertices;
+		vbDesc.pData = vertices;
 		vbDesc.ppBuffer = &pVertexBufferTriangle;
 		addResource(&vbDesc);
 

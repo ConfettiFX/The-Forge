@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../../Common_3/OS/Math/MathTypes.h"
+
 class Fontstash 
 {
 public:
@@ -34,13 +36,16 @@ public:
 	//! - Fonts can not be undefined in a FontStash due to its dynamic nature (once packed into an atlas, they cannot be unpacked, unless it is fully rebuilt)
 	//! - Defined fonts will automatically be unloaded when the Fontstash is destroyed.
 	//! - When it is paramount to be able to unload individual fonts, use multiple fontstashes.
-	int defineFont(const char* identification, const char* filename);
+	int defineFont(const char* identification, const char* filename, uint32_t root);
 
 	//! Find a font by user defined identification.
 	int getFontID(const char* identification);
 
 	//! Draw text.
 	void drawText(struct Cmd* pCmd, const char* message, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
+
+	//! Draw text in worldSpace.
+	void drawText(struct Cmd* pCmd, const char* message,const mat4& projView,const mat4& worldMat, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
 
 	//! Measure text boundaries. Results will be written to out_bounds (x,y,x2,y2).
 	float measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);

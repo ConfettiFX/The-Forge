@@ -266,11 +266,12 @@ public:
 	void			Update(float deltaTime);
 	void			Draw(Cmd* cmd);
 
-	uint32_t		LoadFont(const char* pFontPath);
+	uint32_t		LoadFont(const char* pFontPath, uint32_t root);
 	GuiComponent*	AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void			RemoveGuiComponent(GuiComponent* pComponent);
 
 	void			Gui(GuiComponent* pGui);
+	
 	/************************************************************************/
 	// Data
 	/************************************************************************/

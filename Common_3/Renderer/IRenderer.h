@@ -95,7 +95,7 @@ static inline ENUM_TYPE operator&=(ENUM_TYPE& a, ENUM_TYPE b) \
 enum {
 	MAX_INSTANCE_EXTENSIONS = 64,
 	MAX_DEVICE_EXTENSIONS = 64,
-	MAX_GPUS = 4,
+	MAX_GPUS = 10,
 	MAX_RENDER_TARGET_ATTACHMENTS = 8,
 	MAX_SUBMIT_CMDS = 20,					// max number of command lists / command buffers
 	MAX_SUBMIT_WAIT_SEMAPHORES = 8,
@@ -106,6 +106,7 @@ enum {
 	MAX_SEMANTIC_NAME_LENGTH = 128,
 	MAX_MIP_LEVELS = 0xFFFFFFFF,
 	MAX_BATCH_BARRIERS = 64,
+	MAX_GPU_VENDOR_STRING_LENGTH = 64  //max size for GPUVendorPreset strings
 };
 #endif
 
@@ -309,7 +310,9 @@ typedef enum DescriptorType {
 	DESCRIPTOR_TYPE_ROOT_CONSTANT,
 #if defined(VULKAN)
 	/// Subpass input (descriptor type only available in Vulkan)
-    DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+	DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+	DESCRIPTOR_TYPE_TEXEL_BUFFER,
+	DESCRIPTOR_TYPE_RW_TEXEL_BUFFER,
 #endif
 	DESCRIPTOR_TYPE_COUNT,
 } DescriptorType;
@@ -563,11 +566,11 @@ MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
 typedef enum GPUPresetLevel {
     GPU_PRESET_NONE = 0,
-		GPU_PRESET_OFFICE,
+	GPU_PRESET_OFFICE, //This means unsupported
     GPU_PRESET_LOW,
     GPU_PRESET_MEDIUM,
     GPU_PRESET_HIGH,
-		GPU_PRESET_ULTRA,
+	GPU_PRESET_ULTRA,
     GPU_PRESET_COUNT
 } GPUPresetLevel;
 
@@ -676,6 +679,9 @@ typedef struct Buffer {
 #if defined(VULKAN)
 	/// Native handle of the underlying resource
 	VkBuffer							pVkBuffer;
+	/// Buffer view
+	VkBufferView						pVkStorageTexelView;
+	VkBufferView						pVkUniformTexelView;
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct VmaAllocation_T*				pVkAllocation;
 	/// Description for creating the descriptor for this buffer (applicable to BUFFER_USAGE_UNIFORM, BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
@@ -1055,22 +1061,23 @@ typedef struct RootSignature
 typedef struct DescriptorData
 {
 	/// User can either set name of descriptor or index (index in pRootSignature->pDescriptors array)
-    /// Name of descriptor
-    const char*		pName;
-    /// Offset to bind the descriptor at
-    uint64_t		mOffset;
-    /// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one resource type array
-    union
-    {
+	/// Name of descriptor
+	const char*		pName;
+	/// Offset to bind the descriptor at
+	uint64_t*		pOffsets;
+	uint64_t*		pSizes;
+	/// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one resource type array
+	union
+	{
 		/// Array of texture descriptors (srv and uav textures)
-        Texture**   ppTextures;
+		Texture**   ppTextures;
 		/// Array of sampler descriptors
-        Sampler**   ppSamplers;
+		Sampler**   ppSamplers;
 		/// Array of buffer descriptors (srv, uav and cbv buffers)
-        Buffer**    ppBuffers;
+		Buffer**    ppBuffers;
 		/// Constant data in system memory to be bound as root / push constant
 		void*		pRootConstant;
-    };
+	};
 	/// Number of resources in the descriptor(applies to array of textures, buffers,...)
 	uint32_t		mCount;
 } DescriptorData;
@@ -1119,6 +1126,8 @@ typedef struct Cmd {
 	D3D12_CPU_DESCRIPTOR_HANDLE				mSamplerCpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE				mSamplerGpuHandle;
 	uint64_t								mSamplerPosition;
+	D3D12_CPU_DESCRIPTOR_HANDLE				mTransientCBVs;
+	uint64_t								mTransientCBVPosition;
 	uint32_t								mBatchBarrierCount;
 #endif
 #if defined(VULKAN)
@@ -1546,6 +1555,7 @@ typedef struct SwapChain
 #endif
 #if defined(METAL)
     MTKView*				pMTKView;
+    id<CAMetalDrawable>     mMTKDrawable;
     id<MTLCommandBuffer>	presentCommandBuffer;
 #endif
 } SwapChain;
@@ -1581,9 +1591,11 @@ typedef struct RendererDesc {
 } RendererDesc;
 
 typedef struct GPUVendorPreset {
-    String mVendorId;
-    String mModelId;
+    char mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
+	char mModelId[MAX_GPU_VENDOR_STRING_LENGTH];
+	char mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];  //OPtional as not all gpu's have that. Default is : 0x00
     GPUPresetLevel mPresetLevel;
+	char mGpuName[MAX_GPU_VENDOR_STRING_LENGTH]; //If GPU Name is missing then value will be empty string
 } GPUVendorPreset;
 
 typedef struct GPUSettings
@@ -1817,6 +1829,7 @@ API_INTERFACE void CALLTYPE queueSubmit(Queue* p_queue, uint32_t cmd_count, Cmd*
 API_INTERFACE void CALLTYPE queuePresent(Queue* p_queue, SwapChain* p_swap_chain, uint32_t swap_chain_image_index, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores);
 API_INTERFACE void CALLTYPE getFenceStatus(Renderer* pRenderer, Fence* p_fence, FenceStatus* p_fence_status);
 API_INTERFACE void CALLTYPE waitForFences(Queue* p_queue, uint32_t fence_count, Fence** pp_fences, bool signal);
+API_INTERFACE void CALLTYPE toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
 
 // image related functions
 API_INTERFACE bool CALLTYPE isImageFormatSupported(ImageFormat::Enum format);

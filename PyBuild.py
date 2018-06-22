@@ -57,13 +57,19 @@ def PrintResults():
 	if len(successfulTests) > 0:
 		print ("Successful tests list:")
 		for test in successfulTests:
-			print(test['name'])
+			if test['gpu'] == "":
+				print(test['name'])
+			else:
+				print(test['name'], test['gpu'])
 	
 	print ("")
 	if len(failedTests) > 0:
 		print ("Failed Tests list:")
 		for test in failedTests:
-			print(test['name'])
+			if test['gpu'] == "":
+				print(test['name'])
+			else:
+				print(test['name'], test['gpu'])
 
 def FindMSBuild17():
 	ls_output = ""
@@ -90,8 +96,8 @@ def FindMSBuild17():
 	
 	return msbuildPath
 
-def AddTestingPreProcessor():
-	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp", "Common_3/OS/Linux/LinuxBase.cpp"]
+def AddTestingPreProcessor(enabledGpuSelection):
+	fileList = ["Common_3/OS/Interfaces/IOperatingSystem.h"]
 	
 	for filename in fileList:
 		if not os.path.exists(filename):
@@ -99,8 +105,11 @@ def AddTestingPreProcessor():
 		with open(filename,'r+') as f:
 			lines = f.readlines()
 			for i, line in enumerate(lines):
-				if line.startswith('#include') :
-					lines[i]=line.replace(line,"#define AUTOMATED_TESTING 1\n" +line)
+				if line.startswith('#if') :
+					if enabledGpuSelection:
+						lines[i]=line.replace(line,"#define ACTIVE_TESTING_GPU 1\n#define AUTOMATED_TESTING 1\n" +line)
+					else:
+						lines[i]=line.replace(line,"#define AUTOMATED_TESTING 1\n" +line)
 					break
 
 			f.seek(0)
@@ -108,7 +117,7 @@ def AddTestingPreProcessor():
 				f.write(line)
 
 def RemoveTestingPreProcessor():
-	fileList = ["Common_3/OS/Windows/WindowsBase.cpp","Common_3/OS/iOS/iOSBase.mm","Common_3/OS/macOS/macOSBase.mm","CommonXBOXOne_3/OS/XBOXOneBase.cpp", "Common_3/OS/Linux/LinuxBase.cpp"]
+	fileList = ["Common_3/OS/Interfaces/IOperatingSystem.h"]
 	
 	for filename in fileList:
 		if not os.path.exists(filename):
@@ -117,7 +126,7 @@ def RemoveTestingPreProcessor():
 			lines = f.readlines()
 			f.seek(0)
 			for line in lines:
-				if "#define AUTOMATED_TESTING" not in line :
+				if "#define AUTOMATED_TESTING 1" not in line and "#define ACTIVE_TESTING_GPU 1" not in line:
 					f.write(line)
 			f.truncate()
 
@@ -252,7 +261,7 @@ def ExecuteBuild(cmdList, fileName, configuration, platform):
 	
 	return returnCode
 
-def ExecuteTest(cmdList, fileName, regularCommand):
+def ExecuteTest(cmdList, fileName, regularCommand, gpuLine = ""):
 	if regularCommand:
 		returnCode = ExecuteCommand(cmdList, subprocess.PIPE)
 	else:
@@ -261,9 +270,9 @@ def ExecuteTest(cmdList, fileName, regularCommand):
 	if returnCode != 0:
 		print("FAILED TESTING ", fileName)
 		print("Return code: ", returnCode)
-		failedTests.append({'name':fileName})
+		failedTests.append({'name':fileName, 'gpu':gpuLine})
 	else:
-		successfulTests.append({'name':fileName})
+		successfulTests.append({'name':fileName, 'gpu':gpuLine})
 		
 	return returnCode
 
@@ -290,6 +299,89 @@ def GetFilesPathByExtension(rootToSearch, extension, wantDirectory):
 				filesPathList.append(os.path.join(root,filename))
 
 	return filesPathList
+
+"""
+projRootFolder should be one of those:
+	-Unit_Tests
+	-Aura
+	-VisibilityBuffer
+	-Unit_Tests_Raytracing
+This function will mark the first available gpu config as used (this should be called after a run)
+It returns false if there are no gpu's left to test, true otherwise
+If No GPu's are left then it will recover the file
+"""
+
+activeGpusConfiguration = """#
+#<vendor_id>, <model_id>, <sli_mode>
+0x10de; 0x1b81; false; Nvidia Geforce GTX 1070;
+0x10de; 0x1402; false; Nvidia Geforce GTX 950;
+0x1002; 0x687f; false; AMD Vega;
+0x1002; 0x67df; false; AMD Radeon RX 480;
+"""
+originalActiveGpuConfigLines = []
+def selectActiveGpuConfig(forgeDir, projRootFolder, projectName, runIndex):
+	global activeGpusConfiguration
+	global originalActiveGpuConfigLines
+	#remove file extension from project name
+	projectName = os.path.splitext(projectName)[0]
+	
+	#need to have
+	if "Aura" in projectName or "Visibility" in projectName:
+		filename = "/Examples_3/"+projRootFolder+"/src/GPUCfg/activeTestingGpu.cfg"
+	else:
+		filename = "/Examples_3/"+projRootFolder+"/src/"+projectName+"/GPUCfg/activeTestingGpu.cfg"
+	
+	filename = forgeDir + filename
+	
+	#create active gpu config if it doesn't exist
+	#this is only valid for our internal testing rig
+	if not os.path.exists(filename):
+		with open(filename, 'w+') as f:
+			f.write(activeGpusConfiguration)
+		
+	removedMatch = False
+	foundMatch = False
+	lineMatch = ""
+	with open(filename,'r+') as f:
+		lines = f.readlines()
+		if runIndex == 0:
+			originalActiveGpuConfigLines = []
+			for i,line in enumerate(lines):
+				originalActiveGpuConfigLines.append(line)
+				if not line.startswith('#'):
+					return {'running':True, 'lineMatch': line}
+		
+		for i, line in enumerate(lines):
+			if not line.strip():
+				continue
+			if not line.startswith('#') and not removedMatch:
+				lines[i]=line.replace(line,"# " +line)
+				removedMatch = True
+				continue
+			if removedMatch and not line.startswith('#'):
+				print "Found line", line
+				lineMatch = line
+				foundMatch = True
+				break		
+		
+		if foundMatch:
+			f.seek(0)
+			for line in lines:
+				f.write(line)
+		else:
+			f.seek(0)
+			f.truncate()
+			for line in originalActiveGpuConfigLines:
+				f.write(line)
+				
+	#if we are done then we can remove the file
+	if not foundMatch and os.path.exists(filename):
+		try:
+			os.remove(filename)
+		except OSError, e:  ## if failed, report it back to the user ##
+			print ("Error: %s - %s." % (e.filename, e.strerror))
+
+	return {'running':foundMatch, 'lineMatch': lineMatch}
 
 def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 	errorOccured = False
@@ -492,7 +584,7 @@ def TestLinuxProjects():
 		return -1
 	return 0
 
-def TestWindowsProjects():
+def TestWindowsProjects(useActiveGpuConfig):
 	errorOccured = False
 	
 	projects = GetFilesPathByExtension("./Examples_3","exe",False)
@@ -519,7 +611,7 @@ def TestWindowsProjects():
 		os.chdir(rootPath)
 
 		filename = proj.split(os.sep)[-1]
-
+		origFilename = filename
 		command = [filename]
 
 		if "ReleaseVk" in proj:
@@ -527,7 +619,17 @@ def TestWindowsProjects():
 		else:
 			filename = "DX_" + filename
 
-		retCode = ExecuteTest(command, filename,False)
+		parentFolder = proj.split(os.sep)[1]
+		
+		if useActiveGpuConfig == True and 'Unit_Tests_Raytracing' not in parentFolder:
+			currentGpuRun = 0
+			resultGpu = selectActiveGpuConfig(currDir, parentFolder,origFilename,currentGpuRun)
+			while resultGpu['running'] == True:
+				retCode = ExecuteTest(command, filename, False, resultGpu['lineMatch'])
+				currentGpuRun += 1
+				resultGpu = selectActiveGpuConfig(currDir, parentFolder,origFilename,currentGpuRun)
+		else:
+			retCode = ExecuteTest(command, filename,False)
 		
 		if retCode != 0:
 			errorOccured = True
@@ -636,11 +738,16 @@ def MainLogic():
 	parser.add_argument("--iosid", type=str, default="-1", help='Use a specific ios device. Id taken from ios-deploy --detect.')
 	parser.add_argument('--macos', action="store_true", help='Needs --testing. Enable macOS testing')
 	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
+	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
 
 	#TODO: remove the test in parse_args
-	#arguments = parser.parse_args()
 	arguments = parser.parse_args()
 	
+	#if we want to run based on active gpu config
+	#we need defines macros
+	if arguments.gpuselection:
+		arguments.defines = True
+
 	#add cleanup handler in case app gets interrupted
 	#keyboard interrupt
 	#removing defines
@@ -656,7 +763,7 @@ def MainLogic():
 	setDefines = arguments.defines
 	if setDefines == True:
 		print("Adding defines for automated testing")
-		AddTestingPreProcessor()
+		AddTestingPreProcessor(arguments.gpuselection)
 
 	#PRE_BUILD step
 	#if only the prebuild argument is provided but Art folder exists then PRE_BUILd isn't run
@@ -676,7 +783,7 @@ def MainLogic():
 		if systemOS == "Darwin":
 			returnCode = TestXcodeProjects(arguments.ios, arguments.macos, arguments.iosid)
 		elif systemOS == "Windows":
-			returnCode = TestWindowsProjects()
+			returnCode = TestWindowsProjects(arguments.gpuselection)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = TestLinuxProjects()
 	else:
