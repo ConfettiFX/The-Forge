@@ -49,7 +49,7 @@ Art/
 
 # Automatically Generated Files
 **/Renderer/IRendererDLL.h
-**/Renderer/RendererDLL.cpp
+**/Renderer/Renderer.cpp
 
 # Obj folders
 **/obj/
