@@ -5449,7 +5449,6 @@ namespace d3d12 {
 	{
 		ASSERT(pRenderer);
 		ASSERT(pDesc);
-		ASSERT(pDesc->pRootSignature);
 		ASSERT(pDesc->pArgDescs);
 
 		CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1, sizeof(*pCommandSignature));
@@ -5517,6 +5516,11 @@ namespace d3d12 {
 				ASSERT(false);
 				break;
 			}
+		}
+
+		if(change)
+		{
+			ASSERT(pDesc->pRootSignature);
 		}
 
 		commandStride = round_up(commandStride, 16);
