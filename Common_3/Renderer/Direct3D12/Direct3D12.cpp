@@ -5966,8 +5966,8 @@ namespace d3d12 {
 				break;
 			}
 		}
-
-		if (change)
+    
+		if(change)
 		{
 			ASSERT(pDesc->pRootSignature);
 		}
