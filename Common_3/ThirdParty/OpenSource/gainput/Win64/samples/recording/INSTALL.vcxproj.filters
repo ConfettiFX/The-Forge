@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\Win64\CMakeFiles\7a2fbd16fec7f94f853bb4871c9399f7\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{54AF3353-784C-32DF-8883-43B95689D972}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

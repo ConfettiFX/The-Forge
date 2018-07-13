@@ -35,9 +35,9 @@
 
 #import "../IRenderer.h"
 #include "MetalMemoryAllocator.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Core/GPUConfig.h"
+#include "../../OS/Interfaces/IMemoryManager.h"
 
 #define MAX_BUFFER_BINDINGS 31
 
@@ -696,7 +696,17 @@ namespace RENDERER_CPP_NAMESPACE {
                         if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
                             [pCmd->mtlRenderEncoder setVertexTexture:descriptorData->ppTextures[0]->mtlTexture atIndex:descriptorInfo->mDesc.reg];
                         if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+						{
+							if(descriptorData->mCount > 1)
+							{
+								for(uint32_t j = 0 ;j < descriptorData->mCount ; j++)
+								{
+									[pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+								}
+							}
+							else
                             [pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[0]->mtlTexture atIndex:descriptorInfo->mDesc.reg];
+						}
                         if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
                             [pCmd->mtlComputeEncoder setTexture:descriptorData->ppTextures[0]->mtlTexture atIndex:descriptorInfo->mDesc.reg];
                         break;
@@ -782,19 +792,41 @@ namespace RENDERER_CPP_NAMESPACE {
     /************************************************************************/
     void create_default_resources(Renderer* pRenderer)
     {
-        TextureDesc texture1DDesc = { TEXTURE_TYPE_1D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		TextureDesc texture1DDesc = {};
+		texture1DDesc.mArraySize = 1;
+		texture1DDesc.mDepth = 1;
+		texture1DDesc.mFormat = ImageFormat::R8;
+		texture1DDesc.mHeight = 2;
+		texture1DDesc.mMipLevels = 1;
+		texture1DDesc.mSampleCount = SAMPLE_COUNT_1;
+		texture1DDesc.mStartState = RESOURCE_STATE_COMMON;
+		texture1DDesc.mType = TEXTURE_TYPE_2D;
+		texture1DDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS;
+		texture1DDesc.mWidth = 2;
         addTexture(pRenderer, &texture1DDesc, &pDefault1DTexture);
-        TextureDesc texture1DArrayDesc = { TEXTURE_TYPE_1D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		
+		TextureDesc texture1DArrayDesc = texture1DDesc;
+		texture1DArrayDesc.mArraySize = 2;
         addTexture(pRenderer, &texture1DArrayDesc, &pDefault1DTextureArray);
-        TextureDesc texture2DDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		
+		TextureDesc texture2DDesc = texture1DDesc;
+		texture2DDesc.mType = TEXTURE_TYPE_2D;
         addTexture(pRenderer, &texture2DDesc, &pDefault2DTexture);
-        TextureDesc texture2DArrayDesc = { TEXTURE_TYPE_2D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		
+        TextureDesc texture2DArrayDesc = texture2DDesc;
+		texture2DArrayDesc.mArraySize = 2;
         addTexture(pRenderer, &texture2DArrayDesc, &pDefault2DTextureArray);
-        TextureDesc texture3DDesc = { TEXTURE_TYPE_3D, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		
+        TextureDesc texture3DDesc = texture1DDesc;
+		texture3DDesc.mType = TEXTURE_TYPE_3D;
         addTexture(pRenderer, &texture3DDesc, &pDefault3DTexture);
-        TextureDesc textureCubeDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 1, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		
+        TextureDesc textureCubeDesc = texture1DDesc;
+		textureCubeDesc.mType = TEXTURE_TYPE_CUBE;
         addTexture(pRenderer, &textureCubeDesc, &pDefaultCubeTexture);
-        TextureDesc textureCubeArrayDesc = { TEXTURE_TYPE_CUBE, TEXTURE_CREATION_FLAG_NONE, 2, 2, 1, 0, 2, 0, 1, SAMPLE_COUNT_1, 0, ImageFormat::R8, ClearValue(), TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS, RESOURCE_STATE_COMMON, nullptr, false, false };
+		
+        TextureDesc textureCubeArrayDesc = textureCubeDesc;
+		textureCubeArrayDesc.mArraySize = 2;
 #ifndef TARGET_IOS
         addTexture(pRenderer, &textureCubeArrayDesc, &pDefaultCubeTextureArray);
 #else
@@ -1438,9 +1470,7 @@ namespace RENDERER_CPP_NAMESPACE {
         rtDesc.mWidth= pRenderTarget->mDesc.mWidth;
         rtDesc.mHeight= pRenderTarget->mDesc.mHeight;
         rtDesc.mDepth= pRenderTarget->mDesc.mDepth;
-        rtDesc.mBaseArrayLayer= pRenderTarget->mDesc.mBaseArrayLayer;
         rtDesc.mArraySize = pRenderTarget->mDesc.mArraySize;
-        rtDesc.mBaseMipLevel= pRenderTarget->mDesc.mBaseMipLevel;
         rtDesc.mMipLevels = 1;
         rtDesc.mSampleCount = pRenderTarget->mDesc.mSampleCount;
         rtDesc.mSampleQuality= pRenderTarget->mDesc.mSampleQuality;
@@ -2137,7 +2167,8 @@ namespace RENDERER_CPP_NAMESPACE {
         }
     }
     
-    void cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions)
+    void cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions,
+			uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
     {
         ASSERT(pCmd);
         
@@ -2159,6 +2190,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		
 		if(!renderTargetCount && !pDepthStencil)
 			return;
+		
+		uint64_t renderPassHash = 0;
         
         @autoreleasepool {
             pCmd->pRenderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
@@ -2192,6 +2225,13 @@ namespace RENDERER_CPP_NAMESPACE {
 				
 				pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
 				pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
+				
+				uint32_t hashValues[] = {
+					(uint32_t)ppRenderTargets[i]->mDesc.mFormat,
+					(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
+					(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
+				};
+				renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
             }
             
             if (pDepthStencil != nil)
@@ -2247,6 +2287,13 @@ namespace RENDERER_CPP_NAMESPACE {
                 }
 				
 				pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
+				
+				uint32_t hashValues[] = {
+					(uint32_t)pDepthStencil->mDesc.mFormat,
+					(uint32_t)pDepthStencil->mDesc.mSampleCount,
+					(uint32_t)pDepthStencil->mDesc.mSrgb,
+				};
+				renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
             }
             else
             {
@@ -2363,15 +2410,16 @@ namespace RENDERER_CPP_NAMESPACE {
         }
     }
     
-    void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer)
+    void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t offset)
     {
         ASSERT(pCmd);
         ASSERT(pBuffer);
         
         pCmd->selectedIndexBuffer = pBuffer;
+		pCmd->mSelectedIndexBufferOffset = offset;
     }
     
-    void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers)
+    void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, uint64_t* pOffsets)
     {
         ASSERT(pCmd);
         ASSERT(0 != bufferCount);
@@ -2387,7 +2435,7 @@ namespace RENDERER_CPP_NAMESPACE {
         
         for (uint32_t i = startIdx; i<bufferCount; i++)
         {
-            [pCmd->mtlRenderEncoder setVertexBuffer:ppBuffers[i]->mtlBuffer offset:ppBuffers[i]->mPositionInHeap atIndex:(i-startIdx)];
+            [pCmd->mtlRenderEncoder setVertexBuffer:ppBuffers[i]->mtlBuffer offset:(ppBuffers[i]->mPositionInHeap + (pOffsets ? pOffsets[i] : 0)) atIndex:(i-startIdx)];
         }
     }
     
@@ -2439,7 +2487,7 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pCmd);
         Buffer* indexBuffer = pCmd->selectedIndexBuffer;
         MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
-        uint64_t offset = firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4);
+        uint64_t offset = firstIndex * (pCmd->mSelectedIndexBufferOffset + (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4));
         
         if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
         {
@@ -2668,13 +2716,10 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pSignalSemaphore || pFence);
 		
 		CAMetalLayer * layer = (CAMetalLayer *)pSwapChain->pMTKView.layer;
-#ifndef TARGET_IOS
+
 		if(pSwapChain->mMTKDrawable == nil)
 			pSwapChain->mMTKDrawable = [layer nextDrawable];
-#else
-		if(pSwapChain->mMTKDrawable == nil)
-			pSwapChain->mMTKDrawable = [layer nextDrawable];
-#endif
+		
         // Look for the render target containing this texture.
         // If not found: assign it to an empty slot
         for (uint32_t i=0; i<pSwapChain->mDesc.mImageCount; i++)
@@ -3262,6 +3307,9 @@ namespace RENDERER_CPP_NAMESPACE {
             TextureCreateInfo alloc_info = {textureDesc, isRT || isDepthBuffer, isMultiSampled};
             bool allocSuccess = createTexture(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pTexture);
             ASSERT(allocSuccess);
+			
+			[pTexture->mtlTexture 	newTextureViewWithPixelFormat:pTexture->mtlTexture.pixelFormat];
+			textureDesc.usage |= MTLTextureUsagePixelFormatView;
         }
         
         *ppTexture = pTexture;

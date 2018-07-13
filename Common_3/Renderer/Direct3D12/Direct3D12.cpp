@@ -459,9 +459,9 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	DescriptorHeapProperties gCpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] =
 	{
 		{ 1024 * 256,	D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// CBV SRV UAV
-		{ 2048,		D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// Sampler
-		{ 128,		D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// RTV
-		{ 128,		D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// DSV
+		{ 2048,			D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// Sampler
+		{ 512,			D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// RTV
+		{ 512,			D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// DSV
 	};
 
 	DescriptorHeapProperties gGpuDescriptorHeapProperties[2] =
@@ -1560,6 +1560,34 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			return D3D12_QUERY_TYPE(-1);
 		}
 	}
+
+	uint32_t util_to_descriptor_handle_index(TextureUsage usage, DescriptorType type)
+	{
+		if (type == DESCRIPTOR_TYPE_TEXTURE)
+		{
+			switch (usage)
+			{
+			case TEXTURE_USAGE_2D_ARRAY_VIEW:
+				return 2;
+			case TEXTURE_USAGE_CUBEMAP_VIEW:
+				return 3;
+			case TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW:
+				return 4;
+			default:
+				return 0;
+			}
+		}
+		else
+		{
+			switch (usage)
+			{
+			case TEXTURE_USAGE_2D_ARRAY_VIEW:
+				return 5;
+			default:
+				return 1;
+			}
+		}
+	}
 	/************************************************************************/
 	// Multi GPU Helper Functions
 	/************************************************************************/
@@ -1665,7 +1693,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 			if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
 			{
-				for (uint32_t level = 0; level < _countof (feature_levels); ++level)
+				for (uint32_t level = 0; level < sizeof(feature_levels) / sizeof(feature_levels[0]); ++level)
 				{
 					// Make sure the adapter can support a D3D12 device
 					if (SUCCEEDED (D3D12CreateDevice(adapter, feature_levels[level], __uuidof(pRenderer->pDxDevice), NULL)))
@@ -1853,7 +1881,7 @@ namespace d3d12 {
 #endif
 
 	/************************************************************************/
-	// Functions not exposed in IRenderer but still need to be exported in dll
+	// Functions not exposed in IRenderer but still need to be assigned when using runtime switching of renderers
 	/************************************************************************/
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 	API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
@@ -2543,13 +2571,12 @@ namespace d3d12 {
 			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 			if (pDesc->mFormat != ImageFormat::NONE)
 			{
-				srvDesc.Format = util_to_dx_image_format(pDesc->mFormat, false);
-			}
-			if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW)
-			{
-				ASSERT(pDesc->mFormat == ImageFormat::NONE && "Raw buffer views only support R32 typeless format");
-				srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-				srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
+				if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW)
+				{
+					ASSERT(pDesc->mFormat == ImageFormat::NONE && "Raw buffer views only support R32 typeless format");
+					srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+					srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
+				}
 			}
 
 			add_srv(pRenderer, pBuffer->pDxResource, &srvDesc, &pBuffer->mDxSrvHandle);
@@ -2567,21 +2594,12 @@ namespace d3d12 {
 			uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 			if (pDesc->mFormat != ImageFormat::NONE)
 			{
-				uavDesc.Format = util_to_dx_image_format(pDesc->mFormat, false);
-				D3D12_FEATURE_DATA_FORMAT_SUPPORT FormatSupport = { uavDesc.Format, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE };
-				HRESULT hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &FormatSupport, sizeof(FormatSupport));
-				if (!SUCCEEDED(hr) || !(FormatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD))
+				if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW)
 				{
-					// Format does not support UAV Typed Load
-					LOGWARNINGF("Cannot use Typed UAV for buffer format %u", (uint32_t)pDesc->mFormat);
-					uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+					ASSERT(pDesc->mFormat == ImageFormat::NONE && "Raw buffer views only support R32 typeless format");
+					uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+					uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
 				}
-			}
-			if (pBuffer->mDesc.mFeatures & BUFFER_FEATURE_RAW)
-			{
-				ASSERT(pDesc->mFormat == ImageFormat::NONE && "Raw buffer views only support R32 typeless format");
-				uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-				uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
 			}
 
 			ID3D12Resource* pCounterResource = pBuffer->mDesc.pCounterBuffer ? pBuffer->mDesc.pCounterBuffer->pDxResource : NULL;
@@ -2796,13 +2814,13 @@ namespace d3d12 {
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
 				// SRV
 				srvDesc.Texture1DArray.ArraySize = pDesc->mArraySize;
-				srvDesc.Texture1DArray.FirstArraySlice = pDesc->mBaseArrayLayer;
+				srvDesc.Texture1DArray.FirstArraySlice = 0;
 				srvDesc.Texture1DArray.MipLevels = pDesc->mMipLevels;
-				srvDesc.Texture1DArray.MostDetailedMip = pDesc->mBaseMipLevel;
+				srvDesc.Texture1DArray.MostDetailedMip = 0;
 				// UAV
 				uavDesc.Texture1DArray.ArraySize = pDesc->mArraySize;
-				uavDesc.Texture1DArray.FirstArraySlice = pDesc->mBaseArrayLayer;
-				uavDesc.Texture1DArray.MipSlice = pDesc->mBaseMipLevel;
+				uavDesc.Texture1DArray.FirstArraySlice = 0;
+				uavDesc.Texture1DArray.MipSlice = 0;
 			}
 			else
 			{
@@ -2810,9 +2828,9 @@ namespace d3d12 {
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
 				// SRV
 				srvDesc.Texture1D.MipLevels = pDesc->mMipLevels;
-				srvDesc.Texture1D.MostDetailedMip = pDesc->mBaseMipLevel;
+				srvDesc.Texture1D.MostDetailedMip = 0;
 				// UAV
-				uavDesc.Texture1D.MipSlice = pDesc->mBaseMipLevel;
+				uavDesc.Texture1D.MipSlice = 0;
 			}
 			break;
 		case TEXTURE_TYPE_2D:
@@ -2824,7 +2842,7 @@ namespace d3d12 {
 					// Cannot create a multisampled uav
 					// SRV
 					srvDesc.Texture2DMSArray.ArraySize = pDesc->mArraySize;
-					srvDesc.Texture2DMSArray.FirstArraySlice = pDesc->mBaseArrayLayer;
+					srvDesc.Texture2DMSArray.FirstArraySlice = 0;
 					// No UAV
 				}
 				else
@@ -2833,14 +2851,14 @@ namespace d3d12 {
 					uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 					// SRV
 					srvDesc.Texture2DArray.ArraySize = pDesc->mArraySize;
-					srvDesc.Texture2DArray.FirstArraySlice = pDesc->mBaseArrayLayer;
+					srvDesc.Texture2DArray.FirstArraySlice = 0;
 					srvDesc.Texture2DArray.MipLevels = pDesc->mMipLevels;
-					srvDesc.Texture2DArray.MostDetailedMip = pDesc->mBaseMipLevel;
+					srvDesc.Texture2DArray.MostDetailedMip = 0;
 					srvDesc.Texture2DArray.PlaneSlice = 0;
 					// UAV
 					uavDesc.Texture2DArray.ArraySize = pDesc->mArraySize;
-					uavDesc.Texture2DArray.FirstArraySlice = pDesc->mBaseArrayLayer;
-					uavDesc.Texture2DArray.MipSlice = pDesc->mBaseMipLevel;
+					uavDesc.Texture2DArray.FirstArraySlice = 0;
+					uavDesc.Texture2DArray.MipSlice = 0;
 					uavDesc.Texture2DArray.PlaneSlice = 0;
 				}
 			}
@@ -2857,10 +2875,10 @@ namespace d3d12 {
 					uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 					// SRV
 					srvDesc.Texture2D.MipLevels = pDesc->mMipLevels;
-					srvDesc.Texture2D.MostDetailedMip = pDesc->mBaseMipLevel;
+					srvDesc.Texture2D.MostDetailedMip = 0;
 					srvDesc.Texture2D.PlaneSlice = 0;
 					// UAV
-					uavDesc.Texture2D.MipSlice = pDesc->mBaseMipLevel;
+					uavDesc.Texture2D.MipSlice = 0;
 					uavDesc.Texture2D.PlaneSlice = 0;
 				}
 			}
@@ -2870,9 +2888,9 @@ namespace d3d12 {
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 			// SRV
 			srvDesc.Texture3D.MipLevels = pDesc->mMipLevels;
-			srvDesc.Texture3D.MostDetailedMip = pDesc->mBaseMipLevel;
+			srvDesc.Texture3D.MostDetailedMip = 0;
 			// UAV
-			uavDesc.Texture3D.MipSlice = pDesc->mBaseMipLevel;
+			uavDesc.Texture3D.MipSlice = 0;
 			uavDesc.Texture3D.FirstWSlice = 0;
 			uavDesc.Texture3D.WSize = (UINT)-1;
 			break;
@@ -2884,7 +2902,7 @@ namespace d3d12 {
 				// SRV
 				srvDesc.TextureCubeArray.First2DArrayFace = 0;
 				srvDesc.TextureCubeArray.MipLevels = pDesc->mMipLevels;
-				srvDesc.TextureCubeArray.MostDetailedMip = pDesc->mBaseMipLevel;
+				srvDesc.TextureCubeArray.MostDetailedMip = 0;
 				srvDesc.TextureCubeArray.NumCubes = pDesc->mArraySize;
 				// No UAV
 			}
@@ -2894,7 +2912,7 @@ namespace d3d12 {
 				// Cannot create a cubemap uav
 				// SRV
 				srvDesc.TextureCube.MipLevels = pDesc->mMipLevels;
-				srvDesc.TextureCube.MostDetailedMip = pDesc->mBaseMipLevel;
+				srvDesc.TextureCube.MostDetailedMip = 0;
 				// No UAV
 			}
 			break;
@@ -2905,17 +2923,122 @@ namespace d3d12 {
 		if (pDesc->mUsage & TEXTURE_USAGE_SAMPLED_IMAGE)
 		{
 			ASSERT(srvDesc.ViewDimension != D3D12_SRV_DIMENSION_UNKNOWN);
+
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Format = util_to_dx_srv_format(dxFormat);
-			add_srv(pRenderer, pTexture->pDxResource, &srvDesc, &pTexture->mDxSrvHandle);
+			add_srv(pRenderer, pTexture->pDxResource, &srvDesc, &pTexture->mDxDescriptorHandles[0]);
+			if (pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW)
+			{
+				if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
+				{
+					LOGERRORF("Trying to create a view of type TEXTURE_2D_ARRAY which is not compatible with Texture type %u", pDesc->mType);
+				}
+				else
+				{
+					D3D12_SHADER_RESOURCE_VIEW_DESC array2DView = srvDesc;
+					const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+					const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
+					if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+					{
+						array2DView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+						array2DView.Texture2DMSArray.ArraySize = arraySize;
+						array2DView.Texture2DMSArray.FirstArraySlice = 0;
+					}
+					else
+					{
+						array2DView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+						array2DView.Texture2DArray.ArraySize = arraySize;
+						array2DView.Texture2DArray.FirstArraySlice = 0;
+						array2DView.Texture2DArray.MipLevels = pDesc->mMipLevels;
+						array2DView.Texture2DArray.MostDetailedMip = 0;
+						array2DView.Texture2DArray.PlaneSlice = 0;
+						array2DView.Texture2DArray.ResourceMinLODClamp = 0.0f;
+					}
+
+					add_srv(pRenderer, pTexture->pDxResource, &array2DView, &pTexture->mDxDescriptorHandles[2]);
+				}
+			}
+			if (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_VIEW)
+			{
+				if (pDesc->mArraySize < 6)
+				{
+					LOGERRORF("Texture has %u array layers which is not enough to accomodate all the 6 cubemap faces %u", pDesc->mArraySize);
+				}
+				else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
+				{
+					LOGERRORF("Trying to create a view of type TEXTURE_CUBE which is not compatible with Texture type %u", pDesc->mType);
+				}
+				else
+				{
+					D3D12_SHADER_RESOURCE_VIEW_DESC cubemapView = srvDesc;
+					cubemapView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+					cubemapView.TextureCube.MipLevels = pDesc->mMipLevels;
+					cubemapView.TextureCube.MostDetailedMip = 0;
+					cubemapView.TextureCube.ResourceMinLODClamp = 0.0f;
+
+					add_srv(pRenderer, pTexture->pDxResource, &cubemapView, &pTexture->mDxDescriptorHandles[3]);
+				}
+
+			}
+			if (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW)
+			{
+				if (pDesc->mArraySize < 6)
+				{
+					LOGERRORF("Texture has %u array layers which is not enough to accomodate all the 6 cubemap faces %u", pDesc->mArraySize);
+				}
+				else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
+				{
+					LOGERRORF("Trying to create a view of type TEXTURE_CUBE_ARRAY which is not compatible with Texture type %u", pDesc->mType);
+				}
+				else
+				{
+					D3D12_SHADER_RESOURCE_VIEW_DESC cubemapArrayView = srvDesc;
+					cubemapArrayView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+					cubemapArrayView.TextureCubeArray.First2DArrayFace = 0;
+					cubemapArrayView.TextureCubeArray.MipLevels = pDesc->mMipLevels;
+					cubemapArrayView.TextureCubeArray.MostDetailedMip = 0;
+					cubemapArrayView.TextureCubeArray.NumCubes = pDesc->mArraySize / 6;
+					cubemapArrayView.TextureCubeArray.ResourceMinLODClamp = 0.0f;
+
+					add_srv(pRenderer, pTexture->pDxResource, &cubemapArrayView, &pTexture->mDxDescriptorHandles[4]);
+				}
+			}
 		}
 
 		if (pDesc->mUsage & TEXTURE_USAGE_UNORDERED_ACCESS)
 		{
-			ASSERT(uavDesc.ViewDimension != D3D12_UAV_DIMENSION_UNKNOWN);
 			uavDesc.Format = util_to_dx_uav_format(dxFormat);
-			add_uav(pRenderer, pTexture->pDxResource, NULL, &uavDesc, &pTexture->mDxUavHandle);
+			if (uavDesc.ViewDimension != D3D12_UAV_DIMENSION_UNKNOWN)
+			{
+				add_uav(pRenderer, pTexture->pDxResource, NULL, &uavDesc, &pTexture->mDxDescriptorHandles[1]);
+			}
+
+			if (pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW)
+			{
+				if (pDesc->mSampleCount != SAMPLE_COUNT_1)
+				{
+					LOGERRORF("Cannot create UAV for MSAA Texture");
+				}
+				else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
+				{
+					LOGERRORF("Trying to create a view of type TEXTURE_2D_ARRAY which is not compatible with Texture type %u", pDesc->mType);
+				}
+				else
+				{
+					D3D12_UNORDERED_ACCESS_VIEW_DESC array2DView = uavDesc;
+					const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+					const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
+					array2DView.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+					array2DView.Texture2DArray.ArraySize = arraySize;
+					array2DView.Texture2DArray.FirstArraySlice = 0;
+					array2DView.Texture2DArray.MipSlice = 0;
+					array2DView.Texture2DArray.PlaneSlice = 0;
+
+					add_uav(pRenderer, pTexture->pDxResource, NULL, &array2DView, &pTexture->mDxDescriptorHandles[5]);
+				}
+			}
 		}
+
 		//save tetxure in given pointer
 		*ppTexture = pTexture;
 
@@ -2931,13 +3054,10 @@ namespace d3d12 {
 		ASSERT(pTexture);
 
 		//delete texture memory
-		if (pTexture->mDxSrvHandle.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL)
+		for (uint32_t i = 0; i < TEXTURE_USAGE_COUNT; ++i)
 		{
-			remove_srv(pRenderer, &pTexture->mDxSrvHandle);
-		}
-		if (pTexture->mDxUavHandle.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL)
-		{
-			remove_uav(pRenderer, &pTexture->mDxUavHandle);
+			if (pTexture->mDxDescriptorHandles[i].ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL)
+				remove_srv(pRenderer, &pTexture->mDxDescriptorHandles[i]);
 		}
 
 		if (pTexture->mOwnsImage)
@@ -2959,6 +3079,8 @@ namespace d3d12 {
 		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) && (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
 		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL) && (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)) && "Cannot use depth stencil as UAV");
 
+		((RenderTargetDesc*)pDesc)->mMipLevels = max(1U, pDesc->mMipLevels);
+
 		RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc(1, sizeof(*pRenderTarget));
 		pRenderTarget->mDesc = *pDesc;
 
@@ -2967,15 +3089,13 @@ namespace d3d12 {
 		ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
 
 		TextureDesc textureDesc = {};
-		textureDesc.mBaseArrayLayer = pDesc->mBaseArrayLayer;
 		textureDesc.mArraySize = pDesc->mArraySize;
 		textureDesc.mClearValue = pDesc->mClearValue;
 		textureDesc.mDepth = pDesc->mDepth;
 		textureDesc.mFlags = pDesc->mFlags;
 		textureDesc.mFormat = pDesc->mFormat;
 		textureDesc.mHeight = pDesc->mHeight;
-		textureDesc.mBaseMipLevel = pDesc->mBaseMipLevel;
-		textureDesc.mMipLevels = 1;
+		textureDesc.mMipLevels = pDesc->mMipLevels;
 		textureDesc.mSampleCount = pDesc->mSampleCount;
 		textureDesc.mSampleQuality = pDesc->mSampleQuality;
 
@@ -2996,6 +3116,7 @@ namespace d3d12 {
 		textureDesc.mNodeIndex = pDesc->mNodeIndex;
 		textureDesc.pSharedNodeIndices = pDesc->pSharedNodeIndices;
 		textureDesc.mSharedNodeIndexCount = pDesc->mSharedNodeIndexCount;
+		textureDesc.mUsage |= pDesc->mTextureUsage;
 
 		switch (pDesc->mType)
 		{
@@ -3015,30 +3136,32 @@ namespace d3d12 {
 		addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
 		RenderTargetType type = pRenderTarget->mDesc.mType;
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 		switch (type)
 		{
 		case RENDER_TARGET_TYPE_1D:
 			if (pRenderTarget->mDesc.mArraySize > 1)
 			{
-				pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-				pRenderTarget->mDxDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
 				// RTV
-				pRenderTarget->mDxRtvDesc.Texture1DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
-				pRenderTarget->mDxRtvDesc.Texture1DArray.FirstArraySlice = pRenderTarget->mDesc.mBaseMipLevel;
-				pRenderTarget->mDxRtvDesc.Texture1DArray.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
+				rtvDesc.Texture1DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
+				rtvDesc.Texture1DArray.FirstArraySlice = 0;
+				rtvDesc.Texture1DArray.MipSlice = 0;
 				// DSV
-				pRenderTarget->mDxDsvDesc.Texture1DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
-				pRenderTarget->mDxDsvDesc.Texture1DArray.FirstArraySlice = pRenderTarget->mDesc.mBaseArrayLayer;
-				pRenderTarget->mDxDsvDesc.Texture1DArray.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
+				dsvDesc.Texture1DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
+				dsvDesc.Texture1DArray.FirstArraySlice = 0;
+				dsvDesc.Texture1DArray.MipSlice = 0;
 			}
 			else
 			{
-				pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-				pRenderTarget->mDxDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
 				// RTV
-				pRenderTarget->mDxRtvDesc.Texture1D.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
+				rtvDesc.Texture1D.MipSlice = 0;
 				// DSV
-				pRenderTarget->mDxDsvDesc.Texture1D.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
+				dsvDesc.Texture1D.MipSlice = 0;
 			}
 			break;
 		case RENDER_TARGET_TYPE_2D:
@@ -3046,71 +3169,360 @@ namespace d3d12 {
 			{
 				if (pRenderTarget->mDesc.mSampleCount > SAMPLE_COUNT_1)
 				{
-					pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
-					pRenderTarget->mDxDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
 					// RTV
-					pRenderTarget->mDxRtvDesc.Texture2DMSArray.ArraySize = pRenderTarget->mDesc.mArraySize;
-					pRenderTarget->mDxRtvDesc.Texture2DMSArray.FirstArraySlice = pRenderTarget->mDesc.mBaseArrayLayer;
+					rtvDesc.Texture2DMSArray.ArraySize = pRenderTarget->mDesc.mArraySize;
+					rtvDesc.Texture2DMSArray.FirstArraySlice = 0;
 					// DSV
-					pRenderTarget->mDxDsvDesc.Texture2DMSArray.ArraySize = pRenderTarget->mDesc.mArraySize;
-					pRenderTarget->mDxDsvDesc.Texture2DMSArray.FirstArraySlice = pRenderTarget->mDesc.mBaseArrayLayer;
+					dsvDesc.Texture2DMSArray.ArraySize = pRenderTarget->mDesc.mArraySize;
+					dsvDesc.Texture2DMSArray.FirstArraySlice = 0;
 				}
 				else
 				{
-					pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-					pRenderTarget->mDxDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 					// RTV
-					pRenderTarget->mDxRtvDesc.Texture2DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
-					pRenderTarget->mDxRtvDesc.Texture2DArray.FirstArraySlice = pRenderTarget->mDesc.mBaseArrayLayer;
-					pRenderTarget->mDxRtvDesc.Texture2DArray.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
-					pRenderTarget->mDxRtvDesc.Texture2DArray.PlaneSlice = 0;
+					rtvDesc.Texture2DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
+					rtvDesc.Texture2DArray.FirstArraySlice = 0;
+					rtvDesc.Texture2DArray.MipSlice = 0;
+					rtvDesc.Texture2DArray.PlaneSlice = 0;
 					// DSV
-					pRenderTarget->mDxDsvDesc.Texture2DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
-					pRenderTarget->mDxDsvDesc.Texture2DArray.FirstArraySlice = pRenderTarget->mDesc.mBaseArrayLayer;
-					pRenderTarget->mDxDsvDesc.Texture2DArray.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
+					dsvDesc.Texture2DArray.ArraySize = pRenderTarget->mDesc.mArraySize;
+					dsvDesc.Texture2DArray.FirstArraySlice = 0;
+					dsvDesc.Texture2DArray.MipSlice = 0;
 				}
 			}
 			else
 			{
 				if (pRenderTarget->mDesc.mSampleCount > SAMPLE_COUNT_1)
 				{
-					pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-					pRenderTarget->mDxDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
 				}
 				else
 				{
-					pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-					pRenderTarget->mDxDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 					// RTV
-					pRenderTarget->mDxRtvDesc.Texture2D.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
-					pRenderTarget->mDxRtvDesc.Texture2D.PlaneSlice = 0;
+					rtvDesc.Texture2D.MipSlice = 0;
+					rtvDesc.Texture2D.PlaneSlice = 0;
 					// DSV
-					pRenderTarget->mDxDsvDesc.Texture2D.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
+					dsvDesc.Texture2D.MipSlice = 0;
 				}
 			}
 			break;
 		case RENDER_TARGET_TYPE_3D:
-			pRenderTarget->mDxRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
 			// Cannot create a 3D depth stencil
-			pRenderTarget->mDxRtvDesc.Texture3D.MipSlice = pRenderTarget->mDesc.mBaseMipLevel;
-			pRenderTarget->mDxRtvDesc.Texture3D.WSize = ~0u;
+			rtvDesc.Texture3D.MipSlice = 0;
+			rtvDesc.Texture3D.WSize = ~0u;
 			break;
 		default:
 			break;
 		}
 
+		tinystl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> descriptorHandles;
+
 		if (pRenderTarget->mDesc.mUsage & RENDER_TARGET_USAGE_COLOR)
 		{
-			ASSERT(pRenderTarget->mDxRtvDesc.ViewDimension != D3D12_RTV_DIMENSION_UNKNOWN);
-			pRenderTarget->mDxRtvDesc.Format = dxFormat;
-			add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &pRenderTarget->mDxRtvDesc, &pRenderTarget->mDxRtvHandle);
+			ASSERT(rtvDesc.ViewDimension != D3D12_RTV_DIMENSION_UNKNOWN);
+			rtvDesc.Format = dxFormat;
+
+			descriptorHandles.resize(1);
+			add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &rtvDesc, &descriptorHandles[0]);
+			if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC mipped1DView = rtvDesc;
+				mipped1DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+				descriptorHandles.resize(pDesc->mMipLevels + 1);
+				for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+				{
+					mipped1DView.Texture1DArray.MipSlice = i;
+					add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mipped1DView, &descriptorHandles[1 + i]);
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_SLICES)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC array1DView = rtvDesc;
+				array1DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+				array1DView.Texture1DArray.ArraySize = 1;
+				array1DView.Texture1DArray.MipSlice = 0;
+				descriptorHandles.resize(pDesc->mArraySize + 1);
+				for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+				{
+					array1DView.Texture1DArray.FirstArraySlice = i;
+					add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &array1DView, &descriptorHandles[1 + i]);
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED_SLICES)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC mippedArray1DView = rtvDesc;
+				mippedArray1DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+				mippedArray1DView.Texture1DArray.ArraySize = 1;
+				descriptorHandles.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
+				for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+				{
+					mippedArray1DView.Texture2DArray.FirstArraySlice = i;
+					for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+					{
+						mippedArray1DView.Texture1DArray.MipSlice = j;
+						add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray1DView, &descriptorHandles[1 + i * pDesc->mMipLevels + j]);
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC mipped2DView = rtvDesc;
+				if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+				{
+					LOGWARNINGF("MSAA Textures have only one mip-map. Skipping mip map view generation");
+				}
+				else
+				{
+					mipped2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+					mipped2DView.Texture2DArray.PlaneSlice = 0;
+					descriptorHandles.resize(pDesc->mMipLevels + 1);
+					for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+					{
+						mipped2DView.Texture2DArray.MipSlice = i;
+						add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mipped2DView, &descriptorHandles[1 + i]);
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_SLICES)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC array2DView = rtvDesc;
+				if (pDesc->mType == RENDER_TARGET_TYPE_2D)
+				{
+					if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+					{
+						array2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+						array2DView.Texture2DMSArray.ArraySize = 1;
+						descriptorHandles.resize(pDesc->mArraySize + 1);
+						for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+						{
+							array2DView.Texture2DMSArray.FirstArraySlice = i;
+							add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &array2DView, &descriptorHandles[1 + i]);
+						}
+					}
+					else
+					{
+						array2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+						array2DView.Texture2DArray.ArraySize = 1;
+						array2DView.Texture2DArray.MipSlice = 0;
+						array2DView.Texture2DArray.PlaneSlice = 0;
+						descriptorHandles.resize(pDesc->mArraySize + 1);
+						for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+						{
+							array2DView.Texture2DArray.FirstArraySlice = i;
+							add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &array2DView, &descriptorHandles[1 + i]);
+						}
+					}
+				}
+				else if (pDesc->mType == RENDER_TARGET_TYPE_3D)
+				{
+					array2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+					array2DView.Texture3D.WSize = 1;
+					array2DView.Texture3D.MipSlice = 0;
+					descriptorHandles.resize(pDesc->mDepth + 1);
+					for (uint32_t i = 0; i < pDesc->mDepth; ++i)
+					{
+						array2DView.Texture3D.FirstWSlice = i;
+						add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &array2DView, &descriptorHandles[1 + i]);
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED_SLICES)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC mippedArray2DView = rtvDesc;
+				if (pDesc->mType == RENDER_TARGET_TYPE_2D)
+				{
+					if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+					{
+						LOGWARNINGF("MSAA Textures have only one mip-map. Skipping mip map view generation");
+						mippedArray2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+						mippedArray2DView.Texture2DMSArray.ArraySize = 1;
+						descriptorHandles.resize(pDesc->mArraySize + 1);
+						for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+						{
+							mippedArray2DView.Texture2DMSArray.FirstArraySlice = i;
+							add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray2DView, &descriptorHandles[1 + i]);
+						}
+					}
+					else
+					{
+						mippedArray2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+						mippedArray2DView.Texture2DArray.ArraySize = 1;
+						mippedArray2DView.Texture2DArray.PlaneSlice = 0;
+						descriptorHandles.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
+						for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+						{
+							mippedArray2DView.Texture2DArray.FirstArraySlice = i;
+							for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+							{
+								mippedArray2DView.Texture2DArray.MipSlice = j;
+								add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray2DView, &descriptorHandles[1 + i * pDesc->mMipLevels + j]);
+							}
+						}
+					}
+				}
+				else if (pDesc->mType == RENDER_TARGET_TYPE_3D)
+				{
+					mippedArray2DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+					mippedArray2DView.Texture3D.WSize = 1;
+					mippedArray2DView.Texture3D.MipSlice = 0;
+					descriptorHandles.resize(pDesc->mDepth * pDesc->mMipLevels + 1);
+					for (uint32_t i = 0; i < pDesc->mDepth; ++i)
+					{
+						mippedArray2DView.Texture3D.FirstWSlice = i;
+						for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+						{
+							mippedArray2DView.Texture3D.MipSlice = j;
+							add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray2DView, &descriptorHandles[1 + i * pDesc->mMipLevels + j]);
+						}
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_3D_MIPPED)
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC mipped3DView = rtvDesc;
+				mipped3DView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+				descriptorHandles.resize(pDesc->mMipLevels + 1);
+				for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+				{
+					mipped3DView.Texture3D.MipSlice = i;
+					add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, &mipped3DView, &descriptorHandles[1 + i]);
+				}
+			}
 		}
 		else if (pRenderTarget->mDesc.mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)
 		{
-			ASSERT(pRenderTarget->mDxDsvDesc.ViewDimension != D3D12_DSV_DIMENSION_UNKNOWN);
-			pRenderTarget->mDxDsvDesc.Format = util_to_dx_dsv_format(dxFormat);
-			add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &pRenderTarget->mDxDsvDesc, &pRenderTarget->mDxDsvHandle);
+			ASSERT(dsvDesc.ViewDimension != D3D12_DSV_DIMENSION_UNKNOWN);
+			dsvDesc.Format = util_to_dx_dsv_format(dxFormat);
+			descriptorHandles.resize(1);
+			add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &dsvDesc, &descriptorHandles[0]);
+			if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC mipped1DView = dsvDesc;
+				mipped1DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+				descriptorHandles.resize(pDesc->mMipLevels + 1);
+				for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+				{
+					mipped1DView.Texture1D.MipSlice = i;
+					add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &mipped1DView, &descriptorHandles[1 + i]);
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_SLICES)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC array1DView = dsvDesc;
+				array1DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+				array1DView.Texture1DArray.ArraySize = 1;
+				array1DView.Texture1DArray.MipSlice = 0;
+				descriptorHandles.resize(pDesc->mArraySize + 1);
+				for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+				{
+					array1DView.Texture2DArray.FirstArraySlice = i;
+					add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &array1DView, &descriptorHandles[1 + i]);
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED_SLICES)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC mippedArray1DView = dsvDesc;
+				mippedArray1DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+				mippedArray1DView.Texture1DArray.ArraySize = 1;
+				descriptorHandles.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
+				for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+				{
+					mippedArray1DView.Texture2DArray.FirstArraySlice = i;
+					for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+					{
+						mippedArray1DView.Texture1DArray.MipSlice = j;
+						add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray1DView, &descriptorHandles[1 + i * pDesc->mMipLevels + j]);
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC mipped2DView = dsvDesc;
+				if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+				{
+					LOGWARNINGF("MSAA Textures have only one mip-map. Skipping mip map view generation");
+				}
+				else
+				{
+					mipped2DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+					descriptorHandles.resize(pDesc->mMipLevels + 1);
+					for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+					{
+						mipped2DView.Texture2D.MipSlice = i;
+						add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &mipped2DView, &descriptorHandles[1 + i]);
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_SLICES)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC array2DView = dsvDesc;
+				if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+				{
+					array2DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+					array2DView.Texture2DMSArray.ArraySize = 1;
+					descriptorHandles.resize(pDesc->mArraySize + 1);
+					for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+					{
+						array2DView.Texture2DMSArray.FirstArraySlice = i;
+						add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &array2DView, &descriptorHandles[1 + i]);
+					}
+				}
+				else
+				{
+					array2DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+					array2DView.Texture2DArray.ArraySize = 1;
+					array2DView.Texture2DArray.MipSlice = 0;
+					descriptorHandles.resize(pDesc->mArraySize + 1);
+					for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+					{
+						array2DView.Texture2DArray.FirstArraySlice = i;
+						add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &array2DView, &descriptorHandles[1 + i]);
+					}
+				}
+			}
+			else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED_SLICES)
+			{
+				D3D12_DEPTH_STENCIL_VIEW_DESC mippedArray2DView = dsvDesc;
+				if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+				{
+					LOGWARNINGF("MSAA Textures have only one mip-map. Skipping mip map view generation");
+					mippedArray2DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+					mippedArray2DView.Texture2DMSArray.ArraySize = 1;
+					descriptorHandles.resize(pDesc->mArraySize + 1);
+					for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+					{
+						mippedArray2DView.Texture2DMSArray.FirstArraySlice = i;
+						add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray2DView, &descriptorHandles[1 + i]);
+					}
+				}
+				else
+				{
+					mippedArray2DView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+					mippedArray2DView.Texture2DArray.ArraySize = 1;
+					descriptorHandles.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
+					for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+					{
+						mippedArray2DView.Texture2DArray.FirstArraySlice = i;
+						for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+						{
+							mippedArray2DView.Texture2DArray.MipSlice = i;
+							add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, &mippedArray2DView, &descriptorHandles[1 + i * pDesc->mMipLevels + j]);
+						}
+					}
+				}
+			}
 		}
+
+		pRenderTarget->pDxDescriptorHandles = (D3D12_CPU_DESCRIPTOR_HANDLE*)conf_calloc(descriptorHandles.size(), sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+		pRenderTarget->mDxDescriptorHandleCount = (uint32_t)descriptorHandles.size();
+		memcpy(pRenderTarget->pDxDescriptorHandles, descriptorHandles.data(), descriptorHandles.size() * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
 
 		*ppRenderTarget = pRenderTarget;
 	}
@@ -3121,13 +3533,16 @@ namespace d3d12 {
 
 		if (pRenderTarget->mDesc.mUsage == RENDER_TARGET_USAGE_COLOR)
 		{
-			remove_rtv(pRenderer, &pRenderTarget->mDxRtvHandle);
+			for (uint32_t i = 0; i < pRenderTarget->mDxDescriptorHandleCount; ++i)
+				remove_rtv(pRenderer, &pRenderTarget->pDxDescriptorHandles[i]);
 		}
 		else if (pRenderTarget->mDesc.mUsage == RENDER_TARGET_USAGE_DEPTH_STENCIL)
 		{
-			remove_dsv(pRenderer, &pRenderTarget->mDxDsvHandle);
+			for (uint32_t i = 0; i < pRenderTarget->mDxDescriptorHandleCount; ++i)
+				remove_dsv(pRenderer, &pRenderTarget->pDxDescriptorHandles[i]);
 		}
 
+		SAFE_FREE(pRenderTarget->pDxDescriptorHandles);
 		SAFE_FREE(pRenderTarget);
 	}
 
@@ -4344,7 +4759,8 @@ namespace d3d12 {
 		ASSERT(SUCCEEDED(hres));
 	}
 
-	void cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions/* = NULL*/)
+	void cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions/* = NULL*/,
+		uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
 	{
 		ASSERT(pCmd);
 		ASSERT(pCmd->pDxCmdList);
@@ -4352,29 +4768,79 @@ namespace d3d12 {
 		if (!renderTargetCount && !pDepthStencil)
 			return;
 
+		uint64_t renderPassHash = 0;
 		D3D12_CPU_DESCRIPTOR_HANDLE* p_dsv_handle = NULL;
 		D3D12_CPU_DESCRIPTOR_HANDLE* p_rtv_handles = renderTargetCount ?
 			(D3D12_CPU_DESCRIPTOR_HANDLE*)alloca(renderTargetCount * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE)) : NULL;
 		for (uint32_t i = 0; i < renderTargetCount; ++i)
 		{
-			p_rtv_handles[i] = ppRenderTargets[i]->mDxRtvHandle;
+			uint32_t handle = 0;
+			if (pColorArraySlices)
+			{
+				if (pColorMipSlices)
+				{
+					handle = 1 + pColorArraySlices[i] * ppRenderTargets[i]->mDesc.mMipLevels + pColorMipSlices[i];
+				}
+				else
+				{
+					handle = 1 + pColorArraySlices[i];
+				}
+			}
+			else if (pColorMipSlices)
+			{
+				handle = 1 + pColorMipSlices[i];
+			}
+
+			p_rtv_handles[i] = ppRenderTargets[i]->pDxDescriptorHandles[handle];
 			pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
 			pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
 			pCmd->mBoundWidth = ppRenderTargets[i]->mDesc.mWidth;
 			pCmd->mBoundHeight = ppRenderTargets[i]->mDesc.mHeight;
+
+			uint32_t hashValues[] = {
+				(uint32_t)ppRenderTargets[i]->mDesc.mFormat,
+				(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
+				(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
+			};
+			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
 		}
 
 		if (pDepthStencil)
 		{
-			p_dsv_handle = &pDepthStencil->mDxDsvHandle;
+			uint32_t handle = 0;
+			if (depthArraySlice != -1)
+			{
+				if (depthMipSlice != -1)
+				{
+					handle = 1 + depthArraySlice * pDepthStencil->mDesc.mMipLevels + depthMipSlice;
+				}
+				else
+				{
+					handle = 1 + depthArraySlice;
+				}
+			}
+			else if (depthMipSlice != -1)
+			{
+				handle = 1 + depthMipSlice;
+			}
+
+			p_dsv_handle = &pDepthStencil->pDxDescriptorHandles[handle];
 			pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
 			pCmd->mBoundWidth = pDepthStencil->mDesc.mWidth;
 			pCmd->mBoundHeight = pDepthStencil->mDesc.mHeight;
+
+			uint32_t hashValues[] = {
+				(uint32_t)pDepthStencil->mDesc.mFormat,
+				(uint32_t)pDepthStencil->mDesc.mSampleCount,
+				(uint32_t)pDepthStencil->mDesc.mSrgb,
+			};
+			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
 		}
 
 		SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
 		pCmd->mBoundSampleCount = sampleCount;
 		pCmd->mBoundRenderTargetCount = renderTargetCount;
+		pCmd->mRenderPassHash = renderPassHash;
 
 		pCmd->pDxCmdList->OMSetRenderTargets(renderTargetCount, p_rtv_handles, FALSE, p_dsv_handle);
 
@@ -4459,7 +4925,7 @@ namespace d3d12 {
 		pCmd->pDxCmdList->SetPipelineState(pPipeline->pDxPipelineState);
 	}
 
-	void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer)
+	void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t offset)
 	{
 		ASSERT(pCmd);
 		ASSERT(pBuffer);
@@ -4474,7 +4940,7 @@ namespace d3d12 {
 #endif
 
 		D3D12_INDEX_BUFFER_VIEW ibView = {};
-		ibView.BufferLocation = pBuffer->mDxGpuAddress;
+		ibView.BufferLocation = pBuffer->mDxGpuAddress + offset;
 		ibView.Format = pBuffer->mDxIndexFormat;
 		ibView.SizeInBytes = (UINT)pBuffer->mDesc.mSize;
 
@@ -4482,7 +4948,7 @@ namespace d3d12 {
 		pCmd->pDxCmdList->IASetIndexBuffer(&ibView);
 	}
 
-	void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers)
+	void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, uint64_t* pOffsets)
 	{
 		ASSERT(pCmd);
 		ASSERT(0 != bufferCount);
@@ -4491,11 +4957,12 @@ namespace d3d12 {
 		//bind given vertex buffer
 
 		DECLARE_ZERO(D3D12_VERTEX_BUFFER_VIEW, views[MAX_VERTEX_ATTRIBS]);
-		for (uint32_t i = 0; i < bufferCount; ++i) {
+		for (uint32_t i = 0; i < bufferCount; ++i)
+		{
 			ASSERT(D3D12_GPU_VIRTUAL_ADDRESS_NULL != ppBuffers[i]->mDxGpuAddress);
 
-			views[i].BufferLocation = ppBuffers[i]->mDxGpuAddress;
-			views[i].SizeInBytes = (UINT)ppBuffers[i]->mDesc.mSize;
+			views[i].BufferLocation = (ppBuffers[i]->mDxGpuAddress + (pOffsets ? pOffsets[i] : 0));
+			views[i].SizeInBytes = (UINT)(ppBuffers[i]->mDesc.mSize - (pOffsets ? pOffsets[i] : 0));
 			views[i].StrideInBytes = (UINT)ppBuffers[i]->mDesc.mVertexStride;
 #ifdef _DURANGO
 			BufferBarrier bufferBarriers[] = {
@@ -4688,9 +5155,9 @@ namespace d3d12 {
 						addUniformRingBuffer(pRenderer, 4000U, &pCmd->pRootConstantRingBuffer);
 					}
 					uint32_t size = pDesc->mDesc.size * sizeof(uint32_t);
-					UniformBufferOffset offset = getUniformBufferOffset(pCmd->pRootConstantRingBuffer, size);
-					memcpy((uint8_t*)offset.pUniformBuffer->pCpuMappedAddress + offset.mOffset, pParam->pRootConstant, size);
-					cbv = offset.pUniformBuffer->mDxGpuAddress + offset.mOffset;
+					RingBufferOffset offset = getUniformBufferOffset(pCmd->pRootConstantRingBuffer, size);
+					memcpy((uint8_t*)offset.pBuffer->pCpuMappedAddress + offset.mOffset, pParam->pRootConstant, size);
+					cbv = offset.pBuffer->mDxGpuAddress + offset.mOffset;
 				}
 
 				if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
@@ -4738,6 +5205,7 @@ namespace d3d12 {
 				}
 				break;
 			case DESCRIPTOR_TYPE_TEXTURE:
+			case DESCRIPTOR_TYPE_RW_TEXTURE:
 			{
 				if (!pParam->ppTextures)
 				{
@@ -4745,7 +5213,12 @@ namespace d3d12 {
 					return;
 				}
 				D3D12_CPU_DESCRIPTOR_HANDLE* handlePtr = &pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex];
-				Texture** ppTextures = pParam->ppTextures;
+				Texture* const* ppTextures = pParam->ppTextures;
+
+				uint32_t handle = util_to_descriptor_handle_index(pParam->mTextureUsage, pDesc->mDesc.type);
+				if (handle != 0)
+					pHash[setIndex] = tinystl::hash_state(&handle, 1, pHash[setIndex]);
+
 				for (uint32_t j = 0; j < arrayCount; ++j)
 				{
 #ifdef _DEBUG
@@ -4755,39 +5228,15 @@ namespace d3d12 {
 						return;
 					}
 #endif
-
 					//if (j < arrayCount - 1)
 					//	_mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
 					Texture* tex = ppTextures[j];
 					pHash[setIndex] = tinystl::hash_state(&tex->mTextureId, 1, pHash[setIndex]);
-					handlePtr[j] = tex->mDxSrvHandle;
+					handlePtr[j] = tex->mDxDescriptorHandles[handle];
 					//pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = tex->mDxSrvHandle;
 				}
 				break;
 			}
-			case DESCRIPTOR_TYPE_RW_TEXTURE:
-				if (!pParam->ppTextures)
-				{
-					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
-					return;
-				}
-				for (uint32_t j = 0; j < arrayCount; ++j)
-				{
-					if (!pParam->ppBuffers[j])
-					{
-						LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
-						return;
-					}
-					pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[j]->mTextureId, 1, pHash[setIndex]);
-					pm->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppTextures[j]->mDxUavHandle;
-#ifdef _DURANGO
-					TextureBarrier textureBarriers[] = {
-						{ pParam->ppTextures[j], RESOURCE_STATE_UNORDERED_ACCESS }
-					};
-					cmdResourceBarrier(pCmd, 0, NULL, 1, textureBarriers, true);
-#endif
-				}
-				break;
 			case DESCRIPTOR_TYPE_BUFFER:
 				if (!pParam->ppBuffers)
 				{
@@ -5517,7 +5966,7 @@ namespace d3d12 {
 				break;
 			}
 		}
-
+    
 		if(change)
 		{
 			ASSERT(pDesc->pRootSignature);

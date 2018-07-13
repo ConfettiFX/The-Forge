@@ -39,6 +39,12 @@
 #define KEY_8 int('8')
 #define KEY_9 int('9')
 
+#define MOUSE_AXIS_X 0x1001
+#define MOUSE_AXIS_Y 0x1002
+#define MOUSE_LEFT_BUTTON 0x1003
+#define MOUSE_RIGHT_BUTTON 0x1004
+#define MOUSE_WHEEL_BUTTON 0x1005
+
 #if defined(_DURANGO)
 
 #define BUTTON_MENU		0x4

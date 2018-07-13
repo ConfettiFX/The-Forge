@@ -161,13 +161,13 @@ void _PrintUnicode(const String& str, bool error)
 	// though it means that proper Unicode output will not work
 	FILE* out = error ? stderr : stdout;
 	if (!_isatty(_fileno(out)))
-		fprintf(out, "%s", str.c_str());
+		fprintf(out, "%s\n", str.c_str());
 	else
 	{
 		if (error)
-			printf (str.c_str()); // use this for now because WriteCosnoleW sometimes cause blocking
+			printf("%s\n", str.c_str()); // use this for now because WriteCosnoleW sometimes cause blocking
 		else
-			printf (str.c_str());
+			printf("%s\n", str.c_str());
 	}
 
 	outputLogString(str.c_str());

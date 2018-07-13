@@ -38,18 +38,14 @@
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 
+//input
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
-
-
-/// Camera Controller
-#define GUI_CAMERACONTROLLER 1
-#define FPS_CAMERACONTROLLER 2
-
-#define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
-
 
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
@@ -151,7 +147,7 @@ Texture*					pEnvTex = NULL;
 Sampler*					pSamplerEnv = NULL;
 
 #ifdef TARGET_IOS
-Texture*                    pVirtualJoystickTex = NULL;
+VirtualJoystickUI			gVirtualJoystick;
 #endif
 
 Renderer*					pRenderer = NULL;
@@ -236,18 +232,6 @@ float						gBgVertex[256];
 tinystl::vector<Buffer*>	gSphereBuffers[gImageCount];
 Buffer*						pScreenSizeBuffer;
 
-#if !USE_CAMERACONTROLLER
-struct CameraProperty
-{
-	Point3					mCameraPosition;
-	vec3					mCameraRight;
-	vec3					mCameraDirection;
-	vec3					mCameraUp;
-	vec3					mCameraForward;
-	float					mCameraPitch;
-	float					mCamearYaw;
-} gCameraProp;
-#endif
 float					gCameraYRotateScale;   // decide how fast camera rotate 
 
 DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
@@ -279,11 +263,10 @@ public:
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
+		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
-#ifndef METAL
+
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-#endif
 
 		TextureLoadDesc textureDesc = {};
 #ifndef TARGET_IOS
@@ -295,15 +278,10 @@ public:
 		textureDesc.pFilename = pEnvImageFileNames[0];
 		textureDesc.ppTexture = &pEnvTex;
 		addResource(&textureDesc);
-        
+
 #ifdef TARGET_IOS
-        // Add virtual joystick texture.
-        textureDesc = {};
-        textureDesc.mRoot = FSRoot::FSR_Absolute;
-        textureDesc.mUseMipmaps = false;
-        textureDesc.pFilename = "circlepad.png";
-        textureDesc.ppTexture = &pVirtualJoystickTex;
-        addResource(&textureDesc, true);
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
 #endif
 
 		ShaderLoadDesc proceduralPlanet = {};
@@ -493,31 +471,15 @@ public:
 		pGui->AddProperty(TerrainExp);
 		pGui->AddProperty(TerrainSeed);
 
-#if USE_CAMERACONTROLLER
 		CameraMotionParameters camParameters{ 10.0f, 600.0f, 200.0f };
 		vec3 camPos{ 0.0f, 0.0f, 10.0f };
 		vec3 lookat{ 0 };
 
-#if USE_CAMERACONTROLLER == FPS_CAMERACONTROLLER
 		pCameraController = createFpsCameraController(camPos, lookat);
 		requestMouseCapture(true);
-#elif USE_CAMERACONTROLLER == GUI_CAMERACONTROLLER
-		pCameraController = createGuiCameraController(camPos, lookat);
-#endif
 
 		pCameraController->setMotionParameters(camParameters);
-
-#if !defined(_DURANGO)
-		registerRawMouseMoveEvent(cameraMouseMove);
-		registerMouseButtonEvent(cameraMouseButton);
-		registerMouseWheelEvent(cameraMouseWheel);
-#endif
-
-#ifdef TARGET_IOS
-        registerTouchEvent(cameraTouch);
-        registerTouchMoveEvent(cameraTouchMove);
-#endif
-#endif
+		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		return true;
 	}
@@ -525,10 +487,7 @@ public:
 	void Exit()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-
-#if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
-#endif
 
 		removeDebugRendererInterface();
 		removeResource(pSphereVertexBuffer);
@@ -547,7 +506,7 @@ public:
 		removeResource(pScreenSizeBuffer);
         
 #ifdef TARGET_IOS
-        removeResource(pVirtualJoystickTex);
+		gVirtualJoystick.Exit();
 #endif
 
 		gAppUI.Exit();
@@ -601,6 +560,11 @@ public:
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+#ifdef TARGET_IOS
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+			return false;
+#endif
 
 		// Create vertex layout
 		VertexLayout vertexLayoutSphere = {};
@@ -675,6 +639,10 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
+#ifdef TARGET_IOS
+		gVirtualJoystick.Unload();
+#endif
+
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipelineBRDF);
@@ -689,27 +657,19 @@ public:
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
 
 		gEplasedTime += deltaTime;
 
-
-#if USE_CAMERACONTROLLER
-#ifndef TARGET_IOS
-#ifdef _DURANGO
-		if (getJoystickButtonDown(BUTTON_A))
-#else
-		if (getKeyDown(KEY_F))
-#endif
+		if (getKeyDown(KEY_BUTTON_X))
 		{
 			RecenterCameraView(170.0f);
 		}
-#endif
 
 		pCameraController->update(deltaTime);
-#endif
 
 		// Update camera
 		mat4 viewMat = pCameraController->getViewMatrix();
@@ -779,7 +739,7 @@ public:
 		TextureBarrier barriers[] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 		/************************************************************************/
@@ -798,7 +758,7 @@ public:
 		paramsBG[1].ppBuffers = &pScreenSizeBuffer;
 
 		cmdBindDescriptors(cmd, pRootSigBG, 2, paramsBG);
-		cmdBindVertexBuffer(cmd, 1, &pBGVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pBGVertexBuffer, NULL);
 
 		cmdDraw(cmd, 6, 0);
 #ifndef METAL
@@ -828,7 +788,7 @@ public:
 		params[3].ppTextures = &pEnvTex;
 
 		cmdBindDescriptors(cmd, pRootSigBRDF, 4, params);
-		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 
 		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
 #ifndef METAL
@@ -847,7 +807,7 @@ public:
 
 		// Prepare UI command buffers
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -855,25 +815,7 @@ public:
 		gTimer.GetUSec(true);
         
 #ifdef TARGET_IOS
-		// Draw the camera controller's virtual joysticks.
-		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-
-		float2 joystickSize = float2(extSide);
-		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-
-		joystickSize = float2(intSide);
-		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -984,40 +926,11 @@ public:
 	}
 
 	// Camera controller functionality
-#if USE_CAMERACONTROLLER
-#if !defined(_DURANGO)
-	static bool cameraMouseMove(const RawMouseMoveEventData* data)
+	static bool cameraInputEvent(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
-
-	static bool cameraMouseButton(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool cameraMouseWheel(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-#endif
-#ifdef TARGET_IOS
-    static bool cameraTouch(const TouchEventData* data)
-    {
-        pCameraController->onTouch(data);
-        return true;
-    }
-    
-    static bool cameraTouchMove(const TouchEventData* data)
-    {
-        pCameraController->onTouchMove(data);
-        return true;
-    }
-#endif
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(Procedural)

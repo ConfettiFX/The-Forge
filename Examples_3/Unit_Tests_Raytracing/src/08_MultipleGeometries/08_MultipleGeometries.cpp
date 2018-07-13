@@ -458,7 +458,7 @@ public:
 		TextureBarrier rtBarrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &rtBarrier, false);
 
-		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
 		drawDebugGpuProfile(pCmd, 15.0f, 40.0f, pGpuProfiler, NULL);
@@ -512,7 +512,7 @@ private:
 	Semaphore*				pImageAcquiredSemaphore;
 	GpuProfiler*			pGpuProfiler;
 	UIApp					mAppUI;
-	uint32_t				mFrameIdx;
+	uint32_t				mFrameIdx = 0;
 
 	GuiComponent*			pGuiWindow;
 	float3					mLightDirection = float3(0.5f, 0.5f, -0.5f);

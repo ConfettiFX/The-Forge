@@ -1,0 +1,41 @@
+
+
+Google Android Studio Setup
+Just download Android Studio first and then use Tools->SDK Manager to download all the other stuff
+
+https://developer.android.com/studio/
+
+Dowload the apropriate platforms in <SDK Platforms> and then download from <SDK Tools> 
+- Android Build Tools and lots of other tools
+- Google USB driver
+- NDK
+
+- When you have the NDK downloaded, compile shaderc by navigating to <ndk-root>/sources/third_party/shaderc/, then running the following command.
+..\..\..\ndk-build.cmd NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk APP_STL:=gnustl_static APP_ABI=all libshaderc_combined
+
+- Open a terminal window, and use git to clone the Android Vulkan samples from the repository in which they reside.
+$ git clone https://github.com/googlesamples/vulkan-basic-samples.git
+
+- Navigate to this LunarGSamples/ directory, which is in the local repository that you checked out in the previous step.
+Update the gslang source by running the following command.
+
+On Mac or Linux:
+$ ./update_external_sources.sh -s -g
+
+On Windows:
+update_external_sources.bat --sync-glslang --sync-spirv-tools
+
+- Install the USB driver:
+https://developer.android.com/studio/run/oem-usb#InstallingDriver
+
+- Check if device is connected through USB with the special Device USB driver (for Google phones the Google USB driver)
+PS C:\Users\Wolfgang\AppData\Local\Android\Sdk\platform-tools> .\adb.exe devices
+List of devices attached
+009298fb8552b853        device
+
+- Enable USB Debugging on a Nexus 5X:
+https://www.technipages.com/nexus-5x-enable-usb-debugging
+
+
+
+

@@ -11,8 +11,10 @@
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="Yes"/>
+  <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
+  <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -26,8 +28,10 @@
       <Project Name="07_Tessellation" ConfigName="Debug"/>
       <Project Name="08_Procedural" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
+      <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
+      <Project Name="gainput" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="01_Transformation" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
@@ -41,6 +45,8 @@
       <Project Name="07_Tessellation" ConfigName="Release"/>
       <Project Name="08_Procedural" ConfigName="Release"/>
       <Project Name="06_MaterialPlayground" ConfigName="Release"/>
+      <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
+      <Project Name="gainput" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

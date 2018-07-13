@@ -48,13 +48,11 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
+//input
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
-
-/// Camera Controller
-#define GUI_CAMERACONTROLLER 1
-#define FPS_CAMERACONTROLLER 2
-
-#define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
 ICameraController* pCameraController = NULL;
 
@@ -247,7 +245,7 @@ RootSignature*		pGrassVertexHullRootSignature = NULL;
 #endif
 
 #ifdef TARGET_IOS
-Texture*			pVirtualJoystickTex = NULL;
+VirtualJoystickUI	gVirtualJoystick;
 #endif
 
 Shader*				pComputeShader = NULL;
@@ -317,13 +315,8 @@ public:
 #endif
 
 #ifdef TARGET_IOS
-        // Add virtual joystick texture.
-        TextureLoadDesc textureDesc = {};
-        textureDesc.mRoot = FSRoot::FSR_Absolute;
-        textureDesc.mUseMipmaps = false;
-        textureDesc.pFilename = "circlepad.png";
-        textureDesc.ppTexture = &pVirtualJoystickTex;
-        addResource(&textureDesc, true);
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
 #endif
 
 #if defined(DIRECT3D12) || defined(VULKAN)
@@ -484,21 +477,6 @@ public:
 		gGrassUniformData.mMaxTessellationLevel = gMaxTessellationLevel;
 		gGrassUniformData.mWindMode = gWindMode;
 
-#if !USE_CAMERACONTROLLER
-		// initial camera properties
-		gCameraProp.mCameraPitch = -0.785398163f;
-		gCameraProp.mCamearYaw = 1.5f*0.785398163f;
-		gCameraProp.mCameraPosition = Point3(48.0f, 48.0f, 20.0f);
-		gCameraProp.mCameraForward = vec3(0.0f, 0.0f, -1.0f);
-		gCameraProp.mCameraUp = vec3(0.0f, 1.0f, 0.0f);
-
-		vec3 camRot(gCameraProp.mCameraPitch, gCameraProp.mCamearYaw, 0.0f);
-		mat3 trans = mat3::rotationZYX(camRot);
-		gCameraProp.mCameraDirection = trans* gCameraProp.mCameraForward;
-		gCameraProp.mCameraRight = cross(gCameraProp.mCameraDirection, gCameraProp.mCameraUp);
-		normalize(gCameraProp.mCameraRight);
-#endif
-
 		GuiDesc guiDesc = {};
 		guiDesc.mStartSize = vec2(300.0f, 250.0f);
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
@@ -545,31 +523,15 @@ public:
 		pGui->AddProperty(vsyncProp);
 #endif
 
-#if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };
 		vec3 lookAt{ 0 };
 
-#if USE_CAMERACONTROLLER == FPS_CAMERACONTROLLER
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		requestMouseCapture(true);
-#elif USE_CAMERACONTROLLER == GUI_CAMERACONTROLLER
-		pCameraController = createGuiCameraController(camPos, lookAt);
-#endif
-
 		pCameraController->setMotionParameters(cmp);
 
-#if !defined(_DURANGO)
-		registerRawMouseMoveEvent(cameraMouseMove);
-		registerMouseButtonEvent(cameraMouseButton);
-		registerMouseWheelEvent(cameraMouseWheel);
-#endif
-
-#ifdef TARGET_IOS
-        registerTouchEvent(cameraTouch);
-        registerTouchMoveEvent(cameraTouchMove);
-#endif
-#endif
+		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		LOGINFOF("Load time %f ms", startTime.GetUSec(true) / 1000.0f);
 		return true;
@@ -595,7 +557,7 @@ public:
 #endif
         
 #ifdef TARGET_IOS
-        removeResource(pVirtualJoystickTex);
+		gVirtualJoystick.Exit();
 #endif
 
 		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
@@ -657,6 +619,11 @@ public:
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+#ifdef TARGET_IOS
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+			return false;
+#endif
 
 		VertexLayout vertexLayout = {};
 #ifndef METAL
@@ -730,6 +697,10 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
+#ifdef TARGET_IOS
+		gVirtualJoystick.Unload();
+#endif
+
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pGrassPipeline);
@@ -745,6 +716,7 @@ public:
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
@@ -752,26 +724,18 @@ public:
 		/************************************************************************/
 		// Update camera
 		/************************************************************************/
-#if USE_CAMERACONTROLLER
-#ifndef TARGET_IOS
-#if !defined(_DURANGO)
-		if (getKeyDown(KEY_F))
+		if (getKeyDown(KEY_BUTTON_X))
 		{
 			RecenterCameraView(170.0f);
 		}
-#endif
-#endif
 
 		pCameraController->update(deltaTime);
-#endif
 		/************************************************************************/
 		// Update uniform buffer
 		/************************************************************************/
-#if USE_CAMERACONTROLLER	
 		mat4 viewMat = pCameraController->getViewMatrix();
-#else	
-		mat4 viewMat = mat4::lookAt(gCameraProp.mCameraPosition, Point3(gCameraProp.mCameraPosition + gCameraProp.mCameraDirection), gCameraProp.mCameraUp);
-#endif
+
+		
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
@@ -885,7 +849,7 @@ public:
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 #endif
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -905,15 +869,15 @@ public:
 		cmdBindDescriptors(cmd, pGrassRootSignature, 1, grassParams);
 
 #ifndef METAL
-		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, NULL);
 #else
 		// When using tessellation on Metal, you should always bind the tessellationFactors buffer and the controlPointBuffer together as vertex buffer (following this order).
 		Buffer* tessBuffers[] = { pTessFactorsBuffer, pHullOutputBuffer };
-		cmdBindVertexBuffer(cmd, 2, tessBuffers);
+		cmdBindVertexBuffer(cmd, 2, tessBuffers, NULL);
 #endif
 		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, NULL, 0);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		BufferBarrier uavBarriers[] = {
 			{ pBladeNumBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
@@ -937,7 +901,7 @@ public:
 		cmd = ppUICmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -947,25 +911,7 @@ public:
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
         
 #ifdef TARGET_IOS
-        // Draw the camera controller's virtual joysticks.
-        float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-        float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-        
-        float2 joystickSize = float2(extSide);
-        vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-        float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-        vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-        float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-        
-        joystickSize = float2(intSide);
-        leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-        leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-        rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-        rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f,1.0f,1.0f });
 #endif
 
 #ifndef METAL // Metal doesn't support GPU profilers
@@ -1102,42 +1048,11 @@ public:
 		pCameraController->lookAt(lookAt);
 	}
 
-	/// Camera controller functionality
-#if USE_CAMERACONTROLLER
-#if !defined(_DURANGO)
-	static bool cameraMouseMove(const RawMouseMoveEventData* data)
+	static bool cameraInputEvent(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
-
-	static bool cameraMouseButton(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool cameraMouseWheel(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-#endif
-
-#ifdef TARGET_IOS
-    static bool cameraTouch(const TouchEventData* data)
-    {
-        pCameraController->onTouch(data);
-        return true;
-    }
-    
-    static bool cameraTouchMove(const TouchEventData* data)
-    {
-        pCameraController->onTouchMove(data);
-        return true;
-    }
-#endif
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(Tessellation)

@@ -49,6 +49,10 @@
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
+//Input
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 
@@ -378,19 +382,14 @@ public:
 	}
 
 	void Update(float deltaTime)
-	{
-		const float w = (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth;
-		const float h = (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight;
-		
+	{  
 		// PROCESS INPUT
 		//-------------------------------------------------------------------------------------
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
-		const int offset = getKeyDown(KEY_SHIFT) ? -1 : +1;	// shift+space = previous text
-		if (getKeyUp(KEY_SPACE))
+		const int offset = getKeyDown(KEY_LEFT_BUMPER) ? -1 : +1;	// shift+space = previous text
+		if (getKeyUp(KEY_LEFT_TRIGGER))
 		{
 			gSceneData.sceneTextArrayIndex = (gSceneData.sceneTextArrayIndex + offset) % gSceneData.sceneTextArray.size();
 		}
-#endif
 	}
 
 	void Draw()
@@ -414,7 +413,7 @@ public:
 
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -444,7 +443,7 @@ public:
 
 		gAppUI.Draw(cmd);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);

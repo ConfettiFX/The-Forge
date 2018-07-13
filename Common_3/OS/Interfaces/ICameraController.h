@@ -27,6 +27,8 @@
 #include "IOperatingSystem.h"
 #include "../Math/MathTypes.h"
 
+struct ButtonData;
+
 struct CameraMotionParameters
 {
 	float maxSpeed;
@@ -39,17 +41,12 @@ class ICameraController
 public:
 	virtual ~ICameraController() {}
 	virtual void setMotionParameters(const CameraMotionParameters&) = 0;
+	virtual void onInputEvent(const ButtonData* pData) = 0;
 
 #if !defined(_DURANGO)
-	virtual void onMouseMove(const RawMouseMoveEventData* pData) = 0;
-	virtual void onMouseButton(const MouseButtonEventData* pData) = 0;
 	virtual void onMouseWheel(const MouseWheelEventData* pData) = 0;
 #endif
-    
-#if defined(TARGET_IOS)
-    virtual void onTouch(const TouchEventData* pData) = 0;
-    virtual void onTouchMove(const TouchEventData* pData) = 0;
-#endif
+
 	virtual void update(float deltaTime) = 0;
 
 	// there are also implicit dependencies on the keyboard state.

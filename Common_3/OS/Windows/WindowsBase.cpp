@@ -29,6 +29,9 @@
 #include <windowsx.h>
 #include <ntverp.h>
 
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
+
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
 
@@ -129,12 +132,14 @@ static void updateKeyArray(int uMsg, unsigned int wParam)
 	PlatformEvents::onKeyboardButton(&eventData);
 }
 
-static bool captureMouse(HWND hwnd, bool shouldCapture)
+static LPPOINT lastCursorPoint = &POINT();
+static bool captureMouse(bool shouldCapture)
 {
 	if (shouldCapture != isCaptured)
 	{
 		if (shouldCapture)
 		{
+			GetCursorPos(lastCursorPoint);
 			ShowCursor(FALSE);
 			isCaptured = true;
 		}
@@ -142,9 +147,10 @@ static bool captureMouse(HWND hwnd, bool shouldCapture)
 		{
 			ShowCursor(TRUE);
 			isCaptured = false;
+			SetCursorPos(lastCursorPoint->x, lastCursorPoint->y);
 		}
 	}
-
+	InputSystem::SetMouseCapture(isCaptured);
 	return true;
 }
 
@@ -157,13 +163,14 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		gCurrentWindow = pNode->second;
 	else
 		return DefWindowProcW(_hwnd, _id, wParam, lParam);
+	
 
 	switch (_id)
 	{
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 		{
-			captureMouse(_hwnd, false);
+			captureMouse(false);
 		}
 		break;
 
@@ -220,184 +227,10 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 	case WM_QUIT:
 		gAppRunning = false;
 		break;
-
-	case WM_CHAR:
-	{
-		KeyboardCharEventData eventData;
-		eventData.unicode = (unsigned)wParam;
-		PlatformEvents::onKeyboardChar(&eventData);
-		break;
-	}
-	case WM_MOUSEMOVE:
-	{
-		static int lastX = 0, lastY = 0;
-		int x, y;
-		x = GETX(lParam);
-		y = GETY(lParam);
-
-		MouseMoveEventData eventData;
-		eventData.x = x;
-		eventData.y = y;
-		eventData.deltaX = x - lastX;
-		eventData.deltaY = y - lastY;
-		eventData.captured = isCaptured;
-		PlatformEvents::onMouseMove(&eventData);
-
-		lastX = x;
-		lastY = y;
-		break;
-	}
-	case WM_INPUT:
-	{
-		UINT dwSize;
-		static BYTE lpb[128] = {};
-
-		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-
-		RAWINPUT* raw = (RAWINPUT*)lpb;
-
-		if (raw->header.dwType == RIM_TYPEMOUSE)
-		{
-			static int lastX = 0, lastY = 0;
-
-			int xPosRelative = raw->data.mouse.lLastX;
-			int yPosRelative = raw->data.mouse.lLastY;
-
-			RawMouseMoveEventData eventData;
-			eventData.x = xPosRelative;
-			eventData.y = yPosRelative;
-			eventData.captured = isCaptured;
-			PlatformEvents::onRawMouseMove(&eventData);
-
-			lastX = xPosRelative;
-			lastY = yPosRelative;
-		}
-
-		return 0;
-	}
-	case WM_LBUTTONDOWN:
-	{
-		MouseButtonEventData eventData;
-		eventData.button = MOUSE_LEFT;
-		eventData.pressed = true;
-		eventData.x = GETX(lParam);
-		eventData.y = GETY(lParam);
-		if (PlatformEvents::wantsMouseCapture && !PlatformEvents::skipMouseCapture && !isCaptured)
-		{
-			captureMouse(_hwnd, true);
-		}
-		PlatformEvents::onMouseButton(&eventData);
-		break;
-	}
-	case WM_LBUTTONUP:
-	{
-		MouseButtonEventData eventData;
-		eventData.button = MOUSE_LEFT;
-		eventData.pressed = false;
-		eventData.x = GETX(lParam);
-		eventData.y = GETY(lParam);
-		PlatformEvents::onMouseButton(&eventData);
-		break;
-	}
-	case WM_RBUTTONDOWN:
-	{
-		MouseButtonEventData eventData;
-		eventData.button = MOUSE_RIGHT;
-		eventData.pressed = true;
-		eventData.x = GETX(lParam);
-		eventData.y = GETY(lParam);
-		PlatformEvents::onMouseButton(&eventData);
-		break;
-	}
-	case WM_RBUTTONUP:
-	{
-		MouseButtonEventData eventData;
-		eventData.button = MOUSE_RIGHT;
-		eventData.pressed = false;
-		eventData.x = GETX(lParam);
-		eventData.y = GETY(lParam);
-		PlatformEvents::onMouseButton(&eventData);
-		break;
-	}
-	case WM_MBUTTONDOWN:
-	{
-		MouseButtonEventData eventData;
-		eventData.button = MOUSE_MIDDLE;
-		eventData.pressed = true;
-		eventData.x = GETX(lParam);
-		eventData.y = GETY(lParam);
-		PlatformEvents::onMouseButton(&eventData);
-		break;
-	}
-	case WM_MBUTTONUP:
-	{
-		MouseButtonEventData eventData;
-		eventData.button = MOUSE_MIDDLE;
-		eventData.pressed = false;
-		eventData.x = GETX(lParam);
-		eventData.y = GETY(lParam);
-		PlatformEvents::onMouseButton(&eventData);
-		break;
-	}
-	case WM_MOUSEWHEEL:
-	{
-		static int scroll;
-		int s;
-
-		scroll += GET_WHEEL_DELTA_WPARAM(wParam);
-		s = scroll / WHEEL_DELTA;
-		scroll %= WHEEL_DELTA;
-
-		POINT point;
-		point.x = GETX(lParam);
-		point.y = GETY(lParam);
-		ScreenToClient(_hwnd, &point);
-
-		if (s != 0)
-		{
-			MouseWheelEventData eventData;
-			eventData.scroll = s;
-			eventData.x = point.x;
-			eventData.y = point.y;
-			PlatformEvents::onMouseWheel(&eventData);
-		}
-		break;
-	}
-	case WM_SYSKEYDOWN:
-		if ((lParam & (1 << 29)) && (wParam == KEY_ENTER))
-		{
-			toggleFullscreen(gCurrentWindow);
-		}
-		updateKeyArray(_id, (unsigned)wParam);
-		break;
-
-	case WM_SYSKEYUP:
-		updateKeyArray(_id, (unsigned)wParam);
-		break;
-
-	case WM_KEYUP:
-		if (wParam == KEY_ESCAPE)
-		{
-			if (!isCaptured)
-			{
-				gAppRunning = false;
-			}
-			else
-			{
-				captureMouse(_hwnd, false);
-			}
-		}
-		updateKeyArray(_id, (unsigned)wParam);
-		break;
-
-	case WM_KEYDOWN:
-		updateKeyArray(_id, (unsigned)wParam);
-		break;
 	default:
 		return DefWindowProcW(_hwnd, _id, wParam, lParam);
 		break;
 	}
-
 	return 0;
 }
 
@@ -577,24 +410,6 @@ public:
 					gWindowClassInitialized = gAppRunning;
 				}
 			}
-
-			RAWINPUTDEVICE Rid[2];
-
-			Rid[0].usUsagePage = 0x01;
-			Rid[0].usUsage = 0x02;
-			Rid[0].dwFlags = 0;	// adds HID mouse and also ignores legacy mouse messages
-			Rid[0].hwndTarget = 0;
-
-			Rid[1].usUsagePage = 0x01;
-			Rid[1].usUsage = 0x06;
-			Rid[1].dwFlags = 0;	// adds HID keyboard and also ignores legacy keyboard messages
-			Rid[1].hwndTarget = 0;
-
-			if (RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
-			{
-				LOGERRORF("Failed to register raw input devices");
-				//registration failed. Call GetLastError for the cause of the error
-			}
 		}
 
 		collectMonitorInfo();
@@ -684,9 +499,62 @@ void handleMessages()
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+
+		// Forward any input messages to Gainput
+		InputSystem::HandleMessage(msg);
 	}
 
-	updateKeys();
+	//updateKeys();
+	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CANCEL))
+	{
+		if (!isCaptured)
+		{
+			gAppRunning = false;
+		}
+		else
+		{
+			captureMouse(false);
+			ClipCursor(NULL);
+		}
+	}
+
+
+	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CONFIRM))
+	{
+		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
+		{
+
+			if (gHWNDMap.size() == 0)
+			  return;
+
+			//TODO:Fix this once we have multiple window handles
+			WindowsDesc* currentWind = gHWNDMap.begin().node->second;
+			RECT clientRect;
+			
+			clientRect.top = currentWind->windowedRect.top;
+			clientRect.bottom = currentWind->windowedRect.bottom;
+			clientRect.right = currentWind->windowedRect.right;
+			clientRect.left = currentWind->windowedRect.left;
+
+			GetClientRect((HWND)currentWind->handle, &clientRect);
+
+			ClipCursor(&clientRect);
+
+			captureMouse(true);
+		}
+	}
+	
+	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_MENU))
+	{
+	  if (gHWNDMap.size() == 0)
+		return;
+
+	  //TODO:Fix this once we have multiple window handles
+	  WindowsDesc* currentWind = gHWNDMap.begin().node->second;
+
+	  if (currentWind)
+		toggleFullscreen(currentWind);
+	}
 }
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
@@ -814,19 +682,17 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 
 float2 getMousePosition()
 {
-	POINT point;
-	GetCursorPos(&point);
-	return float2((float)point.x, (float)point.y);
+	return float2(0, 0);
 }
 
 bool getKeyDown(int key)
 {
-	return gKeys[key].down;
+	return InputSystem::IsButtonPressed(key);
 }
 
 bool getKeyUp(int key)
 {
-	return gKeys[key].released;
+	return InputSystem::IsButtonReleased(key);
 }
 
 bool getJoystickButtonDown(int button)
@@ -906,9 +772,13 @@ static void onResize(const WindowResizeEventData* pData)
 
 	pApp->mSettings.mWidth = getRectWidth(pData->rect);
 	pApp->mSettings.mHeight = getRectHeight(pData->rect);
+
 	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
 	pApp->Unload();
 	pApp->Load();
+
+	InputSystem::UpdateSize(pApp->mSettings.mWidth, pApp->mSettings.mHeight);
+
 }
 
 int WindowsMain(int argc, char** argv, IApp* app)
@@ -920,7 +790,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	uint32_t testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
-
 
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
@@ -945,9 +814,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
+
+	//Init Input System
+	//InputSystem::Init(window.handle, pSettings->mWidth, pSettings->mHeight);
+	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
+
 	pApp->pWindow = &window;
 	pApp->mCommandLine = GetCommandLineA();
-
+	
 	if (!pApp->Init())
 		return EXIT_FAILURE;
 
@@ -958,12 +832,17 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	while (isRunning())
 	{
+
 		float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
 
+		//Update Input after message handling
+		InputSystem::Update();
+
 		handleMessages();
+
 
 		// If window is minimized let other processes take over
 		if (window.minimized)
@@ -977,15 +856,15 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
-			testingFrameCount++;
-			if (testingFrameCount >= testingDesiredFrameCount)
-				break;
+		testingFrameCount++;
+		if (testingFrameCount >= testingDesiredFrameCount)
+			requestShutDown();
 #endif
 	}
-
+	//Clean input resources
+	InputSystem::Shutdown();
 	pApp->Unload();
 	pApp->Exit();
-
 	return 0;
 }
 /************************************************************************/

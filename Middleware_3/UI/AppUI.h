@@ -34,6 +34,17 @@
 #include <cstring> // for memset
 #endif
 
+struct Renderer;
+struct Texture;
+struct Shader;
+struct RootSignature;
+struct Pipeline;
+struct Sampler;
+struct RasterizerState;
+struct DepthState;
+struct BlendState;
+struct MeshRingBuffer;
+
 enum UIPropertyType
 {
 	UI_PROPERTY_FLOAT,
@@ -228,10 +239,10 @@ typedef struct DynamicUIControls
 class GUIDriver
 {
 public:
-	virtual bool init() = 0;
+	virtual bool init(Renderer* pRenderer) = 0;
 	virtual void exit() = 0;
 
-	virtual bool load(class UIRenderer* renderer, int fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
+	virtual bool load(class Fontstash* fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
 	virtual void unload() = 0;
 
 	virtual void* getContext() = 0;
@@ -242,6 +253,7 @@ public:
 	virtual void draw(Cmd* q) = 0;
 	virtual void setFontCalibration(float offset, float heightScale) = 0;
 
+	virtual void onInput(const struct ButtonData* data) = 0;
 	virtual void onChar(const struct KeyboardCharEventData* data) = 0;
 	virtual void onKey(const struct KeyboardButtonEventData* data) = 0;
 	virtual bool onJoystick(int button, bool down) = 0;
@@ -276,4 +288,28 @@ public:
 	// Data
 	/************************************************************************/
 	struct UIAppImpl*	pImpl;
+};
+
+class VirtualJoystickUI
+{
+public:
+	bool Init(Renderer* pRenderer, const char* pJoystickTexture, uint32_t root);
+	void Exit();
+
+	bool Load(RenderTarget* pScreenRT,uint32_t depthFormat = 0);
+	void Unload();
+
+	void Draw(Cmd* pCmd, class ICameraController* pController, const float4& color);
+
+private:
+	Renderer*			pRenderer;
+	Shader*				pShader;
+	RootSignature*		pRootSignature;
+	Pipeline*			pPipeline;
+	Texture*			pTexture;
+	Sampler*			pSampler;
+	BlendState*			pBlendAlpha;
+	DepthState*			pDepthState;
+	RasterizerState*	pRasterizerState;
+	MeshRingBuffer*		pMeshRingBuffer;
 };

@@ -58,7 +58,6 @@ typedef struct TextureLoadDesc
 	uint32_t				mNodeIndex;
 	bool					mUseMipmaps;
 	bool					mSrgb;
-
 } TextureLoadDesc;
 
 typedef struct BufferUpdateDesc

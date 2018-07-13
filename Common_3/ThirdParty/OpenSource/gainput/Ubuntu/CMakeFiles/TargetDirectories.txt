@@ -1,0 +1,14 @@
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/CMakeFiles/install/strip.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/CMakeFiles/install.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/CMakeFiles/install/local.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/CMakeFiles/list_install_components.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/CMakeFiles/edit_cache.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/CMakeFiles/rebuild_cache.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/install/strip.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/gainputstatic.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/install/local.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/gainput.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/edit_cache.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/rebuild_cache.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/list_install_components.dir
+/home/confetti/Desktop/Conffx/TheForge/Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/CMakeFiles/install.dir

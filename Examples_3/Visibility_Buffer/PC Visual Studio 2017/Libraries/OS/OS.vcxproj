@@ -27,10 +27,10 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
@@ -46,10 +46,10 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp" />

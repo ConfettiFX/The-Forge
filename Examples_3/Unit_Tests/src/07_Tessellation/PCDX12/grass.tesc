@@ -81,7 +81,7 @@ PatchTess ConstantsHS(InputPatch<VS_CONTROL_POINT_OUTPUT, 1> ip, uint PatchID : 
 {
 	PatchTess Output;
 	
-	float4 WorldPosV0 = float4(ip[PatchID].position.xyz, 1.0);
+	float4 WorldPosV0 = ip[PatchID].position; //float4(ip[PatchID].position.xyz, 1.0);
 
 	float near = 0.1;
 	float far = 25.0;
@@ -114,14 +114,13 @@ PatchTess ConstantsHS(InputPatch<VS_CONTROL_POINT_OUTPUT, 1> ip, uint PatchID : 
 [maxtessfactor(10.0f)]
 HullOut main(
 	InputPatch<VS_CONTROL_POINT_OUTPUT, 1> ip,
-	uint i : SV_OutputControlPointID,
-	uint PatchID : SV_PrimitiveID)
+	uint i : SV_OutputControlPointID)
 {
 	HullOut Output;
 
 	uint patchIndex = i;
 
-	Output.position = float4(ip[patchIndex].position.xyz, 1.0);
+	Output.position = ip[patchIndex].position; //float4(ip[patchIndex].position.xyz, 1.0);
 	Output.tese_v1 = ip[patchIndex].tesc_v1;
 	Output.tese_v2 = ip[patchIndex].tesc_v2;
 	Output.tese_up = float4(ip[patchIndex].tesc_up_x, ip[patchIndex].tesc_up_y, ip[patchIndex].tesc_up_z, ip[patchIndex].tesc_up_w);

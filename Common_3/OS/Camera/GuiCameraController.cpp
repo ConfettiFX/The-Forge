@@ -24,8 +24,12 @@
 
 #define _USE_MATH_DEFINES
 #include "../Interfaces/ICameraController.h"
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
+
 // Include this file as last include in all cpp files allocating memory
 #include "../Interfaces/IMemoryManager.h"
+
 
 static const float k_mouseTranslationScale = 0.05f;
 static const float k_rotationSpeed = 0.003f;
@@ -80,14 +84,9 @@ public:
 	void lookAt(const vec3& lookAt) override;
 
 private:
+	void onInputEvent(const ButtonData* pData) override;
 #ifndef _DURANGO
-	void onMouseMove(const RawMouseMoveEventData* pData) override;
-	void onMouseButton(const MouseButtonEventData* pData) override;
 	void onMouseWheel(const MouseWheelEventData* pData) override;
-#endif
-#if defined(TARGET_IOS)
-    void onTouch(const TouchEventData *pData) override;
-    void onTouchMove(const TouchEventData *pData) override;
 #endif
 	void update(float deltaTime) override;
 
@@ -125,25 +124,24 @@ void GuiCameraController::setMotionParameters(const CameraMotionParameters& cmp)
 	maxSpeed = cmp.maxSpeed;
 }
 
-#ifndef _DURANGO
-void GuiCameraController::onMouseMove(const RawMouseMoveEventData* pData)
+void GuiCameraController::onInputEvent(const ButtonData* pData)
 {
-	if (mouseButtons[MOUSE_LEFT] && mouseButtons[MOUSE_RIGHT])
+	if (InputSystem::IsButtonPressed(KEY_CONFIRM) && InputSystem::IsButtonPressed(KEY_RIGHT_BUMPER))
 	{
-		vec3 move { (float)-pData->x, (float)pData->y, 0 };
+		vec3 move{ (float)-pData->mValue[0], (float)pData->mValue[1], 0 };
 		mat4 rot{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
 		velocity = (rot * (move * maxSpeed * k_mouseTranslationScale)).getXYZ();
 	}
-	else if (mouseButtons[MOUSE_LEFT])
+	else if (InputSystem::IsButtonPressed(KEY_CONFIRM))
 	{
-		vec3 move { (float)pData->x, 0, (float)pData->y };
+		vec3 move{ (float)pData->mValue[0], 0, (float)pData->mValue[1] };
 		mat4 rot{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
 		//velocity = rotateV3(rot, move * maxSpeed * k_mouseTranslationScale);
 		velocity = (rot * (move * maxSpeed * k_mouseTranslationScale)).getXYZ();
 	}
-	else if (mouseButtons[MOUSE_RIGHT])
+	else if (InputSystem::IsButtonPressed(KEY_CONFIRM))
 	{
-		viewRotation += { pData->y * k_rotationSpeed, pData->x * k_rotationSpeed };
+		viewRotation += { pData->mValue[0] * k_rotationSpeed, pData->mValue[1] * k_rotationSpeed };
 	}
 
 	if (viewRotation.getX() > k_xRotLimit)
@@ -152,10 +150,7 @@ void GuiCameraController::onMouseMove(const RawMouseMoveEventData* pData)
 		viewRotation.setX(-k_xRotLimit);
 }
 
-void GuiCameraController::onMouseButton(const MouseButtonEventData* pData)
-{
-	mouseButtons[pData->button] = pData->pressed;
-}
+#ifndef _DURANGO
 
 void GuiCameraController::onMouseWheel(const MouseWheelEventData* pData)
 {
@@ -165,7 +160,7 @@ void GuiCameraController::onMouseWheel(const MouseWheelEventData* pData)
 }
 #endif
 
-#if defined(TARGET_IOS)
+#if 0
 void GuiCameraController::onTouch(const TouchEventData *pData)
 {
     // Find the closest touches to the left and right virtual joysticks.

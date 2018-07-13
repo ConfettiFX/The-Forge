@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{7f0a39c6-f6ca-4d97-9037-c8f4df2dd0f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{d576656a-935e-4a87-898d-05b81a59823d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{cff64b3d-25c7-4fde-bc9a-a355d0f99250}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{aedac42d-0058-4e65-975a-e3860c28bf1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Panini">
+      <UniqueIdentifier>{7f10430e-d61e-44e5-b46a-a5ff28b2c25d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Panini\PCDX12">
+      <UniqueIdentifier>{9f5edcc2-ac76-4c1e-bb5c-54a30826c276}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Panini\PCVulkan">
+      <UniqueIdentifier>{882105c6-2067-4246-b5f9-38201fd9f36a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\11_MultiGPU\11_MultiGPU.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\PaniniProjection\Panini.cpp">
+      <Filter>Panini</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\11_MultiGPU\PCDX12\basic.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCDX12\basic.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCDX12\skybox.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCDX12\skybox.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCVulkan\skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\11_MultiGPU\PCVulkan\skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.frag">
+      <Filter>Panini\PCVulkan</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.vert">
+      <Filter>Panini\PCVulkan</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag">
+      <Filter>Panini\PCDX12</Filter>
+    </None>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert">
+      <Filter>Panini\PCDX12</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h">
+      <Filter>Panini</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

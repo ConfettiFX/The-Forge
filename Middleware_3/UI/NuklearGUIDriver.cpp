@@ -25,21 +25,28 @@
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define NK_IMPLEMENTATION
 
+#include "../../Middleware_3/Text/Fontstash.h"
+
 #include "NuklearGUIDriver.h"
-#include "Fontstash.h"
-#include "UIRenderer.h"
+#include "UIShaders.h"
 
 #include "../../Common_3/OS/Interfaces/IOperatingSystem.h"
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../Common_3/ThirdParty/OpenSource/NuklearUI/nuklear.h"
 #include "../../Common_3/Renderer/IRenderer.h"
+#include "../../Common_3/Renderer/ResourceLoader.h"
+
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
+
+#include "../../Common_3/OS/Core/RingBuffer.h"
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h" //NOTE: this should be the last include in a .cpp
 
-void initGUIDriver(GUIDriver** ppDriver)
+void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver)
 {
 	NuklearGUIDriver* pDriver = conf_placement_new<NuklearGUIDriver>(conf_calloc(1, sizeof(NuklearGUIDriver)));
-	pDriver->init();
+	pDriver->init(pRenderer);
 	*ppDriver = pDriver;
 }
 
@@ -85,13 +92,160 @@ static void changedProperty(UIProperty* pProp)
 class _Impl_NuklearGUIDriver
 {
 public:
+	void init(Renderer* renderer)
+	{
+		pRenderer = renderer;
+		/************************************************************************/
+		// Rendering resources
+		/************************************************************************/
+		SamplerDesc samplerDesc =
+		{
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
+
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcFactor = BC_SRC_ALPHA;
+		blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mSrcAlphaFactor = BC_SRC_ALPHA;
+		blendStateDesc.mDstAlphaFactor = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mMask = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = false;
+		depthStateDesc.mDepthWrite = false;
+		addDepthState(pRenderer, &depthStateDesc, &pDepthState);
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		rasterizerStateDesc.mScissor = true;
+		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerState);
+
+#if defined(METAL)
+		String plainShaderFile = "builtin_plain";
+		String texturedShaderFile = "builtin_plain";
+		String plainShader = mtl_builtin_plain;
+		String texturedShader = mtl_builtin_plain;
+		ShaderDesc plainShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { plainShaderFile, plainShader, "VSMain" }, { plainShaderFile, plainShader, "PSMain" } };
+		ShaderDesc texturedShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { texturedShaderFile, texturedShader, "VSMain" }, { texturedShaderFile, texturedShader, "PSMain" } };
+		addShader(pRenderer, &plainShaderDesc, &pShaderPlain);
+		addShader(pRenderer, &texturedShaderDesc, &pShaderTextured);
+#elif defined(DIRECT3D12) || defined(VULKAN)
+		char* pPlainVert = NULL; uint32_t plainVertSize = 0;
+		char* pPlainFrag = NULL; uint32_t plainFragSize = 0;
+		char* pTexturedVert = NULL; uint32_t texturedVertSize = 0;
+		char* pTexturedFrag = NULL; uint32_t texturedFragSize = 0;
+
+		if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
+		{
+			pPlainVert = (char*)d3d12_builtin_plain_vert; plainVertSize = sizeof(d3d12_builtin_plain_vert);
+			pPlainFrag = (char*)d3d12_builtin_plain_frag; plainFragSize = sizeof(d3d12_builtin_plain_frag);
+			pTexturedVert = (char*)d3d12_builtin_textured_vert; texturedVertSize = sizeof(d3d12_builtin_textured_vert);
+			pTexturedFrag = (char*)d3d12_builtin_textured_frag; texturedFragSize = sizeof(d3d12_builtin_textured_frag);
+		}
+		else if (pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
+		{
+			pPlainVert = (char*)vk_builtin_plain_vert; plainVertSize = sizeof(vk_builtin_plain_vert);
+			pPlainFrag = (char*)vk_builtin_plain_frag; plainFragSize = sizeof(vk_builtin_plain_frag);
+			pTexturedVert = (char*)vk_builtin_textured_vert; texturedVertSize = sizeof(vk_builtin_textured_vert);
+			pTexturedFrag = (char*)vk_builtin_textured_frag; texturedFragSize = sizeof(vk_builtin_textured_frag);
+		}
+
+		BinaryShaderDesc plainShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+		{ (char*)pPlainVert, plainVertSize },{ (char*)pPlainFrag, plainFragSize } };
+		addShaderBinary(pRenderer, &plainShader, &pShaderPlain);
+
+		BinaryShaderDesc texturedShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+		{ (char*)pTexturedVert, texturedVertSize },{ (char*)pTexturedFrag, texturedFragSize } };
+		addShaderBinary(pRenderer, &texturedShader, &pShaderTextured);
+#endif
+
+		RootSignatureDesc plainRootDesc = { &pShaderPlain, 1 };
+		addRootSignature(pRenderer, &plainRootDesc, &pRootSignaturePlain);
+
+		const char* pStaticSamplerNames[] = { "uSampler" };
+		RootSignatureDesc textureRootDesc = { &pShaderTextured, 1 };
+		textureRootDesc.mStaticSamplerCount = 1;
+		textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
+		addRootSignature(pRenderer, &textureRootDesc, &pRootSignatureTextured);
+
+		BufferDesc vbDesc = {};
+		vbDesc.mUsage = BUFFER_USAGE_VERTEX;
+		vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		vbDesc.mSize = 1024 * 128 * sizeof(float2);
+		vbDesc.mVertexStride = sizeof(float2);
+		vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pPlainMeshRingBuffer);
+		vbDesc.mSize = 1024 * 4 * sizeof(float4);
+		vbDesc.mVertexStride = sizeof(float4);
+		addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pTexturedMeshRingBuffer);
+
+		mVertexLayoutPlain.mAttribCount = 1;
+		mVertexLayoutPlain.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		mVertexLayoutPlain.mAttribs[0].mFormat = ImageFormat::RG32F;
+		mVertexLayoutPlain.mAttribs[0].mBinding = 0;
+		mVertexLayoutPlain.mAttribs[0].mLocation = 0;
+		mVertexLayoutPlain.mAttribs[0].mOffset = 0;
+
+		mVertexLayoutTextured = mVertexLayoutPlain;
+		mVertexLayoutTextured.mAttribCount = 2;
+		mVertexLayoutTextured.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		mVertexLayoutTextured.mAttribs[1].mFormat = ImageFormat::RG32F;
+		mVertexLayoutTextured.mAttribs[1].mBinding = 0;
+		mVertexLayoutTextured.mAttribs[1].mLocation = 1;
+		mVertexLayoutTextured.mAttribs[1].mOffset = calculateImageFormatStride(ImageFormat::RG32F);
+		/************************************************************************/
+		/************************************************************************/
+	}
+
+	void exit()
+	{
+		for (PipelineMap::iterator it = mPipelinesPlain.begin(); it != mPipelinesPlain.end(); ++it)
+		{
+			for (uint32_t i = 0; i < (uint32_t)it.node->second.size(); ++i)
+			{
+				if (i == PRIMITIVE_TOPO_PATCH_LIST)
+					continue;
+				removePipeline(pRenderer, it.node->second[i]);
+			}
+			it.node->second.clear();
+		}
+		for (PipelineMap::iterator it = mPipelinesTextured.begin(); it != mPipelinesTextured.end(); ++it)
+		{
+			for (uint32_t i = 0; i < (uint32_t)it.node->second.size(); ++i)
+			{
+				if (i == PRIMITIVE_TOPO_PATCH_LIST)
+					continue;
+				removePipeline(pRenderer, it.node->second[i]);
+			}
+			it.node->second.clear();
+		}
+
+		mPipelinesPlain.clear();
+		mPipelinesTextured.clear();
+
+		removeSampler(pRenderer, pDefaultSampler);
+		removeBlendState(pBlendAlpha);
+		removeDepthState(pDepthState);
+		removeRasterizerState(pRasterizerState);
+		removeShader(pRenderer, pShaderPlain);
+		removeShader(pRenderer, pShaderTextured);
+		removeRootSignature(pRenderer, pRootSignaturePlain);
+		removeRootSignature(pRenderer, pRootSignatureTextured);
+		removeMeshRingBuffer(pPlainMeshRingBuffer);
+		removeMeshRingBuffer(pTexturedMeshRingBuffer);
+	}
+
 	struct nk_command_buffer queue;
 	struct nk_cursor cursor;
 	struct nk_context context;
 
 	void* memory;
 
-	UIRenderer* renderer;
 	Fontstash* fontstash;
 	int fontID;
 	
@@ -121,6 +275,25 @@ public:
 	bool wantKeyboardInput;
 	bool needKeyboardInputNextFrame;
 	bool escWasPressed;
+
+	using PipelineMap = tinystl::unordered_map<uint64_t, tinystl::vector<Pipeline*> >;
+
+	Renderer*					pRenderer;
+	Shader*						pShaderPlain;
+	Shader*						pShaderTextured;
+	RootSignature*				pRootSignaturePlain;
+	RootSignature*				pRootSignatureTextured;
+	PipelineMap					mPipelinesPlain;
+	PipelineMap					mPipelinesTextured;
+	MeshRingBuffer*				pPlainMeshRingBuffer;
+	MeshRingBuffer*				pTexturedMeshRingBuffer;
+	/// Default states
+	BlendState*					pBlendAlpha;
+	DepthState*					pDepthState;
+	RasterizerState*			pRasterizerState;
+	Sampler*					pDefaultSampler;
+	VertexLayout				mVertexLayoutPlain = {};
+	VertexLayout				mVertexLayoutTextured = {};
 
 	void setSelectedIndex(int idx)
 	{
@@ -177,7 +350,7 @@ static float font_get_width(nk_handle handle, float h, const char *text, int len
 	return width;
 }
 
-bool NuklearGUIDriver::init()
+bool NuklearGUIDriver::init(Renderer* pRenderer)
 {
 	impl = conf_placement_new<_Impl_NuklearGUIDriver>(conf_calloc(1, sizeof(_Impl_NuklearGUIDriver)));
 	impl->inputInstructionCount = 0;
@@ -188,12 +361,14 @@ bool NuklearGUIDriver::init()
 	impl->minID = 0;
 	impl->numberOfElements = 8;
 	impl->scrollOffset = 3;
+	impl->init(pRenderer);
 
 	return true;
 }
 
 void NuklearGUIDriver::exit()
 {
+	impl->exit();
 	impl->~_Impl_NuklearGUIDriver();
 	conf_free(impl);
 }
@@ -204,11 +379,10 @@ void NuklearGUIDriver::setFontCalibration(float offset, float fontsize)
 	impl->fontStack[impl->currentFontStackPos].userFont.height = fontsize;
 }
 
-bool NuklearGUIDriver::load(UIRenderer* renderer, int fontID, float fontSize, Texture* cursorTexture, float uiwidth, float uiheight)
+bool NuklearGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorTexture, float uiwidth, float uiheight)
 {
 	// init renderer/font
-	impl->renderer = renderer;
-	impl->fontstash = renderer->getFontstash(fontID);
+	impl->fontstash = fontstash;
 	impl->fontID = impl->fontstash->getFontID("default");
 
 	// init UI (input)
@@ -265,6 +439,34 @@ void NuklearGUIDriver::unload()
 void* NuklearGUIDriver::getContext()
 {
 	return &impl->context;
+}
+
+
+void NuklearGUIDriver::onInput(const ButtonData* data)
+{
+	if (impl->inputInstructionCount >= sizeof(impl->inputInstructions) / sizeof(impl->inputInstructions[0])) return;
+
+	InputInstruction& is = impl->inputInstructions[impl->inputInstructionCount++];
+
+	if (data->mUserId == KEY_UI_MOVE)
+	{
+		is.type = InputInstruction::ITYPE_MOUSEMOVE;
+		is.mousex = (int32_t)data->mValue[0];
+		is.mousey = (int32_t)data->mValue[1];
+	}
+	else if (data->mUserId == KEY_CONFIRM)
+	{
+		is.type = InputInstruction::ITYPE_MOUSECLICK;
+		is.mousex = (int32_t)data->mValue[0];
+		is.mousey = (int32_t)data->mValue[1];
+		is.mousebutton = MouseButton::MOUSE_LEFT;
+		is.mousedown = data->mIsPressed;
+	}
+	else if (data->mUserId >= KEY_CHAR_A && data->mUserId <= KEY_CHAR_Z)
+	{
+
+	}
+
 }
 
 void NuklearGUIDriver::onChar(const KeyboardCharEventData* data)
@@ -723,7 +925,72 @@ void NuklearGUIDriver::window(const char* pTitle,
 
 void NuklearGUIDriver::draw(Cmd* pCmd)
 {
+	struct PlainRootConstants
+	{
+		float4 color;
+		float2 scaleBias;
+	};
+
 	static const int CircleEdgeCount = 10;
+
+	tinystl::vector<Pipeline*>* pPipelinesPlain = NULL;
+	tinystl::vector<Pipeline*>* pPipelinesTextured = NULL;
+	Pipeline* pCurrentPipeline = NULL;
+	GraphicsPipelineDesc pipelineDesc = {};
+	pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
+	pipelineDesc.mRenderTargetCount = pCmd->mBoundRenderTargetCount;
+	pipelineDesc.mSampleCount = pCmd->mBoundSampleCount;
+	pipelineDesc.pBlendState = impl->pBlendAlpha;
+	pipelineDesc.mSampleQuality = pCmd->mBoundSampleQuality;
+	pipelineDesc.pColorFormats = (ImageFormat::Enum*)pCmd->pBoundColorFormats;
+	pipelineDesc.pDepthState = impl->pDepthState;
+	pipelineDesc.pRasterizerState = impl->pRasterizerState;
+	pipelineDesc.pSrgbValues = pCmd->pBoundSrgbValues;
+	_Impl_NuklearGUIDriver::PipelineMap::iterator it = impl->mPipelinesPlain.find(pCmd->mRenderPassHash);
+	if (it == impl->mPipelinesPlain.end())
+	{
+		tinystl::vector<Pipeline*> pipelines(PRIMITIVE_TOPO_COUNT);
+		pipelineDesc.pRootSignature = impl->pRootSignaturePlain;
+		pipelineDesc.pShaderProgram = impl->pShaderPlain;
+		pipelineDesc.pVertexLayout = &impl->mVertexLayoutPlain;
+		for (uint32_t i = 0; i < PRIMITIVE_TOPO_COUNT; ++i)
+		{
+			if (i == PRIMITIVE_TOPO_PATCH_LIST)
+				continue;
+
+			pipelineDesc.mPrimitiveTopo = (PrimitiveTopology)i;
+			addPipeline(pCmd->pRenderer, &pipelineDesc, &pipelines[i]);
+		}
+		pPipelinesPlain = &impl->mPipelinesPlain.insert({ pCmd->mRenderPassHash, pipelines }).first->second;
+	}
+	else
+	{
+		pPipelinesPlain = &it.node->second;
+	}
+	it = impl->mPipelinesTextured.find(pCmd->mRenderPassHash);
+	if (it == impl->mPipelinesTextured.end())
+	{
+		tinystl::vector<Pipeline*> pipelines(PRIMITIVE_TOPO_COUNT);
+		pipelineDesc.pRootSignature = impl->pRootSignatureTextured;
+		pipelineDesc.pShaderProgram = impl->pShaderTextured;
+		pipelineDesc.pVertexLayout = &impl->mVertexLayoutTextured;
+		for (uint32_t i = 0; i < PRIMITIVE_TOPO_COUNT; ++i)
+		{
+			if (i == PRIMITIVE_TOPO_PATCH_LIST)
+				continue;
+
+			pipelineDesc.mPrimitiveTopo = (PrimitiveTopology)i;
+			addPipeline(pCmd->pRenderer, &pipelineDesc, &pipelines[i]);
+}
+		pPipelinesTextured = &impl->mPipelinesTextured.insert({ pCmd->mRenderPassHash, pipelines }).first->second;
+	}
+	else
+	{
+		pPipelinesTextured = &it.node->second;
+	}
+
+	tinystl::vector<Pipeline*>& pipelinesPlain = *pPipelinesPlain;
+	tinystl::vector<Pipeline*>& pipelinesTextured = *pPipelinesTextured;
 
 #ifdef _DURANGO
 	{
@@ -762,7 +1029,7 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 			scissorRect.right = s->x + s->w;
 			scissorRect.top = s->y;
 			scissorRect.bottom = s->y + s->h;
-			impl->renderer->setScissor(pCmd, &scissorRect);
+			cmdSetScissor(pCmd, max(0, scissorRect.left), max(0, scissorRect.top), getRectWidth(scissorRect), getRectHeight(scissorRect));
 			break;
 		}
 		case NK_COMMAND_LINE:
@@ -774,13 +1041,32 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 			const vec2 end = vec2(l->end.x, l->end.y);
 			const vec2 normal = normalize(end - begin);
 			const vec2 binormal = vec2(normal.getY(), -normal.getX()) * lineOffset;
-			float2 vertices[] = 
+			vec2 vertices[] =
 			{
-				v2ToF2(begin + binormal), v2ToF2(end + binormal),
-				v2ToF2(begin - binormal), v2ToF2(end - binormal)
+				(begin + binormal), (end + binormal),
+				(begin - binormal), (end - binormal)
 			};
-			float4 color = float4((float)l->color.r / 255.0f, (float)l->color.g / 255.0f, (float)l->color.b / 255.0f, (float)l->color.a / 255.0f);
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, 4, &color);
+
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)l->color.r / 255.0f, (float)l->color.g / 255.0f, (float)l->color.b / 255.0f, (float)l->color.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 4, 0);
 			break;
 		}
 		case NK_COMMAND_RECT:
@@ -805,16 +1091,53 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 				// top-left
 				float2(r->x - lineOffset, r->y - lineOffset), float2(r->x + lineOffset, r->y + lineOffset),
 			};
-			float4 color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, 10, &color);
+
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 10, 0);
 			break;
 		}
 		case NK_COMMAND_RECT_FILLED:
 		{
 			const struct nk_command_rect_filled *r = (const struct nk_command_rect_filled*)cmd;
 			float2 vertices[] = { MAKEQUAD(r->x, r->y, r->x + r->w, r->y + r->h, 0.0f) };
-			float4 color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, 4, &color);
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 4, 0);
 			break;
 		}
 		case NK_COMMAND_CIRCLE:
@@ -836,8 +1159,26 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 				t += dt;
 			}
 
-			float4 color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, (CircleEdgeCount + 1) * 2, &color);
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, (CircleEdgeCount + 1) * 2, 0);
 			break;
 		}
 		case NK_COMMAND_CIRCLE_FILLED:
@@ -859,8 +1200,26 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 			// set last point on circle
 			vertices[CircleEdgeCount * 2] = vertices[0];
 
-			float4 color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, CircleEdgeCount * 2 + 1, &color);
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, (CircleEdgeCount * 2) + 1, 0);
 			break;
 		}
 		case NK_COMMAND_TRIANGLE:
@@ -875,8 +1234,27 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 		{
 			const struct nk_command_triangle_filled *r = (const struct nk_command_triangle_filled*)cmd;
 			float2 vertices[] = { float2(r->a.x, r->a.y), float2(r->b.x, r->b.y), float2(r->c.x, r->c.y) };
-			float4 color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_LIST, vertices, 3, &color);
+
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)r->color.r / 255.0f, (float)r->color.g / 255.0f, (float)r->color.b / 255.0f, (float)r->color.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_LIST])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_LIST];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 3, 0);
 			break;
 		}
 		case NK_COMMAND_IMAGE:
@@ -888,33 +1266,67 @@ void NuklearGUIDriver::draw(Cmd* pCmd)
 			float2 RegionTopRight(RegionTopLeft + float2(r->w, 0));
 			float2 RegionBottonRight(RegionTopLeft + float2(r->w, r->h));
 
-			float2 texCoord[4] = {
-				float2(float(r->img.region[0] + r->img.region[3]) / r->img.w, float(r->img.region[1] + r->img.region[2]) / r->img.h),
-				float2(float(r->img.region[0] + r->img.region[3]) / r->img.w, float(r->img.region[1]) / r->img.h),
-				float2(float(r->img.region[0]) / r->img.w, float(r->img.region[1] + r->img.region[2]) / r->img.h),
-				float2(float(r->img.region[0]) / r->img.w, float(r->img.region[1]) / r->img.h)
+			float4 vertices[4] = {
+				float4(RegionBottonRight.x, RegionBottonRight.y, float(r->img.region[0] + r->img.region[3]) / r->img.w, float(r->img.region[1] + r->img.region[2]) / r->img.h),
+				float4(RegionTopRight.x, RegionTopRight.y, float(r->img.region[0] + r->img.region[3]) / r->img.w, float(r->img.region[1]) / r->img.h),
+				float4(RegionBottonLeft.x, RegionBottonLeft.y, float(r->img.region[0]) / r->img.w, float(r->img.region[1] + r->img.region[2]) / r->img.h),
+				float4(RegionTopLeft.x, RegionTopLeft.y, float(r->img.region[0]) / r->img.w, float(r->img.region[1]) / r->img.h)
 			};
 
-			TexVertex vertices[4] = { TexVertex(RegionBottonRight, texCoord[0]),
-																TexVertex(RegionTopRight, texCoord[1]),
-																TexVertex(RegionBottonLeft, texCoord[2]),
-																TexVertex(RegionTopLeft, texCoord[3]) };
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pTexturedMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
 
-			float4 color = float4((float)r->col.r / 255.0f, (float)r->col.g / 255.0f, (float)r->col.b / 255.0f, (float)r->col.a / 255.0f);
-			impl->renderer->drawTextured(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, 4, (Texture*)r->img.handle.ptr, &color);
+			PlainRootConstants data = {};
+			data.color = float4((float)r->col.r / 255.0f, (float)r->col.g / 255.0f, (float)r->col.b / 255.0f, (float)r->col.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[2] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			params[1].pName = "uTex";
+			params[1].ppTextures = (Texture**)(&r->img.handle.ptr);
+			cmdBindDescriptors(pCmd, impl->pRootSignatureTextured, 2, params);
 
+			if (pCurrentPipeline != pipelinesTextured[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesTextured[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 4, 0);
 			break;
 		}
 		case NK_COMMAND_TEXT:
 		{
 			const struct nk_command_text *r = (const struct nk_command_text*)cmd;
 			float2 vertices[] = { MAKEQUAD(r->x, r->y + impl->fontCalibrationOffset, r->x + r->w, r->y + r->h + impl->fontCalibrationOffset, 0.0f) };
-			float4 color = float4((float)r->background.r / 255.0f, (float)r->background.g / 255.0f, (float)r->background.b / 255.0f, (float)r->background.a / 255.0f);
 
-			impl->renderer->drawPlain(pCmd, PRIMITIVE_TOPO_TRI_STRIP, vertices, 4, &color);
+			RingBufferOffset buffer = getVertexBufferOffset(impl->pPlainMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc vbUpdate = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&vbUpdate);
+
+			PlainRootConstants data = {};
+			data.color = float4((float)r->background.r / 255.0f, (float)r->background.g / 255.0f, (float)r->background.b / 255.0f, (float)r->background.a / 255.0f);
+			data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+			DescriptorData params[1] = {};
+			params[0].pName = "uRootConstants";
+			params[0].pRootConstant = &data;
+			cmdBindDescriptors(pCmd, impl->pRootSignaturePlain, 1, params);
+
+			if (pCurrentPipeline != pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP])
+			{
+				pCurrentPipeline = pipelinesPlain[PRIMITIVE_TOPO_TRI_STRIP];
+				cmdBindPipeline(pCmd, pCurrentPipeline);
+			}
+
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 4, 0);
+
 			_Impl_NuklearGUIDriver::Font* font = (_Impl_NuklearGUIDriver::Font*)r->font->userdata.ptr;
 			impl->fontstash->drawText(pCmd, r->string, r->x, r->y + impl->fontCalibrationOffset, font->fontID, *(unsigned int*)&r->foreground, r->font->height, 0.0f, 0.0f);
-			
+			pCurrentPipeline = NULL;
+
 			break;
 		}
 		default:

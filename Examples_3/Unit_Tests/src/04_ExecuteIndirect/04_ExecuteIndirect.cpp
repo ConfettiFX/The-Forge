@@ -67,16 +67,15 @@
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 #if !defined(TARGET_IOS)
 //PostProcess
 #include "../../../../Middleware_3/PaniniProjection/Panini.h"
 #endif
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
-
-#define GUI_CAMERACONTROLLER 1
-#define FPS_CAMERACONTROLLER 2
-#define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
 #define MAX_LOD_OFFSETS 10
 
@@ -288,7 +287,7 @@ UIApp					gAppUI;
 GuiComponent*			pGui;
 ICameraController*		pCameraController = NULL;
 #ifdef TARGET_IOS
-Texture*				pVirtualJoystickTex = NULL;
+VirtualJoystickUI		gVirtualJoystick;
 #endif
 
 GpuProfiler*			pGpuProfiler = NULL;
@@ -389,7 +388,7 @@ public:
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, false);
+		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
@@ -407,15 +406,10 @@ public:
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc);
 		}
-        
+
 #ifdef TARGET_IOS
-        // Add virtual joystick texture.
-        TextureLoadDesc textureDesc = {};
-        textureDesc.mRoot = FSRoot::FSR_Absolute;
-        textureDesc.mUseMipmaps = false;
-        textureDesc.pFilename = "circlepad.png";
-        textureDesc.ppTexture = &pVirtualJoystickTex;
-        addResource(&textureDesc, true);
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
 #endif
 
 		CreateTextures(gTextureCount);
@@ -717,31 +711,18 @@ public:
 #endif
 		/************************************************************************/
 		/************************************************************************/
-#if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3 camPos{ -121.4f, 69.9f, -562.8f };
 		vec3 lookAt{ 0 };
 
-#if USE_CAMERACONTROLLER == FPS_CAMERACONTROLLER
+
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		requestMouseCapture(true);
-#elif USE_CAMERACONTROLLER == GUI_CAMERACONTROLLER
-		pCameraController = createGuiCameraController(camPos, lookAt);
-#endif
+
 
 		pCameraController->setMotionParameters(cmp);
 
-#ifndef _DURANGO
-		registerRawMouseMoveEvent(cameraMouseMove);
-		registerMouseButtonEvent(cameraMouseButton);
-		registerMouseWheelEvent(cameraMouseWheel);
-#endif
-        
-#ifdef TARGET_IOS
-        registerTouchEvent(cameraTouch);
-        registerTouchMoveEvent(cameraTouchMove);
-#endif
-#endif
+		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 #if !defined(TARGET_IOS)
 		gPanini.Init(pRenderer);
@@ -758,9 +739,7 @@ public:
 		gPanini.Exit();
 #endif
 
-#if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
-#endif
 
 		removeDebugRendererInterface();
         
@@ -797,9 +776,9 @@ public:
 
 		for (uint32_t i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
-        
+
 #ifdef TARGET_IOS
-        removeResource(pVirtualJoystickTex);
+		gVirtualJoystick.Exit();
 #endif
 
 		for (uint32_t i = 0; i < gNumSubsets; i++)
@@ -862,6 +841,11 @@ public:
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+#ifdef TARGET_IOS
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+			return false;
+#endif
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
@@ -944,6 +928,10 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
+#ifdef TARGET_IOS
+		gVirtualJoystick.Exit();
+#endif
+
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pBasicPipeline);
@@ -966,40 +954,25 @@ public:
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
 
 		frameTime = deltaTime;
 
-#if USE_CAMERACONTROLLER
 
-#ifndef TARGET_IOS
-#ifdef _DURANGO
-		if (getJoystickButtonDown(BUTTON_A))
-#else
-		if (getKeyDown(KEY_F))
-#endif
+		if (getKeyDown(KEY_BUTTON_X))
 		{
 			RecenterCameraView(170.0f);
 		}
-#endif
 
-		pCameraController->update(deltaTime);
-
-#endif
-
-#ifndef TARGET_IOS
-#ifdef _DURANGO
-		if (getJoystickButtonDown(BUTTON_B))
-#else
-		if (getKeyUp(KEY_SPACE))
-#endif
+		if (getKeyUp(KEY_LEFT_TRIGGER))
 		{
 			gRenderingMode = (++gRenderingMode) % RenderingMode_Count;
 		}
-#endif
 
+		pCameraController->update(deltaTime);
 		gAppUI.Update(deltaTime);
 
 		static bool paniniEnabled = gbPaniniEnabled;
@@ -1046,11 +1019,8 @@ public:
 
 		// Update projection view matrices
 
-#if USE_CAMERACONTROLLER
 		mat4 viewMat = pCameraController->getViewMatrix();
-#else
-		mat4 viewMat = mat4::lookAt(vec3(24.0f, 24.0f, 24.0f), vec3(0, 0, 0), vec3(0, 1, 0));
-#endif
+
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 #if !defined(TARGET_IOS)
 		mat4 projMat = mat4::perspective(gPaniniParams.FoVH * (float)PI / 180.0f, aspectInverse, 0.1f, 10000.0f);
@@ -1088,7 +1058,7 @@ public:
 		TextureBarrier barrier = { pSceneRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
 
-		cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mDesc.mWidth, pSceneRenderTarget->mDesc.mHeight);
 
@@ -1111,7 +1081,7 @@ public:
 		skyboxParams[7].ppSamplers = &pSkyBoxSampler;
 		cmdBindDescriptors(cmd, pSkyBoxRoot, 8, skyboxParams);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
-		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 
 		endCmd(cmd);
@@ -1209,7 +1179,7 @@ public:
 			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL, false);
 
 			// Execute indirect
-			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, NULL);
+			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mDesc.mWidth, pSceneRenderTarget->mDesc.mHeight);
 
@@ -1227,8 +1197,8 @@ public:
 			cmdBindDescriptors(cmd, pIndirectRoot, 5, indirectParams);
 
 			cmdBindPipeline(cmd, pIndirectPipeline);
-			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer);
-			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer);
+			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
+			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
 			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer[gFrameIndex], 0, NULL, 0);
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -1264,7 +1234,7 @@ public:
 			pLoadAction = &swapChainClearAction;
 		}
 
-		cmdBindRenderTargets(cmd, 1, &pSwapchainRenderTarget, NULL, pLoadAction);
+		cmdBindRenderTargets(cmd, 1, &pSwapchainRenderTarget, NULL, pLoadAction, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSwapchainRenderTarget->mDesc.mWidth, (float)pSwapchainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSwapchainRenderTarget->mDesc.mWidth, pSwapchainRenderTarget->mDesc.mHeight);
 
@@ -1284,29 +1254,11 @@ public:
 
 		static HiresTimer timer;
 		timer.GetUSec(true);
-        
+
 #ifdef TARGET_IOS
-		// Draw the camera controller's virtual joysticks.
-		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-
-		float2 joystickSize = float2(extSide);
-		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-
-		joystickSize = float2(intSide);
-		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
-        
+
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 #ifndef METAL
 		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
@@ -1333,7 +1285,7 @@ public:
 
 		gAppUI.Draw(cmd);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pSwapchainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
 		endCmd(cmd);
@@ -1801,7 +1753,7 @@ public:
 			updateResource(&uniformUpdate);
 
 			// Render all asteroids
-			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL);
+			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -1814,8 +1766,8 @@ public:
 			params[2].ppSamplers = &pBasicSampler;
 			cmdBindDescriptors(cmd, pBasicRoot, 3, params);
 			cmdBindPipeline(cmd, pBasicPipeline);
-			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer);
-			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer);
+			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
+			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
 
 			for (uint32_t i = startIdx; i < endIdx; i++)
 			{
@@ -1878,7 +1830,7 @@ public:
 			cmdResourceBarrier(cmd, 1, &barrier, 0, NULL, false);
 
 			//// Execute Indirect Draw
-			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL);
+			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -1895,8 +1847,8 @@ public:
 			indirectParams[4].ppSamplers = &pBasicSampler;
 			cmdBindDescriptors(cmd, pIndirectRoot, 5, indirectParams);
 			cmdBindPipeline(cmd, pIndirectPipeline);
-			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer);
-			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer);
+			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
+			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
 			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect, 0, NULL, 0);
 			conf_free(argData);
 		}
@@ -1911,39 +1863,11 @@ public:
 		RenderSubset(data->mIndex, data->mViewProj, data->mFrameIndex, data->pRenderTarget, data->pDepthBuffer, data->mDeltaTime);
 	}
 
-#ifndef _DURANGO
-	static bool cameraMouseMove(const RawMouseMoveEventData* data)
+	static bool cameraInputEvent(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
-
-	static bool cameraMouseButton(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool cameraMouseWheel(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-#endif
-    
-#ifdef TARGET_IOS
-    static bool cameraTouch(const TouchEventData* data)
-    {
-        pCameraController->onTouch(data);
-        return true;
-    }
-    
-    static bool cameraTouchMove(const TouchEventData* data)
-    {
-        pCameraController->onTouchMove(data);
-        return true;
-    }
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(ExecuteIndirect)

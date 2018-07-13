@@ -37,9 +37,13 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IThread.h"
-#include "../Interfaces/IMemoryManager.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
+
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
+
+#include "../Interfaces/IMemoryManager.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -59,8 +63,6 @@ struct KeyState
     bool down;      // Was the key down this frame?
     bool released;  // Was the key released this frame?
 };
-
-static KeyState gKeys[MAX_KEYS] = { { false, false, false, false } };
 
 static bool gAppRunning;
 static WindowsDesc gCurrentWindow;
@@ -86,32 +88,6 @@ namespace PlatformEvents
 	extern void onMouseWheel(const MouseWheelEventData* pData);
 }
 
-// Update the state of the keys based on state previous frame
-void updateKeys(void)
-{
-	// Calculate each of the key states here
-	for (KeyState& element : gKeys)
-	{
-		element.down = element.current == true;
-		element.released = ((element.previous == true) && (element.current == false));
-		// Record this state
-		element.previous = element.current;
-	}
-}
-
-// Update the given key
-void updateKeyArray(bool pressed, unsigned short keyCode)
-{
-    KeyboardButtonEventData eventData;
-    eventData.key = keyCode;
-    eventData.pressed = pressed;
-    
-    if ((0 <= keyCode) && (keyCode <= MAX_KEYS))
-        gKeys[keyCode].current = pressed;
-    
-    PlatformEvents::onKeyboardButton(&eventData);
-}
-
 static bool captureMouse(bool shouldCapture)
 {
     if (shouldCapture != isCaptured)
@@ -119,17 +95,18 @@ static bool captureMouse(bool shouldCapture)
         if (shouldCapture)
         {
             CGDisplayHideCursor(kCGDirectMainDisplay);
-            CGAssociateMouseAndMouseCursorPosition(false);
+            //CGAssociateMouseAndMouseCursorPosition(false);
             isCaptured = true;
         }
         else
         {
             CGDisplayShowCursor(kCGDirectMainDisplay);
-            CGAssociateMouseAndMouseCursorPosition(true);
+            //CGAssociateMouseAndMouseCursorPosition(true);
             isCaptured = false;
         }
     }
-    
+	
+	InputSystem::SetMouseCapture(isCaptured);
     return true;
 }
 
@@ -243,12 +220,12 @@ float2 getMousePosition()
 
 bool getKeyDown(int key)
 {
-	return gKeys[key].down;
+	return InputSystem::IsButtonPressed(key);
 }
 
 bool getKeyUp(int key)
 {
-	return gKeys[key].released;
+	return InputSystem::IsButtonReleased(key);
 }
 
 bool getJoystickButtonDown(int button)
@@ -322,7 +299,7 @@ int macOSMain(int argc, const char** argv, IApp* app)
                                       view:(nonnull MTKView*)view;
 
 - (void)drawRectResized:(CGSize)size;
-
+- (void)updateInput;
 - (void)update;
 
 @end
@@ -393,38 +370,38 @@ int macOSMain(int argc, const char** argv, IApp* app)
     return TRUE;
 }
 
-- (void)keyDown:(NSEvent *)event
-{
-    unsigned short keyCode = [event keyCode];
-    updateKeyArray(true, keyCode);
-}
-
-- (void)keyUp:(NSEvent *)event
-{
-    unsigned short keyCode = [event keyCode];
-    updateKeyArray(false, keyCode);
-    
-    // Handle special case: ESCAPE key
-    if (keyCode == kVK_Escape)
-    {
-        if (!isCaptured)
-        {
-            [NSApp terminate:self];
-        }
-        else
-        {
-            captureMouse(false);
-        }
-    }
-}
-
-// This method is eneded to handle special keys: ctrl, shift, option...
-- (void)flagsChanged:(NSEvent *)event
-{
-    unsigned short keyCode = [event keyCode];
-    bool wasPressedBefore = getKeyDown(keyCode);
-    updateKeyArray(!wasPressedBefore, keyCode);
-}
+//- (void)keyDown:(NSEvent *)event
+//{
+//    unsigned short keyCode = [event keyCode];
+//    updateKeyArray(true, keyCode);
+//}
+//
+//- (void)keyUp:(NSEvent *)event
+//{
+//    unsigned short keyCode = [event keyCode];
+//    updateKeyArray(false, keyCode);
+//
+//    // Handle special case: ESCAPE key
+//    if (keyCode == kVK_Escape)
+//    {
+//        if (!isCaptured)
+//        {
+//            [NSApp terminate:self];
+//        }
+//        else
+//        {
+//            captureMouse(false);
+//        }
+//    }
+//}
+//
+//// This method is eneded to handle special keys: ctrl, shift, option...
+//- (void)flagsChanged:(NSEvent *)event
+//{
+//    unsigned short keyCode = [event keyCode];
+//    bool wasPressedBefore = getKeyDown(keyCode);
+//    updateKeyArray(!wasPressedBefore, keyCode);
+//}
 
 // Called whenever view changes orientation or layout is changed
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
@@ -438,7 +415,9 @@ int macOSMain(int argc, const char** argv, IApp* app)
    @autoreleasepool
     {
         [_application update];
-        updateKeys();
+		InputSystem::Update();
+		[_application updateInput];
+        //updateKeys();
         //this is needed for NON Vsync mode.
         //This enables to force update the display
         if(_view.enableSetNeedsDisplay == YES)
@@ -446,93 +425,93 @@ int macOSMain(int argc, const char** argv, IApp* app)
     }
 }
 
-- (void)ReportMouseButtonEvent:(NSEvent*)event button:(MouseButton)button pressed:(bool)pressed
-{
-    // Translate the cursor position into view coordinates, accounting for the fact that
-    // App Kit's default window coordinate space has its origin in the bottom left
-    CGPoint location = [self.view convertPoint:[event locationInWindow] fromView:nil];
-    location.y = self.view.bounds.size.height - location.y;
-    
-    // Multiply the mouse coordinates by the retina scale factor.
-    location.x *= gRetinaScale;
-    location.y *= gRetinaScale;
-    
-    MouseButtonEventData eventData;
-    eventData.button = button;
-    eventData.pressed = pressed;
-    eventData.x = location.x;
-    eventData.y = location.y;
-    
-    PlatformEvents::onMouseButton(&eventData);
-}
-
-- (void)mouseDown:(NSEvent *)event {
-    [self ReportMouseButtonEvent: event
-                          button: MOUSE_LEFT
-                         pressed: true];
-    if (PlatformEvents::wantsMouseCapture && !PlatformEvents::skipMouseCapture && !isCaptured)
-    {
-        captureMouse(true);
-    }
-}
-
-- (void)mouseUp:(NSEvent *)event {
-    [self ReportMouseButtonEvent: event
-                          button: MOUSE_LEFT
-                         pressed: false];
-}
-
-- (void)rightMouseDown:(NSEvent *)event {
-    [self ReportMouseButtonEvent: event
-                          button: MOUSE_RIGHT
-                         pressed: true];
-}
-
-- (void)rightMouseUp:(NSEvent *)event {
-    [self ReportMouseButtonEvent: event
-                          button: MOUSE_RIGHT
-                         pressed: false];
-}
-
-- (void)ReportMouseMove:(NSEvent *)event
-{
-    // Translate the cursor position into view coordinates, accounting for the fact that
-    // App Kit's default window coordinate space has its origin in the bottom left
-    CGPoint location = [self.view convertPoint:[event locationInWindow] fromView:nil];
-    location.y = self.view.bounds.size.height - location.y;
-    
-    // Multiply the mouse coordinates by the retina scale factor.
-    location.x *= gRetinaScale;
-    location.y *= gRetinaScale;
-    
-    MouseMoveEventData eventData;
-    eventData.x = location.x;
-    eventData.y = location.y;
-    eventData.deltaX = [event deltaX];
-    eventData.deltaY = [event deltaY];
-    eventData.captured = isCaptured;
-	
-	// TODO: Collect raw mouse data in macOS
-	RawMouseMoveEventData rawMouseEventData;
-	rawMouseEventData.x = [event deltaX];
-	rawMouseEventData.y = [event deltaY];
-	rawMouseEventData.captured = isCaptured;
-	PlatformEvents::onRawMouseMove(&rawMouseEventData);
-	
-    PlatformEvents::onMouseMove(&eventData);
-}
-
-- (void)mouseMoved:(NSEvent *)event {
-    [self ReportMouseMove:event];
-}
-
-- (void)mouseDragged:(NSEvent *)event {
-    [self ReportMouseMove:event];
-}
-
-- (void)rightMouseDragged:(NSEvent *)event {
-    [self ReportMouseMove:event];
-}
+//- (void)ReportMouseButtonEvent:(NSEvent*)event button:(MouseButton)button pressed:(bool)pressed
+//{
+//    // Translate the cursor position into view coordinates, accounting for the fact that
+//    // App Kit's default window coordinate space has its origin in the bottom left
+//    CGPoint location = [self.view convertPoint:[event locationInWindow] fromView:nil];
+//    location.y = self.view.bounds.size.height - location.y;
+//
+//    // Multiply the mouse coordinates by the retina scale factor.
+//    location.x *= gRetinaScale;
+//    location.y *= gRetinaScale;
+//
+//    MouseButtonEventData eventData;
+//    eventData.button = button;
+//    eventData.pressed = pressed;
+//    eventData.x = location.x;
+//    eventData.y = location.y;
+//
+//    PlatformEvents::onMouseButton(&eventData);
+//}
+//
+//- (void)mouseDown:(NSEvent *)event {
+//    [self ReportMouseButtonEvent: event
+//                          button: MOUSE_LEFT
+//                         pressed: true];
+//    if (PlatformEvents::wantsMouseCapture && !PlatformEvents::skipMouseCapture && !isCaptured)
+//    {
+//        captureMouse(true);
+//    }
+//}
+//
+//- (void)mouseUp:(NSEvent *)event {
+//    [self ReportMouseButtonEvent: event
+//                          button: MOUSE_LEFT
+//                         pressed: false];
+//}
+//
+//- (void)rightMouseDown:(NSEvent *)event {
+//    [self ReportMouseButtonEvent: event
+//                          button: MOUSE_RIGHT
+//                         pressed: true];
+//}
+//
+//- (void)rightMouseUp:(NSEvent *)event {
+//    [self ReportMouseButtonEvent: event
+//                          button: MOUSE_RIGHT
+//                         pressed: false];
+//}
+//
+//- (void)ReportMouseMove:(NSEvent *)event
+//{
+//    // Translate the cursor position into view coordinates, accounting for the fact that
+//    // App Kit's default window coordinate space has its origin in the bottom left
+//    CGPoint location = [self.view convertPoint:[event locationInWindow] fromView:nil];
+//    location.y = self.view.bounds.size.height - location.y;
+//
+//    // Multiply the mouse coordinates by the retina scale factor.
+//    location.x *= gRetinaScale;
+//    location.y *= gRetinaScale;
+//
+//    MouseMoveEventData eventData;
+//    eventData.x = location.x;
+//    eventData.y = location.y;
+//    eventData.deltaX = [event deltaX];
+//    eventData.deltaY = [event deltaY];
+//    eventData.captured = isCaptured;
+//
+//	// TODO: Collect raw mouse data in macOS
+//	RawMouseMoveEventData rawMouseEventData;
+//	rawMouseEventData.x = [event deltaX];
+//	rawMouseEventData.y = [event deltaY];
+//	rawMouseEventData.captured = isCaptured;
+//	PlatformEvents::onRawMouseMove(&rawMouseEventData);
+//
+//    PlatformEvents::onMouseMove(&eventData);
+//}
+//
+//- (void)mouseMoved:(NSEvent *)event {
+//    [self ReportMouseMove:event];
+//}
+//
+//- (void)mouseDragged:(NSEvent *)event {
+//    [self ReportMouseMove:event];
+//}
+//
+//- (void)rightMouseDragged:(NSEvent *)event {
+//    [self ReportMouseMove:event];
+//}
 
 @end
 
@@ -601,6 +580,9 @@ uint32_t testingMaxFrameCount = 120;
 				[NSApp terminate:nil];
 			}
 		}
+		
+		InputSystem::InitSubView((__bridge void*)(view));
+		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
 	}
 
 	return self;
@@ -613,6 +595,40 @@ uint32_t testingMaxFrameCount = 120;
 	// TODO: Fullscreen
 	pApp->Unload();
 	pApp->Load();
+}
+
+-(void)updateInput
+{
+	//updateKeys();
+	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CANCEL))
+	{
+		if (!isCaptured && !gCurrentWindow.fullScreen)
+		{
+			[NSApp terminate:self];
+		}
+		else
+		{
+			captureMouse(false);
+		}
+	}
+	
+	
+	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CONFIRM))
+	{
+		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
+		{
+			captureMouse(true);
+		}
+	}
+	
+	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_MENU))
+	{
+		//get first window available.
+		//TODO:Fix this once we have multiple window handles
+		toggleFullscreen(&gCurrentWindow);
+		
+	}
+	
 }
 
 -(void)update

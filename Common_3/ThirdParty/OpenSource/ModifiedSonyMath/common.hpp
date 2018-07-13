@@ -702,14 +702,14 @@ inline float planeDistance(const Vector4 &plane, const Vector3 &point)
 		plane.getW();
 #else
 	static const __m128 maskxyz = _mm_castsi128_ps(_mm_set_epi32(0, ~0u, ~0u, ~0u));
-	//static const __m128 maskw = _mm_castsi128_ps(_mm_set_epi32(~0u, 0, 0, 0));
+	static const __m128 maskw = _mm_castsi128_ps(_mm_set_epi32(~0u, 0, 0, 0));
 
 	//a = Vector4(point.xyz * plane.xyz, 0);
 	const __m128 a = _mm_and_ps(
 		_mm_mul_ps(point.get128(), plane.get128()),
 		maskxyz);
 	//b = Vector4(0,0,0,plane.w)
-	const __m128 b = _mm_and_ps(plane.get128(), b);
+	const __m128 b = _mm_and_ps(plane.get128(), maskw);
 
 	//c = Vector4(plane.xyz, plane.w);
 	__m128 c = _mm_or_ps(a, b);
@@ -718,11 +718,15 @@ inline float planeDistance(const Vector4 &plane, const Vector3 &point)
 	//result = c.x + c.y + c.z + d.w
 	c = _mm_hadd_ps(c, c);
 	c = _mm_hadd_ps(c, c);
-	float result;
-	_mm_store1_ps(&result, c);
+	
+	// need a float[4] here to byte-align the result variable
+	// because _mm_store1_ps() requires 16-byte aligned
+	// memory to store the value. Otherwise -> stack corruption.
+	float result[4];
+	_mm_store1_ps(&result[0], c);
 
 
-	return result;
+	return result[0];
 #endif
 
 }
@@ -831,15 +835,23 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 	float2(x1 - o, y0 + o),\
 	float2(x1 - o, y1 - o),
 
+struct TexVertex
+{
+	TexVertex() {};
+	TexVertex(const float2 p, const float2 t)
+	{
+		position = p;
+		texCoord = t;
+	}
+	float2 position = float2(0.0f, 0.0f);
+	float2 texCoord;
+};
+
 #define MAKETEXQUAD(x0, y0, x1, y1, o)\
 	TexVertex(float2(x0 + o, y0 + o), float2(0, 0)),\
 	TexVertex(float2(x0 + o, y1 - o), float2(0, 1)),\
 	TexVertex(float2(x1 - o, y0 + o), float2(1, 0)),\
 	TexVertex(float2(x1 - o, y1 - o), float2(1, 1)),
-
-
-
-
 //----------------------------------------------------------------------------
 // Intersection Helpers
 //----------------------------------------------------------------------------

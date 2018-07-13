@@ -426,9 +426,7 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 		desc.mWidth = img.GetWidth();
 		desc.mHeight = img.GetHeight();
 		desc.mDepth = img.GetDepth();
-		desc.mBaseArrayLayer = 0;
 		desc.mArraySize = img.GetArrayCount();
-		desc.mBaseMipLevel = 0;
 		desc.mMipLevels = img.GetMipMapCount();
 		desc.mSampleCount = SAMPLE_COUNT_1;
 		desc.mSampleQuality = 0;
@@ -489,9 +487,7 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 	desc.mWidth = img.GetWidth();
 	desc.mHeight = img.GetHeight();
 	desc.mDepth = img.GetDepth();
-	desc.mBaseArrayLayer = 0;
 	desc.mArraySize = img.GetArrayCount();
-	desc.mBaseMipLevel = 0;
 	desc.mMipLevels = img.GetMipMapCount();
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mSampleQuality = 0;
@@ -500,8 +496,8 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
 	desc.mStartState = RESOURCE_STATE_COMMON;
 	desc.pNativeHandle = NULL;
-	desc.mSrgb = pTextureImage->mSrgb;
 	desc.mHostVisible = false;
+	desc.mSrgb = pTextureImage->mSrgb;
 	desc.mNodeIndex = pTextureImage->mNodeIndex;
 
 	wchar_t debugName[MAX_PATH] = {};
@@ -688,6 +684,11 @@ void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, boo
 	uint32_t numCores = Thread::GetNumCPUCores();
 
 	gUseThreads = useThreads && numCores > 1;
+	// Threaded loading will wreak havoc w/ DX11 so disable it
+
+#if defined(DIRECT3D11) || defined(TARGET_IOS)
+	gUseThreads = false;
+#endif
 
 	memset(pCopyQueue, 0, sizeof(pCopyQueue));
 	memset(pWaitFence, 0, sizeof(pWaitFence));
@@ -1013,6 +1014,8 @@ void vk_compileShader(Renderer* pRenderer, const String& fileName, const String&
 	{
 		commandLine += String::format("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
 	}
+
+	//commandLine += " \"-D" + String("VULKAN") + "=" + "1" + "\"";
 
 	// Add user defined macros to the command line
 	for (uint32_t i = 0; i < macroCount; ++i)

@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\test_inputdevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\test_inputmanager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\test_inputmap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\test_inputrecording.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\test_inputstate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="E:\Confetti\TheForge\Common_3\ThirdParty\OpenSource\gainput\test\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{53C4E343-C81F-3F86-BA31-EFF74477211B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

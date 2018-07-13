@@ -35,6 +35,10 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IThread.h"
+
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 #include "../Interfaces/IMemoryManager.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
@@ -145,6 +149,7 @@ static void updateKeyArray(int uMsg, unsigned int keyid)
 
 bool getKeyDown(int key)
 {
+	return InputSystem::IsButtonPressed(key);
 	int syskey = -1;
 	if (key >= 0x20) 
 	{
@@ -157,6 +162,7 @@ bool getKeyDown(int key)
 
 bool getKeyUp(int key)
 {
+	return InputSystem::IsButtonReleased(key);
 	int syskey = -1;
 	if (key >= 0x20) 
 	{
@@ -300,118 +306,49 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 
 void handleMessages(WindowsDesc* winDesc)
 {
+	
+	//this needs to be done before updating the events
+	//that way current frame data will be delta after resetting mouse position
+	if(InputSystem::IsMouseCaptured())
+	{
+		ButtonData button = InputSystem::GetButtonData(KEY_UI_MOVE);
+		gCursorLastX = button.mValue[0];
+		gCursorLastY = button.mValue[1];
+		
+		//Warp mouse cursor back to center if we are one of edges
+		//-1 is needed otherwise we never touch the edge. Not sure why yet.
+		//Could be The difference in event coordinates vs window coordinates.
+		if(gCursorLastX <= 0
+		|| gCursorLastY <= 0
+		|| gCursorLastX >= (gWindow.windowedRect.right - gWindow.windowedRect.left)- 1		
+		|| gCursorLastY >= (gWindow.windowedRect.bottom - gWindow.windowedRect.top)- 1
+		)
+		{	
+			float x=0;
+			float y=0;
+			x = (gWindow.windowedRect.right - gWindow.windowedRect.left) /2;
+			y = (gWindow.windowedRect.bottom - gWindow.windowedRect.top) /2;
+			XWarpPointer(gWindow.display, None, gWindow.xlib_window, 0, 0, 0, 0, x, y);
+			InputSystem::WarpMouse(x,y);
+			XFlush(winDesc->display);
+			
+		}
+	}
+	
 	XEvent event;
 	while (XPending(winDesc->display) > 0) 
 	{
 		XNextEvent(winDesc->display, &event);
+		InputSystem::HandleMessage(event);
 		switch (event.type) {
 			case ClientMessage:
 				if ((Atom)event.xclient.data.l[0] == winDesc->xlib_wm_delete_window) gAppRunning = false;
-				break;
-			case KeyPress:
-			{
-				updateKeyArray(event.type, event.xkey.keycode);
-				break;
-			}
-			case KeyRelease:
-			{
-				updateKeyArray(event.type, event.xkey.keycode);
-				if (event.xkey.keycode == XKeysymToKeycode(gWindow.display, KEY_ESCAPE))
-				{
-					if (!isCaptured)
-					{
-						gAppRunning = false;
-					}
-					else
-					{
-						XUngrabPointer(gWindow.display, CurrentTime);
-						isCaptured = false;
-					}
-				}
-				break;
-			}
-			case ButtonPress:
-			{
-				// Handle mouse click event
-				if(event.xbutton.button == Button1)
-				{
-					MouseButtonEventData eventData;
-					eventData.button = MOUSE_LEFT;
-					eventData.pressed = true;
-					eventData.x = event.xbutton.x;
-					eventData.y = event.xbutton.y;
-					if (PlatformEvents::wantsMouseCapture && !PlatformEvents::skipMouseCapture && !isCaptured)
-					{
-						// Create invisible cursor that will be used when mouse is captured
-						Cursor invisibleCursor;
-						Pixmap bitmapEmpty;
-						XColor emptyColor;
-						static char emptyData[] = { 0,0,0,0,0,0,0,0 };
-						emptyColor.red = emptyColor.green = emptyColor.blue = 0;
-						bitmapEmpty = XCreateBitmapFromData(gWindow.display, gWindow.xlib_window, emptyData, 8, 8);
-						invisibleCursor = XCreatePixmapCursor(gWindow.display, bitmapEmpty, bitmapEmpty, 
-															 &emptyColor, &emptyColor, 0, 0);
-						// Capture mouse
-						unsigned int masks = 
-						PointerMotionMask | //Mouse movement
-						ButtonPressMask | //Mouse click
-						ButtonReleaseMask; // Mouse release
-						int XRes = XGrabPointer(gWindow.display, gWindow.xlib_window, 1/*reports with respect to the grab window*/,
-									 masks, GrabModeAsync, GrabModeAsync, None, invisibleCursor, CurrentTime);
-						isCaptured = true;//(XRes == GrabSuccess);
-					}
-					gCursorLastX = eventData.x;
-					gCursorLastY = eventData.y;
-					PlatformEvents::onMouseButton(&eventData);
-				}
-				break;
-			}
-            
+				break;            
             case DestroyNotify:
             {
                 LOGINFO("Destroying the window");
                 break;
             }
-			case ButtonRelease:
-			{
-				// Handle mouse release event
-				if(event.xbutton.button == Button1)
-				{
-					MouseButtonEventData eventData;
-					eventData.button = MOUSE_LEFT;
-					eventData.pressed = false;
-					eventData.x = event.xbutton.x;
-					eventData.y = event.xbutton.y;
-					PlatformEvents::onMouseButton(&eventData);
-				}
-				break;
-			}
-			case MotionNotify:
-			{
-				// Handle mouse move event
-				int x, y;
-				x = event.xmotion.x;
-				y = event.xmotion.y;
-									
-				MouseMoveEventData eventData;
-				eventData.x = x;
-				eventData.y = y;
-				eventData.deltaX = x - gCursorLastX;
-				eventData.deltaY = y - gCursorLastY;
-				eventData.captured = isCaptured;
-				PlatformEvents::onMouseMove(&eventData);
-
-				// RawMouseMove takes in delta value
-				RawMouseMoveEventData rawMouseEventData;
-				rawMouseEventData.x = x - gCursorLastX;
-				rawMouseEventData.y = y - gCursorLastY;
-				rawMouseEventData.captured = isCaptured;
-				PlatformEvents::onRawMouseMove(&rawMouseEventData);
-				
-				gCursorLastX = x;
-				gCursorLastY = y;
-				break;				
-			}
 			case ConfigureNotify:
 			{
 				// Handle Resize event
@@ -425,6 +362,7 @@ void handleMessages(WindowsDesc* winDesc)
 
 					WindowResizeEventData eventData = { rect, &gWindow };
 					PlatformEvents::onWindowResize(&eventData);
+					InputSystem::UpdateSize(event.xconfigure.width, event.xconfigure.height);
 			
 				}
 				break;
@@ -433,21 +371,47 @@ void handleMessages(WindowsDesc* winDesc)
 				break;
 		}
 	}
-	
-	if(isCaptured)
+		
+	XFlush(winDesc->display);
+		
+	if (InputSystem::IsButtonTriggered(KEY_CANCEL))
 	{
-		//Center the cursor if captured
-		XWarpPointer(gWindow.display, NULL, gWindow.xlib_window, 0, 0, 0, 0, 
-		(gWindow.windowedRect.right - gWindow.windowedRect.left) /2 , 
-		(gWindow.windowedRect.bottom - gWindow.windowedRect.top) /2);
-		XSync(gWindow.display, False);
-		gCursorLastX = (gWindow.windowedRect.right - gWindow.windowedRect.left) /2;
-		gCursorLastY = (gWindow.windowedRect.bottom - gWindow.windowedRect.top) /2;
+		if (!isCaptured)
+		{
+			gAppRunning = false;
+		}
+		else
+		{
+			XUngrabPointer(gWindow.display, CurrentTime);
+			isCaptured = false;
+			InputSystem::SetMouseCapture(false);
+		}
 	}
 	
-	updateKeys();
+	if (InputSystem::IsButtonPressed(KEY_CONFIRM) && !PlatformEvents::skipMouseCapture && !isCaptured)
+	{
+		// Create invisible cursor that will be used when mouse is captured
+		Cursor invisibleCursor;
+		Pixmap bitmapEmpty;
+		XColor emptyColor;
+		static char emptyData[] = { 0,0,0,0,0,0,0,0 };
+		emptyColor.red = emptyColor.green = emptyColor.blue = 0;
+		bitmapEmpty = XCreateBitmapFromData(gWindow.display, gWindow.xlib_window, emptyData, 8, 8);
+		invisibleCursor = XCreatePixmapCursor(gWindow.display, bitmapEmpty, bitmapEmpty, 
+											 &emptyColor, &emptyColor, 0, 0);
+		// Capture mouse
+		unsigned int masks = 
+		PointerMotionMask | //Mouse movement
+		ButtonPressMask | //Mouse click
+		ButtonReleaseMask; // Mouse release
+		int XRes = XGrabPointer(gWindow.display, gWindow.xlib_window, 1/*reports with respect to the grab window*/,
+					 masks, GrabModeAsync, GrabModeAsync, None, invisibleCursor, CurrentTime);
+		
+		isCaptured = true;
+		InputSystem::SetMouseCapture(true);
+	}
 	return;
-}
+} 
 
 int LinuxMain(int argc, char** argv, IApp* app)
 {
@@ -488,6 +452,8 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	if (!pApp->Load())
 		return EXIT_FAILURE;
 		
+	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
+	
 	// Mark the app as running
 	gAppRunning = true;
 	
@@ -500,7 +466,8 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
-
+		
+		InputSystem::Update();
 		handleMessages(&gWindow);
 		pApp->Update(deltaTime);
 		pApp->Draw();

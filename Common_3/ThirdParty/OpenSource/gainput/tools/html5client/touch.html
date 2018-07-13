@@ -1,0 +1,159 @@
+<html>
+<head>
+<title>Gainput Javascript touch client</title>
+<style type="text/css">
+body {
+	background-color: #f00;
+	margin: 0;
+	padding: 0;
+}
+#can {
+	background-color: #222;
+}
+</style>
+<script type="text/javascript">
+var can, ctx, host, port, touchDevice;
+
+var touches = [];
+
+function setTouchPos(idx, x, y) {
+	if (!(idx in touches)) {
+		touches[idx] = { down: false, x: 0.0, y: 0.0 };
+	}
+	touches[idx].x = (x + 0.0) / can.width;
+	touches[idx].y = (y + 0.0) / can.height;
+}
+
+function setTouchDown(idx, down) {
+	if (!(idx in touches)) {
+		touches[idx] = { down: false, x: 0.0, y: 0.0 };
+	}
+	touches[idx].down = down;
+}
+
+function init() {
+	can = document.getElementById("can");
+	ctx = can.getContext("2d");
+	can.addEventListener("mousedown", mouseDown, false);
+	can.addEventListener("mousemove", mouseXY, false);
+	can.addEventListener("touchstart", touchDown, false);
+	can.addEventListener("touchmove", touchXY, true);
+	can.addEventListener("touchend", touchUp, false);
+	can.width = window.innerWidth;
+	can.height = window.innerHeight;
+	document.body.addEventListener("mouseup", mouseUp, false);
+	document.body.addEventListener("touchcancel", touchUp, false);
+	window.addEventListener('resize', resizeCanvas);
+
+	var paramString = window.location.search.substr(1);
+	var paramsSplit = paramString.split("&");
+	var params = {};
+	for (var i = 0; i < paramsSplit.length; i++) {
+		var t = paramsSplit[i].split("=");
+		params[t[0]] = t[1];
+	}
+	host = params.host || "127.0.0.1";
+	port = params.port || "1211";
+	touchDevice = params.device || "0";
+}
+
+function resizeCanvas() {
+	if (can.width != can.clientWidth || can.height != can.clientHeight) {
+		can.width = can.clientWidth;
+		can.height = can.clientHeight;
+	}
+}
+
+function mouseUp() {
+	setTouchDown(0, false);
+	showTouches();
+}
+
+function mouseDown() {
+	setTouchDown(0, true);
+	showTouches();
+}
+
+function mouseXY(e) {
+	canX = e.pageX - can.offsetLeft;
+	canY = e.pageY - can.offsetTop;
+	setTouchPos(0, canX, canY);
+	showTouches();
+}
+
+function touchUp(e) {
+	e.preventDefault();
+	for (i = 0; i < e.changedTouches.length; ++i) {
+		setTouchDown(e.changedTouches[i].identifier, false);
+	}
+	showTouches();
+}
+
+function touchDown(e) {
+	e.preventDefault();
+	for (i = 0; i < e.changedTouches.length; ++i) {
+		setTouchDown(e.changedTouches[i].identifier, true);
+	}
+	showTouches();
+}
+
+function touchXY(e) {
+	e.preventDefault();
+	for (i = 0; i < e.changedTouches.length; ++i) {
+		canX = e.changedTouches[i].pageX - can.offsetLeft;
+		canY = e.changedTouches[i].pageY - can.offsetTop;
+		setTouchPos(e.changedTouches[i].identifier, canX, canY);
+	}
+	showTouches();
+}
+
+function showTouches() {
+	ctx.font = "12pt sans";
+	ctx.textAlign = "left";
+	ctx.textBaseline = "top";
+	ctx.fillStyle = "rgb(255, 255, 255)";
+	ctx.strokeStyle = "rgb(255, 0, 0)";
+
+	ctx.clearRect(0, 0, can.width, can.height);
+
+	var y = 0;
+	var i = 0; 
+	for (var id in touches) {
+		var touch = touches[id];
+
+		var str = i + ": " + touch.x.toFixed(4) + ", " + touch.y.toFixed(4);
+		if (touch.down)
+			str += ", down";
+		else
+			str += ", up";
+		str += "\n";
+		ctx.fillText(str, 0, y, can.width - 10);
+		y += 15;
+
+		if (touch.down) {
+			ctx.beginPath();
+			ctx.arc(touch.x*can.width, touch.y*can.height, 10, 0, 2*Math.PI);
+			ctx.stroke();
+		}
+
+		var req = new XMLHttpRequest();
+		req.open("get", "http://" + host + ":" + port + "/" + touchDevice + "/" + i + "/" + touch.x.toFixed(8) + "/" + touch.y.toFixed(8) + "/" + touch.down*1);
+		req.send();
+
+		if (!touch.down)
+		{
+			delete touches[id];
+		}
+
+		++i;
+	}
+}
+</script>
+</head>
+<body onload="init()">
+
+<canvas id="can"></canvas>
+
+</body>
+</html>
+

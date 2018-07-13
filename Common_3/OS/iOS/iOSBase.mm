@@ -38,9 +38,14 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IThread.h"
-#include "../Interfaces/IMemoryManager.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
+
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
+
+#include "../Interfaces/IMemoryManager.h"
+
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -90,6 +95,16 @@ void getRecommendedResolution(RectDesc* rect)
 void requestShutDown()
 {
     gAppRunning = false;
+}
+
+bool getKeyDown(int key)
+{
+	return InputSystem::IsButtonPressed(key);
+}
+
+bool getKeyUp(int key)
+{
+	return InputSystem::IsButtonReleased(key);
 }
 
 /************************************************************************/
@@ -203,12 +218,17 @@ int iOSMain(int argc, char** argv, IApp* app)
         NSLog(@"Metal is not supported on this device");
         self.view = [[UIView alloc] initWithFrame:self.view.frame];
     }
+	
+	InputSystem::Init(gDeviceWidth, gDeviceHeight);
+	InputSystem::InitSubView((__bridge void*)_view);
 }
 
 // Called whenever view changes orientation or layout is changed
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
 {
     [_application drawRectResized:view.bounds.size];
+	//reset subview to rotate it.
+	InputSystem::InitSubView((__bridge void*)_view);
 }
 
 // Called whenever the view needs to render
@@ -219,115 +239,6 @@ int iOSMain(int argc, char** argv, IApp* app)
         [_application update];
     }
 }
-
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
-    TouchEventData multiTouchData;
-    multiTouchData.touchesRecorded = 0;
-    for (UITouch *touch in touches)
-    {
-        CGPoint location = [touch locationInView:self.view];
-        location.x *= gRetinaScale;
-        location.y *= gRetinaScale;
-        
-        TouchData eventData;
-        eventData.x = location.x;
-        eventData.screenX = eventData.x / _view.drawableSize.width;
-        eventData.y = location.y;
-        eventData.screenY = eventData.y / _view.drawableSize.height;
-        eventData.deltaX = 0;
-        eventData.screenDeltaX = 0;
-        eventData.deltaY = 0;
-        eventData.screenDeltaY = 0;
-        eventData.pressed = true;
-        
-        multiTouchData.touchData[multiTouchData.touchesRecorded++] = eventData;
-    }
-    
-    PlatformEvents::onTouch(&multiTouchData);
-}
-
-- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
-    TouchEventData multiTouchData;
-    multiTouchData.touchesRecorded = 0;
-    for (UITouch *touch in touches)
-    {
-        CGPoint location = [touch locationInView:self.view];
-        location.x *= gRetinaScale;
-        location.y *= gRetinaScale;
-        
-        TouchData eventData;
-        eventData.x = location.x;
-        eventData.screenX = eventData.x / _view.drawableSize.width;
-        eventData.y = location.y;
-        eventData.screenY = eventData.y / _view.drawableSize.height;
-        eventData.deltaX = 0;
-        eventData.screenDeltaX = 0;
-        eventData.deltaY = 0;
-        eventData.screenDeltaY = 0;
-        eventData.pressed = false;
-        
-        multiTouchData.touchData[multiTouchData.touchesRecorded++] = eventData;
-    }
-    
-    PlatformEvents::onTouch(&multiTouchData);
-}
-
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
-    TouchEventData multiTouchData;
-    multiTouchData.touchesRecorded = 0;
-    for (UITouch *touch in touches)
-    {
-        CGPoint location = [touch locationInView:self.view];
-        location.x *= gRetinaScale;
-        location.y *= gRetinaScale;
-        
-        TouchData eventData;
-        eventData.x = location.x;
-        eventData.screenX = eventData.x / _view.drawableSize.width;
-        eventData.y = location.y;
-        eventData.screenY = eventData.y / _view.drawableSize.height;
-        eventData.deltaX = 0;
-        eventData.screenDeltaX = 0;
-        eventData.deltaY = 0;
-        eventData.screenDeltaY = 0;
-        eventData.pressed = false;
-        
-        multiTouchData.touchData[multiTouchData.touchesRecorded++] = eventData;
-    }
-    
-    PlatformEvents::onTouch(&multiTouchData);
-}
-
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
-    TouchEventData multiTouchData;
-    multiTouchData.touchesRecorded = 0;
-    for (UITouch *touch in touches)
-    {
-        CGPoint location = [touch locationInView:self.view];
-        location.x *= gRetinaScale;
-        location.y *= gRetinaScale;
-        
-        CGPoint prevLocation = [touch previousLocationInView:self.view];
-        prevLocation.x *= gRetinaScale;
-        prevLocation.y *= gRetinaScale;
-        
-        TouchData eventData;
-        eventData.x = location.x;
-        eventData.screenX = eventData.x / _view.drawableSize.width;
-        eventData.y = location.y;
-        eventData.screenY = eventData.y / _view.drawableSize.height;
-        eventData.deltaX = prevLocation.x - location.x;
-        eventData.screenDeltaX = eventData.deltaX / _view.drawableSize.width;
-        eventData.deltaY = prevLocation.y - location.y;
-        eventData.screenDeltaY = eventData.deltaY / _view.drawableSize.height;
-        eventData.pressed = true;
-		
-        multiTouchData.touchData[multiTouchData.touchesRecorded++] = eventData;
-    }
-    
-    PlatformEvents::onTouchMove(&multiTouchData);
-}
-
 @end
 
 /************************************************************************/
@@ -402,7 +313,8 @@ uint32_t testingMaxFrameCount = 120;
     // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
     if (deltaTime > 0.15f)
         deltaTime = 0.05f;
-    
+	
+	InputSystem::Update();
     pApp->Update(deltaTime);
     pApp->Draw();
     

@@ -3,14 +3,18 @@
 #include "../../Renderer/IRenderer.h"
 #include "../../Renderer/GpuProfiler.h"
 
-#include "../../../Middleware_3/UI/UIRenderer.h"
-#include "../../../Middleware_3/UI/Fontstash.h"
+#include "../../../Middleware_3/Text/Fontstash.h"
 
 #include "../../OS/Interfaces/IMemoryManager.h"
 
-static UIRenderer*			pUIRenderer = NULL;
-static DebugTextDrawDesc	gDefaultTextDrawDesc = DebugTextDrawDesc(0xffffffff, 16);
+using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
+static Fontstash*			pFontstash = NULL;
+static DebugTextDrawDesc	gDefaultTextDrawDesc = DebugTextDrawDesc(0, 0xffffffff, 16);
 static GpuProfileDrawDesc	gDefaultGpuProfileDrawDesc = {};
+static Shader*				pShaderTextured;
+static RootSignature*		pRootSignatureTextured;
+static PipelineMap			gPipelinesTextured;
+static Sampler*				pDefaultSampler;
 
 #if defined(LINUX)
 	#define sprintf_s sprintf // On linux, we should use sprintf as sprintf_s is not part of the standard c library
@@ -49,36 +53,29 @@ static void draw_gpu_profile_recurse(Cmd* pCmd, Fontstash* pFontStash, float2& s
 
 void initDebugRendererInterface(Renderer* pRenderer, const char* pDebugFontPath, FSRoot root)
 {
-	pUIRenderer = conf_placement_new<UIRenderer>(conf_calloc(1, sizeof(*pUIRenderer)), pRenderer);
-	pUIRenderer->addFontstash(512, 512);
+	pFontstash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), pRenderer, (int)512, (int)512);
 
 	if (pDebugFontPath)
 	{
-		pUIRenderer->getFontstash(0)->defineFont("default", pDebugFontPath, root);
+		pFontstash->defineFont("default", pDebugFontPath, root);
 	}
 }
 
 void removeDebugRendererInterface()
 {
-	pUIRenderer->~UIRenderer();
-	conf_free(pUIRenderer);
+	pFontstash->destroy();
+	conf_free(pFontstash);
 }
 
 uint32_t addDebugFont(const char* pDebugFontPath, FSRoot root)
 {
-	return pUIRenderer->getFontstash(0)->defineFont("default", pDebugFontPath, root);
+	return pFontstash->defineFont("default", pDebugFontPath, root);
 }
 
 void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTextDrawDesc* pDrawDesc)
 {
-	pUIRenderer->beginRender(
-		pCmd->mBoundWidth, pCmd->mBoundHeight,
-		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
-		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
-		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
-
 	const DebugTextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
-	pUIRenderer->getFontstash(0)->drawText(pCmd, pText, x, y,
+	pFontstash->drawText(pCmd, pText, x, y,
 		pDesc->mFontID, pDesc->mFontColor,
 		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
 }
@@ -86,48 +83,28 @@ void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const DebugTe
 //text rendering in world space
 void drawDebugText(Cmd* pCmd, const mat4& mProjView,const mat4& mWorldMat, const char* pText,const DebugTextDrawDesc* pDrawDesc) {
 	
-	pUIRenderer->beginRender(
-		pCmd->mBoundWidth, pCmd->mBoundHeight,
-		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
-		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
-		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
-
 	const DebugTextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
-	pUIRenderer->getFontstash(0)->drawText(pCmd, pText,mProjView,mWorldMat,
+	pFontstash->drawText(pCmd, pText,mProjView,mWorldMat,
 		pDesc->mFontID, pDesc->mFontColor,
 		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
 }
 
-
 void drawDebugTexture(Cmd* pCmd, float x, float y, float w, float h, Texture* pTexture, float r, float g, float b)
 {
-	pUIRenderer->beginRender(
-		pCmd->mBoundWidth, pCmd->mBoundHeight,
-		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
-		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
-		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
-
-	// the last variable can be used to create a border
-	TexVertex pVertices[] = { MAKETEXQUAD(x, y, x + w, y + h, 0) };
-	int nVertices = sizeof(pVertices) / sizeof(pVertices[0]);
-	float4 color = { r, g, b, 1.0f };
-	pUIRenderer->drawTextured(pCmd, PRIMITIVE_TOPO_TRI_STRIP, pVertices, nVertices, pTexture, &color);
+	//// the last variable can be used to create a border
+	//TexVertex pVertices[] = { MAKETEXQUAD(x, y, x + w, y + h, 0) };
+	//int nVertices = sizeof(pVertices) / sizeof(pVertices[0]);
+	//float4 color = { r, g, b, 1.0f };
+	////pUIRenderer->drawTextured(pCmd, PRIMITIVE_TOPO_TRI_STRIP, pVertices, nVertices, pTexture, &color);
 }
 
 void drawDebugGpuProfile(Cmd* pCmd, float x, float y, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc)
 {
-	pUIRenderer->beginRender(
-		pCmd->mBoundWidth, pCmd->mBoundHeight,
-		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
-		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
-		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
-
-	Fontstash* pFontStash = pUIRenderer->getFontstash(0);
 	const GpuProfileDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultGpuProfileDrawDesc;
 	float2 pos = { x, y };
-	pFontStash->drawText(pCmd, "-----GPU Times-----",
+	pFontstash->drawText(pCmd, "-----GPU Times-----",
 		pos.x, pos.y, pDesc->mDrawDesc.mFontID, pDesc->mDrawDesc.mFontColor, pDesc->mDrawDesc.mFontSize, pDesc->mDrawDesc.mFontSpacing, pDesc->mDrawDesc.mFontBlur);
 	pos.y += pDesc->mHeightOffset;
 
-	draw_gpu_profile_recurse(pCmd, pFontStash, pos, pDesc, pGpuProfiler, &pGpuProfiler->mRoot);
+	draw_gpu_profile_recurse(pCmd, pFontstash, pos, pDesc, pGpuProfiler, &pGpuProfiler->mRoot);
 }
