@@ -266,3 +266,4 @@ The Forge utilizes the following Open-Source libraries:
 * [WinPixEventRuntime](https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 * [volk Metaloader for Vulkan](https://github.com/zeux/volk)
+* [gainput](https://github.com/jkuhlmann/gainput)
