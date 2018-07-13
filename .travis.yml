@@ -4,4 +4,4 @@ language: objective-c
 python:
   - 2.7
 script:
-- python PyBuild.py --skipioscodesigning
+- python PyBuild.py --skipioscodesigning --forceprebuild
