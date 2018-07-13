@@ -63,7 +63,7 @@ Sponza was added to the Art folder for this unit test.
   * #56 getUSec function in WindowsBase.cpp seem buggy
 
 
-See the release notes from previous releases in the Release section.
+See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
 # PC Windows Requirements:
