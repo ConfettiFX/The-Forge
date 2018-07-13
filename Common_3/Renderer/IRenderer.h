@@ -24,6 +24,10 @@
 
 #pragma once
 
+#if defined(DIRECT3D11)
+#include <d3d11_1.h>
+#include <dxgi1_2.h>
+#endif
 #if defined(_DURANGO)
 #include "../../CommonXBOXOne_3/OS/XBoxHeaders.h"
 #ifndef DIRECT3D12
@@ -64,8 +68,7 @@
 
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG
-
-#define MAKE_ENUM_FLAG(TYPE,ENUM_TYPE) \
+#define MAKE_ENUM_FLAG(TYPE, ENUM_TYPE) \
 static inline ENUM_TYPE operator|(ENUM_TYPE a, ENUM_TYPE b) \
 { \
 	return (ENUM_TYPE)((TYPE)(a) | (TYPE)(b)); \
@@ -116,6 +119,7 @@ typedef enum RendererApi
 	RENDERER_API_VULKAN,
 	RENDERER_API_METAL,
 	RENDERER_API_XBOX_D3D12,
+	RENDERER_API_D3D11
 } RendererApi;
 
 typedef enum LogType {
@@ -213,8 +217,18 @@ typedef enum RenderTargetType {
 
 typedef enum TextureUsage {
 	TEXTURE_USAGE_UNDEFINED = 0x00,
+	/// Default read only texture view
 	TEXTURE_USAGE_SAMPLED_IMAGE = 0x01,
-	TEXTURE_USAGE_UNORDERED_ACCESS = 0x02
+	/// Default read write texture view
+	TEXTURE_USAGE_UNORDERED_ACCESS = 0x02,
+	/// Type cast a cubemap into a 2D read only texture array view
+	TEXTURE_USAGE_2D_ARRAY_VIEW = 0x04,
+	/// Type cast a 2D array into a cubemap view (array size must be 6 to accomodate the 6 faces of the cubemap)
+	TEXTURE_USAGE_CUBEMAP_VIEW = 0x08,
+	/// Type cast a 2D array into a cubemap array view (array size must be a multiple of 6)
+	TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW = 0x10,
+	/// Number of usage patterns
+	TEXTURE_USAGE_COUNT = 6,
 } TextureUsage;
 MAKE_ENUM_FLAG(uint32_t, TextureUsage)
 
@@ -223,6 +237,13 @@ typedef enum RenderTargetUsage {
 	RENDER_TARGET_USAGE_COLOR = 0x01,
 	RENDER_TARGET_USAGE_DEPTH_STENCIL = 0x02,
 	RENDER_TARGET_USAGE_UNORDERED_ACCESS = 0x04,
+	RENDER_TARGET_USAGE_1D_MIPPED = 0x08,
+	RENDER_TARGET_USAGE_2D_MIPPED = 0x10,
+	RENDER_TARGET_USAGE_3D_MIPPED = 0x20,
+	RENDER_TARGET_USAGE_1D_SLICES = 0x40,
+	RENDER_TARGET_USAGE_2D_SLICES = 0x80,
+	RENDER_TARGET_USAGE_1D_MIPPED_SLICES = 0x200,
+	RENDER_TARGET_USAGE_2D_MIPPED_SLICES = 0x400,
 } RenderTargetUsage;
 MAKE_ENUM_FLAG(uint32_t, RenderTargetUsage)
 
@@ -751,12 +772,8 @@ typedef struct TextureDesc
 	uint32_t				mHeight;
 	/// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
 	uint32_t				mDepth;
-	/// Start array layer (Should be between 0 and max array layers for this texture)
-	uint32_t				mBaseArrayLayer;
 	/// Texture array size (Should be 1 if texture is not a texture array or cubemap)
 	uint32_t				mArraySize;
-	/// Most detailed mip level (Should be between 0 and max mip levels for this texture)
-	uint32_t				mBaseMipLevel;
 	/// Number of mip levels
 	uint32_t				mMipLevels;
 	/// Number of multisamples per pixel (currently Textures created with mUsage TEXTURE_USAGE_SAMPLED_IMAGE only support SAMPLE_COUNT_1)
@@ -773,15 +790,18 @@ typedef struct TextureDesc
 	ResourceState			mStartState;
 	/// Pointer to native texture handle if the texture does not own underlying resource
 	const void*				pNativeHandle;
+	/// Debug name used in gpu profile
+	const wchar_t*			pDebugName;
+	/// GPU indices to share this texture
+	uint32_t*				pSharedNodeIndices;
+	/// Number of GPUs to share this texture
+	uint32_t				mSharedNodeIndexCount;
+	/// GPU which will own this texture
+	uint32_t				mNodeIndex;
 	/// Set whether texture is srgb
 	bool					mSrgb;
 	/// Is the texture CPU accessible (applicable on hardware supporting CPU mapped textures (UMA))
 	bool					mHostVisible;
-	/// Debug name used in gpu profile
-	const wchar_t*				pDebugName;
-	uint32_t*				pSharedNodeIndices;
-	uint32_t				mSharedNodeIndexCount;
-	uint32_t				mNodeIndex;
 } TextureDesc;
 
 typedef struct Texture {
@@ -789,9 +809,7 @@ typedef struct Texture {
 	uint64_t							mTextureId;
 #if defined(DIRECT3D12)
 	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-	D3D12_CPU_DESCRIPTOR_HANDLE			mDxSrvHandle;
-	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_UNORDERED_ACCESS)
-	D3D12_CPU_DESCRIPTOR_HANDLE			mDxUavHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE			mDxDescriptorHandles[TEXTURE_USAGE_COUNT];
 	/// Native handle of the underlying resource
 	ID3D12Resource*						pDxResource;
 	/// Contains resource allocation info such as parent heap, offset in heap
@@ -799,15 +817,13 @@ typedef struct Texture {
 #endif
 #if defined(VULKAN)
 	/// Opaque handle used by shaders for doing read/write operations on the texture
-	VkImageView							pVkImageView;
+	VkImageView							pVkImageViews[TEXTURE_USAGE_COUNT];
 	/// Native handle of the underlying resource
 	VkImage								pVkImage;
 	/// Device memory handle
 	VkDeviceMemory						pVkMemory;
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct VmaAllocation_T*				pVkAllocation;
-	/// Description for creating the descriptor for this texture (applicable to TEXTURE_USAGE_SAMPLED_IMAGE, TEXTURE_USAGE_UNORDERED_ACCESS)
-	VkDescriptorImageInfo				mVkTextureView;
 	/// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pVkImageView
 	VkImageAspectFlags					mVkAspectMask;
 #endif
@@ -818,6 +834,11 @@ typedef struct Texture {
 	id<MTLTexture>						mtlTexture;
 	MTLPixelFormat						mtlPixelFormat;
 	bool								mIsCompressed;
+#endif
+#if defined(DIRECT3D11)
+	ID3D11Resource*						pDxResource;	
+	ID3D11ShaderResourceView*			pDxSrvResource;
+	ID3D11UnorderedAccessView*			pDxUavResource;
 #endif
 	/// Texture creation info
 	TextureDesc							mDesc;	//88
@@ -843,13 +864,11 @@ typedef struct RenderTargetDesc
 	uint32_t				mHeight;
 	/// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
 	uint32_t				mDepth;
-	/// Start array layer (Should be between 0 and max array layers for this texture)
-	uint32_t				mBaseArrayLayer;
 	/// Texture array size (Should be 1 if texture is not a texture array or cubemap)
 	uint32_t				mArraySize;
-	/// Mip level to render into
-	uint32_t				mBaseMipLevel;
-	/// Number of multisamples per pixel (currently Textures created with mUsage TEXTURE_USAGE_SAMPLED_IMAGE only support SAMPLE_COUNT_1)
+	/// Number of mip levels
+	uint32_t				mMipLevels;
+	/// MSAA
 	SampleCount				mSampleCount;
 	/// Internal image format
 	ImageFormat::Enum		mFormat;
@@ -859,15 +878,19 @@ typedef struct RenderTargetDesc
 	RenderTargetUsage		mUsage;
 	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
 	uint32_t				mSampleQuality;
+	/// Specify what texture views to create for the texture
+	TextureUsage			mTextureUsage;
 	const void*				pNativeHandle;
 	/// Debug name used in gpu profile
-	const wchar_t*				pDebugName;
+	const wchar_t*			pDebugName;
+	/// GPU indices to share this texture
+	uint32_t*				pSharedNodeIndices;
+	/// Number of GPUs to share this texture
+	uint32_t				mSharedNodeIndexCount;
+	/// GPU which will own this texture
+	uint32_t				mNodeIndex;
 	/// Set whether rendertarget is srgb
 	bool					mSrgb;
-	/// Gpu index to create resource
-	uint32_t*				pSharedNodeIndices;
-	uint32_t				mSharedNodeIndexCount;
-	uint32_t				mNodeIndex;
 } RenderTargetDesc;
 
 typedef struct RenderTarget
@@ -876,18 +899,25 @@ typedef struct RenderTarget
 	Texture*						pTexture;
 
 #if defined(DIRECT3D12)
-	/// Description for creating the RTV for this texture (applicable to RENDER_TARGET_USAGE_COLOR)
-	D3D12_RENDER_TARGET_VIEW_DESC	mDxRtvDesc;
-	/// Description for creating the RTV for this texture (applicable to RENDER_TARGET_USAGE_DEPTH_STENCIL)
-	D3D12_DEPTH_STENCIL_VIEW_DESC	mDxDsvDesc;
-	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to RENDER_TARGET_USAGE_COLOR)
-	D3D12_CPU_DESCRIPTOR_HANDLE		mDxRtvHandle;
-	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to RENDER_TARGET_USAGE_DEPTH_STENCIL)
-	D3D12_CPU_DESCRIPTOR_HANDLE		mDxDsvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE*	pDxDescriptorHandles;
+	uint32_t						mDxDescriptorHandleCount;
+#endif
+#if defined(VULKAN)
+	VkImageView*					pVkRenderTargetViews;
+	uint32_t						mVkRenderTargetImageViewCount;
 #endif
 #if defined(TARGET_IOS)
     // A separate texture is needed for stencil rendering on iOS.
     Texture*						pStencil;
+#endif
+#if defined(DIRECT3D11)
+	/// Description for creating the RTV for this texture (applicable to RENDER_TARGET_USAGE_COLOR)
+	D3D11_RENDER_TARGET_VIEW_DESC	mDxRtvDesc;
+	/// Description for creating the RTV for this texture (applicable to RENDER_TARGET_USAGE_DEPTH_STENCIL)
+	D3D11_DEPTH_STENCIL_VIEW_DESC	mDxDsvDesc;
+	/// Resources
+	ID3D11RenderTargetView*			pDxRtvResource;	
+	ID3D11DepthStencilView*			pDxDsvResource;
 #endif
 } RenderTarget;
 
@@ -922,6 +952,10 @@ typedef struct Sampler {
 #if defined(METAL)
 	/// Native handle of the underlying resource
     id<MTLSamplerState>				mtlSamplerState;
+#endif
+#if defined(DIRECT3D11)
+	/// Native handle of the underlying resource
+	ID3D11SamplerState*				pSamplerState;
 #endif
 } Sampler;
 
@@ -1063,8 +1097,13 @@ typedef struct DescriptorData
 	/// User can either set name of descriptor or index (index in pRootSignature->pDescriptors array)
 	/// Name of descriptor
 	const char*		pName;
-	/// Offset to bind the descriptor at
-	uint64_t*		pOffsets;
+	union
+	{
+		/// Offset to bind the buffer descriptor
+		uint64_t*		pOffsets;
+		/// Decides which view to bind
+		TextureUsage	mTextureUsage;
+	};
 	uint64_t*		pSizes;
 	/// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one resource type array
 	union
@@ -1113,6 +1152,7 @@ typedef struct Cmd {
 	uint32_t								mBoundWidth;
 	uint32_t								mBoundHeight;
 	uint32_t								mNodeIndex;
+	uint64_t								mRenderPassHash;
 #if defined(DIRECT3D12)
 	// For now each command list will have its own allocator until we get the command allocator pool logic working
 	ID3D12CommandAllocator*					pDxCmdAlloc;
@@ -1149,6 +1189,7 @@ typedef struct Cmd {
 	MTLRenderPassDescriptor*				pRenderPassDesc;
     Shader*									pShader;
 	Buffer*									selectedIndexBuffer;
+	uint64_t								mSelectedIndexBufferOffset;
 	MTLPrimitiveType						selectedPrimitiveType;
 	bool									mRenderPassActive;
 #endif
@@ -1342,6 +1383,9 @@ typedef struct BlendState
     BlendStateData						blendStatePerRenderTarget[MAX_RENDER_TARGET_ATTACHMENTS];
     bool								alphaToCoverage;
 #endif
+#if defined(DIRECT3D11)	
+	ID3D11BlendState*					pBlendState;
+#endif
 } BlendState;
 
 typedef struct DepthStateDesc
@@ -1381,6 +1425,9 @@ typedef struct DepthState
 #if defined(METAL)
     id<MTLDepthStencilState>	mtlDepthState;
 #endif
+#if defined(DIRECT3D11)
+	ID3D11DepthStencilState*	pDxDepthStencilState;
+#endif
 } DepthState;
 
 typedef struct RasterizerStateDesc
@@ -1416,6 +1463,9 @@ typedef struct RasterizerState
     float					depthBias;
     bool					scissorEnable;
     bool					multisampleEnable;
+#endif
+#if defined(DIRECT3D11)
+	ID3D11RasterizerState*	pDxRasterizerState;
 #endif
 } RasterizerState;
 
@@ -1655,6 +1705,13 @@ typedef struct Renderer {
 	struct ResourceAllocator*			pResourceAllocator;
 	uint32_t							mDxLinkedNodeCount;
 #endif
+#if defined (DIRECT3D11)
+	IDXGIFactory1*						pDXGIFactory;
+	IDXGIAdapter1*						pDxGPUs[MAX_GPUS];
+	IDXGIAdapter1*						pDxActiveGPU;
+	ID3D11Device*						pDxDevice;
+	ID3D11DeviceContext*				pDxContext;
+#endif
 #if defined (VULKAN)
 	VkInstance							pVkInstance;
 	VkPhysicalDevice					pVkGPUs[MAX_GPUS];
@@ -1731,11 +1788,7 @@ typedef struct CommandSignature
 #endif
 }CommandSignature;
 
-#if defined(RENDERER_DLL_EXPORT)
-#define API_INTERFACE extern "C" __declspec(dllexport)
-#else
 #define API_INTERFACE
-#endif
 
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 // API functions
@@ -1800,13 +1853,13 @@ API_INTERFACE void CALLTYPE removeRasterizerState(RasterizerState* pRasterizerSt
 // command buffer functions
 API_INTERFACE void CALLTYPE beginCmd(Cmd* p_cmd);
 API_INTERFACE void CALLTYPE endCmd(Cmd* p_cmd);
-API_INTERFACE void CALLTYPE cmdBindRenderTargets(Cmd* p_cmd, uint32_t render_target_count, RenderTarget** pp_render_targets, RenderTarget* p_depth_stencil, const LoadActionsDesc* loadActions);
+API_INTERFACE void CALLTYPE cmdBindRenderTargets(Cmd* p_cmd, uint32_t render_target_count, RenderTarget** pp_render_targets, RenderTarget* p_depth_stencil, const LoadActionsDesc* loadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice);
 API_INTERFACE void CALLTYPE cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, float min_depth, float max_depth);
 API_INTERFACE void CALLTYPE cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 API_INTERFACE void CALLTYPE cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline);
 API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
-API_INTERFACE void CALLTYPE cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer);
-API_INTERFACE void CALLTYPE cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers);
+API_INTERFACE void CALLTYPE cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer, uint64_t offset);
+API_INTERFACE void CALLTYPE cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers, uint64_t* pOffsets);
 API_INTERFACE void CALLTYPE cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex);
 API_INTERFACE void CALLTYPE cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount);
 API_INTERFACE void CALLTYPE cmdDrawIndexed(Cmd* p_cmd, uint32_t index_count, uint32_t first_index);

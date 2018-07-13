@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
+  <VirtualDirectory Name="Middleware_3">
+    <VirtualDirectory Name="Input">
+      <File Name="../../../../Middleware_3/Input/InputSystem.h"/>
+      <File Name="../../../../Middleware_3/Input/InputSystem.cpp"/>
+      <File Name="../../../../Middleware_3/Input/InputMappings.h"/>
+    </VirtualDirectory>
+  </VirtualDirectory>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="Camera">
@@ -47,14 +54,13 @@
     <File Name="../../../../Common_3/OS/MemoryTracking/MemoryTrackingManager.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="UI">
+    <File Name="../../../../Middleware_3/Text/TextShaders.h"/>
+    <File Name="../../../../Middleware_3/Text/Fontstash.h"/>
+    <File Name="../../../../Middleware_3/Text/Fontstash.cpp"/>
     <File Name="../../../../Middleware_3/UI/AppUI.cpp"/>
     <File Name="../../../../Middleware_3/UI/AppUI.h"/>
-    <File Name="../../../../Middleware_3/UI/Fontstash.cpp"/>
-    <File Name="../../../../Middleware_3/UI/Fontstash.h"/>
     <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.cpp"/>
     <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.h"/>
-    <File Name="../../../../Middleware_3/UI/UIRenderer.cpp"/>
-    <File Name="../../../../Middleware_3/UI/UIRenderer.h"/>
     <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Linux">
@@ -161,4 +167,6 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
 </CodeLite_Project>

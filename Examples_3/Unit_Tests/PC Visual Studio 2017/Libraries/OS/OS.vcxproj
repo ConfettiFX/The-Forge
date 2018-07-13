@@ -27,10 +27,10 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\Fontstash.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
@@ -49,10 +49,11 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputMappings.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIShaders.h" />
   </ItemGroup>
   <ItemGroup>
@@ -165,6 +166,10 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <ClCompile>
@@ -191,6 +196,10 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <ClCompile>
@@ -221,6 +230,10 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <ClCompile>
@@ -251,6 +264,10 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

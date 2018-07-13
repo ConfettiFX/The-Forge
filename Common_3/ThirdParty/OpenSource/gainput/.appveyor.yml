@@ -1,0 +1,15 @@
+
+platform:
+  - x64
+
+configuration:
+  - Debug
+  - Release
+
+before_build:
+  - md build
+  - cd build
+  - cmake -G "Visual Studio 14 2015 Win64" ..
+
+build:
+  project: build\Project.sln

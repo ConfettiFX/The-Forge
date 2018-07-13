@@ -22,6 +22,9 @@
  * under the License.
 */
 
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
+
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
@@ -34,11 +37,12 @@
 #include "../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../Common_3/OS/Interfaces/IApp.h"
-#include "Geometry.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
-
 #include "../../../Common_3/OS/Core/DebugRenderer.h"
+
+#include "Geometry.h"
+
 
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -1100,12 +1104,7 @@ public:
 
 		LOGINFOF("Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
 
-#ifndef _DURANGO
-		registerRawMouseMoveEvent(onMouseMoveHandler);
-		registerMouseButtonEvent(onMouseButtonHandler);
-		registerMouseWheelEvent(onMouseWheelHandler);
-#endif
-
+		InputSystem::RegisterInputEvent(onInputEventHandler);
 
 
 		return true;
@@ -1643,6 +1642,7 @@ public:
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
@@ -2820,39 +2820,23 @@ public:
 	void handleKeyboardInput(float deltaTime)
 	{
 		UNREF_PARAM(deltaTime);
-#if !defined(TARGET_IOS)
-#ifdef _DURANGO
+
 		// Pressing space holds / unholds triangle filtering results
-		if (getJoystickButtonUp(BUTTON_A))
+		if (getKeyUp(KEY_LEFT_TRIGGER))
 			gAppSettings.mHoldFilteredResults = !gAppSettings.mHoldFilteredResults;
 
-		if (getJoystickButtonUp(BUTTON_B))
+		if (getKeyUp(KEY_MENU))
 			gAppSettings.mFilterTriangles = !gAppSettings.mFilterTriangles;
 
-		if (getJoystickButtonUp(BUTTON_X))
+		if (getKeyUp(KEY_RIGHT_TRIGGER))
 			gAppSettings.mRenderMode = (RenderMode)((gAppSettings.mRenderMode + 1) % RENDERMODE_COUNT);
 
-		if (getJoystickButtonUp(BUTTON_Y))
-			gAppSettings.mRenderLocalLights = !gAppSettings.mRenderLocalLights;
-#else
-		// Pressing space holds / unholds triangle filtering results
-		if (getKeyUp(KEY_SPACE))
-			gAppSettings.mHoldFilteredResults = !gAppSettings.mHoldFilteredResults;
-
-		if (getKeyUp(KEY_ENTER))
-			gAppSettings.mFilterTriangles = !gAppSettings.mFilterTriangles;
-
-		if (getKeyUp(KEY_BACKSPACE))
-			gAppSettings.mRenderMode = (RenderMode)((gAppSettings.mRenderMode + 1) % RENDERMODE_COUNT);
-
-		if (getKeyUp(KEY_L))
+		if (getKeyUp(KEY_BUTTON_X))
 			gAppSettings.mRenderLocalLights = !gAppSettings.mRenderLocalLights;
 
-		if (getKeyUp(KEY_T))
+		if (getKeyUp(KEY_BUTTON_Y))
 			gAppSettings.mDrawDebugTargets = !gAppSettings.mDrawDebugTargets;
 
-#endif
-#endif
 	}
 	/************************************************************************/
 	// UI
@@ -2910,7 +2894,7 @@ public:
 		loadActions.mClearDepth = pRenderTargetShadow->mDesc.mClearValue;
 
 		// Start render pass and apply load actions
-		cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadow, &loadActions);
+		cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadow, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadow->mDesc.mWidth, (float)pRenderTargetShadow->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetShadow->mDesc.mWidth, pRenderTargetShadow->mDesc.mHeight);
 
@@ -2959,7 +2943,7 @@ public:
 #else
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_SHADOW] : pIndexBufferAll;
 		Buffer* pIndirectMaterialBuffer = gAppSettings.mFilterTriangles ? pFilterIndirectMaterialBuffer[frameIdx] : pIndirectMaterialBufferAll;
-		cmdBindIndexBuffer(cmd, pIndexBuffer);
+		cmdBindIndexBuffer(cmd, pIndexBuffer, 0);
 
 		DescriptorData params[3] = {};
 		params[0].pName = "diffuseMaps";
@@ -2973,7 +2957,7 @@ public:
 
 		// Position only opaque shadow pass
 		Buffer* pVertexBuffersPositionOnly[] = { pVertexBufferPosition };
-		cmdBindVertexBuffer(cmd, 1, pVertexBuffersPositionOnly);
+		cmdBindVertexBuffer(cmd, 1, pVertexBuffersPositionOnly, NULL);
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[0],true);
 		cmdBindPipeline(cmd, pPipelineShadowPass[0]);
@@ -2983,7 +2967,7 @@ public:
 
 		// Alpha tested shadow pass with extra vetex attribute stream
 		Buffer* pVertexBuffers[] = { pVertexBufferPosition, pVertexBufferTexCoord };
-		cmdBindVertexBuffer(cmd, 2, pVertexBuffers);
+		cmdBindVertexBuffer(cmd, 2, pVertexBuffers, NULL);
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[1], true);
 		cmdBindPipeline(cmd, pPipelineShadowPass[1]);
@@ -2992,7 +2976,7 @@ public:
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #endif
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Render the scene to perform the Visibility Buffer pass. In this pass the (filtered) scene geometry is rendered
@@ -3010,7 +2994,7 @@ public:
 		loadActions.mClearDepth = pDepthBuffer->mDesc.mClearValue;
 
 		// Start render pass and apply load actions
-		cmdBindRenderTargets(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTargetVBPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mDesc.mWidth, pRenderTargetVBPass->mDesc.mHeight);
 
@@ -3061,7 +3045,7 @@ public:
 #else
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll;
 		Buffer* pIndirectMaterialBuffer = gAppSettings.mFilterTriangles ? pFilterIndirectMaterialBuffer[frameIdx] : pIndirectMaterialBufferAll;
-		cmdBindIndexBuffer(cmd, pIndexBuffer);
+		cmdBindIndexBuffer(cmd, pIndexBuffer, 0);
 
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -3073,7 +3057,7 @@ public:
 		}
 #endif
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by DrawVisibilityBufferPass
@@ -3092,7 +3076,7 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = pDestinationRenderTarget->mDesc.mClearValue;
 
-		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
@@ -3165,7 +3149,7 @@ public:
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Render the scene to perform the Deferred geometry pass. In this pass the (filtered) scene geometry is rendered
@@ -3185,12 +3169,12 @@ public:
 		loadActions.mClearDepth = pDepthBuffer->mDesc.mClearValue;
 
 		// Start render pass and apply load actions
-		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth, (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth, pRenderTargetDeferredPass[0]->mDesc.mHeight);
 
 		Buffer* pVertexBuffers[] = { pVertexBufferPosition, pVertexBufferTexCoord, pVertexBufferNormal, pVertexBufferTangent };
-		cmdBindVertexBuffer(cmd, 4, pVertexBuffers);
+		cmdBindVertexBuffer(cmd, 4, pVertexBuffers, NULL);
 
 #if defined(METAL)
 		Buffer* filteredTrianglesBuffer = (gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll);
@@ -3249,7 +3233,7 @@ public:
 #else
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pIndexBufferAll;
 		Buffer* pIndirectMaterialBuffer = gAppSettings.mFilterTriangles ? pFilterIndirectMaterialBuffer[frameIdx] : pIndirectMaterialBufferAll;
-		cmdBindIndexBuffer(cmd, pIndexBuffer);
+		cmdBindIndexBuffer(cmd, pIndexBuffer, 0);
 
 		DescriptorData params[6] = {};
 		params[0].pName = "diffuseMaps";
@@ -3279,7 +3263,7 @@ public:
 		}
 #endif
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Render a fullscreen triangle to evaluate shading for every pixel. This render step uses the render target generated by DrawDeferredPass
@@ -3297,7 +3281,7 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = pDestinationRenderTarget->mDesc.mClearValue;
 
-		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
@@ -3325,7 +3309,7 @@ public:
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Render light geometry on the screen to evaluate lighting at those points.
@@ -3337,7 +3321,7 @@ public:
 #else
 		pDestinationRenderTarget = pScreenRenderTarget;
 #endif
-		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
@@ -3360,11 +3344,11 @@ public:
 		params[6].pName = "uniforms";
 		params[6].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		cmdBindDescriptors(cmd, pRootSignatureDeferredShadePointLight, numDescriptors, params);
-		cmdBindVertexBuffer(cmd, 1, &pVertexBufferCube);
-		cmdBindIndexBuffer(cmd, pIndexBufferCube);
+		cmdBindVertexBuffer(cmd, 1, &pVertexBufferCube, NULL);
+		cmdBindIndexBuffer(cmd, pIndexBufferCube, 0);
 		cmdDrawIndexedInstanced(cmd, 36, 0, LIGHT_COUNT);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Reads the depth buffer to apply ambient occlusion post process
@@ -3389,7 +3373,7 @@ public:
 		data.g_fQ = mainProj[2][2];
 		data.g_fQTimesZNear = mainProj[3][2];
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTargetAO, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTargetAO, NULL, NULL, NULL, NULL, -1, -1);
 		DescriptorData params[2] = {};
 		params[0].pName = "g_txDepth";
 		params[0].ppTextures = &pDepthBuffer->pTexture;
@@ -3398,7 +3382,7 @@ public:
 		cmdBindDescriptors(cmd, pRootSignatureAO, 2, params);
 		cmdBindPipeline(cmd, pPipelineAO[gAppSettings.mAOQuality - 1]);
 		cmdDraw(cmd, 3, 0);
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	void resolveMSAA(Cmd* cmd, RenderTarget* msaaRT, RenderTarget* destRT)
@@ -3412,7 +3396,7 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = destRT->mDesc.mClearValue;
 
-		cmdBindRenderTargets(cmd, 1, &destRT, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &destRT, NULL, &loadActions, NULL, NULL, -1, -1);
 		DescriptorData params[2] = {};
 		params[0].pName = "msaaSource";
 		params[0].ppTextures = &msaaRT->pTexture;
@@ -3421,7 +3405,7 @@ public:
 		cmdBindPipeline(cmd, pPipelineResolve);
 		cmdDraw(cmd, 3, 0);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
 	// Executes a compute shader to clear (reset) the the light clusters on the GPU
@@ -3500,14 +3484,14 @@ public:
 			return;
 
 		uint32_t batchSize = batchChunk->currentBatchCount * sizeof(SmallBatchData);
-		UniformBufferOffset offset = getUniformBufferOffset(pFilterBatchDataBuffer[frameIdx], batchSize);
-		BufferUpdateDesc updateDesc = { offset.pUniformBuffer, batchChunk->batches, 0, offset.mOffset, batchSize };
+		RingBufferOffset offset = getUniformBufferOffset(pFilterBatchDataBuffer[frameIdx], batchSize);
+		BufferUpdateDesc updateDesc = { offset.pBuffer, batchChunk->batches, 0, offset.mOffset, batchSize };
 		updateResource(&updateDesc, true);
 
 		DescriptorData params[1] = {};
 		params[0].pName = "batchData";
 		params[0].pOffsets = &offset.mOffset;
-		params[0].ppBuffers = &offset.pUniformBuffer;
+		params[0].ppBuffers = &offset.pBuffer;
 		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 
@@ -4131,7 +4115,7 @@ public:
 	{
 		UNREF_PARAM(frameIdx);
 #if !defined(TARGET_IOS)
-		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
 		gTimer.GetUSec(true);
 		drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -4220,31 +4204,18 @@ public:
 		gAppUI.Draw(cmd);
 #endif
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 	/************************************************************************/
 	// Event handling
 	/************************************************************************/
-#ifndef _DURANGO
 	// Set the camera handlers
-	static bool onMouseMoveHandler(const RawMouseMoveEventData* data)
+	static bool onInputEventHandler(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
 
-	static bool onMouseButtonHandler(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool onMouseWheelHandler(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(VisibilityBuffer)

@@ -62,16 +62,13 @@
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 // startdust hash function, use this to generate all the seed and update the position of all particles
 #define RND_GEN(x) (x = x * 196314165 + 907633515)
-
-/// Camera Controller
-#define GUI_CAMERACONTROLLER 1
-#define FPS_CAMERACONTROLLER 2
-
-#define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
 struct ParticleData
 {
@@ -165,7 +162,7 @@ RootSignature*			pGraphRootSignature = NULL;
 Texture*				pTextures[5];
 Texture*				pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-Texture*                pVirtualJoystickTex = NULL;
+VirtualJoystickUI		gVirtualJoystick;
 #endif
 Sampler*				pSampler = NULL;
 Sampler*				pSamplerSkyBox = NULL;
@@ -356,15 +353,10 @@ public:
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource (&textureDesc, true);
 		}
-        
+
 #ifdef TARGET_IOS
-        // Add virtual joystick texture.
-        TextureLoadDesc textureDesc = {};
-        textureDesc.mRoot = FSRoot::FSR_Absolute;
-        textureDesc.mUseMipmaps = false;
-        textureDesc.pFilename = "circlepad.png";
-        textureDesc.ppTexture = &pVirtualJoystickTex;
-        addResource(&textureDesc, true);
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
 #endif
 
 		ShaderLoadDesc graphShader = {};
@@ -531,22 +523,6 @@ public:
 
 		conf_free(seedArray);
 
-#if !USE_CAMERACONTROLLER
-		// initial camera property
-		gCameraProp.mCameraPitch = -0.785398163f;
-		gCameraProp.mCamearYaw = 1.5f*0.785398163f;
-		gCameraProp.mCameraPosition = Point3(24.0f, 24.0f, 10.0f);
-		gCameraProp.mCameraForward = vec3(0.0f, 0.0f, -1.0f);
-		gCameraProp.mCameraUp = vec3(0.0f, 1.0f, 0.0f);
-
-		vec3 camRot(gCameraProp.mCameraPitch, gCameraProp.mCamearYaw, 0.0f);
-		mat3 trans;
-		trans = mat3::rotationZYX(camRot);
-		gCameraProp.mCameraDirection = trans* gCameraProp.mCameraForward;
-		gCameraProp.mCameraRight = cross(gCameraProp.mCameraDirection, gCameraProp.mCameraUp);
-		normalize(gCameraProp.mCameraRight);
-#endif
-
 		uint32_t graphDataStride = sizeof(GraphVertex); // vec2(position) + vec4(color)
 		uint32_t graphDataSize = sizeof(GraphVertex)*gSampleCount * 3; // 2 vertex for tri, 1 vertex for line strip
 
@@ -593,29 +569,16 @@ public:
 
 		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
 
-#if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 100.0f, 800.0f, 1000.0f };
 		vec3 camPos{ 24.0f, 24.0f, 10.0f };
 		vec3 lookAt{ 0 };
 
-#if USE_CAMERACONTROLLER == FPS_CAMERACONTROLLER
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		requestMouseCapture(true);
-#elif USE_CAMERACONTROLLER == GUI_CAMERACONTROLLER
-		pCameraController = createGuiCameraController(camPos, lookAt);
-#endif
+
 
 		pCameraController->setMotionParameters(cmp);
-#if !defined(_DURANGO)
-		registerRawMouseMoveEvent(cameraMouseMove);
-		registerMouseButtonEvent(cameraMouseButton);
-		registerMouseWheelEvent(cameraMouseWheel);
-#endif
-#ifdef TARGET_IOS
-        registerTouchEvent(cameraTouch);
-        registerTouchMoveEvent(cameraTouchMove);
-#endif
-#endif
+		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 			addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfilers[i]);
@@ -627,9 +590,7 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
-#if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
-#endif
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 			removeGpuProfiler(pRenderer, pGpuProfilers[i]);
@@ -664,7 +625,7 @@ public:
 			removeResource(pSkyBoxTextures[i]);
         
 #ifdef TARGET_IOS
-        removeResource(pVirtualJoystickTex);
+		gVirtualJoystick.Exit();
 #endif
 
 		removeSampler(pRenderer, pSampler);
@@ -712,6 +673,11 @@ public:
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+#ifdef TARGET_IOS
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+			return false;
+#endif
 
 		//vertexlayout and pipeline for particles
 		VertexLayout vertexLayout = {};
@@ -798,6 +764,10 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
+#ifdef TARGET_IOS
+		gVirtualJoystick.Unload();
+#endif
+
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipeline);
@@ -817,54 +787,12 @@ public:
 		const float autoModeTimeoutReset = 3.0f;
 		static float autoModeTimeout = 0.0f;
 
-#if USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER && !defined(TARGET_IOS)
-		if (getKeyDown(KEY_W) || getKeyDown(KEY_UP))
-		{
-			gObjSettings.rotX += gCameraYRotateScale;
-			autoModeTimeout = autoModeTimeoutReset;
-		}
-		if (getKeyDown(KEY_A) || getKeyDown(KEY_LEFT))
-		{
-			gObjSettings.rotY -= gCameraYRotateScale;
-			autoModeTimeout = autoModeTimeoutReset;
-		}
-		if (getKeyDown(KEY_S) || getKeyDown(KEY_DOWN))
-		{
-			gObjSettings.rotX -= gCameraYRotateScale;
-			autoModeTimeout = autoModeTimeoutReset;
-		}
-		if (getKeyDown(KEY_D) || getKeyDown(KEY_RIGHT))
-		{
-			gObjSettings.rotY += gCameraYRotateScale;
-			autoModeTimeout = autoModeTimeoutReset;
-		}
-#endif // USE_CAMERACONTROLLER != FPS_CAMERACONTROLLER
-
-#if USE_CAMERACONTROLLER
-
-#ifndef TARGET_IOS
-#ifdef _DURANGO
-		if (getJoystickButtonDown(BUTTON_A))
-#else
-		if (getKeyDown(KEY_F))
-#endif
+		if (getKeyDown(KEY_BUTTON_X))
 		{
 			RecenterCameraView(85.0f);
 		}
-#endif
 		pCameraController->update(deltaTime);
-#else
-		// when not using the camera controller, auto-rotate the object if the user hasn't been manually
-		// rotating it recently.
-		if (autoModeTimeout > 0.0f)
-		{
-			autoModeTimeout -= deltaTime;
-		}
-		else
-		{
-			gObjSettings.rotY += gCameraYRotateScale * deltaTime * 6.0f;
-		}
-#endif
+
 
 		const float k_wrapAround = (float)(M_PI * 2.0);
 		if (gObjSettings.mRotX > k_wrapAround)
@@ -879,13 +807,9 @@ public:
 		// Compute matrices
 		/************************************************************************/
 		// update camera with time 
-#if USE_CAMERACONTROLLER
 		mat4 modelMat = mat4::rotationX(gObjSettings.mRotX) * mat4::rotationY(gObjSettings.mRotY);
 		mat4 viewMat = pCameraController->getViewMatrix();
-#else
-		mat4 modelMat = mat4::rotationY(gObjSettings.rotY) * mat4::rotationX(gObjSettings.rotX);
-		mat4 viewMat = mat4::lookAt(gCameraProp.mCameraPosition, Point3(gCameraProp.mCameraPosition + gCameraProp.mCameraDirection), gCameraProp.mCameraUp);
-#endif
+
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
@@ -975,7 +899,7 @@ public:
 
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 		//// draw skybox
@@ -998,32 +922,14 @@ public:
 		cmdBindDescriptors(cmd, pRootSignature, 7, params);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
-		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 
 		static HiresTimer timer;
 		timer.GetUSec(true);
         
 #ifdef TARGET_IOS
-		// Draw the camera controller's virtual joysticks.
-		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-
-		float2 joystickSize = float2(extSide);
-		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-
-		joystickSize = float2(intSide);
-		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 		
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -1057,30 +963,30 @@ public:
 			pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
 			pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
-			cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL);
+			cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 			cmdSetViewport(ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth, pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 			cmdBindDescriptors(ppGraphCmds[frameIdx], pGraphRootSignature, 0, NULL);
 
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx]);
+			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], NULL);
 			cmdDraw(ppGraphCmds[frameIdx], 4, 0);
 
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLineListPipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx]);
+			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], NULL);
 			cmdDraw(ppGraphCmds[frameIdx], 38, 4);
 
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &(pCpuGraph[i].mVertexBuffer[frameIdx]));
+			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &(pCpuGraph[i].mVertexBuffer[frameIdx]), NULL);
 			cmdDraw(ppGraphCmds[frameIdx], 2 * gSampleCount, 0);
 
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLinePipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx]);
+			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx], NULL);
 			cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
 		}
 
-		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 1, &barrier, true);
@@ -1255,7 +1161,7 @@ public:
 				entries.emplace_back(CPUData());
 				CPUData & entry = entries.back();		
 				char dummyCpuName[256]; // dummy cpu name, not used.
-				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName, 
+				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], 
 							&entry.times[0], &entry.times[1], &entry.times[2], &entry.times[3],
 							&entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
 							&entry.times[8], &entry.times[9]);
@@ -1544,7 +1450,7 @@ public:
 		Cmd* cmd = data->ppCmds[data->mFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, data->pGpuProfiler);
-		cmdBindRenderTargets(cmd, 1, &data->pRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(cmd, 1, &data->pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data->pRenderTarget->mDesc.mWidth, (float)data->pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, data->pRenderTarget->mDesc.mWidth, data->pRenderTarget->mDesc.mHeight);
 
@@ -1559,7 +1465,7 @@ public:
 		params[2].pRootConstant = &gParticleData;
 		cmdBindDescriptors(cmd, pRootSignature, 3, params);
 
-		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 
 		//cmdDrawInstanced(cmd, data->mDrawCount, data->mStartPoint , 1);
 
@@ -1569,38 +1475,12 @@ public:
 		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
 		endCmd(cmd);
 	}
-#if !defined(_DURANGO)
-	static bool cameraMouseMove(const RawMouseMoveEventData* data)
+	
+	static bool cameraInputEvent(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
-
-	static bool cameraMouseButton(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool cameraMouseWheel(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-#endif
-#ifdef TARGET_IOS
-    static bool cameraTouch(const TouchEventData* data)
-    {
-        pCameraController->onTouch(data);
-        return true;
-    }
-    
-    static bool cameraTouchMove(const TouchEventData* data)
-    {
-        pCameraController->onTouchMove(data);
-        return true;
-    }
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(MultiThread)

@@ -210,6 +210,7 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 			#current 'idle' time has reached our max duration
 			#then kill process
 			if currentTime > maxIdleTime:
+				print "Killed Application. Something went wrong with the app, it was idle for too long."
 				proc.kill()
 		
 		#used to get return code
@@ -511,7 +512,7 @@ def BuildLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -566,7 +567,7 @@ def TestLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:

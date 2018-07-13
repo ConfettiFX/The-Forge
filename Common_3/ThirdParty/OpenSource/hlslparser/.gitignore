@@ -1,0 +1,17 @@
+*.user
+*.ncb
+*.suo
+*.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
+*.ipch
+*.resources
+*.pdb
+*.aps
+*.bak
+/Debug
+/Release
+*.log
+*.sdf
+*.opensdf
+/build

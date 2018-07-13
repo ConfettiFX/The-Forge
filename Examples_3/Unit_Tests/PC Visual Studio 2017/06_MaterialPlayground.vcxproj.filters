@@ -26,24 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\06_BRDF\PCDX12\BRDFIntegration.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_BRDF\PCDX12\computeIrradianceMap.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_BRDF\PCDX12\computeSpecularMap.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_BRDF\PCDX12\panoToCube.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_BRDF\PCDX12\skybox.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_BRDF\PCDX12\skybox.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
     <None Include="..\src\06_MaterialPlayground\PCDX12\BRDFIntegration.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>

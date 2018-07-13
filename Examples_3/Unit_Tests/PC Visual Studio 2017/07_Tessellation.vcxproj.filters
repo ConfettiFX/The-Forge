@@ -20,23 +20,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\compute.comp">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.tesc">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.tese">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\PCVulkan\grass.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\src\07_Tessellation\PCDX12\compute.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
@@ -51,6 +34,21 @@
     </None>
     <None Include="..\src\07_Tessellation\PCDX12\grass.vert">
       <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\compute.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.tesc">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.tese">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\07_Tessellation\PCVulkan\grass.vert">
+      <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>
 </Project>

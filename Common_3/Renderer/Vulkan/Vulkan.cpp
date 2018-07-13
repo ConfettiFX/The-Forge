@@ -387,7 +387,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 },
 	};
 
-	static const uint32_t gDefaultDynamicDescriptorPoolSize = gDefaultDescriptorPoolSize / 16;
+	static const uint32_t gDefaultDynamicDescriptorPoolSize = gDefaultDescriptorPoolSize / 4;
 	static const uint32_t gDefaultDynamicDescriptorSets = gDefaultDynamicDescriptorPoolSize * VK_DESCRIPTOR_TYPE_RANGE_SIZE;
 
 	VkDescriptorPoolSize gDynamicDescriptorHeapPoolSizes[VK_DESCRIPTOR_TYPE_RANGE_SIZE] =
@@ -570,7 +570,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 					else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE || pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
 					{
 						for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-							pManager->pImageInfo[setIndex][pDesc->mHandleIndex + arr] = pRenderer->pDefaultTexture->mVkTextureView;
+							pManager->pImageInfo[setIndex][pDesc->mHandleIndex + arr].imageView = pRenderer->pDefaultTexture->pVkImageViews[0];
 					}
 					else
 					{
@@ -697,8 +697,12 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	{
 		RenderPass*		pRenderPass;
 		RenderTarget**	ppRenderTargets;
-		RenderTarget*		pDepthStencil;
-		uint32_t			mRenderTargetCount;
+		RenderTarget*	pDepthStencil;
+		uint32_t*		pColorArraySlices;
+		uint32_t*		pColorMipSlices;
+		uint32_t		mDepthArraySlice;
+		uint32_t		mDepthMipSlice;
+		uint32_t		mRenderTargetCount;
 	} FrameBufferDesc;
 
 	typedef struct FrameBuffer
@@ -854,13 +858,47 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		VkImageView* iter_attachments = pImageViews;
 		// Color
-		for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i) {
-			*iter_attachments = pDesc->ppRenderTargets[i]->pTexture->pVkImageView;
+		for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
+		{
+			uint32_t handle = 0;
+			if (pDesc->pColorArraySlices)
+			{
+				if (pDesc->pColorMipSlices)
+				{
+					handle = 1 + pDesc->pColorArraySlices[i] * pDesc->ppRenderTargets[i]->mDesc.mMipLevels + pDesc->pColorMipSlices[i];
+				}
+				else
+				{
+					handle = 1 + pDesc->pColorArraySlices[i];
+				}
+			}
+			else if (pDesc->pColorMipSlices)
+			{
+				handle = 1 + pDesc->pColorMipSlices[i];
+			}
+			*iter_attachments = pDesc->ppRenderTargets[i]->pVkRenderTargetViews[handle];
 			++iter_attachments;
 		}
 		// Depth/stencil
-		if (pDesc->pDepthStencil) {
-			*iter_attachments = pDesc->pDepthStencil->pTexture->pVkImageView;
+		if (pDesc->pDepthStencil)
+		{
+			uint32_t handle = 0;
+			if (pDesc->mDepthArraySlice != -1)
+			{
+				if (pDesc->mDepthMipSlice != -1)
+				{
+					handle = 1 + pDesc->mDepthArraySlice * pDesc->pDepthStencil->mDesc.mMipLevels + pDesc->mDepthMipSlice;
+				}
+				else
+				{
+					handle = 1 + pDesc->mDepthArraySlice;
+				}
+			}
+			else if (pDesc->mDepthMipSlice != -1)
+			{
+				handle = 1 + pDesc->mDepthMipSlice;
+			}
+			*iter_attachments = pDesc->pDepthStencil->pVkRenderTargetViews[handle];
 			++iter_attachments;
 		}
 
@@ -1524,6 +1562,48 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		ASSERT(res != 0);
 		return res;
+	}
+
+	VkImageViewType util_determine_vk_image_view_type(TextureType type, uint32_t arraySize)
+	{
+		VkImageViewType ret = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+		switch (type)
+		{
+		case TEXTURE_TYPE_1D:
+			ret = arraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
+			break;
+		case TEXTURE_TYPE_2D:
+			ret = arraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+			break;
+		case TEXTURE_TYPE_3D:
+			if (arraySize > 1)
+			{
+				LOGERROR("Cannot support 3D Texture Array in Vulkan");
+				ASSERT(false);
+			}
+			ret = VK_IMAGE_VIEW_TYPE_3D;
+			break;
+		case TEXTURE_TYPE_CUBE:
+			ret = arraySize > 1 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
+			break;
+		}
+
+		return ret;
+	}
+
+	uint32_t util_to_image_view_index(TextureUsage usage)
+	{
+		switch (usage)
+		{
+		case TEXTURE_USAGE_2D_ARRAY_VIEW:
+			return 1;
+		case TEXTURE_USAGE_CUBEMAP_VIEW:
+			return 2;
+		case TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW:
+			return 3;
+		default:
+			return 0;
+		}
 	}
 	/************************************************************************/
 	// Multi GPU Helper Functions
@@ -3073,8 +3153,18 @@ namespace vk {
 			add_info.pQueueFamilyIndices = NULL;
 			add_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-			if (pDesc->mType == TEXTURE_TYPE_CUBE)
+			bool cubemapRequired = (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_VIEW) ||
+				(pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW) ||
+				pDesc->mType == TEXTURE_TYPE_CUBE;
+			bool arrayRequired = (pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW) ||
+				(pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW) ||
+				(pDesc->mType == TEXTURE_TYPE_3D) ||
+				(pDesc->mType == TEXTURE_TYPE_2D && pDesc->mArraySize > 1);
+
+			if (cubemapRequired)
 				add_info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+			if (arrayRequired)
+				add_info.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR;
 
 			if (VK_IMAGE_USAGE_SAMPLED_BIT & add_info.usage)
 			{
@@ -3178,70 +3268,101 @@ namespace vk {
 		/************************************************************************/
 		// Create image view
 		/************************************************************************/
+		VkImageViewType view_type = util_determine_vk_image_view_type(pDesc->mType, pDesc->mArraySize);
+		ASSERT(view_type != VK_IMAGE_VIEW_TYPE_MAX_ENUM && "Invalid Image View");
+
+		DECLARE_ZERO(VkImageViewCreateInfo, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		add_info.pNext = NULL;
+		add_info.flags = 0;
+		add_info.image = pTexture->pVkImage;
+		add_info.viewType = view_type;
+		add_info.format = util_to_vk_image_format(pDesc->mFormat, pDesc->mSrgb);
+		add_info.components.r = VK_COMPONENT_SWIZZLE_R;
+		add_info.components.g = VK_COMPONENT_SWIZZLE_G;
+		add_info.components.b = VK_COMPONENT_SWIZZLE_B;
+		add_info.components.a = VK_COMPONENT_SWIZZLE_A;
+		add_info.subresourceRange.aspectMask = util_vk_determine_aspect_mask(add_info.format);
+		add_info.subresourceRange.baseMipLevel = 0;
+		add_info.subresourceRange.levelCount = pDesc->mMipLevels;
+		add_info.subresourceRange.baseArrayLayer = 0;
+		add_info.subresourceRange.layerCount = pDesc->mArraySize * (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+		VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &add_info, NULL, &(pTexture->pVkImageViews[0]));
+		ASSERT(VK_SUCCESS == vk_res);
+		pTexture->mVkAspectMask = add_info.subresourceRange.aspectMask;
+		/************************************************************************/
+		// Other views based on Texture Usage
+		/************************************************************************/
+		if (pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW)
 		{
-			VkImageViewType view_type = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-			switch (pDesc->mType)
+			if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
 			{
-			case TEXTURE_TYPE_1D:
-				view_type = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
-				break;
-			case TEXTURE_TYPE_2D:
-				view_type = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
-				break;
-			case TEXTURE_TYPE_3D:
-				if (pDesc->mArraySize > 1)
-				{
-					LOGERROR("Cannot support 3D Texture Array in Vulkan");
-					ASSERT(false);
-				}
-				view_type = VK_IMAGE_VIEW_TYPE_3D;
-				break;
-			case TEXTURE_TYPE_CUBE:
-				view_type = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
-				break;
+				LOGERRORF("Trying to create a view of type TEXTURE_2D_ARRAY which is not compatible with Texture type %u", pDesc->mType);
 			}
+			else
+			{
+				const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+				const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
 
-			ASSERT(view_type != VK_IMAGE_VIEW_TYPE_MAX_ENUM && "Invalid Image View");
-
-			DECLARE_ZERO(VkImageViewCreateInfo, add_info);
-			add_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			add_info.pNext = NULL;
-			add_info.flags = 0;
-			add_info.image = pTexture->pVkImage;
-			add_info.viewType = view_type;
-			add_info.format = util_to_vk_image_format(pDesc->mFormat, pDesc->mSrgb);
-			add_info.components.r = VK_COMPONENT_SWIZZLE_R;
-			add_info.components.g = VK_COMPONENT_SWIZZLE_G;
-			add_info.components.b = VK_COMPONENT_SWIZZLE_B;
-			add_info.components.a = VK_COMPONENT_SWIZZLE_A;
-			add_info.subresourceRange.aspectMask = util_vk_determine_aspect_mask(add_info.format);
-			add_info.subresourceRange.baseMipLevel = pDesc->mBaseMipLevel;
-			add_info.subresourceRange.levelCount = pDesc->mMipLevels;
-			add_info.subresourceRange.baseArrayLayer = pDesc->mBaseArrayLayer;
-			add_info.subresourceRange.layerCount = pDesc->mArraySize * (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
-			VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &add_info, NULL, &(pTexture->pVkImageView));
-			ASSERT(VK_SUCCESS == vk_res);
-
-			pTexture->mVkAspectMask = add_info.subresourceRange.aspectMask;
+				VkImageViewCreateInfo array2DInfo = add_info;
+				array2DInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+				array2DInfo.subresourceRange.baseMipLevel = 0;
+				array2DInfo.subresourceRange.baseArrayLayer = 0;
+				array2DInfo.subresourceRange.layerCount = arraySize;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &array2DInfo, NULL, &(pTexture->pVkImageViews[1]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
 		}
-
-		pTexture->mVkTextureView.imageView = pTexture->pVkImageView;
-
-		if (additionalFlags != 0 && !(pDesc->mUsage & TEXTURE_USAGE_UNORDERED_ACCESS))
+		if (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_VIEW)
 		{
-			if (additionalFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-				pTexture->mVkTextureView.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			else if (additionalFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-				pTexture->mVkTextureView.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		}
-		else
-		{
-			if (pDesc->mUsage & TEXTURE_USAGE_UNORDERED_ACCESS)
-				pTexture->mVkTextureView.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			else if (pDesc->mUsage & TEXTURE_USAGE_SAMPLED_IMAGE)
-				pTexture->mVkTextureView.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		}
+			if (pDesc->mArraySize < 6)
+			{
+				LOGERRORF("Texture has %u array layers which is not enough to accomodate all the 6 cubemap faces %u", pDesc->mArraySize);
+			}
+			else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
+			{
+				LOGERRORF("Trying to create a view of type TEXTURE_CUBE which is not compatible with Texture type %u", pDesc->mType);
+			}
+			else
+			{
+				const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+				const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
 
+				VkImageViewCreateInfo cubemapInfo = add_info;
+				cubemapInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+				cubemapInfo.subresourceRange.baseMipLevel = 0;
+				cubemapInfo.subresourceRange.baseArrayLayer = 0;
+				cubemapInfo.subresourceRange.layerCount = arraySize;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &cubemapInfo, NULL, &(pTexture->pVkImageViews[2]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+		if (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW)
+		{
+			if (pDesc->mArraySize < 6)
+			{
+				LOGERRORF("Texture has %u array layers which is not enough to accomodate all the 6 cubemap faces %u", pDesc->mArraySize);
+			}
+			else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
+			{
+				LOGERRORF("Trying to create a view of type TEXTURE_CUBE_ARRAY which is not compatible with Texture type %u", pDesc->mType);
+			}
+			else
+			{
+				const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+				const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
+
+				VkImageViewCreateInfo cubemapInfo = add_info;
+				cubemapInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+				cubemapInfo.subresourceRange.baseMipLevel = 0;
+				cubemapInfo.subresourceRange.baseArrayLayer = 0;
+				cubemapInfo.subresourceRange.layerCount = arraySize;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &cubemapInfo, NULL, &(pTexture->pVkImageViews[3]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+		/************************************************************************/
+		/************************************************************************/
 		// Get memory requirements that covers all mip levels
 		DECLARE_ZERO(VkMemoryRequirements, vk_mem_reqs);
 		vkGetImageMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &vk_mem_reqs);
@@ -3260,8 +3381,12 @@ namespace vk {
 		if (pTexture->mOwnsImage)
 			vk_destroyTexture(pRenderer->pVmaAllocator, pTexture);
 
-		if (VK_NULL_HANDLE != pTexture->pVkImageView) {
-			vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkImageView, NULL);
+		for (uint32_t i = 0; i < TEXTURE_USAGE_COUNT; ++i)
+		{
+			if (VK_NULL_HANDLE != pTexture->pVkImageViews[i])
+			{
+				vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkImageViews[i], NULL);
+			}
 		}
 
 		SAFE_FREE(pTexture);
@@ -3279,10 +3404,11 @@ namespace vk {
 		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) && (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
 		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL) && (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)) && "Cannot use depth stencil as UAV");
 
+		((RenderTargetDesc*)pDesc)->mMipLevels = max(1U, pDesc->mMipLevels);
+
 		RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc(1, sizeof(*pRenderTarget));
 		pRenderTarget->mDesc = *pDesc;
 		TextureDesc textureDesc = {};
-		textureDesc.mBaseArrayLayer = pDesc->mBaseArrayLayer;
 		textureDesc.mArraySize = pDesc->mArraySize;
 		textureDesc.mClearValue = pDesc->mClearValue;
 		textureDesc.mDepth = pDesc->mDepth;
@@ -3290,8 +3416,7 @@ namespace vk {
 		textureDesc.mFormat = pDesc->mFormat;
 		textureDesc.mHeight = pDesc->mHeight;
 		textureDesc.mHostVisible = false;
-		textureDesc.mBaseMipLevel = pDesc->mBaseMipLevel;
-		textureDesc.mMipLevels = 1;
+		textureDesc.mMipLevels = pDesc->mMipLevels;
 		textureDesc.mSampleCount = pDesc->mSampleCount;
 		textureDesc.mSampleQuality = pDesc->mSampleQuality;
 		textureDesc.mWidth = pDesc->mWidth;
@@ -3311,6 +3436,8 @@ namespace vk {
 		if (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)
 			textureDesc.mUsage |= TEXTURE_USAGE_UNORDERED_ACCESS;
 
+		textureDesc.mUsage |= pDesc->mTextureUsage;
+
 		switch (pDesc->mType)
 		{
 		case RENDER_TARGET_TYPE_1D:
@@ -3326,7 +3453,7 @@ namespace vk {
 			break;
 		}
 
-		if (pDesc->mUsage == RENDER_TARGET_USAGE_DEPTH_STENCIL)
+		if (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)
 		{
 			// Make sure depth/stencil format is supported - fall back to VK_FORMAT_D16_UNORM if not
 			VkFormat vk_depth_stencil_format = util_to_vk_image_format(pDesc->mFormat, false);
@@ -3348,12 +3475,144 @@ namespace vk {
 
 		::addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
+		VkImageViewCreateInfo rtvDesc = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL };
+		rtvDesc.flags = 0;
+		rtvDesc.image = pRenderTarget->pTexture->pVkImage;
+		rtvDesc.viewType = VK_IMAGE_VIEW_TYPE_1D;
+		rtvDesc.format = util_to_vk_image_format(pRenderTarget->pTexture->mDesc.mFormat, pRenderTarget->pTexture->mDesc.mSrgb);
+		rtvDesc.components.r = VK_COMPONENT_SWIZZLE_R;
+		rtvDesc.components.g = VK_COMPONENT_SWIZZLE_G;
+		rtvDesc.components.b = VK_COMPONENT_SWIZZLE_B;
+		rtvDesc.components.a = VK_COMPONENT_SWIZZLE_A;
+		rtvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(rtvDesc.format);
+		rtvDesc.subresourceRange.levelCount = pDesc->mMipLevels;
+		rtvDesc.subresourceRange.baseArrayLayer = 0;
+		rtvDesc.subresourceRange.layerCount = pDesc->mArraySize * (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+
+		tinystl::vector<VkImageView> imageViews(1);
+		imageViews[0] = pRenderTarget->pTexture->pVkImageViews[0];
+
+		if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED)
+		{
+			VkImageViewCreateInfo mipped1DView = rtvDesc;
+			mipped1DView.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+			mipped1DView.subresourceRange.baseArrayLayer = 0;
+			mipped1DView.subresourceRange.layerCount = pDesc->mArraySize;
+			mipped1DView.subresourceRange.levelCount = 1;
+			imageViews.resize(1 + pDesc->mMipLevels);
+			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+			{
+				mipped1DView.subresourceRange.baseMipLevel = i;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mipped1DView, NULL, &(imageViews[1 + i]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_SLICES)
+		{
+			VkImageViewCreateInfo array1DView = rtvDesc;
+			array1DView.viewType = VK_IMAGE_VIEW_TYPE_1D;
+			array1DView.subresourceRange.layerCount = 1;
+			imageViews.resize(1 + pDesc->mArraySize);
+			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+			{
+				array1DView.subresourceRange.baseArrayLayer = i;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &array1DView, NULL, &(imageViews[1 + i]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED_SLICES)
+		{
+			VkImageViewCreateInfo mippedArray1DView = rtvDesc;
+			mippedArray1DView.viewType = VK_IMAGE_VIEW_TYPE_1D;
+			mippedArray1DView.subresourceRange.layerCount = 1;
+			mippedArray1DView.subresourceRange.levelCount = 1;
+			imageViews.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
+			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+			{
+				mippedArray1DView.subresourceRange.baseArrayLayer = i;
+				for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+				{
+					mippedArray1DView.subresourceRange.baseMipLevel = j;
+					VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mippedArray1DView, NULL, &(imageViews[1 + i * pDesc->mMipLevels + j]));
+				}
+			}
+		}
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED)
+		{
+			VkImageViewCreateInfo mipped2DView = rtvDesc;
+			mipped2DView.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			mipped2DView.subresourceRange.baseArrayLayer = 0;
+			mipped2DView.subresourceRange.layerCount = pDesc->mArraySize;
+			mipped2DView.subresourceRange.levelCount = 1;
+			imageViews.resize(1 + pDesc->mMipLevels);
+			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+			{
+				mipped2DView.subresourceRange.baseMipLevel = i;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mipped2DView, NULL, &(imageViews[1 + i]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_SLICES)
+		{
+			VkImageViewCreateInfo array2DView = rtvDesc;
+			array2DView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			array2DView.subresourceRange.layerCount = 1;
+			imageViews.resize(1 + pDesc->mArraySize);
+			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+			{
+				array2DView.subresourceRange.baseArrayLayer = i;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &array2DView, NULL, &(imageViews[1 + i]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED_SLICES)
+		{
+			VkImageViewCreateInfo mippedArray2DView = rtvDesc;
+			mippedArray2DView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			mippedArray2DView.subresourceRange.layerCount = 1;
+			mippedArray2DView.subresourceRange.levelCount = 1;
+			imageViews.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
+			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
+			{
+				mippedArray2DView.subresourceRange.baseArrayLayer = i;
+				for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+				{
+					mippedArray2DView.subresourceRange.baseMipLevel = j;
+					VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mippedArray2DView, NULL, &(imageViews[1 + i * pDesc->mMipLevels + j]));
+				}
+			}
+		}
+		else if (pDesc->mUsage & RENDER_TARGET_USAGE_3D_MIPPED)
+		{
+			VkImageViewCreateInfo mipped3DView = rtvDesc;
+			mipped3DView.viewType = VK_IMAGE_VIEW_TYPE_3D;
+			mipped3DView.subresourceRange.baseArrayLayer = 0;
+			mipped3DView.subresourceRange.layerCount = 1;
+			mipped3DView.subresourceRange.levelCount = 1;
+			imageViews.resize(1 + pDesc->mMipLevels);
+			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+			{
+				mipped3DView.subresourceRange.baseMipLevel = i;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mipped3DView, NULL, &(imageViews[1 + i]));
+				ASSERT(VK_SUCCESS == vk_res);
+			}
+		}
+
+		pRenderTarget->pVkRenderTargetViews = (VkImageView*)conf_calloc(imageViews.size(), sizeof(VkImageView));
+		pRenderTarget->mVkRenderTargetImageViewCount = (uint32_t)imageViews.size();
+		memcpy(pRenderTarget->pVkRenderTargetViews, imageViews.data(), imageViews.size() * sizeof(VkImageView));
+
 		*ppRenderTarget = pRenderTarget;
 	}
 
 	void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	{
 		::removeTexture(pRenderer, pRenderTarget->pTexture);
+
+		for (uint32_t i = 1; i < pRenderTarget->mVkRenderTargetImageViewCount; ++i)
+			vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkRenderTargetViews[i], NULL);
+
+		SAFE_FREE(pRenderTarget->pVkRenderTargetViews);
 		SAFE_FREE(pRenderTarget);
 	}
 
@@ -3633,7 +3892,7 @@ namespace vk {
 						ErrorMsg("\nFailed to create root signature\n"
 							"Shared shader resource %s has mismatching binding. All shader resources "
 							"shared by multiple shaders specified in addRootSignature "
-							"have the same binding and set", pRes->name);
+							"must have the same binding and set", pRes->name);
 						return;
 					}
 					if (shaderResources[pNode->second]->set != pRes->set)
@@ -3641,7 +3900,7 @@ namespace vk {
 						ErrorMsg("\nFailed to create root signature\n"
 							"Shared shader resource %s has mismatching set. All shader resources "
 							"shared by multiple shaders specified in addRootSignature "
-							"have the same binding and set", pRes->name);
+							"must have the same binding and set", pRes->name);
 						return;
 					}
 				}
@@ -3814,6 +4073,10 @@ namespace vk {
 				}
 				table.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
 			}
+
+			layout.mDynamicDescriptors.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) {
+				return (int)(lhs->mDesc.reg - rhs->mDesc.reg);
+			});
 
 			root.mRootDescriptorCount = (uint32_t)layout.mDynamicDescriptors.size();
 			if (root.mRootDescriptorCount)
@@ -4374,7 +4637,8 @@ namespace vk {
 		ASSERT(VK_SUCCESS == vk_res);
 	}
 
-	void cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions/* = NULL*/)
+	void cmdBindRenderTargets(Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions/* = NULL*/,
+		uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
 	{
 		ASSERT(pCmd);
 		ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
@@ -4424,10 +4688,19 @@ namespace vk {
 
 			pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
 		}
+		if (pColorArraySlices)
+			frameBufferHash = tinystl::hash_state(pColorArraySlices, renderTargetCount, frameBufferHash);
+		if (pColorMipSlices)
+			frameBufferHash = tinystl::hash_state(pColorMipSlices, renderTargetCount, frameBufferHash);
+		if (depthArraySlice != -1)
+			frameBufferHash = tinystl::hash_state(&depthArraySlice, 1, frameBufferHash);
+		if (depthMipSlice != -1)
+			frameBufferHash = tinystl::hash_state(&depthMipSlice, 1, frameBufferHash);
 
 		SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
 		pCmd->mBoundSampleCount = sampleCount;
 		pCmd->mBoundRenderTargetCount = renderTargetCount;
+		pCmd->mRenderPassHash = renderPassHash;
 
 		RenderPassMap& renderPassMap = get_render_pass_map();
 		FrameBufferMap& frameBufferMap = get_frame_buffer_map();
@@ -4482,6 +4755,10 @@ namespace vk {
 			desc.pDepthStencil = pDepthStencil;
 			desc.ppRenderTargets = ppRenderTargets;
 			desc.pRenderPass = pRenderPass;
+			desc.pColorArraySlices = pColorArraySlices;
+			desc.pColorMipSlices = pColorMipSlices;
+			desc.mDepthArraySlice = depthArraySlice;
+			desc.mDepthMipSlice = depthMipSlice;
 			add_framebuffer(pCmd->pRenderer, &desc, &pFrameBuffer);
 
 			// No need of a lock here since this map is per thread
@@ -4593,17 +4870,17 @@ namespace vk {
 		vkCmdBindPipeline(pCmd->pVkCmdBuf, pipeline_bind_point, pPipeline->pVkPipeline);
 	}
 
-	void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer)
+	void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t offset)
 	{
 		ASSERT(pCmd);
 		ASSERT(pBuffer);
 		ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
 
 		VkIndexType vk_index_type = (INDEX_TYPE_UINT16 == pBuffer->mDesc.mIndexType) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
-		vkCmdBindIndexBuffer(pCmd->pVkCmdBuf, pBuffer->pVkBuffer, pBuffer->mPositionInHeap, vk_index_type);
+		vkCmdBindIndexBuffer(pCmd->pVkCmdBuf, pBuffer->pVkBuffer, pBuffer->mPositionInHeap + offset, vk_index_type);
 	}
 
-	void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers)
+	void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, uint64_t* pOffsets)
 	{
 		ASSERT(pCmd);
 		ASSERT(0 != bufferCount);
@@ -4621,7 +4898,7 @@ namespace vk {
 
 		for (uint32_t i = 0; i < capped_buffer_count; ++i) {
 			buffers[i] = ppBuffers[i]->pVkBuffer;
-			offsets[i] = ppBuffers[i]->mPositionInHeap;
+			offsets[i] = (ppBuffers[i]->mPositionInHeap + (pOffsets ? pOffsets[i] : 0));
 		}
 
 		vkCmdBindVertexBuffers(pCmd->pVkCmdBuf, 0, capped_buffer_count, buffers, offsets);
@@ -4750,6 +5027,7 @@ namespace vk {
 					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
+
 				for (uint32_t i = 0; i < arrayCount; ++i)
 				{
 					if (!pParam->ppTextures[i]) {
@@ -4760,7 +5038,8 @@ namespace vk {
 					pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
 
 					// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
-					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i] = pParam->ppTextures[i]->mVkTextureView;
+					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageView =
+						pParam->ppTextures[i]->pVkImageViews[util_to_image_view_index(pParam->mTextureUsage)];
 					// SRVs need to be in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL and UAVs need to be in VK_IMAGE_LAYOUT_GENERAL
 					if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
 						pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

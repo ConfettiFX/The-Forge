@@ -47,16 +47,19 @@ struct KeyboardButtonEventData;
 struct MouseMoveEventData;
 struct MouseButtonEventData;
 struct MouseWheelEventData;
+struct ButtonData;
 
 struct TextDrawDesc;
+
+class Fontstash;
 
 class NuklearGUIDriver : public GUIDriver
 {
 public:
-	bool init();
+	bool init(Renderer* pRenderer);
 	void exit();
 
-	bool load(UIRenderer* renderer, int fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);
+	bool load(Fontstash* fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);
 	void unload();
 
 	void* getContext();
@@ -67,6 +70,7 @@ public:
 	void draw(Cmd* q);
 	void setFontCalibration(float offset, float heightScale);
 
+	void onInput(const ButtonData* data);
 	void onChar(const KeyboardCharEventData* data);
 	void onKey(const KeyboardButtonEventData* data);
 	bool onJoystick(int button, bool down);

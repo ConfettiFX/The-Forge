@@ -57,15 +57,19 @@
 		5C85A398202A0E8C00AB83C6 /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A395202A0E4C00AB83C6 /* iOSBase.mm */; };
 		5CA4AFC02088FA7D005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFBF2088FA7D005BB7C6 /* DebugRenderer.cpp */; };
 		5CA4AFC12088FA7D005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFBF2088FA7D005BB7C6 /* DebugRenderer.cpp */; };
-		5CD2BBFF2080FEF3008E3A2C /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBF62080FEF3008E3A2C /* UIRenderer.cpp */; };
-		5CD2BC002080FEF3008E3A2C /* UIRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBF62080FEF3008E3A2C /* UIRenderer.cpp */; };
 		5CD2BC012080FEF3008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBFB2080FEF3008E3A2C /* AppUI.cpp */; };
 		5CD2BC022080FEF3008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBFB2080FEF3008E3A2C /* AppUI.cpp */; };
 		5CD2BC032080FEF3008E3A2C /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBFD2080FEF3008E3A2C /* NuklearGUIDriver.cpp */; };
 		5CD2BC042080FEF3008E3A2C /* NuklearGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBFD2080FEF3008E3A2C /* NuklearGUIDriver.cpp */; };
-		5CD2BC052080FEF3008E3A2C /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBFE2080FEF3008E3A2C /* Fontstash.cpp */; };
-		5CD2BC062080FEF3008E3A2C /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBFE2080FEF3008E3A2C /* Fontstash.cpp */; };
 		5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */; };
+		B20D163920EC0EB10058170B /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20D163720EC0EB10058170B /* InputSystem.cpp */; };
+		B20D163A20EC0EB10058170B /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20D163720EC0EB10058170B /* InputSystem.cpp */; };
+		B20D166A20EC23090058170B /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B20D15A120EC0DCD0058170B /* libgainputstatic.a */; };
+		B20D166B20EC230E0058170B /* libgainputstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B20D15A320EC0DCD0058170B /* libgainputstatic_iOS.a */; };
+		B20D167520EC23D10058170B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20D167420EC23D10058170B /* UIKit.framework */; };
+		B20D167720EC23D70058170B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20D167620EC23D70058170B /* GameController.framework */; };
+		B2B6F7A620F40F430059F2B0 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B6F7A520F40F420059F2B0 /* Fontstash.cpp */; };
+		B2B6F7A720F40F430059F2B0 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B6F7A520F40F420059F2B0 /* Fontstash.cpp */; };
 		C91D461F1FD9976400564C8B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461E1FD9976400564C8B /* MemoryTrackingManager.cpp */; };
 		C9DF3AF22006771C000D674E /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DF3AF12006771B000D674E /* macOSFileSystem.mm */; };
 		D237137F1FA0A51E000977BE /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D237137E1FA0A51E000977BE /* FileSystem.cpp */; };
@@ -88,6 +92,37 @@
 		EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
 		EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B20D15A020EC0DCD0058170B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B20D159B20EC0DCD0058170B /* gainput.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 8A40D3EAA603480C9C92B8D0;
+			remoteInfo = gainputstatic;
+		};
+		B20D15A220EC0DCD0058170B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B20D159B20EC0DCD0058170B /* gainput.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B24D2A8320EACFA400CF8EA0;
+			remoteInfo = gainputstatic_iOS;
+		};
+		B20D166C20EC23140058170B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B20D159B20EC0DCD0058170B /* gainput.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B24D2A5920EACFA400CF8EA0;
+			remoteInfo = gainputstatic_iOS;
+		};
+		B20D166E20EC231A0058170B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B20D159B20EC0DCD0058170B /* gainput.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 43862BC2A9E14F76B28F44D0;
+			remoteInfo = gainputstatic;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		281FA9E420333E2400CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
@@ -127,16 +162,21 @@
 		5C85A395202A0E4C00AB83C6 /* iOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSBase.mm; path = iOS/iOSBase.mm; sourceTree = "<group>"; };
 		5CA4AFBE2088FA7D005BB7C6 /* DebugRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebugRenderer.h; sourceTree = "<group>"; };
 		5CA4AFBF2088FA7D005BB7C6 /* DebugRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DebugRenderer.cpp; sourceTree = "<group>"; };
-		5CD2BBF62080FEF3008E3A2C /* UIRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = UIRenderer.cpp; path = ../../Middleware_3/UI/UIRenderer.cpp; sourceTree = "<group>"; };
 		5CD2BBF72080FEF3008E3A2C /* NuklearGUIDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NuklearGUIDriver.h; path = ../../Middleware_3/UI/NuklearGUIDriver.h; sourceTree = "<group>"; };
 		5CD2BBF82080FEF3008E3A2C /* UIShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIShaders.h; path = ../../Middleware_3/UI/UIShaders.h; sourceTree = "<group>"; };
-		5CD2BBF92080FEF3008E3A2C /* UIRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIRenderer.h; path = ../../Middleware_3/UI/UIRenderer.h; sourceTree = "<group>"; };
-		5CD2BBFA2080FEF3008E3A2C /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/UI/Fontstash.h; sourceTree = "<group>"; };
 		5CD2BBFB2080FEF3008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
 		5CD2BBFC2080FEF3008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
 		5CD2BBFD2080FEF3008E3A2C /* NuklearGUIDriver.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = NuklearGUIDriver.cpp; path = ../../Middleware_3/UI/NuklearGUIDriver.cpp; sourceTree = "<group>"; };
-		5CD2BBFE2080FEF3008E3A2C /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/UI/Fontstash.cpp; sourceTree = "<group>"; };
 		5CEF33E21F1C2319006AAB46 /* ResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ResourceLoader.cpp; path = ../../../../Common_3/Renderer/ResourceLoader.cpp; sourceTree = SOURCE_ROOT; };
+		B20D159B20EC0DCD0058170B /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
+		B20D163620EC0EB10058170B /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = ../../../../Middleware_3/Input/InputMappings.h; sourceTree = "<group>"; };
+		B20D163720EC0EB10058170B /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = ../../../../Middleware_3/Input/InputSystem.cpp; sourceTree = "<group>"; };
+		B20D163820EC0EB10058170B /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = ../../../../Middleware_3/Input/InputSystem.h; sourceTree = "<group>"; };
+		B20D167420EC23D10058170B /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		B20D167620EC23D70058170B /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		B2B6F7A320F40F420059F2B0 /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
+		B2B6F7A420F40F420059F2B0 /* TextShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TextShaders.h; path = ../../Middleware_3/Text/TextShaders.h; sourceTree = "<group>"; };
+		B2B6F7A520F40F420059F2B0 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		C91D461E1FD9976400564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C960AF382003F31C0007B156 /* float4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float4.h; path = Math/float4.h; sourceTree = "<group>"; };
 		C960AF392003F31C0007B156 /* float2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float2.h; path = Math/float2.h; sourceTree = "<group>"; };
@@ -148,8 +188,8 @@
 		D274C0CE1F71824B000D55E8 /* GpuProfiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GpuProfiler.cpp; path = ../../../../Common_3/Renderer/GpuProfiler.cpp; sourceTree = SOURCE_ROOT; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 03_MultiThread/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2D3C5E61F34797700574C6E /* 03_MultiThread.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 03_MultiThread.cpp; path = ../../src/03_MultiThread/03_MultiThread.cpp; sourceTree = SOURCE_ROOT; };
-		D2D3C5E91F3479A700574C6E /* FpsCameraController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FpsCameraController.cpp; path = Camera/FpsCameraController.cpp; sourceTree = "<group>"; };
-		D2D3C5EA1F3479A700574C6E /* GuiCameraController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GuiCameraController.cpp; path = Camera/GuiCameraController.cpp; sourceTree = "<group>"; };
+		D2D3C5E91F3479A700574C6E /* FpsCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FpsCameraController.cpp; path = Camera/FpsCameraController.cpp; sourceTree = "<group>"; };
+		D2D3C5EA1F3479A700574C6E /* GuiCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GuiCameraController.cpp; path = Camera/GuiCameraController.cpp; sourceTree = "<group>"; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 03_MultiThread.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 03_MultiThread.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FloatUtil.cpp; path = ../../../../Common_3/OS/Math/FloatUtil.cpp; sourceTree = SOURCE_ROOT; };
@@ -191,6 +231,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B20D167720EC23D70058170B /* GameController.framework in Frameworks */,
+				B20D167520EC23D10058170B /* UIKit.framework in Frameworks */,
+				B20D166B20EC230E0058170B /* libgainputstatic_iOS.a in Frameworks */,
 				28A5AC70201F5ED1000E571F /* MetalKit.framework in Frameworks */,
 				28A5AC6E201F5ECA000E571F /* Metal.framework in Frameworks */,
 			);
@@ -200,6 +243,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B20D166A20EC23090058170B /* libgainputstatic.a in Frameworks */,
 				28A5AC74201F5EDF000E571F /* MetalKit.framework in Frameworks */,
 				28A5AC72201F5EDA000E571F /* Metal.framework in Frameworks */,
 			);
@@ -278,6 +322,8 @@
 		28A5AC6C201F5ECA000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				B20D167620EC23D70058170B /* GameController.framework */,
+				B20D167420EC23D10058170B /* UIKit.framework */,
 				28A5AC73201F5EDF000E571F /* MetalKit.framework */,
 				28A5AC71201F5EDA000E571F /* Metal.framework */,
 				28A5AC6F201F5ED1000E571F /* MetalKit.framework */,
@@ -289,17 +335,43 @@
 		5CD2BBF52080FEEA008E3A2C /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				B2B6F7A520F40F420059F2B0 /* Fontstash.cpp */,
+				B2B6F7A320F40F420059F2B0 /* Fontstash.h */,
+				B2B6F7A420F40F420059F2B0 /* TextShaders.h */,
 				5CD2BBFB2080FEF3008E3A2C /* AppUI.cpp */,
 				5CD2BBFC2080FEF3008E3A2C /* AppUI.h */,
-				5CD2BBFE2080FEF3008E3A2C /* Fontstash.cpp */,
-				5CD2BBFA2080FEF3008E3A2C /* Fontstash.h */,
 				5CD2BBFD2080FEF3008E3A2C /* NuklearGUIDriver.cpp */,
 				5CD2BBF72080FEF3008E3A2C /* NuklearGUIDriver.h */,
-				5CD2BBF62080FEF3008E3A2C /* UIRenderer.cpp */,
-				5CD2BBF92080FEF3008E3A2C /* UIRenderer.h */,
 				5CD2BBF82080FEF3008E3A2C /* UIShaders.h */,
 			);
 			name = UI;
+			sourceTree = "<group>";
+		};
+		B20D159C20EC0DCD0058170B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B20D15A120EC0DCD0058170B /* libgainputstatic.a */,
+				B20D15A320EC0DCD0058170B /* libgainputstatic_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B20D163420EC0E9B0058170B /* Middleware_3 */ = {
+			isa = PBXGroup;
+			children = (
+				B20D163520EC0EA30058170B /* Input */,
+			);
+			name = Middleware_3;
+			sourceTree = "<group>";
+		};
+		B20D163520EC0EA30058170B /* Input */ = {
+			isa = PBXGroup;
+			children = (
+				B20D163620EC0EB10058170B /* InputMappings.h */,
+				B20D163720EC0EB10058170B /* InputSystem.cpp */,
+				B20D163820EC0EB10058170B /* InputSystem.h */,
+			);
+			name = Input;
 			sourceTree = "<group>";
 		};
 		C91D46131FD9965600564C8B /* MemoryManager */ = {
@@ -322,6 +394,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				B20D163420EC0E9B0058170B /* Middleware_3 */,
+				B20D159B20EC0DCD0058170B /* gainput.xcodeproj */,
 				EA463CEC1EF81FC5005AC8C7 /* Common_3 */,
 				EA463C941EF81E8F005AC8C7 /* 03_MultiThread */,
 				28A5AC01201F58BF000E571F /* 03_MultiThread_iOS */,
@@ -509,6 +583,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				B20D166D20EC23140058170B /* PBXTargetDependency */,
 			);
 			name = 03_MultiThread_iOS;
 			productName = 03_MultiThread_iOS;
@@ -526,6 +601,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				B20D166F20EC231A0058170B /* PBXTargetDependency */,
 			);
 			name = 03_MultiThread;
 			productName = 02_Texture;
@@ -564,6 +640,12 @@
 			mainGroup = EA463C821EF81E8F005AC8C7;
 			productRefGroup = EA463C8C1EF81E8F005AC8C7 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = B20D159C20EC0DCD0058170B /* Products */;
+					ProjectRef = B20D159B20EC0DCD0058170B /* gainput.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				EA463C8A1EF81E8F005AC8C7 /* 03_MultiThread */,
@@ -571,6 +653,23 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		B20D15A120EC0DCD0058170B /* libgainputstatic.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libgainputstatic.a;
+			remoteRef = B20D15A020EC0DCD0058170B /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B20D15A320EC0DCD0058170B /* libgainputstatic_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libgainputstatic_iOS.a;
+			remoteRef = B20D15A220EC0DCD0058170B /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		28A5ABFE201F58BF000E571F /* Resources */ = {
@@ -618,6 +717,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2B6F7A720F40F430059F2B0 /* Fontstash.cpp in Sources */,
 				5CA4AFC12088FA7D005BB7C6 /* DebugRenderer.cpp in Sources */,
 				28A5AC68201F5D50000E571F /* 03_MultiThread.cpp in Sources */,
 				28A5AC62201F5989000E571F /* MetalRenderer.mm in Sources */,
@@ -628,19 +728,18 @@
 				28A5AC66201F59A5000E571F /* ThreadSystem.cpp in Sources */,
 				28A5AC4E201F5945000E571F /* AppDelegate.m in Sources */,
 				28A5AC61201F5986000E571F /* ResourceLoader.cpp in Sources */,
+				B20D163A20EC0EB10058170B /* InputSystem.cpp in Sources */,
 				28A5AC52201F5957000E571F /* GuiCameraController.cpp in Sources */,
 				28A5AC50201F5951000E571F /* MemoryTrackingManager.cpp in Sources */,
 				5C85A398202A0E8C00AB83C6 /* iOSBase.mm in Sources */,
 				28A5AC4F201F594D000E571F /* FileSystem.cpp in Sources */,
 				28A5AC4A201F5945000E571F /* iOSThreadManager.cpp in Sources */,
-				5CD2BC062080FEF3008E3A2C /* Fontstash.cpp in Sources */,
 				28A5AC5D201F597A000E571F /* Image.cpp in Sources */,
 				5CD2BC042080FEF3008E3A2C /* NuklearGUIDriver.cpp in Sources */,
 				28A5AC4B201F5945000E571F /* iOSLogManager.cpp in Sources */,
 				28A5AC63201F5990000E571F /* tinyexr.cpp in Sources */,
 				5CD2BC022080FEF3008E3A2C /* AppUI.cpp in Sources */,
 				28A5AC4D201F5945000E571F /* iOSFileSystem.mm in Sources */,
-				5CD2BC002080FEF3008E3A2C /* UIRenderer.cpp in Sources */,
 				28A5AC64201F5997000E571F /* LogManager.cpp in Sources */,
 				28A5AC60201F5986000E571F /* MetalShaderReflection.mm in Sources */,
 				28A5AC67201F59A5000E571F /* Timer.cpp in Sources */,
@@ -651,6 +750,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2B6F7A620F40F430059F2B0 /* Fontstash.cpp in Sources */,
 				5CEF33E31F1C2319006AAB46 /* ResourceLoader.cpp in Sources */,
 				C9DF3AF22006771C000D674E /* macOSFileSystem.mm in Sources */,
 				5C85A3842029FEA200AB83C6 /* macOSBase.mm in Sources */,
@@ -660,10 +760,9 @@
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
 				D274C0CF1F71824B000D55E8 /* CommonShaderReflection.cpp in Sources */,
 				5CD2BC032080FEF3008E3A2C /* NuklearGUIDriver.cpp in Sources */,
-				5CD2BC052080FEF3008E3A2C /* Fontstash.cpp in Sources */,
+				B20D163920EC0EB10058170B /* InputSystem.cpp in Sources */,
 				D274C0D01F71824B000D55E8 /* MetalShaderReflection.mm in Sources */,
 				EA463D001EF81FC5005AC8C7 /* macOSThreadManager.cpp in Sources */,
-				5CD2BBFF2080FEF3008E3A2C /* UIRenderer.cpp in Sources */,
 				EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */,
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */,
@@ -681,6 +780,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B20D166D20EC23140058170B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = gainputstatic_iOS;
+			targetProxy = B20D166C20EC23140058170B /* PBXContainerItemProxy */;
+		};
+		B20D166F20EC231A0058170B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = gainputstatic;
+			targetProxy = B20D166E20EC231A0058170B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		28A5AC0E201F58BF000E571F /* Main.storyboard */ = {
@@ -733,7 +845,7 @@
 					../,
 				);
 				INFOPLIST_FILE = 03_MultiThread_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -768,7 +880,7 @@
 					../,
 				);
 				INFOPLIST_FILE = 03_MultiThread_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -798,7 +910,7 @@
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -829,8 +941,8 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -854,7 +966,7 @@
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -879,8 +991,8 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;

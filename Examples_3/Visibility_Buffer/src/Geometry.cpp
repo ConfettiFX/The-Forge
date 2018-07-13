@@ -31,8 +31,8 @@
 #include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 #include "../../../Common_3/OS/Core/Compiler.h"
+#include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 static void SetAlphaTestMaterials(tinystl::unordered_set<String>& mats)
 {

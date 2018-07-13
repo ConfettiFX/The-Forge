@@ -12,16 +12,6 @@
     <File Name="../../src/Geometry.h"/>
     <File Name="../../src/Visibility_Buffer.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -42,6 +32,7 @@
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
@@ -51,6 +42,7 @@
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
+        <Library Value="libgainput.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -96,6 +88,7 @@
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
@@ -105,6 +98,7 @@
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
+        <Library Value="libgainput.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -141,4 +135,16 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+  </Dependencies>
 </CodeLite_Project>

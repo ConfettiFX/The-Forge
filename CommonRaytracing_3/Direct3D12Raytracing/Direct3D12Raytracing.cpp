@@ -46,6 +46,7 @@ extern void remove_descriptor_heap(struct DescriptorStoreHeap* pHeap);
 extern D3D12_CPU_DESCRIPTOR_HANDLE add_cpu_descriptor_handles(struct DescriptorStoreHeap* pHeap, uint32_t numDescriptors, uint32_t* pDescriptorIndex = NULL);
 extern void add_gpu_descriptor_handles(struct DescriptorStoreHeap* pHeap, D3D12_CPU_DESCRIPTOR_HANDLE* pStartCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* pStartGpuHandle, uint32_t numDescriptors);
 extern void remove_gpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_GPU_DESCRIPTOR_HANDLE* startHandle, uint64_t numDescriptors);
+extern uint32_t util_to_descriptor_handle_index(TextureUsage usage, DescriptorType type);
 /************************************************************************/
 // Static initialization of DX Raytracing API
 /************************************************************************/
@@ -1229,23 +1230,14 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 								switch (type)
 								{
 								case DESCRIPTOR_TYPE_TEXTURE:
-									for (uint32_t textureIndex = 0; textureIndex < arrayCount; ++textureIndex)
-									{
-										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
-											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
-											pTableData->ppTextures[textureIndex]->mDxSrvHandle,
-											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-									}
-									break;
 								case DESCRIPTOR_TYPE_RW_TEXTURE:
 									for (uint32_t textureIndex = 0; textureIndex < arrayCount; ++textureIndex)
 									{
 										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
-											pTableData->ppTextures[textureIndex]->mDxUavHandle,
+											pTableData->ppTextures[textureIndex]->mDxDescriptorHandles[util_to_descriptor_handle_index(pTableData->mTextureUsage, type)],
 											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 									}
-									break;
 								case DESCRIPTOR_TYPE_BUFFER:
 									for (uint32_t bufferIndex = 0; bufferIndex < arrayCount; ++bufferIndex)
 									{

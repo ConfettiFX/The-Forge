@@ -215,6 +215,17 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			reflection.pShaderResources[i].used_stages = shaderStage;
 			reflection.pShaderResources[i].name = pCurrentName;
 			reflection.pShaderResources[i].name_size = len;
+
+			// RWTyped is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for RWBuffer here
+			if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
+			{
+				reflection.pShaderResources[i].type = DESCRIPTOR_TYPE_RW_BUFFER;
+			}
+			// Buffer<> is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for Buffer<> here
+			if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
+			{
+				reflection.pShaderResources[i].type = DESCRIPTOR_TYPE_BUFFER;
+			}
 			
 			//Copy over the name
 			memcpy(pCurrentName, bindDesc.Name, len);

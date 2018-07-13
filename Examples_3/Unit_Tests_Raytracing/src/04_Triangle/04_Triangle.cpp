@@ -359,7 +359,7 @@ public:
 		TextureBarrier rtBarrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &rtBarrier, false);
 
-		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, NULL);
+		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
 		drawDebugGpuProfile(pCmd, 15.0f, 40.0f, pGpuProfiler, NULL);
@@ -405,7 +405,7 @@ private:
 	Semaphore*				pRenderCompleteSemaphores[gImageCount];
 	Semaphore*				pImageAcquiredSemaphore;
 	GpuProfiler*			pGpuProfiler;
-	uint32_t				mFrameIdx;
+	uint32_t				mFrameIdx = 0;
 };
 
 DEFINE_APPLICATION_MAIN(UnitTest_Triangle)

@@ -37,6 +37,15 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{ba47eaa6-2829-4ad9-820e-48fac8f7c5b6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Middleware_3">
+      <UniqueIdentifier>{7622c938-075d-4ba5-b18d-1cbc448cad4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\Input">
+      <UniqueIdentifier>{cc20ed0e-af99-4ec0-bd8b-5f9387698c8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Text">
+      <UniqueIdentifier>{073e12ac-ede1-44c3-ae27-1cb121b9f327}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -93,13 +102,7 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Fontstash.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIShaders.h">
@@ -107,6 +110,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h">
       <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputSystem.h">
+      <Filter>Middleware_3\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h">
+      <Filter>OS\Text</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -155,17 +164,17 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\Fontstash.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
       <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp">
+      <Filter>Middleware_3\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp">
+      <Filter>OS\Text</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

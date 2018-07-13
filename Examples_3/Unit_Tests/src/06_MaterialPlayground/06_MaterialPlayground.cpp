@@ -49,14 +49,12 @@
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
+//input
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
+
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-
-/// Camera Controller
-#define GUI_CAMERACONTROLLER 1
-#define FPS_CAMERACONTROLLER 2
-
-#define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
@@ -107,7 +105,6 @@ LogManager gLogManager;
 
 
 #define MAX_IN_ROW  4
-#define TOTAL_OBJECTS 5
 
 #define LOAD_MATERIAL_BALL
 #define TOTAL_TEXTURES 25
@@ -211,10 +208,10 @@ Texture*					pIrradianceMap = NULL;
 Texture*					pSpecularMap = NULL;
 
 //added
-Texture*			        pMaterialTextures[TOTAL_TEXTURES];
+Texture*					pMaterialTextures[TOTAL_TEXTURES];
 
 #ifdef TARGET_IOS
-Texture*					pVirtualJoystickTex = NULL;
+VirtualJoystickUI			gVirtualJoystick;
 #endif
 
 UniformObjData				pUniformDataMVP;
@@ -233,7 +230,7 @@ Buffer* 					pSurfaceBuffer = NULL;
 tinystl::vector<Buffer*>	gPlateBuffers;
 
 Buffer*						pBufferUniformCamera[gImageCount] = { NULL };
-Buffer*                     pBufferUniformCameraSky[gImageCount] = { NULL };
+Buffer*						pBufferUniformCameraSky[gImageCount] = { NULL };
 UniformCamData				gUniformDataCamera;
 UniformCamData				gUniformDataSky;
 
@@ -267,6 +264,7 @@ int							gNumOfSpherePoints;
 // How many objects in x and y direction
 const int					gAmountObjectsinX = 5;
 const int					gAmountObjectsinY = 1;
+const int 					gTotalObjects = gAmountObjectsinX*gAmountObjectsinY;
 
 // PBR Texture values (these values are mirrored on the shaders).
 const uint32_t gBRDFIntegrationSize = 512;
@@ -302,7 +300,6 @@ enum {
 	Copper,
 	Titanium,
 	GreasedMetal,
-	Plastic,
 	Gold,
 	TotalMetals
 };
@@ -332,7 +329,6 @@ const char*		pTextureName[] =
 const char*		gModelName =  "matBall.obj";
 const char*		gSurfaceModelName =  "cube.obj";
 
-#define ATTACH_TEXTURES
 //5 textures per pbr material
 #define TEXTURE_COUNT 5
 
@@ -354,7 +350,7 @@ static const int metalEumValues[] = {
 	0
 };
 
-int gMaterialType = Default_Mat;
+int gMaterialType = Metal_Mat;
 int gMetalMaterial  = RustedIron;
 
 mat4 gTextProjView;
@@ -469,7 +465,7 @@ void computePBRMaps()
     irradianceBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 #ifndef METAL
     irradianceBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-    irradianceBufferDesc.mDesc.mElementCount = irrSize;
+    irradianceBufferDesc.mDesc.mElementCount = irrSize / irradianceBufferDesc.mDesc.mStructStride;
     irradianceBufferDesc.mDesc.mSize = irradianceBufferDesc.mDesc.mStructStride * irradianceBufferDesc.mDesc.mElementCount;
 #else
     irradianceBufferDesc.mDesc.mStructStride = sizeof(float);
@@ -487,7 +483,7 @@ void computePBRMaps()
     specularBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 #ifndef METAL
     specularBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-    specularBufferDesc.mDesc.mElementCount = specSize;
+    specularBufferDesc.mDesc.mElementCount = specSize / specularBufferDesc.mDesc.mStructStride;
     specularBufferDesc.mDesc.mSize = specularBufferDesc.mDesc.mStructStride * specularBufferDesc.mDesc.mElementCount;
 #else
     specularBufferDesc.mDesc.mStructStride = sizeof(float);
@@ -571,7 +567,7 @@ void computePBRMaps()
     endCmd(cmd);
     queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
     waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
-    
+
     // Upload the cubemap skybox's CPU image contents to the GPU.
     memcpy(skyboxImgBuff, pSkyBuffer->pCpuMappedAddress, skyboxSize);
 	TextureLoadDesc skyboxUpload = {};
@@ -672,8 +668,7 @@ void loadTextureNames() {
 	gMaterialNames.push_back("gold/normal.png");
 	gMaterialNames.push_back("gold/metallic.png");
 	gMaterialNames.push_back("gold/roughness.png");
-	gMaterialNames.push_back("gold/ao.png");
-	
+	gMaterialNames.push_back("gold/ao.png");	
 	gMaterialNames.push_back("titanium/albedo.png");
 	gMaterialNames.push_back("titanium/normal.png");
 	gMaterialNames.push_back("titanium/metallic.png");
@@ -883,30 +878,41 @@ public:
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
-        
+		
+		tinystl::vector<Image> toLoad;
         //adding material textures
         for(int i = 0 ; i <gMaterialNames.size(); ++i)
         {
+			toLoad.push_back(Image());
             TextureLoadDesc textureDesc = {};
 #ifndef TARGET_IOS
             textureDesc.mRoot = FSR_Textures;
 #else
             textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
 #endif
+			toLoad[i].loadImage(gMaterialNames[i], true);
+			
+			//Temp Workaround for iOS
+#ifdef TARGET_IOS
+			if (toLoad[i].getFormat() == ImageFormat::RGBA8)
+				toLoad[i].Convert(ImageFormat::BGRA8);
+#endif
+
+			if(i>=TOTAL_TEXTURES) {
+				LOGERRORF("Greater than the size TOTAL_TEXTURES :%d",TOTAL_TEXTURES);
+				break;
+			}else {
+				 textureDesc.ppTexture = &pMaterialTextures[i];
+			}
+			
 			textureDesc.mUseMipmaps = true;
-			textureDesc.pFilename = gMaterialNames[i].c_str();
-            textureDesc.ppTexture = &pMaterialTextures[i];
+			textureDesc.pImage = &toLoad[i];
             addResource(&textureDesc, true);
         }
-        
+
 #ifdef TARGET_IOS
-        // Add virtual joystick texture.
-        TextureLoadDesc textureDesc = {};
-        textureDesc.mRoot = FSRoot::FSR_Absolute;
-        textureDesc.mUseMipmaps = false;
-        textureDesc.pFilename = "circlepad.png";
-        textureDesc.ppTexture = &pVirtualJoystickTex;
-        addResource(&textureDesc, true);
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
 #endif
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
@@ -954,11 +960,8 @@ public:
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterstateDefault);
-
-		Vertex* pSPherePoints;
-		createSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution, gSphereDiameter);
 		
-#ifdef LOAD_MATERIAL_BALL 
+#ifdef LOAD_MATERIAL_BALL
 		loadModels();
 
 		BufferLoadDesc buffDesc = {};
@@ -971,7 +974,7 @@ public:
 		addResource(&buffDesc);
 		
 		//for matballs
-		for(int i = 0 ; i <TOTAL_OBJECTS ; ++i) {
+		for(int i = 0 ; i <gTotalObjects ; ++i) {
 			
 			Buffer* buff = NULL;
 			buffDesc.ppBuffer = &buff;
@@ -980,6 +983,9 @@ public:
 		}
 		
 #else
+		Vertex* pSPherePoints;
+		createSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution, gSphereDiameter);
+
 		uint64_t sphereDataSize = gNumOfSpherePoints * sizeof(Vertex);
 
 		BufferLoadDesc sphereVbDesc = {};
@@ -1133,14 +1139,11 @@ public:
 				int comb = x + y * gAmountObjectsinX;
 				//if not enough materials specified then set pbrMaterials to -1
 
-#if !defined(ATTACH_TEXTURES)
-	pUniformDataMVP.pbrMaterials = -1;
-#endif
-
 				gUniformMVPs.push_back(pUniformDataMVP);
 				BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[(x + y * gAmountObjectsinX)], &pUniformDataMVP };
 				updateResource(&objBuffUpdateDesc);
 				roughDelta -= .25f;
+#ifdef LOAD_MATERIAL_BALL
 {			
 				//plates
 				modelmat = mat4::translation(vec3(baseX - x - offsetX * x, -5.9f, baseZ - y - offsetZ*y+3)) * mat4::scale(vec3(3.0f, 0.1f, 1.0f));
@@ -1154,6 +1157,7 @@ public:
 				//text
 				gTextWorldMats.push_back(mat4::translation(vec3(baseX - x - offsetX * x, -6.8f, baseZ - y - offsetZ*y +3))*mat4::rotationX(-PI/2)*mat4::scale(vec3(16.0f, 10.0f, 1.0f)));
 }
+#endif
 			}
 		}
 		
@@ -1229,7 +1233,6 @@ public:
 		gMetalSelector.mUIControl.mDynamicProperties.push_back(pbrMaterialProp);
 		//gMetalSelector.mUIControl.ShowDynamicProperties(pGui);
 		
-#if USE_CAMERACONTROLLER
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
 		
 #ifdef LOAD_MATERIAL_BALL
@@ -1239,26 +1242,12 @@ public:
 #endif
 		vec3 lookat{ 0 };
 
-#if USE_CAMERACONTROLLER == FPS_CAMERACONTROLLER
 		pCameraController = createFpsCameraController(camPos, lookat);
 		requestMouseCapture(true);
-#elif USE_CAMERACONTROLLER == GUI_CAMERACONTROLLER
-		pCameraController = createGuiCameraController(camPos, lookat);
-#endif
 
 		pCameraController->setMotionParameters(camParameters);
 
-#if !defined(_DURANGO)
-		registerRawMouseMoveEvent(cameraMouseMove);
-		registerMouseButtonEvent(cameraMouseButton);
-		registerMouseWheelEvent(cameraMouseWheel);
-#endif
-
-#ifdef TARGET_IOS
-        registerTouchEvent(cameraTouch);
-        registerTouchMoveEvent(cameraTouchMove);
-#endif
-#endif
+		InputSystem::RegisterInputEvent(cameraInputEvent);
 		return true;
 	}
 
@@ -1266,9 +1255,7 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
-#if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
-#endif
 
 		removeDebugRendererInterface();
 
@@ -1284,10 +1271,8 @@ public:
         removeResource(pSkybox);
         removeResource(pBRDFIntegrationMap);
         
-          
-            
 #ifdef TARGET_IOS
-        removeResource(pVirtualJoystickTex);
+		gVirtualJoystick.Exit();
 #endif
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
@@ -1307,7 +1292,7 @@ public:
         removeResource(pVertexBufferPosition);
 		
 		removeResource(pSurfaceBuffer);
-		for(int j = 0 ; j < TOTAL_OBJECTS ; ++j) {
+		for(int j = 0 ; j < gTotalObjects ; ++j) {
 			
 			removeResource(gPlateBuffers[j]);
 		}
@@ -1343,7 +1328,7 @@ public:
 		removeQueue(pGraphicsQueue);
 		
 		
-		for (uint i = 0; i < gMaterialNames.size(); ++i)
+		for (uint i = 0; i < TOTAL_TEXTURES; ++i)
             removeResource(pMaterialTextures[i]);
 
 		// Remove resource loader and renderer
@@ -1361,6 +1346,11 @@ public:
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+#ifdef TARGET_IOS
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
+			return false;
+#endif
 
 		// Create vertex layout
 		VertexLayout vertexLayoutSphere = {};
@@ -1442,6 +1432,10 @@ public:
 
 		gAppUI.Unload();
 
+#ifdef TARGET_IOS
+		gVirtualJoystick.Unload();
+#endif
+
 		removePipeline(pRenderer, pPipelineBRDF);
 		removePipeline(pRenderer, pSkyboxPipeline);
 
@@ -1455,24 +1449,17 @@ public:
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
+			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
 
-#if USE_CAMERACONTROLLER
-#ifndef TARGET_IOS
-#ifdef _DURANGO
-		if (getJoystickButtonDown(BUTTON_A))
-#else
-		if (getKeyDown(KEY_F))
-#endif
+		if (getKeyDown(KEY_BUTTON_X))
 		{
 			RecenterCameraView(170.0f);
 		}
-#endif
 
 		pCameraController->update(deltaTime);
-#endif
 
 		// Update camera
 		mat4 viewMat = pCameraController->getViewMatrix();
@@ -1532,7 +1519,7 @@ public:
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
         
@@ -1544,7 +1531,7 @@ public:
         skyParams[1].pName = "skyboxTex";
         skyParams[1].ppTextures = &pSkybox;
         cmdBindDescriptors(cmd, pSkyboxRootSignature, 2, skyParams);
-        cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer);
+        cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
         cmdDraw(cmd, 36, 0);
         
         // Draw the spheres.
@@ -1572,6 +1559,7 @@ public:
 #endif
       
 		int matId = 0;
+		int textureIndex = 0;
 		//these checks can be be removed if resources are correct
 		gMetalMaterial = gMetalMaterial>=TotalMetals ? Default_Albedo : gMetalMaterial;
 		matId = gMetalMaterial== Default_Albedo? 0 : gMetalMaterial;
@@ -1580,10 +1568,10 @@ public:
 
 #ifdef LOAD_MATERIAL_BALL
         Buffer* pVertexBuffers[] = { pVertexBufferPosition };
-        cmdBindVertexBuffer(cmd, 1, pVertexBuffers);
+        cmdBindVertexBuffer(cmd, 1, pVertexBuffers, NULL);
 #endif
 		
-        for (int i = 0; i < gSphereBuffers.size(); ++i)
+        for (int i = 0; i < gTotalObjects; ++i)
         {
             // Add the uniform buffer for eveWry sphere
             params[5].pName = "cbObject";
@@ -1593,9 +1581,14 @@ public:
             for(int j = 0 ; j <5; ++j) {
 
                 int index = j+5*i;
+				textureIndex = matId+index;
 				//int index = j+5*matId;
                 params[6+j].pName = pTextureName[j];
-                params[6+j].ppTextures = &pMaterialTextures[matId+index];
+				if(textureIndex>=TOTAL_TEXTURES) {
+					LOGERROR("texture index greater than array size, setting it to default texture");
+					textureIndex = matId+j;
+				}
+				params[6+j].ppTextures = &pMaterialTextures[textureIndex];
 				//params[6+j].ppTextures = &pMaterialTextures[index];
             }
             
@@ -1612,14 +1605,14 @@ public:
 			cmdDraw(cmd, gTotalIndices, 0);
 			
 #else
-            cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
+            cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
             cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1);
 #endif
         }
 	
 #ifdef LOAD_MATERIAL_BALL
 		Buffer* pSurfaceVertexBuffers[] = { pSurfaceVertexBufferPosition};
-		cmdBindVertexBuffer(cmd, 1, pSurfaceVertexBuffers);
+		cmdBindVertexBuffer(cmd, 1, pSurfaceVertexBuffers, NULL);
 
 		params[5].pName = "cbObject";
 		params[5].ppBuffers = &pSurfaceBuffer;
@@ -1651,7 +1644,7 @@ public:
 			params[6+j].ppTextures = &pMaterialTextures[j+4];
 		}
 		
-		for(int j = 0 ; j < TOTAL_OBJECTS ; ++j) {
+		for(int j = 0 ; j < gTotalObjects ; ++j) {
 			
 			params[5].pName = "cbObject";
 			params[5].ppBuffers = &gPlateBuffers[j];
@@ -1664,8 +1657,8 @@ public:
 #endif
        
 			cmdDraw(cmd, gSurfaceIndices, 0);
-#endif		
 			}		
+#endif		
 		}
 
 		
@@ -1676,7 +1669,7 @@ public:
 		beginCmd(cmd);
 
 		// Prepare UI command buffers
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -1685,33 +1678,18 @@ public:
 		gTimer.GetUSec(true);
 
 #ifdef TARGET_IOS
-		// Draw the camera controller's virtual joysticks.
-		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-
-		float2 joystickSize = float2(extSide);
-		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-
-		joystickSize = float2(intSide);
-		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 		//draw text
 #ifdef LOAD_MATERIAL_BALL		
 		if(gMaterialType == Metal_Mat) {
 			
-			for(int i = 0 ; i< TOTAL_OBJECTS ; ++i) {
+			int metalEnumIndex = 0;
+			for(int i = 0 ; i< gTotalObjects ; ++i) {
 				
-				drawDebugText(cmd,gTextProjView,gTextWorldMats[i],String::format(metalEnumNames[i]),&gMaterialPropDraw);
+				//if there are more objects than metalEnumNames
+				metalEnumIndex = i >= TotalMetals ? RustedIron : i;
+				drawDebugText(cmd,gTextProjView,gTextWorldMats[i],String::format(metalEnumNames[metalEnumIndex]),&gMaterialPropDraw);
 			}
 		}
 #endif
@@ -1720,11 +1698,13 @@ public:
 #ifndef METAL // Metal doesn't support GPU profilers
 		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
-
+		
+#ifndef TARGET_IOS
 		gAppUI.Gui(pGui);
+#endif
 		gAppUI.Draw(cmd);
 
-		//cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		//cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		// Transition our texture to present state
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
@@ -1802,43 +1782,12 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
-
-	// Camera controller functionality
-#if USE_CAMERACONTROLLER
-#if !defined(_DURANGO)
-	static bool cameraMouseMove(const RawMouseMoveEventData* data)
+	
+	static bool cameraInputEvent(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
-
-	static bool cameraMouseButton(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool cameraMouseWheel(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-    
-#ifdef TARGET_IOS
-    static bool cameraTouch(const TouchEventData* data)
-    {
-        pCameraController->onTouch(data);
-        return true;
-    }
-    
-    static bool cameraTouchMove(const TouchEventData* data)
-    {
-        pCameraController->onTouchMove(data);
-        return true;
-    }
-#endif
-#endif
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(MaterialPlayground)

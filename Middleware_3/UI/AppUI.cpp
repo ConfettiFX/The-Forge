@@ -24,21 +24,33 @@
 
 #include "AppUI.h"
 
-#include "Fontstash.h"
 #include "NuklearGUIDriver.h"
-#include "UIRenderer.h"
+#include "UIShaders.h"
 
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Image/Image.h"
+#include "../../Common_3/OS/Interfaces/ICameraController.h"
 
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/GpuProfiler.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
 
+
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+
+#include "../../Middleware_3/Text/Fontstash.h"
+
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
+
+#include "../../Common_3/OS/Core/RingBuffer.h"
+
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+
+
+
 
 namespace PlatformEvents
 {
@@ -48,7 +60,7 @@ namespace PlatformEvents
 static tinystl::vector<class UIAppComponentGui*> gInstances;
 static Mutex gMutex;
 
-extern void initGUIDriver(GUIDriver** ppDriver);
+extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
 
 static bool uiKeyboardChar(const KeyboardCharEventData* pData);
@@ -59,6 +71,8 @@ static bool uiMouseWheel(const MouseWheelEventData* pData);
 static bool uiJoystickButton(const JoystickButtonEventData* pData);
 static bool uiTouch(const TouchEventData* pData);
 static bool uiTouchMove(const TouchEventData* pData);
+
+static bool uiInputEvent(const ButtonData* pData);
 /************************************************************************/
 // UI Property Definition
 /************************************************************************/
@@ -342,8 +356,9 @@ class UIAppComponentBase
 {
 public:
 	UIAppComponentBase() : ui(0), renderer(0), font(-1), fontSize(12.0f), cursorTexture(NULL) {}
+	Fontstash* pFontstash;
 	UI* ui;
-	class UIRenderer* renderer;
+	Renderer* renderer;
 	int font;
 	float fontSize;
 	struct Texture* cursorTexture;
@@ -366,10 +381,11 @@ public:
 class UIAppComponentGui : public UIAppComponentBase
 {
 public:
-	void init(const TextDrawDesc* settings)
+	void init(Renderer* pRenderer, const TextDrawDesc* settings, Fontstash* fontstash)
 	{
-		initGUIDriver(&driver);
+		initGUIDriver(pRenderer, &driver);
 
+		pFontstash = fontstash;
 		fontSize = settings->mFontSize;
 		font = settings->mFontID;
 		setTitle("Configuration");
@@ -379,6 +395,8 @@ public:
 
 		if (gInstances.size() == 1)
 		{
+			InputSystem::RegisterInputEvent(uiInputEvent);
+
 #if !defined(_DURANGO) && !defined(TARGET_IOS)
 			registerKeyboardCharEvent(uiKeyboardChar);
 			registerKeyboardButtonEvent(uiKeyboardButton);
@@ -404,7 +422,7 @@ public:
 
 	void load(int32_t initialOffsetX, int32_t initialOffsetY, uint32_t initialWidth, uint32_t initialHeight)
 	{
-		driver->load(renderer, font, fontSize, cursorTexture);
+		driver->load(pFontstash, fontSize, cursorTexture);
 
 		initialWindowRect =
 		{
@@ -434,6 +452,47 @@ public:
 			return;
 
 		driver->draw(pCmd);
+	}
+
+
+	// returns: 0: no input handled, 1: input handled
+	bool onInput(const struct ButtonData* pData)
+	{
+
+		if (pData->mUserId == KEY_UI_MOVE)
+		{
+			driver->onInput(pData);
+
+			if (IS_INBOX(pData->mValue[0], pData->mValue[1], windowRect.x, windowRect.y, windowRect.z, windowRect.w))
+			{
+				return true;
+			}
+		}
+		else if (pData->mUserId == KEY_CONFIRM)
+		{
+			ButtonData rightStick = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
+
+			if (IS_INBOX(rightStick.mValue[0], rightStick.mValue[1], windowRect.x, windowRect.y, windowRect.z, windowRect.w))
+			{
+				ButtonData toSend = *pData;
+				toSend.mValue[0] = rightStick.mValue[0];
+				toSend.mValue[1] = rightStick.mValue[1];
+				driver->onInput(&toSend);
+				PlatformEvents::skipMouseCapture = true;
+				return true;
+			}
+			// should allways let the mouse be released
+			else
+			{
+				ButtonData toSend = *pData;
+				toSend.mValue[0] = rightStick.mValue[0];
+				toSend.mValue[1] = rightStick.mValue[1];
+				driver->onInput(&toSend);
+				PlatformEvents::skipMouseCapture = false;
+			}
+		}
+
+		return false;
 	}
 
 	// returns: 0: no input handled, 1: input handled
@@ -519,6 +578,22 @@ private:
 /************************************************************************/
 // Event Handlers
 /************************************************************************/
+static bool uiInputEvent(const ButtonData * pData)
+{
+	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+		if (gInstances[i]->drawGui && gInstances[i]->onInput(pData))
+			return true;
+
+	//maps to f1
+	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
+	{
+		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+			gInstances[i]->drawGui = !gInstances[i]->drawGui;
+	}
+	
+	return false;
+}
+
 #if !defined(_DURANGO) && !defined(TARGET_IOS)
 static bool uiKeyboardChar(const KeyboardCharEventData* pData)
 {
@@ -547,6 +622,7 @@ static bool uiKeyboardButton(const KeyboardButtonEventData* pData)
 
 	return false;
 }
+
 
 static bool uiMouseMove(const MouseMoveEventData* pData)
 {
@@ -640,11 +716,14 @@ static bool uiTouchMove(const TouchEventData* pData)
 
 	return false;
 }
+
+
 /************************************************************************/
 /************************************************************************/
 struct UIAppImpl
 {
-	UIRenderer*									pUIRenderer;
+	Renderer*									pRenderer;
+	Fontstash*									pFontStash;
 	uint32_t									mWidth;
 	uint32_t									mHeight;
 
@@ -664,8 +743,8 @@ struct GuiComponentImpl
 	{
 		pUI = conf_placement_new<UI>(conf_calloc(1, sizeof(UI)));
 		pGui = conf_placement_new<UIAppComponentGui>(conf_calloc(1, sizeof(UIAppComponentGui)));
-		pGui->init(&pDesc->mDefaultTextDrawDesc);
-		pGui->renderer = pApp->pImpl->pUIRenderer;
+		pGui->init(pApp->pImpl->pRenderer, &pDesc->mDefaultTextDrawDesc, pApp->pImpl->pFontStash);
+		pGui->renderer = pApp->pImpl->pRenderer;
 		pGui->ui = pUI;
 		pGui->load((int)pDesc->mStartPosition.getX(), (int)pDesc->mStartPosition.getY(),
 			(int)pDesc->mStartSize.getX(), (int)pDesc->mStartSize.getY());
@@ -689,12 +768,12 @@ bool UIApp::Init(Renderer* renderer)
 {
 	pImpl = (struct UIAppImpl*)conf_calloc(1, sizeof(*pImpl));
 	pInst = pImpl;
-	pImpl->pUIRenderer = conf_placement_new<UIRenderer>(conf_calloc(1, sizeof(UIRenderer)), renderer);
-
+	pImpl->pRenderer = renderer;
 	// Figure out the max font size for the current configuration
 	uint32 uiMaxFrontSize = uint32(UIMaxFontSize::UI_MAX_FONT_SIZE_512);
+
 	// Add and initialize the fontstash 
-	pImpl->pUIRenderer->addFontstash(uiMaxFrontSize, uiMaxFrontSize);
+	pImpl->pFontStash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, (int)uiMaxFrontSize, (int)uiMaxFrontSize);
 
 	return true;
 }
@@ -706,8 +785,8 @@ void UIApp::Exit()
 	for (uint32_t i = 0; i < (uint32_t)components.size(); ++i)
 		RemoveGuiComponent(components[i]);
 
-	pImpl->pUIRenderer->~UIRenderer();
-	conf_free(pImpl->pUIRenderer);
+	pImpl->pFontStash->destroy();
+	conf_free(pImpl->pFontStash);
 
 	pImpl->~UIAppImpl();
 	conf_free(pImpl);
@@ -717,6 +796,7 @@ bool UIApp::Load(RenderTarget** rts)
 {
 	pImpl->mWidth = rts[0]->mDesc.mWidth;
 	pImpl->mHeight = rts[0]->mDesc.mHeight;
+
 	return true;
 }
 
@@ -726,7 +806,7 @@ void UIApp::Unload()
 
 uint32_t UIApp::LoadFont(const char* pFontPath, uint32_t root)
 {
-	uint32_t fontID = (uint32_t)pImpl->pUIRenderer->getFontstash(0)->defineFont("default", pFontPath, root);
+	uint32_t fontID = (uint32_t)pImpl->pFontStash->defineFont("default", pFontPath, root);
 	ASSERT(fontID != -1);
 
 	return fontID;
@@ -766,12 +846,6 @@ void UIApp::Update(float deltaTime)
 
 void UIApp::Draw(Cmd* pCmd)
 {
-	pImpl->pUIRenderer->beginRender(
-		pImpl->mWidth, pImpl->mHeight,
-		pCmd->mBoundRenderTargetCount, (ImageFormat::Enum*)pCmd->pBoundColorFormats, pCmd->pBoundSrgbValues,
-		(ImageFormat::Enum)pCmd->mBoundDepthStencilFormat,
-		pCmd->mBoundSampleCount, pCmd->mBoundSampleQuality);
-
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 	{
 		pImpl->mComponentsToUpdate[i]->pGui->draw(pCmd);
@@ -791,4 +865,230 @@ uint32_t GuiComponent::AddProperty(const UIProperty& prop)
 void GuiComponent::RemoveProperty(uint32_t propID)
 {
 	pImpl->pUI->removeProperty(propID);
+}
+/************************************************************************/
+/************************************************************************/
+bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, uint32_t root)
+{
+	pRenderer = renderer;
+
+	TextureLoadDesc loadDesc = {};
+	loadDesc.pFilename = pJoystickTexture;
+	loadDesc.mRoot = (FSRoot)root;
+	loadDesc.ppTexture = &pTexture;
+	addResource(&loadDesc);
+
+	if (!pTexture)
+		return false;
+	/************************************************************************/
+	// States
+	/************************************************************************/
+	SamplerDesc samplerDesc =
+	{
+		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
+		ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+};
+	addSampler(pRenderer, &samplerDesc, &pSampler);
+
+	BlendStateDesc blendStateDesc = {};
+	blendStateDesc.mSrcFactor = BC_SRC_ALPHA;
+	blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mSrcAlphaFactor = BC_SRC_ALPHA;
+	blendStateDesc.mDstAlphaFactor = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mMask = ALL;
+	blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+	addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
+
+	DepthStateDesc depthStateDesc = {};
+	depthStateDesc.mDepthTest = false;
+	depthStateDesc.mDepthWrite = false;
+	addDepthState(pRenderer, &depthStateDesc, &pDepthState);
+
+	RasterizerStateDesc rasterizerStateDesc = {};
+	rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+	rasterizerStateDesc.mScissor = true;
+	addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerState);
+	/************************************************************************/
+	// Shader
+	/************************************************************************/
+#if defined(METAL)
+	String texturedShaderFile = "builtin_plain";
+	String texturedShader = mtl_builtin_textured;
+	ShaderDesc texturedShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { texturedShaderFile, texturedShader, "VSMain" }, { texturedShaderFile, texturedShader, "PSMain" } };
+	addShader(pRenderer, &texturedShaderDesc, &pShader);
+#elif defined(DIRECT3D12) || defined(VULKAN)
+	char* pTexturedVert = NULL; uint32_t texturedVertSize = 0;
+	char* pTexturedFrag = NULL; uint32_t texturedFragSize = 0;
+
+	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
+	{
+		pTexturedVert = (char*)d3d12_builtin_textured_vert; texturedVertSize = sizeof(d3d12_builtin_textured_vert);
+		pTexturedFrag = (char*)d3d12_builtin_textured_frag; texturedFragSize = sizeof(d3d12_builtin_textured_frag);
+	}
+	else if (pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
+	{
+		pTexturedVert = (char*)vk_builtin_textured_vert; texturedVertSize = sizeof(vk_builtin_textured_vert);
+		pTexturedFrag = (char*)vk_builtin_textured_frag; texturedFragSize = sizeof(vk_builtin_textured_frag);
+	}
+	
+	BinaryShaderDesc texturedShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
+		{ (char*)pTexturedVert, texturedVertSize },{ (char*)pTexturedFrag, texturedFragSize } };
+	addShaderBinary(pRenderer, &texturedShader, &pShader);
+#endif
+	
+	
+	const char* pStaticSamplerNames[] = { "uSampler" };
+	RootSignatureDesc textureRootDesc = { &pShader, 1 };
+	textureRootDesc.mStaticSamplerCount = 1;
+	textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	textureRootDesc.ppStaticSamplers = &pSampler;
+	addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
+	
+	/************************************************************************/
+	// Resources
+	/************************************************************************/
+	BufferDesc vbDesc = {};
+	vbDesc.mUsage = BUFFER_USAGE_VERTEX;
+	vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	vbDesc.mSize = 128 * 4 * sizeof(float4);
+	vbDesc.mVertexStride = sizeof(float4);
+	addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pMeshRingBuffer);
+	/************************************************************************/
+	/************************************************************************/
+
+	return true;
+}
+
+void VirtualJoystickUI::Exit()
+{
+	removeMeshRingBuffer(pMeshRingBuffer);
+	removeRasterizerState(pRasterizerState);
+	removeBlendState(pBlendAlpha);
+	removeDepthState(pDepthState);
+	removeRootSignature(pRenderer, pRootSignature);
+	removeShader(pRenderer, pShader);
+	removeResource(pTexture);
+}
+
+bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint32_t depthFormat )
+{
+	VertexLayout vertexLayout = {};
+	vertexLayout.mAttribCount = 2;
+	vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+	vertexLayout.mAttribs[0].mFormat = ImageFormat::RG32F;
+	vertexLayout.mAttribs[0].mBinding = 0;
+	vertexLayout.mAttribs[0].mLocation = 0;
+	vertexLayout.mAttribs[0].mOffset = 0;
+
+	vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+	vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+	vertexLayout.mAttribs[1].mBinding = 0;
+	vertexLayout.mAttribs[1].mLocation = 1;
+	vertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(ImageFormat::RG32F);
+
+	GraphicsPipelineDesc pipelineDesc = {};
+	pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+	pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)depthFormat;
+	pipelineDesc.mRenderTargetCount = 1;
+	pipelineDesc.mSampleCount = pScreenRT->mDesc.mSampleCount;
+	pipelineDesc.mSampleQuality = pScreenRT->mDesc.mSampleQuality;
+	pipelineDesc.pBlendState = pBlendAlpha;
+	pipelineDesc.pColorFormats = &pScreenRT->mDesc.mFormat;
+	pipelineDesc.pDepthState = pDepthState;
+	pipelineDesc.pRasterizerState = pRasterizerState;
+	pipelineDesc.pSrgbValues = &pScreenRT->mDesc.mSrgb;
+	pipelineDesc.pRootSignature = pRootSignature;
+	pipelineDesc.pShaderProgram = pShader;
+	pipelineDesc.pVertexLayout = &vertexLayout;
+	addPipeline(pRenderer, &pipelineDesc, &pPipeline);
+
+	return true;
+}
+
+void VirtualJoystickUI::Unload()
+{
+	removePipeline(pRenderer, pPipeline);
+}
+
+void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraController, const float4& color)
+{
+#ifdef TARGET_IOS
+	struct RootConstants
+	{
+		float4 color;
+		float2 scaleBias;
+	} data = {};
+
+	cmdBindPipeline(pCmd, pPipeline);
+	data.color = color;
+	data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+	DescriptorData params[2] = {};
+	params[0].pName = "uRootConstants";
+	params[0].pRootConstant = &data;
+	params[1].pName = "uTex";
+	params[1].ppTextures = &pTexture;
+	cmdBindDescriptors(pCmd, pRootSignature, 2, params);
+
+	// Draw the camera controller's virtual joysticks.
+	float extSide = min(pCmd->mBoundHeight, pCmd->mBoundWidth) * pCameraController->getVirtualJoystickExternalRadius();
+	float intSide = min(pCmd->mBoundHeight, pCmd->mBoundWidth) * pCameraController->getVirtualJoystickInternalRadius();
+
+	{
+		float2 joystickSize = float2(extSide);
+		vec2 joystickCenter = pCameraController->getVirtualLeftJoystickCenter();
+		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+
+		// the last variable can be used to create a border
+		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
+			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
+		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+		updateResource(&updateDesc);
+		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+		cmdDraw(pCmd, 4, 0);
+	}
+	{
+		vec2 joystickCenter = pCameraController->getVirtualRightJoystickCenter();
+		float2 joystickSize = float2(extSide);
+		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+
+		// the last variable can be used to create a border
+		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
+			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
+		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+		updateResource(&updateDesc);
+		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+		cmdDraw(pCmd, 4, 0);
+	}
+	{
+		float2 joystickSize = float2(intSide);
+		vec2 joystickCenter = pCameraController->getVirtualLeftJoystickPos();
+		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+
+		// the last variable can be used to create a border
+		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
+			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
+		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+		updateResource(&updateDesc);
+		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+		cmdDraw(pCmd, 4, 0);
+	}
+	{
+		float2 joystickSize = float2(intSide);
+		vec2 joystickCenter = pCameraController->getVirtualRightJoystickPos();
+		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+
+		// the last variable can be used to create a border
+		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
+			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
+		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+		updateResource(&updateDesc);
+		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+		cmdDraw(pCmd, 4, 0);
+	}
+#endif
 }

@@ -42,15 +42,12 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
+#include "../../../../Middleware_3/Input/InputSystem.h"
+#include "../../../../Middleware_3/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
-
-/// Camera Controller
-#define GUI_CAMERACONTROLLER 1
-#define FPS_CAMERACONTROLLER 2
-#define USE_CAMERACONTROLLER FPS_CAMERACONTROLLER
 
 /// Demo structures
 struct PlanetInfoStruct
@@ -108,7 +105,7 @@ RootSignature*		pRootSignature = NULL;
 Sampler*			pSamplerSkyBox = NULL;
 Texture*			pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-Texture*            pVirtualJoystickTex = NULL;
+VirtualJoystickUI	gVirtualJoystick;
 #endif
 DepthState*			pDepth = NULL;
 RasterizerState*	pSkyboxRast = NULL;
@@ -230,15 +227,10 @@ public:
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
-        
+
 #ifdef TARGET_IOS
-        // Add virtual joystick texture.
-        TextureLoadDesc textureDesc = {};
-        textureDesc.mRoot = FSRoot::FSR_Absolute;
-        textureDesc.mUseMipmaps = false;
-        textureDesc.pFilename = "circlepad.png";
-        textureDesc.ppTexture = &pVirtualJoystickTex;
-        addResource(&textureDesc, true);
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
 #endif
 
 		ShaderLoadDesc skyShader = {};
@@ -474,45 +466,16 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
-#if USE_CAMERACONTROLLER
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };
 		vec3 lookAt{ 0 };
 
-#if USE_CAMERACONTROLLER == FPS_CAMERACONTROLLER
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		requestMouseCapture(true);
-#elif USE_CAMERACONTROLLER == GUI_CAMERACONTROLLER
-		pCameraController = createGuiCameraController(camPos, lookAt);
-#endif
 
 		pCameraController->setMotionParameters(cmp);
 
-#ifndef _DURANGO
-		registerRawMouseMoveEvent(cameraMouseMove);
-		registerMouseButtonEvent(cameraMouseButton);
-		registerMouseWheelEvent(cameraMouseWheel);
-#endif
-        
-#ifdef TARGET_IOS
-        registerTouchEvent(cameraTouch);
-        registerTouchMoveEvent(cameraTouchMove);
-#endif
-#else
-		// initial camera properties
-		gCameraProp.mCameraPitch = -0.785398163f;
-		gCameraProp.mCamearYaw = 1.5f*0.785398163f;
-		gCameraProp.mCameraPosition = Point3(48.0f, 48.0f, 20.0f);
-		gCameraProp.mCameraForward = vec3(0.0f, 0.0f, 1.0f);
-		gCameraProp.mCameraUp = vec3(0.0f, 1.0f, 0.0f);
-
-		vec3 camRot(gCameraProp.mCameraPitch, gCameraProp.mCamearYaw, 0.0f);
-		mat3 trans;
-		trans = mat3::rotationZYX(camRot);
-		gCameraProp.mCameraDirection = trans* gCameraProp.mCameraForward;
-		gCameraProp.mCameraRight = cross(gCameraProp.mCameraDirection, gCameraProp.mCameraUp);
-		normalize(gCameraProp.mCameraRight);
-#endif
+		InputSystem::RegisterInputEvent(cameraInputEvent);
 		return true;
 	}
 
@@ -520,11 +483,13 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
-#if USE_CAMERACONTROLLER
 		destroyCameraController(pCameraController);
-#endif
 
 		removeDebugRendererInterface();
+
+#ifdef TARGET_IOS
+		gVirtualJoystick.Exit();
+#endif
 
 		gAppUI.Exit();
 
@@ -538,11 +503,7 @@ public:
 
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
-        
-#ifdef TARGET_IOS
-        removeResource(pVirtualJoystickTex);
-#endif
-        
+
 		removeSampler(pRenderer, pSamplerSkyBox);
 		removeShader(pRenderer, pSphereShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
@@ -577,6 +538,11 @@ public:
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+#ifdef TARGET_IOS
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
+			return false;
+#endif
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
@@ -630,6 +596,10 @@ public:
 
 		gAppUI.Unload();
 
+#ifdef TARGET_IOS
+		gVirtualJoystick.Unload();
+#endif
+
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removePipeline(pRenderer, pSpherePipeline);
 
@@ -642,20 +612,12 @@ public:
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-#if USE_CAMERACONTROLLER
-#ifndef TARGET_IOS
-#ifdef _DURANGO
-		if (getJoystickButtonDown(BUTTON_A))
-#else
-		if (getKeyDown(KEY_F))
-#endif
+		if (getKeyDown(KEY_BUTTON_X))
 		{
 			RecenterCameraView(170.0f);
 		}
-#endif
 
 		pCameraController->update(deltaTime);
-#endif
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
@@ -664,6 +626,7 @@ public:
 
 		// update camera with time 
 		mat4 viewMat = pCameraController->getViewMatrix();
+
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
@@ -710,12 +673,6 @@ public:
 	void Draw()
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 			
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
@@ -738,7 +695,7 @@ public:
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -762,7 +719,7 @@ public:
 		params[6].pName = "BackText";
 		params[6].ppTextures = &pSkyBoxTextures[5];
 		cmdBindDescriptors(cmd, pRootSignature, 7, params);
-		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 		cmdEndDebugMarker(cmd);
 
@@ -771,7 +728,7 @@ public:
 		cmdBindPipeline(cmd, pSpherePipeline);
 		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		cmdBindDescriptors(cmd, pRootSignature, 1, params);
-		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer);
+		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets);
 		cmdEndDebugMarker(cmd);
 
@@ -780,30 +737,12 @@ public:
 		gTimer.GetUSec(true);
         
 #ifdef TARGET_IOS
-		// Draw the camera controller's virtual joysticks.
-		float extSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickExternalRadius();
-		float intSide = min(mSettings.mHeight, mSettings.mWidth) * pCameraController->getVirtualJoystickInternalRadius();
-
-		float2 joystickSize = float2(extSide);
-		vec2 leftJoystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-		float2 leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		vec2 rightJoystickCenter = pCameraController->getVirtualRightJoystickCenter();
-		float2 rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-
-		joystickSize = float2(intSide);
-		leftJoystickCenter = pCameraController->getVirtualLeftJoystickPos();
-		leftJoystickPos = float2(leftJoystickCenter.getX() * mSettings.mWidth, leftJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, leftJoystickPos.x, leftJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
-		rightJoystickCenter = pCameraController->getVirtualRightJoystickPos();
-		rightJoystickPos = float2(rightJoystickCenter.getX() * mSettings.mWidth, rightJoystickCenter.getY() * mSettings.mHeight) - 0.5f * joystickSize;
-		drawDebugTexture(cmd, rightJoystickPos.x, rightJoystickPos.y, joystickSize.x, joystickSize.y, pVirtualJoystickTex, 1.0f, 1.0f, 1.0f);
+		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.Draw(cmd);
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
@@ -870,40 +809,12 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
-
-#if !defined(_DURANGO)
-	static bool cameraMouseMove(const RawMouseMoveEventData* data)
+	
+	static bool cameraInputEvent(const ButtonData* data)
 	{
-		pCameraController->onMouseMove(data);
+		pCameraController->onInputEvent(data);
 		return true;
 	}
-
-	static bool cameraMouseButton(const MouseButtonEventData* data)
-	{
-		pCameraController->onMouseButton(data);
-		return true;
-	}
-
-	static bool cameraMouseWheel(const MouseWheelEventData* data)
-	{
-		pCameraController->onMouseWheel(data);
-		return true;
-	}
-#endif
-
-#ifdef TARGET_IOS
-    static bool cameraTouch(const TouchEventData* data)
-    {
-        pCameraController->onTouch(data);
-        return true;
-    }
-    
-    static bool cameraTouchMove(const TouchEventData* data)
-    {
-        pCameraController->onTouchMove(data);
-        return true;
-    }
-#endif
 
 };
 

@@ -72,7 +72,6 @@ VS_CONTROL_POINT_OUTPUT main(VSIn In) {
 
 	float4 V0 = mul(world, float4(In.v0.xyz, 1.0));
 	Out.position = V0;
-	Out.position.w = In.v0.w;
 
 	Out.tesc_v1 = float4( mul(world, float4(In.v1.xyz, 1.0)).xyz, In.v1.w);
 	Out.tesc_v2 = float4( mul(world, float4(In.v2.xyz, 1.0)).xyz, In.v2.w);

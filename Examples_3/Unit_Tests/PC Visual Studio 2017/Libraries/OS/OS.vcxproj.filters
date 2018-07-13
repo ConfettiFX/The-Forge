@@ -34,6 +34,15 @@
     <Filter Include="OS\Camera">
       <UniqueIdentifier>{9020f991-deb3-47a0-a9c1-76f2a341a41d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Middleware_3">
+      <UniqueIdentifier>{a9268313-8233-4fcd-8b2f-daa1ea49d480}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\Input">
+      <UniqueIdentifier>{876bbf80-2f47-408d-893b-3488727f5462}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Text">
+      <UniqueIdentifier>{ea71056b-4bfe-454e-b0e4-312881420a89}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -87,13 +96,7 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Fontstash.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIShaders.h">
@@ -104,6 +107,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h">
       <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputSystem.h">
+      <Filter>Middleware_3\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputMappings.h">
+      <Filter>Middleware_3\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h">
+      <Filter>OS\Text</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -149,13 +161,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\Fontstash.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\UIRenderer.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
@@ -163,6 +169,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
       <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp">
+      <Filter>Middleware_3\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp">
+      <Filter>OS\Text</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

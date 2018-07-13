@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Workspace Name="Project">
+	<Project Name="Project" Path="Project.project" Active="No"/>
+	<Project Name="gainput" Path="lib/gainput.project" Active="No"/>
+	<BuildMatrix>
+		<WorkspaceConfiguration Name="NoConfig" Selected="yes">
+			<Project Name="Project" ConfigName="NoConfig"/>
+			<Project Name="gainput" ConfigName="NoConfig"/>
+		</WorkspaceConfiguration>
+	</BuildMatrix>
+</CodeLite_Workspace>
