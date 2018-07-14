@@ -879,11 +879,10 @@ public:
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		
-		tinystl::vector<Image> toLoad;
+		tinystl::vector<Image> toLoad(gMaterialNames.size());
         //adding material textures
         for(int i = 0 ; i <gMaterialNames.size(); ++i)
         {
-			toLoad.push_back(Image());
             TextureLoadDesc textureDesc = {};
 #ifndef TARGET_IOS
             textureDesc.mRoot = FSR_Textures;
