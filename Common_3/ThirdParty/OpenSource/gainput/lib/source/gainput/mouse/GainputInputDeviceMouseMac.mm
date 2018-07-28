@@ -124,13 +124,6 @@ namespace {
 			gainput::InputManager * manager = &device->manager_;
 			manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, buttonID, value > 0 ? true : false);
 		}
-		
-#ifdef GAINPUT_DEBUG
-		else
-		{
-			GAINPUT_LOG("Unmapped key >> scancode: %d\n", int(scancode));
-		}
-#endif
 	}
 	
 	static void OnDeviceConnected(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef inIOHIDDeviceRef)

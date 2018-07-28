@@ -54,7 +54,7 @@ static void OnDeviceInput(void* inContext, IOReturn inResult, void* inSender, IO
 				case kHIDUsage_GD_Y:
 						device->mousePosAccumulationY_ +=value;
 						//do both x and y
-                        manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, gainput::MouseAxisY, device->mousePosAccumulationY_);
+                        manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, gainput::MouseAxisY, (float)device->mousePosAccumulationY_);
 					break;
 				case kHIDUsage_GD_Wheel:
 					//TODO: Fix
@@ -75,13 +75,6 @@ static void OnDeviceInput(void* inContext, IOReturn inResult, void* inSender, IO
         gainput::InputManager * manager = &device->manager_;
         manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, buttonID, value > 0 ? true : false);
 	}
-
-#ifdef GAINPUT_DEBUG
-	else
-	{
-		GAINPUT_LOG("Unmapped key >> scancode: %d\n", int(scancode));
-	}
-#endif
 }
 
 static void OnDeviceConnected(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef inIOHIDDeviceRef)

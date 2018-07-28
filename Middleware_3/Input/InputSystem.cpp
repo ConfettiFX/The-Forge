@@ -47,8 +47,9 @@
 
  /**
 //List of TODO:
-//Add Gamepad support
-//[GAINPUT] Add Xbox input handling.
+//Change HandleButtonBool to mirror HandleButtonFloat and unify GetButtonData + HandleButton common logic for detecting which buttons need to be queried.
+//Add potential callback for KeyMappingDescription to make it easier to map custom input to a joystick button/axis.  (Touch -> Mouse -> Joystick need to all be the same on all client code + camera code).
+//Fix UI navigation and selection (Unify mouse vs joystick dpad)
 //Sometimes Touch joystick gets stuck. Need to investigate further, could be caused by gainput or some bad logic in detecting release of touch.
 //Add concept of virtual joystick for unifying button data. It's needed for Touch data Working with Virtual joystick in UI.
 //Add Mouse wheel
@@ -157,7 +158,7 @@ void InputSystem::Init(const uint32_t& width, const uint32_t& height)
 	// create all necessary devices
 	// TODO: check for failure.
 	mMouseDeviceID = pInputManager->CreateDevice<gainput::InputDeviceMouse>();
-	mRawMouseDeviceID = pInputManager->CreateDevice<gainput::InputDeviceMouse>(gainput::InputDeviceMouse::DV_RAW);    
+	mRawMouseDeviceID = pInputManager->CreateDevice<gainput::InputDeviceMouse>(mMouseDeviceID + 1, gainput::InputDeviceMouse::DV_RAW);
 	mKeyboardDeviceID = pInputManager->CreateDevice<gainput::InputDeviceKeyboard>();
 	mGamepadDeviceID = pInputManager->CreateDevice<gainput::InputDevicePad>();
 	mTouchDeviceID = pInputManager->CreateDevice<gainput::InputDeviceTouch>();
@@ -380,10 +381,16 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 				button.mPrevValue[mapping.mAxis] += prevValue;
 			}
 		}
+
+		//call custom callback function
+		//if (desc->pInputCallbackFn)
+		//{
+		//	desc->pInputCallbackFn(button);
+		//}
 	}
-	
-    button.mDeltaValue[0] = button.mValue[0] - button.mPrevValue[0];
-    button.mDeltaValue[1] = button.mValue[1] - button.mPrevValue[1];
+
+	button.mDeltaValue[0] = button.mValue[0] - button.mPrevValue[0];
+	button.mDeltaValue[1] = button.mValue[1] - button.mPrevValue[1];
 
     //if current value is != 0 then its pressed
     //if previous value is != 0 and current value = 0 then its released
@@ -446,14 +453,11 @@ void InputSystem::SetActiveInputMap(const uint32_t& index)
 	mActiveInputMap = index;
 }
 
-void InputSystem::SetDefaultKeyMapping()
+void InputSystem::AddMappings(KeyMappingDescription* mappings, uint32_t mappingCount)
 {
-	mKeyMappings.clear();
-
-	uint32_t entryCount = sizeof(gUserKeys) / sizeof(KeyMappingDescription);
-	for(uint32_t i = 0 ; i < entryCount ; i++)
+	for (uint32_t i = 0; i < mappingCount; i++)
 	{
-		KeyMappingDescription * mapping = &gUserKeys[i];
+		KeyMappingDescription * mapping = &mappings[i];
 
 		//create empty key mapping object if hasn't been found
 		if (mKeyMappings.find(mapping->mUserId) == mKeyMappings.end())
@@ -465,9 +469,24 @@ void InputSystem::SetDefaultKeyMapping()
 		mKeyMappings[mapping->mUserId].push_back(*mapping);
 
 		//map every key + axis
-		for(uint32_t map = 0 ; map < mapping->mAxisCount; map++)
+		for (uint32_t map = 0; map < mapping->mAxisCount; map++)
 			MapKey(mapping->mMappings[map].mDeviceButtonId, mapping->mUserId, mapping->mDeviceType);
+		
 	}
+}
+
+void InputSystem::SetDefaultKeyMapping()
+{
+	mKeyMappings.clear();
+	
+#ifdef _DURANGO
+	uint32_t entryCount = sizeof(gXboxMappings) / sizeof(KeyMappingDescription);
+	AddMappings(gXboxMappings, entryCount);
+#else
+	uint32_t entryCount = sizeof(gUserKeys) / sizeof(KeyMappingDescription);
+	AddMappings(gUserKeys, entryCount);
+#endif
+
 
 }
 

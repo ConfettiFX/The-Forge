@@ -43,7 +43,7 @@ struct VSOutput
   int IfPlane;
 };
 // Pixel shader for opaque geometry
-fragment [[early_fragment_tests]] PSOutput stageMain(VSOutput input                 [[stage_in]],
+[[early_fragment_tests]] fragment PSOutput stageMain(VSOutput input                 [[stage_in]],
                                                      sampler textureSampler         [[sampler(0)]],
                                                      texture2d<float> SphereTex     [[texture(0)]],
                                                      texture2d<float> PlaneTex      [[texture(1)]])

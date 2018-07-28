@@ -60,7 +60,7 @@ struct PSOutput
 };
 
 // Pixel shader for opaque geometry
-fragment [[early_fragment_tests]] PSOutput stageMain(VSOutput input                 [[stage_in]],
+[[early_fragment_tests]] fragment PSOutput stageMain(VSOutput input                 [[stage_in]],
                                                      sampler textureSampler         [[sampler(0)]],
                                                      texture2d<float> diffuseMap    [[texture(0)]],
                                                      texture2d<float> normalMap     [[texture(1)]],
