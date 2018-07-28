@@ -1070,6 +1070,7 @@ void mtl_compileShader(Renderer* pRenderer, const String& fileName, const String
     args.push_back("-sdk");
     args.push_back("macosx");
     args.push_back("metal");
+    args.push_back("-c");
     tmpArg = String::format("""%s""", fileName.c_str());
     args.push_back(tmpArg);
     args.push_back("-o");

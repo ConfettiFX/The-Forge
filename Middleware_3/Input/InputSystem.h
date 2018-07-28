@@ -1,3 +1,5 @@
+#ifndef INPUT_SYSTEM_H
+#define INPUT_SYSTEM_H
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
  *
@@ -89,6 +91,10 @@ struct TargetMapping
 	uint32_t mDeviceButtonId;
 };
 
+
+//typedef void(*InputCallbackFn)(ButtonData& button);
+//void RawMouseCallback(ButtonData& button);
+
 //Describes all the device buttons for the given 
 //user key and device type
 struct KeyMappingDescription
@@ -105,6 +111,12 @@ struct KeyMappingDescription
 	//Gamepad has 1 per axis
 	//Touch has 1 per axis
 	TargetMapping mMappings[4];
+
+	//Callback function to translate
+	//input received to desired input format
+	//Converting raw mouse to -1,1
+	//Linking touch input to virtual joysticks
+	//InputCallbackFn pInputCallbackFn;
 };
 
 
@@ -178,6 +190,11 @@ class InputSystem
 	static void UnregisterInputEvent(InputEventHandler callback);
 	//helper function to reset mouse position when it goes to screen edge
 	static void WarpMouse(const float& x, const float& y);
+
+
+	//Callback for modifying data returned from gainput
+	//and normalizes the output for app logic
+	void RawMouseCallback(ButtonData& button);
  private:
 
 	//Event listener for when a button's state changes
@@ -217,7 +234,9 @@ class InputSystem
 #ifdef METAL
 	static void * pGainputView;
 #endif
-	
+	//helper function to reduce code ducplication. Given an array of key mappings will add all keys to input map.
+	static void AddMappings(KeyMappingDescription* mappings, uint32_t mappingCount);
+
 	//callback broadcasters for platform events
 	static void OnInputEvent(const ButtonData& buttonData);
 
@@ -258,3 +277,5 @@ class InputSystem
     //[device ID, vector of all user mapped ids]
     static tinystl::unordered_map<uint32_t, tinystl::vector<UserToDeviceMap>> mDeviceToUserMappings;
 };
+
+#endif

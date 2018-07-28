@@ -132,7 +132,7 @@ const char* pszRoots[FSR_Count] =
 };
 
 #ifdef _DURANGO
-#include "../../../CommonXBOXOne_3/Renderer/Direct3D12/Direct3D12X.h"
+#include "../../../Xbox/CommonXBOXOne_3/Renderer/Direct3D12/Direct3D12X.h"
 #endif
 
 // Rendering modes
@@ -234,6 +234,8 @@ const char*		gSceneName = "SanMiguel.cmesh";
 
 // Number of in-flight buffers
 const uint32_t gImageCount = 3;
+uint32_t gPresentFrameIdx = ~0u;
+uint32_t gRenderFrameIdx = ~0u;
 bool gToggleVSync = false;
 
 // Constants
@@ -1663,15 +1665,14 @@ public:
 
 	void Draw()
 	{
-		uint32_t graphicsFrameIdx = ~0u;
-
+        gRenderFrameIdx = (gRenderFrameIdx + 1) % gImageCount;
+        
 		if (!gAppSettings.mAsyncCompute || gFrameCount > 0)
 		{
-			// Get the current render target for this frame
-			acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &graphicsFrameIdx);
-
+            // Get the current render target for this frame
+            acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &gPresentFrameIdx);
 			// check to see if we can use the cmd buffer
-			Fence* pNextFence = pRenderCompleteFences[(graphicsFrameIdx) % gImageCount];
+			Fence* pNextFence = pRenderCompleteFences[gRenderFrameIdx];
 			FenceStatus fenceStatus;
 			getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
@@ -1683,7 +1684,7 @@ public:
 		/************************************************************************/
 		if (gAppSettings.mAsyncCompute && gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
 		{
-			uint32_t computeFrameIdx = (graphicsFrameIdx + 1) % gImageCount;
+			uint32_t computeFrameIdx = gRenderFrameIdx;
 
 			// check to see if we can use the cmd buffer
 			Fence* pNextComputeFence = pComputeCompleteFences[computeFrameIdx];
@@ -1737,9 +1738,9 @@ public:
 		}
 		else
 		{
-			if (graphicsFrameIdx != -1)
+			if (gPresentFrameIdx != -1)
 			{
-				BufferUpdateDesc update = { pPerFrameUniformBuffers[graphicsFrameIdx], &gPerFrame[graphicsFrameIdx].gPerFrameUniformData, 0, 0, sizeof(PerFrameConstants) };
+				BufferUpdateDesc update = { pPerFrameUniformBuffers[gRenderFrameIdx], &gPerFrame[gRenderFrameIdx].gPerFrameUniformData, 0, 0, sizeof(PerFrameConstants) };
 				updateResource(&update);
 			}
 		}
@@ -1750,10 +1751,10 @@ public:
 		{
 			Cmd* graphicsCmd = NULL;
 
-			pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[graphicsFrameIdx];
+			pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[gPresentFrameIdx];
 
 			// Get command list to store rendering commands for this frame
-			graphicsCmd = ppCmds[graphicsFrameIdx];
+			graphicsCmd = ppCmds[gRenderFrameIdx];
 			// Submit all render commands for this frame
 			beginCmd(graphicsCmd);
 
@@ -1761,13 +1762,13 @@ public:
 
 			if (!gAppSettings.mAsyncCompute && gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
 			{
-				triangleFilteringPass(graphicsCmd, pGraphicsGpuProfiler, graphicsFrameIdx);
+				triangleFilteringPass(graphicsCmd, pGraphicsGpuProfiler, gRenderFrameIdx);
 			}
 
 			if (!gAppSettings.mAsyncCompute || !gAppSettings.mFilterTriangles)
 			{
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Clear Light Clusters", true);
-				clearLightClusters(graphicsCmd, (graphicsFrameIdx) % gImageCount);
+				clearLightClusters(graphicsCmd, gRenderFrameIdx);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
 
@@ -1775,9 +1776,9 @@ public:
 			{
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "Compute Light Clusters", true);
-				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[(graphicsFrameIdx) % gImageCount], 0, NULL, false);
-				computeLightClusters(graphicsCmd, (graphicsFrameIdx) % gImageCount);
-				cmdSynchronizeResources(graphicsCmd, 1, &pLightClusters[(graphicsFrameIdx) % gImageCount], 0, NULL, false);
+				cmdSynchronizeResources(graphicsCmd, 1, &pLightClustersCount[gRenderFrameIdx], 0, NULL, false);
+				computeLightClusters(graphicsCmd, gRenderFrameIdx);
+				cmdSynchronizeResources(graphicsCmd, 1, &pLightClusters[gRenderFrameIdx], 0, NULL, false);
 				cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 			}
 
@@ -1797,24 +1798,24 @@ public:
 				BufferBarrier barriers2[numBarriers] = {};
 				for (uint32_t i = 0; i < gNumViews; ++i)
 				{
-					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[graphicsFrameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
-					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[graphicsFrameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
-					barriers2[index++] = { pFilteredIndexBuffer[graphicsFrameIdx][i], RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[gRenderFrameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[gRenderFrameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+					barriers2[index++] = { pFilteredIndexBuffer[gRenderFrameIdx][i], RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
 				}
-				barriers2[index++] = { pFilterIndirectMaterialBuffer[graphicsFrameIdx], RESOURCE_STATE_SHADER_RESOURCE };
-				barriers2[index++] = { pLightClusters[graphicsFrameIdx], RESOURCE_STATE_SHADER_RESOURCE };
-				barriers2[index++] = { pLightClustersCount[graphicsFrameIdx], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers2[index++] = { pFilterIndirectMaterialBuffer[gRenderFrameIdx], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers2[index++] = { pLightClusters[gRenderFrameIdx], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers2[index++] = { pLightClustersCount[gRenderFrameIdx], RESOURCE_STATE_SHADER_RESOURCE };
 				cmdResourceBarrier(graphicsCmd, numBarriers, barriers2, 0, NULL, true);
 			}
 #endif
 
-			drawScene(graphicsCmd, graphicsFrameIdx);
+			drawScene(graphicsCmd, gRenderFrameIdx);
 
 #ifdef _DURANGO
 			// When async compute is on, we need to transition some resources in the graphics queue
 			// because they can't be transitioned by the compute queue (incompatible)
 			if (gAppSettings.mAsyncCompute)
-				setResourcesToComputeCompliantState(graphicsFrameIdx, false);
+				setResourcesToComputeCompliantState(gRenderFrameIdx, false);
 #else
 #ifndef METAL
 			if (gAppSettings.mFilterTriangles)
@@ -1824,13 +1825,13 @@ public:
 				BufferBarrier barriers2[numBarriers] = {};
 				for (uint32_t i = 0; i < gNumViews; ++i)
 				{
-					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[graphicsFrameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_UNORDERED_ACCESS };
-					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[graphicsFrameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS };
-					barriers2[index++] = { pFilteredIndexBuffer[graphicsFrameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
+					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[gRenderFrameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_UNORDERED_ACCESS };
+					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[gRenderFrameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS };
+					barriers2[index++] = { pFilteredIndexBuffer[gRenderFrameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
 				}
-				barriers2[index++] = { pFilterIndirectMaterialBuffer[graphicsFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
-				barriers2[index++] = { pLightClusters[graphicsFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
-				barriers2[index++] = { pLightClustersCount[graphicsFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pFilterIndirectMaterialBuffer[gRenderFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pLightClusters[gRenderFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pLightClustersCount[gRenderFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(graphicsCmd, numBarriers, barriers2, 0, NULL, true);
 			}
 #endif
@@ -1839,7 +1840,7 @@ public:
 
 
 			cmdBeginGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler, "UI Pass", true);
-			drawGUI(graphicsCmd, graphicsFrameIdx);
+			drawGUI(graphicsCmd, gRenderFrameIdx);
 			cmdEndGpuTimestampQuery(graphicsCmd, pGraphicsGpuProfiler);
 
 
@@ -1853,18 +1854,18 @@ public:
 			if (gAppSettings.mAsyncCompute)
 			{
 				// Submit all the work to the GPU and present
-				Semaphore* pWaitSemaphores[] = { pImageAcquiredSemaphore, pComputeCompleteSemaphores[graphicsFrameIdx] };
-				queueSubmit(pGraphicsQueue, 1, &graphicsCmd, pRenderCompleteFences[graphicsFrameIdx], 2, pWaitSemaphores, 1, &pRenderCompleteSemaphores[graphicsFrameIdx]);
+				Semaphore* pWaitSemaphores[] = { pImageAcquiredSemaphore, pComputeCompleteSemaphores[gRenderFrameIdx] };
+				queueSubmit(pGraphicsQueue, 1, &graphicsCmd, pRenderCompleteFences[gRenderFrameIdx], 2, pWaitSemaphores, 1, &pRenderCompleteSemaphores[gRenderFrameIdx]);
 			}
 			else
 			{
-				queueSubmit(pGraphicsQueue, 1, &graphicsCmd, pRenderCompleteFences[graphicsFrameIdx], 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphores[graphicsFrameIdx]);
+				queueSubmit(pGraphicsQueue, 1, &graphicsCmd, pRenderCompleteFences[gRenderFrameIdx], 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphores[gRenderFrameIdx]);
 			}
 
-			Semaphore* pWaitSemaphores[] = { pRenderCompleteSemaphores[graphicsFrameIdx] };
-			queuePresent(pGraphicsQueue, pSwapChain, graphicsFrameIdx, 1, pWaitSemaphores);
+			Semaphore* pWaitSemaphores[] = { pRenderCompleteSemaphores[gRenderFrameIdx] };
+			queuePresent(pGraphicsQueue, pSwapChain, gPresentFrameIdx, 1, pWaitSemaphores);
 		}
-
+        
 		++gFrameCount;
 	}
 
@@ -2760,7 +2761,7 @@ public:
 		const uint32_t width = pSwapChain->mDesc.mWidth;
 		const uint32_t height = pSwapChain->mDesc.mHeight;
 		const float aspectRatioInv = (float)height / width;
-		const uint32_t frameIdx = gFrameCount % gImageCount;
+		const uint32_t frameIdx = (gRenderFrameIdx + 1) % gImageCount;
 		PerFrameData* currentFrame = &gPerFrame[frameIdx];
 
 		mat4 cameraModel = mat4::scale(vec3(SCENE_SCALE));

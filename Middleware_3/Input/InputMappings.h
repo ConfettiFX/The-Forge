@@ -1,3 +1,5 @@
+#ifndef INPUT_MAPPING_H
+#define INPUT_MAPPING_H
 #pragma once
 
 
@@ -105,11 +107,11 @@ static KeyMappingDescription gUserKeys[] = {
 	//Triggers
 	//Keyboard
 	{ KEY_LEFT_TRIGGER, GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS , 1, gainput::KeySpace },{ },{ },{ } } },
-	{ KEY_RIGHT_TRIGGER,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS  , 1, gainput::KeyE },{},{},{} } },
+	{ KEY_RIGHT_TRIGGER,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS  , 1, gainput::KeyE },{},{},{} }  },
 
 	//Bumbers
 	//Keyboard/Mouse
-	{ KEY_LEFT_BUMPER, GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS , 1, gainput::KeyShiftL },{},{},{} } },
+	{ KEY_LEFT_BUMPER, GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS , 1, gainput::KeyShiftL },{},{},{} }  },
 	{ KEY_RIGHT_BUMPER,  GainputDeviceType::GAINPUT_MOUSE, 1,{ { INPUT_X_AXIS  , 1, gainput::MouseButton1 },{},{},{} } },
 	
 	//STICKS
@@ -117,7 +119,7 @@ static KeyMappingDescription gUserKeys[] = {
 	{ KEY_LEFT_STICK, GainputDeviceType::GAINPUT_KEYBOARD, 4,{ { INPUT_X_AXIS , 1, gainput::KeyD },{ INPUT_X_AXIS , -1, gainput::KeyA },{ INPUT_Y_AXIS , 1, gainput::KeyW },{ INPUT_Y_AXIS , -1, gainput::KeyS } } },
 	
 	{ KEY_UI_MOVE,  GainputDeviceType::GAINPUT_MOUSE, 2,{ { INPUT_X_AXIS , 1, gainput::MouseAxisX },{ INPUT_Y_AXIS , 1, gainput::MouseAxisY },{},{} } },
-	{ KEY_RIGHT_STICK,  GainputDeviceType::GAINPUT_RAW_MOUSE, 2,{ { INPUT_X_AXIS , 1, gainput::MouseAxisX },{ INPUT_Y_AXIS , 1, gainput::MouseAxisY },{},{} } },
+	{ KEY_RIGHT_STICK,  GainputDeviceType::GAINPUT_RAW_MOUSE, 2,{ { INPUT_X_AXIS , 1, gainput::MouseAxisX },{ INPUT_Y_AXIS , 1, gainput::MouseAxisY },{},{} }},
 	
 	//TOUCH
 	{ KEY_RIGHT_STICK,  GainputDeviceType::GAINPUT_TOUCH, 2,{ { INPUT_X_AXIS , 1, gainput::Touch1X },{ INPUT_Y_AXIS , 1, gainput::Touch1Y },{},{} } },
@@ -183,3 +185,57 @@ static KeyMappingDescription gUserKeys[] = {
 	{ KEY_CHAR_Y,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyY },{},{},{} } },
 	{ KEY_CHAR_Z,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyZ },{},{},{} } }
 };
+
+
+//TODO: Add callbacks to mappings as Actions
+//this will unify iOS as joysticks are virtual and can be mapped to any finger.
+//TODO: Separate per device for simpler GetButtonData
+static KeyMappingDescription gXboxMappings[] = {
+
+	//Triggers
+	//Keyboard
+	{ KEY_LEFT_TRIGGER, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonAxis4 },{},{},{} } },
+	{ KEY_RIGHT_TRIGGER,  GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS  , 1, gainput::PadButtonAxis5 },{},{},{} } },
+
+	//Bumbers
+	//Keyboard/Mouse
+	{ KEY_LEFT_BUMPER, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonL1 },{},{},{} } },
+	{ KEY_RIGHT_BUMPER,  GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS  , 1, gainput::PadButtonR1 },{},{},{} } },
+
+	//STICKS
+	//Keyboard/Mouse
+	{ KEY_LEFT_STICK, GainputDeviceType::GAINPUT_GAMEPAD, 2,{ { INPUT_X_AXIS , 1, gainput::PadButtonLeftStickX },{ INPUT_Y_AXIS , 1, gainput::PadButtonLeftStickY },{},{} } },
+	{ KEY_RIGHT_STICK, GainputDeviceType::GAINPUT_GAMEPAD, 2,{ { INPUT_X_AXIS , 1, gainput::PadButtonRightStickX },{ INPUT_Y_AXIS , -1, gainput::PadButtonRightStickY },{},{} } },
+
+	//DPAD
+	{ KEY_UI_MOVE,  GainputDeviceType::GAINPUT_GAMEPAD, 4,{ { INPUT_X_AXIS , 1, gainput::PadButtonRight },{ INPUT_X_AXIS , -1, gainput::PadButtonLeft },{ INPUT_Y_AXIS , 1, gainput::PadButtonUp },{ INPUT_Y_AXIS , -1, gainput::PadButtonDown } } },
+	
+	////PAD
+	////KEYBOARD
+	//{ KEY_PAD_UP, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonUp },{},{},{} }  },
+	//{ KEY_PAD_DOWN,  GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS  ,-1, gainput::PadButtonDown },{},{},{} } },
+	//{ KEY_PAD_LEFT, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , -1, gainput::PadButtonLeft },{},{},{} }  },
+	//{ KEY_PAD_RIGHT,  GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS  , 1, gainput::PadButtonRight },{},{},{} } },
+
+	//this will map to x y buttons
+	{ KEY_BUTTON_X, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonX },{},{},{} } },
+	{ KEY_BUTTON_Y, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonY },{},{},{} } },
+
+	////this will map to L3 R3
+	{ KEY_LEFT_STICK_BUTTON, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonL3 },{},{},{} } },
+	{ KEY_RIGHT_STICK_BUTTON, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonR3},{},{},{} } },
+
+	//CONFIRM
+	//MOUSE
+	{ KEY_CONFIRM, GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS , 1, gainput::PadButtonA },{},{},{} } },
+
+	//CANCEL
+	//Keyboard
+	{ KEY_CANCEL,  GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS  , 1, gainput::PadButtonB },{},{},{} }  },
+
+	//MENU
+	//Keyboard
+	{ KEY_MENU,  GainputDeviceType::GAINPUT_GAMEPAD, 1,{ { INPUT_X_AXIS  , 1, gainput::PadButtonStart },{},{},{} } }
+};
+
+#endif

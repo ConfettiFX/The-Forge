@@ -48,7 +48,7 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
 }
 
 // Pixel shader for opaque geometry
-fragment [[early_fragment_tests]] float4 stageMain(VSOutput input                        [[stage_in]],
+[[early_fragment_tests]] fragment float4 stageMain(VSOutput input                        [[stage_in]],
                                                    constant PerBatchUniforms& perBatch   [[buffer(2)]])
 {
     // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture

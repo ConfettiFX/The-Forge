@@ -423,15 +423,15 @@ InputMap::GetUserButtonName(UserButtonId userButton, char* buffer, size_t buffer
 {
 	const UserButton* ub = GetUserButton(userButton);
 	GAINPUT_ASSERT(ub);
-	for (MappedInputList::const_iterator it = ub->inputs.begin();
-			it != ub->inputs.end();
-			++it)
-	{
-		const MappedInput& mi = *it;
-		const InputDevice* device = manager_.GetDevice(mi.device);
-		GAINPUT_ASSERT(device);
-		return device->GetButtonName(mi.deviceButton, buffer, bufferLength);
-	}
+    MappedInputList::const_iterator it = ub->inputs.begin();
+    if(it != ub->inputs.end())
+    {
+        const MappedInput& mi = *it;
+        const InputDevice* device = manager_.GetDevice(mi.device);
+        GAINPUT_ASSERT(device);
+        return device->GetButtonName(mi.deviceButton, buffer, bufferLength);
+    }
+    
 	return 0;
 }
 
