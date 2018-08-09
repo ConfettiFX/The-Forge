@@ -1,0 +1,2277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <Extern href="stdidcmd.h"/>
+  <!-- #include "stdidcmd.h" -->
+  <Extern href="vsshlids.h"/>
+  <!-- #include "vsshlids.h" -->
+  <Extern href="virtkeys.h"/>
+  <!-- #include "virtkeys.h" -->
+  <Extern href="VSDbgCmd.h"/>
+  <!-- #include "VSDbgCmd.h" -->
+  <!--  -->
+  <!-- #define _CTC_GUIDS_ -->
+  <Extern href="VsDebugGuids.h"/>
+  <!-- #include "VsDebugGuids.h" -->
+  <!--  -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!-- // CMDS_SECTION -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!--  -->
+  <Commands package="guidVSDebugPackage">
+    <!-- CMDS_SECTION guidVSDebugPackage -->
+    <!--  -->
+    <Menus>
+      <!--     MENUS_BEGIN -->
+      <!--         // Menu                                          Group                                            Priority  Type                     Name             Text -->
+      <!--         // ************************************************************************************************************************************************************- -->
+      <!--  -->
+      <!--         // menus -->
+      <Menu guid="guidVSDebugGroup" id="IDM_DEBUG_MENU" priority="0x0300" type="Menu">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_BUILDDEBUGRUN"/>
+        <Strings>
+          <ButtonText>Debug</ButtonText>
+          <CommandName>&amp;Debug</CommandName>
+        </Strings>
+      </Menu>
+      <!--  -->
+      <!--         // submenus -->
+      <Menu guid="guidVSDebugGroup" id="IDM_DEBUG_WINDOWS" priority="0x0100" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_WINDOWS"/>
+        <Strings>
+          <ButtonText>Windows</ButtonText>
+          <CommandName>&amp;Windows</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR_WINDOWS" priority="0x0100" type="MenuController">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WINDOWS"/>
+        <Strings>
+          <ButtonText>&amp;Windows</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_DEBUGGER_CONTEXT_MENUS" priority="0x0030" type="Context">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_MENU_CONTEXTMENUS"/>
+        <CommandFlag>NotInTBList</CommandFlag>
+        <CommandFlag>NoCustomize</CommandFlag>
+        <Strings>
+          <ButtonText>Debugger Context Menus</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_STEPINTOSPECIFIC" priority="0x0100" type="Menu">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+        <Strings>
+          <ButtonText>Step Into Specific</ButtonText>
+          <CommandName>Step Into Speci&amp;fic</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_STEPINTOSPECIFIC_CONTEXT" priority="0x0100" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Step Into Specific</ButtonText>
+          <CommandName>Step Into Speci&amp;fic</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_NEW_LIST" priority="0x0100" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_NEW"/>
+        <Strings>
+          <ButtonText>New</ButtonText>
+          <CommandName>New</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_COLUMN_LIST" priority="0x0900" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMNS"/>
+        <Strings>
+          <ButtonText>Show Columns</ButtonText>
+          <CommandName>Show Columns</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_SORT_LIST" priority="0xa00" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT"/>
+        <Strings>
+          <ButtonText>Sort By:</ButtonText>
+          <CommandName>S&amp;ort by</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOWS" priority="0x0000" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_DISASM"/>
+        <Strings>
+          <ButtonText>&amp;Memory</ButtonText>
+        </Strings>
+      </Menu>
+      <!-- Make conditional for the items in this block -->
+      <!-- #if !defined(SupportsOneWatchWindowOnly) -->
+      <Menu Condition="!defined(SupportsOneWatchWindowOnly)" guid="guidVSDebugGroup" id="IDM_WATCH_WINDOWS" priority="0x0000" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT"/>
+        <Strings>
+          <ButtonText>&amp;Watch</ButtonText>
+        </Strings>
+      </Menu>
+      <!-- #endif         -->
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINT_SUBMENU" priority="0x0500" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_VS_CODEWIN_DEBUG_BP"/>
+        <Strings>
+          <ButtonText>&amp;Breakpoint</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_NEW_BREAKPOINT_SUBMENU" priority="0x0300" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS"/>
+        <Strings>
+          <ButtonText>New &amp;Breakpoint</ButtonText>
+          <CommandName>New &amp;Breakpoint</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_DISASM_BREAKPOINT_SUBMENU" priority="0x0500" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_DISASM_BREAKPOINTS"/>
+        <Strings>
+          <ButtonText>&amp;Breakpoint</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_CALLSTACK_BREAKPOINT_SUBMENU" priority="0x0500" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_BREAKPOINTS"/>
+        <Strings>
+          <ButtonText>&amp;Breakpoint</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="cmdidThreadIpMarkersSwitchContext" priority="0x0500" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_CONTEXT"/>
+        <Strings>
+          <ButtonText>Switch To</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="cmdidThreadIpMarkersFlag" priority="0x0500" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_CONTEXT"/>
+        <Strings>
+          <ButtonText>Flag</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="cmdidThreadIpMarkersUnflag" priority="0x0500" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_CONTEXT"/>
+        <Strings>
+          <ButtonText>Unflag</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_OTHER_DEBUG_TARGETS_SUBMENU" priority="0x0E80" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+        <Strings>
+          <ButtonText>Ot&amp;her Debug Targets</ButtonText>
+        </Strings>
+      </Menu>
+      <!--  -->
+      <!--         // toolbars -->
+      <!--         // NOTE: priority for toolbars indicates row placement.  0 is third row (after menu and standard toolbar), 1 is fourth row, etc. -->
+      <Menu guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR" priority="0x0000" type="Toolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR"/>
+        <CommandFlag>DefaultDocked</CommandFlag>
+        <Strings>
+          <ButtonText>Debug</ButtonText>
+          <CommandName>Debug</CommandName>
+        </Strings>
+      </Menu>
+      <!-- Make conditional for the items in this block -->
+      <!-- #if !defined(No_DebugLocationToolbar)         -->
+      <Menu Condition="!defined(No_DebugLocationToolbar)" guid="guidVSDebugGroup" id="IDM_DEBUG_CONTEXT_TOOLBAR" priority="0x0001" type="Toolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_CONTEXT_TOOLBAR"/>
+        <CommandFlag>DefaultDocked</CommandFlag>
+        <Strings>
+          <ButtonText>Debug Location</ButtonText>
+          <CommandName>Debug Location</CommandName>
+        </Strings>
+      </Menu>
+      <!-- #endif         -->
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR" priority="0x0000" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+        <Strings>
+          <ButtonText>Breakpoints Window</ButtonText>
+          <CommandName>Breakpoints Window</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MODULES_WINDOW_TOOLBAR" priority="0x0000" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_WINDOW_TOOLBAR"/>
+        <Strings>
+          <ButtonText>Modules Window</ButtonText>
+          <CommandName>Modules Window</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR1" priority="0x0100" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR1"/>
+        <Strings>
+          <ButtonText>Watch 1 Toolbar</ButtonText>
+          <CommandName>Watch 1 Toolbar</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR2" priority="0x0200" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR2"/>
+        <Strings>
+          <ButtonText>Watch 2 Toolbar</ButtonText>
+          <CommandName>Watch 2 Toolbar</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR3" priority="0x0300" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR3"/>
+        <Strings>
+          <ButtonText>Watch 3 Toolbar</ButtonText>
+          <CommandName>Watch 3 Toolbar</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR4" priority="0x0400" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR4"/>
+        <Strings>
+          <ButtonText>Watch 4 Toolbar</ButtonText>
+          <CommandName>Watch 4 Toolbar</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_LOCALS_WINDOW_TOOLBAR" priority="0x0500" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_WINDOW_TOOLBAR"/>
+        <Strings>
+          <ButtonText>Locals Toolbar</ButtonText>
+          <CommandName>Locals Toolbar</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_AUTOS_WINDOW_TOOLBAR" priority="0x0600" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_WINDOW_TOOLBAR"/>
+        <Strings>
+          <ButtonText>Autos Toolbar</ButtonText>
+          <CommandName>Autos Toolbar</CommandName>
+        </Strings>
+      </Menu>
+
+      <Menu guid="guidVSDebugGroup" id="IDM_DISASM_WINDOW_TOOLBAR" priority="0x0000" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_WINDOW_TOOLBAR"/>
+        <Strings>
+          <ButtonText>Disassembly Window</ButtonText>
+          <CommandName>Disassembly Window</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR1" priority="0x0100" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR1"/>
+        <Strings>
+          <ButtonText>Memory 1</ButtonText>
+          <CommandName>Memory &amp;1</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR2" priority="0x0200" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR2"/>
+        <Strings>
+          <ButtonText>Memory 2</ButtonText>
+          <CommandName>Memory &amp;2</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR3" priority="0x0300" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR3"/>
+        <Strings>
+          <ButtonText>Memory 3</ButtonText>
+          <CommandName>Memory &amp;3</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR4" priority="0x0400" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR4"/>
+        <Strings>
+          <ButtonText>Memory 4</ButtonText>
+          <CommandName>Memory &amp;4</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR" priority="0x0000" type="ToolWindowToolbar">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR"/>
+        <Strings>
+          <ButtonText>Processes Window</ButtonText>
+          <CommandName>Processes Window</CommandName>
+        </Strings>
+      </Menu>
+      <!--  -->
+      <!--         // context menus         -->
+      <!--         // NOTE: all context menus should be placed into the group: guidVSDebugGroup:IDG_DEBUGGER_CONTEXT_MENUS -->
+      <!--         // -->
+      <Menu guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT" priority="0x0100" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Autos Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINT_CONTEXT" priority="0x0200" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Breakpoint</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_LOADSYMBOLS_CONTEXT" priority="0x0250" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Load Symbols From</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_SYMBOLINCLUDELIST_CONTEXT" priority="0x0275" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Symbol Include List</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_SYMBOLEXCLUDELIST_CONTEXT" priority="0x0275" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Symbol Exclude List</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_CONTEXT" priority="0x0300" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Breakpoints Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT" priority="0x0400" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Call Stack Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_THREADTIP_CONTEXT" priority="0x0450" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Thread Tip Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_DATATIP_CONTEXT" priority="0x0500" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Data Tip Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_DISASM_CONTEXT" priority="0x0600" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Disassembly Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT" priority="0x0700" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Locals Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT" priority="0x0800" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Memory Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_MODULES_CONTEXT" priority="0x0900" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Modules Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_OUTPUT_CONTEXT" priority="0x0A00" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Output Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_CONTEXT" priority="0x0B00" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Processes Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_REGISTERS_CONTEXT" priority="0x0D00" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Registers Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_THREADS_CONTEXT" priority="0x0E00" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Threads Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT" priority="0x0F00" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Watch Window</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_SCRIPT_PROJECT_CONTEXT" priority="0x1000" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Script Project</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_THREAD_IP_MARKER_CONTEXT" priority="0x2000" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Thread IP Marker</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidVSDebugGroup" id="IDM_THREAD_IP_MARKERS_CONTEXT" priority="0x3000" type="Context">
+        <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS"/>
+        <Strings>
+          <ButtonText>Thread IP Markers</ButtonText>
+        </Strings>
+      </Menu>
+      <!--  -->
+      <!--         // hidden commands -->
+      <!--         // NOTE: this menu is for commands that shouldn't appear anywhere but need to be associated with a menu -->
+      <Menu guid="guidVSDebugGroup" id="IDM_HIDDEN_COMMANDS" priority="0x0000" type="Menu">
+        <Parent guid="guidVSDebugGroup" id="0"/>
+        <Strings>
+          <ButtonText>Hidden Commands</ButtonText>
+        </Strings>
+      </Menu>
+      <!--  -->
+    </Menus>
+    <!--     MENUS_END -->
+    <!--  -->
+    <Groups>
+      <!--     NEWGROUPS_BEGIN -->
+      <!--         // Group                                             Menu / Parent Group                 Priority -->
+      <!--         // **************************************************************************************************************************- -->
+      <!--  -->
+      <!--         // menu groups -->
+      <!--         // **********- -->
+      <!--         // Debug menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_WINDOWS" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_EXECUTION" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_INTELLITRACE_STEP" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_SINGLEPROC_EXECUTION" priority="0x0310">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_STEPPING" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS" priority="0x0700">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <!-- Keep crashdump and debugger options as the last two groupings in the Debug menu. -->
+      <Group guid="guidVSDebugGroup" id="IDG_CRASHDUMP" priority="0xFE00">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUGGER_OPTIONS" priority="0xFF00">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU" />
+      </Group>
+      <!--         // context menu commands that are customizable (can have keystroke or put on a menu or toolbar) must also be -->
+      <!--         // associated with a main menu, but these commands won't be visible in the main menu -->
+      <!--         // NOTE: these command should all be marked with COMMANDWELLONLY -->
+      <Group guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS" priority="0xE00">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <!--         // command window commands must be associated with a main menu, but these commands won't be visible in the menu -->
+      <!--         // NOTE: these commands should all be marked with COMMANDWELLONLY -->
+      <Group guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW" priority="0xF00">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+      <!--  -->
+      <!--         // submenu groups -->
+      <!--         // ************** -->
+      <!--         // Debug Windows submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_GENERAL" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_CONTEXT" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_DISASM" priority="0x0700">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_CONSOLE" priority="0x0900">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_WINDOWS"/>
+      </Group>
+      <!--  -->
+      <!--         // Memory Windows submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_WINDOWS" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOWS"/>
+      </Group>
+      <!--  -->
+      <!-- Make conditional for the items in this block -->
+      <!-- #if !defined(SupportsOneWatchWindowOnly) -->
+      <!--         // Watch Windows submenu groups -->
+      <Group Condition="!defined(SupportsOneWatchWindowOnly)" guid="guidVSDebugGroup" id="IDG_WATCH_WINDOWS" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOWS"/>
+      </Group>
+      <!-- #endif -->
+      <!--  -->
+      <!--         // Other debug targets submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_OTHER_DEBUG_TARGETS_SUBMENU" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_OTHER_DEBUG_TARGETS_SUBMENU"/>
+      </Group>
+      <!--          -->
+      <!--         // Breakpoint submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <!--          -->
+      <!--         // New Breakpoint submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_NEW_BREAKPOINT_SUBMENU" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_NEW_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <!--          -->
+      <!--         // Step Into Specific submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_STEPINTOSPECIFIC" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_STEPINTOSPECIFIC"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_STEPINTOSPECIFIC" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_STEPINTOSPECIFIC_CONTEXT"/>
+      </Group>
+      <!--  -->
+      <!--         // Breakpoints Window New submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_NEW_LIST" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_NEW_LIST"/>
+      </Group>
+      <!--  -->
+      <!--         // Breakpoints Window Columns submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+      </Group>
+      <!--          -->
+      <!--         // Debugger context menus submenu group -->
+      <!--         // All debugger context menus should be placed into this group. -->
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUGGER_CONTEXT_MENUS" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUGGER_CONTEXT_MENUS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_EXPORT" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id ="IDM_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_NONE" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_SORT_LIST"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST" priority="0x0200">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_SORT_LIST"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_DIRECTION" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_SORT_LIST" />
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SET_FILTER" priority="0x0900">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT" priority="0x0A00">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_EXPORT" priority="0x0900">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_CONTEXT"/>
+      </Group>
+      <!--          -->
+      <!--         -->
+      <!--  -->
+      <!--         // toolbar groups -->
+      <!--         // ************** -->
+      <!--         // Debug toolbar groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_EXECUTION" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_STEPPING" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_INTELLITRACE_TOOLBAR_STEP" priority="0x0301">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WATCH" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WINDOWS" priority="0x0700">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MODULES_WINDOW_TOOLBAR_FILTER" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_WINDOW_TOOLBAR"/>
+      </Group>
+      <!--  -->
+      <!--         // Debug toolbar Windows submenu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_GENERAL" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_CONTEXT" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR_WINDOWS"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_DISASM" priority="0x0700">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR_WINDOWS"/>
+      </Group>
+      <!--  -->
+      <!--         // Debug context toolbar groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_CONTEXT_TOOLBAR"/>
+      </Group>
+      <!--  -->
+      <!--         // Breakpoints window toolbar groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_NEW" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_DELETE" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_ALL" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_IMPORT_EXPORT" priority="0x0540">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_UNDO_REDO" priority="0x0580">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_VIEW" priority="0x0600">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_EDIT" priority="0x0700">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMNS" priority="0x0800">
+        <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_TOOLBAR"/>
+      </Group>
+
+      <!--         // Paned window (watch, locals, autos) toolbar groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL1" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR1"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL2" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR2"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL3" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR3"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL4" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_WINDOW_TOOLBAR4"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_LOCALS_WINDOW_REAL_FUNC_EVAL" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_WINDOW_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_AUTOS_WINDOW_REAL_FUNC_EVAL" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_WINDOW_TOOLBAR"/>
+      </Group>
+
+      <!--          -->
+      <!--         // Disassembly window toolbar groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DISASM_WINDOW_TOOLBAR" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_WINDOW_TOOLBAR"/>
+      </Group>
+      <!--  -->
+      <!--         // Memory window toolbars ** we need a separate instance for each memory window. -->
+      <!--         // Memory window 1 -->
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION1" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR1"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS1" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR1"/>
+      </Group>
+      <!--  -->
+      <!--         // Memory window 2 -->
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION2" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR2"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS2" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR2"/>
+      </Group>
+      <!--  -->
+      <!--         // Memory window 3 -->
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION3" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR3"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS3" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR3"/>
+      </Group>
+      <!--  -->
+      <!--         // Memory window 4 -->
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION4" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR4"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS4" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_WINDOW_TOOLBAR4"/>
+      </Group>
+      <!--          -->
+      <!--         // Attached Processes Window toolbar groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_STEPPING" priority="0x380">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL2" priority="0x390">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR"/>
+      </Group>
+      <!--         // The following line is commented out until the parallel debugging functionality is enabled -->
+      <!--         //guidVSDebugGroup:IDG_ATTACHED_PROCS_ADDBP,          guidVSDebugGroup:IDM_ATTACHED_PROCS_TOOLBAR,      0x400; -->
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_ATTACH" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_TOOLBAR"/>
+      </Group>
+      <!--  -->
+      <!--         // context menu groups -->
+      <!--         // ******************- -->
+      <!--         // Watch context menu groups -->
+      <!--         // NOTE: "variables" groups are common to This, Watch, Autos, and Locals.  They are defined -->
+      <!--         // on the watch menu, but also placed on other menus (see CMDPLACEMENT section). -->
+      <Group guid="guidSHLMainMenu" id="IDG_VS_TOOLSB_CUTCOPY" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_EDIT" priority="0x0200">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_DISPLAY" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_VARIABLES" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_VARIABLE_NAVIGATION" priority="0x0480">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS_SETTINGS" priority="0x800">
+        <Parent guid="guidVSDebugGroup" id="IDM_WATCH_CONTEXT"/>
+      </Group>
+
+      <!--  -->
+      <!--         // Locals context menu groups -->
+      <Group guid="guidSHLMainMenu" id="IDG_VS_TOOLSB_CUTCOPY" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_EDIT" priority="0x0200">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_DISPLAY" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_VARIABLES" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_VARIABLE_NAVIGATION" priority="0x0480">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_LOCALS_WINDOW_REAL_FUNC_EVAL" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS_SETTINGS" priority="0x800">
+        <Parent guid="guidVSDebugGroup" id="IDM_LOCALS_CONTEXT"/>
+      </Group>
+
+      <!--  -->
+      <!--         // Autos context menu groups -->
+      <Group guid="guidSHLMainMenu" id="IDG_VS_TOOLSB_CUTCOPY" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_EDIT" priority="0x0200">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_DISPLAY" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_VARIABLES" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_VARIABLE_NAVIGATION" priority="0x0480">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_AUTOS_WINDOW_REAL_FUNC_EVAL" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS_SETTINGS" priority="0x800">
+        <Parent guid="guidVSDebugGroup" id="IDM_AUTOS_CONTEXT"/>
+      </Group>
+      <!--  -->
+      <!--         // Threads context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_COPY" priority="0x200">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREADS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DEBUG_DISPLAY" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREADS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_CONTROL" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREADS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_FLAGGING" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREADS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKER_CONTEXT" priority="0x600">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREAD_IP_MARKER_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_CONTEXT" priority="0x600">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREAD_IP_MARKERS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_SWITCHCONTEXT" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="cmdidThreadIpMarkersSwitchContext"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_FLAG" priority="0x800">
+        <Parent guid="guidVSDebugGroup" id="cmdidThreadIpMarkersFlag"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_UNFLAG" priority="0x900">
+        <Parent guid="guidVSDebugGroup" id="cmdidThreadIpMarkersUnflag"/>
+      </Group>
+      <!--  -->
+      <!--         // Call Stack context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_COPY" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_BREAKPOINTS" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_OPTIONS" priority="0x600">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_SYMBOLS" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_SYMBOLS_SETTINGS" priority="0x750">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY" priority="0x800">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_EXPORT" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_CALLSTACK_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <!--          -->
+      <!--         // Datatip context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DATATIP_CLIPBOARD" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DATATIP_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH" priority="0x200">
+        <Parent guid="guidVSDebugGroup" id="IDM_DATATIP_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DATATIP_SYMBOLS" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DATATIP_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DATATIP_SYMBOLS_SETTINGS" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_DATATIP_CONTEXT"/>
+      </Group>
+      <!--         //guidVSDebugGroup:IDG_DATATIP_VISIBILITY,    guidVSDebugGroup:IDM_DATATIP_CONTEXT, 0x300; -->
+      <!--  -->
+      <!--         // Threadtip context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_THREADTIP_CLIPBOARD" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREADTIP_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_THREADTIP_WATCH" priority="0x200">
+        <Parent guid="guidVSDebugGroup" id="IDM_THREADTIP_CONTEXT"/>
+      </Group>
+      <!--  -->
+      <!--         // Memory context menu groups.  The memory context menu is re-used for each instance of the memory window. -->
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_INT_FORMAT" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_FLT_FORMAT" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_FORMAT" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_TEXT" priority="0x600">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_MISC" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MEMORY_TOOLBAR" priority="0x800">
+        <Parent guid="guidVSDebugGroup" id="IDM_MEMORY_CONTEXT"/>
+      </Group>
+      <!--  -->
+      <!--         // Registers context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_REGISTERS_EDIT" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_REGISTERS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_REGISTERS_GROUPS" priority="0x0200">
+        <Parent guid="guidVSDebugGroup" id="IDM_REGISTERS_CONTEXT"/>
+      </Group>
+      <!--  -->
+      <!--         // Modules context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_MODULES_COPY" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MODULES_JMC" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MODULES_SYMBOLS" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MODULES_SYMBOLS_SETTINGS" priority="0x600">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_MODULES_DISPLAY" priority="0x700">
+        <Parent guid="guidVSDebugGroup" id="IDM_MODULES_CONTEXT"/>
+      </Group>
+      <!--          -->
+      <!--         // Disassembly context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_DISASM_NAVIGATION" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DISASM_BREAKPOINTS" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DISASM_EXECUTION" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE" priority="0x0100">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY" priority="0x0300">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_BREAKPOINT_EXPORT" priority="0x0400">
+        <Parent guid="guidVSDebugGroup" id="IDM_DISASM_BREAKPOINT_SUBMENU"/>
+      </Group>
+      <!--          -->
+      <!--  -->
+      <!--         // Attached Processes context menu groups -->
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COPY" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL" priority="0x200">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL2" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_CONTEXT"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_DETACHONSTOP" priority="0x400">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_CONTEXT"/>
+      </Group>
+      <!--         // The following line is commented out until the parallel debugging functionality is enabled -->
+      <!--         //guidVSDebugGroup:IDG_ATTACHED_PROCS_ADDBP,          guidVSDebugGroup:IDM_ATTACHED_PROCS_CONTEXT, 0x400; -->
+      <Group guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_ATTACH" priority="0x500">
+        <Parent guid="guidVSDebugGroup" id="IDM_ATTACHED_PROCS_CONTEXT"/>
+      </Group>
+      <!--          -->
+      <!--         // Output Window context menu groups -->
+      <!--         // the group is placed on the Output window context menu -->
+      <!--         // it is also placed on a debugger context menu, which appears on the toolbar for customizing context menus -->
+      <Group guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT" priority="0x600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_RESULTSLIST"/>
+      </Group>
+      <Group guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_OUTPUT_CONTEXT"/>
+      </Group>
+      <!--          -->
+      <!--         // Script Project context menu groups -->
+      <Group guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_OPEN" priority="0x100">
+        <Parent guid="guidVSDebugGroup" id="IDM_SCRIPT_PROJECT_CONTEXT"/>
+      </Group>
+      <Group guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_PROPERTIES" priority="0x200">
+        <Parent guid="guidVSDebugGroup" id="IDM_SCRIPT_PROJECT_CONTEXT"/>
+      </Group>
+      <!--          -->
+      <!--         // hidden commands group -->
+      <!--         // NOTE: this is for special commands that shouldn't be seen in the menus but need to be associated with the package -->
+      <Group guid="guidVSDebugGroup" id="IDG_HIDDEN_COMMANDS" priority="0x300">
+        <Parent guid="guidVSDebugGroup" id="IDM_HIDDEN_COMMANDS"/>
+      </Group>
+      <!--         // breakpoint menu in the editor context menu -->
+      <Group guid="guidVSDebugGroup" id="IDG_VS_CODEWIN_DEBUG_BP" priority="0x0250">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN"/>
+      </Group>
+      <!--  -->
+    </Groups>
+    <!--     NEWGROUPS_END -->
+    <!--  -->
+  </Commands>
+  <!-- CMDS_END -->
+  <!--  -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!-- // CMDPLACEMENT_SECTION -->
+  <!-- // -->
+  <!-- // This sections defines where the commands will be placed if not just in -->
+  <!-- // their primary groups. -->
+  <!-- // -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!--  -->
+  <CommandPlacements>
+    <!-- CMDPLACEMENT_SECTION -->
+    <!--     // Command                               Group                                             Priority -->
+    <!--     // ******************************************************************************************************************** -->
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidStart" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStartNoDebug" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidReattach" priority="0x0E50">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidPause" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStop" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStopEvaluatingExpression" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDetachDebugger" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidTerminateAll" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRestart" priority="0x0a00">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidApplyCodeChanges" priority="0x0B00">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStopApplyCodeChanges" priority="0x0D00">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDebugProcesses" priority="0x0E00">
+      <Parent guid="guidVSDebugGroup" id="IDG_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidLaunchAppx" priority="0x100">
+      <Parent guid="guidVSDebugGroup" id="IDG_OTHER_DEBUG_TARGETS_SUBMENU"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidTriggerAppPrefetch" priority="0x300">
+      <Parent guid="guidVSDebugGroup" id="IDG_OTHER_DEBUG_TARGETS_SUBMENU"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAppPrelaunch" priority="0x500">
+      <Parent guid="guidVSDebugGroup" id="IDG_OTHER_DEBUG_TARGETS_SUBMENU"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDebugForAccessibility" priority="0x700">
+      <Parent guid="guidVSDebugGroup" id="IDG_OTHER_DEBUG_TARGETS_SUBMENU"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidStart" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidPause" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStop" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRestart" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_EXECUTION"/>
+    </CommandPlacement>
+    <!--      -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSingleProcStepInto" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_SINGLEPROC_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSingleProcStepOver" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_SINGLEPROC_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSingleProcStepOut" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_SINGLEPROC_EXECUTION"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--  -->
+    <!--     // Note that the icons for ShowNextStatement and SetNextStatement are *correctly* set backwards. -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidShowNextStatement" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStepInto" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStepOver" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStepOut" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSetNextStatement" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRunToCursor" priority="0x0B00">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunThreadsToCursor" priority="0x0C00">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToDisassembly" priority="0x0D00">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunCurrentTileToCursor" priority="0x0E00">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPPING"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidQuickWatch" priority="0x1600">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidToggleBreakpoint" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidClearBreakpoints" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidEnableAllBreakpoints" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDisableAllBreakpoints" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidWriteCrashDump" priority="0x1100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CRASHDUMP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDebuggerOptions" priority="0x2000">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUGGER_OPTIONS"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowShow" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_GENERAL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDebugOutput" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_GENERAL"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidAutosWindow" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidLocalsWindow" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT"/>
+    </CommandPlacement>
+    <!-- Make conditional for the items in this block -->
+    <!-- #if defined(SupportsOneWatchWindowOnly) -->
+    <CommandPlacement Condition="defined(SupportsOneWatchWindowOnly)" guid="guidVSDebugCommand" id="cmdidWatchWindowShowSingle" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT"/>
+    </CommandPlacement>
+    <!-- #endif     -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidImmediateWindow" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_INSPECT"/>
+    </CommandPlacement>
+    <!--      -->
+    <!-- Make conditional for the items in this block -->
+    <!-- #if !defined(SupportsOneWatchWindowOnly) -->
+    <CommandPlacements Condition="!defined(SupportsOneWatchWindowOnly)" >
+      <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchWindowShow1" priority="0x0500">
+        <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOWS"/>
+      </CommandPlacement>
+      <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchWindowShow2" priority="0x0700">
+        <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOWS"/>
+      </CommandPlacement>
+      <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchWindowShow3" priority="0x0900">
+        <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOWS"/>
+      </CommandPlacement>
+      <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchWindowShow4" priority="0x0b00">
+        <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOWS"/>
+      </CommandPlacement>
+    </CommandPlacements>
+    <!-- #endif -->
+    <!--  -->
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCallStack" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidModulesWindowShow" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsWindowShow" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_CONTEXT"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidProcessList" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAppPackageAppsControl" priority="0x0340">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadList" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidToggleCurrentThreadFlag" priority="0x0550">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidToggleFlaggedThreads" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidToggleShowCurrentProcessOnly" priority="0x0650">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStackFrameList" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_CONTEXT_TOOLBAR"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDisasmWindowShow" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_DISASM"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRegisterWindowShow" priority="0x0e00">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_DISASM"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidToggleDisassembly" priority="0x0f00">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_WINDOWS_DISASM"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryWindowShow1" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_WINDOWS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryWindowShow2" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_WINDOWS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryWindowShow3" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_WINDOWS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryWindowShow4" priority="0x0b00">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_WINDOWS"/>
+    </CommandPlacement>
+    <!--      -->
+    <!--     //guidVSStd97:cmdidPaste,                                 guidVSDebugGroup:IDG_WATCH_EDIT,       0x0700; -->
+    <!--                                    -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCollapseWatch" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_VARIABLES"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidElasticColumn" priority="0x0110">
+      <Parent guid="guidVSDebugGroup" id="IDG_VARIABLES"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToSource" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_VARIABLE_NAVIGATION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToDisassembly" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_VARIABLE_NAVIGATION"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowThreadIpIndicators" priority="0x0050">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_CONTROL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidThreadSetFocus" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_CONTROL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidEditValue" priority="0x0150">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_CONTROL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidThreadSuspend" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_CONTROL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidThreadResume" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_CONTROL"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadFlag" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_FLAGGING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadUnflag" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_FLAGGING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadUnflagAll" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_FLAGGING"/>
+    </CommandPlacement>
+    <!-- Thread Ip Marker(s)-->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadIpMarkerSwitchContext" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKER_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadIpMarkerFlagUnflag" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKER_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadIpMarkersSwitchContextFirst" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_SWITCHCONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadIpMarkersFlagFirst" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_FLAG"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidThreadIpMarkersUnflagFirst" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_IP_MARKERS_UNFLAG"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidDisplayRadix" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_DISPLAY"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToSource" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_NAVIGATION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidQuickWatch" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_NAVIGATION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDisasmAddress" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDisasmSource" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDisasmCodeBytes" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDisasmSymbolNames" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDisasmLineNumbers" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowDisasmToolbar" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidShowNextStatement" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRunToCursor" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunThreadsToCursor" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSetNextStatement" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_EXECUTION"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunCurrentTileToCursor" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_EXECUTION"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidInsertBreakpoint" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidInsertTracepoint" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidEnableBreakpoint" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointSettings" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointSettingsCondition" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointSettingsAction" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointConstraints" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidNewFunctionBreakpoint" priority="0x200">
+      <Parent guid="guidVSDebugGroup" id="IDG_NEW_BREAKPOINT_SUBMENU"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidNewDataBreakpoint" priority="0x400">
+      <Parent guid="guidVSDebugGroup" id="IDG_NEW_BREAKPOINT_SUBMENU"/>
+    </CommandPlacement>
+
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchRealFuncEval" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchRealFuncEval1" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL1"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchRealFuncEval2" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL2"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchRealFuncEval3" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL3"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidWatchRealFuncEval4" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_WINDOW_REAL_FUNC_EVAL4"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidLocalsRealFuncEval" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_LOCALS_WINDOW_REAL_FUNC_EVAL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAutosRealFuncEval" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_AUTOS_WINDOW_REAL_FUNC_EVAL"/>
+    </CommandPlacement>
+
+    <!--  -->
+    <!-- Make conditional for the items in this block -->
+    <!-- #ifdef BREAKPOINT_GROUPS -->
+    <CommandPlacement Condition="defined(BREAKPOINT_GROUPS)" guid="guidVSDebugCommand" id="cmdidBreakpointsWindowNewGroup" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_NEW"/>
+    </CommandPlacement>
+    <!-- #endif -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointEditLabels" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointExport" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINT_EXPORT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowExport" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_IMPORT_EXPORT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowExportSelected" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_EXPORT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowImport" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_IMPORT_EXPORT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowUndo" priority="0x0570">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_UNDO_REDO"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowRedo" priority="0x0580">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_UNDO_REDO"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSetFilter" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SET_FILTER"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSetFilterDropDown" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SET_FILTER" />
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowClearSearchFilter" priority="0x0220">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SET_FILTER" />
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowDelete" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_DELETE"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowDeleteAllMatching" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_ALL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowToggleAllMatching" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_ALL"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowGoToSource" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_VIEW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowGoToDisassembly" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_VIEW"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnName" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnCondition" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnHitCount" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnLabel" priority="0x0250">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnConstraints" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnAction" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnLanguage" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnFunction" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnFile" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnAddress" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnData" priority="0x0A00">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowColumnProcess" priority="0x0B00">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_COLUMN_LIST"/>
+    </CommandPlacement>
+
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortAscending" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_DIRECTION" />
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortDescending" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_DIRECTION" />
+    </CommandPlacement>
+
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByNone" priority="0x0080">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_NONE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnName" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnCondition" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnHitCount" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnLabel" priority="0x0250">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnConstraints" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnAction" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnLanguage" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnFunction" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnFile" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnAddress" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnData" priority="0x0A00">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidBreakpointsWindowSortByColumnProcess" priority="0x0B00">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_SORT_LIST"/>
+    </CommandPlacement>
+
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidNewFunctionBreakpoint" priority="0x200">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_NEW_LIST"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidNewDataBreakpoint" priority="0x400">
+      <Parent guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_NEW_LIST"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Memory window cmdid's for ALL instances of the memory window -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowNoData" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_INT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOneByteInt" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_INT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidTwoByteInt" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_INT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidFourByteInt" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_INT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidEightByteInt" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_INT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidFloat" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_FLT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDouble" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_FLT_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidFormatHex" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidFormatSigned" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidFormatUnsigned" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidFormatBigEndian" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_FORMAT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowNoText" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_TEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowAnsiText" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_TEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowUnicodeText" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_TEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_MISC"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidEditValue" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_MISC"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAutoReevaluate" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_MISC"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowToolbar" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_TOOLBAR"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryExpression1" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION1"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAutoReevaluate1" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION1"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryExpression2" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION2"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAutoReevaluate2" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION2"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryExpression3" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION3"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAutoReevaluate3" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION3"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryExpression4" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION4"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAutoReevaluate4" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_EXPRESSION4"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Callstack window cmdid's -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSelectAll" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSetCurrentFrame" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToSource" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToDisassembly" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRunToCursor" priority="0x0900">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunThreadsToCursor" priority="0x0a00">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidUnwindFromException" priority="0x0b00">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunCurrentTileToCursor" priority="0x0c00">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_NAVIGATE"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDisplayRadix" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_OPTIONS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowExternalCode" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_OPTIONS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallstackShowFrameType" priority="0x0480">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_OPTIONS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCrossThreadCallStack" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_OPTIONS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidLoadSymbolsFromCurrentPath" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidLoadSymbolsFromCurrentPath" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidLoadSymbolsFromCurrentPath" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolLoadInfo" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolsIncludeExclude" priority="0x0450">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolLoadInfo" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolLoadInfo" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolsIncludeExclude" priority="0x0450">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolsIncludeExclude" priority="0x0450">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolOptions" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_SYMBOLS_SETTINGS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolOptions" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_SYMBOLS_SETTINGS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolOptions" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_SYMBOLS_SETTINGS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallStackModules" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallStackTypes" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallStackNames" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallStackValues" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallStackLineOffset" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCallStackByteOffset" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_CALLSTACK_DISPLAY"/>
+    </CommandPlacement>
+    <!--      -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_CLIPBOARD"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCopyExpression" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_CLIPBOARD"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCopyValue" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_CLIPBOARD"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidEditValue" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidAddWatch" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAddParallelWatch" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCreateObjectID" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDestroyObjectID" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDisplayRadix" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_DATATIP_WATCH"/>
+    </CommandPlacement>
+    <!--      -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREADTIP_CLIPBOARD"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDisplayRadix" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREADTIP_WATCH"/>
+    </CommandPlacement>
+    <!--      -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnException" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnStepFilter" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnModuleLoad" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnModuleUnload" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnProcessDestroy" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnThreadDestroy" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidOutputOnOutputDebugString" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_OUTPUT_CONTEXT"/>
+    </CommandPlacement>
+    <!--                                                        -->
+    <!--  -->
+    <!--     // commands available in the command window only -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidEvaluateExpression" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidEvaluateStatement" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListCallStack" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListDisassembly" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListMemory" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListThreads" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListModules" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListProcesses" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListRegisters" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidListSource" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSetRadix" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSetCurrentProcess" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSetCurrentThread" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSetCurrentStackFrame" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolPath" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_COMMAND_WINDOW"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // context-menu commands that are not on a main menu, -->
+    <!--     // but that we want to appear in the command well -->
+    <!--     // (so these command can have a key assignment and be put on a main menu or toolbar) -->
+    <!--     // NOTE: these commands must have the COMMANDWELLONLY flag set, or else they will show up -->
+    <!--     // on the main menu. -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidAddWatch" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAddParallelWatch" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidShowNextStatement" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRunToCursor" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunThreadsToCursor" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunCurrentTileToCursor" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSetNextStatement" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStepFilterToggle" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToDisassembly" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStepUnitLine" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStepUnitStatement" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStepUnitInstruction" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStepUnitList" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidNewAddressBreakpoint" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidEnableBreakpoint" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDisplayRadix" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_CUSTOMIZABLE_CONTEXT_MENU_COMMANDS"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // hidden commands -->
+    <!--     // special editor command for clicking in widget margin -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidEditorWidgetClick" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_HIDDEN_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd2K" id="cmdidUpdateMarkerSpans" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_HIDDEN_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidExitDebuggerDeploymentBuild" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_HIDDEN_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidProcessRefreshRequest" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_HIDDEN_COMMANDS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidToolsDebugProcesses" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_HIDDEN_COMMANDS"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // DYNAMICITEMSTART saves us the trouble of listing all the cmdids here.  They must still be reserved, however. -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRegWinGroupFirst" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_REGISTERS_GROUPS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidStepIntoSpecificFirst" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_STEPINTOSPECIFIC"/>
+    </CommandPlacement>
+    <!--                                      -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSelectAll" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidToggleUserCode" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_JMC"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidLoadSymbolsFromCurrentPath" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolLoadInfo" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolsIncludeExclude" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_SYMBOLS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidSymbolOptions" priority="0x0000">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_SYMBOLS_SETTINGS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowAllModules" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_DISPLAY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidModulesWindowFilter" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_WINDOW_TOOLBAR_FILTER"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidModulesWindowClearSearchFilter" priority="0x0220">
+      <Parent guid="guidVSDebugGroup" id="IDG_MODULES_WINDOW_TOOLBAR_FILTER" />
+    </CommandPlacement>
+    <!--      -->
+    <!--  -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSelectAll" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsStartProcess" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsPauseProcess" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsStepIntoProcess" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsStepOverProcess" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsStepOutProcess" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsDetachProcess" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL2"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsTerminateProcess" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_EXECCNTRL2"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsDetachOnStop" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_DETACHONSTOP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDebugProcesses" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_ATTACH"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnName" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnID" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnPath" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnTitle" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnMachine" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnState" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnTransport" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAttachedProcsColumnTransportQualifier" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_ATTACHED_PROCS_COLUMNS"/>
+    </CommandPlacement>
+    <!--      -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryColumns1" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS1"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryColumns2" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS2"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryColumns3" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS3"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidMemoryColumns4" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_MEMORY_COLUMNS4"/>
+    </CommandPlacement>
+    <!--  -->
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDisasmExpression" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DISASM_WINDOW_TOOLBAR"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Debug toolbar Stepping group -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidShowNextStatement" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStepInto" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStepOver" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_STEPPING"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidStepOut" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_STEPPING"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Debug toolbar Watch group -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidDisplayRadix" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidShowThreadIpIndicators" priority="0x0310">
+      <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WATCH"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--  -->
+    <!--     // Watch context menu -->    
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidEditValue" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCopyValue" priority="0x0150">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidAddWatch" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidAddParallelWatch" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidDeleteWatch" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidCreateObjectID" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidDestroyObjectID" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSelectAll" priority="0x0700">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidClearPane" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDG_WATCH_EDIT"/>
+    </CommandPlacement>
+
+    <!--  -->
+    <!--     // Threads context menu                                                   -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSelectAll" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_THREAD_COPY"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_VARIABLES" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDM_THREADS_CONTEXT"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Register window context menu -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidCopy" priority="0x0200">
+      <Parent guid="guidVSDebugGroup" id="IDG_REGISTERS_EDIT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSelectAll" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDG_REGISTERS_EDIT"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Editor context menus -->
+    <CommandPlacement guid="guidVSStd97" id="cmdidAddWatch" priority="0x0100">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidQuickWatch" priority="0x0300">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_WATCH"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidShowNextStatement" priority="0x0100">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidRunToCursor" priority="0x0300">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunThreadsToCursor" priority="0x0400">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidRunCurrentTileToCursor" priority="0x0500">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSStd97" id="cmdidSetNextStatement" priority="0x0600">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugCommand" id="cmdidGoToDisassembly" priority="0x0700">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_CODEWIN_DEBUG_STEP"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_LOAD_SYMBOLS_DEFAULTS" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDM_LOADSYMBOLS_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_SYMBOLS_INCLUDELIST_DEFAULTS" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDM_SYMBOLINCLUDELIST_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_SYMBOLS_EXCLUDELIST_DEFAULTS" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDM_SYMBOLEXCLUDELIST_CONTEXT"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Breakpoint context menu -->
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_ADD_DELETE" priority="0x0100">
+      <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINT_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY" priority="0x0300">
+      <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINT_CONTEXT"/>
+    </CommandPlacement>
+    <!--  -->
+    <!--     // Breakpoints window context menu -->
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_DELETE" priority="0x0500">
+      <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_BREAKPOINTS_WINDOW_VIEW" priority="0x0600">
+      <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_BREAKPOINT_CONTEXT_MODIFY" priority="0x0800">
+      <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINTS_WINDOW_CONTEXT"/>
+    </CommandPlacement>
+    <CommandPlacement guid="guidVSDebugGroup" id="IDG_BREAKPOINT_EXPORT" priority="0x0400">
+      <Parent guid="guidVSDebugGroup" id="IDM_BREAKPOINT_CONTEXT"/>
+    </CommandPlacement>
+    <!--  -->
+  </CommandPlacements>
+  <!-- CMDPLACEMENT_END -->
+  <!--  -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!-- // VISIBILITY_SECTION -->
+  <!-- // -->
+  <!-- // This sections determines when commands will be visible, in a static sense -->
+  <!-- // as opposed to dynamically.  If you put a command in here and give it a -->
+  <!-- // GUID that it should be active for, then the shell checks the GUID provided -->
+  <!-- // versus the current project or document GUIDs that are active.  If the -->
+  <!-- // command appears in this section, but the GUID it should be active for is -->
+  <!-- // not the currently active one, then the command will not show up. -->
+  <!-- // -->
+  <!-- // ** Commands that do not appear in this section are statically visible by -->
+  <!-- //    default -->
+  <!-- // -->
+  <!-- // You should use this section if you don't want specific commands to appear -->
+  <!-- // in the shell unless a specific GUID (such as your package GUID) is active. -->
+  <!-- // -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!--  -->
+  <VisibilityConstraints>
+    <!-- VISIBILITY_SECTION -->
+    <!--     // Command                                          GUID when visible -->
+    <VisibilityItem guid="guidVSDebugGroup" id="IDM_DEBUG_TOOLBAR" context="UICONTEXT_Debugging"/>
+    <VisibilityItem guid="guidVSDebugGroup" id="IDM_DEBUG_CONTEXT_TOOLBAR" context="UICONTEXT_Debugging"/>
+    <VisibilityItem guid="guidVSDebugCommand" id="cmdidLaunchAppx" context="UICONTEXT_OsWindows8OrHigher"/>
+    <!--  -->
+  </VisibilityConstraints>
+  <!-- VISIBILITY_END -->
+  <!--  -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!-- // KEYBINDINGS_SECTION -->
+  <!-- // -->
+  <!-- // This sections defines the keystroke mappings for the commands. -->
+  <!-- // -->
+  <!-- // The Keystate field is done using the following: -->
+  <!-- //    A = Alt, S = Shift, C = Control, W = Windows Key -->
+  <!-- // -->
+  <!-- // Example of the Keystate assignment, if you want a two key combination -->
+  <!-- // of Ctrl-X, Ctrl-Shift-C then the syntax would be : -->
+  <!-- // -->
+  <!-- //  'x':C:'c':CS -->
+  <!-- // -->
+  <!-- ////////////////////////////////////////////////////////////////////////////// -->
+  <!--  -->
+  <KeyBindings>
+    <!-- KEYBINDINGS_SECTION -->
+    <!--     // Command                                      when available   emulation    keystate -->
+    <!--  -->
+    <!--     // debugger windows and dialogs -->
+    <KeyBinding guid="guidVSStd97" id="cmdidAutosWindow" editor="guidVSStd97" key1="V" mod1="Control Alt" key2="A"/>
+    <!--     // NOTE: Both Ctrl+Alt+B and Ctrl+B are bound to cmdidBreakpointsWindowShow -->
+    <!--     // Ctrl+Alt+B comes first, since the first one is the one that shows up in the menus -->
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidBreakpointsWindowShow" editor="guidVSStd97" key1="B" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidCallStack" editor="guidVSStd97" key1="C" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidDisasmWindowShow" editor="guidVSStd97" key1="D" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidImmediateWindow" editor="guidVSStd97" key1="I" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidLocalsWindow" editor="guidVSStd97" key1="V" mod1="Control Alt" key2="L"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidMemoryWindowShow1" editor="guidVSStd97" key1="M" mod1="Control Alt" key2="1"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidMemoryWindowShow2" editor="guidVSStd97" key1="M" mod1="Control Alt" key2="2"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidMemoryWindowShow3" editor="guidVSStd97" key1="M" mod1="Control Alt" key2="3"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidMemoryWindowShow4" editor="guidVSStd97" key1="M" mod1="Control Alt" key2="4"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidReattach" editor="guidVSStd97" key1="P" mod1="Shift Alt"/>
+    
+    <!--  -->
+    <!-- Make conditional for the items in this block -->
+    <!-- #if defined(SupportsOneWatchWindowOnly) -->
+    <KeyBinding Condition="defined(SupportsOneWatchWindowOnly)" guid="guidVSDebugCommand" id="cmdidWatchWindowShowSingle" editor="guidVSStd97" key1="W" mod1="Control Alt"/>
+    <!-- Make conditional for the items in this block -->
+    <!-- #else -->
+    <KeyBinding Condition="!defined(SupportsOneWatchWindowOnly)" guid="guidVSDebugCommand" id="cmdidWatchWindowShow1" editor="guidVSStd97" key1="W" mod1="Control Alt" key2="1"/>
+    <!-- #endif -->
+    <!--      -->
+    <!-- Make conditional for the items in this block -->
+    <!-- #if !defined(SupportsOneWatchWindowOnly) -->
+    <KeyBindings Condition="!defined(SupportsOneWatchWindowOnly)" >
+      <KeyBinding guid="guidVSDebugCommand" id="cmdidWatchWindowShow2" editor="guidVSStd97" key1="W" mod1="Control Alt" key2="2"/>
+      <KeyBinding guid="guidVSDebugCommand" id="cmdidWatchWindowShow3" editor="guidVSStd97" key1="W" mod1="Control Alt" key2="3"/>
+      <KeyBinding guid="guidVSDebugCommand" id="cmdidWatchWindowShow4" editor="guidVSStd97" key1="W" mod1="Control Alt" key2="4"/>
+    </KeyBindings>
+    <!-- #endif     -->
+    <!--      -->
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidModulesWindowShow" editor="guidVSStd97" key1="U" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidAttachedProcsWindowShow" editor="guidVSStd97" key1="Z" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidDebugProcesses" editor="guidVSStd97" key1="P" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidDebugExplorer" editor="guidVSStd97" key1="N" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidRegisterWindowShow" editor="guidVSStd97" key1="G" mod1="Control Alt"/>
+    <!--  -->
+    <!--     // execution control -->
+    <KeyBinding guid="guidVSStd97" id="cmdidStart" editor="guidVSStd97" key1="VK_F5"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidStartNoDebug" editor="guidVSStd97" key1="VK_F5" mod1="Control"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidRestart" editor="guidVSStd97" key1="VK_F5" mod1="Control Shift"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidPause" editor="guidVSStd97" key1="VK_CANCEL" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidStop" editor="guidVSStd97" key1="VK_F5" mod1="Shift"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidStepInto" editor="guidVSStd97" key1="VK_F11"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidStepOut" editor="guidVSStd97" key1="VK_F11" mod1="Shift"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidStepOver" editor="guidVSStd97" key1="VK_F10"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidRunToCursor" editor="guidVSStd97" key1="VK_F10" mod1="Control"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidApplyCodeChanges" editor="guidVSStd97" key1="VK_F10" mod1="Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidSetNextStatement" editor="guidVSStd97" key1="VK_F10" mod1="Control Shift"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidShowNextStatement" editor="guidVSStd97" key1="VK_MULTIPLY" mod1="Alt"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidShowStepIntoSpecificMenu" editor="guidVSStd97" key1="VK_F11" mod1="Alt Shift"/>
+    <!--  -->
+    <!--     // breakpoints -->
+    <KeyBinding guid="guidVSStd97" id="cmdidToggleBreakpoint" editor="guidVSStd97" key1="VK_F9"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidEnableBreakpoint" editor="guidVSStd97" key1="VK_F9" mod1="Control"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidClearBreakpoints" editor="guidVSStd97" key1="VK_F9" mod1="Control Shift"/>
+    <!--  -->
+    <!--     // expression evaluation -->
+    <KeyBinding guid="guidVSStd97" id="cmdidQuickWatch" editor="guidVSStd97" key1="Q" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSStd97" id="cmdidQuickWatch" editor="guidVSStd97" key1="VK_F9" mod1="Shift"/>
+    <!--  -->
+    <!--     // navigation -->
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidToggleDisassembly" editor="guidVSStd97" key1="VK_F11" mod1="Control"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidGoToDisassembly" editor="guidVSStd97" key1="G" mod1="Alt"/>
+    <!--  -->
+    <!--     // breakpoints window -->
+    <!-- Make conditional for the items in this block -->
+    <!-- #ifdef BREAKPOINT_GROUPS -->
+    <KeyBinding Condition="defined(BREAKPOINT_GROUPS)" guid="guidVSDebugCommand" id="cmdidBreakpointsWindowNewGroup" editor="guidVSStd97" key1="VK_F9" mod1="Alt" key2="G"/>
+    <!-- #endif -->
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidBreakpointsWindowDelete" editor="guidVSStd97" key1="VK_F9" mod1="Alt" key2="D"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidBreakpointsWindowGoToSource" editor="guidVSStd97" key1="VK_F9" mod1="Alt" key2="S"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidBreakpointsWindowGoToDisassembly" editor="guidVSStd97" key1="VK_F9" mod1="Alt" key2="A"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidBreakpointEditLabels" editor="guidVSStd97" key1="VK_F9" mod1="Alt" key2="L"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidBreakpointSettingsCondition" editor="guidVSStd97" key1="VK_F9" mod1="Alt" key2="C"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidNewFunctionBreakpoint" editor="guidVSStd97" key1="B" mod1="Control"/>
+    <!--  -->
+    <!--     // debug location toolbar -->
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidProcessList" editor="guidVSStd97" key1="5" mod1="Control"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidThreadList" editor="guidVSStd97" key1="6" mod1="Control"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidStackFrameList" editor="guidVSStd97" key1="7" mod1="Control"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidToggleCurrentThreadFlag" editor="guidVSStd97" key1="8" mod1="Control" />
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidToggleFlaggedThreads" editor="guidVSStd97" key1="9" mod1="Control" />
+    <!--  -->
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidSingleProcStepInto" editor="guidVSStd97" key1="VK_F11" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidSingleProcStepOver" editor="guidVSStd97" key1="VK_F10" mod1="Control Alt"/>
+    <KeyBinding guid="guidVSDebugCommand" id="cmdidSingleProcStepOut" editor="guidVSStd97" key1="VK_F11" mod1="Control Alt Shift"/>
+    <!--  -->
+  </KeyBindings>
+  <!-- KEYBINDINGS_END -->
+</CommandTable>

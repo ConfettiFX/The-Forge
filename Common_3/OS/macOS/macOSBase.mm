@@ -370,38 +370,9 @@ int macOSMain(int argc, const char** argv, IApp* app)
     return TRUE;
 }
 
-//- (void)keyDown:(NSEvent *)event
-//{
-//    unsigned short keyCode = [event keyCode];
-//    updateKeyArray(true, keyCode);
-//}
-//
-//- (void)keyUp:(NSEvent *)event
-//{
-//    unsigned short keyCode = [event keyCode];
-//    updateKeyArray(false, keyCode);
-//
-//    // Handle special case: ESCAPE key
-//    if (keyCode == kVK_Escape)
-//    {
-//        if (!isCaptured)
-//        {
-//            [NSApp terminate:self];
-//        }
-//        else
-//        {
-//            captureMouse(false);
-//        }
-//    }
-//}
-//
-//// This method is eneded to handle special keys: ctrl, shift, option...
-//- (void)flagsChanged:(NSEvent *)event
-//{
-//    unsigned short keyCode = [event keyCode];
-//    bool wasPressedBefore = getKeyDown(keyCode);
-//    updateKeyArray(!wasPressedBefore, keyCode);
-//}
+- (void)keyDown:(NSEvent *)event
+{
+}
 
 // Called whenever view changes orientation or layout is changed
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
@@ -424,94 +395,6 @@ int macOSMain(int argc, const char** argv, IApp* app)
             [_view setNeedsDisplay:YES];
     }
 }
-
-//- (void)ReportMouseButtonEvent:(NSEvent*)event button:(MouseButton)button pressed:(bool)pressed
-//{
-//    // Translate the cursor position into view coordinates, accounting for the fact that
-//    // App Kit's default window coordinate space has its origin in the bottom left
-//    CGPoint location = [self.view convertPoint:[event locationInWindow] fromView:nil];
-//    location.y = self.view.bounds.size.height - location.y;
-//
-//    // Multiply the mouse coordinates by the retina scale factor.
-//    location.x *= gRetinaScale;
-//    location.y *= gRetinaScale;
-//
-//    MouseButtonEventData eventData;
-//    eventData.button = button;
-//    eventData.pressed = pressed;
-//    eventData.x = location.x;
-//    eventData.y = location.y;
-//
-//    PlatformEvents::onMouseButton(&eventData);
-//}
-//
-//- (void)mouseDown:(NSEvent *)event {
-//    [self ReportMouseButtonEvent: event
-//                          button: MOUSE_LEFT
-//                         pressed: true];
-//    if (PlatformEvents::wantsMouseCapture && !PlatformEvents::skipMouseCapture && !isCaptured)
-//    {
-//        captureMouse(true);
-//    }
-//}
-//
-//- (void)mouseUp:(NSEvent *)event {
-//    [self ReportMouseButtonEvent: event
-//                          button: MOUSE_LEFT
-//                         pressed: false];
-//}
-//
-//- (void)rightMouseDown:(NSEvent *)event {
-//    [self ReportMouseButtonEvent: event
-//                          button: MOUSE_RIGHT
-//                         pressed: true];
-//}
-//
-//- (void)rightMouseUp:(NSEvent *)event {
-//    [self ReportMouseButtonEvent: event
-//                          button: MOUSE_RIGHT
-//                         pressed: false];
-//}
-//
-//- (void)ReportMouseMove:(NSEvent *)event
-//{
-//    // Translate the cursor position into view coordinates, accounting for the fact that
-//    // App Kit's default window coordinate space has its origin in the bottom left
-//    CGPoint location = [self.view convertPoint:[event locationInWindow] fromView:nil];
-//    location.y = self.view.bounds.size.height - location.y;
-//
-//    // Multiply the mouse coordinates by the retina scale factor.
-//    location.x *= gRetinaScale;
-//    location.y *= gRetinaScale;
-//
-//    MouseMoveEventData eventData;
-//    eventData.x = location.x;
-//    eventData.y = location.y;
-//    eventData.deltaX = [event deltaX];
-//    eventData.deltaY = [event deltaY];
-//    eventData.captured = isCaptured;
-//
-//	// TODO: Collect raw mouse data in macOS
-//	RawMouseMoveEventData rawMouseEventData;
-//	rawMouseEventData.x = [event deltaX];
-//	rawMouseEventData.y = [event deltaY];
-//	rawMouseEventData.captured = isCaptured;
-//	PlatformEvents::onRawMouseMove(&rawMouseEventData);
-//
-//    PlatformEvents::onMouseMove(&eventData);
-//}
-//
-//- (void)mouseMoved:(NSEvent *)event {
-//    [self ReportMouseMove:event];
-//}
-//
-//- (void)mouseDragged:(NSEvent *)event {
-//    [self ReportMouseMove:event];
-//}
-//
-//- (void)rightMouseDragged:(NSEvent *)event {
-//    [self ReportMouseMove:event];
-//}
 
 @end
 

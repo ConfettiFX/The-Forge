@@ -14,8 +14,7 @@ struct SPIRV_Cross_Output
 
 void vert_main()
 {
-    float _19 = float(gl_VertexIndex + gl_InstanceIndex);
-    gl_Position = float4(_19, _19, _19, _19);
+    gl_Position = float(gl_VertexIndex + gl_InstanceIndex).xxxx;
 }
 
 SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)

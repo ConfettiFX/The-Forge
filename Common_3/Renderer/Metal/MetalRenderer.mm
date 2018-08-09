@@ -134,11 +134,7 @@ namespace RENDERER_CPP_NAMESPACE {
         MTLPixelFormatR8Unorm,
         MTLPixelFormatRG8Unorm,
         MTLPixelFormatInvalid, //RGB8 not directly supported
-#ifndef TARGET_IOS
         MTLPixelFormatRGBA8Unorm,
-#else
-        MTLPixelFormatBGRA8Unorm,
-#endif
 		
         MTLPixelFormatR16Unorm,
         MTLPixelFormatRG16Unorm,
@@ -274,6 +270,9 @@ namespace RENDERER_CPP_NAMESPACE {
     
     // Internal utility functions (may become external one day)
     uint64_t util_pthread_to_uint64(const pthread_t& value);
+    
+    bool util_is_compatible_texture_view(const MTLTextureType &textureType, const MTLTextureType& subviewTye);
+    
     MTLPixelFormat util_to_mtl_pixel_format(const ImageFormat::Enum &format, const bool &srgb);
     bool util_is_mtl_depth_pixel_format(const MTLPixelFormat &format);
     bool util_is_mtl_compressed_pixel_format(const MTLPixelFormat &format);
@@ -317,7 +316,7 @@ namespace RENDERER_CPP_NAMESPACE {
         pAllocator->pAllocationMutex = conf_placement_new<Mutex>(conf_calloc(1, sizeof(Mutex)));
         
         BufferDesc desc = {};
-        desc.mUsage = (BufferUsage)(BUFFER_USAGE_INDEX | BUFFER_USAGE_VERTEX | BUFFER_USAGE_UNIFORM);
+        desc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         desc.mSize = pAllocator->mSize;
         desc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -692,24 +691,53 @@ namespace RENDERER_CPP_NAMESPACE {
                 switch(descriptorInfo->mDesc.type)
                 {
                     case DESCRIPTOR_TYPE_RW_TEXTURE:
-                    case DESCRIPTOR_TYPE_TEXTURE:
-                        if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
-                            [pCmd->mtlRenderEncoder setVertexTexture:descriptorData->ppTextures[0]->mtlTexture atIndex:descriptorInfo->mDesc.reg];
-                        if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+					{
+						uint32_t textureCount = max(1U, descriptorData->mCount);
+						for(uint32_t j = 0 ;j < textureCount ; j++)
 						{
-							if(descriptorData->mCount > 1)
+							if(!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
 							{
-								for(uint32_t j = 0 ;j < descriptorData->mCount ; j++)
-								{
-									[pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
-								}
+								LOGERRORF("RW Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+								return;
 							}
-							else
-                            [pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[0]->mtlTexture atIndex:descriptorInfo->mDesc.reg];
+							
+							if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+								[pCmd->mtlRenderEncoder setVertexTexture:descriptorData->ppTextures[j]->pMtlUAVDescriptors[descriptorData->mUAVMipSlice] atIndex:descriptorInfo->mDesc.reg + j];
+							if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+							{
+								[pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[j]->pMtlUAVDescriptors[descriptorData->mUAVMipSlice] atIndex:descriptorInfo->mDesc.reg + j];
+							}
+							if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+							{
+								[pCmd->mtlComputeEncoder setTexture:descriptorData->ppTextures[j]->pMtlUAVDescriptors[descriptorData->mUAVMipSlice] atIndex:descriptorInfo->mDesc.reg + j];
+							}
 						}
-                        if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
-                            [pCmd->mtlComputeEncoder setTexture:descriptorData->ppTextures[0]->mtlTexture atIndex:descriptorInfo->mDesc.reg];
+						break;
+					}
+                    case DESCRIPTOR_TYPE_TEXTURE:
+					{
+                        uint32_t textureCount = max(1U, descriptorData->mCount);
+                        for(uint32_t j = 0 ;j < textureCount ; j++)
+                        {
+                            if(!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
+                            {
+                                LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+                                return;
+                            }
+                            
+                            if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                                [pCmd->mtlRenderEncoder setVertexTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+                            if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                            {
+                                [pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+                            }
+                            if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                            {
+                                [pCmd->mtlComputeEncoder setTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+                            }
+                        }
                         break;
+					}
                     case DESCRIPTOR_TYPE_SAMPLER:
                         if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
                             [pCmd->mtlRenderEncoder setVertexSamplerState:descriptorData->ppSamplers[0]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg];
@@ -728,7 +756,8 @@ namespace RENDERER_CPP_NAMESPACE {
                         break;
                     case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
                     case DESCRIPTOR_TYPE_RW_BUFFER:
-                    case DESCRIPTOR_TYPE_BUFFER:{
+                    case DESCRIPTOR_TYPE_BUFFER:
+					{
                         // If we're trying to bind a buffer with an mCount > 1, it means we're binding many descriptors into an argument buffer.
                         if (descriptorData->mCount > 1)
                         {
@@ -744,7 +773,7 @@ namespace RENDERER_CPP_NAMESPACE {
                                 [pCmd->mtlComputeEncoder setBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
                         }
                         break;
-                    }
+					}
                     default: break;
                 }
                 pManager->pBoundDescriptors[i] = true;
@@ -796,12 +825,11 @@ namespace RENDERER_CPP_NAMESPACE {
 		texture1DDesc.mArraySize = 1;
 		texture1DDesc.mDepth = 1;
 		texture1DDesc.mFormat = ImageFormat::R8;
-		texture1DDesc.mHeight = 2;
+		texture1DDesc.mHeight = 1;
 		texture1DDesc.mMipLevels = 1;
 		texture1DDesc.mSampleCount = SAMPLE_COUNT_1;
 		texture1DDesc.mStartState = RESOURCE_STATE_COMMON;
-		texture1DDesc.mType = TEXTURE_TYPE_2D;
-		texture1DDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS;
+		texture1DDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		texture1DDesc.mWidth = 2;
         addTexture(pRenderer, &texture1DDesc, &pDefault1DTexture);
 		
@@ -810,23 +838,24 @@ namespace RENDERER_CPP_NAMESPACE {
         addTexture(pRenderer, &texture1DArrayDesc, &pDefault1DTextureArray);
 		
 		TextureDesc texture2DDesc = texture1DDesc;
-		texture2DDesc.mType = TEXTURE_TYPE_2D;
+		texture2DDesc.mHeight = 2;
         addTexture(pRenderer, &texture2DDesc, &pDefault2DTexture);
 		
         TextureDesc texture2DArrayDesc = texture2DDesc;
 		texture2DArrayDesc.mArraySize = 2;
         addTexture(pRenderer, &texture2DArrayDesc, &pDefault2DTextureArray);
 		
-        TextureDesc texture3DDesc = texture1DDesc;
-		texture3DDesc.mType = TEXTURE_TYPE_3D;
+        TextureDesc texture3DDesc = texture2DDesc;
+		texture3DDesc.mDepth = 2;
         addTexture(pRenderer, &texture3DDesc, &pDefault3DTexture);
 		
-        TextureDesc textureCubeDesc = texture1DDesc;
-		textureCubeDesc.mType = TEXTURE_TYPE_CUBE;
+        TextureDesc textureCubeDesc = texture2DDesc;
+		textureCubeDesc.mArraySize = 6;
+		textureCubeDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
         addTexture(pRenderer, &textureCubeDesc, &pDefaultCubeTexture);
 		
         TextureDesc textureCubeArrayDesc = textureCubeDesc;
-		textureCubeArrayDesc.mArraySize = 2;
+		textureCubeArrayDesc.mArraySize *= 2;
 #ifndef TARGET_IOS
         addTexture(pRenderer, &textureCubeArrayDesc, &pDefaultCubeTextureArray);
 #else
@@ -834,7 +863,7 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
         
         BufferDesc bufferDesc = {};
-        bufferDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_UNIFORM;
+        bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         bufferDesc.mStartState = RESOURCE_STATE_COMMON;
         bufferDesc.mSize = sizeof(uint32_t);
@@ -1352,8 +1381,6 @@ namespace RENDERER_CPP_NAMESPACE {
         
         // Create the swapchain RT descriptor.
         RenderTargetDesc descColor = {};
-        descColor.mType = RENDER_TARGET_TYPE_2D;
-        descColor.mUsage = RENDER_TARGET_USAGE_COLOR;
         descColor.mWidth = pSwapChain->mDesc.mWidth;
         descColor.mHeight = pSwapChain->mDesc.mHeight;
         descColor.mDepth = 1;
@@ -1399,7 +1426,7 @@ namespace RENDERER_CPP_NAMESPACE {
         pBuffer->mDesc = *pDesc;
         
         // Align the buffer size to multiples of the dynamic uniform buffer minimum size
-        if (pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM)
+        if (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER)
         {
             uint64_t minAlignment = pRenderer->pActiveGpuSettings->mUniformBufferAlignment;
             pBuffer->mDesc.mSize = round_up_64(pBuffer->mDesc.mSize, minAlignment);
@@ -1460,12 +1487,13 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pRenderer);
         ASSERT(pDesc);
         ASSERT(ppRenderTarget);
+		
+		((RenderTargetDesc*)pDesc)->mMipLevels = max(1U, pDesc->mMipLevels);
         
         RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc(1, sizeof(*pRenderTarget));
         pRenderTarget->mDesc = *pDesc;
         
         TextureDesc rtDesc = {};
-        rtDesc.mType= TEXTURE_TYPE_2D; // TODO: Support 1D, 2D, 3D and Cube RTs.
         rtDesc.mFlags= pRenderTarget->mDesc.mFlags;
         rtDesc.mWidth= pRenderTarget->mDesc.mWidth;
         rtDesc.mHeight= pRenderTarget->mDesc.mHeight;
@@ -1476,11 +1504,13 @@ namespace RENDERER_CPP_NAMESPACE {
         rtDesc.mSampleQuality= pRenderTarget->mDesc.mSampleQuality;
         rtDesc.mFormat= pRenderTarget->mDesc.mFormat;
         rtDesc.mClearValue= pRenderTarget->mDesc.mClearValue;
-        rtDesc.mUsage= TEXTURE_USAGE_SAMPLED_IMAGE;
+        rtDesc.mDescriptors= DESCRIPTOR_TYPE_TEXTURE;
         rtDesc.mStartState= RESOURCE_STATE_UNDEFINED;
         rtDesc.pNativeHandle = pDesc->pNativeHandle;
         rtDesc.mSrgb= pRenderTarget->mDesc.mSrgb;
         rtDesc.mHostVisible= false;
+		
+		rtDesc.mDescriptors |= pDesc->mDescriptors;
         
 #ifndef TARGET_IOS
         add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
@@ -1495,13 +1525,24 @@ namespace RENDERER_CPP_NAMESPACE {
             add_texture(pRenderer, &rtDesc, &pRenderTarget->pStencil, true);
         }
 #endif
-        
+		
         *ppRenderTarget = pRenderTarget;
     }
     void removeTexture(Renderer* pRenderer, Texture* pTexture)
     {
         ASSERT(pTexture);
+		
+		// Destroy descriptors
+		if (pTexture->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
+		{
+			for (uint32_t i = 0; i < pTexture->mDesc.mMipLevels; ++i)
+			{
+				pTexture->pMtlUAVDescriptors[i] = nil;
+			}
+		}
+		
         destroyTexture(pRenderer->pResourceAllocator, pTexture);
+		SAFE_FREE(pTexture->pMtlUAVDescriptors);
         SAFE_FREE(pTexture);
     }
     void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
@@ -2202,6 +2243,11 @@ namespace RENDERER_CPP_NAMESPACE {
                 Texture* colorAttachment = ppRenderTargets[i]->pTexture;
                 
                 pCmd->pRenderPassDesc.colorAttachments[i].texture = colorAttachment->mtlTexture;
+				pCmd->pRenderPassDesc.colorAttachments[i].level = pColorMipSlices ? pColorMipSlices[i] : 0;
+				if (colorAttachment->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES)
+					pCmd->pRenderPassDesc.colorAttachments[i].slice = pColorArraySlices ? pColorArraySlices[i] : 0;
+				else if (colorAttachment->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES)
+					pCmd->pRenderPassDesc.colorAttachments[i].depthPlane = pColorArraySlices ? pColorArraySlices[i] : 0;
 #ifndef TARGET_IOS
                 pCmd->pRenderPassDesc.colorAttachments[i].loadAction = (pLoadActions!=NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionLoad);
                 pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
@@ -2237,9 +2283,16 @@ namespace RENDERER_CPP_NAMESPACE {
             if (pDepthStencil != nil)
             {
                 pCmd->pRenderPassDesc.depthAttachment.texture = pDepthStencil->pTexture->mtlTexture;
+				pCmd->pRenderPassDesc.depthAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
+				pCmd->pRenderPassDesc.depthAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
 #ifndef TARGET_IOS
                 bool isStencilEnabled = pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
-                if(isStencilEnabled) pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pTexture->mtlTexture;
+                if(isStencilEnabled)
+				{
+					pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pTexture->mtlTexture;
+					pCmd->pRenderPassDesc.stencilAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
+					pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
+				}
 
                 pCmd->pRenderPassDesc.depthAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
                 pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
@@ -2255,7 +2308,12 @@ namespace RENDERER_CPP_NAMESPACE {
                 }
 #else
                 bool isStencilEnabled = pDepthStencil->pStencil != nil;
-                if(isStencilEnabled) pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pStencil->mtlTexture;
+                if(isStencilEnabled)
+				{
+					pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pStencil->mtlTexture;
+					pCmd->pRenderPassDesc.stencilAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
+					pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
+				}
                 
                 if(pDepthStencil->pTexture->mtlTexture.storageMode != MTLStorageModeMemoryless)
                 {
@@ -2673,7 +2731,7 @@ namespace RENDERER_CPP_NAMESPACE {
         pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
         
         uint nLayers = pTexture->mDesc.mArraySize;
-        uint nFaces = pTexture->mDesc.mType == TEXTURE_TYPE_CUBE ? 6 : 1;
+		uint nFaces = 1;
         uint nMips = pTexture->mDesc.mMipLevels;
         
         uint32_t subresourceOffset = 0;
@@ -3154,8 +3212,8 @@ namespace RENDERER_CPP_NAMESPACE {
 						(descData->pOffsets ? descData->pOffsets[i] : 0)) atIndex:i];
                         break;
                     case DESCRIPTOR_TYPE_TEXTURE:
-                        [pCmd->mtlRenderEncoder useResource:descData->ppTextures[i]->mtlTexture usage:MTLResourceUsageRead];
-                        [argumentEncoder setTexture:descData->ppTextures[i]->mtlTexture atIndex:i];
+                         [pCmd->mtlRenderEncoder useResource:descData->ppTextures[i]->mtlTexture usage:MTLResourceUsageRead];
+                         [argumentEncoder setTexture:descData->ppTextures[i]->mtlTexture atIndex:i];
                         break;
                 }
             }
@@ -3209,9 +3267,47 @@ namespace RENDERER_CPP_NAMESPACE {
         return false;
     }
     
+    
+    bool util_is_compatible_texture_view(const MTLTextureType &textureType, const MTLTextureType& subviewTye)
+    {
+        
+        switch (textureType) {
+            case MTLTextureType1D:
+                if(subviewTye !=MTLTextureType1D)
+                    return false;
+                return true;
+            case MTLTextureType2D:
+                if(subviewTye !=MTLTextureType2D
+                && subviewTye !=MTLTextureType2DArray)
+                    return false;
+                return true;
+            case MTLTextureType2DArray:
+            case MTLTextureTypeCube:
+            case MTLTextureTypeCubeArray:
+                if(subviewTye !=MTLTextureType2D
+                   && subviewTye !=MTLTextureType2DArray
+                   && subviewTye !=MTLTextureTypeCube
+                   && subviewTye !=MTLTextureTypeCubeArray)
+                    return false;
+                return true;
+            case MTLTextureType3D:
+                if(subviewTye != MTLTextureType3D)
+                    return false;
+                return true;
+            default:
+                return false;
+        }
+        
+        return false;
+    }
+	
     void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT){
         Texture* pTexture = (Texture*)conf_calloc(1, sizeof(*pTexture));
         ASSERT(pTexture);
+		
+		if (pDesc->mHeight == 1)
+			((TextureDesc*)pDesc)->mMipLevels = 1;
+		
         pTexture->mDesc = *pDesc;
         pTexture->mTextureId = (++gTextureIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
         
@@ -3244,42 +3340,63 @@ namespace RENDERER_CPP_NAMESPACE {
             
             // Create a MTLTextureDescriptor that matches our requirements.
             MTLTextureDescriptor* textureDesc = [[MTLTextureDescriptor alloc] init];
-            switch (pTexture->mDesc.mType) {
-                case TEXTURE_TYPE_1D:
-                    if(pTexture->mDesc.mArraySize == 1) textureDesc.textureType = MTLTextureType1D;
-                    else textureDesc.textureType = MTLTextureType1DArray;
-                    break;
-                case TEXTURE_TYPE_2D:
-                    if(pTexture->mDesc.mArraySize > 1) textureDesc.textureType = MTLTextureType2DArray;
-                    else if(pTexture->mDesc.mSampleCount > 1) textureDesc.textureType = MTLTextureType2DMultisample;
-                    else textureDesc.textureType = MTLTextureType2D;
-                    break;
-                case TEXTURE_TYPE_3D:
-                    textureDesc.textureType = MTLTextureType3D;
-                    break;
-                case TEXTURE_TYPE_CUBE:
-                    if(pTexture->mDesc.mArraySize == 1) textureDesc.textureType = MTLTextureTypeCube;
+			
+			textureDesc.pixelFormat = pTexture->mtlPixelFormat;
+			textureDesc.width = pTexture->mDesc.mWidth;
+			textureDesc.height = pTexture->mDesc.mHeight;
+			textureDesc.depth = pTexture->mDesc.mDepth;
+			textureDesc.mipmapLevelCount = pTexture->mDesc.mMipLevels;
+			textureDesc.sampleCount = pTexture->mDesc.mSampleCount;
+			textureDesc.arrayLength = pTexture->mDesc.mArraySize;
+			textureDesc.storageMode = MTLStorageModePrivate;
+			textureDesc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+			
+			if (pDesc->mDepth > 1)
+			{
+				textureDesc.textureType = MTLTextureType3D;
+			}
+			else if (pDesc->mHeight > 1)
+			{
+				if (DESCRIPTOR_TYPE_TEXTURE_CUBE == (pDesc->mDescriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE))
+				{
+					if(pTexture->mDesc.mArraySize == 6)
+					{
+						textureDesc.textureType = MTLTextureTypeCube;
+						textureDesc.arrayLength = 1;
+					}
 #ifndef TARGET_IOS
-                    else textureDesc.textureType = MTLTextureTypeCubeArray;
+					else
+					{
+						textureDesc.textureType = MTLTextureTypeCubeArray;
+						textureDesc.arrayLength /= 6;
+					}
 #else
-                    else if([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1]) textureDesc.textureType = MTLTextureTypeCubeArray;
-                    else internal_log(LOG_TYPE_ERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+					else if([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1])
+					{
+						textureDesc.textureType = MTLTextureTypeCubeArray;
+						textureDesc.arrayLength /= 6;
+					}
+					else
+					{
+						internal_log(LOG_TYPE_ERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+					}
 #endif
-                    break;
-                default:
-                    internal_log(LOG_TYPE_ERROR,"Texture Type is not supported or is undefined.", "addTexture");
-                    break;
-                    
-            }
-            textureDesc.pixelFormat = pTexture->mtlPixelFormat;
-            textureDesc.width = pTexture->mDesc.mWidth;
-            if(pTexture->mDesc.mType > TEXTURE_TYPE_1D) textureDesc.height = pTexture->mDesc.mHeight;
-            if(pTexture->mDesc.mType == TEXTURE_TYPE_3D) textureDesc.depth = pTexture->mDesc.mDepth;
-            textureDesc.mipmapLevelCount = pTexture->mDesc.mMipLevels;
-            textureDesc.sampleCount = pTexture->mDesc.mSampleCount;
-            textureDesc.arrayLength = pTexture->mDesc.mArraySize;
-            textureDesc.storageMode = MTLStorageModePrivate;
-            textureDesc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+				}
+				else
+				{
+					if (pDesc->mArraySize > 1)
+						textureDesc.textureType = MTLTextureType2DArray;
+					else
+						textureDesc.textureType = MTLTextureType2D;
+				}
+			}
+			else
+			{
+				if (pDesc->mArraySize > 1)
+					textureDesc.textureType = MTLTextureType1DArray;
+				else
+					textureDesc.textureType = MTLTextureType1D;
+			}
             
             bool isDepthBuffer = util_is_mtl_depth_pixel_format(pTexture->mtlPixelFormat);
             bool isMultiSampled = pTexture->mDesc.mSampleCount > 1;
@@ -3292,7 +3409,7 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
             
             if (isRT || isDepthBuffer) textureDesc.usage |= MTLTextureUsageRenderTarget;
-            if ((pTexture->mDesc.mUsage & TEXTURE_USAGE_UNORDERED_ACCESS) != 0) textureDesc.usage |= MTLTextureUsageShaderWrite;
+            if ((pTexture->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE) != 0) textureDesc.usage |= MTLTextureUsageShaderWrite;
             
             // Allocate the texture's memory.
             AllocatorMemoryRequirements mem_reqs = { 0 };
@@ -3304,12 +3421,30 @@ namespace RENDERER_CPP_NAMESPACE {
             if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT)
                 mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_ADAPTER_BIT;
             
+            //Create texture views
+            textureDesc.usage |= MTLTextureUsagePixelFormatView;
+            
             TextureCreateInfo alloc_info = {textureDesc, isRT || isDepthBuffer, isMultiSampled};
             bool allocSuccess = createTexture(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pTexture);
             ASSERT(allocSuccess);
-			
-			[pTexture->mtlTexture 	newTextureViewWithPixelFormat:pTexture->mtlTexture.pixelFormat];
-			textureDesc.usage |= MTLTextureUsagePixelFormatView;
+        }
+        
+        NSRange slices = NSMakeRange(0, pDesc->mArraySize);
+        
+        if(pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
+        {
+			MTLTextureType uavType = pTexture->mtlTexture.textureType;
+			if (pTexture->mtlTexture.textureType == MTLTextureTypeCube || pTexture->mtlTexture.textureType == MTLTextureTypeCubeArray)
+			{
+				uavType = MTLTextureType2DArray;
+			}
+			pTexture->pMtlUAVDescriptors = (id<MTLTexture> __strong*)conf_calloc(pDesc->mMipLevels, sizeof(id<MTLTexture>));
+			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+			{
+				NSRange levels = NSMakeRange(i, 1);
+				pTexture->pMtlUAVDescriptors[i] = [pTexture->mtlTexture
+				newTextureViewWithPixelFormat:pTexture->mtlTexture.pixelFormat textureType:uavType levels:levels slices:slices];
+			}
         }
         
         *ppTexture = pTexture;

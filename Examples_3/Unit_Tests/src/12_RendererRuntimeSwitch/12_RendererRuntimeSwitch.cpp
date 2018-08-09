@@ -277,7 +277,7 @@ public:
 
 		uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
 		BufferLoadDesc sphereVbDesc = {};
-		sphereVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sphereVbDesc.mDesc.mSize = sphereDataSize;
 		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
@@ -335,7 +335,7 @@ public:
 
 		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
@@ -344,7 +344,7 @@ public:
 		addResource(&skyboxVbDesc);
 
 		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mSize = sizeof(UniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -826,8 +826,6 @@ public:
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mWidth = mSettings.mWidth;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 

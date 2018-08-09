@@ -2,11 +2,11 @@
 precision mediump float;
 precision highp int;
 
-varying vec4 VertexOut_color;
-varying highp vec3 VertexOut_normal;
+varying vec4 vin_color;
+varying highp vec3 vin_normal;
 
 void main()
 {
-    gl_FragData[0] = VertexOut_color + VertexOut_normal.xyzz;
+    gl_FragData[0] = vin_color + vin_normal.xyzz;
 }
 

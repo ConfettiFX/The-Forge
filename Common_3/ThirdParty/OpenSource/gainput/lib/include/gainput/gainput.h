@@ -8,7 +8,11 @@
 #ifndef GAINPUT_H_
 #define GAINPUT_H_
 
-#if defined(__ANDROID__) || defined(ANDROID)
+#if defined(_DURANGO) || defined(_XBOX_ONE)
+#define GAINPUT_PLATFORM_XBOX_ONE
+#define GAINPUT_LIBEXPORT
+#include "../../../../../../../Xbox/CommonXBOXOne_3/OS/pch.h"
+#elif defined(__ANDROID__) || defined(ANDROID)
 	#define GAINPUT_PLATFORM_ANDROID
 	#define GAINPUT_LIBEXPORT
 #elif defined(__linux) || defined(__linux__) || defined(linux) || defined(LINUX)
@@ -38,7 +42,6 @@
 #else
 	#error Gainput: Unknown/unsupported platform!
 #endif
-
 
 //#define GAINPUT_DEBUG
 //#define GAINPUT_DEV

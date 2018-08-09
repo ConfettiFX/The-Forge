@@ -27,7 +27,7 @@ typedef struct DescriptorStoreHeap
 	uint32_t* flags;
 	/// Lock for multi-threaded descriptor allocations
 	Mutex* pAllocationMutex;
-
+	uint64_t mUsedDescriptors;
 	/// Type of descriptor heap -> CBV / DSV / ...
 	D3D12_DESCRIPTOR_HEAP_TYPE mType;
 	/// DX Heap
@@ -46,7 +46,6 @@ extern void remove_descriptor_heap(struct DescriptorStoreHeap* pHeap);
 extern D3D12_CPU_DESCRIPTOR_HANDLE add_cpu_descriptor_handles(struct DescriptorStoreHeap* pHeap, uint32_t numDescriptors, uint32_t* pDescriptorIndex = NULL);
 extern void add_gpu_descriptor_handles(struct DescriptorStoreHeap* pHeap, D3D12_CPU_DESCRIPTOR_HANDLE* pStartCpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* pStartGpuHandle, uint32_t numDescriptors);
 extern void remove_gpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_GPU_DESCRIPTOR_HANDLE* startHandle, uint64_t numDescriptors);
-extern uint32_t util_to_descriptor_handle_index(TextureUsage usage, DescriptorType type);
 /************************************************************************/
 // Static initialization of DX Raytracing API
 /************************************************************************/
@@ -295,7 +294,6 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 			}
 
 			BufferDesc instanceDesc = {};
-			instanceDesc.mUsage = BUFFER_USAGE_UPLOAD;
 			instanceDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 			instanceDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			instanceDesc.mSize = fallbackInstanceDescs.size() * sizeof(fallbackInstanceDescs[0]);
@@ -318,7 +316,6 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 			}
 
 			BufferDesc instanceDesc = {};
-			instanceDesc.mUsage = BUFFER_USAGE_UPLOAD;
 			instanceDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 			instanceDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			instanceDesc.mSize = instanceDescs.size() * sizeof(instanceDescs[0]);
@@ -330,7 +327,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	// Allocate Acceleration Structure Buffer
 	/************************************************************************/
 	BufferDesc bufferDesc = {};
-	bufferDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+	bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 	bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	bufferDesc.mStructStride = 0;
@@ -472,9 +469,9 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		pDesc->mDesc.name = (const char*)conf_calloc(pDesc->mDesc.name_size + 1, sizeof(char));
 		memcpy((char*)pDesc->mDesc.name, pRes->name, pRes->name_size);
 
-		if (pDesc->mDesc.size == 0)
+		if (pDesc->mDesc.size == 0 && pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
 		{
-			pDesc->mDesc.size = pRootSignatureDesc->mMaxBindlessDescriptors[pDesc->mDesc.type];
+			pDesc->mDesc.size = pRootSignatureDesc->mMaxBindlessTextures;
 		}
 
 		// Find the D3D12 type of the descriptors
@@ -1109,7 +1106,6 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	// Create shader table buffer
 	/************************************************************************/
 	BufferDesc bufferDesc = {};
-	bufferDesc.mUsage = BUFFER_USAGE_UPLOAD;
 	bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	bufferDesc.mSize = maxShaderTableSize * recordCount;
@@ -1230,14 +1226,23 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 								switch (type)
 								{
 								case DESCRIPTOR_TYPE_TEXTURE:
+									for (uint32_t textureIndex = 0; textureIndex < arrayCount; ++textureIndex)
+									{
+										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
+											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
+											pTableData->ppTextures[textureIndex]->mDxSRVDescriptor,
+											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+									}
+									break;
 								case DESCRIPTOR_TYPE_RW_TEXTURE:
 									for (uint32_t textureIndex = 0; textureIndex < arrayCount; ++textureIndex)
 									{
 										pRaytracing->pRenderer->pDxDevice->CopyDescriptorsSimple(1,
 											{ cpuHandle.ptr + (pTableDesc->mHandleIndex + textureIndex) * pRaytracing->pRenderer->pCbvSrvUavHeap[0]->mDescriptorSize },
-											pTableData->ppTextures[textureIndex]->mDxDescriptorHandles[util_to_descriptor_handle_index(pTableData->mTextureUsage, type)],
+											pTableData->ppTextures[textureIndex]->pDxUAVDescriptors[pTableData->mUAVMipSlice],
 											D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 									}
+									break;
 								case DESCRIPTOR_TYPE_BUFFER:
 									for (uint32_t bufferIndex = 0; bufferIndex < arrayCount; ++bufferIndex)
 									{

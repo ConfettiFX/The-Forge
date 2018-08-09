@@ -1,0 +1,1052 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doc>
+  <assembly>
+    <name>Microsoft.VisualStudio.Imaging</name>
+  </assembly>
+  <members>
+    <member name="E:Microsoft.VisualStudio.Imaging.CrispImage.Created">
+      <summary>Raised when an instance of CrispImage is created.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Imaging.CrispImage.DefaultImageLibraryChanged">
+      <summary>Raised when CrispImage.DefaultImageLibrary is changed.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Imaging.ImageLibrary.BuildLibraryCache">
+      <summary>Raised when the library cache is built.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Imaging.ImageLibrary.ImageLibraryCreated">
+      <summary>Raised when the ImageLibrary is created.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Imaging.ImageLibrary.ImageLibraryDisposed">
+      <summary>Raised when the ImageLibrary is disposed.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.Imaging.ImageLibrary.InitializedChanged">
+      <summary />
+    </member>
+    <member name="E:Microsoft.VisualStudio.Imaging.ImageLibrary.ProcessManifest">
+      <summary>Raised when there is a process manifest.</summary>
+    </member>
+    <member name="E:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemeScrollBarsChanged">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ActualDpiConverter.Instance">
+      <summary>An instance of the converter.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ActualGrayscaleBiasColorConverter.Instance">
+      <summary>Creates a new instance of ActualGrayscaleBiasColorConverter.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ActualHighContrastConverter.Instance">
+      <summary>An instance of the converter.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ActualImageLibraryConverter.Instance">
+      <summary>An instance of the converter.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.ActualDpiProperty">
+      <summary>Gets the actual DPI, which is a function of DefaultDpi and Dpi. This property ultimately determines the DPI scaling applied to CrispIMages.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.ActualGrayscaleBiasColorProperty">
+      <summary>The actual grayscale bias.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.ActualHighContrastProperty">
+      <summary>This is a function of HighContrast and SystemHighContrast. This property ultimately determines whether the image is rendered high-contrast.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.ActualImageLibraryProperty">
+      <summary>The actual image library is a function of DefaultImageLibrary and ImageLibrary. This property ultimately determines the image library from which images are loaded.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.DefaultImageLibraryProperty">
+      <summary>Exposes a PropertyInfo for the DefaultImageLibrary property, so that the static property can be used in PropertyPaths for bindings created in code.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.DpiProperty">
+      <summary>Defines the DPI used by the CrispImages which are descendants of the element to which this property is attached. If this is 0.0, DefaultDpi is used.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.GrayscaleBiasColorProperty">
+      <summary>Defines the grayscale bias color used by the CrispImage objects that are descendants of the element to which this property is attached.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.GrayscaleProperty">
+      <summary>Defines the grayscale color used by the CrispImage objects that are descendants of the element to which this property is attached.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.HighContrastProperty">
+      <summary>Determine whether the CrispImage objects that are descendants of the element to which thisproperty is attached show high-contrast images. The values are as follows:True - Images are high-contrastFalse - Images are not high-contrastnull - Images are displayed according to the system high-contrast setting</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.ImageLibraryProperty">
+      <summary>Defines the image library used by the CrispImage objects that are descendants of the element to which this property is attached.  If this is null, DefaultImageLibrary is used.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.MonikerProperty">
+      <summary>The moniker to use when loading the CrispImage's image from the image library.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.ScaleFactorProperty">
+      <summary>The ScaleFactor that is used when the image may be scaled using a transform, such as for an image in the editor margin when the zoom != 100%. A ScaleFactor of 1 does no scaling.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.CrispImage.SystemHighContrastProperty">
+      <summary>The value of SystemParameters.HighContrast. It is defined as a dependency property so that it can be used in a binding to set the value of ActualHighContrast.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageLibrary.BeforeImageRealized">
+      <summary>Raised before an image is realized from it source. If the image is realized by retrieving it from the cache, this event is not raised.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageLibrary.DefaultGrayscaleBiasColor">
+      <summary>The default color for biasing grayscale images (#40FFFFFF). This produces a 75% translucent effect.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageLibrary.HighContrastGrayscaleBiasColor">
+      <summary>The color for biasing grayscale images when in high-contrast mode.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageLibrary.InvalidImageMoniker">
+      <summary>The invalid image moniker.  Images using this moniker cannot be loaded from an image manifest.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageLibrary.NeutralSize">
+      <summary>The size to use when specifying a size-neutral image in a call to AddCustomImage. The size-neutral image is the image that is scaled to the requested size when an image of the requested size is not available.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ManifestParseException.DefaultSeverity">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ImageBackgroundColorProperty">
+      <summary>Gets or sets the color used for image theming. The target color is used to map the "halo" color in an image with the target background color. It should be attached on the same UIElement that the gackground color is set on when images are drawn directly on that Background. The reasons why the background is not used directly:1. Backgrounds that are set to Transparent would require a visual tree walk to find the real background.2. The background is a Brush, not a Color, which would require interpretation to arrive at a Color instead.3. The ultimate background the image is drawn on may not be the desired image to use for theming, for example when a selection brush is conditionally shown in a TreeView.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemeScrollBarsProperty">
+      <summary>Controls whether the ScrollBars of this element and its descendants have themed scrollbars. It is attached to FrameworkElementTrue  - ScrollBars are themedFalse - ScrollBars are not themednull  - ScrollBar theme state is inherited</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ActualDpiConverter.#ctor">
+      <summary>Initializes a new instance of the converter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ActualGrayscaleBiasColorConverter.#ctor">
+      <summary>Initializes a new instance of ActualGrayscaleBiasColorConverter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ActualHighContrastConverter.#ctor">
+      <summary>Initializes a new instance of the converter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ActualImageLibraryConverter.#ctor">
+      <summary>Initializes a new instance of the converter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.BitmapLocker.#ctor(System.Drawing.Bitmap)">
+      <summary>Locks the bits for the specified bitmap in read-only mode.</summary>
+      <param name="bitmap">The bitmap.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.BitmapLocker.#ctor(System.Drawing.Bitmap,System.Drawing.Imaging.ImageLockMode)">
+      <summary>Locks the bits for the bitmap.</summary>
+      <param name="bitmap">The bitmap to lock.</param>
+      <param name="mode">The lock mode.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.BitmapLocker.#ctor(System.Drawing.Bitmap,System.Drawing.Imaging.ImageLockMode,System.Drawing.Rectangle)">
+      <summary>Locks the bits for the bitmap.</summary>
+      <param name="bitmap">The bitmap to lock.</param>
+      <param name="mode">The lock mode.</param>
+      <param name="rect">The rectangle to lock.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.BitmapLocker.Dispose">
+      <summary>Unlocks the bits and disposes this object.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Converters.ImageMonikerToCrispImageConverter.#ctor">
+      <summary>Initializes a new instance of ImageMonikertoCrispImageConverter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Converters.ImageMonikerToCrispImageConverter.Convert(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker,System.Object,System.Globalization.CultureInfo)">
+      <summary>Converts an ImageMoniker into a CrispImage.</summary>
+      <param name="source">The ImageMoniker to convert to a CrispImage.</param>
+      <param name="parameter">Not used.</param>
+      <param name="culture">Not used.</param>
+      <returns>A CrispImage with the Moniker set.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.#ctor">
+      <summary />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.GetDpi(System.Windows.DependencyObject)">
+      <summary>Gets the used by the CrispImage objects that are descendants of the element to which this property is attached.  If this is 0.0, DefaultDpi is used.</summary>
+      <param name="element">The element.</param>
+      <returns>The DPI.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.GetGrayscaleBiasColor(System.Windows.DependencyObject)">
+      <summary>Gets the grayscale bias color used by the CrispImage objects that are descendants of the element to which this property is attached.</summary>
+      <param name="element">The element for which to get the grayscale bias color.</param>
+      <returns>The grayscale bias color.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.GetHighContrast(System.Windows.DependencyObject)">
+      <summary>Determines whether the CrispImage objects that are descendants of the element to which this property is attached show high-contrast images.</summary>
+      <param name="element">The element.</param>
+      <returns>The values are as follows:True - Images are high-contrastFalse - Images are not high-contrastnull - Images are displayed according to the system high-contrast setting</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.GetImageLibrary(System.Windows.DependencyObject)">
+      <summary>Defines the image library used by the CrispImage objects that are descendants of the element to which this property is attached.  If this is null, DefaultImageLibrary is used.</summary>
+      <param name="element">The element.</param>
+      <returns>The image library.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.GetScaleFactor(System.Windows.DependencyObject)">
+      <summary>Gets the ScaleFactor that is used when the image may be scaled using a transform, such as for an image in the editor margin when the zoom != 100%. A ScaleFactor of 1 does no scaling.</summary>
+      <param name="element">The element.</param>
+      <returns>The scale factor.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.SetDpi(System.Windows.DependencyObject,System.Double)">
+      <summary>Defines the DPI used by the CrispImage objects that are descendants of the element to which this property is attached. If this is 0.0, DefaultDpi is used.</summary>
+      <param name="element">The element.</param>
+      <param name="value">The value.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.SetGrayscaleBiasColor(System.Windows.DependencyObject,System.Nullable{System.Windows.Media.Color})">
+      <summary>Sets the grayscale bias color used by the CrispImage objects that are descendants of the element to which this property is attached.</summary>
+      <param name="element">The element for which to set the grayscale bias color.</param>
+      <param name="value">The color to set.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.SetHighContrast(System.Windows.DependencyObject,System.Nullable{System.Boolean})">
+      <summary>Determines whether the CrispImage objects that are descendants of the element to which this property is attached show high-contrast images.</summary>
+      <param name="element">The element.</param>
+      <param name="value">The values are as follows:True - Images are high-contrastFalse - Images are not high-contrastnull - Images are displayed according to the system high-contrast setting</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.SetImageLibrary(System.Windows.DependencyObject,Microsoft.VisualStudio.Imaging.ImageLibrary)">
+      <summary>Defines the image library used by the CrispImage objects that are descendants of the element to which this property is attached.  If this is null, DefaultImageLibrary is used.</summary>
+      <param name="element">The element.</param>
+      <param name="value">The value.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.CrispImage.SetScaleFactor(System.Windows.DependencyObject,System.Double)">
+      <summary>Sets the ScaleFactor that is used when the image may be scaled using a transform, such as for an image in the editor margin when the zoom != 100%. A ScaleFactor of 1 does no scaling.</summary>
+      <param name="element">The element.</param>
+      <param name="value">The value.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaledImageExtension.#ctor">
+      <summary>Initializes a new instance of DpiPrescaledImageExtension.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaledImageExtension.#ctor(System.String)">
+      <summary>Initializes a new instance of DpiPrescaledImageExtension with the specified URI.</summary>
+      <param name="uri">The URI.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaledImageExtension.ProvideValue(System.IServiceProvider)">
+      <summary />
+      <param name="serviceProvider" />
+      <returns>Returns <see cref="T:System.Object" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleImageSourceConverter.#ctor">
+      <summary>Initializes a new instance of DpiPrescaleImageSourceConverter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleImageSourceConverter.Convert(System.Windows.Media.ImageSource,System.Object,System.Globalization.CultureInfo)">
+      <summary>Converts the image.</summary>
+      <param name="inputImage" />
+      <param name="parameter" />
+      <param name="culture" />
+      <returns>Returns <see cref="T:System.Windows.Media.ImageSource" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageConverter.#ctor">
+      <summary>Initializes a new instance of DpiPrescaleThemedImageConverter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageConverter.Convert(System.Windows.Media.ImageSource,System.Windows.Media.Color,System.Boolean,System.Boolean,System.Object,System.Globalization.CultureInfo)">
+      <summary />
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="isHighContrast" />
+      <param name="parameter" />
+      <param name="culture" />
+      <returns>Returns <see cref="T:System.Windows.Controls.Image" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageConverter.Convert(System.Windows.Media.ImageSource,System.Windows.Media.Color,System.Boolean,System.Object,System.Globalization.CultureInfo)">
+      <summary />
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="parameter" />
+      <param name="culture" />
+      <returns>Returns <see cref="T:System.Windows.Controls.Image" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageSourceConverter.#ctor">
+      <summary>Initializes a new instance of DpiPrescaleThemedImageSourceConverter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageSourceConverter.Convert(System.Windows.Media.ImageSource,System.Windows.Media.Color,System.Boolean,System.Object,System.Globalization.CultureInfo)">
+      <summary>Converts the image.</summary>
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="parameter" />
+      <param name="culture" />
+      <returns>Returns <see cref="T:System.Windows.Media.ImageSource" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ExtensionMethods.IsNullImage(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker)">
+      <summary>Returns true if the ImageMoniker represents a null image, otherwise false.</summary>
+      <param name="moniker">The moniker to test.</param>
+      <returns>True if the ImageMoniker is a null image, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ExtensionMethods.ToStringEx(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker)">
+      <summary>Converts an ImageMoniker to a string.</summary>
+      <param name="moniker">The moniker to convert.</param>
+      <returns>The string version of the moniker.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.HslColor.#ctor(System.Double,System.Double,System.Double)">
+      <summary>Initializes a new instance of the HslColor class with the specified hue, saturation, and luminosity.</summary>
+      <param name="hue">The hue.</param>
+      <param name="saturation">Ths saturation.</param>
+      <param name="luminosity">The luminosity.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.HslColor.#ctor(System.Double,System.Double,System.Double,System.Double)">
+      <summary>Initializes a new instance of the HslColor class with the specified hue, saturation, luminosity, and alpha.</summary>
+      <param name="hue">The hue.</param>
+      <param name="saturation">The saturation.</param>
+      <param name="luminosity">The luminosity.</param>
+      <param name="alpha">The alpha.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.HslColor.FromColor(System.Windows.Media.Color)">
+      <summary>Converts a Color value to an HslColor. The algorithm is based on pseudocode available on HSL and HSV.</summary>
+      <param name="color">The color to convert.</param>
+      <returns>The converted color.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.HslColor.ToColor">
+      <summary>Converts an HslColor value to a Color. The algorithm is based on pseudocode available on HSL and HSV. &lt;/summary&gt;</summary>
+      <returns>The converted color.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageConverter.BitmapFromBitmapSource(System.Windows.Media.Imaging.BitmapSource)">
+      <summary>Converts a BitmapSource to aSystem.Drawing.Bitmap.</summary>
+      <param name="bitmapSource">The image to convert.</param>
+      <returns>The converted bitmap.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageConverter.BitmapSourceFromBitmap(System.Drawing.Bitmap)">
+      <summary>Converts a Bitmap into a BitmapSource.</summary>
+      <param name="bitmap">The bitmap to convert.</param>
+      <returns>A BitmapSource for the given bitmap.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageConverter.ExtractPixelSection(System.Byte[],System.Int32,System.Int32,System.Windows.Int32Rect)">
+      <summary>Extracts a section from a 32bit or 24bit pixel buffer, up-converting to 32bit opaque if necessary. Special colors Green-1 and Magenta are translated into transparent pixels, and all transparent pixels are then be made black.</summary>
+      <param name="sourcePixels">The source pixel buffer.</param>
+      <param name="sourceBitsPerPixel">Thes pixel size of the source image.</param>
+      <param name="sourceStride">The width in bytes of a pixel row in the source image.</param>
+      <param name="sectionRect">The rectangle to extract from the source image, indicates the width/height of the result.</param>
+      <returns>The destination pixel buffer of an image with the dimensions of the passed-in rect and a stride of Width*4 (32bpp).</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageConverter.ExtractPixelSection(System.Byte[],System.Int32,System.Int32,System.Windows.Int32Rect,System.Drawing.Color[])">
+      <summary>This method extracts a section from a 32bit or 24bit pixel buffer, up-converting to 32bit opaque if necessary. Colors matching one of the transparent colors are translated into transparent pixels, and all transparent pixels are then be made black.</summary>
+      <param name="sourcePixels">The source pixel buffer.</param>
+      <param name="sourceBitsPerPixel">Thes pixel size of the source image.</param>
+      <param name="sourceStride">The width in bytes of a pixel row in the source image.</param>
+      <param name="sectionRect">The rectangle to extract from the source image, indicates the width/height of the result.</param>
+      <param name="transparentColors">An array of colors that represent transparency in the source.</param>
+      <returns>The destination pixel buffer of an image with the dimensions of the passed in rect and a stride of Width*4 (32bpp).</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageConverter.HiconFromBitmapSource(System.Windows.Media.Imaging.BitmapSource)">
+      <summary>Converts a BitmapSource to an HICON.  The caller is responsible for destroying the returned HICON.  Do not call Icon.FromHandle expecting the returned Icon object to have ownership of the HICON.</summary>
+      <param name="bitmapSource">The image to convert.</param>
+      <returns>The converted icon.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageEventArgs.#ctor(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker,System.String,System.Guid)">
+      <summary>Initializes a new set of ImageEventArgs.</summary>
+      <param name="moniker">The moniker.</param>
+      <param name="manifestFilename">The manifest file name.</param>
+      <param name="packageGuid">The package GUID.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.#ctor(System.Boolean,Microsoft.VisualStudio.Utilities.ITracer)">
+      <summary>Initializes a new instance of an ImageLibrary object.</summary>
+      <param name="isDefault">True if this ImageLibrary should be used as ImageLibrary.Default.</param>
+      <param name="tracer">The tracer to use.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.AddCustomCompositeImage(Microsoft.VisualStudio.Utilities.Int16Size,Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer[])">
+      <summary>Creates a custom image that is composed of multiple other images, and adds that image to the library.</summary>
+      <param name="virtualSize">The virtual size of the canvas representing the image. This does not represent a pixel size, and is used as a point of reference for each image layer.</param>
+      <param name="layers">The stack of images to render. Later images in the array are drawn on top of previous images.</param>
+      <returns>A handle that contains the moniker associated with the image. The handle maintains the object lifetime of the image itself. Allowing the handle to be garbage-collected will result in the image also being GC-eligible.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.AddCustomImage(System.Windows.Media.ImageSource,System.Boolean)">
+      <summary>Adds a custom image to the library, directly via an already-created ImageSource.</summary>
+      <param name="bitmap">The bitmap to store in the library.</param>
+      <param name="canTheme">Indicates whether the image can be themed</param>
+      <returns>A handle which contains the moniker associated with the image.  The handle maintains the object lifetime of the image itself.  Allowing the handle to be garbage-collected will result in the image also being GC-eligible.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.AddCustomImageList(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker[])">
+      <summary>Adds a custom image list to the library.</summary>
+      <param name="imageEntryMonikers">The monikers for the images that make up the image list.</param>
+      <returns>An IImageHandle that can be used to delete or retrieve the image list.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.Deserialize(System.IO.Stream,System.Boolean,Microsoft.VisualStudio.Utilities.ITracer,Microsoft.VisualStudio.Utilities.IStreamStorage{System.String})">
+      <summary>Deserializes an image library from <paramref name="stream" />.</summary>
+      <param name="stream">The stream to deserialize from</param>
+      <param name="isDefault">Whether or not this ImageLibrary should be used as ImageLibrary.Default</param>
+      <param name="tracer">The tracer to use</param>
+      <param name="cacheStorage">The storage used by the ImageLibrary for caching.</param>
+      <returns>Returns <see cref="T:Microsoft.VisualStudio.Imaging.ImageLibrary" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.DisposeManagedResources">
+      <summary>Disposes the managed resources.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetCacheSize(System.Int64@,System.Int64@)">
+      <summary>Get the number bytes are actually used by the cache.</summary>
+      <param name="actualSize">[out] The size.</param>
+      <param name="reservedSize">The reserved size.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImage(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker,Microsoft.VisualStudio.Imaging.Interop.ImageAttributes)">
+      <summary>Returns an image conforming to <paramref name="attributes" /> from the library.</summary>
+      <param name="moniker">The moniker for the image.</param>
+      <param name="attributes">The attributes describing the desired image.</param>
+      <returns>The ikmage.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImageCount">
+      <summary>The total number of images in the library. Determining the count may be expensive for custom images, which are stored weakly.</summary>
+      <returns>The number of images in the library.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImageListCount">
+      <summary>The total number of image lists in the library. Determining the count may be expensive for custom images, which are stored weakly.</summary>
+      <returns>The number of image lists.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImageListMonikers">
+      <summary>Gets the monikers of all the image lists in the library.</summary>
+      <returns>The monikers of all the image lists in the library.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImageListMonikers(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker)">
+      <summary>Gets the monikers of all the image lists in the library.</summary>
+      <param name="imageListMoniker">The moniker.</param>
+      <returns>Returns <see cref="T:Microsoft.VisualStudio.Imaging.Interop.ImageMoniker" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImageMonikers">
+      <summary>Gets the monikers of all of the images in the library.</summary>
+      <returns>The monikers of all of the images in the library..</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.GetImageMonikerType(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker)">
+      <summary>Determines whether the ImageMoniker was added as a custom image, loaded from manifest, or neither, meaning we don't have an image with that moniker.</summary>
+      <param name="moniker">The ImageMoniker to test.</param>
+      <returns>The ImageMonikerType of IMT_Custom, IMT_LoadedFromManifest, or IMT_Unknown.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.Load(System.Collections.Generic.IEnumerable{System.String},System.Boolean,Microsoft.VisualStudio.Utilities.ITracer,Microsoft.VisualStudio.Utilities.IStreamStorage{System.String})">
+      <summary>Loads an ImageLibrary from a collection of manifests.</summary>
+      <param name="manifests">The manifest files to load</param>
+      <param name="isDefault">Whether or not this ImageLibrary should be used as ImageLibrary.Default</param>
+      <param name="tracer">The tracer to use.</param>
+      <param name="cacheStorage">The storage used by the ImageLibrary for caching.</param>
+      <returns>The loaded image library.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.Load(System.String,System.Boolean,Microsoft.VisualStudio.Utilities.ITracer,Microsoft.VisualStudio.Utilities.IStreamStorage{System.String})">
+      <summary>Loads an ImageLibrary from a manifest.</summary>
+      <param name="manifest">The manifest file to load.</param>
+      <param name="isDefault">Whether or not this ImageLibrary should be used as ImageLibrary.Default &lt;/</param>
+      <param name="tracer">The tracer to use</param>
+      <param name="cacheStorage">The storage used by the ImageLibrary for caching.</param>
+      <returns>The loaded image library.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.RemoveCustomImage(Microsoft.VisualStudio.Imaging.Interop.IImageHandle)">
+      <summary>Removes a custom image from the library. The image must have been added by AddCustomImage.</summary>
+      <param name="handle">The handle of the image to remove.</param>
+      <returns>True if the image was removed, false otherwise.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.RemoveCustomImageList(Microsoft.VisualStudio.Imaging.Interop.IImageHandle)">
+      <summary>Removes a custom image list from the library. The image must have been added by AddCustomImageList.</summary>
+      <param name="handle">The handle of the image list to remove.</param>
+      <returns>True if the image list was removed, false otherwise.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.Serialize(System.IO.Stream)">
+      <summary>Serializes the image library to <paramref name="stream" />.</summary>
+      <param name="stream">The stream to serialize to.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.TryGetMonikerForExtension(System.String,System.Boolean,Microsoft.VisualStudio.Imaging.Interop.ImageMoniker@)">
+      <summary>Attempts to get the moniker for the image to use for files whose extension matches <paramref name="extension" />. If we haven't already identified the image to use, we'll attempt to identify it using the DefaultIcon property of the registered ProgID for the extension.</summary>
+      <param name="extension">The extension to reference.</param>
+      <param name="canTheme">Indicates whether the image be themed.</param>
+      <param name="moniker">The moniker for the added image.</param>
+      <returns>True if the image could be added, false if it could not.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageLibrary.TryGetMonikerForProgId(System.String,System.Boolean,Microsoft.VisualStudio.Imaging.Interop.ImageMoniker@)">
+      <summary>Attempts to get the moniker for the image to use for files matching <paramref name="progId" />. If we haven't already identified the image to use, we'll attempt to identify it using the DefaultIcon property of <paramref name="progId" />.</summary>
+      <param name="progId">The ProgID to use for the image.</param>
+      <param name="canTheme">Indicates whether the image be themed.</param>
+      <param name="moniker">The moniker for the added image.</param>
+      <returns>True if the image could be added, false if it could not.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImageMonikerConverter.#ctor">
+      <summary />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.ConvertMonikerToString(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker)">
+      <summary>Converts an ImageMoniker into a string, which can be converted back using <see cref="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.TryParseImageMoniker(System.String,Microsoft.VisualStudio.Imaging.Interop.ImageMoniker@)" />.</summary>
+      <param name="moniker">The ImageMoniker to convert to a string.</param>
+      <returns>The ImageMoniker formatted as a string. </returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.ConvertMonikerToString(Microsoft.VisualStudio.Imaging.Interop.ImageMoniker,System.String)">
+      <summary>Converts an ImageMoniker into a string using the specified format, which can be converted back using <see cref="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.TryParseImageMoniker(System.String,Microsoft.VisualStudio.Imaging.Interop.ImageMoniker@)" />.</summary>
+      <param name="moniker">The ImageMoniker to convert to a string.</param>
+      <param name="format">Format to use. f for filename, a for alternate, g for general.</param>
+      <returns>The ImageMoniker formatted as a string.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.TryParseImageMoniker(System.String,Microsoft.VisualStudio.Imaging.Interop.ImageMoniker@)">
+      <summary>Tries to convert <paramref name="s" /> into an ImageMoniker.</summary>
+      <param name="s">The string to attempt to parse.</param>
+      <param name="moniker">The ImageMoniker parsed from <paramref name="s" />.</param>
+      <returns>True if parsing was successful, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.ValidateAttributes(Microsoft.VisualStudio.Imaging.Interop.ImageAttributes)">
+      <summary>Verifies that the contents of an ImageAttributes structure are valid.</summary>
+      <param name="attributes">The attributes to verify.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ImagingUtilities.ValidateImageAttributesFlags(Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags)">
+      <summary>Validates that <paramref name="flags" /> contains only valid flags.</summary>
+      <param name="flags">The flags to validate.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.#ctor(System.String,System.Guid)">
+      <summary>Initializes a new instance of ManifestDescriptor.</summary>
+      <param name="filename">The manifest file name.</param>
+      <param name="packageGuid">The package GUID.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.Deserialize(Microsoft.VisualStudio.Utilities.VersionedBinaryReader)">
+      <summary>Deserializes a manifest descriptor from <paramref name="reader" />. </summary>
+      <param name="reader">The reader from which to deserialize.</param>
+      <returns>Returns <see cref="T:Microsoft.VisualStudio.Imaging.ManifestDescriptor" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.Equals(Microsoft.VisualStudio.Imaging.ManifestDescriptor)">
+      <summary>Determines whether two instances of ManifestDescriptor are the same.</summary>
+      <param name="other">The second ManifestDescriptor.</param>
+      <returns>True if the two instances are the same, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.Equals(System.Object)">
+      <summary>Determines whether two instances of ManifestDescriptor are the same.</summary>
+      <param name="obj">The second instance.</param>
+      <returns>True if the two instances are the same, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.GetHashCode">
+      <summary>Gets a hash code for the object.</summary>
+      <returns>Returns <see cref="T:System.Int32" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.op_Equality(Microsoft.VisualStudio.Imaging.ManifestDescriptor,Microsoft.VisualStudio.Imaging.ManifestDescriptor)">
+      <summary>Determines whether two instances of ManifestDescriptor are the same.</summary>
+      <param name="d1">The first instance.</param>
+      <param name="d2">The second instance.</param>
+      <returns>True if the two instances are the same, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.op_Inequality(Microsoft.VisualStudio.Imaging.ManifestDescriptor,Microsoft.VisualStudio.Imaging.ManifestDescriptor)">
+      <summary>Determines whether two instances of ManifestDescriptor are different.</summary>
+      <param name="d1">The first instance.</param>
+      <param name="d2">The second instance.</param>
+      <returns>True if the two instances are not the same, otherwise false.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.Serialize(Microsoft.VisualStudio.Utilities.VersionedBinaryWriter)">
+      <summary>Serializes the descriptor to <paramref name="writer" />.</summary>
+      <param name="writer">The writer.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestDescriptor.ToString">
+      <summary>Converts the object to a string.</summary>
+      <returns>Returns <see cref="T:System.String" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor">
+      <summary />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.Exception)">
+      <summary />
+      <param name="innerException" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.String)">
+      <summary />
+      <param name="message" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.String,System.Exception)">
+      <summary />
+      <param name="message" />
+      <param name="innerException" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.String,System.Xml.Schema.XmlSeverityType)">
+      <summary />
+      <param name="message" />
+      <param name="severity" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.String,System.Xml.Schema.XmlSeverityType,System.Exception)">
+      <summary />
+      <param name="message" />
+      <param name="severity" />
+      <param name="innerException" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.Xml.Schema.XmlSeverityType)">
+      <summary />
+      <param name="severity" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.ManifestParseException.#ctor(System.Xml.Schema.XmlSeverityType,System.Exception)">
+      <summary />
+      <param name="severity" />
+      <param name="innerException" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.Imaging.TelemetryEventArgs.#ctor(System.String)">
+      <summary />
+      <param name="context" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.GrayscaleBitmapSourceConverter.#ctor">
+      <summary>Initializes a new instance of GrayscaleBitmapSourceConverter.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.GrayscaleBitmapSourceConverter.Convert(System.Windows.Media.Imaging.BitmapSource,System.Object,System.Globalization.CultureInfo)">
+      <summary>Converts the image.</summary>
+      <param name="image">The image.</param>
+      <param name="parameter">The parameter.</param>
+      <param name="culture">The culture.</param>
+      <returns>The converted BitmapSource.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.GrayscaleBitmapSourceConverter.ConvertCore(System.Windows.Media.Imaging.BitmapSource,System.Windows.Media.Color)">
+      <summary>Converts the image.</summary>
+      <param name="image">The image.</param>
+      <param name="biasColor">The bias color.</param>
+      <returns>The converted image.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.GrayscaleBitmapSourceConverter.GetBiasColor(System.Object)">
+      <summary>Gets the bias color.</summary>
+      <param name="parameter">The color.</param>
+      <returns>The bias color.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.GrayscaleImageConverter.#ctor">
+      <summary>Microsoft internal use only.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.GrayscaleImageConverter.Convert(System.Windows.Media.Imaging.BitmapSource,System.Object,System.Globalization.CultureInfo)">
+      <summary>Microsoft internal use only.</summary>
+      <param name="inputImage" />
+      <param name="parameter">If set to a Color, it will be used to bias the final image</param>
+      <param name="culture" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ClearOptOutPixel(System.Byte*,System.Int32,System.Int32,System.Boolean)">
+      <summary />
+      <param name="pPixelBytes" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ClearOptOutPixel(System.Byte[],System.Int32,System.Int32,System.Boolean)">
+      <summary />
+      <param name="pixels" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ClearWeakImageCache">
+      <summary />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetImageBackgroundColor(System.Windows.DependencyObject)">
+      <summary>Gets the ImageBackgroundColor property.</summary>
+      <param name="obj">The object.</param>
+      <returns>The ImageBackgroundColor property.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetOrCreateThemedBitmapSource(System.Windows.Media.Imaging.BitmapSource,System.Windows.Media.Color,System.Boolean,System.Windows.Media.Color)">
+      <summary>Converts an input BitmapSource into an BitmapSource that blends in with the target background.  This converter performs two conversions.1. The luminosity of the image is transformed so that the constant "halo" luminosity blends in with the background.  This has the effect of eliminating the halo visually.  The "halo" luminosity is an immutable constant, and is not calculated from the input image.2. The image is converted to grayscale if the isEnabled parameter is false.  This uses the "biasColor" to determine how to transform the image to grayscale.</summary>
+      <param name="inputImage">The input BitmapSource.</param>
+      <param name="backgroundColor">The color which the halo color should be targeted to match within the bitmap.</param>
+      <param name="isEnabled">True if the bitmap should be rendered enabled, false if it should be disabled (grayscaled).</param>
+      <param name="grayscaleBiasColor">The color used for biasing grayscale if the image is disabled.</param>
+      <returns>A new BitmapSource with the requested transformations applied.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetOrCreateThemedBitmapSource(System.Windows.Media.Imaging.BitmapSource,System.Windows.Media.Color,System.Boolean,System.Windows.Media.Color,System.Boolean)">
+      <summary />
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="grayscaleBiasColor" />
+      <param name="isHighContrast" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetThemedBitmap(System.Drawing.Bitmap,System.Drawing.Color)">
+      <summary>Creates a new Bitmap, based on the input one, but the new one blends in with the target background.  </summary>
+      <param name="source">The original bitmap, this bitmap is not changed or disposed in this function.</param>
+      <param name="backgroundColor">The background color(System.Drawing.Color)</param>
+      <returns>The bitmap.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetThemedBitmap(System.Drawing.Bitmap,System.Drawing.Color,System.Boolean)">
+      <summary />
+      <param name="source" />
+      <param name="backgroundColor" />
+      <param name="isHighContrast" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetThemedBitmap(System.Drawing.Bitmap,System.UInt32)">
+      <summary>Creates a new Bitmap, based on the input one, but the new one blends in with the target background.  </summary>
+      <param name="source">The original bitmap, this bitmap is not changed or disposed in this function.</param>
+      <param name="backgroundColor">The background color in native ABGR format.</param>
+      <returns>The bitmap.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetThemedBitmap(System.Drawing.Bitmap,System.UInt32,System.Boolean)">
+      <summary />
+      <param name="source" />
+      <param name="backgroundColor" />
+      <param name="isHighContrast" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GetThemeScrollBars(System.Windows.DependencyObject)">
+      <summary>Gets the ThemeScrollbarsProperty value.</summary>
+      <param name="d">The object.</param>
+      <returns>The ThemeScrollbarsProperty value.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.GrayscaleDIBits(System.Byte[],System.Int32,System.Windows.Media.Color)">
+      <summary>Transforms a BGRA32 device-independent bitmap to grayscale.</summary>
+      <param name="pixels">The raw pixels from the DIB.</param>
+      <param name="pixelLength">The length of the pixels array.</param>
+      <param name="biasColor">The bias color used to weight the grayscale image.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.IsDark(System.Windows.Media.Color)">
+      <summary />
+      <param name="color" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.IsLight(System.Windows.Media.Color)">
+      <summary />
+      <param name="color" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.IsOptOutPixelSet(System.Byte*,System.Int32,System.Int32,System.Boolean)">
+      <summary />
+      <param name="pPixelBytes" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.IsOptOutPixelSet(System.Byte[],System.Int32,System.Int32,System.Boolean)">
+      <summary />
+      <param name="pixels" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ModifyBitmap(System.Windows.Media.Imaging.BitmapSource,Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ModifyPixelCallback)">
+      <summary />
+      <param name="source" />
+      <param name="modifier" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.SetImageBackgroundColor(System.Windows.DependencyObject,System.Windows.Media.Color)">
+      <summary>Sets the ImageBackgroundColor property.</summary>
+      <param name="obj">The object.</param>
+      <param name="value">The value.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.SetOptOutPixel(System.Byte*,System.Int32,System.Int32,System.Boolean)">
+      <summary />
+      <param name="pPixelBytes" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.SetOptOutPixel(System.Byte[],System.Int32,System.Int32,System.Boolean)">
+      <summary />
+      <param name="pixels" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.SetOptOutPixel(System.Windows.Media.Imaging.BitmapSource)">
+      <summary />
+      <param name="source" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.SetThemeScrollBars(System.Windows.DependencyObject,System.Nullable{System.Boolean})">
+      <summary>Sets the ThemeScrollbarsProperty value.</summary>
+      <param name="d">The object.</param>
+      <param name="value">The value.</param>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemeDIBits(System.Int32,System.Byte[],System.Int32,System.Int32,System.Boolean,System.UInt32)">
+      <summary />
+      <param name="pixelCount" />
+      <param name="pixels" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+      <param name="backgroundRgba" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemeDIBits(System.Int32,System.Byte[],System.Int32,System.Int32,System.Boolean,System.UInt32,System.Boolean)">
+      <summary />
+      <param name="pixelCount" />
+      <param name="pixels" />
+      <param name="width" />
+      <param name="height" />
+      <param name="isTopDownBitmap" />
+      <param name="backgroundRgba" />
+      <param name="isHighContrast" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemePixel(System.Byte@,System.Byte@,System.Byte@,Microsoft.VisualStudio.Imaging.HslColor)">
+      <summary />
+      <param name="r" />
+      <param name="g" />
+      <param name="b" />
+      <param name="background" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemePixel(System.Byte@,System.Byte@,System.Byte@,Microsoft.VisualStudio.Imaging.HslColor,System.Boolean)">
+      <summary />
+      <param name="r" />
+      <param name="g" />
+      <param name="b" />
+      <param name="background" />
+      <param name="isHighContrast" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ThemedImageConverter.#ctor">
+      <summary>Microsoft internal use only.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ThemedImageSourceConverter.#ctor">
+      <summary>Microsoft internal use only.</summary>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ThemedImageSourceConverter.Convert(System.Windows.Media.ImageSource,System.Windows.Media.Color,System.Boolean,System.Object,System.Globalization.CultureInfo)">
+      <summary>Microsoft internal use only.</summary>
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="parameter" />
+      <param name="culture" />
+      <returns>Returns <see cref="T:System.Windows.Media.ImageSource" />.</returns>
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ThemedImageSourceConverter.ConvertCore(System.Windows.Media.ImageSource,System.Windows.Media.Color,System.Boolean,System.Boolean,System.Object)">
+      <summary />
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="isHighContrast" />
+      <param name="parameter" />
+    </member>
+    <member name="M:Microsoft.VisualStudio.PlatformUI.ThemedImageSourceConverter.ConvertCore(System.Windows.Media.ImageSource,System.Windows.Media.Color,System.Boolean,System.Object)">
+      <summary />
+      <param name="inputImage" />
+      <param name="backgroundColor" />
+      <param name="isEnabled" />
+      <param name="parameter" />
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.BitmapLocker.Bitmap">
+      <summary>Gets the bitmap locked by this BitmapLocker.</summary>
+      <returns>The bitmap.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.BitmapLocker.BitmapData">
+      <summary>Gets the BitmapData for the bitmap locked by this object</summary>
+      <returns>BitmapData for the bitmap locked by this object.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.ActualDpi">
+      <summary>Gets the actual DPI property.</summary>
+      <returns>The actual DPI.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.ActualGrayscaleBiasColor">
+      <summary>Gets the actual grayscale bias color.</summary>
+      <returns>Returns <see cref="T:System.Windows.Media.Color" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.ActualHighContrast">
+      <summary>Determines whether the image is high contrast.</summary>
+      <returns>True if the image is high contrast, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.ActualImageLibrary">
+      <summary>The actual image library.</summary>
+      <returns>The actual image library.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.DefaultDpi">
+      <summary>Gets the default DPI used for CrispImages that don't have their Dpi property set</summary>
+      <returns>The default DPI.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.DefaultImageLibrary">
+      <summary>Gets or sets the image library used for CrispImage objects that don't have their ImageLibrary property set.</summary>
+      <returns>The image library..</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.Dpi">
+      <summary>Defines the DPI used by the CrispImage objects that are descendants of the element to which this property is attached. If this is 0.0, DefaultDpi is used.</summary>
+      <returns>The DPI.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.Grayscale">
+      <summary>Defines the grayscale color used by the CrispImage objects that are descendants of the element to  which this property is attached.</summary>
+      <returns>The grayscale color.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.GrayscaleBiasColor">
+      <summary>Gets the grayscale bias color used by the CrispImage objects that are descendants of the element to which this property is attached.</summary>
+      <returns>The grayscale bias color.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.HighContrast">
+      <summary>Determines whether the CrispImage objects that are descendants of the element to which this property is attached show high-contrast images.</summary>
+      <returns>The values are as follows:True - Images are high-contrastFalse - Images are not high-contrastnull - Images are displayed according to the system high-contrast setting</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.ImageLibrary">
+      <summary>Defines the image library used by the CrispImage objects that are descendants of the element to which this property is attached.  If this is null, DefaultImageLibrary is used.</summary>
+      <returns>The image library.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.Moniker">
+      <summary>Gets the moniker to use when loading the CrispImage's image from the image library.</summary>
+      <returns>The moniker.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.ScaleFactor">
+      <summary>Gets the ScaleFactor that is used when the image may be scaled using a transform, such as for an image in the editor margin when the zoom != 100%. A ScaleFactor of 1 does no scaling.</summary>
+      <returns>The scale factor.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.CrispImage.SystemHighContrast">
+      <summary>Gets the value of SystemParameters.HighContrast</summary>
+      <returns>The system high contrast value.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaledImageExtension.PrescalingConverter">
+      <summary>Gets an instance of the DpiPrescaleImageSourceConverter.</summary>
+      <returns>Returns <see cref="T:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleImageSourceConverter" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaledImageExtension.Uri">
+      <summary>Gets or sets the URI.</summary>
+      <returns>The URI.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleImageSourceConverter.DpiHelper">
+      <summary>Gets the default DpiHelper.</summary>
+      <returns>Gets the default DpiHelper.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageConverter.DpiHelper">
+      <summary>Gets the default DpiHelper.</summary>
+      <returns>The DpiHelper.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageSourceConverter.DpiHelper">
+      <summary>Gets the default DpiHelper.</summary>
+      <returns>The DpiHelper.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.HslColor.Alpha">
+      <summary>Gets or sets the HslColor's Alpha component.</summary>
+      <returns>The HslColor's Alpha component.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.HslColor.Hue">
+      <summary>Gets or sets the HslColor's Hue component</summary>
+      <returns>The HslColor's Hue component.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.HslColor.Luminosity">
+      <summary>Gets or sets the HslColor's Luminosity component</summary>
+      <returns>The HslColor's Luminosity component.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.HslColor.Saturation">
+      <summary>Gets or sets the HslColor's Saturation component.</summary>
+      <returns>The HslColor's Saturation component.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageEventArgs.ManifestFilename">
+      <summary>Gets the name of the manifest file in which the image was defined. If the image is a custom image, this will be null.</summary>
+      <returns>Returns <see cref="T:System.String" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageEventArgs.Moniker">
+      <summary>TGets the moniker for the image.</summary>
+      <returns>Returns <see cref="T:Microsoft.VisualStudio.Imaging.Interop.ImageMoniker" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageEventArgs.PackageGuid">
+      <summary>The PackageGuid of the image's defining manifest. If the defining manifest omits the PackageGuid attribute or the image is a custom image, this will be Guid.Empty.</summary>
+      <returns>Returns <see cref="T:System.Guid" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.AlternateDebugColor">
+      <summary>Gets the alternate color of the border rendered in debug mode.</summary>
+      <returns>The alternate color of the border rendered in debug mode.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.CachedImageCount">
+      <summary>Gets the number of images that are being stored in the image cache.</summary>
+      <returns>The number of images stored in the cache.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.DebugColor">
+      <summary>Gets the color of the border rendered in debug mode’</summary>
+      <returns>The color of the border rendered in debug mode.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.DebugMode">
+      <summary>Determines whether or not images should be rendered in debug mode, which adds a colored border.</summary>
+      <returns>True if the images should be rendered in debug mode, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.Default">
+      <summary>Gets the default instance of ImageLibrary.</summary>
+      <returns>The default instance of ImageLibrary.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.Initialized">
+      <summary />
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.IsCaching">
+      <summary>Indicates whether the library is caching its contents.</summary>
+      <returns>True if the library is caching its contents, otherwise false.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ImageLibrary.Tracer">
+      <summary>Gets the tracer for the library.</summary>
+      <returns>The tracer for the library.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ManifestDescriptor.Filename">
+      <summary />
+      <returns>Returns <see cref="T:System.String" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ManifestDescriptor.PackageGuid">
+      <summary>The manifest's PackageGuid, if it is specified in the manifest. If the manifest has no PackageGuid attribute, this is Guid.Empty.</summary>
+      <returns>Returns <see cref="T:System.Guid" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.ManifestParseException.Severity">
+      <summary />
+      <returns>Returns <see cref="T:System.Xml.Schema.XmlSeverityType" />.</returns>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.TelemetryEventArgs.Context">
+      <summary />
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.TelemetryEventArgs.Disposer">
+      <summary />
+    </member>
+    <member name="P:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ImageBackgroundColor">
+      <summary>Gets or sets the color used for image theming. The target color is used to map the "halo" color in an image with the target background color. It should be attached on the same UIElement that the gackground color is set on when images are drawn directly on that Background. The reasons why the background is not used directly:1. Backgrounds that are set to Transparent would require a visual tree walk to find the real background.2. The background is a Brush, not a Color, which would require interpretation to arrive at a Color instead.3. The ultimate background the image is drawn on may not be the desired image to use for theming, for example when a selection brush is conditionally shown in a TreeView.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.IsImageThemingEnabled">
+      <summary />
+    </member>
+    <member name="P:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ThemeScrollBars">
+      <summary>Controls whether the ScrollBars of this element and its descendants have themed scrollbars. It is attached to FrameworkElementTrue  - ScrollBars are themedFalse - ScrollBars are not themednull  - ScrollBar theme state is inherited</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ActualDpiConverter">
+      <summary>Converts a possibly-uninitialized DPI value into a valid DPI.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ActualGrayscaleBiasColorConverter">
+      <summary>Determines the correct value for the grayscale bias color for a CrispImage.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ActualHighContrastConverter">
+      <summary>Determines whether or not to use high-contrast images.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ActualImageLibraryConverter">
+      <summary>Converts a possibly-null ImageLibrary into a valid ImageLibrary for image retrieval.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.BitmapLocker">
+      <summary>A disposable helper class that helps lock and unlock bitmap bits.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Converters.ImageMonikerToCrispImageConverter">
+      <summary>Converts an ImageMoniker into a CrispImage.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.CrispImage">
+      <summary>An Image class that gets its source from the image library and renders it crisply at any DPI setting. This class is sealed to prevent initialization problems stemming from the Created event, which can call outside the class and could result in derived classes not being initialized yet.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaledImageExtension">
+      <summary>This class is derived from a MarkupExtension class that can be used to declare image sources in XAML and have the image pre-scaled for High DPI at zoom levels higher than 200%, using NearestNeighbor up to the largest multiple of 100%.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleImageSourceConverter">
+      <summary>Converts an ImageSource into another ImageSource, pre-scaled on High DPI to the largest zoom multiple of 100% smaller than the DPI zoom./// </summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageConverter">
+      <summary>Converts an ImageSource into an Image element. If the input image ia a BitmapSource, the transformed BitmapSource has its halo color mapped to the given background color and is conditionally rendered as disabled. The resultant image is then pre-scaled on High DPI to the largest zoom multiple of 100% smaller than the DPI zoom. This converter chains the behavior of ThemedImageConverter and DpiPrescaleImageSourceConverter.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Dpi.DpiPrescaleThemedImageSourceConverter">
+      <summary>Converts an ImageSource into another ImageSource.  If the input image ia a BitmapSource, the transformed BitmapSource has its halo color mapped to the given background color and is conditionally rendered as disabled. The resultant image is then pre-scaled on High DPI to the largest zoom multiple of 100% smaller than the DPI zoom.This converter chains the behavior of ThemedImageSourceConverter and DpiPrescaleImageSourceConverter.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ExtensionMethods">
+      <summary>Provides imaging extension methods.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.HslColor">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImageConverter">
+      <summary>Provides helper methods for image conversion.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImageEventArgs">
+      <summary>Arguments for ImageLibrary events.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImageFormat">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageFormat.WPF">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageFormat.WinForms">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageFormat.Win32">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImageKind">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageKind.Bitmap">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageKind.Icon">
+      <summary />
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.ImageKind.ImageList">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImageLibrary">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImageMonikerConverter">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ImagingUtilities">
+      <summary>Provides helper methods for imaging.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ManifestDescriptor">
+      <summary>Describes a manifest file.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.ManifestParseException">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.TelemetryEventArgs">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.PlatformUI.GrayscaleBitmapSourceConverter">
+      <summary>Converts an image BitmapSource into a grayscale version of the same image.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.PlatformUI.GrayscaleImageConverter">
+      <summary>Microsoft internal use only. This class converts a BitmapSource into an Image control whose Source property is set to a grayscale version of the input image. The grayscale version is generated by GrayscaleBitmapSourceConverter.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities">
+      <summary>Contains utility methods for grayscaling and transforming color spaces within images.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.PlatformUI.ImageThemingUtilities.ModifyPixelCallback">
+      <summary>A callback used to modify pixel data in a BitmapSource.</summary>
+      <param name="originalSource">The BitmapSource whose pixels are being modified.</param>
+      <param name="pixels">The Bgra32 pixel values from the BitmapSource.</param>
+      <returns>True if the bitmap was modified, false if no change were made.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.PlatformUI.ThemedImageConverter">
+      <summary>Microsoft internal use only. Converts an input ImageSource into an Image control whose Source blends in with the target background. </summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.PlatformUI.ThemedImageSourceConverter">
+      <summary>Microsoft internal use only. Converts an ImageSource into another ImageSource.  If the input image ia a BitmapSource, the transformed BitmapSource has its halo color mapped to the given background color and is conditionally rendered as disabled.</summary>
+    </member>
+  </members>
+</doc>

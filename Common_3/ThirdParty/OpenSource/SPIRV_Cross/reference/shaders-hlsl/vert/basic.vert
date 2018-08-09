@@ -1,11 +1,6 @@
-struct _UBO
+cbuffer _16
 {
-    float4x4 uMVP;
-};
-
-cbuffer UBO
-{
-    _UBO _16;
+    row_major float4x4 _16_uMVP : packoffset(c0);
 };
 
 static float4 gl_Position;
@@ -27,7 +22,7 @@ struct SPIRV_Cross_Output
 
 void vert_main()
 {
-    gl_Position = mul(aVertex, _16.uMVP);
+    gl_Position = mul(aVertex, _16_uMVP);
     vNormal = aNormal;
 }
 

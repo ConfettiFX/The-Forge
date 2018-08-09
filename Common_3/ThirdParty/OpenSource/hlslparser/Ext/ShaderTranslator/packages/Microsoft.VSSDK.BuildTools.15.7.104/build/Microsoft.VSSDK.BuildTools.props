@@ -1,0 +1,9 @@
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="VSSDK_NuGet_Configuration">
+    <ThisPackageDirectory>$(MSBuildThisFileDirectory)..\</ThisPackageDirectory>
+    <VSToolsPath>$(ThisPackageDirectory)\tools</VSToolsPath>
+    <VsSDKInstall>$(VSToolsPath)\VSSDK</VsSDKInstall>
+    <VsSDKIncludes>$(VsSDKInstall)\inc</VsSDKIncludes>
+    <VsSDKToolsPath>$(VsSDKInstall)\bin</VsSDKToolsPath>
+  </PropertyGroup>
+</Project>

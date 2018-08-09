@@ -13,10 +13,10 @@ struct SPIRV_Cross_Output
 
 void frag_main()
 {
-    RT0 = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    RT1 = float4(2.0f, 2.0f, 2.0f, 2.0f);
-    RT2 = float4(3.0f, 3.0f, 3.0f, 3.0f);
-    RT3 = float4(4.0f, 4.0f, 4.0f, 4.0f);
+    RT0 = 1.0f.xxxx;
+    RT1 = 2.0f.xxxx;
+    RT2 = 3.0f.xxxx;
+    RT3 = 4.0f.xxxx;
 }
 
 SPIRV_Cross_Output main()

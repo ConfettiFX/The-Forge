@@ -234,9 +234,9 @@ float4 main(VSOutput input) : SV_TARGET
 	float3 diffuse = kD * irradiance * albedo;
 
 	float3 specularColor = specularMap.SampleLevel(envSampler, R, _roughness * 4).rgb;
-
-	float2 maxNVRough = max(dot(N, V), _roughness);
-	float2 brdf = brdfIntegrationMap.Sample(defaultSampler, maxNVRough);
+		
+	float2 maxNVRough = float2(max(dot(N, V), 0.0), _roughness);
+	float2 brdf = brdfIntegrationMap.Sample(defaultSampler, maxNVRough).rg;
 	
 	float3 specular = specularColor * (F * brdf.x + brdf.y);
 

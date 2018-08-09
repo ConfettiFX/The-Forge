@@ -67,6 +67,8 @@ public:
 	String GetLastMessage() const { return mLastMessage; }
 	bool IsQuiet() const { return mQuietMode; }
 
+	virtual void OutputLog(int level, const String& message);
+
 	static void Write(int level, const String& message);
 	static void WriteRaw(const String& message, bool error = false);
 

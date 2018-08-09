@@ -18,12 +18,13 @@ void main()
     vColor = vec4(0.0);
     for (int i = 0; i < 4; i++)
     {
+        Light _52 = Light(UBO[i * 2 + 4].xyz, UBO[i * 2 + 4].w, UBO[i * 2 + 5]);
         Light light;
-        light.Position = Light(UBO[i * 2 + 4].xyz, UBO[i * 2 + 4].w, UBO[i * 2 + 5]).Position;
-        light.Radius = Light(UBO[i * 2 + 4].xyz, UBO[i * 2 + 4].w, UBO[i * 2 + 5]).Radius;
-        light.Color = Light(UBO[i * 2 + 4].xyz, UBO[i * 2 + 4].w, UBO[i * 2 + 5]).Color;
+        light.Position = _52.Position;
+        light.Radius = _52.Radius;
+        light.Color = _52.Color;
         vec3 L = aVertex.xyz - light.Position;
-        vColor += (((UBO[i * 2 + 5]) * clamp(1.0 - (length(L) / light.Radius), 0.0, 1.0)) * dot(aNormal, normalize(L)));
+        vColor += ((UBO[i * 2 + 5] * clamp(1.0 - (length(L) / light.Radius), 0.0, 1.0)) * dot(aNormal, normalize(L)));
     }
 }
 

@@ -4,7 +4,7 @@
 #if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID)
 #include <arpa/inet.h>
 #include <stdint.h>
-#elif defined(GAINPUT_PLATFORM_WIN)
+#elif defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_XBOX_ONE)
 #include <Winsock2.h>
 typedef unsigned __int16 uint16_t;
 typedef __int16 int16_t;

@@ -1,0 +1,1366 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+*************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+This code is licensed under the Visual Studio SDK license terms.
+THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+*************************************************************************
+-->
+  <Import Project="Microsoft.VisualStudio.Sdk.Common.targets" />
+
+  <!-- Common tasks -->
+  <UsingTask TaskName="CalculateZipItems" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="CompareCommonBuildTaskVersion" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="CopyIfChanged" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="CreateTemplatesManifest" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="CreateVsixSourceItemFromReferences" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="CtoResourceMerger" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="DetokenizeVsixManifestSource" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="FindVsixManifest" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="GetVSTemplateItems" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="ReadReferencesFromVsixManifest" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="SplitIncludeOutputGroupsInVSIX" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="ValidateVsixParts" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="Unzip" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+  <UsingTask TaskName="ZipItems" AssemblyFile="$(VsSDKCommonAssemblyFile)" />
+
+  <!-- Tasks specific to this version of Visual Studio -->
+  <UsingTask TaskName="CheckProfileSetup" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="CompareBuildTaskVersion" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="CreatePkgDef" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="CreateZipPackage" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="Devenv" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="EnableExtension" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="EnableLoadingAllExtensions" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="FindInstalledExtension" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="GetDeploymentPathFromVsixManifest" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="GetExtensionsPath" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="ReadInfoFromVsixManifest" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="UninstallExtension" AssemblyFile="$(VsSDKAssemblyFile)" />
+  <UsingTask TaskName="ValidateVsixManifest" AssemblyFile="$(VsSDKAssemblyFile)" />
+
+  <PropertyGroup>
+    <IsProductComponent Condition="'$(IsProductComponent)' == ''">false</IsProductComponent>
+    <AreDependenciesSetOnPackage Condition="'$(AreDependenciesSetOnPackage)' == ''">false</AreDependenciesSetOnPackage>    
+    <DeployVSTemplates Condition="'$(DeployVSTemplates)' == ''">true</DeployVSTemplates>
+    <BuildDependsOn>VerifyTargetVersion;$(BuildDependsOn)</BuildDependsOn>
+    <VerifyTargetVersion Condition="'$(VerifyTargetVersion)' == ''">true</VerifyTargetVersion>
+    <GetVsixItemsToBundleDependsOn>$(GetVsixItemsToBundleDependsOn);Compile</GetVsixItemsToBundleDependsOn>
+    <DeployVsixExtensionFilesDependsOn>$(DeployVsixExtensionFilesDependsOn);Compile</DeployVsixExtensionFilesDependsOn>
+    <TargetVSVersion Condition="'$(TargetVSVersion)' == ''">$(VSSDKTargetPlatformVersion)</TargetVSVersion>
+    <DeployExtension Condition="'$(DeployExtension)' == ''">true</DeployExtension>
+    <CopyVsixExtensionFiles Condition="'$(CopyVsixExtensionFiles)'==''">false</CopyVsixExtensionFiles>
+    <CreateVsixContainer Condition="'$(CreateVsixContainer)' == ''">true</CreateVsixContainer>
+    <CopyVsixManifestToOutput Condition="'$(CopyVsixManifestToOutput)' == '' and ('$(CreateVsixContainer)' != 'false' or '$(DeployExtension)' != 'false' or '$(CopyVsixExtensionFiles)' != 'false')">true</CopyVsixManifestToOutput>
+    <CreatePkgDefAssemblyToProcess Condition="'$(CreatePkgDefAssemblyToProcess)' == ''">$(TargetPath)</CreatePkgDefAssemblyToProcess>
+    <BuildInParallel Condition="'$(BuildInParallel)' == ''">true</BuildInParallel>
+  </PropertyGroup>
+
+  <!--
+    =================================================================================
+                          Find Source Vsix Manifest File
+    =================================================================================
+    -->
+  <Target Name="FindSourceVsixManifest"
+          Condition="'$(CreateVsixContainer)' == 'true'">
+    <FindVsixManifest ItemsToConsider="@(None)"
+                      ProjectName="$(MSBuildProjectName)">
+      <Output TaskParameter="VsixManifest" ItemName="SourceVsixManifest"/>
+    </FindVsixManifest>
+  </Target>
+
+  <!--
+    =================================================================================
+                          Verify loaded build tasks match requested build tasks
+    =================================================================================
+    -->
+  <Target Name="VerifyTargetVersion">
+    <CompareCommonBuildTaskVersion
+      TargetsAssemblyPath="$(MSBuildThisFileDirectory)$(VsSDKCommonAssemblyFile)">
+    </CompareCommonBuildTaskVersion>
+
+    <CompareBuildTaskVersion
+      TargetsAssemblyPath="$(MSBuildThisFileDirectory)$(VsSDKAssemblyFile)">
+    </CompareBuildTaskVersion>
+  </Target>
+
+  <!--
+    =================================================================================
+                          Validate Source Vsix Manifest File
+    =================================================================================
+    -->
+  <PropertyGroup>
+    <ValidateVsixManifestDependsOn>$(ValidateVsixManifestDependsOn);FindSourceVsixManifest</ValidateVsixManifestDependsOn>
+    <BypassVsixValidation Condition="'$(BypassVsixValidation)' == ''">false</BypassVsixValidation>
+  </PropertyGroup>
+  <Target Name="ValidateVsixManifest" DependsOnTargets="$(ValidateVsixManifestDependsOn)">
+    <ValidateVsixManifest Condition="Exists('$(IntermediateVsixManifest)') AND '$(BypassVsixValidation)' != 'true'" ItemToValidate="$(IntermediateVsixManifest)"/>
+    <ValidateVsixManifest Condition="!Exists('$(IntermediateVsixManifest)') AND Exists('@(SourceVsixManifest)') AND '$(BypassVsixValidation)' != 'true'" ItemToValidate="@(SourceVsixManifest)"/>
+  </Target>
+
+  <!--
+    =================================================================================
+                          Detokenize Source Vsix Manifest File
+    =================================================================================
+
+    Detokenize the source.extension.vsixmanifest file to the intermediate directory as extension.vsixmanifest
+    -->
+  <PropertyGroup>
+    <DetokenizeVsixManifestFileDependsOn>$(DetokenizeVsixManifestFileDependsOn);AssignProjectConfiguration;FindSourceVsixManifest</DetokenizeVsixManifestFileDependsOn>
+    <VsixManifestFileName Condition="'$(VsixManifestFileName)' == ''">extension.vsixmanifest</VsixManifestFileName>
+    <IntermediateVsixManifest Condition="'$(IntermediateVsixManifest)' == ''">$(IntermediateOutputPath)$(VsixManifestFileName)</IntermediateVsixManifest>
+  </PropertyGroup>
+  <Target Name="DetokenizeVsixManifestFile"
+          DependsOnTargets="$(DetokenizeVsixManifestFileDependsOn)">
+
+    <ItemGroup>
+      <!-- Include Project to Project references -->
+      <_VsixManifestProjectReference Include="@(ProjectReferenceWithConfiguration)" />
+      <!-- Include this project so that the source.extension.vsixmanifest can refer to its own project/assembly -->
+      <_VsixManifestProjectReference Include="$(ProjectFileName)">
+        <Name>$(ProjectName)</Name>
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+      </_VsixManifestProjectReference>
+    </ItemGroup>
+
+    <ReadReferencesFromVsixManifest
+      InputFile="@(SourceVsixManifest)"
+      CurrentProjectName="$(ProjectName)"
+      ProjectReferences="@(_VsixManifestProjectReference)"
+      Condition="Exists('@(SourceVsixManifest)')">
+      <Output TaskParameter="ProjectReferencesToResolve" ItemName="_VsixManifestReferencesToResolve" />
+    </ReadReferencesFromVsixManifest>
+
+    <MSBuild Projects="@(_VsixManifestReferencesToResolve)"
+         BuildInParallel="$(BuildInParallel)"
+         Properties="%(_VsixManifestReferencesToResolve.SetConfiguration); %(_VsixManifestReferencesToResolve.SetPlatform)"
+         Targets="%(_VsixManifestReferencesToResolve.OutputGroupToResolve)"
+         RebaseOutputs="false">
+      <Output TaskParameter="TargetOutputs" ItemName="_VsixManifestResolvedReferences"/>
+    </MSBuild>
+
+    <DetokenizeVsixManifestSource
+      InputFile="@(SourceVsixManifest)"
+      OutputFile="$(IntermediateVsixManifest)"
+      ResolvedReferences="@(_VsixManifestResolvedReferences)"
+      Condition="Exists('@(SourceVsixManifest)')">
+      <Output TaskParameter="OutputFile" ItemName="FileWrites" />
+    </DetokenizeVsixManifestSource>
+
+    <!-- We want to validate the manifest AFTER we have detokenized it since the tokenized version may not have valid values until it is detokenized-->
+    <CallTarget Targets="ValidateVsixManifest"/>
+
+  </Target>
+
+  <!--
+    =================================================================================
+                                         Copy Vsix Manifest File
+    =================================================================================
+
+    Copy the extensions.vsixmanifest file to the output directory.
+    -->
+  <PropertyGroup>
+    <CopyVsixManifestFileDependsOn>$(CopyVsixManifestFileDependsOn);DetokenizeVsixManifestFile</CopyVsixManifestFileDependsOn>
+  </PropertyGroup>
+  <Target
+      Name="CopyVsixManifestFile"
+      Condition="'$(CopyVsixManifestToOutput)'=='true'"
+      DependsOnTargets="$(CopyVsixManifestFileDependsOn)">
+
+    <Copy
+        SourceFiles="$(IntermediateVsixManifest)"
+        DestinationFolder="$(OutDir)"
+        SkipUnchangedFiles="true"
+        OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+        Retries="$(CopyRetryCount)"
+        Condition="Exists('$(IntermediateOutputPath)$(VsixManifestFileName)')"
+        RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)">
+      <Output TaskParameter="DestinationFiles" ItemName="_VsixOutputManifest"/>
+      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
+    </Copy>
+
+    <Message Importance="Normal" Condition="Exists('$(IntermediateOutputPath)$(VsixManifestFileName)')" Text="$(MSBuildProjectName) -&gt; @(_VsixOutputManifest->'%(FullPath)')" />
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                         Create Vsix Bundle (.vsix file)
+    =======================================================================================================
+  -->
+
+  <PropertyGroup>
+    <TargetVsixContainerName Condition="'$(TargetVsixContainerName)'==''">$(TargetName).vsix</TargetVsixContainerName>
+    <TargetVsixContainer Condition="'$(TargetVsixContainer)'==''">$(OutDir)$(TargetVsixContainerName)</TargetVsixContainer>
+    <GetVsixSourceItemsDependsOn>$(GetVsixSourceItemsDependsOn);AssignProjectConfiguration;DetokenizeVsixManifestFile;ZipProjects;ZipItems</GetVsixSourceItemsDependsOn>
+    <ValidateVsixPartsDependsOn>$(ValidateVsixPartsDependsOn);GetVsixSourceItems</ValidateVsixPartsDependsOn>
+    <GenerateTemplatesManifestDependsOn>$(GenerateTemplatesManifestDependsOn);ValidateVsixParts</GenerateTemplatesManifestDependsOn>
+    <CreateVsixContainerDependsOn>$(CreateVsixContainerDependsOn);ValidateVsixParts;GenerateTemplatesManifest</CreateVsixContainerDependsOn>
+
+    <ZipPackageCompressionLevel Condition="'$(ZipPackageCompressionLevel)' == '' AND '_$(Configuration)' == '_Debug'">NotCompressed</ZipPackageCompressionLevel>
+    <ZipPackageCompressionLevel Condition="'$(ZipPackageCompressionLevel)' == '' AND '_$(Configuration)' == '_Release'">Normal</ZipPackageCompressionLevel>
+    <ZipPackageCompressionLevel Condition="'$(ZipPackageCompressionLevel)' == ''">NotCompressed</ZipPackageCompressionLevel>
+
+    <!--By default, only include items necessary for executing.
+        Exclude debug symbols & documentation files.-->
+    <IncludeAssemblyInVSIXContainer Condition="'$(IncludeAssemblyInVSIXContainer)'==''">true</IncludeAssemblyInVSIXContainer>
+    <IncludeAddModulesInVSIXContainer Condition="'$(IncludeAddModulesInVSIXContainer)'==''">true</IncludeAddModulesInVSIXContainer>
+    <IncludeSGenDllInVSIXContainer Condition="'$(IncludeSGenDllInVSIXContainer)'==''">true</IncludeSGenDllInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer Condition="'$(IncludeDebugSymbolsInVSIXContainer)'==''">false</IncludeDebugSymbolsInVSIXContainer>
+    <IncludeDebugSymbolsInLocalVSIXDeployment Condition="'$(IncludeDebugSymbolsInLocalVSIXDeployment)'==''">true</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <IncludeDocFilesInVSIXContainer Condition="'$(IncludeDocFilesInVSIXContainer)'==''">false</IncludeDocFilesInVSIXContainer>
+    <IncludeSatelliteAssembliesInVSIXContainer Condition="'$(IncludeSatelliteAssembliesInVSIXContainer)'==''">true</IncludeSatelliteAssembliesInVSIXContainer>
+    <IncludeCOMReferencesInVSIXContainer Condition="'$(IncludeCOMReferencesInVSIXContainer)'==''">true</IncludeCOMReferencesInVSIXContainer>
+    <IncludeCopyLocalReferencesInVSIXContainer Condition="'$(IncludeCopyLocalReferencesInVSIXContainer)'==''">true</IncludeCopyLocalReferencesInVSIXContainer>
+    <IncludePkgdefInVSIXContainer Condition="'$(IncludePkgdefInVSIXContainer)'==''">true</IncludePkgdefInVSIXContainer>
+
+    <GetVsixSourceItemsDependsOn Condition="'$(IncludeSatelliteAssembliesInVSIXContainer)'=='true'">$(GetVsixSourceItemsDependsOn);SatelliteDllsProjectOutputGroup</GetVsixSourceItemsDependsOn>
+  </PropertyGroup>
+
+  <Target
+      Name="GetVsixSourceItems"
+      DependsOnTargets="$(GetVsixSourceItemsDependsOn)">
+
+    <ItemGroup Condition="'$(IncludeAssemblyInVSIXContainer)'=='true'">
+      <!--Create an item for the primary output of the project-->
+      <VSIXSourceItem Include="@(IntermediateAssembly)">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+        <Ngen>$(Ngen)</Ngen>
+        <NgenApplication>$(NgenApplication)</NgenApplication>
+        <NgenArchitecture>$(NgenArchitecture)</NgenArchitecture>
+        <NgenPriority>$(NgenPriority)</NgenPriority>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeAddModulesInVSIXContainer)'=='true'">
+      <VSIXSourceItem Include="@(AddModules)">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeSGenDllInVSIXContainer)'=='true' AND '$(_SGenDllCreated)'=='true'">
+      <VSIXSourceItem Include="$(IntermediateOutputPath)$(_SGenDllName)">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <ItemGroup>
+      <VSIXSourceItem Condition="'$(IncludeDebugSymbolsInVSIXContainer)'=='true'" Include="@(_DebugSymbolsIntermediatePath)">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+
+      <VSIXSourceItemLocalOnly Include="@(_DebugSymbolsIntermediatePath)" Condition="'$(IncludeDebugSymbolsInLocalVSIXDeployment)'=='true'">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItemLocalOnly>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeDocFilesInVSIXContainer)'=='true'">
+      <VSIXSourceItem Include="@(DocFileItem)">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeSatelliteAssembliesInVSIXContainer)'=='true'">
+      <VSIXSourceItem Include="@(SatelliteDllsProjectOutputGroupOutput->'%(FinalOutputPath)')"
+                      Condition=" '%(SatelliteDllsProjectOutputGroupOutput.FinalOutputPath)' != '' ">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+      <VSIXSourceItem Include="@(SatelliteDllsProjectOutputGroupOutput)"
+                      Condition=" '%(SatelliteDllsProjectOutputGroupOutput.FinalOutputPath)' == '' ">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeCOMReferencesInVSIXContainer)'=='true'">
+      <VSIXSourceItem Include="@(ReferenceComWrappersToCopyLocal); @(ResolvedIsolatedComModules); @(_DeploymentLooseManifestFile); @(NativeReferenceFile)">
+        <VSIXSubPath>$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot>$(InstallRoot)</InstallRoot>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IncludeCopyLocalReferencesInVSIXContainer)'=='true'">
+      <VSIXCopyLocalReferenceSourceItem Include="@(ReferencePath)">
+        <VSIXSubPath Condition="'%(ReferencePath.VSIXSubPath)' == ''">$(AssemblyVSIXSubPath)</VSIXSubPath>
+        <InstallRoot Condition="'%(ReferencePath.InstallRoot)' == ''">$(InstallRoot)</InstallRoot>
+      </VSIXCopyLocalReferenceSourceItem>
+    </ItemGroup>
+
+    <ItemGroup>
+      <SuppressFromVsix Include="Microsoft.VisualStudio.CommandBars.dll" />
+      <SuppressFromVsix Include="VSLangProj90.dll" />
+      <SuppressFromVsix Include="VSLangProj100.dll" />
+      <SuppressFromVsix Include="VSLangProj110.dll" />
+      <SuppressFromVsix Include="VSLangProj140.dll" />
+      <SuppressFromVsix Include="VsWebSite.Interop.dll" />
+      <SuppressFromVsix Include="VsWebSite.Interop90.dll" />
+      <SuppressFromVsix Include="VsWebSite.Interop100.dll" />
+      <SuppressFromVsix Include="envdte.dll" />
+      <SuppressFromVsix Include="envdte80.dll" />
+      <SuppressFromVsix Include="envdte90.dll" />
+      <SuppressFromVsix Include="envdte90a.dll" />
+      <SuppressFromVsix Include="envdte100.dll" />
+      <SuppressFromVsix Include="extensibility.dll" />
+      <SuppressFromVsix Include="Microsoft.Build.Conversion.Core.dll" />
+      <SuppressFromVsix Include="Microsoft.Build.dll" />
+      <SuppressFromVsix Include="Microsoft.Build.Engine.dll" />
+      <SuppressFromVsix Include="Microsoft.Build.Framework.dll" />
+      <SuppressFromVsix Include="Microsoft.Build.Tasks.Core.dll" />
+      <SuppressFromVsix Include="Microsoft.Build.Utilities.Core.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.CSharp.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.dll" />
+      <SuppressFromVsix Include="Microsoft.MSXML.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.CommonIDE.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ComponentModelHost.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Diagnostics.Assert.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ExtensibilityHosting.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.GraphModel.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TemplateWizardInterface.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Text.Internal.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.vcprojectengine.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.VSHelp.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.VSHelp80.dll" />
+      <SuppressFromVsix Include="Newtonsoft.Json.dll" />
+      <SuppressFromVsix Include="stdole.dll" />
+      <SuppressFromVsix Include="StreamJsonRpc.dll" />
+      <SuppressFromVsix Include="System.Collections.Concurrent.dll" />
+      <SuppressFromVsix Include="System.Collections.dll" />
+      <SuppressFromVsix Include="System.Collections.Immutable.dll" />
+      <SuppressFromVsix Include="System.Composition.AttributedModel.dll" />
+      <SuppressFromVsix Include="System.Composition.Convention.dll" />
+      <SuppressFromVsix Include="System.Composition.Hosting.dll" />
+      <SuppressFromVsix Include="System.Composition.Runtime.dll" />
+      <SuppressFromVsix Include="System.Composition.TypedParts.dll" />
+      <SuppressFromVsix Include="System.Diagnostics.Debug.dll" />
+      <SuppressFromVsix Include="System.Diagnostics.Tools.dll" />
+      <SuppressFromVsix Include="System.Diagnostics.Tracing.dll" />
+      <SuppressFromVsix Include="System.Dynamic.Runtime.dll" />
+      <SuppressFromVsix Include="System.Globalization.dll" />
+      <SuppressFromVsix Include="System.IO.dll" />
+      <SuppressFromVsix Include="System.Linq.dll" />
+      <SuppressFromVsix Include="System.Reflection.dll" />
+      <SuppressFromVsix Include="System.Reflection.Extensions.dll" />
+      <SuppressFromVsix Include="System.Reflection.Metadata.dll" />
+      <SuppressFromVsix Include="System.Reflection.Primitives.dll" />
+      <SuppressFromVsix Include="System.Resources.ResourceManager.dll" />
+      <SuppressFromVsix Include="System.Runtime.dll" />
+      <SuppressFromVsix Include="System.Runtime.Extensions.dll" />
+      <SuppressFromVsix Include="System.Text.Encoding.dll" />
+      <SuppressFromVsix Include="System.Text.Encoding.Extensions.dll" />
+      <SuppressFromVsix Include="System.Threading.dll" />
+      <SuppressFromVsix Include="System.Threading.Tasks.Dataflow.dll" />
+      <SuppressFromVsix Include="System.Threading.Tasks.dll" />
+      <SuppressFromVsix Include="VSLangProj.dll" />
+      <SuppressFromVsix Include="VSLangProj2.dll" />
+      <SuppressFromVsix Include="VSLangProj80.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ProjectSystem.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ProjectSystem.VS.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ProjectSystem.Interop.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Threading.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Validation.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Composition.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Composition.Configuration.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Interop.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Interop.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Interop.12.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Interop.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Interop.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Interop.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.InteropA.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Designer.Interfaces.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ManagedInterfaces.9.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ManagedInterfaces.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ManagedInterfaces.WCF.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.OLE.Interop.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ProjectAggregator.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.8.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.9.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Framework.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.8.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.9.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.WCFReference.Interop.dll" />
+      <SuppressFromVsix Include="Microsoft.Data.ConnectionUI.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.CoreUtility.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Data.Core.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Data.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Data.Framework.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Data.Services.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Debugger.Engine.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Editor.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.ImageCatalog.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Imaging.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Imaging.Interop.14.0.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Language.Intellisense.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Language.StandardClassification.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.LanguageServer.Client.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.LanguageServer.Protocol.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.LanguageServer.Client.Preview.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.LanguageServer.Protocol.Preview.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Package.LanguageService.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.QualityTools.Vsip.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Settings.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Design.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Immutable.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Immutable.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Immutable.12.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Immutable.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.12.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.12.1.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.14.0.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.15.0.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.15.3.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Interop.15.6.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Text.Data.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Text.Logic.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Text.UI.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Text.UI.Wpf.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.12.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextManager.Interop.12.1.DesignTime.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.Interfaces.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.Interfaces.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.Interfaces.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.VSHost.14.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Utilities.dll" />
+      <SuppressFromVsix Include="Microsoft.VSSDK.UnitTestLibrary.dll" />
+      <SuppressFromVsix Include="Microsoft.Windows.Simulator.Client.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.VisualBasic.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.Workspaces.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.Workspaces.Desktop.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.CSharp.Workspaces.dll" />
+      <SuppressFromVsix Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.LanguageServices.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.12.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Settings.12.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Settings.11.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Settings.10.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Platform.WindowManagement.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.ViewManager.dll" />
+      <SuppressFromVsix Include="System.Management.dll" />
+      <SuppressFromVsix Include="System.Numerics.dll" />
+      <SuppressFromVsix Include="System.ServiceModel.dll" />
+      <SuppressFromVsix Include="System.ServiceModel.Discovery.dll" />
+      <SuppressFromVsix Include="Microsoft.Diagnostics.Tracing.EventSource.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Telemetry.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Settings.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Shell.Immutable.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.Interfaces.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.TextTemplating.VSHost.15.0.dll" />
+      <SuppressFromVsix Include="Microsoft.VisualStudio.Diagnostics.PerformanceProvider.dll" />
+      <SuppressFromVsix Include="PresentationCore.dll" />
+      <SuppressFromVsix Include="PresentationFramework.dll" />
+      <SuppressFromVsix Include="System.Design.dll" />
+      <SuppressFromVsix Include="System.Drawing.Design.dll" />
+      <SuppressFromVsix Include="System.Runtime.Serialization.dll" />
+      <SuppressFromVsix Include="System.Transactions.dll" />
+      <SuppressFromVsix Include="System.Windows.Forms.dll" />
+      <SuppressFromVsix Include="System.Xaml.dll" />
+      <SuppressFromVsix Include="UIAutomationProvider.dll" />
+      <SuppressFromVsix Include="UIAutomationTypes.dll" />
+      <SuppressFromVsix Include="WindowsBase.dll" />
+      <SuppressFromVsix Include="WindowsFormsIntegration.dll" />
+      <SuppressFromVsix Include="System.ComponentModel.Composition.dll" />
+      <SuppressFromVsix Include="System.Configuration.dll" />
+    </ItemGroup>
+
+    <CreateVsixSourceItemFromReferences ReferencedVSIXSourceItems="@(VSIXCopyLocalReferenceSourceItem)" SuppressedVSIXSourceItems="@(SuppressFromVsix)">
+      <Output TaskParameter="VsixSourceItems" ItemName="VSIXSourceItem" />
+    </CreateVsixSourceItemFromReferences>
+
+    <ItemGroup Condition="'$(IncludePkgdefInVSIXContainer)'=='true' AND '$(GeneratePkgDefFile)'=='true'">
+      <!--Create an item for the pkgdef output of the project-->
+      <VSIXSourceItem Include="$(IntermediateOutputPath)$(TargetName).pkgdef">
+        <VSIXSubPath>$(PkgdefVSIXSubPath)</VSIXSubPath>
+      </VSIXSourceItem>
+    </ItemGroup>
+
+    <!-- Include any Content items marked with IncludeInVSIX=true -->
+    <ItemGroup>
+      <VSIXSourceItem Include="@(Content)" Condition="'%(Content.IncludeInVSIX)'=='true' AND '%(Content.VSIXSubPath)'==''">
+        <!-- Sets VSIXSubPath for content items that are nonlinked files -->
+        <VSIXSubPath Condition="'%(Content.Link)'==''">%(Content.RelativeDir)</VSIXSubPath>
+        <!-- Sets VSIXSubPath for content items that are linked files -->
+        <VSIXSubPath Condition="'%(Content.Link)'!=''">$([System.IO.Path]::GetDirectoryName(%(Content.Link)))</VSIXSubPath>
+      </VSIXSourceItem>
+
+      <VSIXSourceItem Include="@(Content)" Condition="'%(Content.IncludeInVSIX)'=='true' AND '%(Content.VSIXSubPath)'!=''" />
+    </ItemGroup>
+
+
+    <!-- For any project references that are set to copy local ('Private' property != false), add the output groups for project references that are not set -->
+    <ItemGroup>
+      <ProjectReferenceWithConfiguration Condition="'%(ProjectReferenceWithConfiguration.Private)' != 'false' AND
+                                                    '%(ProjectReferenceWithConfiguration.IncludeOutputGroupsInVSIX)' == '' AND
+                                                    '%(ProjectReferenceWithConfiguration.IncludeOutputGroupsInVSIXLocalOnly)' == ''">
+        <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup;BuiltProjectOutputGroupDependencies;GetCopyToOutputDirectoryItems;SatelliteDllsProjectOutputGroup</IncludeOutputGroupsInVSIX>
+        <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup;</IncludeOutputGroupsInVSIXLocalOnly>
+      </ProjectReferenceWithConfiguration>
+    </ItemGroup>
+
+    <!-- SplitIncludeOutputGroupsInVSIX will duplicate the project references into two lists. Each list is essentially a duplicate of the input.
+
+         The IncludeOutputGroupsInVSIX values on items in the FilteredGroups list will only be BuiltProjectOutputGroupDependencies.
+         The IncludeOutputGroupsInVSIX values on items in the UnfilteredGroups list will only be all other output groups.
+
+         This is done because we only want to filter out items in the CreateVsixSourceItemFromReferences task that were build dependencies to
+         avoid unintentially excluding output groups explicitly requested in IncludeOutputGroupsInVSIX.
+
+         The task properly handles escaped values for IncludeOutputGroupsInVSIX (e.g. Target1%3bTarget2).
+    -->
+
+    <SplitIncludeOutputGroupsInVSIX ProjectReferences="@(ProjectReferenceWithConfiguration)"
+                                    Condition="'%(ProjectReferenceWithConfiguration.IncludeOutputGroupsInVSIX)' != ''"
+                                    OutputGroupFilter="BuiltProjectOutputGroupDependencies">
+      <Output TaskParameter="FilteredGroups" ItemName="_ProjectReferenceWithBuiltGroups"/>
+      <Output TaskParameter="UnfilteredGroups" ItemName="_ProjectReferenceWithoutBuiltGroups"/>
+    </SplitIncludeOutputGroupsInVSIX>
+
+    <!-- Build and include output for any Project Reference items marked where IncludeOutputGroupsInVSIX is set -->
+    <MSBuild Projects="@(_ProjectReferenceWithBuiltGroups)"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(_ProjectReferenceWithBuiltGroups.SetConfiguration); %(_ProjectReferenceWithBuiltGroups.SetPlatform)"
+             Targets="%(_ProjectReferenceWithBuiltGroups.IncludeOutputGroupsInVSIX)"
+             Condition="'%(_ProjectReferenceWithBuiltGroups.IncludeOutputGroupsInVSIX)' != ''"
+             RebaseOutputs="true">
+      <Output TaskParameter="TargetOutputs" ItemName="ReferencedVSIXSourceItem"/>
+    </MSBuild>
+
+    <CreateVsixSourceItemFromReferences ReferencedVSIXSourceItems="@(ReferencedVSIXSourceItem)" SuppressedVSIXSourceItems="@(SuppressFromVsix)">
+      <Output TaskParameter="VsixSourceItems" ItemName="VSIXSourceItem" />
+    </CreateVsixSourceItemFromReferences>
+
+    <MSBuild Projects="@(_ProjectReferenceWithoutBuiltGroups)"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(_ProjectReferenceWithoutBuiltGroups.SetConfiguration); %(_ProjectReferenceWithoutBuiltGroups.SetPlatform)"
+             Targets="%(_ProjectReferenceWithoutBuiltGroups.IncludeOutputGroupsInVSIX)"
+             Condition="'%(_ProjectReferenceWithoutBuiltGroups.IncludeOutputGroupsInVSIX)' != ''"
+             RebaseOutputs="true">
+      <Output TaskParameter="TargetOutputs" ItemName="VSIXSourceItem"/>
+    </MSBuild>
+
+    <!-- Build and include output for any Project Reference items marked where IncludeOutputGroupsInVSIXLocalOnly is set in the locally deployed vsix -->
+    <!-- Unescape the targets because they may be escaped when added from the ExtensibilityProjectFlavor in VS. -->
+    <MSBuild Projects="@(ProjectReferenceWithConfiguration)"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(ProjectReferenceWithConfiguration.SetConfiguration); %(ProjectReferenceWithConfiguration.SetPlatform)"
+             Targets="$([MSBuild]::Unescape(%(ProjectReferenceWithConfiguration.IncludeOutputGroupsInVSIXLocalOnly)))"
+             Condition="'%(ProjectReferenceWithConfiguration.IncludeOutputGroupsInVSIXLocalOnly)' != ''"
+             RebaseOutputs="true">
+      <Output TaskParameter="TargetOutputs" ItemName="VSIXSourceItemLocalOnly"/>
+    </MSBuild>
+
+    <ItemGroup>
+      <!-- Sets VSIXSubPath for template references (template projects output has TemplateSubPath set on items) -->
+      <VSIXSourceItem>
+        <VSIXSubPath Condition="'%(VSIXSourceItem.TemplateSubPath)'!=''">%(VSIXSourceItem.VSIXSubPath)\%(VSIXSourceItem.TemplateSubPath)</VSIXSubPath>
+      </VSIXSourceItem>
+      <VSIXSourceItemLocalOnly>
+        <VSIXSubPath Condition="'%(VSIXSourceItemLocalOnly.TemplateSubPath)'!=''">%(VSIXSourceItemLocalOnly.VSIXSubPath)\%(VSIXSourceItemLocalOnly.TemplateSubPath)</VSIXSubPath>
+      </VSIXSourceItemLocalOnly>
+    </ItemGroup>
+  </Target>
+
+  <!-- Validate the source items for the VSIX. Namely ensure EULA is below 1 MB in size. -->
+  <Target
+    Name="ValidateVsixParts"
+    DependsOnTargets="$(ValidateVsixPartsDependsOn)">
+
+    <ValidateVsixParts
+        Condition="'$(BypassVsixValidation)' != 'true'"
+        Manifest="$(IntermediateVsixManifest)"
+        Files="@(VSIXSourceItem)"
+        ContentManifest="@(ContentManifest)">
+    </ValidateVsixParts>
+  </Target>
+
+  <!-- Generate manifest files for templates in the VSIX package. -->
+  <Target
+    Name="GenerateTemplatesManifest"
+    DependsOnTargets="$(GenerateTemplatesManifestDependsOn)">
+
+    <CreateTemplatesManifest
+        TemplateFiles="@(VSIXSourceItem)"
+        IntermediateDirectory="$(IntermediateOutputPath)">
+      <Output TaskParameter="OutputFiles" ItemName="VSIXSourceItem" />
+    </CreateTemplatesManifest>
+  </Target>
+
+  <Target
+      Name="CreateVsixContainer"
+      Condition="$(CreateVsixContainer)"
+      Inputs="@(VSIXSourceItem);$(IntermediateVsixManifest)"
+      Outputs="$(TargetVsixContainer)"
+      DependsOnTargets="$(CreateVsixContainerDependsOn)">
+
+    <Message Text="Creating VSIX Container..." />
+
+    <ItemGroup>
+      <_VsixManifest Include="$(IntermediateVsixManifest)" />
+    </ItemGroup>
+
+    <CreateZipPackage
+         SourceManifest="@(_VsixManifest)"
+         ComponentManifest="@(ComponentManifest)"
+         ContentManifest="@(ContentManifest)"
+         Files="@(VSIXSourceItem)"
+         ZipPackage="$(TargetVsixContainer)"
+         CompressionLevel="$(ZipPackageCompressionLevel)"
+         IsProductComponent="$(IsProductComponent)"
+         AreDependenciesSetOnPackage="$(AreDependenciesSetOnPackage)"
+         ItemsToConsider="@(None)"
+         InstallationRoot="$(ExtensionInstallationRoot)"
+         InstallationFolder="$(ExtensionInstallationFolder)">
+      <Output TaskParameter="ZipPackage" ItemName="FileWrites" />
+      <Output TaskParameter="ZipPackage" ItemName="_CreatedVsixContainer" />
+    </CreateZipPackage>
+
+    <Message Importance="High" Text="$(MSBuildProjectName) -&gt; @(_CreatedVsixContainer->'%(FullPath)')" />
+  </Target>
+
+
+  <!--
+    =======================================================================================================
+                                         Get Vsix Deployment Path
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <GetVsixDeploymentPathDependsOn>$(GetVsixDeploymentPathDependsOn);DetokenizeVsixManifestFile</GetVsixDeploymentPathDependsOn>
+  </PropertyGroup>
+
+  <Target
+      Name="GetVsixDeploymentPath"
+      Condition="'$(DeployExtension)'=='true' and '$(CreateVsixContainer)'=='true'"
+      DependsOnTargets="$(GetVsixDeploymentPathDependsOn)">
+
+    <GetExtensionsPath 
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)" >
+      <Output TaskParameter="LocalExtensionsPath" PropertyName="ExtensionsPath"/>
+    </GetExtensionsPath>
+
+    <GetDeploymentPathFromVsixManifest
+        Condition="Exists('$(IntermediateVsixManifest)')"
+        ExtensionsPath="$(ExtensionsPath)"
+        VsixManifest="$(IntermediateVsixManifest)"
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)">
+      <Output TaskParameter="DeploymentPath" PropertyName="VsixDeploymentPath"/>
+      <Output TaskParameter="VsixID" PropertyName="VsixID"/>
+      <Output TaskParameter="VsixVersion" PropertyName="VsixVersion"/>
+    </GetDeploymentPathFromVsixManifest>
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                         Deploy Vsix Extension Files
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <DeployVsixExtensionFilesDependsOn>$(DeployVsixExtensionFilesDependsOn);GetVsixDeploymentPath;FindExistingDeploymentPath;GetVsixSourceItems</DeployVsixExtensionFilesDependsOn>
+    <FindExistingDeploymentPathDependsOn>$(FindExistingDeploymentPathDependsOn);GetVsixDeploymentPath</FindExistingDeploymentPathDependsOn>
+  </PropertyGroup>
+
+  <Target Name="FindExistingDeploymentPath"
+          Condition="'$(DeployExtension)'=='true' and '$(CreateVsixContainer)'=='true'"
+          DependsOnTargets="$(FindExistingDeploymentPathDependsOn)">
+    <FindInstalledExtension
+        VsixIdentifier="$(VsixID)"
+        InstallableExtensionVersion="$(VsixVersion)"
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)"
+        FailIfNotInstalled="false">
+      <Output TaskParameter="DeploymentPath" PropertyName="ExistingDeploymentPath" />
+      <Output TaskParameter="AllUsers" PropertyName="AllUsersExtension" />
+    </FindInstalledExtension>
+  </Target>
+
+  <Target Name="DeployVsixExtensionFiles"
+      Condition="'$(DeployExtension)'=='true' and '$(CreateVsixContainer)'=='true'"
+      DependsOnTargets="$(DeployVsixExtensionFilesDependsOn)">
+
+    <!-- Uninstall any existing extension with the same identifier with a different deployment path.
+             We don't always call this because of the way Uninstall is implemented in Extension Manager.
+             An uninstall operation just marks the directory for deletion in the registry and does the actual
+             delete on the next instantiation of the Extension Manager service object. In our case, this happens
+             at the same time (or just after) we are copying files to that directory. Therefore, we should only
+             call uninstall if the existing installation directory is different than the one we're deploying files
+             to. -->
+    <UninstallExtension
+        Condition="'$(ExistingDeploymentPath)' != '$(VsixDeploymentPath)' AND '$(ExistingDeploymentPath)' != '' AND '$(AllUsersExtension)' != 'true'"
+        VsixIdentifier="$(VsixID)"
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)"
+        FailIfNotInstalled="false" />
+
+    <Message Text="VsixID = $(VsixID)" />
+    <Message Text="VsixVersion = $(VsixVersion)" />
+    <Message Text="VsixDeploymentPath = $(VsixDeploymentPath)" />
+
+    <Unzip ZipFile="@(_CreatedVsixContainer->'%(FullPath)')" TargetDirectory="$(VsixDeploymentPath)" />
+    
+    <!--Check if the user is an administrator and the user profile hasn't been setup for the target instance. -->
+    <CheckProfileSetup
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)">
+      <Output TaskParameter="IsAdministrator" PropertyName="IsCurrentUserAdministrator" />
+      <Output TaskParameter="IsProfileSetup" PropertyName="IsTargetProfileSetup" />
+    </CheckProfileSetup>
+
+    <!--Run devenv to setup the target profile if necessary -->
+    <Message
+        Importance="High"
+        Text="Setting up Visual Studio for debugging extensions. This one-time operation may take a minute or more."
+        Condition="'$(IsCurrentUserAdministrator)'=='True' And '$(IsTargetProfileSetup)'=='False'" />
+    <Devenv
+        Condition="'$(IsCurrentUserAdministrator)'=='True' And '$(IsTargetProfileSetup)'=='False'"
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)"
+        ResetSettingProfile="General.vssettings"
+        IsEmbedded="true" />
+
+    <!--Enable always loading extensions from LocalAppData -->
+    <EnableLoadingAllExtensions
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)" />
+
+    <!--Enable this extension via Extension Manager-->
+    <EnableExtension
+        VsixIdentifier="$(VsixID)"
+        VsixVersion="$(VsixVersion)"
+        RootSuffix="$(VSSDKTargetPlatformRegRootSuffix)"
+        FailIfNotInstalled="true" />
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                         Copy Vsix Extension Files
+
+       Target to do a raw copy of extension files. Does not use Extension Manager API to
+       enable/manage an extension. Typically only used for Isolated Shell solutions.
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <CopyVsixExtensionFilesDependsOn>$(CopyVsixExtensionFilesDependsOn);GetVsixSourceItems</CopyVsixExtensionFilesDependsOn>
+  </PropertyGroup>
+  <Target Name="CopyVsixExtensionFiles"
+      Condition="'$(CopyVsixExtensionFiles)'=='true' AND '$(CopyVsixExtensionLocation)' != ''"
+      DependsOnTargets="$(CopyVsixExtensionFilesDependsOn)">
+
+    <ItemGroup>
+      <CopyVsixExtensionFiles Include="@(VSIXSourceItem);@(VSIXSourceItemLocalOnly);$(IntermediateVsixManifest)" />
+    </ItemGroup>
+
+    <!-- The TargetPath metadata contains the whole path, not just the directory -->
+
+    <Copy
+        SourceFiles="@(CopyVsixExtensionFiles)"
+        DestinationFiles="@(CopyVsixExtensionFiles->'$(CopyVsixExtensionLocation)\%(VSIXSubPath)\%(FileName)%(Extension)')"
+        Condition="'%(CopyVsixExtensionFiles.TargetPath)' == ''"
+        SkipUnchangedFiles="true"
+        OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+        Retries="$(CopyRetryCount)"
+        RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)">
+      <Output TaskParameter="DestinationFiles" ItemName="_VsixDeployCurrentFileWrites"/>
+    </Copy>
+
+    <Copy
+        SourceFiles="@(CopyVsixExtensionFiles)"
+        DestinationFiles="@(CopyVsixExtensionFiles->'$(CopyVsixExtensionLocation)\%(VSIXSubPath)\%(TargetPath)')"
+        Condition="'%(CopyVsixExtensionFiles.TargetPath)' != ''"
+        SkipUnchangedFiles="true"
+        OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+        Retries="$(CopyRetryCount)"
+        RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)">
+      <Output TaskParameter="DestinationFiles" ItemName="_VsixDeployCurrentFileWrites"/>
+    </Copy>
+
+
+  </Target>
+
+
+  <!--
+    ============================================================
+             VSIXContainerProjectOutputGroup
+
+      Used for determining the VSIX Container that this project
+      builds from other projects that reference it.
+    ============================================================
+    -->
+  <Target Name="VSIXContainerProjectOutputGroup"
+          Outputs="@(VSIXContainerOutputGroupOutput)"
+          DependsOnTargets="$(VSIXContainerProjectOutputGroupDependsOn)">
+
+    <ItemGroup Condition="'$(CreateVsixContainer)'=='true'">
+      <_VSIXContainerOutputGroupOutput Include="$(TargetVsixContainer)" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(CreateVsixContainer)'=='true'">
+      <VSIXContainerOutputGroupOutput Include="@(_VSIXContainerOutputGroupOutput->'%(FullPath)')" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <VSIXNameProjectOutputGroupDependsOn>$(VSIXIdentifierProjectOutputGroupDependsOn);FindSourceVsixManifest</VSIXNameProjectOutputGroupDependsOn>
+  </PropertyGroup>
+
+  <!--
+    ============================================================
+             VSIXNameProjectOutputGroup
+
+     Used for determining the Name of a VSIX from another project.
+    ============================================================
+    -->
+  <Target Name="VSIXNameProjectOutputGroup"
+          Outputs="@(VSIXNameProjectOutputGroup)"
+          DependsOnTargets="$(VSIXNameProjectOutputGroupDependsOn)">
+
+    <PropertyGroup>
+      <_VSIXName></_VSIXName>
+    </PropertyGroup>
+
+    <ReadInfoFromVsixManifest VsixManifest="@(SourceVsixManifest)"
+                              ProjectName="$(MSBuildProjectName)">
+      <Output TaskParameter="VsixName" PropertyName="_VSIXName" />
+    </ReadInfoFromVsixManifest>
+
+    <ItemGroup>
+      <VSIXNameProjectOutputGroup Include="$(_VSIXName)" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <VSIXIdentifierProjectOutputGroupDependsOn>$(VSIXIdentifierProjectOutputGroupDependsOn);FindSourceVsixManifest</VSIXIdentifierProjectOutputGroupDependsOn>
+  </PropertyGroup>
+  <!--
+    ============================================================
+             VSIXIdentifierProjectOutputGroup
+
+     Used for determining the Identifier of a VSIX from another project.
+    ============================================================
+    -->
+  <Target Name="VSIXIdentifierProjectOutputGroup"
+          Outputs="@(VSIXIdentifierProjectOutputGroup)"
+          DependsOnTargets="$(VSIXIdentifierProjectOutputGroupDependsOn)">
+
+    <PropertyGroup>
+      <_VSIXIdentifier></_VSIXIdentifier>
+    </PropertyGroup>
+
+    <ReadInfoFromVsixManifest VsixManifest="@(SourceVsixManifest)"
+                              ProjectName="$(MSBuildProjectName)">
+      <Output TaskParameter="VsixId" PropertyName="_VSIXIdentifier" />
+    </ReadInfoFromVsixManifest>
+
+    <ItemGroup>
+      <VSIXIdentifierProjectOutputGroup Include="$(_VSIXIdentifier)" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                                Run RegRiched20.exe
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <PrepareForBuildDependsOn>
+      $(PrepareForBuildDependsOn);
+      RunRegRiched
+    </PrepareForBuildDependsOn>
+    <RunRegRichedDependsOn>$(RunRegRichedDependsOn);FindSDKInstallation</RunRegRichedDependsOn>
+  </PropertyGroup>
+
+  <Target Name="RunRegRiched"
+         DependsOnTargets="$(RunRegRichedDependsOn)"
+         Condition="'$(RunRegRiched)' == 'true'">
+    <Warning
+      Text="RegRiched20.exe was not found."
+      Condition="!Exists('$(VsSDKInstall)\VisualStudioIntegration\Tools\Bin\RegRiched20.exe')">
+    </Warning>
+    <Exec Command="&quot;$(VsSDKInstall)\VisualStudioIntegration\Tools\Bin\RegRiched20.exe&quot;"
+          ContinueOnError="true"
+          Condition="Exists('$(VsSDKInstall)\VisualStudioIntegration\Tools\Bin\RegRiched20.exe')">
+    </Exec>
+  </Target>
+
+  <!--
+    =======================================================================================================
+    This target sets a property when the .cto file is newer than the previously built assembly.
+    =======================================================================================================
+  -->
+
+  <Target Name="CheckCTOFileHasChanged"
+          Inputs="@(VSCTCompile->'$(IntermediateOutputPath)%(FileName).cto')"
+          Outputs="$(TargetPath)"
+          DependsOnTargets="VSCTCompile">
+
+    <CreateProperty Value="true">
+      <Output PropertyName="CTOFileHasChanged"
+              TaskParameter="ValueSetByTask" />
+    </CreateProperty>
+  </Target>
+
+
+  <!--
+    =======================================================================================================
+                                              Merging CTO resource
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <!-- The result of the VSCT compilation will be used by the resource generator, so this task
+         must depend on the VSCT one -->
+    <PrepareResourcesDependsOn>$(PrepareResourcesDependsOn);MergeCtoResource</PrepareResourcesDependsOn>
+    <MergeCtoResourceDependsOn>$(MergeCtoResourceDependsOn);GenerateListOfCTO;VSCTCompile;CheckCTOFileHasChanged;GenerateResourceToMergeWithCTO</MergeCtoResourceDependsOn>
+  </PropertyGroup>
+
+  <!--
+    Create the list of the .RESOURCES files to merge with the CTO data.
+  -->
+  <Target Name="GenerateResourceToMergeWithCTO"
+          DependsOnTargets="ResGen">
+    <ItemGroup>
+      <_ResourcesToMergeWithCTO Include="%(EmbeddedResource.OutputResource)" Condition="'%(EmbeddedResource.MergeWithCTO)'=='true'"/>
+    </ItemGroup>
+    <AssignCulture Files="@(_ResourcesToMergeWithCTO)" >
+      <!-- Create the list of resources with Culture metadata -->
+      <Output TaskParameter="AssignedFiles" ItemName="_ResourcesToMergeWithCTOWithCultureMetadata"/>
+    </AssignCulture>
+  </Target>
+
+  <!--
+  Create the list of the expected CTO files.
+  -->
+  <Target Name="GenerateListOfCTO">
+    <!--Add the CTO files from the list of VSCT files.-->
+    <ItemGroup>
+      <_GeneratedCTOFiles  Include="@(VSCTCompile->'$(IntermediateOutputPath)%(FileName).cto')" Condition="'@(VSCTCompile)' != ''"/>
+    </ItemGroup>
+    <AssignCulture Files="@(_GeneratedCTOFiles)" >
+      <!-- Create the list of culture cto files -->
+      <Output TaskParameter="AssignedFilesWithCulture" ItemName="_GeneratedCTOFilesWithCulture"/>
+      <!-- Create the list of non-culture cto files -->
+      <Output TaskParameter="AssignedFilesWithNoCulture" ItemName="_GeneratedCTOFilesWithNoCulture"/>
+    </AssignCulture>
+  </Target>
+
+  <Target Name="MergeCtoResource"
+          Condition="'@(VSCTCompile)' != '' AND '$(BuildingProject)'!='false'"
+          DependsOnTargets="$(MergeCtoResourceDependsOn)">
+
+    <CtoResourceMerger CtoFilesWithCulture="@(_GeneratedCTOFilesWithCulture)"
+                       CtoFilesWithNoCulture="@(_GeneratedCTOFilesWithNoCulture)"
+                       IntermediateDirectory="$(IntermediateOutputPath)"
+                       ResourcesToMerge="@(_ResourcesToMergeWithCTOWithCultureMetadata)" >
+      <Output TaskParameter="TemporaryFiles" ItemName="_TemporaryCtoResouceMergerFiles"/>
+    </CtoResourceMerger>
+    <ItemGroup>
+      <FileWrites Include="@(_TemporaryCtoResouceMergerFiles)" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                         Generating PkgDef File
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <PrepareForRunDependsOn>
+      $(PrepareForRunDependsOn);
+      GeneratePkgDef;
+      CopyPkgDef;
+      CreateVsixContainer;
+      DeployVsixExtensionFiles;
+      CopyVsixManifestFile;
+      CopyVsixExtensionFiles;
+    </PrepareForRunDependsOn>
+    <GeneratePkgDefDependsOn>$(GeneratePkgDefDependsOn);Compile</GeneratePkgDefDependsOn>
+    <GeneratePkgDefFile Condition="'$(GeneratePkgDefFile)' == ''">true</GeneratePkgDefFile>
+    <UseCodebase Condition="'$(UseCodebase)' == ''">$(RegisterWithCodebase)</UseCodebase>
+  </PropertyGroup>
+
+  <Target Name="GeneratePkgDef"
+          Inputs="$(CreatePkgDefAssemblyToProcess)"
+          Outputs="$(IntermediateOutputPath)$(TargetName).pkgdef"
+          Condition="'$(GeneratePkgDefFile)'=='true'"
+          DependsOnTargets="$(GeneratePkgDefDependsOn)">
+
+    <Message Text="Creating intermediate PkgDef file." />
+
+    <CreatePkgDef AssemblyToProcess="$(CreatePkgDefAssemblyToProcess)"
+                  ProductVersion="$(TargetVSVersion)"
+                  OutputFile="$(IntermediateOutputPath)$(TargetName).latest.pkgdef"
+                  UseCodebase="$(UseCodebase)"
+                  ReferencedAssemblies="@(ReferencePath)"  />
+    <CopyIfChanged Condition="Exists('$(IntermediateOutputPath)$(TargetName).latest.pkgdef')"
+                   SourceFile="$(IntermediateOutputPath)$(TargetName).latest.pkgdef"
+                   DestinationFile="$(IntermediateOutputPath)$(TargetName).pkgdef" />
+
+    <!-- If the CTO file was changed, touch the pkgdef file to cause a re-merge -->
+    <Touch Files="$(IntermediateOutputPath)$(TargetName).pkgdef"
+           Condition="'$(CTOFileHasChanged)'=='true' AND Exists('$(IntermediateOutputPath)$(TargetName).pkgdef')" />
+
+    <ItemGroup>
+      <FileWrites Include="$(IntermediateOutputPath)$(TargetName).pkgdef" Condition="Exists('$(IntermediateOutputPath)$(TargetName).pkgdef')"/>
+      <FileWrites Include="$(IntermediateOutputPath)$(TargetName).latest.pkgdef" Condition="Exists('$(IntermediateOutputPath)$(TargetName).latest.pkgdef')"/>
+    </ItemGroup>
+  </Target>
+
+
+  <!--
+    =======================================================================================================
+                                         PkgdefProjectOutputGroup
+
+      Used for determining the Pkgdef file that this project creates from another project
+    =======================================================================================================
+  -->
+  <Target Name="PkgdefProjectOutputGroup"
+        Outputs="@(PkgdefOutputGroupOutput)"
+        DependsOnTargets="$(PkgdefProjectOutputGroupDependsOn)">
+
+    <ItemGroup Condition="'$(GeneratePkgDefFile)'=='true'">
+      <_PkgdefOutputGroupOutput Include="$(IntermediateOutputPath)$(TargetName).pkgdef" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(GeneratePkgDefFile)'=='true'">
+      <PkgdefOutputGroupOutput Include="@(_PkgdefOutputGroupOutput->'%(FullPath)')" />
+    </ItemGroup>
+
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                         TemplateProjectOutputGroup
+
+      Used for determining the template zip file(s) that this project builds from another project
+    =======================================================================================================
+  -->
+  <PropertyGroup>
+    <TemplateProjectOutputGroupDependsOn>
+      $(TemplateProjectOutputGroupDependsOn);
+      GetZipFilesFromVSTemplates;
+      CalculateZipFiles
+    </TemplateProjectOutputGroupDependsOn>
+  </PropertyGroup>
+  <Target Name="TemplateProjectOutputGroup"
+        Outputs="@(TemplateOutputGroupOutput)"
+        DependsOnTargets="$(TemplateProjectOutputGroupDependsOn)">
+
+    <ItemGroup>
+      <_TemplateOutputGroupOutput Include="@(_ZipProject->'%(ZipFile)')" >
+        <TemplateSubPath>%(_ZipProject.Language)\%(_ZipProject.OutputSubPath)\%(_ZipProject.Culture)</TemplateSubPath>
+      </_TemplateOutputGroupOutput>
+
+      <_TemplateOutputGroupOutput Include="@(_ZipItem->'%(ZipFile)')" >
+        <TemplateSubPath>%(_ZipItem.Language)\%(_ZipItem.OutputSubPath)\%(_ZipItem.Culture)</TemplateSubPath>
+      </_TemplateOutputGroupOutput>
+    </ItemGroup>
+
+    <ItemGroup>
+      <TemplateOutputGroupOutput Include="@(_TemplateOutputGroupOutput->'%(FullPath)')" />
+    </ItemGroup>
+
+  </Target>
+
+  <!--
+    =======================================================================================================
+    This target contains 2 tasks to copy the .pkgdef file only when necessary.
+    =======================================================================================================
+  -->
+
+  <PropertyGroup>
+    <CopyPkgDefDependsOn>$(CopyPkgDefDependsOn);GeneratePkgDef;CheckCTOFileHasChanged</CopyPkgDefDependsOn>
+  </PropertyGroup>
+
+  <Target Name="CopyPkgDef"
+          Condition="'$(GeneratePkgDefFile)'=='true'"
+          DependsOnTargets="$(CopyPkgDefDependsOn)">
+
+    <!--
+      =======================================================================================================
+      This task copies the .pkgdef file to the target directory when the .cto file has changed.
+      Even though the .pkgdef file contents might have not changed, the new timestamp on the .pkgdef file
+      will cause Visual Studio to re-merge menus on next launch.
+      =======================================================================================================
+    -->
+    <Copy Condition="'$(CTOFileHasChanged)'=='true'"
+          SourceFiles="$(IntermediateOutputPath)$(TargetName).pkgdef"
+          DestinationFiles="$(OutDir)$(TargetName).pkgdef"
+          SkipUnchangedFiles="false"
+          OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)">
+      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
+    </Copy>
+
+    <!--
+      =======================================================================================================
+      This target copies the .pkgdef file to the target directory only if its contents have changed.
+      This is an optimization to avoid rebuilding the PkgDef cache if this .pkgdef has not really changed.
+      =======================================================================================================
+    -->
+    <CopyIfChanged Condition="'$(CTOFileHasChanged)'!='true'"
+                   SourceFile="$(IntermediateOutputPath)$(TargetName).pkgdef"
+                   DestinationFile="$(OutDir)$(TargetName).pkgdef" >
+      <Output TaskParameter="DestinationFile" ItemName="FileWrites"/>
+    </CopyIfChanged>
+
+  </Target>
+
+  <!--
+    =======================================================================================================
+                                         Creating Zip Files
+    =======================================================================================================
+  -->
+
+  <PropertyGroup>
+    <PrepareForRunDependsOn>
+      ZipProjects;
+      ZipItems;
+      $(PrepareForRunDependsOn)
+    </PrepareForRunDependsOn>
+    <ZipFilesDependsOn>GetZipFilesFromVSTemplates;CalculateZipFiles</ZipFilesDependsOn>
+  </PropertyGroup>
+
+  <!--Make sure that the zip output is set-->
+  <PropertyGroup>
+    <ZipProjectOutput Condition="'$(ZipProjectOutput)' == ''">$(OutputPath)</ZipProjectOutput>
+    <ZipItemOutput Condition="'$(ZipItemOutput)' == ''">$(OutputPath)</ZipItemOutput>
+    <ZipIntermediatePath Condition="'$(ZipIntermediatePath)' == ''">$(IntermediateOutputPath)</ZipIntermediatePath>
+    <CopyZipOutputToOutputDirectory Condition="'$(CopyZipOutputToOutputDirectory)'==''">true</CopyZipOutputToOutputDirectory>
+  </PropertyGroup>
+
+  <Target Name="GetZipFilesFromVSTemplates"
+          Condition="'@(VSTemplate)'!=''" >
+    <GetVSTemplateItems
+      TemplateFiles="@(VSTemplate)"
+      TargetPath="$(ZipIntermediatePath)">
+      <Output TaskParameter="ZipItems" ItemName="_ZipItem" />
+      <Output TaskParameter="ZipProjects" ItemName="_ZipProject" />
+    </GetVSTemplateItems>
+  </Target>
+
+  <Target Name="CalculateZipFiles"
+          Condition="'@(ZipProject)_@(ZipItem)' != '_'">
+    <!--The purpose of this target is to calculate the intermediate path for each ZipProject/ZipItem
+      Normally, something like this can be done in a MSBuild Transform, but this is a little more complicated
+      for ZipItems/Projects, so we need a custom task-->
+
+    <!--Project using RootPath-->
+    <CalculateZipItems
+        Condition="'%(ZipProject.RootPath)'!='' AND '@(ZipProject)' != ''"
+        Files="@(ZipProject)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        ZipName="%(ZipProject.RootPath)"
+        TargetPath="$(ZipIntermediatePath)">
+      <Output
+        TaskParameter="Files"
+        ItemName="_ZipProject" />
+    </CalculateZipItems>
+
+    <!--Project using Directory-->
+    <CalculateZipItems
+        Condition="'%(ZipProject.RootPath)'=='' AND '@(ZipProject)' != ''"
+        Files="@(ZipProject)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        ZipName="%(ZipProject.Directory)"
+        TargetPath="$(ZipIntermediatePath)" >
+      <Output
+        TaskParameter="Files"
+        ItemName="_ZipProject" />
+    </CalculateZipItems>
+
+    <!--Item using RootPath-->
+    <CalculateZipItems
+        Condition="'%(ZipItem.RootPath)'!='' AND '@(ZipItem)' != ''"
+        Files="@(ZipItem)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        ZipName="%(ZipItem.RootPath)"
+        TargetPath="$(ZipIntermediatePath)">
+      <Output
+        TaskParameter="Files"
+        ItemName="_ZipItem" />
+    </CalculateZipItems>
+
+    <!--Item using Directory-->
+    <CalculateZipItems
+        Condition="'%(ZipItem.RootPath)'=='' AND '@(ZipItem)' != ''"
+        Files="@(ZipItem)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        ZipName="%(ZipItem.Directory)"
+        TargetPath="$(ZipIntermediatePath)"
+        >
+      <Output
+        TaskParameter="Files"
+        ItemName="_ZipItem" />
+    </CalculateZipItems>
+  </Target>
+
+  <Target Name="ZipProjects"
+         DependsOnTargets="$(ZipFilesDependsOn)"
+         Condition="'@(_ZipProject)' != '_'">
+    <Message Text="Zipping ProjectTemplates"/>
+    <!--
+      There are 2 options for using this task:
+        1) specifying a rootpath on each item
+        2) using the directory of the item as the rootpath
+
+      Note: the name of the zip file will be based on the rootpath
+    -->
+    <!--Project using RootPath-->
+    <ZipItems
+        Condition="'%(_ZipProject.RootPath)'!='' AND '@(_ZipProject)' != ''"
+        Files="@(_ZipProject)"
+        Action="New"
+        OutputSubPath="%(_ZipProject.OutputSubPath)"
+        Culture="%(_ZipProject.Culture)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        RootPath="$(MSBuildProjectDirectory)\%(_ZipProject.RootPath)"
+        ZipDefaultLanguage="$(VsTemplateLanguage)"
+        ZipLanguage="%(_ZipProject.Language)"
+        ZipFile="%(_ZipProject.ZipFile)">
+      <Output TaskParameter="ZipFile" ItemName="IntermediateZipProject"/>
+      <Output TaskParameter="ZipFile" ItemName="FileWrites"/>
+    </ZipItems>
+
+    <!--Project using Directory-->
+    <ZipItems
+        Condition="'%(_ZipProject.RootPath)'=='' AND '@(_ZipProject)' != ''"
+        Files="@(_ZipProject)"
+        Action="New"
+        OutputSubPath="%(_ZipProject.OutputSubPath)"
+        Culture="%(_ZipProject.Culture)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        RootPath="%(_ZipProject.RootDir)%(_ZipProject.Directory)"
+        ZipDefaultLanguage="$(VsTemplateLanguage)"
+        ZipLanguage="%(_ZipProject.Language)"
+        ZipFile="%(_ZipProject.ZipFile)">
+      <Output TaskParameter="ZipFile" ItemName="IntermediateZipProject"/>
+      <Output TaskParameter="ZipFile" ItemName="FileWrites"/>
+    </ZipItems>
+
+    <!--
+      Copy the generated templates to the deployment folder.
+    -->
+    <Copy SourceFiles="@(IntermediateZipProject)"
+          DestinationFiles="@(IntermediateZipProject->'$(ZipProjectOutput)\%(Language)\%(OutputSubPath)\%(Culture)\%(FileName)%(Extension)')"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"
+          Condition="'$(DeployVSTemplates)'=='true'" />
+
+    <!--
+      Copy the generated templates to the output folder.
+    -->
+    <Copy SourceFiles="@(IntermediateZipProject)"
+          DestinationFiles="@(IntermediateZipProject->'$(OutDir)\ProjectTemplates\%(Language)\%(OutputSubPath)\%(Culture)\%(FileName)%(Extension)')"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"
+          Condition="'$(CopyZipOutputToOutputDirectory)'=='true'" >
+      <Output TaskParameter="DestinationFiles" ItemName="_ZipProjectOutDir"/>
+      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
+    </Copy>
+
+    <Message Text="$(MSBuildProjectName) -&gt; @(_ZipProjectOutDir->'%(FullPath)')" />
+
+  </Target>
+
+  <Target Name="ZipItems"
+          DependsOnTargets="$(ZipFilesDependsOn)"
+          Condition="'@(_ZipItem)' != '_'">
+
+    <Message Text="Zipping ItemTemplates"/>
+
+    <!--
+      There are 2 options for using this task:
+        1) specifying a rootpath on each item
+        2) using the directory of the item as the rootpath
+
+      Note: the name of the zip file will be based on the rootpath
+    -->
+
+    <!--Item using RootPath-->
+    <ZipItems
+        Condition="'%(_ZipItem.RootPath)'!='' AND '@(_ZipItem)' != ''"
+        Files="@(_ZipItem)"
+        Action="New"
+        OutputSubPath="%(_ZipItem.OutputSubPath)"
+        Culture="%(_ZipItem.Culture)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        RootPath="$(MSBuildProjectDirectory)\%(_ZipItem.RootPath)"
+        ZipDefaultLanguage="$(VsTemplateLanguage)"
+        ZipLanguage="%(_ZipItem.Language)"
+        ZipFile="%(_ZipItem.ZipFile)">
+      <Output TaskParameter="ZipFile" ItemName="IntermediateZipItem"/>
+      <Output TaskParameter="ZipFile" ItemName="FileWrites"/>
+    </ZipItems>
+
+    <!--Item using Directory-->
+    <ZipItems
+        Condition="'%(_ZipItem.RootPath)'=='' AND '@(_ZipItem)' != ''"
+        Files="@(_ZipItem)"
+        Action="New"
+        OutputSubPath="%(_ZipItem.OutputSubPath)"
+        Culture="%(_ZipItem.Culture)"
+        ProjectPath="$(MSBuildProjectDirectory)"
+        RootPath="%(_ZipItem.RootDir)%(_ZipItem.Directory)"
+        ZipDefaultLanguage="$(VsTemplateLanguage)"
+        ZipLanguage="%(_ZipItem.Language)"
+        ZipFile="%(_ZipItem.ZipFile)">
+      <Output TaskParameter="ZipFile" ItemName="IntermediateZipItem"/>
+      <Output TaskParameter="ZipFile" ItemName="FileWrites"/>
+    </ZipItems>
+
+    <!--
+      Copy the generated templates to the deployment folder.
+    -->
+    <Copy SourceFiles="@(IntermediateZipItem)"
+          DestinationFiles="@(IntermediateZipItem->'$(ZipItemOutput)\%(Language)\%(OutputSubPath)\%(Culture)\%(FileName)%(Extension)')"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"
+          Condition="'$(DeployVSTemplates)'=='true'" />
+
+    <!--
+      Copy the generated templates to the output folder.
+    -->
+    <Copy SourceFiles="@(IntermediateZipItem)"
+          DestinationFiles="@(IntermediateZipItem->'$(OutDir)\ItemTemplates\%(Language)\%(OutputSubPath)\%(Culture)\%(FileName)%(Extension)')"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"
+          Condition="'$(CopyZipOutputToOutputDirectory)'=='true'" >
+      <Output TaskParameter="DestinationFiles" ItemName="_ZipItemOutDir"/>
+      <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
+    </Copy>
+
+    <Message Text="$(MSBuildProjectName) -&gt; @(_ZipItemOutDir->'%(FullPath)')" />
+
+  </Target>
+  
+  <!--Provide support for setting type (BuildAction) to ZipProject/ZipItem from VS-->
+  <ItemGroup>
+    <AvailableItemName Include="VSTemplate"/>
+    <AvailableItemName Include="ZipProject"/>
+    <AvailableItemName Include="ZipItem"/>
+    <AvailableItemName Include="ContentManifest"/>
+    <AvailableItemName Include="ComponentManifest"/>
+  </ItemGroup>
+</Project>

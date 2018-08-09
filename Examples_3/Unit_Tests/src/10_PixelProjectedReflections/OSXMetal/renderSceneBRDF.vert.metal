@@ -25,6 +25,23 @@
 #include <metal_stdlib>
 using namespace metal;
 
+struct CameraData
+{
+    float4x4 viewMat;
+    float4x4 projMat;
+    float4x4 viewProjMat;
+    float4x4 InvViewProjMat;
+
+    float4 cameraWorldPos;
+    float4 viewPortSize;
+};
+struct ObjectData
+{
+    float4x4 worldMat;
+    float roughness;
+    float metalness;
+};
+
 struct VSInput
 {
     float3 position [[attribute(0)]];
@@ -40,6 +57,6 @@ vertex VSOutput stageMain(VSInput In                    [[stage_in]])
 {
     VSOutput result;
     result.position = float4(In.position,1.0);
-    result.uv = In.uv;
+    result.uv= In.uv;
     return result;
 }

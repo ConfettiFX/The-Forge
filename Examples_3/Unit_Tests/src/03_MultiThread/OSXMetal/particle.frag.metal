@@ -45,7 +45,7 @@ struct particleRootConstantBlock
 
 struct ParticleTextureData
 {
-    array<texture2d<float,access::sample>,5> textures;
+    array<texture1d<float,access::sample>,5> textures;
 };
 
 fragment float4 stageMain(VSOutput input                                           [[stage_in]],
@@ -53,10 +53,8 @@ fragment float4 stageMain(VSOutput input                                        
                           constant ParticleTextureData& uTex0                      [[buffer(1)]],
                           constant particleRootConstantBlock& particleRootConstant [[buffer(2)]])
 {
-    float2 tc = float2(input.TexCoord, 0.0f);
-    
-    float4 ca = uTex0.textures[particleRootConstant.textureIndex].sample(uSampler0, tc);
-    float4 cb = uTex0.textures[(particleRootConstant.textureIndex + 1) % 5].sample(uSampler0, tc);
+    float4 ca = uTex0.textures[particleRootConstant.textureIndex].sample(uSampler0, input.TexCoord);
+    float4 cb = uTex0.textures[(particleRootConstant.textureIndex + 1) % 5].sample(uSampler0, input.TexCoord);
 
     return 0.05*mix(ca, cb, particleRootConstant.paletteFactor);
 

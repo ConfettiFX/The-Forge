@@ -1,26 +1,26 @@
 /*
- * 
- * Copyright (c) 2018 Confetti Interactive Inc.
- * 
- * This file is part of The-Forge
- * (see https://github.com/ConfettiFX/The-Forge).
- * 
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+*
+* Copyright (c) 2018 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
 */
 
 // Unit Test for testing materials and pbr.
@@ -59,11 +59,11 @@
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
+#if defined(_WIN32)
+#define RESOURCE_DIR "PCVulkan"
+#elif defined(LINUX)
+#define RESOURCE_DIR "LINUXVulkan"
+#endif
 #elif defined(METAL)
 #define RESOURCE_DIR "OSXMetal"
 #else
@@ -110,9 +110,9 @@ LogManager gLogManager;
 #define TOTAL_TEXTURES 25
 
 struct Vertex {
-    float3 mPos;
-    float3 mNormal;
-    float2 mUv;
+	float3 mPos;
+	float3 mNormal;
+	float2 mUv;
 };
 
 // Have a uniform for camera data
@@ -131,9 +131,11 @@ struct UniformObjData
 	int objectId = -1;
 };
 
+#define PRECOMPUTE_NUM 5
+
 struct Light
 {
-	vec4 mPos; 
+	vec4 mPos;
 	vec4 mCol;
 	float mRadius;
 	float mIntensity;
@@ -150,28 +152,35 @@ struct UniformLightData
 
 //To Show dynamic properties
 struct DynamicUiProp {
-	
+
 	DynamicUIControls mUIControl;
 	bool bShow;
 	bool bDirty;
-	
+
 	DynamicUiProp() {
 		bShow = false;
 		bDirty = true;
 	}
-	
+
 	void Update(GuiComponent* pGui) {
-		
-		if(bDirty == bShow) {
-			
+
+		if (bDirty == bShow) {
+
 			return;
 		}
-		
+
 		bDirty = bShow;
 		bShow == true ? mUIControl.ShowDynamicProperties(pGui) : mUIControl.HideDynamicProperties(pGui);
 	}
 };
 
+// PBR Texture values (these values are mirrored on the shaders).
+const uint32_t              gBRDFIntegrationSize = 512;
+const uint32_t              gSkyboxSize = 1024;
+const uint32_t              gSkyboxMips = 11;
+const uint32_t              gIrradianceSize = 32;
+const uint32_t              gSpecularSize = 128;
+const uint32_t              gSpecularMips = 5;
 
 const uint32_t				gImageCount = 3;
 
@@ -205,7 +214,7 @@ RootSignature*				pSkyboxRootSignature = NULL;
 Texture*					pSkybox = NULL;
 Texture*					pBRDFIntegrationMap = NULL;
 Texture*					pIrradianceMap = NULL;
-Texture*					pSpecularMap = NULL;
+Texture*                    pSpecularMap = NULL;
 
 //added
 Texture*					pMaterialTextures[TOTAL_TEXTURES];
@@ -264,15 +273,8 @@ int							gNumOfSpherePoints;
 // How many objects in x and y direction
 const int					gAmountObjectsinX = 5;
 const int					gAmountObjectsinY = 1;
-const int 					gTotalObjects = gAmountObjectsinX*gAmountObjectsinY;
+const int 					gTotalObjects = gAmountObjectsinX * gAmountObjectsinY;
 
-// PBR Texture values (these values are mirrored on the shaders).
-const uint32_t gBRDFIntegrationSize = 512;
-const uint32_t gSkyboxSize = 1024;
-const uint32_t gSkyboxMips = 11;
-const uint32_t gIrradianceSize = 32;
-const uint32_t gSpecularSize = 128;
-const uint32_t gSpecularMips = 5;
 
 tinystl::vector<Buffer*>	gSphereBuffers;
 tinystl::vector<UniformObjData> gUniformMVPs;
@@ -283,19 +285,19 @@ DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
 DebugTextDrawDesc gMaterialPropDraw = DebugTextDrawDesc(0, 0xff00ffff, 25);
 
 int gTotalIndices = 0;
-int gSurfaceIndices =0;
+int gSurfaceIndices = 0;
 
 tinystl::vector<String> gMaterialNames;
 
 enum {
-	
-	Default_Mat=0,
+
+	Default_Mat = 0,
 	Metal_Mat,
 	TotalMaterial
 };
 
-enum {	
-	Default_Albedo=-1,
+enum {
+	Default_Albedo = -1,
 	RustedIron,
 	Copper,
 	Titanium,
@@ -305,7 +307,7 @@ enum {
 };
 
 static const char* matEnumNames[] = {
-	"Default", 
+	"Default",
 	"Metal",
 	NULL
 };
@@ -314,8 +316,8 @@ static const int matEnumValues[] = {
 	Default_Mat,
 	Metal_Mat,
 	0
-};		
-		
+};
+
 const char*		pTextureName[] =
 {
 	"albedoMap",
@@ -325,9 +327,9 @@ const char*		pTextureName[] =
 	"aoMap"
 };
 
-				
-const char*		gModelName =  "matBall.obj";
-const char*		gSurfaceModelName =  "cube.obj";
+
+const char*		gModelName = "matBall.obj";
+const char*		gSurfaceModelName = "cube.obj";
 
 //5 textures per pbr material
 #define TEXTURE_COUNT 5
@@ -336,10 +338,10 @@ static const char* metalEnumNames[] = {
 	"Rusted Iron",
 	"Copper",
 	"Greased Metal",
-	"Gold", 
+	"Gold",
 	"Titanium",
 	NULL
-};	
+};
 
 static const int metalEumValues[] = {
 	RustedIron,
@@ -351,7 +353,7 @@ static const int metalEumValues[] = {
 };
 
 int gMaterialType = Metal_Mat;
-int gMetalMaterial  = RustedIron;
+int gMetalMaterial = RustedIron;
 
 mat4 gTextProjView;
 tinystl::vector<mat4> gTextWorldMats;
@@ -375,271 +377,301 @@ void transitionRenderTargets()
 // Compute PBR maps (skybox, BRDF Integration Map, Irradiance Map and Specular Map).
 void computePBRMaps()
 {
-    // Temporary resources that will be loaded on PBR preprocessing.
-    Texture* pPanoSkybox = NULL;
-    Buffer* pSkyBuffer = NULL;
-    Buffer* pIrrBuffer = NULL;
-    Buffer* pSpecBuffer = NULL;
-    
-    Shader* pPanoToCubeShader = NULL;
-    RootSignature* pPanoToCubeRootSignature = NULL;
-    Pipeline* pPanoToCubePipeline = NULL;
-    Shader* pBRDFIntegrationShader = NULL;
-    RootSignature* pBRDFIntegrationRootSignature = NULL;
-    Pipeline* pBRDFIntegrationPipeline = NULL;
-    Shader* pIrradianceShader = NULL;
-    RootSignature* pIrradianceRootSignature = NULL;
-    Pipeline* pIrradiancePipeline = NULL;
-    Shader* pSpecularShader = NULL;
-    RootSignature* pSpecularRootSignature = NULL;
-    Pipeline* pSpecularPipeline = NULL;
-    Sampler* pSkyboxSampler = NULL;
-    
+	// Temporary resources that will be loaded on PBR preprocessing.
+	Texture* pPanoSkybox = NULL;
+	Shader* pPanoToCubeShader = NULL;
+	RootSignature* pPanoToCubeRootSignature = NULL;
+	Pipeline* pPanoToCubePipeline = NULL;
+	Shader* pBRDFIntegrationShader = NULL;
+	RootSignature* pBRDFIntegrationRootSignature = NULL;
+	Pipeline* pBRDFIntegrationPipeline = NULL;
+	Shader* pIrradianceShader = NULL;
+	RootSignature* pIrradianceRootSignature = NULL;
+	Pipeline* pIrradiancePipeline = NULL;
+	Shader* pSpecularShader = NULL;
+	RootSignature* pSpecularRootSignature = NULL;
+	Pipeline* pSpecularPipeline = NULL;
+	Sampler* pSkyboxSampler = NULL;
+
 	SamplerDesc samplerDesc = {
 		FILTER_TRILINEAR, FILTER_TRILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
 	};
-    addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
-    
-    // Load the skybox panorama texture.
-    TextureLoadDesc panoDesc = {};
+	addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
+
+	// Load the skybox panorama texture.
+	TextureLoadDesc panoDesc = {};
 #ifndef TARGET_IOS
-    panoDesc.mRoot = FSR_Textures;
+	panoDesc.mRoot = FSR_Textures;
 #else
-    panoDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+	panoDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
 #endif
-    panoDesc.mUseMipmaps = true;
-    panoDesc.pFilename = "LA_Helipad.hdr";
-    panoDesc.ppTexture = &pPanoSkybox;
-    addResource(&panoDesc);
-    
-    // Create empty images for each PBR texture.
-    Image skyboxImg, irrImg, specImg;
-    unsigned char* skyboxImgBuff = skyboxImg.Create(ImageFormat::RGBA32F, gSkyboxSize, gSkyboxSize, 0, gSkyboxMips);
-    unsigned char* irrImgBuff = irrImg.Create(ImageFormat::RGBA32F, gIrradianceSize, gIrradianceSize, 0, 1);
-    unsigned char* specImgBuff = specImg.Create(ImageFormat::RGBA32F, gSpecularSize, gSpecularSize, 0, gSpecularMips);
-    
-    // Get the images buffer size.
-    uint32_t skyboxSize = skyboxImg.GetMipMappedSize(0, gSkyboxMips, ImageFormat::RGBA32F);
-    uint32_t irrSize = irrImg.GetMipMappedSize(0, 1, ImageFormat::RGBA32F);
-    uint32_t specSize = specImg.GetMipMappedSize(0, gSpecularMips, ImageFormat::RGBA32F);
-    
-    // Create empty texture for BRDF integration map.
-    TextureLoadDesc brdfIntegrationLoadDesc = {};
-    TextureDesc brdfIntegrationDesc = {};
-    brdfIntegrationDesc.mType = TEXTURE_TYPE_2D;
-    brdfIntegrationDesc.mWidth = gBRDFIntegrationSize;
-    brdfIntegrationDesc.mHeight = gBRDFIntegrationSize;
-    brdfIntegrationDesc.mDepth = 1;
-    brdfIntegrationDesc.mArraySize = 1;
-    brdfIntegrationDesc.mMipLevels = 1;
-    brdfIntegrationDesc.mFormat = ImageFormat::RG32F;
-    brdfIntegrationDesc.mUsage = (TextureUsage)(TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS);
-    brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
-    brdfIntegrationDesc.mHostVisible = false;
-    brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
-    brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
-    addResource(&brdfIntegrationLoadDesc);
-    
-    // Add empty buffer resource for storing the skybox cubemap texture values.
-    BufferLoadDesc skyboxBufferDesc = {};
-    skyboxBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
-    skyboxBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    skyboxBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#ifndef METAL
-    skyboxBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-    skyboxBufferDesc.mDesc.mElementCount = skyboxSize / skyboxBufferDesc.mDesc.mStructStride;
-    skyboxBufferDesc.mDesc.mSize = skyboxBufferDesc.mDesc.mStructStride * skyboxBufferDesc.mDesc.mElementCount;
-#else
-    skyboxBufferDesc.mDesc.mStructStride = sizeof(float);
-    skyboxBufferDesc.mDesc.mElementCount = skyboxSize;
-    skyboxBufferDesc.mDesc.mSize = skyboxSize;
-#endif
-    skyboxBufferDesc.pData = NULL;
-    skyboxBufferDesc.ppBuffer = &pSkyBuffer;
-    addResource(&skyboxBufferDesc);
-    
-    // Add empty buffer resource for storing the irradiance cubemap texture values.
-    BufferLoadDesc irradianceBufferDesc = {};
-    irradianceBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
-    irradianceBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    irradianceBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#ifndef METAL
-    irradianceBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-    irradianceBufferDesc.mDesc.mElementCount = irrSize / irradianceBufferDesc.mDesc.mStructStride;
-    irradianceBufferDesc.mDesc.mSize = irradianceBufferDesc.mDesc.mStructStride * irradianceBufferDesc.mDesc.mElementCount;
-#else
-    irradianceBufferDesc.mDesc.mStructStride = sizeof(float);
-    irradianceBufferDesc.mDesc.mElementCount = irrSize;
-    irradianceBufferDesc.mDesc.mSize = irrSize;
-#endif
-    irradianceBufferDesc.pData = NULL;
-    irradianceBufferDesc.ppBuffer = &pIrrBuffer;
-    addResource(&irradianceBufferDesc);
-    
-    // Add empty buffer resource for storing the specular cubemap texture values.
-    BufferLoadDesc specularBufferDesc = {};
-    specularBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
-    specularBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    specularBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#ifndef METAL
-    specularBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-    specularBufferDesc.mDesc.mElementCount = specSize / specularBufferDesc.mDesc.mStructStride;
-    specularBufferDesc.mDesc.mSize = specularBufferDesc.mDesc.mStructStride * specularBufferDesc.mDesc.mElementCount;
-#else
-    specularBufferDesc.mDesc.mStructStride = sizeof(float);
-    specularBufferDesc.mDesc.mElementCount = specSize;
-    specularBufferDesc.mDesc.mSize = specSize;
-#endif
-	
-    specularBufferDesc.pData = NULL;
-    specularBufferDesc.ppBuffer = &pSpecBuffer;
-    addResource(&specularBufferDesc);
-    
-    // Load pre-processing shaders.
+	panoDesc.mUseMipmaps = true;
+	panoDesc.pFilename = "LA_Helipad.hdr";
+	panoDesc.ppTexture = &pPanoSkybox;
+	addResource(&panoDesc);
+
+	TextureDesc skyboxImgDesc = {};
+	skyboxImgDesc.mArraySize = 6;
+	skyboxImgDesc.mDepth = 1;
+	skyboxImgDesc.mFormat = ImageFormat::RGBA32F;
+	skyboxImgDesc.mHeight = gSkyboxSize;
+	skyboxImgDesc.mWidth = gSkyboxSize;
+	skyboxImgDesc.mMipLevels = gSkyboxMips;
+	skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
+	skyboxImgDesc.mSrgb = false;
+	skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+	skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	skyboxImgDesc.pDebugName = L"skyboxImgBuff";
+
+	TextureLoadDesc skyboxLoadDesc = {};
+	skyboxLoadDesc.pDesc = &skyboxImgDesc;
+	skyboxLoadDesc.ppTexture = &pSkybox;
+	addResource(&skyboxLoadDesc);
+
+	TextureDesc irrImgDesc = {};
+	irrImgDesc.mArraySize = 6;
+	irrImgDesc.mDepth = 1;
+	irrImgDesc.mFormat = ImageFormat::RGBA32F;
+	irrImgDesc.mHeight = gIrradianceSize;
+	irrImgDesc.mWidth = gIrradianceSize;
+	irrImgDesc.mMipLevels = 1;
+	irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
+	irrImgDesc.mSrgb = false;
+	irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+	irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	irrImgDesc.pDebugName = L"irrImgBuff";
+
+	TextureLoadDesc irrLoadDesc = {};
+	irrLoadDesc.pDesc = &irrImgDesc;
+	irrLoadDesc.ppTexture = &pIrradianceMap;
+	addResource(&irrLoadDesc);
+
+	TextureDesc specImgDesc = {};
+	specImgDesc.mArraySize = 6;
+	specImgDesc.mDepth = 1;
+	specImgDesc.mFormat = ImageFormat::RGBA32F;
+	specImgDesc.mHeight = gSpecularSize;
+	specImgDesc.mWidth = gSpecularSize;
+	specImgDesc.mMipLevels = gSpecularMips;
+	specImgDesc.mSampleCount = SAMPLE_COUNT_1;
+	specImgDesc.mSrgb = false;
+	specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+	specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	specImgDesc.pDebugName = L"specImgBuff";
+
+	TextureLoadDesc specImgLoadDesc = {};
+	specImgLoadDesc.pDesc = &specImgDesc;
+	specImgLoadDesc.ppTexture = &pSpecularMap;
+	addResource(&specImgLoadDesc);
+
+	// Create empty texture for BRDF integration map.
+	TextureLoadDesc brdfIntegrationLoadDesc = {};
+	TextureDesc brdfIntegrationDesc = {};
+	brdfIntegrationDesc.mWidth = gBRDFIntegrationSize;
+	brdfIntegrationDesc.mHeight = gBRDFIntegrationSize;
+	brdfIntegrationDesc.mDepth = 1;
+	brdfIntegrationDesc.mArraySize = 1;
+	brdfIntegrationDesc.mMipLevels = 1;
+	brdfIntegrationDesc.mFormat = ImageFormat::RG32F;
+	brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
+	brdfIntegrationDesc.mHostVisible = false;
+	brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
+	brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
+	addResource(&brdfIntegrationLoadDesc);
+
+	// Load pre-processing shaders.
 	ShaderLoadDesc panoToCubeShaderDesc = {};
 	panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
 
+	GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
+	uint32_t importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
+	uint32_t importanceSampleCount = importanceSampleCounts[presetLevel];
+	ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", String::format("%u", importanceSampleCount) };
+
 	ShaderLoadDesc brdfIntegrationShaderDesc = {};
-	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", NULL, 0, FSR_SrcShaders };
+	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
 
 	ShaderLoadDesc irradianceShaderDesc = {};
 	irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, FSR_SrcShaders };
 
 	ShaderLoadDesc specularShaderDesc = {};
-	specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", NULL, 0, FSR_SrcShaders };
+	specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
 
-    addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
-    addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
-    addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
-    addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
+	addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
+	addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
+	addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
+	addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
 
+	const char* pStaticSamplerNames[] = { "skyboxSampler" };
 	RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
+	panoRootDesc.mStaticSamplerCount = 1;
+	panoRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	panoRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
+	brdfRootDesc.mStaticSamplerCount = 1;
+	brdfRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	brdfRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
+	irradianceRootDesc.mStaticSamplerCount = 1;
+	irradianceRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	irradianceRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
-    addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
-    addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
-    addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
-    addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
-    
-    ComputePipelineDesc pipelineSettings = { 0 };
-    pipelineSettings.pShaderProgram = pPanoToCubeShader;
-    pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
-    addComputePipeline(pRenderer, &pipelineSettings, &pPanoToCubePipeline);
-    pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
-    pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
-    addComputePipeline(pRenderer, &pipelineSettings, &pBRDFIntegrationPipeline);
-    pipelineSettings.pShaderProgram = pIrradianceShader;
-    pipelineSettings.pRootSignature = pIrradianceRootSignature;
-    addComputePipeline(pRenderer, &pipelineSettings, &pIrradiancePipeline);
-    pipelineSettings.pShaderProgram = pSpecularShader;
-    pipelineSettings.pRootSignature = pSpecularRootSignature;
-    addComputePipeline(pRenderer, &pipelineSettings, &pSpecularPipeline);
-    
-    // Since this happens on iniatilization, use the first cmd/fence pair available.
-    Cmd* cmd = ppCmds[0];
-    Fence* pRenderCompleteFence = pRenderCompleteFences[0];
-    
-    // Compute the BRDF Integration map.
-    beginCmd(cmd);
-    cmdBindPipeline(cmd, pBRDFIntegrationPipeline);
-    DescriptorData params[3] = {};
-    params[0].pName = "dstTexture";
-    params[0].ppTextures = &pBRDFIntegrationMap;
-    cmdBindDescriptors(cmd, pBRDFIntegrationRootSignature, 1, params);
-    const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-    cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
+	specularRootDesc.mStaticSamplerCount = 1;
+	specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
+	addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
+	addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
+	addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
+	addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 
-	TextureBarrier srvBarrier = { pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE };
-	cmdResourceBarrier(cmd, 0, NULL, 1, &srvBarrier, true);
-    
-    // Store the panorama texture inside a cubemap.
-    cmdBindPipeline(cmd, pPanoToCubePipeline);
-    params[0].pName = "srcTexture";
-    params[0].ppTextures = &pPanoSkybox;
-    params[1].pName = "dstBuffer";
-    params[1].ppBuffers = &pSkyBuffer;
-	params[2].pName = "skyboxSampler";
-	params[2].ppSamplers = &pSkyboxSampler;
-    cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
-    pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-    cmdDispatch(cmd, gSkyboxSize / pThreadGroupSize[0], gSkyboxSize / pThreadGroupSize[1], 6);
-    endCmd(cmd);
-    queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-    waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+	ComputePipelineDesc pipelineSettings = { 0 };
+	pipelineSettings.pShaderProgram = pPanoToCubeShader;
+	pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
+	addComputePipeline(pRenderer, &pipelineSettings, &pPanoToCubePipeline);
+	pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
+	pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
+	addComputePipeline(pRenderer, &pipelineSettings, &pBRDFIntegrationPipeline);
+	pipelineSettings.pShaderProgram = pIrradianceShader;
+	pipelineSettings.pRootSignature = pIrradianceRootSignature;
+	addComputePipeline(pRenderer, &pipelineSettings, &pIrradiancePipeline);
+	pipelineSettings.pShaderProgram = pSpecularShader;
+	pipelineSettings.pRootSignature = pSpecularRootSignature;
+	addComputePipeline(pRenderer, &pipelineSettings, &pSpecularPipeline);
 
-    // Upload the cubemap skybox's CPU image contents to the GPU.
-    memcpy(skyboxImgBuff, pSkyBuffer->pCpuMappedAddress, skyboxSize);
-	TextureLoadDesc skyboxUpload = {};
-    skyboxUpload.pImage = &skyboxImg;
-    skyboxUpload.ppTexture = &pSkybox;
-    addResource(&skyboxUpload);
-    
-    // After the skybox cubemap is on GPU memory, we can precompute the irradiance and specular PBR maps.
-    beginCmd(cmd);
-    cmdBindPipeline(cmd, pIrradiancePipeline);
-    params[0].pName = "srcTexture";
-    params[0].ppTextures = &pSkybox;
-    params[1].pName = "dstBuffer";
-    params[1].ppBuffers = &pIrrBuffer;
-    params[2].pName = "skyboxSampler";
-    params[2].ppSamplers = &pSkyboxSampler;
-    cmdBindDescriptors(cmd, pIrradianceRootSignature, 3, params);
-    pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-    cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
-    cmdBindPipeline(cmd, pSpecularPipeline);
-    params[0].pName = "srcTexture";
-    params[0].ppTextures = &pSkybox;
-    params[1].pName = "dstBuffer";
-    params[1].ppBuffers = &pSpecBuffer;
-    params[2].pName = "skyboxSampler";
-    params[2].ppSamplers = &pSkyboxSampler;
-    cmdBindDescriptors(cmd, pSpecularRootSignature, 3, params);
-    pThreadGroupSize = pSpecularShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-    cmdDispatch(cmd, gSpecularSize / pThreadGroupSize[0], gSpecularSize / pThreadGroupSize[1], 6);
-    endCmd(cmd);
-    queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-    waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
-    
-    // Upload both the irradiance and specular maps to GPU.
-    memcpy(irrImgBuff, pIrrBuffer->pCpuMappedAddress, irrSize);
-    memcpy(specImgBuff, pSpecBuffer->pCpuMappedAddress, specSize);
-	TextureLoadDesc irrUpload = {};
-    irrUpload.pImage = &irrImg;
-    irrUpload.ppTexture = &pIrradianceMap;
-    addResource(&irrUpload);
-	TextureLoadDesc specUpload = {};
-    specUpload.pImage = &specImg;
-    specUpload.ppTexture = &pSpecularMap;
-    addResource(&specUpload);
-    
-    // Remove temporary resources.
-    removePipeline(pRenderer, pSpecularPipeline);
-    removeRootSignature(pRenderer, pSpecularRootSignature);
-    removeShader(pRenderer, pSpecularShader);
-    
-    removePipeline(pRenderer, pIrradiancePipeline);
-    removeRootSignature(pRenderer, pIrradianceRootSignature);
-    removeShader(pRenderer, pIrradianceShader);
-    
-    removePipeline(pRenderer, pBRDFIntegrationPipeline);
-    removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
-    removeShader(pRenderer, pBRDFIntegrationShader);
-    
-    removePipeline(pRenderer, pPanoToCubePipeline);
-    removeRootSignature(pRenderer, pPanoToCubeRootSignature);
-    removeShader(pRenderer, pPanoToCubeShader);
-    
-    removeResource(pPanoSkybox);
-    removeResource(pIrrBuffer);
-    removeResource(pSpecBuffer);
-    removeResource(pSkyBuffer);
-	
+	// Since this happens on iniatilization, use the first cmd/fence pair available.
+	Cmd* cmd = ppCmds[0];
+	Fence* pRenderCompleteFence = pRenderCompleteFences[0];
+
+	// Compute the BRDF Integration map.
+	beginCmd(cmd);
+
+	TextureBarrier uavBarriers[4] = {
+		{ pSkybox, RESOURCE_STATE_UNORDERED_ACCESS },
+		{ pIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS },
+		{ pSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
+		{ pBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
+	};
+	cmdResourceBarrier(cmd, 0, NULL, 4, uavBarriers, false);
+
+	cmdBindPipeline(cmd, pBRDFIntegrationPipeline);
+	DescriptorData params[2] = {};
+	params[0].pName = "dstTexture";
+	params[0].ppTextures = &pBRDFIntegrationMap;
+	cmdBindDescriptors(cmd, pBRDFIntegrationRootSignature, 1, params);
+	const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+	cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
+
+	TextureBarrier srvBarrier[1] = {
+		{ pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+
+	cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier, true);
+
+	// Store the panorama texture inside a cubemap.
+	cmdBindPipeline(cmd, pPanoToCubePipeline);
+	params[0].pName = "srcTexture";
+	params[0].ppTextures = &pPanoSkybox;
+	cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 1, params);
+
+	struct Data
+	{
+		uint mip;
+		uint textureSize;
+	} data = { 0, gSkyboxSize };
+
+	for (int i = 0; i < gSkyboxMips; i++)
+	{
+		data.mip = i;
+		params[0].pName = "RootConstant";
+		params[0].pRootConstant = &data;
+		params[1].pName = "dstTexture";
+		params[1].ppTextures = &pSkybox;
+		params[1].mUAVMipSlice = i;
+		cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
+
+		pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		cmdDispatch(cmd, max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[0]),
+			max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
+	}
+
+	TextureBarrier srvBarriers[1] = {
+		{ pSkybox, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+	cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers, false);
+	/************************************************************************/
+	// Compute sky irradiance
+	/************************************************************************/
+	params[0] = {};
+	params[1] = {};
+	cmdBindPipeline(cmd, pIrradiancePipeline);
+	params[0].pName = "srcTexture";
+	params[0].ppTextures = &pSkybox;
+	params[1].pName = "dstTexture";
+	params[1].ppTextures = &pIrradianceMap;
+	cmdBindDescriptors(cmd, pIrradianceRootSignature, 2, params);
+	pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+	cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
+	/************************************************************************/
+	// Compute specular sky
+	/************************************************************************/
+	cmdBindPipeline(cmd, pSpecularPipeline);
+	params[0].pName = "srcTexture";
+	params[0].ppTextures = &pSkybox;
+	cmdBindDescriptors(cmd, pSpecularRootSignature, 1, params);
+
+	struct PrecomputeSkySpecularData
+	{
+		uint mipSize;
+		float roughness;
+	};
+
+	for (int i = 0; i < gSpecularMips; i++)
+	{
+		PrecomputeSkySpecularData data = {};
+		data.roughness = (float)i / (float)(gSpecularMips - 1);
+		data.mipSize = gSpecularSize >> i;
+		params[0].pName = "RootConstant";
+		params[0].pRootConstant = &data;
+		params[1].pName = "dstTexture";
+		params[1].ppTextures = &pSpecularMap;
+		params[1].mUAVMipSlice = i;
+		cmdBindDescriptors(cmd, pSpecularRootSignature, 2, params);
+		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		cmdDispatch(cmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i)/ pThreadGroupSize[1]), 6);
+	}
+	/************************************************************************/
+	/************************************************************************/
+	TextureBarrier srvBarriers2[2] = {
+		{ pIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
+		{ pSpecularMap, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+	cmdResourceBarrier(cmd, 0, NULL, 2, srvBarriers2, false);
+
+	endCmd(cmd);
+	queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
+	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+
+	// Remove temporary resources.
+	removePipeline(pRenderer, pSpecularPipeline);
+	removeRootSignature(pRenderer, pSpecularRootSignature);
+	removeShader(pRenderer, pSpecularShader);
+
+	removePipeline(pRenderer, pIrradiancePipeline);
+	removeRootSignature(pRenderer, pIrradianceRootSignature);
+	removeShader(pRenderer, pIrradianceShader);
+
+	removePipeline(pRenderer, pBRDFIntegrationPipeline);
+	removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
+	removeShader(pRenderer, pBRDFIntegrationShader);
+
+	removePipeline(pRenderer, pPanoToCubePipeline);
+	removeRootSignature(pRenderer, pPanoToCubeRootSignature);
+	removeShader(pRenderer, pPanoToCubeShader);
+
+	removeResource(pPanoSkybox);
+
 	removeSampler(pRenderer, pSkyboxSampler);
-
-	skyboxImg.Destroy();
-	irrImg.Destroy();
-	specImg.Destroy();
 }
 
 
@@ -668,7 +700,7 @@ void loadTextureNames() {
 	gMaterialNames.push_back("gold/normal.png");
 	gMaterialNames.push_back("gold/metallic.png");
 	gMaterialNames.push_back("gold/roughness.png");
-	gMaterialNames.push_back("gold/ao.png");	
+	gMaterialNames.push_back("gold/ao.png");
 	gMaterialNames.push_back("titanium/albedo.png");
 	gMaterialNames.push_back("titanium/normal.png");
 	gMaterialNames.push_back("titanium/metallic.png");
@@ -681,29 +713,29 @@ void loadModels()
 	Model model;
 	String sceneFullPath = FileSystem::FixPath(gModelName, FSRoot::FSR_Meshes);
 #ifdef TARGET_IOS
-    //TODO: need to unify this using filsystem interface
-    //iOS requires path using bundle identifier
-    NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:gModelName] ofType:@""];
-    sceneFullPath = [fileUrl fileSystemRepresentation];
+	//TODO: need to unify this using filsystem interface
+	//iOS requires path using bundle identifier
+	NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gModelName] ofType : @""];
+	sceneFullPath = [fileUrl fileSystemRepresentation];
 #endif
-	AssimpImporter::ImportModel(sceneFullPath.c_str(),&model);
+	AssimpImporter::ImportModel(sceneFullPath.c_str(), &model);
 	Mesh mesh = model.mMeshArray[0];
 
 	size_t size = mesh.mIndices.size();
-    tinystl::vector<Vertex> meshVertices;
+	tinystl::vector<Vertex> meshVertices;
 	int index = 0;
-    for(int i =0 ; i < size;i++)
-    {
+	for (int i = 0; i < size;i++)
+	{
 		index = mesh.mIndices[i];
-        Vertex toAdd = {mesh.mPositions[index],mesh.mNormals[index], mesh.mUvs[index]};
-        meshVertices.push_back(toAdd);
-    }
-    
+		Vertex toAdd = { mesh.mPositions[index],mesh.mNormals[index], mesh.mUvs[index] };
+		meshVertices.push_back(toAdd);
+	}
+
 	gTotalIndices = (int)meshVertices.size();
-	
+
 	// Vertex position buffer for the scene
 	BufferLoadDesc vbPosDesc = {};
-	vbPosDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+	vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	vbPosDesc.mDesc.mVertexStride = sizeof(Vertex);
 	vbPosDesc.mDesc.mSize = meshVertices.size() * vbPosDesc.mDesc.mVertexStride;
@@ -715,33 +747,33 @@ void loadModels()
 	Model surface;
 	sceneFullPath = FileSystem::FixPath(gSurfaceModelName, FSRoot::FSR_Meshes);
 #ifdef TARGET_IOS
-    
-    fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:gSurfaceModelName] ofType:@""];
-    sceneFullPath = [fileUrl fileSystemRepresentation];
+
+	fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gSurfaceModelName] ofType : @""];
+	sceneFullPath = [fileUrl fileSystemRepresentation];
 #endif
-	AssimpImporter::ImportModel(sceneFullPath.c_str(),&surface);
+	AssimpImporter::ImportModel(sceneFullPath.c_str(), &surface);
 	Mesh surfaceMesh = surface.mMeshArray[0];
 
 	size_t size1 = surfaceMesh.mIndices.size();
-    tinystl::vector<Vertex> surfaceVertices;
+	tinystl::vector<Vertex> surfaceVertices;
 	index = 0;
-    for(int i =0 ; i < size1;i++)
-    {
+	for (int i = 0; i < size1;i++)
+	{
 
 		index = surfaceMesh.mIndices[i];
-        Vertex toAdd = {surfaceMesh.mPositions[index],surfaceMesh.mNormals[index],surfaceMesh.mUvs[index]};
-        surfaceVertices.push_back(toAdd);
-    }
+		Vertex toAdd = { surfaceMesh.mPositions[index],surfaceMesh.mNormals[index],surfaceMesh.mUvs[index] };
+		surfaceVertices.push_back(toAdd);
+	}
 
 
 	gSurfaceIndices = (int)surfaceVertices.size();
 
 	// Vertex position buffer for the scene
 	BufferLoadDesc vbPosDesc1 = {};
-	vbPosDesc1.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+	vbPosDesc1.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbPosDesc1.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	vbPosDesc1.mDesc.mVertexStride = sizeof(Vertex);
-    vbPosDesc1.mDesc.mElementCount = surfaceVertices.size();
+	vbPosDesc1.mDesc.mElementCount = surfaceVertices.size();
 	vbPosDesc1.mDesc.mSize = surfaceVertices.size() * vbPosDesc1.mDesc.mVertexStride;
 	vbPosDesc1.pData = surfaceVertices.data();
 	vbPosDesc1.ppBuffer = &pSurfaceVertexBufferPosition;
@@ -754,8 +786,8 @@ void createSpherePoints(Vertex **ppPoints, int *pNumberOfPoints, int numberOfDiv
 {
 	tinystl::vector<Vector3> vertices;
 	tinystl::vector<Vector3> normals;
-  tinystl::vector<Vector3> uvs;
-    
+	tinystl::vector<Vector3> uvs;
+
 	float numStacks = (float)numberOfDivisions;
 	float numSlices = (float)numberOfDivisions;
 
@@ -782,47 +814,47 @@ void createSpherePoints(Vertex **ppPoints, int *pNumberOfPoints, int numberOfDiv
 			vertices.push_back(radius * topLeftPoint);
 			vertices.push_back(radius * botRightPoint);
 			vertices.push_back(radius * topRightPoint);
-			
+
 			normals.push_back(normalize(topLeftPoint));
-			float theta = atan2f(normalize(topLeftPoint).getY(),normalize(topLeftPoint).getX());
-			float phi   = acosf(normalize(topLeftPoint).getZ());
-            Vector3 textcoord1 = {(theta/(2*PI)),(phi/ PI),0.0f};
-            uvs.push_back(textcoord1);
-			
+			float theta = atan2f(normalize(topLeftPoint).getY(), normalize(topLeftPoint).getX());
+			float phi = acosf(normalize(topLeftPoint).getZ());
+			Vector3 textcoord1 = { (theta / (2 * PI)),(phi / PI),0.0f };
+			uvs.push_back(textcoord1);
+
 			normals.push_back(normalize(botRightPoint));
-			theta = atan2f(normalize(botRightPoint).getY(),normalize(botRightPoint).getX());
-			phi   = acosf(normalize(botRightPoint).getZ());
-            textcoord1 = {(theta/(2*PI)),(phi/ PI),0.0f};
-            uvs.push_back(textcoord1);
-			
+			theta = atan2f(normalize(botRightPoint).getY(), normalize(botRightPoint).getX());
+			phi = acosf(normalize(botRightPoint).getZ());
+			textcoord1 = { (theta / (2 * PI)),(phi / PI),0.0f };
+			uvs.push_back(textcoord1);
+
 			normals.push_back(normalize(topRightPoint));
-			theta = atan2f(normalize(topRightPoint).getY(),normalize(topRightPoint).getX());
-			phi   = acosf(normalize(topRightPoint).getZ());
-            textcoord1 = {(theta/(2*PI)),(phi/ PI),0.0f};
-            uvs.push_back(textcoord1);
-	
+			theta = atan2f(normalize(topRightPoint).getY(), normalize(topRightPoint).getX());
+			phi = acosf(normalize(topRightPoint).getZ());
+			textcoord1 = { (theta / (2 * PI)),(phi / PI),0.0f };
+			uvs.push_back(textcoord1);
+
 
 			// Bot left triangle
 			vertices.push_back(radius * topLeftPoint);
 			vertices.push_back(radius * botLeftPoint);
 			vertices.push_back(radius * botRightPoint);
-			
+
 			normals.push_back(normalize(topLeftPoint));
-			theta = atan2f(normalize(topLeftPoint).getY(),normalize(topLeftPoint).getX());
-			phi   = acosf(normalize(topLeftPoint).getZ());
-            textcoord1 = {(theta/(2*PI)),(phi/ PI),0.0f};
+			theta = atan2f(normalize(topLeftPoint).getY(), normalize(topLeftPoint).getX());
+			phi = acosf(normalize(topLeftPoint).getZ());
+			textcoord1 = { (theta / (2 * PI)),(phi / PI),0.0f };
 			uvs.push_back(textcoord1);
-			
+
 			normals.push_back(normalize(botLeftPoint));
-			theta = atan2f(normalize(botLeftPoint).getY(),normalize(botLeftPoint).getX());
-			phi   = acosf(normalize(botLeftPoint).getZ());
-            textcoord1 = {(theta/(2*PI)),(phi/ PI),0.0f};
+			theta = atan2f(normalize(botLeftPoint).getY(), normalize(botLeftPoint).getX());
+			phi = acosf(normalize(botLeftPoint).getZ());
+			textcoord1 = { (theta / (2 * PI)),(phi / PI),0.0f };
 			uvs.push_back(textcoord1);
-			
+
 			normals.push_back(normalize(botRightPoint));
-			theta = atan2f(normalize(botRightPoint).getY(),normalize(botRightPoint).getX());
-			phi   = acosf(normalize(botRightPoint).getZ());
-            textcoord1 = {(theta/(2*PI)),(phi/ PI),0.0f};
+			theta = atan2f(normalize(botRightPoint).getY(), normalize(botRightPoint).getX());
+			phi = acosf(normalize(botRightPoint).getZ());
+			textcoord1 = { (theta / (2 * PI)),(phi / PI),0.0f };
 			uvs.push_back(textcoord1);
 		}
 	}
@@ -832,10 +864,10 @@ void createSpherePoints(Vertex **ppPoints, int *pNumberOfPoints, int numberOfDiv
 
 	for (uint32_t i = 0; i < (uint32_t)vertices.size(); i++)
 	{
-		Vertex vertex; 
+		Vertex vertex;
 		vertex.mPos = float3(vertices[i].getX(), vertices[i].getY(), vertices[i].getZ());
-		vertex.mNormal= float3(normals[i].getX(), normals[i].getY(), normals[i].getZ());
-		
+		vertex.mNormal = float3(normals[i].getX(), normals[i].getY(), normals[i].getZ());
+
 		float theta = atan2f(normals[i].getY(), normals[i].getX());
 		float phi = acosf(normals[i].getZ());
 
@@ -868,7 +900,7 @@ public:
 
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pUICmdPool);
 		addCmd_n(pUICmdPool, false, gImageCount, &ppUICmds);
-		
+
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			addFence(pRenderer, &pRenderCompleteFences[i]);
@@ -878,36 +910,30 @@ public:
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
-		
-		tinystl::vector<Image> toLoad(gMaterialNames.size());
-        //adding material textures
-        for(int i = 0 ; i <gMaterialNames.size(); ++i)
-        {
-            TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
-            textureDesc.mRoot = FSR_Textures;
-#else
-            textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
-			toLoad[i].loadImage(gMaterialNames[i], true);
-			
-			//Temp Workaround for iOS
-#ifdef TARGET_IOS
-			if (toLoad[i].getFormat() == ImageFormat::RGBA8)
-				toLoad[i].Convert(ImageFormat::BGRA8);
-#endif
 
-			if(i>=TOTAL_TEXTURES) {
-				LOGERRORF("Greater than the size TOTAL_TEXTURES :%d",TOTAL_TEXTURES);
+		//adding material textures
+        for (int i = 0; i <TOTAL_TEXTURES; ++i)
+		{
+			TextureLoadDesc textureDesc = {};
+#ifndef TARGET_IOS
+			textureDesc.mRoot = FSR_Textures;
+#else
+			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+#endif
+			if (i >= TOTAL_TEXTURES) {
+				LOGERRORF("Greater than the size TOTAL_TEXTURES :%d", TOTAL_TEXTURES);
 				break;
-			}else {
-				 textureDesc.ppTexture = &pMaterialTextures[i];
 			}
-			
+			else {
+				textureDesc.ppTexture = &pMaterialTextures[i];
+			}
+
 			textureDesc.mUseMipmaps = true;
-			textureDesc.pImage = &toLoad[i];
-            addResource(&textureDesc, true);
-        }
+
+
+			textureDesc.pFilename = gMaterialNames[i];
+			addResource(&textureDesc, true);
+		}
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -922,7 +948,7 @@ public:
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
 		};
 		addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
-  
+
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
 		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, FSR_SrcShaders };
 		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, FSR_SrcShaders };
@@ -932,7 +958,7 @@ public:
 		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
 
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
-        addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
+		addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
 
 		const char* pStaticSamplerNames[] = { "envSampler", "defaultSampler" };
 		Sampler* pStaticSamplers[] = { pSamplerBilinear, pSamplerBilinear };
@@ -959,28 +985,28 @@ public:
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterstateDefault);
-		
+
 #ifdef LOAD_MATERIAL_BALL
 		loadModels();
 
 		BufferLoadDesc buffDesc = {};
-		buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		buffDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		buffDesc.mDesc.mSize = sizeof(UniformObjData);
 		buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		buffDesc.pData = NULL;
 		buffDesc.ppBuffer = &pSurfaceBuffer;
 		addResource(&buffDesc);
-		
+
 		//for matballs
-		for(int i = 0 ; i <gTotalObjects ; ++i) {
-			
+		for (int i = 0; i <gTotalObjects; ++i) {
+
 			Buffer* buff = NULL;
 			buffDesc.ppBuffer = &buff;
 			addResource(&buffDesc);
 			gPlateBuffers.push_back(buff);
 		}
-		
+
 #else
 		Vertex* pSPherePoints;
 		createSpherePoints(&pSPherePoints, &gNumOfSpherePoints, gSphereResolution, gSphereDiameter);
@@ -988,7 +1014,7 @@ public:
 		uint64_t sphereDataSize = gNumOfSpherePoints * sizeof(Vertex);
 
 		BufferLoadDesc sphereVbDesc = {};
-		sphereVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sphereVbDesc.mDesc.mElementCount = gNumOfSpherePoints;
 		sphereVbDesc.mDesc.mVertexStride = sizeof(Vertex); // 3 for vertex, 3 for normal, 2 for textures
@@ -1047,7 +1073,7 @@ public:
 
 		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
@@ -1063,7 +1089,7 @@ public:
 				Buffer* tBuffer = NULL;
 
 				BufferLoadDesc buffDesc = {};
-				buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+				buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 				buffDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 				buffDesc.mDesc.mSize = sizeof(UniformObjData);
 				buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT; // not sure if persistent mapping is needed here
@@ -1077,7 +1103,7 @@ public:
 
 		// Uniform buffer for camera data
 		BufferLoadDesc ubCamDesc = {};
-		ubCamDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubCamDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubCamDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubCamDesc.mDesc.mSize = sizeof(UniformCamData);
 		ubCamDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT; // not sure if persistent mapping is needed here
@@ -1092,7 +1118,7 @@ public:
 
 		// Uniform buffer for light data
 		BufferLoadDesc ubLightsDesc = {};
-		ubLightsDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubLightsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubLightsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubLightsDesc.mDesc.mSize = sizeof(UniformLightData);
 		ubLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT; // not sure if persistent mapping is needed here
@@ -1105,29 +1131,29 @@ public:
 		// prepare resources
 
 		// Update the uniform buffer for the objects
-        float baseX = 4.5f;
-        float baseY = -4.5f;
+		float baseX = 4.5f;
+		float baseY = -4.5f;
 		float baseZ = 9.0f;
 		float offsetX = 0.1f;
 		float offsetY = 0.0f;
 		float offsetZ = 10.0f;
 		float scaleVal = 1.0f;
-		int y =0;
+		int y = 0;
 		int x = 0;
 		float roughDelta = 1.0f;
 #ifdef LOAD_MATERIAL_BALL
-        baseX = 17.0f;
-        offsetX = 8.0f;
+		baseX = 17.0f;
+		offsetX = 8.0f;
 		offsetY = 1.5f;
 		scaleVal = 1.5f;//0.2
 #endif
-		for (y= 0; y < gAmountObjectsinY; ++y)
+		for (y = 0; y < gAmountObjectsinY; ++y)
 		{
 			for (x = 0; x < gAmountObjectsinX; ++x)
 			{
-				
+
 #ifdef LOAD_MATERIAL_BALL
-				mat4 modelmat = mat4::translation(vec3(baseX - x - offsetX * x, baseY, baseZ - y - offsetZ*y )) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
+				mat4 modelmat = mat4::translation(vec3(baseX - x - offsetX * x, baseY, baseZ - y - offsetZ * y)) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
 #else
 				mat4 modelmat = mat4::translation(vec3(baseX - x - offsetX * x, baseY + y + offsetY * y, 0.0f)) * mat4::scale(vec3(scaleVal));
 #endif
@@ -1143,35 +1169,35 @@ public:
 				updateResource(&objBuffUpdateDesc);
 				roughDelta -= .25f;
 #ifdef LOAD_MATERIAL_BALL
-{			
-				//plates
-				modelmat = mat4::translation(vec3(baseX - x - offsetX * x, -5.9f, baseZ - y - offsetZ*y+3)) * mat4::scale(vec3(3.0f, 0.1f, 1.0f));
-				pUniformDataMVP.mWorldMat = modelmat;
-				pUniformDataMVP.mMetallic = 1;
-				pUniformDataMVP.mRoughness =  1.1f;
-				pUniformDataMVP.objectId = 3;
-				BufferUpdateDesc objBuffUpdateDesc1 = { gPlateBuffers[comb], &pUniformDataMVP };
-				updateResource(&objBuffUpdateDesc1);
-				
-				//text
-				gTextWorldMats.push_back(mat4::translation(vec3(baseX - x - offsetX * x, -6.8f, baseZ - y - offsetZ*y +3))*mat4::rotationX(-PI/2)*mat4::scale(vec3(16.0f, 10.0f, 1.0f)));
-}
+				{
+					//plates
+					modelmat = mat4::translation(vec3(baseX - x - offsetX * x, -5.9f, baseZ - y - offsetZ * y + 3)) * mat4::scale(vec3(3.0f, 0.1f, 1.0f));
+					pUniformDataMVP.mWorldMat = modelmat;
+					pUniformDataMVP.mMetallic = 1;
+					pUniformDataMVP.mRoughness = 1.0f;
+					pUniformDataMVP.objectId = 3;
+					BufferUpdateDesc objBuffUpdateDesc1 = { gPlateBuffers[comb], &pUniformDataMVP };
+					updateResource(&objBuffUpdateDesc1);
+
+					//text
+					gTextWorldMats.push_back(mat4::translation(vec3(baseX - x - offsetX * x, -6.8f, baseZ - y - offsetZ * y + 3))*mat4::rotationX(-PI / 2)*mat4::scale(vec3(16.0f, 10.0f, 1.0f)));
+				}
 #endif
 			}
 		}
-		
+
 #ifdef LOAD_MATERIAL_BALL
 		//surface
 		mat4 modelmat = mat4::translation(vec3(0.0f, -6.0f, 0.0f)) * mat4::scale(vec3(50.0f, 0.2f, 40.0f));
 		pUniformDataMVP.mWorldMat = modelmat;
 		pUniformDataMVP.mMetallic = 0;
-		pUniformDataMVP.mRoughness =  0.04f;
+		pUniformDataMVP.mRoughness = 0.04f;
 		pUniformDataMVP.objectId = 2;
 		BufferUpdateDesc objBuffUpdateDesc = { pSurfaceBuffer, &pUniformDataMVP };
 		updateResource(&objBuffUpdateDesc);
-	
+
 #endif
-		
+
 		// Add light to scene
 		Light light;
 		light.mCol = vec4(1.0f, 1.0f, 1.0f, 0.0f);
@@ -1210,14 +1236,14 @@ public:
 		// Create UI
 		if (!gAppUI.Init(pRenderer))
 			return false;
-	
+
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
-	    GuiDesc guiDesc = {};
+		GuiDesc guiDesc = {};
 		guiDesc.mStartSize = vec2(300.0f, 200.0f);
 		guiDesc.mStartPosition = vec2(300.0f, guiDesc.mStartSize.getY());
 		pGui = gAppUI.AddGuiComponent("Select Material", &guiDesc);
-		
+
 		/************************************************************************/
 		/************************************************************************/
 		UIProperty materialTypeProp = UIProperty("Material : ", gMaterialType, matEnumNames, matEnumValues);
@@ -1231,9 +1257,9 @@ public:
 		UIProperty pbrMaterialProp = UIProperty("Sub Type: ", gMetalMaterial, metalEnumNames, metalEumValues);
 		gMetalSelector.mUIControl.mDynamicProperties.push_back(pbrMaterialProp);
 		//gMetalSelector.mUIControl.ShowDynamicProperties(pGui);
-		
+
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
-		
+
 #ifdef LOAD_MATERIAL_BALL
 		vec3 camPos{ 0.0f, 8.0f, 30.0f };
 #else
@@ -1258,18 +1284,18 @@ public:
 
 		removeDebugRendererInterface();
 
-		for (uint32_t i = 0; i < gImageCount; ++i)	
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
 			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        
-        removeResource(pSpecularMap);
-        removeResource(pIrradianceMap);
-        removeResource(pSkybox);
-        removeResource(pBRDFIntegrationMap);
-        
+
+		removeResource(pSpecularMap);
+		removeResource(pIrradianceMap);
+		removeResource(pSkybox);
+		removeResource(pBRDFIntegrationMap);
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
@@ -1283,20 +1309,20 @@ public:
 		}
 
 		removeResource(pBufferUniformLights);
-        removeResource(pSkyboxVertexBuffer);
-        
+		removeResource(pSkyboxVertexBuffer);
 
-        //sphere buffers
+
+		//sphere buffers
 #ifdef LOAD_MATERIAL_BALL
-        removeResource(pVertexBufferPosition);
-		
+		removeResource(pVertexBufferPosition);
+
 		removeResource(pSurfaceBuffer);
-		for(int j = 0 ; j < gTotalObjects ; ++j) {
-			
+		for (int j = 0; j < gTotalObjects; ++j) {
+
 			removeResource(gPlateBuffers[j]);
 		}
 		removeResource(pSurfaceVertexBufferPosition);
-		
+
 #else
 		removeResource(pSphereVertexBuffer);
 
@@ -1304,31 +1330,31 @@ public:
 		gAppUI.Exit();
 
 		removeShader(pRenderer, pShaderBRDF);
-        removeShader(pRenderer, pSkyboxShader);
+		removeShader(pRenderer, pSkyboxShader);
 
 		for (int i = 0; i < gAmountObjectsinY*gAmountObjectsinX; ++i)
 		{
 			removeResource(gSphereBuffers[i]);
 		}
-        
+
 		removeDepthState(pDepth);
 		removeRasterizerState(pRasterstateDefault);
 		removeSampler(pRenderer, pSamplerBilinear);
 
 		removeRootSignature(pRenderer, pRootSigBRDF);
-        removeRootSignature(pRenderer, pSkyboxRootSignature);
+		removeRootSignature(pRenderer, pSkyboxRootSignature);
 
 		// Remove commands and command pool&
 		removeCmd_n(pUICmdPool, gImageCount, ppUICmds);
 		removeCmdPool(pRenderer, pUICmdPool);
-		
+
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 		removeQueue(pGraphicsQueue);
-		
-		
+
+
 		for (uint i = 0; i < TOTAL_TEXTURES; ++i)
-            removeResource(pMaterialTextures[i]);
+			removeResource(pMaterialTextures[i]);
 
 		// Remove resource loader and renderer
 		removeResourceLoaderInterface(pRenderer);
@@ -1380,9 +1406,9 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		
+
 		//pipelineSettings.pBlendState = pBlendStateOneZero;
-		
+
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
 		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
@@ -1473,22 +1499,22 @@ public:
 		gUniformDataSky = gUniformDataCamera;
 		gUniformDataSky.mProjectView = projMat * viewMat;
 
-				
+
 		int val = -1;
-		gMaterialType == Default_Mat ? (val =-1) : (val=1);
-		for(size_t totalBuf = 0  ; totalBuf < gUniformMVPs.size() ; ++totalBuf) {
-			
+		gMaterialType == Default_Mat ? (val = -1) : (val = 1);
+		for (size_t totalBuf = 0; totalBuf < gUniformMVPs.size(); ++totalBuf) {
+
 			gUniformMVPs[totalBuf].objectId = val;
 			BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[totalBuf], &gUniformMVPs[totalBuf] };
 			updateResource(&objBuffUpdateDesc);
 		}
 
 		gAppUI.Update(deltaTime);
-		
+
 	}
 
 	void Draw()
-    {
+	{
 		// This will acquire the next swapchain image
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
@@ -1521,20 +1547,20 @@ public:
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
-        
-        // Draw the skybox.
-        cmdBindPipeline(cmd, pSkyboxPipeline);
-        DescriptorData skyParams[2] = {};
-        skyParams[0].pName = "uniformBlock";
-        skyParams[0].ppBuffers = &pBufferUniformCameraSky[gFrameIndex];
-        skyParams[1].pName = "skyboxTex";
-        skyParams[1].ppTextures = &pSkybox;
-        cmdBindDescriptors(cmd, pSkyboxRootSignature, 2, skyParams);
-        cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
-        cmdDraw(cmd, 36, 0);
-        
-        // Draw the spheres.
-        cmdBindPipeline(cmd, pPipelineBRDF);
+
+		// Draw the skybox.
+		cmdBindPipeline(cmd, pSkyboxPipeline);
+		DescriptorData skyParams[2] = {};
+		skyParams[0].pName = "uniformBlock";
+		skyParams[0].ppBuffers = &pBufferUniformCameraSky[gFrameIndex];
+		skyParams[1].pName = "skyboxTex";
+		skyParams[1].ppTextures = &pSkybox;
+		cmdBindDescriptors(cmd, pSkyboxRootSignature, 2, skyParams);
+		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
+		cmdDraw(cmd, 36, 0);
+
+		// Draw the spheres.
+		cmdBindPipeline(cmd, pPipelineBRDF);
 
 		// These params stays the same, we alternate our next param
 		DescriptorData params[13] = {};
@@ -1542,125 +1568,124 @@ public:
 		params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
 		params[1].pName = "cbLights";
 		params[1].ppBuffers = &pBufferUniformLights;
-        params[2].pName = "brdfIntegrationMap";
-        params[2].ppTextures = &pBRDFIntegrationMap;
-        params[3].pName = "irradianceMap";
-        params[3].ppTextures = &pIrradianceMap;
-        params[4].pName = "specularMap";
-        params[4].ppTextures = &pSpecularMap;
-        
+		params[2].pName = "brdfIntegrationMap";
+		params[2].ppTextures = &pBRDFIntegrationMap;
+		params[3].pName = "irradianceMap";
+		params[3].ppTextures = &pIrradianceMap;
+		params[4].pName = "specularMap";
+		params[4].ppTextures = &pSpecularMap;
 #ifdef METAL
-        //bind samplers for metal
-        params[11].pName = "defaultSampler";
-        params[11].ppSamplers = &pSamplerBilinear;
-        params[12].pName = "envSampler";
-        params[12].ppSamplers = &pSamplerBilinear;
+		//bind samplers for metal
+		params[11].pName = "defaultSampler";
+		params[11].ppSamplers = &pSamplerBilinear;
+		params[12].pName = "envSampler";
+		params[12].ppSamplers = &pSamplerBilinear;
 #endif
-      
+
 		int matId = 0;
 		int textureIndex = 0;
 		//these checks can be be removed if resources are correct
-		gMetalMaterial = gMetalMaterial>=TotalMetals ? Default_Albedo : gMetalMaterial;
-		matId = gMetalMaterial== Default_Albedo? 0 : gMetalMaterial;
+		gMetalMaterial = gMetalMaterial >= TotalMetals ? Default_Albedo : gMetalMaterial;
+		matId = gMetalMaterial == Default_Albedo ? 0 : gMetalMaterial;
 		//matId *= TEXTURE_COUNT;
 		//matId = matId >= gMaterialNames.size() ? gMetalMaterial = matId = 0 : matId;
 
 #ifdef LOAD_MATERIAL_BALL
-        Buffer* pVertexBuffers[] = { pVertexBufferPosition };
-        cmdBindVertexBuffer(cmd, 1, pVertexBuffers, NULL);
-#endif
-		
-        for (int i = 0; i < gTotalObjects; ++i)
-        {
-            // Add the uniform buffer for eveWry sphere
-            params[5].pName = "cbObject";
-            params[5].ppBuffers = &gSphereBuffers[i];
-			
-            //binding pbr material textures
-            for(int j = 0 ; j <5; ++j) {
-
-                int index = j+5*i;
-				textureIndex = matId+index;
-				//int index = j+5*matId;
-                params[6+j].pName = pTextureName[j];
-				if(textureIndex>=TOTAL_TEXTURES) {
-					LOGERROR("texture index greater than array size, setting it to default texture");
-					textureIndex = matId+j;
-				}
-				params[6+j].ppTextures = &pMaterialTextures[textureIndex];
-				//params[6+j].ppTextures = &pMaterialTextures[index];
-            }
-            
-//13 entries on apple because we need to bind samplers (2 extra)
-#ifdef METAL
-            //draw sphere
-            cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
-#else
-            cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
-#endif
-            
-#ifdef LOAD_MATERIAL_BALL
-
-			cmdDraw(cmd, gTotalIndices, 0);
-			
-#else
-            cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
-            cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1);
-#endif
-        }
-	
-#ifdef LOAD_MATERIAL_BALL
-		Buffer* pSurfaceVertexBuffers[] = { pSurfaceVertexBufferPosition};
-		cmdBindVertexBuffer(cmd, 1, pSurfaceVertexBuffers, NULL);
-
-		params[5].pName = "cbObject";
-		params[5].ppBuffers = &pSurfaceBuffer;
-		
-		for(int j = 0 ; j <5 ; ++j) {
-
-			params[6+j].pName = pTextureName[j];
-			params[6+j].ppTextures = &pMaterialTextures[j];
-		}
-        
-//13 entries on apple because we need to bind samplers (2 extra)
-#ifdef METAL
-        cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
-#else
-        cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
-#endif
-       
-		cmdDraw(cmd, gSurfaceIndices, 0);
+		Buffer* pVertexBuffers[] = { pVertexBufferPosition };
+		cmdBindVertexBuffer(cmd, 1, pVertexBuffers, NULL);
 #endif
 
-		//draw the label plates
-		if(gMaterialType == Metal_Mat) {
-			
-#ifdef LOAD_MATERIAL_BALL
-
-		for(int j = 0 ; j <5 ; ++j) {
-
-			params[6+j].pName = pTextureName[j];
-			params[6+j].ppTextures = &pMaterialTextures[j+4];
-		}
-		
-		for(int j = 0 ; j < gTotalObjects ; ++j) {
-			
+		for (int i = 0; i < gTotalObjects; ++i)
+		{
+			// Add the uniform buffer for eveWry sphere
 			params[5].pName = "cbObject";
-			params[5].ppBuffers = &gPlateBuffers[j];
-  
-//13 entries on apple because we need to bind samplers (2 extra)
+			params[5].ppBuffers = &gSphereBuffers[i];
+
+			//binding pbr material textures
+			for (int j = 0; j <5; ++j) {
+
+				int index = j + 5 * i;
+				textureIndex = matId + index;
+				//int index = j+5*matId;
+				params[6 + j].pName = pTextureName[j];
+				if (textureIndex >= TOTAL_TEXTURES) {
+					LOGERROR("texture index greater than array size, setting it to default texture");
+					textureIndex = matId + j;
+				}
+				params[6 + j].ppTextures = &pMaterialTextures[textureIndex];
+				//params[6+j].ppTextures = &pMaterialTextures[index];
+			}
+
+			//13 entries on apple because we need to bind samplers (2 extra)
 #ifdef METAL
+			//draw sphere
 			cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
 #else
 			cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
 #endif
-       
-			cmdDraw(cmd, gSurfaceIndices, 0);
-			}		
+
+#ifdef LOAD_MATERIAL_BALL
+
+			cmdDraw(cmd, gTotalIndices, 0);
+
+#else
+			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
+			cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1);
+#endif
+		}
+
+#ifdef LOAD_MATERIAL_BALL
+		Buffer* pSurfaceVertexBuffers[] = { pSurfaceVertexBufferPosition };
+		cmdBindVertexBuffer(cmd, 1, pSurfaceVertexBuffers, NULL);
+
+		params[5].pName = "cbObject";
+		params[5].ppBuffers = &pSurfaceBuffer;
+
+		for (int j = 0; j <5; ++j) {
+
+			params[6 + j].pName = pTextureName[j];
+			params[6 + j].ppTextures = &pMaterialTextures[j];
+		}
+
+		//13 entries on apple because we need to bind samplers (2 extra)
+#ifdef METAL
+		cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
+#else
+		cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
+#endif
+
+		cmdDraw(cmd, gSurfaceIndices, 0);
+#endif
+
+		//draw the label plates
+		if (gMaterialType == Metal_Mat) {
+
+#ifdef LOAD_MATERIAL_BALL
+
+			for (int j = 0; j <5; ++j) {
+
+				params[6 + j].pName = pTextureName[j];
+				params[6 + j].ppTextures = &pMaterialTextures[j + 4];
+			}
+
+			for (int j = 0; j < gTotalObjects; ++j) {
+
+				params[5].pName = "cbObject";
+				params[5].ppBuffers = &gPlateBuffers[j];
+
+				//13 entries on apple because we need to bind samplers (2 extra)
+#ifdef METAL
+				cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
+#else
+				cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
+#endif
+
+				cmdDraw(cmd, gSurfaceIndices, 0);
+			}
 #endif		
 		}
 
-		
+
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
@@ -1681,14 +1706,14 @@ public:
 #endif
 		//draw text
 #ifdef LOAD_MATERIAL_BALL		
-		if(gMaterialType == Metal_Mat) {
-			
+		if (gMaterialType == Metal_Mat) {
+
 			int metalEnumIndex = 0;
-			for(int i = 0 ; i< gTotalObjects ; ++i) {
-				
+			for (int i = 0; i< gTotalObjects; ++i) {
+
 				//if there are more objects than metalEnumNames
 				metalEnumIndex = i >= TotalMetals ? RustedIron : i;
-				drawDebugText(cmd,gTextProjView,gTextWorldMats[i],String::format(metalEnumNames[metalEnumIndex]),&gMaterialPropDraw);
+				drawDebugText(cmd, gTextProjView, gTextWorldMats[i], String::format(metalEnumNames[metalEnumIndex]), &gMaterialPropDraw);
 			}
 		}
 #endif
@@ -1697,7 +1722,7 @@ public:
 #ifndef METAL // Metal doesn't support GPU profilers
 		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
-		
+
 #ifndef TARGET_IOS
 		gAppUI.Gui(pGui);
 #endif
@@ -1758,9 +1783,8 @@ public:
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mWidth = mSettings.mWidth;
+
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
@@ -1781,7 +1805,7 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
-	
+
 	static bool cameraInputEvent(const ButtonData* data)
 	{
 		pCameraController->onInputEvent(data);

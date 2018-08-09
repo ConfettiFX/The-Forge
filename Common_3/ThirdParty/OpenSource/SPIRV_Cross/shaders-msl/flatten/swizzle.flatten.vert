@@ -40,8 +40,8 @@ void main()
 
     oA = A;
     oB = vec4(B0, B1);
-    oC = vec4(C0, C1);
-    oD = vec4(D0, D1);
+    oC = vec4(C0, C1) + vec4(C1.xy, C1.z, C0);	// not packed
+    oD = vec4(D0, D1) + vec4(D0.xy, D0.z, D1);	// packed - must convert for swizzle
     oE = vec4(E0, E1, E2, E3);
     oF = vec4(F0, F1, F2);
 }

@@ -42,19 +42,19 @@ struct SPIRV_Cross_Output
 
 void vert_main()
 {
-    gl_Position = ((float4(1.0f, 1.0f, 1.0f, 1.0f) + Input2) + Input4) + Input0;
+    gl_Position = ((1.0f.xxxx + Input2) + Input4) + Input0;
     vLocation0 = 0.0f;
     vLocation1 = 1.0f;
     vLocation2[0] = 2.0f;
     vLocation2[1] = 2.0f;
     Foo foo;
-    foo.a = float3(1.0f, 1.0f, 1.0f);
-    foo.b = float3(1.0f, 1.0f, 1.0f);
-    foo.c = float3(1.0f, 1.0f, 1.0f);
+    foo.a = 1.0f.xxx;
+    foo.b = 1.0f.xxx;
+    foo.c = 1.0f.xxx;
     vLocation4 = foo;
     vLocation9 = 9.0f;
-    vout.color = float3(2.0f, 2.0f, 2.0f);
-    vout.foo = float3(4.0f, 4.0f, 4.0f);
+    vout.color = 2.0f.xxx;
+    vout.foo = 4.0f.xxx;
 }
 
 SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input, out VertexOut stage_outputvout)

@@ -2,7 +2,7 @@
 #extension GL_OES_texture_buffer : require
 
 layout(binding = 4) uniform highp samplerBuffer uSamp;
-layout(binding = 5, rgba32f) uniform highp readonly imageBuffer uSampo;
+layout(binding = 5, rgba32f) uniform readonly highp imageBuffer uSampo;
 
 void main()
 {

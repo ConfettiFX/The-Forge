@@ -384,7 +384,7 @@ public:
 #endif
 
 		BufferLoadDesc ubGrassDesc = {};
-		ubGrassDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubGrassDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubGrassDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubGrassDesc.mDesc.mSize = sizeof(GrassUniformBlock);
 		ubGrassDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -396,7 +396,7 @@ public:
 		}
 
 		BufferLoadDesc sbBladeDesc = {};
-		sbBladeDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		sbBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		sbBladeDesc.mDesc.mFirstElement = 0;
 		sbBladeDesc.mDesc.mElementCount = NUM_BLADES;
 		sbBladeDesc.mDesc.mVertexStride = sizeof(Blade);
@@ -410,7 +410,7 @@ public:
 
 
 		BufferLoadDesc sbCulledBladeDesc = {};
-		sbCulledBladeDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_VERTEX;
+		sbCulledBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sbCulledBladeDesc.mDesc.mFirstElement = 0;
 		sbCulledBladeDesc.mDesc.mElementCount = NUM_BLADES;
 		sbCulledBladeDesc.mDesc.mVertexStride = sizeof(Blade);
@@ -424,7 +424,7 @@ public:
 
 
 		BufferLoadDesc sbBladeNumDesc = {};
-		sbBladeNumDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_INDIRECT;
+		sbBladeNumDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
 		sbBladeNumDesc.mDesc.mFirstElement = 0;
 		sbBladeNumDesc.mDesc.mElementCount = 1;
 		sbBladeNumDesc.mDesc.mStructStride = sizeof(BladeDrawIndirect);
@@ -441,7 +441,7 @@ public:
 
 #ifdef METAL
 		BufferLoadDesc tessFactorBufferDesc = {};
-		tessFactorBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		tessFactorBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		tessFactorBufferDesc.mDesc.mFirstElement = 0;
 		tessFactorBufferDesc.mDesc.mElementCount = NUM_BLADES;
 		tessFactorBufferDesc.mDesc.mStructStride = sizeof(PatchTess);
@@ -452,7 +452,7 @@ public:
 		addResource(&tessFactorBufferDesc);
 
 		BufferLoadDesc hullOutputBufferDesc = {};
-		hullOutputBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		hullOutputBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		hullOutputBufferDesc.mDesc.mFirstElement = 0;
 		hullOutputBufferDesc.mDesc.mElementCount = NUM_BLADES;
 		hullOutputBufferDesc.mDesc.mStructStride = sizeof(HullOut);
@@ -975,8 +975,6 @@ public:
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mWidth = mSettings.mWidth;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 

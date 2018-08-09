@@ -26,10 +26,10 @@
 static const float Pi = 3.14159265359;
 static float SampleDelta = 0.025;
 
-
 TextureCube<float4> srcTexture : register(t0);
-RWStructuredBuffer<float4> dstBuffer : register(u1);
-SamplerState skyboxSampler : register(s2);
+//RWStructuredBuffer<float4> dstBuffer : register(u1);
+RWTexture2DArray<float4> dstTexture : register(u2, space1);
+SamplerState skyboxSampler : register(s3);
 
 float4 computeIrradiance(float3 N)
 {
@@ -101,5 +101,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
 	uint pixelId = pixelOffset + threadPos.y * 32 + threadPos.x;
 
 	float4 irradiance = computeIrradiance(sphereDir);
-	dstBuffer[pixelId] = irradiance;
+
+	dstTexture[int3(threadPos)] = irradiance;
+
+	//dstBuffer[pixelId] = irradiance;
 }

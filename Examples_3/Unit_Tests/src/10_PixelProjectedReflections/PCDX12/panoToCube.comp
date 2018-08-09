@@ -22,38 +22,40 @@
  * under the License.
 */
 
+#define NUM_THREADS_X 16 
+#define NUM_THREADS_Y 16
+#define NUM_THREADS_Z 1
 
+struct Data
+{
+	uint mip;
+	uint maxSize;
+};
 
-cbuffer cbCamera : register(b0) {
-	float4x4 projView;
-	float3 camPos;
-}
+ConstantBuffer<Data> RootConstant : register(b0);
+Texture2D<float4> srcTexture : register(t1, space1);
 
-cbuffer cbObject : register(b1) {
-	float4x4 worldMat;
-	float roughness;
-	float metalness;
-}
+RWTexture2DArray<float4> dstTexture : register(u2, space1);
+SamplerState skyboxSampler : register(s3);
 
+#define Pi 3.141592654f
+#define CubeSide 1.154700538f
+#define SLICES 6
 
-Texture2D<float4> srcTexture : register(t0);
-RWStructuredBuffer<float4> dstBuffer : register(u1);
-SamplerState skyboxSampler : register(s2);
-
-
-[numthreads(16,16,1)]
+[numthreads(16, 16, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
 	float PI = 3.14159265359;
 	float2 invAtan = float2(0.1591f, 0.3183f);
-	uint nMips = 11;
-	uint maxSize = 1024;
 
 	float3 threadPos = DTid;
 	uint pixelOffset = 0;
-	for (uint mip = 0; mip < nMips; mip++)
+
+	uint mip = RootConstant.mip;
+
+	//for (uint mip = 0; mip < uRootConstants.nMips; mip++)
 	{
-		uint mipSize = maxSize >> mip;
+		uint mipSize = RootConstant.maxSize >> mip;
 		if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
 
 		float2 texcoords = float2(float(threadPos.x + 0.5) / mipSize, 1.0f - float(threadPos.y + 0.5) / mipSize);
@@ -82,11 +84,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
 		panoUVs += 0.5f;
 
 		// We need to use SampleLevel, since compute shaders do not support regular sampling 
-		float4 outColor = srcTexture.SampleLevel(skyboxSampler, panoUVs, 0);
-
-		pixelOffset += threadPos.z * mipSize * mipSize;
-		uint pixelId = pixelOffset + threadPos.y * mipSize + threadPos.x;
-		dstBuffer[pixelId] = outColor;
-		pixelOffset += (6 - threadPos.z) * mipSize * mipSize;
+		dstTexture[uint3(threadPos.x, threadPos.y, threadPos.z)] = srcTexture.SampleLevel(skyboxSampler, panoUVs, mip);
 	}
 }

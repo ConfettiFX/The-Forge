@@ -22,9 +22,10 @@
  * under the License.
 */
 
+// USERMACRO: IMPORTANCE_SAMPLE_COUNT [64,128,256,1024]
 
 static float Pi = 3.14159265359;
-static float SampleCount = 1024;
+static float SampleCount = IMPORTANCE_SAMPLE_COUNT;
 
 float RadicalInverse_VdC(uint bits)
 {
@@ -126,7 +127,6 @@ float2 IntegrateBRDF(float NdotV, float roughness)
 	return float2(A, B);
 }
 
-
 static const float PI = 3.14159265359;
 
 RWTexture2D<float2> dstTexture: register(u0);
@@ -134,7 +134,6 @@ RWTexture2D<float2> dstTexture: register(u0);
 [numthreads(16,16,1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-
 	float2 texcoords = float2(float(DTid.x + 0.5) / 512.0f, 1.0 - float(DTid.y + 0.5) / 512.0f);
 	float4 output = float4(IntegrateBRDF(texcoords.x, texcoords.y), 0.0, 0.0);
 	dstTexture[DTid.xy] = output;

@@ -137,7 +137,7 @@ static void addUniformRingBuffer(Renderer* pRenderer, uint32_t requiredUniformBu
 	pRingBuffer->mMaxUniformBufferSize = maxUniformBufferSize;
 
 	BufferDesc ubDesc = {};
-	ubDesc.mUsage = BUFFER_USAGE_UNIFORM;
+	ubDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	ubDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	ubDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	ubDesc.mSize = maxUniformBufferSize;

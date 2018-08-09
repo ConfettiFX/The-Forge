@@ -32,30 +32,30 @@
 #define DEBUG_OUTPUT 0//exclusively used for texture data visulization, such as rendering depth, shadow map etc.
 
 //tiny stl
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 
 //Interfaces
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IApp.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../Common_3/OS/Core/DebugRenderer.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Core/DebugRenderer.h"
+#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/Renderer/ResourceLoader.h"
 //GPU Profiler
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 //Math
-#include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
 #include "../../../../Middleware_3/Input/InputSystem.h"
 #include "../../../../Middleware_3/Input/InputMappings.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 //Generate sky box vertex buffer
 const float gSkyboxPointArray[] = {
@@ -562,7 +562,7 @@ public:
 
         uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
         BufferLoadDesc sphereVbDesc = {};
-        sphereVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+        sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
         sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         sphereVbDesc.mDesc.mSize = sphereDataSize;
         sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
@@ -574,7 +574,7 @@ public:
         //------------------------Skybox--------------------------
         uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
         BufferLoadDesc skyboxVbDesc = {};
-        skyboxVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+        skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
         skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
         skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
@@ -586,7 +586,7 @@ public:
         // Setup constant buffer data
         /************************************************************************/
         BufferLoadDesc ubDesc = {};
-        ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+        ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         ubDesc.mDesc.mSize = sizeof(ObjectInfoUniformBlock);
         ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -595,7 +595,7 @@ public:
         addResource(&ubDesc);
 
 		BufferLoadDesc ubEsmBlurDescH = {};
-		ubEsmBlurDescH.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubEsmBlurDescH.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubEsmBlurDescH.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubEsmBlurDescH.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubEsmBlurDescH.mDesc.mSize = sizeof(ESMInputConstants);
@@ -605,7 +605,7 @@ public:
 
 
 		BufferLoadDesc ubEsmBlurDescV = {};
-		ubEsmBlurDescV.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubEsmBlurDescV.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubEsmBlurDescV.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubEsmBlurDescV.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubEsmBlurDescV.mDesc.mSize = sizeof(ESMInputConstants);
@@ -614,7 +614,7 @@ public:
 		addResource(&ubEsmBlurDescV);
 
 		BufferLoadDesc sdfDesc = {};
-		sdfDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		sdfDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		sdfDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		sdfDesc.mDesc.mSize = sizeof(SdfInputUniformBlock);
 		sdfDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -624,7 +624,7 @@ public:
 
         calcGaussianWeights(&gESMBlurGaussianWeights, gEsmCpuSettings.mFilterWidth);
         BufferLoadDesc esmgwUbDesc = {};
-        esmgwUbDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+        esmgwUbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         esmgwUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         esmgwUbDesc.mDesc.mSize = sizeof(GaussianWeightsUniformBlock);
         esmgwUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -634,7 +634,7 @@ public:
 
 
         BufferLoadDesc skyboxDesc = {};
-        skyboxDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+        skyboxDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         skyboxDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         skyboxDesc.mDesc.mSize = sizeof(SkyboxUniformBlock);
         skyboxDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -644,7 +644,7 @@ public:
 
 
         BufferLoadDesc camUniDesc = {};
-        camUniDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+        camUniDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         camUniDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         camUniDesc.mDesc.mSize = sizeof(CameraUniform);
         camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -653,7 +653,7 @@ public:
         addResource(&camUniDesc);
 
         BufferLoadDesc renderSettingsDesc = {};
-        renderSettingsDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+        renderSettingsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         renderSettingsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         renderSettingsDesc.mDesc.mSize = sizeof(RenderSettingsUniformData);
         renderSettingsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -663,7 +663,7 @@ public:
 
 
         BufferLoadDesc lightUniformDesc = {};
-        lightUniformDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+        lightUniformDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         lightUniformDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         lightUniformDesc.mDesc.mSize = sizeof(LightUniformBlock);
         lightUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1726,9 +1726,7 @@ public:
         depthRT.mHeight = height;
         depthRT.mSampleCount = SAMPLE_COUNT_1;
         depthRT.mSampleQuality = 0;
-        depthRT.mType = RENDER_TARGET_TYPE_2D;
-        depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
-        depthRT.pDebugName = L"Depth RT";
+                depthRT.pDebugName = L"Depth RT";
         addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
         /************************************************************************/
         // Shadow Map Render Target
@@ -1742,9 +1740,7 @@ public:
         shadowRTDesc.mHeight = height;
         shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
         shadowRTDesc.mSampleQuality = 0;
-        shadowRTDesc.mType = RENDER_TARGET_TYPE_2D;
-        shadowRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-        shadowRTDesc.pDebugName = L"Shadow Map RT";
+                shadowRTDesc.pDebugName = L"Shadow Map RT";
 
         addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
         /************************************************************************/
@@ -1759,9 +1755,7 @@ public:
         deferredRTDesc.mHeight = height;
         deferredRTDesc.mSampleCount = SAMPLE_COUNT_1;
         deferredRTDesc.mSampleQuality = 0;
-        deferredRTDesc.mType = RENDER_TARGET_TYPE_2D;
-        deferredRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-        deferredRTDesc.pDebugName = L"G-Buffer RTs";
+                deferredRTDesc.pDebugName = L"G-Buffer RTs";
         addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]);
         addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]);
 
@@ -1780,9 +1774,7 @@ public:
         skyboxRTDesc.mHeight = height;
         skyboxRTDesc.mSampleCount = SAMPLE_COUNT_1;
         skyboxRTDesc.mSampleQuality = 0;
-        skyboxRTDesc.mType = RENDER_TARGET_TYPE_2D;
-        skyboxRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-        skyboxRTDesc.pDebugName = L"Skybox RT";
+                skyboxRTDesc.pDebugName = L"Skybox RT";
         addRenderTarget(pRenderer, &skyboxRTDesc, &pRenderTargetSkybox);
 
         /************************************************************************/
@@ -1797,9 +1789,7 @@ public:
         sdfSimpleRTDesc.mHeight = height;
         sdfSimpleRTDesc.mSampleCount = SAMPLE_COUNT_1;
         sdfSimpleRTDesc.mSampleQuality = 0;
-        sdfSimpleRTDesc.mType = RENDER_TARGET_TYPE_2D;
-        sdfSimpleRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-        sdfSimpleRTDesc.pDebugName = L"Sdf RT";
+                sdfSimpleRTDesc.pDebugName = L"Sdf RT";
         addRenderTarget(pRenderer, &sdfSimpleRTDesc, &pRenderTargetSdfSimple);
 
         /************************************************************************/
@@ -1814,9 +1804,7 @@ public:
         esmBlurRTDesc.mHeight = height;
         esmBlurRTDesc.mSampleCount = SAMPLE_COUNT_1;
         esmBlurRTDesc.mSampleQuality = 0;
-        esmBlurRTDesc.mType = RENDER_TARGET_TYPE_2D;
-        esmBlurRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-        esmBlurRTDesc.pDebugName = L"ESM Blur RT H";
+                esmBlurRTDesc.pDebugName = L"ESM Blur RT H";
         addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[0]);
         esmBlurRTDesc.pDebugName = L"ESM Blur RT V";
         addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[1]);

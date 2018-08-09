@@ -656,17 +656,23 @@ def BuildWindowsProjects(xboxDefined):
 		sys.exit(-1)
 	
 	projects = GetFilesPathByExtension("./Examples_3","sln",False)
+	xboxProjects = []
+	if xboxDefined:
+		xboxProjects = GetFilesPathByExtension("./Xbox/Examples_3","sln",False)
+	
 	fileList = []
 
 	for proj in projects:
 		#we don't want to build Xbox one solutions when building PC
-		if xboxDefined:
-			if "PC Visual Studio 2017" in proj or "XBOXOne" in proj:
-				fileList.append(proj)
-		else:
 			if "PC Visual Studio 2017" in proj:
 				fileList.append(proj)
 
+	if xboxDefined:
+		for proj in xboxProjects:
+			if "XBOXOne" in proj:
+				fileList.append(proj)
+		
+				
 	for proj in fileList:
 		#get current path for sln file
 		#strip the . from ./ in the path
@@ -775,7 +781,7 @@ def MainLogic():
 			if platform.system() == "Windows":
 				ExecuteCommand(["PRE_BUILD.bat"], subprocess.PIPE)
 			else:
-				ExecuteCommand(["sh","PRE_BUILD.sh"], subprocess.PIPE)
+				ExecuteCommand(["sh","PRE_BUILD.command"], subprocess.PIPE)
 	
 	systemOS = platform.system()
 	print systemOS

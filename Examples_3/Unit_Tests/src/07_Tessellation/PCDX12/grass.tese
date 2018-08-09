@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2018 Confetti Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
 
 cbuffer GrassUniformBlock : register(b0, space0) {
 
@@ -50,7 +73,7 @@ DS_OUTPUT main(PatchTess input, float2 UV : SV_DomainLocation, OutputPatch<HullO
 
     float2 uv = UV;
 
-    float4x4 viewProj = mul(proj, view);
+    //float4x4 viewProj = mul(proj, view);
 
     float3 a = (((patch[0]).position).xyz + ((uv).y * (((patch[0]).tese_v1).xyz - ((patch[0]).position).xyz)));
     float3 b = (((patch[0]).tese_v1).xyz + ((uv).y * (((patch[0]).tese_v2).xyz - ((patch[0]).tese_v1).xyz)));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 ARM Limited
+ * Copyright 2015-2018 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ void CompilerCPP::emit_interface_block(const SPIRVariable &var)
 
 	string buffer_name;
 	auto flags = meta[type.self].decoration.decoration_flags;
-	if (flags & (1ull << DecorationBlock))
+	if (flags.get(DecorationBlock))
 	{
 		emit_block_struct(type);
 		buffer_name = to_name(type.self);
@@ -115,7 +115,7 @@ void CompilerCPP::emit_push_constant_block(const SPIRVariable &var)
 
 	auto &type = get<SPIRType>(var.basetype);
 	auto &flags = meta[var.self].decoration.decoration_flags;
-	if ((flags & (1ull << DecorationBinding)) || (flags & (1ull << DecorationDescriptorSet)))
+	if (flags.get(DecorationBinding) || flags.get(DecorationDescriptorSet))
 		SPIRV_CROSS_THROW("Push constant blocks cannot be compiled to GLSL with Binding or Set syntax. "
 		                  "Remap to location with reflection API first or disable these decorations.");
 
@@ -151,8 +151,8 @@ void CompilerCPP::emit_resources()
 		{
 			auto &type = id.get<SPIRType>();
 			if (type.basetype == SPIRType::Struct && type.array.empty() && !type.pointer &&
-			    (meta[type.self].decoration.decoration_flags &
-			     ((1ull << DecorationBlock) | (1ull << DecorationBufferBlock))) == 0)
+			    (!meta[type.self].decoration.decoration_flags.get(DecorationBlock) &&
+			     !meta[type.self].decoration.decoration_flags.get(DecorationBufferBlock)))
 			{
 				emit_struct(type);
 			}
@@ -171,8 +171,9 @@ void CompilerCPP::emit_resources()
 			auto &type = get<SPIRType>(var.basetype);
 
 			if (var.storage != StorageClassFunction && type.pointer && type.storage == StorageClassUniform &&
-			    !is_hidden_variable(var) && (meta[type.self].decoration.decoration_flags &
-			                                 ((1ull << DecorationBlock) | (1ull << DecorationBufferBlock))))
+			    !is_hidden_variable(var) &&
+			    (meta[type.self].decoration.decoration_flags.get(DecorationBlock) ||
+			     meta[type.self].decoration.decoration_flags.get(DecorationBufferBlock)))
 			{
 				emit_buffer_block(var);
 			}
@@ -242,6 +243,8 @@ void CompilerCPP::emit_resources()
 	if (emitted)
 		statement("");
 
+	declare_undefined_values();
+
 	statement("inline void init(spirv_cross_shader& s)");
 	begin_scope();
 	statement(resource_type, "::init(s);");
@@ -297,6 +300,7 @@ string CompilerCPP::compile()
 	backend.explicit_struct_type = true;
 	backend.use_initializer_list = true;
 
+	build_function_control_flow_graphs_and_analyze();
 	update_active_builtins();
 
 	uint32_t pass_count = 0;
@@ -314,7 +318,7 @@ string CompilerCPP::compile()
 		emit_header();
 		emit_resources();
 
-		emit_function(get<SPIRFunction>(entry_point), 0);
+		emit_function(get<SPIRFunction>(entry_point), Bitset());
 
 		pass_count++;
 	} while (force_recompile);
@@ -326,6 +330,9 @@ string CompilerCPP::compile()
 
 	// Emit C entry points
 	emit_c_linkage();
+
+	// Entry point in CPP is always main() for the time being.
+	get_entry_point().name = "main";
 
 	return buffer->str();
 }
@@ -367,8 +374,11 @@ void CompilerCPP::emit_c_linkage()
 	end_scope();
 }
 
-void CompilerCPP::emit_function_prototype(SPIRFunction &func, uint64_t)
+void CompilerCPP::emit_function_prototype(SPIRFunction &func, const Bitset &)
 {
+	if (func.self != entry_point)
+		add_function_overload(func);
+
 	local_variable_names = resource_names;
 	string decl;
 

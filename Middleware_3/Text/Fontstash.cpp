@@ -164,10 +164,10 @@ public:
 		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
-		addUniformRingBuffer(pRenderer, 1024 * 256, &pUniformRingBuffer);
+		addUniformRingBuffer(pRenderer, 65536, &pUniformRingBuffer);
 
 		BufferDesc vbDesc = {};
-		vbDesc.mUsage = BUFFER_USAGE_VERTEX;
+		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		vbDesc.mSize = 1024 * 1024 * sizeof(float4);
 		vbDesc.mVertexStride = sizeof(float4);
@@ -186,6 +186,14 @@ public:
 		mVertexLayout.mAttribs[1].mBinding = 0;
 		mVertexLayout.mAttribs[1].mLocation = 1;
 		mVertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(ImageFormat::RG32F);
+
+#ifdef FORGE_JHABLE_EDITS_V01
+		mVertexLayout.mAttribs[0].mSemanticType = 0;
+		mVertexLayout.mAttribs[0].mSemanticIndex = 0;
+
+		mVertexLayout.mAttribs[1].mSemanticType = 7;
+		mVertexLayout.mAttribs[1].mSemanticIndex = 0;
+#endif
 
 		mPipelineDesc = {};
 		mPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;

@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema version="1.0.0" 
+           attributeFormDefault="unqualified"
+           elementFormDefault="qualified" 
+           targetNamespace="http://schemas.microsoft.com/developer/vsx-schema/2011" 
+           xmlns:self="http://schemas.microsoft.com/developer/vsx-schema/2011"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:annotation>
+    <xs:documentation>
+      <!-- _locID_text="VsixSchema" _locComment="" -->This schema is used for installing extensions to Visual Studio.
+    </xs:documentation>
+  </xs:annotation>
+  
+  <xs:include schemaLocation="PackageManifestSchema.Metadata.xsd" />
+  <xs:include schemaLocation="PackageManifestSchema.Installation.xsd" />
+  <xs:include schemaLocation="PackageManifestSchema.Assets.xsd" />
+  <xs:include schemaLocation="PackageManifestSchema.Dependencies.xsd" />
+  <xs:include schemaLocation="PackageManifestSchema.Prerequisites.xsd" />
+  <xs:include schemaLocation="PackageManifestSchema.Installer.xsd" />
+
+  <xs:element name="PackageManifest">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="Metadata" type="self:Metadata" minOccurs="1" maxOccurs="1" />
+        <xs:element name="Installation" type="self:Installation" minOccurs="0" maxOccurs="1" />
+        <xs:element name="Dependencies" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Dependency" type="self:Dependency" minOccurs="0" maxOccurs="unbounded" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Assets" type="self:Assets" minOccurs="0" maxOccurs="1" />
+        <xs:element name="Prerequisites" type="self:Prerequisites" minOccurs="0" maxOccurs="1" />
+        <xs:element name="Installer" type="self:Installer" minOccurs="0" maxOccurs="1" />
+        <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded" />
+      </xs:choice>
+      <xs:attribute name="Version" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Vsix.Version" _locComment="" -->The Version attribute is the version of the VSIX file.  For VS 2010, use 1.0.0
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

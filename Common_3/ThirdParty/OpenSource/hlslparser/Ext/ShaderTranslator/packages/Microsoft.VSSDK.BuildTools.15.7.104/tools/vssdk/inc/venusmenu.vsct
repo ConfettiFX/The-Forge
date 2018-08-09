@@ -1,0 +1,725 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+<!-- 
+Documentation for this VSTC format can be found 
+at http://vscore/sdk/Documents/Specifications/8.0/VSCTDocumentation.doc
+-->
+
+<!-- //**************************************************************************** -->
+<!-- //                                                                             -->
+<!-- //  Microsoft Confidential                                                     -->
+<!-- //  Copyright 1997-2002 Microsoft Corporation.  All Rights Reserved.           -->
+<!-- //                                                                             -->
+<!-- //  File:   venusmenu.vstc   (Convert from venusmenu.ctc                       --> 
+<!-- //  Area:   Web Package Commands                                               -->
+<!-- //                                                                             -->
+<!-- //  Contents:                                                                  -->
+<!-- //      Web Package Menus                                                      -->
+<!-- //                                                                             -->
+<!-- //**************************************************************************** -->
+
+
+<!-- //**************************************************************************** -->
+<!-- // HOW TO ADD A COMMAND:                                                       -->
+<!-- //                                                                             -->
+<!-- // Commands are generally defined as shared commands to facilitate consistent use -->
+<!-- // accross teams.  The files you'll need to modifed to add a shareable command are: -->
+<!-- //                                                                          -->
+<!-- //      Change     File              -->
+<!-- //      **************************      ******************************************** -->
+<!-- //      #define ECMD_???                vscommon\inc\stdidcmd.h                -->
+<!-- //      button defs & bitmap groups     vscommon\appid\cmddef\pkgui\SharedCmdDef.ctc -->
+<!-- //      shared icons images             vscommon\appid\cmddef\pkgui\tbicons.bmp -->
+<!-- //      button placement                vscommon\appid\inc\SharedCmdPlace.ctc  -->
+<!-- //      icon ids                        env\inc\sharedids.h                    -->
+<!-- //              -->
+<!-- // The command IDs for the shared command group are in CMDSETID_StandardCommandSet2K -->
+<!-- // (together with the IDs for CMDSETID_StandardCommandSet97).                  -->
+<!-- //              -->
+<!-- // To add a new command:-                                                      -->
+<!-- //       1. Add the ECMD_ to the end of the "Sharable Commands from Visual Web Developer (website)" ~1400 -->
+<!-- //       2. Add the button definition to src\appid\cmddef\pkgui\SharedCmdDef.ctc. -->
+<!-- //              -->
+<!-- // (optional if you have a icon/image)                    -->
+<!-- //       2a. Update guidSharedBmps:IDBMP_SHARED_IMAGES in src\appid\cmddef\pkgui\SharedCmdDef.ctc -->
+<!-- //       2b. Add image to vscommon\appid\cmddef\pkgui\tbicons.bmp, 16x16 -->
+<!-- //       2c. Update src\env\inc\sharedids.h adding the bmpidCMD for your command -->
+<!-- //              -->
+<!-- //            (note: It's only necessary to have env/dirs and env/inc/... in your -->
+<!-- //             enlistment to change and build the shared ids)                  -->
+<!-- //              -->
+<!-- //       3. Add the new command to the CMDUSED_SECTION in this file (see below) -->
+<!-- //       4. Place the command either within this file in CMDPLACEMENT_SECTION   -->
+<!-- //          below or by adding it to a shared menu in src\appid\inc\SharedCmdPlace.ctc -->
+<!-- //          as appropriate. Note that it may be necessary to add the command to -->
+<!-- //          more than one menu or toolbar.                 -->
+<!-- //               -->
+<!-- //      Note you will need to use devenv /resetuserdata to enable cached menu to be flushed    -->
+<!-- //**************************************************************************** -->
+
+<Extern href="vsshlids.h"/>
+<Extern href="stdidcmd.h"/>
+<Extern href="sccmnid.h"/>
+<Extern href="sharedids.h"/>
+<Extern href="wbids.h"/>
+<Extern href="resource.h"/>
+<Extern href="venusids.h"/>
+
+<!-- #define BTN_FLAGS       DYNAMICVISIBILITY|DEFAULTINVISIBLE|DEFAULTDISABLED -->
+
+
+<!-- //**************************************************************************** -->
+<!-- //  CMDS_SECTION -->
+<!-- // -->
+<!-- //  Description: -->
+<!-- //    This section defines all the commands that the Web package adds -->
+<!-- //    to the shell -->
+<!-- // -->
+<!-- // BUTTON SUBSECTION: -->
+<!-- //  CMDBTNNORM       msotbbtAuto|msotbbtChgAccel -->
+<!-- //  CMDBTNTEXT       msotbbtText|msotbbtChgAccel -->
+<!-- //  CMDBTNPICT       msotbbtPict|msotbbtChgAccel -->
+<!-- //  CMDBTNOWNERDRAW  msotbbtOwnerDraw|msotbbtChgAccel -->
+<!-- // -->
+<!-- //**************************************************************************** -->
+<!-- //**************************************************************************** -->
+<!-- // -->
+<!-- // Note that we are using a number of the the shell/shared menus and groups -->
+<!-- // in the sections below and where appropriate adding our VB specific commands -->
+<!-- // to those menus and groups. The shell/shared menus and groups are defined in -->
+<!-- // src\appid\inc\SharedCmdPlace.ctc and src\appid\inc\ShellCmdPlace.ctc.  -->
+<!-- // Examine those files to determine the correct placements when adding further -->
+<!-- // VB specific commands to the context or main menus. -->
+<!-- // -->
+<!-- //**************************************************************************** -->
+
+
+<Commands package="CLSID_WebProjectPackage">
+    <Menus>
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--    // GUID:MENUID  PARENT_GROUP PRI. TYPE BUTTONTEXT MENUTEXT TOOLTIPTEXT COMMANDTEXT -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+      <Menu guid="guidVenusCmdId" id="IDM_VENUS_CSCD_ADDFOLDER" priority="0x0200" type="Menu">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_PROJ_FOLDER"/>
+            <Strings>
+                <ButtonText>Add A&amp;SP.NET Folder</ButtonText>
+                <CommandName>Add A&amp;SP.NET Folder</CommandName>
+            </Strings>
+        </Menu>
+        <Menu guid="guidVenusCmdId" id="IDM_VENUS_CTXT_ADDREFERENCE" priority="0x0000" type="Context">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_SOLNEXPL_ALL"/>
+            <CommandFlag>NotInTBList</CommandFlag>
+            <Strings>
+                <ButtonText>References</ButtonText>
+            </Strings>
+        </Menu>
+    </Menus>
+
+    <Groups>
+        <Group guid="guidSHLMainMenu" id="IDG_VS_BUILD_VAILIDATION" priority="0x0280">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_BUILD"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_VENUS_CTX_SUBWEB" priority="0x0100">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBSUBWEBNODE"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_CTX_BUILD" priority="0x0100">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </Group>
+        <Group guid="guidSHLMainMenu" id="IDG_VS_CTXT_PROJWIN_SCOPE" priority="0x0200">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_CTX_REFERENCE" priority="0x0300">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_VENUS_CTX_ITEM_WEBREFERENCE" priority="0x0350">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBFOLDER"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_CTX_PUBLISH" priority="0x0400">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_VENUS_RUN_FXCOP" priority="0xffff">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_BUILD"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_VENUS_RUN_FXCOP_CTXT_PROJ" priority="0xffff">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER" priority="0x0100">
+            <Parent guid="guidVenusCmdId" id="IDM_VENUS_CSCD_ADDFOLDER"/>
+        </Group>
+        <Group guid="guidVenusCmdId" id="IDG_VENUS_CTX_REFERENCE" priority="0x0100">
+          <Parent guid="guidVenusCmdId" id="IDM_VENUS_CTXT_ADDREFERENCE"/>
+        </Group>
+    </Groups>
+
+    <Buttons>
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--    // GUID:CMDID   PRIMARY GROUP    PRIORITY    ICONID     BUTTONTYPE       FLAGS              BUTTONTEXT             MENUTEXT        TOOLTIPTEXT     COMMANDNAME -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <Button guid="guidVenusCmdId" id="icmdNewWeb" priority="0x0120" type="Button">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_FILE_NEW_CASCADE"/>
+            <Icon guid="guidSHLMainMenu" id="33"/>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>TextMenuUseButton</CommandFlag>
+            <Strings>
+                <ButtonText>New &amp;Web Site...</ButtonText>
+                <MenuText>&amp;Web Site...</MenuText>
+                <ToolTipText>New Web Site</ToolTipText>
+                <CommandName>New Web Site</CommandName>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdOpenExistingWeb" priority="0x0200" type="Button">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_FILE_OPENP_CASCADE"/>
+            <Icon guid="guidSHLMainMenu" id="28"/>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>TextMenuUseButton</CommandFlag>
+            <Strings>
+                <ButtonText>Open W&amp;eb Site...</ButtonText>
+                <MenuText>W&amp;eb Site...</MenuText>
+                <ToolTipText>Open Web Site</ToolTipText>
+                <CommandName>Open Web Site</CommandName>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdValidatePage" priority="0x0100" type="Button">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_BUILD_VAILIDATION"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>Build Pa&amp;ge</ButtonText>
+                <MenuText>Build Pa&amp;ge</MenuText>
+                <ToolTipText>Build Page</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdBuildLicenseDll" priority="0x0100" type="Button">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_BUILD_VAILIDATION"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>Build Runti&amp;me Licenses</ButtonText>
+                <MenuText>Build Runti&amp;me Licenses</MenuText>
+                <ToolTipText>Build Runtime Licenses</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdOpenSubWeb" priority="0x0100" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_SUBWEB"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>&amp;Open Web Site</ButtonText>
+                <MenuText>&amp;Open Web Site</MenuText>
+                <ToolTipText>Open Web Site</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdRunFxCop" priority="0x0001" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_RUN_FXCOP"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DefaultDisabled</CommandFlag>
+            <Strings>
+                <ButtonText>Run Code Ana&amp;lysis on Web Site</ButtonText>
+                <MenuText>Run Code Ana&amp;lysis on Web Site</MenuText>
+                <ToolTipText>Run Code Analysis on Web Site</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppAssemblyFolder" priority="0x0200" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>Bi&amp;n</ButtonText>
+                <MenuText>Bi&amp;n</MenuText>
+                <ToolTipText>Add Bin Folder</ToolTipText>
+            </Strings>
+        </Button>
+      <Button guid="guidVenusCmdId" id="icmdAddAppCodeFolder" priority="0x0300" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>App_C&amp;ode</ButtonText>
+                <MenuText>App_C&amp;ode</MenuText>
+                <ToolTipText>Add App_Code Folder</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppGlobalResourcesFolder" priority="0x0400" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>App_Global&amp;Resources</ButtonText>
+                <MenuText>App_Global&amp;Resources</MenuText>
+                <ToolTipText>Add App_GlobalResources Folder</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppLocalResourcesFolder" priority="0x0500" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>App_Lo&amp;calResources</ButtonText>
+                <MenuText>App_Lo&amp;calResources</MenuText>
+                <ToolTipText>Add App_LocalResources Folder</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppWebReferencesFolder" priority="0x0600" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>App_We&amp;bReferences</ButtonText>
+                <MenuText>App_We&amp;bReferences</MenuText>
+                <ToolTipText>Add App_WebReferences Folder</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppDataFolder" priority="0x0700" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>App_D&amp;ata</ButtonText>
+                <MenuText>App_D&amp;ata</MenuText>
+                <ToolTipText>Add App_Data Folder</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppBrowsersFolder" priority="0x0800" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>App_Bro&amp;wsers</ButtonText>
+                <MenuText>App_Bro&amp;wsers</MenuText>
+                <ToolTipText>Add App_Browsers Folder</ToolTipText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdAddAppThemesFolder" priority="0x0900" type="Button">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_ADDFOLDER"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>Th&amp;eme</ButtonText>
+                <MenuText>Th&amp;eme</MenuText>
+                <ToolTipText>Add Theme Folder</ToolTipText>
+            </Strings>
+        </Button>
+      <Button guid="guidVenusCmdId" id="icmdUpdateReference" priority="0x0300" type="Button">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_PROJ_OPTIONS"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>Upd&amp;ate Reference</ButtonText>
+                <MenuText>Upd&amp;ate Reference</MenuText>
+                <ToolTipText>Update Reference</ToolTipText>
+                <CommandName>Update Reference</CommandName>
+            </Strings>
+        </Button>
+      <Button guid="guidVenusCmdId" id="icmdRemoveWebReference" priority="0x03D0" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_PROJ_OPTIONS"/>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+            <Strings>
+                <ButtonText>Remo&amp;ve Web Reference</ButtonText>
+                <MenuText>Remo&amp;ve Web Reference</MenuText>
+                <ToolTipText>Remove Web Reference</ToolTipText>
+                <CommandName>Remove Web Reference</CommandName>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusCmdId" id="icmdFxCopConfig" priority="0x0f00" type="Button">
+            <Parent guid="guidSharedMenuGroup" id="IDG_VS_PROJ_ADMIN"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <Strings>
+                <ButtonText>C&amp;onfigure Code Analysis for Web Site</ButtonText>
+                <MenuText>C&amp;onfigure Code Analysis for Web Site</MenuText>
+                <ToolTipText>Configure Code Analysis for Web Site</ToolTipText>
+            </Strings>
+        </Button>
+       <Button guid="guidVenusCmdId" id="icmdNewVirtualFolder" priority="0x0101" type="Button">
+          <Parent guid="guidSHLMainMenu" id="IDG_VS_PROJ_FOLDER"/>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <Strings>
+                <ButtonText>New &amp;Virtual Directory...</ButtonText>
+            </Strings>
+        </Button>
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--    // Start Page commands -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageCreatePersonalWebSite" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Create a Personal Web Site</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageCreateWebSite" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Create a Web Site</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageCreateWebService" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Create a Web Service</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageStarterKit" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Download Additional Starter Kits</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageCommunity" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Community Resources</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageIntroduction" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Introduction to Visual Web Developer</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageGuidedTour" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>Guided Tour of Creating Web Sites</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageWhatsNew" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>What's New in Web Development</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidStartPageHowDoI" priority="0x0000" type="Button">
+            <Parent guid="guidVenusStartPageCmdId" id="0"/>
+            <CommandFlag>NoCustomize</CommandFlag>
+            <Strings>
+                <ButtonText>How Do I ... ?</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageCreateYourFirstWebSite" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>Create Your First Web Site</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageVideoFeatureTour" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>Video Feature Tour</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageLearnWebDevelopment" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>Learn Web Development</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageWhatsNew" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>What's New?</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageBeginnerDeveloperLearningCenter" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>Beginner Developer Learning Center</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageASPNETDownloads" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>ASP.NET Downloads</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageASPNETForums" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>ASP.NET Forums</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageASPNETCommunitySite" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>ASP.NET Community Site</ButtonText>
+          </Strings>
+        </Button>
+        <Button guid="guidVenusStartPageCmdId" id="cmdidVWDStartPageExplore3rdPartyExtensions" priority="0x0000" type="Button">
+          <Parent guid="guidVenusStartPageCmdId" id="0"/>
+          <CommandFlag>NoCustomize</CommandFlag>
+          <Strings>
+            <ButtonText>Explore 3rd Party Extensions</ButtonText>
+          </Strings>
+        </Button>
+    </Buttons>
+</Commands>
+
+<CommandPlacements>
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // GUID:GROUPID    PARENT MENU                PRIORITY -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <CommandPlacement guid="guidVenusCmdId" id="icmdNewWeb" priority="0x0200">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_MNUCTRL_NEWPRJ"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="icmdUpdateReference" priority="0xFF00">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_INCLUDEEXCLUDE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="IDM_VENUS_CSCD_ADDFOLDER" priority="0x0300">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_PROJECT_ADD_ITEMS"/>
+        </CommandPlacement>
+        
+  <!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Venus specific context menu groups -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <CommandPlacement guid="guidVSStd97" id="cmdidBuildSel" priority="0x0100">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_BUILD"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_PUBLISHSELECTION" priority="0x0300">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_BUILD"/>
+        </CommandPlacement>
+        <CommandPlacement guid="CMDSETID_StandardCommandSet12" id="cmdidAddReferenceNonProjectOnly" priority="0x0100">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_REFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="CMDSETID_StandardCommandSet12" id="cmdidAddWebReferenceNonProjectOnly" priority="0x0200">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_REFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="CMDSETID_StandardCommandSet12" id="cmdidAddServiceReferenceNonProjectOnly" priority="0x0280">
+          <Parent guid="guidVenusCmdId" id="IDG_CTX_REFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="cmdidViewInClassDiagram" priority="0x0500">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_REFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_PUBLISHCTX" priority="0x0100">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_PUBLISH"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_STARTOPTIONSCTX" priority="0x0200">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_PUBLISH"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd97" id="cmdidSetStartupProject" priority="0x0300">
+            <Parent guid="guidVenusCmdId" id="IDG_CTX_PUBLISH"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="icmdNewVirtualFolder" priority="0x0301">
+          <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_PROJECT_ADD_ITEMS"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_REFRESHFOLDER" priority="0x0F00">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="icmdValidatePage" priority="0x0F10">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="icmdBuildLicenseDll" priority="0x0F15">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_DETACHLOCALDATAFILECTX" priority="0x0F30">
+            <Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="icmdRunFxCop" priority="0xFFFF">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_RUN_FXCOP_CTXT_PROJ"/>
+        </CommandPlacement>
+
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Update and Remove Reference group -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+       
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_UPDATEWEBREFERENCE" priority="0x0100">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_ITEM_WEBREFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_UPDATESERVICEREFERENCE" priority="0x0200">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_ITEM_WEBREFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_CONFIGURESERVICEREFERENCE" priority="0x0300">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_ITEM_WEBREFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="icmdRemoveWebReference" priority="0x0400">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_ITEM_WEBREFERENCE"/>
+        </CommandPlacement>
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Add.. button on property pages menu -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_ADDREFERENCECTX" priority="0x0100">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_REFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_ADDWEBREFERENCECTX" priority="0x0200">
+            <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_REFERENCE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd2K" id="ECMD_ADDSERVICEREFERENCECTX" priority="0x0300">
+          <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_REFERENCE"/>
+        </CommandPlacement>
+	      <CommandPlacement guid="guidVenusCmdId" id="icmdRemoveWebReference" priority="0x0400">
+          <Parent guid="guidVenusCmdId" id="IDG_VENUS_CTX_REFERENCE"/>
+        </CommandPlacement>        
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Web Item context menu. -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_OPEN" priority="0x0100">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_PROJWIN_SCOPE" priority="0x0150">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVenusCmdId" id="IDG_VENUS_CTX_ITEM_WEBREFERENCE" priority="0x0180">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEW" priority="0x0200">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER" priority="0x0300">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_SCC" priority="0x0400">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_INCLUDEEXCLUDE" priority="0x0500">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_TRANSFER" priority="0x0600">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBITEMNODE"/>
+        </CommandPlacement>
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Web folder context menu -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+
+  
+  <CommandPlacement guid="guidSHLMainMenu" id="IDM_VS_CSCD_PROJECT_ADD" priority="0x0001">
+    <Parent guid="guidVenusCmdId" id="IDG_CTX_REFERENCE"/>
+  </CommandPlacement>
+  <CommandPlacement guid="guidVenusCmdId" id="IDG_CTX_REFERENCE" priority="0x0300">
+    <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBFOLDER"/>
+  </CommandPlacement>
+  <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER" priority="0x0500">
+      <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBFOLDER"/>
+  </CommandPlacement>
+  <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_SCC" priority="0x0700">
+      <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBFOLDER"/>
+  </CommandPlacement>
+  <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_FOLDER_TRANSFER" priority="0x0900">
+      <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBFOLDER"/>
+  </CommandPlacement>
+  <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_SOLUTION_EXPLORE" priority="0x09A0">
+      <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBFOLDER"/>
+  </CommandPlacement>
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Project context menu -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Note that the commented out items are defined up above in the NEWGROUPS_BEGIN sections. There are replicated here only to  -->
+<!--     // aid in dentifying placement -->
+<!--    //guidVenusCmdId:IDG_CTX_BUILD,                    guidSHLMainMenu:IDM_VS_CTXT_WEBPROJECT,            0x0100; -->
+
+
+  <!--   //guidVenusCmdId:IDG_CTX_REFERENCE,                 guidSHLMainMenu:IDM_VS_CTXT_WEBPROJECT,            0x0300; -->
+<!--   //guidVenusCmdId:IDG_CTX_PUBLISH,                   guidSHLMainMenu:IDM_VS_CTXT_WEBPROJECT,            0x0400; -->
+
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_VIEWBROWSER" priority="0x0500">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_PROJECT_SCC_CONTAINER" priority="0x0600">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_FOLDER_TRANSFER" priority="0x0700">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_CTXT_SOLUTION_EXPLORE" priority="0x0900">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_VIEW_PROPPAGES" priority="0x0F00">
+            <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_WEBPROJECT"/>
+        </CommandPlacement>
+
+</CommandPlacements>
+
+
+<UsedCommands>
+<!-- // for shared commands -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // GUID:GROUPID -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Venus authored shared commands -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+    <UsedCommand guid="guidVSStd2K" id="ECMD_NESTRELATEDFILES"/>
+
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // Other shared commands -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+    <UsedCommand guid="guidVSStd2K" id="ECMD_SLNREFRESH"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDWEBFORM"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDMASTERPAGE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDCONTENTPAGE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDHTMLPAGE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDSTYLESHEET"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDWEBUSERCONTROL"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDTBXCOMPONENT"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAddClass"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidToggleDesigner"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDWEBSERVICE"/>
+
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDREFERENCE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDWEBREFERENCE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDWEBREFERENCECTX"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_UPDATEWEBREFERENCE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_UPDATESERVICEREFERENCE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CONFIGURESERVICEREFERENCE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDPROJECTOUTPUTS"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_PUBLISH"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_PUBLISHCTX"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_VIEWREFINOBJECTBROWSER"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_REFRESHFOLDER"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidPropertyPages"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_STARTOPTIONS"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_STARTOPTIONSCTX"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDREFERENCECTX"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_VIEWMARKUP"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_SETASSTARTPAGE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_DETACHLOCALDATAFILECTX"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_VIEWCOMPONENTDESIGNER"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_INCLUDEINPROJECT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_EXCLUDEFROMPROJECT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDSERVICEREFERENCE"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_ADDSERVICEREFERENCECTX"/>
+</UsedCommands>
+
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // VISIBILITY_SECTION -->
+<!-- //  -->
+<!-- // You should use this section if you don't want specific commands to appear -->
+<!-- // in the shell unless a specific GUID (such as your package GUID) is active. -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<VisibilityConstraints>
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+<!--     // GUID:CMDID                       GUID when VISIBLE -->
+<!--    //////////////////////////////////////////////////////////////////////////////////  -->
+        <VisibilityItem guid="guidVenusCmdId" id="icmdNewWeb" context="UICONTEXT_NotBuildingAndNotDebugging"/>
+        <VisibilityItem guid="guidVenusCmdId" id="icmdOpenExistingWeb" context="UICONTEXT_NotBuildingAndNotDebugging"/>
+</VisibilityConstraints>
+  <KeyBindings>
+    <KeyBinding id="icmdNewWeb" guid="guidVenusCmdId" editor="guidVSStd97" key1="N" mod1="Alt Shift"/>
+    <KeyBinding id="icmdOpenExistingWeb" guid="guidVenusCmdId" editor="guidVSStd97" key1="O" mod1="Alt Shift"/>
+  </KeyBindings>
+</CommandTable>

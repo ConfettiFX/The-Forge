@@ -148,8 +148,8 @@ struct VSOutput {
 };
 
 float4 main(VSOutput input) : SV_TARGET
-{	
-	
+{
+
 	// default albedo 
 	float3 albedo = AlbedoTexture.Sample(defaultSampler, input.uv).rgb;
 
@@ -161,7 +161,7 @@ float4 main(VSOutput input) : SV_TARGET
 	float ao = 1.0f;
 
 	float depth = DepthTexture.Sample(defaultSampler, input.uv).r;
-
+	
 	if(depth >= 1.0)
 	{
 		//Skybox
@@ -171,12 +171,12 @@ float4 main(VSOutput input) : SV_TARGET
 	float3 N = normalize(normalColor.rgb);
 	
 	float2 ndc = float2(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0);
-
+	
 	float3 worldPos = getWorldPositionFromDepth(ndc, depth);
 
 	float3 V = normalize(cameraWorldPos.xyz - worldPos);
 	float3 R = reflect(-V, N);
-	
+
 	// 0.04 is the index of refraction for metal
 	float3 F0 = float3(0.04f, 0.04f, 0.04f);
 	F0 = lerp(F0, albedo, _metalness);
@@ -229,14 +229,14 @@ float4 main(VSOutput input) : SV_TARGET
 
 		// halfway vec
 		float3 H = normalize(V + L);
-
+		
 		// get distance
 		float distance = length(float3(lights[i].pos.xyz) - worldPos);
 
 		// Distance attenuation from Epic Games' paper 
 		float distanceByRadius = 1.0f - pow((distance / lights[i].radius), 4);
 		float clamped = pow(clamp(distanceByRadius, 0.0f, 1.0f), 2.0f);
-		float attenuation = clamped/(distance * distance + 1.0f);
+		float attenuation = clamped / (distance * distance + 1.0f);
 
 		//float attenuation = 1.0f;
 		// Radiance is color mul with attenuation mul intensity 
@@ -244,10 +244,10 @@ float4 main(VSOutput input) : SV_TARGET
 
 		float NDF = distributionGGX(N, H, _roughness);
 		float G = GeometrySmith(N, V, L, _roughness);
-		float3 F = fresnelSchlick(max(dot(N,H), 0.0), F0);
-		
+		float3 F = fresnelSchlick(max(dot(N, H), 0.0), F0);
+
 		float3 nominator = NDF * G * F;
-		float denominator = 4.0f * max(dot(N,V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+		float denominator = 4.0f * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
 		float3 specular = nominator / denominator;
 
 		float3 kS = F;
@@ -260,14 +260,14 @@ float4 main(VSOutput input) : SV_TARGET
 
 		if(NdotL>0.0f) {
 
-			Lo +=  (kD * albedo / PI + specular) * radiance * NdotL;
+		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 		}else {
 
 
 			Lo+= float3(0.0f, 0.0f, 0.0f);
 		}		
 	}
-	
+
 
 	float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, _roughness);
 	float3 kS = F;
@@ -278,9 +278,9 @@ float4 main(VSOutput input) : SV_TARGET
 	float3 diffuse = kD * irradiance * albedo;
 
 	float3 specularColor = specularMap.SampleLevel(envSampler, R, _roughness * 4).rgb;
-
-	float2 maxNVRough = max(dot(N, V), _roughness);
-	float2 brdf = brdfIntegrationMap.Sample(defaultSampler, maxNVRough);
+		
+	float2 maxNVRough = float2(max(dot(N, V), 0.0), _roughness);
+	float2 brdf = brdfIntegrationMap.Sample(defaultSampler, maxNVRough).rg;
 	
 	float3 specular = specularColor * (F * brdf.x + brdf.y);
 
@@ -296,5 +296,5 @@ float4 main(VSOutput input) : SV_TARGET
 	color.g = pow(color.g, gammaCorr);
 	color.b = pow(color.b, gammaCorr);
 
-	return float4(color.r, color.g, color.b, 1.0f);
+    return float4(color.r, color.g, color.b, 1.0f);
 }

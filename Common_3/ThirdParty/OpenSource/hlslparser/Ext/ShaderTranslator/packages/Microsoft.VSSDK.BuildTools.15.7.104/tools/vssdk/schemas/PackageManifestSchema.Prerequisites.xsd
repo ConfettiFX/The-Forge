@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema version="1.0.0"
+           attributeFormDefault="unqualified"
+           elementFormDefault="qualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:include schemaLocation="PackageManifestSchema.Dependencies.xsd" />
+  
+  <xs:annotation>
+    <xs:documentation>
+      <!-- _locID_text="VsixSchema" _locComment="" -->This schema is used for installing extensions to Visual Studio.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:complexType name="Prerequisites">
+    <xs:sequence>
+      <xs:element name="Prerequisite" minOccurs="0" maxOccurs="unbounded" type="Dependency">
+      </xs:element>
+    </xs:sequence>
+
+    <xs:anyAttribute processContents="lax" />
+  </xs:complexType>
+</xs:schema>

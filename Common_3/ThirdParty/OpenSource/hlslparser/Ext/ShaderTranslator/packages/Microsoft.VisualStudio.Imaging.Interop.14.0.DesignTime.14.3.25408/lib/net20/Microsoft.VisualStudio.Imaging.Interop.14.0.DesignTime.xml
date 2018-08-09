@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doc>
+  <assembly>
+    <name>Microsoft.VisualStudio.Imaging.Interop.14.0.DesignTime</name>
+  </assembly>
+  <members>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.Background">
+      <summary>[optional] The background color on which the image will be displayed.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.Dpi">
+      <summary>The DPI setting for the monitor on which the image will be displayed.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.Flags">
+      <summary>The flags indicating which fields of the structure are valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.Format">
+      <summary>The format of the image (WPF, WinForms, Win32).</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.GrayscaleBiasColor">
+      <summary>[optional] The bias color used to weight a grayscale image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.HighContrast">
+      <summary>[optional] Determines whether the high-contrast version of the image is requested.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.ImageType">
+      <summary>The type of the image (bitmap, icon, or image list).</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.LogicalHeight">
+      <summary>The height of the image, in logical units (e.g. the height at 100% DPI).</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.LogicalWidth">
+      <summary>The width of the image, in logical units (e.g. the width at 100% DPI).</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes.StructSize">
+      <summary>The size of the struct.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.HorizontalAlignment">
+      <summary>The horizontal alignment of the image within the composite image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.ImageMoniker">
+      <summary>The ImageMoniker rendered in this layer.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.VerticalAlignment">
+      <summary>The vertical alignment of the image within the composite image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.VirtualHeight">
+      <summary>The virtual height of this layer.  The actual pixel dimensions of the image won't be computed until render time.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.VirtualWidth">
+      <summary>The virtual width of this layer.  The actual pixel dimensions of the image won't be computed until render time.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.VirtualXOffset">
+      <summary>The virtual X offset of the image. This offset is used together with the HorizontalAlignment to place the image within the composite image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer.VirtualYOffset">
+      <summary>The virtual Y offset of the image. This offset is used together with the VerticalAlignment to place the image within the composite image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageMoniker.Guid">
+      <summary>The GUID of the moniker.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop.ImageMoniker.Id">
+      <summary>The ID of the moniker.</summary>
+    </member>
+    <member name="P:Microsoft.VisualStudio.Imaging.Interop.IImageHandle.Moniker">
+      <summary>Gets the ImageMoniker for this image handle.</summary>
+      <returns>The ImageMoniker for this image handle.</returns>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags">
+      <summary>Represents an RGBA color with the red channel in the low byte to the alpha channel in the high byte.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_Size">
+      <summary>The LogicalWidth and LogicalHeight fields are valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_Type">
+      <summary>The ImageType field is valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_Format">
+      <summary>The Format field is valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_Dpi">
+      <summary>The Dpi field is valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_Background">
+      <summary>The Background field is valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_Grayscale">
+      <summary>The returned image should be grayscaled.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_GrayscaleBiasColor">
+      <summary>The GrayscaleBiasColor field is valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_HighContrast">
+      <summary>The HighContrast field is valid.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_RequiredFlags">
+      <summary>The required flags are: IAF_Size | IAF_Type | IAF_Format | IAF_Dpi.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageAttributesFlags.IAF_OptionalFlags">
+      <summary>The optional flags are: IAF_Background | IAF_Grayscale | IAF_GrayscaleBiasColor | IAF_HighContrast.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop._ImageMonikerType">
+      <summary>Describes the type of the image moniker.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageMonikerType.IMT_Unknown">
+      <summary>The moniker is invalid or stale.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageMonikerType.IMT_LoadedFromManifest">
+      <summary>The moniker was loaded from a manifest.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageMonikerType.IMT_Custom">
+      <summary>The moniker was created as a result of a custom image being added.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._ImageMonikerType.IMT_System">
+      <summary />
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop._UIDataFormat">
+      <summary>Describes the data format (Win32, WinForms, WPF).</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIDataFormat.DF_Win32">
+      <summary>Matches VSDF_WIN32 for enumeration compatibility.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIDataFormat.DF_WinForms">
+      <summary>Matches VSDF_WINFORMS for enumeration compatibility.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIDataFormat.DF_WPF">
+      <summary>Matches VSDF_WPF for enumeration compatibility.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop._UIImageHorizontalAlignment">
+      <summary>Describes the horizontal alignment of the image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageHorizontalAlignment.IHA_Left">
+      <summary>The image is left-aligned within its container.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageHorizontalAlignment.IHA_Center">
+      <summary>The image is centered horizontally within its container.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageHorizontalAlignment.IHA_Right">
+      <summary>The image is right-aligned within its container.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop._UIImageType">
+      <summary>Describes the type of the image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageType.IT_Bitmap">
+      <summary>The image is a bitmap.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageType.IT_Icon">
+      <summary>The image is an icon.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageType.IT_ImageList">
+      <summary>The image is an image list (WinForms, Win32 formats only).</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop._UIImageVerticalAlignment">
+      <summary>Describes the vertical alignment of the image.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageVerticalAlignment.IVA_Top">
+      <summary>The image is top-aligned within its container.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageVerticalAlignment.IVA_Center">
+      <summary>Rhe image is centered vertically within its container.</summary>
+    </member>
+    <member name="F:Microsoft.VisualStudio.Imaging.Interop._UIImageVerticalAlignment.IVA_Bottom">
+      <summary>The image is bottom-aligned within its container.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop.IImageHandle">
+      <summary>Represents a handle which keeps a custom image stored in memory. Only keeping the IImageHandle strongly referenced in memory can guarantee that the image associated with the handle's moniker will be kept in memory in the ImageLibrary.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop.ImageAttributes">
+      <summary>Provides image attributes.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop.ImageCompositionLayer">
+      <summary>A layer used to compose multiple images into a single merged image.</summary>
+    </member>
+    <member name="T:Microsoft.VisualStudio.Imaging.Interop.ImageMoniker">
+      <summary>Contains the GUID and ID of the image.</summary>
+    </member>
+  </members>
+</doc>

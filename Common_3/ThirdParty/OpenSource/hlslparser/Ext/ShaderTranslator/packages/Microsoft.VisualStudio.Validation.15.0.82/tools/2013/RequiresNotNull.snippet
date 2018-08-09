@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippet Format="1.0.0" xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <Header>
+    <Title>Verifies that an argument is not null via a Requires method call.</Title>
+    <Author>Microsoft</Author>
+    <Shortcut>rnn</Shortcut>
+    <Description>Checks an argument for a null value and throws a ArgumentNullException if it is.</Description>
+    <SnippetTypes>
+      <SnippetType>Expansion</SnippetType>
+    </SnippetTypes>
+  </Header>
+  <Snippet>
+    <Declarations>
+      <Literal>
+        <ID>paramName</ID>
+        <Default>paramName</Default>
+      </Literal>
+    </Declarations>
+    <Code Language="CSharp">
+      <![CDATA[Requires.NotNull($paramName$, "$paramName$");
+      $end$]]>
+    </Code>
+    <Imports>
+      <Import>
+        <Namespace>Microsoft</Namespace>
+      </Import>
+    </Imports>
+  </Snippet>
+</CodeSnippet>

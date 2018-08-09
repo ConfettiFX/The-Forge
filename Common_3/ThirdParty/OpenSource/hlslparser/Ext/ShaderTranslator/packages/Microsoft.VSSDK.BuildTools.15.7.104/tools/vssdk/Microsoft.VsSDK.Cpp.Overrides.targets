@@ -1,0 +1,32 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<!--
+*************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+This code is licensed under the Visual Studio SDK license terms.
+THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+*************************************************************************
+-->
+
+  <!--Redefine BuiltProjectOutputGroup from Microsoft.Common.targets since it is incorrect for C++ projects-->
+  <Target
+      Name="BuiltProjectOutputGroup"
+      Returns="@(_BuiltProjectOutputGroupOutput)"
+      DependsOnTargets="$(BuiltProjectOutputGroupDependsOn)">
+    <ItemGroup>
+      <_BuiltProjectOutputGroupOutput Include="$(OutDir)$(TargetName)$(TargetExt)" />
+    </ItemGroup>
+  </Target>
+
+  <!--Redefine DebugSymbolsProjectOutputGroup from Microsoft.Common.targets since it is incorrect for C++ projects-->
+  <Target
+      Name="DebugSymbolsProjectOutputGroup"
+      Returns="@(_DebugSymbolsProjectOutputGroupOutput)"
+      DependsOnTargets="$(DebugSymbolsProjectOutputGroupDependsOn)">
+    <ItemGroup Condition="'$(_DebugSymbolsProduced)'!='false'">
+      <_DebugSymbolsProjectOutputGroupOutput Include="$(OutDir)$(TargetName).pdb" />
+    </ItemGroup>
+  </Target>
+</Project>

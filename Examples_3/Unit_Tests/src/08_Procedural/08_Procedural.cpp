@@ -328,7 +328,7 @@ public:
 		uint64_t sphereDataSize = gNumOfSpherePoints * sizeof(float);
 
 		BufferLoadDesc sphereVbDesc = {};
-		sphereVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sphereVbDesc.mDesc.mSize = sphereDataSize;
 		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6; // 3 for vertex, 3 for normal
@@ -341,7 +341,7 @@ public:
 		uint64_t bgDataSize = 6 * sizeof(float) * 6;
 
 		BufferLoadDesc bgVbDesc = {};
-		bgVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		bgVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		bgVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bgVbDesc.mDesc.mSize = bgDataSize;
 		bgVbDesc.mDesc.mVertexStride = sizeof(float) * 6; // 3 for vertex, 3 for normal
@@ -354,7 +354,7 @@ public:
 		Buffer* screeSizeBuffer = NULL;
 
 		BufferLoadDesc buffDesc = {};
-		buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		buffDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		buffDesc.mDesc.mSize = sizeof(ScreenSize);
 		buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -366,7 +366,7 @@ public:
 
 		// Create a uniform buffer per obj
 		BufferLoadDesc buffObjDesc = {};
-		buffObjDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		buffObjDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		buffObjDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		buffObjDesc.mDesc.mSize = sizeof(UniformObjData);
 		buffObjDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -382,7 +382,7 @@ public:
 
 		// Uniform buffer for camera data
 		BufferLoadDesc ubCamDesc = {};
-		ubCamDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubCamDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubCamDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubCamDesc.mDesc.mSize = sizeof(UniformCamData);
 		ubCamDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -395,7 +395,7 @@ public:
 
 		// Uniform buffer for light data
 		BufferLoadDesc ubLightsDesc = {};
-		ubLightsDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubLightsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubLightsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubLightsDesc.mDesc.mSize = sizeof(UniformLightData);
 		ubLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -883,8 +883,6 @@ public:
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mWidth = mSettings.mWidth;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 

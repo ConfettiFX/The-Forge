@@ -9,7 +9,7 @@
 * distributed with this work for additional information
 * regarding copyright ownership.  The ASF licenses this file
 * to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
+* "License") you may not use this file except in compliance
 * with the License.  You may obtain a copy of the License at
 *
 *   http://www.apache.org/licenses/LICENSE-2.0
@@ -21,153 +21,153 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-
 #version 450 core
 
-const float Pi = 3.14159265359;
-const int SampleCount = 256;
+// USERMACRO: IMPORTANCE_SAMPLE_COUNT [64,128,256,1024]
+
+const uint nMips = uint (5);
+const uint maxSize = uint (128);
+
+const float Pi = float (3.14159274);
+const int SampleCount = int (IMPORTANCE_SAMPLE_COUNT);
+struct PrecomputeSkySpecularData {
+
+	uint mipSize;
+	float roughness;
+};
+
+layout(push_constant) uniform RootConstant_Block
+{
+
+	uint mipSize;
+	float roughness;
+}RootConstant;
+
+layout(set = 0, binding = 1) uniform textureCube srcTexture;
+layout(set = 1, binding = 2, rgba32f) uniform image2DArray dstTexture;
+layout(set = 0, binding = 3) uniform sampler skyboxSampler;
 
 float RadicalInverse_VdC(uint bits)
 {
-	bits = (bits << 16u) | (bits >> 16u);
-	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+	(bits = ((bits << uint (16)) | (bits >> uint (16))));
+	(bits = (((bits & 1431655765u) << uint (1)) | ((bits & 2863311530u) >> uint (1))));
+	(bits = (((bits & 858993459u) << uint (2)) | ((bits & 3435973836u) >> uint (2))));
+	(bits = (((bits & 252645135u) << uint (4)) | ((bits & 4042322160u) >> uint (4))));
+	(bits = (((bits & 16711935u) << uint (8)) | ((bits & 4278255360u) >> uint (8))));
+	return (float(bits) * 2.328306e-10);
 }
 
 vec2 Hammersley(uint i, uint N)
 {
-	return vec2(float(i) / float(N), RadicalInverse_VdC(i));
+	return vec2((float(i) / float(N)), RadicalInverse_VdC(i));
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
-	float a = roughness * roughness;
-	float a2 = a * a;
-	float NdotH = max(dot(N, H), 0.0);
-	float NdotH2 = NdotH * NdotH;
+	float a = (roughness * roughness);
+	float a2 = (a * a);
+	float NdotH = max(dot(N, H), float (0.0));
+	float NdotH2 = (NdotH * NdotH);
 
 	float nom = a2;
-	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-	denom = Pi * denom * denom;
+	float denom = ((NdotH2 * (a2 - float (1.0))) + float (1.0));
+	(denom = ((Pi * denom) * denom));
 
-	return nom / denom;
+	return (nom / denom);
 }
 
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 {
-	float a = roughness * roughness;
+	float a = (roughness * roughness);
 
-	float phi = 2.0 * Pi * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
-	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	float phi = ((float (2.0) * Pi) * (Xi).x);
+	float cosTheta = sqrt(((float (1.0) - (Xi).y) / (float (1.0) + (((a * a) - float (1.0)) * (Xi).y))));
+	float sinTheta = sqrt((float (1.0) - (cosTheta * cosTheta)));
 
-	// from spherical coordinates to cartesian coordinates
 	vec3 H;
-	H.x = cos(phi) * sinTheta;
-	H.y = sin(phi) * sinTheta;
-	H.z = cosTheta;
+	((H).x = (cos(phi) * sinTheta));
+	((H).y = (sin(phi) * sinTheta));
+	((H).z = cosTheta);
 
-	// from tangent-space vector to world-space sample vector
-	vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 up = (((abs((N).z) < float (0.9990000))) ? (vec3(0.0, 0.0, 1.0)) : (vec3(1.0, 0.0, 0.0)));
 	vec3 tangent = normalize(cross(up, N));
 	vec3 bitangent = cross(N, tangent);
 
-	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+	vec3 sampleVec = (((tangent * vec3 ((H).x)) + (bitangent * vec3 ((H).y))) + (N * vec3 ((H).z)));
 	return normalize(sampleVec);
 }
 
-layout(set = 0, binding = 0) uniform textureCube srcTexture;
-
-layout(std430, set = 0, binding = 1) buffer dstBuffer
-{
-	vec4 storeVal[];
-};
-
-layout(set = 0, binding = 2) uniform sampler skyboxSampler;
-
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-
-const uint nMips = 5;
-const uint maxSize = 128;
-
-void main()
+void HLSLmain(uvec3 DTid)
 {
-	uvec3 threadPos = gl_GlobalInvocationID;
+	uvec3 threadPos = DTid;
 
-	uint pixelOffset = 0;
+	float mipRoughness = (RootConstant).roughness;
+	uint mipSize = (RootConstant).mipSize;
 
-	for (uint mip = 0; mip < nMips; mip++)
-	{
-		uint mipSize = maxSize >> mip;
-		float mipRoughness = float(mip) / float(nMips - 1);
-		
-		if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
+	if ((((threadPos).x >= mipSize) || ((threadPos).y >= mipSize))) {
 
-		vec2 texcoords = vec2(float(threadPos.x + 0.5) / mipSize, float(threadPos.y + 0.5) / mipSize);
-
-		vec3 sphereDir;
-		if (threadPos.z <= 0) {
-			sphereDir = normalize(vec3(0.5, -(texcoords.y - 0.5), -(texcoords.x - 0.5)));
-		}
-		else if (threadPos.z <= 1) {
-			sphereDir = normalize(vec3(-0.5, -(texcoords.y - 0.5), texcoords.x - 0.5));
-		}
-		else if (threadPos.z <= 2) {
-			sphereDir = normalize(vec3(texcoords.x - 0.5, 0.5, texcoords.y - 0.5));
-		}
-		else if (threadPos.z <= 3) {
-			sphereDir = normalize(vec3(texcoords.x - 0.5, -0.5, -(texcoords.y - 0.5)));
-		}
-		else if (threadPos.z <= 4) {
-			sphereDir = normalize(vec3(texcoords.x - 0.5, -(texcoords.y - 0.5), 0.5));
-		}
-		else if (threadPos.z <= 5) {
-			sphereDir = normalize(vec3(-(texcoords.x - 0.5), -(texcoords.y - 0.5), -0.5));
-		}
-
-		vec3 N = sphereDir;
-		vec3 R = N;
-		vec3 V = R;
-
-		float totalWeight = 0.0;
-		vec4 prefilteredColor = vec4(0.0);
-
-		for (int i = 0; i < SampleCount; ++i)
-		{
-			vec2 Xi = Hammersley(i, SampleCount);
-			vec3 H = ImportanceSampleGGX(Xi, N, mipRoughness);
-			vec3 L = normalize(2.0 * dot(V, H) * H - V);
-
-			float NdotL = max(dot(N, L), 0.0);
-			if (NdotL > 0.0)
-			{
-				// sample from the environment's mip level based on roughness/pdf
-				float D = DistributionGGX(N, H, mipRoughness);
-				float NdotH = max(dot(N, H), 0.0);
-				float HdotV = max(dot(H, V), 0.0);
-				float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
-
-				float saTexel = 4.0 * Pi / (6.0 * mipSize * mipSize);
-				float saSample = 1.0 / (float(SampleCount) * pdf + 0.0001);
-
-				float mipLevel = mipRoughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-
-				prefilteredColor += textureLod(samplerCube(srcTexture, skyboxSampler), L, mipLevel) * NdotL;  //srcTexture.Sample(skyboxSampler, L, level(mipLevel)) * NdotL;
-				//vec4 sampledValue = textureLod(samplerCube(srcTexture, skyboxSampler), L, mipLevel) * NdotL;
-
-				totalWeight += NdotL;
-			}
-		}
-
-		prefilteredColor = prefilteredColor / totalWeight;
-
-		pixelOffset += threadPos.z * mipSize * mipSize;
-		uint pixelId = pixelOffset + threadPos.y * mipSize + threadPos.x;
-		storeVal[pixelId] = prefilteredColor;
-		pixelOffset += (6 - threadPos.z) * mipSize * mipSize;
+		return;
 	}
-	
+	vec2 texcoords = vec2((float((float ((threadPos).x) + 0.5)) / float (mipSize)), (float((float ((threadPos).y) + 0.5)) / float (mipSize)));
+
+	vec3 sphereDir;
+	if (((threadPos).z <= uint (0))) {
+		(sphereDir = normalize(vec3(0.5, (-((texcoords).y - float (0.5))), (-((texcoords).x - float (0.5))))));
+	}
+	else if (((threadPos).z <= uint (1))) {
+		(sphereDir = normalize(vec3((-0.5), (-((texcoords).y - float (0.5))), ((texcoords).x - float (0.5)))));
+	}
+	else if (((threadPos).z <= uint (2))) {
+		(sphereDir = normalize(vec3(((texcoords).x - float (0.5)), 0.5, ((texcoords).y - float (0.5)))));
+	}
+	else if (((threadPos).z <= uint (3))) {
+		(sphereDir = normalize(vec3(((texcoords).x - float (0.5)), (-0.5), (-((texcoords).y - float (0.5))))));
+	}
+	else if (((threadPos).z <= uint (4))) {
+		(sphereDir = normalize(vec3(((texcoords).x - float (0.5)), (-((texcoords).y - float (0.5))), 0.5)));
+	}
+	else if (((threadPos).z <= uint (5))) {
+		(sphereDir = normalize(vec3((-((texcoords).x - float (0.5))), (-((texcoords).y - float (0.5))), (-0.5))));
+	}
+
+	vec3 N = sphereDir;
+	vec3 R = N;
+	vec3 V = R;
+
+	float totalWeight = float (0.0);
+	vec4 prefilteredColor = vec4(0.0, 0.0, 0.0, 0.0);
+
+	for (int i = 0; (i < SampleCount); (++i)) {
+
+		vec2 Xi = Hammersley(uint (i), uint (SampleCount));
+		vec3 H = ImportanceSampleGGX(Xi, N, mipRoughness);
+		vec3 L = normalize(((vec3 ((float (2.0) * dot(V, H))) * H) - V));
+
+		float NdotL = max(dot(N, L), float (0.0));
+		if ((NdotL > float (0.0))) {
+
+			float D = DistributionGGX(N, H, mipRoughness);
+			float NdotH = max(dot(N, H), float (0.0));
+			float HdotV = max(dot(H, V), float (0.0));
+			float pdf = (((D * NdotH) / (float (4.0) * HdotV)) + float (0.00010000000));
+
+			float saTexel = ((float (4.0) * Pi) / float (((6.0 * float (mipSize)) * float (mipSize))));
+			float saSample = (float (1.0) / (float(SampleCount) * pdf + 0.0001));
+
+			float mipLevel = float ((((mipRoughness == float (0.0))) ? (float (0.0)) : ((float (0.5) * log2((saSample / saTexel))))));
+
+			(prefilteredColor += (textureLod(samplerCube(srcTexture, skyboxSampler), vec3(L), mipLevel) * vec4 (NdotL)));
+
+			(totalWeight += NdotL);
+		}
+	}
+
+	(prefilteredColor = (prefilteredColor / vec4 (totalWeight)));
+	imageStore(dstTexture, ivec3(threadPos), prefilteredColor);
+}
+void main() {
+	uvec3 DTid;
+	DTid = gl_GlobalInvocationID;
+	HLSLmain(DTid);
 }

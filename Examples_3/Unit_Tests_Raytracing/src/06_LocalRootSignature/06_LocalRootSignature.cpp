@@ -104,7 +104,7 @@ public:
 			float3(-0.866f, -0.5f, 0),
 		};
 		BufferLoadDesc vbDesc = {};
-		vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbDesc.mDesc.mSize = sizeof(vertices);
 		vbDesc.mDesc.mVertexStride = sizeof(float3);
@@ -146,7 +146,7 @@ public:
 
 		Buffer* pScratchBuffer = NULL;
 		BufferLoadDesc scratchBufferDesc = {};
-		scratchBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		scratchBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 		scratchBufferDesc.mDesc.mSize = max(bottomASScratchBufferSize, topASScratchBufferSize);
@@ -308,8 +308,7 @@ public:
 		uavDesc.mSampleCount = SAMPLE_COUNT_1;
 		uavDesc.mSrgb = false;
 		uavDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		uavDesc.mType = TEXTURE_TYPE_2D;
-		uavDesc.mUsage = TEXTURE_USAGE_UNORDERED_ACCESS;
+		uavDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
 		uavDesc.mWidth = mSettings.mWidth;
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pDesc = &uavDesc;

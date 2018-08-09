@@ -31,14 +31,11 @@
 #endif
 #endif
 
-#ifdef _DURANGO
-#include "../../../CommonXBOXOne_3/OS/inputDurango.h"
-#endif
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
 
 // Include this file as last include in all cpp files allocating memory
 #include "../Interfaces/ILogManager.h"
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
@@ -234,89 +231,6 @@ void FpsCameraController::onMouseWheel(const MouseWheelEventData* pData)
 }
 #endif
 
-//keeping it for reference for now.
-#if 0
-void FpsCameraController::onTouch(const TouchEventData *pData)
-{
-    // Find the closest touches to the left and right virtual joysticks.
-    float minDistLeft = 1.0f;
-    int closestTouchLeft = -1;
-    float minDistRight = 1.0f;
-    int closestTouchRight = -1;
-    for (uint32_t i = 0; i < pData->touchesRecorded; i++)
-    {
-        vec2 touchPos = vec2(pData->touchData[i].screenX, pData->touchData[i].screenY);
-        
-        float distToLeft = length(touchPos - virtualLeftJoystickPos);
-        if(distToLeft < minDistLeft && distToLeft <= (k_vJoystickIntRadius * 0.33f)) { minDistLeft = distToLeft; closestTouchLeft = i; }
-        
-        float distToRight = length(touchPos - virtualRightJoystickPos);
-        if(distToRight < minDistRight && distToRight <= (k_vJoystickIntRadius * 0.33f)) { minDistRight = distToRight; closestTouchRight = i; }
-    }
-    
-    // Check if one of the closest joystick touches has ended.
-    if(closestTouchLeft >= 0)
-    {
-        TouchData touch = pData->touchData[closestTouchLeft];
-        if(!touch.pressed) virtualLeftJoysticPressed = false;
-    }
-    if(closestTouchRight >= 0)
-    {
-        TouchData touch = pData->touchData[closestTouchRight];
-        if(!touch.pressed) virtualRightJoysticPressed = false;
-    }
-}
-
-void FpsCameraController::onTouchMove(const TouchEventData *pData)
-{
-    // Find the closest touches to the left and right virtual joysticks.
-    float minDistLeft = 1.0f;
-    int closestTouchLeft = -1;
-    float minDistRight = 1.0f;
-    int closestTouchRight = -1;
-    for (uint32_t i = 0; i < pData->touchesRecorded; i++)
-    {
-        vec2 touchPos = vec2(pData->touchData[i].screenX, pData->touchData[i].screenY);
-        
-        float distToLeft = length(touchPos - virtualLeftJoystickPos);
-        if(distToLeft < minDistLeft && distToLeft <= (k_vJoystickIntRadius * 0.33f)) { minDistLeft = distToLeft; closestTouchLeft = i; }
-        
-        float distToRight = length(touchPos - virtualRightJoystickPos);
-        if(distToRight < minDistRight && distToRight <= (k_vJoystickIntRadius * 0.33f)) { minDistRight = distToRight; closestTouchRight = i; }
-    }
-    
-    // Calculate the new joystick positions.
-    if(closestTouchLeft >= 0)
-    {
-        TouchData touch = pData->touchData[closestTouchLeft];
-        vec2 newPos = virtualLeftJoystickPos - vec2(touch.screenDeltaX, touch.screenDeltaY);
-        
-        // Clamp the joystick's position to the max range.
-        vec2 tiltDir = newPos - k_vLeftJoystickCenter;
-        if(length(tiltDir) > k_vJoystickRange) newPos = k_vLeftJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
-        
-        virtualLeftJoystickPos = newPos;
-        virtualLeftJoysticPressed = true;
-    }
-    if(closestTouchRight >= 0)
-    {
-        TouchData touch = pData->touchData[closestTouchRight];
-        vec2 newPos = virtualRightJoystickPos - vec2(touch.screenDeltaX, touch.screenDeltaY);
-        
-        // Clamp the joystick's position to the max range.
-        vec2 tiltDir = newPos - k_vRightJoystickCenter;
-        if(length(tiltDir) > k_vJoystickRange) newPos = k_vRightJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
-        
-        virtualRightJoystickPos = newPos;
-        virtualRightJoysticPressed = true;
-    }
-    // Only disable a joystick if there are more than 1 recorded touches or the other joystick is already disabled.
-    // NOTE: iOS sometimes sends touchMove messages one by one when there are multiple touches.
-    if(closestTouchLeft < 0 && (pData->touchesRecorded != 1 || closestTouchRight < 0)) virtualLeftJoysticPressed = false;
-    if(closestTouchRight < 0 && (pData->touchesRecorded != 1 || closestTouchLeft < 0)) virtualRightJoysticPressed = false;
-}
-#endif
-
 void FpsCameraController::update(float deltaTime)
 {
 	if (deltaTime < 0.00001f)
@@ -342,8 +256,9 @@ void FpsCameraController::update(float deltaTime)
 		ButtonData rightStick = InputSystem::GetButtonData(KEY_RIGHT_STICK);
 		if (!InputSystem::IsMouseCaptured())
 			return;
-
+#ifndef _DURANGO
 		if (rightStick.mDeltaValue[0] != 0.0f || rightStick.mDeltaValue[1] != 0.0f)
+#endif
 		{
 			// Windows Fall Creators Update breaks this camera controller
 			// So only use this controller if we are running on macOS or before Fall Creators Update
@@ -352,10 +267,15 @@ void FpsCameraController::update(float deltaTime)
 
 			float newRx, newRy;
 #if INVERT_MOUSE_VERTICAL
-			newRx = rx - rightStick.mValue[1] * k_rotationSpeed;
+			newRx = rx - rightStick.mDeltaValue[1] * k_rotationSpeed;
+#else
+#ifdef _DURANGO
+			newRx = rx + rightStick.mValue[1] * k_rotationSpeed;
+			newRy = ry + rightStick.mValue[0] * k_rotationSpeed;
 #else
 			newRx = rx + rightStick.mDeltaValue[1] * k_rotationSpeed;
 			newRy = ry + rightStick.mDeltaValue[0] * k_rotationSpeed;
+#endif
 #endif
 			
 			rx = newRx;
@@ -365,72 +285,47 @@ void FpsCameraController::update(float deltaTime)
 		
 			//LOGINFOF("[FPS] view Rotation: %f, %f", rx, ry);
 		}
-		else
-		{
-			// Windows Fall Creators Update breaks this camera controller
-			// So only use this controller if we are running on macOS or before Fall Creators Update
-			float rx = viewRotation.getX();
-			float ry = viewRotation.getY();
-
-			viewRotation = { rx, ry };
-		}
 	}
 #endif
     
 #ifdef TARGET_IOS
-    {
-        vec2 leftJoystickDir = virtualLeftJoystickPos - k_vLeftJoystickCenter;
-        if(virtualLeftJoysticPressed)
-        {
-            // Update velocity vector
-            if(length(leftJoystickDir) > k_vJoystickDeadzone)
-            {
-                vec2 normalizedLeftJoystickDir = normalize(leftJoystickDir);
-                float leftJoystickTilt = length(leftJoystickDir) / k_vJoystickRange;
-                moveVec += vec3(normalizedLeftJoystickDir.getX(), 0.0f, -normalizedLeftJoystickDir.getY()) * leftJoystickTilt;
-            }
-        }
-        else if (length(leftJoystickDir) > 0)
-        {
-            vec2 recoveryVector = normalize(leftJoystickDir) * k_vJoystickRecovery * deltaTime;
-            if(length(recoveryVector) >= length(leftJoystickDir)) virtualLeftJoystickPos = k_vLeftJoystickCenter;
-            else virtualLeftJoystickPos -= recoveryVector;
-        }
-        
-        vec2 rightJoystickDir = virtualRightJoystickPos - k_vRightJoystickCenter;
-        if(virtualRightJoysticPressed)
-        {
-            // Update view direction
-            if(length(rightJoystickDir) > k_vJoystickDeadzone)
-            {
-                vec2 normalizedRightJoystickDir = normalize(rightJoystickDir);
-                float rightJoystickTilt = length(rightJoystickDir) / k_vJoystickRange;
-                viewRotation += vec2(normalizedRightJoystickDir.getY(), normalizedRightJoystickDir.getX()) * rightJoystickTilt * k_rotationSpeed;
-            }
-        }
-        else if (length(rightJoystickDir) > 0)
-        {
-            vec2 recoveryVector = normalize(rightJoystickDir) * k_vJoystickRecovery * deltaTime;
-            if(length(recoveryVector) >= length(rightJoystickDir)) virtualRightJoystickPos = k_vRightJoystickCenter;
-            else virtualRightJoystickPos -= recoveryVector;
-        }
-#else
-		if (InputSystem::IsMouseCaptured())
-    {
-#if defined(_DURANGO)
-        // Update velocity vector
-				moveVec += vec3(
-                     Input::GetCurrentGamepadReading().NormalizedLeftThumbstickX(),
-                     Input::GetCurrentGamepadReading().RightTrigger() - Input::GetCurrentGamepadReading().LeftTrigger(),
-                     Input::GetCurrentGamepadReading().NormalizedLeftThumbstickY()
-                     ) * k_movementSpeed;
-        
-        // Update view direction
-        viewRotation += vec2(
-                             Input::GetCurrentGamepadReading().NormalizedRightThumbstickY() * k_rotationSpeed,
-                             Input::GetCurrentGamepadReading().NormalizedRightThumbstickX() * k_rotationSpeed);
+	vec2 leftJoystickDir = virtualLeftJoystickPos - k_vLeftJoystickCenter;
+	if(virtualLeftJoysticPressed)
+	{
+		// Update velocity vector
+		if(length(leftJoystickDir) > k_vJoystickDeadzone)
+		{
+			vec2 normalizedLeftJoystickDir = normalize(leftJoystickDir);
+			float leftJoystickTilt = length(leftJoystickDir) / k_vJoystickRange;
+			moveVec += vec3(normalizedLeftJoystickDir.getX(), 0.0f, -normalizedLeftJoystickDir.getY()) * leftJoystickTilt;
+		}
+	}
+	else if (length(leftJoystickDir) > 0)
+	{
+		vec2 recoveryVector = normalize(leftJoystickDir) * k_vJoystickRecovery * deltaTime;
+		if(length(recoveryVector) >= length(leftJoystickDir)) virtualLeftJoystickPos = k_vLeftJoystickCenter;
+		else virtualLeftJoystickPos -= recoveryVector;
+	}
+	
+	vec2 rightJoystickDir = virtualRightJoystickPos - k_vRightJoystickCenter;
+	if(virtualRightJoysticPressed)
+	{
+		// Update view direction
+		if(length(rightJoystickDir) > k_vJoystickDeadzone)
+		{
+			vec2 normalizedRightJoystickDir = normalize(rightJoystickDir);
+			float rightJoystickTilt = length(rightJoystickDir) / k_vJoystickRange;
+			viewRotation += vec2(normalizedRightJoystickDir.getY(), normalizedRightJoystickDir.getX()) * rightJoystickTilt * k_rotationSpeed;
+		}
+	}
+	else if (length(rightJoystickDir) > 0)
+	{
+		vec2 recoveryVector = normalize(rightJoystickDir) * k_vJoystickRecovery * deltaTime;
+		if(length(recoveryVector) >= length(rightJoystickDir)) virtualRightJoystickPos = k_vRightJoystickCenter;
+		else virtualRightJoystickPos -= recoveryVector;
+	}
 #endif
-#endif
+    {
 
 		float lenS = lengthSqr(moveVec);
 		if (lenS > 1.0f)

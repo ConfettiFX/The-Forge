@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <Extern href="stdidcmd.h"/>
+  <Extern href="vsshlids.h"/>
+  <Extern href="virtkeys.h"/>
+  <Extern href="VSDbgCmd.h"/>
+  <Extern href="RazorCmdId.h"/>
+  <Extern href="RazorGuids.h"/>
+
+  <!-- This file is necessary so appids can opt out of the razor command set -->
+  <UsedCommands>
+    <!--By adding a command to the <UsedCommands> element, a VSPackage informs the Visual Studio 
+    environment that although a command is implemented by other code, when the current VSPackage is active, 
+    it provides the command implementation. In this case, when any of the windows of the current VSPackage has focus, 
+    the current VSPackage's implementations of the QueryStatus and Exec methods take precedence over implementations defined 
+    elsewhere. For more information about command routing see Command Routing in VSPackages. -->
+
+    <UsedCommands Condition="!defined(No_ThreadsWindow)">
+      <UsedCommand guid="guidVSStd97" id="cmdidViewThreadsWindow"/>
+      <UsedCommand guid="guidVSDebugCommand" id="cmdidThreadFlag"/>
+      <UsedCommand guid="guidVSDebugCommand" id="cmdidThreadUnflag"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidThreadSuspend"/>
+      <UsedCommand guid="guidVSDebugCommand" id="cmdidThreadUnflagAll"/>
+      <UsedCommand guid="guidVSDebugCommand" id="cmdidEditValue"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidThreadResume"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidThreadSetFocus"/>
+      <UsedCommand guid="guidVSDebugCommand" id="cmdidShowThreadIpIndicators"/>
+      <UsedCommand guid="guidVSDebugCommand" id="cmdidSetCurrentThread"/>
+    </UsedCommands>
+    <UsedCommand Condition="!defined(No_ProgramToDebugShow)" guid="guidRazorCmdSet" id="cmdidToolsProgramToDebug"/>
+    <UsedCommand Condition="defined(AllowJITInstall)" guid="guidRazorCmdSet" id="cmdidInstallJitDebugger"/>
+    <UsedCommands Condition="!defined(No_PinnableDataTips)" >
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidClearDataTipsContextFirst"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidClearDataTipsMenuFirst"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidClearDataTipsContextRoot"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidClearDataTipsContextSingle"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidArrangePinnedTipsOnLine"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidClearDataTipsSubMenu"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidPinExpression"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidAddExpression"/>
+      <UsedCommand guid="guidRazorCmdSet" id="cmdidRemoveExpression"/>
+    </UsedCommands>
+  </UsedCommands>
+</CommandTable>

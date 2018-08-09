@@ -219,6 +219,7 @@ namespace tinystl {
 			*it = 0;
 
 		m_last = m_first + size;
+		m_first[size] = '\0';
 	}
 
 	inline void string::append(const char* first, const char* last) {

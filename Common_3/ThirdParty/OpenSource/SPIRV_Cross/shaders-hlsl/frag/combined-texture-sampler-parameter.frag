@@ -1,7 +1,7 @@
 #version 310 es
 precision mediump float;
 
-layout(set = 0, binding = 1) uniform mediump sampler2D uSampler;
+layout(set = 0, binding = 0) uniform mediump sampler2D uSampler;
 layout(set = 0, binding = 1) uniform mediump sampler2DShadow uSamplerShadow;
 layout(location = 0) out float FragColor;
 

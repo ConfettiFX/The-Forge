@@ -257,7 +257,7 @@ public:
 		addComputePipeline(pRenderer, &computePipelineDesc, &pComputePipeline);
 
 		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mSize = sizeof(UniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -543,14 +543,13 @@ public:
 		// Create empty texture for output of compute shader
 		TextureLoadDesc textureDesc = {};
 		TextureDesc desc = {};
-		desc.mType = TEXTURE_TYPE_2D;
 		desc.mWidth = mSettings.mWidth;
 		desc.mHeight = mSettings.mHeight;
 		desc.mDepth = 1;
 		desc.mArraySize = 1;
 		desc.mMipLevels = 1;
 		desc.mFormat = ImageFormat::RGBA8;
-		desc.mUsage = (TextureUsage)(TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS);
+		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		desc.mSampleCount = SAMPLE_COUNT_1;
 		desc.mHostVisible = false;
 		textureDesc.pDesc = &desc;

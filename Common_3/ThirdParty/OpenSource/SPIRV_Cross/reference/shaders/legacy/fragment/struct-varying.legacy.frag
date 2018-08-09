@@ -8,15 +8,15 @@ struct Inputs
     highp vec2 b;
 };
 
-varying highp vec4 Inputs_a;
-varying highp vec2 Inputs_b;
+varying highp vec4 vin_a;
+varying highp vec2 vin_b;
 
 void main()
 {
-    Inputs v0 = Inputs(Inputs_a, Inputs_b);
-    Inputs v1 = Inputs(Inputs_a, Inputs_b);
-    highp vec4 a = Inputs_a;
-    highp vec4 b = Inputs_b.xxyy;
+    Inputs v0 = Inputs(vin_a, vin_b);
+    Inputs v1 = Inputs(vin_a, vin_b);
+    highp vec4 a = vin_a;
+    highp vec4 b = vin_b.xxyy;
     gl_FragData[0] = ((((v0.a + v0.b.xxyy) + v1.a) + v1.b.yyxx) + a) + b;
 }
 

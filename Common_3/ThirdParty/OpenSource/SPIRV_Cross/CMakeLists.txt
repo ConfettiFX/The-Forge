@@ -93,6 +93,10 @@ spirv_cross_add_library(spirv-cross-cpp spirv_cross_cpp STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_cpp.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_cpp.cpp)
 
+spirv_cross_add_library(spirv-cross-reflect spirv_cross_reflect STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.cpp)
+
 spirv_cross_add_library(spirv-cross-msl spirv_cross_msl STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_msl.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_msl.cpp)
@@ -101,9 +105,17 @@ spirv_cross_add_library(spirv-cross-hlsl spirv_cross_hlsl STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_hlsl.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/spirv_hlsl.cpp)
 
+spirv_cross_add_library(spirv-cross-util spirv_cross_util STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/spirv_cross_util.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/spirv_cross_util.cpp)
+
 add_executable(spirv-cross main.cpp)
+target_compile_options(spirv-cross PRIVATE ${spirv-compiler-options})
+target_compile_definitions(spirv-cross PRIVATE ${spirv-compiler-defines})
+
 install(TARGETS spirv-cross RUNTIME DESTINATION bin)
-target_link_libraries(spirv-cross spirv-cross-glsl spirv-cross-hlsl spirv-cross-cpp spirv-cross-msl spirv-cross-core)
+target_link_libraries(spirv-cross spirv-cross-glsl spirv-cross-hlsl spirv-cross-cpp spirv-cross-reflect spirv-cross-msl spirv-cross-util spirv-cross-core)
+target_link_libraries(spirv-cross-util spirv-cross-core)
 target_link_libraries(spirv-cross-glsl spirv-cross-core)
 target_link_libraries(spirv-cross-msl spirv-cross-glsl)
 target_link_libraries(spirv-cross-hlsl spirv-cross-glsl)
@@ -120,11 +132,29 @@ if (${PYTHONINTERP_FOUND})
 	add_test(NAME spirv-cross-test
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py
 			${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+	add_test(NAME spirv-cross-test-no-opt
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py
+			${CMAKE_CURRENT_SOURCE_DIR}/shaders-no-opt)
 	add_test(NAME spirv-cross-test-metal
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --metal
 			${CMAKE_CURRENT_SOURCE_DIR}/shaders-msl)
+	add_test(NAME spirv-cross-test-metal-no-opt
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --metal
+			${CMAKE_CURRENT_SOURCE_DIR}/shaders-msl-no-opt)
 	add_test(NAME spirv-cross-test-hlsl
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --hlsl
+			${CMAKE_CURRENT_SOURCE_DIR}/shaders-hlsl)
+	add_test(NAME spirv-cross-test-hlsl-no-opt
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --hlsl
+			${CMAKE_CURRENT_SOURCE_DIR}/shaders-hlsl-no-opt)
+	add_test(NAME spirv-cross-test-opt
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --opt
+			${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+	add_test(NAME spirv-cross-test-metal-opt
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --metal --opt
+			${CMAKE_CURRENT_SOURCE_DIR}/shaders-msl)
+	add_test(NAME spirv-cross-test-hlsl-opt
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --hlsl --opt
 			${CMAKE_CURRENT_SOURCE_DIR}/shaders-hlsl)
   endif()
 else()

@@ -109,7 +109,7 @@ layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 3) uniform texture2D brdfIntegrationMap;
 layout(set = 0, binding = 4) uniform textureCube irradianceMap;
-layout(set = 0, binding = 5) uniform textureCube specularMap;
+layout(set = 0, binding = 5) uniform textureCube  specularMap;
 layout(set = 0, binding = 6) uniform sampler envSampler;
 
 // material parameters
@@ -235,8 +235,11 @@ void main()
 	vec3 irradiance = texture(samplerCube(irradianceMap, envSampler), N).rgb;
 	vec3 diffuse = kD * irradiance * albedo;
 
-	vec3 specularColor = textureLod(samplerCube(specularMap, envSampler), R, _roughness * 4).rgb;
-	vec2 brdf = texture(sampler2D(brdfIntegrationMap, defaultSampler), vec2(max(dot(N,V), _roughness))).rg;
+	vec3 specularColor = textureLod(samplerCube(specularMap, envSampler), R, uint(_roughness * 4)).rgb;
+
+	vec2 maxNVRough = vec2(max(dot(N, V), 0.0), _roughness);
+
+	vec2 brdf = texture(sampler2D(brdfIntegrationMap, defaultSampler), maxNVRough).rg;
 	vec3 specular = specularColor * (F * brdf.x + brdf.y);
 	vec3 ambient = vec3(diffuse + specular) * vec3(ao);
 	
