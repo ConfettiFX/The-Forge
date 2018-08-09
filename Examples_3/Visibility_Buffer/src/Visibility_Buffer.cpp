@@ -679,7 +679,7 @@ public:
 #if !defined(METAL)
 		// Default (non-filtered) index buffer for the scene
 		BufferLoadDesc ibDesc = {};
-		ibDesc.mDesc.mUsage = BUFFER_USAGE_INDEX | BUFFER_USAGE_STORAGE_SRV;
+		ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 		ibDesc.mDesc.mElementCount = pScene->totalTriangles;
@@ -698,7 +698,7 @@ public:
 				trianglesBuffer[t] = j;
 		}
 		BufferLoadDesc ibDesc = {};
-		ibDesc.mDesc.mUsage = BUFFER_USAGE_INDEX | BUFFER_USAGE_STORAGE_SRV;
+		ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 		ibDesc.mDesc.mElementCount = pScene->totalTriangles;
@@ -714,7 +714,7 @@ public:
 
 		// Vertex position buffer for the scene
 		BufferLoadDesc vbPosDesc = {};
-		vbPosDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX | BUFFER_USAGE_STORAGE_SRV;
+		vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbPosDesc.mDesc.mVertexStride = sizeof(SceneVertexPos);
 		vbPosDesc.mDesc.mElementCount = pScene->totalVertices;
@@ -727,7 +727,7 @@ public:
 
 		// Vertex texcoord buffer for the scene
 		BufferLoadDesc vbTexCoordDesc = {};
-		vbTexCoordDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX | BUFFER_USAGE_STORAGE_SRV;
+		vbTexCoordDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		vbTexCoordDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbTexCoordDesc.mDesc.mVertexStride = sizeof(SceneVertexTexCoord);
 		vbTexCoordDesc.mDesc.mElementCount = pScene->totalVertices * (sizeof(SceneVertexTexCoord) / sizeof(uint32_t));
@@ -740,7 +740,7 @@ public:
 
 		// Vertex normal buffer for the scene
 		BufferLoadDesc vbNormalDesc = {};
-		vbNormalDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX | BUFFER_USAGE_STORAGE_SRV;
+		vbNormalDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		vbNormalDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbNormalDesc.mDesc.mVertexStride = sizeof(SceneVertexNormal);
 		vbNormalDesc.mDesc.mElementCount = pScene->totalVertices * (sizeof(SceneVertexNormal) / sizeof(uint32_t));
@@ -753,7 +753,7 @@ public:
 
 		// Vertex tangent buffer for the scene
 		BufferLoadDesc vbTangentDesc = {};
-		vbTangentDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX | BUFFER_USAGE_STORAGE_SRV;
+		vbTangentDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		vbTangentDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbTangentDesc.mDesc.mVertexStride = sizeof(SceneVertexTangent);
 		vbTangentDesc.mDesc.mElementCount = pScene->totalVertices * (sizeof(SceneVertexTangent) / sizeof(uint32_t));
@@ -827,14 +827,14 @@ public:
 			pShaders[i * 2 + 1] = pShaderShadowPass[i];
 		}
 		RootSignatureDesc vbRootDesc = { pShaders, gNumGeomSets * 2 };
-		vbRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
+		vbRootDesc.mMaxBindlessTextures = pScene->numMaterials;
 		vbRootDesc.ppStaticSamplerNames = &pTextureSamplerName;
 		vbRootDesc.ppStaticSamplers = &pSamplerPointClamp;
 		vbRootDesc.mStaticSamplerCount = 1;
 		addRootSignature(pRenderer, &vbRootDesc, &pRootSignatureVBPass);
 
 		RootSignatureDesc deferredPassRootDesc = { pShaderDeferredPass, gNumGeomSets };
-		deferredPassRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
+		deferredPassRootDesc.mMaxBindlessTextures = pScene->numMaterials;
 		deferredPassRootDesc.ppStaticSamplerNames = &pTextureSamplerName;
 		deferredPassRootDesc.ppStaticSamplers = &pSamplerTrilinearAniso;
 		deferredPassRootDesc.mStaticSamplerCount = 1;
@@ -842,7 +842,7 @@ public:
 
 		RootSignatureDesc shadeRootDesc = { pShaderVisibilityBufferShade, 2 };
 		// Set max number of bindless textures in the root signature
-		shadeRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = pScene->numMaterials;
+		shadeRootDesc.mMaxBindlessTextures = pScene->numMaterials;
 		shadeRootDesc.ppStaticSamplerNames = pShadingSamplerNames;
 		shadeRootDesc.ppStaticSamplers = pShadingSamplers;
 		shadeRootDesc.mStaticSamplerCount = 2;
@@ -980,7 +980,7 @@ public:
 #if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
 		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
 		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
-		for (uint32_t i = 0; i < _countof(wantedResolutions); ++i)
+		for (uint32_t i = 0; i < sizeof(wantedResolutions) / sizeof(wantedResolutions[0]); ++i)
 		{
 			bool duplicate = false;
 			for (uint32_t j = 0; j < (uint32_t)gResolutions.size(); ++j)
@@ -1917,8 +1917,6 @@ public:
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		depthRT.mWidth = width;
 		depthRT.pDebugName = L"Depth Buffer RT";
@@ -1934,8 +1932,6 @@ public:
 		shadowRTDesc.mWidth = gShadowMapSize;
 		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowRTDesc.mSampleQuality = 0;
-		shadowRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		shadowRTDesc.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		//shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		shadowRTDesc.mHeight = gShadowMapSize;
 		shadowRTDesc.pDebugName = L"Shadow Map RT";
@@ -1951,8 +1947,6 @@ public:
 		vbRTDesc.mHeight = height;
 		vbRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		vbRTDesc.mSampleQuality = 0;
-		vbRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		vbRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		vbRTDesc.mWidth = width;
 		vbRTDesc.pDebugName = L"VB RT";
@@ -1968,8 +1962,6 @@ public:
 		deferredRTDesc.mHeight = height;
 		deferredRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		deferredRTDesc.mSampleQuality = 0;
-		deferredRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		deferredRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		deferredRTDesc.mWidth = width;
 		deferredRTDesc.pDebugName = L"G-Buffer RTs";
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
@@ -1987,8 +1979,6 @@ public:
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		msaaRTDesc.mSampleQuality = 0;
-		msaaRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		msaaRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		msaaRTDesc.mWidth = width;
 		msaaRTDesc.pDebugName = L"MSAA RT";
 		// Disabling compression data will avoid decompression phase before resolve pass.
@@ -2008,8 +1998,6 @@ public:
 		aoRTDesc.mHeight = height;
 		aoRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		aoRTDesc.mSampleQuality = 0;
-		aoRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		aoRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		aoRTDesc.mWidth = width;
 		aoRTDesc.pDebugName = L"AO RT";
 		addRenderTarget(pRenderer, &aoRTDesc, &pRenderTargetAO);
@@ -2186,7 +2174,7 @@ public:
 		}
 
 		BufferLoadDesc materialPropDesc = {};
-		materialPropDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV;
+		materialPropDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 		materialPropDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		materialPropDesc.mDesc.mElementCount = pScene->numMaterials;
 		materialPropDesc.mDesc.mStructStride = sizeof(uint32_t);
@@ -2219,7 +2207,7 @@ public:
 
 		// Setup uniform data for draw batch data.
 		BufferLoadDesc indirectBufferDesc = {};
-		indirectBufferDesc.mDesc.mUsage = BUFFER_USAGE_INDIRECT | BUFFER_USAGE_STORAGE_SRV;
+		indirectBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		indirectBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		indirectBufferDesc.mDesc.mStructStride = sizeof(VisBufferIndirectCommand);
 		indirectBufferDesc.mDesc.mFirstElement = 0;
@@ -2232,7 +2220,7 @@ public:
 
 		// Setup indirect material buffer.
 		BufferLoadDesc indirectDesc = {};
-		indirectDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV;
+		indirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 		indirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		indirectDesc.mDesc.mElementCount = pScene->numMeshes;
 		indirectDesc.mDesc.mStructStride = sizeof(uint32_t);
@@ -2295,7 +2283,7 @@ public:
 		{
 			// Setup uniform data for draw batch data
 			BufferLoadDesc indirectBufferDesc = {};
-			indirectBufferDesc.mDesc.mUsage = BUFFER_USAGE_INDIRECT | BUFFER_USAGE_STORAGE_SRV;
+			indirectBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 			indirectBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			indirectBufferDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
 			indirectBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
@@ -2307,7 +2295,7 @@ public:
 		}
 
 		BufferLoadDesc indirectDesc = {};
-		indirectDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV;
+		indirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 		indirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		indirectDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		indirectDesc.mDesc.mStructStride = sizeof(uint32_t);
@@ -2321,7 +2309,7 @@ public:
 		// Indirect buffers for culling
 		/************************************************************************/
 		BufferLoadDesc filterIbDesc = {};
-		filterIbDesc.mDesc.mUsage = BUFFER_USAGE_INDEX | BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		filterIbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		filterIbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		filterIbDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 		filterIbDesc.mDesc.mElementCount = pScene->totalTriangles;
@@ -2351,7 +2339,7 @@ public:
 		}
 
 		BufferLoadDesc filterIndirectDesc = {};
-		filterIndirectDesc.mDesc.mUsage = BUFFER_USAGE_INDIRECT | BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		filterIndirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		filterIndirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		filterIndirectDesc.mDesc.mElementCount = pScene->numMeshes;
 		filterIndirectDesc.mDesc.mStructStride = sizeof(VisBufferIndirectCommand);
@@ -2380,7 +2368,7 @@ public:
 		}
 
 		BufferLoadDesc filterIndirectDesc = {};
-		filterIndirectDesc.mDesc.mUsage = BUFFER_USAGE_INDIRECT | BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		filterIndirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		filterIndirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
@@ -2389,7 +2377,7 @@ public:
 		filterIndirectDesc.pData = indirectDrawArguments;
 
 		BufferLoadDesc uncompactedDesc = {};
-		uncompactedDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		uncompactedDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		uncompactedDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		uncompactedDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT;
 		uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
@@ -2398,7 +2386,7 @@ public:
 		uncompactedDesc.pData = NULL;
 
 		BufferLoadDesc filterMaterialDesc = {};
-		filterMaterialDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		filterMaterialDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		filterMaterialDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		filterMaterialDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		filterMaterialDesc.mDesc.mStructStride = sizeof(uint32_t);
@@ -2442,7 +2430,7 @@ public:
 			pFilterBatchChunk[i]->currentDrawCallCount = 0;
 
 			BufferLoadDesc ubDesc = {};
-			ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 			ubDesc.mDesc.mSize = bufferSize;
@@ -2482,7 +2470,7 @@ public:
 		}
 
 		BufferLoadDesc meshConstantDesc = {};
-		meshConstantDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV;
+		meshConstantDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 		meshConstantDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		meshConstantDesc.mDesc.mElementCount = pScene->numMeshes;
 		meshConstantDesc.mDesc.mStructStride = sizeof(MeshConstants);
@@ -2502,7 +2490,7 @@ public:
 		uint64_t size = sizeof(PerFrameConstants);
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mSize = size;
-		ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = nullptr;
@@ -2528,7 +2516,7 @@ public:
 
 			BufferLoadDesc batchUb = {};
 			batchUb.mDesc.mSize = sizeof(PerBatchConstants);
-			batchUb.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+			batchUb.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			batchUb.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			batchUb.pData = &perBatchData;
 			batchUb.ppBuffer = &gPerBatchUniformBuffers[j];
@@ -2549,7 +2537,7 @@ public:
 		}
 		BufferLoadDesc batchUb = {};
 		batchUb.mDesc.mSize = sizeof(gLightData);
-		batchUb.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_UNIFORM;
+		batchUb.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		batchUb.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		batchUb.mDesc.mFirstElement = 0;
 		batchUb.mDesc.mElementCount = LIGHT_COUNT;
@@ -2563,7 +2551,7 @@ public:
 		uint32_t lightClustersInitData[LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT] = {};
 		BufferLoadDesc lightClustersCountBufferDesc = {};
 		lightClustersCountBufferDesc.mDesc.mSize = LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT * sizeof(uint32_t);
-		lightClustersCountBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		lightClustersCountBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		lightClustersCountBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		lightClustersCountBufferDesc.mDesc.mFirstElement = 0;
 		lightClustersCountBufferDesc.mDesc.mElementCount = LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
@@ -2578,7 +2566,7 @@ public:
 
 		BufferLoadDesc lightClustersDataBufferDesc = {};
 		lightClustersDataBufferDesc.mDesc.mSize = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT * sizeof(uint32_t);
-		lightClustersDataBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV;
+		lightClustersDataBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
 		lightClustersDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		lightClustersDataBufferDesc.mDesc.mFirstElement = 0;
 		lightClustersDataBufferDesc.mDesc.mElementCount = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;

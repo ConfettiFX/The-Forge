@@ -1,0 +1,1419 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <!-- ============================================================================ -->
+  <!-- = Copyright (c) Microsoft Corporation.  All rights reserved.               = -->
+  <!-- = Microsoft Confidential                                                   = -->
+  <!-- =                                                                          = -->
+  <!-- = File: AppIDCmdUsed.vsct                                                  = -->
+  <!-- =                                                                          = -->
+  <!-- ============================================================================ -->
+
+
+  <Extern href="stdidcmd.h"/>
+  <Extern href="vsshlids.h"/>
+  <Extern href="virtkeys.h"/>
+  <Extern href="sccmnid.h"/>
+  <Extern href="mnuhelpids.h"/>
+
+  <UsedCommands>
+
+
+    <!-- Window Menu Commands -->
+    <UsedCommands Condition="!Defined(No_WindowCommands)">
+      <UsedCommand Condition="!Defined(No_NewWindowCommand)" guid="guidVSStd97" id="cmdidNewWindow"/>
+      <UsedCommand Condition="!Defined(No_SplitCommand)" guid="guidVSStd97" id="cmdidSplit"/>
+      <UsedCommand Condition="!Defined(No_CascadeCommand)" guid="guidVSStd97" id="cmdidCascade"/>
+      <UsedCommand Condition="!Defined(No_TileHorzCommand)" guid="guidVSStd97" id="cmdidTileHorz"/>
+      <UsedCommand Condition="!Defined(No_TileVertCommand)" guid="guidVSStd97" id="cmdidTileVert"/>
+      <UsedCommand Condition="!Defined(No_CloseAllDocumentsCommand)" guid="guidVSStd97" id="cmdidCloseAllDocuments"/>
+      <UsedCommand Condition="!Defined(No_WindowListCommand)" guid="guidVSStd97" id="cmdidWindow1"/>
+      <UsedCommand Condition="!Defined(No_MoreWindowsCommand)" guid="guidVSStd97" id="cmdidMoreWindows"/>
+      <UsedCommand Condition="!Defined(No_PaneNextPaneCommand)" guid="guidVSStd97" id="cmdidPaneNextPane"/>
+      <UsedCommand Condition="!Defined(No_PanePrevPaneCommand)" guid="guidVSStd97" id="cmdidPanePrevPane"/>
+      <UsedCommand Condition="!Defined(No_PaneNextTabCommand)" guid="guidVSStd97" id="cmdidPaneNextTab"/>
+      <UsedCommand Condition="!Defined(No_PanePrevTabCommand)" guid="guidVSStd97" id="cmdidPanePrevTab"/>
+      <UsedCommand Condition="!Defined(No_PaneNextSubPaneCommand)" guid="guidVSStd97" id="cmdidPaneNextSubPane"/>
+      <UsedCommand Condition="!Defined(No_PanePrevSubPaneCommand)" guid="guidVSStd97" id="cmdidPanePrevSubPane"/>
+      <UsedCommand Condition="!Defined(No_PaneCloseToolWindowCommand)" guid="guidVSStd97" id="cmdidPaneCloseToolWindow"/>
+      <UsedCommand Condition="!Defined(No_PaneActivateDocWindowCommand)" guid="guidVSStd97" id="cmdidPaneActivateDocWindow"/>
+      <UsedCommand Condition="!Defined(No_NextDocumentCommand)" guid="guidVSStd97" id="cmdidNextDocument"/>
+      <UsedCommand Condition="!Defined(No_PrevDocumentCommand)" guid="guidVSStd97" id="cmdidPrevDocument"/>
+      <UsedCommand Condition="!Defined(No_NextDocumentNavCommand)" guid="guidVSStd97" id="cmdidNextDocumentNav"/>
+      <UsedCommand Condition="!Defined(No_PrevDocumentNavCommand)" guid="guidVSStd97" id="cmdidPrevDocumentNav"/>
+      <UsedCommand Condition="!Defined(No_NextToolWindowCommand)" guid="guidVSStd2K" id="cmdidNextToolWindow"/>
+      <UsedCommand Condition="!Defined(No_PrevToolWindowCommand)" guid="guidVSStd2K" id="cmdidPrevToolWindow"/>
+      <UsedCommand Condition="!Defined(No_NextToolWindowNavCommand)" guid="guidVSStd2K" id="cmdidNextToolWindowNav"/>
+      <UsedCommand Condition="!Defined(No_PrevToolWindowNavCommand)" guid="guidVSStd2K" id="cmdidPrevToolWindowNav"/>
+      <UsedCommand Condition="!Defined(No_CloseDocumentCommand)" guid="guidVSStd97" id="cmdidCloseDocument"/>
+      <UsedCommand Condition="!Defined(No_MoveToDropdownBarCommand)" guid="guidVSStd97" id="cmdidMoveToDropdownBar"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_SplitNextCommand)" guid="guidVSStd97" id="cmdidSplitNext"/>
+      <UsedCommand Condition="!Defined(No_SplitPrevCommand)" guid="guidVSStd97" id="cmdidSplitPrev"/>
+      <!--   // Dockable / Hide commands -->
+      <UsedCommand Condition="!Defined(No_DockingViewCommand)" guid="guidVSStd97" id="cmdidDockingView"/>
+      <UsedCommand Condition="!Defined(No_DockingViewFloaterCommand)" guid="guidVSStd97" id="cmdidDockingViewFloater"/>
+      <UsedCommand Condition="!Defined(No_DockingViewDocumentCommand)" guid="guidVSStd97" id="cmdidDockingViewDocument"/>
+      <UsedCommand Condition="!Defined(No_HideActivePaneCommand)" guid="guidVSStd97" id="cmdidHideActivePane"/>
+      <UsedCommand Condition="!Defined(No_AutoHideWindowCommand)" guid="guidVSStd97" id="cmdidAutoHideWindow"/>
+      <UsedCommand Condition="!Defined(No_AutoHideAllWindowsCommand)" guid="guidVSStd97" id="cmdidAutoHideAllWindows"/>
+      <UsedCommand Condition="!Defined(No_SaveLayoutCommand)" guid="guidVSStd14" id="cmdidSaveLayout"/>
+      <UsedCommand Condition="!Defined(No_ManageLayoutsCommand)" guid="guidVSStd14" id="cmdidManageLayouts"/>
+      <UsedCommand Condition="!Defined(No_ResetLayoutCommand)" guid="guidVSStd97" id="cmdidResetLayout"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList0"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList1"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList2"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList3"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList4"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList5"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList6"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList7"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList8"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutList9"/>
+      <UsedCommand Condition="!Defined(No_WindowLayoutListCommands)" guid="guidVSStd14" id="cmdidWindowLayoutListDynamicFirst"/>
+      <UsedCommand Condition="!Defined(No_CancelEZDragCommand)" guid="guidVSStd97" id="cmdidCancelEZDrag"/>
+      <UsedCommand Condition="!Defined(No_MoveToNextEZCntrCommand)" guid="guidVSStd97" id="cmdidMoveToNextEZCntr"/>
+      <UsedCommand Condition="!Defined(No_MoveToPreviousEZCntrCommand)" guid="guidVSStd97" id="cmdidMoveToPreviousEZCntr"/>
+      <UsedCommand Condition="!Defined(No_WindowFrameDockMenuCommand)" guid="guidVSStd10" id="cmdidWindowFrameDockMenu" />
+
+      <UsedCommand Condition="!Defined(No_FloatCommand)" guid="guidVSStd2K" id="cmdidDocumentFloat" />
+      <UsedCommand Condition="!Defined(No_FloatAllCommand)" guid="guidVSStd11" id="cmdidFloatAll" />
+      <UsedCommand Condition="!Defined(No_MoveAllToNextCommand)" guid="guidVSStd11" id="cmdidMoveAllToNext" />
+      <UsedCommand Condition="!Defined(No_MoveAllToPreviousCommand)" guid="guidVSStd11" id="cmdidMoveAllToPrevious" />
+      <UsedCommand Condition="!Defined(No_MultiSelectCommand)" guid="guidVSStd11" id="cmdidMultiSelect" />
+      <UsedCommand Condition="!Defined(No_PaneNextTabAndMultiSelectCommand)" guid="guidVSStd11" id="cmdidPaneNextTabAndMultiSelect" />
+      <UsedCommand Condition="!Defined(No_PanePrevTabAndMultiSelectCommand)" guid="guidVSStd11" id="cmdidPanePrevTabAndMultiSelect" />
+      <UsedCommand Condition="!Defined(No_PinTabCommand)" guid="guidVSStd11" id="cmdidPinTab" />
+      <UsedCommand Condition="!Defined(No_BringFloatingWindowsToFrontCommand)" guid="guidVSStd11" id="cmdidBringFloatingWindowsToFront" />
+      <UsedCommand Condition="!Defined(No_PromoteTabCommand)" guid="guidVSStd11" id="cmdidPromoteTab" />
+      <UsedCommand Condition="!Defined(No_CloseAllButPinnedCommand)" guid="guidVSStd11" id="cmdidCloseAllButPinned" />
+      <UsedCommand Condition="!Defined(No_NewProjectFromTemplate)" guid="guidVSStd11" id="cmdidNewProjectFromTemplate" />
+      
+      <!--  -->
+      <!--  ezmdi tab channel file list menu -->
+      <UsedCommand Condition="!Defined(No_EzMDIFileListCommand)" guid="guidEzMDI" id="cmdidEzMDIFile1"/>
+      <UsedCommand Condition="!Defined(No_ShowEzMDIFileMenuCommand)" guid="guidVSStd2K" id="cmdidShowEzMDIFileMenu"/>
+      <!--  -->
+      <!--  AutoHide context menu -->
+      <UsedCommand Condition="!Defined(No_AutoHideContextMenuListCommand)" guid="guidVSStd97" id="cmdidAutoHideContext1"/>
+    </UsedCommands>
+
+    <!-- Search Commands -->
+    <UsedCommands Condition="!Defined(No_SearchCommands)">
+      <UsedCommand Condition="!Defined(No_WindowSearchCommand)" guid="guidVSStd11" id="cmdidWindowSearch"/>
+      <UsedCommand Condition="!Defined(No_GlobalSearchCommand)" guid="guidVSStd11" id="cmdidGlobalSearch"/>
+      <UsedCommand Condition="!Defined(No_GlobalSearchCommand)" guid="guidVSStd11" id="cmdidGlobalSearchBack"/>
+      <UsedCommand Condition="!Defined(No_SolutionExplorerSearchCommand)" guid="guidVSStd11" id="cmdidSolutionExplorerSearch"/>
+    </UsedCommands>
+
+    <UsedCommands Condition="!Defined(No_ShellPkg_FindCommands)">
+      <UsedCommand guid="guidVSStd11" id="cmdidLocateFindTarget"/>
+      <!-- These two commands are used for automation and command window with parameters -->
+      <UsedCommand Condition="!Defined(No_FindCommand)" guid="guidVSStd97" id="cmdidFind"/>
+      <UsedCommand Condition="!Defined(No_FindInFilesCommand)" guid="guidVSStd97" id="cmdidFindInFiles"/>
+    </UsedCommands>
+
+
+    <UsedCommands Condition="!Defined(No_ToolsMenuCommands)">
+      <UsedCommand Condition="!Defined(No_ShellPkg_ImportExportSettingsCommand)" guid="guidVSStd2K" id="cmdidManageUserSettings"/>
+
+      <UsedCommand Condition="!Defined(No_ToolsOptionsCommand)" guid="guidVSStd97" id="cmdidToolsOptions"/>
+      <UsedCommand Condition="!Defined(No_CustomizeKeyboardCommand)" guid="guidVSStd97" id="cmdidCustomizeKeyboard"/>
+      <UsedCommand Condition="!Defined(No_CustomizeToolbarsCommand)" guid="guidVSStd97" id="cmdidCustomizeToolbars"/>
+
+      <UsedCommand Condition="!Defined(No_ExtensionManagerCommand)" guid="guidVSStd15" id="cmdidGetToolsAndFeatures" />
+      <UsedCommand Condition="!Defined(No_ExtensionManagerCommand)" guid="guidVSStd10" id="cmdidExtensionManager" />
+      <UsedCommand Condition="!Defined(No_ShellForceGC)" guid="guidVSStd10" id="cmdidShellForceGC" />
+
+      <UsedCommands Condition="!Defined(No_External_Tools)" >
+        <UsedCommand guid="guidVSStd97" id="cmdidExternalCommands"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool1"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool2"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool3"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool4"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool5"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool6"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool7"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool8"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool9"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool10"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool11"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool12"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool13"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool14"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool15"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool16"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool17"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool18"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool19"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool20"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool21"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool22"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool23"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidTool24"/>
+        <!-- External Tools Args Proj Menu -->
+        <UsedCommand Condition="!Defined(No_ExtToolsProjDirCommand)" guid="guidVSStd97" id="cmdidExtToolsProjDir"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsProjFileNameCommand)" guid="guidVSStd97" id="cmdidExtToolsProjFileName"/>
+        <!-- External Tools Args Sln Menu -->
+        <UsedCommand Condition="!Defined(No_ExtToolsSlnDirCommand)" guid="guidVSStd97" id="cmdidExtToolsSlnDir"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsSlnFileNameCommand)" guid="guidVSStd97" id="cmdidExtToolsSlnFileName"/>
+        <!-- External Tools Dirs Cur Menu -->
+        <UsedCommand Condition="!Defined(No_ExtToolsCurPathCommand)" guid="guidVSStd97" id="cmdidExtToolsCurPath"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsCurDirCommand)" guid="guidVSStd97" id="cmdidExtToolsCurDir"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsCurFileNameCommand)" guid="guidVSStd97" id="cmdidExtToolsCurFileName"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsCurExtensionCommand)" guid="guidVSStd97" id="cmdidExtToolsCurExtension"/>
+        <!-- External Tools Args Target Menu -->
+        <UsedCommand Condition="!Defined(No_ExtToolsTargetPathCommand)" guid="guidVSStd97" id="cmdidExtToolsTargetPath"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsTargetDirCommand)" guid="guidVSStd97" id="cmdidExtToolsTargetDir"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsTargetFileNameCommand)" guid="guidVSStd97" id="cmdidExtToolsTargetFileName"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsTargetExtensionCommand)" guid="guidVSStd97" id="cmdidExtToolsTargetExtension"/>
+        <!-- External Tools Args BinDir Menu -->
+        <UsedCommand Condition="!Defined(No_ExtToolsBinDirCommand)" guid="guidVSStd97" id="cmdidExtToolsBinDir"/>
+        <!-- External Tools Args Editor Menu -->
+        <UsedCommand Condition="!Defined(No_ExtToolsCurLineCommand)" guid="guidVSStd97" id="cmdidExtToolsCurLine"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsCurColCommand)" guid="guidVSStd97" id="cmdidExtToolsCurCol"/>
+        <UsedCommand Condition="!Defined(No_ExtToolsCurTextCommand)" guid="guidVSStd97" id="cmdidExtToolsCurText"/>
+      </UsedCommands>
+    </UsedCommands>
+
+    <UsedCommands Condition="!Defined(No_EditClassDefinitionCommands)">
+      <UsedCommand Condition="!Defined(No_AddClassCommand)" guid="guidVSStd97" id="cmdidAddClass"/>
+      <UsedCommand Condition="!Defined(No_AddNestedClassCommand)" guid="guidVSStd97" id="cmdidAddNestedClass"/>
+      <UsedCommand Condition="!Defined(No_AddInterfaceCommand)" guid="guidVSStd97" id="cmdidAddInterface"/>
+      <UsedCommand Condition="!Defined(No_AddMethodCommand)" guid="guidVSStd97" id="cmdidAddMethod"/>
+      <UsedCommand Condition="!Defined(No_AddPropertyCommand)" guid="guidVSStd97" id="cmdidAddProperty"/>
+      <UsedCommand Condition="!Defined(No_AddEventCommand)" guid="guidVSStd97" id="cmdidAddEvent"/>
+      <UsedCommand Condition="!Defined(No_AddVariableCommand)" guid="guidVSStd97" id="cmdidAddVariable"/>
+      <UsedCommand Condition="!Defined(No_AddFunctionCommand)" guid="guidVSStd97" id="cmdidAddFunction"/>
+      <UsedCommand Condition="!Defined(No_AddConnectionPointCommand)" guid="guidVSStd97" id="cmdidAddConnectionPoint"/>
+      <UsedCommand Condition="!Defined(No_AddIndexerCommand)" guid="guidVSStd97" id="cmdidAddIndexer"/>
+      <UsedCommand Condition="!Defined(No_ImplementInterfaceCommand)" guid="guidVSStd97" id="cmdidImplementInterface"/>
+      <UsedCommand Condition="!Defined(No_OverrideCommand)" guid="guidVSStd97" id="cmdidOverride"/>
+    </UsedCommands>
+
+    <UsedCommands Condition="!Defined(No_CodeNavigationCommands)">
+      <UsedCommand Condition="!Defined(No_GotoDefnCommand)" guid="guidVSStd97" id="cmdidGotoDefn"/>
+      <UsedCommand Condition="!Defined(No_GotoRefCommand)" guid="guidVSStd97" id="cmdidGotoRef"/>
+      <UsedCommand Condition="!Defined(No_GotoDeclCommand)" guid="guidVSStd97" id="cmdidGotoDecl"/>
+      <UsedCommand Condition="!Defined(No_BrowseDefnCommand)" guid="guidVSStd97" id="cmdidBrowseDefn"/>
+      <UsedCommand Condition="!Defined(No_BrowseNextCommand)" guid="guidVSStd97" id="cmdidBrowseNext"/>
+      <UsedCommand Condition="!Defined(No_BrowsePrevCommand)" guid="guidVSStd97" id="cmdidBrowsePrev"/>
+      <UsedCommand Condition="!Defined(No_ForwardBrowseContext)" guid="guidVSStd97" id="cmdidForwardBrowseContext"/>
+      <UsedCommand Condition="!Defined(No_PopBrowseContextCommand)" guid="guidVSStd97" id="cmdidPopBrowseContext"/>
+      <UsedCommand Condition="!Defined(No_ShowRefsCommand)" guid="guidVSStd97" id="cmdidShowRefs"/>
+    </UsedCommands>
+
+    <!-- These bookmark commands can be available even if the bookmarks window is not -->
+    <UsedCommands Condition="!Defined(No_BookmarkCommands)" >
+      <UsedCommand guid="guidVSStd2K" id="ECMD_GOTONEXTBOOKMARK"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_GOTOPREVBOOKMARK"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_GOTONEXTBOOKMARKINDOC" />
+      <UsedCommand guid="guidVSStd2K" id="ECMD_GOTOPREVBOOKMARKINDOC" />
+      <UsedCommand guid="guidVSStd2K" id="ECMD_DELETEALLTEMPBOOKMARKS"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_TOGGLETEMPBOOKMARK"/>
+      <UsedCommand guid="guidVSStd2K" id="cmdidToggleBookmark"/>
+    </UsedCommands>
+
+    <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows)" >
+
+      <UsedCommand Condition="!Defined(No_ShellPkg_ToolWindows_SolutionExplorer)" guid="guidVSStd97" id="cmdidProjectExplorer"/>
+      <!-- Commands on the CodeWindow context menu -->
+      <UsedCommand guid="guidVSStd97" id="cmdidMarkerCmd0"/>
+
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_Toolbox)">
+        <UsedCommand Condition="!Defined(No_PasteNextTBXCBItemCommand)" guid="guidVSStd97" id="cmdidPasteNextTBXCBItem"/>
+        <UsedCommand Condition="!Defined(No_ToolboxCommand)" guid="guidVSStd97" id="cmdidToolbox"/>
+        <UsedCommand Condition="!Defined(No_ToolboxAddItemCommand)" guid="guidVSStd97" id="cmdidToolboxAddItem"/>
+        <UsedCommand Condition="!Defined(No_ToolboxRenameItemCommand)" guid="guidVSStd97" id="cmdidToolboxRenameItem"/>
+        <UsedCommand Condition="!Defined(No_ToolboxResetCommand)" guid="guidVSStd97" id="cmdidToolboxReset"/>
+        <UsedCommand Condition="!Defined(No_ToolboxDeleteTabCommand)" guid="guidVSStd97" id="cmdidToolboxDeleteTab"/>
+        <UsedCommand Condition="!Defined(No_ToolboxRenameTabCommand)" guid="guidVSStd97" id="cmdidToolboxRenameTab"/>
+        <UsedCommand Condition="!Defined(No_ToolboxAddTabCommand)" guid="guidVSStd97" id="cmdidToolboxAddTab"/>
+        <UsedCommand Condition="!Defined(No_ToolboxSortItemsCommand)" guid="guidVSStd97" id="cmdidToolboxSortItems"/>
+        <UsedCommand Condition="!Defined(No_ToolboxShowAllTabsCommand)" guid="guidVSStd97" id="cmdidToolboxShowAllTabs"/>
+        <UsedCommand Condition="!Defined(No_ToolboxListViewCommand)" guid="guidVSStd97" id="cmdidToolboxListView"/>
+        <UsedCommand Condition="!Defined(No_ToolboxTabMoveUpCommand)" guid="guidVSStd97" id="cmdidToolboxTabMoveUp"/>
+        <UsedCommand Condition="!Defined(No_ToolboxTabMoveDownCommand)" guid="guidVSStd97" id="cmdidToolboxTabMoveDown"/>
+
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_FindCommands)">
+        <!-- Some Find commands are defined outside the scope of not having the find tool -->
+
+        <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_FindWindow)">
+          <UsedCommand guid="guidVSStd97" id="cmdidFindStop"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidFindNext"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidFindPrev"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidFindSelectedNext"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidFindSelectedPrev"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidNextLocation"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidPreviousLocation"/>
+        </UsedCommands>
+
+        <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_FindReplace)" >
+          <UsedCommand Condition="!Defined(No_ReplaceCommand)" guid="guidVSStd97" id="cmdidReplace"/>
+          <UsedCommand Condition="!Defined(No_ReplaceInFilesCommand)" guid="guidVSStd97" id="cmdidReplaceInFiles"/>
+
+          <!-- Unified Find toolbar/context menu commands -->
+          <UsedCommand Condition="!Defined(No_GotoQuickCommand)" guid="guidVSStd2K" id="cmdidGotoQuick"/>
+          <UsedCommand Condition="!Defined(No_GotoFIFCommand)" guid="guidVSStd2K" id="cmdidGotoFIF"/>
+          <UsedCommand Condition="!Defined(No_GotoSymbolCommand)" guid="guidVSStd2K" id="cmdidGotoSymbol"/>
+          <UsedCommand Condition="!Defined(No_GotoQuickReplaceCommand)" guid="guidVSStd2K" id="cmdidGotoQuickReplace"/>
+          <UsedCommand Condition="!Defined(No_GotoReplaceInFilesCommand)" guid="guidVSStd2K" id="cmdidGotoReplaceInFiles"/>
+        </UsedCommands>
+
+        <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_FindResults)">
+          <UsedCommand Condition="!Defined(No_ShellPkg_ToolWindows_FindResults1)" guid="guidVSStd97" id="cmdidFindResultWindow1"/>
+          <UsedCommand Condition="!Defined(No_ShellPkg_ToolWindows_FindResults2)" guid="guidVSStd97" id="cmdidFindResultWindow2"/>
+
+          <!-- Find Results 1 toolbar/context menu commands -->
+          <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_FindResults1)" >
+            <UsedCommand guid="guidVSStd2K" id="cmdidClearPaneFR1"/>
+            <UsedCommand guid="guidVSStd14" id="cmdidDeleteFR1"/>
+            <UsedCommand guid="guidVSStd2K" id="cmdidGotoErrorTagFR1"/>
+            <UsedCommand guid="guidVSStd2K" id="cmdidGotoNextErrorTagFR1"/>
+            <UsedCommand guid="guidVSStd2K" id="cmdidGotoPrevErrorTagFR1"/>
+          </UsedCommands>
+          <!-- Find Results 2 toolbar/context menu commands -->
+          <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_FindResults2)" >
+            <UsedCommand guid="guidVSStd2K" id="cmdidClearPaneFR2"/>
+            <UsedCommand guid="guidVSStd14" id="cmdidDeleteFR2"/>
+            <UsedCommand guid="guidVSStd2K" id="cmdidGotoErrorTagFR2"/>
+            <UsedCommand guid="guidVSStd2K" id="cmdidGotoNextErrorTagFR2"/>
+            <UsedCommand guid="guidVSStd2K" id="cmdidGotoPrevErrorTagFR2"/>
+          </UsedCommands>
+
+
+          <UsedCommand guid="guidVSStd97" id="cmdidClearPane"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidGotoErrorTag"/>
+        </UsedCommands>
+
+        <UsedCommands Condition="!Defined(No_FindDialogRegularExpressionBuilder)">
+          <!-- Regular Expression builder context menu commands -->
+          <UsedCommand guid="guidVSStd97" id="cmdidSingleChar"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidZeroOrMore"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidOneOrMore"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidBeginLine"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidEndLine"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidBeginWord"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidEndWord"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidCharInSet"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidCharNotInSet"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidOr"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidEscape"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTagExp"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidLineBreak"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidCPPIdentifier"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidQuotedString"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidSpaceOrTab"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidInteger"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidWhiteSpace"/>
+          <!-- Regex builder context help menu commands -->
+          <UsedCommand Condition="!Defined(No_PatternMatchHelpCommand)" guid="guidVSStd97" id="cmdidPatternMatchHelp"/>
+          <UsedCommand Condition="!Defined(No_RegExListCommand)" guid="guidVSStd97" id="cmdidRegExList"/>
+          <!-- Regex builder wildcard menu commands -->
+          <UsedCommand guid="guidVSStd97" id="cmdidWildZeroOrMore"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidWildSingleChar"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidWildSingleDigit"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidWildCharInSet"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidWildCharNotInSet"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidWildEscape"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidFindWhatText"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp1"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp2"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp3"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp4"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp5"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp6"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp7"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp8"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidTaggedExp9"/>
+        </UsedCommands>
+
+      </UsedCommands>
+
+
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_CommandWindow)">
+        <UsedCommand guid="guidVSStd97" id="cmdidCommandWindow"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidImmediateMode"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidLogCommandWindow"/>
+      </UsedCommands>
+
+      <!-- A few Bookmark commands are defined to be available even if the tool window is not available -->
+      <UsedCommands Condition="!Defined(No_BookmarkCommands) and !Defined(No_ShellPkg_ToolWindows_Bookmarks)" >
+        <UsedCommand guid="guidVSStd97" id="cmdidBookmarkWindow"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidNextBookmarkFolder"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidPrevBookmarkFolder"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidNewBookmarkFolder"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidDeleteBookmark"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidEnableBookmark"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidRenameBookmark"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidBookmarkWindowGoToBookmark"/>
+      </UsedCommands>
+
+      <UsedCommand Condition="!Defined(No_ShellPkg_ToolWindows_CodeExpansionWindow)" guid="guidVSStd97" id="cmdidCodeExpansionWindow"/>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_OutputWindow)">
+        <UsedCommand guid="guidVSStd2K" id="cmdidOutputPaneCombo"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOutputWindow"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidClearPaneOW"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidGotoErrorTagOW"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidGotoNextErrorTagOW"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidGotoPrevErrorTagOW"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidToggleWordWrapOW"/>
+      </UsedCommands>
+
+      <UsedCommand Condition="!Defined(No_ShellPkg_ToolWindows_ResourceView)" guid="guidVSStd97" id="cmdidResourceView"/>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_CodeDefView)">
+        <UsedCommand Condition="!Defined(No_CodeDefViewCommand)" guid="guidVSStd2K" id="cmdidCodeDefView"/>
+        <UsedCommand Condition="!Defined(No_CodeDefViewGoToPrevCommand)" guid="guidVSStd2K" id="cmdidCodeDefViewGoToPrev"/>
+        <UsedCommand Condition="!Defined(No_CodeDefViewGoToNextCommand)" guid="guidVSStd2K" id="cmdidCodeDefViewGoToNext"/>
+        <UsedCommand Condition="!Defined(No_CodeDefViewEditDefinitionCommand)" guid="guidVSStd2K" id="cmdidCodeDefViewEditDefinition"/>
+        <UsedCommand Condition="!Defined(No_CodeDefViewChooseEncodingCommand)" guid="guidVSStd2K" id="cmdidCodeDefViewChooseEncoding"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_OutlPkg_DocumentOutline)" >
+        <UsedCommand guid="guidVSStd97" id="cmdidDocOutlineWindow"/>
+        <UsedCommand Condition="!Defined(No_SyncOutlineCommand)" guid="guidDocOutlinePkg" id="cmdidSyncOutline"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_FindSymbolWindow)" >
+        <UsedCommand Condition="!Defined(No_ObjectSearchResultsCommand)" guid="guidVSStd97" id="cmdidObjectSearchResults"/>
+        <UsedCommand Condition="!Defined(No_ObjectSearchCommand)" guid="guidVSStd97" id="cmdidObjectSearch"/>
+        <UsedCommand Condition="!Defined(No_QuickObjectSearchCommand)" guid="guidVSStd97" id="cmdidQuickObjectSearch"/>
+        <UsedCommand Condition="!Defined(No_FindReferencesCommand)" guid="guidVSStd97" id="cmdidFindReferences"/>
+      </UsedCommands>
+
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_DatabaseExplorer)">
+        <UsedCommand Condition="!Defined(ViewDatabaseExplorerCommand)" guid="guidVSStd2K" id="cmdid_SE_ServerExplorer"/>
+        <UsedCommand Condition="Defined(ViewDatabaseExplorerCommand)" guid="guidVSStd2K" id="cmdid_SE_DataExplorer"/>
+        <UsedCommand Condition="!Defined(No_SE_AddConnectionCommand)" guid="guid_SE_CommandID" id="cmdid_SE_AddConnection"/>
+        <UsedCommand Condition="!Defined(No_SE_AddServerCommand)" guid="guid_SE_CommandID" id="cmdid_SE_AddServer"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_ObjectBrowser) and !Defined(No_ShellPkg_ToolWindows_FindSymbolWindow)">
+        <UsedCommand guid="guidVSStd97" id="cmdidDefineSubset"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidSubsetCombo"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidSubsetGetList"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_ObjectBrowser)">
+        <UsedCommand guid="guidVSStd97" id="cmdidObjectBrowser"/>
+
+        <UsedCommand guid="guidVSStd97" id="cmdidOBShowPackages"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBShowHidden"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBEnableGrouping"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSetGroupingCriteria"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBBack"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBForward"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSearchCombo"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSearchOptWholeWord"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSearchOptSubstring"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSearchOptPrefix"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSearchOptCaseSensitive"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSortObjectsAlpha"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSortObjectsType"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSortObjectsAccess"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBGroupObjectsType"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBGroupObjectsAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBViewMembersAsImplementor"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBViewMembersAsSubclass"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBViewMembersAsUser"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBViewOtherMembers"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBShowInheritedMembers"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBShowExtensionMembers"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBShowBaseTypes"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBShowDerivedTypes"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSortMembersAlpha"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSortMembersType"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidOBSortMembersAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBGroupMembersType"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBSortByBestMatch"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBNamespacesView"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBContainersView"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBTypeBrowserSettings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBSearch"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBSearchCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBGoToSearchCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBClearSearch"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBFilterToType"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidOBAddReference"/>
+
+        <!-- This command is used to unload BSC files from the object browser -->
+        <UsedCommand Condition="!Defined(No_BrowseUnloadCommand)" guid="guidVSStd97" id="cmdidBrowseUnload"/>
+
+      </UsedCommands>
+
+
+      <UsedCommand Condition="!Defined(No_ShellPkg_ToolWindows_ClassView)" guid="guidVSStd97" id="cmdidClassView"/>
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_ClassView)" >
+        <UsedCommand guid="guidVSStd97" id="cmdidSyncClassView"/>
+
+        <UsedCommand guid="guidVSStd97" id="cmdidCVGroupingNone"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVGroupingSortOnly"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVGroupingSortAccess"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVGroupingGrouped"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVShowPackages"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVNewFolder"/>
+
+        <UsedCommand guid="guidVSStd97" id="cmdidMoveToTop"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVShowProjectReferences"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd97" id="cmdidCVShowHidden"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVBack"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVForward"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSearchCombo"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSortObjectsAlpha"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSortObjectsType"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSortObjectsAccess"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVGroupObjectsType"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVViewMembersAsImplementor"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVViewMembersAsSubclass"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVViewMembersAsUser"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVViewOtherMembers"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVShowInheritedMembers"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVShowBaseTypes"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVShowDerivedTypes"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSortMembersAlpha"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSortMembersType"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidCVSortMembersAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVGroupMembersType"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVSortByBestMatch"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVTypeBrowserSettings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVSearch"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVSearchCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVGoToSearchCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVClearSearch"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCVFilterToType"/>
+      </UsedCommands>
+
+      <!--  task list / error list appid buttons -->
+
+      <UsedCommands Condition="!Defined(No_TaskList_ToolWindows_ErrorList)">
+        <UsedCommand guid="guidVSStd97" id="cmdidErrorListWindow"/>
+
+        <UsedCommand Condition="!Defined(No_ErrorListFiltering)" guid="guidVSStd11" id="cmdidToggleFilter"/>
+        <UsedCommand Condition="!Defined(No_ErrorListFiltering)" guid="guidVSStd11" id="cmdidFilterToCurrentProject"/>
+        <UsedCommand Condition="!Defined(No_ErrorListFiltering)" guid="guidVSStd11" id="cmdidFilterToCurrentDocument"/>
+        <UsedCommand Condition="!Defined(No_ErrorListFiltering)" guid="guidVSStd11" id="cmdidFilterToOpenDocuments"/>
+
+        <UsedCommand Condition="!Defined(No_ErrorListShowErrorsCommand)" guid="guidVSStd2K" id="cmdidErrorListShowErrors"/>
+        <UsedCommand Condition="!Defined(No_ErrorListShowWarningsCommand)" guid="guidVSStd2K" id="cmdidErrorListShowWarnings"/>
+        <UsedCommand Condition="!Defined(No_ErrorListShowMessagesCommand)" guid="guidVSStd2K" id="cmdidErrorListShowMessages"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_TaskList_ToolWindows_TaskList)" >
+        <UsedCommand guid="guidVSStd97" id="cmdidTaskListWindow"/>
+
+        <UsedCommand guid="guidVSStd2K" id="cmdidTaskListProviderCombo"/>
+        <UsedCommand Condition="!Defined(No_CreateUserTaskCommand)" guid="guidVSStd2K" id="cmdidCreateUserTask"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListNextError"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListPrevError"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidErrorListNextError"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidErrorListPrevError"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListTaskHelp"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle1"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle2"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle3"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle4"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle5"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle6"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle7"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle8"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle9"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle10"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle11"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle12"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle13"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle14"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle15"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle16"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle17"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle18"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle19"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle20"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle21"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle22"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle23"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle24"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnToggle25"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort1"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort2"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort3"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort4"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort5"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort6"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort7"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort8"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort9"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort10"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort11"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort12"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort13"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort14"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort15"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort16"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort17"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort18"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort19"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort20"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort21"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort22"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort23"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort24"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnSort25"/>
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup1" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup2" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup3" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup4" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup5" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup6" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup7" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup8" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup9" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup10" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup11" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup12" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup13" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup14" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup15" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup16" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup17" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup18" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup19" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup20" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup21" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup22" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup23" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup24" />
+        <UsedCommand guid="CLSID_VsTaskListPackage" id="cmdidTaskListColumnGroup25" />
+      </UsedCommands>
+
+
+      <!-- Call Browser -->
+      <UsedCommands Condition="!Defined(No_ShellPkg_ToolWindows_CallBrowser)">
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowNewCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowNewCallsFrom"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowCallsToCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowCallsFromCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowNewCallsToCmd"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowserShowNewCallsFromCmd"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15ShowCallsTo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16ShowCallsTo"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15ShowCallsFrom"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16ShowCallsFrom"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15ShowFullNames"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16ShowFullNames"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15Settings"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16Settings"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15SortAlpha"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16SortAlpha"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15SortAccess"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16SortAccess"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15Search"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16Search"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15Refresh"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16Refresh"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser2SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser3SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser4SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser5SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser6SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser7SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser8SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser9SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser10SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser11SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser12SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser13SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser14SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser15SearchCombo"/>
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser16SearchCombo"/>
+
+        <UsedCommand guid="guidVSStd2K" id="cmdidCallBrowser1"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_WbPkg_ToolWindows)" >
+        <!--  dynamic help: -->
+        <UsedCommand Condition="!Defined(WBCmdUsed_No_ContextWindow) and !Defined(No_WbPkg_ToolWindows_Dynamic_Help)" guid="guidVSStd97" id="cmdidDebugContextWindow"/>
+
+        <UsedCommands Condition="!Defined(No_WbPkg_ToolWindows_Web_Browser) and !Defined(No_WbPkg_ToolWindows_Web_Browser_Preview)" >
+          <UsedCommand guid="guidWBPkgCmd" id="icmdNavigate"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdOpenWB"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdWebBrowserFirst"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdBack"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdBack2"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdForward"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdForward2"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdStop"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdRefresh"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdHome"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdHome2"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdSearch"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdSearch2"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdURL"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdFontSize"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdFntSzLargest"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdFntSzLarger"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdFntSzMedium"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdFntSzSmaller"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdFntSzSmallest"/>
+          <!-- WebBrowser Context Menu Only Commands -->
+          <UsedCommand guid="guidWBPkgCmd" id="icmdOpenLink"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdOpenLinkNew"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdOpenLinkExt"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdSaveTargetAs"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdPrintTarget"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdSaveBgrndAs"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdCopyBackground"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdViewSource"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdShowPicture"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdSavePicture"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdProperties"/>
+          <UsedCommand guid="guidWBPkgCmd" id="icmdDisambiguationSelect"/>
+          <!-- Encoding commands -->
+          <UsedCommand guid="guidWBGrp" id="IDM_WB_ENCODING"/>
+        </UsedCommands>
+      </UsedCommands>
+    </UsedCommands>
+
+    <UsedCommands Condition="!Defined(No_ShellPkg_SearchCombo) or !Defined(No_ShellPkg_ToolWindows_CommandWindow)">
+      <UsedCommand guid="guidVSStd97" id="cmdidAlias"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidGotoCommandLine"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidShell"/>
+    </UsedCommands>
+
+
+
+
+
+    <!--  edit cmd used -->
+    <UsedCommands Condition="!Defined(No_ShellPkg_EditorCommands)">
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BACKSPACE"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_RETURN"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_TAB"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_LEFT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_LEFT_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_LEFT_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_RIGHT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_RIGHT_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_RIGHT_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_UP"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_UP_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_UP_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_DOWN"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_DOWN_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_DOWN_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_HOME"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_HOME_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_END"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_END_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BOL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BOL_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BOL_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_FIRSTCHAR"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_FIRSTCHAR_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_EOL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_EOL_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_EOL_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_LASTCHAR"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_LASTCHAR_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_PAGEUP"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_PAGEUP_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_PAGEDN"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_PAGEDN_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_TOPLINE"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_TOPLINE_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BOTTOMLINE"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BOTTOMLINE_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLUP"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLDN"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLPAGEUP"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLPAGEDN"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLLEFT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLRIGHT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLBOTTOM"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLCENTER"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_SCROLLTOP"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_BACKTAB"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_TOGGLE_OVERTYPE_MODE"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_GOTOBRACE"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_GOTOBRACE_EXT"/>
+      <!--  -->
+      <UsedCommand guid="guidVSStd2K" id="ECMD_WORDPREV"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_WORDPREV_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_WORDPREV_EXT_COL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_WORDNEXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_WORDNEXT_EXT"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_WORDNEXT_EXT_COL"/>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_AdvancedEditorCommands)">
+        <UsedCommand guid="guidVSStd2K" id="ECMD_FORMATDOCUMENT"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_FORMATSELECTION"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELTABIFY"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELUNTABIFY"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CONVERTTABSTOSPACES"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CONVERTSPACESTOTABS"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELUPCASE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELLOWCASE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELTOGGLECASE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELSWAPANCHOR"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CUTLINE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETELINE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETEBLANKLINES"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETEWHITESPACE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETETOEOL"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETETOBOL"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_OPENLINEABOVE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_OPENLINEBELOW"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_INCREASEFILTER"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DECREASEFILTER"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SMARTTASKS"/>
+        <UsedCommand guid="guidVSStd12" id="cmdidMoveSelLinesUp" />
+        <UsedCommand guid="guidVSStd12" id="cmdidMoveSelLinesDown" />
+        <UsedCommand guid="guidVSStd14" id="cmdidShowQuickFixes"/>
+        <UsedCommand guid="guidVSStd14" id="cmdidShowQuickFixesForPosition"/>
+        <UsedCommand guid="guidVSStd14" id="cmdidShowQuickFixesForPosition2"/>
+        <UsedCommand guid="guidVSStd14" id="cmdidSmartBreakLine"/>
+
+        <UsedCommands Condition="!Defined(No_ShellPkg_SnippetCommands)">
+          <UsedCommand Condition="!Defined(No_ShellPkg_SurroundWithSnippetCommand)" guid="guidVSStd2K" id="ECMD_SURROUNDWITH"/>
+          <UsedCommand Condition="!Defined(No_ShellPkg_InsertSnippetCommand)" guid="guidVSStd2K" id="ECMD_INSERTSNIPPET"/>
+          <UsedCommand Condition="!Defined(No_ShellPkg_InvokeSnippetFromShortcutCommand)" guid="guidVSStd2K" id="ECMD_INVOKESNIPPETFROMSHORTCUT"/>
+          <UsedCommand Condition="!Defined(No_ShellPkg_ShowSnippetHighlighting)" guid="guidVSStd2K" id="ECMD_SHOWSNIPPETHIGHLIGHTING" />
+          <UsedCommand Condition="!Defined(No_ShellPkg_HideSnippetHighlighting)" guid="guidVSStd2K" id="ECMD_HIDESNIPPETHIGHLIGHTING" />
+        </UsedCommands>
+
+        <UsedCommand guid="guidVSStd2K" id="ECMD_INDENT"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_UNINDENT"/>
+        <!--    -->
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TRANSPOSECHAR"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TRANSPOSEWORD"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TRANSPOSELINE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELECTCURRENTWORD"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_SELTITLECASE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETEWORDLEFT"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DELETEWORDRIGHT"/>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CANCEL"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TOGGLEVISSPACE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TOGGLECARETPASTEPOS"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_FIRSTNONWHITEPREV"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_FIRSTNONWHITENEXT"/>
+        <!--  -->
+        <UsedCommands Condition="!Defined(No_IntellisenseCommands)">
+          <UsedCommand guid="guidVSStd2K" id="ECMD_COPYTIP"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_PASTETIP"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_SHOWMEMBERLIST"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_PARAMINFO"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_QUICKINFO"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_COMPLETEWORD"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_COMPLETION_HIDE_ADVANCED"/>
+        </UsedCommands>
+
+        <UsedCommand guid="guidVSStd2K" id="ECMD_INSERTFILE"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_OPENURL"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TOGGLESHORTCUT"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_TOGGLEWORDWRAP"/>
+        <UsedCommands Condition="!Defined(No_IncrementalSearchCommands)">
+          <UsedCommand guid="guidVSStd2K" id="ECMD_ISEARCH"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_ISEARCHBACK"/>
+        </UsedCommands>
+        <!--  -->
+        <UsedCommands Condition="!Defined(No_ShellPkg_OutliningCommands)">
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_HIDE_SELECTION"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_TOGGLE_CURRENT"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_TOGGLE_ALL"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_STOP_HIDING_ALL"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_STOP_HIDING_CURRENT"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_COLLAPSE_TO_DEF"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_OUTLN_START_AUTOHIDING"/>
+          <UsedCommand guid="guidVSStd10" id="ECMD_OUTLN_EXPAND_ALL"/>
+          <UsedCommand guid="guidVSStd10" id="ECMD_OUTLN_COLLAPSE_ALL"/>
+          <UsedCommand guid="guidVSStd10" id="ECMD_OUTLN_EXPAND_CURRENT"/>
+          <UsedCommand guid="guidVSStd10" id="ECMD_OUTLN_COLLAPSE_CURRENT"/>
+        </UsedCommands>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="ECMD_DOUBLECLICK"/>
+        <!--  -->
+        <UsedCommands Condition="!Defined(No_BlockCommentCommands)">
+          <UsedCommand guid="guidVSStd2K" id="ECMD_COMMENT_BLOCK"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_UNCOMMENT_BLOCK"/>
+        </UsedCommands>
+        <!--  -->
+        <UsedCommand Condition="!Defined(No_ECMD_OPENFILECommand)" guid="guidVSStd2K" id="ECMD_OPENFILE"/>
+        <UsedCommand Condition="!Defined(No_ECMD_NAVIGATETOURLCommand)" guid="guidVSStd2K" id="ECMD_NAVIGATETOURL"/>
+        
+        <UsedCommand Condition="!Defined(No_ECMD_SELTOGOBACKCommand)" guid="guidVSStd2K" id="ECMD_SELTOGOBACK"/>
+        <UsedCommand Condition="!Defined(No_ECMD_REVERSECANCELCommand)" guid="guidVSStd2K" id="ECMD_REVERSECANCEL"/>
+        <!--  -->
+        <UsedCommands Condition="!Defined(No_EditorDragDropCommands)">
+          <UsedCommand guid="guidVSStd2K" id="ECMD_DRAG_MOVE"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_DRAG_COPY"/>
+          <UsedCommand guid="guidVSStd2K" id="ECMD_DRAG_CANCEL"/>
+        </UsedCommands>
+        <!--  -->
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_1"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_2"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_3"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_4"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_5"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_6"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_7"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_8"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_9"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_CORRECTION_10"/>
+      </UsedCommands>
+    </UsedCommands>
+
+    <!-- Interactive commands (for F#/Roslyn/Python) -->
+    <UsedCommands Condition="!Defined(No_ExecuteInInteractiveCommands)">
+      <UsedCommand guid="guidVSStd11" id="cmdidExecuteSelectionInInteractive" />
+      <UsedCommand guid="guidVSStd11" id="cmdidExecuteLineInInteractive" />
+      <UsedCommand guid="guidVSStd11" id="cmdidInteractiveSessionInterrupt" />
+      <UsedCommand guid="guidVSStd11" id="cmdidInteractiveSessionRestart" />
+    </UsedCommands>
+
+    <!-- Build Menu Commands -->
+    <UsedCommands Condition="!Defined(No_ShellPkg_BuildCommands)">
+      <!--  -->
+      <UsedCommands Condition="!Defined(No_BuildPublishCommands)">
+        <UsedCommand guid="guidVSStd2K" id="ECMD_PUBLISHSELECTION"/>
+        <UsedCommand guid="guidVSStd2K" id="ECMD_PUBLISHSLNCTX"/>
+      </UsedCommands>
+      <!--  -->
+
+      <UsedCommand Condition="!Defined(No_BuildSlnCommand)" guid="guidVSStd97" id="cmdidBuildSln"/>
+      <UsedCommand Condition="!Defined(No_RebuildSlnCommand)" guid="guidVSStd97" id="cmdidRebuildSln"/>
+      <UsedCommand Condition="!Defined(No_DeploySlnCommand)" guid="guidVSStd97" id="cmdidDeploySln"/>
+      <UsedCommand Condition="!Defined(No_CleanSlnCommand)" guid="guidVSStd97" id="cmdidCleanSln"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_BuildSelCommand)" guid="guidVSStd97" id="cmdidBuildSel"/>
+      <UsedCommand Condition="!Defined(No_RebuildSelCommand)" guid="guidVSStd97" id="cmdidRebuildSel"/>
+      <UsedCommand Condition="!Defined(No_DeploySelCommand)" guid="guidVSStd97" id="cmdidDeploySel"/>
+      <UsedCommand Condition="!Defined(No_CleanSelCommand)" guid="guidVSStd97" id="cmdidCleanSel"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_BuildCtxCommand)" guid="guidVSStd97" id="cmdidBuildCtx"/>
+      <UsedCommand Condition="!Defined(No_RebuildCtxCommand)" guid="guidVSStd97" id="cmdidRebuildCtx"/>
+      <UsedCommand Condition="!Defined(No_DeployCtxCommand)" guid="guidVSStd97" id="cmdidDeployCtx"/>
+      <UsedCommand Condition="!Defined(No_CleanCtxCommand)" guid="guidVSStd97" id="cmdidCleanCtx"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_BatchBuildDlgCommand)" guid="guidVSStd97" id="cmdidBatchBuildDlg"/>
+      <UsedCommand Condition="!Defined(No_SlnCfgMgrCommand)" guid="guidVSStd97" id="cmdidSlnCfgMgr"/>
+      <UsedCommand Condition="!Defined(No_CancelBuildCommand)" guid="guidVSStd97" id="cmdidCancelBuild"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_BuildListCommand)" guid="guidVSStd97" id="cmdidBuild1"/>
+      <UsedCommand Condition="!Defined(No_RebuildListCommand)" guid="guidVSStd97" id="cmdidRebuild1"/>
+      <UsedCommand Condition="!Defined(No_BuildProjPickerCommand)" guid="guidVSStd97" id="cmdidBuildProjPicker"/>
+      <UsedCommand Condition="!Defined(No_RebuildProjPickerCommand)" guid="guidVSStd97" id="cmdidRebuildProjPicker"/>
+      <!--    -->
+      <UsedCommand Condition="!Defined(No_BuildOnlyProjectCommand)" guid="guidVSStd2K" id="cmdidBuildOnlyProject"/>
+      <UsedCommand Condition="!Defined(No_RebuildOnlyProjectCommand)" guid="guidVSStd2K" id="cmdidRebuildOnlyProject"/>
+      <UsedCommand Condition="!Defined(No_CleanOnlyProjectCommand)" guid="guidVSStd2K" id="cmdidCleanOnlyProject"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_ProjectDependenciesCommand)" guid="guidVSStd97" id="cmdidProjectDependencies"/>
+      <UsedCommand Condition="!Defined(No_BuildOrderCommand)" guid="guidVSStd97" id="cmdidBuildOrder"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_MoveFileToProjectListCommand)" guid="guidVSStd97" id="cmdidMoveFileToProject1"/>
+      <UsedCommand Condition="!Defined(No_MoveFileToProjectPickCommand)" guid="guidVSStd97" id="cmdidMoveFileToProjectPick"/>
+
+    </UsedCommands>
+
+
+
+
+
+    <UsedCommands Condition="!Defined(No_FileMenuCommands)">
+      <UsedCommands Condition="!Defined(No_SolutionCreationCommands)">
+        <UsedCommand Condition="!Defined(No_OpenSolutionCommand)" guid="guidVSStd97" id="cmdidOpenSolution"/>
+        <UsedCommand Condition="!Defined(No_CloseSolutionCommand)" guid="guidVSStd97" id="cmdidCloseSolution"/>
+        <UsedCommand Condition="!Defined(No_NewBlankSolutionCommand)" guid="guidVSStd97" id="cmdidNewBlankSolution"/>
+      </UsedCommands>
+
+
+      <UsedCommand Condition="!Defined(No_FileNewCommand)"  guid="guidVSStd97" id="cmdidFileNew"/>
+      <UsedCommand Condition="!Defined(No_FileOpenCommand)" guid="guidVSStd97" id="cmdidFileOpen"/>
+
+      <UsedCommand Condition="!Defined(No_FileOpenFromWebCommand)" guid="guidVSStd97" id="cmdidFileOpenFromWeb"/>
+
+      <UsedCommand Condition="!Defined(No_OpenCommand)" guid="guidVSStd97" id="cmdidOpen"/>
+      <UsedCommand Condition="!Defined(No_OpenWithCommand)" guid="guidVSStd97" id="cmdidOpenWith"/>
+      <!-- New File/Add New Item Open button drop-down menu -->
+      <UsedCommand Condition="!Defined(No_OpenDropDownOpenCommand)" guid="guidVSStd97" id="cmdidOpenDropDownOpen"/>
+      <UsedCommand Condition="!Defined(No_OpenDropDownOpenWithCommand)" guid="guidVSStd97" id="cmdidOpenDropDownOpenWith"/>
+
+      <UsedCommands Condition="!Defined(No_SaveCommands)">
+        <UsedCommand Condition="!Defined(No_SaveSelectedItemsCommand)" guid="guidVSStd97" id="cmdidSaveProjectItem"/>
+        <UsedCommand Condition="!Defined(No_SaveSelectedItemsAsCommand)" guid="guidVSStd97" id="cmdidSaveProjectItemAs"/>
+        <UsedCommand Condition="!Defined(No_SaveAllCommand)" guid="guidVSStd97" id="cmdidSaveSolution"/>
+        <UsedCommand Condition="!Defined(No_ECMD_SAVECOPYOFITEMAS)" guid="guidVSStd2K" id="ECMD_SAVECOPYOFITEMAS"/>
+        <UsedCommand Condition="!Defined(No_SaveOptionsCommand)" guid="guidVSStd97" id="cmdidSaveOptions"/>
+      </UsedCommands>
+
+      <UsedCommand Condition="!Defined(No_FileCloseCommand)" guid="guidVSStd97" id="cmdidFileClose"/>
+      <UsedCommand Condition="!Defined(No_RenameCommand)" guid="guidVSStd97" id="cmdidRename"/>
+      <UsedCommand Condition="!Defined(No_FileExitCommand)" guid="guidVSStd97" id="cmdidExit"/>
+
+      <UsedCommands Condition="!Defined(No_MRUCommands)">
+        <UsedCommand Condition="!Defined(No_MRUFileCommand)" guid="guidVSStd97" id="cmdidMRUFile1"/>
+        <UsedCommand Condition="!Defined(No_MRUProjectCommand)" guid="guidVSStd97" id="cmdidMRUProj1"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_PrintingCommands)">
+        <UsedCommand Condition="!Defined(No_PageSetupCommand)" guid="guidVSStd97" id="cmdidPageSetup"/>
+        <UsedCommand Condition="!Defined(No_PrintPreviewCommand)" guid="guidVSStd97" id="cmdidPrintPreview"/>
+        <UsedCommand Condition="!Defined(No_PrintCommand)" guid="guidVSStd97" id="cmdidPrint"/>
+        <UsedCommand Condition="!Defined(No_PrintDefaultCommand)" guid="guidVSStd97" id="cmdidPrintDefault" />
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_AccountSettingsCommands)">
+        <UsedCommand Condition="!Defined(No_AccountSettingsCommand)" guid="guidVSStd12" id="cmdidAccountSettings" />
+      </UsedCommands>
+
+    </UsedCommands>
+
+
+
+    <!--   // invisible toolbars for internal use -->
+    <UsedCommand Condition="!Defined(No_AddCommandMenu)" guid="guidSHLMainMenu" id="IDM_VS_TOOL_ADDCOMMAND"/>
+
+    <UsedCommands Condition="!Defined(No_DocumentTabContextMenu)">
+      <UsedCommand Condition="!Defined(No_CopyFullPathNameCommand)" guid="guidVSStd2K" id="cmdidCopyFullPathName"/>
+      <UsedCommand Condition="!Defined(No_BrowseToFileInExplorerCommand)" guid="guidVSStd2K" id="cmdidBrowseToFileInExplorer"/>
+      <UsedCommand Condition="!Defined(No_CloseAllButThisCommand)" guid="guidVSStd2K" id="cmdidCloseAllButThis"/>
+    </UsedCommands>
+
+
+    <!--   // Edit Menu Commands -->
+    <UsedCommands Condition="!Defined(No_EditMenuCommands)">
+      <UsedCommand Condition="!Defined(No_UndoCommand)" guid="guidVSStd97" id="cmdidUndo"/>
+      <UsedCommand Condition="!Defined(No_RedoCommand)" guid="guidVSStd97" id="cmdidRedo"/>
+      <UsedCommand Condition="!Defined(No_CutCommand)" guid="guidVSStd97" id="cmdidCut"/>
+      <UsedCommand Condition="!Defined(No_CopyCommand)" guid="guidVSStd97" id="cmdidCopy"/>
+      <UsedCommand Condition="!Defined(No_PasteCommand)" guid="guidVSStd97" id="cmdidPaste"/>
+      <UsedCommand Condition="!Defined(No_DeleteCommand)" guid="guidVSStd97" id="cmdidDelete"/>
+      <UsedCommand Condition="!Defined(No_RemoveCommand)" guid="guidVSStd97" id="cmdidRemove"/>
+      <UsedCommand Condition="!Defined(No_SelectAllCommand)" guid="guidVSStd97" id="cmdidSelectAll"/>
+      <UsedCommand Condition="!Defined(No_EditLabelCommand)" guid="guidVSStd97" id="cmdidEditLabel"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_GotoCommand)" guid="guidVSStd97" id="cmdidGoto"/>
+      <!--  -->
+      <UsedCommand Condition="!Defined(No_ObjectVerbListCommand)" guid="guidVSStd97" id="cmdidObjectVerbList0"/>
+    </UsedCommands>
+
+    <!--   // View Menu Commands -->
+    <UsedCommands Condition="!Defined(No_ViewMenuCommands)">
+      <!--   // "Toolbars" menu -->
+      <UsedCommand Condition="!Defined(No_ViewToolbarsMenu)" guid="guidSHLMainMenu" id="IDM_VS_CSCD_COMMANDBARS"/>
+      <UsedCommand Condition="!Defined(No_ViewToolbarsMenu)" guid="guidVSStd10" id="cmdidDynamicToolBarListFirst"/>
+
+      <UsedCommands Condition="!Defined(No_NavigateCommands)">
+        <UsedCommand Condition="!Defined(No_NavigateBackCommand)" guid="guidVSStd2K" id="cmdidNavigateBack"/>
+        <UsedCommand Condition="!Defined(No_NavigateForwardCommand)" guid="guidVSStd2K" id="cmdidNavigateForward"/>
+      </UsedCommands>
+
+      <UsedCommand Condition="!Defined(No_ExpandAllCommand)" guid="guidVSStd97" id="cmdidExpandAll"/>
+
+      <UsedCommand Condition="!Defined(No_RefreshCommand)" guid="guidVSStd97" id="cmdidRefresh" />
+      <UsedCommand Condition="!Defined(No_ECMD_STOPCommand)" guid="guidVSStd2K" id="ECMD_STOP"/>
+      <UsedCommand Condition="!Defined(No_ZoomDialogCommand)" guid="guidVSStd97" id="cmdidZoomDialog"/>
+
+      <UsedCommands Condition="!Defined(No_ZoomCommands)">
+        <UsedCommand guid="guidVSStd10" id="cmdidViewZoomIn"/>
+        <UsedCommand guid="guidVSStd10" id="cmdidViewZoomOut"/>
+      </UsedCommands>
+      
+      <UsedCommands Condition="!Defined(No_ShellPkg_FullScreen)">
+        <UsedCommand guid="guidVSStd97" id="cmdidFullScreen"/>
+        <UsedCommand guid="guidVSStd97" id="cmdidFullScreen2"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_PropertyBrowsingCommands)">
+        <UsedCommand Condition="!Defined(No_PropertiesWindowCommand)" guid="guidVSStd97" id="cmdidPropertiesWindow"/>
+        <UsedCommand Condition="!Defined(No_PropertyPagesCommand)" guid="guidVSStd97" id="cmdidPropertyPages"/>
+        <UsedCommand Condition="!Defined(No_PropSheetOrPropertiesCommand)" guid="guidVSStd97" id="cmdidPropSheetOrProperties"/>
+
+        <!-- Deprecated Native Properties Window -->
+        <UsedCommands Condition="Defined(ShellPkg_ToolWindows_NativePropertiesWindowSorting)">
+          <UsedCommand guid="guidVSStd97" id="cmdidPRSortAlphabeticaly"/>
+          <UsedCommand guid="guidVSStd97" id="cmdidPRSortByCategory"/>
+        </UsedCommands>
+
+        <UsedCommand Condition="!Defined(No_ViewNextTabCommand)" guid="guidVSStd97" id="cmdidViewNextTab"/>
+
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_ViewDesignerViewCodeCommands)">
+        <UsedCommand Condition="!Defined(No_ViewFormCommand)" guid="guidVSStd97" id="cmdidViewForm"/>
+        <UsedCommand Condition="!Defined(No_ViewCodeCommand)" guid="guidVSStd97" id="cmdidViewCode"/>
+        <UsedCommand Condition="!Defined(No_ToggleDesignerCommand)" guid="guidVSStd97" id="cmdidToggleDesigner"/>
+        <UsedCommand Condition="!Defined(No_OpenInCodeViewCommand)" guid="guidVSStd2K" id="cmdidOpenInCodeView"/>
+        <UsedCommand Condition="!Defined(No_OpenInFormViewCommand)" guid="guidVSStd2K" id="cmdidOpenInFormView"/>
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_BrowseItemCommands)">
+        <UsedCommand Condition="!Defined(No_PreviewInBrowserCommand)" guid="guidVSStd97" id="cmdidPreviewInBrowser"/>
+        <UsedCommand Condition="!Defined(No_BrowseWithCommand)" guid="guidVSStd97" id="cmdidBrowseWith"/>
+      </UsedCommands>
+
+    </UsedCommands>
+
+
+    <!--   // Project Menu Commands -->
+    <UsedCommands Condition="!Defined(No_ProjectCreationCommands)">
+      <UsedCommand Condition="!Defined(No_OpenProjectCommand)" guid="guidVSStd97" id="cmdidOpenProject"/>
+      <UsedCommand Condition="!Defined(No_OpenProjectFromSourceControlCommand)" guid="guidVSStd12" id="cmdidOpenProjectFromScc"/>
+      <UsedCommand Condition="!Defined(No_SelectProjectTemplateCommand)" guid="guidVSStd97" id="cmdidSelectProjectTemplate"/>
+      <UsedCommand Condition="!Defined(No_AddNewProjectCommand)" guid="guidVSStd97" id="cmdidAddNewProject"/>
+      <UsedCommand Condition="!Defined(No_AddExistingProjectCommand)" guid="guidVSStd97" id="cmdidAddExistingProject"/>
+      <UsedCommand Condition="!Defined(No_NewProjectFromExistingCommand)" guid="guidVSStd2K" id="cmdidNewProjectFromExisting"/>
+      <UsedCommand Condition="!Defined(No_NewProjectCommand)" guid="guidVSStd97" id="cmdidNewProject"/>
+    </UsedCommands>
+
+    <UsedCommands Condition="!Defined(No_ProjectCommands) OR !Defined(No_SolutionCommands)">
+      <UsedCommand Condition="!Defined(No_SetStartupProjectCommand)" guid="guidVSStd97" id="cmdidSetStartupProject"/>
+    </UsedCommands>
+
+
+    <UsedCommands Condition="!Defined(No_ProjectCommands)">
+      <UsedCommand Condition="!Defined(No_ProjectPropertiesCommand)" guid="guidVSStd97" id="cmdidProjectProperties"/>
+      <UsedCommand Condition="!Defined(No_ProjectExploreFolderInWindows)" guid="guidVSStd2K" id="cmdidExploreFolderInWindows"/>
+      <UsedCommand Condition="!Defined(No_ShareProjectCommand)" guid="guidVSStd12" id="cmdidShareProject"/>
+      <UsedCommand Condition="!Defined(No_AddNewItemCommand)" guid="guidVSStd97" id="cmdidAddNewItem"/>
+      <UsedCommand Condition="!Defined(No_AddExistingItemCommand)" guid="guidVSStd97" id="cmdidAddExistingItem"/>
+      <UsedCommand Condition="!Defined(No_NewFolderCommand)" guid="guidVSStd97" id="cmdidNewFolder"/>
+      <UsedCommand Condition="!Defined(No_ProjectReferencesCommand)" guid="guidVSStd97" id="cmdidProjectReferences"/>
+      <UsedCommand Condition="!Defined(No_CloseProjectCommand)" guid="guidVSStd2K" id="cmdidCloseProject"/>
+      <UsedCommand Condition="!Defined(No_AddReferenceProjectOnlyCommand)" guid="guidVSStd12" id="cmdidAddReferenceProjectOnly" />
+      <UsedCommand Condition="!Defined(No_AddWebReferenceProjectOnlyCommand)" guid="guidVSStd12" id="cmdidAddWebReferenceProjectOnly" />
+      <UsedCommand Condition="!Defined(No_AddServiceReferenceProjectOnlyCommand)" guid="guidVSStd12" id="cmdidAddServiceReferenceProjectOnly" />
+      <UsedCommand Condition="!Defined(No_AddReferenceNonProjectOnlyCommand)" guid="guidVSStd12" id="cmdidAddReferenceNonProjectOnly" />
+      <UsedCommand Condition="!Defined(No_AddWebReferenceNonProjectOnlyCommand)" guid="guidVSStd12" id="cmdidAddWebReferenceNonProjectOnly" />
+      <UsedCommand Condition="!Defined(No_AddServiceReferenceNonProjectOnlyCommand)" guid="guidVSStd12" id="cmdidAddServiceReferenceNonProjectOnly" />
+      <UsedCommands Condition="!Defined(No_UnloadProjectCommands)">
+        <UsedCommand Condition="!Defined(No_EditProjectFileCommand)" guid="guidVSStd2K" id="cmdidEditProjectFile"/>
+        <UsedCommand Condition="!Defined(No_ReloadProjectCommand)" guid="guidVSStd97" id="cmdidReloadProject"/>
+        <UsedCommand Condition="!Defined(No_UnloadProjectCommand)" guid="guidVSStd97" id="cmdidUnloadProject"/>
+        <UsedCommand Condition="!Defined(No_LoadUnloadedProjectCommand)" guid="guidVSStd97" id="cmdidLoadUnloadedProject"/>
+      </UsedCommands>
+    </UsedCommands>
+
+
+    <UsedCommands Condition="!Defined(No_SolutionCommands)">
+      <!-- These two commands toggle the state of their global flag or set/clear by a true/false parameter -->
+      <UsedCommand Condition="!Defined(No_SetTrackSelInSlnExpCommand)" guid="guidVSStd2K" id="cmdidSetTrackSelInSlnExp"/>
+      <UsedCommand Condition="!Defined(No_SetBuildStartupsOnlyOnRunCommand)" guid="guidVSStd2K" id="cmdidSetBuildStartupsOnlyOnRun"/>
+
+      <UsedCommand Condition="!Defined(No_ProjectSettingsCommand)" guid="guidVSStd97" id="cmdidProjectSettings"/>
+
+      <UsedCommand Condition="!Defined(No_SolutionCfgCommand)" guid="guidVSStd97" id="cmdidSolutionCfg"/>
+      <UsedCommand Condition="!Defined(No_SolutionPlatformCommand)" guid="guidVSStd2K" id="cmdidSolutionPlatform"/>
+
+      <UsedCommand Condition="!Defined(No_ResolveFaultedProjectsCommand)" guid="guidVSStd11" id="cmdidResolveFaultedProjects"/>
+
+      <UsedCommands Condition="!Defined(No_ShellPkg_Solution_Folders)" >
+        <UsedCommand Condition="!Defined(No_NewSolutionFolderCommand)" guid="guidVSStd2K" id="cmdidNewSolutionFolder"/>
+        <UsedCommand Condition="!Defined(No_HideFolderCommand)" guid="guidVSStd2K" id="cmdidHideFolder"/>
+        <UsedCommand Condition="!Defined(No_UnhideFoldersCommand)" guid="guidVSStd2K" id="cmdidUnhideFolders"/>
+        <UsedCommand Condition="!Defined(No_UnhideAllCommand)" guid="guidVSStd2K" id="cmdidUnhideAll"/>
+        <UsedCommand Condition="!Defined(No_SaveFolderAsSolutionCommand)" guid="guidVSStd2K" id="cmdidSaveFolderAsSolution"/>
+      </UsedCommands>
+    </UsedCommands>
+
+
+    <!--   // Help Menu Commands -->
+    <UsedCommand Condition="!Defined(No_ShellPkg_HelpAboutCommand)" guid="guidVSStd97" id="cmdidAbout"/>
+    <UsedCommand guid="guidVSStd15" id="cmdidHelpAccessibility" />
+
+    <!--   // MenuDesigner Context Menu commands -->
+    <UsedCommands Condition="Defined(ShellPkg_LegacyMenuDesigner)">
+      <UsedCommand guid="guidVSStd97" id="cmdidInsertNewMenu"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidInsertSeparator"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidEditMenuNames"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidEditMenuIDs"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidCode"/>
+    </UsedCommands>
+
+
+    <UsedCommands Condition="!Defined(No_ShellPkg_MultiLevelUndo)">
+      <UsedCommand guid="guidVSStd97" id="cmdidMultiLevelUndo"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidMultiLevelRedo"/>
+    </UsedCommands>
+
+
+    <UsedCommands Condition="!Defined(No_ShellPkg_DocumentNavigationStack)">
+      <UsedCommand guid="guidVSStd97" id="cmdidShellNavBackward"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidShellNavForward"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate1First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate2First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate3First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate4First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate5First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate6First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate7First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate8First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate9First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate10First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate11First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate12First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate13First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate14First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate15First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate16First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate17First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate18First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate19First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate20First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate21First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate22First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate23First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate24First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate25First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate26First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate27First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate28First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate29First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate30First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate31First"/>
+      <UsedCommand guid="guidVSStd10" id="cmdidShellNavigate32First"/>
+      <UsedCommand guid="guidVSStd97" id="cmdidShellWindowNavigate1"/>
+    </UsedCommands>
+
+    <!-- This command is on a fallback context menu that is shown when a context menu would otherwise be empty -->
+    <UsedCommand Condition="!Defined(No_NoCmdsAvailableCommand)" guid="guidVSStd97" id="cmdidNoCmdsAvailable"/>
+
+    <UsedCommand Condition="!Defined(No_ShellPkg_SearchCombo)" guid="guidVSStd97" id="cmdidSearchCombo"/>
+
+    <UsedCommands Condition="!Defined(No_FormsControlCommands)">
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CANCELDRAG"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_DEFAULTACTION"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVEUPGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVEDOWNGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVELEFTGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVERIGHTGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZERIGHTGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZEUPGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZELEFTGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZEDOWNGRID"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_NEXTCTL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_PREVCTL"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_NEXTMETHOD"/>
+      <UsedCommand guid="guidVSStd2K" id="ECMD_PREVMETHOD"/>
+    </UsedCommands>
+
+
+    <UsedCommand Condition="!Defined(No_ShellPkg_StartPageCommand)" guid="guidVSStd2K" id="cmdidStartPage"/>
+
+
+    <UsedCommands Condition="!Defined(No_HlpPkg)">
+
+      <UsedCommands Condition="!Defined(No_CommunityMenuCommands)">
+        <UsedCommand Condition="!Defined(No_HelpAskAQuestionCommand)" guid="guidHelpCmdId" id="icmdHelpAskAQuestion"/>
+        <UsedCommand Condition="!Defined(No_HelpSendFeedbackCommand)" guid="guidHelpCmdId" id="icmdHelpSendFeedback"/>
+
+      </UsedCommands>
+
+      <UsedCommands Condition="!Defined(No_HelpMenuCommands)">
+        <UsedCommand Condition="!Defined(No_HelpViewerCommand)" guid="guidHelpCmdId" id="icmdHelpViewer"/>
+        <UsedCommand Condition="!Defined(No_HelpManagerCommand)" guid="guidHelpCmdId" id="icmdHelpManager"/>
+        <UsedCommand Condition="!Defined(No_HelpViewerCommand)" guid="guidHelpCmdId" id="icmdHelpPrefOnline"/>
+        <UsedCommand Condition="!Defined(No_HelpViewerCommand)" guid="guidHelpCmdId" id="icmdHelpPrefOffline"/>
+        <UsedCommand Condition="!Defined(No_TechSupportCommand)" guid="guidVSStd97" id="cmdidTechSupport"/>
+        <UsedCommand Condition="!Defined(No_F1HelpCommand)" guid="guidVSStd97" id="cmdidF1Help"/>
+        <UsedCommand Condition="!Defined(No_WindowHelpCommand)" guid="guidVSStd97" id="cmdidWindowHelp"/>
+
+        <UsedCommand Condition="!Defined(No_RegistrationCommand)" guid="guidVSStd2K" id="cmdidRegistration"/>
+        <UsedCommand Condition="!Defined(No_OnlinePrivacyStatementCommand)" guid="guidWBPkgCmd" id="icmdOnlinePrivacyStatement"/>
+
+        <UsedCommand Condition="!Defined(No_PrintChildrenCommand)" guid="guidHelpCmdId" id="icmdPrintChildren"/>
+        <UsedCommand Condition="!Defined(No_HelpF1AsyncCompleteCommand)" guid="guidHelpCmdId" id="icmdHelpF1AsyncComplete"/>
+      </UsedCommands>
+    </UsedCommands>
+
+    <UsedCommands Condition="Defined(CallHierarchyCommands)">
+      <UsedCommand guid="guidVSStd2K" id="cmdidContextMenuViewCallHierarchy"/>
+    </UsedCommands>
+
+    <UsedCommands Condition="Defined(ConsumeFirstCompletionCommands)">
+      <UsedCommand guid="guidVSStd2K" id="cmdidToggleConsumeFirstMode"/>
+    </UsedCommands>
+
+    <UsedCommands Condition="Defined(HighlightReferencesCommands)">
+      <UsedCommand guid="guidVSStd2K" id="cmdidNextHighlightedReference"/>
+      <UsedCommand guid="guidVSStd2K" id="cmdidPreviousHighlightedReference"/>
+    </UsedCommands>
+
+    <UsedCommand Condition="!defined(No_StartupProjectProperties)" guid="guidVSStd11" id="cmdidStartupProjectProperties"/>
+    <UsedCommands Condition="!defined(No_GlobalDebugTargetMenuControler)">
+      <UsedCommand Condition="!defined(No_AttachProcess) and !defined(No_DebugTargetAnchorItemWithAttachProcess)" guid="guidDebugTargetHandlerCmdSet" id="cmdidDebugTargetAnchorItem"/>
+      <UsedCommand Condition="defined(No_AttachProcess) or defined(No_DebugTargetAnchorItemWithAttachProcess)" guid="guidDebugTargetHandlerCmdSet" id="cmdidDebugTargetAnchorItemNoAttachProcess"/>
+      <UsedCommand guid="guidDebugTargetHandlerCmdSet" id="cmdidGenericDebugTarget"/>
+    </UsedCommands>
+    <UsedCommands Condition="!defined(No_DebugTypeCombo)">
+      <UsedCommand guid="guidDebugTargetHandlerCmdSet" id="cmdidDebugTypeCombo"/>
+      <UsedCommand guid="guidDebugTargetHandlerCmdSet" id="cmdidDebugTypeItemHandler"/>
+    </UsedCommands>
+
+    <UsedCommand Condition="!defined(No_UpgradeSolutionCommand)" guid="guidTrackProjectRetargetingCmdSet" id="cmdidUpgradeSolution" />
+
+    <!-- Unloaded project retargeting context menus -->
+      <UsedCommand Condition="!defined(No_RetargetProject_Commands)" guid="guidVSStd12" id="cmdidRetargetProject" />
+      <UsedCommand Condition="!defined(No_RetargetProjectInstallComponent)" guid="guidVSStd12" id="cmdidRetargetProjectInstallComponent" />
+
+    <UsedCommands Condition="!defined(No_UniversalProjectsCommands)">
+        <UsedCommand Condition="!defined(No_AddPlatform)" guid="guidUniversalProjectsCmdSet" id="cmdidAddPlatform" />
+    </UsedCommands>
+  </UsedCommands>
+  <!-- CMDUSED_END -->
+
+  <Symbols>
+    <GuidSymbol name="guidDebugTargetHandlerCmdSet" value="{6E87CFAD-6C05-4adf-9CD7-3B7943875B7C}">
+      <IDSymbol name="DebugTargetMenuControler" value="0x0100" />
+      <IDSymbol name="cmdidDebugTargetAnchorItem" value="0x0101" />
+      <IDSymbol name="cmdidDebugTargetAnchorItemNoAttachProcess" value="0x0102" />
+      <IDSymbol name="cmdidGenericDebugTarget" value="0x0200"/>
+      <IDSymbol name="cmdidDebugTypeCombo" value="0x0010"/>
+      <IDSymbol name="cmdidDebugTypeItemHandler" value="0x0011"/>
+    </GuidSymbol>
+
+    <GuidSymbol name="guidTrackProjectRetargetingCmdSet" value="{284B5E45-1FF9-40B1-9CCF-92319A47C39B}">
+      <IDSymbol name="cmdidUpgradeSolution" value="0x0001" />
+    </GuidSymbol>
+
+    <GuidSymbol name="guidUniversalProjectsCmdSet" value="{04B4DC54-4183-44E7-B353-61424E7D2DAB}">
+      <IDSymbol name="cmdidAddPlatform" value="0x0001" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>

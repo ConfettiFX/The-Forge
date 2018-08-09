@@ -90,7 +90,7 @@ public:
 			float3(100, -1,  100),
 		};
 		BufferLoadDesc vbDesc = {};
-		vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbDesc.mDesc.mSize = sizeof(vertices);
 		vbDesc.mDesc.mVertexStride = sizeof(float3);
@@ -132,7 +132,7 @@ public:
 
 		Buffer* pScratchBuffer = NULL;
 		BufferLoadDesc scratchBufferDesc = {};
-		scratchBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		scratchBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 		scratchBufferDesc.mDesc.mSize = max(bottomASScratchBufferSize, topASScratchBufferSize);

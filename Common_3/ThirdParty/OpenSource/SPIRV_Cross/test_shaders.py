@@ -11,8 +11,23 @@ import hashlib
 import shutil
 import argparse
 import codecs
+import json
+import multiprocessing
+import errno
+from functools import partial
 
-force_no_external_validation = False
+backend = 'glsl'
+args = {}
+
+def remove_file(path):
+    #print('Removing file:', path)
+    os.remove(path)
+
+def create_temporary(suff = ''):
+    f, path = tempfile.mkstemp(suffix = suff)
+    os.close(f)
+    #print('Creating temporary:', path)
+    return path
 
 def parse_stats(stats):
     m = re.search('([0-9]+) work registers', stats)
@@ -49,12 +64,11 @@ def get_shader_type(shader):
         return ''
 
 def get_shader_stats(shader):
-    f, path = tempfile.mkstemp()
+    path = create_temporary()
 
-    os.close(f)
     p = subprocess.Popen(['malisc', get_shader_type(shader), '--core', 'Mali-T760', '-V', shader], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     stdout, stderr = p.communicate()
-    os.remove(path)
+    remove_file(path)
 
     if p.returncode != 0:
         print(stderr.decode('utf-8'))
@@ -69,86 +83,168 @@ def print_msl_compiler_version():
         subprocess.check_call(['xcrun', '--sdk', 'iphoneos', 'metal', '--version'])
         print('...are the Metal compiler characteristics.\n')   # display after so xcrun FNF is silent
     except OSError as e:
-        if (e.errno != os.errno.ENOENT):    # Ignore xcrun not found error
+        if (e.errno != errno.ENOENT):    # Ignore xcrun not found error
             raise
 
-def validate_shader_msl(shader):
-    msl_path = reference_path(shader[0], shader[1])
+def validate_shader_msl(shader, opt):
+    msl_path = reference_path(shader[0], shader[1], opt)
+    msl2 = '.msl2.' in msl_path
     try:
         msl_os = 'macosx'
 #        msl_os = 'iphoneos'
-        subprocess.check_call(['xcrun', '--sdk', msl_os, 'metal', '-x', 'metal', '-std=osx-metal1.2', '-Werror', '-Wno-unused-variable', msl_path])
+        subprocess.check_call(['xcrun', '--sdk', msl_os, 'metal', '-x', 'metal', '-std=osx-metal{}'.format('2.0' if msl2 else '1.2'), '-Werror', '-Wno-unused-variable', msl_path])
         print('Compiled Metal shader: ' + msl_path)   # display after so xcrun FNF is silent
     except OSError as oe:
-        if (oe.errno != os.errno.ENOENT):   # Ignore xcrun not found error
+        if (oe.errno != errno.ENOENT):   # Ignore xcrun not found error
             raise
     except subprocess.CalledProcessError:
         print('Error compiling Metal shader: ' + msl_path)
         sys.exit(1)
 
-def cross_compile_msl(shader):
-    spirv_f, spirv_path = tempfile.mkstemp()
-    msl_f, msl_path = tempfile.mkstemp(suffix = os.path.basename(shader))
-    os.close(spirv_f)
-    os.close(msl_f)
-    subprocess.check_call(['glslangValidator', '-V', '-o', spirv_path, shader])
+def cross_compile_msl(shader, spirv, opt):
+    msl2 = '.msl2.' in shader
+    spirv_path = create_temporary()
+    msl_path = create_temporary(os.path.basename(shader))
+
+    if spirv:
+        subprocess.check_call(['spirv-as', '-o', spirv_path, shader])
+    else:
+        subprocess.check_call(['glslangValidator', '--target-env', 'vulkan1.1', '-V', '-o', spirv_path, shader])
+
+    if opt:
+        subprocess.check_call(['spirv-opt', '-O', '-o', spirv_path, spirv_path])
+
     spirv_cross_path = './spirv-cross'
-    subprocess.check_call([spirv_cross_path, '--entry', 'main', '--output', msl_path, spirv_path, '--msl'])
-    subprocess.check_call(['spirv-val', spirv_path])
+
+    msl_args = [spirv_cross_path, '--entry', 'main', '--output', msl_path, spirv_path, '--msl']
+    if msl2:
+        msl_args.append('--msl-version')
+        msl_args.append('20000')
+
+    subprocess.check_call(msl_args)
+
+    if not shader_is_invalid_spirv(msl_path):
+        subprocess.check_call(['spirv-val', '--target-env', 'vulkan1.1', spirv_path])
+
     return (spirv_path, msl_path)
 
+def shader_model_hlsl(shader):
+    if '.vert' in shader:
+        return '-Tvs_5_1'
+    elif '.frag' in shader:
+        return '-Tps_5_1'
+    elif '.comp' in shader:
+        return '-Tcs_5_1'
+    else:
+        return None
+
+def shader_to_win_path(shader):
+    # It's (very) convenient to be able to run HLSL testing in wine on Unix-likes, so support that.
+    try:
+        with subprocess.Popen(['winepath', '-w', shader], stdout = subprocess.PIPE, stderr = subprocess.PIPE) as f:
+            stdout_data, stderr_data = f.communicate()
+            return stdout_data.decode('utf-8')
+    except OSError as oe:
+        if (oe.errno != errno.ENOENT): # Ignore not found errors
+            return shader
+    except subprocess.CalledProcessError:
+        raise
+
+    return shader
+
+ignore_fxc = False
 def validate_shader_hlsl(shader):
-    subprocess.check_call(['glslangValidator', '-e', 'main', '-D', '-V', shader])
-    if (not force_no_external_validation) and os.path.exists('fxc'):
-        subprocess.check_call(['fxc', shader])
+    subprocess.check_call(['glslangValidator', '-e', 'main', '-D', '--target-env', 'vulkan1.1', '-V', shader])
+    is_no_fxc = '.nofxc.' in shader
+    global ignore_fxc
+    if (not ignore_fxc) and (not args.force_no_external_validation) and (not is_no_fxc):
+        try:
+            win_path = shader_to_win_path(shader)
+            subprocess.check_call(['fxc', '-nologo', shader_model_hlsl(shader), win_path])
+        except OSError as oe:
+            if (oe.errno != errno.ENOENT): # Ignore not found errors
+                raise
+            else:
+                ignore_fxc = True
+        except subprocess.CalledProcessError:
+            print('Failed compiling HLSL shader:', shader, 'with FXC.')
+            sys.exit(1)
 
 def shader_to_sm(shader):
-    if '.sm51.' in shader:
+    if '.sm60.' in shader:
+        return '60'
+    elif '.sm51.' in shader:
         return '51'
     elif '.sm20.' in shader:
         return '20'
     else:
         return '50'
 
-def cross_compile_hlsl(shader):
-    spirv_f, spirv_path = tempfile.mkstemp()
-    hlsl_f, hlsl_path = tempfile.mkstemp(suffix = os.path.basename(shader))
-    os.close(spirv_f)
-    os.close(hlsl_f)
-    subprocess.check_call(['glslangValidator', '-V', '-o', spirv_path, shader])
+def cross_compile_hlsl(shader, spirv, opt):
+    spirv_path = create_temporary()
+    hlsl_path = create_temporary(os.path.basename(shader))
+
+    if spirv:
+        subprocess.check_call(['spirv-as', '-o', spirv_path, shader])
+    else:
+        subprocess.check_call(['glslangValidator', '--target-env', 'vulkan1.1', '-V', '-o', spirv_path, shader])
+
+    if opt:
+        subprocess.check_call(['spirv-opt', '-O', '-o', spirv_path, spirv_path])
+
     spirv_cross_path = './spirv-cross'
 
     sm = shader_to_sm(shader)
     subprocess.check_call([spirv_cross_path, '--entry', 'main', '--output', hlsl_path, spirv_path, '--hlsl-enable-compat', '--hlsl', '--shader-model', sm])
-    subprocess.check_call(['spirv-val', spirv_path])
+
+    if not shader_is_invalid_spirv(hlsl_path):
+        subprocess.check_call(['spirv-val', '--target-env', 'vulkan1.1', spirv_path])
 
     validate_shader_hlsl(hlsl_path)
     
     return (spirv_path, hlsl_path)
 
-def validate_shader(shader, vulkan):
-    if vulkan:
-        subprocess.check_call(['glslangValidator', '-V', shader])
-    else:
-        subprocess.check_call(['glslangValidator', shader])
-
-def cross_compile(shader, vulkan, spirv, invalid_spirv, eliminate, is_legacy, flatten_ubo, sso, flatten_dim):
-    spirv_f, spirv_path = tempfile.mkstemp()
-    glsl_f, glsl_path = tempfile.mkstemp(suffix = os.path.basename(shader))
-    os.close(spirv_f)
-    os.close(glsl_f)
-
-    if vulkan or spirv:
-        vulkan_glsl_f, vulkan_glsl_path = tempfile.mkstemp(suffix = os.path.basename(shader))
-        os.close(vulkan_glsl_f)
+def cross_compile_reflect(shader, spirv, opt):
+    spirv_path = create_temporary()
+    reflect_path = create_temporary(os.path.basename(shader))
 
     if spirv:
         subprocess.check_call(['spirv-as', '-o', spirv_path, shader])
     else:
-        subprocess.check_call(['glslangValidator', '-V', '-o', spirv_path, shader])
+        subprocess.check_call(['glslangValidator', '--target-env', 'vulkan1.1', '-V', '-o', spirv_path, shader])
+
+    if opt:
+        subprocess.check_call(['spirv-opt', '-O', '-o', spirv_path, spirv_path])
+
+    spirv_cross_path = './spirv-cross'
+
+    sm = shader_to_sm(shader)
+    subprocess.check_call([spirv_cross_path, '--entry', 'main', '--output', reflect_path, spirv_path, '--reflect'])
+    return (spirv_path, reflect_path)
+
+def validate_shader(shader, vulkan):
+    if vulkan:
+        subprocess.check_call(['glslangValidator', '--target-env', 'vulkan1.1', '-V', shader])
+    else:
+        subprocess.check_call(['glslangValidator', shader])
+
+def cross_compile(shader, vulkan, spirv, invalid_spirv, eliminate, is_legacy, flatten_ubo, sso, flatten_dim, opt):
+    spirv_path = create_temporary()
+    glsl_path = create_temporary(os.path.basename(shader))
+
+    if vulkan or spirv:
+        vulkan_glsl_path = create_temporary('vk' + os.path.basename(shader))
+
+    if spirv:
+        subprocess.check_call(['spirv-as', '-o', spirv_path, shader])
+    else:
+        subprocess.check_call(['glslangValidator', '--target-env', 'vulkan1.1', '-V', '-o', spirv_path, shader])
+
+    if opt and (not invalid_spirv):
+        subprocess.check_call(['spirv-opt', '-O', '-o', spirv_path, spirv_path])
 
     if not invalid_spirv:
-        subprocess.check_call(['spirv-val', spirv_path])
+        subprocess.check_call(['spirv-val', '--target-env', 'vulkan1.1', spirv_path])
 
     extra_args = []
     if eliminate:
@@ -163,15 +259,21 @@ def cross_compile(shader, vulkan, spirv, invalid_spirv, eliminate, is_legacy, fl
         extra_args += ['--flatten-multidimensional-arrays']
 
     spirv_cross_path = './spirv-cross'
-    subprocess.check_call([spirv_cross_path, '--entry', 'main', '--output', glsl_path, spirv_path] + extra_args)
 
     # A shader might not be possible to make valid GLSL from, skip validation for this case.
-    if (not ('nocompat' in glsl_path)) and (not spirv):
+    if not ('nocompat' in glsl_path):
+        subprocess.check_call([spirv_cross_path, '--entry', 'main', '--output', glsl_path, spirv_path] + extra_args)
         validate_shader(glsl_path, False)
+    else:
+        remove_file(glsl_path)
+        glsl_path = None
 
     if vulkan or spirv:
         subprocess.check_call([spirv_cross_path, '--entry', 'main', '--vulkan-semantics', '--output', vulkan_glsl_path, spirv_path] + extra_args)
         validate_shader(vulkan_glsl_path, True)
+        # SPIR-V shaders might just want to validate Vulkan GLSL output, we don't always care about the output.
+        if not vulkan:
+            remove_file(vulkan_glsl_path)
 
     return (spirv_path, glsl_path, vulkan_glsl_path if vulkan else None)
 
@@ -192,28 +294,80 @@ def make_reference_dir(path):
     if not os.path.exists(base):
         os.makedirs(base)
 
-def reference_path(directory, relpath):
+def reference_path(directory, relpath, opt):
     split_paths = os.path.split(directory)
-    reference_dir = os.path.join(split_paths[0], 'reference/')
+    reference_dir = os.path.join(split_paths[0], 'reference/' + ('opt/' if opt else ''))
     reference_dir = os.path.join(reference_dir, split_paths[1])
     return os.path.join(reference_dir, relpath)
 
-def regression_check(shader, glsl, update, keep):
-    reference = reference_path(shader[0], shader[1])
+def json_ordered(obj):
+    if isinstance(obj, dict):
+        return sorted((k, json_ordered(v)) for k, v in obj.items())
+    if isinstance(obj, list):
+        return sorted(json_ordered(x) for x in obj)
+    else:
+        return obj
+    
+def json_compare(json_a, json_b):
+    return json_ordered(json_a) == json_ordered(json_b)
+
+def regression_check_reflect(shader, json_file, update, keep, opt):
+    reference = reference_path(shader[0], shader[1], opt) + '.json'
+    joined_path = os.path.join(shader[0], shader[1])
+    print('Reference shader reflection path:', reference)
+    if os.path.exists(reference):
+        actual = ''
+        expected = ''
+        with open(json_file) as f:
+            actual_json = f.read();
+            actual = json.loads(actual_json)
+        with open(reference) as f:
+            expected = json.load(f)
+        if (json_compare(actual, expected) != True):
+            if update:
+                print('Generated reflection json has changed for {}!'.format(reference))
+                # If we expect changes, update the reference file.
+                if os.path.exists(reference):
+                    remove_file(reference)
+                make_reference_dir(reference)
+                shutil.move(json_file, reference)
+            else:
+                print('Generated reflection json in {} does not match reference {}!'.format(json_file, reference))
+                with open(json_file, 'r') as f:
+                    print('')
+                    print('Generated:')
+                    print('======================')
+                    print(f.read())
+                    print('======================')
+                    print('')
+
+                # Otherwise, fail the test. Keep the shader file around so we can inspect.
+                if not keep:
+                    remove_file(json_file)
+                sys.exit(1)
+        else:
+            remove_file(json_file)
+    else:
+        print('Found new shader {}. Placing generated source code in {}'.format(joined_path, reference))
+        make_reference_dir(reference)
+        shutil.move(json_file, reference)
+    
+def regression_check(shader, glsl, update, keep, opt):
+    reference = reference_path(shader[0], shader[1], opt)
     joined_path = os.path.join(shader[0], shader[1])
     print('Reference shader path:', reference)
 
     if os.path.exists(reference):
         if md5_for_file(glsl) != md5_for_file(reference):
             if update:
-                print('Generated GLSL has changed for {}!'.format(reference))
+                print('Generated source code has changed for {}!'.format(reference))
                 # If we expect changes, update the reference file.
                 if os.path.exists(reference):
-                    os.remove(reference)
+                    remove_file(reference)
                 make_reference_dir(reference)
                 shutil.move(glsl, reference)
             else:
-                print('Generated GLSL in {} does not match reference {}!'.format(glsl, reference))
+                print('Generated source code in {} does not match reference {}!'.format(glsl, reference))
                 with open(glsl, 'r') as f:
                     print('')
                     print('Generated:')
@@ -224,12 +378,12 @@ def regression_check(shader, glsl, update, keep):
 
                 # Otherwise, fail the test. Keep the shader file around so we can inspect.
                 if not keep:
-                    os.remove(glsl)
+                    remove_file(glsl)
                 sys.exit(1)
         else:
-            os.remove(glsl)
+            remove_file(glsl)
     else:
-        print('Found new shader {}. Placing GLSL in {}'.format(joined_path, reference))
+        print('Found new shader {}. Placing generated source code in {}'.format(joined_path, reference))
         make_reference_dir(reference)
         shutil.move(glsl, reference)
 
@@ -260,7 +414,10 @@ def shader_is_sso(shader):
 def shader_is_flatten_dimensions(shader):
     return '.flatten_dim.' in shader
 
-def test_shader(stats, shader, update, keep):
+def shader_is_noopt(shader):
+    return '.noopt.' in shader
+
+def test_shader(stats, shader, update, keep, opt):
     joined_path = os.path.join(shader[0], shader[1])
     vulkan = shader_is_vulkan(shader[1])
     desktop = shader_is_desktop(shader[1])
@@ -271,18 +428,21 @@ def test_shader(stats, shader, update, keep):
     flatten_ubo = shader_is_flatten_ubo(shader[1])
     sso = shader_is_sso(shader[1])
     flatten_dim = shader_is_flatten_dimensions(shader[1])
+    noopt = shader_is_noopt(shader[1])
 
     print('Testing shader:', joined_path)
-    spirv, glsl, vulkan_glsl = cross_compile(joined_path, vulkan, is_spirv, invalid_spirv, eliminate, is_legacy, flatten_ubo, sso, flatten_dim)
+    spirv, glsl, vulkan_glsl = cross_compile(joined_path, vulkan, is_spirv, invalid_spirv, eliminate, is_legacy, flatten_ubo, sso, flatten_dim, opt and (not noopt))
 
     # Only test GLSL stats if we have a shader following GL semantics.
     if stats and (not vulkan) and (not is_spirv) and (not desktop):
         cross_stats = get_shader_stats(glsl)
 
-    regression_check(shader, glsl, update, keep)
+    if glsl:
+        regression_check(shader, glsl, update, keep, opt)
     if vulkan_glsl:
-        regression_check((shader[0], shader[1] + '.vk'), vulkan_glsl, update, keep)
-    os.remove(spirv)
+        regression_check((shader[0], shader[1] + '.vk'), vulkan_glsl, update, keep, opt)
+
+    remove_file(spirv)
 
     if stats and (not vulkan) and (not is_spirv) and (not desktop):
         pristine_stats = get_shader_stats(joined_path)
@@ -295,43 +455,80 @@ def test_shader(stats, shader, update, keep):
             a.append(str(i))
         print(','.join(a), file = stats)
 
-def test_shader_msl(stats, shader, update, keep):
+def test_shader_msl(stats, shader, update, keep, opt):
     joined_path = os.path.join(shader[0], shader[1])
     print('\nTesting MSL shader:', joined_path)
-    spirv, msl = cross_compile_msl(joined_path)
-    regression_check(shader, msl, update, keep)
-    os.remove(spirv)
+    is_spirv = shader_is_spirv(shader[1])
+    noopt = shader_is_noopt(shader[1])
+    spirv, msl = cross_compile_msl(joined_path, is_spirv, opt and (not noopt))
+    regression_check(shader, msl, update, keep, opt)
 
-    if not force_no_external_validation:
-        validate_shader_msl(shader)
+    # Uncomment the following line to print the temp SPIR-V file path.
+    # This temp SPIR-V file is not deleted until after the Metal validation step below.
+    # If Metal validation fails, the temp SPIR-V file can be copied out and
+    # used as input to an invocation of spirv-cross to debug from Xcode directly.
+    # To do so, build spriv-cross using `make DEBUG=1`, then run the spriv-cross
+    # executable from Xcode using args: `--msl --entry main --output msl_path spirv_path`.
+#    print('SPRIV shader: ' + spirv)
 
-def test_shader_hlsl(stats, shader, update, keep):
+    if not args.force_no_external_validation:
+        validate_shader_msl(shader, opt)
+
+    remove_file(spirv)
+
+def test_shader_hlsl(stats, shader, update, keep, opt):
     joined_path = os.path.join(shader[0], shader[1])
     print('Testing HLSL shader:', joined_path)
-    spirv, msl = cross_compile_hlsl(joined_path)
-    regression_check(shader, msl, update, keep)
-    os.remove(spirv)
+    is_spirv = shader_is_spirv(shader[1])
+    noopt = shader_is_noopt(shader[1])
+    spirv, hlsl = cross_compile_hlsl(joined_path, is_spirv, opt and (not noopt))
+    regression_check(shader, hlsl, update, keep, opt)
+    remove_file(spirv)
 
-def test_shaders_helper(stats, shader_dir, update, malisc, keep, backend):
-    for root, dirs, files in os.walk(os.path.join(shader_dir)):
+def test_shader_reflect(stats, shader, update, keep, opt):
+    joined_path = os.path.join(shader[0], shader[1])
+    print('Testing shader reflection:', joined_path)
+    is_spirv = shader_is_spirv(shader[1])
+    noopt = shader_is_noopt(shader[1])
+    spirv, reflect = cross_compile_reflect(joined_path, is_spirv, opt and (not noopt))
+    regression_check_reflect(shader, reflect, update, keep, opt)
+    remove_file(spirv)
+
+def test_shader_file(relpath, stats, shader_dir, update, keep, opt, backend):
+    if backend == 'msl':
+        test_shader_msl(stats, (shader_dir, relpath), update, keep, opt)
+    elif backend == 'hlsl':
+        test_shader_hlsl(stats, (shader_dir, relpath), update, keep, opt)
+    elif backend == 'reflect':
+        test_shader_reflect(stats, (shader_dir, relpath), update, keep, opt)
+    else:
+        test_shader(stats, (shader_dir, relpath), update, keep, opt)
+
+def test_shaders_helper(stats):
+    all_files = []
+    for root, dirs, files in os.walk(os.path.join(args.folder)):
         files = [ f for f in files if not f.startswith(".") ]   #ignore system files (esp OSX)
         for i in files:
             path = os.path.join(root, i)
-            relpath = os.path.relpath(path, shader_dir)
-            if backend == 'msl':
-                test_shader_msl(stats, (shader_dir, relpath), update, keep)
-            elif backend == 'hlsl':
-                test_shader_hlsl(stats, (shader_dir, relpath), update, keep)
-            else:
-                test_shader(stats, (shader_dir, relpath), update, keep)
+            relpath = os.path.relpath(path, args.folder)
+            all_files.append(relpath)
 
-def test_shaders(shader_dir, update, malisc, keep, backend):
-    if malisc:
+    # The child processes in parallel execution mode don't have the proper state for the global args variable, so 
+    # at this point we need to switch to explicit arguments
+    if args.parallel:
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        pool.map(partial(test_shader_file, stats=stats, shader_dir=args.folder, update=args.update, keep=args.keep, opt=args.opt, backend=backend), all_files)
+    else:
+        for i in all_files:
+            test_shader_file(i, stats, args.folder, args.update, args.keep, args.opt, backend) 
+
+def test_shaders():
+    if args.malisc:
         with open('stats.csv', 'w') as stats:
             print('Shader,OrigRegs,OrigUniRegs,OrigALUShort,OrigLSShort,OrigTEXShort,OrigALULong,OrigLSLong,OrigTEXLong,CrossRegs,CrossUniRegs,CrossALUShort,CrossLSShort,CrossTEXShort,CrossALULong,CrossLSLong,CrossTEXLong', file = stats)
-            test_shaders_helper(stats, shader_dir, update, malisc, keep, backend)
+            test_shaders_helper(stats)
     else:
-        test_shaders_helper(None, shader_dir, update, malisc, keep, backend)
+        test_shaders_helper(None)
 
 def main():
     parser = argparse.ArgumentParser(description = 'Script for regression testing.')
@@ -358,19 +555,38 @@ def main():
     parser.add_argument('--force-no-external-validation',
             action = 'store_true',
             help = 'Disable all external validation.')
+    parser.add_argument('--opt',
+            action = 'store_true',
+            help = 'Run SPIRV-Tools optimization passes as well.')
+    parser.add_argument('--reflect',
+            action = 'store_true',
+            help = 'Test reflection backend.')
+    parser.add_argument('--parallel',
+            action = 'store_true',
+            help = 'Execute tests in parallel.  Useful for doing regression quickly, but bad for debugging and stat output.')
+    
+    global args
     args = parser.parse_args()
-
     if not args.folder:
         sys.stderr.write('Need shader folder.\n')
         sys.exit(1)
 
+    if (args.parallel and (args.malisc or args.force_no_external_validation or args.update)):
+        sys.stderr.write('Parallel execution is disabled when using the flags --update, --malisc or --force-no-external-validation\n')
+        args.parallel = False
+        
     if args.msl:
         print_msl_compiler_version()
 
-    global force_no_external_validation
-    force_no_external_validation = args.force_no_external_validation
+    global backend
+    if (args.msl or args.metal): 
+        backend = 'msl'
+    elif args.hlsl: 
+        backend = 'hlsl'
+    elif args.reflect:
+        backend = 'reflect'
 
-    test_shaders(args.folder, args.update, args.malisc, args.keep, 'msl' if (args.msl or args.metal) else ('hlsl' if args.hlsl else 'glsl'))
+    test_shaders()
     if args.malisc:
         print('Stats in stats.csv!')
     print('Tests completed!')

@@ -22,13 +22,25 @@
  * under the License.
 */
 
+// USERMACRO: IMPORTANCE_SAMPLE_COUNT [64,128,256,1024]
 
 static uint nMips = 5;
 static uint maxSize = 128;
 
 static float Pi = 3.14159265359;
-static int SampleCount = 256;
+static int SampleCount = IMPORTANCE_SAMPLE_COUNT;
 
+
+struct PrecomputeSkySpecularData
+{
+	uint mipSize;
+	float roughness;
+};
+
+ConstantBuffer<PrecomputeSkySpecularData> RootConstant : register(b0);
+TextureCube srcTexture : register(t1, space1);
+RWTexture2DArray<float4> dstTexture : register(u2, space1);
+SamplerState skyboxSampler : register(s3);
 
 float RadicalInverse_VdC(uint bits)
 {
@@ -82,87 +94,72 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
 	return normalize(sampleVec);
 }
 
-
-TextureCube<float4> srcTexture : register(t0);
-RWStructuredBuffer<float4> dstBuffer : register(u1);
-SamplerState skyboxSampler : register(s2);
-
-
-[numthreads(16,16,1)]
+[numthreads(16, 16, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-	float3 threadPos = DTid;
+	uint3 threadPos = DTid;
 
-	uint pixelOffset = 0;
+	float mipRoughness = RootConstant.roughness;
+	uint mipSize = RootConstant.mipSize;
 
-	for (uint mip = 0; mip < nMips; mip++)
-	{
-		uint mipSize = maxSize >> mip;
-		float mipRoughness = float(mip) / float(nMips - 1);
+	if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
 
-		if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
+	float2 texcoords = float2(float(threadPos.x + 0.5) / mipSize, float(threadPos.y + 0.5) / mipSize);
 
-		float2 texcoords = float2(float(threadPos.x + 0.5) / mipSize, float(threadPos.y + 0.5) / mipSize);
-
-		float3 sphereDir;
-		if (threadPos.z <= 0) {
-			sphereDir = normalize(float3(0.5, -(texcoords.y - 0.5), -(texcoords.x - 0.5)));
-		}
-		else if (threadPos.z <= 1) {
-			sphereDir = normalize(float3(-0.5, -(texcoords.y - 0.5), texcoords.x - 0.5));
-		}
-		else if (threadPos.z <= 2) {
-			sphereDir = normalize(float3(texcoords.x - 0.5, 0.5, texcoords.y - 0.5));
-		}
-		else if (threadPos.z <= 3) {
-			sphereDir = normalize(float3(texcoords.x - 0.5, -0.5, -(texcoords.y - 0.5)));
-		}
-		else if (threadPos.z <= 4) {
-			sphereDir = normalize(float3(texcoords.x - 0.5, -(texcoords.y - 0.5), 0.5));
-		}
-		else if (threadPos.z <= 5) {
-			sphereDir = normalize(float3(-(texcoords.x - 0.5), -(texcoords.y - 0.5), -0.5));
-		}
-
-		float3 N = sphereDir;
-		float3 R = N;
-		float3 V = R;
-
-		float totalWeight = 0.0;
-		float4 prefilteredColor = float4(0.0, 0.0, 0.0, 0.0);
-
-		for (int i = 0; i < SampleCount; ++i)
-		{
-			float2 Xi = Hammersley(i, SampleCount);
-			float3 H = ImportanceSampleGGX(Xi, N, mipRoughness);
-			float3 L = normalize(2.0 * dot(V, H) * H - V);
-
-			float NdotL = max(dot(N, L), 0.0);
-			if (NdotL > 0.0)
-			{
-				// sample from the environment's mip level based on roughness/pdf
-				float D = DistributionGGX(N, H, mipRoughness);
-				float NdotH = max(dot(N, H), 0.0);
-				float HdotV = max(dot(H, V), 0.0);
-				float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
-
-				float saTexel = 4.0 * Pi / (6.0 * mipSize * mipSize);
-				float saSample = 1.0 / (float(SampleCount) * pdf + 0.0001);
-
-				float mipLevel = mipRoughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-
-				//prefilteredColor += srcTexture.SampleLevel( (samplerCube(srcTexture, skyboxSampler), L, mipLevel) * NdotL;  //srcTexture.Sample(skyboxSampler, L, level(mipLevel)) * NdotL;
-				prefilteredColor += srcTexture.SampleLevel(skyboxSampler, L, mipLevel) * NdotL;
-
-				totalWeight += NdotL;
-			}
-		}
-
-		prefilteredColor = prefilteredColor / totalWeight;
-
-		pixelOffset += threadPos.z * mipSize * mipSize;
-		uint pixelId = pixelOffset + threadPos.y * mipSize + threadPos.x;
-		dstBuffer[pixelId] = prefilteredColor;
-		pixelOffset += (6 - threadPos.z) * mipSize * mipSize;
+	float3 sphereDir;
+	if (threadPos.z <= 0) {
+		sphereDir = normalize(float3(0.5, -(texcoords.y - 0.5), -(texcoords.x - 0.5)));
 	}
+	else if (threadPos.z <= 1) {
+		sphereDir = normalize(float3(-0.5, -(texcoords.y - 0.5), texcoords.x - 0.5));
+	}
+	else if (threadPos.z <= 2) {
+		sphereDir = normalize(float3(texcoords.x - 0.5, 0.5, texcoords.y - 0.5));
+	}
+	else if (threadPos.z <= 3) {
+		sphereDir = normalize(float3(texcoords.x - 0.5, -0.5, -(texcoords.y - 0.5)));
+	}
+	else if (threadPos.z <= 4) {
+		sphereDir = normalize(float3(texcoords.x - 0.5, -(texcoords.y - 0.5), 0.5));
+	}
+	else if (threadPos.z <= 5) {
+		sphereDir = normalize(float3(-(texcoords.x - 0.5), -(texcoords.y - 0.5), -0.5));
+	}
+
+	float3 N = sphereDir;
+	float3 R = N;
+	float3 V = R;
+
+	float totalWeight = 0.0;
+	float4 prefilteredColor = float4(0.0, 0.0, 0.0, 0.0);
+
+	for (int i = 0; i < SampleCount; ++i)
+	{
+		float2 Xi = Hammersley(i, SampleCount);
+		float3 H = ImportanceSampleGGX(Xi, N, mipRoughness);
+		float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+		float NdotL = max(dot(N, L), 0.0);
+		if (NdotL > 0.0)
+		{
+			// sample from the environment's mip level based on roughness/pdf
+			float D = DistributionGGX(N, H, mipRoughness);
+			float NdotH = max(dot(N, H), 0.0);
+			float HdotV = max(dot(H, V), 0.0);
+			float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
+
+			float saTexel = 4.0 * Pi / (6.0 * mipSize * mipSize);
+			float saSample = 1.0 / (float(SampleCount) * pdf + 0.0001);
+
+			float mipLevel = mipRoughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
+
+			//prefilteredColor += srcTexture.SampleLevel( (samplerCube(srcTexture, skyboxSampler), L, mipLevel) * NdotL;  //srcTexture.Sample(skyboxSampler, L, level(mipLevel)) * NdotL;
+			prefilteredColor += srcTexture.SampleLevel(skyboxSampler, L, mipLevel) * NdotL;
+
+			totalWeight += NdotL;
+		}
+	}
+
+	prefilteredColor = prefilteredColor / totalWeight;
+	dstTexture[threadPos] = prefilteredColor;
 }

@@ -13,8 +13,7 @@ struct SPIRV_Cross_Output
 
 void frag_main()
 {
-    bool _21 = x0.x > x0.y;
-    bool2 _27 = bool2(_21, _21);
+    bool2 _27 = (x0.x > x0.y).xx;
     FragColor = float2(_27.x ? float2(1.0f, 0.0f).x : float2(0.0f, 1.0f).x, _27.y ? float2(1.0f, 0.0f).y : float2(0.0f, 1.0f).y);
 }
 

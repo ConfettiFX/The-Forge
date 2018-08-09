@@ -27,7 +27,7 @@
 #include "../../OS/Interfaces/ILogManager.h"
 
 #ifdef _DURANGO
-#include "..\..\..\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
+#include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
 #else
 #include <d3dcompiler.h>
 #endif

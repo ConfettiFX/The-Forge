@@ -175,7 +175,7 @@ InputManager::GetTime() const
 
 	uint64_t t = ts.tv_sec*1000ul + ts.tv_nsec/1000000ul;
 	return t;
-#elif defined(GAINPUT_PLATFORM_WIN)
+#elif defined(GAINPUT_PLATFORM_WIN) || defined (GAINPUT_PLATFORM_XBOX_ONE)
 	static LARGE_INTEGER perfFreq = { 0 };
 	if (perfFreq.QuadPart == 0)
 	{

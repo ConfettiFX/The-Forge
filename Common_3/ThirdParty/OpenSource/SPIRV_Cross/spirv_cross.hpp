@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2017 ARM Limited
+ * Copyright 2015-2018 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@
 #define SPIRV_CROSS_HPP
 
 #include "spirv.hpp"
+#include "spirv_cfg.hpp"
 #include "spirv_common.hpp"
 
 namespace spirv_cross
 {
-class CFG;
 struct Resource
 {
 	// Resources are identified with their SPIR-V ID.
@@ -98,6 +98,22 @@ struct BufferRange
 	size_t range;
 };
 
+enum BufferPackingStandard
+{
+	BufferPackingStd140,
+	BufferPackingStd430,
+	BufferPackingStd140EnhancedLayout,
+	BufferPackingStd430EnhancedLayout,
+	BufferPackingHLSLCbuffer,
+	BufferPackingHLSLCbufferPackOffset
+};
+
+struct EntryPoint
+{
+	std::string name;
+	spv::ExecutionModel execution_model;
+};
+
 class Compiler
 {
 public:
@@ -120,6 +136,7 @@ public:
 
 	// Applies a decoration to an ID. Effectively injects OpDecorate.
 	void set_decoration(uint32_t id, spv::Decoration decoration, uint32_t argument = 0);
+	void set_decoration_string(uint32_t id, spv::Decoration decoration, const std::string &argument);
 
 	// Overrides the identifier OpName of an ID.
 	// Identifiers beginning with underscores or identifiers which contain double underscores
@@ -128,7 +145,9 @@ public:
 
 	// Gets a bitmask for the decorations which are applied to ID.
 	// I.e. (1ull << spv::DecorationFoo) | (1ull << spv::DecorationBar)
+	SPIRV_CROSS_DEPRECATED("Please use get_decoration_bitset instead.")
 	uint64_t get_decoration_mask(uint32_t id) const;
+	const Bitset &get_decoration_bitset(uint32_t id) const;
 
 	// Returns whether the decoration has been applied to the ID.
 	bool has_decoration(uint32_t id, spv::Decoration decoration) const;
@@ -139,6 +158,7 @@ public:
 	// If decoration doesn't exist or decoration is not recognized,
 	// 0 will be returned.
 	uint32_t get_decoration(uint32_t id, spv::Decoration decoration) const;
+	const std::string &get_decoration_string(uint32_t id, spv::Decoration decoration) const;
 
 	// Removes the decoration for a an ID.
 	void unset_decoration(uint32_t id, spv::Decoration decoration);
@@ -150,15 +170,25 @@ public:
 	// Gets the SPIR-V type of a variable.
 	const SPIRType &get_type_from_variable(uint32_t id) const;
 
+	// Gets the id of SPIR-V type underlying the given type_id, which might be a pointer.
+	uint32_t get_non_pointer_type_id(uint32_t type_id) const;
+
+	// Gets the SPIR-V type underlying the given type, which might be a pointer.
+	const SPIRType &get_non_pointer_type(const SPIRType &type) const;
+
+	// Gets the SPIR-V type underlying the given type_id, which might be a pointer.
+	const SPIRType &get_non_pointer_type(uint32_t type_id) const;
+
 	// Gets the underlying storage class for an OpVariable.
 	spv::StorageClass get_storage_class(uint32_t id) const;
 
 	// If get_name() is an empty string, get the fallback name which will be used
 	// instead in the disassembled source.
-	virtual const std::string get_fallback_name(uint32_t id) const
-	{
-		return join("_", id);
-	}
+	virtual const std::string get_fallback_name(uint32_t id) const;
+
+	// If get_name() of a Block struct is an empty string, get the fallback name.
+	// This needs to be per-variable as multiple variables can use the same block type.
+	virtual const std::string get_block_fallback_name(uint32_t id) const;
 
 	// Given an OpTypeStruct in ID, obtain the identifier for member number "index".
 	// This may be an empty string.
@@ -166,25 +196,30 @@ public:
 
 	// Given an OpTypeStruct in ID, obtain the OpMemberDecoration for member number "index".
 	uint32_t get_member_decoration(uint32_t id, uint32_t index, spv::Decoration decoration) const;
+	const std::string &get_member_decoration_string(uint32_t id, uint32_t index, spv::Decoration decoration) const;
 
 	// Sets the member identifier for OpTypeStruct ID, member number "index".
 	void set_member_name(uint32_t id, uint32_t index, const std::string &name);
 
 	// Returns the qualified member identifier for OpTypeStruct ID, member number "index",
 	// or an empty string if no qualified alias exists
-	const std::string &get_member_qualified_name(uint32_t id, uint32_t index) const;
+	const std::string &get_member_qualified_name(uint32_t type_id, uint32_t index) const;
 
 	// Sets the qualified member identifier for OpTypeStruct ID, member number "index".
-	void set_member_qualified_name(uint32_t id, uint32_t index, const std::string &name);
+	void set_member_qualified_name(uint32_t type_id, uint32_t index, const std::string &name);
 
 	// Gets the decoration mask for a member of a struct, similar to get_decoration_mask.
+	SPIRV_CROSS_DEPRECATED("Please use get_member_decoration_bitset instead.")
 	uint64_t get_member_decoration_mask(uint32_t id, uint32_t index) const;
+	const Bitset &get_member_decoration_bitset(uint32_t id, uint32_t index) const;
 
 	// Returns whether the decoration has been applied to a member of a struct.
 	bool has_member_decoration(uint32_t id, uint32_t index, spv::Decoration decoration) const;
 
 	// Similar to set_decoration, but for struct members.
 	void set_member_decoration(uint32_t id, uint32_t index, spv::Decoration decoration, uint32_t argument = 0);
+	void set_member_decoration_string(uint32_t id, uint32_t index, spv::Decoration decoration,
+	                                  const std::string &argument);
 
 	// Unsets a member decoration, similar to unset_decoration.
 	void unset_member_decoration(uint32_t id, uint32_t index, spv::Decoration decoration);
@@ -197,7 +232,7 @@ public:
 
 	// Returns a vector of which members of a struct are potentially in use by a
 	// SPIR-V shader. The granularity of this analysis is per-member of a struct.
-	// This can be used for Buffer (UBO), BufferBlock (SSBO) and PushConstant blocks.
+	// This can be used for Buffer (UBO), BufferBlock/StorageBuffer (SSBO) and PushConstant blocks.
 	// ID is the Resource::id obtained from get_shader_resources().
 	std::vector<BufferRange> get_active_buffer_ranges(uint32_t id) const;
 
@@ -250,15 +285,54 @@ public:
 	// Entry points should be set right after the constructor completes as some reflection functions traverse the graph from the entry point.
 	// Resource reflection also depends on the entry point.
 	// By default, the current entry point is set to the first OpEntryPoint which appears in the SPIR-V module.
+	//SPIRV_CROSS_DEPRECATED("Please use get_entry_points_and_stages instead.")
 	std::vector<std::string> get_entry_points() const;
+	SPIRV_CROSS_DEPRECATED("Please use set_entry_point(const std::string &, spv::ExecutionModel) instead.")
 	void set_entry_point(const std::string &name);
 
+	// Renames an entry point from old_name to new_name.
+	// If old_name is currently selected as the current entry point, it will continue to be the current entry point,
+	// albeit with a new name.
+	// get_entry_points() is essentially invalidated at this point.
+	SPIRV_CROSS_DEPRECATED(
+	    "Please use rename_entry_point(const std::string&, const std::string&, spv::ExecutionModel) instead.")
+	void rename_entry_point(const std::string &old_name, const std::string &new_name);
+
 	// Returns the internal data structure for entry points to allow poking around.
+	SPIRV_CROSS_DEPRECATED("Please use get_entry_point(const std::string &, spv::ExecutionModel instead.")
 	const SPIREntryPoint &get_entry_point(const std::string &name) const;
+	//SPIRV_CROSS_DEPRECATED("Please use get_entry_point(const std::string &, spv::ExecutionModel instead.")
 	SPIREntryPoint &get_entry_point(const std::string &name);
 
+	// Some shader languages restrict the names that can be given to entry points, and the
+	// corresponding backend will automatically rename an entry point name, during the call
+	// to compile() if it is illegal. For example, the common entry point name main() is
+	// illegal in MSL, and is renamed to an alternate name by the MSL backend.
+	// Given the original entry point name contained in the SPIR-V, this function returns
+	// the name, as updated by the backend during the call to compile(). If the name is not
+	// illegal, and has not been renamed, or if this function is called before compile(),
+	// this function will simply return the same name.
+	SPIRV_CROSS_DEPRECATED(
+	    "Please use get_cleansed_entry_point_name(const std::string &, spv::ExecutionModel) instead.")
+	const std::string &get_cleansed_entry_point_name(const std::string &name) const;
+
+	// New variants of entry point query and reflection.
+	// Names for entry points in the SPIR-V module may alias if they belong to different execution models.
+	// To disambiguate, we must pass along with the entry point names the execution model.
+	std::vector<EntryPoint> get_entry_points_and_stages() const;
+	void set_entry_point(const std::string &entry, spv::ExecutionModel execution_model);
+	void rename_entry_point(const std::string &old_name, const std::string &new_name,
+	                        spv::ExecutionModel execution_model);
+	const SPIREntryPoint &get_entry_point(const std::string &name, spv::ExecutionModel execution_model) const;
+	SPIREntryPoint &get_entry_point(const std::string &name, spv::ExecutionModel execution_model);
+	const std::string &get_cleansed_entry_point_name(const std::string &name,
+	                                                 spv::ExecutionModel execution_model) const;
+
 	// Query and modify OpExecutionMode.
+	SPIRV_CROSS_DEPRECATED("Please use get_execution_mode_bitset instead.")
 	uint64_t get_execution_mode_mask() const;
+	const Bitset &get_execution_mode_bitset() const;
+
 	void unset_execution_mode(spv::ExecutionMode mode);
 	void set_execution_mode(spv::ExecutionMode mode, uint32_t arg0 = 0, uint32_t arg1 = 0, uint32_t arg2 = 0);
 
@@ -267,6 +341,41 @@ public:
 	// For execution modes which do not have arguments, 0 is returned.
 	uint32_t get_execution_mode_argument(spv::ExecutionMode mode, uint32_t index = 0) const;
 	spv::ExecutionModel get_execution_model() const;
+
+	// In SPIR-V, the compute work group size can be represented by a constant vector, in which case
+	// the LocalSize execution mode is ignored.
+	//
+	// This constant vector can be a constant vector, specialization constant vector, or partly specialized constant vector.
+	// To modify and query work group dimensions which are specialization constants, SPIRConstant values must be modified
+	// directly via get_constant() rather than using LocalSize directly. This function will return which constants should be modified.
+	//
+	// To modify dimensions which are *not* specialization constants, set_execution_mode should be used directly.
+	// Arguments to set_execution_mode which are specialization constants are effectively ignored during compilation.
+	// NOTE: This is somewhat different from how SPIR-V works. In SPIR-V, the constant vector will completely replace LocalSize,
+	// while in this interface, LocalSize is only ignored for specialization constants.
+	//
+	// The specialization constant will be written to x, y and z arguments.
+	// If the component is not a specialization constant, a zeroed out struct will be written.
+	// The return value is the constant ID of the builtin WorkGroupSize, but this is not expected to be useful
+	// for most use cases.
+	uint32_t get_work_group_size_specialization_constants(SpecializationConstant &x, SpecializationConstant &y,
+	                                                      SpecializationConstant &z) const;
+
+	// Analyzes all OpImageFetch (texelFetch) opcodes and checks if there are instances where
+	// said instruction is used without a combined image sampler.
+	// GLSL targets do not support the use of texelFetch without a sampler.
+	// To workaround this, we must inject a dummy sampler which can be used to form a sampler2D at the call-site of
+	// texelFetch as necessary.
+	//
+	// This must be called before build_combined_image_samplers().
+	// build_combined_image_samplers() may refer to the ID returned by this method if the returned ID is non-zero.
+	// The return value will be the ID of a sampler object if a dummy sampler is necessary, or 0 if no sampler object
+	// is required.
+	//
+	// If the returned ID is non-zero, it can be decorated with set/bindings as desired before calling compile().
+	// Calling this function also invalidates get_active_interface_variables(), so this should be called
+	// before that function.
+	uint32_t build_dummy_sampler_for_combined_images();
 
 	// Analyzes all separate image and samplers used from the currently selected entry point,
 	// and re-routes them all to a combined image sampler instead.
@@ -284,6 +393,8 @@ public:
 	// so this can be added before compile() if desired.
 	//
 	// Combined image samplers originating from this set are always considered active variables.
+	// Arrays of separate samplers are not supported, but arrays of separate images are supported.
+	// Array of images + sampler -> Array of combined image samplers.
 	void build_combined_image_samplers();
 
 	// Gets a remapping for the combined image samplers.
@@ -346,26 +457,55 @@ public:
 	// which lets us link the two buffers together.
 
 	// Queries if a variable ID is a counter buffer which "belongs" to a regular buffer object.
-	// NOTE: This query is purely based on OpName identifiers as found in the SPIR-V module, and will
+
+	// If SPV_GOOGLE_hlsl_functionality1 is used, this can be used even with a stripped SPIR-V module.
+	// Otherwise, this query is purely based on OpName identifiers as found in the SPIR-V module, and will
 	// only return true if OpSource was reported HLSL.
 	// To rely on this functionality, ensure that the SPIR-V module is not stripped.
+
 	bool buffer_is_hlsl_counter_buffer(uint32_t id) const;
 
 	// Queries if a buffer object has a neighbor "counter" buffer.
 	// If so, the ID of that counter buffer will be returned in counter_id.
-	// NOTE: This query is purely based on OpName identifiers as found in the SPIR-V module, and will
+	// If SPV_GOOGLE_hlsl_functionality1 is used, this can be used even with a stripped SPIR-V module.
+	// Otherwise, this query is purely based on OpName identifiers as found in the SPIR-V module, and will
 	// only return true if OpSource was reported HLSL.
 	// To rely on this functionality, ensure that the SPIR-V module is not stripped.
 	bool buffer_get_hlsl_counter_buffer(uint32_t id, uint32_t &counter_id) const;
 
+	// Gets the list of all SPIR-V Capabilities which were declared in the SPIR-V module.
+	const std::vector<spv::Capability> &get_declared_capabilities() const;
+
+	// Gets the list of all SPIR-V extensions which were declared in the SPIR-V module.
+	const std::vector<std::string> &get_declared_extensions() const;
+
+	// When declaring buffer blocks in GLSL, the name declared in the GLSL source
+	// might not be the same as the name declared in the SPIR-V module due to naming conflicts.
+	// In this case, SPIRV-Cross needs to find a fallback-name, and it might only
+	// be possible to know this name after compiling to GLSL.
+	// This is particularly important for HLSL input and UAVs which tends to reuse the same block type
+	// for multiple distinct blocks. For these cases it is not possible to modify the name of the type itself
+	// because it might be unique. Instead, you can use this interface to check after compilation which
+	// name was actually used if your input SPIR-V tends to have this problem.
+	// For other names like remapped names for variables, etc, it's generally enough to query the name of the variables
+	// after compiling, block names are an exception to this rule.
+	// ID is the name of a variable as returned by Resource::id, and must be a variable with a Block-like type.
+	std::string get_remapped_declared_block_name(uint32_t id) const;
+
+	// For buffer block variables, get the decorations for that variable.
+	// Sometimes, decorations for buffer blocks are found in member decorations instead
+	// of direct decorations on the variable itself.
+	// The most common use here is to check if a buffer is readonly or writeonly.
+	Bitset get_buffer_block_flags(uint32_t id) const;
+
 protected:
 	const uint32_t *stream(const Instruction &instr) const
 	{
-		// If we're not going to use any arguments, just return NULL.
+		// If we're not going to use any arguments, just return nullptr.
 		// We want to avoid case where we return an out of range pointer
 		// that trips debug assertions on some platforms.
 		if (!instr.length)
-			return NULL;
+			return nullptr;
 
 		if (instr.offset + instr.length > spirv.size())
 			SPIRV_CROSS_THROW("Compiler::stream() out of range.");
@@ -377,8 +517,8 @@ protected:
 	std::vector<Variant> ids;
 	std::vector<Meta> meta;
 
-	SPIRFunction *current_function = NULL;
-	SPIRBlock *current_block = NULL;
+	SPIRFunction *current_function = nullptr;
+	SPIRBlock *current_block = nullptr;
 	std::vector<uint32_t> global_variables;
 	std::vector<uint32_t> aliased_variables;
 	std::unordered_set<uint32_t> active_interface_variables;
@@ -406,7 +546,7 @@ protected:
 		if (ids.at(id).get_type() == T::type)
 			return &get<T>(id);
 		else
-			return NULL;
+			return nullptr;
 	}
 
 	template <typename T>
@@ -421,7 +561,7 @@ protected:
 		if (ids.at(id).get_type() == T::type)
 			return &get<T>(id);
 		else
-			return NULL;
+			return nullptr;
 	}
 
 	uint32_t entry_point = 0;
@@ -446,6 +586,7 @@ protected:
 	std::unordered_set<uint32_t> loop_merge_targets;
 	std::unordered_set<uint32_t> selection_merge_targets;
 	std::unordered_set<uint32_t> multiselect_merge_targets;
+	std::unordered_map<uint32_t, uint32_t> continue_block_to_loop_header;
 
 	virtual std::string to_name(uint32_t id, bool allow_alias = true) const;
 	bool is_builtin_variable(const SPIRVariable &var) const;
@@ -455,10 +596,13 @@ protected:
 	bool is_scalar(const SPIRType &type) const;
 	bool is_vector(const SPIRType &type) const;
 	bool is_matrix(const SPIRType &type) const;
+	bool is_array(const SPIRType &type) const;
+	uint32_t expression_type_id(uint32_t id) const;
 	const SPIRType &expression_type(uint32_t id) const;
 	bool expression_is_lvalue(uint32_t id) const;
 	bool variable_storage_is_aliased(const SPIRVariable &var);
 	SPIRVariable *maybe_get_backing_variable(uint32_t chain);
+	void mark_used_as_array_length(uint32_t id);
 
 	void register_read(uint32_t expr, uint32_t chain, bool forwarded);
 	void register_write(uint32_t chain);
@@ -468,10 +612,21 @@ protected:
 		return continue_blocks.find(next) != end(continue_blocks);
 	}
 
+	inline bool is_single_block_loop(uint32_t next) const
+	{
+		auto &block = get<SPIRBlock>(next);
+		return block.merge == SPIRBlock::MergeLoop && block.continue_block == next;
+	}
+
 	inline bool is_break(uint32_t next) const
 	{
 		return loop_merge_targets.find(next) != end(loop_merge_targets) ||
 		       multiselect_merge_targets.find(next) != end(multiselect_merge_targets);
+	}
+
+	inline bool is_loop_break(uint32_t next) const
+	{
+		return loop_merge_targets.find(next) != end(loop_merge_targets);
 	}
 
 	inline bool is_conditional(uint32_t next) const
@@ -483,6 +638,7 @@ protected:
 	// Dependency tracking for temporaries read from variables.
 	void flush_dependees(SPIRVariable &var);
 	void flush_all_active_variables();
+	void flush_control_dependent_expressions(uint32_t block);
 	void flush_all_atomic_capable_variables();
 	void flush_all_aliased_variables();
 	void register_global_read_dependencies(const SPIRBlock &func, uint32_t id);
@@ -520,9 +676,6 @@ protected:
 			variable_remap_callback(type, var_name, type_name);
 	}
 
-	void analyze_variable_scope(SPIRFunction &function);
-
-protected:
 	void parse();
 	void parse(const Instruction &i);
 
@@ -610,6 +763,18 @@ protected:
 		                                     bool depth);
 	};
 
+	struct DummySamplerForCombinedImageHandler : OpcodeHandler
+	{
+		DummySamplerForCombinedImageHandler(Compiler &compiler_)
+		    : compiler(compiler_)
+		{
+		}
+		bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) override;
+
+		Compiler &compiler;
+		bool need_dummy_sampler = false;
+	};
+
 	struct ActiveBuiltinHandler : OpcodeHandler
 	{
 		ActiveBuiltinHandler(Compiler &compiler_)
@@ -619,6 +784,8 @@ protected:
 
 		bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) override;
 		Compiler &compiler;
+
+		void handle_builtin(const SPIRType &type, spv::BuiltIn builtin, const Bitset &decoration_flags);
 	};
 
 	bool traverse_all_reachable_opcodes(const SPIRBlock &block, OpcodeHandler &handler) const;
@@ -630,45 +797,147 @@ protected:
 
 	VariableTypeRemapCallback variable_remap_callback;
 
-	uint64_t get_buffer_block_flags(const SPIRVariable &var);
+	Bitset get_buffer_block_flags(const SPIRVariable &var) const;
 	bool get_common_basic_type(const SPIRType &type, SPIRType::BaseType &base_type);
 
 	std::unordered_set<uint32_t> forced_temporaries;
 	std::unordered_set<uint32_t> forwarded_temporaries;
+	std::unordered_set<uint32_t> hoisted_temporaries;
 
-	uint64_t active_input_builtins = 0;
-	uint64_t active_output_builtins = 0;
+	Bitset active_input_builtins;
+	Bitset active_output_builtins;
+	uint32_t clip_distance_count = 0;
+	uint32_t cull_distance_count = 0;
+	bool position_invariant = false;
+
 	// Traverses all reachable opcodes and sets active_builtins to a bitmask of all builtin variables which are accessed in the shader.
 	void update_active_builtins();
 	bool has_active_builtin(spv::BuiltIn builtin, spv::StorageClass storage);
 
 	void analyze_parameter_preservation(
 	    SPIRFunction &entry, const CFG &cfg,
-	    const std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &variable_to_blocks);
+	    const std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &variable_to_blocks,
+	    const std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &complete_write_blocks);
 
 	// If a variable ID or parameter ID is found in this set, a sampler is actually a shadow/comparison sampler.
 	// SPIR-V does not support this distinction, so we must keep track of this information outside the type system.
 	// There might be unrelated IDs found in this set which do not correspond to actual variables.
 	// This set should only be queried for the existence of samplers which are already known to be variables or parameter IDs.
-	std::unordered_set<uint32_t> comparison_samplers;
-	void analyze_sampler_comparison_states();
+	// Similar is implemented for images, as well as if subpass inputs are needed.
+	std::unordered_set<uint32_t> comparison_ids;
+	bool need_subpass_input = false;
+
+	// In certain backends, we will need to use a dummy sampler to be able to emit code.
+	// GLSL does not support texelFetch on texture2D objects, but SPIR-V does,
+	// so we need to workaround by having the application inject a dummy sampler.
+	uint32_t dummy_sampler_id = 0;
+
+	void analyze_image_and_sampler_usage();
+
+	struct CombinedImageSamplerDrefHandler : OpcodeHandler
+	{
+		CombinedImageSamplerDrefHandler(Compiler &compiler_)
+		    : compiler(compiler_)
+		{
+		}
+		bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) override;
+
+		Compiler &compiler;
+		std::unordered_set<uint32_t> dref_combined_samplers;
+	};
+
 	struct CombinedImageSamplerUsageHandler : OpcodeHandler
 	{
-		CombinedImageSamplerUsageHandler(Compiler &compiler_)
+		CombinedImageSamplerUsageHandler(Compiler &compiler_,
+		                                 const std::unordered_set<uint32_t> &dref_combined_samplers_)
 		    : compiler(compiler_)
+		    , dref_combined_samplers(dref_combined_samplers_)
 		{
 		}
 
 		bool begin_function_scope(const uint32_t *args, uint32_t length) override;
 		bool handle(spv::Op opcode, const uint32_t *args, uint32_t length) override;
 		Compiler &compiler;
+		const std::unordered_set<uint32_t> &dref_combined_samplers;
 
 		std::unordered_map<uint32_t, std::unordered_set<uint32_t>> dependency_hierarchy;
-		std::unordered_set<uint32_t> comparison_samplers;
+		std::unordered_set<uint32_t> comparison_ids;
 
-		void add_hierarchy_to_comparison_samplers(uint32_t sampler);
+		void add_hierarchy_to_comparison_ids(uint32_t ids);
+		bool need_subpass_input = false;
 	};
+
+	void build_function_control_flow_graphs_and_analyze();
+	std::unordered_map<uint32_t, std::unique_ptr<CFG>> function_cfgs;
+	struct CFGBuilder : OpcodeHandler
+	{
+		CFGBuilder(Compiler &compiler_);
+
+		bool follow_function_call(const SPIRFunction &func) override;
+		bool handle(spv::Op op, const uint32_t *args, uint32_t length) override;
+		Compiler &compiler;
+		std::unordered_map<uint32_t, std::unique_ptr<CFG>> function_cfgs;
+	};
+
+	struct AnalyzeVariableScopeAccessHandler : OpcodeHandler
+	{
+		AnalyzeVariableScopeAccessHandler(Compiler &compiler_, SPIRFunction &entry_);
+
+		bool follow_function_call(const SPIRFunction &) override;
+		void set_current_block(const SPIRBlock &block) override;
+
+		void notify_variable_access(uint32_t id, uint32_t block);
+		bool id_is_phi_variable(uint32_t id) const;
+		bool id_is_potential_temporary(uint32_t id) const;
+		bool handle(spv::Op op, const uint32_t *args, uint32_t length) override;
+
+		Compiler &compiler;
+		SPIRFunction &entry;
+		std::unordered_map<uint32_t, std::unordered_set<uint32_t>> accessed_variables_to_block;
+		std::unordered_map<uint32_t, std::unordered_set<uint32_t>> accessed_temporaries_to_block;
+		std::unordered_map<uint32_t, uint32_t> result_id_to_type;
+		std::unordered_map<uint32_t, std::unordered_set<uint32_t>> complete_write_variables_to_block;
+		std::unordered_map<uint32_t, std::unordered_set<uint32_t>> partial_write_variables_to_block;
+		const SPIRBlock *current_block = nullptr;
+	};
+
+	struct StaticExpressionAccessHandler : OpcodeHandler
+	{
+		StaticExpressionAccessHandler(Compiler &compiler_, uint32_t variable_id_);
+		bool follow_function_call(const SPIRFunction &) override;
+		bool handle(spv::Op op, const uint32_t *args, uint32_t length) override;
+
+		Compiler &compiler;
+		uint32_t variable_id;
+		uint32_t static_expression = 0;
+		uint32_t write_count = 0;
+	};
+
+	void analyze_variable_scope(SPIRFunction &function, AnalyzeVariableScopeAccessHandler &handler);
+	void find_function_local_luts(SPIRFunction &function, const AnalyzeVariableScopeAccessHandler &handler);
+
+	void make_constant_null(uint32_t id, uint32_t type);
+
+	std::vector<spv::Capability> declared_capabilities;
+	std::vector<std::string> declared_extensions;
+	std::unordered_map<uint32_t, std::string> declared_block_names;
+
+	bool instruction_to_result_type(uint32_t &result_type, uint32_t &result_id, spv::Op op, const uint32_t *args,
+	                                uint32_t length);
+
+	Bitset combined_decoration_for_member(const SPIRType &type, uint32_t index) const;
+	static bool is_desktop_only_format(spv::ImageFormat format);
+
+	bool image_is_comparison(const SPIRType &type, uint32_t id) const;
+
+private:
+	// Used only to implement the old deprecated get_entry_point() interface.
+	const SPIREntryPoint &get_first_entry_point(const std::string &name) const;
+	SPIREntryPoint &get_first_entry_point(const std::string &name);
+
+	void fixup_type_alias();
+	bool type_is_block_like(const SPIRType &type) const;
 };
-}
+} // namespace spirv_cross
 
 #endif

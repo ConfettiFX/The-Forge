@@ -491,7 +491,7 @@ public:
 
 		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		bufDesc.mDesc.mSize = skyBoxDataSize;
 		bufDesc.mDesc.mVertexStride = sizeof(float) * 4;
@@ -500,7 +500,7 @@ public:
 		addResource(&bufDesc);
 
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		bufDesc.mDesc.mSize = sizeof(UniformViewProj);
@@ -514,7 +514,7 @@ public:
 		}
 
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_SRV;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		bufDesc.mDesc.mFirstElement = 0;
@@ -530,7 +530,7 @@ public:
 		}
 
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		bufDesc.mDesc.mSize = sizeof(UniformCompute);
 		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -544,7 +544,7 @@ public:
 
 		// Vertex Buffer
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mSize = sizeof(Vertex) * (uint32_t)vertices.size();
 		bufDesc.mDesc.mVertexStride = sizeof(Vertex);
@@ -554,7 +554,7 @@ public:
 
 		// Index Buffer
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_INDEX;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 		bufDesc.mDesc.mSize = sizeof(uint16_t) * (uint32_t)indices.size();
@@ -564,7 +564,7 @@ public:
 
 		// Static Asteroid RW Buffer
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mSize = sizeof(AsteroidStatic) * gNumAsteroids;
 		bufDesc.mDesc.mFirstElement = 0;
@@ -577,7 +577,7 @@ public:
 
 		// Dynamic Asteroid RW Buffer
 		bufDesc = {};
-		bufDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mSize = sizeof(AsteroidDynamic) * gNumAsteroids;
 		bufDesc.mDesc.mFirstElement = 0;
@@ -636,7 +636,7 @@ public:
 		}
 
 		BufferLoadDesc indirectBufDesc = {};
-		indirectBufDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_INDIRECT;
+		indirectBufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
 		indirectBufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		indirectBufDesc.mDesc.pCounterBuffer = NULL;
 		indirectBufDesc.mDesc.mFirstElement = 0;
@@ -907,8 +907,6 @@ public:
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		postProcRTDesc.mSampleQuality = 0;
-		postProcRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		postProcRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
 		
@@ -1340,8 +1338,6 @@ public:
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mWidth = mSettings.mWidth;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 

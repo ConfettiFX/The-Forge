@@ -1,5 +1,5 @@
-Texture2D<float4> uSampler : register(t1);
-SamplerState _uSampler_sampler : register(s1);
+Texture2D<float4> uSampler : register(t0);
+SamplerState _uSampler_sampler : register(s0);
 Texture2D<float4> uSamplerShadow : register(t1);
 SamplerComparisonState _uSamplerShadow_sampler : register(s1);
 
@@ -12,7 +12,7 @@ struct SPIRV_Cross_Output
 
 float4 samp2(Texture2D<float4> s, SamplerState _s_sampler)
 {
-    return s.Sample(_s_sampler, float2(1.0f, 1.0f)) + s.Load(int3(int2(10, 10), 0));
+    return s.Sample(_s_sampler, 1.0f.xx) + s.Load(int3(int2(10, 10), 0));
 }
 
 float4 samp3(Texture2D<float4> s, SamplerState _s_sampler)
@@ -22,7 +22,7 @@ float4 samp3(Texture2D<float4> s, SamplerState _s_sampler)
 
 float samp4(Texture2D<float4> s, SamplerComparisonState _s_sampler)
 {
-    return s.SampleCmp(_s_sampler, float3(1.0f, 1.0f, 1.0f).xy, float3(1.0f, 1.0f, 1.0f).z);
+    return s.SampleCmp(_s_sampler, 1.0f.xxx.xy, 1.0f.xxx.z);
 }
 
 float samp(Texture2D<float4> s0, SamplerState _s0_sampler, Texture2D<float4> s1, SamplerComparisonState _s1_sampler)

@@ -1,0 +1,56 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<!--
+*************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+This code is licensed under the Visual Studio SDK license terms.
+THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+*************************************************************************
+-->
+
+  <UsingTask TaskName="RegisterStub" AssemblyFile="Microsoft.VisualStudio.Sdk.BuildTasks.15.0.dll" />
+
+  <ItemGroup>
+    <PropertyPageSchema Include="$(VSSDKTargetsPath)\ProjectItemsSchema.xml"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <BeforeResourceCompileTargets>
+      $(BeforeResourceCompileTargets);
+      VSCTCompile
+    </BeforeResourceCompileTargets>
+    <AfterBuildLinkTargets>
+      $(AfterBuildLinkTargets);
+      IsolatedShellFiles;
+      RegisterStubTarget;
+      _VsixCleanRecordFileWrites
+    </AfterBuildLinkTargets>
+  </PropertyGroup>
+
+  <Target Name="PkgdefProjectOutputGroup"
+        Outputs="@(PkgdefOutputGroupOutput)"
+        DependsOnTargets="$(PkgdefProjectOutputGroupDependsOn)">
+    <ItemGroup>
+       <PkgdefOutputGroupOutput Include="@(PkgdefFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="IsolatedShellFiles"
+          DependsOnTargets="$(IsolatedShellFilesDependsOn)"
+          Condition="'$(BuildingProject)' != 'false' And '@(IsolatedShellFiles)' != ''">
+    <Copy Condition="'%(IsolatedShellFiles.SubPath)' == ''" SourceFiles="%(IsolatedShellFiles.Identity)" DestinationFiles="$(OutDir)\%(IsolatedShellFiles.Identity)">
+      <Output TaskParameter="DestinationFiles" ItemName="_VsixDeployCurrentFileWrites"/>
+    </Copy>
+    <Copy Condition="'%(IsolatedShellFiles.SubPath)' != ''" SourceFiles="%(IsolatedShellFiles.Identity)" DestinationFiles="$(OutDir)\%(IsolatedShellFiles.SubPath)\%(IsolatedShellFiles.Identity)">
+      <Output TaskParameter="DestinationFiles" ItemName="_VsixDeployCurrentFileWrites"/>
+    </Copy>
+  </Target>
+  
+  <Target Name="RegisterStubTarget" Condition="'$(ShellDTEGuid)' != ''">
+    <RegisterStub InstallDir="$(OutDir)" AppName="$(TargetName)" StubDTEGuid="$(ShellDTEGuid)" />
+  </Target>  
+
+  <Import Project="Microsoft.VisualStudio.Sdk.Common.targets" />
+</Project>

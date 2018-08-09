@@ -29,7 +29,7 @@ layout (location = 0) in float textcoord;
 
 layout (location = 0) out vec4 oColor;
 
-layout (set=0, binding=11) uniform texture2D uTex0[5];
+layout (set=0, binding=11) uniform texture1D uTex0[5];
 layout (set=0, binding=3) uniform sampler uSampler0;
 
 layout (set=0, binding=0) uniform uniformBlock {
@@ -45,8 +45,7 @@ layout(push_constant) uniform pushConstantBlock
 
 void main( void )
 {
-  vec2 tc = vec2(textcoord, 0.0f);
-  vec4 ca = texture(sampler2D(uTex0[particleRootConstant.textureIndex], uSampler0), tc);
-  vec4 cb = texture(sampler2D(uTex0[(particleRootConstant.textureIndex + 1) % 5], uSampler0), tc);
+  vec4 ca = texture(sampler1D(uTex0[particleRootConstant.textureIndex], uSampler0), textcoord);
+  vec4 cb = texture(sampler1D(uTex0[(particleRootConstant.textureIndex + 1) % 5], uSampler0), textcoord);
   oColor =  0.05f * mix(ca, cb, particleRootConstant.paletteFactor);
 }

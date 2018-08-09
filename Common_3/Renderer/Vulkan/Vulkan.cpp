@@ -50,6 +50,26 @@
 #include <Windows.h>
 #endif
 
+
+#ifdef FORGE_JHABLE_EDITS_V01
+// These are placed separately in Vulkan.cpp and Direct3D12.cpp, but they should be in one place
+// with an option for the user to append custom attributes. However, it should be initialized once
+// so that we can parse them during shader reflection, not during pipeline binding.
+static const char * g_hackSemanticList[]
+=
+{
+	"POSITION",
+	"NORMAL",
+	"UV",
+	"COLOR",
+	"TANGENT",
+	"BINORMAL",
+	"TANGENT_TW",
+	"TEXCOORD",
+};
+
+#endif
+
 #if defined(__linux__)
 #define stricmp(a, b) strcasecmp(a, b)
 #define vsprintf_s vsnprintf
@@ -228,8 +248,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		VK_FORMAT_UNDEFINED, // GNF_BC3 = 74,
 		VK_FORMAT_UNDEFINED, // GNF_BC4 = 75,
 		VK_FORMAT_UNDEFINED, // GNF_BC5 = 76,
+#ifdef FORGE_JHABLE_EDITS_V01
+							 // this is incorrect, because we need separate enums for signed float and unsigned float. for now, just pretend it's a signed float
+		VK_FORMAT_BC6H_SFLOAT_BLOCK, // GNF_BC6 = 77,
+		VK_FORMAT_BC7_UNORM_BLOCK, // GNF_BC7 = 78,
+#else
 		VK_FORMAT_UNDEFINED, // GNF_BC6 = 77,
 		VK_FORMAT_UNDEFINED, // GNF_BC7 = 78,
+#endif
 		// Reveser Form
 		VK_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
 		// Extend for DXGI
@@ -510,7 +536,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		/// Triple buffered array of number of descriptor tables allocated per update frequency
 		/// Only used for recording stats
 		uint32_t					mDescriptorSetCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-
+		VkDescriptorSet				pEmptyDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		Cmd*						pCurrentCmd;
 		uint32_t					mFrameIdx;
 	} DescriptorManager;
@@ -567,10 +593,15 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 						for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
 							pManager->pImageInfo[setIndex][pDesc->mHandleIndex + arr] = pRenderer->pDefaultSampler->mVkSamplerView;
 					}
-					else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE || pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
+					else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
 					{
 						for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-							pManager->pImageInfo[setIndex][pDesc->mHandleIndex + arr].imageView = pRenderer->pDefaultTexture->pVkImageViews[0];
+							pManager->pImageInfo[setIndex][pDesc->mHandleIndex + arr].imageView = pRenderer->pDefaultTexture->pVkSRVDescriptor;
+					}
+					else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
+					{
+						for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+							pManager->pImageInfo[setIndex][pDesc->mHandleIndex + arr].imageView = pRenderer->pDefaultTexture->pVkUAVDescriptors[0];
 					}
 					else
 					{
@@ -590,6 +621,11 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 						pManager->pWriteSets[setIndex][i].pImageInfo = &pManager->pImageInfo[setIndex][pDesc->mHandleIndex];
 					}
 				}
+			}
+			else
+			{
+				VkDescriptorSet* pSets[] = { &pManager->pEmptyDescriptorSets[setIndex] };
+				consume_descriptor_sets(pRenderer, &pLayout->pVkSetLayout, pSets, 1, pRenderer->pDescriptorPool);
 			}
 		}
 
@@ -838,13 +874,19 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		{
 			pFrameBuffer->mWidth = pDesc->ppRenderTargets[0]->mDesc.mWidth;
 			pFrameBuffer->mHeight = pDesc->ppRenderTargets[0]->mDesc.mHeight;
-			pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mDesc.mArraySize;
+			if (pDesc->pColorArraySlices)
+				pFrameBuffer->mArraySize = 1;
+			else
+				pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mDesc.mArraySize;
 		}
 		else
 		{
 			pFrameBuffer->mWidth = pDesc->pDepthStencil->mDesc.mWidth;
 			pFrameBuffer->mHeight = pDesc->pDepthStencil->mDesc.mHeight;
-			pFrameBuffer->mArraySize = pDesc->pDepthStencil->mDesc.mArraySize;
+			if (pDesc->mDepthArraySlice != -1)
+				pFrameBuffer->mArraySize = 1;
+			else
+				pFrameBuffer->mArraySize = pDesc->pDepthStencil->mDesc.mArraySize;
 		}
 
 		/************************************************************************/
@@ -861,44 +903,36 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
 		{
 			uint32_t handle = 0;
-			if (pDesc->pColorArraySlices)
+			if (pDesc->pColorMipSlices)
 			{
-				if (pDesc->pColorMipSlices)
-				{
-					handle = 1 + pDesc->pColorArraySlices[i] * pDesc->ppRenderTargets[i]->mDesc.mMipLevels + pDesc->pColorMipSlices[i];
-				}
+				if (pDesc->pColorArraySlices)
+					handle = 1 + pDesc->pColorMipSlices[i] * pDesc->ppRenderTargets[i]->mDesc.mArraySize + pDesc->pColorArraySlices[i];
 				else
-				{
-					handle = 1 + pDesc->pColorArraySlices[i];
-				}
+					handle = 1 + pDesc->pColorMipSlices[i];
 			}
-			else if (pDesc->pColorMipSlices)
+			else if (pDesc->pColorArraySlices)
 			{
-				handle = 1 + pDesc->pColorMipSlices[i];
+				handle = 1 + pDesc->pColorArraySlices[i];
 			}
-			*iter_attachments = pDesc->ppRenderTargets[i]->pVkRenderTargetViews[handle];
+			*iter_attachments = pDesc->ppRenderTargets[i]->pVkDescriptors[handle];
 			++iter_attachments;
 		}
 		// Depth/stencil
 		if (pDesc->pDepthStencil)
 		{
 			uint32_t handle = 0;
-			if (pDesc->mDepthArraySlice != -1)
+			if (pDesc->mDepthMipSlice != -1)
 			{
-				if (pDesc->mDepthMipSlice != -1)
-				{
-					handle = 1 + pDesc->mDepthArraySlice * pDesc->pDepthStencil->mDesc.mMipLevels + pDesc->mDepthMipSlice;
-				}
+				if (pDesc->mDepthArraySlice != -1)
+					handle = 1 + pDesc->mDepthMipSlice * pDesc->pDepthStencil->mDesc.mArraySize + pDesc->mDepthArraySlice;
 				else
-				{
-					handle = 1 + pDesc->mDepthArraySlice;
-				}
+					handle = 1 + pDesc->mDepthMipSlice;
 			}
-			else if (pDesc->mDepthMipSlice != -1)
+			else if (pDesc->mDepthArraySlice != -1)
 			{
-				handle = 1 + pDesc->mDepthMipSlice;
+				handle = 1 + pDesc->mDepthArraySlice;
 			}
-			*iter_attachments = pDesc->pDepthStencil->pVkRenderTargetViews[handle];
+			*iter_attachments = pDesc->pDepthStencil->pVkDescriptors[handle];
 			++iter_attachments;
 		}
 
@@ -1077,13 +1111,12 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		textureDesc.mMipLevels = 1;
 		textureDesc.mSampleCount = SAMPLE_COUNT_1;
 		textureDesc.mStartState = RESOURCE_STATE_COMMON;
-		textureDesc.mType = TEXTURE_TYPE_2D;
-		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		textureDesc.mWidth = 2;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture);
 
 		BufferDesc bufferDesc = {};
-		bufferDesc.mUsage = BUFFER_USAGE_STORAGE_SRV | BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_UNIFORM;
+		bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufferDesc.mStartState = RESOURCE_STATE_COMMON;
 		bufferDesc.mSize = sizeof(uint32_t);
@@ -1341,46 +1374,41 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		return result;
 	}
 
-	VkBufferUsageFlags util_to_vk_buffer_usage(BufferUsage usage, bool typed)
+	VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed)
 	{
-		VkBufferUsageFlags result = 0;
-		if (usage & BUFFER_USAGE_UPLOAD) {
-			result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		}
-		if (usage & BUFFER_USAGE_UNIFORM) {
+		VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		if (usage & DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
 			result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		}
-		if (usage & BUFFER_USAGE_STORAGE_UAV) {
+		if (usage & DESCRIPTOR_TYPE_RW_BUFFER) {
 			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 			if (typed)
 				result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
 		}
-		if (usage & BUFFER_USAGE_STORAGE_SRV) {
+		if (usage & DESCRIPTOR_TYPE_BUFFER) {
 			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 			if (typed)
 				result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 		}
-		if (usage & BUFFER_USAGE_INDEX) {
+		if (usage & DESCRIPTOR_TYPE_INDEX_BUFFER) {
 			result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		}
-		if (usage & BUFFER_USAGE_VERTEX) {
+		if (usage & DESCRIPTOR_TYPE_VERTEX_BUFFER) {
 			result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		}
-		if (usage & BUFFER_USAGE_INDIRECT) {
+		if (usage & DESCRIPTOR_TYPE_INDIRECT_BUFFER) {
 			result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 		}
 		return result;
 	}
 
-	VkImageUsageFlags util_to_vk_image_usage(TextureUsage usage)
+	VkImageUsageFlags util_to_vk_image_usage(DescriptorType usage)
 	{
 		VkImageUsageFlags result = 0;
-		if (TEXTURE_USAGE_SAMPLED_IMAGE == (usage & TEXTURE_USAGE_SAMPLED_IMAGE)) {
+		if (DESCRIPTOR_TYPE_TEXTURE == (usage & DESCRIPTOR_TYPE_TEXTURE))
 			result |= VK_IMAGE_USAGE_SAMPLED_BIT;
-		}
-		if (usage & TEXTURE_USAGE_UNORDERED_ACCESS) {
+		if (DESCRIPTOR_TYPE_RW_TEXTURE == (usage & DESCRIPTOR_TYPE_RW_TEXTURE))
 			result |= VK_IMAGE_USAGE_STORAGE_BIT;
-		}
 		return result;
 	}
 
@@ -1562,48 +1590,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		ASSERT(res != 0);
 		return res;
-	}
-
-	VkImageViewType util_determine_vk_image_view_type(TextureType type, uint32_t arraySize)
-	{
-		VkImageViewType ret = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-		switch (type)
-		{
-		case TEXTURE_TYPE_1D:
-			ret = arraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
-			break;
-		case TEXTURE_TYPE_2D:
-			ret = arraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
-			break;
-		case TEXTURE_TYPE_3D:
-			if (arraySize > 1)
-			{
-				LOGERROR("Cannot support 3D Texture Array in Vulkan");
-				ASSERT(false);
-			}
-			ret = VK_IMAGE_VIEW_TYPE_3D;
-			break;
-		case TEXTURE_TYPE_CUBE:
-			ret = arraySize > 1 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
-			break;
-		}
-
-		return ret;
-	}
-
-	uint32_t util_to_image_view_index(TextureUsage usage)
-	{
-		switch (usage)
-		{
-		case TEXTURE_USAGE_2D_ARRAY_VIEW:
-			return 1;
-		case TEXTURE_USAGE_CUBEMAP_VIEW:
-			return 2;
-		case TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW:
-			return 3;
-		default:
-			return 0;
-		}
 	}
 	/************************************************************************/
 	// Multi GPU Helper Functions
@@ -2885,8 +2871,6 @@ namespace vk {
 		ASSERT(VK_SUCCESS == vk_res);
 
 		RenderTargetDesc descColor = {};
-		descColor.mType = RENDER_TARGET_TYPE_2D;
-		descColor.mUsage = RENDER_TARGET_USAGE_COLOR;
 		descColor.mWidth = pSwapChain->mDesc.mWidth;
 		descColor.mHeight = pSwapChain->mDesc.mHeight;
 		descColor.mDepth = 1;
@@ -2942,7 +2926,7 @@ namespace vk {
 		pBuffer->mDesc = *pDesc;
 
 		// Align the buffer size to multiples of the dynamic uniform buffer minimum size
-		if (pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM)
+		if (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
 			uint64_t minAlignment = pRenderer->pActiveGpuSettings->mUniformBufferAlignment;
 			pBuffer->mDesc.mSize = round_up_64(pBuffer->mDesc.mSize, minAlignment);
@@ -2953,7 +2937,7 @@ namespace vk {
 		add_info.pNext = NULL;
 		add_info.flags = 0;
 		add_info.size = pBuffer->mDesc.mSize;
-		add_info.usage = util_to_vk_buffer_usage(pBuffer->mDesc.mUsage, pDesc->mFormat != ImageFormat::NONE);
+		add_info.usage = util_to_vk_buffer_usage(pBuffer->mDesc.mDescriptors, pDesc->mFormat != ImageFormat::NONE);
 		add_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		add_info.queueFamilyIndexCount = 0;
 		add_info.pQueueFamilyIndices = NULL;
@@ -3003,15 +2987,15 @@ namespace vk {
 		/************************************************************************/
 		// Set descriptor data
 		/************************************************************************/
-		if ((pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM)
-			|| (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV)
-			|| (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV))
+		if ((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+			|| (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)
+			|| (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER))
 		{
 			pBuffer->mVkBufferInfo.buffer = pBuffer->pVkBuffer;
 			pBuffer->mVkBufferInfo.range = VK_WHOLE_SIZE;
 
-			if ((pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV)
-				|| (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV))
+			if ((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)
+				|| (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER))
 			{
 				pBuffer->mVkBufferInfo.offset = pBuffer->mDesc.mStructStride * pBuffer->mDesc.mFirstElement;
 			}
@@ -3123,16 +3107,20 @@ namespace vk {
 		else if (pDesc->mStartState & RESOURCE_STATE_DEPTH_WRITE)
 			additionalFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+		VkImageType image_type = VK_IMAGE_TYPE_MAX_ENUM;
+		if (pDesc->mDepth > 1)
+			image_type = VK_IMAGE_TYPE_3D;
+		else if (pDesc->mHeight > 1)
+			image_type = VK_IMAGE_TYPE_2D;
+		else
+			image_type = VK_IMAGE_TYPE_1D;
+
+		DescriptorType descriptors = pDesc->mDescriptors;
+		bool cubemapRequired = (DESCRIPTOR_TYPE_TEXTURE_CUBE == (descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE));
+		bool arrayRequired = false;
+
 		if (VK_NULL_HANDLE == pTexture->pVkImage)
 		{
-			VkImageType image_type = VK_IMAGE_TYPE_2D;
-			switch (pDesc->mType) {
-			case TEXTURE_TYPE_1D: image_type = VK_IMAGE_TYPE_1D; break;
-			case TEXTURE_TYPE_2D: image_type = VK_IMAGE_TYPE_2D; break;
-			case TEXTURE_TYPE_3D: image_type = VK_IMAGE_TYPE_3D; break;
-			case TEXTURE_TYPE_CUBE: image_type = VK_IMAGE_TYPE_2D; break;
-			}
-
 			DECLARE_ZERO(VkImageCreateInfo, add_info);
 			add_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			add_info.pNext = NULL;
@@ -3141,25 +3129,17 @@ namespace vk {
 			add_info.format = util_to_vk_image_format(pDesc->mFormat, pDesc->mSrgb);
 			add_info.extent.width = pDesc->mWidth;
 			add_info.extent.height = pDesc->mHeight;
-			add_info.extent.depth = pDesc->mType == TEXTURE_TYPE_3D ? pDesc->mDepth : 1;
+			add_info.extent.depth = pDesc->mDepth;
 			add_info.mipLevels = pDesc->mMipLevels;
-			add_info.arrayLayers = pDesc->mArraySize * (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+			add_info.arrayLayers = pDesc->mArraySize;
 			add_info.samples = util_to_vk_sample_count(pDesc->mSampleCount);
 			add_info.tiling = (0 != pDesc->mHostVisible) ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
-			add_info.usage = util_to_vk_image_usage(pDesc->mUsage);
+			add_info.usage = util_to_vk_image_usage(descriptors);
 			add_info.usage |= additionalFlags;
 			add_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			add_info.queueFamilyIndexCount = 0;
 			add_info.pQueueFamilyIndices = NULL;
 			add_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-			bool cubemapRequired = (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_VIEW) ||
-				(pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW) ||
-				pDesc->mType == TEXTURE_TYPE_CUBE;
-			bool arrayRequired = (pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW) ||
-				(pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW) ||
-				(pDesc->mType == TEXTURE_TYPE_3D) ||
-				(pDesc->mType == TEXTURE_TYPE_2D && pDesc->mArraySize > 1);
 
 			if (cubemapRequired)
 				add_info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -3268,96 +3248,68 @@ namespace vk {
 		/************************************************************************/
 		// Create image view
 		/************************************************************************/
-		VkImageViewType view_type = util_determine_vk_image_view_type(pDesc->mType, pDesc->mArraySize);
+		VkImageViewType view_type = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+		switch (image_type)
+		{
+		case VK_IMAGE_TYPE_1D:
+			view_type = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
+			break;
+		case VK_IMAGE_TYPE_2D:
+			if (cubemapRequired)
+				view_type = (pDesc->mArraySize > 6) ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
+			else
+				view_type = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+			break;
+		case VK_IMAGE_TYPE_3D:
+			if (pDesc->mArraySize > 1)
+			{
+				LOGERROR("Cannot support 3D Texture Array in Vulkan");
+				ASSERT(false);
+			}
+			view_type = VK_IMAGE_VIEW_TYPE_3D;
+			break;
+		}
+
 		ASSERT(view_type != VK_IMAGE_VIEW_TYPE_MAX_ENUM && "Invalid Image View");
 
-		DECLARE_ZERO(VkImageViewCreateInfo, add_info);
-		add_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		add_info.pNext = NULL;
-		add_info.flags = 0;
-		add_info.image = pTexture->pVkImage;
-		add_info.viewType = view_type;
-		add_info.format = util_to_vk_image_format(pDesc->mFormat, pDesc->mSrgb);
-		add_info.components.r = VK_COMPONENT_SWIZZLE_R;
-		add_info.components.g = VK_COMPONENT_SWIZZLE_G;
-		add_info.components.b = VK_COMPONENT_SWIZZLE_B;
-		add_info.components.a = VK_COMPONENT_SWIZZLE_A;
-		add_info.subresourceRange.aspectMask = util_vk_determine_aspect_mask(add_info.format);
-		add_info.subresourceRange.baseMipLevel = 0;
-		add_info.subresourceRange.levelCount = pDesc->mMipLevels;
-		add_info.subresourceRange.baseArrayLayer = 0;
-		add_info.subresourceRange.layerCount = pDesc->mArraySize * (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
-		VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &add_info, NULL, &(pTexture->pVkImageViews[0]));
-		ASSERT(VK_SUCCESS == vk_res);
-		pTexture->mVkAspectMask = add_info.subresourceRange.aspectMask;
-		/************************************************************************/
-		// Other views based on Texture Usage
-		/************************************************************************/
-		if (pDesc->mUsage & TEXTURE_USAGE_2D_ARRAY_VIEW)
+		VkImageViewCreateInfo srvDesc = {};
+		// SRV
+		srvDesc.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		srvDesc.pNext = NULL;
+		srvDesc.flags = 0;
+		srvDesc.image = pTexture->pVkImage;
+		srvDesc.viewType = view_type;
+		srvDesc.format = util_to_vk_image_format(pDesc->mFormat, pDesc->mSrgb);
+		srvDesc.components.r = VK_COMPONENT_SWIZZLE_R;
+		srvDesc.components.g = VK_COMPONENT_SWIZZLE_G;
+		srvDesc.components.b = VK_COMPONENT_SWIZZLE_B;
+		srvDesc.components.a = VK_COMPONENT_SWIZZLE_A;
+		srvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(srvDesc.format);
+		srvDesc.subresourceRange.baseMipLevel = 0;
+		srvDesc.subresourceRange.levelCount = pDesc->mMipLevels;
+		srvDesc.subresourceRange.baseArrayLayer = 0;
+		srvDesc.subresourceRange.layerCount = pDesc->mArraySize;
+		pTexture->mVkAspectMask = srvDesc.subresourceRange.aspectMask;
+		if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
 		{
-			if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
-			{
-				LOGERRORF("Trying to create a view of type TEXTURE_2D_ARRAY which is not compatible with Texture type %u", pDesc->mType);
-			}
-			else
-			{
-				const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
-				const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
-
-				VkImageViewCreateInfo array2DInfo = add_info;
-				array2DInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-				array2DInfo.subresourceRange.baseMipLevel = 0;
-				array2DInfo.subresourceRange.baseArrayLayer = 0;
-				array2DInfo.subresourceRange.layerCount = arraySize;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &array2DInfo, NULL, &(pTexture->pVkImageViews[1]));
-				ASSERT(VK_SUCCESS == vk_res);
-			}
+			VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &srvDesc, NULL, &pTexture->pVkSRVDescriptor);
+			ASSERT(VK_SUCCESS == vk_res);
 		}
-		if (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_VIEW)
-		{
-			if (pDesc->mArraySize < 6)
-			{
-				LOGERRORF("Texture has %u array layers which is not enough to accomodate all the 6 cubemap faces %u", pDesc->mArraySize);
-			}
-			else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
-			{
-				LOGERRORF("Trying to create a view of type TEXTURE_CUBE which is not compatible with Texture type %u", pDesc->mType);
-			}
-			else
-			{
-				const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
-				const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
 
-				VkImageViewCreateInfo cubemapInfo = add_info;
-				cubemapInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-				cubemapInfo.subresourceRange.baseMipLevel = 0;
-				cubemapInfo.subresourceRange.baseArrayLayer = 0;
-				cubemapInfo.subresourceRange.layerCount = arraySize;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &cubemapInfo, NULL, &(pTexture->pVkImageViews[2]));
-				ASSERT(VK_SUCCESS == vk_res);
-			}
-		}
-		if (pDesc->mUsage & TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW)
+		// UAV
+		if (descriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
 		{
-			if (pDesc->mArraySize < 6)
+			pTexture->pVkUAVDescriptors = (VkImageView*)conf_calloc(pDesc->mMipLevels, sizeof(VkImageView));
+			VkImageViewCreateInfo uavDesc = srvDesc;
+			// #NOTE : We dont support imageCube, imageCubeArray for consistency with other APIs
+			// All cubemaps will be used as image2DArray for Image Load / Store ops
+			if (uavDesc.viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY || uavDesc.viewType == VK_IMAGE_VIEW_TYPE_CUBE)
+				uavDesc.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			uavDesc.subresourceRange.levelCount = 1;
+			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 			{
-				LOGERRORF("Texture has %u array layers which is not enough to accomodate all the 6 cubemap faces %u", pDesc->mArraySize);
-			}
-			else if (pDesc->mType != TEXTURE_TYPE_CUBE && pDesc->mType != TEXTURE_TYPE_2D)
-			{
-				LOGERRORF("Trying to create a view of type TEXTURE_CUBE_ARRAY which is not compatible with Texture type %u", pDesc->mType);
-			}
-			else
-			{
-				const uint32_t sizeMultiplier = (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
-				const uint32_t arraySize = sizeMultiplier * pDesc->mArraySize;
-
-				VkImageViewCreateInfo cubemapInfo = add_info;
-				cubemapInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-				cubemapInfo.subresourceRange.baseMipLevel = 0;
-				cubemapInfo.subresourceRange.baseArrayLayer = 0;
-				cubemapInfo.subresourceRange.layerCount = arraySize;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &cubemapInfo, NULL, &(pTexture->pVkImageViews[3]));
+				uavDesc.subresourceRange.baseMipLevel = i;
+				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &uavDesc, NULL, &pTexture->pVkUAVDescriptors[i]);
 				ASSERT(VK_SUCCESS == vk_res);
 			}
 		}
@@ -3381,14 +3333,18 @@ namespace vk {
 		if (pTexture->mOwnsImage)
 			vk_destroyTexture(pRenderer->pVmaAllocator, pTexture);
 
-		for (uint32_t i = 0; i < TEXTURE_USAGE_COUNT; ++i)
+		if (VK_NULL_HANDLE != pTexture->pVkSRVDescriptor)
+			vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkSRVDescriptor, NULL);
+
+		if (pTexture->pVkUAVDescriptors)
 		{
-			if (VK_NULL_HANDLE != pTexture->pVkImageViews[i])
+			for (uint32_t i = 0; i < pTexture->mDesc.mMipLevels; ++i)
 			{
-				vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkImageViews[i], NULL);
+				vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkUAVDescriptors[i], NULL);
 			}
 		}
 
+		SAFE_FREE(pTexture->pVkUAVDescriptors);
 		SAFE_FREE(pTexture);
 	}
 
@@ -3398,11 +3354,9 @@ namespace vk {
 		ASSERT(pDesc);
 		ASSERT(ppRenderTarget);
 
-		// Assert that render target is used as either color or depth attachment
-		ASSERT(((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) || (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
-		// Assert that render target is not used as both color and depth attachment
-		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_COLOR) && (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)));
-		ASSERT(!((pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL) && (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)) && "Cannot use depth stencil as UAV");
+		bool isDepth = ImageFormat::IsDepthFormat(pDesc->mFormat);
+
+		ASSERT(!((isDepth) && (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
 
 		((RenderTargetDesc*)pDesc)->mMipLevels = max(1U, pDesc->mMipLevels);
 
@@ -3426,34 +3380,17 @@ namespace vk {
 		textureDesc.pSharedNodeIndices = pDesc->pSharedNodeIndices;
 		textureDesc.mSharedNodeIndexCount = pDesc->mSharedNodeIndexCount;
 
-		if (pDesc->mUsage & RENDER_TARGET_USAGE_COLOR)
+		if (!isDepth)
 			textureDesc.mStartState |= RESOURCE_STATE_RENDER_TARGET;
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)
+		else
 			textureDesc.mStartState |= RESOURCE_STATE_DEPTH_WRITE;
 
 		// Set this by default to be able to sample the rendertarget in shader
-		textureDesc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
-		if (pDesc->mUsage & RENDER_TARGET_USAGE_UNORDERED_ACCESS)
-			textureDesc.mUsage |= TEXTURE_USAGE_UNORDERED_ACCESS;
+		textureDesc.mDescriptors = pDesc->mDescriptors;
+		// Create SRV by default for a render target
+		textureDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE;
 
-		textureDesc.mUsage |= pDesc->mTextureUsage;
-
-		switch (pDesc->mType)
-		{
-		case RENDER_TARGET_TYPE_1D:
-			textureDesc.mType = TEXTURE_TYPE_1D;
-			break;
-		case RENDER_TARGET_TYPE_2D:
-			textureDesc.mType = TEXTURE_TYPE_2D;
-			break;
-		case RENDER_TARGET_TYPE_3D:
-			textureDesc.mType = TEXTURE_TYPE_3D;
-			break;
-		default:
-			break;
-		}
-
-		if (pDesc->mUsage & RENDER_TARGET_USAGE_DEPTH_STENCIL)
+		if (isDepth)
 		{
 			// Make sure depth/stencil format is supported - fall back to VK_FORMAT_D16_UNORM if not
 			VkFormat vk_depth_stencil_format = util_to_vk_image_format(pDesc->mFormat, false);
@@ -3475,132 +3412,57 @@ namespace vk {
 
 		::addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
+		VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+		if (pDesc->mDepth > 1)
+			viewType = VK_IMAGE_VIEW_TYPE_3D;
+		else if (pDesc->mHeight > 1)
+			viewType = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+		else
+			viewType = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
+
+		uint32_t depthOrArraySize = pDesc->mArraySize * pDesc->mDepth;
+
 		VkImageViewCreateInfo rtvDesc = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL };
 		rtvDesc.flags = 0;
 		rtvDesc.image = pRenderTarget->pTexture->pVkImage;
-		rtvDesc.viewType = VK_IMAGE_VIEW_TYPE_1D;
+		rtvDesc.viewType = viewType;
 		rtvDesc.format = util_to_vk_image_format(pRenderTarget->pTexture->mDesc.mFormat, pRenderTarget->pTexture->mDesc.mSrgb);
 		rtvDesc.components.r = VK_COMPONENT_SWIZZLE_R;
 		rtvDesc.components.g = VK_COMPONENT_SWIZZLE_G;
 		rtvDesc.components.b = VK_COMPONENT_SWIZZLE_B;
 		rtvDesc.components.a = VK_COMPONENT_SWIZZLE_A;
 		rtvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(rtvDesc.format);
-		rtvDesc.subresourceRange.levelCount = pDesc->mMipLevels;
+		rtvDesc.subresourceRange.baseMipLevel = 0;
+		rtvDesc.subresourceRange.levelCount = 1;
 		rtvDesc.subresourceRange.baseArrayLayer = 0;
-		rtvDesc.subresourceRange.layerCount = pDesc->mArraySize * (pDesc->mType == TEXTURE_TYPE_CUBE ? 6 : 1);
+		rtvDesc.subresourceRange.layerCount = depthOrArraySize;
 
-		tinystl::vector<VkImageView> imageViews(1);
-		imageViews[0] = pRenderTarget->pTexture->pVkImageViews[0];
+		uint32_t numRTVs = pDesc->mMipLevels;
+		if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) || (pDesc->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
+			numRTVs *= depthOrArraySize;
 
-		if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED)
+		pRenderTarget->pVkDescriptors = (VkImageView*)conf_calloc(numRTVs + 1, sizeof(VkImageView));
+		vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, NULL, &pRenderTarget->pVkDescriptors[0]);
+
+		for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 		{
-			VkImageViewCreateInfo mipped1DView = rtvDesc;
-			mipped1DView.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-			mipped1DView.subresourceRange.baseArrayLayer = 0;
-			mipped1DView.subresourceRange.layerCount = pDesc->mArraySize;
-			mipped1DView.subresourceRange.levelCount = 1;
-			imageViews.resize(1 + pDesc->mMipLevels);
-			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+			rtvDesc.subresourceRange.baseMipLevel = i;
+			if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) || (pDesc->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
 			{
-				mipped1DView.subresourceRange.baseMipLevel = i;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mipped1DView, NULL, &(imageViews[1 + i]));
-				ASSERT(VK_SUCCESS == vk_res);
-			}
-		}
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_SLICES)
-		{
-			VkImageViewCreateInfo array1DView = rtvDesc;
-			array1DView.viewType = VK_IMAGE_VIEW_TYPE_1D;
-			array1DView.subresourceRange.layerCount = 1;
-			imageViews.resize(1 + pDesc->mArraySize);
-			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
-			{
-				array1DView.subresourceRange.baseArrayLayer = i;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &array1DView, NULL, &(imageViews[1 + i]));
-				ASSERT(VK_SUCCESS == vk_res);
-			}
-		}
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_1D_MIPPED_SLICES)
-		{
-			VkImageViewCreateInfo mippedArray1DView = rtvDesc;
-			mippedArray1DView.viewType = VK_IMAGE_VIEW_TYPE_1D;
-			mippedArray1DView.subresourceRange.layerCount = 1;
-			mippedArray1DView.subresourceRange.levelCount = 1;
-			imageViews.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
-			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
-			{
-				mippedArray1DView.subresourceRange.baseArrayLayer = i;
-				for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
+				for (uint32_t j = 0; j < depthOrArraySize; ++j)
 				{
-					mippedArray1DView.subresourceRange.baseMipLevel = j;
-					VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mippedArray1DView, NULL, &(imageViews[1 + i * pDesc->mMipLevels + j]));
+					rtvDesc.subresourceRange.layerCount = 1;
+					rtvDesc.subresourceRange.baseArrayLayer = j;
+					VkResult vkRes = vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, NULL, &pRenderTarget->pVkDescriptors[1 + i * depthOrArraySize + j]);
+					ASSERT(VK_SUCCESS == vkRes);
 				}
 			}
-		}
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED)
-		{
-			VkImageViewCreateInfo mipped2DView = rtvDesc;
-			mipped2DView.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-			mipped2DView.subresourceRange.baseArrayLayer = 0;
-			mipped2DView.subresourceRange.layerCount = pDesc->mArraySize;
-			mipped2DView.subresourceRange.levelCount = 1;
-			imageViews.resize(1 + pDesc->mMipLevels);
-			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
+			else
 			{
-				mipped2DView.subresourceRange.baseMipLevel = i;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mipped2DView, NULL, &(imageViews[1 + i]));
-				ASSERT(VK_SUCCESS == vk_res);
+				VkResult vkRes = vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, NULL, &pRenderTarget->pVkDescriptors[1 + i]);
+				ASSERT(VK_SUCCESS == vkRes);
 			}
 		}
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_SLICES)
-		{
-			VkImageViewCreateInfo array2DView = rtvDesc;
-			array2DView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			array2DView.subresourceRange.layerCount = 1;
-			imageViews.resize(1 + pDesc->mArraySize);
-			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
-			{
-				array2DView.subresourceRange.baseArrayLayer = i;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &array2DView, NULL, &(imageViews[1 + i]));
-				ASSERT(VK_SUCCESS == vk_res);
-			}
-		}
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_2D_MIPPED_SLICES)
-		{
-			VkImageViewCreateInfo mippedArray2DView = rtvDesc;
-			mippedArray2DView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			mippedArray2DView.subresourceRange.layerCount = 1;
-			mippedArray2DView.subresourceRange.levelCount = 1;
-			imageViews.resize(pDesc->mArraySize * pDesc->mMipLevels + 1);
-			for (uint32_t i = 0; i < pDesc->mArraySize; ++i)
-			{
-				mippedArray2DView.subresourceRange.baseArrayLayer = i;
-				for (uint32_t j = 0; j < pDesc->mMipLevels; ++j)
-				{
-					mippedArray2DView.subresourceRange.baseMipLevel = j;
-					VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mippedArray2DView, NULL, &(imageViews[1 + i * pDesc->mMipLevels + j]));
-				}
-			}
-		}
-		else if (pDesc->mUsage & RENDER_TARGET_USAGE_3D_MIPPED)
-		{
-			VkImageViewCreateInfo mipped3DView = rtvDesc;
-			mipped3DView.viewType = VK_IMAGE_VIEW_TYPE_3D;
-			mipped3DView.subresourceRange.baseArrayLayer = 0;
-			mipped3DView.subresourceRange.layerCount = 1;
-			mipped3DView.subresourceRange.levelCount = 1;
-			imageViews.resize(1 + pDesc->mMipLevels);
-			for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
-			{
-				mipped3DView.subresourceRange.baseMipLevel = i;
-				VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &mipped3DView, NULL, &(imageViews[1 + i]));
-				ASSERT(VK_SUCCESS == vk_res);
-			}
-		}
-
-		pRenderTarget->pVkRenderTargetViews = (VkImageView*)conf_calloc(imageViews.size(), sizeof(VkImageView));
-		pRenderTarget->mVkRenderTargetImageViewCount = (uint32_t)imageViews.size();
-		memcpy(pRenderTarget->pVkRenderTargetViews, imageViews.data(), imageViews.size() * sizeof(VkImageView));
 
 		*ppRenderTarget = pRenderTarget;
 	}
@@ -3609,10 +3471,20 @@ namespace vk {
 	{
 		::removeTexture(pRenderer, pRenderTarget->pTexture);
 
-		for (uint32_t i = 1; i < pRenderTarget->mVkRenderTargetImageViewCount; ++i)
-			vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkRenderTargetViews[i], NULL);
+		const uint32_t depthOrArraySize = pRenderTarget->mDesc.mArraySize * pRenderTarget->mDesc.mDepth;
+		if ((pRenderTarget->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) || (pRenderTarget->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
+		{
+			for (uint32_t i = 1; i < pRenderTarget->mDesc.mMipLevels; ++i)
+				for (uint32_t j = 0; j < depthOrArraySize; ++j)
+					vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkDescriptors[i * depthOrArraySize + j], NULL);
+		}
+		else
+		{
+			for (uint32_t i = 1; i < pRenderTarget->mDesc.mMipLevels; ++i)
+				vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkDescriptors[i], NULL);
+		}
 
-		SAFE_FREE(pRenderTarget->pVkRenderTargetViews);
+		SAFE_FREE(pRenderTarget->pVkDescriptors);
 		SAFE_FREE(pRenderTarget);
 	}
 
@@ -4157,6 +4029,90 @@ namespace vk {
 
 		SAFE_FREE(pRootSignature);
 	}
+
+#ifdef FORGE_JHABLE_EDITS_V01
+	static bool convertVertInputToSemantic(int & semanticType, int & semanticIndex, const char attrName[], int attrLen)
+	{
+		semanticType = -1;
+		semanticIndex = -1;
+
+
+		int baseOffset = 0;
+
+		{
+			// glslangvalidator and glslc prepend vertex attributes with input_
+			int cmp0 = strncmp(attrName, "input_", 6);
+			if (cmp0 == 0)
+			{
+				baseOffset = 6;
+			}
+
+			// special case for the shaders in TextShaders.h which prepend with in_var_
+			int cmp1 = strncmp(attrName,"in_var_", 7);
+			if (cmp1 == 0)
+			{
+				baseOffset = 7;
+			}
+		}
+
+
+		// figure out the semantic index, just go backwards until we find a non-number
+		int startIndex = attrLen;
+		while (startIndex - 1 >= baseOffset && '0' <= attrName[startIndex - 1] && attrName[startIndex - 1] < '9')
+		{
+			startIndex--;
+		}
+
+		if (startIndex != attrLen)
+		{
+			int numDigits = attrLen - startIndex;
+			int sum = 0;
+			for (int digitIter = 0; digitIter < numDigits; digitIter++)
+			{
+				sum *= 10;
+				sum += int(attrName[startIndex + digitIter] - '0');
+			}
+			semanticIndex = sum;
+		}
+		else
+		{
+			// if no digit, then semantic is 0
+			semanticIndex = 0;
+		}
+
+		int semanticNum = sizeof(g_hackSemanticList)/sizeof(g_hackSemanticList[0]);
+
+		for (int i = 0; i < semanticNum; i++)
+		{
+			int len = strlen(g_hackSemanticList[i]);
+
+			if (attrLen >= baseOffset + len)
+			{
+				bool ok = true;
+				for (int j = 0; j < len; j++)
+				{
+					int lhs = tolower(g_hackSemanticList[i][j]);
+					int rhs = tolower(attrName[baseOffset + j]);
+					if (lhs != rhs)
+					{
+						ok = false;
+						break;
+					}
+				}
+
+				if (ok)
+				{
+					semanticType = i;
+					break;
+				}
+			}
+		}
+
+		return semanticType >= 0;
+	}
+
+#endif
+
 	/************************************************************************/
 	// Pipeline State Functions
 	/************************************************************************/
@@ -4247,6 +4203,94 @@ namespace vk {
 				uint32_t attrib_count = pVertexLayout->mAttribCount > MAX_VERTEX_ATTRIBS ? MAX_VERTEX_ATTRIBS : pVertexLayout->mAttribCount;
 				uint32_t binding_value = UINT32_MAX;
 
+
+#ifdef FORGE_JHABLE_EDITS_V01
+				ASSERT(pShaderProgram->mReflection.mVertexStageIndex >= 0);
+				ASSERT(attrib_count <= MAX_VERTEX_BINDINGS);
+
+				int vertAttrSemanticType[MAX_VERTEX_BINDINGS];
+				int vertAttrSemanticIndex[MAX_VERTEX_BINDINGS];
+				int vertLocation[MAX_VERTEX_BINDINGS];
+				for (int i = 0; i < MAX_VERTEX_BINDINGS; i++)
+				{
+					vertAttrSemanticType[i] = -1;
+					vertAttrSemanticIndex[i] = -1;
+					vertLocation[i] = -1;
+				}
+
+				const ShaderReflection * pVertReflection = &pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mVertexStageIndex];
+				int numVertexInputs = 0;
+				if (pVertReflection != nullptr)
+				{
+					numVertexInputs = pVertReflection->mVertexInputsCount;
+					for (uint32_t i = 0; i < numVertexInputs; ++i)
+					{
+						int semanticType = -1;
+						int semanticIndex = -1;
+						bool isFound = convertVertInputToSemantic(semanticType, semanticIndex, pVertReflection->pVertexInputs[i].name, pVertReflection->pVertexInputs[i].name_size);
+						if (isFound)
+						{
+							vertAttrSemanticType[i] = semanticType;
+							vertAttrSemanticIndex[i] = semanticIndex;
+						}
+						else
+						{
+							printf("Faild to find vertex input: %s\n", pVertReflection->pVertexInputs[i].name);
+							int temp = 0;
+							temp++;
+						}
+					}
+				}
+
+
+				// for each attrib, find the matching input in the reflection
+				for (uint32_t i = 0; i < attrib_count; ++i)
+				{
+					const VertexAttrib* attrib = &(pVertexLayout->mAttribs[i]);
+					int foundIndex = -1;
+					int expectedType = attrib->mSemanticType;
+					int expectedIndex = attrib->mSemanticIndex;
+
+					vertLocation[i] = -1;
+					for (int j = 0; j < numVertexInputs; j++)
+					{
+						if (vertAttrSemanticType[j] == expectedType &&
+							vertAttrSemanticIndex[j] == expectedIndex)
+						{
+							vertLocation[i] = j;
+						}
+					}
+				}
+#endif
+
+
+#ifdef FORGE_JHABLE_EDITS_V01
+				// Initial values
+				for (uint32_t i = 0; i < attrib_count; ++i)
+				{
+					const VertexAttrib* attrib = &(pVertexLayout->mAttribs[i]);
+
+					if (binding_value != attrib->mBinding)
+					{
+						binding_value = attrib->mBinding;
+						++input_binding_count;
+					}
+
+					input_bindings[input_binding_count - 1].stride += calculateImageFormatStride(attrib->mFormat);
+
+					if (vertLocation[i] >= 0)
+					{
+						input_bindings[input_binding_count - 1].binding = binding_value;
+						input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+						input_attributes[input_attribute_count].location = vertLocation[i];//attrib->mLocation;
+						input_attributes[input_attribute_count].binding = attrib->mBinding;
+						input_attributes[input_attribute_count].format = util_to_vk_image_format(attrib->mFormat, false);
+						input_attributes[input_attribute_count].offset = attrib->mOffset;
+						++input_attribute_count;
+					}
+				}
+#else
 				// Initial values
 				for (uint32_t i = 0; i < attrib_count; ++i)
 				{
@@ -4268,6 +4312,8 @@ namespace vk {
 					input_attributes[input_attribute_count].offset = attrib->mOffset;
 					++input_attribute_count;
 				}
+#endif
+
 			}
 
 			DECLARE_ZERO(VkPipelineVertexInputStateCreateInfo, vi);
@@ -4961,6 +5007,20 @@ namespace vk {
 		{
 			pm->pCurrentCmd = pCmd;
 			pm->mFrameIdx = (pm->mFrameIdx + 1) % MAX_FRAMES_IN_FLIGHT;
+
+			// Vulkan requires to bind all descriptor sets upto the highest set number even if they are empty
+			// Example: If shader uses only set 1, we still have to bind an empty set 0
+			for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
+			{
+				if (pm->pEmptyDescriptorSets[setIndex] != VK_NULL_HANDLE)
+				{
+					vkCmdBindDescriptorSets(pCmd->pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->pPipelineLayout,
+						setIndex, 1,
+						&pm->pEmptyDescriptorSets[setIndex],
+						0, NULL);				// Reset other data
+				}
+				pm->mBoundSets[setIndex] = true;
+			}
 		}
 
 		// 64 bit hash value for hashing the mTextureId / mBufferId / mSamplerId of the input descriptors
@@ -5021,7 +5081,7 @@ namespace vk {
 					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i] = pParam->ppSamplers[i]->mVkSamplerView;
 				}
 			}
-			else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE || pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
+			else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
 			{
 				if (!pParam->ppTextures) {
 					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
@@ -5038,13 +5098,34 @@ namespace vk {
 					pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
 
 					// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
-					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageView =
-						pParam->ppTextures[i]->pVkImageViews[util_to_image_view_index(pParam->mTextureUsage)];
-					// SRVs need to be in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL and UAVs need to be in VK_IMAGE_LAYOUT_GENERAL
-					if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
-						pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					else
-						pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageView = pParam->ppTextures[i]->pVkSRVDescriptor;
+					// SRVs need to be in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				}
+			}
+			else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
+			{
+				if (!pParam->ppTextures) {
+					LOGERRORF("RW Texture descriptor (%s) is NULL", pParam->pName);
+					return;
+				}
+
+				if (pParam->mUAVMipSlice)
+					pHash[setIndex] = tinystl::hash_state(&pParam->mUAVMipSlice, 1, pHash[setIndex]);
+
+				for (uint32_t i = 0; i < arrayCount; ++i)
+				{
+					if (!pParam->ppTextures[i]) {
+						LOGERRORF("RW Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, i);
+						return;
+					}
+
+					pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
+
+					// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
+					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageView = pParam->ppTextures[i]->pVkUAVDescriptors[pParam->mUAVMipSlice];
+					// UAVs need to be in VK_IMAGE_LAYOUT_GENERAL
+					pm->pImageInfo[setIndex][pDesc->mHandleIndex + i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				}
 			}
 			else

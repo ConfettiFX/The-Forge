@@ -10,9 +10,10 @@
   <Project Name="05_FontRendering" Path="05_FontRendering/05_FontRendering.project" Active="No"/>
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
-  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="Yes"/>
+  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
+  <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -30,8 +31,9 @@
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
+      <Project Name="10_PixelProjectedReflections" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="01_Transformation" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
@@ -47,6 +49,7 @@
       <Project Name="06_MaterialPlayground" ConfigName="Release"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
+      <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

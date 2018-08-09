@@ -1,0 +1,514 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema version="1.0.0" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://schemas.microsoft.com/developer/vsx-schema/2010" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:annotation>
+    <xs:documentation>
+      <!-- _locID_text="VsixSchema" _locComment="" -->This schema is used for installing extensions to Visual Studio.
+    </xs:documentation>
+  </xs:annotation>
+  <xs:element name="Vsix">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="Identifier" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              <!-- _locID_text="Identifier" _locComment="" -->The Identifier section is used to uniquely identify the extension and provide metadata about the extension.
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="Name" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Identifier.Name" _locComment="" -->The Name element is the product name.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1" />
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Author" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Author" _locComment="" -->The Author element is the person or company creating the extension.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1" />
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Version" type="xs:string" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Identifier.Version" _locComment="" -->The Version element is the version of the extension.  The convention for version is A.B.C.D.
+                    For example: 1.0.0.0
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="Description" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Description" _locComment="" -->The Description element is used to describe the extension.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="1000" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Locale" type="xs:unsignedShort" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Locale" _locComment="" -->The Locale element describes the locale of the extension.  The locale value is a four digit numerical value.
+                    For example: 1033 is English, 1041 is Japanese.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="MoreInfoUrl" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Identifier.MoreInfoUrl" _locComment="" -->The MoreInfoUrl element is used to provide additional information to the consumer of the extension.  The hyperlink to the URL
+                    provided appears in the Extension Manager UI inside the product.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="License" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="License" _locComment="" -->The License element allows the developer to specify a license or end user licensing agreement (EULA).
+                    The license is displayed when the consumer of the extension tries to install the extension.
+                    The license can be a text file or an RTF file.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="GettingStartedGuide" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="GettingStartedGuide" _locComment="" -->The GettingStartedGuide element is a link to a website or file that gets launched in the client's browser after the extension
+                    is installed.  This provides the developer an opportunity to provide additional information or help to the consumer once
+                    the extension is installed.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="ReleaseNotes" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="ReleaseNotes" _locComment="" -->The ReleaseNotes element is a link to a website or file that gets launched in the client's browser (for web addresses) or a dialog
+                    or a dialog for local files when the user clicks the link the Extension Manager UI.  This provides the developer an opportunity to provide information about changes to the extension
+                    from version to version.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="Icon" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Icon" _locComment="" -->The Icon element allows the developer to provide an icon that appears in the Extension Manager UI when browsing for the extension.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="PreviewImage" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="PreviewImage" _locComment="" -->The Preview element allows the developer to provide an image that appears in the Extension Manager UI preview pane when browsing
+                    for the extension.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="InstalledByMsi" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="InstalledByMsi" _locComment="" -->The InstalledByMsi element should be used if the VSIX is being installed by an MSI.
+                    Setting this property to true means the extension will appear in the Extension Manager if the manifest is placed in a supported
+                    location on disk. However, the end user will not be able to uninstall it.  The user will need to remove the extension from
+                    Windows Add/Remove Programs by uninstalling the parent MSI.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="SupportedProducts" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="SupportedProducts" _locComment="" -->The SupportedProducts element is a list of elements the extension will target.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:choice minOccurs="1" maxOccurs="unbounded">
+                    <xs:element name="VisualStudio" minOccurs="1" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element minOccurs="1" maxOccurs="unbounded" name="Edition">
+                            <xs:simpleType>
+                              <xs:union>
+                                <xs:simpleType>
+                                  <xs:restriction base="xs:string">
+                                    <xs:enumeration value="IntegratedShell">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.IntegratedShell" _locComment="" -->This will target the Integrated Shell and all VS Editions.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="Community">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.Community" _locComment="" -->This will target VS Community, Professional and Enterprise.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="Pro">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.Pro" _locComment="" -->This will target VS Community, Professional and Enterprise.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="Premium">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.Premium" _locComment="" -->This will target VS Premium and Ultimate.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="Ultimate">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.Ultimate" _locComment="" -->This will target VS Ultimate.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="Enterprise">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.Enterprise" _locComment="" -->This will target VS Enterprise.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="VWDExpress">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.VWDExpress" _locComment="" -->This will target Express for Web.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="VSWinExpress">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.VWDExpress" _locComment="" -->This will target Express for Windows.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="WDExpress">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.VWDExpress" _locComment="" -->This will target Express for Desktop.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                    <xs:enumeration value="Express_All">
+                                      <xs:annotation>
+                                        <xs:documentation>
+                                          <!-- _locID_text="Edition.Express_All" _locComment="" -->This will target all Express products.
+                                        </xs:documentation>
+                                      </xs:annotation>
+                                    </xs:enumeration>
+                                  </xs:restriction>
+                                </xs:simpleType>
+                                <xs:simpleType>
+                                  <xs:restriction base="xs:string"/>
+                                </xs:simpleType>
+                              </xs:union>
+                            </xs:simpleType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="Version" type="xs:string" use="required">
+                          <xs:annotation>
+                            <xs:documentation>
+                              <!-- _locID_text="SupportedProduct.VSVersion" _locComment="" -->The Version attribute maps to the version of Visual Studio.  For VS 2010, the version is 10.0
+                            </xs:documentation>
+                          </xs:annotation>
+                        </xs:attribute>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="IsolatedShell" minOccurs="1" maxOccurs="unbounded">
+                      <xs:annotation>
+                        <xs:documentation>
+                          <!-- _locID_text="SupportedProduct.IsolatedShell" _locComment="" -->The IsolatedShell element is used to describe which Isolated shell the extension can target.
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="xs:string">
+                            <xs:attribute name="Version" type="xs:string" use="required" />
+                          </xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:choice>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SupportedFrameworkRuntimeEdition" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="SupportedFrameworkRuntimeEdition" _locComment="" -->The SupportedFrameworkRuntimeEdition element is used to describe the minimum and maximum .NET Framework runtime required
+                    for the extension to run correctly.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:attribute name="MinVersion" type="xs:string" use="required" />
+                  <xs:attribute name="MaxVersion" type="xs:string" use="optional" />
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="SystemComponent" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="SystemComponent" _locComment="" -->The SystemComponent element will hide the extension from the Extension Manager UI.
+                    Warning, users will not be able to uninstall the extension through the Extension Manager UI if this is set.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="AllUsers" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="AllUsers" _locComment="" -->Setting the AllUsers element to "true" will force the extension to be installed to the Per Machine location.
+                    This location for VS 2010 is %VSInstallDir%\Common7\Ide\Extensions\[Author]\[Name]\[Version]
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+            </xs:all>
+            <xs:attribute name="Id" use="required">
+              <xs:annotation>
+                <xs:documentation>
+                  <!-- _locID_text="Identifier.Id" _locComment="" -->The Id attribute is a unique string for the extension.
+                  An extension with the same Id value and a newer version value of another extension is an update of that extension.
+                  The Id string can be any string and does not have to be a GUID.
+                </xs:documentation>
+              </xs:annotation>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="References" minOccurs="0" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              <!-- _locID_text="References" _locComment="" -->The References section allows the extension creator to define the dependencies that are required for their extension.
+              If the referenced VSIX is not installed or carried as a payload, the install will fail.
+              The end user will see an error message and be provided a link to download the missing dependency.
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Reference" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="Name" type="xs:string" minOccurs="1" maxOccurs="1">
+                      <xs:annotation>
+                        <xs:documentation>
+                          <!-- _locID_text="Reference.Name" _locComment="" -->The Name element is the product name of the missing dependency.
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="MoreInfoUrl" type="xs:string" minOccurs="0" maxOccurs="1">
+                      <xs:annotation>
+                        <xs:documentation>
+                          <!-- _locID_text="Reference.MoreInfoUrl" _locComment="" -->The MoreInfoUrl is the URL where the end user can get more information about the dependency or a link to
+                          a page where they can download the dependency.
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="VsixPath" type="xs:string" minOccurs="0" maxOccurs="1">
+                      <xs:annotation>
+                        <xs:documentation>
+                          <!-- _locID_text="Reference.VsixPath" _locComment="" -->The VsixPath element allows the dependency to be carried as a payload.  The path will refer to a relative
+                          path to the .VSIX file from the root of the outer VSIX.
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:all>
+                  <xs:attribute name="Id" use="required">
+                    <xs:annotation>
+                      <xs:documentation>
+                        <!-- _locID_text="Reference.Id" _locComment="" -->The Id attribute is the Id of the missing dependency that is being referenced.
+                      </xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="MinVersion" type="xs:string" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>
+                        <!-- _locID_text="Reference.MinVersion" _locComment="" -->The MinVersion and MaxVersion attributes provide an optional range of versions of the missing dependency.
+                        It is up to the developer to ensure a MaxVersion if there are known breaking changes in a newer release.
+                      </xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="MaxVersion" type="xs:string" use="optional">
+                    <xs:annotation>
+                      <xs:documentation>
+                        <!-- _locID_text="Reference.MaxVersion" _locComment="" -->The MinVersion and MaxVersion attributes provide an optional range of versions of the missing dependency.
+                        It is up to the developer to ensure a MaxVersion if there are known breaking changes in a newer release.
+                      </xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Content" minOccurs="0" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>
+              <!-- _locID_text="Content" _locComment="" -->The Content section is used to describe the payload in the VSIX.
+              Not all content needs to be described.  Only the extension types need to be defined.
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+              <xs:element name="ProjectTemplate" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="ProjectTemplate" _locComment="" -->The ProjectTemplate element is a directory name of where the project template zip appears in the VSIX.
+                    This must be a directory.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="ItemTemplate" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="ItemTemplate" _locComment="" -->The ItemTemplate element is a directory name of where the item template zip file appears in the VSIX.
+                    This must be a directory.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="Assembly" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Assembly" _locComment="" -->The Assembly element is used if there is a project or item template which requires a wizard.
+                    The Assembly value will point to the assembly file in the VSIX.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>                  
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute name="AssemblyName" type="xs:string" use="required">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="AssemblyName" _locComment="" -->The AssemblyName is the full strong name of the Assembly.  This is required to properly load the template wizard.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="MefComponent" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="MefComponent" _locComment="" -->The MefComponent element defines the location of the MEF assembly in the VSIX package.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="Sample" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="Sample" _locComment="" -->The Sample element defines the location of the sample folder in the VSIX package.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute name="ProgrammingLanguages" type="xs:string" use="optional">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="ProgrammingLanguages" _locComment="" -->The ProgrammingLanguages is the list of programming languages for projects in the sample.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                      <xs:attribute name="TargetFrameworks" type="xs:string" use="optional">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="TargetFrameworks" _locComment="" -->The TargetFrameworks is the list of target frameworks for projects in the sample.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                      <xs:attribute name="CategorizationPath" type="xs:string" use="optional">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="CategorizationPath" _locComment="" -->The CategorizationPath is the path specifying the categorization in the new project dialog.
+                            The path segments should be separated by the '\' character.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                      <xs:attribute name="StartupFiles" type="xs:string" use="optional">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="StartupFiles" _locComment="" -->The StartupFiles is the list of files in the sample folder to start when the sample is instantiated. The paths should
+                            be relative to the sample folder root.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                      <xs:attribute name="DefaultName" type="xs:string" use="optional">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="DefaultName" _locComment="" -->The DefaultName is the default name of the sample in the New Project Dialog. Defaults to the name of the 
+                            sample solution if not specified.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                      <xs:attribute name="SolutionPath" type="xs:string" use="required">
+                        <xs:annotation>
+                          <xs:documentation>
+                            <!-- _locID_text="SolutionPath" _locComment="" -->The SolutionPath is the path to the solution file the sample folder to start when the sample is instantiated. The path should
+                            be relative to the sample folder root.
+                          </xs:documentation>
+                        </xs:annotation>
+                      </xs:attribute>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="VsPackage" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="VsPackage" _locComment="" -->The VsPackage element defines the location of the .pkgdef file in the VSIX package.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="ToolboxControl" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="ToolboxControl" _locComment="" -->The ToolboxControl defines the location of the .pkgdef file in the VSIX that is used to register the ToolboxControl.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element maxOccurs="unbounded" name="CustomExtension" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation>
+                    <!-- _locID_text="CustomExtension" _locComment="" -->The CustomExtension element is used for defining a custom elemenet that the Extension Manager can load.
+                    The value can be a path to a file or a directory within the VSIX file.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute name="Type" use="required" />
+                      <xs:anyAttribute processContents="lax"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+      </xs:all>
+      <xs:attribute name="Version" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Vsix.Version" _locComment="" -->The Version attribute is the version of the VSIX file.  For VS 2010, use 1.0.0
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -472,7 +472,7 @@ public:
 
 		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.mDesc.mVertexStride = sizeof (float) * 4;
@@ -481,7 +481,7 @@ public:
 		addResource (&skyboxVbDesc);
 
 		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mSize = sizeof(mat4);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -513,7 +513,7 @@ public:
 		uint32_t parDataStride = sizeof(uint32_t);
 
 		BufferLoadDesc particleVbDesc = {};
-		particleVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		particleVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		particleVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		particleVbDesc.mDesc.mSize = parDataSize;
 		particleVbDesc.mDesc.mVertexStride = parDataStride;
@@ -538,7 +538,7 @@ public:
 			for (uint j = 0; j < gImageCount; ++j)
 			{
 				BufferLoadDesc vbDesc = {};
-				vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+				vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 				vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 				vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 				vbDesc.mDesc.mSize = graphDataSize;
@@ -552,7 +552,7 @@ public:
 		for (uint i = 0; i < gImageCount; ++i)
 		{
 			BufferLoadDesc vbDesc = {};
-			vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+			vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 			vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 			vbDesc.mDesc.mSize = graphDataSize;

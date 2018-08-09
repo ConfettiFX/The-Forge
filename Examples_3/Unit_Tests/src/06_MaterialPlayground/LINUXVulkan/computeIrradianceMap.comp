@@ -9,7 +9,7 @@
 * distributed with this work for additional information
 * regarding copyright ownership.  The ASF licenses this file
 * to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
+* "License") you may not use this file except in compliance
 * with the License.  You may obtain a copy of the License at
 *
 *   http://www.apache.org/licenses/LICENSE-2.0
@@ -21,90 +21,86 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-
 #version 450 core
 
-const float Pi = 3.14159265359;
-const float SampleDelta = 0.025;
+const float Pi = float (3.141593);
+const float SampleDelta = float (0.025000);
+
 layout(set = 0, binding = 0) uniform textureCube srcTexture;
 
-layout(std430, set = 0, binding = 1) buffer dstBuffer
-{
-	vec4 storeVal[];
-};
+layout(set = 1, binding = 2, rgba32f) uniform image2DArray dstTexture;
+layout(set = 0, binding = 3) uniform sampler skyboxSampler;
 
-layout(set = 0, binding = 2) uniform sampler skyboxSampler;
+vec4 computeIrradiance(vec3 N) {
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+    vec4 irradiance = vec4(0.000000, 0.000000, 0.000000, 0.000000);
 
-vec4 computeIrradiance(vec3 N)
-{
-	vec4 irradiance = vec4(0.0);
+    vec3 up = vec3(0.000000, 1.000000, 0.000000);
+    vec3 right = cross(up, N);
+    (up = cross(N, right));
 
-	vec3 up = vec3(0.0, 1.0, 0.0);
-	vec3 right = cross(up, N);
-	up = cross(N, right);
+    float nrSamples = float (0.000000);
 
-	float nrSamples = 0.0;
+    for (float phi = float (0.000000); (phi < (float (2.000000) * Pi)); (phi += SampleDelta)) {
 
-	for (float phi = 0.0; phi < 2.0 * Pi; phi += SampleDelta)
-	{
-		for (float theta = 0.0; theta < 0.5 * Pi; theta += SampleDelta)
-		{
-			// spherical to cartesian (in tangent space)
-			vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+        for (float theta = float (0.000000); (theta < (float (0.500000) * Pi)); (theta += SampleDelta)) {
 
-			// tangent space to world
-			vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
+            vec3 tangentSample = vec3((sin(theta) * cos(phi)), (sin(theta) * sin(phi)), cos(theta));
 
+            vec3 sampleVec = (((vec3 ((tangentSample).x) * right) + (vec3 ((tangentSample).y) * up)) + (vec3 ((tangentSample).z) * N));
 
-			vec4 sampledValue = texture(samplerCube(srcTexture, skyboxSampler), sampleVec);
+            vec4 sampledValue = textureLod(samplerCube( srcTexture, skyboxSampler), vec3(sampleVec), float (0));
 
-			irradiance += vec4(sampledValue.rgb * cos(theta) * sin(theta), sampledValue.a);
-			nrSamples++;
+            (irradiance += vec4((((sampledValue).rgb * vec3 (cos(theta))) * vec3 (sin(theta))), (sampledValue).a));
+            (nrSamples++);
+        }
+    }
 
-		}
-	}
-
-	return Pi * irradiance * (1.0 / float(nrSamples));
+    return ((vec4 (Pi) * irradiance) * vec4 ((float (1.000000) / float(nrSamples))));
 }
 
-void main()
-{
-	uvec3 threadPos = gl_GlobalInvocationID;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+void HLSLmain(uvec3 DTid) {
 
-	uint pixelOffset = 0;
+    vec3 threadPos = vec3 (DTid);
+    uint pixelOffset = uint (0);
 
-	for (uint i = 0; i < threadPos.z; ++i)
-	{
-		pixelOffset += 32 * 32;
-	}
+    for (uint i = uint (0); (float (i) < (threadPos).z); (++i)) {
 
-	vec2 texcoords = vec2(float(threadPos.x + 0.5) / 32.0f, float(threadPos.y + 0.5) / 32.0f);
+        (pixelOffset += uint ((32 * 32)));
+    }
 
-	vec3 sphereDir;
+    vec2 texcoords = vec2((float(((threadPos).x + float (0.500000))) / 32.000000), (float(((threadPos).y + float (0.500000))) / 32.000000));
 
-	if (threadPos.z <= 0) {
-		sphereDir = normalize(vec3(0.5, -(texcoords.y - 0.5), -(texcoords.x - 0.5)));
-	}
-	else if (threadPos.z <= 1) {
-		sphereDir = normalize(vec3(-0.5, -(texcoords.y - 0.5), texcoords.x - 0.5));
-	}
-	else if (threadPos.z <= 2) {
-		sphereDir = normalize(vec3(texcoords.x - 0.5, 0.5, texcoords.y - 0.5));
-	}
-	else if (threadPos.z <= 3) {
-		sphereDir = normalize(vec3(texcoords.x - 0.5, -0.5, -(texcoords.y - 0.5)));
-	}
-	else if (threadPos.z <= 4) {
-		sphereDir = normalize(vec3(texcoords.x - 0.5, -(texcoords.y - 0.5), 0.5));
-	}
-	else if (threadPos.z <= 5) {
-		sphereDir = normalize(vec3(-(texcoords.x - 0.5), -(texcoords.y - 0.5), -0.5));
-	}
+    vec3 sphereDir;
 
-	uint pixelId = pixelOffset + threadPos.y * 32 + threadPos.x;
-	
-	vec4 irradiance = computeIrradiance(sphereDir);
-	storeVal[pixelId] = irradiance;
+    if (((threadPos).z <= float (0))) {
+        (sphereDir = normalize(vec3(0.500000, (-((texcoords).y - float (0.500000))), (-((texcoords).x - float (0.500000))))));
+    }
+    else if (((threadPos).z <= float (1))) {
+        (sphereDir = normalize(vec3((-0.500000), (-((texcoords).y - float (0.500000))), ((texcoords).x - float (0.500000)))));
+    }
+    else if (((threadPos).z <= float (2))) {
+        (sphereDir = normalize(vec3(((texcoords).x - float (0.500000)), 0.500000, ((texcoords).y - float (0.500000)))));
+    }
+    else if (((threadPos).z <= float (3))) {
+        (sphereDir = normalize(vec3(((texcoords).x - float (0.500000)), (-0.500000), (-((texcoords).y - float (0.500000))))));
+    }
+    else if (((threadPos).z <= float (4))) {
+        (sphereDir = normalize(vec3(((texcoords).x - float (0.500000)), (-((texcoords).y - float (0.500000))), 0.500000)));
+    }
+    else if (((threadPos).z <= float (5))) {
+        (sphereDir = normalize(vec3((-((texcoords).x - float (0.500000))), (-((texcoords).y - float (0.500000))), (-0.500000))));
+    }
+
+    uint pixelId = uint (((float (pixelOffset) + ((threadPos).y * float (32))) + (threadPos).x));
+
+    vec4 irradiance = computeIrradiance(sphereDir);
+
+    imageStore(dstTexture, ivec3(ivec3(threadPos)), irradiance);
+}
+void main() {
+    uvec3 DTid;
+    DTid = gl_GlobalInvocationID;
+    HLSLmain(DTid);
 }

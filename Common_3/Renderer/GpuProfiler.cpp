@@ -138,7 +138,6 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
 
 	BufferDesc bufDesc = {};
-	bufDesc.mUsage = BUFFER_USAGE_UPLOAD;
 	bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
 	bufDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	bufDesc.mSize = maxTimers * sizeof(uint64_t) * 2;

@@ -14,49 +14,134 @@ namespace HLSLParser
 {
     public partial class Form1 : Form
     {        
-        [DllImport("hlslparser.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        [return: MarshalAs(UnmanagedType.LPStr)]
-        public static extern string PARSER([MarshalAs(UnmanagedType.LPStr)]string fileName,  [MarshalAs(UnmanagedType.LPStr)]string buffer, int bufferSize, [MarshalAs(UnmanagedType.LPStr)]string entryName, [MarshalAs(UnmanagedType.LPStr)]string shader, [MarshalAs(UnmanagedType.LPStr)]string _language);
-
+       
         OpenFileDialog ofd = new OpenFileDialog();
         SaveFileDialog sfd = new SaveFileDialog();
 
-        public Form1()
+        Input inputWindow;
+        Output outputWindow;
+
+        public Form1(string[] args)
         {
             InitializeComponent();
+            inputWindow = new Input(this);
+            outputWindow = new Output(this);
 
-            richTextBox1.Text = "/*\r\n * Copyright (c) 2018 Confetti Interactive Inc.\r\n * \r\n * This file is part of The-Forge\r\n * (see https://github.com/ConfettiFX/The-Forge). \r\n *\r\n * Licensed to the Apache Software Foundation (ASF) under one\r\n * or more contributor license agreements.  See the NOTICE file\r\n * distributed with this work for additional information\r\n * regarding copyright ownership.  The ASF licenses this file\r\n * to you under the Apache License, Version 2.0 (the\r\n * \"License\") you may not use this file except in compliance\r\n * with the License.  You may obtain a copy of the License at\r\n *\r\n *   http://www.apache.org/licenses/LICENSE-2.0\r\n *\r\n * Unless required by applicable law or agreed to in writing,\r\n * software distributed under the License is distributed on an\r\n * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\r\n * KIND, either express or implied.  See the License for the\r\n * specific language governing permissions and limitations\r\n * under the License.\r\n*/\r\n";
-            richTextBox1.Update();
+            inputWindow.SetOutputWindow(outputWindow);
+            outputWindow.SetInputWindow(inputWindow);
 
-            /*
-            panelHLSL.Show();
-            panelGLSL.Hide();
-            panelMSL.Hide();
-            */
-
-            /*
-            float currentSize = textBox4.Font.SizeInPoints;
-            textBox4.Font = new Font(textBox4.Font.Name, 30.0f, textBox4.Font.Style);
-            textBox4.Update();
-            */
-            
-            sfd.Filter = "vertex shader|*.vert|fragment shader|*.frag|hull shader|*.tesc|domain shader|*.tese|geometry shader|*.geom|compute shader|*.comp|all files|*.*";
+            sfd.Filter = "vertex shader|*.vert|source vertex shader|*.src_vert|fragment shader|*.frag|source fragment shader|*.src_frag|hull shader|*.tesc|source hull shader|*.src_tesc|domain shader|*.tese|source domain shader|*.src_tese|geometry shader|*.geom|source geometry shader|*.src_geom|compute shader|*.comp|source compute shader|*.src_comp|all files|*.*";
             sfd.FilterIndex = 7;
 
             sfd.DefaultExt = "vert";
             sfd.AddExtension = true;
+
+            this.StartPosition = FormStartPosition.Manual;
+
+            if (args.Length > 3)
+            {
+                bTranslateAll = false;
+
+                shader = args[0];
+                language = args[1];
+                fileName = args[2];
+                entryName = args[3];
+
+                OpenInputWindow();
+            }
+
+        }
+
+        private void OpenInputWindow()
+        {
+            if (inputWindow.IsDisposed)
+            {
+                inputWindow = new Input(this);
+
+                if (outputWindow.IsDisposed)
+                {
+                    outputWindow = new Output(this);
+                }
+
+                inputWindow.SetOutputWindow(outputWindow);
+                outputWindow.SetInputWindow(inputWindow);
+            }
+            else if (outputWindow.IsDisposed)
+            {
+                outputWindow = new Output(this);
+
+                if (inputWindow.IsDisposed)
+                {
+                    inputWindow = new Input(this);
+                }
+
+                inputWindow.SetOutputWindow(outputWindow);
+                outputWindow.SetInputWindow(inputWindow);
+            }
+
+            inputWindow.Location = new Point(this.Location.X + 200, this.Location.Y);
+            inputWindow.Show();
+
+           
+            inputWindow.fileName = textBox1.Text = fileName;
+
+            switch (language)
+            {
+                case "-hlsl": HLSLradioButton.Checked = true; break;
+                case "-glsl": GLSLradioButton.Checked = true; break;
+                case "-msl": MSLradioButton.Checked = true; break;
+                default: break;
+            }
+
+            StreamReader sr = new StreamReader(textBox1.Text);
+            string inputData = sr.ReadToEnd();
+
+            inputWindow.richTextBox2.Text = inputData;
+
+            char[] splitters = { '.', '\\' };
+            string[] tokkens = fileName.Split(splitters);
+
+            if (tokkens[tokkens.Length - 1].Contains("vert"))
+            {
+                VSradioButton.Checked = true; shader = "-vs";
+            }
+            else if (tokkens[tokkens.Length - 1].Contains("frag"))
+            {
+                FSradioButton.Checked = true; shader = "-fs";
+            }
+            else if (tokkens[tokkens.Length - 1].Contains("tesc"))
+            {
+                HSradioButton.Checked = true; shader = "-hs";
+            }
+            else if (tokkens[tokkens.Length - 1].Contains("tese"))
+            {
+                DSradioButton.Checked = true; shader = "-ds";
+            }
+            else if (tokkens[tokkens.Length - 1].Contains("geom"))
+            {
+                GSradioButton.Checked = true; shader = "-gs";
+            }
+            else if (tokkens[tokkens.Length - 1].Contains("comp"))
+            {
+                CSradioButton.Checked = true; shader = "-cs";
+            }
+
+            inputWindow.Text = inputWindow.label5.Text = "Input from " + shaderString + " \"" + tokkens[tokkens.Length - 2] + "." + tokkens[tokkens.Length - 1] + "\"";
+            inputWindow.label5.Update();
+
+            inputWindow.button2.PerformClick();
         }
 
 
         bool bTranslateAll = true;
-       
 
-        string entryName = "main";
-        string fileName;
-        string shader = "-vs";
-        string language = "-glsl";
-        string shaderString = "Vertex shader";
-        string languageString = "GLSL";
+
+        public string entryName = "main";
+        public string fileName;
+        public string shader = "-vs";
+        public string language = "-glsl";
+        public string shaderString = "Vertex shader";
+        public string languageString = "GLSL";
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -68,11 +153,22 @@ namespace HLSLParser
 
         }
 
+        public void createOutputWindow()
+        {
+            outputWindow = new Output(this);
+
+            inputWindow.SetOutputWindow(outputWindow);
+            outputWindow.SetInputWindow(inputWindow);
+        }
+
         //fsButton
         private void FSradioButton_CheckedChanged(object sender, EventArgs e)
         {
             shader = "-fs";
             shaderString = "Fragment shader";
+            inputWindow.shaderString = shaderString;
+            inputWindow.shader = shader;
+            outputWindow.shader = shader;
         }
 
         //vsButton
@@ -80,6 +176,9 @@ namespace HLSLParser
         {
             shader = "-vs";
             shaderString = "Vertex shader";
+            inputWindow.shaderString = shaderString;
+            inputWindow.shader = shader;
+            outputWindow.shader = shader;
         }
 
         //hsButton
@@ -87,6 +186,9 @@ namespace HLSLParser
         {
             shader = "-hs";
             shaderString = "Hull shader";
+            inputWindow.shaderString = shaderString;
+            inputWindow.shader = shader;
+            outputWindow.shader = shader;
         }
 
         //dsButton
@@ -94,6 +196,9 @@ namespace HLSLParser
         {
             shader = "-ds";
             shaderString = "Domain shader";
+            inputWindow.shaderString = shaderString;
+            inputWindow.shader = shader;
+            outputWindow.shader = shader;
         }
 
         //gsButton
@@ -101,6 +206,9 @@ namespace HLSLParser
         {
             shader = "-gs";
             shaderString = "Geometry shader";
+            inputWindow.shaderString = shaderString;
+            inputWindow.shader = shader;
+            outputWindow.shader = shader;
         }
 
         //csButton
@@ -108,6 +216,9 @@ namespace HLSLParser
         {
             shader = "-cs";
             shaderString = "Compute shader";
+            inputWindow.shaderString = shaderString;
+            inputWindow.shader = shader;
+            outputWindow.shader = shader;
         }
 
         private void groupBox2_Enter(object sender, EventArgs e)
@@ -125,6 +236,10 @@ namespace HLSLParser
             language = "-hlsl";
             languageString = "HLSL";
             bTranslateAll = false;
+
+            inputWindow.language = language;
+            inputWindow.languageString = languageString;
+            inputWindow.bTranslateAll = bTranslateAll;
         }
 
         private void GLSLradioButton_CheckedChanged(object sender, EventArgs e)
@@ -132,6 +247,10 @@ namespace HLSLParser
             language = "-glsl";
             languageString = "GLSL";
             bTranslateAll = false;
+
+            inputWindow.language = language;
+            inputWindow.languageString = languageString;
+            inputWindow.bTranslateAll = bTranslateAll;
         }
 
         private void MSLradioButton_CheckedChanged(object sender, EventArgs e)
@@ -139,83 +258,21 @@ namespace HLSLParser
             language = "-msl";
             languageString = "MSL";
             bTranslateAll = false;
+
+            inputWindow.language = language;
+            inputWindow.languageString = languageString;
+            inputWindow.bTranslateAll = bTranslateAll;
         }
 
         private void AllradioButton_CheckedChanged(object sender, EventArgs e)
         {
             bTranslateAll = AllradioButton.Checked;
+            inputWindow.bTranslateAll = bTranslateAll;
         }
 
         //parser
         private void button2_Click(object sender, EventArgs e)
         {
-            if(richTextBox2.Text != "")
-            {
-                if(bTranslateAll)
-                {
-                    richTextBoxOutputHLSL.Text = richTextBox1.Text + "\r\n" + PARSER(fileName, richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-hlsl").Replace("\n", "\r\n");
-
-                    if (richTextBoxOutputHLSL.Text == null)
-                        richTextBoxOutputHLSL.Text = "Failed to translate";
-
-                    richTextBoxOutputHLSL.Update();
-
-                    richTextBoxOutputGLSL.Text = richTextBox1.Text + "\r\n" + PARSER(fileName, richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-glsl").Replace("\n", "\r\n");
-
-                    if (richTextBoxOutputGLSL.Text == null)
-                        richTextBoxOutputGLSL.Text = "Failed to translate";
-
-                    richTextBoxOutputGLSL.Update();
-
-                    /*
-                    richTextBoxOutputMSL.Text = richTextBox1.Text + "\r\n" + PARSER(fileName, richTextBox2.Text, richTextBox2.TextLength, entryName, shader, ).Replace("\n", "\r\n");
-
-                    if (richTextBoxOutputMSL.Text == null)
-                        richTextBoxOutputMSL.Text = "Failed to translate";
-
-                    richTextBoxOutputMSL.Update();
-                    */
-
-                    buttonShowHLSL.PerformClick();                   
-                }
-                else if(languageString == "HLSL")
-                {
-                    richTextBoxOutputHLSL.Text = richTextBox1.Text + "\r\n" + PARSER(fileName, richTextBox2.Text, richTextBox2.TextLength, entryName, shader, language).Replace("\n", "\r\n");
-
-                    if (richTextBoxOutputHLSL.Text == null)
-                        richTextBoxOutputHLSL.Text = "Failed to translate";
-
-                    richTextBoxOutputHLSL.Update();
-                }
-                else if (languageString == "GLSL")
-                {
-                    richTextBoxOutputGLSL.Text = richTextBox1.Text + "\r\n" + PARSER(fileName, richTextBox2.Text, richTextBox2.TextLength, entryName, shader, language).Replace("\n", "\r\n");
-
-                    if (richTextBoxOutputGLSL.Text == null)
-                        richTextBoxOutputGLSL.Text = "Failed to translate";
-
-                    richTextBoxOutputGLSL.Update();
-                }
-                else if (languageString == "MSL")
-                {
-                    richTextBoxOutputMSL.Text = richTextBox1.Text + "\r\n" + PARSER(fileName, richTextBox2.Text, richTextBox2.TextLength, entryName, shader, language).Replace("\n", "\r\n");
-
-                    if (richTextBoxOutputMSL.Text == null)
-                        richTextBoxOutputMSL.Text = "Failed to translate";
-
-                    richTextBoxOutputMSL.Update();
-                }
-            }
-
-            //Input Label Text
-            if(fileName != null)
-            {
-                char[] splitters = { '.', '\\' };
-                string[] tokkens = fileName.Split(splitters);
-
-                label5.Text = "Input from " + shaderString + " \"" + tokkens[tokkens.Length - 2] + "." + tokkens[tokkens.Length - 1] + "\"";
-                label5.Update();
-            }
         }
 
         private void radioButton2_CheckedChanged(object sender, EventArgs e)
@@ -237,28 +294,72 @@ namespace HLSLParser
         {
             if (ofd.ShowDialog() == DialogResult.OK)
             {
-                textBox1.Text = fileName = ofd.FileName;
+                if (inputWindow.IsDisposed)
+                {
+                    inputWindow = new Input(this);
+
+                    if (outputWindow.IsDisposed)
+                    {
+                        outputWindow = new Output(this);
+                    }
+
+                    inputWindow.SetOutputWindow(outputWindow);
+                    outputWindow.SetInputWindow(inputWindow);
+                }
+                else if (outputWindow.IsDisposed)
+                {
+                    outputWindow = new Output(this);
+
+                    if (inputWindow.IsDisposed)
+                    {
+                        inputWindow = new Input(this);
+                    }
+
+                    inputWindow.SetOutputWindow(outputWindow);
+                    outputWindow.SetInputWindow(inputWindow);
+                }
+
+                
+
+                inputWindow.Location = new Point(this.Location.X + 100, this.Location.Y);
+                inputWindow.Show();
+
+                inputWindow.fileName = textBox1.Text = fileName = ofd.FileName;
                 StreamReader sr = new StreamReader(textBox1.Text);
                 string inputData = sr.ReadToEnd();// ReadLine();
 
-                richTextBox2.Text = inputData;
+                inputWindow.richTextBox2.Text = inputData;
 
                 char[] splitters = { '.', '\\' };
                 string[] tokkens = fileName.Split(splitters);
 
-                switch(tokkens[tokkens.Length - 1])
+                if (tokkens[tokkens.Length - 1].Contains("vert"))
                 {
-                    case "vert": VSradioButton.Checked = true; break;
-                    case "frag": FSradioButton.Checked = true; break;
-                    case "tesc": HSradioButton.Checked = true; break;
-                    case "tese": DSradioButton.Checked = true; break;
-                    case "geom": GSradioButton.Checked = true; break;
-                    case "comp": CSradioButton.Checked = true; break;
-                    default: break;
+                    VSradioButton.Checked = true; shader = "-vs";
+                }
+                else if (tokkens[tokkens.Length - 1].Contains("frag"))
+                {
+                    FSradioButton.Checked = true; shader = "-fs";
+                }
+                else if (tokkens[tokkens.Length - 1].Contains("tesc"))
+                {
+                    HSradioButton.Checked = true; shader = "-hs";
+                }
+                else if (tokkens[tokkens.Length - 1].Contains("tese"))
+                {
+                    DSradioButton.Checked = true; shader = "-ds";
+                }
+                else if (tokkens[tokkens.Length - 1].Contains("geom"))
+                {
+                    GSradioButton.Checked = true; shader = "-gs";
+                }
+                else if (tokkens[tokkens.Length - 1].Contains("comp"))
+                {
+                    CSradioButton.Checked = true; shader = "-cs";
                 }
 
-                label5.Text = "Input from " + shaderString + " \"" + tokkens[tokkens.Length - 2] + "." + tokkens[tokkens.Length - 1] + "\"";
-                label5.Update();
+                inputWindow.Text = inputWindow.label5.Text = "Input from " + shaderString + " \"" + tokkens[tokkens.Length - 2] + "." + tokkens[tokkens.Length - 1] + "\"";
+                inputWindow.label5.Update();
             }
         }
 
@@ -279,15 +380,11 @@ namespace HLSLParser
 
             if (sfd.ShowDialog() == DialogResult.OK)
             {
-                using (Stream s = File.Open(sfd.FileName, FileMode.CreateNew))
+                using (Stream s = File.Open(sfd.FileName, FileMode.Create))
                 using (StreamWriter sw = new StreamWriter(s))
                 {
-                    if (richTextBoxOutputHLSL.Visible)
-                        sw.Write(richTextBoxOutputHLSL.Text);
-                    else if (richTextBoxOutputGLSL.Visible)
-                        sw.Write(richTextBoxOutputGLSL.Text);
-                    else if (richTextBoxOutputMSL.Visible)
-                        sw.Write(richTextBoxOutputMSL.Text);
+                    if (outputWindow.Visible)
+                        sw.Write(outputWindow.Text);
                 }
             }
         }
@@ -295,6 +392,7 @@ namespace HLSLParser
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
             entryName = textBox2.Text;
+            inputWindow.entryName = entryName;
         }
 
         private void textBox5_TextChanged(object sender, EventArgs e)
@@ -336,40 +434,8 @@ namespace HLSLParser
         {
 
         }
-
-        private void buttonShowHLSL_Click(object sender, EventArgs e)
-        {
-
-            richTextBoxOutputHLSL.Show();
-            richTextBoxOutputGLSL.Hide();
-            richTextBoxOutputMSL.Hide();
-
-            //Output Label Text
-            label3.Text = "Output to " + "HLSL" + " " + shaderString;
-            label3.Update();
-
-        }
-
-        private void buttonShowGLSL_Click(object sender, EventArgs e)
-        {
-            richTextBoxOutputHLSL.Hide();
-            richTextBoxOutputGLSL.Show();
-            richTextBoxOutputMSL.Hide();
-
-            //Output Label Text
-            label3.Text = "Output to " + "GLSL" + " " + shaderString;
-            label3.Update();
-        }
-
-        private void buttonShowMSL_Click(object sender, EventArgs e)
-        {
-            richTextBoxOutputHLSL.Hide();
-            richTextBoxOutputGLSL.Hide();
-            richTextBoxOutputMSL.Show();
-
-            //Output Label Text
-            label3.Text = "Output to " + "MSL" + " " + shaderString;
-            label3.Update();
-        }
+       
+       
+       
     }
 }

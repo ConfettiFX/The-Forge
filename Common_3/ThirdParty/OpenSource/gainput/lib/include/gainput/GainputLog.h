@@ -11,7 +11,7 @@
 	#define GAINPUT_LOG(...) printf(__VA_ARGS__);
 #endif
 
-#elif defined(GAINPUT_PLATFORM_WIN)
+#elif defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_XBOX_ONE)
 
 #if defined(GAINPUT_DEBUG) || defined(GAINPUT_DEV)
 	#include <stdio.h>

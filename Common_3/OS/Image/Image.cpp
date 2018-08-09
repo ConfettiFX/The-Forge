@@ -414,7 +414,11 @@ int ImageFormat::GetBytesPerBlock(const ImageFormat::Enum format)
   case ImageFormat::ATI2N:			//	4x4
   case ImageFormat::ATCA:			//	4x4
   case ImageFormat::ATCI:			//	4x4
-    return 16;
+#ifdef FORGE_JHABLE_EDITS_V01
+  case ImageFormat::GNF_BC6:		//	4x4
+  case ImageFormat::GNF_BC7:		//	4x4
+#endif
+	  return 16;
 
   default:
     return 0;
@@ -1176,7 +1180,18 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
     case 77: mFormat = ImageFormat::DXT5; break;
     case 80: mFormat = ImageFormat::ATI1N; break;
     case 83: mFormat = ImageFormat::ATI2N; break;
-    default:
+#ifdef FORGE_JHABLE_EDITS_V01
+		// these two should be different
+	case 95: // unsigned float
+	case 96: // signed float
+		mFormat = ImageFormat::GNF_BC6;
+		break;
+	case 98: // regular
+	case 99: // srgb
+		mFormat = ImageFormat::GNF_BC7;
+		break;
+#endif
+	default:
       return false;
     }
   }
@@ -1466,11 +1481,8 @@ bool Image::iLoadSTBIFP32FromMemory(const char *buffer, uint32_t memSize, const 
 
 	requiredCmp = cmp;
 
-// These APIs do not support 96bpp, enforce required component number to be 4 so that hdr format can be automatically converted to 128bpp
-#if defined(METAL) || defined(VULKAN) || defined(_DURANGO)
 	if (cmp == 3)
 		requiredCmp = 4;
-#endif
 
 	mWidth = w;
 	mHeight = h;
@@ -1541,7 +1553,7 @@ bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const b
   int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, (const unsigned char*)buffer, &err);
   if (ret != 0)
   {
-    ErrorMsg("Parse EXR err: %s\n", err);
+    LOGERRORF("Parse EXR err: %s\n", err);
     return false;
   }
 
@@ -1554,7 +1566,7 @@ bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const b
 
   ret = LoadMultiChannelEXRFromMemory(&exrImage, (const unsigned char*)buffer, &err);
   if (ret != 0) {
-    ErrorMsg("Load EXR err: %s\n", err);
+    LOGERRORF("Load EXR err: %s\n", err);
     return false;
   }
 
@@ -1745,7 +1757,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
   else if (dataFormat == sce::Gnm::kDataFormatBc7Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc7UnormSrgb.m_asInt)
     mFormat = ImageFormat::GNF_BC7;
   else {
-    ErrorMsg("Couldn't find the data format of the texture");
+    LOGERRORF("Couldn't find the data format of the texture");
     return false;
   }
 
@@ -1902,7 +1914,7 @@ bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFun
   file.Open (fileName, FM_ReadBinary, root);
   if (!file.IsOpen())
   {
-    ErrorMsg("\"%s\": Image file not found.", fileName);
+    LOGERRORF("\"%s\": Image file not found.", fileName);
     return false;
   }
 
@@ -1912,7 +1924,7 @@ bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFun
   {
     //char output[256];
     //sprintf(output, "\"%s\": Image file is empty.", fileName);
-    ErrorMsg("\"%s\": Image is an empty file.", fileName);
+    LOGERRORF("\"%s\": Image is an empty file.", fileName);
     file.Close();
     return false;
   }

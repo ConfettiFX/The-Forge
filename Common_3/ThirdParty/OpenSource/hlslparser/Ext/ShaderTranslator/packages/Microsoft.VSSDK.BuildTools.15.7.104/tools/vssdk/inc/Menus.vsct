@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // -->
+<!-- // Microsoft Confidential -->
+<!-- // Copyright 1996-2000 Microsoft Corporation.  All Rights Reserved. -->
+<!-- // -->
+<!-- // File: Menus.ctc -->
+<!-- // -->
+<!-- // Contents: -->
+<!-- // -->
+<!-- // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+<!-- // ! WARNING - This file uses spaces instead of tabs.  If you make changes,  -->
+<!-- // !           please make sure the file still lines up ** you will thank -->
+<!-- // !           yourself for it! -->
+<!-- // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<Extern href="stdidcmd.h"/>
+<!-- #include "stdidcmd.h" -->
+<Extern href="ShellIcons.h"/>
+<Extern href="virtkeys.h"/>
+<!-- #include "virtkeys.h" -->
+<Extern href="vsshlids.h"/>
+<!-- #include "vsshlids.h" -->
+<Extern href="menus.h"/>
+<!-- #include "menus.h" -->
+<!--  -->
+<!-- #define BTN_FLAGS           DYNAMICVISIBILITY | DEFAULTINVISIBLE | DEFAULTDISABLED -->
+<!-- #define BTN_FLAGS_DYNAMIC   DEFAULTINVISIBLE | DYNAMICVISIBILITY | DYNAMICITEMSTART | TEXTCHANGES -->
+<!--  -->
+<!--  -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // -->
+<!-- // Menu Controller dentifiers, created by WinForms -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<!--  -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // CMDS_SECTION -->
+<!-- //  -->
+<!-- // This sections defines all the commands that our service creates -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<Commands package="guidWindowsFormsDesigner">
+<!-- CMDS_SECTION guidWindowsFormsDesigner -->
+    <Menus>
+<!-- MENUS_BEGIN -->
+<!--  -->
+<!-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!-- // GUID:MENUID                                  PARENT GROUP                                        PRIORITY    TYPE                        BUTTONTEXT              MENUTEXT            TOOLTIPTEXT       COMMANDTEXT -->
+<!-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<!-- // context menus -->
+        <Menu guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION" priority="0x0000" type="Context">
+            <Strings>
+                <ButtonText>Selection</ButtonText>
+            </Strings>
+        </Menu>
+        <Menu guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER" priority="0x0000" type="Context">
+            <Strings>
+                <ButtonText>Container</ButtonText>
+            </Strings>
+        </Menu>
+        <Menu guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAYSELECTION" priority="0x0000" type="Context">
+            <Strings>
+                <ButtonText>TraySelection</ButtonText>
+            </Strings>
+        </Menu>
+        <Menu guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAY" priority="0x0000" type="Context">
+            <Strings>
+                <ButtonText>Component Tray</ButtonText>
+            </Strings>
+        </Menu>
+        <Menu guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_DOCUMENT_OUTLINE" priority="0x0000" type="Context">
+            <Strings>
+                <ButtonText>Document Outline</ButtonText>
+            </Strings>
+        </Menu>
+<!--  -->
+<!-- // toolbars -->
+        <Menu guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT" priority="0x0000" type="Toolbar">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+            <CommandFlag>DefaultDocked</CommandFlag>
+            <Strings>
+                <ButtonText>Layout</ButtonText>
+                <CommandName>Layout</CommandName>
+            </Strings>
+        </Menu>
+<!--  -->
+    </Menus>
+<!-- MENUS_END -->
+<!--  -->
+<!--  -->
+    <Groups>
+<!-- NEWGROUPS_BEGIN -->
+<!--  -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!-- // GUID:GROUPID                                 PARENT MENU                                     PRIORITY    FLAG -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<!-- // Context groups -->
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES" priority="0xFF00"/>
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_VIEW" priority="0x0000"/>
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_LOCK" priority="0x0500"/>
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PASTE" priority="0x0100"/>
+<!--  -->
+<!--  -->
+<!--  -->
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_CONTAINER" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER"/>
+        </Group>
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_TRAY" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAY"/>
+        </Group>
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_DOCUMENT_OUTLINE" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_DOCUMENT_OUTLINE"/>
+        </Group>
+<!--  -->
+<!-- // ParentList group -->
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_PARENT_LIST" priority="0x0500">
+            <GroupFlag>Dynamic</GroupFlag>
+        </Group>
+<!--  -->
+<!-- // Verbs group -->
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_FORMAT_VERBS" priority="0x0500">
+            <GroupFlag>Dynamic</GroupFlag>
+        </Group>
+<!-- //guidWinformsMenuGroup:IDG_IF_FORMAT_VERBS,           guidWinformsMenuGroup:IDM_IF_CTXT_TRAY,              0xFF00,     DYNAMIC; -->
+<!-- //guidWinformsMenuGroup:IDG_IF_FORMAT_VERBS,           guidWinformsMenuGroup:IDM_IF_CTXT_CONTAINER,         0xFF00,     DYNAMIC; -->
+<!--  -->
+<!-- // Zorder                                          -->
+        <Group guid="guidWinformsMenuGroup" id="IDG_IF_ZORDER" priority="0xFF00"/>
+<!--  -->
+<!--  -->
+<!--  -->
+<!--  -->
+<!--  -->
+<!--  -->
+    </Groups>
+<!-- NEWGROUPS_END -->
+<!--  -->
+<!--  -->
+    <Buttons>
+<!-- BUTTONS_BEGIN -->
+<!--  -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!-- // GUID:CMDID                                   PRIMARY GROUP                                       PRIORITY    ICONID                                  BUTTONTYPE      FLAGS                               BUTTONTEXT                                  MENUTEXT        TOOLTIPTXT    COMMANDNAME -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<!--                                                                                                                                                                                                                                                  -->
+<!-- // Context menus                                                                                                                                                                                                                                 -->
+        <Button guid="guidWinformsCommandID" id="cmdParentList" priority="0xFF00" type="Button">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_PARENT_LIST"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DynamicItemStart</CommandFlag>
+            <CommandFlag>TextChanges</CommandFlag>
+            <Strings>
+                <ButtonText>Select Parent</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidWinformsCommandID" id="cmdIFVerbList" priority="0xFF00" type="Button">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_FORMAT_VERBS"/>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DynamicItemStart</CommandFlag>
+            <CommandFlag>TextChanges</CommandFlag>
+            <Strings>
+                <ButtonText>Customizer Verbs</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidWinformsCommandID" id="cmdIFProperties" priority="0xFF00" type="Button">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES"/>
+            <Icon guid="guidVsShellIcons" id="cmdidVsShellProperties"/>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DefaultDisabled</CommandFlag>
+            <Strings>
+                <ButtonText>P&amp;roperties</ButtonText>
+            </Strings>
+        </Button>
+<!--                                                                                                                                                                                                              -->
+<!-- // Component tray menus.                                                                                                                                                                                     -->
+        <Button guid="guidWinformsCommandID" id="cmdIFLineupIcons" priority="0x000" type="Button">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_TRAY"/>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DefaultDisabled</CommandFlag>
+            <Strings>
+                <ButtonText>&amp;Line Up Icons</ButtonText>
+            </Strings>
+        </Button>
+        <Button guid="guidWinformsCommandID" id="cmdIFLargeIcons" priority="0x000" type="Button">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_TRAY"/>
+            <CommandFlag>DynamicVisibility</CommandFlag>
+            <CommandFlag>DefaultInvisible</CommandFlag>
+            <CommandFlag>DefaultDisabled</CommandFlag>
+            <Strings>
+                <ButtonText>&amp;Show Large Icons</ButtonText>
+            </Strings>
+        </Button>
+<!--  -->
+<!--  -->
+<!-- // Keyboard commands -->
+        <Button guid="guidWinformsCommandID" id="cmdIFReverseCancel" priority="0x0000" type="Button">
+            <Parent guid="guidWinformsCommandID" id="IDG_IF_KEYBOARD"/>
+            <CommandFlag>CommandWellOnly</CommandFlag>
+            <Strings>
+                <ButtonText>Move To Child</ButtonText>
+                <ToolTipText>Moves to the first child of a parent control.</ToolTipText>
+                <CommandName>MoveChild</CommandName>
+            </Strings>
+        </Button>
+<!--  -->
+<!--  -->
+    </Buttons>
+<!-- BUTTONS_END -->
+<!--  -->
+</Commands>
+<!-- CMDS_END -->
+<!--  -->
+<!--  -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // CMDPLACEMENT_SECTION -->
+<!-- //  -->
+<!-- // This sections defines where the commands will be placed if not just in  -->
+<!-- // their primary groups. -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<CommandPlacements>
+<!-- CMDPLACEMENT_SECTION -->
+<!--  -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!-- // GUID:GROUPID                                 PARENT MENU                                     PRIORITY  -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+        <CommandPlacement guid="guidVSStd97" id="cmdidViewCode" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_VIEW"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd97" id="cmdidLockControls" priority="0x0400">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_LOCK"/>
+        </CommandPlacement>
+<!--  -->
+        <CommandPlacement guid="guidVSStd97" id="cmdidPaste" priority="0x0200">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PASTE"/>
+        </CommandPlacement>
+<!--  -->
+<!-- // Order -->
+        <CommandPlacement guid="guidVSStd97" id="cmdidBringToFront" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_ZORDER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd97" id="cmdidSendToBack" priority="0x0200">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_ZORDER"/>
+        </CommandPlacement>
+<!--  -->
+<!--  -->
+<!--  -->
+<!-- // Selection context menu -->
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_VIEW" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_ORDER_CMDS" priority="0x0200">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_ALIGN_GRID" priority="0x0300">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_LOCK" priority="0x0400">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_FORMAT_VERBS" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_PARENT_LIST" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_EDIT_CUTCOPY" priority="0x0900">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES" priority="0x0F00">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_SELECTION"/>
+        </CommandPlacement>
+<!--  -->
+<!--  -->
+<!-- // Container context menu     -->
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_VIEW" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_LOCK" priority="0x0200">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd97" id="cmdidPaste" priority="0x0400">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_CONTAINER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_FORMAT_VERBS" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_PARENT_LIST" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES" priority="0x0F00">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_CONTAINER"/>
+        </CommandPlacement>
+<!--                                                  -->
+<!-- // Tray Selection context menu -->
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_VIEW" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAYSELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_FORMAT_VERBS" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAYSELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_EDIT_CUTCOPY" priority="0x0900">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAYSELECTION"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES" priority="0x0F00">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAYSELECTION"/>
+        </CommandPlacement>
+<!--  -->
+<!-- // Component Tray menu                           -->
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_VIEW" priority="0x0300">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAY"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PASTE" priority="0x0400">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAY"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_FORMAT_VERBS" priority="0x0600">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAY"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES" priority="0x0F00">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_TRAY"/>
+        </CommandPlacement>
+<!--  -->
+<!--                                                  -->
+<!-- // Format / alignment toolbar -->
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_ALIGN_GRID" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_ALIGN_X" priority="0x0300">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_ALIGN_Y" priority="0x0400">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_SIZE" priority="0x0500">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_SPACE_X" priority="0x0600">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_SPACE_Y" priority="0x0700">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_FORMAT_CENTER_CMDS" priority="0x0800">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+<!-- //guidSharedMenuGroup:IDG_VS_FORMAT_ORDER_CMDS,     guidWinformsMenuGroup:IDM_IF_TOOLBAR_FORMAT,        0x0900; -->
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_ZORDER" priority="0x0900">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidSharedMenuGroup" id="IDG_VS_VIEW_TABORDER" priority="0x1000">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT"/>
+        </CommandPlacement>
+<!--  -->
+<!-- // DocumentOutline Menu -->
+        <CommandPlacement guid="guidSHLMainMenu" id="IDG_VS_EDIT_CUTCOPY" priority="0x0100">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_DOCUMENT_OUTLINE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd97" id="cmdidRename" priority="0x0200">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_DOCUMENT_OUTLINE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidVSStd97" id="cmdidViewCode" priority="0x0300">
+            <Parent guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_DOCUMENT_OUTLINE"/>
+        </CommandPlacement>
+        <CommandPlacement guid="guidWinformsMenuGroup" id="IDG_IF_CONTEXT_PROPERTIES" priority="0x0300">
+            <Parent guid="guidWinformsMenuGroup" id="IDM_IF_CTXT_DOCUMENT_OUTLINE"/>
+        </CommandPlacement>
+<!--  -->
+<!--  -->
+<!--  -->
+<!--  -->
+</CommandPlacements>
+<!-- CMDPLACEMENT_END -->
+<!--  -->
+<!--  -->
+<!--  -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // CMDUSED_SECTION -->
+<!-- //  -->
+<!-- // This sections defines which shared command items we will use -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<!--  -->
+<UsedCommands>
+<!-- CMDUSED_SECTION -->
+<!-- // Format menu commands -->
+    <UsedCommand guid="guidVSStd97" id="cmdidSizeToGrid"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidLockControls"/>
+<!--  -->
+<!-- // EditCommand -->
+    <UsedCommand guid="guidVSStd97" id="cmdidEditLabel"/>
+<!--  -->
+<!-- // Align submenu -->
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignLeft"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignVerticalCenters"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignRight"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignTop"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignHorizontalCenters"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignBottom"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidAlignToGrid"/>
+<!--  -->
+<!-- // Size submenu -->
+    <UsedCommand guid="guidVSStd97" id="cmdidSizeToControlWidth"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidSizeToControlHeight"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidSizeToControl"/>
+<!--  -->
+<!-- // Horizontal spacing -->
+    <UsedCommand guid="guidVSStd97" id="cmdidHorizSpaceMakeEqual"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidHorizSpaceIncrease"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidHorizSpaceDecrease"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidHorizSpaceConcatenate"/>
+<!--  -->
+<!-- // Vertical spacing -->
+    <UsedCommand guid="guidVSStd97" id="cmdidVertSpaceMakeEqual"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidVertSpaceIncrease"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidVertSpaceDecrease"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidVertSpaceConcatenate"/>
+<!--  -->
+<!-- // Center -->
+    <UsedCommand guid="guidVSStd97" id="cmdidCenterHorizontally"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidCenterVertically"/>
+<!--  -->
+<!-- // Order -->
+    <UsedCommand guid="guidVSStd97" id="cmdidBringToFront"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidSendToBack"/>
+<!--  -->
+<!-- // View menu commands -->
+    <UsedCommand guid="guidVSStd97" id="cmdidTabOrder"/>
+<!--  -->
+<!-- // Standard 2k keyboard bindings -->
+    <UsedCommand guid="guidVSStd2K" id="ECMD_HOME"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_END"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_HOME_EXT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_END_EXT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CANCEL"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_RETURN"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_UP"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_DOWN"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_LEFT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_RIGHT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_RIGHT_EXT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_UP_EXT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_LEFT_EXT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_DOWN_EXT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_TAB"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_BACKTAB"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVELEFT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVEDOWN"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVERIGHT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLMOVEUP"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZEDOWN"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZEUP"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZELEFT"/>
+    <UsedCommand guid="guidVSStd2K" id="ECMD_CTLSIZERIGHT"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidRename"/>
+    <UsedCommand guid="guidVSStd97" id="cmdidViewCode"/>
+<!--  -->
+<!--  -->
+</UsedCommands>
+<!-- CMDUSED_END -->
+<!--  -->
+<!--  -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // VISIBILITY_SECTION -->
+<!-- //  -->
+<!-- // This sections determines when commands will be visible, in a static sense -->
+<!-- // as opposed to dynamically.  If you put a command in here and give it a  -->
+<!-- // GUID that it should be active for, then the shell checks the GUID provided -->
+<!-- // versus the current project or document GUIDs that are active.  If the  -->
+<!-- // command appears in this section, but the GUID it should be active for is -->
+<!-- // not the currently active one, then the command will not show up.   -->
+<!-- // -->
+<!-- // ** Commands that do not appear in this section are statically visible by -->
+<!-- //    default   -->
+<!-- // -->
+<!-- // You should use this section if you don't want specific commands to appear -->
+<!-- // in the shell unless a specific GUID (such as your package GUID) is active. -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<VisibilityConstraints>
+<!-- VISIBILITY_SECTION -->
+<!--  -->
+<!-- //////////////////////////////////////////////////////////////////// -->
+<!-- // GUID:CMDID                               GUID when VISIBLE -->
+<!-- //////////////////////////////////////////////////////////////////// -->
+<!--  -->
+        <VisibilityItem guid="guidSHLMainMenu" id="IDM_VS_MENU_FORMAT" context="guidWindowsFormsDesigner"/>
+        <VisibilityItem guid="guidWinformsMenuGroup" id="IDM_IF_TOOLBAR_FORMAT" context="guidWindowsFormsDesigner"/>
+        <VisibilityItem guid="guidWinformsMenuGroup" id="IDG_IF_KEYBOARD" context="guidWindowsFormsDesigner"/>
+<!--  -->
+</VisibilityConstraints>
+<!-- VISIBILITY_END -->
+<!--  -->
+<!--  -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!-- // KEYBINDINGS_SECTION -->
+<!-- //  -->
+<!-- // This sections defines the keystroke mappings for the commands. -->
+<!-- // -->
+<!-- // The Keystate field is done using the following: -->
+<!-- //    A = Alt, S = Shift, C = Control, W = Windows Key -->
+<!-- // -->
+<!-- // Example of the Keystate assignment, if you want a two key combination -->
+<!-- // of Ctrl-X, Ctrl-Shift-C then the syntax would be : -->
+<!-- // -->
+<!-- //  'x':C:'c':CS -->
+<!-- // -->
+<!-- ////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<KeyBindings>
+<!-- KEYBINDINGS_SECTION -->
+<!--  -->
+<!-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!-- // GUID:CMDID                                   EDITORGUID                          EMULATIONGUID                           KEYSTATE -->
+<!-- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+<!--  -->
+<!-- // Keyboard commands for the designer -->
+<!--  -->
+<!--  -->
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CANCEL" editor="guidWindowsFormsDesigner" key1="VK_ESCAPE"/>
+        <KeyBinding guid="guidWinformsCommandID" id="cmdIFReverseCancel" editor="guidWindowsFormsDesigner" key1="VK_ESCAPE" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_RETURN" editor="guidWindowsFormsDesigner" key1="VK_RETURN"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_UP" editor="guidWindowsFormsDesigner" key1="VK_UP"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_DOWN" editor="guidWindowsFormsDesigner" key1="VK_DOWN"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_LEFT" editor="guidWindowsFormsDesigner" key1="VK_LEFT"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_RIGHT" editor="guidWindowsFormsDesigner" key1="VK_RIGHT"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLMOVEUP" editor="guidWindowsFormsDesigner" key1="VK_UP" mod1="Control"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLMOVEDOWN" editor="guidWindowsFormsDesigner" key1="VK_DOWN" mod1="Control"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLMOVELEFT" editor="guidWindowsFormsDesigner" key1="VK_LEFT" mod1="Control"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLMOVERIGHT" editor="guidWindowsFormsDesigner" key1="VK_RIGHT" mod1="Control"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_RIGHT_EXT" editor="guidWindowsFormsDesigner" key1="VK_RIGHT" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_UP_EXT" editor="guidWindowsFormsDesigner" key1="VK_DOWN" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_LEFT_EXT" editor="guidWindowsFormsDesigner" key1="VK_LEFT" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_DOWN_EXT" editor="guidWindowsFormsDesigner" key1="VK_UP" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLSIZERIGHT" editor="guidWindowsFormsDesigner" key1="VK_RIGHT" mod1="Control Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLSIZEDOWN" editor="guidWindowsFormsDesigner" key1="VK_DOWN" mod1="Control Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLSIZELEFT" editor="guidWindowsFormsDesigner" key1="VK_LEFT" mod1="Control Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_CTLSIZEUP" editor="guidWindowsFormsDesigner" key1="VK_UP" mod1="Control Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_END" editor="guidWindowsFormsDesigner" key1="VK_END"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_HOME" editor="guidWindowsFormsDesigner" key1="VK_HOME"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_END_EXT" editor="guidWindowsFormsDesigner" key1="VK_END" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_HOME_EXT" editor="guidWindowsFormsDesigner" key1="VK_HOME" mod1="Shift"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_TAB" editor="guidWindowsFormsDesigner" key1="VK_TAB"/>
+        <KeyBinding guid="guidVSStd2K" id="ECMD_BACKTAB" editor="guidWindowsFormsDesigner" key1="VK_TAB" mod1="Shift"/>
+<!--  -->
+<!--  -->
+</KeyBindings>
+<!-- KEYBINDINGS_END -->
+<!--  -->
+<!--  -->
+</CommandTable>

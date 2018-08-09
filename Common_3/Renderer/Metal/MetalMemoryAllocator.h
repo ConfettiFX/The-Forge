@@ -3507,7 +3507,7 @@ long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateI
     
     // For GPU buffers, use special memory type
     // For CPU mapped UAV / SRV buffers, just use suballocation strategy
-    if (((pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV) || (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV)) &&
+    if (((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) || (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)) &&
         pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
         suballocType = RESOURCE_SUBALLOCATION_TYPE_BUFFER_SRV_UAV;
     

@@ -16,7 +16,9 @@
 #elif defined(GAINPUT_PLATFORM_MAC)
 	#include "GainputInputDevicePadMac.h"
 #elif defined(GAINPUT_PLATFORM_ANDROID)
-	#include "GainputInputDevicePadAndroid.h"
+	#include "GainputInputDevicePadAndroid.h" 
+#elif defined (GAINPUT_PLATFORM_XBOX_ONE)
+	#include "../../../../../../../../Xbox/CommonXBOXOne_3/Input/GainputInputDevicePadXboxOne.h"
 #endif
 
 #include "GainputInputDevicePadNull.h"
@@ -137,6 +139,8 @@ InputDevicePad::InputDevicePad(InputManager& manager, DeviceId device, unsigned 
 	impl_ = manager.GetAllocator().New<InputDevicePadImplMac>(manager, *this, index_, *state_, *previousState_);
 #elif defined(GAINPUT_PLATFORM_ANDROID)
 	impl_ = manager.GetAllocator().New<InputDevicePadImplAndroid>(manager, *this, index_, *state_, *previousState_);
+#elif defined(GAINPUT_PLATFORM_XBOX_ONE)
+	impl_ = manager.GetAllocator().New<InputDevicePadImplXboxOne>(manager, *this, index_, *state_, *previousState_);
 #endif
 
 	if (!impl_)
@@ -146,10 +150,18 @@ InputDevicePad::InputDevicePad(InputManager& manager, DeviceId device, unsigned 
 
 	GAINPUT_ASSERT(impl_);
 
+#if defined (GAINPUT_PLATFORM_XBOX_ONE)
+	SetDeadZone(PadButtonLeftStickX, 0.0f);
+	SetDeadZone(PadButtonLeftStickY, 0.0f);
+	SetDeadZone(PadButtonRightStickX, 0.0f);
+	SetDeadZone(PadButtonRightStickY, 0.0f);
+
+#else
 	SetDeadZone(PadButtonLeftStickX, 0.15f);
 	SetDeadZone(PadButtonLeftStickY, 0.15f);
 	SetDeadZone(PadButtonRightStickX, 0.15f);
 	SetDeadZone(PadButtonRightStickY, 0.15f);
+#endif
 }
 
 InputDevicePad::~InputDevicePad()

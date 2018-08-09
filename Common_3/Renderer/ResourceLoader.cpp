@@ -102,7 +102,6 @@ static void addResourceLoader (Renderer* pRenderer, uint64_t mSize, ResourceLoad
 	pLoader->pRenderer = pRenderer;
 
 	BufferDesc bufferDesc = {};
-	bufferDesc.mUsage = BUFFER_USAGE_UPLOAD;
 	bufferDesc.mSize = mSize;
 	bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -145,12 +144,12 @@ static void removeResourceLoader(ResourceLoader* pLoader)
 	conf_free(pLoader);
 }
 
-static ResourceState util_determine_resource_start_state(TextureUsage usage)
+static ResourceState util_determine_resource_start_state(DescriptorType usage)
 {
 	ResourceState state = RESOURCE_STATE_UNDEFINED;
-	if (usage & TEXTURE_USAGE_UNORDERED_ACCESS)
+	if (usage & DESCRIPTOR_TYPE_RW_TEXTURE)
 		return RESOURCE_STATE_UNORDERED_ACCESS;
-	else if (usage & TEXTURE_USAGE_SAMPLED_IMAGE)
+	else if (usage & DESCRIPTOR_TYPE_TEXTURE)
 		return RESOURCE_STATE_SHADER_RESOURCE;
 	return state;
 }
@@ -165,16 +164,16 @@ static ResourceState util_determine_resource_start_state(const BufferDesc* pBuff
 	// Device Local (Default Heap)
 	else if (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 	{
-		BufferUsage usage = pBuffer->mUsage;
+		DescriptorType usage = pBuffer->mDescriptors;
 
 		// Try to limit number of states used overall to avoid sync complexities
-		if (usage & BUFFER_USAGE_STORAGE_UAV)
+		if (usage & DESCRIPTOR_TYPE_RW_BUFFER)
 			return RESOURCE_STATE_UNORDERED_ACCESS;
-		if ((usage & BUFFER_USAGE_VERTEX) || (usage & BUFFER_USAGE_UNIFORM))
+		if ((usage & DESCRIPTOR_TYPE_VERTEX_BUFFER) || (usage & DESCRIPTOR_TYPE_UNIFORM_BUFFER))
 			return RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-		if (usage & BUFFER_USAGE_INDEX)
+		if (usage & DESCRIPTOR_TYPE_INDEX_BUFFER)
 			return RESOURCE_STATE_INDEX_BUFFER;
-		if ((usage & BUFFER_USAGE_STORAGE_SRV))
+		if ((usage & DESCRIPTOR_TYPE_BUFFER))
 			return RESOURCE_STATE_SHADER_RESOURCE;
 
 		return RESOURCE_STATE_COMMON;
@@ -198,7 +197,6 @@ static MappedMemoryRange consumeResourceLoaderMemory(uint64_t memoryRequirement,
 		// Try creating a temporary staging buffer which we will clean up after resource is uploaded
 		Buffer* tempStagingBuffer = NULL;
 		BufferDesc desc = {};
-		desc.mUsage = BUFFER_USAGE_UPLOAD;
 		desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
 		desc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		desc.mSize = memoryRequirement;
@@ -414,30 +412,29 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 	bool res = img.loadImage(pTextureFileDesc->pFilename, pTextureFileDesc->mUseMipmaps, imageLoadAllocationFunc, pLoader, pTextureFileDesc->mRoot);
 	if (res)
 	{
-		TextureType textureType = TEXTURE_TYPE_2D;
-		if (img.Is3D())
-			textureType = TEXTURE_TYPE_3D;
-		else if (img.IsCube())
-			textureType = TEXTURE_TYPE_CUBE;
-
 		TextureDesc desc = {};
-		desc.mType = textureType;
 		desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
 		desc.mWidth = img.GetWidth();
 		desc.mHeight = img.GetHeight();
-		desc.mDepth = img.GetDepth();
+		desc.mDepth = min(1U, img.GetDepth());
 		desc.mArraySize = img.GetArrayCount();
 		desc.mMipLevels = img.GetMipMapCount();
 		desc.mSampleCount = SAMPLE_COUNT_1;
 		desc.mSampleQuality = 0;
 		desc.mFormat = img.getFormat();
 		desc.mClearValue = ClearValue();
-		desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		desc.mStartState = RESOURCE_STATE_COMMON;
 		desc.pNativeHandle = NULL;
 		desc.mSrgb = pTextureFileDesc->mSrgb;
 		desc.mHostVisible = false;
 		desc.mNodeIndex = pTextureFileDesc->mNodeIndex;
+
+		if (img.IsCube())
+		{
+			desc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
+			desc.mArraySize *= 6;
+		}
 
 		wchar_t debugName[MAX_PATH] = {};
 		String filename = FileSystem::GetFileNameAndExtension(img.GetName());
@@ -458,7 +455,7 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 		// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 		if (pLoader->pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pLoader->pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
 		{
-			TextureBarrier postCopyBarrier = { *pTextureFileDesc->ppTexture, util_determine_resource_start_state(desc.mUsage) };
+			TextureBarrier postCopyBarrier = { *pTextureFileDesc->ppTexture, util_determine_resource_start_state(desc.mDescriptors) };
 			cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
 		}
 	}
@@ -475,30 +472,29 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 	ASSERT(pTextureImage->ppTexture);
 	Image& img = *pTextureImage->pImage;
 
-	TextureType textureType = TEXTURE_TYPE_2D;
-	if (img.Is3D())
-		textureType = TEXTURE_TYPE_3D;
-	else if (img.IsCube())
-		textureType = TEXTURE_TYPE_CUBE;
-
 	TextureDesc desc = {};
-	desc.mType = textureType;
 	desc.mFlags = TEXTURE_CREATION_FLAG_NONE;
 	desc.mWidth = img.GetWidth();
 	desc.mHeight = img.GetHeight();
-	desc.mDepth = img.GetDepth();
+	desc.mDepth = min(1U, img.GetDepth());
 	desc.mArraySize = img.GetArrayCount();
 	desc.mMipLevels = img.GetMipMapCount();
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mSampleQuality = 0;
 	desc.mFormat = img.getFormat();
 	desc.mClearValue = ClearValue();
-	desc.mUsage = TEXTURE_USAGE_SAMPLED_IMAGE;
+	desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 	desc.mStartState = RESOURCE_STATE_COMMON;
 	desc.pNativeHandle = NULL;
 	desc.mHostVisible = false;
 	desc.mSrgb = pTextureImage->mSrgb;
 	desc.mNodeIndex = pTextureImage->mNodeIndex;
+
+	if (img.IsCube())
+	{
+		desc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
+		desc.mArraySize *= 6;
+	}
 
 	wchar_t debugName[MAX_PATH] = {};
 	String filename = FileSystem::GetFileNameAndExtension(img.GetName());
@@ -519,7 +515,7 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 	if (pLoader->pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pLoader->pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
 	{
-		TextureBarrier postCopyBarrier = { *pTextureImage->ppTexture, util_determine_resource_start_state(desc.mUsage) };
+		TextureBarrier postCopyBarrier = { *pTextureImage->ppTexture, util_determine_resource_start_state(desc.mDescriptors) };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
 	}
 }
@@ -527,7 +523,7 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 static void cmdLoadEmptyTexture(Cmd* pCmd, TextureLoadDesc* pEmptyTexture, ResourceLoader* pLoader)
 {
 	ASSERT(pEmptyTexture->ppTexture);
-	pEmptyTexture->pDesc->mStartState = util_determine_resource_start_state(pEmptyTexture->pDesc->mUsage);
+	pEmptyTexture->pDesc->mStartState = util_determine_resource_start_state(pEmptyTexture->pDesc->mDescriptors);
 	addTexture(pLoader->pRenderer, pEmptyTexture->pDesc, pEmptyTexture->ppTexture);
 
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
@@ -562,7 +558,7 @@ static void cmdUpdateResource(Cmd* pCmd, BufferUpdateDesc* pBufferUpdate, Resour
 {
 	Buffer* pBuffer = pBufferUpdate->pBuffer;
     const uint64_t bufferSize = (pBufferUpdate->mSize > 0) ? pBufferUpdate->mSize : pBuffer->mDesc.mSize;
-	const uint64_t alignment = pBuffer->mDesc.mUsage & BUFFER_USAGE_UNIFORM ? pLoader->pRenderer->pActiveGpuSettings->mUniformBufferAlignment : 16;
+	const uint64_t alignment = pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER ? pLoader->pRenderer->pActiveGpuSettings->mUniformBufferAlignment : 16;
 	const uint64_t offset = round_up_64(pBufferUpdate->mDstOffset, alignment);
 
     void* pDstBufferAddress = (uint8_t*)(pBuffer->pCpuMappedAddress) + offset;
@@ -1075,6 +1071,10 @@ void mtl_compileShader(Renderer* pRenderer, const String& fileName, const String
     args.push_back(tmpArg);
     args.push_back("-o");
     args.push_back(intermediateFile.c_str());
+    
+    //enable the 2 below for shader debugging on xcode 10.0
+    //args.push_back("-MO");
+    //args.push_back("-gline-tables-only");
     args.push_back("-D");
     args.push_back("MTL_SHADER=1"); // Add MTL_SHADER macro to differentiate structs in headers shared by app/shader code.
     // Add user defined macros to the command line

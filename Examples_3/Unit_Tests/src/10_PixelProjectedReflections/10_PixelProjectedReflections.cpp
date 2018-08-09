@@ -371,6 +371,13 @@ const char*	pMaterialImageFileNames[] =
 
 };
 
+// PBR Texture values (these values are mirrored on the shaders).
+const uint32_t gBRDFIntegrationSize = 512;
+const uint32_t gSkyboxSize = 1024;
+const uint32_t gSkyboxMips = 11;
+const uint32_t gIrradianceSize = 32;
+const uint32_t gSpecularSize = 128;
+const uint32_t gSpecularMips = 5;
 
 const uint32_t				gImageCount = 3;
 bool						gToggleVSync = false;
@@ -451,7 +458,7 @@ Texture*					pSpecularMap = NULL;
 Buffer*						pIntermediateBuffer = NULL;
 
 #define TOTAL_IMGS 84
-Texture*			        pMaterialTextures[TOTAL_IMGS];
+Texture*					pMaterialTextures[TOTAL_IMGS];
 
 tinystl::vector<int>		gSponzaTextureIndexforMaterial;
 
@@ -520,13 +527,6 @@ GpuProfiler*				pGpuProfiler = NULL;
 
 BlendState*					pBlendStateOneZero = nullptr;
 
-// PBR Texture values (these values are mirrored on the shaders).
-const uint32_t gBRDFIntegrationSize = 512;
-const uint32_t gSkyboxSize = 1024;
-const uint32_t gSkyboxMips = 11;
-const uint32_t gIrradianceSize = 32;
-const uint32_t gSpecularSize = 128;
-const uint32_t gSpecularMips = 5;
 
 tinystl::vector<Buffer*>	gSphereBuffers;
 
@@ -571,10 +571,6 @@ void computePBRMaps()
 {
 	// Temporary resources that will be loaded on PBR preprocessing.
 	Texture* pPanoSkybox = NULL;
-	Buffer* pSkyBuffer = NULL;
-	Buffer* pIrrBuffer = NULL;
-	Buffer* pSpecBuffer = NULL;
-
 	Shader* pPanoToCubeShader = NULL;
 	RootSignature* pPanoToCubeRootSignature = NULL;
 	Pipeline* pPanoToCubePipeline = NULL;
@@ -606,112 +602,116 @@ void computePBRMaps()
 	panoDesc.ppTexture = &pPanoSkybox;
 	addResource(&panoDesc);
 
-	// Create empty images for each PBR texture.
-	Image skyboxImg, irrImg, specImg;
-	unsigned char* skyboxImgBuff = skyboxImg.Create(ImageFormat::RGBA32F, gSkyboxSize, gSkyboxSize, 0, gSkyboxMips);
-	unsigned char* irrImgBuff = irrImg.Create(ImageFormat::RGBA32F, gIrradianceSize, gIrradianceSize, 0, 1);
-	unsigned char* specImgBuff = specImg.Create(ImageFormat::RGBA32F, gSpecularSize, gSpecularSize, 0, gSpecularMips);
+	TextureDesc skyboxImgDesc = {};
+	skyboxImgDesc.mArraySize = 6;
+	skyboxImgDesc.mDepth = 1;
+	skyboxImgDesc.mFormat = ImageFormat::RGBA32F;
+	skyboxImgDesc.mHeight = gSkyboxSize;
+	skyboxImgDesc.mWidth = gSkyboxSize;
+	skyboxImgDesc.mMipLevels = gSkyboxMips;
+	skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
+	skyboxImgDesc.mSrgb = false;
+	skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+	skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	skyboxImgDesc.pDebugName = L"skyboxImgBuff";
 
+	TextureLoadDesc skyboxLoadDesc = {};
+	skyboxLoadDesc.pDesc = &skyboxImgDesc;
+	skyboxLoadDesc.ppTexture = &pSkybox;
+	addResource(&skyboxLoadDesc);
 
-	// Get the images buffer size.
-	uint32_t skyboxSize = skyboxImg.GetMipMappedSize(0, gSkyboxMips, ImageFormat::RGBA32F);
-	uint32_t irrSize = irrImg.GetMipMappedSize(0, 1, ImageFormat::RGBA32F);
-	uint32_t specSize = specImg.GetMipMappedSize(0, gSpecularMips, ImageFormat::RGBA32F);
+	TextureDesc irrImgDesc = {};
+	irrImgDesc.mArraySize = 6;
+	irrImgDesc.mDepth = 1;
+	irrImgDesc.mFormat = ImageFormat::RGBA32F;
+	irrImgDesc.mHeight = gIrradianceSize;
+	irrImgDesc.mWidth = gIrradianceSize;
+	irrImgDesc.mMipLevels = 1;
+	irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
+	irrImgDesc.mSrgb = false;
+	irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+	irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	irrImgDesc.pDebugName = L"irrImgBuff";
+
+	TextureLoadDesc irrLoadDesc = {};
+	irrLoadDesc.pDesc = &irrImgDesc;
+	irrLoadDesc.ppTexture = &pIrradianceMap;
+	addResource(&irrLoadDesc);
+
+	TextureDesc specImgDesc = {};
+	specImgDesc.mArraySize = 6;
+	specImgDesc.mDepth = 1;
+	specImgDesc.mFormat = ImageFormat::RGBA32F;
+	specImgDesc.mHeight = gSpecularSize;
+	specImgDesc.mWidth = gSpecularSize;
+	specImgDesc.mMipLevels = gSpecularMips;
+	specImgDesc.mSampleCount = SAMPLE_COUNT_1;
+	specImgDesc.mSrgb = false;
+	specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+	specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+	specImgDesc.pDebugName = L"specImgBuff";
+
+	TextureLoadDesc specImgLoadDesc = {};
+	specImgLoadDesc.pDesc = &specImgDesc;
+	specImgLoadDesc.ppTexture = &pSpecularMap;
+	addResource(&specImgLoadDesc);
 
 	// Create empty texture for BRDF integration map.
 	TextureLoadDesc brdfIntegrationLoadDesc = {};
 	TextureDesc brdfIntegrationDesc = {};
-	brdfIntegrationDesc.mType = TEXTURE_TYPE_2D;
 	brdfIntegrationDesc.mWidth = gBRDFIntegrationSize;
 	brdfIntegrationDesc.mHeight = gBRDFIntegrationSize;
 	brdfIntegrationDesc.mDepth = 1;
 	brdfIntegrationDesc.mArraySize = 1;
 	brdfIntegrationDesc.mMipLevels = 1;
 	brdfIntegrationDesc.mFormat = ImageFormat::RG32F;
-	brdfIntegrationDesc.mUsage = (TextureUsage)(TEXTURE_USAGE_SAMPLED_IMAGE | TEXTURE_USAGE_UNORDERED_ACCESS);
+	brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 	brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
 	brdfIntegrationDesc.mHostVisible = false;
 	brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
 	brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
 	addResource(&brdfIntegrationLoadDesc);
 
-	// Add empty buffer resource for storing the skybox cubemap texture values.
-	BufferLoadDesc skyboxBufferDesc = {};
-	skyboxBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
-	skyboxBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	skyboxBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#ifndef METAL
-	skyboxBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-	skyboxBufferDesc.mDesc.mElementCount = skyboxSize / skyboxBufferDesc.mDesc.mStructStride;
-	skyboxBufferDesc.mDesc.mSize = skyboxBufferDesc.mDesc.mStructStride * skyboxBufferDesc.mDesc.mElementCount;
-#else
-	skyboxBufferDesc.mDesc.mStructStride = sizeof(float);
-	skyboxBufferDesc.mDesc.mElementCount = skyboxSize;
-	skyboxBufferDesc.mDesc.mSize = skyboxSize;
-#endif
-	skyboxBufferDesc.pData = NULL;
-	skyboxBufferDesc.ppBuffer = &pSkyBuffer;
-	addResource(&skyboxBufferDesc);
-
-	// Add empty buffer resource for storing the irradiance cubemap texture values.
-	BufferLoadDesc irradianceBufferDesc = {};
-	irradianceBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
-	irradianceBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	irradianceBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#ifndef METAL
-	irradianceBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-	irradianceBufferDesc.mDesc.mElementCount = irrSize;
-	irradianceBufferDesc.mDesc.mSize = irradianceBufferDesc.mDesc.mStructStride * irradianceBufferDesc.mDesc.mElementCount;
-#else
-	irradianceBufferDesc.mDesc.mStructStride = sizeof(float);
-	irradianceBufferDesc.mDesc.mElementCount = irrSize;
-	irradianceBufferDesc.mDesc.mSize = irrSize;
-#endif
-	irradianceBufferDesc.pData = NULL;
-	irradianceBufferDesc.ppBuffer = &pIrrBuffer;
-	addResource(&irradianceBufferDesc);
-
-	// Add empty buffer resource for storing the specular cubemap texture values.
-	BufferLoadDesc specularBufferDesc = {};
-	specularBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV;
-	specularBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	specularBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#ifndef METAL
-	specularBufferDesc.mDesc.mStructStride = sizeof(float) * 4;
-	specularBufferDesc.mDesc.mElementCount = specSize;
-	specularBufferDesc.mDesc.mSize = specularBufferDesc.mDesc.mStructStride * specularBufferDesc.mDesc.mElementCount;
-#else
-	specularBufferDesc.mDesc.mStructStride = sizeof(float);
-	specularBufferDesc.mDesc.mElementCount = specSize;
-	specularBufferDesc.mDesc.mSize = specSize;
-#endif
-
-	specularBufferDesc.pData = NULL;
-	specularBufferDesc.ppBuffer = &pSpecBuffer;
-	addResource(&specularBufferDesc);
-
 	// Load pre-processing shaders.
 	ShaderLoadDesc panoToCubeShaderDesc = {};
 	panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
 
+	GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
+	uint32_t importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
+	uint32_t importanceSampleCount = importanceSampleCounts[presetLevel];
+	ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", String::format("%u", importanceSampleCount) };
+
 	ShaderLoadDesc brdfIntegrationShaderDesc = {};
-	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", NULL, 0, FSR_SrcShaders };
+	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
 
 	ShaderLoadDesc irradianceShaderDesc = {};
 	irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, FSR_SrcShaders };
 
 	ShaderLoadDesc specularShaderDesc = {};
-	specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", NULL, 0, FSR_SrcShaders };
+	specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
 
 	addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 	addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 	addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
 	addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
 
+	const char* pStaticSamplerNames[] = { "skyboxSampler" };
 	RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
+	panoRootDesc.mStaticSamplerCount = 1;
+	panoRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	panoRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
+	brdfRootDesc.mStaticSamplerCount = 1;
+	brdfRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	brdfRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
+	irradianceRootDesc.mStaticSamplerCount = 1;
+	irradianceRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	irradianceRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
+	specularRootDesc.mStaticSamplerCount = 1;
+	specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
 	addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
 	addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
 	addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
@@ -737,77 +737,112 @@ void computePBRMaps()
 
 	// Compute the BRDF Integration map.
 	beginCmd(cmd);
+
+	TextureBarrier uavBarriers[4] = {
+		{ pSkybox, RESOURCE_STATE_UNORDERED_ACCESS },
+	{ pIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS },
+	{ pSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
+	{ pBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
+	};
+	cmdResourceBarrier(cmd, 0, NULL, 4, uavBarriers, false);
+
 	cmdBindPipeline(cmd, pBRDFIntegrationPipeline);
-	DescriptorData params[3] = {};
+	DescriptorData params[2] = {};
 	params[0].pName = "dstTexture";
 	params[0].ppTextures = &pBRDFIntegrationMap;
 	cmdBindDescriptors(cmd, pBRDFIntegrationRootSignature, 1, params);
 	const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 	cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
-	TextureBarrier srvBarrier = { pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE };
-	cmdResourceBarrier(cmd, 0, NULL, 1, &srvBarrier, false);
+	TextureBarrier srvBarrier[1] = {
+		{ pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+
+	cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier, true);
 
 	// Store the panorama texture inside a cubemap.
 	cmdBindPipeline(cmd, pPanoToCubePipeline);
 	params[0].pName = "srcTexture";
 	params[0].ppTextures = &pPanoSkybox;
-	params[1].pName = "dstBuffer";
-	params[1].ppBuffers = &pSkyBuffer;
-	params[2].pName = "skyboxSampler";
-	params[2].ppSamplers = &pSkyboxSampler;
-	cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
-	pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-	cmdDispatch(cmd, gSkyboxSize / pThreadGroupSize[0], gSkyboxSize / pThreadGroupSize[1], 6);
-	endCmd(cmd);
-	queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+	cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 1, params);
 
-	// Upload the cubemap skybox's CPU image contents to the GPU.
-	memcpy(skyboxImgBuff, pSkyBuffer->pCpuMappedAddress, skyboxSize);
-	TextureLoadDesc skyboxUpload = {};
-	skyboxUpload.pImage = &skyboxImg;
-	skyboxUpload.ppTexture = &pSkybox;
-	addResource(&skyboxUpload);
+	struct Data
+	{
+		uint mip;
+		uint textureSize;
+	} data = { 0, gSkyboxSize };
 
-	// After the skybox cubemap is on GPU memory, we can precompute the irradiance and specular PBR maps.
-	beginCmd(cmd);
+	for (int i = 0; i < gSkyboxMips; i++)
+	{
+		data.mip = i;
+		params[0].pName = "RootConstant";
+		params[0].pRootConstant = &data;
+		params[1].pName = "dstTexture";
+		params[1].ppTextures = &pSkybox;
+		params[1].mUAVMipSlice = i;
+		cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
+
+		pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		cmdDispatch(cmd, max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[0]),
+			max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
+	}
+
+	TextureBarrier srvBarriers[1] = {
+		{ pSkybox, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+	cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers, false);
+	/************************************************************************/
+	// Compute sky irradiance
+	/************************************************************************/
+	params[0] = {};
+	params[1] = {};
 	cmdBindPipeline(cmd, pIrradiancePipeline);
 	params[0].pName = "srcTexture";
 	params[0].ppTextures = &pSkybox;
-	params[1].pName = "dstBuffer";
-	params[1].ppBuffers = &pIrrBuffer;
-	params[2].pName = "skyboxSampler";
-	params[2].ppSamplers = &pSkyboxSampler;
-	cmdBindDescriptors(cmd, pIrradianceRootSignature, 3, params);
+	params[1].pName = "dstTexture";
+	params[1].ppTextures = &pIrradianceMap;
+	cmdBindDescriptors(cmd, pIrradianceRootSignature, 2, params);
 	pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 	cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
-
+	/************************************************************************/
+	// Compute specular sky
+	/************************************************************************/
 	cmdBindPipeline(cmd, pSpecularPipeline);
 	params[0].pName = "srcTexture";
 	params[0].ppTextures = &pSkybox;
-	params[1].pName = "dstBuffer";
-	params[1].ppBuffers = &pSpecBuffer;
-	params[2].pName = "skyboxSampler";
-	params[2].ppSamplers = &pSkyboxSampler;
-	cmdBindDescriptors(cmd, pSpecularRootSignature, 3, params);
-	pThreadGroupSize = pSpecularShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-	cmdDispatch(cmd, gSpecularSize / pThreadGroupSize[0], gSpecularSize / pThreadGroupSize[1], 6);
+	cmdBindDescriptors(cmd, pSpecularRootSignature, 1, params);
+
+	struct PrecomputeSkySpecularData
+	{
+		uint mipSize;
+		float roughness;
+	};
+
+	for (int i = 0; i < gSpecularMips; i++)
+	{
+		PrecomputeSkySpecularData data = {};
+		data.roughness = (float)i / (float)(gSpecularMips - 1);
+		data.mipSize = gSpecularSize >> i;
+		params[0].pName = "RootConstant";
+		params[0].pRootConstant = &data;
+		params[1].pName = "dstTexture";
+		params[1].ppTextures = &pSpecularMap;
+		params[1].mUAVMipSlice = i;
+		cmdBindDescriptors(cmd, pSpecularRootSignature, 2, params);
+		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		cmdDispatch(cmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
+	}
+	/************************************************************************/
+	/************************************************************************/
+	TextureBarrier srvBarriers2[2] = {
+		{ pIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
+	{ pSpecularMap, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+	cmdResourceBarrier(cmd, 0, NULL, 2, srvBarriers2, false);
+
 	endCmd(cmd);
 	queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
 	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
-
-	// Upload both the irradiance and specular maps to GPU.
-	memcpy(irrImgBuff, pIrrBuffer->pCpuMappedAddress, irrSize);
-	memcpy(specImgBuff, pSpecBuffer->pCpuMappedAddress, specSize);
-	TextureLoadDesc irrUpload = {};
-	irrUpload.pImage = &irrImg;
-	irrUpload.ppTexture = &pIrradianceMap;
-	addResource(&irrUpload);
-	TextureLoadDesc specUpload = {};
-	specUpload.pImage = &specImg;
-	specUpload.ppTexture = &pSpecularMap;
-	addResource(&specUpload);
 
 	// Remove temporary resources.
 	removePipeline(pRenderer, pSpecularPipeline);
@@ -826,17 +861,9 @@ void computePBRMaps()
 	removeRootSignature(pRenderer, pPanoToCubeRootSignature);
 	removeShader(pRenderer, pPanoToCubeShader);
 
-
 	removeResource(pPanoSkybox);
-	removeResource(pIrrBuffer);
-	removeResource(pSpecBuffer);
-	removeResource(pSkyBuffer);
 
 	removeSampler(pRenderer, pSkyboxSampler);
-
-	skyboxImg.Destroy();
-	irrImg.Destroy();
-	specImg.Destroy();
 }
 
 void assignSponzaTextures();
@@ -888,7 +915,7 @@ bool loadModels()
 
 		// Vertex position buffer for the scene
 		BufferLoadDesc vbPosDesc_Sponza = {};
-		vbPosDesc_Sponza.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		vbPosDesc_Sponza.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbPosDesc_Sponza.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbPosDesc_Sponza.mDesc.mVertexStride = sizeof(Vertex);
 		vbPosDesc_Sponza.mDesc.mSize = sponzaVertices.size() * vbPosDesc_Sponza.mDesc.mVertexStride;
@@ -903,7 +930,7 @@ bool loadModels()
 
 		// Index buffer for the scene
 		BufferLoadDesc ibDesc_Sponza = {};
-		ibDesc_Sponza.mDesc.mUsage = BUFFER_USAGE_INDEX;
+		ibDesc_Sponza.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 		ibDesc_Sponza.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		ibDesc_Sponza.mDesc.mIndexType = INDEX_TYPE_UINT32;
 		ibDesc_Sponza.mDesc.mSize = sizeof(uint32_t) * (uint32_t)sponzaIndices.size();
@@ -958,7 +985,7 @@ bool loadModels()
 
 	// Vertex position buffer for the scene
 	BufferLoadDesc vbPosDesc_Lion = {};
-	vbPosDesc_Lion.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+	vbPosDesc_Lion.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbPosDesc_Lion.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	vbPosDesc_Lion.mDesc.mVertexStride = sizeof(Vertex);
 	vbPosDesc_Lion.mDesc.mSize = lionVertices.size() * vbPosDesc_Lion.mDesc.mVertexStride;
@@ -971,7 +998,7 @@ bool loadModels()
 
 	// Index buffer for the scene
 	BufferLoadDesc ibDesc_Lion = {};
-	ibDesc_Lion.mDesc.mUsage = BUFFER_USAGE_INDEX;
+	ibDesc_Lion.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 	ibDesc_Lion.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	ibDesc_Lion.mDesc.mIndexType = INDEX_TYPE_UINT32;
 	ibDesc_Lion.mDesc.mSize = sizeof(uint32_t) * (uint32_t)lionIndices.size();
@@ -1035,7 +1062,7 @@ public:
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
-		tinystl::vector<Image> toLoad(TOTAL_IMGS);
+		//tinystl::vector<Image> toLoad(TOTAL_IMGS);
 		//adding material textures
 		for (int i = 0; i <TOTAL_IMGS; ++i)
 		{
@@ -1045,16 +1072,9 @@ public:
 #else
 			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
 #endif
-			
-			toLoad[i].loadImage(pMaterialImageFileNames[i], true);
-
-#ifdef TARGET_IOS
-			if (toLoad[i].getFormat() == ImageFormat::RGBA8)
-				toLoad[i].Convert(ImageFormat::BGRA8);
-#endif
-			
+						
 			textureDesc.mUseMipmaps = true;
-			textureDesc.pImage = &toLoad[i];
+			textureDesc.pFilename = pMaterialImageFileNames[i];
 			textureDesc.ppTexture = &pMaterialTextures[i];
 			addResource(&textureDesc, true);
 		}
@@ -1098,7 +1118,7 @@ public:
 		gBuffersRootDesc.ppStaticSamplers = pStaticSamplers;
 		
 #ifndef TARGET_IOS
-		gBuffersRootDesc.mMaxBindlessDescriptors[DESCRIPTOR_TYPE_TEXTURE] = TOTAL_IMGS;
+		gBuffersRootDesc.mMaxBindlessTextures = TOTAL_IMGS;
 #endif
 		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
 
@@ -1197,7 +1217,7 @@ public:
 		}
 
 		BufferLoadDesc sponza_buffDesc = {};
-		sponza_buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		sponza_buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		sponza_buffDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		sponza_buffDesc.mDesc.mSize = sizeof(UniformObjData);
 		sponza_buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1206,7 +1226,7 @@ public:
 		addResource(&sponza_buffDesc);
 
 		BufferLoadDesc lion_buffDesc = {};
-		lion_buffDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		lion_buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		lion_buffDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		lion_buffDesc.mDesc.mSize = sizeof(UniformObjData);
 		lion_buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1261,7 +1281,7 @@ public:
 
 		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
@@ -1278,7 +1298,7 @@ public:
 
 		uint64_t screenQuadDataSize = 5 * 3 * sizeof(float);
 		BufferLoadDesc screenQuadVbDesc = {};
-		screenQuadVbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+		screenQuadVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		screenQuadVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		screenQuadVbDesc.mDesc.mSize = screenQuadDataSize;
 		screenQuadVbDesc.mDesc.mVertexStride = sizeof(float) * 5;
@@ -1289,7 +1309,7 @@ public:
 
 		// Uniform buffer for camera data
 		BufferLoadDesc ubCamDesc = {};
-		ubCamDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubCamDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubCamDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubCamDesc.mDesc.mSize = sizeof(UniformCamData);
 		ubCamDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1306,7 +1326,7 @@ public:
 		//temporary fix Needed on AMD for memory type otherwise we have issues.
 		// Uniform buffer for extended camera data
 		BufferLoadDesc ubECamDesc = {};
-		ubECamDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubECamDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubECamDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		ubECamDesc.mDesc.mSize = sizeof(UniformExtendedCamData);
 		ubECamDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1323,7 +1343,7 @@ public:
 
 		// Uniform buffer for PPR's properties
 		BufferLoadDesc ubPPR_ProDesc = {};
-		ubPPR_ProDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubPPR_ProDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubPPR_ProDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubPPR_ProDesc.mDesc.mSize = sizeof(UniformPPRProData);
 		ubPPR_ProDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1338,7 +1358,7 @@ public:
 
 		// Uniform buffer for light data
 		BufferLoadDesc ubLightsDesc = {};
-		ubLightsDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubLightsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubLightsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubLightsDesc.mDesc.mSize = sizeof(UniformLightData);
 		ubLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1349,7 +1369,7 @@ public:
 
 		// Uniform buffer for DirectionalLight data
 		BufferLoadDesc ubDLightsDesc = {};
-		ubDLightsDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubDLightsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDLightsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDLightsDesc.mDesc.mSize = sizeof(UniformDirectionalLightData);
 		ubDLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1360,7 +1380,7 @@ public:
 
 		// Uniform buffer for extended camera data
 		BufferLoadDesc ubPlaneInfoDesc = {};
-		ubPlaneInfoDesc.mDesc.mUsage = BUFFER_USAGE_UNIFORM;
+		ubPlaneInfoDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubPlaneInfoDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubPlaneInfoDesc.mDesc.mSize = sizeof(UniformPlaneInfoData);
 		ubPlaneInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -1373,11 +1393,7 @@ public:
 		}
 
 		finishResourceLoading();
-
-		for (uint32_t i = 0; i < (uint32_t)toLoad.size(); ++i)
-			toLoad[i].Destroy();
-		toLoad.clear();
-
+		
 		// prepare resources
 
 		// Update the uniform buffer for the objects
@@ -2538,9 +2554,6 @@ public:
 
 		sceneRT.mSampleCount = SAMPLE_COUNT_1;
 		sceneRT.mSampleQuality = 0;
-		sceneRT.mType = RENDER_TARGET_TYPE_2D;
-		sceneRT.mUsage = RENDER_TARGET_USAGE_COLOR;
-
 		sceneRT.pDebugName = L"Scene Buffer";
 
 		addRenderTarget(pRenderer, &sceneRT, &pSceneBuffer);
@@ -2561,9 +2574,6 @@ public:
 
 		RT.mSampleCount = SAMPLE_COUNT_1;
 		RT.mSampleQuality = 0;
-		RT.mType = RENDER_TARGET_TYPE_2D;
-		RT.mUsage = RENDER_TARGET_USAGE_COLOR;
-
 		RT.pDebugName = L"Reflection Buffer";
 
 		addRenderTarget(pRenderer, &RT, &pReflectionBuffer);
@@ -2591,9 +2601,6 @@ public:
 		deferredRTDesc.mHeight = mSettings.mHeight;
 		deferredRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		deferredRTDesc.mSampleQuality = 0;
-		deferredRTDesc.mType = RENDER_TARGET_TYPE_2D;
-		deferredRTDesc.mUsage = RENDER_TARGET_USAGE_COLOR;
-
 		deferredRTDesc.pDebugName = L"G-Buffer RTs";
 
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
@@ -2620,8 +2627,6 @@ public:
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.mType = RENDER_TARGET_TYPE_2D;
-		depthRT.mUsage = RENDER_TARGET_USAGE_DEPTH_STENCIL;
 		depthRT.mWidth = mSettings.mWidth;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
@@ -2632,7 +2637,7 @@ public:
 	{
 		// Add Intermediate buffer
 		BufferLoadDesc IntermediateBufferDesc = {};
-		IntermediateBufferDesc.mDesc.mUsage = BUFFER_USAGE_STORAGE_UAV | BUFFER_USAGE_STORAGE_SRV;
+		IntermediateBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 		IntermediateBufferDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
 		IntermediateBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 		IntermediateBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;

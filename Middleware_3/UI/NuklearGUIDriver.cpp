@@ -174,7 +174,7 @@ public:
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignatureTextured);
 
 		BufferDesc vbDesc = {};
-		vbDesc.mUsage = BUFFER_USAGE_VERTEX;
+		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		vbDesc.mSize = 1024 * 128 * sizeof(float2);
 		vbDesc.mVertexStride = sizeof(float2);
@@ -453,6 +453,11 @@ void NuklearGUIDriver::onInput(const ButtonData* data)
 		is.type = InputInstruction::ITYPE_MOUSEMOVE;
 		is.mousex = (int32_t)data->mValue[0];
 		is.mousey = (int32_t)data->mValue[1];
+		
+		if(data->mIsPressed && data->mValue[1] == -1.0f)
+			impl->goDirection(-1);
+		else if (data->mIsPressed && data->mValue[1] == 1.0f)
+			impl->goDirection(1);
 	}
 	else if (data->mUserId == KEY_CONFIRM)
 	{

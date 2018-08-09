@@ -5,16 +5,25 @@ VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HLSLParser", "HLSLParser\HLSLParser.csproj", "{94578DDD-ACF0-402C-8EE1-17194EE76883}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup_ShaderTranslator (Debug)", "Setup\Setup.vdproj", "{35CCD8AB-68BD-4365-8B61-29398B653779}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup_ShaderTranslator", "Setup_ShaderTranslator_Release\Setup_ShaderTranslator_Release.vdproj", "{2D257C9C-AACE-40A1-BADE-6A3475B0C6B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Debug|x64.ActiveCfg = Debug|x64
+		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Debug|x64.Build.0 = Debug|x64
+		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Release|x64.ActiveCfg = Release|x64
+		{94578DDD-ACF0-402C-8EE1-17194EE76883}.Release|x64.Build.0 = Release|x64
+		{35CCD8AB-68BD-4365-8B61-29398B653779}.Debug|x64.ActiveCfg = Debug
+		{35CCD8AB-68BD-4365-8B61-29398B653779}.Release|x64.ActiveCfg = Release
+		{35CCD8AB-68BD-4365-8B61-29398B653779}.Release|x64.Build.0 = Release
+		{2D257C9C-AACE-40A1-BADE-6A3475B0C6B2}.Debug|x64.ActiveCfg = Debug
+		{2D257C9C-AACE-40A1-BADE-6A3475B0C6B2}.Release|x64.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

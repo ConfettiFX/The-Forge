@@ -49,7 +49,7 @@ struct VSOutput {
     float4 position [[position]];
     float3 pos;
     float3 normal;
-    float2 texCoord;
+    float2 uv;
 };
 
 vertex VSOutput stageMain(VSInput In                    [[stage_in]],
@@ -61,6 +61,6 @@ vertex VSOutput stageMain(VSInput In                    [[stage_in]],
     result.position = tempMat * float4(In.position,1.0);
     result.pos = (cbObject.worldMat * float4(In.position,1.0)).xyz;
     result.normal = (cbObject.worldMat * float4(In.normal.xyz, 0.0f)).xyz;
-    result.texCoord = In.uv;
+    result.uv= In.uv;
     return result;
 }

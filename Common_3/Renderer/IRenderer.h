@@ -29,7 +29,7 @@
 #include <dxgi1_2.h>
 #endif
 #if defined(_DURANGO)
-#include "../../CommonXBOXOne_3/OS/XBoxHeaders.h"
+#include "../../Xbox/CommonXBOXOne_3/OS/XBoxHeaders.h"
 #ifndef DIRECT3D12
 #define DIRECT3D12
 #endif
@@ -182,71 +182,6 @@ typedef enum ResourceState
 } ResourceState;
 MAKE_ENUM_FLAG(uint32_t, ResourceState)
 
-typedef enum BufferUsage {
-	BUFFER_USAGE_UPLOAD = 0X00000001,
-	BUFFER_USAGE_UNIFORM = 0X00000002,
-    BUFFER_USAGE_STORAGE_SRV = 0X00000010,
-	BUFFER_USAGE_STORAGE_UAV = 0X00000020,
-	BUFFER_USAGE_INDEX = 0X00000040,
-	BUFFER_USAGE_VERTEX = 0X00000080,
-	BUFFER_USAGE_INDIRECT = 0x00000100,
-} BufferUsage;
-MAKE_ENUM_FLAG(uint32_t, BufferUsage)
-
-typedef enum BufferFeatureFlags {
-	BUFFER_FEATURE_NONE = 0X00000000,
-	BUFFER_FEATURE_RAW = 0x00000002
-} BufferFeatureFlags;
-MAKE_ENUM_FLAG(uint32_t, BufferFeatureFlags)
-
-typedef enum TextureType {
-	TEXTURE_TYPE_UNDEFINED = 0,
-	TEXTURE_TYPE_1D,
-	TEXTURE_TYPE_2D,
-	TEXTURE_TYPE_3D,
-	TEXTURE_TYPE_CUBE,
-} TextureType;
-
-typedef enum RenderTargetType {
-	RENDER_TARGET_TYPE_UNKNOWN = 0,
-	RENDER_TARGET_TYPE_1D,
-	RENDER_TARGET_TYPE_2D,
-	RENDER_TARGET_TYPE_3D,
-	RENDER_TARGET_TYPE_BUFFER,
-} RenderTargetType;
-
-typedef enum TextureUsage {
-	TEXTURE_USAGE_UNDEFINED = 0x00,
-	/// Default read only texture view
-	TEXTURE_USAGE_SAMPLED_IMAGE = 0x01,
-	/// Default read write texture view
-	TEXTURE_USAGE_UNORDERED_ACCESS = 0x02,
-	/// Type cast a cubemap into a 2D read only texture array view
-	TEXTURE_USAGE_2D_ARRAY_VIEW = 0x04,
-	/// Type cast a 2D array into a cubemap view (array size must be 6 to accomodate the 6 faces of the cubemap)
-	TEXTURE_USAGE_CUBEMAP_VIEW = 0x08,
-	/// Type cast a 2D array into a cubemap array view (array size must be a multiple of 6)
-	TEXTURE_USAGE_CUBEMAP_ARRAY_VIEW = 0x10,
-	/// Number of usage patterns
-	TEXTURE_USAGE_COUNT = 6,
-} TextureUsage;
-MAKE_ENUM_FLAG(uint32_t, TextureUsage)
-
-typedef enum RenderTargetUsage {
-	RENDER_TARGET_USAGE_UNDEFINED = 0x00,
-	RENDER_TARGET_USAGE_COLOR = 0x01,
-	RENDER_TARGET_USAGE_DEPTH_STENCIL = 0x02,
-	RENDER_TARGET_USAGE_UNORDERED_ACCESS = 0x04,
-	RENDER_TARGET_USAGE_1D_MIPPED = 0x08,
-	RENDER_TARGET_USAGE_2D_MIPPED = 0x10,
-	RENDER_TARGET_USAGE_3D_MIPPED = 0x20,
-	RENDER_TARGET_USAGE_1D_SLICES = 0x40,
-	RENDER_TARGET_USAGE_2D_SLICES = 0x80,
-	RENDER_TARGET_USAGE_1D_MIPPED_SLICES = 0x200,
-	RENDER_TARGET_USAGE_2D_MIPPED_SLICES = 0x400,
-} RenderTargetUsage;
-MAKE_ENUM_FLAG(uint32_t, RenderTargetUsage)
-
 /// Choosing Memory Type
 typedef enum ResourceMemoryUsage
 {
@@ -262,7 +197,6 @@ typedef enum ResourceMemoryUsage
 	RESOURCE_MEMORY_USAGE_GPU_TO_CPU = 4,
 	RESOURCE_MEMORY_USAGE_MAX_ENUM = 0x7FFFFFFF
 } ResourceMemoryUsage;
-
 
 // Forward declarations
 typedef struct Renderer Renderer;
@@ -314,29 +248,41 @@ typedef enum IndirectArgumentType
 }IndirectArgumentType;
 /************************************************/
 
-typedef enum DescriptorType {
+typedef enum DescriptorType
+{
 	DESCRIPTOR_TYPE_UNDEFINED = 0,
-	DESCRIPTOR_TYPE_SAMPLER,
+	DESCRIPTOR_TYPE_SAMPLER = 0x01,
 	// SRV Read only texture
-	DESCRIPTOR_TYPE_TEXTURE,
+	DESCRIPTOR_TYPE_TEXTURE = (DESCRIPTOR_TYPE_SAMPLER << 1),
 	/// UAV Texture
-	DESCRIPTOR_TYPE_RW_TEXTURE,
+	DESCRIPTOR_TYPE_RW_TEXTURE = (DESCRIPTOR_TYPE_TEXTURE << 1),
 	// SRV Read only buffer
-	DESCRIPTOR_TYPE_BUFFER,
+	DESCRIPTOR_TYPE_BUFFER = (DESCRIPTOR_TYPE_RW_TEXTURE << 1),
+	DESCRIPTOR_TYPE_BUFFER_RAW = (DESCRIPTOR_TYPE_BUFFER | (DESCRIPTOR_TYPE_BUFFER << 1)),
 	/// UAV Buffer
-	DESCRIPTOR_TYPE_RW_BUFFER,
-	/// Uniform buffer data stays same throughout the frame
-	DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	DESCRIPTOR_TYPE_RW_BUFFER = (DESCRIPTOR_TYPE_BUFFER << 2),
+	DESCRIPTOR_TYPE_RW_BUFFER_RAW = (DESCRIPTOR_TYPE_RW_BUFFER | (DESCRIPTOR_TYPE_RW_BUFFER << 1)),
+	/// Uniform buffer
+	DESCRIPTOR_TYPE_UNIFORM_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2),
+	DESCRIPTOR_TYPE_VERTEX_BUFFER = (DESCRIPTOR_TYPE_UNIFORM_BUFFER << 1),
+	DESCRIPTOR_TYPE_INDEX_BUFFER = (DESCRIPTOR_TYPE_VERTEX_BUFFER << 1),
+	DESCRIPTOR_TYPE_INDIRECT_BUFFER = (DESCRIPTOR_TYPE_INDEX_BUFFER << 1),
 	/// Push constant / Root constant
-	DESCRIPTOR_TYPE_ROOT_CONSTANT,
+	DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 1),
+	/// Cubemap SRV
+	DESCRIPTOR_TYPE_TEXTURE_CUBE = (DESCRIPTOR_TYPE_TEXTURE | (DESCRIPTOR_TYPE_ROOT_CONSTANT << 1)),
+	/// RTV / DSV per array slice
+	DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES = (DESCRIPTOR_TYPE_ROOT_CONSTANT << 2),
+	/// RTV / DSV per depth slice
+	DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES = (DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES << 1),
 #if defined(VULKAN)
 	/// Subpass input (descriptor type only available in Vulkan)
-	DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-	DESCRIPTOR_TYPE_TEXEL_BUFFER,
-	DESCRIPTOR_TYPE_RW_TEXEL_BUFFER,
+	DESCRIPTOR_TYPE_INPUT_ATTACHMENT = (DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES << 1),
+	DESCRIPTOR_TYPE_TEXEL_BUFFER = (DESCRIPTOR_TYPE_INPUT_ATTACHMENT << 1),
+	DESCRIPTOR_TYPE_RW_TEXEL_BUFFER = (DESCRIPTOR_TYPE_TEXEL_BUFFER << 1),
 #endif
-	DESCRIPTOR_TYPE_COUNT,
 } DescriptorType;
+MAKE_ENUM_FLAG(uint32_t, DescriptorType)
 
 typedef enum SampleCount {
 	SAMPLE_COUNT_1 = 1,
@@ -649,8 +595,6 @@ typedef struct QueryHeap
 /// Data structure holding necessary info to create a Buffer
 typedef struct BufferDesc
 {
-	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
-	BufferUsage							mUsage;
 	/// Size of the buffer (in bytes)
 	uint64_t							mSize;
 	/// Decides which memory heap buffer will use (default, upload, readback)
@@ -673,16 +617,22 @@ typedef struct BufferDesc
 	struct Buffer*						pCounterBuffer;
 	/// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
 	ImageFormat::Enum					mFormat;
-	/// Flags specifying the special features of the buffer(typeless buffer,...) (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-	BufferFeatureFlags					mFeatures;
+	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
+	DescriptorType						mDescriptors;
 	/// Debug name used in gpu profile
-	const wchar_t*							pDebugName;
+	const wchar_t*						pDebugName;
 	uint32_t*							pSharedNodeIndices;
 	uint32_t							mNodeIndex;
 	uint32_t							mSharedNodeIndexCount;
 } BufferDesc;
 
 typedef struct Buffer {
+	/// A unique id used for hashing buffers during resource binding
+	uint64_t							mBufferId;
+	/// Position of dynamic buffer memory in the mapped resource
+	uint64_t							mPositionInHeap;
+	/// CPU address of the mapped buffer (appliacable to buffers created in CPU accessible heaps (CPU, CPU_TO_GPU, GPU_TO_CPU)
+	void*								pCpuMappedAddress;
 #if defined(DIRECT3D12)
 	/// GPU Address
 	D3D12_GPU_VIRTUAL_ADDRESS			mDxGpuAddress;
@@ -714,12 +664,6 @@ typedef struct Buffer {
 	/// Native handle of the underlying resource
 	id<MTLBuffer>						mtlBuffer;
 #endif
-	/// A unique id used for hashing buffers during resource binding
-	uint64_t							mBufferId;
-	/// Position of dynamic buffer memory in the mapped resource
-	uint64_t							mPositionInHeap;
-	/// CPU address of the mapped buffer (appliacable to buffers created in CPU accessible heaps (CPU, CPU_TO_GPU, GPU_TO_CPU)
-	void*								pCpuMappedAddress;
 	/// Buffer creation info
 	BufferDesc							mDesc;
 	/// Current state of the buffer
@@ -751,19 +695,9 @@ typedef struct ClearValue {
 #pragma warning( pop )
 } ClearValue;
 
-typedef struct LoadActionsDesc {
-	ClearValue				mClearColorValues[MAX_RENDER_TARGET_ATTACHMENTS];
-	LoadActionType			mLoadActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
-	ClearValue				mClearDepth;
-	LoadActionType			mLoadActionDepth;
-	LoadActionType			mLoadActionStencil;
-} LoadActionsDesc;
-
 /// Data structure holding necessary info to create a Texture
 typedef struct TextureDesc
 {
-	/// Type of texture (1D, 2D, 3D, Cube)
-	TextureType				mType;
 	/// Texture creation flags (decides memory allocation strategy, sharing access,...)
 	TextureCreationFlags	mFlags;
 	/// Width
@@ -784,10 +718,10 @@ typedef struct TextureDesc
 	ImageFormat::Enum		mFormat;
 	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
 	ClearValue				mClearValue;
-	/// Flags specifying suitable usage of the texture(UAV, SRV, RTV, DSV)
-	TextureUsage			mUsage;
 	/// What state will the texture get created in
 	ResourceState			mStartState;
+	/// Descriptor creation
+	DescriptorType			mDescriptors;
 	/// Pointer to native texture handle if the texture does not own underlying resource
 	const void*				pNativeHandle;
 	/// Debug name used in gpu profile
@@ -809,7 +743,8 @@ typedef struct Texture {
 	uint64_t							mTextureId;
 #if defined(DIRECT3D12)
 	/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-	D3D12_CPU_DESCRIPTOR_HANDLE			mDxDescriptorHandles[TEXTURE_USAGE_COUNT];
+	D3D12_CPU_DESCRIPTOR_HANDLE			mDxSRVDescriptor;
+	D3D12_CPU_DESCRIPTOR_HANDLE*		pDxUAVDescriptors;
 	/// Native handle of the underlying resource
 	ID3D12Resource*						pDxResource;
 	/// Contains resource allocation info such as parent heap, offset in heap
@@ -817,7 +752,9 @@ typedef struct Texture {
 #endif
 #if defined(VULKAN)
 	/// Opaque handle used by shaders for doing read/write operations on the texture
-	VkImageView							pVkImageViews[TEXTURE_USAGE_COUNT];
+	VkImageView							pVkSRVDescriptor;
+	/// Opaque handle used by shaders for doing read/write operations on the texture
+	VkImageView*						pVkUAVDescriptors;
 	/// Native handle of the underlying resource
 	VkImage								pVkImage;
 	/// Device memory handle
@@ -832,6 +769,7 @@ typedef struct Texture {
 	struct ResourceAllocation*			pMtlAllocation;
 	/// Native handle of the underlying resource
 	id<MTLTexture>						mtlTexture;
+	id<MTLTexture> __strong*			pMtlUAVDescriptors;
 	MTLPixelFormat						mtlPixelFormat;
 	bool								mIsCompressed;
 #endif
@@ -854,8 +792,6 @@ typedef struct Texture {
 
 typedef struct RenderTargetDesc
 {
-	/// Type of texture (1D, 2D, 3D, Cube)
-	RenderTargetType		mType;
 	/// Texture creation flags (decides memory allocation strategy, sharing access,...)
 	TextureCreationFlags	mFlags;
 	/// Width
@@ -874,12 +810,10 @@ typedef struct RenderTargetDesc
 	ImageFormat::Enum		mFormat;
 	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
 	ClearValue				mClearValue;
-	/// Flags specifying suitable usage of the texture(UAV, SRV, RTV, DSV)
-	RenderTargetUsage		mUsage;
 	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
 	uint32_t				mSampleQuality;
-	/// Specify what texture views to create for the texture
-	TextureUsage			mTextureUsage;
+	/// Descriptor creation
+	DescriptorType			mDescriptors;
 	const void*				pNativeHandle;
 	/// Debug name used in gpu profile
 	const wchar_t*			pDebugName;
@@ -899,12 +833,10 @@ typedef struct RenderTarget
 	Texture*						pTexture;
 
 #if defined(DIRECT3D12)
-	D3D12_CPU_DESCRIPTOR_HANDLE*	pDxDescriptorHandles;
-	uint32_t						mDxDescriptorHandleCount;
+	D3D12_CPU_DESCRIPTOR_HANDLE*	pDxDescriptors;
 #endif
 #if defined(VULKAN)
-	VkImageView*					pVkRenderTargetViews;
-	uint32_t						mVkRenderTargetImageViewCount;
+	VkImageView*					pVkDescriptors;
 #endif
 #if defined(TARGET_IOS)
     // A separate texture is needed for stencil rendering on iOS.
@@ -920,6 +852,14 @@ typedef struct RenderTarget
 	ID3D11DepthStencilView*			pDxDsvResource;
 #endif
 } RenderTarget;
+
+typedef struct LoadActionsDesc {
+	ClearValue				mClearColorValues[MAX_RENDER_TARGET_ATTACHMENTS];
+	LoadActionType			mLoadActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
+	ClearValue				mClearDepth;
+	LoadActionType			mLoadActionDepth;
+	LoadActionType			mLoadActionStencil;
+} LoadActionsDesc;
 
 typedef struct SamplerDesc
 {
@@ -1040,7 +980,7 @@ typedef struct RootSignatureDesc
 {
 	Shader**			ppShaders;
 	uint32_t			mShaderCount;
-	uint32_t			mMaxBindlessDescriptors[DESCRIPTOR_TYPE_COUNT];
+	uint32_t			mMaxBindlessTextures;
 	const char**		ppStaticSamplerNames;
 	Sampler**			ppStaticSamplers;
 	uint32_t			mStaticSamplerCount;
@@ -1099,12 +1039,14 @@ typedef struct DescriptorData
 	const char*		pName;
 	union
 	{
-		/// Offset to bind the buffer descriptor
-		uint64_t*		pOffsets;
-		/// Decides which view to bind
-		TextureUsage	mTextureUsage;
+		struct
+		{
+			/// Offset to bind the buffer descriptor
+			uint64_t*		pOffsets;
+			uint64_t*		pSizes;
+		};
+		uint32_t			mUAVMipSlice;
 	};
-	uint64_t*		pSizes;
 	/// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one resource type array
 	union
 	{
@@ -1477,6 +1419,10 @@ typedef struct VertexAttrib {
 	uint32_t			mBinding;
 	uint32_t			mLocation;
 	uint32_t			mOffset;
+#ifdef FORGE_JHABLE_EDITS_V01
+	uint32_t			mSemanticType;
+	uint32_t			mSemanticIndex;
+#endif
 } VertexAttrib;
 
 typedef struct VertexLayout {

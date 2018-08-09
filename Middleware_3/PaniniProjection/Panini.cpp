@@ -61,7 +61,7 @@ void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, 
 	}
 
 	BufferLoadDesc vbDesc = {};
-	vbDesc.mDesc.mUsage = BUFFER_USAGE_VERTEX;
+	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mDesc.mMemoryUsage = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	vbDesc.mDesc.mFlags = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.mDesc.mSize = vertices.size() * sizeof(vec4);
@@ -103,7 +103,7 @@ void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, 
 	}
 
 	BufferLoadDesc ibDesc = {};
-	ibDesc.mDesc.mUsage = BUFFER_USAGE_INDEX;
+	ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 	ibDesc.mDesc.mMemoryUsage = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	ibDesc.mDesc.mFlags = pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	ibDesc.mDesc.mSize = indices.size() * sizeof(uint16_t);

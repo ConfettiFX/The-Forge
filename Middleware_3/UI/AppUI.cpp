@@ -948,7 +948,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	// Resources
 	/************************************************************************/
 	BufferDesc vbDesc = {};
-	vbDesc.mUsage = BUFFER_USAGE_VERTEX;
+	vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.mSize = 128 * 4 * sizeof(float4);

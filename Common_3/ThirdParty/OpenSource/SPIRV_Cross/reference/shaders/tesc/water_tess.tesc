@@ -14,7 +14,7 @@ layout(std140) uniform UBO
 
 layout(location = 1) patch out vec2 vOutPatchPosBase;
 layout(location = 2) patch out vec4 vPatchLods;
-layout(location = 0) in vec2 vPatchPosBase[32];
+layout(location = 0) in vec2 vPatchPosBase[];
 
 bool frustum_cull(vec2 p0)
 {
@@ -27,7 +27,8 @@ bool frustum_cull(vec2 p0)
     vec3 f0 = vec3(dot(_41.uFrustum[0], vec4(center, 1.0)), dot(_41.uFrustum[1], vec4(center, 1.0)), dot(_41.uFrustum[2], vec4(center, 1.0)));
     vec3 f1 = vec3(dot(_41.uFrustum[3], vec4(center, 1.0)), dot(_41.uFrustum[4], vec4(center, 1.0)), dot(_41.uFrustum[5], vec4(center, 1.0)));
     vec3 _199 = f0;
-    bool _205 = any(lessThanEqual(_199, vec3(-radius)));
+    float _200 = radius;
+    bool _205 = any(lessThanEqual(_199, vec3(-_200)));
     bool _215;
     if (!_205)
     {

@@ -11,12 +11,12 @@ struct SPIRV_Cross_Output
 
 float samp2(Texture2D<float4> t, SamplerComparisonState s)
 {
-    return t.SampleCmp(s, float3(1.0f, 1.0f, 1.0f).xy, float3(1.0f, 1.0f, 1.0f).z);
+    return t.SampleCmp(s, 1.0f.xxx.xy, 1.0f.xxx.z);
 }
 
 float samp3(Texture2D<float4> t, SamplerState s)
 {
-    return t.Sample(s, float2(1.0f, 1.0f)).x;
+    return t.Sample(s, 1.0f.xx).x;
 }
 
 float samp(Texture2D<float4> t, SamplerComparisonState s, SamplerState s1)

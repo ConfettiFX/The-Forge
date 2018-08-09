@@ -24,7 +24,7 @@ layout(binding = 2, std430) readonly buffer SSBO3
     Foo foos[];
 } foobar;
 
-void baz(out Foo foo)
+void baz(inout Foo foo)
 {
     uint ident = gl_GlobalInvocationID.x;
     foo.a = indata.data[(4u * ident) + 0u];

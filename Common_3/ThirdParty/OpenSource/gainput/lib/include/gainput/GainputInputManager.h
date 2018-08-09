@@ -125,6 +125,7 @@ public:
 	 * \return The ID of the newly created input device.
 	 */
 	template<class T> DeviceId CreateDevice(unsigned index = InputDevice::AutoIndex, InputDevice::DeviceVariant variant = InputDevice::DV_STANDARD);
+	
 	/// Creates an input device, registers it with the manager and returns it.
 	/**
 	 * \tparam T The input device class, muste be derived from InputDevice.

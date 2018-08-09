@@ -28,7 +28,7 @@
 #include "..\..\OS\Interfaces\ILogManager.h"
 
 #ifdef _DURANGO
-#include "..\..\..\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
+#include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
 #else
 #define IID_ARGS IID_PPV_ARGS
 #endif
@@ -485,7 +485,7 @@ long d3d12_createBuffer(
 
 	// For GPU buffers, use special memory type
 	// For CPU mapped UAV / SRV buffers, just use suballocation strategy
-	if (((pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV) || (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_SRV)) &&
+	if (((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) || (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)) &&
 		pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 		suballocType = RESOURCE_SUBALLOCATION_TYPE_BUFFER_SRV_UAV;
 
@@ -546,7 +546,7 @@ long d3d12_createBuffer(
 		else
 		{
 			// If buffer is a UAV to be used in CPU mapped memory use write combine memory with a custom heap
-			if (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && (pBuffer->mDesc.mUsage & BUFFER_USAGE_STORAGE_UAV))
+			if (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER))
 			{
 				D3D12_HEAP_PROPERTIES heapProps = gHeapProperties[pBuffer->pDxAllocation->GetMemoryTypeIndex()].mProps;
 				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;

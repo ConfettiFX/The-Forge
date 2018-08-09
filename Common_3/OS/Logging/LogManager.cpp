@@ -135,13 +135,8 @@ void LogManager::Write(int level, const String& message)
 	if (!Thread::IsMainThread())
 		pLogInstance->mLogMutex.Acquire();
 
-	if (pLogInstance->mQuietMode)
-	{
-		if (level == LogLevel::LL_Error)
-			_PrintUnicodeLine(formattedMessage, true);
-	}
-	else
-		_PrintUnicodeLine(formattedMessage, level == LogLevel::LL_Error);
+	if (pLogInstance)
+		pLogInstance->OutputLog(level, formattedMessage);
 
 	pLogInstance->mLastMessage = message;
 
@@ -197,6 +192,19 @@ void LogManager::WriteRaw(const String& message, bool error)
 
 	if (!Thread::IsMainThread())
 		pLogInstance->mLogMutex.Release();
+}
+
+void LogManager::OutputLog(int level, const String& message)
+{
+	if (mQuietMode)
+	{
+		if (level == LogLevel::LL_Error)
+			_PrintUnicodeLine(message, true);
+	}
+	else
+	{
+		_PrintUnicodeLine(message, level == LogLevel::LL_Error);
+	}
 }
 
 String ToString(const char* function, const char* str, ...)

@@ -87,6 +87,21 @@ InputSystem::DeviceInputEventListener InputSystem::mDeviceInputListener(0);
 void* InputSystem::pGainputView = NULL;
 #endif
 
+
+//void RawMouseCallback(ButtonData& button)
+//{
+//	button.mValue[0] = button.mValue[0] - button.mPrevValue[0];
+//	button.mValue[1] = button.mValue[1] - button.mPrevValue[1];
+//	static float maxX = fmax(0.0f, fabs(button.mValue[0]));
+//	LOGINFOF("Mouse max delta: X%f", maxX);
+//	LOGINFOF("Mouse delta: X%f Y%f", button.mValue[0], button.mValue[1]);
+//}
+//
+//void TouchInputCallback(ButtonData& button)
+//{
+//	//Get Virtual joystick positions and return correct values based on that.
+//}
+
 void InputSystem::Shutdown()
 {
 	if (mDeviceInputListnerID != -1)

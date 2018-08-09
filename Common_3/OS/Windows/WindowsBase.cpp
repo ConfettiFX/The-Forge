@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
- * 
- * This file is part of The-Forge
- * (see https://github.com/ConfettiFX/The-Forge).
- * 
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+* Copyright (c) 2018 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
 */
 
 #ifdef _WIN32
@@ -29,8 +29,10 @@
 #include <windowsx.h>
 #include <ntverp.h>
 
+#ifndef NO_GAINPUT
 #include "../../../Middleware_3/Input/InputSystem.h"
 #include "../../../Middleware_3/Input/InputMappings.h"
+#endif
 
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
@@ -150,7 +152,9 @@ static bool captureMouse(bool shouldCapture)
 			SetCursorPos(lastCursorPoint->x, lastCursorPoint->y);
 		}
 	}
+#ifndef NO_GAINPUT
 	InputSystem::SetMouseCapture(isCaptured);
+#endif
 	return true;
 }
 
@@ -163,7 +167,7 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		gCurrentWindow = pNode->second;
 	else
 		return DefWindowProcW(_hwnd, _id, wParam, lParam);
-	
+
 
 	switch (_id)
 	{
@@ -500,10 +504,13 @@ void handleMessages()
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 
+#ifndef NO_GAINPUT
 		// Forward any input messages to Gainput
 		InputSystem::HandleMessage(msg);
+#endif
 	}
 
+#ifndef NO_GAINPUT
 	//updateKeys();
 	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CANCEL))
 	{
@@ -525,12 +532,12 @@ void handleMessages()
 		{
 
 			if (gHWNDMap.size() == 0)
-			  return;
+				return;
 
 			//TODO:Fix this once we have multiple window handles
 			WindowsDesc* currentWind = gHWNDMap.begin().node->second;
 			RECT clientRect;
-			
+
 			clientRect.top = currentWind->windowedRect.top;
 			clientRect.bottom = currentWind->windowedRect.bottom;
 			clientRect.right = currentWind->windowedRect.right;
@@ -543,18 +550,19 @@ void handleMessages()
 			captureMouse(true);
 		}
 	}
-	
+
 	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_MENU))
 	{
-	  if (gHWNDMap.size() == 0)
-		return;
+		if (gHWNDMap.size() == 0)
+			return;
 
-	  //TODO:Fix this once we have multiple window handles
-	  WindowsDesc* currentWind = gHWNDMap.begin().node->second;
+		//TODO:Fix this once we have multiple window handles
+		WindowsDesc* currentWind = gHWNDMap.begin().node->second;
 
-	  if (currentWind)
-		toggleFullscreen(currentWind);
+		if (currentWind)
+			toggleFullscreen(currentWind);
 	}
+#endif
 }
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
@@ -687,12 +695,20 @@ float2 getMousePosition()
 
 bool getKeyDown(int key)
 {
+#ifndef NO_GAINPUT
 	return InputSystem::IsButtonPressed(key);
+#else
+	return false;
+#endif
 }
 
 bool getKeyUp(int key)
 {
+#ifndef NO_GAINPUT
 	return InputSystem::IsButtonReleased(key);
+#else
+	return false;
+#endif
 }
 
 bool getJoystickButtonDown(int button)
@@ -777,8 +793,9 @@ static void onResize(const WindowResizeEventData* pData)
 	pApp->Unload();
 	pApp->Load();
 
+#ifndef NO_GAINPUT
 	InputSystem::UpdateSize(pApp->mSettings.mWidth, pApp->mSettings.mHeight);
-
+#endif
 }
 
 int WindowsMain(int argc, char** argv, IApp* app)
@@ -815,13 +832,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
 
+#ifndef NO_GAINPUT
 	//Init Input System
-	//InputSystem::Init(window.handle, pSettings->mWidth, pSettings->mHeight);
 	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
+#endif
 
 	pApp->pWindow = &window;
 	pApp->mCommandLine = GetCommandLineA();
-	
+
 	if (!pApp->Init())
 		return EXIT_FAILURE;
 
@@ -838,8 +856,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
 
+#ifndef NO_GAINPUT
 		//Update Input after message handling
 		InputSystem::Update();
+#endif
 
 		handleMessages();
 
@@ -853,7 +873,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 		pApp->Update(deltaTime);
 		pApp->Draw();
-		
+
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		testingFrameCount++;
@@ -861,8 +881,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
 			requestShutDown();
 #endif
 	}
+
+#ifndef NO_GAINPUT
 	//Clean input resources
 	InputSystem::Shutdown();
+#endif
 	pApp->Unload();
 	pApp->Exit();
 	return 0;

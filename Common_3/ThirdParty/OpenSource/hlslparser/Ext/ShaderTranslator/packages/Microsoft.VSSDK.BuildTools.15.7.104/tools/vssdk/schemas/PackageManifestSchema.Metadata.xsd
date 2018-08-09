@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema version="1.0.0"
+           attributeFormDefault="unqualified"
+           elementFormDefault="qualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:group name="MetadataInfoGroup">
+    <xs:sequence>
+      <xs:element name="DisplayName" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Metadata.DisplayName" _locComment="" -->The DisplayName element specifies the user-friendly package name that is displayed in the Extension Manager UI.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+
+      <xs:element name="Description" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Description" _locComment="" -->The Description element is a short description of the package and its contents that is displayed in the Extension Manager UI.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:maxLength value="1000" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+
+      <xs:element name="MoreInfo" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Identifier.MoreInfoUrl" _locComment="" -->The MoreInfoUrl element is used to provide additional information to the consumer of the extension.  The hyperlink to the URL
+            provided appears in the Extension Manager UI inside the product.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="License" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="License" _locComment="" -->The License element allows the developer to specify a license or end user licensing agreement (EULA).
+            The license is displayed when the consumer of the extension tries to install the extension.
+            The license can be a text file or an RTF file.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="GettingStartedGuide" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="GettingStartedGuide" _locComment="" -->The GettingStartedGuide element is a link to a website or file that gets launched in the client's browser after the extension
+            is installed.  This provides the developer an opportunity to provide additional information or help to the consumer once
+            the extension is installed.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="ReleaseNotes" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="ReleaseNotes" _locComment="" -->The ReleaseNotes element is a link to a website or file that gets launched in the client's browser (for web addresses) or a dialog
+            or a dialog for local files when the user clicks the link the Extension Manager UI.  This provides the developer an opportunity to provide information about changes to the extension
+            from version to version.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="Icon" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Icon" _locComment="" -->The Icon element allows the developer to provide an icon that appears in the Extension Manager UI when browsing for the extension.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="PreviewImage" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="PreviewImage" _locComment="" -->The PreviewImage element allows the developer to provide an image that appears in the Extension Manager UI preview pane when browsing
+            for the extension.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:element name="Tags" type="xs:string" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Tags" _locComment="" -->The Tags element is an optional element that lists additional semicolon-delimeted text tags that are used for search hints.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+
+      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded" processContents="lax" />
+    </xs:sequence>
+  </xs:group>
+
+  <xs:complexType name="Metadata">
+    <xs:sequence>
+      <xs:element name="Identity" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            <!-- _locID_text="Metadata.Identity" _locComment="" -->The Identity element defines identification information for the package.
+          </xs:documentation>
+        </xs:annotation>
+
+        <xs:complexType>
+          <xs:attribute name="Id">
+            <xs:annotation>
+              <xs:documentation>
+
+              </xs:documentation>
+            </xs:annotation>
+          </xs:attribute>
+
+          <xs:attribute name="Version">
+            <xs:annotation>
+              <xs:documentation>
+
+              </xs:documentation>
+            </xs:annotation>
+          </xs:attribute>
+
+
+          <xs:attribute name="Language">
+            <xs:annotation>
+              <xs:documentation>
+
+              </xs:documentation>
+            </xs:annotation>
+          </xs:attribute>
+
+
+          <xs:attribute name="Publisher">
+            <xs:annotation>
+              <xs:documentation>
+
+              </xs:documentation>
+            </xs:annotation>
+          </xs:attribute>
+
+        </xs:complexType>
+      </xs:element>
+
+      <xs:group ref="MetadataInfoGroup" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MetadataInfo">
+    <xs:group ref="MetadataInfoGroup" />
+  </xs:complexType>
+</xs:schema>

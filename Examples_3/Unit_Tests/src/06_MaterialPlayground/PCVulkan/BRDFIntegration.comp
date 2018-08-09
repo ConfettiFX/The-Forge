@@ -25,9 +25,10 @@
 
 #version 450 core
 
+// USERMACRO: IMPORTANCE_SAMPLE_COUNT [64,128,256,1024]
 
 #define Pi 3.14159265359
-#define SampleCount 1024
+#define SampleCount IMPORTANCE_SAMPLE_COUNT
 
 float RadicalInverse_VdC(uint bits)
 {

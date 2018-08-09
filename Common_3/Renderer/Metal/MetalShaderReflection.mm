@@ -81,6 +81,7 @@ struct TextureInfo
     char name[MAX_REFLECT_STRING_LENGTH];
     MTLTextureType type;
     int slotIndex;
+	bool isUAV;
 };
 
 struct ShaderReflectionInfo
@@ -219,7 +220,7 @@ void reflectShaderBufferArgument(ShaderReflectionInfo* info, MTLArgument* arg)
     strlcpy(bufferInfo.name, [arg.name UTF8String], MAX_REFLECT_STRING_LENGTH);
     bufferInfo.bufferIndex = (uint32_t)arg.index;
     bufferInfo.sizeInBytes = (uint32_t)arg.bufferDataSize;
-    bufferInfo.isUAV = (arg.access == MTLArgumentAccessReadWrite);
+    bufferInfo.isUAV = (arg.access == MTLArgumentAccessReadWrite || arg.access == MTLArgumentAccessWriteOnly);
     bufferInfo.isArgBuffer = arg.bufferPointerType.elementIsArgumentBuffer;
     if(bufferInfo.isArgBuffer)
     {
@@ -253,6 +254,7 @@ void reflectShaderTextureArgument(ShaderReflectionInfo* info, MTLArgument* arg)
     strlcpy(textureInfo.name, [arg.name UTF8String], MAX_REFLECT_STRING_LENGTH);
     textureInfo.slotIndex = (uint32_t)arg.index;
     textureInfo.type = arg.textureType;
+	textureInfo.isUAV = (arg.access == MTLArgumentAccessReadWrite || arg.access == MTLArgumentAccessWriteOnly);
     info->textures.push_back(textureInfo);
 }
 
@@ -547,7 +549,7 @@ void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8
         for(uint32_t i = 0; i < pReflectionInfo->textures.size(); ++i, ++resourceIdx)
         {
             const TextureInfo& texInfo = pReflectionInfo->textures[i];
-            addShaderResource(pResources, resourceIdx, DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex, 0/*size*/, shaderStage, &pCurrentName, (char*)texInfo.name);
+			addShaderResource(pResources, resourceIdx, texInfo.isUAV ? DESCRIPTOR_TYPE_RW_TEXTURE : DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex, 0/*size*/, shaderStage, &pCurrentName, (char*)texInfo.name);
             
             pResources[resourceIdx].mtlTextureType = texInfo.type;
             pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
