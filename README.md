@@ -19,7 +19,7 @@ Particularly, The Forge supports cross-platform
 - Multi-threaded command buffer generation
 
 Future plans are:
-- Unified shader generation
+- Unified shader generation check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net)
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
 
@@ -33,6 +33,18 @@ alt="StarVR" width="20" height="20" border="0" /> Join the channel at https://tw
 
 # News
 
+## Release 1.14 - August 9th, 2018 - Early Alpha of the Shader Translator system | Refactored Texture / Rendertarget interface for all platforms
+* After evaluating how to approach a unified shader generation system by looking at the DirectX Shader Compiler in GitHub and also implementing it into Lumberyard a whiles ago, we decided to follow a simpler approach by developing our own shader translator based on the work that was done by Thekla with the [hlslparser](https://github.com/Thekla/hlslparser). We are currently extending this shader translator to support a new super HLSL source language (platform specific #defines + material description) and translate that sHLSL into the most current respective shader languages of the target platforms, so that those shaders can then be compiled with the target platform compiler. There is an early alpha version available online at [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) following the excellent approach of [Shader Playground](https://github.com/tgjones/shader-playground) (Thanks for your help tgjones!).
+The main motivation to use the shader translator instead of the DirectX Shader Compiler is code maintenance. Maintaining our own code cut of the DirectX Shader Compiler would add too much overhead on the team and it would make it much harder to implement our super HLSL language. We will spend some time  testing this system. As soon as it is more reliable, there will be a Visual Studio extension and an extension for XCode to translate within the IDEs in the future.
+![Confetti Shader Translator](Screenshots/ConfettiShaderTranslator.png)
+* IRenderer Cleanup for all platforms (more cleanups to come)
+  * Remove TextureType, RenderTargetType, TextureUsage, BufferUsage, BufferFeatureFlags
+  * Expand DescriptorType enum to hold all descriptor usage patterns
+  * Add ability to target mip slice UAV
+* macOS 
+  * upgraded to 10.14 Beta (18A353d)
+  * XCode 10.0 beta (10L176w)
+* iOS 11.4.1 (15G77)
 
 ## Release 1.13 - July 13th, 2018 - Unified Input System for all Platforms | New unit Test Light and Shadow Playground
 * Added a unified input system based on Gainput to all platforms (https://github.com/jkuhlmann/gainput). The new input system substantially simplified input management on the application level over all platforms. We also simplified the camera controller. Added also new VirtualJoystick class in UI.
@@ -46,22 +58,6 @@ alt="StarVR" width="20" height="20" border="0" /> Join the channel at https://tw
 * The Pixel-Projected Reflections unit test now uses bindless textures on all platforms except for iOS as its too many to bind in one go.
 * iOS: all unit tests run on our iOS test device; Visibility Buffer still doesn't as described below. 
 * Moved the release notes from this page into the release section and added actual releases
-
-## Release 1.12 - June 21st, 2018 - Support of Typed Buffers | New unit test Pixel-Projected Reflections | Updated Material Playground unit test
-* New unit test Pixel-Projected Reflections: this unit test shows reflections that are ray traced. It is an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [Implementation of Optimized Pixel-Projected Reflections for Planar Reflections](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
-Sponza was added to the Art folder for this unit test.
-* Updated unit test Material Playground: started out with Materials that can be summed up in the category Metal. Ironically this unit test currently doesn't run on iOS due to textures that are too large ... we fix this in the next release.
-* Extended the GPU config system further by adding more GPUs and classifying them with also better support for the GPU Workbench
-* DirectX 12 / Vulkan: 
-  * added support for passing offsets, sizes through arrays in DescriptorData
-  * added typed buffer support
-  * upgraded to the 1.1.77.0 Vulkan SDK and updated volk for this
-* macOS: V-Sync is now switchable
-* Added 3D ability to the text rendering library: it was used to render the labels in the Material Playground unit test
-* Resolved issues (zeros issues now? ... please keep them coming!):
-  * #23 Request: Support V-Sync off on Metal unit tests..
-  * #56 getUSec function in WindowsBase.cpp seem buggy
-
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -94,7 +90,7 @@ https://vulkan.lunarg.com/
 
 # macOS Requirements:
 
-1. macOS: 10.14 Beta (18A293u)
+1. macOS: 10.14 Beta (18A353d)
 
 2. XCode: 10.0 beta (10L176w) 
 
@@ -110,7 +106,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 11.4 (15F79) 
+1. iOS: 11.4.1 (15G77) 
 
 2. XCode: see macOS
 
@@ -267,3 +263,5 @@ The Forge utilizes the following Open-Source libraries:
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 * [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 * [gainput](https://github.com/jkuhlmann/gainput)
+* [Shader Playground](https://github.com/tgjones/shader-playground)
+* [hlslparser](https://github.com/Thekla/hlslparser)
