@@ -57,3 +57,4 @@ Art/
 
 # Nuget packages
 Tools/ShaderBuildCommand/packages/
+**/ThirdParty/OpenSource/hlslparser/Ext/ShaderTranslator/packages/
