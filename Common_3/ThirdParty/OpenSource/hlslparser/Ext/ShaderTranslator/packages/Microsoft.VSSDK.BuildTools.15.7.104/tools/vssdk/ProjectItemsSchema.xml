@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib" xmlns:my="http://schemas.microsoft.com/developer/msbuild/tasks/2005">
-  <ContentType Name="PkgdefFile" DisplayName="Pkgdef File" ItemType="PkgdefFile" />
-  <ItemType Name="PkgdefFile" DisplayName="Pkgdef File" />
-  <FileExtension Name=".pkgdef" ContentType="PkgdefFile" />
-
-  <ContentType Name="IsolatedShellFiles" DisplayName="Isolated Shell File" ItemType="IsolatedShellFiles" />
-  <ItemType Name="IsolatedShellFiles" DisplayName="Isolated Shell File" />
-</ProjectSchemaDefinitions>
