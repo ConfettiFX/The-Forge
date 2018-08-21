@@ -234,7 +234,10 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
 
 # Products
-We would appreciate it if you could send us a link in case your product uses The Forge:
+We would appreciate it if you could send us a link in case your product uses The Forge.
+
+StarVR One SDK
+The Forge is used to build the StarVR One SDK:
 
 
 <a href="https://www.starvr.com" target="_blank"><img src="Screenshots/StarVR.PNG" 
