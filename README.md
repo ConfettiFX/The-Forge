@@ -24,7 +24,7 @@ Future plans are:
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
 
 <a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="Screenshots/twitter.png" 
-alt="StarVR" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
+alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
  
 # Build Status 
 
@@ -237,7 +237,7 @@ Confetti will prepare releases when all the platforms are stable and running and
 We would appreciate it if you could send us a link in case your product uses The Forge:
 
 
-<a href="https://www.starvr.com" target="_blank"><img src="https://www.starvr.com/img/StarVR_Siggraph_Teaser.jpg" 
+<a href="https://www.starvr.com" target="_blank"><img src="https://www.starvr.com/StarVR.PNG" 
 alt="StarVR" width="300" height="159" border="0" /></a>
 
 # Open-Source Libraries
