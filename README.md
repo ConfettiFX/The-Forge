@@ -237,7 +237,7 @@ Confetti will prepare releases when all the platforms are stable and running and
 We would appreciate it if you could send us a link in case your product uses The Forge:
 
 
-<a href="https://www.starvr.com" target="_blank"><img src="https://www.starvr.com/Screenshots/StarVR.PNG" 
+<a href="https://www.starvr.com" target="_blank"><img src="Screenshots/StarVR.PNG" 
 alt="StarVR" width="300" height="159" border="0" /></a>
 
 # Open-Source Libraries
