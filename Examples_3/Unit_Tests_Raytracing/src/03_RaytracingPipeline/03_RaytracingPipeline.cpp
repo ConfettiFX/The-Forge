@@ -226,7 +226,7 @@ public:
 	{
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "Create Raytracing Pipeline";
 	}

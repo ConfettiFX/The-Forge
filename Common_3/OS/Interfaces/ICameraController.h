@@ -42,11 +42,6 @@ public:
 	virtual ~ICameraController() {}
 	virtual void setMotionParameters(const CameraMotionParameters&) = 0;
 	virtual void onInputEvent(const ButtonData* pData) = 0;
-
-#if !defined(_DURANGO)
-	virtual void onMouseWheel(const MouseWheelEventData* pData) = 0;
-#endif
-
 	virtual void update(float deltaTime) = 0;
 
 	// there are also implicit dependencies on the keyboard state.

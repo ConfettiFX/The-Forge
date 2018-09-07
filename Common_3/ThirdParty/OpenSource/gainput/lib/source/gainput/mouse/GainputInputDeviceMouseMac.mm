@@ -117,12 +117,29 @@ namespace {
 		}
 		else if (page == kHIDPage_Button)
 		{
-			const uint32_t buttonID = gainput::MouseButtonLeft + (usage - kHIDUsage_Button_1);
-			if(buttonID >= gainput::MouseButtonMax)
-				return;
-			
 			gainput::InputManager * manager = &device->manager_;
-			manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, buttonID, value > 0 ? true : false);
+			
+			switch (usage) {
+				case kHIDUsage_Button_1:
+					manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, gainput::MouseButtonLeft, value > 0 ? true : false);
+					break;
+				case kHIDUsage_Button_2:
+					manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, gainput::MouseButtonRight, value > 0 ? true : false);
+					break;
+				case kHIDUsage_Button_3:
+					manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, gainput::MouseButtonMiddle, value > 0 ? true : false);
+					break;
+					
+				default:
+					const uint32_t buttonID = gainput::MouseButtonLeft + (usage - kHIDUsage_Button_1);
+					if(buttonID >= gainput::MouseButtonMax)
+						return;
+					
+					gainput::InputManager * manager = &device->manager_;
+					manager->EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, buttonID, value > 0 ? true : false);
+					break;
+			}
+			
 		}
 	}
 	

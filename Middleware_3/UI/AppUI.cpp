@@ -24,7 +24,6 @@
 
 #include "AppUI.h"
 
-#include "NuklearGUIDriver.h"
 #include "UIShaders.h"
 
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
@@ -49,676 +48,20 @@
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-
-
-
 namespace PlatformEvents
 {
 	extern bool skipMouseCapture;
 }
 
-static tinystl::vector<class UIAppComponentGui*> gInstances;
+static tinystl::vector<GuiComponentImpl*> gInstances;
 static Mutex gMutex;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
 
-static bool uiKeyboardChar(const KeyboardCharEventData* pData);
-static bool uiKeyboardButton(const KeyboardButtonEventData* pData);
-static bool uiMouseMove(const MouseMoveEventData* pData);
-static bool uiMouseButton(const MouseButtonEventData* pData);
-static bool uiMouseWheel(const MouseWheelEventData* pData);
-static bool uiJoystickButton(const JoystickButtonEventData* pData);
-static bool uiTouch(const TouchEventData* pData);
-static bool uiTouchMove(const TouchEventData* pData);
-
 static bool uiInputEvent(const ButtonData* pData);
 /************************************************************************/
-// UI Property Definition
-/************************************************************************/
-// UI singular property
-UIProperty::UIProperty(const char* description, float& value, float min/*=0.0f*/, float max/*=1.0f*/,
-	float increment/*=0.1f*/, bool expScale/*=false*/, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_FLOAT),
-	flags(FLAG_VISIBLE),
-	source(&value),
-	color(color),
-	tree(tree)
-{
-	settings.fMin = min;
-	settings.fMax = max;
-	settings.fIncrement = increment;
-	settings.fExpScale = expScale;
-}
-
-UIProperty::UIProperty(const char* description, int steps, float& value,
-	float min/*=0.0f*/, float max/*=1.0f*/, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_FLOAT),
-	flags(FLAG_VISIBLE),
-	source(&value),
-	color(color),
-	tree(tree)
-{
-	settings.fMin = min;
-	settings.fMax = max;
-	settings.fIncrement = (max - min) / float(steps);
-	settings.fExpScale = false;
-}
-
-UIProperty::UIProperty(const char* description, int& value, int min/*=-100*/, int max/*=100*/,
-	int increment/*=1*/, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_INT),
-	flags(FLAG_VISIBLE),
-	source(&value),
-	color(color),
-	tree(tree)
-
-{
-	settings.iMin = min;
-	settings.iMax = max;
-	settings.iIncrement = increment;
-}
-
-UIProperty::UIProperty(const char* description, unsigned int& value,
-	unsigned int min/*=0*/, unsigned int max/*=100*/,
-	unsigned int increment/*=1*/, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_UINT),
-	flags(FLAG_VISIBLE),
-	source(&value),
-	color(color),
-	tree(tree)
-{
-	settings.uiMin = min;
-	settings.uiMax = max;
-	settings.uiIncrement = increment;
-}
-
-UIProperty::UIProperty(const char* description, bool& value, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_BOOL),
-	flags(FLAG_VISIBLE),
-	source(&value),
-	color(color),
-	tree(tree)
-{
-}
-
-UIProperty::UIProperty(const char* description, UIButtonFn fn, void* userdata, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_BUTTON),
-	flags(FLAG_VISIBLE),
-	source(*(void**)&fn),
-	color(color),
-	tree(tree)
-{
-	settings.pUserData = userdata;
-}
-
-UIProperty::UIProperty(const char* description, char* value, unsigned int length, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_TEXTINPUT),
-	flags(FLAG_VISIBLE),
-	source(value),
-	color(color)
-{
-	settings.sLen = length;
-}
-
-UIProperty::UIProperty(const char* description, uint32_t color /*=0xAFAFAFFF*/,
-	const char* tree /*=none*/) :
-	description(description),
-	type(UI_PROPERTY_TEXT),
-	flags(FLAG_VISIBLE),
-	color(color),
-	tree(tree)
-{
-}
-
-
-void UIProperty::setSettings(int steps, float min, float max)
-{
-	ASSERT(type == UI_PROPERTY_FLOAT);
-	settings.fMin = min;
-	settings.fMax = max;
-	settings.fIncrement = (max - min) / float(steps);
-}
-
-void UIProperty::modify(int steps)
-{
-	switch (type)
-	{
-	case UI_PROPERTY_FLOAT:
-	{
-		float& vCurrent = *(float*)source;
-		if (settings.fExpScale == false)
-			vCurrent += settings.fIncrement * (float)steps; // linear scale
-		else
-			vCurrent = vCurrent + (vCurrent * settings.fIncrement * (float)steps); // exponential scale
-
-		if (vCurrent > settings.fMax)
-			vCurrent = settings.fMax;
-		if (vCurrent < settings.fMin)
-			vCurrent = settings.fMin;
-		break;
-	}
-	case UI_PROPERTY_INT:
-	{
-		int& vCurrent = *(int*)source;
-		vCurrent += settings.iIncrement * (int)steps;
-		if (vCurrent > settings.iMax)
-			vCurrent = settings.iMax;
-		if (vCurrent < settings.iMin)
-			vCurrent = settings.iMin;
-		break;
-	}
-	case UI_PROPERTY_UINT:
-	{
-		unsigned int& vCurrent = *(unsigned int*)source;
-		vCurrent += settings.uiIncrement * (int)steps;
-		if (vCurrent > settings.uiMax)
-			vCurrent = settings.uiMax;
-		if (vCurrent < settings.uiMin)
-			vCurrent = settings.uiMin;
-		break;
-	}
-	case UI_PROPERTY_BOOL:
-	{
-		bool& vCurrent = *(bool*)source;
-		if (steps > 0)
-			vCurrent = true;
-		else
-			vCurrent = false;
-		break;
-	}
-	case UI_PROPERTY_ENUM:
-	{
-		ASSERT(settings.eByteSize == 4); // does not support other enums than those that are 4 bytes in size (yet)
-		int& vCurrent = *(int*)source;
-		int i = enumComputeIndex();
-		const int* source_ = ((const int*)settings.eValues);
-		if (steps == 1 && settings.eNames[i + 1] != 0)
-			vCurrent = source_[i + 1];
-		if (steps == -1 && i != 0)
-			vCurrent = source_[i - 1];
-	}break;
-	case UI_PROPERTY_BUTTON:
-	{
-
-	}break;
-	case UI_PROPERTY_TEXTINPUT:
-	{
-
-	}break;
-	case UI_PROPERTY_TEXT:
-	{
-		
-	}break;
-	}
-}
-
-int UIProperty::enumComputeIndex() const
-{
-	ASSERT(type == UI_PROPERTY_ENUM);
-	ASSERT(settings.eByteSize == 4);
-
-	int& vCurrent = *(int*)source;
-	const int* source_ = ((const int*)settings.eValues);
-
-	for (int i = 0; settings.eNames[i] != 0; i++)
-	{
-		if (source_[i] == vCurrent)
-		{
-			return i;
-		}
-	}
-
-	return -1;
-}
-/************************************************************************/
 // UI Implementation
-/************************************************************************/
-#define IS_BETWEEN(x, a, b) ((a) <= (x) && (x) < (b))
-#define IS_INBOX(px, py, x, y, w, h)\
-    (IS_BETWEEN(px,x,x+w) && IS_BETWEEN(py,y,y+h))
-
-class UI
-{
-public:
-	unsigned int addProperty(const UIProperty& prop)
-	{
-		// Try first to fill empty property slot
-		for (unsigned int i = 0; i < (uint32_t)properties.size(); i++)
-		{
-			UIProperty& prop_slot = properties[i];
-			if (prop_slot.source != NULL)
-				continue;
-
-			prop_slot = prop;
-			return i;
-		}
-
-		properties.emplace_back(prop);
-		return (uint32_t)properties.size() - 1;
-	}
-
-	unsigned int getPropertyCount()
-	{
-		return (uint32_t)properties.size();
-	}
-
-	UIProperty& getProperty(unsigned int idx)
-	{
-		return properties[idx];
-	}
-
-	void changedProperty(unsigned int idx)
-	{
-		if (properties[idx].callback)
-			properties[idx].callback(&properties[idx]);
-	}
-
-	void clearProperties()
-	{
-		properties.clear();
-	}
-
-	void removeProperty(unsigned int idx)
-	{
-		UIProperty& prop = properties[idx];
-		prop.source = NULL;
-		prop.callback = NULL;
-	}
-
-	void setPropertyFlag(unsigned int propertyId, UIProperty::FLAG flag, bool state)
-	{
-		ASSERT(propertyId < getPropertyCount());
-		unsigned int& flags = getProperty(propertyId).flags;
-		flags = state ? (flags | flag) : (flags & ~flag);
-	}
-
-protected:
-	PropertyChangedCallback onPropertyChanged;
-	tinystl::vector<UIProperty> properties;
-};
-
-class UIAppComponentBase
-{
-public:
-	UIAppComponentBase() : ui(0), renderer(0), font(-1), fontSize(12.0f), cursorTexture(NULL) {}
-	Fontstash* pFontstash;
-	UI* ui;
-	Renderer* renderer;
-	int font;
-	float fontSize;
-	struct Texture* cursorTexture;
-
-	virtual void load() {}
-	virtual void unload() {}
-
-protected:
-	static const uint UI_APP_COMPONENT_TITLE_MAX_SIZE = 128;
-	char title[UI_APP_COMPONENT_TITLE_MAX_SIZE]; // Made protected so that client can't corrupt mem
-
-public:
-	void setTitle(const char* title_)
-	{
-		strncpy_s(this->title, title_, UI_APP_COMPONENT_TITLE_MAX_SIZE);
-		this->title[UI_APP_COMPONENT_TITLE_MAX_SIZE - 1] = '\0';
-	}
-};
-
-class UIAppComponentGui : public UIAppComponentBase
-{
-public:
-	void init(Renderer* pRenderer, const TextDrawDesc* settings, Fontstash* fontstash)
-	{
-		initGUIDriver(pRenderer, &driver);
-
-		pFontstash = fontstash;
-		fontSize = settings->mFontSize;
-		font = settings->mFontID;
-		setTitle("Configuration");
-
-		MutexLock lock(gMutex);
-		gInstances.emplace_back(this);
-
-		if (gInstances.size() == 1)
-		{
-			InputSystem::RegisterInputEvent(uiInputEvent);
-
-#if !defined(_DURANGO) && !defined(TARGET_IOS)
-			registerKeyboardCharEvent(uiKeyboardChar);
-			registerKeyboardButtonEvent(uiKeyboardButton);
-			registerMouseButtonEvent(uiMouseButton);
-			registerMouseMoveEvent(uiMouseMove);
-			registerMouseWheelEvent(uiMouseWheel);
-#elif !defined(TARGET_IOS) && !defined(LINUX)
-			registerJoystickButtonEvent(uiJoystickButton);
-#else
-			registerTouchEvent(uiTouch);
-			registerTouchMoveEvent(uiTouchMove);
-#endif
-		}
-	}
-
-	void exit()
-	{
-		removeGUIDriver(driver);
-
-		MutexLock lock(gMutex);
-		gInstances.erase(gInstances.find(this));
-	}
-
-	void load(int32_t initialOffsetX, int32_t initialOffsetY, uint32_t initialWidth, uint32_t initialHeight)
-	{
-		driver->load(pFontstash, fontSize, cursorTexture);
-
-		initialWindowRect =
-		{
-			float(initialOffsetX),
-			// the orginal implmentation had this 600 - y
-			600 - float(initialOffsetY),
-			float(initialWidth),
-			float(initialHeight)
-		};
-	}
-
-	void unload()
-	{
-	}
-
-	void update()
-	{
-		driver->clear();
-		driver->processInput();
-		driver->window(title, initialWindowRect.x, initialWindowRect.y, initialWindowRect.z, initialWindowRect.w,
-			windowRect.x, windowRect.y, windowRect.z, windowRect.w, &ui->getProperty(0), ui->getPropertyCount());
-	}
-
-	void draw(struct Cmd* pCmd)
-	{
-		if (!drawGui)
-			return;
-
-		driver->draw(pCmd);
-	}
-
-
-	// returns: 0: no input handled, 1: input handled
-	bool onInput(const struct ButtonData* pData)
-	{
-
-		if (pData->mUserId == KEY_UI_MOVE)
-		{
-			driver->onInput(pData);
-
-			if (IS_INBOX(pData->mValue[0], pData->mValue[1], windowRect.x, windowRect.y, windowRect.z, windowRect.w))
-			{
-				return true;
-			}
-		}
-		else if (pData->mUserId == KEY_CONFIRM)
-		{
-			ButtonData rightStick = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
-
-			if (IS_INBOX(rightStick.mValue[0], rightStick.mValue[1], windowRect.x, windowRect.y, windowRect.z, windowRect.w))
-			{
-				ButtonData toSend = *pData;
-				toSend.mValue[0] = rightStick.mValue[0];
-				toSend.mValue[1] = rightStick.mValue[1];
-				driver->onInput(&toSend);
-				PlatformEvents::skipMouseCapture = true;
-				return true;
-			}
-			// should allways let the mouse be released
-			else
-			{
-				ButtonData toSend = *pData;
-				toSend.mValue[0] = rightStick.mValue[0];
-				toSend.mValue[1] = rightStick.mValue[1];
-				driver->onInput(&toSend);
-				PlatformEvents::skipMouseCapture = false;
-			}
-		}
-
-		return false;
-	}
-
-	// returns: 0: no input handled, 1: input handled
-	bool onChar(const struct KeyboardCharEventData* pData)
-	{
-		driver->onChar(pData);
-		return wantKeyboardInput;
-	}
-
-	bool onKey(const struct KeyboardButtonEventData* pData)
-	{
-		UNREF_PARAM(pData);
-		return wantKeyboardInput;
-	}
-
-	bool onJoystickButton(const struct JoystickButtonEventData* pData)
-	{
-		return driver->onJoystick(pData->button, pData->pressed);
-	}
-
-	bool onMouseMove(const struct MouseMoveEventData* pData)
-	{
-		driver->onMouseMove(pData);
-
-		if (IS_INBOX(pData->x, pData->y, windowRect.x, windowRect.y, windowRect.z, windowRect.w))
-		{
-			return true;
-		}
-
-		return false;
-	}
-
-	bool onMouseButton(const struct MouseButtonEventData* pData)
-	{
-		if (IS_INBOX(pData->x, pData->y, windowRect.x, windowRect.y, windowRect.z, windowRect.w))
-		{
-			driver->onMouseClick(pData);
-			return true;
-		}
-		// should allways let the mouse be released
-		else if (!pData->pressed)
-		{
-			driver->onMouseClick(pData);
-		}
-
-		return false;
-	}
-
-	bool onMouseWheel(const struct MouseWheelEventData* pData)
-	{
-		if (IS_INBOX(pData->x, pData->y, windowRect.x, windowRect.y, windowRect.z, windowRect.w))
-		{
-			driver->onMouseScroll(pData);
-			return true;
-		}
-		return false;
-	}
-
-	bool onTouch(const struct TouchEventData* pData)
-	{
-		driver->onTouch(pData);
-		return true;
-	}
-
-	bool onTouchMove(const struct TouchEventData* pData)
-	{
-		driver->onTouchMove(pData);
-		return true;
-	}
-
-	GUIDriver* driver;
-	float4 initialWindowRect;
-	float4 windowRect;
-
-private:
-
-public:
-	bool drawGui = true;
-
-private:
-	bool wantKeyboardInput;
-};
-/************************************************************************/
-// Event Handlers
-/************************************************************************/
-static bool uiInputEvent(const ButtonData * pData)
-{
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onInput(pData))
-			return true;
-
-	//maps to f1
-	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
-	{
-		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-			gInstances[i]->drawGui = !gInstances[i]->drawGui;
-	}
-	
-	return false;
-}
-
-#if !defined(_DURANGO) && !defined(TARGET_IOS)
-static bool uiKeyboardChar(const KeyboardCharEventData* pData)
-{
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onChar(pData))
-			return true;
-
-	return false;
-}
-
-static bool uiKeyboardButton(const KeyboardButtonEventData* pData)
-{
-#if !defined(TARGET_IOS)
-	if (pData->key == KEY_F1 && pData->pressed)
-	{
-		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-			gInstances[i]->drawGui = !gInstances[i]->drawGui;
-	}
-
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onKey(pData))
-			return true;
-#else
-	ASSERT(false && "Unsupported on target iOS");
-#endif
-
-	return false;
-}
-
-
-static bool uiMouseMove(const MouseMoveEventData* pData)
-{
-#if !defined(TARGET_IOS)
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-	{
-		if (gInstances[i]->drawGui && gInstances[i]->onMouseMove(pData))
-		{
-			PlatformEvents::skipMouseCapture = gInstances[i]->onMouseMove(pData);
-			return true;
-		}
-	}
-
-	PlatformEvents::skipMouseCapture = false;
-#else
-	ASSERT(false && "Unsupported on target iOS");
-#endif
-
-	return false;
-}
-
-static bool uiMouseButton(const MouseButtonEventData* pData)
-{
-#if !defined(TARGET_IOS)
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onMouseButton(pData))
-			return true;
-#else
-	ASSERT(false && "Unsupported on target iOS");
-#endif
-
-	return false;
-}
-
-static bool uiMouseWheel(const MouseWheelEventData* pData)
-{
-#if !defined(TARGET_IOS)
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onMouseWheel(pData))
-			return true;
-#else
-	ASSERT(false && "Unsupported on target iOS");
-#endif
-
-	return false;
-}
-#endif
-
-//unused functions below on macos. Used on iOS and rest of platforms.
-static bool uiJoystickButton(const JoystickButtonEventData* pData)
-{
-#if !defined(TARGET_IOS)
-	if (pData->button == BUTTON_MENU && pData->pressed)
-	{
-		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-			gInstances[i]->drawGui = !gInstances[i]->drawGui;
-	}
-
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onJoystickButton(pData))
-			return true;
-#else
-	ASSERT(false && "Unsupported on target iOS");
-#endif
-
-	return false;
-}
-
-static bool uiTouch(const TouchEventData* pData)
-{
-#if defined(TARGET_IOS)
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onTouch(pData))
-			return true;
-#else
-	ASSERT(false && "Unsupported on this target.");
-#endif
-
-	return false;
-}
-
-static bool uiTouchMove(const TouchEventData* pData)
-{
-#if defined(TARGET_IOS)
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->drawGui && gInstances[i]->onTouchMove(pData))
-			return true;
-#else
-	ASSERT(false && "Unsupported on this target.");
-#endif
-
-	return false;
-}
-
-
-/************************************************************************/
 /************************************************************************/
 struct UIAppImpl
 {
@@ -730,38 +73,152 @@ struct UIAppImpl
 	tinystl::vector<GuiComponent*>				mComponents;
 
 	tinystl::vector<struct GuiComponentImpl*>	mComponentsToUpdate;
+	float										mDeltaTime;
 };
 UIAppImpl* pInst;
 
-
 struct GuiComponentImpl
 {
-	UIAppComponentGui*	pGui;
-	UI*					pUI;
-
 	bool Init(class UIApp* pApp, const char* pTitle, const GuiDesc* pDesc)
 	{
-		pUI = conf_placement_new<UI>(conf_calloc(1, sizeof(UI)));
-		pGui = conf_placement_new<UIAppComponentGui>(conf_calloc(1, sizeof(UIAppComponentGui)));
-		pGui->init(pApp->pImpl->pRenderer, &pDesc->mDefaultTextDrawDesc, pApp->pImpl->pFontStash);
-		pGui->renderer = pApp->pImpl->pRenderer;
-		pGui->ui = pUI;
-		pGui->load((int)pDesc->mStartPosition.getX(), (int)pDesc->mStartPosition.getY(),
-			(int)pDesc->mStartSize.getX(), (int)pDesc->mStartSize.getY());
-		pGui->setTitle(pTitle);
+		initGUIDriver(pApp->pImpl->pRenderer, &pDriver);
+
+		pDriver->load(pApp->pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
+
+		mInitialWindowRect =
+		{
+			pDesc->mStartPosition.getX(),
+			pDesc->mStartPosition.getY(),
+			pDesc->mStartSize.getX(),
+			pDesc->mStartSize.getY()
+		};
+
+		SetActive(true);
+		SetTitle(pTitle);
+
+		MutexLock lock(gMutex);
+		gInstances.emplace_back(this);
+
+		if (gInstances.size() == 1)
+		{
+			InputSystem::RegisterInputEvent(uiInputEvent);
+		}
 
 		return true;
 	}
 
 	void Exit()
 	{
-		pGui->unload();
-		pGui->exit();
-		pGui->~UIAppComponentGui();
-		conf_free(pGui);
-		pUI->~UI();
-		conf_free(pUI);
+		pDriver->unload();
+
+		removeGUIDriver(pDriver);
+
+		MutexLock lock(gMutex);
+		gInstances.erase(gInstances.find(this));
 	}
+
+	void Draw(Cmd* pCmd, float deltaTime)
+	{
+		if (!IsActive())
+			return;
+
+		pDriver->draw(pCmd, deltaTime,
+			mTitle,
+			mInitialWindowRect.x, mInitialWindowRect.y, mInitialWindowRect.z, mInitialWindowRect.w,
+			&mProperties[0], (uint32_t)mProperties.size());
+	}
+
+	void SetTitle(const char* title_)
+	{
+		this->mTitle = title_;
+	}
+
+	void SetActive(bool active)
+	{
+		mActive = active;
+	}
+
+	bool IsActive()
+	{
+		return mActive;
+	}
+
+	unsigned int AddControl(const UIProperty& prop)
+	{
+		// Try first to fill empty property slot
+		for (unsigned int i = 0; i < (uint32_t)mProperties.size(); i++)
+		{
+			UIProperty& prop_slot = mProperties[i];
+			if (prop_slot.pData != NULL)
+				continue;
+
+			prop_slot = prop;
+			return i;
+		}
+
+		mProperties.emplace_back(prop);
+		return (uint32_t)mProperties.size() - 1;
+	}
+
+	UIProperty& GetControl(unsigned int idx)
+	{
+		return mProperties[idx];
+	}
+
+	void ClearControls()
+	{
+		mProperties.clear();
+	}
+
+	void RemoveControl(unsigned int idx)
+	{
+		UIProperty& prop = mProperties[idx];
+		prop.pData = NULL;
+		prop.pCallback = NULL;
+	}
+
+	void SetControlFlag(unsigned int propertyId, UIProperty::FLAG flag, bool state)
+	{
+		ASSERT(propertyId < (uint32_t)mProperties.size());
+		unsigned int& flags = mProperties[propertyId].mFlags;
+		flags = state ? (flags | flag) : (flags & ~flag);
+	}
+
+	// returns: 0: no input handled, 1: input handled
+	bool OnInput(const struct ButtonData* pData)
+	{
+		// Handle the mouse click events:
+		//   We want to send ButtonData with click position to the UI system
+		//   
+		if (   pData->mUserId == KEY_CONFIRM      // left  click
+			|| pData->mUserId == KEY_RIGHT_BUMPER // right click
+			|| pData->mUserId == KEY_MOUSE_WHEEL
+		)
+		{
+			// Query the latest UI_MOVE event since the current event 
+			// which is a click event, doesn't contain the mouse position. 
+			// Here we construct the 'toSend' data to contain both the 
+			// position (from the latest Move event) and click info from the
+			// current event.
+			ButtonData latestUIMoveEventData = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
+			ButtonData toSend = *pData;
+			toSend.mValue[0] = latestUIMoveEventData.mValue[0];
+			toSend.mValue[1] = latestUIMoveEventData.mValue[1];
+
+			PlatformEvents::skipMouseCapture = pDriver->onInput(&toSend);
+			return PlatformEvents::skipMouseCapture;
+		}
+		
+		// just relay the rest of the events to the UI and let the UI system process the events
+		return pDriver->onInput(pData);
+	}
+
+private:
+	GUIDriver*					pDriver;
+	float4						mInitialWindowRect;
+	tinystl::string				mTitle;
+	tinystl::vector<UIProperty>	mProperties;
+	bool						mActive;
 };
 
 bool UIApp::Init(Renderer* renderer)
@@ -804,7 +261,7 @@ void UIApp::Unload()
 {
 }
 
-uint32_t UIApp::LoadFont(const char* pFontPath, uint32_t root)
+uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
 {
 	uint32_t fontID = (uint32_t)pImpl->pFontStash->defineFont("default", pFontPath, root);
 	ASSERT(fontID != -1);
@@ -830,6 +287,7 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 	pImpl->mComponents.erase(pImpl->mComponents.find(pComponent));
 
 	pComponent->pImpl->Exit();
+	pComponent->pImpl->~GuiComponentImpl();
 	conf_free(pComponent->pImpl);
 	pComponent->~GuiComponent();
 	conf_free(pComponent);
@@ -837,18 +295,15 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 
 void UIApp::Update(float deltaTime)
 {
-	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
-		pImpl->mComponentsToUpdate[i]->pGui->update();
-
-
 	pImpl->mComponentsToUpdate.clear();
+	pImpl->mDeltaTime = deltaTime;
 }
 
 void UIApp::Draw(Cmd* pCmd)
 {
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 	{
-		pImpl->mComponentsToUpdate[i]->pGui->draw(pCmd);
+		pImpl->mComponentsToUpdate[i]->Draw(pCmd, pImpl->mDeltaTime);
 	}
 }
 
@@ -857,18 +312,19 @@ void UIApp::Gui(GuiComponent* pGui)
 	pImpl->mComponentsToUpdate.emplace_back(pGui->pImpl);
 }
 
-uint32_t GuiComponent::AddProperty(const UIProperty& prop)
+uint32_t GuiComponent::AddControl(const UIProperty& control)
 {
-	return pImpl->pUI->addProperty(prop);
+	return pImpl->AddControl(control);
 }
 
-void GuiComponent::RemoveProperty(uint32_t propID)
+void GuiComponent::RemoveControl(unsigned int controlID)
 {
-	pImpl->pUI->removeProperty(propID);
+	pImpl->RemoveControl(controlID);
 }
+
 /************************************************************************/
 /************************************************************************/
-bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, uint32_t root)
+bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, uint root)
 {
 	pRenderer = renderer;
 
@@ -887,7 +343,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	{
 		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
 		ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
-};
+	};
 	addSampler(pRenderer, &samplerDesc, &pSampler);
 
 	BlendStateDesc blendStateDesc = {};
@@ -912,13 +368,13 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	// Shader
 	/************************************************************************/
 #if defined(METAL)
-	String texturedShaderFile = "builtin_plain";
-	String texturedShader = mtl_builtin_textured;
+	tinystl::string texturedShaderFile = "builtin_plain";
+	tinystl::string texturedShader = mtl_builtin_textured;
 	ShaderDesc texturedShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { texturedShaderFile, texturedShader, "VSMain" }, { texturedShaderFile, texturedShader, "PSMain" } };
 	addShader(pRenderer, &texturedShaderDesc, &pShader);
 #elif defined(DIRECT3D12) || defined(VULKAN)
-	char* pTexturedVert = NULL; uint32_t texturedVertSize = 0;
-	char* pTexturedFrag = NULL; uint32_t texturedFragSize = 0;
+	char* pTexturedVert = NULL; uint texturedVertSize = 0;
+	char* pTexturedFrag = NULL; uint texturedFragSize = 0;
 
 	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
 	{
@@ -971,7 +427,7 @@ void VirtualJoystickUI::Exit()
 	removeResource(pTexture);
 }
 
-bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint32_t depthFormat )
+bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat )
 {
 	VertexLayout vertexLayout = {};
 	vertexLayout.mAttribCount = 2;
@@ -1092,3 +548,24 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraControll
 	}
 #endif
 }
+/************************************************************************/
+// Event Handlers
+/************************************************************************/
+static bool uiInputEvent(const ButtonData * pData)
+{
+	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+		if (gInstances[i]->IsActive() && gInstances[i]->OnInput(pData))
+			return true;
+
+	// KEY_LEFT_STICK_BUTTON <-> F1 Key : See InputMapphings.h for details
+	// F1: Toggle Displaying UI
+	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
+	{
+		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+			gInstances[i]->SetActive(!gInstances[i]->IsActive());
+	}
+
+	return false;
+}
+/************************************************************************/
+/************************************************************************/

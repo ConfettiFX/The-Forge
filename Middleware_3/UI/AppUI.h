@@ -27,12 +27,13 @@
 #include "../../Common_3/OS/Interfaces/IOperatingSystem.h"
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../Text/Fontstash.h"
+#include "UIControl.h"
 
-#ifndef _WIN32
-#include <unistd.h>  // for sleep()
-#include <time.h> // for CLOCK_REALTIME
-#include <cstring> // for memset
-#endif
+#define IS_BETWEEN(x, a, b) ((a) <= (x) && (x) < (b))
+#define IS_INBOX(px, py, x, y, w, h)\
+    (IS_BETWEEN(px,x,x+w) && IS_BETWEEN(py,y,y+h))
+
 
 struct Renderer;
 struct Texture;
@@ -45,149 +46,22 @@ struct DepthState;
 struct BlendState;
 struct MeshRingBuffer;
 
-enum UIPropertyType
-{
-	UI_PROPERTY_FLOAT,
-	UI_PROPERTY_INT,
-	UI_PROPERTY_UINT,
-	UI_PROPERTY_BOOL,
-	UI_PROPERTY_ENUM,
-	UI_PROPERTY_BUTTON,
-	UI_PROPERTY_TEXTINPUT,
-	UI_PROPERTY_TEXT,
-
-};
-
 enum UIMaxFontSize
 {
 	UI_MAX_FONT_SIZE_UNDEFINED = 0, // Undefined size, will defaults to use UI_MAX_FONT_SIZE_512
-	UI_MAX_FONT_SIZE_128 = 128, // Max font size is 12.8f
-	UI_MAX_FONT_SIZE_256 = 256, // Max font size is 25.6f
-	UI_MAX_FONT_SIZE_512 = 512, // Max font size is 51.2f
-	UI_MAX_FONT_SIZE_1024 = 1024 // Max font size is 102.4f
+	UI_MAX_FONT_SIZE_128 = 128,     // Max font size is 12.8f
+	UI_MAX_FONT_SIZE_256 = 256,     // Max font size is 25.6f
+	UI_MAX_FONT_SIZE_512 = 512,     // Max font size is 51.2f
+	UI_MAX_FONT_SIZE_1024 = 1024    // Max font size is 102.4f
 };
-
-typedef void(*UIButtonFn)(void*);
-typedef void(*PropertyChangedCallback)(const class UIProperty* pProp);
-
-class UIProperty
-{
-public:
-	enum FLAG
-	{
-		FLAG_NONE = 0,
-		FLAG_VISIBLE = 1 << 0,
-	};
-
-	UIProperty(const char* description, int steps, float& value, float min = 0.0f, float max = 1.0f, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, float& value, float min = 0.0f, float max = 1.0f, float increment = 0.02f, bool expScale = false, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, int& value, int min = -100, int max = 100, int increment = 1, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, unsigned int& value, unsigned int min = 0, unsigned int max = 100, unsigned int increment = 1, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, bool& value, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, UIButtonFn fn, void* userdata, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, char* value, unsigned int length, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-	UIProperty(const char* description, uint32_t color = 0xAFAFAFFF, const char* tree = "none");
-
-	template <class T>
-	UIProperty(const char* description, T& value, const char** enumNames, const T* enumValues, PropertyChangedCallback callback = NULL, uint32_t color = 0xAFAFAFFF, const char* tree = "none") :
-		description(description),
-		type(UI_PROPERTY_ENUM),
-		flags(FLAG_VISIBLE),
-		source(&value),
-		callback(callback),
-		color(color),
-		tree(tree)
-	{
-		settings.eByteSize = sizeof(T);
-		settings.eNames = enumNames;
-		settings.eValues = (const void*)enumValues;
-
-		memset(uiState, 0, sizeof(uiState));
-	}
-
-	void setSettings(int steps, float min, float max);
-
-	//*********************************************************/
-	// The order of member variables declaration must match the order in which they are initialized in the constructor. 
-	// Otherwise g++ compiler will rearrange the initializer and viariables may be initialized to unknown value
-	// For more info, search for keyword [-Wreorder]
-	//*********************************************************/
-	const char* description;
-	UIPropertyType type;
-	unsigned int flags;
-	void* source;
-	PropertyChangedCallback callback = NULL;
-	uint32_t color; 
-	const char* tree = "none";
-
-	bool shouldDraw = false;
-
-// Anonymous structures generates warnings in C++11. 
-// See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs
-#pragma warning( push )
-#pragma warning( disable : 4201) // warning C4201: nonstandard extension used: nameless struct/union
-	union Settings
-	{
-		struct
-		{
-			float fMin;
-			float fMax;
-			float fIncrement;
-			bool fExpScale;
-		};
-		struct
-		{
-			int iMin;
-			int iMax;
-			int iIncrement;
-		};
-		struct
-		{
-			unsigned int uiMin;
-			unsigned int uiMax;
-			unsigned int uiIncrement;
-		};
-		struct
-		{
-			const char** eNames;
-			const void* eValues;
-			int eByteSize;
-		};
-		struct
-		{
-			unsigned int sLen;
-		};
-		struct
-		{
-			void* pUserData;
-		};
-	} settings;
-#pragma warning( pop ) 
-
-	char uiState[8];
-
-	void* clbCustom;
-	bool(*clbVisible)(void*);
-
-	int enumComputeIndex() const;
-	void modify(int steps);
-};
-
-typedef struct TextDrawDesc
-{
-	TextDrawDesc(uint32_t font = 0, uint32_t color = 0xffffffff, float size = 15.0f, float spacing = 0.0f, float blur = 0.0f) :
-		mFontID(font), mFontColor(color), mFontSize(size), mFontSpacing(spacing), mFontBlur(blur) {}
-
-	uint32_t mFontID;
-	uint32_t mFontColor;
-	float mFontSize;
-	float mFontSpacing;
-	float mFontBlur;
-} TextDrawDesc;
 
 typedef struct GuiDesc
 {
-	GuiDesc(const vec2& startPos = { 0.0f, 150.0f }, const vec2& startSize = { 600.0f, 550.0f }, const TextDrawDesc& textDrawDesc = { 0, 0xffffffff, 16 }) :
+	GuiDesc(
+		  const vec2& startPos = { 0.0f, 150.0f }
+		, const vec2& startSize = { 600.0f, 550.0f }
+		, const TextDrawDesc& textDrawDesc = { 0, 0xffffffff, 16 }
+	) :
 		mStartPosition(startPos),
 		mStartSize(startSize),
 		mDefaultTextDrawDesc(textDrawDesc)
@@ -201,8 +75,8 @@ typedef struct GuiDesc
 class GuiComponent
 {
 public:
-	uint32_t	AddProperty(const UIProperty& prop);
-	void		RemoveProperty(uint32_t propID);
+	uint	AddControl(const UIProperty& control);
+	void	RemoveControl(unsigned int controlID);
 
 	struct GuiComponentImpl* pImpl;
 };
@@ -212,22 +86,22 @@ public:
 typedef struct DynamicUIControls
 {
 	tinystl::vector<UIProperty> mDynamicProperties;
-	tinystl::vector<uint32_t>   mDynamicPropHandles;
+	tinystl::vector<uint>   mDynamicPropHandles;
 
 	void ShowDynamicProperties(GuiComponent* pGui)
 	{
-		for (int i = 0; i < mDynamicProperties.size(); ++i)
+		for (size_t i = 0; i < mDynamicProperties.size(); ++i)
 		{
 			mDynamicPropHandles.push_back(0);
-			mDynamicPropHandles[i] = pGui->AddProperty(mDynamicProperties[i]);
+			mDynamicPropHandles[i] = pGui->AddControl(mDynamicProperties[i]);
 		}
 	}
 
 	void HideDynamicProperties(GuiComponent* pGui)
 	{
-		for (int i = 0; i < mDynamicProperties.size(); i++)
+		for (size_t i = 0; i < mDynamicProperties.size(); i++)
 		{
-			pGui->RemoveProperty(mDynamicPropHandles[i]);
+			pGui->RemoveControl(mDynamicPropHandles[i]);
 		}
 		mDynamicPropHandles.clear();
 	}
@@ -247,21 +121,9 @@ public:
 
 	virtual void* getContext() = 0;
 
-	virtual void clear() = 0;
-	virtual void processInput() = 0;
-	virtual void window(const char* pTitle, float x, float y, float z, float w, float& oX, float& oY, float& oW, float& oH, class UIProperty* pProps, unsigned int propCount) = 0;
-	virtual void draw(Cmd* q) = 0;
-	virtual void setFontCalibration(float offset, float heightScale) = 0;
+	virtual void draw(Cmd* q, float deltaTime, const char* pTitle, float x, float y, float z, float w, class UIProperty* pControl, uint numControls) = 0;
 
-	virtual void onInput(const struct ButtonData* data) = 0;
-	virtual void onChar(const struct KeyboardCharEventData* data) = 0;
-	virtual void onKey(const struct KeyboardButtonEventData* data) = 0;
-	virtual bool onJoystick(int button, bool down) = 0;
-	virtual void onMouseMove(const struct MouseMoveEventData* data) = 0;
-	virtual void onMouseClick(const struct MouseButtonEventData* data) = 0;
-	virtual void onMouseScroll(const struct MouseWheelEventData* data) = 0;
-	virtual void onTouch(const struct TouchEventData* data) = 0;
-	virtual void onTouchMove(const struct TouchEventData* data) = 0;
+	virtual bool onInput(const struct ButtonData* data) = 0;
 };
 /************************************************************************/
 // UI interface for App
@@ -278,7 +140,7 @@ public:
 	void			Update(float deltaTime);
 	void			Draw(Cmd* cmd);
 
-	uint32_t		LoadFont(const char* pFontPath, uint32_t root);
+	uint			LoadFont(const char* pFontPath, uint root);
 	GuiComponent*	AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void			RemoveGuiComponent(GuiComponent* pComponent);
 
@@ -293,10 +155,10 @@ public:
 class VirtualJoystickUI
 {
 public:
-	bool Init(Renderer* pRenderer, const char* pJoystickTexture, uint32_t root);
+	bool Init(Renderer* pRenderer, const char* pJoystickTexture, uint root);
 	void Exit();
 
-	bool Load(RenderTarget* pScreenRT,uint32_t depthFormat = 0);
+	bool Load(RenderTarget* pScreenRT,uint depthFormat = 0);
 	void Unload();
 
 	void Draw(Cmd* pCmd, class ICameraController* pController, const float4& color);

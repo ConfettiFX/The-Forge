@@ -34,7 +34,7 @@
 #include "../../../Common_3/OS/Core/Compiler.h"
 #include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-static void SetAlphaTestMaterials(tinystl::unordered_set<String>& mats)
+static void SetAlphaTestMaterials(tinystl::unordered_set<tinystl::string>& mats)
 {
 	// San Miguel
 	mats.insert("aglaonema_Leaf");
@@ -89,7 +89,7 @@ static void SetAlphaTestMaterials(tinystl::unordered_set<String>& mats)
 	mats.insert("zebrina_Leaf");
 }
 
-static void SetTwoSidedMaterials(tinystl::unordered_set<String>& mats)
+static void SetTwoSidedMaterials(tinystl::unordered_set<tinystl::string>& mats)
 {
 	// San Miguel
 	mats.insert("aglaonema_Leaf");
@@ -322,7 +322,7 @@ Scene* loadScene(const char* fileName)
         const float3& tangent = tangents[v];
         const float2& tc = texcoords[v];
         
-#if defined(METAL) || defined(LINUX)
+#if defined(METAL) || defined(__linux__)
         scene->normals[v].nx = normal.x;
         scene->normals[v].ny = normal.y;
         scene->normals[v].nz = normal.z;
@@ -355,10 +355,10 @@ Scene* loadScene(const char* fileName)
 #endif
 	}
 
-	tinystl::unordered_set<String> twoSidedMaterials;
+	tinystl::unordered_set<tinystl::string> twoSidedMaterials;
 	SetTwoSidedMaterials(twoSidedMaterials);
 
-	tinystl::unordered_set<String> alphaTestMaterials;
+	tinystl::unordered_set<tinystl::string> alphaTestMaterials;
 	SetAlphaTestMaterials(alphaTestMaterials);
 
 	assimpScene.Read(&scene->numMaterials, sizeof(uint32_t));
@@ -396,7 +396,7 @@ Scene* loadScene(const char* fileName)
 
 		if (albedoName[0] != '\0')
 		{
-			String path(albedoName.data());
+			tinystl::string path(albedoName.data());
 			uint dotPos = 0;
 #ifdef ORBIS
 			// try to load the GNF version instead: change extension to GNF
@@ -405,12 +405,12 @@ Scene* loadScene(const char* fileName)
 			path[dotPos] = '\0';
 			path.append(".gnf", 4);
 #endif
-			String base_filename = FileSystem::GetFileNameAndExtension(path);
+			tinystl::string base_filename = FileSystem::GetFileNameAndExtension(path);
 			scene->textures[i] = (char*)conf_calloc(base_filename.size() + 1, sizeof(char));
 			strcpy(scene->textures[i], base_filename.c_str());
 
 			// try load the associated normal map 
-			String normalMap(base_filename);
+			tinystl::string normalMap(base_filename);
 			normalMap.rfind('.', -1, &dotPos);
 			normalMap.insert(dotPos, "_NRM", 4);
 
@@ -421,7 +421,7 @@ Scene* loadScene(const char* fileName)
 			strcpy(scene->normalMaps[i], normalMap.c_str());
 
 			// try load the associated spec map 
-			String specMap(base_filename);
+			tinystl::string specMap(base_filename);
 			dotPos = 0;
 			specMap.rfind('.', -1, &dotPos);
 			specMap.insert(dotPos, "_SPEC", 5);
@@ -452,7 +452,7 @@ Scene* loadScene(const char* fileName)
 		assimpScene.Read(&twoSided, sizeof(float));  // load two sided
 		m.twoSided = (twoSided != 0);
 
-		String tinyMatName(matName.data());
+		tinystl::string tinyMatName(matName.data());
 		if (twoSidedMaterials.find(tinyMatName) != twoSidedMaterials.end())
 			m.twoSided = true;
 

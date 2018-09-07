@@ -6,6 +6,25 @@
       <File Name="../../../../Middleware_3/Input/InputSystem.cpp"/>
       <File Name="../../../../Middleware_3/Input/InputMappings.h"/>
     </VirtualDirectory>
+    <VirtualDirectory Name="UI">
+      <File Name="../../../../Middleware_3/Text/TextShaders.h"/>
+      <File Name="../../../../Middleware_3/Text/Fontstash.h"/>
+      <File Name="../../../../Middleware_3/Text/Fontstash.cpp"/>
+      <File Name="../../../../Middleware_3/UI/AppUI.cpp"/>
+      <File Name="../../../../Middleware_3/UI/AppUI.h"/>
+      <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.cpp"/>
+      <File Name="../../../../Middleware_3/UI/ImguiGUIDriver.cpp"/>
+      <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
+	  <VirtualDirectory Name="imgui">
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui.cpp"/>
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_demo.cpp"/>
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_draw.cpp"/>
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_widgets.cpp"/>
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui.h"/>
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imconfig.h"/>
+        <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
   </VirtualDirectory>
   <Description/>
   <Dependencies/>
@@ -53,16 +72,6 @@
   <VirtualDirectory Name="MemoryTracking">
     <File Name="../../../../Common_3/OS/MemoryTracking/MemoryTrackingManager.cpp"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="UI">
-    <File Name="../../../../Middleware_3/Text/TextShaders.h"/>
-    <File Name="../../../../Middleware_3/Text/Fontstash.h"/>
-    <File Name="../../../../Middleware_3/Text/Fontstash.cpp"/>
-    <File Name="../../../../Middleware_3/UI/AppUI.cpp"/>
-    <File Name="../../../../Middleware_3/UI/AppUI.h"/>
-    <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.cpp"/>
-    <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.h"/>
-    <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
-  </VirtualDirectory>
   <VirtualDirectory Name="Linux">
     <File Name="../../../../Common_3/OS/Linux/LinuxBase.cpp"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxFileSystem.cpp"/>
@@ -86,7 +95,6 @@
       <Compiler Options="-g; -std=c++11;" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(VULKAN_SDK)/include/"/>
-        <Preprocessor Value="LINUX"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
@@ -128,7 +136,6 @@
       <Compiler Options="-std=c++11;" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(VULKAN_SDK)/include/"/>
-        <Preprocessor Value="LINUX"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>

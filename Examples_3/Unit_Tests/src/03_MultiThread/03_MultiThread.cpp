@@ -51,7 +51,8 @@
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "comsuppw.lib")
 #endif
-#elif defined(LINUX)
+#elif defined(__linux__)
+#include <unistd.h>	// sysconf(), _SC_NPROCESSORS_ONLN
 #else
 #include <mach/mach.h>
 #include <mach/processor_info.h>
@@ -176,7 +177,7 @@ IWbemLocator*			pLocator;
 uint64_t*				pOldTimeStamp;
 uint64_t*				pOldPprocUsage;
 #endif
-#elif(LINUX)
+#elif(__linux__)
 uint64_t*				pOldTimeStamp;
 uint64_t*				pOldPprocUsage;
 #else
@@ -236,7 +237,7 @@ const char*				pSkyBoxImageFileNames[] =
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -274,7 +275,7 @@ const char* pszRoots[] =
 };
 #endif
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class MultiThread : public IApp
 {
@@ -932,21 +933,21 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 		
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if !defined(METAL)
 		drawDebugText(cmd, 8, 65, "Particle CPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
 			drawDebugText(cmd, 8, 90.0f + i * 25.0f,
-				String::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f), &gFrameTimeDraw);
+				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f), &gFrameTimeDraw);
 		}
 
 		drawDebugText(cmd, 8, 105 + gThreadCount * 25.0f, "Particle GPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
 			drawDebugText(cmd, 8, (130 + gThreadCount * 25.0f) + i * 25.0f,
-				String::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		}
 #endif
 
@@ -1018,7 +1019,7 @@ public:
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "03_MultiThread";
 	}
@@ -1055,7 +1056,7 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
-#if defined(LINUX)
+#if defined(__linux__)
 	enum CPUStates
 	{
 		S_USER = 0,
@@ -1073,7 +1074,7 @@ public:
 	};
 	typedef struct CPUData
 	{
-		String cpu;
+		tinystl::string cpu;
 		size_t times[NUM_CPU_STATES];
 	} CPUData;
 
@@ -1145,7 +1146,7 @@ public:
 
 		pEnumerator->Release();
 #endif //#if defined(_DURANGO)
-#elif(LINUX)
+#elif(__linux__)
 		tinystl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
 		// Open cpu stat file
@@ -1285,7 +1286,7 @@ public:
 			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
 		}
 #endif
-#elif defined(LINUX)
+#elif defined(__linux__)
 		int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 		gCoresCount = numCPU;
 				if (gCoresCount)
@@ -1467,10 +1468,7 @@ public:
 
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 
-		//cmdDrawInstanced(cmd, data->mDrawCount, data->mStartPoint , 1);
-
-		for (int i = 0; i < (data->mDrawCount / 1000); ++i)  // in startdust project, they want to show how fast that vulkan can execute draw command, so each thread record a lot of commands
-			cmdDrawInstanced(cmd, 1000, data->mStartPoint + (i * 1000), 1);
+		cmdDrawInstanced(cmd, data->mDrawCount, data->mStartPoint , 1, 0);
 
 		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
 		endCmd(cmd);

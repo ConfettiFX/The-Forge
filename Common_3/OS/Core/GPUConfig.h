@@ -6,7 +6,8 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
 
-static GPUPresetLevel getSinglePresetLevel(String line,const String& inVendorId, const String& inModelId, const String& inRevId)
+#ifndef METAL
+static GPUPresetLevel getSinglePresetLevel(tinystl::string line,const tinystl::string& inVendorId, const tinystl::string& inModelId, const tinystl::string& inRevId)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
 	line = line.trimmed();
@@ -16,7 +17,7 @@ static GPUPresetLevel getSinglePresetLevel(String line,const String& inVendorId,
 		return GPU_PRESET_NONE;
 
 	//remote comment from line
-	tinystl::vector<String> parsedString = line.split(';');
+	tinystl::vector<tinystl::string> parsedString = line.split(';');
 
 	//We need at least 3 entries (vendor, Model, Preset)
 	//The file is layed out the following way:
@@ -24,11 +25,11 @@ static GPUPresetLevel getSinglePresetLevel(String line,const String& inVendorId,
 	if (parsedString.size() < 3)
 		return GPU_PRESET_NONE;
 
-	String vendorId = parsedString[0].to_lower();
-	String deviceId = parsedString[1].to_lower();
-	String presetLevel = parsedString[2].to_lower();
-	String gpuName = "";
-	String revisionId = "0x00";
+	tinystl::string vendorId = parsedString[0].to_lower();
+	tinystl::string deviceId = parsedString[1].to_lower();
+	tinystl::string presetLevel = parsedString[2].to_lower();
+	tinystl::string gpuName = "";
+	tinystl::string revisionId = "0x00";
 
 	if (parsedString.size() >= 4)
 	{
@@ -73,9 +74,9 @@ static GPUPresetLevel getSinglePresetLevel(String line,const String& inVendorId,
 	return GPU_PRESET_NONE;
 	
 }
-
+#endif
 //TODO: Add name matching as well.
-static void checkForPresetLevel(String line, Renderer * pRenderer)
+static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
 	line = line.trimmed();
@@ -85,7 +86,7 @@ static void checkForPresetLevel(String line, Renderer * pRenderer)
 		return;
 
 	//remote comment from line
-	tinystl::vector<String> parsedString = line.split(';');
+	tinystl::vector<tinystl::string> parsedString = line.split(';');
 	
 	//We need at least 3 entries (vendor, Model, Preset)
 	//The file is layed out the following way:
@@ -93,11 +94,11 @@ static void checkForPresetLevel(String line, Renderer * pRenderer)
 	if (parsedString.size() < 3)
 		return;
 
-	String vendorId = parsedString[0].to_lower();
-	String deviceId = parsedString[1].to_lower();
-	String presetLevel = parsedString[2].to_lower();
-	String gpuName = "";
-	String revisionId = "0x00";
+	tinystl::string vendorId = parsedString[0].to_lower();
+	tinystl::string deviceId = parsedString[1].to_lower();
+	tinystl::string presetLevel = parsedString[2].to_lower();
+	tinystl::string gpuName = "";
+	tinystl::string revisionId = "0x00";
 
 	if(parsedString.size() >= 4)
 	{
@@ -147,8 +148,8 @@ static void checkForPresetLevel(String line, Renderer * pRenderer)
 		}
 	}
 }
-
-static bool checkForActiveGPU(String line, GPUVendorPreset &pActiveGpu)
+#ifndef METAL
+static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset &pActiveGpu)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
 	line = line.trimmed();
@@ -157,19 +158,19 @@ static bool checkForActiveGPU(String line, GPUVendorPreset &pActiveGpu)
 	if(line.at(0) == '#')
 		return false;
 
-	tinystl::vector<String> parsedString = line.split(';');
+	tinystl::vector<tinystl::string> parsedString = line.split(';');
 
 	//for every valid entry there's a comment
 	if (parsedString.size() < 3)
 		return false;
 
 	//TODO: Parse SLI
-	String vendorId = parsedString[0].to_lower();
-	String deviceId = parsedString[1].to_lower();
-	String presetLevel = parsedString[2].to_lower();
+	tinystl::string vendorId = parsedString[0].to_lower();
+	tinystl::string deviceId = parsedString[1].to_lower();
+	tinystl::string presetLevel = parsedString[2].to_lower();
 
-	String gpuName = "";
-	String revisionId = "0x00";
+	tinystl::string gpuName = "";
+	tinystl::string revisionId = "0x00";
 
 	if (parsedString.size() >= 4)
 	{
@@ -199,7 +200,7 @@ static bool checkForActiveGPU(String line, GPUVendorPreset &pActiveGpu)
 	
 	return true;
 }
-
+#endif
 //Reads the gpu config and sets the preset level of all available gpu's
 static void setGPUPresetLevel(Renderer * pRenderer)
 {
@@ -211,7 +212,7 @@ static void setGPUPresetLevel(Renderer * pRenderer)
 	}
 
 	while (!gpuCfgFile.IsEof()) {
-		String gpuCfgString = gpuCfgFile.ReadLine();
+		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
 		checkForPresetLevel(gpuCfgString, pRenderer);
 		// Do something with the tok
 	}
@@ -219,8 +220,9 @@ static void setGPUPresetLevel(Renderer * pRenderer)
 	gpuCfgFile.Close();
 }
 
+#ifndef METAL
 //Reads the gpu config and sets the preset level of all available gpu's
-static GPUPresetLevel getGPUPresetLevel(const String vendorId, const String modelId, const String revId)
+static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const tinystl::string modelId, const tinystl::string revId)
 {
 	File gpuCfgFile = {};
 	gpuCfgFile.Open("gpu.cfg", FM_Read, FSR_GpuConfig);
@@ -232,7 +234,7 @@ static GPUPresetLevel getGPUPresetLevel(const String vendorId, const String mode
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
 
 	while (!gpuCfgFile.IsEof()) {
-		String gpuCfgString = gpuCfgFile.ReadLine();
+		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
 		GPUPresetLevel level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
 		// Do something with the tok
 		if (level != GPU_PRESET_NONE)
@@ -257,7 +259,7 @@ static bool getActiveGpuConfig(GPUVendorPreset &pActiveGpu)
 
 	bool successFinal = false;
 	while (!gpuCfgFile.IsEof() && !successFinal) {
-		String gpuCfgString = gpuCfgFile.ReadLine();
+		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
 		successFinal = checkForActiveGPU(gpuCfgString, pActiveGpu);
 	}
 
@@ -265,5 +267,5 @@ static bool getActiveGpuConfig(GPUVendorPreset &pActiveGpu)
 
 	return successFinal;
 }
-
+#endif
 #endif

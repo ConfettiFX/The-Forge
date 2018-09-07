@@ -128,12 +128,12 @@ void _FailedAssert(const char *file, int line, const char *statement)
   //assert(0);
 }
 
-void _PrintUnicode(const String& str, bool error)
+void _PrintUnicode(const tinystl::string& str, bool error)
 {
   outputLogString(str.c_str());
 }
 
-void _PrintUnicodeLine(const String& str, bool error)
+void _PrintUnicodeLine(const tinystl::string& str, bool error)
 {
   _PrintUnicode(str, error);
 }

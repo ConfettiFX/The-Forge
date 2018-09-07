@@ -22,6 +22,8 @@
 		4B3E093351E74BE096B65EEE /* GainputInputPlayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4E3FE4DBDB49B1A1F0E8B2 /* GainputInputPlayer.cpp */; };
 		4E0AC42B0E334B45B0C20907 /* GainputInputDeviceTouch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 476EF39971C34A5E9C73F95E /* GainputInputDeviceTouch.cpp */; };
 		5BB13D04A8EB4D019239BCCC /* GainputMac.mm in Sources */ = {isa = PBXBuildFile; fileRef = E80EC9C215E74933B7D0C38D /* GainputMac.mm */; };
+		5CABF33E214152FD00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF33D214152FD00EFD76A /* GameController.framework */; };
+		5CABF34B2141535100EFD76A /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF34A2141535100EFD76A /* UIKit.framework */; };
 		66A6307103DD46ABA4D24F0A /* GainputButtonStickGesture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B7E0AE9BF0AB43898806BD6E /* GainputButtonStickGesture.cpp */; };
 		6B4B66CD9F9C45C7A50FBE91 /* GainputInputRecorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D89B07CF1A847EDB4924B44 /* GainputInputRecorder.cpp */; };
 		6F5EC0411C1A44DA99A8AC60 /* GainputInputDeviceBuiltInIos.mm in Sources */ = {isa = PBXBuildFile; fileRef = B617213BBCDC45D0B869F3C7 /* GainputInputDeviceBuiltInIos.mm */; };
@@ -131,6 +133,9 @@
 		4F3EBD1C9AA442CD8ADBB779 /* GainputHoldGesture.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputHoldGesture.cpp; path = source/gainput/gestures/GainputHoldGesture.cpp; sourceTree = SOURCE_ROOT; };
 		57D7D9EE44704A5BB842A224 /* GainputPinchGesture.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputPinchGesture.cpp; path = source/gainput/gestures/GainputPinchGesture.cpp; sourceTree = SOURCE_ROOT; };
 		5C59B161B54B4F0B87962655 /* GainputContainers.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputContainers.h; path = include/gainput/GainputContainers.h; sourceTree = SOURCE_ROOT; };
+		5CABF33D214152FD00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		5CABF34A2141535100EFD76A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		5CABF3802141548900EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		5E7917BFE8BF40478F8D9FEC /* GainputHelpersEvdev.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputHelpersEvdev.h; path = source/gainput/GainputHelpersEvdev.h; sourceTree = SOURCE_ROOT; };
 		61B28562829C4A8593FDC52B /* GainputNetListener.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputNetListener.h; path = source/gainput/dev/GainputNetListener.h; sourceTree = SOURCE_ROOT; };
 		62DCEE690EC8466B8BDA783F /* GainputInputDeviceKeyboardEvdev.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDeviceKeyboardEvdev.h; path = source/gainput/keyboard/GainputInputDeviceKeyboardEvdev.h; sourceTree = SOURCE_ROOT; };
@@ -194,6 +199,18 @@
 		FD2477009C86465F8E044C64 /* GainputNetAddress.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputNetAddress.cpp; path = source/gainput/dev/GainputNetAddress.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		5CABF33B214152F300EFD76A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CABF34B2141535100EFD76A /* UIKit.framework in Frameworks */,
+				5CABF33E214152FD00EFD76A /* GameController.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
 		0DB6C64C13F34C279851B498 /* Source Files */ = {
 			isa = PBXGroup;
@@ -243,6 +260,7 @@
 			children = (
 				2C9B1DE9EDFA4831B3B4612E /* gainputstatic */,
 				69648490F90F463494107CFE /* Products */,
+				5CABF33C214152FD00EFD76A /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -253,6 +271,16 @@
 				98DA49CD400F42A180E092AF /* Header Files */,
 			);
 			name = gainputstatic;
+			sourceTree = "<group>";
+		};
+		5CABF33C214152FD00EFD76A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5CABF3802141548900EFD76A /* GameController.framework */,
+				5CABF34A2141535100EFD76A /* UIKit.framework */,
+				5CABF33D214152FD00EFD76A /* GameController.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		69648490F90F463494107CFE /* Products */ = {
@@ -367,6 +395,7 @@
 			buildConfigurationList = B24D2A7E20EACFA400CF8EA0 /* Build configuration list for PBXNativeTarget "gainputstatic_iOS" */;
 			buildPhases = (
 				B24D2A5A20EACFA400CF8EA0 /* Sources */,
+				5CABF33B214152F300EFD76A /* Frameworks */,
 			);
 			buildRules = (
 			);

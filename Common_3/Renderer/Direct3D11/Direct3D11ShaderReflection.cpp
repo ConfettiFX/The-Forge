@@ -260,6 +260,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			}
 			ASSERT(resourceIndex != ~0u);
 
+			reflection.pShaderResources[resourceIndex].constant_size = bufferDesc.Size;
 
 			//Go through all the variables in the constant buffer
 			for (UINT j = 0; j < bufferDesc.Variables; ++j)

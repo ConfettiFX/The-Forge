@@ -70,6 +70,9 @@
     <Filter Include="OS\Text">
       <UniqueIdentifier>{56661410-90c5-4e8f-9451-be646b8fdca5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\UI\imgui">
+      <UniqueIdentifier>{1dad1790-9f64-418c-8252-7b48e1dace7d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Common_3\OS\MemoryTracking\MemoryTrackingManager.cpp">
@@ -170,6 +173,21 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Middleware_3\Text\Fontstash.cpp">
       <Filter>OS\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp">
+      <Filter>OS\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp">
+      <Filter>OS\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp">
+      <Filter>OS\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
+      <Filter>OS\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp">
+      <Filter>OS\UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -300,6 +318,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Middleware_3\Text\Fontstash.h">
       <Filter>OS\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h">
+      <Filter>OS\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h">
+      <Filter>OS\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
+      <Filter>OS\UI\imgui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

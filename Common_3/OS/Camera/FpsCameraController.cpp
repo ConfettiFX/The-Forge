@@ -39,17 +39,8 @@
 
 #include "../Interfaces/IMemoryManager.h"
 
-#define MOVE_IN_PLANE  0
-#define INVERT_MOUSE_VERTICAL  0
-
-#if defined(_DURANGO) || defined(TARGET_IOS)
-static const float k_rotationSpeed = 0.03f;
-#if defined(_DURANGO)
-	static const float k_movementSpeed = 16.0f;
-#endif
-#else
-static const float k_rotationSpeed = 0.003f;
-#endif
+static float k_joystickRotationSpeed = 0.06f;
+static float k_mouseRotationSpeed = 0.003f;
 static const float k_scrollSpeed = -5.0f;
 #if !defined(METAL)
 static const float k_xRotLimit = (float)(M_PI_2 - 0.1);
@@ -75,18 +66,13 @@ public:
 		acceleration { 100.0f },
 		deceleration { 100.0f },
 		maxSpeed { 100.0f },
-		currentVelocity { 0 },
 #ifdef TARGET_IOS
         virtualLeftJoystickPos { k_vLeftJoystickCenter },
         virtualLeftJoysticPressed { false },
         virtualRightJoystickPos { k_vRightJoystickCenter },
         virtualRightJoysticPressed { false },
 #endif
-#if defined(_DURANGO) || defined(TARGET_IOS)
-		mouseCaptured { true }
-#else
-		mouseCaptured { false }
-#endif
+		currentVelocity{ 0 }
 	{
 	}
 	void setMotionParameters(const CameraMotionParameters&) override;
@@ -109,23 +95,17 @@ public:
 
 private:
 	void onInputEvent(const ButtonData* pData) override;
-#ifndef _DURANGO
-	void onMouseWheel(const MouseWheelEventData* pData) override;
-#endif
-
 	void update(float deltaTime) override;
 
 private:
 	vec2 viewRotation;
 	vec3 viewPosition;
-  vec3 currentVelocity;
+	vec3 currentVelocity;
 
 	float acceleration;
 	float deceleration;
 	float maxSpeed;
 
-	bool mouseCaptured;
-    
 #ifdef TARGET_IOS
     vec2 virtualLeftJoystickPos;
     bool virtualLeftJoysticPressed;
@@ -159,6 +139,15 @@ void FpsCameraController::setMotionParameters(const CameraMotionParameters& cmp)
 static vec3 moveVec { 0 };
 void FpsCameraController::onInputEvent(const ButtonData* pData)
 {
+	if (!InputSystem::IsMouseCaptured())
+		return;
+
+	if (pData->mUserId == KEY_MOUSE_WHEEL)
+	{
+		mat4 m{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
+		const vec3& v{ m.getCol2().getXYZ() };
+		viewPosition -= v * ((float)pData->mValue[0] * k_scrollSpeed);
+	}
 	//TODO: Need to rework this logic not to be event based.
 #if defined(TARGET_IOS)
 	if(pData->mUserId == KEY_LEFT_STICK || pData->mUserId == KEY_RIGHT_STICK)
@@ -196,7 +185,7 @@ void FpsCameraController::onInputEvent(const ButtonData* pData)
 		{
 			vec2 newPos = virtualLeftJoystickPos - vec2(-pData->mDeltaValue[0], -pData->mDeltaValue[1]);
 			
-			// Clamp the joystick's position to the max range.
+			// Clamp the joysticks position to the max range.
 			vec2 tiltDir = newPos - k_vLeftJoystickCenter;
 			if(length(tiltDir) > k_vJoystickRange) newPos = k_vLeftJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
 			
@@ -207,7 +196,7 @@ void FpsCameraController::onInputEvent(const ButtonData* pData)
 		{
 			vec2 newPos = virtualRightJoystickPos - vec2(-pData->mDeltaValue[0], -pData->mDeltaValue[1]);
 			
-			// Clamp the joystick's position to the max range.
+			// Clamp the joysticks position to the max range.
 			vec2 tiltDir = newPos - k_vRightJoystickCenter;
 			if(length(tiltDir) > k_vJoystickRange) newPos = k_vRightJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
 			
@@ -222,73 +211,63 @@ void FpsCameraController::onInputEvent(const ButtonData* pData)
 #endif
 }
 
-#ifndef _DURANGO
-void FpsCameraController::onMouseWheel(const MouseWheelEventData* pData)
-{
-	mat4 m { mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
-	const vec3& v { m.getCol2().getXYZ() };
-	viewPosition -= v * ((float)pData->scroll * k_scrollSpeed);
-}
-#endif
 
 void FpsCameraController::update(float deltaTime)
 {
-	if (deltaTime < 0.00001f)
+	//when frame time is too small (01 in releaseVK) the float comparison with zero is imprecise. 
+	//It returns when it shouldn't causing stutters
+	//We should use doubles for frame time instead of just do this for now.
+	deltaTime = max(deltaTime, 0.000001f);	
+
+	//input should be captured by default on consoles/mobiles.
+	if (!InputSystem::IsMouseCaptured())
 		return;
 
 #ifndef TARGET_IOS
-	//We wamt to keep checking instead of on doing it on events
+	//We want to keep checking instead of on doing it on events
 	//Events get triggered on press or release (except for mouse)
 	//this is in case a button is pressed down but hasn't changed.
-	if (InputSystem::IsButtonPressed(KEY_LEFT_STICK))
+	ButtonData leftStick = InputSystem::GetButtonData(KEY_LEFT_STICK);
+	if (leftStick.mIsPressed)
 	{
-			ButtonData leftStick = InputSystem::GetButtonData(KEY_LEFT_STICK);
-			moveVec.setX(leftStick.mValue[0]);
-			moveVec.setZ(leftStick.mValue[1]);
+		moveVec.setX(leftStick.mValue[0]);
+		moveVec.setY(0);
+		moveVec.setZ(leftStick.mValue[1]);
 	}
 
-	//We wamt to keep checking instead of on events
-	//Events get triggered on press or release (except for mouse)
+	//We want to keep checking instead of on events
+	//Events get triggered on press or release(except for mouse)
 	//will need to handle iOS differently for now
-	if (InputSystem::IsButtonPressed(KEY_RIGHT_STICK))
+	ButtonData rightStick = InputSystem::GetButtonData(KEY_RIGHT_STICK);
+	if(rightStick.mIsPressed)
 	{
+		//Windows Fall Creators Update breaks this camera controller
+		//	So only use this controller if we are running on macOS or before Fall Creators Update
+		float rx = viewRotation.getX();
+		float ry = viewRotation.getY();
+		float interpolant = 0.75f;
 
-		ButtonData rightStick = InputSystem::GetButtonData(KEY_RIGHT_STICK);
-		if (!InputSystem::IsMouseCaptured())
-			return;
-#ifndef _DURANGO
-		if (rightStick.mDeltaValue[0] != 0.0f || rightStick.mDeltaValue[1] != 0.0f)
-#endif
+		float newRx = rx;
+		float newRy = ry;
+
+		//Use different values for different input devices.
+		//For mouse we want deltas.
+		//For controllers and touch we want current value.
+		if (rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_GAMEPAD)
 		{
-			// Windows Fall Creators Update breaks this camera controller
-			// So only use this controller if we are running on macOS or before Fall Creators Update
-			float rx = viewRotation.getX();
-			float ry = viewRotation.getY();
-
-			float newRx, newRy;
-#if INVERT_MOUSE_VERTICAL
-			newRx = rx - rightStick.mDeltaValue[1] * k_rotationSpeed;
-#else
-#ifdef _DURANGO
-			newRx = rx + rightStick.mValue[1] * k_rotationSpeed;
-			newRy = ry + rightStick.mValue[0] * k_rotationSpeed;
-#else
-			newRx = rx + rightStick.mDeltaValue[1] * k_rotationSpeed;
-			newRy = ry + rightStick.mDeltaValue[0] * k_rotationSpeed;
-#endif
-#endif
-			
-			rx = newRx;
-			ry = newRy;
-			viewRotation = { rx, ry };
-			
-		
-			//LOGINFOF("[FPS] view Rotation: %f, %f", rx, ry);
+			newRx = rx + (rightStick.mValue[1] * k_joystickRotationSpeed) * interpolant;
+			newRy = ry + (rightStick.mValue[0] * k_joystickRotationSpeed) * interpolant;
 		}
+		else if(rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_RAW_MOUSE)
+		{
+			newRx = rx + (rightStick.mDeltaValue[1] * k_mouseRotationSpeed) * interpolant;
+			newRy = ry + (rightStick.mDeltaValue[0] * k_mouseRotationSpeed) * interpolant;
+		}
+
+		//set new target view to interpolate to
+		viewRotation = { newRx, newRy };
 	}
-#endif
-    
-#ifdef TARGET_IOS
+#else
 	vec2 leftJoystickDir = virtualLeftJoystickPos - k_vLeftJoystickCenter;
 	if(virtualLeftJoysticPressed)
 	{
@@ -315,7 +294,7 @@ void FpsCameraController::update(float deltaTime)
 		{
 			vec2 normalizedRightJoystickDir = normalize(rightJoystickDir);
 			float rightJoystickTilt = length(rightJoystickDir) / k_vJoystickRange;
-			viewRotation += vec2(normalizedRightJoystickDir.getY(), normalizedRightJoystickDir.getX()) * rightJoystickTilt * k_rotationSpeed;
+			viewRotation += vec2(normalizedRightJoystickDir.getY(), normalizedRightJoystickDir.getX()) * rightJoystickTilt * k_joystickRotationSpeed / 2.0f;
 		}
 	}
 	else if (length(rightJoystickDir) > 0)
@@ -325,27 +304,30 @@ void FpsCameraController::update(float deltaTime)
 		else virtualRightJoystickPos -= recoveryVector;
 	}
 #endif
-    {
-
-		float lenS = lengthSqr(moveVec);
-		if (lenS > 1.0f)
-			moveVec *= sqrtf(lenS);
-	}
-
-#if MOVE_IN_PLANE
-	mat4 rot =  mat4::rotationY(viewRotation.getY());
-#else
+	//divide by length to normalize if necessary
+	float lenS = lengthSqr(moveVec);
+	//one reason the check with > 1.0 instead of 0.0 is to avoid
+	//normalizing when joystick is not fully down.
+	if (lenS > 1.0f)
+		moveVec /= sqrtf(lenS);
+	
+	//create rotation matrix
 	mat4 rot{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
-#endif
+
 
 	vec3 accelVec = (rot * moveVec).getXYZ();
-
-
+	//divide by length to normalize if necessary
+	//this determines the directional of acceleration, should be normalized.
+	lenS = lengthSqr(accelVec);
+	if (lenS > 1.0f)
+		accelVec /= sqrtf(lenS);
+	
 	// the acceleration vector should still be unit length.
 	//assert(fabs(1.0f - lengthSqr(accelVec)) < 0.001f);
 	float currentInAccelDir = dot(accelVec, currentVelocity);
 	if (currentInAccelDir < 0)
 		currentInAccelDir = 0;
+
 	vec3 braking = (accelVec * currentInAccelDir) - currentVelocity;
 	float brakingLen = length(braking);
 	if (brakingLen > (deceleration * deltaTime))
@@ -363,16 +345,12 @@ void FpsCameraController::update(float deltaTime)
 	if (nvLen > (maxSpeed * maxSpeed))
 	{
 		nvLen = sqrtf(nvLen);
-		newVelocity *= maxSpeed / nvLen;
+		newVelocity *= (maxSpeed / nvLen);
 	}
 
 	moveVec = ((currentVelocity + newVelocity) * .5f) * deltaTime;
 	viewPosition += moveVec;
 	currentVelocity = newVelocity;
-#ifndef _DURANGO
-  float velocityX = currentVelocity.getX();
-	ASSERT(NAN != velocityX);
-#endif
 
 	moveVec = { 0,0,0 };
 }

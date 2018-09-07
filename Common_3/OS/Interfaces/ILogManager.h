@@ -38,8 +38,8 @@ void _InfoMsg(int line, const char*, const char *string, ...);
 void _FailedAssert(const char *file, int line, const char *statement);
 void _OutputDebugString(const char *str, ...);
 
-void _PrintUnicode(const String& str, bool error = false);
-void _PrintUnicodeLine(const String& str, bool error = false);
+void _PrintUnicode(const tinystl::string& str, bool error = false);
+void _PrintUnicodeLine(const tinystl::string& str, bool error = false);
 
 #define ErrorMsg(str,...) _ErrorMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
 #define WarningMsg(str,...) _WarningMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)

@@ -65,7 +65,7 @@
 #elif defined(VULKAN)
 #if defined(_WIN32)
 #define RESOURCE_DIR "PCVulkan"
-#elif defined(LINUX)
+#elif defined(__linux__)
 #define RESOURCE_DIR "LINUXVulkan"
 #endif
 #elif defined(METAL)
@@ -532,7 +532,7 @@ tinystl::vector<Buffer*>	gSphereBuffers;
 
 ICameraController*			pCameraController = NULL;
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 tinystl::vector<int> gSponzaIndicesArray;
 tinystl::vector<int> gLionIndicesArray;
@@ -586,7 +586,7 @@ void computePBRMaps()
 	Sampler* pSkyboxSampler = NULL;
 
 	SamplerDesc samplerDesc = {
-		FILTER_TRILINEAR, FILTER_TRILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
 	};
 	addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -679,7 +679,7 @@ void computePBRMaps()
 	GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 	uint32_t importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 	uint32_t importanceSampleCount = importanceSampleCounts[presetLevel];
-	ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", String::format("%u", importanceSampleCount) };
+	ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", tinystl::string::format("%u", importanceSampleCount) };
 
 	ShaderLoadDesc brdfIntegrationShaderDesc = {};
 	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
@@ -772,7 +772,7 @@ void computePBRMaps()
 		uint textureSize;
 	} data = { 0, gSkyboxSize };
 
-	for (int i = 0; i < gSkyboxMips; i++)
+	for (int i = 0; i < (int)gSkyboxMips; i++)
 	{
 		data.mip = i;
 		params[0].pName = "RootConstant";
@@ -818,7 +818,7 @@ void computePBRMaps()
 		float roughness;
 	};
 
-	for (int i = 0; i < gSpecularMips; i++)
+	for (int i = 0; i < (int)gSpecularMips; i++)
 	{
 		PrecomputeSkySpecularData data = {};
 		data.roughness = (float)i / (float)(gSpecularMips - 1);
@@ -873,7 +873,7 @@ bool loadModels()
 {
 	//Load Sponza
 	Model sponza;
-	String sceneFullPath = FileSystem::FixPath(gModel_Sponza, FSRoot::FSR_Meshes);
+	tinystl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza, FSRoot::FSR_Meshes);
 #ifdef TARGET_IOS
 	//TODO: need to unify this using filsystem interface
 	//iOS requires path using bundle identifier
@@ -890,7 +890,7 @@ bool loadModels()
 	size_t sponza_meshCount = sponza.mMeshArray.size();
 	size_t sponza_matCount = sponza.mMaterialList.size();
 
-	for (int i = 0; i < sponza_meshCount; i++)
+	for (size_t i = 0; i < sponza_meshCount; i++)
 	{
 		Mesh subMesh = sponza.mMeshArray[i];
 
@@ -900,17 +900,17 @@ bool loadModels()
 		tinystl::vector<Vertex> sponzaVertices;
 		tinystl::vector<uint> sponzaIndices;
 
-		int vertexSize = (int)subMesh.mPositions.size();
+		size_t vertexSize = subMesh.mPositions.size();
 
-		for (int i = 0; i < vertexSize; i++)
+		for (size_t j = 0; j < vertexSize; j++)
 		{
-			Vertex toAdd = { subMesh.mPositions[i],subMesh.mNormals[i], subMesh.mUvs[i] };
+			Vertex toAdd = { subMesh.mPositions[j],subMesh.mNormals[j], subMesh.mUvs[j] };
 			sponzaVertices.push_back(toAdd);
 		}
 
-		for (int i = 0; i < size_Sponza; i++)
+		for (size_t j = 0; j < size_Sponza; j++)
 		{
-			sponzaIndices.push_back(subMesh.mIndices[i]);
+			sponzaIndices.push_back(subMesh.mIndices[j]);
 		}
 
 		// Vertex position buffer for the scene
@@ -1088,7 +1088,7 @@ public:
 		computePBRMaps();
 
 		SamplerDesc samplerDesc = {
-			FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
 		};
 		addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
@@ -1502,21 +1502,21 @@ public:
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddProperty(vsyncProp);
+		pGui->AddControl(vsyncProp);
 #endif
 
-		pGui->AddProperty(UIProperty("Render Mode", gRenderMode, enumRenderModeNames, enumRenderModes));
+		pGui->AddControl(UIProperty("Render Mode", gRenderMode, enumRenderModeNames, enumRenderModes));
 
-		pGui->AddProperty(UIProperty("Use Holepatching", gUseHolePatching));
-		pGui->AddProperty(UIProperty("Use Expensive Holepatching", gUseExpensiveHolePatching));
+		pGui->AddControl(UIProperty("Use Holepatching", gUseHolePatching));
+		pGui->AddControl(UIProperty("Use Expensive Holepatching", gUseExpensiveHolePatching));
 
-		//pGui->AddProperty(UIProperty("Use Normalmap", gUseNormalMap));
+		//pGui->AddControl(UIProperty("Use Normalmap", gUseNormalMap));
 
-		pGui->AddProperty(UIProperty("Use Fade Effect", gUseFadeEffect));
+		pGui->AddControl(UIProperty("Use Fade Effect", gUseFadeEffect));
 
-		pGui->AddProperty(UIProperty("Intensity of PPR", gRRP_Intensity, 0.0f, 1.0f));
-		pGui->AddProperty(UIProperty("Number of Planes", gPlaneNumber, 1, 4));
-		pGui->AddProperty(UIProperty("Size of Main Plane", gPlaneSize, 5.0f, 100.0f));
+		pGui->AddControl(UIProperty("Intensity of PPR", gRRP_Intensity, 0.0f, 1.0f));
+		pGui->AddControl(UIProperty("Number of Planes", gPlaneNumber, 1, 4));
+		pGui->AddControl(UIProperty("Size of Main Plane", gPlaneSize, 5.0f, 100.0f));
 
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
 
@@ -1576,10 +1576,10 @@ public:
 		removeResource(pSponzaBuffer);
 		removeResource(pLionBuffer);
 
-		for (int i = 0; i<pSponzaVertexBufferPosition.size(); i++)
+		for (size_t i = 0; i<pSponzaVertexBufferPosition.size(); i++)
 			removeResource(pSponzaVertexBufferPosition[i]);
 
-		for (int i = 0; i<pSponzaIndexBuffer.size(); i++)
+		for (size_t i = 0; i<pSponzaIndexBuffer.size(); i++)
 			removeResource(pSponzaIndexBuffer[i]);
 
 		removeResource(pLionVertexBufferPosition);
@@ -2079,13 +2079,10 @@ public:
 				params[2 + j].pName = pTextureName[j];
 				params[2 + j].ppTextures = &pMaterialTextures[gSponzaTextureIndexforMaterial[materialID + j]];
 			}
+
+			cmdBindDescriptors(cmd, pRootSigGbuffers, 7, params);
 			
-			//bind samplers for metal
-			params[7].pName = "defaultSampler";
-			params[7].ppSamplers = &pSamplerBilinear;
-			cmdBindDescriptors(cmd, pRootSigGbuffers, 8, params);
-			
-			cmdDrawIndexed(cmd, gSponzaIndicesArray[i], 0);
+			cmdDrawIndexed(cmd, gSponzaIndicesArray[i], 0, 0);
 			
 		}
 		
@@ -2100,14 +2097,8 @@ public:
 		params[2].pName = "textureMaps";
 		params[2].ppTextures = pMaterialTextures;
 		params[2].mCount = TOTAL_IMGS;
-#ifdef METAL
-		//bind samplers for metal
-		params[3].pName = "defaultSampler";
-		params[3].ppSamplers = &pSamplerBilinear;
-		cmdBindDescriptors(cmd, pRootSigGbuffers, 4, params);
-#else
 		cmdBindDescriptors(cmd, pRootSigGbuffers, 3, params);
-#endif
+
 		struct MaterialMaps {
 			uint mapIDs[5];
 		} data;
@@ -2131,7 +2122,7 @@ public:
 			params[0].pRootConstant = &data;
 			cmdBindDescriptors(cmd, pRootSigGbuffers, 1, params);
 
-			cmdDrawIndexed(cmd, gSponzaIndicesArray[i], 0);
+			cmdDrawIndexed(cmd, gSponzaIndicesArray[i], 0, 0);
 		}
 #endif
 
@@ -2161,15 +2152,7 @@ public:
 		params[6].pName = pTextureName[4];
 		params[6].ppTextures = &pMaterialTextures[0];
 		
-#ifdef METAL
-		//bind samplers for metal
-		params[7].pName = "defaultSampler";
-		params[7].ppSamplers = &pSamplerBilinear;
-		
-		cmdBindDescriptors(cmd, pRootSigGbuffers, 8, params);
-#else
 		cmdBindDescriptors(cmd, pRootSigGbuffers, 7, params);
-#endif
 		
 #else
 		data.mapIDs[0] = 81;
@@ -2184,18 +2167,10 @@ public:
 		params[1].pName = "cbTextureRootConstants";
 		params[1].pRootConstant = &data;
 
-#ifdef METAL
-		//bind samplers for metal
-		params[2].pName = "defaultSampler";
-		params[2].ppSamplers = &pSamplerBilinear;
-
-		cmdBindDescriptors(cmd, pRootSigGbuffers, 3, params);
-#else
 		cmdBindDescriptors(cmd, pRootSigGbuffers, 2, params);
 #endif
-#endif
 		
-		cmdDrawIndexed(cmd, gLionIndicesArray[0], 0);
+		cmdDrawIndexed(cmd, gLionIndicesArray[0], 0, 0);
 
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -2271,17 +2246,7 @@ public:
 
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 
-#ifdef METAL
-
-		BRDFParams[10].pName = "envSampler";
-		BRDFParams[10].ppSamplers = &pSamplerBilinear;
-		BRDFParams[11].pName = "defaultSampler";
-		BRDFParams[11].ppSamplers = &pSamplerBilinear;
-
-		cmdBindDescriptors(cmd, pRootSigBRDF, 12, BRDFParams);
-#else
 		cmdBindDescriptors(cmd, pRootSigBRDF, 10, BRDFParams);
-#endif
 
 		cmdDraw(cmd, 3, 0);
 
@@ -2334,15 +2299,8 @@ public:
 		PPR_ProjectionParams[3].pName = "planeInfoBuffer";
 		PPR_ProjectionParams[3].ppBuffers = &pBufferUniformPlaneInfo[gFrameIndex];
 
-#ifdef METAL
-		PPR_ProjectionParams[4].pName = "defaultSampler";
-		PPR_ProjectionParams[4].ppSamplers = &pSamplerBilinear;
-
-		cmdBindDescriptors(cmd, pPPR_ProjectionRootSignature, 5, PPR_ProjectionParams);
-#else
 		cmdBindDescriptors(cmd, pPPR_ProjectionRootSignature, 4, PPR_ProjectionParams);
 
-#endif
 		const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
 
@@ -2397,14 +2355,7 @@ public:
 		PPR_ReflectionParams[5].pName = "cbProperties";
 		PPR_ReflectionParams[5].ppBuffers = &pBufferUniformPPRPro[gFrameIndex];
 
-#ifdef METAL
-		PPR_ReflectionParams[6].pName = "defaultSampler";
-		PPR_ReflectionParams[6].ppSamplers = &pSamplerBilinear;
-
-		cmdBindDescriptors(cmd, pPPR_ReflectionRootSignature, 7, PPR_ReflectionParams);
-#else
 		cmdBindDescriptors(cmd, pPPR_ReflectionRootSignature, 6, PPR_ReflectionParams);
-#endif
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 		cmdDraw(cmd, 3, 0);
 
@@ -2453,18 +2404,7 @@ public:
 		PPR_HolePatchingParams[3].pName = "cbProperties";
 		PPR_HolePatchingParams[3].ppBuffers = &pBufferUniformPPRPro[gFrameIndex];
 
-#ifdef METAL
-
-		PPR_HolePatchingParams[4].pName = "nearestSampler";
-		PPR_HolePatchingParams[4].ppSamplers = &pSamplerNearest;
-
-		PPR_HolePatchingParams[5].pName = "bilinearSampler";
-		PPR_HolePatchingParams[5].ppSamplers = &pSamplerBilinear;
-
-		cmdBindDescriptors(cmd, pPPR_HolePatchingRootSignature, 6, PPR_HolePatchingParams);
-#else
 		cmdBindDescriptors(cmd, pPPR_HolePatchingRootSignature, 4, PPR_HolePatchingParams);
-#endif
 
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 		cmdDraw(cmd, 3, 0);
@@ -2481,10 +2421,10 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
@@ -2518,7 +2458,7 @@ public:
 		}
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "10_PixelProjectedReflections";
 	}

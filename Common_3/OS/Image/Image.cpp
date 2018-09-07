@@ -1818,7 +1818,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 // struct of table for file format to loading function 
 struct ImageLoaderDefinition
 {
-  String Extension;
+  tinystl::string Extension;
   Image::ImageLoaderFunction Loader;
 };
 

@@ -180,7 +180,7 @@ public:
 	{
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "Create Raytracing Acceleration Structure";
 	}

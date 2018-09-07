@@ -469,10 +469,6 @@ typedef enum PipelineType {
 typedef enum FilterType {
 	FILTER_NEAREST = 0,
 	FILTER_LINEAR,
-	FILTER_BILINEAR,
-	FILTER_TRILINEAR,
-	FILTER_BILINEAR_ANISO,
-	FILTER_TRILINEAR_ANISO,
 } FilterType;
 
 typedef enum AddressMode {
@@ -590,6 +586,9 @@ typedef struct QueryHeap
 #if defined(VULKAN)
 	VkQueryPool			pVkQueryPool;
 #endif
+#if defined(DIRECT3D11)
+	ID3D11Query**		ppDxQueries;
+#endif
 } QueryHeap;
 
 /// Data structure holding necessary info to create a Buffer
@@ -647,6 +646,11 @@ typedef struct Buffer {
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct ResourceAllocation*			pDxAllocation;
 #endif
+#if defined(DIRECT3D11)
+	ID3D11Buffer*						pDxResource;
+	ID3D11ShaderResourceView*			pDxSrvHandle;
+	ID3D11UnorderedAccessView*			pDxUavHandle;
+#endif
 #if defined(VULKAN)
 	/// Native handle of the underlying resource
 	VkBuffer							pVkBuffer;
@@ -671,6 +675,9 @@ typedef struct Buffer {
 	/// State of the buffer before mCurrentState (used for state tracking during a split barrier)
 	ResourceState						mPreviousState;
 #if defined(DIRECT3D12)
+	DXGI_FORMAT							mDxIndexFormat;
+#endif
+#if defined(DIRECT3D11)
 	DXGI_FORMAT							mDxIndexFormat;
 #endif
 } Buffer;
@@ -774,9 +781,9 @@ typedef struct Texture {
 	bool								mIsCompressed;
 #endif
 #if defined(DIRECT3D11)
-	ID3D11Resource*						pDxResource;	
-	ID3D11ShaderResourceView*			pDxSrvResource;
-	ID3D11UnorderedAccessView*			pDxUavResource;
+	ID3D11Resource*						pDxResource;
+	ID3D11ShaderResourceView*			pDxSRVDescriptor;
+	ID3D11UnorderedAccessView**			pDxUAVDescriptors;
 #endif
 	/// Texture creation info
 	TextureDesc							mDesc;	//88
@@ -843,13 +850,12 @@ typedef struct RenderTarget
     Texture*						pStencil;
 #endif
 #if defined(DIRECT3D11)
-	/// Description for creating the RTV for this texture (applicable to RENDER_TARGET_USAGE_COLOR)
-	D3D11_RENDER_TARGET_VIEW_DESC	mDxRtvDesc;
-	/// Description for creating the RTV for this texture (applicable to RENDER_TARGET_USAGE_DEPTH_STENCIL)
-	D3D11_DEPTH_STENCIL_VIEW_DESC	mDxDsvDesc;
-	/// Resources
-	ID3D11RenderTargetView*			pDxRtvResource;	
-	ID3D11DepthStencilView*			pDxDsvResource;
+	union
+	{
+		/// Resources
+		ID3D11RenderTargetView**	pDxRtvDescriptors;
+		ID3D11DepthStencilView**	pDxDsvDescriptors;
+	};
 #endif
 } RenderTarget;
 
@@ -927,55 +933,6 @@ typedef struct DescriptorInfo {
 #endif
 } DescriptorInfo;
 
-/// Array of root descriptors  belonging to this update frequency layout (D3D12_ROOT_PARAMETER_CBV/SRV/UAV or VK_DESCRIPTOR_TYPE_(UNIFORM/STORAGE)_BUFFER_DYNAMIC)
-typedef struct RootDescriptorLayout
-{
-	/// Number of root descriptors
-	/// In DirectX12 this is the number of root cbvs / srvs/ uavs
-	/// In Vulkan this is the number of VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC / VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
-	uint32_t		mRootDescriptorCount;
-	/// Index of descriptor in pDescriptors array in the root signature
-	uint32_t*		pDescriptorIndices;
-#if defined(DIRECT3D12)
-	/// Root parameter index used in SetGraphicsRootDescriptor / SetComputeRootDescriptor
-	uint32_t*		pRootIndices;
-#endif
-
-} RootDescriptorLayout;
-
-typedef struct RootConstantLayout
-{
-	uint32_t				mDescriptorIndex;
-#if defined(DIRECT3D12)
-	uint32_t				mRootIndex;
-#endif
-#if defined(VULKAN)
-	/// Array of push constant layouts
-	VkPushConstantRange		mVkPushConstantRange;
-#endif
-} RootConstantLayout;
-
-/// Array of descriptor ranges belonging to this update frequency layout
-typedef struct DescriptorSetLayout
-{
-	/// Number of descriptors excluding descriptors in arrays
-	uint32_t				mDescriptorCount;
-	/// Total number of descriptors including descriptors in arrays
-	uint32_t				mCumulativeDescriptorCount;
-	/// Indices of the descriptors belonging to this set
-	uint32_t*				pDescriptorIndices;
-#if defined(DIRECT3D12)
-	/// Root parameter index used in SetGraphicsRootDescriptorTable / SetComputeRootDescriptorTable
-	uint32_t				mRootIndex;
-#endif
-#if defined(VULKAN)
-	VkDescriptorSetLayout	pVkSetLayout;
-	/// Total number of descriptors including descriptors in arrays
-	uint32_t				mCumulativeBufferDescriptorCount;
-	uint32_t				mCumulativeImageDescriptorCount;
-#endif
-} DescriptorSetLayout;
-
 typedef struct RootSignatureDesc
 {
 	Shader**			ppShaders;
@@ -999,31 +956,45 @@ typedef struct RootSignature
 	/// Translates hash of descriptor name to descriptor index
 	tinystl::unordered_map<uint32_t, uint32_t>	pDescriptorNameToIndexMap;
 
-	/// Number of root constants in the root signature
-	uint32_t									mRootConstantCount;
-	/// Array of root constant layouts
-	RootConstantLayout*							pRootConstantLayouts;
 	PipelineType								mPipelineType;
 #if defined(DIRECT3D12)
-	/// DX12 separates samplers and views in two heaps so we need two table layouts
-	/// Array of view descriptor table layouts of size DESCRIPTOR_UPDATE_FREQ_NUM_TYPES
-	DescriptorSetLayout*						pDxViewTableLayouts;
-	/// Array of sampler descriptor table layouts of size DESCRIPTOR_UPDATE_FREQ_NUM_TYPES
-	DescriptorSetLayout*						pDxSamplerTableLayouts;
-	/// Array of root descriptor layouts of size DESCRIPTOR_UPDATE_FREQ_NUM_TYPES
-	RootDescriptorLayout*						pDxRootDescriptorLayouts;
-
+	uint32_t									mDxViewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mDxSamplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t*									pDxViewDescriptorIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mDxViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mDxCumulativeViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t*									pDxSamplerDescriptorIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mDxSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mDxCumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t*									pDxRootDescriptorRootIndices;
+	uint32_t*									pDxRootConstantRootIndices;
+	uint32_t									mDxRootDescriptorCount;
+	uint32_t									mDxRootConstantCount;
 	ID3D12RootSignature*						pDxRootSignature;
 	ID3DBlob*									pDxSerializedRootSignatureString;
 #endif
 #if defined(VULKAN)
-	DescriptorSetLayout*						pDescriptorSetLayouts;
-	/// Array of root descriptor / root constant of size DESCRIPTOR_UPDATE_FREQ_NUM_TYPES
-	RootDescriptorLayout*						pRootDescriptorLayouts;
+	VkDescriptorSetLayout						mVkDescriptorSetLayouts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t*									pVkDescriptorIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mVkDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mVkDynamicDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t									mVkCumulativeDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	VkPushConstantRange*						pVkPushConstantRanges;
+	uint32_t									mVkPushConstantCount;
 
 	VkPipelineLayout							pPipelineLayout;
 #endif
 #if defined(METAL)
+	Sampler**									ppStaticSamplers;
+	uint32_t*									pStaticSamplerSlots;
+	ShaderStage*								pStaticSamplerStages;
+	uint32_t									mStaticSamplerCount;
+#endif
+#if defined(DIRECT3D11)
+	ID3D11SamplerState**						ppStaticSamplers;
+	uint32_t*									pStaticSamplerSlots;
+	ShaderStage*								pStaticSamplerStages;
+	uint32_t									mStaticSamplerCount;
 #endif
 
 	using ThreadLocalDescriptorManager = tinystl::unordered_map<ThreadID, struct DescriptorManager*>;
@@ -1134,6 +1105,16 @@ typedef struct Cmd {
 	uint64_t								mSelectedIndexBufferOffset;
 	MTLPrimitiveType						selectedPrimitiveType;
 	bool									mRenderPassActive;
+#endif
+#if defined(DIRECT3D11)
+	uint8_t*								pDescriptorStructPool;
+	uint8_t*								pDescriptorNamePool;
+	uint8_t*								pDescriptorResourcesPool;
+	uint64_t								mDescriptorStructPoolOffset;
+	uint64_t								mDescriptorNamePoolOffset;
+	uint64_t								mDescriptorResourcePoolOffset;
+	Buffer*									pRootConstantBuffer;
+	Buffer*									pTransientConstantBuffer;
 #endif
 } Cmd;
 
@@ -1286,6 +1267,15 @@ typedef struct Shader {
 	id<MTLFunction>			mtlFragmentShader;
 	id<MTLFunction>			mtlComputeShader;
 	uint32_t				mNumThreadsPerGroup[3];
+#endif
+#if defined(DIRECT3D11)
+	ID3D11VertexShader*		pDxVertexShader;
+	ID3D11PixelShader*		pDxPixelShader;
+	ID3D11GeometryShader*	pDxGeometryShader;
+	ID3D11DomainShader*		pDxDomainShader;
+	ID3D11HullShader*		pDxHullShader;
+	ID3D11ComputeShader*	pDxComputeShader;
+	ID3DBlob*				pDxInputSignature;
 #endif
 } Shader;
 
@@ -1474,11 +1464,21 @@ typedef struct Pipeline {
 	id<MTLComputePipelineState>		mtlComputePipelineState;
 	MTLCullMode						mCullMode;
 #endif
+#if defined(DIRECT3D11)
+	ID3D11VertexShader*				pDxVertexShader;
+	ID3D11PixelShader*				pDxPixelShader;
+	ID3D11GeometryShader*			pDxGeometryShader;
+	ID3D11DomainShader*				pDxDomainShader;
+	ID3D11HullShader*				pDxHullShader;
+	ID3D11ComputeShader*			pDxComputeShader;
+	ID3D11InputLayout*				pDxInputLayout;
+	D3D_PRIMITIVE_TOPOLOGY			mDxPrimitiveTopology;
+#endif
 } Pipeline;
 
 typedef struct SubresourceDataDesc
 {
-#if defined(DIRECT3D12) || defined(METAL)
+#if defined(DIRECT3D12) || defined(METAL) || defined(DIRECT3D11)
 	uint32_t mRowPitch;
 	uint32_t mSlicePitch;
 	void* pData;
@@ -1542,6 +1542,16 @@ typedef struct SwapChain
 	uint32_t				mImageIndex;
 	uint32_t				mFlags;
 #endif
+#if defined(DIRECT3D11)
+	/// Use IDXGISwapChain3 for now since IDXGISwapChain4
+	/// isn't supported by older devices.
+	IDXGISwapChain*			pDxSwapChain;
+	/// Sync interval to specify how interval for vsync
+	UINT					mDxSyncInterval;
+	ID3D11Resource**		ppDxSwapChainResources;
+	uint32_t				mImageIndex;
+	uint32_t				mFlags;
+#endif
 #if defined(VULKAN)
 	/// Present queue if one exists (queuePresent will use this queue if the hardware has a dedicated present queue)
 	VkQueue					pPresentQueue;
@@ -1558,6 +1568,7 @@ typedef struct SwapChain
 
 typedef enum ShaderTarget {
 	// 5.1 is supported on all DX12 hardware
+	shader_target_5_0,
 	shader_target_5_1,
 	shader_target_6_0,
 } DXShaderTarget;
@@ -1575,10 +1586,9 @@ typedef struct RendererDesc {
 	ShaderTarget					mShaderTarget;
 	GpuMode							mGpuMode;
 #if defined(VULKAN)
-	tinystl::vector<String>			mInstanceLayers;
-	tinystl::vector<String>			mInstanceExtensions;
-	tinystl::vector<String>			mDeviceLayers;
-	tinystl::vector<String>			mDeviceExtensions;
+	tinystl::vector<tinystl::string>			mInstanceLayers;
+	tinystl::vector<tinystl::string>			mInstanceExtensions;
+	tinystl::vector<tinystl::string>			mDeviceExtensions;
 	PFN_vkDebugReportCallbackEXT	pVkDebugFn;
 #endif
 #if defined(DIRECT3D12)
@@ -1807,9 +1817,9 @@ API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSi
 API_INTERFACE void CALLTYPE cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer, uint64_t offset);
 API_INTERFACE void CALLTYPE cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers, uint64_t* pOffsets);
 API_INTERFACE void CALLTYPE cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex);
-API_INTERFACE void CALLTYPE cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount);
-API_INTERFACE void CALLTYPE cmdDrawIndexed(Cmd* p_cmd, uint32_t index_count, uint32_t first_index);
-API_INTERFACE void CALLTYPE cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount);
+API_INTERFACE void CALLTYPE cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance);
+API_INTERFACE void CALLTYPE cmdDrawIndexed(Cmd* p_cmd, uint32_t index_count, uint32_t first_index, uint32_t first_vertex);
+API_INTERFACE void CALLTYPE cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 API_INTERFACE void CALLTYPE cmdDispatch(Cmd* p_cmd, uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z);
 
 // Transition Commands

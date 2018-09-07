@@ -414,6 +414,7 @@ namespace RENDERER_CPP_NAMESPACE {
         DescriptorData*                                                                 pDescriptorDataArray;
         /// Array of flags to check whether a descriptor has already been bound.
         bool*                                                                           pBoundDescriptors;
+		bool																			mBoundStaticSamplers;
         
         /// Map that holds all the argument buffers bound by this descriptor manager for each root signature.
         tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>                  mArgumentBuffers;
@@ -529,6 +530,7 @@ namespace RENDERER_CPP_NAMESPACE {
     
     void reset_bound_resources(DescriptorManager* pManager)
     {
+		pManager->mBoundStaticSamplers = false;
         for (uint32_t i = 0; i < pManager->pRootSignature->mDescriptorCount; ++i)
         {
             DescriptorInfo* descInfo = &pManager->pRootSignature->pDescriptors[i];
@@ -594,7 +596,6 @@ namespace RENDERER_CPP_NAMESPACE {
         
         Renderer* pRenderer = pCmd->pRenderer;
         DescriptorManager* pManager = get_descriptor_manager(pRenderer, pRootSignature);
-        
         // Compare the currently bound root signature with the root signature of the descriptor manager
         // If these values dont match, we must bind the root signature of the descriptor manager
         // If the values match, no op is required
@@ -779,6 +780,25 @@ namespace RENDERER_CPP_NAMESPACE {
                 pManager->pBoundDescriptors[i] = true;
             }
         }
+		
+		// We need to bind static samplers manually since Metal API has no concept of static samplers
+		if (!pManager->mBoundStaticSamplers)
+		{
+			pManager->mBoundStaticSamplers = true;
+
+			for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
+			{
+				ShaderStage usedStagesMask = pRootSignature->pStaticSamplerStages[i];
+				Sampler* pSampler = pRootSignature->ppStaticSamplers[i];
+				uint32_t reg = pRootSignature->pStaticSamplerSlots[i];
+				if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+					[pCmd->mtlRenderEncoder setVertexSamplerState:pSampler->mtlSamplerState atIndex:reg];
+				if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+					[pCmd->mtlRenderEncoder setFragmentSamplerState:pSampler->mtlSamplerState atIndex:reg];
+				if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+					[pCmd->mtlComputeEncoder setSamplerState:pSampler->mtlSamplerState atIndex:reg];
+			}
+		}
     }
     
     /************************************************************************/
@@ -877,7 +897,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		samplerDesc.mAddressV = ADDRESS_MODE_CLAMP_TO_BORDER;
 		samplerDesc.mAddressW = ADDRESS_MODE_CLAMP_TO_BORDER;
 		addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
-        
+		
 		BlendStateDesc blendStateDesc = {};
 		blendStateDesc.mDstAlphaFactor = BC_ZERO;
 		blendStateDesc.mDstFactor = BC_ZERO;
@@ -965,7 +985,7 @@ namespace RENDERER_CPP_NAMESPACE {
         return (itemsArray);
     }
     //Used to call system profiler to retrieve GPU information such as vendor id and model id
-    void retrieveSystemProfilerInformation(String &outVendorId)
+    void retrieveSystemProfilerInformation(tinystl::string &outVendorId)
     {
         FILE *sys_profile;
         size_t bytesRead = 0;
@@ -1024,7 +1044,7 @@ namespace RENDERER_CPP_NAMESPACE {
     //Used to go through the given registry ID for the select device.
     //Multiple id's can be found so they get filtered using the inModel id that was taken
     //from system profile
-    void displayGraphicsInfo(uint64_t regId,String inModel, GPUVendorPreset &vendorVecOut)
+    void displayGraphicsInfo(uint64_t regId,tinystl::string inModel, GPUVendorPreset &vendorVecOut)
     {
         // Get dictionary of all the PCI Devices
         //CFMutableDictionaryRef matchDict = IOServiceMatching("IOPCIDevice");
@@ -1070,8 +1090,8 @@ namespace RENDERER_CPP_NAMESPACE {
                         NSString * modelId = [vendor substringToIndex:6];
                         NSString * vendorId = [vendor substringFromIndex:6];
                         vendorId = [@"0x" stringByAppendingString:vendorId];
-                        String modelIdString = [modelId.lowercaseString UTF8String];
-						String vendorIdString = [vendorId.lowercaseString UTF8String];
+                        tinystl::string modelIdString = [modelId.lowercaseString UTF8String];
+						tinystl::string vendorIdString = [vendorId.lowercaseString UTF8String];
                         //filter out unwated model id's
                         if(modelIdString != inModel)
                             continue;
@@ -1115,10 +1135,10 @@ namespace RENDERER_CPP_NAMESPACE {
             GPUVendorPreset gpuVendor;
             gpuVendor.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 #ifndef TARGET_IOS
-            String outModelId;
+            tinystl::string outModelId;
             retrieveSystemProfilerInformation(outModelId);
             displayGraphicsInfo(pRenderer->pDevice.registryID,outModelId, gpuVendor);
-			String mDeviceName =[pRenderer->pDevice.name UTF8String];
+			tinystl::string mDeviceName =[pRenderer->pDevice.name UTF8String];
 			strncpy(gpuVendor.mGpuName, mDeviceName.c_str(),MAX_GPU_VENDOR_STRING_LENGTH);
             LOGINFOF("Current Gpu Name: %s", gpuVendor.mGpuName);
             LOGINFOF("Current Gpu Vendor ID: %s", gpuVendor.mVendorId);
@@ -1598,7 +1618,7 @@ namespace RENDERER_CPP_NAMESPACE {
         ShaderReflection stageReflections[SHADER_STAGE_COUNT];
         for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
         {
-            String source = NULL;
+            tinystl::string source = NULL;
             const char* entry_point = NULL;
             const char* shader_name = NULL;
             tinystl::vector<ShaderMacro> shader_macros;
@@ -1755,21 +1775,27 @@ namespace RENDERER_CPP_NAMESPACE {
         SAFE_FREE(pShaderProgram);
     }
     
-    void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootsignatureDesc, RootSignature** ppRootSignature)
+    void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
     {
         ASSERT(pRenderer);
         ASSERT(pRenderer->pDevice != nil);
         
         RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
         tinystl::vector<ShaderResource const*> shaderResources;
+		
+		// Collect static samplers
+		tinystl::vector <tinystl::pair<ShaderResource const*, Sampler*> > staticSamplers;
+		tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
+		for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
+			staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
         
         conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
         
         // Collect all unique shader resources in the given shaders
         // Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
-        for (uint32_t sh = 0; sh < pRootsignatureDesc->mShaderCount; ++sh)
+        for (uint32_t sh = 0; sh < pRootSignatureDesc->mShaderCount; ++sh)
         {
-            PipelineReflection const* pReflection = &pRootsignatureDesc->ppShaders[sh]->mReflection;
+            PipelineReflection const* pReflection = &pRootSignatureDesc->ppShaders[sh]->mReflection;
             
             if (pReflection->mShaderStages & SHADER_STAGE_COMP)
                 pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
@@ -1784,8 +1810,27 @@ namespace RENDERER_CPP_NAMESPACE {
                 tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
                 if (!pNode)
                 {
-                    pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
-                    shaderResources.emplace_back(pRes);
+					if (pRes->type == DESCRIPTOR_TYPE_SAMPLER)
+					{
+						// If the sampler is a static sampler, no need to put it in the descriptor table
+						const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pRes->name).node;
+						
+						if (pNode)
+						{
+							LOGINFOF("Descriptor (%s) : User specified Static Sampler", pRes->name);
+							staticSamplers.push_back({ pRes, pNode->second });
+						}
+						else
+						{
+							pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+							shaderResources.emplace_back(pRes);
+						}
+					}
+					else
+					{
+                    	pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+                    	shaderResources.emplace_back(pRes);
+					}
                 }
             }
         }
@@ -1826,6 +1871,17 @@ namespace RENDERER_CPP_NAMESPACE {
                 pDesc->mDesc.mtlArgumentBufferType = pRes->mtlArgumentBufferType;
             }
         }
+		
+		pRootSignature->mStaticSamplerCount = (uint32_t)staticSamplers.size();
+		pRootSignature->ppStaticSamplers = (Sampler**)conf_calloc(staticSamplers.size(), sizeof(Sampler*));
+		pRootSignature->pStaticSamplerStages = (ShaderStage*)conf_calloc(staticSamplers.size(), sizeof(ShaderStage));
+		pRootSignature->pStaticSamplerSlots = (uint32_t*)conf_calloc(staticSamplers.size(), sizeof(uint32_t));
+		for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
+		{
+			pRootSignature->ppStaticSamplers[i] = staticSamplers[i].second;
+			pRootSignature->pStaticSamplerStages[i] = staticSamplers[i].first->used_stages;
+			pRootSignature->pStaticSamplerSlots[i] = staticSamplers[i].first->reg;
+		}
         
         // Create descriptor manager for this thread.
         DescriptorManager* pManager = NULL;
@@ -1845,7 +1901,10 @@ namespace RENDERER_CPP_NAMESPACE {
         pRootSignature->pDescriptorManagerMap.~unordered_map();
         
         pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
-        
+		
+		SAFE_FREE(pRootSignature->ppStaticSamplers);
+		SAFE_FREE(pRootSignature->pStaticSamplerStages);
+		SAFE_FREE(pRootSignature->pStaticSamplerSlots);
         SAFE_FREE(pRootSignature);
     }
 	
@@ -1880,21 +1939,32 @@ namespace RENDERER_CPP_NAMESPACE {
         renderPipelineDesc.vertexFunction = pDesc->pShaderProgram->mtlVertexShader;
         renderPipelineDesc.fragmentFunction = pDesc->pShaderProgram->mtlFragmentShader;
         renderPipelineDesc.sampleCount = pDesc->mSampleCount;
-        
+		
+		uint32_t inputBindingCount = 0;
         // add vertex layout to descriptor
         if (pPipeline->mGraphics.pVertexLayout != nil)
         {
+			uint32_t bindingValue = UINT32_MAX;
             // setup vertex descriptors
             for(uint i = 0; i < pPipeline->mGraphics.pVertexLayout->mAttribCount; i++)
             {
                 const VertexAttrib* attrib = pPipeline->mGraphics.pVertexLayout->mAttribs + i;
+				
+				if(bindingValue != attrib->mBinding)
+				{
+					bindingValue = attrib->mBinding;
+					inputBindingCount++;
+				}
+				
                 renderPipelineDesc.vertexDescriptor.attributes[i].offset = attrib->mOffset;
                 renderPipelineDesc.vertexDescriptor.attributes[i].bufferIndex = attrib->mBinding;
                 renderPipelineDesc.vertexDescriptor.attributes[i].format = util_to_mtl_vertex_format(attrib->mFormat);
+				
+                //setup layout for all bindings instead of just 0.
+				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stride += calculateImageFormatStride(attrib->mFormat);
+				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepRate = 1;
+				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepFunction = pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone ? MTLVertexStepFunctionPerPatchControlPoint : MTLVertexStepFunctionPerVertex;
             }
-            renderPipelineDesc.vertexDescriptor.layouts[0].stride = util_calculate_vertex_layout_stride(pPipeline->mGraphics.pVertexLayout);
-            renderPipelineDesc.vertexDescriptor.layouts[0].stepRate = 1;
-            renderPipelineDesc.vertexDescriptor.layouts[0].stepFunction = pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone ? MTLVertexStepFunctionPerPatchControlPoint : MTLVertexStepFunctionPerVertex;
         }
         
 #if !defined(TARGET_IOS)
@@ -2294,7 +2364,7 @@ namespace RENDERER_CPP_NAMESPACE {
 					pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
 				}
 
-                pCmd->pRenderPassDesc.depthAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
+                pCmd->pRenderPassDesc.depthAttachment.loadAction = pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionClear;
                 pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
                 if(isStencilEnabled)
                 {
@@ -2518,7 +2588,7 @@ namespace RENDERER_CPP_NAMESPACE {
         }
     }
     
-    void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount)
+    void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
     {
         ASSERT(pCmd);
         if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
@@ -2526,7 +2596,8 @@ namespace RENDERER_CPP_NAMESPACE {
             [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
                                        vertexStart:firstVertex
                                        vertexCount:vertexCount
-                                     instanceCount:instanceCount];
+                                     instanceCount:instanceCount
+									 baseInstance:firstInstance];
         }
         else // Tessellated draw version.
         {
@@ -2536,46 +2607,16 @@ namespace RENDERER_CPP_NAMESPACE {
                                patchIndexBuffer:nil
                          patchIndexBufferOffset:0
                                   instanceCount:instanceCount
-                                   baseInstance:0];
+                                   baseInstance:firstInstance];
         }
     }
     
-    void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex)
+    void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
     {
         ASSERT(pCmd);
         Buffer* indexBuffer = pCmd->selectedIndexBuffer;
         MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
-        uint64_t offset = firstIndex * (pCmd->mSelectedIndexBufferOffset + (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4));
-        
-        if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
-        {
-            [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
-                                               indexCount:indexCount
-                                                indexType:indexType
-                                              indexBuffer:indexBuffer->mtlBuffer
-                                        indexBufferOffset:offset];
-        }
-        else // Tessellated draw version.
-        {
-            [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-                                            patchStart:firstIndex
-                                            patchCount:indexCount
-                                      patchIndexBuffer:indexBuffer->mtlBuffer
-                                patchIndexBufferOffset:0
-                               controlPointIndexBuffer:nil
-                         controlPointIndexBufferOffset:0
-                                         instanceCount:1
-                                          baseInstance:0];
-        }
-    }
-    
-    void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount)
-    {
-        ASSERT(pCmd);
-        
-        Buffer* indexBuffer = pCmd->selectedIndexBuffer;
-        MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
-        uint64_t offset = firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4);
+        uint64_t offset = pCmd->mSelectedIndexBufferOffset + (firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4));
         
         if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
         {
@@ -2584,22 +2625,63 @@ namespace RENDERER_CPP_NAMESPACE {
                                                 indexType:indexType
                                               indexBuffer:indexBuffer->mtlBuffer
                                         indexBufferOffset:offset
-                                            instanceCount:instanceCount];
+										instanceCount:1
+										baseVertex:firstVertex
+										baseInstance:0];
         }
         else // Tessellated draw version.
         {
+			//to supress warning passing nil to controlPointIndexBuffer
+			//todo: Add control point index buffer to be passed when necessary
+			id<MTLBuffer> _Nullable indexBuf = nil;
             [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
                                             patchStart:firstIndex
                                             patchCount:indexCount
                                       patchIndexBuffer:indexBuffer->mtlBuffer
                                 patchIndexBufferOffset:0
-                               controlPointIndexBuffer:nil
+                               controlPointIndexBuffer:indexBuf
                          controlPointIndexBufferOffset:0
-                                         instanceCount:instanceCount
+                                         instanceCount:1
                                           baseInstance:0];
         }
     }
-    
+
+    void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
+    {
+        ASSERT(pCmd);
+        
+        Buffer* indexBuffer = pCmd->selectedIndexBuffer;
+        MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
+        uint64_t offset = pCmd->mSelectedIndexBufferOffset + (firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4));
+        
+        if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
+        {
+            [pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
+                                               indexCount:indexCount
+                                                indexType:indexType
+                                              indexBuffer:indexBuffer->mtlBuffer
+                                        indexBufferOffset:offset
+                                            instanceCount:instanceCount
+											baseVertex:firstVertex
+											baseInstance:firstInstance];
+        }
+        else // Tessellated draw version.
+        {
+			//to supress warning passing nil to controlPointIndexBuffer
+			//todo: Add control point index buffer to be passed when necessary
+			id<MTLBuffer> _Nullable indexBuf = nil;
+            [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+                                            patchStart:firstIndex
+                                            patchCount:indexCount
+                                      patchIndexBuffer:indexBuffer->mtlBuffer
+                                patchIndexBufferOffset:0
+                               controlPointIndexBuffer:indexBuf
+                         controlPointIndexBufferOffset:0
+                                         instanceCount:instanceCount
+                                          baseInstance:firstInstance];
+        }
+    }
+
     void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ASSERT(pCmd);
@@ -3409,7 +3491,12 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
             
             if (isRT || isDepthBuffer) textureDesc.usage |= MTLTextureUsageRenderTarget;
-            if ((pTexture->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE) != 0) textureDesc.usage |= MTLTextureUsageShaderWrite;
+			//Create texture views only if DESCRIPTOR_RW_TEXTURE was used.
+            if ((pTexture->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE) != 0)
+			{				
+				textureDesc.usage |= MTLTextureUsagePixelFormatView;
+				textureDesc.usage |= MTLTextureUsageShaderWrite;	
+			}
             
             // Allocate the texture's memory.
             AllocatorMemoryRequirements mem_reqs = { 0 };
@@ -3420,9 +3507,7 @@ namespace RENDERER_CPP_NAMESPACE {
                 mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_BIT;
             if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT)
                 mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_ADAPTER_BIT;
-            
-            //Create texture views
-            textureDesc.usage |= MTLTextureUsagePixelFormatView;
+			
             
             TextureCreateInfo alloc_info = {textureDesc, isRT || isDepthBuffer, isMultiSampled};
             bool allocSuccess = createTexture(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pTexture);

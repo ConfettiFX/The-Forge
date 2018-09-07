@@ -24,7 +24,6 @@ namespace gainput
 				delta->AddChange(device.GetDeviceId(), buttonId, oldValue, value);
 			}
 		}
-		device.ApplyBufferedButton(buttonId,value);
 		state.Set(buttonId, value);
 	}
 

@@ -171,7 +171,7 @@ const char* pszRoots[] =
 };
 #endif
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 RendererApi gTargetApi = RENDERER_API_D3D12;
 
@@ -480,7 +480,7 @@ public:
 			0
 		};
 
-		pGui->AddProperty(UIProperty("Renderer API : ", (int&)gTargetApi, enumNames, enumValues));
+		pGui->AddControl(UIProperty("Renderer API : ", (int&)gTargetApi, enumNames, enumValues));
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };
@@ -768,7 +768,7 @@ public:
 		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		cmdBindDescriptors(cmd, pRootSignature, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
-		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets);
+		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 		cmdEndDebugMarker(cmd);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
@@ -779,7 +779,7 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -793,7 +793,7 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "12_RendererRuntimeSwitch";
 	}

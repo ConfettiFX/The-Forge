@@ -43,6 +43,10 @@
     <ClCompile Include="..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cfg.cpp" />
     <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross.cpp" />
     <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
@@ -50,6 +54,7 @@
     <ClCompile Include="..\..\..\Middleware_3\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\UI\AppUI.cpp" />
+    <ClCompile Include="..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
     <ClCompile Include="..\src\12_RendererRuntimeSwitch\12_RendererRuntimeSwitch.cpp" />
   </ItemGroup>
@@ -87,6 +92,9 @@
     <ClInclude Include="..\..\..\Common_3\Renderer\IRenderer.h" />
     <ClInclude Include="..\..\..\Common_3\Renderer\IShaderReflection.h" />
     <ClInclude Include="..\..\..\Common_3\Renderer\ResourceLoader.h" />
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv.hpp" />
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cfg.hpp" />
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_common.hpp" />
@@ -98,6 +106,11 @@
     <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Libraries\OS\OS.vcxproj">
+      <Project>{30dd3d57-0026-48c8-bfd1-6392f319e23a}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{42B9F7E1-3E3D-4BD0-9B97-8080A740E032}</ProjectGuid>

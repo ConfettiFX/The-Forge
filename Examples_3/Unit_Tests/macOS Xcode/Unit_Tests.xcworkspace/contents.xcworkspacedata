@@ -29,6 +29,12 @@
       location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
    </FileRef>
    <FileRef
+      location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+   </FileRef>
+   <FileRef
 	   location = "group:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:13_UserInterface/13_UserInterface.xcodeproj">
    </FileRef>
 </Workspace>

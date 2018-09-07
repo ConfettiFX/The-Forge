@@ -223,7 +223,7 @@ void Panini::Draw(Cmd* cmd)
 	const uint32_t numIndices = mPaniniDistortionTessellation[0] * mPaniniDistortionTessellation[1] * 6;
 	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad, 0);
 	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad, NULL);
-	cmdDrawIndexed(cmd, numIndices, 0);
+	cmdDrawIndexed(cmd, numIndices, 0, 0);
 }
 
 void Panini::SetSourceTexture(Texture* pTex)

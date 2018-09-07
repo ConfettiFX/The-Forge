@@ -86,7 +86,7 @@ public:
 	{
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "Init Raytracing";
 	}

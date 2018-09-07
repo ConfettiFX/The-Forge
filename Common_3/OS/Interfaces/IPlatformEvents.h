@@ -149,7 +149,7 @@
 #define BUTTON_LEFT		0x0004
 #define BUTTON_RIGHT	0x0008
 
-#elif defined(LINUX)
+#elif defined(__linux__)
 #include <X11/keysym.h>
 #define KEY_LEFT      XK_Left
 #define KEY_RIGHT     XK_Right

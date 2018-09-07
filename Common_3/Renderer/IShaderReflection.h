@@ -65,6 +65,9 @@ struct ShaderResource
     uint32_t mtlTextureType; // Needed to bind different types of textures as default resources on Metal.
     uint32_t mtlArgumentBufferType; // Needed to bind multiple resources under a same descriptor on Metal.
 #endif
+#if defined(DIRECT3D11)
+	uint32_t constant_size;
+#endif
 };
 
 struct ShaderVariable

@@ -40,23 +40,54 @@
 enum GainputDeviceType
 {
 	GAINPUT_DEFAULT = 0,
-    GAINPUT_RAW_MOUSE,
-	GAINPUT_MOUSE,
-	GAINPUT_KEYBOARD,
-	GAINPUT_GAMEPAD,
-	GAINPUT_TOUCH,
-	DEVICE_COUNT
+    GAINPUT_RAW_MOUSE = 1,
+	GAINPUT_MOUSE = 1 << 1,
+	GAINPUT_KEYBOARD = 1 << 2,
+	GAINPUT_GAMEPAD = 1 << 3,
+	GAINPUT_TOUCH = 1 << 4,
+	DEVICE_COUNT = 6
 };
 
 //TODO: Add Pressure for touch at one point.
 // Will need to add another dimension to values.
 struct ButtonData
 {
+	ButtonData() :
+		mUserId(-1),
+		mActiveDevicesMask(GAINPUT_DEFAULT),
+		mIsPressed(false),
+		mIsTriggered(false),
+		mIsReleased(false)
+	{
+		mValue[0] = 0;
+		mValue[1] = 0;
+		mPrevValue[0] = 0;
+		mPrevValue[1] = 0;
+		mDeltaValue[0] = 0;
+		mDeltaValue[1] = 0;	
+	} 
+	ButtonData(const ButtonData& rhs) : 
+		mUserId(rhs.mUserId), 
+		mActiveDevicesMask(rhs.mActiveDevicesMask),
+		mIsPressed(rhs.mIsPressed),
+		mIsTriggered(rhs.mIsTriggered),
+		mIsReleased(rhs.mIsReleased)
+	{
+		mValue[0] = rhs.mValue[0];
+		mValue[1] = rhs.mValue[1];
+		mPrevValue[0] = rhs.mPrevValue[0];
+		mPrevValue[1] = rhs.mPrevValue[1];
+		mDeltaValue[0] = rhs.mDeltaValue[0];
+		mDeltaValue[1] = rhs.mDeltaValue[1];
+	}
+
 	//User mapped id
 	uint32_t mUserId;
-	//Id mapped on device itself
-	//useful for characters and numbers
-	uint32_t mDeviceButtonId;
+
+	//Determines what kind of device the input comes from
+	//Windows can have both controller and mouse mapped to right stick
+	//camera code changes based on that since raw mouse data is not normalized and gives us better control
+	GainputDeviceType mActiveDevicesMask;
 
 	// default button booleans
 	bool mIsPressed;
@@ -70,6 +101,7 @@ struct ButtonData
 	// the difference with previous frame
 	// only valid for floating point buttons
 	float mDeltaValue[2];
+	wchar_t mCharacter;
 };
 
 //Used for Mapping multiple keys to a joystick
@@ -137,7 +169,7 @@ class InputSystem
 
 #ifdef _WINDOWS
 	static void HandleMessage(MSG& msg) { pInputManager->HandleMessage(msg); }
-#elif defined(LINUX)
+#elif defined(__linux__)
 	static void HandleMessage(XEvent& msg) { pInputManager->HandleEvent(msg); }
 #endif
 
@@ -149,6 +181,14 @@ class InputSystem
 	static void SetActiveInputMap(const uint32_t& index);
 	//Call when Window size changes
 	static void UpdateSize(const uint32_t& width,const uint32_t& height);
+
+	/**
+	 ** True if user key is registered.
+	 ** param:	userKey -> Used defined ID for given button. 
+	 ** userKey is defined in the KeyMappingDescription that's being used. (From InputMappings.h)
+	 **/
+	static bool IsButtonMapped(const uint32_t& userKey);
+
 	/**
 	 ** True if button is down.
 	 ** param: buttonId -> Used defined ID for given button.
@@ -239,7 +279,8 @@ class InputSystem
 
 	//callback broadcasters for platform events
 	static void OnInputEvent(const ButtonData& buttonData);
-
+	static bool GatherInputEventButton(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue);
+	static void FillButtonDataFromDesc(const KeyMappingDescription * keyDesc, ButtonData& toFill, float oldValue = 0.0, float newVallue = 0.0f, gainput::DeviceId deviceId = gainput::InvalidDeviceId, gainput::DeviceButtonId deviceButton = gainput::InvalidDeviceButtonId);
 	static uint32_t GetDeviceID(GainputDeviceType deviceType);
 
 

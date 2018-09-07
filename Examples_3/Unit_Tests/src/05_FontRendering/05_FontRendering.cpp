@@ -56,12 +56,12 @@
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 
-#if defined(DIRECT3D12)
+#if defined(DIRECT3D12) || defined(DIRECT3D11)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -115,8 +115,8 @@ struct Fonts
 
 struct TextObject
 {
-	String				mText;
-	DebugTextDrawDesc	mDrawDesc;
+	tinystl::string	mText;
+	TextDrawDesc	mDrawDesc;
 	float2				mPosition;
 };
 
@@ -200,7 +200,7 @@ public:
 		requestMouseCapture(false);
 
 		tinystl::vector<TextObject> sceneTexts;
-		DebugTextDrawDesc drawDescriptor;
+		TextDrawDesc drawDescriptor;
 		const char* txt = "";
 
 		// This demo was created with a target resolution of 1920x1080.
@@ -425,7 +425,7 @@ public:
 			const tinystl::vector<TextObject>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
 			for (int i = 0; i < texts.size(); ++i)
 			{
-				const DebugTextDrawDesc* desc = &texts[i].mDrawDesc;
+				const TextDrawDesc* desc = &texts[i].mDrawDesc;
 				drawDebugText(cmd, texts[i].mPosition.x, texts[i].mPosition.y, texts[i].mText, desc);
 			}
 		}
@@ -433,12 +433,12 @@ public:
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		// draw profiler timings text
-		DebugTextDrawDesc uiTextDesc;	// default
+		TextDrawDesc uiTextDesc;	// default
 		uiTextDesc.mFontColor = 0xff444444;
 		uiTextDesc.mFontSize = 18;
-		drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
+		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
 #ifndef METAL
-		drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
+		drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
 #endif
 
 		gAppUI.Draw(cmd);
@@ -460,7 +460,7 @@ public:
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "05_FontRendering";
 	}

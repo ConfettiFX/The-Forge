@@ -37,9 +37,6 @@
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePad.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadMac.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -67,15 +64,6 @@
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputMemoryStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputNetAddress.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputNetConnection.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputNetListener.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputPinchGesture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -88,14 +76,8 @@
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputTapGesture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardMac.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardMac.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputWindows.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -283,15 +265,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputMouseInfo.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputNetAddress.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputNetConnection.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputNetListener.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputPinchGesture.h">

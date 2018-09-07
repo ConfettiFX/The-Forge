@@ -58,10 +58,12 @@
 
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "PCDX12"
+#elif defined(DIRECT3D11)
+#define RESOURCE_DIR "PCDX11"
 #elif defined(VULKAN)
 #if defined(_WIN32)
 #define RESOURCE_DIR "PCVulkan"
-#elif defined(LINUX)
+#elif defined(__linux__)
 #define RESOURCE_DIR "LINUXVulkan"
 #endif
 #elif defined(METAL)
@@ -281,13 +283,13 @@ tinystl::vector<UniformObjData> gUniformMVPs;
 
 ICameraController*			pCameraController = NULL;
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
-DebugTextDrawDesc gMaterialPropDraw = DebugTextDrawDesc(0, 0xff00ffff, 25);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gMaterialPropDraw = TextDrawDesc(0, 0xff00ffff, 25);
 
 int gTotalIndices = 0;
 int gSurfaceIndices = 0;
 
-tinystl::vector<String> gMaterialNames;
+tinystl::vector<tinystl::string> gMaterialNames;
 
 enum {
 
@@ -394,7 +396,7 @@ void computePBRMaps()
 	Sampler* pSkyboxSampler = NULL;
 
 	SamplerDesc samplerDesc = {
-		FILTER_TRILINEAR, FILTER_TRILINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
 	};
 	addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -487,7 +489,7 @@ void computePBRMaps()
 	GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 	uint32_t importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 	uint32_t importanceSampleCount = importanceSampleCounts[presetLevel];
-	ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", String::format("%u", importanceSampleCount) };
+	ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", tinystl::string::format("%u", importanceSampleCount) };
 
 	ShaderLoadDesc brdfIntegrationShaderDesc = {};
 	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
@@ -711,7 +713,7 @@ void loadTextureNames() {
 void loadModels()
 {
 	Model model;
-	String sceneFullPath = FileSystem::FixPath(gModelName, FSRoot::FSR_Meshes);
+	tinystl::string sceneFullPath = FileSystem::FixPath(gModelName, FSRoot::FSR_Meshes);
 #ifdef TARGET_IOS
 	//TODO: need to unify this using filsystem interface
 	//iOS requires path using bundle identifier
@@ -944,7 +946,7 @@ public:
 		computePBRMaps();
 
 		SamplerDesc samplerDesc = {
-			FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
 		};
 		addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
@@ -1247,11 +1249,11 @@ public:
 		/************************************************************************/
 		/************************************************************************/
 		UIProperty materialTypeProp = UIProperty("Material : ", gMaterialType, matEnumNames, matEnumValues);
-		pGui->AddProperty(materialTypeProp);
+		pGui->AddControl(materialTypeProp);
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddProperty(vsyncProp);
+		pGui->AddControl(vsyncProp);
 #endif
 
 		UIProperty pbrMaterialProp = UIProperty("Sub Type: ", gMetalMaterial, metalEnumNames, metalEumValues);
@@ -1574,13 +1576,6 @@ public:
 		params[3].ppTextures = &pIrradianceMap;
 		params[4].pName = "specularMap";
 		params[4].ppTextures = &pSpecularMap;
-#ifdef METAL
-		//bind samplers for metal
-		params[11].pName = "defaultSampler";
-		params[11].ppSamplers = &pSamplerBilinear;
-		params[12].pName = "envSampler";
-		params[12].ppSamplers = &pSamplerBilinear;
-#endif
 
 		int matId = 0;
 		int textureIndex = 0;
@@ -1616,13 +1611,7 @@ public:
 				//params[6+j].ppTextures = &pMaterialTextures[index];
 			}
 
-			//13 entries on apple because we need to bind samplers (2 extra)
-#ifdef METAL
-			//draw sphere
-			cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
-#else
 			cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
-#endif
 
 #ifdef LOAD_MATERIAL_BALL
 
@@ -1630,7 +1619,7 @@ public:
 
 #else
 			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
-			cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1);
+			cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1, 0);
 #endif
 		}
 
@@ -1647,12 +1636,7 @@ public:
 			params[6 + j].ppTextures = &pMaterialTextures[j];
 		}
 
-		//13 entries on apple because we need to bind samplers (2 extra)
-#ifdef METAL
-		cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
-#else
 		cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
-#endif
 
 		cmdDraw(cmd, gSurfaceIndices, 0);
 #endif
@@ -1673,12 +1657,7 @@ public:
 				params[5].pName = "cbObject";
 				params[5].ppBuffers = &gPlateBuffers[j];
 
-				//13 entries on apple because we need to bind samplers (2 extra)
-#ifdef METAL
-				cmdBindDescriptors(cmd, pRootSigBRDF, 13, params);
-#else
 				cmdBindDescriptors(cmd, pRootSigBRDF, 11, params);
-#endif
 
 				cmdDraw(cmd, gSurfaceIndices, 0);
 			}
@@ -1713,14 +1692,14 @@ public:
 
 				//if there are more objects than metalEnumNames
 				metalEnumIndex = i >= TotalMetals ? RustedIron : i;
-				drawDebugText(cmd, gTextProjView, gTextWorldMats[i], String::format(metalEnumNames[metalEnumIndex]), &gMaterialPropDraw);
+				drawDebugText(cmd, gTextProjView, gTextWorldMats[i], tinystl::string::format(metalEnumNames[metalEnumIndex]), &gMaterialPropDraw);
 			}
 		}
 #endif
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 
 #ifndef TARGET_IOS
@@ -1750,7 +1729,7 @@ public:
 		}
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "06_MaterialPlayground";
 	}

@@ -154,7 +154,7 @@ GuiComponent* pGui;
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -265,7 +265,7 @@ struct ObjectProperty
 	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class Tessellation : public IApp
 {
@@ -509,18 +509,18 @@ public:
 			0
 		};
 
-		pGui->AddProperty(UIProperty("Fill Mode : ", gFillMode, enumNames, enumValues));
-		pGui->AddProperty(UIProperty("Wind Mode : ", gWindMode, enumWindNames, enumWindValues));
+		pGui->AddControl(UIProperty("Fill Mode : ", gFillMode, enumNames, enumValues));
+		pGui->AddControl(UIProperty("Wind Mode : ", gWindMode, enumWindNames, enumWindValues));
 
-		pGui->AddProperty(UIProperty("Wind Speed : ", gWindSpeed, 1.0f, 100.0f));
-		pGui->AddProperty(UIProperty("Wave Width : ", gWindWidth, 1.0f, 20.0f));
-		pGui->AddProperty(UIProperty("Wind Strength : ", gWindStrength, 1.0f, 100.0f));
+		pGui->AddControl(UIProperty("Wind Speed : ", gWindSpeed, 1.0f, 100.0f));
+		pGui->AddControl(UIProperty("Wave Width : ", gWindWidth, 1.0f, 20.0f));
+		pGui->AddControl(UIProperty("Wind Strength : ", gWindStrength, 1.0f, 100.0f));
 
-		pGui->AddProperty(UIProperty("Max Tessellation Level : ", gMaxTessellationLevel, 1, 10));
+		pGui->AddControl(UIProperty("Max Tessellation Level : ", gMaxTessellationLevel, 1, 10));
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddProperty(vsyncProp);
+		pGui->AddControl(vsyncProp);
 #endif
 
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
@@ -908,14 +908,14 @@ public:
 		static HiresTimer timer;
 		timer.GetUSec(true);
 
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
         
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f,1.0f,1.0f });
 #endif
 
 #ifndef METAL // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
@@ -942,7 +942,7 @@ public:
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "07_Tessellation";
 	}

@@ -156,10 +156,7 @@ public:
 	void SetDebugRenderingEnabled(bool enabled);
 	/// Returns true if debug rendering is enabled, false otherwise.
 	bool IsDebugRenderingEnabled() const { return debugRenderingEnabled_; }
-
-	//Used Internally to deterine whether a button received both up and down in same frame
-	void ApplyBufferedButton(DeviceButtonId buttonId, bool pressed);
-	
+		
 #if defined(GAINPUT_DEV) || defined(GAINPUT_ENABLE_RECORDER)
 	/// Returns true if this device is being controlled by a remote device 
 	/// or a recorded input sequence, false otherwise.
@@ -186,9 +183,6 @@ protected:
 	/// The previous state of this device.
 	InputState* previousState_;
 	
-	//stores any button that received both up and down messages before being handled by update()
-	Array<DeviceButtonId> bufferedButtonInputs_;
-
 	float* deadZones_;
 
 	/// Specifies if this device is currently rendering debug information.

@@ -26,10 +26,15 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h" />
@@ -46,10 +51,15 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_rect_pack.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_textedit.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_truetype.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputSystem.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp" />

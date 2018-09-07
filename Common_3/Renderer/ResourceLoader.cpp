@@ -30,7 +30,7 @@
 //this is needed for unix as PATH_MAX is defined intead of MAX_PATH
 #ifndef _WIN32
 //linux needs limits.h for PATH_MAX
-#ifdef LINUX
+#ifdef __linux__
 #include<limits.h> 
 #endif
 #define MAX_PATH PATH_MAX
@@ -82,6 +82,9 @@ typedef struct ResourceLoader
 	CmdPool* pCopyCmdPool[MAX_GPUS];
 
 	tinystl::vector<Buffer*> mTempStagingBuffers;
+#if defined(DIRECT3D11)
+	tinystl::vector<void*>	mTempStagingData;
+#endif
     
     bool mOpen = false;
 } ResourceLoader;
@@ -96,7 +99,7 @@ typedef struct ResourceThread
 //////////////////////////////////////////////////////////////////////////
 // Resource Loader Internal Functions
 //////////////////////////////////////////////////////////////////////////
-static void addResourceLoader (Renderer* pRenderer, uint64_t mSize, ResourceLoader** ppLoader, Queue* pCopyQueue)
+static void addResourceLoader(Renderer* pRenderer, uint64_t mSize, ResourceLoader** ppLoader, Queue* pCopyQueue)
 {
 	ResourceLoader* pLoader = (ResourceLoader*)conf_calloc(1, sizeof(*pLoader));
 	pLoader->pRenderer = pRenderer;
@@ -118,6 +121,11 @@ static void cleanupResourceLoader(ResourceLoader* pLoader)
 {
 	for (uint32_t i = 0; i < (uint32_t)pLoader->mTempStagingBuffers.size(); ++i)
 		removeBuffer(pLoader->pRenderer, pLoader->mTempStagingBuffers[i]);
+#if defined(DIRECT3D11)
+	for (uint32_t i = 0; i < (uint32_t)pLoader->mTempStagingData.size(); ++i)
+		conf_free(pLoader->mTempStagingData[i]);
+	pLoader->mTempStagingData.clear();
+#endif
 
 	pLoader->mTempStagingBuffers.clear();
 }
@@ -191,8 +199,11 @@ static MappedMemoryRange consumeResourceLoaderMemory(uint64_t memoryRequirement,
 	if (alignment != 0 && pLoader->mCurrentPos % alignment != 0)
 		pLoader->mCurrentPos = round_up_64(pLoader->mCurrentPos, alignment);
 
+#if defined(DIRECT3D11)
+#else
 	if (memoryRequirement > pLoader->pStagingBuffer->mDesc.mSize ||
 		pLoader->mCurrentPos + memoryRequirement > pLoader->pStagingBuffer->mDesc.mSize)
+#endif
 	{
 		// Try creating a temporary staging buffer which we will clean up after resource is uploaded
 		Buffer* tempStagingBuffer = NULL;
@@ -204,6 +215,9 @@ static MappedMemoryRange consumeResourceLoaderMemory(uint64_t memoryRequirement,
 
 		if (tempStagingBuffer)
 		{
+#if defined(DIRECT3D11)
+			mapBuffer(pLoader->pRenderer, tempStagingBuffer, NULL);
+#endif
 			pLoader->mTempStagingBuffers.emplace_back(tempStagingBuffer);
 			return { tempStagingBuffer->pCpuMappedAddress, tempStagingBuffer, 0, memoryRequirement };
 		}
@@ -265,18 +279,29 @@ static void cmdLoadBuffer(Cmd* pCmd, BufferLoadDesc* pBufferDesc, ResourceLoader
 			if (pBufferDesc->pData)
 				memcpy(range.pData, pBufferDesc->pData, pBuffer->mDesc.mSize);
 			else
-				memset(range.pData, NULL, pBuffer->mDesc.mSize);
+				memset(range.pData, 0, pBuffer->mDesc.mSize);
 
 			cmdUpdateBuffer(pCmd, range.mOffset, pBuffer->mPositionInHeap, range.mSize, range.pBuffer, pBuffer);
+
+#if defined(DIRECT3D11)
+			if (range.pBuffer != pLoader->pStagingBuffer)
+				unmapBuffer(pLoader->pRenderer, range.pBuffer);
+#endif
 		}
 		else
 		{
 			if (pBufferDesc->mDesc.mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
 			{
+#if defined(DIRECT3D11)
+				mapBuffer(pLoader->pRenderer, pBuffer, NULL);
+#endif
 				if (pBufferDesc->pData)
 					memcpy(pBuffer->pCpuMappedAddress, pBufferDesc->pData, pBuffer->mDesc.mSize);
 				else
-					memset(pBuffer->pCpuMappedAddress, NULL, pBuffer->mDesc.mSize);
+					memset(pBuffer->pCpuMappedAddress, 0, pBuffer->mDesc.mSize);
+#if defined(DIRECT3D11)
+				unmapBuffer(pLoader->pRenderer, pBuffer);
+#endif
 			}
 			else
 			{
@@ -284,7 +309,7 @@ static void cmdLoadBuffer(Cmd* pCmd, BufferLoadDesc* pBufferDesc, ResourceLoader
 				if (pBufferDesc->pData)
 					memcpy(pBuffer->pCpuMappedAddress, pBufferDesc->pData, pBuffer->mDesc.mSize);
 				else
-					memset(pBuffer->pCpuMappedAddress, NULL, pBuffer->mDesc.mSize);
+					memset(pBuffer->pCpuMappedAddress, 0, pBuffer->mDesc.mSize);
 				unmapBuffer(pLoader->pRenderer, pBuffer);
 			}
 		}
@@ -319,15 +344,19 @@ static void cmd_upload_texture_data(Cmd* pCmd, ResourceLoader* pLoader, Texture*
 {
 	ASSERT(pTexture);
 
+#if !defined(DIRECT3D11)
 	MappedMemoryRange range = consumeResourceLoaderMemory(pTexture->mTextureSize, RESOURCE_TEXTURE_ALIGNMENT, pLoader);
-
+#endif
 	// create source subres data structs
 	SubresourceDataDesc texData[1024];
-	SubresourceDataDesc *dest = texData;
+	SubresourceDataDesc* dest = texData;
 	uint nSlices = img.IsCube() ? 6 : 1;
 
-#if defined(DIRECT3D12) || defined(METAL)
-	if (pCmd->pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12 || pCmd->pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pCmd->pRenderer->mSettings.mApi == RENDERER_API_METAL)
+#if defined(DIRECT3D12) || defined(METAL) || defined(DIRECT3D11)
+	if (pCmd->pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12 ||
+		pCmd->pRenderer->mSettings.mApi == RENDERER_API_D3D12 ||
+		pCmd->pRenderer->mSettings.mApi == RENDERER_API_D3D11 ||
+		pCmd->pRenderer->mSettings.mApi == RENDERER_API_METAL)
 	{
 		for (uint32_t n = 0; n < img.GetArrayCount(); ++n)
 		{
@@ -400,7 +429,11 @@ static void cmd_upload_texture_data(Cmd* pCmd, ResourceLoader* pLoader, Texture*
 
 	// calculate number of subresources
 	int numSubresources = (int)(dest - texData);
+#if defined(DIRECT3D11)
+	cmdUpdateSubresources(pCmd, 0, numSubresources, texData, NULL, 0, pTexture);
+#else
 	cmdUpdateSubresources(pCmd, 0, numSubresources, texData, range.pBuffer, range.mOffset, pTexture);
+#endif
 }
 
 static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, ResourceLoader* pLoader)
@@ -408,7 +441,7 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 	ASSERT (pTextureFileDesc->ppTexture);
 
 	Image img;
-	//uint64_t pos = pLoader->mCurrentPos; //unused
+
 	bool res = img.loadImage(pTextureFileDesc->pFilename, pTextureFileDesc->mUseMipmaps, imageLoadAllocationFunc, pLoader, pTextureFileDesc->mRoot);
 	if (res)
 	{
@@ -437,7 +470,7 @@ static void cmdLoadTextureFile(Cmd* pCmd, TextureLoadDesc* pTextureFileDesc, Res
 		}
 
 		wchar_t debugName[MAX_PATH] = {};
-		String filename = FileSystem::GetFileNameAndExtension(img.GetName());
+		tinystl::string filename = FileSystem::GetFileNameAndExtension(img.GetName());
 		mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
 		desc.pDebugName = debugName;
 
@@ -497,7 +530,7 @@ static void cmdLoadTextureImage(Cmd* pCmd, TextureLoadDesc* pTextureImage, Resou
 	}
 
 	wchar_t debugName[MAX_PATH] = {};
-	String filename = FileSystem::GetFileNameAndExtension(img.GetName());
+	tinystl::string filename = FileSystem::GetFileNameAndExtension(img.GetName());
 	mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
 	desc.pDebugName = debugName;
 
@@ -558,11 +591,9 @@ static void cmdUpdateResource(Cmd* pCmd, BufferUpdateDesc* pBufferUpdate, Resour
 {
 	Buffer* pBuffer = pBufferUpdate->pBuffer;
     const uint64_t bufferSize = (pBufferUpdate->mSize > 0) ? pBufferUpdate->mSize : pBuffer->mDesc.mSize;
-	const uint64_t alignment = pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER ? pLoader->pRenderer->pActiveGpuSettings->mUniformBufferAlignment : 16;
+	const uint64_t alignment = pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER ? pLoader->pRenderer->pActiveGpuSettings->mUniformBufferAlignment : 1;
 	const uint64_t offset = round_up_64(pBufferUpdate->mDstOffset, alignment);
 
-    void* pDstBufferAddress = (uint8_t*)(pBuffer->pCpuMappedAddress) + offset;
-    
 	void* pSrcBufferAddress = NULL;
     if (pBufferUpdate->pData)
         pSrcBufferAddress = (uint8_t*)(pBufferUpdate->pData) + pBufferUpdate->mSrcOffset;
@@ -572,41 +603,63 @@ static void cmdUpdateResource(Cmd* pCmd, BufferUpdateDesc* pBufferUpdate, Resour
 	{
 		if (pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
 		{
+#if defined(DIRECT3D11)
+			mapBuffer(pLoader->pRenderer, pBuffer, NULL);
+#endif
+			void* pDstBufferAddress = (uint8_t*)(pBuffer->pCpuMappedAddress) + offset;
+
 			if (pSrcBufferAddress)
 				memcpy(pDstBufferAddress, pSrcBufferAddress, bufferSize);
 			else
-				memset(pDstBufferAddress, NULL, bufferSize);
+				memset(pDstBufferAddress, 0, bufferSize);
+#if defined(DIRECT3D11)
+			unmapBuffer(pLoader->pRenderer, pBuffer);
+#endif
 		}
 		else
 		{
 			if (!pBuffer->pCpuMappedAddress)
 				mapBuffer(pLoader->pRenderer, pBuffer, NULL);
 
+			void* pDstBufferAddress = (uint8_t*)(pBuffer->pCpuMappedAddress) + offset;
+
 			if (pSrcBufferAddress)
 				memcpy(pDstBufferAddress, pSrcBufferAddress, bufferSize);
 			else
-				memset(pDstBufferAddress, NULL, bufferSize);
+				memset(pDstBufferAddress, 0, bufferSize);
 		}
 	}
 	// If buffer is only in Device Local memory, stage an update from the pre-allocated staging buffer
 	else
 	{
+#if defined(DIRECT3D11)
+		mapBuffer(pLoader->pRenderer, pLoader->pStagingBuffer, NULL);
+#endif
 		MappedMemoryRange range = consumeResourceUpdateMemory(bufferSize, RESOURCE_BUFFER_ALIGNMENT, pLoader);
 		ASSERT(range.pData);
 
         if (pSrcBufferAddress)
             memcpy(range.pData, pSrcBufferAddress, range.mSize);
 		else
-			memset(range.pData, NULL, range.mSize);
+			memset(range.pData, 0, range.mSize);
 
 		cmdUpdateBuffer(pCmd, range.mOffset, pBuffer->mPositionInHeap + offset, 
             bufferSize, range.pBuffer, pBuffer);
+#if defined(DIRECT3D11)
+		unmapBuffer(pLoader->pRenderer, pLoader->pStagingBuffer);
+#endif
 	}
 }
 
 static void cmdUpdateResource(Cmd* pCmd, TextureUpdateDesc* pTextureUpdate, ResourceLoader* pLoader)
 {
+#if defined(DIRECT3D11)
+	mapBuffer(pLoader->pRenderer, pLoader->pStagingBuffer, NULL);
+#endif
 	cmd_upload_texture_data(pCmd, pLoader, pTextureUpdate->pTexture, *pTextureUpdate->pImage);
+#if defined(DIRECT3D11)
+	unmapBuffer(pLoader->pRenderer, pLoader->pStagingBuffer);
+#endif
 }
 
 void cmdUpdateResource(Cmd* pCmd, ResourceUpdateDesc* pResourceUpdate, ResourceLoader* pLoader)
@@ -741,10 +794,12 @@ void removeResourceLoaderInterface(Renderer* pRenderer)
 
 void addResource(ResourceLoadDesc* pResourceLoadDesc, bool threaded /* = false */)
 {
+#ifndef DIRECT3D11 // We can dismiss this msg for D3D11 as we will always load single threaded
 	if (threaded && !gUseThreads)
 	{
 		LOGWARNING("Threaded Option specified for loading but no threads were created in initResourceLoaderInterface - Using single threaded loading");
 	}
+#endif
 
 	if (!threaded || !gUseThreads)
 	{
@@ -806,10 +861,12 @@ void addResource(BufferLoadDesc* pBuffer, bool threaded)
 
 void addResource(TextureLoadDesc* pTexture, bool threaded)
 {
+#ifndef DIRECT3D11 // We can dismiss this msg for D3D11 as we will always load single threaded
 	if (threaded && !gUseThreads)
 	{
 		LOGWARNING("Threaded Option specified for loading but no threads were created in initResourceLoaderInterface - Using single threaded loading");
 	}
+#endif
 
 	if (!threaded || !gUseThreads)
 	{
@@ -990,28 +1047,28 @@ void finishResourceLoading()
 // Vulkan has no builtin functions to compile source to spirv
 // So we call the glslangValidator tool located inside VulkanSDK on user machine to compile the glsl code to spirv
 // This code is not added to Vulkan.cpp since it calls no Vulkan specific functions
-void vk_compileShader(Renderer* pRenderer, const String& fileName, const String& outFile, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
+void vk_compileShader(Renderer* pRenderer, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
 {
 	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
 		FileSystem::CreateDir(FileSystem::GetPath(outFile));
 
-	String commandLine;
-	tinystl::vector<String> args;
-	String configFileName;
+	tinystl::string commandLine;
+	tinystl::vector<tinystl::string> args;
+	tinystl::string configFileName;
 
 	// If there is a config file located in the shader source directory use it to specify the limits
 	if (FileSystem::FileExists(FileSystem::GetPath(fileName) + "/config.conf", FSRoot::FSR_Absolute))
 	{
 		configFileName = FileSystem::GetPath(fileName) + "/config.conf";
 		// Add command to compile from Vulkan GLSL to Spirv
-		commandLine += String::format("\"%s\" -V \"%s\" -o \"%s\"", configFileName.size() ? configFileName.c_str() : "", fileName.c_str(), outFile.c_str());
+		commandLine += tinystl::string::format("\"%s\" -V \"%s\" -o \"%s\"", configFileName.size() ? configFileName.c_str() : "", fileName.c_str(), outFile.c_str());
 	}
 	else
 	{
-		commandLine += String::format("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
+		commandLine += tinystl::string::format("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
 	}
 
-	//commandLine += " \"-D" + String("VULKAN") + "=" + "1" + "\"";
+	//commandLine += " \"-D" + tinystl::string("VULKAN") + "=" + "1" + "\"";
 
 	// Add user defined macros to the command line
 	for (uint32_t i = 0; i < macroCount; ++i)
@@ -1020,7 +1077,7 @@ void vk_compileShader(Renderer* pRenderer, const String& fileName, const String&
 	}
 	args.push_back(commandLine);
 
-	String glslangValidator = getenv("VULKAN_SDK");
+	tinystl::string glslangValidator = getenv("VULKAN_SDK");
 	glslangValidator += "/bin/glslangValidator";
 	if (FileSystem::SystemRun(glslangValidator, args, outFile + "_compile.log") == 0)
 	{
@@ -1042,7 +1099,7 @@ void vk_compileShader(Renderer* pRenderer, const String& fileName, const String&
 		}
 		else
 		{
-			String errorLog = errorFile.ReadText();
+			tinystl::string errorLog = errorFile.ReadText();
 			errorFile.Close();
 			ErrorMsg("Failed to compile shader %s with error\n%s", fileName.c_str(), errorLog.c_str());
 			errorFile.Close();
@@ -1052,22 +1109,22 @@ void vk_compileShader(Renderer* pRenderer, const String& fileName, const String&
 #elif defined(METAL)
 // On Metal, on the other hand, we can compile from code into a MTLLibrary, but cannot save this
 // object's bytecode to disk. We instead use the xcbuild bash tool to compile the shaders.
-void mtl_compileShader(Renderer* pRenderer, const String& fileName, const String& outFile, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
+void mtl_compileShader(Renderer* pRenderer, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
 {
     if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
         FileSystem::CreateDir(FileSystem::GetPath(outFile));
     
-    String xcrun = "/usr/bin/xcrun";
-    String intermediateFile = outFile + ".air";
-    tinystl::vector<String> args;
-    String tmpArg = "";
+    tinystl::string xcrun = "/usr/bin/xcrun";
+    tinystl::string intermediateFile = outFile + ".air";
+    tinystl::vector<tinystl::string> args;
+    tinystl::string tmpArg = "";
     
     // Compile the source into a temporary .air file.
     args.push_back("-sdk");
     args.push_back("macosx");
     args.push_back("metal");
     args.push_back("-c");
-    tmpArg = String::format("""%s""", fileName.c_str());
+    tmpArg = tinystl::string::format("""%s""", fileName.c_str());
     args.push_back(tmpArg);
     args.push_back("-o");
     args.push_back(intermediateFile.c_str());
@@ -1093,7 +1150,7 @@ void mtl_compileShader(Renderer* pRenderer, const String& fileName, const String
         args.push_back("metallib");
         args.push_back(intermediateFile.c_str());
         args.push_back("-o");
-        tmpArg = String::format("""%s""", outFile.c_str());
+        tmpArg = tinystl::string::format("""%s""", outFile.c_str());
         args.push_back(tmpArg);
         if(FileSystem::SystemRun(xcrun, args, "") == 0)
         {
@@ -1115,17 +1172,17 @@ void mtl_compileShader(Renderer* pRenderer, const String& fileName, const String
     else ErrorMsg("Failed to compile shader %s", fileName.c_str());
 }
 #endif
-#if defined(DIRECT3D12) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+#if (defined(DIRECT3D12) || defined(DIRECT3D11)) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 #endif
 
 // Function to generate the timestamp of this shader source file considering all include file timestamp
-static bool process_source_file(File* original, File* file, uint32_t& outTimeStamp, String& outCode)
+static bool process_source_file(File* original, File* file, uint32_t& outTimeStamp, tinystl::string& outCode)
 {
 	// If the source if a non-packaged file, store the timestamp
 	if (file)
 	{
-		String fullName = file->GetName();
+		tinystl::string fullName = file->GetName();
 		unsigned fileTimeStamp = FileSystem::GetLastModifiedTime(fullName);
 		if (fileTimeStamp > outTimeStamp)
 			outTimeStamp = fileTimeStamp;
@@ -1133,11 +1190,11 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 
 	while (!file->IsEof())
 	{
-		String line = file->ReadLine();
+		tinystl::string line = file->ReadLine();
 
-		if (line.find("#include \"", 0) != String::npos)
+		if (line.find("#include \"", 0) != tinystl::string::npos)
 		{
-			String includeFileName = FileSystem::GetPath(file->GetName()) + line.substring(9).replaced("\"", "").trimmed();
+			tinystl::string includeFileName = FileSystem::GetPath(file->GetName()) + line.substring(9).replaced("\"", "").trimmed();
 			File includeFile = {};
 			includeFile.Open(includeFileName, FM_ReadBinary, FSR_Absolute);
 			if (!includeFile.IsOpen())
@@ -1164,7 +1221,7 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 }
 
 // Loads the bytecode from file if the binary shader file is newer than the source
-bool check_for_byte_code(const String& binaryShaderName, uint32_t sourceTimeStamp, tinystl::vector<char>& byteCode)
+bool check_for_byte_code(const tinystl::string& binaryShaderName, uint32_t sourceTimeStamp, tinystl::vector<char>& byteCode)
 {
 	if (!FileSystem::FileExists(binaryShaderName, FSR_Absolute))
 		return false;
@@ -1187,9 +1244,9 @@ bool check_for_byte_code(const String& binaryShaderName, uint32_t sourceTimeStam
 }
 
 // Saves bytecode to a file
-bool save_byte_code(const String& binaryShaderName, const tinystl::vector<char>& byteCode)
+bool save_byte_code(const tinystl::string& binaryShaderName, const tinystl::vector<char>& byteCode)
 {
-	String path = FileSystem::GetPath(binaryShaderName);
+	tinystl::string path = FileSystem::GetPath(binaryShaderName);
 	if (!FileSystem::DirExists(path))
 		FileSystem::CreateDir(path);
 
@@ -1208,14 +1265,14 @@ bool save_byte_code(const String& binaryShaderName, const tinystl::vector<char>&
 bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount, ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode)
 {
 	File shaderSource = {};
-	String code;
+	tinystl::string code;
 	uint32_t timeStamp = 0;
     
 #ifndef METAL
     const char* shaderName = fileName;
 #else
     // Metal shader files need to have the .metal extension.
-    String metalShaderName = String(fileName) + ".metal";
+    tinystl::string metalShaderName = tinystl::string(fileName) + ".metal";
     const char* shaderName = metalShaderName.c_str();
 #endif
 
@@ -1225,9 +1282,9 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 	if (!process_source_file(&shaderSource, &shaderSource, timeStamp, code))
 		return false;
 
-	String name, extension, path;
+	tinystl::string name, extension, path;
 	FileSystem::SplitPath(fileName, &path, &name, &extension);
-	String shaderDefines;
+	tinystl::string shaderDefines;
 	// Apply user specified macros
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
@@ -1241,13 +1298,14 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 
 #if 0 //#ifdef _DURANGO
 	// Using Durango application data storage requires appmanifest(from application) changes.
-	String binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
-		FileSystem::GetFileName(fileName) + String::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+	tinystl::string binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
+		FileSystem::GetFileName(fileName) + tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
 #else
-	String rendererApi;
+	tinystl::string rendererApi;
 	switch (pRenderer->mSettings.mApi)
 	{
 	case RENDERER_API_D3D12:
+	case RENDERER_API_D3D11:
 	case RENDERER_API_XBOX_D3D12:
 		rendererApi = "PCDX12";
 		break;
@@ -1265,15 +1323,15 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 		break;
 	}
 
-	String appName(pRenderer->pName);
-#ifdef LINUX
+	tinystl::string appName(pRenderer->pName);
+#ifdef __linux__
 
-	String lowerStr = appName.to_lower();
+	tinystl::string lowerStr = appName.to_lower();
 	appName = lowerStr!=pRenderer->pName ? lowerStr : lowerStr+"_";
 #endif
 	
-	String binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + String("/") + rendererApi + String("/CompiledShadersBinary/") +
-		FileSystem::GetFileName(fileName) + String::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+	tinystl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + tinystl::string("/") + rendererApi + tinystl::string("/CompiledShadersBinary/") +
+		FileSystem::GetFileName(fileName) + tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
 #endif
 
 	// Shader source is newer than binary
@@ -1289,7 +1347,7 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 		}
 		else
 		{
-#if defined(DIRECT3D12)
+#if defined(DIRECT3D12) || defined(DIRECT3D11)
 			char* pByteCode = NULL;
 			uint32_t byteCodeSize = 0;
 			compileShader(pRenderer, stage, shaderSource.GetName(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc, &byteCodeSize, &pByteCode);
@@ -1315,9 +1373,9 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 	return true;
 }
 #ifdef TARGET_IOS
-bool find_shader_stage(const String& fileName, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
+bool find_shader_stage(const tinystl::string& fileName, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
-    String ext = FileSystem::GetExtension(fileName);
+    tinystl::string ext = FileSystem::GetExtension(fileName);
     if (ext == ".vert")
     {
         *pOutStage = &pDesc->mVert;
@@ -1360,9 +1418,9 @@ bool find_shader_stage(const String& fileName, ShaderDesc* pDesc, ShaderStageDes
     return true;
 }
 #else
-bool find_shader_stage(const String& fileName, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
+bool find_shader_stage(const tinystl::string& fileName, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
-	String ext = FileSystem::GetExtension(fileName);
+	tinystl::string ext = FileSystem::GetExtension(fileName);
 	if (ext == ".vert")
 	{
 		*pOutStage = &pBinaryDesc->mVert;

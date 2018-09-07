@@ -184,9 +184,9 @@ float4 Deserializer::ReadVector4()
 	return float4(data[0], data[1], data[2], data[3]);
 }
 
-String Deserializer::ReadString()
+tinystl::string Deserializer::ReadString()
 {
-	String ret;
+	tinystl::string ret;
 
 	while (!IsEof())
 	{
@@ -200,17 +200,17 @@ String Deserializer::ReadString()
 	return ret;
 }
 
-String Deserializer::ReadFileID()
+tinystl::string Deserializer::ReadFileID()
 {
-	String ret;
+	tinystl::string ret;
 	ret.resize(4);
 	Read(ret.begin(), 4);
 	return ret;
 }
 
-String Deserializer::ReadLine()
+tinystl::string Deserializer::ReadLine()
 {
-	String ret;
+	tinystl::string ret;
 
 	while (!IsEof())
 	{
@@ -332,7 +332,7 @@ bool Serializer::WriteVector4(const float4& value)
 	return Write(&value, sizeof value) == sizeof value;
 }
 
-bool Serializer::WriteString(const String& value)
+bool Serializer::WriteString(const tinystl::string& value)
 {
 	const char* chars = value.c_str();
 	// Count length to the first zero, because ReadString() does the same
@@ -340,7 +340,7 @@ bool Serializer::WriteString(const String& value)
 	return Write(chars, length) == length + 1;
 }
 
-bool Serializer::WriteFileID(const String& value)
+bool Serializer::WriteFileID(const tinystl::string& value)
 {
 	bool success = true;
 	unsigned length = (unsigned)min((int)(uint32_t)value.size(), 4);
@@ -351,7 +351,7 @@ bool Serializer::WriteFileID(const String& value)
 	return success;
 }
 
-bool Serializer::WriteLine(const String& value)
+bool Serializer::WriteLine(const tinystl::string& value)
 {
 	bool success = true;
 	success &= Write(value.c_str(), (uint32_t)value.size()) == (uint32_t)value.size();
@@ -373,9 +373,9 @@ File::File() :
 {
 }
 
-bool File::Open(const String& _fileName, FileMode mode, FSRoot root)
+bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 {
-	String fileName = FileSystem::FixPath(_fileName, root);
+	tinystl::string fileName = FileSystem::FixPath(_fileName, root);
 
 	Close();
 
@@ -563,13 +563,13 @@ unsigned File::GetChecksum()
 	return mChecksum;
 }
 
-String File::ReadText()
+tinystl::string File::ReadText()
 {
 	Seek(0);
-	String text;
+	tinystl::string text;
 
 	if (!mSize)
-		return String ();
+		return tinystl::string ();
 
 	text.resize(mSize);
 
@@ -669,10 +669,10 @@ unsigned MemoryBuffer::Write(const void* data, unsigned size)
 }
 /************************************************************************/
 /************************************************************************/
-String FileSystem::mModifiedRootPaths[FSRoot::FSR_Count] = { "" };
-String FileSystem::mProgramDir = "";
+tinystl::string FileSystem::mModifiedRootPaths[FSRoot::FSR_Count] = { "" };
+tinystl::string FileSystem::mProgramDir = "";
 
-void FileSystem::SetRootPath(FSRoot root, const String& rootPath)
+void FileSystem::SetRootPath(FSRoot root, const tinystl::string& rootPath)
 {
 	ASSERT(root < FSR_Count);
 	mModifiedRootPaths[root] = rootPath;
@@ -680,11 +680,11 @@ void FileSystem::SetRootPath(FSRoot root, const String& rootPath)
 
 void FileSystem::ClearModifiedRootPaths()
 {
-	for (String& s : mModifiedRootPaths)
+	for (tinystl::string& s : mModifiedRootPaths)
 		s = "";
 }
 
-unsigned FileSystem::GetLastModifiedTime(const String& fileName)
+unsigned FileSystem::GetLastModifiedTime(const tinystl::string& fileName)
 {
 	return (unsigned)_getFileLastModifiedTime(fileName);
 }
@@ -698,9 +698,9 @@ unsigned FileSystem::GetFileSize(FileHandle handle)
 	return (unsigned)length;
 }
     
-bool FileSystem::FileExists(const String& _fileName, FSRoot _root)
+bool FileSystem::FileExists(const tinystl::string& _fileName, FSRoot _root)
 {
-	String fileName = FileSystem::FixPath(_fileName, _root);
+	tinystl::string fileName = FileSystem::FixPath(_fileName, _root);
 #ifdef _DURANGO
 	return (fopen(fileName, "rb") != NULL);
 #else
@@ -709,7 +709,7 @@ bool FileSystem::FileExists(const String& _fileName, FSRoot _root)
 }
 
 // TODO: FIX THIS FUNCTION
-String FileSystem::FixPath(const String& pszFileName, FSRoot root)
+tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot root)
 {
 	if (root == FSR_Absolute)
 		return pszFileName;
@@ -721,14 +721,14 @@ String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 #endif
 	
 	ASSERT(root < FSR_Count);
-	String res;
+	tinystl::string res;
 	if (pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU
 	{
 		// was the path modified? if so use that, otherwise use static array
 		if (mModifiedRootPaths[root].size() != 0)
 			res = mModifiedRootPaths[root] + pszFileName;
 		else
-			res = String(pszRoots[root]) + pszFileName;
+			res = tinystl::string(pszRoots[root]) + pszFileName;
 	}
 	else
 	{
@@ -739,7 +739,7 @@ String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 	// absolute or already relative to absolute paths we can assume are already fixed,
 	// of course deteminting whats absolute is platform specific
 	// so this will likely require work for some platforms
-	const String filename(pszFileName);
+	const tinystl::string filename(pszFileName);
 	// on all but unix filesystem : generally mean volume relative so absolute
 	if( filename.find( ":" ) ){
 	return filename;
@@ -751,7 +751,7 @@ String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 	// TODO unix root, google Filesytem has a good open source implementation
 	// that should work on most platforms.
 
-	String res = String (rootPaths[root] ) + filename;
+	tinystl::string res = tinystl::string (rootPaths[root] ) + filename;
 
 	#ifdef	SN_TARGET_PS3
 	res.replace("\\","/");
@@ -763,14 +763,14 @@ String FileSystem::FixPath(const String& pszFileName, FSRoot root)
 	return res;
 }
 
-void FileSystem::SplitPath(const String& fullPath, String* pathName, String* fileName, String* extension, bool lowercaseExtension)
+void FileSystem::SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension)
 {
-	String fullPathCopy = GetInternalPath(fullPath);
+	tinystl::string fullPathCopy = GetInternalPath(fullPath);
 
 	unsigned extPos = fullPathCopy.find_last('.');
 	unsigned pathPos = fullPathCopy.find_last('/');
 
-	if (extPos != String::npos && (pathPos == String::npos || extPos > pathPos))
+	if (extPos != tinystl::string::npos && (pathPos == tinystl::string::npos || extPos > pathPos))
 	{
 		*extension = fullPathCopy.substring(extPos);
 		if (lowercaseExtension)
@@ -781,7 +781,7 @@ void FileSystem::SplitPath(const String& fullPath, String* pathName, String* fil
 		extension->resize(0);
 
 	pathPos = fullPathCopy.find_last('/');
-	if (pathPos != String::npos)
+	if (pathPos != tinystl::string::npos)
 	{
 		*fileName = fullPathCopy.substring(pathPos + 1);
 		*pathName = fullPathCopy.substring(0, pathPos + 1);
@@ -793,76 +793,76 @@ void FileSystem::SplitPath(const String& fullPath, String* pathName, String* fil
 	}
 }
 
-String FileSystem::GetPath(const String& fullPath)
+tinystl::string FileSystem::GetPath(const tinystl::string& fullPath)
 {
-	String path, file, extension;
+	tinystl::string path, file, extension;
 	SplitPath(fullPath, &path, &file, &extension);
 	return path;
 }
 
-String FileSystem::GetFileName(const String& fullPath)
+tinystl::string FileSystem::GetFileName(const tinystl::string& fullPath)
 {
-	String path, file, extension;
+	tinystl::string path, file, extension;
 	SplitPath(fullPath, &path, &file, &extension);
 	return file;
 }
 
-String FileSystem::GetExtension(const String& fullPath, bool lowercaseExtension)
+tinystl::string FileSystem::GetExtension(const tinystl::string& fullPath, bool lowercaseExtension)
 {
-	String path, file, extension;
+	tinystl::string path, file, extension;
 	SplitPath(fullPath, &path, &file, &extension, lowercaseExtension);
 	return extension;
 }
 
-String FileSystem::GetFileNameAndExtension(const String& fileName, bool lowercaseExtension)
+tinystl::string FileSystem::GetFileNameAndExtension(const tinystl::string& fileName, bool lowercaseExtension)
 {
-	String path, file, extension;
+	tinystl::string path, file, extension;
 	SplitPath(fileName, &path, &file, &extension, lowercaseExtension);
 	return file + extension;
 }
 
-String FileSystem::ReplaceExtension(const String& fullPath, const String& newExtension)
+tinystl::string FileSystem::ReplaceExtension(const tinystl::string& fullPath, const tinystl::string& newExtension)
 {
-	String path, file, extension;
+	tinystl::string path, file, extension;
 	SplitPath(fullPath, &path, &file, &extension);
 	return path + file + newExtension;
 }
 
-String FileSystem::AddTrailingSlash(const String& pathName)
+tinystl::string FileSystem::AddTrailingSlash(const tinystl::string& pathName)
 {
-	String ret = pathName.trimmed();
+	tinystl::string ret = pathName.trimmed();
 	ret.replace('\\', '/');
 	if (ret.size() != 0 && ret.at((uint32_t)ret.size() - 1) != '/')
 		ret.push_back('/');
 	return ret;
 }
 
-String FileSystem::RemoveTrailingSlash(const String& pathName)
+tinystl::string FileSystem::RemoveTrailingSlash(const tinystl::string& pathName)
 {
-	String ret = pathName.trimmed();
+	tinystl::string ret = pathName.trimmed();
 	ret.replace('\\', '/');
 	if (ret.size() != 0 && ret.at((uint32_t)ret.size() - 1) == '/')
 		ret.resize((uint32_t)ret.size() - 1);
 	return ret;
 }
 
-String FileSystem::GetParentPath(const String& path)
+tinystl::string FileSystem::GetParentPath(const tinystl::string& path)
 {
 	unsigned pos = RemoveTrailingSlash(path).find_last('/');
-	if (pos != String::npos)
+	if (pos != tinystl::string::npos)
 		return path.substring(0, pos + 1);
 	else
-		return String();
+		return tinystl::string();
 }
 
-String FileSystem::GetInternalPath(const String& pathName)
+tinystl::string FileSystem::GetInternalPath(const tinystl::string& pathName)
 {
-	String ret = pathName;
+	tinystl::string ret = pathName;
 	ret.replace('\\', '/');
 	return ret;
 }
 
-String FileSystem::GetNativePath(const String& pathName)
+tinystl::string FileSystem::GetNativePath(const tinystl::string& pathName)
 {
 #ifdef _WIN32
 	return pathName.replaced('/', '\\');
@@ -871,7 +871,7 @@ String FileSystem::GetNativePath(const String& pathName)
 #endif
 }
 
-bool FileSystem::DirExists(const String& pathName)
+bool FileSystem::DirExists(const tinystl::string& pathName)
 {
 #ifndef _WIN32
 	// Always return true for the root directory
@@ -879,7 +879,7 @@ bool FileSystem::DirExists(const String& pathName)
 		return true;
 #endif
 
-	String fixedName = GetNativePath(RemoveTrailingSlash(pathName));
+	tinystl::string fixedName = GetNativePath(RemoveTrailingSlash(pathName));
 
 #ifdef _WIN32
 	DWORD attributes = GetFileAttributesA(fixedName.c_str());
@@ -894,10 +894,10 @@ bool FileSystem::DirExists(const String& pathName)
 	return true;
 }
 
-bool FileSystem::CreateDir(const String& pathName)
+bool FileSystem::CreateDir(const tinystl::string& pathName)
 {
 	// Create each of the parents if necessary
-	String parentPath = GetParentPath(pathName);
+	tinystl::string parentPath = GetParentPath(pathName);
 	if ((uint32_t)parentPath.size() > 1 && !DirExists(parentPath))
 	{
 		if (!CreateDir(parentPath))
@@ -919,10 +919,10 @@ bool FileSystem::CreateDir(const String& pathName)
 	return success;
 }
 
-int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>& arguments, String stdOutFile)
+int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOutFile)
 {
   UNREF_PARAM(arguments);
-	String fixedFileName = GetNativePath(fileName);
+	tinystl::string fixedFileName = GetNativePath(fileName);
 
 #ifdef _DURANGO
 	ASSERT(!"UNIMPLEMENTED");
@@ -933,7 +933,7 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 	if (GetExtension(fixedFileName).size() == 0)
 		fixedFileName += ".exe";
 
-	String commandLine = "\"" + fixedFileName + "\"";
+	tinystl::string commandLine = "\"" + fixedFileName + "\"";
 	for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
 		commandLine += " " + arguments[i];
 
@@ -981,7 +981,7 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 	return exitCode;
 #elif defined(__linux__)
 		tinystl::vector<const char*> argPtrs; 
-		String cmd(fixedFileName.c_str());
+		tinystl::string cmd(fixedFileName.c_str());
 		char* space = " ";
 		cmd.append(space, space+1);
 		for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
@@ -1015,7 +1015,7 @@ int FileSystem::SystemRun(const String& fileName, const tinystl::vector<String>&
 #endif
 }
 
-bool FileSystem::Delete(const String& fileName)
+bool FileSystem::Delete(const tinystl::string& fileName)
 {
 #ifdef _WIN32
 	return DeleteFileA(GetNativePath(fileName).c_str()) != 0;
@@ -1024,9 +1024,9 @@ bool FileSystem::Delete(const String& fileName)
 #endif
 }
 
-void FileSystem::GetFilesWithExtension(const String& dir, const String& ext, tinystl::vector<String>& files)
+void FileSystem::GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files)
 {
-	String path = GetNativePath(AddTrailingSlash(dir));
+	tinystl::string path = GetNativePath(AddTrailingSlash(dir));
 #ifdef _WIN32
 	WIN32_FIND_DATAA fd;
 	HANDLE hFind = ::FindFirstFileA(path + "*" + ext, &fd);

@@ -116,19 +116,19 @@ public:
 		addRasterizerState(pRenderer, &rasterizerStateFrontDesc, &pRasterizerStates[1]);
 
 #if defined(METAL)
-		String textShaderFile = "builtin_text";
-		String textShader = mtl_builtin_text;
+		tinystl::string textShaderFile = "builtin_text";
+		tinystl::string textShader = mtl_builtin_text;
 		ShaderDesc text2DShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { textShaderFile, textShader, "VSMain" }, { textShaderFile, textShader, "PSMain" } };
 		ShaderDesc text3DShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { textShaderFile, textShader, "VSMain3D" }, { textShaderFile, textShader, "PSMain" } };
 		addShader(pRenderer, &text2DShaderDesc, &pShaders[0]);
 		addShader(pRenderer, &text3DShaderDesc, &pShaders[1]);
-#elif defined(DIRECT3D12) || defined(VULKAN)
+#elif defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 		char* text2DVert = NULL; uint32_t text2DVertSize = 0;
 		char* text3DVert = NULL; uint32_t text3DVertSize = 0;
 		char* text2DFrag = NULL; uint32_t text2DFragSize = 0;
 		char* text3DFrag = NULL; uint32_t text3DFragSize = 0;
 
-		if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
+		if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_D3D11)
 		{
 			text2DVert = (char*)d3d12_builtin_text2D_vert; text2DVertSize = sizeof(d3d12_builtin_text2D_vert);
 			text3DVert = (char*)d3d12_builtin_text3D_vert; text3DVertSize = sizeof(d3d12_builtin_text3D_vert);
@@ -252,41 +252,51 @@ public:
 
 	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
 
-	Renderer*					pRenderer;
-	FONScontext*				pContext;
+	Renderer*							pRenderer;
+	FONScontext*						pContext;
 
-	Image						mStagingImage;
-	Texture*					pCurrentTexture;
+	Image								mStagingImage;
+	Texture*							pCurrentTexture;
 
-	uint32_t					mWidth;
-	uint32_t					mHeight;
+	uint32_t							mWidth;
+	uint32_t							mHeight;
 
-	tinystl::vector<void*>		mFontBuffers;
-	tinystl::vector<Texture*>	mTextureList;
+	tinystl::vector<void*>				mFontBuffers;
+	tinystl::vector<uint32_t>			mFontBufferSizes;
+	tinystl::vector<tinystl::string>	mFontNames;
+	tinystl::vector<Texture*>			mTextureList;
 
-	mat4						mProjView;
-	mat4						mWorldMat;
-	Cmd*						pCmd;
+	mat4								mProjView;
+	mat4								mWorldMat;
+	Cmd*								pCmd;
 
-	Shader*						pShaders[2];
-	RootSignature*				pRootSignature;
-	PipelineMap					mPipelines[2];
+	Shader*								pShaders[2];
+	RootSignature*						pRootSignature;
+	PipelineMap							mPipelines[2];
 	/// Default states
-	BlendState*					pBlendAlpha;
-	DepthState*					pDepthStates[2];
-	RasterizerState*			pRasterizerStates[2];
-	Sampler*					pDefaultSampler;
-	UniformRingBuffer*			pUniformRingBuffer;
-	MeshRingBuffer*				pMeshRingBuffer;
-	VertexLayout				mVertexLayout = {};
-	GraphicsPipelineDesc		mPipelineDesc = {};
-	bool						mText3D;
+	BlendState*							pBlendAlpha;
+	DepthState*							pDepthStates[2];
+	RasterizerState*					pRasterizerStates[2];
+	Sampler*							pDefaultSampler;
+	UniformRingBuffer*					pUniformRingBuffer;
+	MeshRingBuffer*						pMeshRingBuffer;
+	VertexLayout						mVertexLayout = {};
+	GraphicsPipelineDesc				mPipelineDesc = {};
+	float2								mDpiScale;
+	float								mDpiScaleMin;
+	bool								mText3D;
 };
 
 
 Fontstash::Fontstash(Renderer* renderer, int width, int height)
 {
 	impl = conf_placement_new<_Impl_FontStash>(conf_calloc(1, sizeof(_Impl_FontStash)));
+	impl->mDpiScale = getDpiScale();
+	impl->mDpiScaleMin = min(impl->mDpiScale.x, impl->mDpiScale.y);
+
+	width = width * (int)ceilf(impl->mDpiScale.x);
+	height = height * (int)ceilf(impl->mDpiScale.y);
+
 	impl->init(renderer, width, height);
 	m_fFontMaxSize = min(width, height) / 10.0f; // see fontstash.h, line 1271, for fontSize calculation
 }
@@ -307,10 +317,13 @@ int Fontstash::defineFont(const char* identification, const char* filename, uint
 	unsigned bytes = file.GetSize();
 	void* buffer = conf_malloc(bytes);
 	file.Read(buffer, bytes);
-	file.Close();
 
 	// add buffer to font buffers for cleanup
 	impl->mFontBuffers.emplace_back(buffer);
+	impl->mFontBufferSizes.emplace_back(bytes);
+	impl->mFontNames.emplace_back(file.GetName());
+
+	file.Close();
 
 	return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
 }
@@ -319,6 +332,24 @@ int Fontstash::getFontID(const char* identification)
 {
 	FONScontext* fs=impl->pContext;
 	return fonsGetFontByName(fs, identification);
+}
+
+const char* Fontstash::getFontName(const char* identification)
+{
+	FONScontext* fs = impl->pContext;
+	return impl->mFontNames[fonsGetFontByName(fs, identification)];
+}
+
+void* Fontstash::getFontBuffer(const char* identification)
+{
+	FONScontext* fs = impl->pContext;
+	return impl->mFontBuffers[fonsGetFontByName(fs, identification)];
+}
+
+uint32_t Fontstash::getFontBufferSize(const char* identification)
+{
+	FONScontext* fs = impl->pContext;
+	return impl->mFontBufferSizes[fonsGetFontByName(fs, identification)];
 }
 
 void Fontstash::drawText(Cmd* pCmd, const char* message, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
@@ -330,13 +361,13 @@ void Fontstash::drawText(Cmd* pCmd, const char* message, float x, float y, int f
 	size = min(size, m_fFontMaxSize);
 
 	FONScontext* fs=impl->pContext;
-	fonsSetSize(fs, size);
+	fonsSetSize(fs, size * impl->mDpiScaleMin);
 	fonsSetFont(fs, fontID);
 	fonsSetColor(fs, color);
-	fonsSetSpacing(fs, spacing);
+	fonsSetSpacing(fs, spacing * impl->mDpiScaleMin);
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
-	fonsDrawText(fs, x,y, message,NULL);
+	fonsDrawText(fs, x * impl->mDpiScale.x, y * impl->mDpiScale.y, message, NULL);
 }
 
 
@@ -344,20 +375,20 @@ void Fontstash::drawText(Cmd* pCmd, const char* message,const mat4& projView,con
 {
 	impl->mText3D = true;
 	impl->mProjView = projView;
-	impl->mWorldMat = worldMat;
+	impl->mWorldMat = worldMat * mat4::scale(vec3(impl->mDpiScale.x, impl->mDpiScale.y, 1.0f));
 	impl->pCmd = pCmd;
 	// clamp the font size to max size. 
 	// Precomputed font texture puts limitation to the maximum size.
 	size = min(size, m_fFontMaxSize);
 
 	FONScontext* fs=impl->pContext;
-	fonsSetSize(fs, size);
+	fonsSetSize(fs, size * impl->mDpiScaleMin);
 	fonsSetFont(fs, fontID);
 	fonsSetColor(fs, color);
-	fonsSetSpacing(fs, spacing);
+	fonsSetSpacing(fs, spacing * impl->mDpiScaleMin);
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
-	fonsDrawText(fs, 0.0f,0.0f, message,NULL);
+	fonsDrawText(fs, 0.0f, 0.0f, message,NULL);
 }
 
 float Fontstash::measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
@@ -371,13 +402,13 @@ float Fontstash::measureText(float* out_bounds, const char* message, int message
 		return 0;
 
 	FONScontext* fs=impl->pContext;
-	fonsSetSize(fs, size);
+	fonsSetSize(fs, size * impl->mDpiScaleMin);
 	fonsSetFont(fs, fontID);
 	fonsSetColor(fs, color);
-	fonsSetSpacing(fs, spacing);
+	fonsSetSpacing(fs, spacing * impl->mDpiScaleMin);
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
-	return fonsTextBounds(fs, x, y, message, message+messageLength, out_bounds);
+	return fonsTextBounds(fs, x * impl->mDpiScale.x, y * impl->mDpiScale.y, message, message+messageLength, out_bounds);
 }
 
 // --  FONS renderer implementation --
@@ -429,10 +460,7 @@ void _Impl_FontStash::fonsImplementationRenderText(void* userPtr, const float* v
 
 	Cmd* pCmd = ctx->pCmd;
 
-	RingBufferOffset buffer = getVertexBufferOffset(ctx->pMeshRingBuffer, nverts * sizeof(float4));
-
-	//make it static so that we don't need to create texVertex Arr every time
-	float4* vtx = (float4*)((uint8_t*)buffer.pBuffer->pCpuMappedAddress + buffer.mOffset);
+	float4* vtx = (float4*)alloca(nverts * sizeof(float4));
 
 	// build vertices
 	for(int impl=0; impl<nverts; impl++)
@@ -442,6 +470,10 @@ void _Impl_FontStash::fonsImplementationRenderText(void* userPtr, const float* v
 		vtx[impl].setZ(tcoords[impl*2+0]);
 		vtx[impl].setW(tcoords[impl*2+1]);
 	}
+
+	RingBufferOffset buffer = getVertexBufferOffset(ctx->pMeshRingBuffer, nverts * sizeof(float4));
+	BufferUpdateDesc update = { buffer.pBuffer, vtx, 0, buffer.mOffset, nverts * sizeof(float4) };
+	updateResource(&update);
 
 	// extract color
 	ubyte* colorByte = (ubyte*)colors;

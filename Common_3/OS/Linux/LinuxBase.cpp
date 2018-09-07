@@ -26,6 +26,8 @@
 
 #include <ctime>
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <X11/Xresource.h>
 
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
@@ -74,6 +76,7 @@ static int gCursorLastX = 0, gCursorLastY = 0;
 static tinystl::vector <MonitorDesc> gMonitors;
 static tinystl::unordered_map<void*, WindowsDesc*> gHWNDMap;
 static WindowsDesc gWindow;
+static float gRetinaScale = 1.0f;
 
 void adjustWindow(WindowsDesc* winDesc);
 
@@ -224,6 +227,11 @@ int64_t getTimerFrequency()
 	// This is us to s
 	return 1000000LL;
 }
+
+float2 getDpiScale()
+{
+	return { gRetinaScale, gRetinaScale };
+}
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -239,6 +247,33 @@ static void onResize(const WindowResizeEventData* pData)
 	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
 	pApp->Unload();
 	pApp->Load();
+}
+
+// https://github.com/glfw/glfw/issues/1019
+static double PlatformGetMonitorDPI(Display* display)
+{
+	char *resourceString = XResourceManagerString(display);
+	XrmDatabase db;
+	XrmValue value;
+	char *type = NULL;
+	double dpi = 0.0;
+	
+	XrmInitialize(); /* Need to initialize the DB before calling Xrm* functions */
+	
+	db = XrmGetStringDatabase(resourceString);
+	
+	if (resourceString)
+	{
+		if (XrmGetResource(db, "Xft.dpi", "String", &type, &value) == True)
+		{
+			if (value.addr)
+			{
+				dpi = atof(value.addr);
+			}
+		}
+	}
+
+	return dpi;
 }
 
 
@@ -302,11 +337,13 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
     XMapWindow(winDesc->display, winDesc->xlib_window);
     XFlush(winDesc->display);
     winDesc->xlib_wm_delete_window = XInternAtom(winDesc->display, "WM_DELETE_WINDOW", False);
+	
+	double baseDpi = 96.0;
+	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->display) / baseDpi);
 }
 
 void handleMessages(WindowsDesc* winDesc)
-{
-	
+{	
 	//this needs to be done before updating the events
 	//that way current frame data will be delta after resetting mouse position
 	if(InputSystem::IsMouseCaptured())
@@ -314,15 +351,6 @@ void handleMessages(WindowsDesc* winDesc)
 		ButtonData button = InputSystem::GetButtonData(KEY_UI_MOVE);
 		gCursorLastX = button.mValue[0];
 		gCursorLastY = button.mValue[1];
-		
-		//Warp mouse cursor back to center if we are one of edges
-		//-1 is needed otherwise we never touch the edge. Not sure why yet.
-		//Could be The difference in event coordinates vs window coordinates.
-		if(gCursorLastX <= 0
-		|| gCursorLastY <= 0
-		|| gCursorLastX >= (gWindow.windowedRect.right - gWindow.windowedRect.left)- 1		
-		|| gCursorLastY >= (gWindow.windowedRect.bottom - gWindow.windowedRect.top)- 1
-		)
 		{	
 			float x=0;
 			float y=0;
@@ -469,6 +497,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		
 		InputSystem::Update();
 		handleMessages(&gWindow);
+		
 		pApp->Update(deltaTime);
 		pApp->Draw();
 		

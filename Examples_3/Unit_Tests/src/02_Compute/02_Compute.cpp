@@ -92,12 +92,12 @@ LogManager gLogManager;
 Timer gAccumTimer;
 HiresTimer gTimer;
 
-#if defined(DIRECT3D12)
+#if defined(DIRECT3D12) || defined(DIRECT3D11)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -132,7 +132,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Textures/",				// FSR_Textures
 	"../../../UnitTestResources/Meshes/",				// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
-	"../../../src/02_Compute/GPUCfg/",			// FSR_GpuConfig
+	"../../../src/02_Compute/GPUCfg/",					// FSR_GpuConfig
 	"",													// FSR_OtherFiles
 };
 #endif
@@ -179,7 +179,7 @@ struct ObjectProperty
   float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class Compute : public IApp
 {
@@ -486,10 +486,10 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
@@ -516,7 +516,7 @@ public:
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "02_Compute";
 	}

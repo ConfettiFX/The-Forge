@@ -90,7 +90,7 @@ HiresTimer mFrameTimer;
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -356,7 +356,7 @@ PaniniParameters		gPaniniParams;
 DynamicUIControls		gPaniniControls;
 RenderTarget*			pIntermediateRenderTarget = NULL;
 bool					gbPaniniEnabled = false;
-DebugTextDrawDesc		gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc		gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class ExecuteIndirect : public IApp
 {
@@ -594,7 +594,8 @@ public:
 		tinystl::vector<IndirectArgumentDescriptor> indirectArgDescs(2);
 		indirectArgDescs[0] = {};
 		indirectArgDescs[0].mType = INDIRECT_CONSTANT;  // Root Constant
-		indirectArgDescs[0].mRootParameterIndex = pIndirectRoot->pRootConstantLayouts[pIndirectRoot->pDescriptors[pIndirectRoot->pDescriptorNameToIndexMap[tinystl::hash("rootConstant")]].mIndexInParent].mRootIndex;
+		indirectArgDescs[0].mRootParameterIndex = pIndirectRoot->pDxRootConstantRootIndices
+			[pIndirectRoot->pDescriptors[pIndirectRoot->pDescriptorNameToIndexMap[tinystl::hash("rootConstant")]].mIndexInParent];
 		indirectArgDescs[0].mCount = 1;
 		indirectArgDescs[1] = {};
 		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX; // Indirect Index Draw Arguments
@@ -692,12 +693,12 @@ public:
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddProperty(vsyncProp);
+		pGui->AddControl(vsyncProp);
 #endif
 
-		pGui->AddProperty(renderingModeProp);
-		pGui->AddProperty(useThreadsProp);
-		pGui->AddProperty(paniniProp);
+		pGui->AddControl(renderingModeProp);
+		pGui->AddControl(useThreadsProp);
+		pGui->AddControl(paniniProp);
 		/************************************************************************/
 		// Panini props
 		/************************************************************************/
@@ -1257,9 +1258,9 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 #ifndef METAL
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 
 		char buff[256] = "";
@@ -1305,7 +1306,7 @@ public:
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "04_ExecuteIndirect";
 	}
@@ -1777,7 +1778,7 @@ public:
 				rootConst.pName = "rootConstant";
 				rootConst.pRootConstant = &i;
 				cmdBindDescriptors(cmd, pBasicRoot, 1, &rootConst);
-				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart);
+				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart, 0);
 			}
 		}
 		else if (gRenderingMode == RenderingMode_ExecuteIndirect)
