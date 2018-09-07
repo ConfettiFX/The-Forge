@@ -28,9 +28,6 @@
     <Filter Include="OS\Core">
       <UniqueIdentifier>{23e89b3d-85df-4ce5-bced-b544193c7fd1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\UI">
-      <UniqueIdentifier>{67dcb179-77f7-4735-ba7a-9d47f2c86c55}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\Camera">
       <UniqueIdentifier>{9020f991-deb3-47a0-a9c1-76f2a341a41d}</UniqueIdentifier>
     </Filter>
@@ -40,7 +37,13 @@
     <Filter Include="Middleware_3\Input">
       <UniqueIdentifier>{2dcf919e-4d45-496b-99d5-8a3433f7c97d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Text">
+    <Filter Include="Middleware_3\UI">
+      <UniqueIdentifier>{67dcb179-77f7-4735-ba7a-9d47f2c86c55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\UI\imgui">
+      <UniqueIdentifier>{7bef7934-8388-46bd-bda1-acfe7909f4b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\Text">
       <UniqueIdentifier>{ca3815d6-1ebb-4a30-8aa4-6440b07b14ed}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -88,10 +91,7 @@
       <Filter>OS\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.h">
-      <Filter>OS\UI</Filter>
+      <Filter>Middleware_3\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h">
       <Filter>OS\Core</Filter>
@@ -100,7 +100,25 @@
       <Filter>Middleware_3\Input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h">
-      <Filter>OS\Text</Filter>
+      <Filter>Middleware_3\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_rect_pack.h">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_textedit.h">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_truetype.h">
+      <Filter>Middleware_3\UI\imgui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -147,10 +165,10 @@
       <Filter>OS\Core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
-      <Filter>OS\UI</Filter>
+      <Filter>Middleware_3\UI</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
-      <Filter>OS\UI</Filter>
+      <Filter>Middleware_3\UI</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
       <Filter>OS\Core</Filter>
@@ -159,7 +177,22 @@
       <Filter>Middleware_3\Input</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp">
-      <Filter>OS\Text</Filter>
+      <Filter>Middleware_3\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp">
+      <Filter>Middleware_3\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp">
+      <Filter>Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
+      <Filter>Middleware_3\UI\imgui</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

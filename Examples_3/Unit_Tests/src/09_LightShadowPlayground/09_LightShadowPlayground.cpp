@@ -194,6 +194,8 @@ typedef struct SdfInputConstants
 	float mShadowHardness = 6.0f;
 	uint mMaxIteration = 64U;
 	float2 mWindowDimension = { 0, 0 };
+	float mSphereRadius;
+	float mRadsRot;
 }SdfInputUniformBlock;
 
 enum
@@ -300,7 +302,7 @@ Texture*			pTextureScene[2];
 /************************************************************************/
 struct
 {
-    uint32 mFilterWidth = 4U;
+    uint32 mFilterWidth = 24U;
 } gEsmCpuSettings;
 
 
@@ -340,14 +342,14 @@ ICameraController* pLightView = NULL;
 /// UI
 UIApp							gAppUI;
 GuiComponent*					pGuiWindow = NULL;
-DebugTextDrawDesc				gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc				gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 FileSystem gFileSystem;
 LogManager gLogManager;
 
 const uint32_t gImageCount = 3;
 const int gSphereResolution = 120; // Increase for higher resolution spheres
-const float gSphereRadius = 0.5f;
+const float gSphereRadius = 1.33f;
 
 Renderer* pRenderer = NULL;
 
@@ -376,7 +378,7 @@ const char* pSceneFileNames[] =
 };
 
 
-#if defined(DIRECT3D12)
+#if defined(DIRECT3D12) || defined(DIRECT3D11)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
 #define RESOURCE_DIR "PCVulkan"
@@ -456,26 +458,37 @@ static void createScene()
 	/************************************************************************/
 	// Initialize Objects
 	/************************************************************************/
-	const float sphereRadius = 0.3f;
-	const float sphereDist = 2.0f*sphereRadius;
+	const float sphereRadius = gSphereRadius;
+	const float sphereDist = 3.0f*sphereRadius;
 	int sphereIndex = 0;
 
+	vec3 curTrans = { -sphereDist*(SPHERE_EACH_ROW - 1)/2.f, sphereRadius * 2.3f, -sphereDist*(SPHERE_EACH_COL - 1)/2.f };
+
 	for (int i = 0; i < SPHERE_EACH_ROW; ++i)
-	{
+	{		
+		curTrans.setX(-sphereDist * (SPHERE_EACH_ROW - 1) / 2.f);
+
 		for (int j = 0; j < SPHERE_EACH_COL; j++)
-		{
-			vec3 translation = { sphereDist*i, 0.29f, sphereDist*j };
-			gObjectsCenter += translation;
-			gObjectInfoData[sphereIndex].mTranslation = translation;
-			gObjectInfoData[sphereIndex].mScaleMat = mat4::scale(vec3(sphereRadius * 2));
+		{					
+			gObjectInfoData[sphereIndex].mTranslation = curTrans;
+			gObjectInfoData[sphereIndex].mScaleMat = mat4::scale(vec3(sphereRadius));
 			gObjectInfoData[sphereIndex].mColor = vec4(1, 1, 1, 1);
 			sphereIndex++;
-		}
-	}
-	gObjectsCenter = sphereIndex ? gObjectsCenter / (float)sphereIndex : vec3(0, 0, 0);
 
-	gObjectInfoData[SPHERE_NUM - 1].mTranslation = { gObjectsCenter.getX(), gObjectsCenter.getY() - 0.3f, gObjectsCenter.getZ() };
-	gObjectInfoData[SPHERE_NUM - 1].mScaleMat = mat4::scale(vec3(30, 0.01f, 30));
+			curTrans.setX(curTrans.getX() + sphereDist);
+		}
+		
+		curTrans.setZ(curTrans.getZ() + sphereDist);
+	}
+
+	gObjectsCenter = vec3(0, 0, 0);
+
+	gObjectInfoData[SPHERE_NUM - 1].mTranslation = { 0.f, 0.f, 0.f };
+	gObjectInfoData[SPHERE_NUM - 1].mScaleMat = mat4::scale(
+		vec3(
+			sphereDist * SPHERE_EACH_ROW / 0.9f,
+			1.f, 
+			sphereDist * SPHERE_EACH_COL / 0.9f));
 	gObjectInfoData[SPHERE_NUM - 1].mColor = vec4(1, 1, 1, 1);
 
 	for (int i = 0; i < SPHERE_NUM; i++)
@@ -729,8 +742,8 @@ public:
 		samplerBiliniearDesc.mAddressU = ADDRESS_MODE_REPEAT;
 		samplerBiliniearDesc.mAddressV = ADDRESS_MODE_REPEAT;
 		samplerBiliniearDesc.mAddressW = ADDRESS_MODE_REPEAT;
-		samplerBiliniearDesc.mMinFilter = FILTER_BILINEAR;
-		samplerBiliniearDesc.mMagFilter = FILTER_BILINEAR;
+		samplerBiliniearDesc.mMinFilter = FILTER_LINEAR;
+		samplerBiliniearDesc.mMagFilter = FILTER_LINEAR;
 		samplerBiliniearDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
         addSampler(pRenderer, &samplerBiliniearDesc, &pSamplerBilinear);
 
@@ -738,8 +751,8 @@ public:
 		samplerShadowDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerShadowDesc.mAddressV = ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerShadowDesc.mAddressW = ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerShadowDesc.mMinFilter = FILTER_TRILINEAR_ANISO;
-		samplerShadowDesc.mMagFilter = FILTER_TRILINEAR_ANISO;
+		samplerShadowDesc.mMinFilter = FILTER_LINEAR;
+		samplerShadowDesc.mMagFilter = FILTER_LINEAR;
 		samplerShadowDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
 		samplerShadowDesc.mMipLosBias = 0.0f;
 		samplerShadowDesc.mMaxAnisotropy = 8.0f;
@@ -749,8 +762,8 @@ public:
 		samplerTrilinearAnisoDesc.mAddressU = ADDRESS_MODE_REPEAT;
 		samplerTrilinearAnisoDesc.mAddressV = ADDRESS_MODE_REPEAT;
 		samplerTrilinearAnisoDesc.mAddressW = ADDRESS_MODE_REPEAT;
-		samplerTrilinearAnisoDesc.mMinFilter = FILTER_TRILINEAR_ANISO;
-		samplerTrilinearAnisoDesc.mMagFilter = FILTER_BILINEAR;
+		samplerTrilinearAnisoDesc.mMinFilter = FILTER_LINEAR;
+		samplerTrilinearAnisoDesc.mMagFilter = FILTER_LINEAR;
 		samplerTrilinearAnisoDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
 		samplerTrilinearAnisoDesc.mMipLosBias = 0.0f;
 		samplerTrilinearAnisoDesc.mMaxAnisotropy = 8.0f;
@@ -874,7 +887,7 @@ public:
 		
 
         CameraMotionParameters cmp{16.0f, 60.0f, 20.0f};
-        vec3 camPos{2, 3, -5};
+        vec3 camPos{12, 13, -15};
         vec3 lookAt{0};
 
         pLightView = createGuiCameraController(camPos, lookAt);
@@ -1246,12 +1259,22 @@ public:
 		/************************************************************************/
 		// Update SDF Settings
 		/************************************************************************/
+
+		float const rads = 0.0001f * currentTime;
 		BufferUpdateDesc sdfInputUniformCbv = { pBufferSdfInputUniform, &gSdfUniformData };
 		gSdfUniformData.mCameraPosition = gCameraUniformData.mPosition;
 		gSdfUniformData.mViewInverse = transpose(pCameraController->getViewMatrix());//transpose to invert
 		gSdfUniformData.mWindowDimension.x = (float)(mSettings.mWidth);
 		gSdfUniformData.mWindowDimension.y = (float)(mSettings.mHeight);
+		gSdfUniformData.mSphereRadius = gSphereRadius;
+		gSdfUniformData.mRadsRot = rads;
 		updateResource(&sdfInputUniformCbv);
+
+		// Rotate spheres
+		for (int i = 0; i < SPHERE_NUM; i++)
+		{			
+			gObjectInfoUniformData.mToWorldMat[i] = mat4::rotationY(rads) * gObjectInfoData[i].mTranslationMat * gObjectInfoData[i].mScaleMat;
+		}
 
         /************************************************************************/
         ////////////////////////////////////////////////////////////////
@@ -1284,26 +1307,17 @@ public:
         cmdBindVertexBuffer(cmd, 1, &pBufferSphereVertex, NULL);
 
         cmdBindPipeline(cmd, pPipelineDeferredPass);
-#ifndef METAL
+
 		DescriptorData params[3] = {};
-#else
-		DescriptorData params[4] = {};
-#endif
         params[0].pName = "objectUniformBlock";
         params[0].ppBuffers = &pBufferObjectTransforms;
         params[1].pName = "SphereTex";
         params[1].ppTextures = &pTextureScene[0];
         params[2].pName = "PlaneTex";
         params[2].ppTextures = &pTextureScene[1];
-		
-#ifndef METAL
+
 		cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 3, params);
-#else
-		params[3].pName = "textureSampler";
-		params[3].ppSamplers = &pSamplerTrilinearAniso;
-		cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 4, params);
-#endif
-        cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM);
+        cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
         cmdEndDebugMarker(cmd);
@@ -1328,11 +1342,7 @@ public:
 
         cmdBindPipeline(cmd, pPipelineDeferredShadeSrgb);
 
-#ifndef METAL
 		DescriptorData params[11] = {};
-#else
-		DescriptorData params[13] = {};
-#endif
         params[0].pName = "gBufferColor";
         params[0].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture;
         params[1].pName = "gBufferNormal";
@@ -1355,15 +1365,7 @@ public:
         params[9].ppTextures = &pRenderTargetSdfSimple->pTexture;
         params[10].pName = "cameraUniform";
         params[10].ppBuffers = &pBufferCameraUniform;
-#ifndef METAL
 		cmdBindDescriptors(cmd, pRootSignatureDeferredShade, 11, params);
-#else
-		params[11].pName = "depthSampler";
-		params[11].ppSamplers = &pSamplerShadow;
-		params[12].pName = "textureSampler";
-		params[12].ppSamplers = &pSamplerTrilinearAniso;
-		cmdBindDescriptors(cmd, pRootSignatureDeferredShade, 13, params);
-#endif
 
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
@@ -1411,24 +1413,14 @@ public:
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, rtId == 0 ? "Blur ESM Pass H" : "Blur ESM Pass V");
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetESMBlur[rtId], NULL, &loadActions, NULL, NULL, -1, -1);
 
-#ifndef METAL
 		DescriptorData params[3] = {};
-#else
-		DescriptorData params[4] = {};
-#endif
         params[0].pName = "shadowExpMap";
         params[0].ppTextures = rtId == 0 ? &pRenderTargetShadowMap->pTexture : &pRenderTargetESMBlur[0]->pTexture;
         params[1].pName = "ESMInputConstants";
         params[1].ppBuffers = rtId == 0 ? &pBufferESMBlurUniformH_Primary : &pBufferESMBlurUniformV;
         params[2].pName = "GaussianWeightsBuffer";
 		params[2].ppBuffers = &pBufferESMGaussianWeights;
-#ifndef METAL
 		cmdBindDescriptors(cmd, pRootSignatureESMBlur, 3, params);
-#else
-		params[3].pName = "blurSampler";
-		params[3].ppSamplers = &pSamplerShadow;
-		cmdBindDescriptors(cmd, pRootSignatureESMBlur, 4, params);
-#endif
         cmdBindPipeline(cmd, pPipelineESMBlur);
         // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
         cmdDraw(cmd, 3, 0);
@@ -1467,7 +1459,7 @@ public:
         params[2].ppBuffers = &pBufferESMBlurUniformH_Primary;
         cmdBindDescriptors(cmd, pRootSignatureShadowPass, 3, params);
 		
-        cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM);
+        cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
         cmdEndDebugMarker(cmd);
@@ -1490,11 +1482,7 @@ public:
         
         cmdBindPipeline(cmd, pPipelineSkybox);
 
-#ifndef METAL
 		DescriptorData params[7] = {};
-#else
-		DescriptorData params[8] = {};
-#endif
         params[0].pName = "skyboxUniformBlock";
         params[0].ppBuffers = &pBufferSkyboxUniform;
         params[1].pName = "RightText";
@@ -1509,13 +1497,7 @@ public:
         params[5].ppTextures = &pTextureSkybox[4];
         params[6].pName = "BackText";
 		params[6].ppTextures = &pTextureSkybox[5];
-#ifndef METAL
 		cmdBindDescriptors(cmd, pRootSignatureSkybox, 7, params);
-#else
-		params[7].pName = "skySampler";
-		params[7].ppSamplers = &pSamplerSkybox;
-		cmdBindDescriptors(cmd, pRootSignatureSkybox, 8, params);
-#endif
 		cmdBindVertexBuffer(cmd, 1, &pBufferSkyboxVertex, NULL);
         cmdDraw(cmd, 36, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1559,11 +1541,10 @@ public:
         // Get command list to store rendering commands for this frame
         Cmd* cmd = ppCmds[gFrameIndex];
 
-    	renderTargetBarriers(cmd);
         pRenderTargetScreen = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
         beginCmd(cmd);
-
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		renderTargetBarriers(cmd);
         TextureBarrier barriers1[] = {
             {pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET},
             {pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE},
@@ -1641,8 +1622,8 @@ public:
         gTimer.GetUSec(true);
 
 #ifndef TARGET_IOS
-        drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+        drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #else
@@ -1679,7 +1660,7 @@ public:
 
     }
 
-    String GetName() override
+    tinystl::string GetName() override
     {
         return "09_LightShadowPlayground";
     }
@@ -1698,7 +1679,7 @@ public:
         swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
         swapChainDesc.mColorFormat = ImageFormat::BGRA8;
         swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
-        swapChainDesc.mSrgb = true;
+        swapChainDesc.mSrgb = false;
 
         swapChainDesc.mEnableVsync = false;
         ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -1842,7 +1823,7 @@ void GuiController::addGui(const class UIProperty*)
 	{
 		for (size_t i = 0; i < currentExistingGuiNum; i++)
 		{
-			pGuiWindow->RemoveProperty(m_propertyIds[i]);
+			pGuiWindow->RemoveControl(m_propertyIds[i]);
 		}
 		m_propertyIds.clear();
 	}
@@ -1869,17 +1850,17 @@ void GuiController::addGui(const class UIProperty*)
 	};
 
 	UIProperty renderMode("Render Output", gRenderSettings.mRenderOutput, renderModeNames, renderModeValues);
-	m_propertyIds.emplace_back(pGuiWindow->AddProperty(renderMode));
+	m_propertyIds.emplace_back(pGuiWindow->AddControl(renderMode));
 #endif
 	const float lightPosBound = 10.0f;
 	UIProperty lightX("Light Position X", gLightCpuSettings.mLightPosition.x, -lightPosBound, lightPosBound, 0.1f);
-	m_propertyIds.emplace_back(pGuiWindow->AddProperty(lightX));
+	m_propertyIds.emplace_back(pGuiWindow->AddControl(lightX));
 
 	UIProperty lightY("Light Position Y", gLightCpuSettings.mLightPosition.y, 5, 30.0f, 0.1f);
-	m_propertyIds.emplace_back(pGuiWindow->AddProperty(lightY));
+	m_propertyIds.emplace_back(pGuiWindow->AddControl(lightY));
 
 	UIProperty lightZ("Light Position Z", gLightCpuSettings.mLightPosition.z, -lightPosBound, lightPosBound, 0.1f);
-	m_propertyIds.emplace_back(pGuiWindow->AddProperty(lightZ));
+	m_propertyIds.emplace_back(pGuiWindow->AddControl(lightZ));
 
 	static const char* shadowTypeNames[] = {
 		"No Shadow",
@@ -1894,23 +1875,23 @@ void GuiController::addGui(const class UIProperty*)
 		0//needed for unix
 	};
 	UIProperty shadpwType("Shadow Type", gRenderSettings.mShadowType, shadowTypeNames, shadowTypeValues, &addGui);
-	m_propertyIds.emplace_back(pGuiWindow->AddProperty(shadpwType));
+	m_propertyIds.emplace_back(pGuiWindow->AddControl(shadpwType));
 
 	if (gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
 	{
 		UIProperty esmSoftness("ESM Softness", gEsmCpuSettings.mFilterWidth, 0, MAX_GAUSSIAN_WIDTH);
-		m_propertyIds.emplace_back(pGuiWindow->AddProperty(esmSoftness));
+		m_propertyIds.emplace_back(pGuiWindow->AddControl(esmSoftness));
 
 		UIProperty esmExp("ESM Darkness", gESMBlurUniformDataH_Primary.mExponent, 0.0f, 240.0f, 0.1f);
-		m_propertyIds.emplace_back(pGuiWindow->AddProperty(esmExp));
+		m_propertyIds.emplace_back(pGuiWindow->AddControl(esmExp));
 	}
 	else if (gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
 	{
 		UIProperty sdfControl0("SDF Shadow Hardness", gSdfUniformData.mShadowHardness, 3, 20, 0.01f);
-		m_propertyIds.emplace_back(pGuiWindow->AddProperty(sdfControl0));
+		m_propertyIds.emplace_back(pGuiWindow->AddControl(sdfControl0));
 
 		UIProperty sdfControl1("SDF Max Iteration", gSdfUniformData.mMaxIteration, 32, 1024, 1);
-		m_propertyIds.emplace_back(pGuiWindow->AddProperty(sdfControl1));
+		m_propertyIds.emplace_back(pGuiWindow->AddControl(sdfControl1));
 	}
 
 }

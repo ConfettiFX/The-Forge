@@ -28,7 +28,7 @@
 #include "InputSystem.h"
 #include "InputMappings.h"
 
-#ifdef LINUX
+#ifdef __linux__
 #include <climits>
 #endif
 
@@ -52,6 +52,7 @@
 //Fix UI navigation and selection (Unify mouse vs joystick dpad)
 //Sometimes Touch joystick gets stuck. Need to investigate further, could be caused by gainput or some bad logic in detecting release of touch.
 //Add concept of virtual joystick for unifying button data. It's needed for Touch data Working with Virtual joystick in UI.
+//need to add max,min to input mapping
 //Add Mouse wheel
 **/
 
@@ -256,12 +257,23 @@ void InputSystem::MapKey(const uint32_t& sourceKey, const uint32_t& userKey, Gai
     mDeviceToUserMappings[sourceKey].push_back(toAdd);
 }
 
+bool InputSystem::IsButtonMapped(const uint32_t& userKey)
+{
+	if (userKey  < 0 || userKey > UserInputKeys::KEY_COUNT)
+		return false;
+
+	if (mKeyMappings.find(userKey) == mKeyMappings.end())
+		return false;
+
+	return false;
+}
+
 bool InputSystem::IsButtonPressed(const uint32_t& buttonId)
 {
 	// check if button is mapped
 	if (!pInputMap[mActiveInputMap]->IsMapped(buttonId))
 	{
-		LOGERRORF("Button is not mapped");
+		LOGWARNING("Button is not mapped");
 		return false;
 	}
 
@@ -274,7 +286,7 @@ bool InputSystem::IsButtonTriggered(const uint32_t& buttonId)
 	// check if button is mapped
 	if (!pInputMap[mActiveInputMap]->IsMapped(buttonId))
 	{
-		LOGERRORF("Button is not mapped");
+		LOGWARNING("Button is not mapped");
 		return false;
 	}
 
@@ -287,14 +299,13 @@ bool InputSystem::IsButtonReleased(const uint32_t& buttonId)
 	// check if button is mapped
 	if (!pInputMap[mActiveInputMap]->IsMapped(buttonId))
 	{
-		LOGERRORF("Button is not mapped");
+		LOGWARNING("Button is not mapped");
 		return false;
 	}
 
 	ButtonData button = GetButtonData(buttonId);
 	return button.mIsReleased;
 }
-
 /*
  This can handle any kind of button(mouse Button, keyboard, gamepad)
  It also handles same user key mapped to multiple buttons
@@ -307,7 +318,7 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 	// check if button is mapped
 	if (!pInputMap[mActiveInputMap]->IsMapped(buttonId))
 	{
-		LOGERRORF("Button is not mapped");
+		LOGWARNING("Button is not mapped");
 		return button;
 	}
 
@@ -318,11 +329,10 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 
     if (keyMappings.size() == 0)
     {
-        LOGERRORF("Couldn't find map from user to Description ");
+		LOGWARNING("Couldn't find map from user to Description ");
         return button;
     }
 
-    gainput::InputDevice * device = NULL;
     tinystl::vector<KeyMappingDescription *> descs;
 
     //Gather all combinations of device buttons that could affect
@@ -349,7 +359,7 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 		return button;
 
     //reset values before accumulating
-	button.mDeviceButtonId = 0;
+	button.mActiveDevicesMask = GAINPUT_DEFAULT;
 	button.mValue[0] = button.mValue[1] = 0;
 	button.mPrevValue[0] = button.mPrevValue[1] = 0;
 	button.mDeltaValue[0] = button.mDeltaValue[1] = 0;
@@ -361,61 +371,11 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
         //get current descriptor
         //defines which buttons from which device
         //defines how buttons affect an axis for joysticks and in which direction
-		KeyMappingDescription * desc = descs[map];
-        //get device id. for now assuming one device only per type.
-		uint32_t deviceId = GetDeviceID(desc->mDeviceType);
-		device = pInputManager->GetDevice(deviceId);
-        //how many device buttons are needed for current user key
-		uint32_t deviceMappingcount = desc->mAxisCount;
+		KeyMappingDescription * desc = descs[map];       
 
-		for (uint32_t i = 0; i < deviceMappingcount; i++)
-		{
-            //get current device button + axis + direction
-			TargetMapping mapping = desc->mMappings[i];
-			ASSERT(device->IsValidButtonId(mapping.mDeviceButtonId));
-            //aggregate all device button ids.
-			button.mDeviceButtonId |= mapping.mDeviceButtonId;
-        
-			gainput::ButtonType type = device->GetButtonType(mapping.mDeviceButtonId);
-
-            //for given axis accumulate current and previous values
-            //accumulate for the multiple device buttons
-            //example W affecting X axis positively on left stick
-            // S affecting Y axis negatively on left stick
-			if (type == gainput::ButtonType::BT_FLOAT)
-			{
-				button.mValue[mapping.mAxis] += device->GetFloat(mapping.mDeviceButtonId) * (float)mapping.mDirection;
-				button.mPrevValue[mapping.mAxis] += device->GetFloatPrevious(mapping.mDeviceButtonId) * (float)mapping.mDirection;
-			}
-			else
-			{
-				float currValue = device->GetBool(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
-				float prevValue = device->GetBoolPrevious(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
-
-				button.mValue[mapping.mAxis] += currValue * (float)mapping.mDirection;
-				button.mPrevValue[mapping.mAxis] += prevValue;
-			}
-		}
-
-		//call custom callback function
-		//if (desc->pInputCallbackFn)
-		//{
-		//	desc->pInputCallbackFn(button);
-		//}
+		//This is the core function that gathers the actual input data for that specified user key
+		FillButtonDataFromDesc(desc, button);
 	}
-
-	button.mDeltaValue[0] = button.mValue[0] - button.mPrevValue[0];
-	button.mDeltaValue[1] = button.mValue[1] - button.mPrevValue[1];
-
-    //if current value is != 0 then its pressed
-    //if previous value is != 0 and current value = 0 then its released
-    //same with triggered but otherway around.
-    float prevFrameDelta = (abs(button.mPrevValue[0]) + abs(button.mPrevValue[1]));
-    bool isPressed = (abs(button.mValue[0]) + abs(button.mValue[1])) > 0.0f;
-
-    button.mIsPressed = isPressed;
-    button.mIsReleased = prevFrameDelta  > 0.f && !button.mIsPressed ? true : false;
-    button.mIsTriggered = prevFrameDelta == 0.0f && button.mIsPressed ? true : false;
 	
 	return button;
 }
@@ -499,7 +459,12 @@ void InputSystem::SetDefaultKeyMapping()
 	AddMappings(gXboxMappings, entryCount);
 #else
 	uint32_t entryCount = sizeof(gUserKeys) / sizeof(KeyMappingDescription);
-	AddMappings(gUserKeys, entryCount);
+	uint32_t controllerEntryCount = sizeof(gXboxMappings) / sizeof(KeyMappingDescription);
+	if(mMouseDeviceID != gainput::InvalidDeviceId && mKeyboardDeviceID != gainput::InvalidDeviceId)
+		AddMappings(gUserKeys, entryCount);
+
+	if (mGamepadDeviceID != gainput::InvalidDeviceId)
+		AddMappings(gXboxMappings, controllerEntryCount);
 #endif
 
 
@@ -540,139 +505,14 @@ GainputDeviceType InputSystem::GetDeviceType(uint32_t deviceId)
 
 bool InputSystem::DeviceInputEventListener::OnDeviceButtonBool(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, bool oldValue, bool newValue)
 {
-	tinystl::vector<UserToDeviceMap> userButtons = mDeviceToUserMappings[deviceButton];
-	GainputDeviceType deviceType = GetDeviceType(deviceId);
-
-	for (uint32_t i = 0; i < userButtons.size(); i++)
-	{
-		if (userButtons[i].deviceId != deviceId)
-			continue;
-
-		ButtonData buttonData = GetButtonData(userButtons[i].userMapping, deviceType);
-		OnInputEvent(buttonData);
-	}
-
-
-	return true;
+	return GatherInputEventButton(deviceId, deviceButton, oldValue ? 1.0f: 0.0f, newValue ? 1.0f: 0.0f);
 }
 
 
 
 bool InputSystem::DeviceInputEventListener::OnDeviceButtonFloat(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
 {
-	tinystl::vector<UserToDeviceMap> userButtons = mDeviceToUserMappings[deviceButton];
-
-	GainputDeviceType deviceType = GetDeviceType(deviceId);
-    gainput::InputDevice * device = NULL;
-
-	for (uint32_t i = 0; i < userButtons.size(); i++)
-	{
-		if (userButtons[i].deviceId != deviceId)
-			continue;
-
-        ButtonData button = {};
-        button.mUserId = userButtons[i].userMapping;
-        
-        // check if button is mapped
-        if (!pInputMap[mActiveInputMap]->IsMapped(userButtons[i].userMapping))
-        {
-            LOGERRORF("Button is not mapped");
-            continue;
-        }
-        
-        //here it means one user key maps to multiple device button
-        //such as left stick with w-a-s-d or left stick with touchx, touchy
-        tinystl::vector<KeyMappingDescription> keyMappings = mKeyMappings[userButtons[i].userMapping];
-        
-        if (keyMappings.size() == 0)
-        {
-            LOGERRORF("Couldn't find map from user to Description ");
-            continue;
-        }
-        
-        KeyMappingDescription * desc = NULL;
-        
-		//for every user key mapping
-        for (uint32_t i = 0; i < keyMappings.size(); i++)
-        {
-			//look for given device type
-            if (deviceType != GainputDeviceType::GAINPUT_DEFAULT)
-            {
-                if (keyMappings[i].mDeviceType == deviceType)
-                {
-					//Find which key mapping corresponds to device button that got updated
-					//we dont need to aggregate all key mappings here.
-                    for(uint32_t j = 0 ; j < keyMappings[i].mAxisCount ;j++)
-                    {
-                        if(keyMappings[i].mMappings[j].mDeviceButtonId == deviceButton)
-                        {
-                            desc = &keyMappings[i];
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (!desc)
-            continue;
-        
-		//reset values
-        button.mDeviceButtonId = 0;
-        button.mValue[0] = button.mValue[1] = 0;
-        button.mPrevValue[0] = button.mPrevValue[1] = 0;
-        button.mDeltaValue[0] = button.mDeltaValue[1] = 0;
-        
-        uint32_t deviceId = GetDeviceID(desc->mDeviceType);
-        device = pInputManager->GetDevice(deviceId);
-        uint32_t deviceMappingcount = desc->mAxisCount;
-        
-        for (uint32_t i = 0; i < deviceMappingcount; i++)
-        {
-            TargetMapping mapping = desc->mMappings[i];
-            ASSERT(device->IsValidButtonId(mapping.mDeviceButtonId));
-            
-            button.mDeviceButtonId |= mapping.mDeviceButtonId;
-            
-            gainput::ButtonType type = device->GetButtonType(mapping.mDeviceButtonId);
-            
-            if (type == gainput::ButtonType::BT_FLOAT)
-            {
-                if(mapping.mDeviceButtonId == deviceButton)
-                {
-                    button.mValue[mapping.mAxis] = newValue * (float)mapping.mDirection;
-                    button.mPrevValue[mapping.mAxis] = oldValue * (float)mapping.mDirection;
-                }
-                else
-                {
-                    button.mValue[mapping.mAxis] += device->GetFloat(mapping.mDeviceButtonId) * (float)mapping.mDirection;
-                    button.mPrevValue[mapping.mAxis] += device->GetFloatPrevious(mapping.mDeviceButtonId) * (float)mapping.mDirection;
-                }
-            }
-            else
-            {
-                float currValue = device->GetBool(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
-                float prevValue = device->GetBoolPrevious(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
-                
-                button.mValue[mapping.mAxis] += currValue * (float)mapping.mDirection;
-                button.mPrevValue[mapping.mAxis] += prevValue* (float)mapping.mDirection;
-            }
-        }
-        
-        button.mDeltaValue[0] = button.mValue[0] - button.mPrevValue[0];
-        button.mDeltaValue[1] = button.mValue[1] - button.mPrevValue[1];
-        
-        float prevFrameDelta = (abs(button.mPrevValue[0]) + abs(button.mPrevValue[1]));
-        bool isPressed = (abs(button.mValue[0]) + abs(button.mValue[1])) > 0.0f;
-        
-        button.mIsPressed = isPressed;
-        button.mIsReleased = prevFrameDelta  > 0.f && !button.mIsPressed ? true : false;
-        button.mIsTriggered = prevFrameDelta == 0.0f && button.mIsPressed ? true : false;
-        
-        //broadcast event
-        OnInputEvent(button);
-    }
-        return true;
+	return GatherInputEventButton(deviceId, deviceButton, oldValue, newValue);
 }
 
 
@@ -680,4 +520,192 @@ void InputSystem::WarpMouse(const float& x, const float& y)
 {
 	gainput::InputDevice * device = pInputManager->GetDevice(mRawMouseDeviceID);
 	device->WarpMouse(x,y);
+}
+
+bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
+{
+	tinystl::vector<UserToDeviceMap> userButtons = mDeviceToUserMappings[deviceButton];
+
+	GainputDeviceType deviceType = GetDeviceType(deviceId);
+
+	for (uint32_t i = 0; i < userButtons.size(); i++)
+	{
+		if (userButtons[i].deviceId != deviceId)
+			continue;
+
+		ButtonData button = {};
+		button.mUserId = userButtons[i].userMapping;
+
+		// check if button is mapped
+		if (!pInputMap[mActiveInputMap]->IsMapped(userButtons[i].userMapping))
+		{
+			LOGWARNING("Button is not mapped");
+			continue;
+		}
+
+		//here it means one user key maps to multiple device button
+		//such as left stick with w-a-s-d or left stick with touchx, touchy
+		tinystl::vector<KeyMappingDescription> keyMappings = mKeyMappings[userButtons[i].userMapping];
+
+		if (keyMappings.size() == 0)
+		{
+			LOGWARNING("Couldn't find map from user to Description ");
+			continue;
+		}
+
+		KeyMappingDescription * desc = NULL;
+
+		//for every user key mapping
+		for (uint32_t i = 0; i < keyMappings.size(); i++)
+		{
+			//look for given device type
+			if (deviceType != GainputDeviceType::GAINPUT_DEFAULT)
+			{
+				if (keyMappings[i].mDeviceType == deviceType)
+				{
+					//Find which key mapping corresponds to device button that got updated
+					//we dont need to aggregate all key mappings here.
+					for (uint32_t j = 0; j < keyMappings[i].mAxisCount; j++)
+					{
+						if (keyMappings[i].mMappings[j].mDeviceButtonId == deviceButton)
+						{
+							desc = &keyMappings[i];
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (!desc)
+			continue;
+
+
+		//reset values
+		button.mActiveDevicesMask = GAINPUT_DEFAULT;
+		button.mValue[0] = button.mValue[1] = 0;
+		button.mPrevValue[0] = button.mPrevValue[1] = 0;
+		button.mDeltaValue[0] = button.mDeltaValue[1] = 0;
+
+		//This is the core function that gathers the actual input data for that specified user key
+		FillButtonDataFromDesc(desc, button, oldValue, newValue, deviceId, deviceButton);
+
+		//broadcast event
+		OnInputEvent(button);
+	}
+
+	return true;
+}
+
+/**
+ * Given a specific Key mapping descriptor this function will fill the button data with correct input values.
+ * The function can be used to fill the data from a gainput event and whenever GetButtonData is called.
+ * When an event uses this function the last 4 parameters are used other default values are used.
+ */
+void InputSystem::FillButtonDataFromDesc(const KeyMappingDescription * keyMapping, ButtonData& button, float oldValue, float newValue, gainput::DeviceId eventDeviceId, gainput::DeviceButtonId eventDeviceButton)
+{
+	ASSERT(keyMapping != NULL);
+
+	//get device associated with the input mapping descriptor.
+	uint32_t descDeviceId = GetDeviceID(keyMapping->mDeviceType);
+	gainput::InputDevice * device = pInputManager->GetDevice(descDeviceId);
+	//this determines how many device buttons affects the current user defined key.
+	//for example
+	//Pads have 4 axes (one key for each direction)
+	//Joysticks and mouse wheel have 2 axes
+	//Single keyboard buttons or mouse button have a single axis.
+	uint32_t deviceMappingcount = keyMapping->mAxisCount;
+	bool currentDeviceActive = false;
+	//For every device button that is used for this mapping descriptor
+	for (uint32_t i = 0; i < deviceMappingcount; i++)
+	{
+		//get mappings which holds:
+		//device button to gather input from, 
+		//Axis (X or Y)
+		//Direction (Positive or negative)
+		//TODO : Add descriptor for input range and type of input (Normalized, Absolute, Relative)
+		TargetMapping mapping = keyMapping->mMappings[i];
+
+		//check that button is valid, Maybe input device has a missing button (Different gamepads)
+		if (!device->IsValidButtonId(mapping.mDeviceButtonId))
+			continue;
+
+		gainput::ButtonType type = device->GetButtonType(mapping.mDeviceButtonId);
+		if (type == gainput::ButtonType::BT_FLOAT)
+		{
+			//if we are calling this function from an gainput event listener we only want to use the values updated from the event.
+			//This enables us to receive every input event received in a single frame (Think multiple mouse events in same frame)
+			if (eventDeviceButton != gainput::InvalidDeviceId && mapping.mDeviceButtonId == eventDeviceButton)
+			{
+				//if current button has any effect on the current user button 
+				//then add device as active to active devices mask
+				if (newValue != 0.0f)
+					currentDeviceActive = true;
+
+				//for raw mouse we need to check delta to update button data
+				//otherwise we get accumulated movement values.
+				if (keyMapping->mDeviceType == GAINPUT_RAW_MOUSE && newValue == oldValue)
+					continue;
+
+				button.mValue[mapping.mAxis] = newValue * (float)mapping.mDirection;
+				button.mPrevValue[mapping.mAxis] = oldValue * (float)mapping.mDirection; 
+			}
+			else
+			{
+				float currValue = device->GetFloat(mapping.mDeviceButtonId);
+				float prevValue = device->GetFloatPrevious(mapping.mDeviceButtonId);
+				
+				//for raw mouse we need to check delta to update button data
+				//otherwise we get accumulated movement values.
+				if (keyMapping->mDeviceType == GAINPUT_RAW_MOUSE && currValue == prevValue)
+					continue;
+
+				if (currValue != 0.0f)
+					currentDeviceActive = true;
+
+				button.mValue[mapping.mAxis] += currValue * (float)mapping.mDirection;
+				button.mPrevValue[mapping.mAxis] += prevValue * (float)mapping.mDirection;
+			}
+		}
+		else
+		{
+			if (eventDeviceButton != gainput::InvalidDeviceId && mapping.mDeviceButtonId == eventDeviceButton)
+			{
+				if (newValue != 0.0f)
+					currentDeviceActive = true;
+
+				button.mValue[mapping.mAxis] = newValue * (float)mapping.mDirection;
+				button.mPrevValue[mapping.mAxis] = oldValue * (float)mapping.mDirection;
+			}
+			else
+			{
+
+				float currValue = device->GetBool(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
+				float prevValue = device->GetBoolPrevious(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
+
+				if (currValue != 0.0f)
+					currentDeviceActive = true;
+
+				button.mValue[mapping.mAxis] += currValue * (float)mapping.mDirection;
+				button.mPrevValue[mapping.mAxis] += prevValue * (float)mapping.mDirection;
+			}
+		}
+	}
+
+	//if button is pressed because of this device then add it's type to the mask
+	if (currentDeviceActive)
+		button.mActiveDevicesMask = (GainputDeviceType)(button.mActiveDevicesMask | keyMapping->mDeviceType);
+
+	button.mDeltaValue[0] = button.mValue[0] - button.mPrevValue[0];
+	button.mDeltaValue[1] = button.mValue[1] - button.mPrevValue[1];
+
+	float prevFrameDelta = (abs(button.mPrevValue[0]) + abs(button.mPrevValue[1]));
+	bool isPressed = (abs(button.mValue[0]) + abs(button.mValue[1])) > 0.0f;
+
+	button.mIsPressed = isPressed;
+	button.mIsReleased = prevFrameDelta > 0.f && !button.mIsPressed ? true : false;
+	button.mIsTriggered = prevFrameDelta == 0.0f && button.mIsPressed ? true : false;
+
+	if (keyMapping->mUserId == KEY_CHAR && mKeyboardDeviceID != gainput::InvalidDeviceId)
+		button.mCharacter = (wchar_t)((gainput::InputDeviceKeyboard*)pInputManager->GetDevice(mKeyboardDeviceID))->GetNextCharacter();
 }

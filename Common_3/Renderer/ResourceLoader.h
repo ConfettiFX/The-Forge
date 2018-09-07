@@ -112,7 +112,7 @@ typedef struct ResourceUpdateDesc
 
 typedef struct ShaderStageLoadDesc
 {
-	String			mFileName;
+	tinystl::string			mFileName;
 	ShaderMacro*	pMacros;
 	uint32_t		mMacroCount;
 	FSRoot			mRoot;

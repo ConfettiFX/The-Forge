@@ -237,6 +237,11 @@
     <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.frag" />
     <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.vert" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Libraries\OS\OS.vcxproj">
+      <Project>{30dd3d57-0026-48c8-bfd1-6392f319e23a}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4065B082-D11C-4BCF-B383-E63B2FA70291}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -474,4 +479,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

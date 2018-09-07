@@ -80,6 +80,10 @@ void drawFrame(float deltaTime);
 // hot-swap the input device
 // the user decides to switch from keyboard to controller input
 // we are going to call exitInput() and then initInput()
+#ifndef _IAPP_H_
+#define _IAPP_H_
+
+#include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
 class IApp
 {
@@ -93,7 +97,7 @@ public:
 	virtual void Update(float deltaTime) = 0;
 	virtual void Draw() = 0;
 
-	virtual String GetName() = 0;
+	virtual tinystl::string GetName() = 0;
 
 	struct Settings
 	{
@@ -108,7 +112,7 @@ public:
 	} mSettings;
 
 	WindowsDesc* pWindow;
-	String mCommandLine;
+	tinystl::string mCommandLine;
 };
 
 #if defined(_DURANGO)
@@ -158,3 +162,5 @@ int main(int argc, char** argv)									\
 }
 #else
 #endif
+
+#endif // _IAPP_H_

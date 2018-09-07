@@ -86,18 +86,18 @@ size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
   return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-String _getCurrentDir()
+tinystl::string _getCurrentDir()
 {
     char cwd[256]="";
     getcwd(cwd, sizeof(cwd));
-    String str(cwd);
+    tinystl::string str(cwd);
     return str;
 }
 
-String _getExePath()
+tinystl::string _getExePath()
 {
     const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
-    String str(exeDir);
+    tinystl::string str(exeDir);
     return str;
 }
 
@@ -116,16 +116,16 @@ size_t _getFileLastModifiedTime(const char* _fileName)
   }
 }
 
-String _getAppPrefsDir(const char *org, const char *app)
+tinystl::string _getAppPrefsDir(const char *org, const char *app)
 {
     ASSERT(false && "Unsupported on target iOS");
-    return String();
+    return tinystl::string();
 }
 
-String _getUserDocumentsDir()
+tinystl::string _getUserDocumentsDir()
 {
     ASSERT(false && "Unsupported on target iOS");
-    return String();
+    return tinystl::string();
 }
 
 void _setCurrentDir(const char* path)

@@ -39,7 +39,7 @@ extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 #endif
 
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 void clearChildren(GpuTimerTree* pRoot)
 {
 	if (!pRoot)
@@ -130,7 +130,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	GpuProfiler* pGpuProfiler = (GpuProfiler*)conf_calloc(1, sizeof(*pGpuProfiler));
 	ASSERT(pGpuProfiler);
 
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
 	QueryHeapDesc queryHeapDesc = {};
 	queryHeapDesc.mNodeIndex = nodeIndex;
@@ -138,7 +138,11 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
 
 	BufferDesc bufDesc = {};
+#if defined(DIRECT3D11)
+	bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
+#else
 	bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+#endif
 	bufDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	bufDesc.mSize = maxTimers * sizeof(uint64_t) * 2;
 	bufDesc.pDebugName = (wchar_t*)L"GPU Profiler ReadBack Buffer";
@@ -165,7 +169,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
 void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 {
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
 		removeBuffer(pRenderer, pGpuProfiler->pReadbackBuffer[i]);
@@ -188,7 +192,7 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 
 void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker, const float3& color)
 {
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 
 	// hash name
 	char _buffer[MAX_PATH] = {}; //Initialize to empty
@@ -240,7 +244,7 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTimer** ppGpuTimer)
 {
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// Record cpu time
 	pGpuProfiler->pCurrentNode->mGpuTimer.mEndCpuTime = getUSec();
 
@@ -262,7 +266,7 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 
 void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker)
 {
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// resolve last frame
 	cmdResolveQuery(pCmd, 
 		pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex],
@@ -287,7 +291,7 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 
 void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 {
-#if defined(DIRECT3D12) || defined(VULKAN)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 
 	for (uint32_t i = 0; i < (uint32_t)pGpuProfiler->mRoot.mChildren.size(); ++i)

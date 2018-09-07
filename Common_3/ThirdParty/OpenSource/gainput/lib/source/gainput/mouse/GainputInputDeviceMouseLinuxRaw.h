@@ -43,9 +43,8 @@ public:
 				  &rootX,&rootY,&winX,&winY,&mask); 
 					  
 		prevAbsoluteX = winX;
-		prevAbsoluteX = winY;
+		prevAbsoluteY = winY;
 		lastTime = 0;
-		ignoreEvents_ = false;
 	}
 
 	~InputDeviceMouseImplLinuxRaw()
@@ -65,14 +64,14 @@ public:
 		prevAbsoluteY = y;				  
 		deltaX = 0;
 		deltaY = 0;
-		ignoreEvents_= true;
-		HandleAxis(device_, nextState_, delta_, MouseAxisX, 0);
-		HandleAxis(device_, nextState_, delta_, MouseAxisY, 0);
+		HandleAxis(device_, nextState_, delta_, MouseAxisX, 0.f);
+		HandleAxis(device_, nextState_, delta_, MouseAxisY, 0.f);
+		previousState_->Set( MouseAxisX, 0.f);
+		previousState_->Set( MouseAxisY, 0.f);
 	}
 
 	void Update(InputDeltaState* delta)
 	{
-		ignoreEvents_ = false;
 		delta_ = delta;
 		// Reset mouse wheel buttons
 		for (unsigned i = 0; i < MouseButtonCount; ++i)
@@ -100,15 +99,13 @@ public:
 		{
 		case MotionNotify:
 			{
-				if(ignoreEvents_)
-					return;
 				const XMotionEvent& motionEvent = event.xmotion;
 
 				if(motionEvent.time < lastTime)
 					return;
 					
-				lastTime = motionEvent.time;		
-						
+				lastTime = motionEvent.time;	
+	
 				float currDeltaX = motionEvent.x - prevAbsoluteX;
 				float currDeltaY = motionEvent.y - prevAbsoluteY;
 				prevAbsoluteX = motionEvent.x;
@@ -160,7 +157,6 @@ public:
 	InputDeltaState* delta_;
 
 	Time lastTime;
-	bool ignoreEvents_;
 };
 
 }

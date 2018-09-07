@@ -197,7 +197,7 @@ const char* pszRoots[] =
 };
 #endif
 
-DebugTextDrawDesc		gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc		gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 ClearValue				gClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 ClearValue				gClearDepth = { 1.0f, 0 };
 Panini					gPanini = {};
@@ -526,14 +526,14 @@ public:
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddProperty(vsyncProp);
+		pGui->AddControl(vsyncProp);
 #endif
 
-		pGui->AddProperty(UIProperty("Enable Multi GPU", gMultiGPU));
-		pGui->AddProperty(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
-		pGui->AddProperty(UIProperty("Panini D Parameter", gPaniniParams.D, 0.0f, 1.0f, 0.001f));
-		pGui->AddProperty(UIProperty("Panini S Parameter", gPaniniParams.S, 0.0f, 1.0f, 0.001f));
-		pGui->AddProperty(UIProperty("Screen Scale", gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
+		pGui->AddControl(UIProperty("Enable Multi GPU", gMultiGPU));
+		pGui->AddControl(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
+		pGui->AddControl(UIProperty("Panini D Parameter", gPaniniParams.D, 0.0f, 1.0f, 0.001f));
+		pGui->AddControl(UIProperty("Panini S Parameter", gPaniniParams.S, 0.0f, 1.0f, 0.001f));
+		pGui->AddControl(UIProperty("Screen Scale", gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 600.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };
@@ -864,7 +864,7 @@ public:
 			params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 			cmdBindDescriptors(cmd, pRootSignature, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer[i], NULL);
-			cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets);
+			cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -906,28 +906,28 @@ public:
 
 				gAppUI.Gui(pGui);
 
-				drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+				drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 				if (gMultiGPU)
 				{
-					drawDebugText(cmd, 8, 40, String::format("GPU %f ms",
+					drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms",
 						max(pGpuProfilers[0]->mCumulativeTime, pGpuProfilers[1]->mCumulativeTime) * 1000.0), &gFrameTimeDraw);
 
-					drawDebugText(cmd, 8, 75, String::format("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
+					drawDebugText(cmd, 8, 75, tinystl::string::format("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
 					drawDebugGpuProfile(cmd, 8, 100, pGpuProfilers[0], NULL);
 
-					drawDebugText(cmd, 8, 275, String::format("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
+					drawDebugText(cmd, 8, 275, tinystl::string::format("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
 					drawDebugGpuProfile(cmd, 8, 300, pGpuProfilers[1], NULL);
 				}
 				else
 				{
-					drawDebugText(cmd, 8, 40, String::format("GPU %f ms",
+					drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms",
 						(pGpuProfilers[0]->mCumulativeTime + pGpuProfilers[1]->mCumulativeTime) * 1000.0), &gFrameTimeDraw);
 
-					drawDebugText(cmd, 8, 75, String::format("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
+					drawDebugText(cmd, 8, 75, tinystl::string::format("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
 					drawDebugGpuProfile(cmd, 8, 100, pGpuProfilers[0], NULL);
 
-					drawDebugText(cmd, 8, 275, String::format("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
+					drawDebugText(cmd, 8, 275, tinystl::string::format("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0), &gFrameTimeDraw);
 					drawDebugGpuProfile(cmd, 8, 300, pGpuProfilers[1], NULL);
 				}
 
@@ -973,7 +973,7 @@ public:
 		gTimer.GetUSec(true);
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "11_MultiGPU";
 	}

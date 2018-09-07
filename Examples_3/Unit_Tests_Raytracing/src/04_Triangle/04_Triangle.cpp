@@ -374,7 +374,7 @@ public:
 		/************************************************************************/
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "Raytrace Triangle";
 	}

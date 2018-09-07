@@ -9,6 +9,8 @@ extern void* conf_malloc(size_t size);
 extern void conf_free(void* ptr);
 #endif
 
+#undef new
+
 namespace gainput
 {
 

@@ -617,8 +617,10 @@ def TestWindowsProjects(useActiveGpuConfig):
 
 		if "ReleaseVk" in proj:
 			filename = "VK_" + filename
+		elif "Dx11" in proj:
+			filename = "Dx11_" + filename
 		else:
-			filename = "DX_" + filename
+			filename = "Dx12_" + filename
 
 		parentFolder = proj.split(os.sep)[1]
 		
@@ -645,7 +647,7 @@ def BuildWindowsProjects(xboxDefined):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
-	pcConfigurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
+	pcConfigurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk", "DebugDx11", "ReleaseDx11"]
 	pcPlatform = "x64"
 	
 	xboxConfigurations = ["Debug","Release"]
@@ -695,6 +697,8 @@ def BuildWindowsProjects(xboxDefined):
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
 		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
 			configurations = ["DebugDx", "ReleaseDx"]
+		elif filename == "VisibilityBuffer.sln":
+			configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
 			
 		if "XBOXOne" in proj:
 			configurations = xboxConfigurations

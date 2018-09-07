@@ -9,7 +9,6 @@ InputDevice::InputDevice(InputManager& manager, DeviceId device, unsigned index)
 	manager_(manager),
 	deviceId_(device),
 	index_(index),
-	bufferedButtonInputs_(manager.GetAllocator()),
 	deadZones_(0),
 	debugRenderingEnabled_(false)
 	
@@ -28,12 +27,6 @@ void
 InputDevice::Update(InputDeltaState* delta)
 {
 	*previousState_ = *state_;
-	
-	for(size_t i = 0 ; i < bufferedButtonInputs_.size(); i++)
-	{
-		previousState_->Set(bufferedButtonInputs_[i],true);
-	}
-	bufferedButtonInputs_.clear();
 	
 #if defined(GAINPUT_DEV)
 	if (synced_)
@@ -56,14 +49,6 @@ InputDevice::GetState() const
 	return InternalGetState();
 }
 
-void InputDevice::ApplyBufferedButton(DeviceButtonId buttonId, bool pressed)
-{
-	if(pressed == false && previousState_->GetBool(buttonId) == false)
-	{
-		bufferedButtonInputs_.push_back(buttonId);
-	}
-	
-}
 	
 float InputDevice::GetDeadZone(DeviceButtonId buttonId) const
 {

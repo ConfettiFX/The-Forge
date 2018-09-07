@@ -28,11 +28,11 @@
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IMemoryManager.h"
 
-String GetTimeStamp()
+tinystl::string GetTimeStamp()
 {
 	time_t sysTime;
 	time(&sysTime);
-	String dateTime = ctime(&sysTime);
+	tinystl::string dateTime = ctime(&sysTime);
 	dateTime.replace('\n', ' ');
 	return dateTime;
 }
@@ -69,7 +69,7 @@ LogManager::~LogManager()
 	pLogInstance =NULL;
 }
 
-void LogManager::Open(const String& fileName)
+void LogManager::Open(const tinystl::string& fileName)
 {
 	if (fileName.size() == 0)
 		return;
@@ -122,11 +122,11 @@ void LogManager::SetQuiet(bool quiet)
 	mQuietMode = quiet;
 }
 
-void LogManager::Write(int level, const String& message)
+void LogManager::Write(int level, const tinystl::string& message)
 {
 	ASSERT(level >= LogLevel::LL_Debug && level < LogLevel::LL_None);
 
-	String formattedMessage = logLevelPrefixes[level];
+	tinystl::string formattedMessage = logLevelPrefixes[level];
 	formattedMessage += ": " + message;
 
 	if (!pLogInstance || pLogInstance->mLogLevel > level || pLogInstance->mInWrite)
@@ -159,7 +159,7 @@ void LogManager::Write(int level, const String& message)
 		pLogInstance->mLogMutex.Release();
 }
 
-void LogManager::WriteRaw(const String& message, bool error)
+void LogManager::WriteRaw(const tinystl::string& message, bool error)
 {
 	// Avoid infinite recursion
 	if (!pLogInstance || pLogInstance->mInWrite)
@@ -194,7 +194,7 @@ void LogManager::WriteRaw(const String& message, bool error)
 		pLogInstance->mLogMutex.Release();
 }
 
-void LogManager::OutputLog(int level, const String& message)
+void LogManager::OutputLog(int level, const tinystl::string& message)
 {
 	if (mQuietMode)
 	{
@@ -207,7 +207,7 @@ void LogManager::OutputLog(int level, const String& message)
 	}
 }
 
-String ToString(const char* function, const char* str, ...)
+tinystl::string ToString(const char* function, const char* str, ...)
 {
 	const unsigned BUFFER_SIZE = 4096;
 	char buf[BUFFER_SIZE];
@@ -217,5 +217,5 @@ String ToString(const char* function, const char* str, ...)
 	vsprintf_s(buf, BUFFER_SIZE, str, arglist);
 	va_end(arglist);
 
-	return String("[") + String(function) + "] " + String(buf);
+	return tinystl::string("[") + tinystl::string(function) + "] " + tinystl::string(buf);
 }

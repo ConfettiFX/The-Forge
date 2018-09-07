@@ -23,12 +23,6 @@
     <None Include="..\src\09_LightShadowPlayground\PCDX12\blurESM.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\blurSSAO.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\blurSSAO.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
     <None Include="..\src\09_LightShadowPlayground\PCDX12\finalPass.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
@@ -39,12 +33,6 @@
       <Filter>Shaders\PCDX12</Filter>
     </None>
     <None Include="..\src\09_LightShadowPlayground\PCDX12\gbuffer.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\genSSAO.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\genSSAO.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
     <None Include="..\src\09_LightShadowPlayground\PCDX12\sdfSimple.frag">
@@ -77,12 +65,6 @@
     <None Include="..\src\09_LightShadowPlayground\PCVulkan\gbuffer.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\genSSAO.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\genSSAO.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
     <None Include="..\src\09_LightShadowPlayground\PCVulkan\sdfSimple.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
@@ -105,12 +87,6 @@
       <Filter>Shaders\PCVulkan</Filter>
     </None>
     <None Include="..\src\09_LightShadowPlayground\PCVulkan\blurESM.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\blurSSAO.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\blurSSAO.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
     <None Include="..\src\09_LightShadowPlayground\PCVulkan\finalPass.frag">

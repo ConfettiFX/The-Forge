@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#version 450 core
+
+#extension GL_EXT_samplerless_texture_functions : enable
+
+layout(std140, set = 0, binding = 0) uniform cbPerPass 
+{
+	uniform mat4	projView;
+	uniform mat4	invProjView;
+	uniform vec4	rtSize;
+	uniform vec4	lightDir;
+	uniform vec4	cameraPos;
+};
+
+layout(set = 0, binding = 1) uniform texture2D normalbuffer;
+layout(set = 0, binding = 2) uniform texture2D shadowbuffer;
+layout(set = 0, binding = 3, rgba32f) uniform image2D outputRT;
+
+#define THREADX 16
+#define THREADY 16
+#define THREADZ 1
+#define THREADGROUPSIZE (THREADX*THREADY*THREADZ)
+
+layout(local_size_x = THREADX, local_size_y = THREADY, local_size_z = THREADZ) in;
+
+void main()
+{
+	uvec3 DTid = gl_GlobalInvocationID;
+
+	const float lightIntensity = 5;
+	const vec3 lightColour = vec3(1, 1, 0.5);
+
+	vec3 normal = texelFetch(normalbuffer, ivec2(DTid.xy), 0).xyz;
+
+	float shadowFactor = texelFetch(shadowbuffer, ivec2(DTid.xy), 0).x;
+
+	float NdotL = clamp(dot(normal, lightDir.xyz), 0.0, 1.0);
+
+	//add some fake "up-down" ambient to add some contrast to shadowed areas
+	float ambient = mix(0.5, 0.2, normal.y * 0.5 + 0.5);
+
+	vec3 diffuse = (lightIntensity * shadowFactor * NdotL) *  lightColour + ambient;
+
+	imageStore(outputRT, ivec2(DTid.xy), vec4(diffuse, 1));
+}

@@ -100,28 +100,6 @@ extern void d3d12_destroyBuffer(MemoryAllocator* pAllocator, struct Buffer* pBuf
 extern long d3d12_createTexture(MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, Texture* pTexture);
 extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
 
-	// Array used to translate sampling filter
-	const D3D12_FILTER gDX12FilterTranslator[] =
-	{
-		D3D12_FILTER_MIN_MAG_MIP_POINT,
-		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
-		D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT,
-		D3D12_FILTER_MIN_MAG_MIP_LINEAR,
-		D3D12_FILTER_ANISOTROPIC,
-		D3D12_FILTER_ANISOTROPIC
-	};
-
-	// Array used to translate compasion sampling filter
-	const D3D12_FILTER gDX12ComparisonFilterTranslator[] =
-	{
-		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT,
-		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,
-		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,
-		D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
-		D3D12_FILTER_COMPARISON_ANISOTROPIC,
-		D3D12_FILTER_COMPARISON_ANISOTROPIC
-	};
-
 	D3D12_BLEND_OP gDx12BlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
 	{
 		D3D12_BLEND_OP_ADD,
@@ -198,7 +176,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		DXGI_FORMAT_R8_TYPELESS,
 		DXGI_FORMAT_R16G16_TYPELESS,
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8S not directly supported
-		DXGI_FORMAT_R16G16B16A16_TYPELESS,
+		DXGI_FORMAT_R8G8B8A8_TYPELESS,
 		DXGI_FORMAT_R32_TYPELESS,
 		DXGI_FORMAT_R32G32_TYPELESS,
 		DXGI_FORMAT_UNKNOWN,  // RGB16S not directly supported
@@ -445,7 +423,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	D3D12_SHADER_VISIBILITY			util_to_dx_shader_visibility(ShaderStage stages);
 	D3D12_DESCRIPTOR_RANGE_TYPE		util_to_dx_descriptor_range(DescriptorType type);
 	D3D12_RESOURCE_STATES			util_to_dx_resource_state(ResourceState state);
-	D3D12_FILTER					util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool comparisonFilterEnabled);
+	D3D12_FILTER					util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled);
 	D3D12_TEXTURE_ADDRESS_MODE		util_to_dx_texture_address_mode(AddressMode addressMode);
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE	util_to_dx_primitive_topology_type(PrimitiveTopology topology);
 
@@ -767,19 +745,18 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		// Fill the descriptor handles with null descriptors
 		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 		{
-			const DescriptorSetLayout* pViewLayout = &pRootSignature->pDxViewTableLayouts[setIndex];
-			const DescriptorSetLayout* pSamplerLayout = &pRootSignature->pDxSamplerTableLayouts[setIndex];
-			const uint32_t viewCount = pViewLayout->mDescriptorCount;
-			const uint32_t samplerCount = pSamplerLayout->mDescriptorCount;
+			const uint32_t viewCount = pRootSignature->mDxViewDescriptorCounts[setIndex];
+			const uint32_t samplerCount = pRootSignature->mDxSamplerDescriptorCounts[setIndex];
 			const uint32_t descCount = viewCount + samplerCount;
 
 			if (viewCount)
 			{
-				pManager->pViewDescriptorHandles[setIndex] = (D3D12_CPU_DESCRIPTOR_HANDLE*)conf_calloc(pViewLayout->mCumulativeDescriptorCount, sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+				pManager->pViewDescriptorHandles[setIndex] =
+					(D3D12_CPU_DESCRIPTOR_HANDLE*)conf_calloc(pRootSignature->mDxCumulativeViewDescriptorCounts[setIndex], sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
 
 				for (uint32_t i = 0; i < viewCount; ++i)
 				{
-					const DescriptorInfo* pDesc = &pRootSignature->pDescriptors[pViewLayout->pDescriptorIndices[i]];
+					const DescriptorInfo* pDesc = &pRootSignature->pDescriptors[pRootSignature->pDxViewDescriptorIndices[setIndex][i]];
 					DescriptorType type = pDesc->mDesc.type;
 					switch (type)
 					{
@@ -805,7 +782,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 			if (samplerCount)
 			{
-				pManager->pSamplerDescriptorHandles[setIndex] = (D3D12_CPU_DESCRIPTOR_HANDLE*)conf_calloc(pSamplerLayout->mCumulativeDescriptorCount, sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
+				pManager->pSamplerDescriptorHandles[setIndex] =
+					(D3D12_CPU_DESCRIPTOR_HANDLE*)conf_calloc(pRootSignature->mDxCumulativeSamplerDescriptorCounts[setIndex], sizeof(D3D12_CPU_DESCRIPTOR_HANDLE));
 				for (uint32_t i = 0; i < samplerCount; ++i)
 				{
 					pManager->pSamplerDescriptorHandles[setIndex][i] = pRenderer->mSamplerNullDescriptor;
@@ -830,20 +808,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		// Free staging data tables
 		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 		{
-			const DescriptorSetLayout* pViewLayout = &pRootSignature->pDxViewTableLayouts[setIndex];
-			const DescriptorSetLayout* pSamplerLayout = &pRootSignature->pDxSamplerTableLayouts[setIndex];
-			const uint32_t viewCount = pViewLayout->mDescriptorCount;
-			const uint32_t samplerCount = pSamplerLayout->mDescriptorCount;
-			const uint32_t descCount = viewCount + samplerCount;
-
-			if (viewCount)
-			{
-				SAFE_FREE(pManager->pViewDescriptorHandles[setIndex]);
-			}
-			if (samplerCount)
-			{
-				SAFE_FREE(pManager->pSamplerDescriptorHandles[setIndex]);
-			}
+			SAFE_FREE(pManager->pViewDescriptorHandles[setIndex]);
+			SAFE_FREE(pManager->pSamplerDescriptorHandles[setIndex]);
 		}
 
 		SAFE_FREE(pManager);
@@ -1375,27 +1341,18 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	/************************************************************************/
 	// Internal utility functions
 	/************************************************************************/
-	D3D12_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode  mipMapMode, bool comparisonFilterEnabled)
+	D3D12_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled)
 	{
-		UNREF_PARAM(magFilter);
-		UNREF_PARAM(mipMapMode);
-		if (!comparisonFilterEnabled)
-		{
-			return gDX12FilterTranslator[minFilter];
-		}
-		else
-		{
-			return gDX12ComparisonFilterTranslator[minFilter];
-		}
-		
-#if 0 //Unreachable
+		if (aniso)
+			return (comparisonFilterEnabled ? D3D12_FILTER_COMPARISON_ANISOTROPIC : D3D12_FILTER_ANISOTROPIC);
+
 		// control bit : minFilter  magFilter   mipMapMode
 		//     point   :     00         00          00
 		//     linear  :     01         01          01
 		// ex : trilinear == 010101
 		int filter = (minFilter << 4) | (magFilter << 2) | mipMapMode;
-		return  (D3D12_FILTER)filter;
-#endif
+		int baseFilter = comparisonFilterEnabled ? D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D12_FILTER_MIN_MAG_MIP_POINT;
+		return (D3D12_FILTER)(baseFilter + filter);
 	}
 
 	D3D12_TEXTURE_ADDRESS_MODE util_to_dx_texture_address_mode(AddressMode addressMode)
@@ -2302,7 +2259,7 @@ namespace d3d12 {
 
 		ASSERT(SUCCEEDED(hr));
 
-		String queueType;
+		tinystl::string queueType;
 		switch (queueDesc.Type)
 		{
 		case D3D12_COMMAND_LIST_TYPE_DIRECT:
@@ -2318,7 +2275,7 @@ namespace d3d12 {
 			break;
 		}
 
-		String queueName = String::format("%s %u", queueType.c_str(), pQDesc->mNodeIndex);
+		tinystl::string queueName = tinystl::string::format("%s %u", queueType.c_str(), pQDesc->mNodeIndex);
 		WCHAR finalName[MAX_PATH] = {};
 		mbstowcs(finalName, queueName.c_str(), queueName.size());
 		pQueue->pDxQueue->SetName(finalName);
@@ -3287,30 +3244,31 @@ namespace d3d12 {
 	{
 		removeTexture(pRenderer, pRenderTarget->pTexture);
 
+		!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat) ?
+			remove_rtv(pRenderer, &pRenderTarget->pDxDescriptors[0]) :
+			remove_dsv(pRenderer, &pRenderTarget->pDxDescriptors[0]);
+
 		const uint32_t depthOrArraySize = pRenderTarget->mDesc.mArraySize * pRenderTarget->mDesc.mDepth;
 		if ((pRenderTarget->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
 			(pRenderTarget->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
 		{
-			for (uint32_t i = 1; i < pRenderTarget->mDesc.mMipLevels; ++i)
+			for (uint32_t i = 0; i < pRenderTarget->mDesc.mMipLevels; ++i)
 				for (uint32_t j = 0; j < depthOrArraySize; ++j)
 					!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat) ?
-					remove_rtv(pRenderer, &pRenderTarget->pDxDescriptors[i * depthOrArraySize + j]) :
-					remove_dsv(pRenderer, &pRenderTarget->pDxDescriptors[i * depthOrArraySize + j]);
+					remove_rtv(pRenderer, &pRenderTarget->pDxDescriptors[1 + i * depthOrArraySize + j]) :
+					remove_dsv(pRenderer, &pRenderTarget->pDxDescriptors[1 + i * depthOrArraySize + j]);
 		}
 		else
 		{
-			for (uint32_t i = 1; i < pRenderTarget->mDesc.mMipLevels; ++i)
+			for (uint32_t i = 0; i < pRenderTarget->mDesc.mMipLevels; ++i)
 				!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat) ?
-				remove_rtv(pRenderer, &pRenderTarget->pDxDescriptors[i]) :
-				remove_dsv(pRenderer, &pRenderTarget->pDxDescriptors[i]);
+				remove_rtv(pRenderer, &pRenderTarget->pDxDescriptors[1 + i]) :
+				remove_dsv(pRenderer, &pRenderTarget->pDxDescriptors[1 + i]);
 		}
 
 		SAFE_FREE(pRenderTarget->pDxDescriptors);
 		SAFE_FREE(pRenderTarget);
 	}
-
-	inline bool hasMipmaps(const FilterType filter) { return (filter >= FILTER_BILINEAR); }
-	inline bool hasAniso(const FilterType filter) { return (filter >= FILTER_BILINEAR_ANISO); }
 
 	void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
 	{
@@ -3323,19 +3281,21 @@ namespace d3d12 {
 		ASSERT(pSampler);
 
 		//add sampler to gpu
-		pSampler->mDxSamplerDesc.Filter = util_to_dx_filter(pDesc->mMinFilter, pDesc->mMagFilter, pDesc->mMipMapMode, (pDesc->mCompareFunc != CMP_NEVER ? true : false));
+		pSampler->mDxSamplerDesc.Filter = util_to_dx_filter(pDesc->mMinFilter, pDesc->mMagFilter, pDesc->mMipMapMode,
+			pDesc->mMaxAnisotropy > 0.0f,
+			(pDesc->mCompareFunc != CMP_NEVER ? true : false));
 		pSampler->mDxSamplerDesc.AddressU = util_to_dx_texture_address_mode(pDesc->mAddressU);
 		pSampler->mDxSamplerDesc.AddressV = util_to_dx_texture_address_mode(pDesc->mAddressV);
 		pSampler->mDxSamplerDesc.AddressW = util_to_dx_texture_address_mode(pDesc->mAddressW);
 		pSampler->mDxSamplerDesc.MipLODBias = pDesc->mMipLosBias;
-		pSampler->mDxSamplerDesc.MaxAnisotropy = (hasAniso(pDesc->mMinFilter) || hasAniso(pDesc->mMagFilter)) ? (UINT)pDesc->mMaxAnisotropy : 1U;
+		pSampler->mDxSamplerDesc.MaxAnisotropy = max((UINT)pDesc->mMaxAnisotropy, 1U);
 		pSampler->mDxSamplerDesc.ComparisonFunc = gDx12ComparisonFuncTranslator[pDesc->mCompareFunc];
 		pSampler->mDxSamplerDesc.BorderColor[0] = 0.0f;
 		pSampler->mDxSamplerDesc.BorderColor[1] = 0.0f;
 		pSampler->mDxSamplerDesc.BorderColor[2] = 0.0f;
 		pSampler->mDxSamplerDesc.BorderColor[3] = 0.0f;
 		pSampler->mDxSamplerDesc.MinLOD = 0.0f;
-		pSampler->mDxSamplerDesc.MaxLOD = (hasMipmaps(pDesc->mMinFilter) || hasMipmaps(pDesc->mMagFilter)) ? D3D12_FLOAT32_MAX : 0.0f;
+		pSampler->mDxSamplerDesc.MaxLOD = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? D3D12_FLOAT32_MAX : 0.0f);
 
 		add_sampler(pRenderer, &pSampler->mDxSamplerDesc, &pSampler->mDxSamplerHandle);
 
@@ -3377,26 +3337,26 @@ namespace d3d12 {
 		case shader_target_6_0: { major = 6; minor = 0; } break;
 		}
 
-		String target;
+		tinystl::string target;
 		switch (stage)
 		{
 		case SHADER_STAGE_VERT:
-			target = String::format("vs_%d_%d", major, minor);
+			target = tinystl::string::format("vs_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_TESC:
-			target = String::format("hs_%d_%d", major, minor);
+			target = tinystl::string::format("hs_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_TESE:
-			target = String::format("ds_%d_%d", major, minor);
+			target = tinystl::string::format("ds_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_GEOM:
-			target = String::format("gs_%d_%d", major, minor);
+			target = tinystl::string::format("gs_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_FRAG:
-			target = String::format("ps_%d_%d", major, minor);
+			target = tinystl::string::format("ps_%d_%d", major, minor);
 			break;
 		case SHADER_STAGE_COMP:
-			target = String::format("cs_%d_%d", major, minor);
+			target = tinystl::string::format("cs_%d_%d", major, minor);
 			break;
 		default:
 			break;
@@ -3415,7 +3375,7 @@ namespace d3d12 {
 		if (fnHookShaderCompileFlags != NULL)
 			fnHookShaderCompileFlags(compile_flags);
 
-		String entryPoint = "main";
+		tinystl::string entryPoint = "main";
 		ID3DBlob* compiled_code = NULL;
 		ID3DBlob* error_msgs = NULL;
 		HRESULT hres = D3DCompile2(code, (size_t)codeSize, fileName,
@@ -3427,7 +3387,7 @@ namespace d3d12 {
 			char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
 			ASSERT(msg);
 			memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-			String error = String(fileName) + " " + msg;
+			tinystl::string error = tinystl::string(fileName) + " " + msg;
 			ErrorMsg(error);
 			SAFE_FREE(msg);
 		}
@@ -3548,7 +3508,7 @@ namespace d3d12 {
 		ShaderStage shaderStages = SHADER_STAGE_NONE;
 		bool useInputLayout = false;
 
-		tinystl::unordered_map<String, Sampler*> staticSamplerMap;
+		tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
 		for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
 			staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
 
@@ -3698,7 +3658,7 @@ namespace d3d12 {
 			{
 				// D3D12 has no special syntax to declare root constants like Vulkan
 				// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-				if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != String::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+				if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != tinystl::string::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 				{
 					// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 					pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -3818,22 +3778,22 @@ namespace d3d12 {
 			samplerRange_1_0[i].resize(layouts[i].mSamplerTable.size());
 		}
 
-		pRootSignature->pDxViewTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxViewTableLayouts));
-		pRootSignature->pDxSamplerTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxSamplerTableLayouts));
-		pRootSignature->pDxRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxRootDescriptorLayouts));
 		pRootSignature->mDescriptorCount = (uint32_t)shaderResources.size();
 
 		for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
 		{
-			pRootSignature->mRootConstantCount += (uint32_t)layouts[i].mRootConstants.size();
+			pRootSignature->mDxRootConstantCount += (uint32_t)layouts[i].mRootConstants.size();
+			pRootSignature->mDxRootDescriptorCount += (uint32_t)layouts[i].mConstantParams.size();
 		}
-		if (pRootSignature->mRootConstantCount)
-			pRootSignature->pRootConstantLayouts = (RootConstantLayout*)conf_calloc(pRootSignature->mRootConstantCount, sizeof(*pRootSignature->pRootConstantLayouts));
+		if (pRootSignature->mDxRootConstantCount)
+			pRootSignature->pDxRootConstantRootIndices = (uint32_t*)conf_calloc(pRootSignature->mDxRootConstantCount, sizeof(*pRootSignature->pDxRootConstantRootIndices));
+		if (pRootSignature->mDxRootDescriptorCount)
+			pRootSignature->pDxRootDescriptorRootIndices = (uint32_t*)conf_calloc(pRootSignature->mDxRootDescriptorCount, sizeof(*pRootSignature->pDxRootDescriptorRootIndices));
 
 		// Start collecting root parameters
 		// Start with root descriptors since they will be the most frequently updated descriptors
 		// This also makes sure that if we spill, the root descriptors in the front of the root signature will most likely still remain in the root
-
+		uint32_t rootDescriptorIndex = 0;
 		// Collect all root descriptors
 		// Put most frequently changed params first
 		for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
@@ -3841,27 +3801,21 @@ namespace d3d12 {
 			UpdateFrequencyLayoutInfo& layout = layouts[i];
 			if (layout.mConstantParams.size())
 			{
-				RootDescriptorLayout& root = pRootSignature->pDxRootDescriptorLayouts[i];
-
-				root.mRootDescriptorCount = (uint32_t)layout.mConstantParams.size();
-				root.pDescriptorIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
-				root.pRootIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
-
 				for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mConstantParams.size(); ++descIndex)
 				{
 					DescriptorInfo* pDesc = layout.mConstantParams[descIndex];
+					pDesc->mIndexInParent = rootDescriptorIndex;
+					pRootSignature->pDxRootDescriptorRootIndices[pDesc->mIndexInParent] = (uint32_t)rootParams.size();
+
 					D3D12_ROOT_PARAMETER1 rootParam;
 					D3D12_ROOT_PARAMETER rootParam_1_0;
 					create_root_descriptor(pDesc, &rootParam);
 					create_root_descriptor_1_0(pDesc, &rootParam_1_0);
 
-					root.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
-					root.pRootIndices[descIndex] = (uint32_t)rootParams.size();
-
 					rootParams.push_back(rootParam);
 					rootParams_1_0.push_back(rootParam_1_0);
 
-					pDesc->mIndexInParent = descIndex;
+					++rootDescriptorIndex;
 				}
 			}
 		}
@@ -3878,11 +3832,9 @@ namespace d3d12 {
 
 			for (uint32_t i = 0; i < (uint32_t)layouts[setIndex].mRootConstants.size(); ++i)
 			{
-				RootConstantLayout* pLayout = &pRootSignature->pRootConstantLayouts[rootConstantIndex];
 				DescriptorInfo* pDesc = layout.mRootConstants[i];
 				pDesc->mIndexInParent = rootConstantIndex;
-				pLayout->mRootIndex = (uint32_t)rootParams.size();
-				pLayout->mDescriptorIndex = layout.mDescriptorIndexMap[pDesc];
+				pRootSignature->pDxRootConstantRootIndices[pDesc->mIndexInParent] = (uint32_t)rootParams.size();
 
 				D3D12_ROOT_PARAMETER1 rootParam;
 				D3D12_ROOT_PARAMETER rootParam_1_0;
@@ -3936,13 +3888,11 @@ namespace d3d12 {
 				D3D12_ROOT_PARAMETER rootParam_1_0;
 				create_descriptor_table_1_0((uint32_t)layout.mCbvSrvUavTable.size(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
 
-				DescriptorSetLayout& table = pRootSignature->pDxViewTableLayouts[i];
-
 				// Store some of the binding info which will be required later when binding the descriptor table
 				// We need the root index when calling SetRootDescriptorTable
-				table.mRootIndex = (uint32_t)rootParams.size();
-				table.mDescriptorCount = (uint32_t)layout.mCbvSrvUavTable.size();
-				table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
+				pRootSignature->mDxViewDescriptorTableRootIndices[i] = (uint32_t)rootParams.size();
+				pRootSignature->mDxViewDescriptorCounts[i] = (uint32_t)layout.mCbvSrvUavTable.size();
+				pRootSignature->pDxViewDescriptorIndices[i] = (uint32_t*)conf_calloc(layout.mCbvSrvUavTable.size(), sizeof(uint32_t));
 
 				for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mCbvSrvUavTable.size(); ++descIndex)
 				{
@@ -3951,12 +3901,12 @@ namespace d3d12 {
 
 					// Store the d3d12 related info in the descriptor to avoid constantly calling the util_to_dx mapping functions
 					pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-					pDesc->mHandleIndex = table.mCumulativeDescriptorCount;
+					pDesc->mHandleIndex = pRootSignature->mDxCumulativeViewDescriptorCounts[i];
 
 					// Store the cumulative descriptor count so we can just fetch this value later when allocating descriptor handles
 					// This avoids unnecessary loops in the future to find the unfolded number of descriptors (includes shader resource arrays) in the descriptor table
-					table.mCumulativeDescriptorCount += pDesc->mDesc.size;
-					table.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
+					pRootSignature->mDxCumulativeViewDescriptorCounts[i] += pDesc->mDesc.size;
+					pRootSignature->pDxViewDescriptorIndices[i][descIndex] = layout.mDescriptorIndexMap[pDesc];
 				}
 
 				rootParams.push_back(rootParam);
@@ -3972,13 +3922,12 @@ namespace d3d12 {
 				D3D12_ROOT_PARAMETER rootParam_1_0;
 				create_descriptor_table_1_0((uint32_t)layout.mSamplerTable.size(), layout.mSamplerTable.data(), samplerRange_1_0[i].data(), &rootParam_1_0);
 
-				DescriptorSetLayout& table = pRootSignature->pDxSamplerTableLayouts[i];
-
 				// Store some of the binding info which will be required later when binding the descriptor table
 				// We need the root index when calling SetRootDescriptorTable
-				table.mRootIndex = (uint32_t)rootParams.size();
-				table.mDescriptorCount = (uint32_t)layout.mSamplerTable.size();
-				table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
+				pRootSignature->mDxSamplerDescriptorTableRootIndices[i] = (uint32_t)rootParams.size();
+				pRootSignature->mDxSamplerDescriptorCounts[i] = (uint32_t)layout.mSamplerTable.size();
+				pRootSignature->pDxSamplerDescriptorIndices[i] = (uint32_t*)conf_calloc(layout.mSamplerTable.size(), sizeof(uint32_t));
+				//table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
 
 				for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mSamplerTable.size(); ++descIndex)
 				{
@@ -3987,12 +3936,12 @@ namespace d3d12 {
 
 					// Store the d3d12 related info in the descriptor to avoid constantly calling the util_to_dx mapping functions
 					pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-					pDesc->mHandleIndex = table.mCumulativeDescriptorCount;
+					pDesc->mHandleIndex = pRootSignature->mDxCumulativeSamplerDescriptorCounts[i];
 
 					// Store the cumulative descriptor count so we can just fetch this value later when allocating descriptor handles
 					// This avoids unnecessary loops in the future to find the unfolded number of descriptors (includes shader resource arrays) in the descriptor table
-					table.mCumulativeDescriptorCount += pDesc->mDesc.size;
-					table.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
+					pRootSignature->mDxCumulativeSamplerDescriptorCounts[i] += pDesc->mDesc.size;
+					pRootSignature->pDxSamplerDescriptorIndices[i][descIndex] = layout.mDescriptorIndexMap[pDesc];
 				}
 
 				rootParams.push_back(rootParam);
@@ -4088,17 +4037,10 @@ namespace d3d12 {
 			remove_descriptor_manager(pRenderer, pRootSignature, it.second);
 		}
 
-		pRootSignature->pDescriptorManagerMap.~unordered_map();
-
-		SAFE_RELEASE(pRootSignature->pDxRootSignature);
-		SAFE_RELEASE(pRootSignature->pDxSerializedRootSignatureString);
-
 		for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		{
-			SAFE_FREE(pRootSignature->pDxViewTableLayouts[i].pDescriptorIndices);
-			SAFE_FREE(pRootSignature->pDxSamplerTableLayouts[i].pDescriptorIndices);
-			SAFE_FREE(pRootSignature->pDxRootDescriptorLayouts[i].pDescriptorIndices);
-			SAFE_FREE(pRootSignature->pDxRootDescriptorLayouts[i].pRootIndices);
+			SAFE_FREE(pRootSignature->pDxViewDescriptorIndices[i]);
+			SAFE_FREE(pRootSignature->pDxSamplerDescriptorIndices[i]);
 		}
 
 		for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
@@ -4106,13 +4048,15 @@ namespace d3d12 {
 			SAFE_FREE((void*)pRootSignature->pDescriptors[i].mDesc.name);
 		}
 
+		pRootSignature->pDescriptorManagerMap.~unordered_map();
 		pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
 		SAFE_FREE(pRootSignature->pDescriptors);
-		SAFE_FREE(pRootSignature->pDxViewTableLayouts);
-		SAFE_FREE(pRootSignature->pDxSamplerTableLayouts);
-		SAFE_FREE(pRootSignature->pDxRootDescriptorLayouts);
-		SAFE_FREE(pRootSignature->pRootConstantLayouts);
+		SAFE_FREE(pRootSignature->pDxRootDescriptorRootIndices);
+		SAFE_FREE(pRootSignature->pDxRootConstantRootIndices);
+
+		SAFE_RELEASE(pRootSignature->pDxRootSignature);
+		SAFE_RELEASE(pRootSignature->pDxSerializedRootSignatureString);
 
 		SAFE_FREE(pRootSignature);
 	}
@@ -4773,7 +4717,7 @@ namespace d3d12 {
 		);
 	}
 
-	void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount)
+	void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 	{
 		ASSERT(pCmd);
 
@@ -4784,11 +4728,11 @@ namespace d3d12 {
 			(UINT)vertexCount,
 			(UINT)instanceCount,
 			(UINT)firstVertex,
-			(UINT)0
+			(UINT)firstInstance
 		);
 	}
 
-	void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex)
+	void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
 	{
 		ASSERT(pCmd);
 
@@ -4799,12 +4743,12 @@ namespace d3d12 {
 			(UINT)indexCount,
 			(UINT)1,
 			(UINT)firstIndex,
-			(UINT)0,
+			(UINT)firstVertex,
 			(UINT)0
 		);
 	}
 
-	void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount)
+	void cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
 	{
 		ASSERT(pCmd);
 
@@ -4815,8 +4759,8 @@ namespace d3d12 {
 			(UINT)indexCount,
 			(UINT)instanceCount,
 			(UINT)firstIndex,
-			(UINT)0,
-			(UINT)0
+			(UINT)firstVertex,
+			(UINT)firstInstance
 		);
 	}
 
@@ -4905,13 +4849,13 @@ namespace d3d12 {
 				if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
 				{
 					pCmd->pDxCmdList->SetComputeRoot32BitConstants(
-						pRootSignature->pRootConstantLayouts[pDesc->mIndexInParent].mRootIndex,
+						pRootSignature->pDxRootConstantRootIndices[pDesc->mIndexInParent],
 						pDesc->mDesc.size, pParam->pRootConstant, 0);
 				}
 				else if (pRootSignature->mPipelineType == PIPELINE_TYPE_GRAPHICS)
 				{
 					pCmd->pDxCmdList->SetGraphicsRoot32BitConstants(
-						pRootSignature->pRootConstantLayouts[pDesc->mIndexInParent].mRootIndex,
+						pRootSignature->pDxRootConstantRootIndices[pDesc->mIndexInParent],
 						pDesc->mDesc.size, pParam->pRootConstant, 0);
 				}
 				continue;
@@ -4946,13 +4890,13 @@ namespace d3d12 {
 				if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
 				{
 					pCmd->pDxCmdList->SetComputeRootConstantBufferView(
-						pRootSignature->pDxRootDescriptorLayouts[setIndex].pRootIndices[pDesc->mIndexInParent],
+						pRootSignature->pDxRootDescriptorRootIndices[pDesc->mIndexInParent],
 						cbv);
 				}
 				else if (pRootSignature->mPipelineType == PIPELINE_TYPE_GRAPHICS)
 				{
 					pCmd->pDxCmdList->SetGraphicsRootConstantBufferView(
-						pRootSignature->pDxRootDescriptorLayouts[setIndex].pRootIndices[pDesc->mIndexInParent],
+						pRootSignature->pDxRootDescriptorRootIndices[pDesc->mIndexInParent],
 						cbv);
 				}
 				continue;
@@ -5159,10 +5103,10 @@ namespace d3d12 {
 
 		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 		{
-			uint32_t descCount = pRootSignature->pDxViewTableLayouts[setIndex].mDescriptorCount +
-				pRootSignature->pDxSamplerTableLayouts[setIndex].mDescriptorCount;
-			uint32_t samplerCount = pRootSignature->pDxSamplerTableLayouts[setIndex].mCumulativeDescriptorCount;
-			uint32_t viewCount = pRootSignature->pDxViewTableLayouts[setIndex].mCumulativeDescriptorCount;
+			uint32_t descCount = pRootSignature->mDxViewDescriptorCounts[setIndex] +
+				pRootSignature->mDxSamplerDescriptorCounts[setIndex];
+			uint32_t viewCount = pRootSignature->mDxCumulativeViewDescriptorCounts[setIndex];
+			uint32_t samplerCount = pRootSignature->mDxCumulativeSamplerDescriptorCounts[setIndex];
 
 			if (descCount && !pm->mBoundTables[setIndex])
 			{
@@ -5245,13 +5189,13 @@ namespace d3d12 {
 					if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
 					{
 						pCmd->pDxCmdList->SetComputeRootDescriptorTable(
-							pRootSignature->pDxViewTableLayouts[setIndex].mRootIndex,
+							pRootSignature->mDxViewDescriptorTableRootIndices[setIndex],
 							descTable.mBaseViewGpuHandle);
 					}
 					else if (pRootSignature->mPipelineType == PIPELINE_TYPE_GRAPHICS)
 					{
 						pCmd->pDxCmdList->SetGraphicsRootDescriptorTable(
-							pRootSignature->pDxViewTableLayouts[setIndex].mRootIndex,
+							pRootSignature->mDxViewDescriptorTableRootIndices[setIndex],
 							descTable.mBaseViewGpuHandle);
 					}
 				}
@@ -5262,13 +5206,13 @@ namespace d3d12 {
 					if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
 					{
 						pCmd->pDxCmdList->SetComputeRootDescriptorTable(
-							pRootSignature->pDxSamplerTableLayouts[setIndex].mRootIndex,
+							pRootSignature->mDxSamplerDescriptorTableRootIndices[setIndex],
 							descTable.mBaseSamplerGpuHandle);
 					}
 					else if (pRootSignature->mPipelineType == PIPELINE_TYPE_GRAPHICS)
 					{
 						pCmd->pDxCmdList->SetGraphicsRootDescriptorTable(
-							pRootSignature->pDxSamplerTableLayouts[setIndex].mRootIndex,
+							pRootSignature->mDxSamplerDescriptorTableRootIndices[setIndex],
 							descTable.mBaseSamplerGpuHandle);
 					}
 				}

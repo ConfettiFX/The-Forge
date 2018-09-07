@@ -76,7 +76,7 @@ public:
   unsigned char *GetPixels(const uint mipMapLevel, const uint arraySlice) const;
 
   void SetPixels(unsigned char* pixelData) { mOwnsMemory = false; pData = pixelData; }
-  void SetName(const String& name) { mLoadFileName = name; }
+  void SetName(const tinystl::string& name) { mLoadFileName = name; }
 
   uint GetWidth() const { return mWidth; }
   uint GetHeight() const { return mHeight; }
@@ -85,7 +85,7 @@ public:
   uint GetHeight(const int mipMapLevel) const;
   uint GetDepth(const int mipMapLevel) const;
   uint GetMipMapCount() const { return mMipMapCount; }
-  const String& GetName() const { return mLoadFileName; }
+  const tinystl::string& GetName() const { return mLoadFileName; }
   uint GetMipMapCountFromDimensions() const;
   uint GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
   uint GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
@@ -142,7 +142,7 @@ public:
   
 protected:
   unsigned char* pData;
-  String mLoadFileName;
+  tinystl::string mLoadFileName;
   uint mWidth, mHeight, mDepth;
   uint mMipMapCount;
   uint mArrayCount;

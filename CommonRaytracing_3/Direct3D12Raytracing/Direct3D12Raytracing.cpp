@@ -438,7 +438,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 
 	const RootSignatureDesc* pRootSignatureDesc = pRootDesc ? pRootDesc : &gDefaultRootSignatureDesc;
 
-	tinystl::unordered_map<String, Sampler*> staticSamplerMap;
+	tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
 		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
 
@@ -498,7 +498,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		{
 			// D3D12 has no special syntax to declare root constants like Vulkan
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-			if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != String::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+			if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != tinystl::string::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 			{
 				// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 				pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -554,14 +554,17 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		samplerRange_1_0[i].resize(layouts[i].mSamplerTable.size());
 	}
 
-	pRootSignature->pDxViewTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxViewTableLayouts));
-	pRootSignature->pDxSamplerTableLayouts = (DescriptorSetLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxSamplerTableLayouts));
-	pRootSignature->pDxRootDescriptorLayouts = (RootDescriptorLayout*)conf_calloc((uint32_t)layouts.size(), sizeof(*pRootSignature->pDxRootDescriptorLayouts));
 	pRootSignature->mDescriptorCount = resourceCount;
 
-	pRootSignature->mRootConstantCount = (uint32_t)layouts[0].mRootConstants.size();
-	if (pRootSignature->mRootConstantCount)
-		pRootSignature->pRootConstantLayouts = (RootConstantLayout*)conf_calloc(pRootSignature->mRootConstantCount, sizeof(*pRootSignature->pRootConstantLayouts));
+	for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
+	{
+		pRootSignature->mDxRootConstantCount += (uint32_t)layouts[i].mRootConstants.size();
+		pRootSignature->mDxRootDescriptorCount += (uint32_t)layouts[i].mConstantParams.size();
+	}
+	if (pRootSignature->mDxRootConstantCount)
+		pRootSignature->pDxRootConstantRootIndices = (uint32_t*)conf_calloc(pRootSignature->mDxRootConstantCount, sizeof(*pRootSignature->pDxRootConstantRootIndices));
+	if (pRootSignature->mDxRootDescriptorCount)
+		pRootSignature->pDxRootDescriptorRootIndices = (uint32_t*)conf_calloc(pRootSignature->mDxRootDescriptorCount, sizeof(*pRootSignature->pDxRootDescriptorRootIndices));
 	/************************************************************************/
 	// We dont expose binding of the Top Level AS to the app
 	// Just add the root parameter for it here
@@ -577,11 +580,10 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		topLevelAS.Descriptor.ShaderRegister = 0;
 		rootParams_1_0.emplace_back(topLevelAS);
 	}
-
 	// Start collecting root parameters
 	// Start with root descriptors since they will be the most frequently updated descriptors
 	// This also makes sure that if we spill, the root descriptors in the front of the root signature will most likely still remain in the root
-
+	uint32_t rootDescriptorIndex = 0;
 	// Collect all root descriptors
 	// Put most frequently changed params first
 	for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
@@ -589,41 +591,45 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 		UpdateFrequencyLayoutInfo& layout = layouts[i];
 		if (layout.mConstantParams.size())
 		{
-			RootDescriptorLayout& root = pRootSignature->pDxRootDescriptorLayouts[i];
-
-			root.mRootDescriptorCount = (uint32_t)layout.mConstantParams.size();
-			root.pDescriptorIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
-			root.pRootIndices = (uint32_t*)conf_calloc(root.mRootDescriptorCount, sizeof(uint32_t));
-
 			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mConstantParams.size(); ++descIndex)
 			{
 				DescriptorInfo* pDesc = layout.mConstantParams[descIndex];
+				pDesc->mIndexInParent = rootDescriptorIndex;
+				pRootSignature->pDxRootDescriptorRootIndices[pDesc->mIndexInParent] = (uint32_t)rootParams_1_0.size();
+
 				D3D12_ROOT_PARAMETER rootParam_1_0;
 				create_root_descriptor_1_0(pDesc, &rootParam_1_0);
 
-				root.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
-				root.pRootIndices[descIndex] = (uint32_t)rootParams_1_0.size();
-
 				rootParams_1_0.push_back(rootParam_1_0);
 
-				pDesc->mIndexInParent = descIndex;
+				++rootDescriptorIndex;
 			}
 		}
 	}
 
+	uint32_t rootConstantIndex = 0;
+
 	// Collect all root constants
-	for (uint32_t i = 0; i < pRootSignature->mRootConstantCount; ++i)
+	for (uint32_t setIndex = 0; setIndex < (uint32_t)layouts.size(); ++setIndex)
 	{
-		RootConstantLayout* pLayout = &pRootSignature->pRootConstantLayouts[i];
-		DescriptorInfo* pDesc = layouts[0].mRootConstants[i];
-		pDesc->mIndexInParent = i;
-		pLayout->mRootIndex = (uint32_t)rootParams_1_0.size();
-		pLayout->mDescriptorIndex = layouts[0].mDescriptorIndexMap[pDesc];
+		UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
 
-		D3D12_ROOT_PARAMETER rootParam_1_0;
-		create_root_constant_1_0(pDesc, &rootParam_1_0);
+		if (!layout.mRootConstants.size())
+			continue;
 
-		rootParams_1_0.push_back(rootParam_1_0);
+		for (uint32_t i = 0; i < (uint32_t)layouts[setIndex].mRootConstants.size(); ++i)
+		{
+			DescriptorInfo* pDesc = layout.mRootConstants[i];
+			pDesc->mIndexInParent = rootConstantIndex;
+			pRootSignature->pDxRootConstantRootIndices[pDesc->mIndexInParent] = (uint32_t)rootParams_1_0.size();
+
+			D3D12_ROOT_PARAMETER rootParam_1_0;
+			create_root_constant_1_0(pDesc, &rootParam_1_0);
+
+			rootParams_1_0.push_back(rootParam_1_0);
+
+			++rootConstantIndex;
+		}
 	}
 
 	// Collect descriptor table parameters
@@ -652,13 +658,11 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 			D3D12_ROOT_PARAMETER rootParam_1_0;
 			create_descriptor_table_1_0((uint32_t)layout.mCbvSrvUavTable.size(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
 
-			DescriptorSetLayout& table = pRootSignature->pDxViewTableLayouts[i];
-
 			// Store some of the binding info which will be required later when binding the descriptor table
 			// We need the root index when calling SetRootDescriptorTable
-			table.mRootIndex = (uint32_t)rootParams_1_0.size();
-			table.mDescriptorCount = (uint32_t)layout.mCbvSrvUavTable.size();
-			table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
+			pRootSignature->mDxViewDescriptorTableRootIndices[i] = (uint32_t)rootParams_1_0.size();
+			pRootSignature->mDxViewDescriptorCounts[i] = (uint32_t)layout.mCbvSrvUavTable.size();
+			pRootSignature->pDxViewDescriptorIndices[i] = (uint32_t*)conf_calloc(layout.mCbvSrvUavTable.size(), sizeof(uint32_t));
 
 			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mCbvSrvUavTable.size(); ++descIndex)
 			{
@@ -667,12 +671,12 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 
 				// Store the d3d12 related info in the descriptor to avoid constantly calling the util_to_dx mapping functions
 				pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				pDesc->mHandleIndex = table.mCumulativeDescriptorCount;
+				pDesc->mHandleIndex = pRootSignature->mDxCumulativeViewDescriptorCounts[i];
 
 				// Store the cumulative descriptor count so we can just fetch this value later when allocating descriptor handles
 				// This avoids unnecessary loops in the future to find the unfolded number of descriptors (includes shader resource arrays) in the descriptor table
-				table.mCumulativeDescriptorCount += pDesc->mDesc.size;
-				table.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
+				pRootSignature->mDxCumulativeViewDescriptorCounts[i] += pDesc->mDesc.size;
+				pRootSignature->pDxViewDescriptorIndices[i][descIndex] = layout.mDescriptorIndexMap[pDesc];
 			}
 
 			rootParams_1_0.push_back(rootParam_1_0);
@@ -684,13 +688,12 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 			D3D12_ROOT_PARAMETER rootParam_1_0;
 			create_descriptor_table_1_0((uint32_t)layout.mSamplerTable.size(), layout.mSamplerTable.data(), samplerRange_1_0[i].data(), &rootParam_1_0);
 
-			DescriptorSetLayout& table = pRootSignature->pDxSamplerTableLayouts[i];
-
 			// Store some of the binding info which will be required later when binding the descriptor table
 			// We need the root index when calling SetRootDescriptorTable
-			table.mRootIndex = (uint32_t)rootParams_1_0.size();
-			table.mDescriptorCount = (uint32_t)layout.mSamplerTable.size();
-			table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
+			pRootSignature->mDxSamplerDescriptorTableRootIndices[i] = (uint32_t)rootParams_1_0.size();
+			pRootSignature->mDxSamplerDescriptorCounts[i] = (uint32_t)layout.mSamplerTable.size();
+			pRootSignature->pDxSamplerDescriptorIndices[i] = (uint32_t*)conf_calloc(layout.mSamplerTable.size(), sizeof(uint32_t));
+			//table.pDescriptorIndices = (uint32_t*)conf_calloc(table.mDescriptorCount, sizeof(uint32_t));
 
 			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mSamplerTable.size(); ++descIndex)
 			{
@@ -699,12 +702,12 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 
 				// Store the d3d12 related info in the descriptor to avoid constantly calling the util_to_dx mapping functions
 				pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				pDesc->mHandleIndex = table.mCumulativeDescriptorCount;
+				pDesc->mHandleIndex = pRootSignature->mDxCumulativeSamplerDescriptorCounts[i];
 
 				// Store the cumulative descriptor count so we can just fetch this value later when allocating descriptor handles
 				// This avoids unnecessary loops in the future to find the unfolded number of descriptors (includes shader resource arrays) in the descriptor table
-				table.mCumulativeDescriptorCount += pDesc->mDesc.size;
-				table.pDescriptorIndices[descIndex] = layout.mDescriptorIndexMap[pDesc];
+				pRootSignature->mDxCumulativeSamplerDescriptorCounts[i] += pDesc->mDesc.size;
+				pRootSignature->pDxSamplerDescriptorIndices[i][descIndex] = layout.mDescriptorIndexMap[pDesc];
 			}
 
 			rootParams_1_0.push_back(rootParam_1_0);
@@ -1056,7 +1059,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	{
 		for (uint32_t i = 0; i < shaderCount; ++i)
 		{
-			tinystl::unordered_set<const DescriptorSetLayout*> addedTables;
+			tinystl::unordered_set<uint32_t> addedTables;
 			const RaytracingShaderTableRecordDesc* pRecord = &pRecords[i];
 			uint32_t shaderSize = 0;
 			for (uint32_t desc = 0; desc < pRecord->mRootDataCount; ++desc)
@@ -1077,12 +1080,13 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 					break;
 				case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
 				{
-					const DescriptorSetLayout* pTableLayout = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
-						&pRecord->pRootSignature->pDxSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pDxViewTableLayouts[pDesc->mUpdateFrquency];
-					if (addedTables.find(pTableLayout) == addedTables.end())
+					const uint32_t rootIndex = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
+						pRecord->pRootSignature->mDxSamplerDescriptorTableRootIndices[pDesc->mUpdateFrquency] :
+						pRecord->pRootSignature->mDxViewDescriptorTableRootIndices[pDesc->mUpdateFrquency];
+					if (addedTables.find(rootIndex) == addedTables.end())
 						shaderSize += gLocalRootDescriptorTableSize;
 					else
-						addedTables.insert(pTableLayout);
+						addedTables.insert(rootIndex);
 					break;
 				}
 				default:
@@ -1123,7 +1127,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	{
 		for (uint32_t i = 0; i < shaderCount; ++i)
 		{
-			tinystl::unordered_set<const DescriptorSetLayout*> addedTables;
+			tinystl::unordered_set<uint32_t> addedTables;
 
 			const RaytracingShaderTableRecordDesc* pRecord = &pRecords[i];
 			void* pIdentifier = NULL;
@@ -1184,22 +1188,26 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 				}
 				case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
 				{
-					const DescriptorSetLayout* pTableLayout = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
-						&pRecord->pRootSignature->pDxSamplerTableLayouts[pDesc->mUpdateFrquency] : &pRecord->pRootSignature->pDxViewTableLayouts[pDesc->mUpdateFrquency];
+					RootSignature* pRootSignature = pRecord->pRootSignature;
+					const uint32_t setIndex = pDesc->mUpdateFrquency;
+					const uint32_t rootIndex = pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER ?
+						pRootSignature->mDxSamplerDescriptorTableRootIndices[pDesc->mUpdateFrquency] :
+						pRootSignature->mDxViewDescriptorTableRootIndices[pDesc->mUpdateFrquency];
 					// Construct a new descriptor table from shader visible heap
-					if (addedTables.find(pTableLayout) == addedTables.end())
+					if (addedTables.find(rootIndex) == addedTables.end())
 					{
 						D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
 						D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 						if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 						{
-							add_gpu_descriptor_handles(pRaytracing->pRenderer->pSamplerHeap[0], &cpuHandle, &gpuHandle, pTableLayout->mCumulativeDescriptorCount);
+							add_gpu_descriptor_handles(pRaytracing->pRenderer->pSamplerHeap[0], &cpuHandle, &gpuHandle,
+								pRootSignature->mDxCumulativeSamplerDescriptorCounts[setIndex]);
 							pTable->mSamplerGpuDescriptorHandle[pDesc->mUpdateFrquency] = gpuHandle;
-							pTable->mSamplerDescriptorCount[pDesc->mUpdateFrquency] = pTableLayout->mCumulativeDescriptorCount;
+							pTable->mSamplerDescriptorCount[pDesc->mUpdateFrquency] = pRootSignature->mDxCumulativeSamplerDescriptorCounts[setIndex];
 
-							for (uint32_t i = 0; i < pTableLayout->mDescriptorCount; ++i)
+							for (uint32_t i = 0; i < pRootSignature->mDxSamplerDescriptorCounts[setIndex]; ++i)
 							{
-								const DescriptorInfo* pTableDesc = &pRecord->pRootSignature->pDescriptors[pTableLayout->pDescriptorIndices[i]];
+								const DescriptorInfo* pTableDesc = &pRootSignature->pDescriptors[pRootSignature->pDxSamplerDescriptorIndices[setIndex][i]];
 								const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
 								const uint32_t arrayCount = max(1U, pTableData->mCount);
 								for (uint32_t samplerIndex = 0; samplerIndex < arrayCount; ++samplerIndex)
@@ -1213,13 +1221,14 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 						}
 						else
 						{
-							add_gpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], &cpuHandle, &gpuHandle, pTableLayout->mCumulativeDescriptorCount);
+							add_gpu_descriptor_handles(pRaytracing->pRenderer->pCbvSrvUavHeap[0], &cpuHandle, &gpuHandle,
+								pRootSignature->mDxCumulativeViewDescriptorCounts[setIndex]);
 							pTable->mViewGpuDescriptorHandle[pDesc->mUpdateFrquency] = gpuHandle;
-							pTable->mViewDescriptorCount[pDesc->mUpdateFrquency] = pTableLayout->mCumulativeDescriptorCount;
+							pTable->mViewDescriptorCount[pDesc->mUpdateFrquency] = pRootSignature->mDxCumulativeViewDescriptorCounts[setIndex];
 
-							for (uint32_t i = 0; i < pTableLayout->mDescriptorCount; ++i)
+							for (uint32_t i = 0; i < pRootSignature->mDxViewDescriptorCounts[setIndex]; ++i)
 							{
-								const DescriptorInfo* pTableDesc = &pRecord->pRootSignature->pDescriptors[pTableLayout->pDescriptorIndices[i]];
+								const DescriptorInfo* pTableDesc = &pRootSignature->pDescriptors[pRootSignature->pDxViewDescriptorIndices[setIndex][i]];
 								const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
 								const DescriptorType type = pTableDesc->mDesc.type;
 								const uint32_t arrayCount = max(1U, pTableData->mCount);
@@ -1276,7 +1285,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 					}
 					else
 					{
-						addedTables.insert(pTableLayout);
+						addedTables.insert(rootIndex);
 					}
 					break;
 				}

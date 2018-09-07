@@ -72,7 +72,7 @@ static void GetNameFromAiString(tinystl::unordered_map<tinystl::string, size_t>*
 		{
 			pMap->insert(tinystl::pair<tinystl::string, size_t>(meshName, 0));
 		}
-		meshName += String::format("%d", (int)((*pMap)[meshName])++);
+		meshName += tinystl::string::format("%d", (int)((*pMap)[meshName])++);
 	}
 }
 
@@ -249,7 +249,7 @@ static void CollectMaterials(const aiScene* pScene, Model* pModel, tinystl::unor
 					}
 				}
 
-				pModel->mMaterialList[matIndex].mProperties.insert({ String(pProp->mKey.C_Str()), prop });
+				pModel->mMaterialList[matIndex].mProperties.insert({ tinystl::string(pProp->mKey.C_Str()), prop });
 			}
 
 			for (uint32_t textrureType = 0; textrureType < AI_TEXTURE_TYPE_MAX; ++textrureType)

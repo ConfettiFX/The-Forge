@@ -55,7 +55,7 @@ public:
 	);
 	~LogManager();
 
-	void Open(const String& fileName);
+	void Open(const tinystl::string& fileName);
 	void Close();
 
 	void SetLevel(LogLevel level);
@@ -64,23 +64,23 @@ public:
 
 	LogLevel GetLevel() const { return mLogLevel; }
 	bool GetTimeStamp() const { return mRecordTimestamp; }
-	String GetLastMessage() const { return mLastMessage; }
+	tinystl::string GetLastMessage() const { return mLastMessage; }
 	bool IsQuiet() const { return mQuietMode; }
 
-	virtual void OutputLog(int level, const String& message);
+	virtual void OutputLog(int level, const tinystl::string& message);
 
-	static void Write(int level, const String& message);
-	static void WriteRaw(const String& message, bool error = false);
+	static void Write(int level, const tinystl::string& message);
+	static void WriteRaw(const tinystl::string& message, bool error = false);
 
 private:
 	/// Mutex for threaded operation.
 	Mutex mLogMutex;
 	File* pLogFile;
-	String mLastMessage;
+	tinystl::string mLastMessage;
 	LogLevel mLogLevel;
 	bool mRecordTimestamp;
 	bool mInWrite;
 	bool mQuietMode;
 };
 
-String ToString(const char* formatString, const char* function, ...);
+tinystl::string ToString(const char* formatString, const char* function, ...);

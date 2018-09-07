@@ -141,13 +141,39 @@ static bool captureMouse(bool shouldCapture)
 	{
 		if (shouldCapture)
 		{
+			//TODO:Fix this once we have multiple window handles
+			WindowsDesc* currentWind = gHWNDMap.begin().node->second;
 			GetCursorPos(lastCursorPoint);
+
+			SetCapture((HWND)currentWind->handle);
+
+			RECT clientRect;
+			GetClientRect((HWND)currentWind->handle, &clientRect);
+			//convert screen rect to client coordinates.
+			POINT ptClientUL = { clientRect.left, clientRect.top };
+			// Add one to the right and bottom sides, because the 
+			// coordinates retrieved by GetClientRect do not 
+			// include the far left and lowermost pixels. 
+			POINT ptClientLR = { clientRect.right + 1, clientRect.bottom + 1 };
+			ClientToScreen((HWND)currentWind->handle, &ptClientUL);
+			ClientToScreen((HWND)currentWind->handle, &ptClientLR);
+
+			// Copy the client coordinates of the client area 
+			// to the rcClient structure. Confine the mouse cursor 
+			// to the client area by passing the rcClient structure 
+			// to the ClipCursor function. 
+			SetRect(&clientRect, ptClientUL.x, ptClientUL.y,
+				ptClientLR.x, ptClientLR.y);
+			ClipCursor(&clientRect);
+
+
 			ShowCursor(FALSE);
 			isCaptured = true;
 		}
 		else
 		{
 			ShowCursor(TRUE);
+			ReleaseCapture();
 			isCaptured = false;
 			SetCursorPos(lastCursorPoint->x, lastCursorPoint->y);
 		}
@@ -167,7 +193,6 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		gCurrentWindow = pNode->second;
 	else
 		return DefWindowProcW(_hwnd, _id, wParam, lParam);
-
 
 	switch (_id)
 	{
@@ -404,7 +429,7 @@ public:
 					LPSTR messageBuffer = NULL;
 					size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 						NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
-					String message(messageBuffer, size);
+					tinystl::string message(messageBuffer, size);
 					ErrorMsg(message.c_str());
 					return;
 				}
@@ -530,22 +555,8 @@ void handleMessages()
 	{
 		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
 		{
-
 			if (gHWNDMap.size() == 0)
 				return;
-
-			//TODO:Fix this once we have multiple window handles
-			WindowsDesc* currentWind = gHWNDMap.begin().node->second;
-			RECT clientRect;
-
-			clientRect.top = currentWind->windowedRect.top;
-			clientRect.bottom = currentWind->windowedRect.bottom;
-			clientRect.right = currentWind->windowedRect.right;
-			clientRect.left = currentWind->windowedRect.left;
-
-			GetClientRect((HWND)currentWind->handle, &clientRect);
-
-			ClipCursor(&clientRect);
 
 			captureMouse(true);
 		}
@@ -675,6 +686,26 @@ MonitorDesc* getMonitor(uint32_t index)
 {
 	ASSERT((uint32_t)gMonitors.size() > index);
 	return &gMonitors[index];
+}
+
+float2 getDpiScale()
+{
+	HDC hdc = ::GetDC(nullptr);
+	float2 ret = {};
+	const float dpi = 96.0f;
+	if (hdc)
+	{
+		ret.x = (UINT)(::GetDeviceCaps(hdc, LOGPIXELSX)) / dpi;
+		ret.y = static_cast<UINT>(::GetDeviceCaps(hdc, LOGPIXELSY)) / dpi;
+		::ReleaseDC(nullptr, hdc);
+	}
+	else
+	{
+		float systemDpi = ::GetDpiForSystem() / 96.0f;
+		ret = { systemDpi, systemDpi };
+	}
+
+	return ret;
 }
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
@@ -847,7 +878,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		return EXIT_FAILURE;
 
 	registerWindowResizeEvent(onResize);
-
 	while (isRunning())
 	{
 

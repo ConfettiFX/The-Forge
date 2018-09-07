@@ -57,7 +57,7 @@ static WindowsDesc gCurrentWindow;
 static tinystl::vector <MonitorDesc> gMonitors;
 static int gCurrentTouchEvent = 0;
 
-static float gRetinaScale = 1.0f;
+static float2 gRetinaScale = { 1.0f, 1.0f };
 static int gDeviceWidth;
 static int gDeviceHeight;
 
@@ -141,6 +141,10 @@ unsigned getTimeSinceStart()
 	return (unsigned)time(NULL);
 }
 
+float2 getDpiScale()
+{
+	return gRetinaScale;
+}
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -205,7 +209,7 @@ int iOSMain(int argc, char** argv, IApp* app)
     // Get the device's width and height.
     gDeviceWidth = _view.drawableSize.width;
     gDeviceHeight = _view.drawableSize.height;
-    gRetinaScale = _view.drawableSize.width / _view.frame.size.width;
+    gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width), (float)(_view.drawableSize.height / _view.frame.size.height) };
     
     // Enable multi-touch in our apps.
     [_view setMultipleTouchEnabled:true];
@@ -221,6 +225,7 @@ int iOSMain(int argc, char** argv, IApp* app)
 	
 	InputSystem::Init(gDeviceWidth, gDeviceHeight);
 	InputSystem::InitSubView((__bridge void*)_view);
+	InputSystem::SetMouseCapture(true);
 }
 
 // Called whenever view changes orientation or layout is changed
@@ -300,8 +305,8 @@ uint32_t testingMaxFrameCount = 120;
 
 -(void)drawRectResized:(CGSize)size
 {
-    pApp->mSettings.mWidth = size.width * gRetinaScale;
-    pApp->mSettings.mHeight = size.height * gRetinaScale;
+    pApp->mSettings.mWidth = size.width * gRetinaScale.x;
+    pApp->mSettings.mHeight = size.height * gRetinaScale.y;
     pApp->mSettings.mFullScreen = true;
     pApp->Unload();
     pApp->Load();

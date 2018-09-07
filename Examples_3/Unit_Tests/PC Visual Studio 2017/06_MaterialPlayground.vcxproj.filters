@@ -16,6 +16,9 @@
     <Filter Include="AssimpImporter">
       <UniqueIdentifier>{ae31e0ea-45e0-42b6-ab91-dd3da68604c6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\PCDX11">
+      <UniqueIdentifier>{8de9eb5f-4c04-44de-9812-a0f7c11c7ad6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Common_3\Tools\AssimpImporter\AssimpImporter.cpp">
@@ -73,6 +76,30 @@
     </None>
     <None Include="..\src\06_MaterialPlayground\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\BRDFIntegration.comp">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\computeIrradianceMap.comp">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\computeSpecularMap.comp">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\panoToCube.comp">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\renderSceneBRDF.frag">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\renderSceneBRDF.vert">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\skybox.frag">
+      <Filter>Shaders\PCDX11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\PCDX11\skybox.vert">
+      <Filter>Shaders\PCDX11</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

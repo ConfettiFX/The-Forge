@@ -81,22 +81,22 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-String _getCurrentDir()
+tinystl::string _getCurrentDir()
 {
 	char curDir[MAX_PATH];
 	GetCurrentDirectoryA(MAX_PATH, curDir);
-	return String (curDir);
+	return tinystl::string (curDir);
 }
 
-String _getExePath()
+tinystl::string _getExePath()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	GetModuleFileNameA(0, exeName, MAX_PATH);
-	return String(exeName);
+	return tinystl::string(exeName);
 }
 
-String _getAppPrefsDir(const char *org, const char *app)
+tinystl::string _getAppPrefsDir(const char *org, const char *app)
 {
 	/*
 	* Vista and later has a new API for this, but SHGetFolderPath works there,
@@ -142,15 +142,15 @@ String _getAppPrefsDir(const char *org, const char *app)
 	}
 
 	strcat(path, "\\");
-	return String (path);
+	return tinystl::string (path);
 }
 
-String _getUserDocumentsDir()
+tinystl::string _getUserDocumentsDir()
 {
 	char pathName[MAX_PATH];
 	pathName[0] = 0;
 	SHGetSpecialFolderPathA(0, pathName, CSIDL_PERSONAL, 0);
-	return String(pathName);
+	return tinystl::string(pathName);
 }
 
 void _setCurrentDir(const char* path)

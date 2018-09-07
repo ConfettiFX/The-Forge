@@ -47,12 +47,12 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-#if defined(DIRECT3D12)
+#if defined(DIRECT3D12) || defined(DIRECT3D11)
 #define RESOURCE_DIR "PCDX12"
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -234,7 +234,7 @@ Buffer*						pScreenSizeBuffer;
 
 float					gCameraYRotateScale;   // decide how fast camera rotate 
 
-DebugTextDrawDesc gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class Procedural : public IApp
 {
@@ -457,19 +457,19 @@ public:
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddProperty(vsyncProp);
+		pGui->AddControl(vsyncProp);
 #endif
 
-		pGui->AddProperty(sunX);
-		pGui->AddProperty(sunY);
-		pGui->AddProperty(sunZ);
+		pGui->AddControl(sunX);
+		pGui->AddControl(sunY);
+		pGui->AddControl(sunZ);
 
-		pGui->AddProperty(OceanHeight);
-		pGui->AddProperty(ShoreHeight);
-		pGui->AddProperty(SnowHeight);
-		pGui->AddProperty(PolarCapsAttitude);
-		pGui->AddProperty(TerrainExp);
-		pGui->AddProperty(TerrainSeed);
+		pGui->AddControl(OceanHeight);
+		pGui->AddControl(ShoreHeight);
+		pGui->AddControl(SnowHeight);
+		pGui->AddControl(PolarCapsAttitude);
+		pGui->AddControl(TerrainExp);
+		pGui->AddControl(TerrainSeed);
 
 		CameraMotionParameters camParameters{ 10.0f, 600.0f, 200.0f };
 		vec3 camPos{ 0.0f, 0.0f, 10.0f };
@@ -790,7 +790,7 @@ public:
 		cmdBindDescriptors(cmd, pRootSigBRDF, 4, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 
-		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1);
+		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1, 0);
 #ifndef METAL
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #endif
@@ -818,10 +818,10 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL
-		drawDebugText(cmd, 8, 40, String::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
@@ -850,7 +850,7 @@ public:
 		}
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "08_Procedural";
 	}

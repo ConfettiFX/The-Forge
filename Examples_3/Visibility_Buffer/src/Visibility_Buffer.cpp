@@ -70,7 +70,7 @@ HiresTimer gTimer;
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
+	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
 #elif defined(METAL)
@@ -79,8 +79,8 @@ HiresTimer gTimer;
 #error PLATFORM NOT SUPPORTED
 #endif
 
-#if defined(LINUX)
-//_countof is MSVS macro, add define for linux. a is expected to be static array type
+#if defined(__linux__)
+//_countof is MSVS macro, add define for Linux. a is expected to be static array type
 #define _countof(a)                               \
   ((sizeof(a) / sizeof(*(a))) /                     \
   static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
@@ -472,7 +472,7 @@ uint64_t						gFrameCount = 0;
 Scene*							pScene = nullptr;
 UIApp							gAppUI;
 GuiComponent*					pGuiWindow = nullptr;
-DebugTextDrawDesc				gFrameTimeDraw = DebugTextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc					gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
@@ -515,14 +515,14 @@ const uint32_t					pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 // App implementation
 /************************************************************************/
-uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, PropertyChangedCallback onResolutionChanged)
+uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, ControlChangedCallback onResolutionChanged)
 {
-#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 	if (pUIManager)
 	{
 		struct ResolutionData
 		{
-			tinystl::vector<String> resNameContainer;
+			tinystl::vector<tinystl::string> resNameContainer;
 			tinystl::vector<const char*> resNamePointers;
 			tinystl::vector<uint32_t> resValues;
 		};
@@ -536,7 +536,7 @@ uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionInd
 
 		for (uint32_t i = 0; i < resCount; ++i)
 		{
-			data.resNameContainer.push_back(String::format("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
+			data.resNameContainer.push_back(tinystl::string::format("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
 			data.resValues.push_back(i);
 		}
 
@@ -547,8 +547,8 @@ uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionInd
 		}
 		data.resNamePointers[data.resNamePointers.size() - 1] = nullptr;
 
-		UIProperty property = UIProperty("Screen Resolution", resolutionIndex, data.resNamePointers.data(), data.resValues.data(), onResolutionChanged);
-		return pUIManager->AddProperty(property);
+		UIProperty control = UIProperty("Screen Resolution", resolutionIndex, data.resNamePointers.data(), data.resValues.data(), onResolutionChanged);
+		return pUIManager->AddControl(control);
 	}
 
 #endif
@@ -648,11 +648,11 @@ public:
 
 		// Create sampler for VB render target
 		SamplerDesc trilinearDesc = {
-			FILTER_TRILINEAR_ANISO, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f
 		};
 		SamplerDesc bilinearDesc = {
-			FILTER_BILINEAR, FILTER_BILINEAR, MIPMAP_MODE_LINEAR,
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
 		};
 		SamplerDesc pointDesc = {
@@ -666,7 +666,7 @@ public:
 		// Load the scene using the SceneLoader class, which uses Assimp
 		/************************************************************************/
 		HiresTimer sceneLoadTimer;
-		String sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
+		tinystl::string sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
 		pScene = loadScene(sceneFullPath.c_str());
 		if (!pScene)
 			return false;
@@ -897,12 +897,12 @@ public:
 
 		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
 		pDrawId = &pRootSignatureVBPass->pDescriptors[pRootSignatureVBPass->pDescriptorNameToIndexMap[tinystl::hash("indirectRootConstant")]];
-		indirectArgs[0].mRootParameterIndex = pRootSignatureVBPass->pRootConstantLayouts[pDrawId->mIndexInParent].mRootIndex;
+		indirectArgs[0].mRootParameterIndex = pRootSignatureVBPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 
 		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 2, indirectArgs };
 		pDrawId = &pRootSignatureDeferredPass->pDescriptors[pRootSignatureDeferredPass->pDescriptorNameToIndexMap[tinystl::hash("indirectRootConstant")]];
-		indirectArgs[0].mRootParameterIndex = pRootSignatureDeferredPass->pRootConstantLayouts[pDrawId->mIndexInParent].mRootIndex;
+		indirectArgs[0].mRootParameterIndex = pRootSignatureDeferredPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
 #else
 		// Indicate the renderer that we want to use non-indexed geometry. We can't use indices because Metal doesn't provide triangle ID built-in
@@ -958,7 +958,7 @@ public:
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGuiWindow->AddProperty(vsyncProp);
+		pGuiWindow->AddControl(vsyncProp);
 #endif
 
 		// Light Settings
@@ -966,18 +966,18 @@ public:
 		// offset max angle for sun control so the light won't bleed with
 		// small glancing angles, i.e., when lightDir is almost parallel to the plane
 		UIProperty sunX("Sun Control X", gAppSettings.mSunControl.x, -PI, PI, 0.001f);
-		pGuiWindow->AddProperty(sunX);
+		pGuiWindow->AddControl(sunX);
 
 		UIProperty sunY("Sun Control Y", gAppSettings.mSunControl.y, -PI, PI, 0.001f);
-		pGuiWindow->AddProperty(sunY);
+		pGuiWindow->AddControl(sunY);
 
 		UIProperty esm("Shadow Control", gAppSettings.mEsmControl, 0, 200.0f);
-		pGuiWindow->AddProperty(esm);
+		pGuiWindow->AddControl(esm);
 
 		UIProperty localLight("Enable Random Point Lights", gAppSettings.mRenderLocalLights);
-		pGuiWindow->AddProperty(localLight);
+		pGuiWindow->AddControl(localLight);
 
-#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
 		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
 		for (uint32_t i = 0; i < sizeof(wantedResolutions) / sizeof(wantedResolutions[0]); ++i)
@@ -1000,7 +1000,7 @@ public:
 		addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
 		{
 			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
-			setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->source)]);
+			setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->pData)]);
 			pVisibilityBuffer->Unload();
 			pVisibilityBuffer->Load();
 		});
@@ -1018,29 +1018,29 @@ public:
 			RENDERMODE_DEFERRED,
 		};
 		UIProperty renderMode("Render Mode", gAppSettings.mRenderMode, renderModeNames, renderModeValues);
-		pGuiWindow->AddProperty(renderMode);
+		pGuiWindow->AddControl(renderMode);
 
 		UIProperty holdProp = UIProperty("Hold filtered results", gAppSettings.mHoldFilteredResults);
-		pGuiWindow->AddProperty(holdProp);
+		pGuiWindow->AddControl(holdProp);
 
 		UIProperty filtering("Triangle Filtering", gAppSettings.mFilterTriangles);
-		pGuiWindow->AddProperty(filtering);
+		pGuiWindow->AddControl(filtering);
 
 		UIProperty cluster("Cluster Culling", gAppSettings.mClusterCulling);
-		pGuiWindow->AddProperty(cluster);
+		pGuiWindow->AddControl(cluster);
 
 		UIProperty asyncCompute("Async Compute", gAppSettings.mAsyncCompute);
-		pGuiWindow->AddProperty(asyncCompute);
+		pGuiWindow->AddControl(asyncCompute);
 
 #if MSAASAMPLECOUNT == 1
 		UIProperty debugTargets("Draw Debug Targets", gAppSettings.mDrawDebugTargets);
-		pGuiWindow->AddProperty(debugTargets);
+		pGuiWindow->AddControl(debugTargets);
 #endif
 		/************************************************************************/
 		// HDAO Settings
 		/************************************************************************/
 		UIProperty toggleAO("Enable HDAO", gAppSettings.mEnableHDAO);
-		pGuiWindow->AddProperty(toggleAO);
+		pGuiWindow->AddControl(toggleAO);
 
 		tinystl::vector<UIProperty>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
 		dynamicPropsAO.push_back(UIProperty("AO accept radius", gAppSettings.mAcceptRadius, 0, 10));
@@ -1052,9 +1052,9 @@ public:
 			gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
 		}
 
-#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 		if (!pWindow->fullScreen)
-			pGuiWindow->RemoveProperty(gResolutionProperty);
+			pGuiWindow->RemoveControl(gResolutionProperty);
 #endif
 		/************************************************************************/
 		// Setup the fps camera for navigating through the scene
@@ -1251,7 +1251,7 @@ public:
 		// Vertex layout used by all geometry passes (shadow, visibility, deferred)
 		/************************************************************************/
 #if !defined(METAL)
-#if defined(LINUX)
+#if defined(__linux__)
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 4;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -1869,7 +1869,7 @@ public:
 		++gFrameCount;
 	}
 
-	String GetName()
+	tinystl::string GetName()
 	{
 		return "Visibility Buffer";
 	}
@@ -2027,11 +2027,11 @@ public:
 	{
 		ShaderMacro shadingMacros[2][2] = {
 			{
-				{ "SAMPLE_COUNT", String::format("%d", MSAASAMPLECOUNT) },
+				{ "SAMPLE_COUNT", tinystl::string::format("%d", MSAASAMPLECOUNT) },
 				{ "USE_AMBIENT_OCCLUSION", "" }
 			},
 			{
-				{ "SAMPLE_COUNT", String::format("%d", MSAASAMPLECOUNT) },
+				{ "SAMPLE_COUNT", tinystl::string::format("%d", MSAASAMPLECOUNT) },
 				{ "USE_AMBIENT_OCCLUSION", "" }
 			},
 		};
@@ -2074,7 +2074,7 @@ public:
 
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			shadingMacros[i][1].value = String::format("%d", i);//USE_AMBIENT_OCCLUSION
+			shadingMacros[i][1].value = tinystl::string::format("%d", i);//USE_AMBIENT_OCCLUSION
 			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, FSR_SrcShaders };
 			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
 
@@ -2093,7 +2093,7 @@ public:
 		for (uint32_t i = 0; i < 4; ++i)
 		{
 			hdaoMacros[i][0] = shadingMacros[0][0];
-			hdaoMacros[i][1] = { "AO_QUALITY", String::format("%u", (i + 1)) };
+			hdaoMacros[i][1] = { "AO_QUALITY", tinystl::string::format("%u", (i + 1)) };
 			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
 			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
 		}
@@ -2833,7 +2833,6 @@ public:
 	void updateDynamicUIElements()
 	{
 		static bool gWasAOEnabled = gAppSettings.mEnableHDAO;
-		static bool gWasFullscreen = pWindow->fullScreen;
 
 		if (gAppSettings.mEnableHDAO != gWasAOEnabled)
 		{
@@ -2847,7 +2846,8 @@ public:
 				gAppSettings.mDynamicUIControlsAO.HideDynamicProperties(pGuiWindow);
 			}
 		}
-#if !defined(_DURANGO) && !defined(METAL) && !defined(LINUX)
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
+		static bool gWasFullscreen = pWindow->fullScreen;
 		if (pWindow->fullScreen != gWasFullscreen)
 		{
 			gWasFullscreen = pWindow->fullScreen;
@@ -2857,14 +2857,14 @@ public:
 				addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
 				{
 					waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
-					setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->source)]);
+					setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->pData)]);
 					pVisibilityBuffer->Unload();
 					pVisibilityBuffer->Load();
 				});
 			}
 			else
 			{
-				pGuiWindow->RemoveProperty(gResolutionProperty);
+				pGuiWindow->RemoveControl(gResolutionProperty);
 			}
 		}
 #endif
@@ -3335,7 +3335,7 @@ public:
 		cmdBindDescriptors(cmd, pRootSignatureDeferredShadePointLight, numDescriptors, params);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferCube, NULL);
 		cmdBindIndexBuffer(cmd, pIndexBufferCube, 0);
-		cmdDrawIndexedInstanced(cmd, 36, 0, LIGHT_COUNT);
+		cmdDrawIndexedInstanced(cmd, 36, 0, LIGHT_COUNT, 0, 0);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
@@ -4107,7 +4107,7 @@ public:
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
 		gTimer.GetUSec(true);
-		drawDebugText(cmd, 8.0f, 15.0f, String::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if 1
 		// NOTE: Realtime GPU Profiling is not supported on Metal.
@@ -4118,24 +4118,24 @@ public:
 			{
 				float time = max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f,
 					(float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-				drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", time), &gFrameTimeDraw);
+				drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
 
-				drawDebugText(cmd, 8.0f, 65.0f, String::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+				drawDebugText(cmd, 8.0f, 65.0f, tinystl::string::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 				drawDebugGpuProfile(cmd, 8.0f, 90.0f, pComputeGpuProfiler, NULL);
-				drawDebugText(cmd, 8.0f, 300.0f, String::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+				drawDebugText(cmd, 8.0f, 300.0f, tinystl::string::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 				drawDebugGpuProfile(cmd, 8.0f, 325.0f, pGraphicsGpuProfiler, NULL);
 			}
 			else
 			{
 				float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
-				drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", time), &gFrameTimeDraw);
+				drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
 
 				drawDebugGpuProfile(cmd, 8.0f, 65.0f, pGraphicsGpuProfiler, NULL);
 			}
 		}
 		else
 		{
-			drawDebugText(cmd, 8.0f, 40.0f, String::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+			drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 			drawDebugGpuProfile(cmd, 8.0f, 65.0f, pGraphicsGpuProfiler, NULL);
 		}
 #endif

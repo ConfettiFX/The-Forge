@@ -88,22 +88,22 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-String _getCurrentDir()
+tinystl::string _getCurrentDir()
 {
 	char curDir[MAX_PATH];
 	getcwd(curDir, sizeof(curDir));
-	return String (curDir);
+	return tinystl::string (curDir);
 }
 
-String _getExePath()
+tinystl::string _getExePath()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	ssize_t count = readlink( "/proc/self/exe", exeName, MAX_PATH );
-	return String(exeName);
+	return tinystl::string(exeName);
 }
 
-String _getAppPrefsDir(const char *org, const char *app)
+tinystl::string _getAppPrefsDir(const char *org, const char *app)
 {
 	const char* homedir;
 
@@ -111,17 +111,17 @@ String _getAppPrefsDir(const char *org, const char *app)
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}
-	return String(homedir);
+	return tinystl::string(homedir);
 }
 
-String _getUserDocumentsDir()
+tinystl::string _getUserDocumentsDir()
 {
 	const char* homedir;
 	if ((homedir = getenv("HOME")) == NULL) 
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}
-	String homeString = String(homedir);
+	tinystl::string homeString = tinystl::string(homedir);
 	const char* doc = "Documents";
 	homeString.append(doc, doc + strlen(doc));
 	return homeString;

@@ -301,6 +301,7 @@ struct float2
 	float2(float x, float y) : x(x), y(y) {}
 	float2(float x) : x(x), y(x) {}
 	float2(const float2& f) : x(f.x), y(f.y) {}
+	float2(const float(&fv)[2]) : x(fv[0]), y(fv[1]){}
 
 	float& operator[](int i) { return (&x)[i]; }
 	float operator[](int i) const { return (&x)[i]; }
@@ -350,6 +351,7 @@ struct float3
 	float3(float x, float y, float z) : x(x), y(y), z(z) {}
 	float3(float x) : x(x), y(x), z(x) {}
 	float3(const float3& f) : x(f.x), y(f.y), z(f.z) {}
+	float3(const float(&fv)[3]) : x(fv[0]), y(fv[1]), z(fv[2]) {}
 
 	float& operator[](int i) { return (&x)[i]; }
 	float operator[](int i) const { return (&x)[i]; }
@@ -395,6 +397,7 @@ struct float4
 	float4(float x) : x(x), y(x), z(x), w(x) {}
 	float4(const float3& f, float w) : x(f.x), y(f.y), z(f.z), w(w) {}
 	float4(const float4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
+	float4(const float(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
 
 	float& operator[](int i) { return (&x)[i]; }
 	float operator[](int i) const { return (&x)[i]; }
@@ -480,6 +483,32 @@ constexpr T min(const T &x, const T &y) { return (x < y) ? x : y; }
 template <class T>
 constexpr T max(const T &x, const T &y) { return (x > y) ? x : y; }
 
+inline Vector3 min(const Vector3 &a, const Vector3 &b)
+{
+#if VECTORMATH_MODE_SCALAR
+	return Vector3(
+		min(a.getX(), b.getX()),
+		min(a.getY(), b.getY()),
+		min(a.getZ(), b.getZ()));
+#else
+	return Vector3(_mm_min_ps(a.get128(), b.get128()));
+#endif
+}
+inline Vector3 max(const Vector3 &a, const Vector3 &b)
+{
+#if VECTORMATH_MODE_SCALAR
+	return Vector3(
+		max(a.getX(), b.getX()),
+		max(a.getY(), b.getY()),
+		max(a.getZ(), b.getZ()));
+#else
+	return Vector3(_mm_max_ps(a.get128(), b.get128()));
+#endif
+}
+
+inline Vector3 lerp(const Vector3 &u, const Vector3 &v, const float x) { return u + x * (v - u); }
+inline Vector3 clamp(const Vector3 &v, const Vector3 &c0, const Vector3 &c1) { return min(max(v, c0), c1); }
+
 
 inline float lerp(const float u, const float v, const float x) { return u + x * (v - u); }
 inline float cerp(const float u0, const float u1, const float u2, const float u3, float x)
@@ -528,14 +557,8 @@ inline float rsqrtf(const float v) {
 #endif
 }
 
-inline float sqrf(const float x) {
-	return x * x;
-}
-
-inline float sincf(const float x) {
-	return (x == 0) ? 1 : sinf(x) / x;
-}
-
+inline float sqrf(const float x) { return x * x; }
+inline float sincf(const float x) { return (x == 0) ? 1 : sinf(x) / x; }
 //inline float roundf(float x) { return floorf((x)+0.5f); }
 
 template <class T> 
@@ -579,6 +602,12 @@ inline unsigned int getLowerPowerOfTwo(const unsigned int x)
 static inline unsigned int round_up(unsigned int value, unsigned int multiple) { return ((value + multiple - 1) / multiple) * multiple; }
 static inline uint64_t round_up_64(uint64_t value, uint64_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
 
+
+
+//----------------------------------------------------------------------------
+// Color conversions / packing / unpacking
+//----------------------------------------------------------------------------
+
 //Output format is B8G8R8A8
 static inline uint32_t packColorU32(uint32_t r, uint32_t g, uint32_t b, uint32_t a)
 {
@@ -598,13 +627,17 @@ static inline uint32_t packColorF32(float r, float g, float b, float a)
 		(uint32_t)(clamp(b, 0.0f, 1.0f) * 255),
 		(uint32_t)(clamp(a, 0.0f, 1.0f) * 255));
 }
-
 static inline uint32_t packColorF32_4(float4 rgba) { return packColorF32(rgba.x, rgba.y, rgba.z, rgba.w); }
-inline float lineProjection(const Vector3 &line0, const Vector3 &line1, const Vector3 &point)
+static inline Vector4 unpackColorU32(uint32_t colorValue)
 {
-	Vector3 v = line1 - line0;
-	return dot(v, point - line0) / dot(v, v);
+	return Vector4 ( 
+		  (float)((colorValue & 0xFF000000) >> 24) / 255.0f
+		, (float)((colorValue & 0x00FF0000) >> 16) / 255.0f
+		, (float)((colorValue & 0x0000FF00) >> 8 ) / 255.0f
+		, (float)((colorValue & 0x000000FF)      ) / 255.0f
+	);
 }
+
 
 inline Vector3 rgbeToRGB(unsigned char *rgbe)
 {
@@ -665,71 +698,6 @@ inline unsigned int rgbToRGB9E5(const Vector3 &rgb)
 	}
 }
 
-
-inline Vector3 min(const Vector3 &a, const Vector3 &b)
-{
-#if VECTORMATH_MODE_SCALAR
-	return Vector3(
-		min(a.getX(), b.getX()),
-		min(a.getY(), b.getY()),
-		min(a.getZ(), b.getZ()));
-#else
-	return Vector3(_mm_min_ps(a.get128(), b.get128()));
-#endif
-}
-inline Vector3 max(const Vector3 &a, const Vector3 &b)
-{
-#if VECTORMATH_MODE_SCALAR
-	return Vector3(
-		max(a.getX(), b.getX()),
-		max(a.getY(), b.getY()),
-		max(a.getZ(), b.getZ()));
-#else
-	return Vector3(_mm_max_ps(a.get128(), b.get128()));
-#endif
-}
-
-inline Vector3 lerp(const Vector3 &u, const Vector3 &v, const float x) { return u + x * (v - u); }
-inline Vector3 clamp(const Vector3 &v, const Vector3 &c0, const Vector3 &c1) { 	return min(max(v, c0), c1); }
-
-inline float planeDistance(const Vector4 &plane, const Vector3 &point)
-{
-#if VECTORMATH_MODE_SCALAR
-	return
-		point.getX() * plane.getX() +
-		point.getY() * plane.getY() +
-		point.getZ() * plane.getZ() +
-		plane.getW();
-#else
-	static const __m128 maskxyz = _mm_castsi128_ps(_mm_set_epi32(0, ~0u, ~0u, ~0u));
-	static const __m128 maskw = _mm_castsi128_ps(_mm_set_epi32(~0u, 0, 0, 0));
-
-	//a = Vector4(point.xyz * plane.xyz, 0);
-	const __m128 a = _mm_and_ps(
-		_mm_mul_ps(point.get128(), plane.get128()),
-		maskxyz);
-	//b = Vector4(0,0,0,plane.w)
-	const __m128 b = _mm_and_ps(plane.get128(), maskw);
-
-	//c = Vector4(plane.xyz, plane.w);
-	__m128 c = _mm_or_ps(a, b);
-
-
-	//result = c.x + c.y + c.z + d.w
-	c = _mm_hadd_ps(c, c);
-	c = _mm_hadd_ps(c, c);
-	
-	// need a float[4] here to byte-align the result variable
-	// because _mm_store1_ps() requires 16-byte aligned
-	// memory to store the value. Otherwise -> stack corruption.
-	float result[4];
-	_mm_store1_ps(&result[0], c);
-
-
-	return result[0];
-#endif
-
-}
 inline unsigned int toRGBA(const Vector4 &u)
 {
 #if VECTORMATH_MODE_SCALAR
@@ -776,6 +744,8 @@ inline unsigned int toBGRA(const Vector4 &u)
 #endif
 
 }
+
+
 //----------------------------------------------------------------------------
 // Mesh generation helpers
 //----------------------------------------------------------------------------
@@ -855,6 +825,53 @@ struct TexVertex
 //----------------------------------------------------------------------------
 // Intersection Helpers
 //----------------------------------------------------------------------------
+
+inline float lineProjection(const Vector3 &line0, const Vector3 &line1, const Vector3 &point)
+{
+	Vector3 v = line1 - line0;
+	return dot(v, point - line0) / dot(v, v);
+}
+
+
+inline float planeDistance(const Vector4 &plane, const Vector3 &point)
+{
+#if VECTORMATH_MODE_SCALAR
+	return
+		point.getX() * plane.getX() +
+		point.getY() * plane.getY() +
+		point.getZ() * plane.getZ() +
+		plane.getW();
+#else
+	static const __m128 maskxyz = _mm_castsi128_ps(_mm_set_epi32(0, ~0u, ~0u, ~0u));
+	static const __m128 maskw = _mm_castsi128_ps(_mm_set_epi32(~0u, 0, 0, 0));
+
+	//a = Vector4(point.xyz * plane.xyz, 0);
+	const __m128 a = _mm_and_ps(
+		_mm_mul_ps(point.get128(), plane.get128()),
+		maskxyz);
+	//b = Vector4(0,0,0,plane.w)
+	const __m128 b = _mm_and_ps(plane.get128(), maskw);
+
+	//c = Vector4(plane.xyz, plane.w);
+	__m128 c = _mm_or_ps(a, b);
+
+
+	//result = c.x + c.y + c.z + d.w
+	c = _mm_hadd_ps(c, c);
+	c = _mm_hadd_ps(c, c);
+
+	// need a float[4] here to byte-align the result variable
+	// because _mm_store1_ps() requires 16-byte aligned
+	// memory to store the value. Otherwise -> stack corruption.
+	float result[4];
+	_mm_store1_ps(&result[0], c);
+
+
+	return result[0];
+#endif
+}
+
+
 struct AABB
 {	// Bounding box 
 	AABB() 

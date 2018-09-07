@@ -45,7 +45,7 @@ Texture1D uTex0[5] : register(t11);
 
 float4 main(VSOutput input) : SV_TARGET
 {
-    float4 ca = uTex0[textureIndex].Sample(uSampler0, input.TexCoord);
+	float4 ca = uTex0[textureIndex].Sample(uSampler0, input.TexCoord);
     float4 cb = uTex0[(textureIndex + 1) % 5].Sample(uSampler0, input.TexCoord);
 
     return 0.05*lerp(ca, cb, paletteFactor);

@@ -66,7 +66,7 @@ struct KeyState
 
 static bool gAppRunning;
 static WindowsDesc gCurrentWindow;
-static float gRetinaScale = 1.0f;
+static float2 gRetinaScale = { 1.0f, 1.0f };
 
 // TODO: Add multiple window/monitor handling functionality to macOS.
 //static tinystl::vector <MonitorDesc> gMonitors;
@@ -274,6 +274,10 @@ unsigned getTimeSinceStart()
 	return (unsigned)time(NULL);
 }
 
+float2 getDpiScale()
+{
+	return gRetinaScale;
+}
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -340,8 +344,8 @@ int macOSMain(int argc, const char** argv, IApp* app)
     isCaptured = false;
     
     // Adjust window size to match retina scaling.
-    gRetinaScale = _view.drawableSize.width / _view.frame.size.width;
-    NSSize windowSize = CGSizeMake(_view.frame.size.width / gRetinaScale, _view.frame.size.height / gRetinaScale);
+    gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width), (float)(_view.drawableSize.height / _view.frame.size.height) };
+    NSSize windowSize = CGSizeMake(_view.frame.size.width / gRetinaScale.x, _view.frame.size.height / gRetinaScale.y);
     [_view.window setContentSize:windowSize];
     
     // Kick-off the MetalKitApplication.
@@ -473,8 +477,8 @@ uint32_t testingMaxFrameCount = 120;
 
 -(void)drawRectResized:(CGSize)size
 {
-	pApp->mSettings.mWidth = size.width * gRetinaScale;
-	pApp->mSettings.mHeight = size.height * gRetinaScale;
+	pApp->mSettings.mWidth = size.width * gRetinaScale.x;
+	pApp->mSettings.mHeight = size.height * gRetinaScale.y;
 	// TODO: Fullscreen
 	pApp->Unload();
 	pApp->Load();

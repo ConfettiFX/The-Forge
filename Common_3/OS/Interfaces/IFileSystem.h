@@ -52,10 +52,10 @@ long _tellFile(FileHandle handle);
 size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle);
 size_t _getFileLastModifiedTime(const char* _fileName);
 
-String _getCurrentDir();
-String _getExePath();
-String _getAppPrefsDir(const char* org, const char* app);
-String _getUserDocumentsDir();
+tinystl::string _getCurrentDir();
+tinystl::string _getExePath();
+tinystl::string _getAppPrefsDir(const char* org, const char* app);
+tinystl::string _getUserDocumentsDir();
 
 void _setCurrentDir(const char* path);
 
@@ -154,7 +154,7 @@ public:
 
 	virtual unsigned Read(void* dest, unsigned size) = 0;
 	virtual unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) = 0;
-	virtual const String& GetName() const = 0;
+	virtual const tinystl::string& GetName() const = 0;
 	virtual unsigned GetChecksum();
 
 	unsigned GetPosition() const { return mPosition; }
@@ -174,9 +174,9 @@ public:
 	float3 ReadVector3();
 	float3 ReadPackedVector3(float maxAbsCoord);
 	float4 ReadVector4();
-	String ReadString();
-	String ReadFileID();
-	String ReadLine();
+	tinystl::string ReadString();
+	tinystl::string ReadFileID();
+	tinystl::string ReadLine();
 
 protected:
 	unsigned mPosition;
@@ -205,9 +205,9 @@ public:
 	bool WriteVector3(const float3& value);
 	bool WritePackedVector3(const float3& value, float maxAbsCoord);
 	bool WriteVector4(const float4& value);
-	bool WriteString(const String& value);
-	bool WriteFileID(const String& value);
-	bool WriteLine(const String& value);
+	bool WriteString(const tinystl::string& value);
+	bool WriteFileID(const tinystl::string& value);
+	bool WriteLine(const tinystl::string& value);
 };
 
 /// Text / binary file loaded from disk
@@ -216,7 +216,7 @@ class File : public Deserializer, public Serializer
 public:
 	File();
 
-	virtual bool Open(const String& fileName, FileMode mode, FSRoot root);
+	virtual bool Open(const tinystl::string& fileName, FileMode mode, FSRoot root);
 	virtual void Close();
 	virtual void Flush();
 
@@ -224,10 +224,10 @@ public:
 	unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) override;
 	unsigned Write(const void* data, unsigned size) override;
 
-	String ReadText();
+	tinystl::string ReadText();
 
 	virtual unsigned GetChecksum() override;
-	virtual const String& GetName() const override { return mFileName; }
+	virtual const tinystl::string& GetName() const override { return mFileName; }
 	virtual FileMode GetMode() const { return mMode; }
 	virtual bool IsOpen() const { return pHandle != NULL; }
 	virtual bool IsReadOnly() const { return mMode == FileMode::FM_Read || mMode == FileMode::FM_ReadBinary; }
@@ -235,7 +235,7 @@ public:
 	virtual void* GetHandle() const { return pHandle; }
 
 protected:
-	String mFileName;
+	tinystl::string mFileName;
 	FileMode mMode;
 	FileHandle pHandle;
 	unsigned mOffset;
@@ -251,7 +251,7 @@ public:
 	MemoryBuffer(void* data, unsigned size);
 	MemoryBuffer(const void* data, unsigned size);
 
-	const String& GetName() const override { return mName; }
+	const tinystl::string& GetName() const override { return mName; }
 
 	unsigned Read(void* dest, unsigned size) override;
 	unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) override;
@@ -261,7 +261,7 @@ public:
 	bool IsReadOnly() { return mReadOnly; }
 
 private:
-	String mName;
+	tinystl::string mName;
 	unsigned char* pBuffer;
 	bool mReadOnly;
 };
@@ -272,42 +272,42 @@ class FileSystem
 public:
 	static unsigned	GetFileSize(FileHandle handle);
 	// Allows to modify root paths at runtime
-	static void		SetRootPath(FSRoot root, const String& rootPath);
+	static void		SetRootPath(FSRoot root, const tinystl::string& rootPath);
 	// Reverts back to App static defined pszRoots[]
 	static void		ClearModifiedRootPaths();
-	static unsigned	GetLastModifiedTime(const String& _fileName);
+	static unsigned	GetLastModifiedTime(const tinystl::string& _fileName);
 	// First looks it root exists in m_ModifiedRootPaths
 	// otherwise uses App static defined pszRoots[]
-	static String	FixPath(const String& pszFileName, FSRoot root);
-    static bool		FileExists(const String& pszFileName, FSRoot root);
+	static tinystl::string	FixPath(const tinystl::string& pszFileName, FSRoot root);
+    static bool		FileExists(const tinystl::string& pszFileName, FSRoot root);
 
-	static String	GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
-	static String	GetProgramDir() { return GetPath(_getExePath()); }
-	static String	GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
-	static String	GetAppPreferencesDir(const String& org, const String& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
-	static void		GetFilesWithExtension(const String& dir, const String& ext, tinystl::vector<String>& files);
+	static tinystl::string	GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
+	static tinystl::string	GetProgramDir() { return GetPath(_getExePath()); }
+	static tinystl::string	GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
+	static tinystl::string	GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
+	static void		GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files);
 
-	static void		SetCurrentDir(const String& path) { _setCurrentDir(path.c_str()); }
+	static void		SetCurrentDir(const tinystl::string& path) { _setCurrentDir(path.c_str()); }
 
-	static void		SplitPath(const String& fullPath, String* pathName, String* fileName, String* extension, bool lowercaseExtension = true);
-	static String	GetPath(const String& fullPath);
-	static String	GetFileName(const String& fullPath);
-	static String	GetExtension(const String& fullPath, bool lowercaseExtension = true);
-	static String	GetFileNameAndExtension(const String& fullPath, bool lowercaseExtension = false);
-	static String	ReplaceExtension(const String& fullPath, const String& newExtension);
-	static String	AddTrailingSlash(const String& pathName);
-	static String	RemoveTrailingSlash(const String& pathName);
-	static String	GetParentPath(const String& pathName);
-	static String	GetInternalPath(const String& pathName);
-	static String	GetNativePath(const String& pathName);
+	static void		SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension = true);
+	static tinystl::string	GetPath(const tinystl::string& fullPath);
+	static tinystl::string	GetFileName(const tinystl::string& fullPath);
+	static tinystl::string	GetExtension(const tinystl::string& fullPath, bool lowercaseExtension = true);
+	static tinystl::string	GetFileNameAndExtension(const tinystl::string& fullPath, bool lowercaseExtension = false);
+	static tinystl::string	ReplaceExtension(const tinystl::string& fullPath, const tinystl::string& newExtension);
+	static tinystl::string	AddTrailingSlash(const tinystl::string& pathName);
+	static tinystl::string	RemoveTrailingSlash(const tinystl::string& pathName);
+	static tinystl::string	GetParentPath(const tinystl::string& pathName);
+	static tinystl::string	GetInternalPath(const tinystl::string& pathName);
+	static tinystl::string	GetNativePath(const tinystl::string& pathName);
 
-	static bool		DirExists(const String& pathName);
-	static bool		CreateDir(const String& pathName);
-	static int		SystemRun(const String& fileName, const tinystl::vector<String>& arguments, String stdOut = "");
-	static bool		Delete(const String& fileName);
+	static bool		DirExists(const tinystl::string& pathName);
+	static bool		CreateDir(const tinystl::string& pathName);
+	static int		SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOut = "");
+	static bool		Delete(const tinystl::string& fileName);
 
 private:
 	// The following root paths are the ones that were modified at run-time
-	static String	mModifiedRootPaths[FSRoot::FSR_Count];
-	static String	mProgramDir;
+	static tinystl::string	mModifiedRootPaths[FSRoot::FSR_Count];
+	static tinystl::string	mProgramDir;
 };

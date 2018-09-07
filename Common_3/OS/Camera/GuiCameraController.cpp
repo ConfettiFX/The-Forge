@@ -85,9 +85,7 @@ public:
 
 private:
 	void onInputEvent(const ButtonData* pData) override;
-#ifndef _DURANGO
-	void onMouseWheel(const MouseWheelEventData* pData) override;
-#endif
+
 	void update(float deltaTime) override;
 
 private:
@@ -132,14 +130,14 @@ void GuiCameraController::onInputEvent(const ButtonData* pData)
 		mat4 rot{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
 		velocity = (rot * (move * maxSpeed * k_mouseTranslationScale)).getXYZ();
 	}
-	else if (InputSystem::IsButtonPressed(KEY_CONFIRM))
+	else if (InputSystem::IsButtonPressed(KEY_LEFT_STICK))
 	{
 		vec3 move{ (float)pData->mValue[0], 0, (float)pData->mValue[1] };
 		mat4 rot{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
 		//velocity = rotateV3(rot, move * maxSpeed * k_mouseTranslationScale);
 		velocity = (rot * (move * maxSpeed * k_mouseTranslationScale)).getXYZ();
 	}
-	else if (InputSystem::IsButtonPressed(KEY_CONFIRM))
+	else if (InputSystem::IsButtonPressed(KEY_RIGHT_STICK))
 	{
 		viewRotation += { pData->mValue[0] * k_rotationSpeed, pData->mValue[1] * k_rotationSpeed };
 	}
@@ -149,17 +147,6 @@ void GuiCameraController::onInputEvent(const ButtonData* pData)
 	else if (viewRotation.getX() < -k_xRotLimit)
 		viewRotation.setX(-k_xRotLimit);
 }
-
-#ifndef _DURANGO
-
-void GuiCameraController::onMouseWheel(const MouseWheelEventData* pData)
-{
-	mat4 m{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
-	const vec3& v { m.getCol2().getXYZ() };
-	viewPosition -= v * ((float)pData->scroll * k_scrollSpeed);
-}
-#endif
-
 #if 0
 void GuiCameraController::onTouch(const TouchEventData *pData)
 {

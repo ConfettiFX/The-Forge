@@ -185,7 +185,7 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 
 			reflection.pVertexInputs[i].name = pCurrentName;
 			reflection.pVertexInputs[i].name_size = len;
-			reflection.pVertexInputs[i].size = 0;
+			reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
 
 			//Copy over the name into the name pool
 			memcpy(pCurrentName, paramDesc.SemanticName, len);

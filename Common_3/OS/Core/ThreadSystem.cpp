@@ -51,6 +51,7 @@ Thread::Thread(ThreadPool* pThreadSystem)
 
 Thread::~Thread()
 {
+	// warning(linux): pthread_t should not be compared to NULL
 	if (pHandle != NULL)
 	{
 		_destroyThread(pHandle);

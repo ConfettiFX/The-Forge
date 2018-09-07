@@ -168,9 +168,9 @@ struct MaterialProperty
 
 struct MaterialData
 {
-	String	mName;
-	String	mTextureMaps[TEXTURE_MAP_COUNT];
-	tinystl::unordered_map<String, MaterialProperty> mProperties;
+	tinystl::string	mName;
+	tinystl::string	mTextureMaps[TEXTURE_MAP_COUNT];
+	tinystl::unordered_map<tinystl::string, MaterialProperty> mProperties;
 };
 
 struct Mesh
@@ -188,10 +188,10 @@ struct Mesh
 struct Model
 {
 	/// Short name of scene
-	String							mSceneName;
+	tinystl::string							mSceneName;
 	tinystl::vector <Mesh>			mMeshArray;
 	/// This is a look up table to map the assimp mesh ID to a geometry component
-	tinystl::vector<String>			mGeometryNameList;
+	tinystl::vector<tinystl::string>			mGeometryNameList;
 	/// Load all the mateiral in the scene
 	tinystl::vector<MaterialData>	mMaterialList;
 };

@@ -89,13 +89,12 @@ typedef void(*JobFunction)(void*);
 struct WorkItem
 {
 	// Construct
-	WorkItem() :
-		mPriority(0),
-		mCompleted(false),
-		pData(0),
-		pFunc(0)
-	{
-	}
+	WorkItem() 
+		: pFunc(0)
+		, pData(0)
+		, mPriority(0)
+		, mCompleted(false)
+	{}
 
 	/// Work item description and thread index (Main thread => 0)
 	JobFunction		pFunc;

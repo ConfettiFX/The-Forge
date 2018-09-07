@@ -42,6 +42,8 @@ public:
 			//keep track of all relative changes
 			absMousePosX = 0;
 			absMousePosY = 0;
+			absPrevMousePosX = 0;
+			absPrevMousePosY = 0;
 		}
 	}
 
@@ -82,8 +84,8 @@ public:
 			return;
 		}
 
-		static RAWINPUT lpb;
-		UINT dwSize = sizeof(lpb);
+		UINT dwSize = sizeof(RAWINPUT);
+		static BYTE lpb[sizeof(RAWINPUT)];
 	    
 		GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, &lpb, &dwSize, sizeof(RAWINPUTHEADER));
 	    
@@ -93,10 +95,11 @@ public:
 		{
 			if (raw->data.mouse.usFlags == MOUSE_MOVE_RELATIVE)
 			{
-				absMousePosX +=  float(raw->data.mouse.lLastX);
-				absMousePosY +=  float(raw->data.mouse.lLastY);
-				HandleAxis(device_, nextState_, delta_, MouseAxisX, absMousePosX);
-				HandleAxis(device_, nextState_, delta_, MouseAxisY, absMousePosY);
+				absMousePosX += raw->data.mouse.lLastX;
+				absMousePosY += raw->data.mouse.lLastY;
+
+				HandleAxis(device_, nextState_, delta_, MouseAxisX, (float)absMousePosX);
+				HandleAxis(device_, nextState_, delta_, MouseAxisY, (float)absMousePosY);
 			}
 			else if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
 			{
@@ -177,8 +180,10 @@ private:
 	InputDeltaState* delta_;
 	Array<DeviceButtonId> buttonsToReset_;
 
-	float absMousePosX;
-	float absMousePosY;
+	int absMousePosX;
+	int absMousePosY;
+	int absPrevMousePosX;
+	int absPrevMousePosY;
 };
 
 }

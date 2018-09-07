@@ -29,11 +29,9 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
 
-#ifndef _WIN32
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/sysctl.h>
-#endif
 
 Mutex::Mutex()
 {
@@ -124,7 +122,9 @@ bool Thread::IsMainThread()
   
   void _destroyThread(ThreadHandle handle)
   {
-      assert(handle!= NULL);
+	  // warning(linux): pthread_t should not be compared to NULL
+      assert(handle != NULL);
+	  
 	  // Wait for thread to join, need to make sure thread stops running otherwise it is not properly destroyed
 	  pthread_join(handle, NULL);
   }
