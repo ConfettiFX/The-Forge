@@ -61,10 +61,6 @@ Kostas plans to use the San Miguel Scene for this and then also merge it with th
   * supports now the descriptor update template extension: VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME
   * added ability to specify instance layers, instance, device extensions from app code
   * upgraded to Vulkan SDK 1.1.82.0
-* We also reformatted the source code (yeaahh :-) )
-  * Replaced spaces with tabs
-  * Removed whitespaces at the end of lines
-  * Added .editorconfig
 * The Torque 3D engine will use The Forge as its rendering layer in the future 
 
 <a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
