@@ -18,7 +18,7 @@ Particularly, The Forge supports cross-platform
 - Shader reflection
 - Multi-threaded command buffer generation
 
-Future plans are:
+Future plans are
 - Unified shader generation check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net)
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
@@ -32,6 +32,44 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.15 - September 7th, 2018 - Hybrid Ray Traced Shadows | DirectX 11 fallback layer | imGUI
+* This is the biggest release so far :-)
+* We added a new unit test -provided by Kostas Anagnostou @KostasAAA- that shows hybrid ray traced (HRT) shadows on  all supported GPUs; Windows / Linux / XBOX One / macOS and iOS. This unit test was build to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. Kostas wrote a blog post about the details at https://interplayoflight.wordpress.com/2018/09/04/hybrid-raytraced-shadows-part-2-performance-improvements/. 
+
+PC Windows 10 Vulkan 1.1.82.1 GeForce 1080 Driver 398.82 with a resolution of 2560 * 1440 in full-screen:
+![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)
+
+iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 2560x1440 in full-screen:
+![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows_macOS.png)
+
+Here is a version running on a iPhone 7 with iOS 11.4.1 (15G77) and a resolution of 1334 x 750 in full-screen:
+![Hybrid Ray Traced Shadows on iOS](Screenshots/09a_HRT_Shadows_iOS.png)
+
+Please note there are no platform specific optimizations for macOS or iOS in the moment. The initial version was developed on PC and then just ported to the other platforms. We might optimize for the other platforms at some point.
+Kostas plans to use the San Miguel Scene for this and then also merge it with the Light and Shadow Playground, so that you can pick different shadow techniques and compare them. He wants to implement HRT Reflections next. I wrote a short blog post about the development of this unit test at https://diaryofagraphicsprogrammer.blogspot.com/2018/09/ray-tracing-without-ray-tracing-api.html
+* Improved the 09_LightShadowPlayground by calculating the SDF shadow in a more generic way
+* Based on customer request and to support Windows 7, we added a DirectX 11 fallback code path. Because this API can not support all unit tests, it is only a choice on a select few
+* IRenderer Cleanup for all platforms
+  * removed several descriptor related structs, which enabled us to simplify the codebase
+  * add render index draw start vertex
+* We replaced NuklearUI with imGui; we are going to replace QT with imGui now for our internal tools, so trying to keep this consistent
+* Created a new unit test for imGui #13 - it shows the current level of integration of imGui into The Forge
+![Image of the imGui Integrationn in The Forge](Screenshots/13_imGui.gif)
+* Linux - changed to standard __linux__ define instead of user defined LINUX
+* Vulkan 
+  * supports now the descriptor update template extension: VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME
+  * added ability to specify instance layers, instance, device extensions from app code
+  * upgraded to Vulkan SDK 1.1.82.0
+* We also reformatted the source code (yeaahh :-) )
+  * Replaced spaces with tabs
+  * Removed whitespaces at the end of lines
+  * Added .editorconfig
+* The Torque 3D engine will use The Forge as its rendering layer in the future 
+
+<a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
+alt="Torque 3D" width="417" height="106" border="0" /></a>
+* macOS - one thing notable is that The Forge on macOS can be used with an XBOX controller with this driver: [360Controller](https://github.com/360Controller/360Controller)
 
 ## Release 1.14 - August 9th, 2018 - Early Alpha of the Shader Translator system | Refactored Texture / Rendertarget interface for all platforms
 * After evaluating how to approach a unified shader generation system by looking at the DirectX Shader Compiler in GitHub and also implementing it into Lumberyard a whiles ago, we decided to follow a simpler approach by developing our own shader translator based on the work that was done by Thekla with the [hlslparser](https://github.com/Thekla/hlslparser). We are currently extending this shader translator to support a new super HLSL source language (platform specific #defines + material description) and translate that sHLSL into the most current respective shader languages of the target platforms, so that those shaders can then be compiled with the target platform compiler. There is an early alpha version available online at [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) following the excellent approach of [Shader Playground](https://github.com/tgjones/shader-playground) as a base for our online approach (Thanks for your help tgjones!).
@@ -74,8 +112,7 @@ See the release notes from previous releases in the [Release section](https://gi
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan SDK 1.1.77.0
-https://vulkan.lunarg.com/
+4. Vulkan [1.1.82.1](https://vulkan.lunarg.com/sdk/home)
 
 
 5. Ray Tracing 
@@ -90,9 +127,9 @@ https://vulkan.lunarg.com/
 
 # macOS Requirements:
 
-1. macOS: 10.14 Beta (18A353d)
+1. macOS: 10.14 beta (18a384a)
 
-2. XCode: 10.0 beta (10L176w) 
+2. XCode: 10.0 beta (10L176W) 
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -122,11 +159,11 @@ We are currently testing on
 
 2. GPU Drivers:
 * [AMDGpu-Pro 18.20 Early Preview](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-18.20-Early-Preview-Release-Notes.aspx)
-* [NVIDIA Linux x86_64/AMD64/EM64T 390.59 and 396.24](http://www.nvidia.com/object/unix.html)
+* [NVIDIA Linux x86_64/AMD64/EM64T 390.87](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
 
 3. Workspace file is provided for [codelite](https://codelite.org/)
 
-4. Vulkan SDK Version: [1.1.77.0](https://vulkan.lunarg.com/sdk/home)
+4. Vulkan SDK Version: [1.1.82.1](https://vulkan.lunarg.com/sdk/home)
 
 5. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
@@ -206,6 +243,10 @@ This unit test shows various shadow and lighting techniques that can be chosen f
 
 ![Image of the Light and Shadow Unit test](Screenshots/09_LightShadowPlayground.png)
 
+## 9a. Hybrid Ray-Traced Shadows
+This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. That means the users of your game do not have to buy a NVIDIA RTX GPU to enjoy HRT shadows :-)
+![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)
+
 
 ## 10. Pixel-Projected Reflections
 This unit test shows reflections that are ray traced. It is an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [IMPLEMENTATION OF OPTIMIZED PIXEL-PROJECTED REFLECTIONS FOR PLANAR REFLECTORS](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
@@ -222,7 +263,10 @@ This unit test shows how to switch between the Vulkan and DirectX 12 graphics AP
 
 ![Image of the The Forge Switching Unit test](Screenshots/12_TheForgeInDLL.png)
 
+## 13. imGUI integration unit test
+This unit test shows how the integration of imGui with a wide range of functionality.
 
+![Image of the imGui Integrationn in The Forge](Screenshots/13_imGui.gif)
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -234,14 +278,20 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
 
 # Products
-We would appreciate it if you could send us a link in case your product uses The Forge.
+We would appreciate it if you could send us a link in case your product uses The Forge. Here are the ones we received so far:
 
-# StarVR One SDK
+## StarVR One SDK
 The Forge is used to build the StarVR One SDK:
-
 
 <a href="https://www.starvr.com" target="_blank"><img src="Screenshots/StarVR.PNG" 
 alt="StarVR" width="300" height="159" border="0" /></a>
+
+## Torque 3D
+The Forge is used as the rendering framework in Torque 3D:
+
+<a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
+alt="Torque 3D" width="417" height="106" border="0" /></a>
+
 
 # Open-Source Libraries
 The Forge utilizes the following Open-Source libraries:
@@ -268,3 +318,4 @@ The Forge utilizes the following Open-Source libraries:
 * [gainput](https://github.com/jkuhlmann/gainput)
 * [Shader Playground](https://github.com/tgjones/shader-playground)
 * [hlslparser](https://github.com/Thekla/hlslparser)
+* [ImGui](https://github.com/ocornut/imgui)
