@@ -57,8 +57,7 @@ iPhone 7  with a resolution of 1334x750 in full-screen:
 * There is a new Wave Intrinsics Unit test. It tests the new wave intrinsic instructions and makes sure they are support on PC Windows (DirectX 12 / Vulkan) for now. We are planning to add support on other platforms. On PC with DirectX it utilizes a "preview" integration of the DirectX Shader compiler. We were running into multiple bugs with DXC and decided to only use it for the new Shader model 6 shaders. So The Forge uses DXC for shaders that request shader_target_6_0 and FXC for everything below. The shader target can be specified during load time.
 
 PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
-![Wave Intrinsics on PC ](screenshots/15_WaveIntrinsics.png)
-
+![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
 * PC - fixed resizing ... should now work again with Alt+Enter ...
 * Vulkan
