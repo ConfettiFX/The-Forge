@@ -162,8 +162,7 @@ struct UserInterfaceUnitTestingData
 		float		mSliderFloat;
 		float		mSliderFloatSteps;
 		bool		mCheckboxToggle;
-		bool		mRadioButtonToggle0;
-		bool		mRadioButtonToggle1;
+		int32_t		mRadioButtonToggle;		
 		char		mText[STRING_SIZE];
 		size_t		mProgressBarValue;
 		size_t		mProgressBarValueMax;
@@ -176,15 +175,15 @@ UserInterfaceUnitTestingData gUIData;
 
 // ContextMenu Items and Callbacks Example:
 //
-const char* sContextMenuItems[] =
+tinystl::string sContextMenuItems[7] =
 {
 	  "Random Background Color"
 	, "Random Profiler Color"
-	, "Context Menu Item3"
-	, "Context Menu Item4"
-	, "Context Menu Item5"
-	, "Context Menu Item6"
-	, "Context Menu Item7"
+	, "Dummy Context Menu Item3"
+	, "Dummy Context Menu Item4"
+	, "Dummy Context Menu Item5"
+	, "Dummy Context Menu Item6"
+	, "Dummy Context Menu Item7"
 };
 void fnItem1Callback() // sets slider color value: RGBA
 { 
@@ -206,16 +205,6 @@ void fnItem2Callback() // sets debug text's font color: ABGR
 		2.0f * rand() / (float)RAND_MAX - 1.0f  // r
 	);
 }
-void(*pContextMenuCallbacks[])() =	// array of function pointers for the context menu item callbacks
-{
-	&fnItem1Callback,
-	&fnItem2Callback,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-};
 
 // DropDown Example:
 //
@@ -244,9 +233,10 @@ static const DropDownItemDataType dropDownItemValues[] =
 };
 
 // assign the dropdown value to the text's font color
-void ColorDropDownCallback(const UIProperty* DropDownProp){	gFrameTimeDraw.mFontColor = gUIData.mStandalone.mSelectedDropdownItemValue; }
-
-
+void ColorDropDownCallback()
+{
+	gFrameTimeDraw.mFontColor = dropDownItemValues[gUIData.mStandalone.mSelectedDropdownItemValue];
+}
 
 struct ProgressBarAnimationData
 {
@@ -270,7 +260,7 @@ struct ProgressBarAnimationData
 
 
 // button callback to animate loading bar
-void ButtonCallback(void* pData)
+void ButtonCallback()
 {
 	gProgressBarAnim.mCurrentTime = 0.0f;
 	gProgressBarAnim.mbAnimate = true;
@@ -370,97 +360,99 @@ public:
 		vec2 UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
 		vec2 UIPanelSize = { 650, 1000 };
 		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
-		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Confetti UI Unit Test", &guiDesc);
+		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Right-click me for context menu :)", &guiDesc);
+
+		// Contextual (Context Menu)
+		for (int i = 0; i < 7; i++)
+			pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(sContextMenuItems[i]);
+		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
+		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
+		
+		// Let's show the UI demo window
+		gAppUI.mShowDemoUiWindow = true;
+
 		{
-			// Label
-			UIProperty Label = UIProperty("[Label] UI Controls");
-
 			// Drop Down 
-			gUIData.mStandalone.mSelectedDropdownItemValue = gFrameTimeDraw.mFontColor = dropDownItemValues[5];	// initial value
-			UIProperty DropDown = UIProperty("[Drop Down] Select Text Color", gUIData.mStandalone.mSelectedDropdownItemValue, dropDownItemNames, dropDownItemValues, ColorDropDownCallback);
+			gFrameTimeDraw.mFontColor = dropDownItemValues[5];	// initial value
+			gUIData.mStandalone.mSelectedDropdownItemValue = 5u;
+			DropdownWidget DropDown("[Drop Down] Select Text Color", &gUIData.mStandalone.mSelectedDropdownItemValue, dropDownItemNames, dropDownItemValues, 6);
+			// Add a callback
+			DropDown.pOnDeactivatedAfterEdit = ColorDropDownCallback;
 
-			// Button
-			void* pCallbackParamData = nullptr;	// custom callback data in case it's needed
-			UIProperty Button = UIProperty("[Button] Fill the Progress Bar!", ButtonCallback, pCallbackParamData);
+			// Button			
+			ButtonWidget Button("[Button] Fill the Progress Bar!");
+			Button.pOnDeactivatedAfterEdit = ButtonCallback;
 
 			// Progress Bar
 			gUIData.mStandalone.mProgressBarValue = 0;
 			gUIData.mStandalone.mProgressBarValueMax = 100;
-			UIProperty ProgressBar = UIProperty("[ProgressBar]", gUIData.mStandalone.mProgressBarValue, gUIData.mStandalone.mProgressBarValueMax);
+			ProgressBarWidget ProgressBar("[ProgressBar]", &gUIData.mStandalone.mProgressBarValue, gUIData.mStandalone.mProgressBarValueMax);
+
+			// Checkbox
+			CheckboxWidget Checkbox("[Checkbox]", &gUIData.mStandalone.mCheckboxToggle);
+
+			// Radio Buttons
+			RadioButtonWidget RadioButton0("[Radio Button] 0", &gUIData.mStandalone.mRadioButtonToggle, 0);
+			RadioButtonWidget RadioButton1("[Radio Button] 1", &gUIData.mStandalone.mRadioButtonToggle, 1);
 
 
 			// Grouping UI Elements:
-			// The current implementation uses strings for grouping UI elements under a 'tree'
-			// Its always the last parameter to the constructor
-			const char* pSliderGroupName = "Sliders";
-			const uint defaultColor = 0xAFAFAFFF;
-			
+			// This is done via CollapsingHeaderWidget.
+			CollapsingHeaderWidget CollapsingSliderWidgets("SLIDERS");
+
 			// Slider<int>
 			const int intValMin = -10;
 			const int intValMax = +10;
-			const int sliderStepSizeI = 1;
-			UIProperty SliderInt = UIProperty("[Slider<int>]", gUIData.mStandalone.mSliderInt, intValMin, intValMax, sliderStepSizeI, defaultColor, pSliderGroupName);
+			const int sliderStepSizeI = 1;			
+			CollapsingSliderWidgets.AddSubWidget(SliderIntWidget("[Slider<int>]", &gUIData.mStandalone.mSliderInt, intValMin, intValMax, sliderStepSizeI));
 
 			// Slider<unsigned>
 			const unsigned uintValMin = 0;
 			const unsigned uintValMax = 100;
 			const unsigned sliderStepSizeUint = 5;
-			UIProperty SliderUint = UIProperty("[Slider<uint>]", gUIData.mStandalone.mSliderUint, uintValMin, uintValMax, sliderStepSizeUint, defaultColor, pSliderGroupName);
+			CollapsingSliderWidgets.AddSubWidget(SliderUintWidget("[Slider<uint>]", &gUIData.mStandalone.mSliderUint, uintValMin, uintValMax, sliderStepSizeUint));
 
 			// Slider<float w/ step size>
 			const float fValMin = 0;
 			const float fValMax = 100;
-			const float sliderStepSizeF = 0.1f;
-			UIProperty SliderFloat = UIProperty("[Slider<float>] Step Size=0.1f", gUIData.mStandalone.mSliderFloat, fValMin, fValMax, sliderStepSizeF, false, defaultColor, pSliderGroupName);
+			const float sliderStepSizeF = 0.1f;			
+			CollapsingSliderWidgets.AddSubWidget(SliderFloatWidget("[Slider<float>] Step Size=0.1f", &gUIData.mStandalone.mSliderFloat, fValMin, fValMax, sliderStepSizeF));
 
 			// Slider<float w/ step count>	
 			const float _fValMin = -100.0f;
 			const float _fValMax = +100.0f;
 			const int stepCount = 6;
-			UIProperty SliderFloatStepCount = UIProperty("[Slider<float>] Step Count=6", stepCount, gUIData.mStandalone.mSliderFloatSteps, _fValMin, _fValMax, defaultColor, pSliderGroupName);
-
-
-
-			// Checkbox
-			UIProperty Checkbox = UIProperty("[Checkbox]", gUIData.mStandalone.mCheckboxToggle);
-
-			// Radio Buttons
-			UIProperty RadioButton0 = UIProperty("[Radio Button] 0", gUIData.mStandalone.mRadioButtonToggle0, true);
-			UIProperty RadioButton1 = UIProperty("[Radio Button] 1", gUIData.mStandalone.mRadioButtonToggle1, true);
-
+			CollapsingSliderWidgets.AddSubWidget(SliderFloatWidget("[Slider<float>] Step Count=6", &gUIData.mStandalone.mSliderFloatSteps, _fValMin, _fValMax, (_fValMax - _fValMin)/ stepCount));
+			
 
 			// Textbox 
 			strcpy(gUIData.mStandalone.mText, "Edit Here!");
-			UIProperty Textbox = UIProperty("[Textbox]", gUIData.mStandalone.mText, UserInterfaceUnitTestingData::STRING_SIZE);
-
-
+			TextboxWidget Textbox("[Textbox]", gUIData.mStandalone.mText, UserInterfaceUnitTestingData::STRING_SIZE);
 
 			// Color Slider & Picker
-			gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);	// dark blue
-			UIProperty ColorSlider = UIProperty("[Color Slider]", gUIData.mStandalone.mColorForSlider, UI_CONTROL_COLOR_SLIDER);
-			UIProperty ColorPicker = UIProperty("[Color Picker]", gUIData.mStandalone.mColorForSlider, UI_CONTROL_COLOR_PICKER);
+			CollapsingHeaderWidget CollapsingColorWidgets("COLOR WIDGETS");
 
-			// Contextual (Context Menu)
-			gUIData.mStandalone.mContextItems = sContextMenuItems;
-			const int numContextItems = sizeof(pContextMenuCallbacks) / sizeof(pContextMenuCallbacks[0]);
-			UIProperty Contextual = UIProperty(gUIData.mStandalone.mContextItems, numContextItems, pContextMenuCallbacks);
+			gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);	// dark blue			
+			CollapsingColorWidgets.AddSubWidget(ColorSliderWidget("[Color Slider]", &gUIData.mStandalone.mColorForSlider));			
+			CollapsingColorWidgets.AddSubWidget(ColorPickerWidget("[Color Picker]", &gUIData.mStandalone.mColorForSlider));
 
 			// Register the GUI elements to the Window
-			pStandaloneControlsGUIWindow->AddControl(Label);
-			pStandaloneControlsGUIWindow->AddControl(DropDown);
-			pStandaloneControlsGUIWindow->AddControl(Button);
-			pStandaloneControlsGUIWindow->AddControl(ProgressBar);
-			pStandaloneControlsGUIWindow->AddControl(Checkbox);
-			pStandaloneControlsGUIWindow->AddControl(RadioButton0);
-			pStandaloneControlsGUIWindow->AddControl(RadioButton1);
-			pStandaloneControlsGUIWindow->AddControl(SliderInt);
-			pStandaloneControlsGUIWindow->AddControl(SliderUint);
-			pStandaloneControlsGUIWindow->AddControl(SliderFloat);
-			pStandaloneControlsGUIWindow->AddControl(SliderFloatStepCount);
-			pStandaloneControlsGUIWindow->AddControl(Textbox);
-			pStandaloneControlsGUIWindow->AddControl(ColorSlider);
-			pStandaloneControlsGUIWindow->AddControl(ColorPicker);
-			pStandaloneControlsGUIWindow->AddControl(Contextual);
+			pStandaloneControlsGUIWindow->AddWidget(LabelWidget("[Label] UI Controls"));
+			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+			pStandaloneControlsGUIWindow->AddWidget(DropDown);
+			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+			pStandaloneControlsGUIWindow->AddWidget(Button);
+			pStandaloneControlsGUIWindow->AddWidget(ProgressBar);
+			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+			pStandaloneControlsGUIWindow->AddWidget(Checkbox);
+			pStandaloneControlsGUIWindow->AddWidget(RadioButton0);
+			pStandaloneControlsGUIWindow->AddWidget(RadioButton1);
+			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+			pStandaloneControlsGUIWindow->AddWidget(Textbox);
+			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+			pStandaloneControlsGUIWindow->AddWidget(CollapsingSliderWidgets);
+			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+			pStandaloneControlsGUIWindow->AddWidget(CollapsingColorWidgets);
 		}
 
 		return true;

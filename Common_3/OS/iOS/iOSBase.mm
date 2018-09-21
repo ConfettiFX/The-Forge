@@ -175,6 +175,8 @@ int iOSMain(int argc, char** argv, IApp* app)
 
 - (void)update;
 
+- (void)shutdown;
+
 @end
 
 // Our view controller.  Implements the MTKViewDelegate protocol, which allows it to accept
@@ -194,6 +196,14 @@ int iOSMain(int argc, char** argv, IApp* app)
     MTKView *_view;
     id<MTLDevice> _device;
     MetalKitApplication *_application;
+}
+
+-(void)dealloc
+{
+	@autoreleasepool
+	{
+		[_application shutdown];	
+	}
 }
 
 - (void)viewDidLoad
@@ -330,6 +340,14 @@ uint32_t testingMaxFrameCount = 120;
             exit(0);
         }
 #endif
+}
+
+
+-(void)shutdown
+{
+	InputSystem::Shutdown();
+    pApp->Unload();
+    pApp->Exit();
 }
 @end
 /************************************************************************/

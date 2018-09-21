@@ -55,7 +55,6 @@
     <ClCompile Include="..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\UI\AppUI.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
-    <ClCompile Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
     <ClCompile Include="..\src\12_RendererRuntimeSwitch\12_RendererRuntimeSwitch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -104,7 +103,6 @@
     <ClInclude Include="..\..\..\Middleware_3\Input\InputSystem.h" />
     <ClInclude Include="..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h" />
-    <ClInclude Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h" />
   </ItemGroup>
   <ItemGroup>

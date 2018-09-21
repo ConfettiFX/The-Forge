@@ -29,8 +29,12 @@
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/gainput/lib/include/gainput/gainput.h"
+#ifdef METAL
 #ifdef TARGET_IOS
 #include "../../Common_3/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputIos.h"
+#else
+#include "../../Common_3/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputMac.h"
+#endif
 #endif
 
 #define MAX_GAIN_MULTI_TOUCHES 7

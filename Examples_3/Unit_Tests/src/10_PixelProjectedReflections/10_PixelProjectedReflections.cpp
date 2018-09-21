@@ -228,9 +228,9 @@ static bool gUseExpensiveHolePatching = true;
 static bool gUseNormalMap = false;
 static bool gUseFadeEffect = true;
 
-static int gRenderMode = SCENE_WITH_PPR;
+static uint32_t gRenderMode = SCENE_WITH_PPR;
 
-static int gPlaneNumber = 1;
+static uint32_t gPlaneNumber = 1;
 static float gPlaneSize = 75.0f;
 static float gRRP_Intensity = 0.2f;
 
@@ -1483,12 +1483,12 @@ public:
 		pGui = gAppUI.AddGuiComponent("Pixel-Projected Reflections", &guiDesc);
 
 
-		static const int enumRenderModes[] = {
+		static const uint32_t enumRenderModes[] = {
 			SCENE_ONLY,
 			PPR_ONLY,
 			SCENE_WITH_PPR,
 			SCENE_EXCLU_PPR,
-			-1
+			0
 		};
 
 		static const char* enumRenderModeNames[] = {
@@ -1501,22 +1501,21 @@ public:
 
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddControl(vsyncProp);
+		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
-		pGui->AddControl(UIProperty("Render Mode", gRenderMode, enumRenderModeNames, enumRenderModes));
+		pGui->AddWidget(DropdownWidget("Render Mode", &gRenderMode, enumRenderModeNames, enumRenderModes, 4));
+		
+		pGui->AddWidget(CheckboxWidget("Use Holepatching", &gUseHolePatching));
+		pGui->AddWidget(CheckboxWidget("Use Expensive Holepatching", &gUseExpensiveHolePatching));
 
-		pGui->AddControl(UIProperty("Use Holepatching", gUseHolePatching));
-		pGui->AddControl(UIProperty("Use Expensive Holepatching", gUseExpensiveHolePatching));
+		//pGui->AddWidget(CheckboxWidget("Use Normalmap", &gUseNormalMap));
 
-		//pGui->AddControl(UIProperty("Use Normalmap", gUseNormalMap));
+		pGui->AddWidget(CheckboxWidget("Use Fade Effect", &gUseFadeEffect));
 
-		pGui->AddControl(UIProperty("Use Fade Effect", gUseFadeEffect));
-
-		pGui->AddControl(UIProperty("Intensity of PPR", gRRP_Intensity, 0.0f, 1.0f));
-		pGui->AddControl(UIProperty("Number of Planes", gPlaneNumber, 1, 4));
-		pGui->AddControl(UIProperty("Size of Main Plane", gPlaneSize, 5.0f, 100.0f));
+		pGui->AddWidget(SliderFloatWidget("Intensity of PPR", &gRRP_Intensity, 0.0f, 1.0f));
+		pGui->AddWidget(SliderUintWidget("Number of Planes", &gPlaneNumber, 1, 4));
+		pGui->AddWidget(SliderFloatWidget("Size of Main Plane", &gPlaneSize, 5.0f, 100.0f));
 
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
 

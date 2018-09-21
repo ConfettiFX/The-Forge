@@ -899,12 +899,13 @@ namespace RENDERER_CPP_NAMESPACE {
 		addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
 		
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mDstAlphaFactor = BC_ZERO;
-		blendStateDesc.mDstFactor = BC_ZERO;
-		blendStateDesc.mSrcAlphaFactor = BC_ONE;
-		blendStateDesc.mSrcFactor = BC_ONE;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mDstFactors[0] = BC_ZERO;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+        blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pDefaultBlendState);
 
 		DepthStateDesc depthStateDesc = {};
@@ -1340,17 +1341,23 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 #if !defined(TARGET_IOS)
 		(*pSwapchain)->mDesc.mEnableVsync = !(*pSwapchain)->mDesc.mEnableVsync;
+		//no need to have vsync on layers otherwise we will wait on semaphores
+		//get a copy of the layer for nextDrawables
+		CAMetalLayer * layer = (CAMetalLayer *)(*pSwapchain)->pMTKView.layer;
+		
 		//only available on mac OS.
 		//VSync seems to be necessary on iOS.
 		if(!(*pSwapchain)->mDesc.mEnableVsync)
 		{
 			(*pSwapchain)->pMTKView.enableSetNeedsDisplay = YES;
 			(*pSwapchain)->pMTKView.paused = YES;
+			layer.displaySyncEnabled = false;
 		}
 		else
 		{
 			(*pSwapchain)->pMTKView.enableSetNeedsDisplay = NO;
 			(*pSwapchain)->pMTKView.paused = NO;
+			layer.displaySyncEnabled = true;
 		}
 #endif
 	}
@@ -1373,22 +1380,26 @@ namespace RENDERER_CPP_NAMESPACE {
 		pSwapChain->pMTKView.paused = NO;
 		
 #if !defined(TARGET_IOS)
+		//no need to have vsync on layers otherwise we will wait on semaphores
+		//get a copy of the layer for nextDrawables
+		CAMetalLayer * layer = (CAMetalLayer *)pSwapChain->pMTKView.layer;
+		pSwapChain->pMTKView.layer = layer;
+		
 		//only available on mac OS.
 		//VSync seems to be necessary on iOS.
 		if(!pDesc->mEnableVsync)
 		{
 			pSwapChain->pMTKView.enableSetNeedsDisplay = YES;
 			pSwapChain->pMTKView.paused = YES;
+			
+			//This needs to be set to false to have working non-vsync
+			//otherwise present drawables will wait on vsync.
+			layer.displaySyncEnabled = false;
 		}
+		else
+			//This needs to be set to false to have working vsync
+			layer.displaySyncEnabled = true;
 		
-		//no need to have vsync on layers otherwise we will wait on semaphores
-		//get a copy of the layer for nextDrawables
-		CAMetalLayer * layer = (CAMetalLayer *)pSwapChain->pMTKView.layer;
-		
-		pSwapChain->pMTKView.layer = layer;
-		//This needs to be set to false to have working non-vsync
-		//otherwise present drawables will wait on vsync.
-		layer.displaySyncEnabled = false;
         pSwapChain->pMTKView.wantsLayer = YES;
 #endif
         pSwapChain->mMTKDrawable = nil;
@@ -2077,12 +2088,27 @@ namespace RENDERER_CPP_NAMESPACE {
     
     void addBlendState(Renderer* pRenderer, const BlendStateDesc* pDesc, BlendState** ppBlendState)
     {
-        ASSERT(pDesc->mSrcFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-        ASSERT(pDesc->mDstFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-        ASSERT(pDesc->mSrcAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-        ASSERT(pDesc->mDstAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-        ASSERT(pDesc->mBlendMode < BlendMode::MAX_BLEND_MODES);
-        ASSERT(pDesc->mBlendAlphaMode < BlendMode::MAX_BLEND_MODES);
+        int blendDescIndex = 0;
+#ifdef _DEBUG
+
+		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+		{
+			if (pDesc->mRenderTargetMask & (1 << i))
+			{
+				ASSERT(pDesc->mSrcFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mSrcAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mBlendModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+				ASSERT(pDesc->mBlendAlphaModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+			}
+
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
+		}
+
+		blendDescIndex = 0;
+#endif
         
         BlendState blendState = {};
         
@@ -2091,13 +2117,16 @@ namespace RENDERER_CPP_NAMESPACE {
         {
             if(pDesc->mRenderTargetMask & (1 << i))
             {
-                blendState.blendStatePerRenderTarget[i].srcFactor = gMtlBlendConstantTranslator[pDesc->mSrcFactor];
-                blendState.blendStatePerRenderTarget[i].destFactor = gMtlBlendConstantTranslator[pDesc->mDstFactor];
-                blendState.blendStatePerRenderTarget[i].srcAlphaFactor = gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactor];
-                blendState.blendStatePerRenderTarget[i].destAlphaFactor = gMtlBlendConstantTranslator[pDesc->mDstAlphaFactor];
-                blendState.blendStatePerRenderTarget[i].blendMode = gMtlBlendOpTranslator[pDesc->mBlendMode];
-                blendState.blendStatePerRenderTarget[i].blendAlphaMode = gMtlBlendOpTranslator[pDesc->mBlendAlphaMode];
+                blendState.blendStatePerRenderTarget[i].srcFactor = gMtlBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]];
+                blendState.blendStatePerRenderTarget[i].destFactor = gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
+                blendState.blendStatePerRenderTarget[i].srcAlphaFactor = gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
+                blendState.blendStatePerRenderTarget[i].destAlphaFactor = gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
+                blendState.blendStatePerRenderTarget[i].blendMode = gMtlBlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
+                blendState.blendStatePerRenderTarget[i].blendAlphaMode = gMtlBlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
             }
+            
+            if(pDesc->mIndependentBlend)
+                ++blendDescIndex;
         }
         blendState.alphaToCoverage = pDesc->mAlphaToCoverage;
         
@@ -2593,11 +2622,21 @@ namespace RENDERER_CPP_NAMESPACE {
         ASSERT(pCmd);
         if(pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
         {
-            [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
-                                       vertexStart:firstVertex
-                                       vertexCount:vertexCount
-                                     instanceCount:instanceCount
-									 baseInstance:firstInstance];
+            if(firstInstance == 0)
+            {
+                [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
+                                           vertexStart:firstVertex
+                                           vertexCount:vertexCount
+                                         instanceCount:instanceCount];
+            }
+            else
+            {
+                [pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType
+                                           vertexStart:firstVertex
+                                           vertexCount:vertexCount
+                                         instanceCount:instanceCount
+                                         baseInstance:firstInstance];
+            }
         }
         else // Tessellated draw version.
         {
@@ -2762,13 +2801,16 @@ namespace RENDERER_CPP_NAMESPACE {
                     mapBuffer(pCmd->pRenderer, pIndirectBuffer, NULL);
                     IndirectDrawIndexArguments* pDrawArgs = (IndirectDrawIndexArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
                     unmapBuffer(pCmd->pRenderer, pIndirectBuffer);
-                    
+					
+					//to supress warning passing nil to controlPointIndexBuffer
+					//todo: Add control point index buffer to be passed when necessary
+					id<MTLBuffer> _Nullable ctrlPtIndexBuf = nil;
                     [pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
                                                     patchStart:pDrawArgs->mStartIndex
                                                     patchCount:pDrawArgs->mIndexCount
                                               patchIndexBuffer:indexBuffer->mtlBuffer
                                         patchIndexBufferOffset:0
-                                       controlPointIndexBuffer:nil
+                                       controlPointIndexBuffer:ctrlPtIndexBuf
                                  controlPointIndexBufferOffset:0
                                                  instanceCount:pDrawArgs->mInstanceCount
                                                   baseInstance:pDrawArgs->mStartInstance];

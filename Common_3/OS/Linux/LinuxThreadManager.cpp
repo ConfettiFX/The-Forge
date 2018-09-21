@@ -112,26 +112,28 @@ bool Thread::IsMainThread()
   return GetCurrentThreadID() == mainThreadID;
 }
 
-  ThreadHandle _createThread(WorkItem* pData)
-  {
-      pthread_t handle;
-      int res = pthread_create(&handle,NULL,ThreadFunctionStatic,pData);
-      assert(res==0);
-      return (ThreadHandle)handle;
-  }
+ThreadHandle _createThread(WorkItem* pData)
+{
+	pthread_t handle;
+	int res = pthread_create(&handle,NULL,ThreadFunctionStatic,pData);
+	assert(res==0);
+	return (ThreadHandle)handle;
+}
+
+void _destroyThread(ThreadHandle handle)
+{
+	pthread_join(handle, NULL);
+	handle = NULL;
+}
   
-  void _destroyThread(ThreadHandle handle)
-  {
-	  // warning(linux): pthread_t should not be compared to NULL
-      assert(handle != NULL);
-	  
-	  // Wait for thread to join, need to make sure thread stops running otherwise it is not properly destroyed
-	  pthread_join(handle, NULL);
-  }
-  
+void _joinThread(ThreadHandle handle)
+{	
+	pthread_join(handle, NULL);
+}
+
 void Thread::Sleep(unsigned mSec)
 {
-      usleep(mSec*1000);
+  usleep(mSec*1000);
 }
 
 // threading class (Static functions)

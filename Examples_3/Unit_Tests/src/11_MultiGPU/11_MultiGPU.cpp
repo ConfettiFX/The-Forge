@@ -220,6 +220,9 @@ public:
 			return false;
 
 
+		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
 			LOGWARNINGF("Multi GPU will be disabled since the system only has one GPU");
@@ -252,9 +255,6 @@ public:
 		}
 
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		ShaderLoadDesc skyShader = {};
 		skyShader.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
@@ -519,21 +519,18 @@ public:
 			return false;
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = { 0.0f, -100.0f };
-		guiDesc.mStartSize = { guiDesc.mStartSize.getX() * 0.5f, guiDesc.mStartSize.getY() * 0.4f };
+		GuiDesc guiDesc = {};		
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddControl(vsyncProp);
+		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
-		pGui->AddControl(UIProperty("Enable Multi GPU", gMultiGPU));
-		pGui->AddControl(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
-		pGui->AddControl(UIProperty("Panini D Parameter", gPaniniParams.D, 0.0f, 1.0f, 0.001f));
-		pGui->AddControl(UIProperty("Panini S Parameter", gPaniniParams.S, 0.0f, 1.0f, 0.001f));
-		pGui->AddControl(UIProperty("Screen Scale", gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
+		pGui->AddWidget(CheckboxWidget("Enable Multi GPU", &gMultiGPU));
+		pGui->AddWidget(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
+		pGui->AddWidget(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f));
+		pGui->AddWidget(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f));
+		pGui->AddWidget(SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 600.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };

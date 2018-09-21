@@ -96,7 +96,7 @@ fragment float4 stageMain(VSOutput input                                        
                          constant CameraUniformBlock& cameraUniform              [[buffer(10)]])
 {
     uint2 u2uv = uint2(input.position.xy);
-    float2 f2uv = float2(u2uv) / renderSettingUniformBlock.WindowDimension.xy;
+    float2 f2uv = (float2(u2uv) + 0.5) / renderSettingUniformBlock.WindowDimension.xy;
 
     float4 normalData   =   gBufferNormal.read(u2uv);
     float4 position     = gBufferPosition.read(u2uv);

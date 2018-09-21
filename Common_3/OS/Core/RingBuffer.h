@@ -25,13 +25,9 @@
 #pragma once
 
 #include "../../Renderer/IRenderer.h"
+#include "../../Renderer/ResourceLoader.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
-
-#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-#endif
 /************************************************************************/
 /* RING BUFFER MANAGEMENT                                               */
 /************************************************************************/
@@ -68,12 +64,17 @@ static inline void addMeshRingBuffer(Renderer* pRenderer, const BufferDesc* pVer
 	pRingBuffer->pRenderer = pRenderer;
 	pRingBuffer->mMaxVertexBufferSize = pVertexBufferDesc->mSize;
 
-	addBuffer(pRenderer, pVertexBufferDesc, &pRingBuffer->pVertexBuffer);
+	BufferLoadDesc loadDesc = {};
+	loadDesc.mDesc = *pVertexBufferDesc;
+	loadDesc.ppBuffer = &pRingBuffer->pVertexBuffer;
+	addResource(&loadDesc);
 
 	if (pIndexBufferDesc)
 	{
 		pRingBuffer->mMaxIndexBufferSize = pIndexBufferDesc->mSize;
-		addBuffer(pRenderer, pIndexBufferDesc, &pRingBuffer->pIndexBuffer);
+		loadDesc.mDesc = *pIndexBufferDesc;
+		loadDesc.ppBuffer = &pRingBuffer->pIndexBuffer;
+		addResource(&loadDesc);
 	}
 
 	*ppRingBuffer = pRingBuffer;
@@ -81,9 +82,9 @@ static inline void addMeshRingBuffer(Renderer* pRenderer, const BufferDesc* pVer
 
 static inline void removeMeshRingBuffer(MeshRingBuffer* pRingBuffer)
 {
-	removeBuffer(pRingBuffer->pRenderer, pRingBuffer->pVertexBuffer);
+	removeResource(pRingBuffer->pVertexBuffer);
 	if (pRingBuffer->pIndexBuffer)
-		removeBuffer(pRingBuffer->pRenderer, pRingBuffer->pIndexBuffer);
+		removeResource(pRingBuffer->pIndexBuffer);
 
 	conf_free(pRingBuffer);
 }
@@ -145,14 +146,17 @@ static void addUniformRingBuffer(Renderer* pRenderer, uint32_t requiredUniformBu
 #endif
 	ubDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	ubDesc.mSize = maxUniformBufferSize;
-	addBuffer(pRenderer, &ubDesc, &pRingBuffer->pUniformBuffer);
+	BufferLoadDesc loadDesc = {};
+	loadDesc.mDesc = ubDesc;
+	loadDesc.ppBuffer = &pRingBuffer->pUniformBuffer;
+	addResource(&loadDesc);
 
 	*ppRingBuffer = pRingBuffer;
 }
 
 static void removeUniformRingBuffer(UniformRingBuffer* pRingBuffer)
 {
-	removeBuffer(pRingBuffer->pRenderer, pRingBuffer->pUniformBuffer);
+	removeResource(pRingBuffer->pUniformBuffer);
 	conf_free(pRingBuffer);
 }
 

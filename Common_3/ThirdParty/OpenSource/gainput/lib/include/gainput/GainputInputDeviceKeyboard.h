@@ -246,7 +246,7 @@ public:
 	/// Sets if text input is enabled and therefore if calling GetNextCharacter() make sense.
 	void SetTextInputEnabled(bool enabled);
 	/// Returns the next pending input character if text input is enabled.
-	char GetNextCharacter();
+	char GetNextCharacter(gainput::DeviceButtonId buttonId=gainput::InvalidDeviceId);
 
 	/// Returns the platform-specific implementation of this device (internal use only).
 	InputDeviceKeyboardImpl* GetPimpl() { return impl_; }

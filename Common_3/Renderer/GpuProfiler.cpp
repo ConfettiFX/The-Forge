@@ -24,6 +24,7 @@
 
 #include "IRenderer.h"
 #include "GpuProfiler.h"
+#include "ResourceLoader.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../OS/Interfaces/ILogManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
@@ -33,8 +34,6 @@
 #endif
 
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
-extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 #endif
@@ -152,7 +151,10 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
 		addQueryHeap(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryHeap[i]);
-		addBuffer(pRenderer, &bufDesc, &pGpuProfiler->pReadbackBuffer[i]);
+		BufferLoadDesc loadDesc = {};
+		loadDesc.mDesc = bufDesc;
+		loadDesc.ppBuffer = &pGpuProfiler->pReadbackBuffer[i];
+		addResource(&loadDesc);
 	}
 
 	getTimestampFrequency(pQueue, &pGpuProfiler->mGpuTimeStampFrequency);
@@ -172,7 +174,7 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
-		removeBuffer(pRenderer, pGpuProfiler->pReadbackBuffer[i]);
+		removeResource(pGpuProfiler->pReadbackBuffer[i]);
 		removeQueryHeap(pRenderer, pGpuProfiler->pQueryHeap[i]);
 	}
 #endif

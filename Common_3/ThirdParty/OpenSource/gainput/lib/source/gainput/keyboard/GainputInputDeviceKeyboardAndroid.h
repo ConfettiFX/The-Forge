@@ -142,7 +142,7 @@ public:
 	bool IsTextInputEnabled() const { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) { textInputEnabled_ = enabled; }
 
-	char GetNextCharacter()
+	char GetNextCharacter(gainput::DeviceButtonId buttonId)
 	{
 		if (!textBuffer_.CanGet())
 		{
@@ -192,7 +192,12 @@ private:
 	InputManager& manager_;
 	InputDevice& device_;
 	bool textInputEnabled_;
-	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, char> textBuffer_;
+	struct InputCharDesc
+	{
+		char inputChar;
+		gainput::DeviceButtonId buttonId;
+	};
+	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, InputCharDesc> textBuffer_;
 	HashMap<unsigned, DeviceButtonId> dialect_;
 	InputState* state_;
 	InputState* previousState_;

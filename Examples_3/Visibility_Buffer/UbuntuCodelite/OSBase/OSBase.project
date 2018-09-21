@@ -12,7 +12,6 @@
       <File Name="../../../../Middleware_3/Text/Fontstash.cpp"/>
       <File Name="../../../../Middleware_3/UI/AppUI.cpp"/>
       <File Name="../../../../Middleware_3/UI/AppUI.h"/>
-      <File Name="../../../../Middleware_3/UI/NuklearGUIDriver.cpp"/>
       <File Name="../../../../Middleware_3/UI/ImguiGUIDriver.cpp"/>
       <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
       <VirtualDirectory Name="imgui">

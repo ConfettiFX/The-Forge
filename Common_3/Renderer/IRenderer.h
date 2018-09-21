@@ -1281,15 +1281,26 @@ typedef struct Shader {
 
 typedef struct BlendStateDesc
 {
-	BlendConstant		mSrcFactor;
-	BlendConstant		mDstFactor;
-	BlendConstant		mSrcAlphaFactor;
-	BlendConstant		mDstAlphaFactor;
-	BlendMode			mBlendMode;
-	BlendMode			mBlendAlphaMode;
-	int32_t				mMask;
+	/// Source blend factor per render target.
+	BlendConstant		mSrcFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Destination blend factor per render target.
+	BlendConstant		mDstFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Source alpha blend factor per render target.
+	BlendConstant		mSrcAlphaFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Destination alpha blend factor per render target.
+	BlendConstant		mDstAlphaFactors[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Blend mode per render target.
+	BlendMode			mBlendModes[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Alpha blend mode per render target.
+	BlendMode			mBlendAlphaModes[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Write mask per render target.
+	int32_t				mMasks[MAX_RENDER_TARGET_ATTACHMENTS];
+	/// Mask that identifies the render targets affected by the blend state.
 	BlendStateTargets	mRenderTargetMask;
+	/// Set whether alpha to coverage should be enabled.
 	bool				mAlphaToCoverage;
+	/// Set whether each render target has an unique blend function. When false the blend function in slot 0 will be used for all render targets.
+	bool				mIndependentBlend;
 } BlendStateDesc;
 
 typedef struct BlendState
@@ -1567,10 +1578,14 @@ typedef struct SwapChain
 } SwapChain;
 
 typedef enum ShaderTarget {
-	// 5.1 is supported on all DX12 hardware
+	// We only need SM 5.0 for supporting D3D11 fallback
+#if defined(DIRECT3D11)
 	shader_target_5_0,
+#else
+	// 5.1 is supported on all DX12 hardware
 	shader_target_5_1,
 	shader_target_6_0,
+#endif
 } DXShaderTarget;
 
 typedef enum GpuMode
@@ -1606,11 +1621,13 @@ typedef struct GPUVendorPreset {
 
 typedef struct GPUSettings
 {
-	uint64_t	mUniformBufferAlignment;
-	uint32_t	mMaxVertexInputBindings;
-	bool		mMultiDrawIndirect;
-	uint32_t	mMaxRootSignatureDWORDS;
-  	GPUVendorPreset  mGpuVendorPreset;
+	uint64_t		mUniformBufferAlignment;
+	uint32_t		mMaxVertexInputBindings;
+	bool			mMultiDrawIndirect;
+	uint32_t		mMaxRootSignatureDWORDS;
+	uint32_t		mWaveLaneCount;
+	bool			mROVsSupported;
+  	GPUVendorPreset	mGpuVendorPreset;
 } GPUSettings;
 
 typedef struct Renderer {
@@ -1672,14 +1689,14 @@ typedef struct Renderer {
 	VkInstance							pVkInstance;
 	VkPhysicalDevice					pVkGPUs[MAX_GPUS];
 	VkPhysicalDevice					pVkActiveGPU;
-	VkPhysicalDeviceProperties			mVkGpuProperties[MAX_GPUS];
+	VkPhysicalDeviceProperties2			mVkGpuProperties[MAX_GPUS];
 	VkPhysicalDeviceMemoryProperties	mVkGpuMemoryProperties[MAX_GPUS];
 	VkPhysicalDeviceFeatures			mVkGpuFeatures[MAX_GPUS];
 	uint32_t							mVkQueueFamilyPropertyCount[MAX_GPUS];
 	VkQueueFamilyProperties*			mVkQueueFamilyProperties[MAX_GPUS];
 	uint32_t							mActiveGPUIndex;
 	VkPhysicalDeviceMemoryProperties*	pVkActiveGpuMemoryProperties;
-	VkPhysicalDeviceProperties*			pVkActiveGPUProperties;
+	VkPhysicalDeviceProperties2*		pVkActiveGPUProperties;
 	VkDevice							pVkDevice;
 	VkDebugUtilsMessengerEXT			pVkDebugUtilsMessenger;
 	VkDebugReportCallbackEXT			pVkDebugReport;

@@ -179,7 +179,7 @@ public:
 
 	bool IsTextInputEnabled() const { return false; }
 	void SetTextInputEnabled(bool enabled) { }
-	char GetNextCharacter() { return 0; }
+	char GetNextCharacter(gainput::DeviceButtonId buttonId) { return 0; }
 
 	void HandleMessage(const MSG& msg)
 	{

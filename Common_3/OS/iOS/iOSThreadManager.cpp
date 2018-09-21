@@ -112,6 +112,7 @@ bool Thread::IsMainThread()
   return GetCurrentThreadID() == mainThreadID;
 }
 
+
 ThreadHandle _createThread(WorkItem* pData)
 {
 	pthread_t handle;
@@ -122,10 +123,13 @@ ThreadHandle _createThread(WorkItem* pData)
 
 void _destroyThread(ThreadHandle handle)
 {
-	// thread is destroyed automatically when function exitsß
-	assert(handle!=nullptr);
 	pthread_join(handle, NULL);
 	handle = NULL;
+}
+  
+void _joinThread(ThreadHandle handle)
+{	
+	pthread_join(handle, NULL);
 }
   
 void Thread::Sleep(unsigned mSec)

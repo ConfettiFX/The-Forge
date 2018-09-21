@@ -294,6 +294,11 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	  VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME,
 #endif
       /************************************************************************/
+	  // Property querying extensions
+	  /************************************************************************/
+	   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+	   /************************************************************************/
+	   /************************************************************************/
    };
 
    const char* gVkWantedDeviceExtensions[] =
@@ -1143,12 +1148,13 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		addSampler(pRenderer, &samplerDesc, &pRenderer->pDefaultSampler);
 
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mDstAlphaFactor = BC_ZERO;
-		blendStateDesc.mDstFactor = BC_ZERO;
-		blendStateDesc.mSrcAlphaFactor = BC_ONE;
-		blendStateDesc.mSrcFactor = BC_ONE;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mDstFactors[0] = BC_ZERO;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pRenderer->pDefaultBlendState);
 
 		DepthStateDesc depthStateDesc = {};
@@ -2041,7 +2047,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 		vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, NULL, &count, NULL);
 		vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, NULL, &count, exts);
-		for (uint32_t i = 0; i < count; ++i) {
+		for (uint32_t i = 0; i < count; ++i)
+		{
 			internal_log(LOG_TYPE_INFO, exts[i].extensionName, "vkdevice-ext");
 		}
 
@@ -2054,7 +2061,13 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			vkGetPhysicalDeviceFeatures(pRenderer->pVkGPUs[i], &pRenderer->mVkGpuFeatures[i]);
 
 			// Get device properties
-			vkGetPhysicalDeviceProperties(pRenderer->pVkGPUs[i], &(pRenderer->mVkGpuProperties[i]));
+			VkPhysicalDeviceSubgroupProperties subgroupProperties;
+			subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+			subgroupProperties.pNext = NULL;
+
+			pRenderer->mVkGpuProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+			pRenderer->mVkGpuProperties[i].pNext = &subgroupProperties;
+			vkGetPhysicalDeviceProperties2(pRenderer->pVkGPUs[i], &(pRenderer->mVkGpuProperties[i]));
 
 			// Get queue family properties
 			vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pVkGPUs[i], &(pRenderer->mVkQueueFamilyPropertyCount[i]), NULL);
@@ -2062,18 +2075,20 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				(VkQueueFamilyProperties*)conf_calloc(pRenderer->mVkQueueFamilyPropertyCount[i], sizeof(VkQueueFamilyProperties));
 			vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pVkGPUs[i], &(pRenderer->mVkQueueFamilyPropertyCount[i]), pRenderer->mVkQueueFamilyProperties[i]);
 
-			pRenderer->mGpuSettings[i].mUniformBufferAlignment = pRenderer->mVkGpuProperties[i].limits.minUniformBufferOffsetAlignment;
-			pRenderer->mGpuSettings[i].mMaxVertexInputBindings = pRenderer->mVkGpuProperties[i].limits.maxVertexInputBindings;
-			pRenderer->mGpuSettings[i].mMultiDrawIndirect = pRenderer->mVkGpuProperties[i].limits.maxDrawIndirectCount > 1;
+			pRenderer->mGpuSettings[i].mUniformBufferAlignment = pRenderer->mVkGpuProperties[i].properties.limits.minUniformBufferOffsetAlignment;
+			pRenderer->mGpuSettings[i].mMaxVertexInputBindings = pRenderer->mVkGpuProperties[i].properties.limits.maxVertexInputBindings;
+			pRenderer->mGpuSettings[i].mMultiDrawIndirect = pRenderer->mVkGpuProperties[i].properties.limits.maxDrawIndirectCount > 1;
+			pRenderer->mGpuSettings[i].mWaveLaneCount = subgroupProperties.subgroupSize;
 
 			//save vendor and model Id as string
-			sprintf(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, "%#x", pRenderer->mVkGpuProperties[i].deviceID);
-			sprintf(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, "%#x", pRenderer->mVkGpuProperties[i].vendorID);
-			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mGpuName, pRenderer->mVkGpuProperties[i].deviceName, MAX_GPU_VENDOR_STRING_LENGTH);
+			sprintf(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, "%#x", pRenderer->mVkGpuProperties[i].properties.deviceID);
+			sprintf(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, "%#x", pRenderer->mVkGpuProperties[i].properties.vendorID);
+			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mGpuName, pRenderer->mVkGpuProperties[i].properties.deviceName, MAX_GPU_VENDOR_STRING_LENGTH);
 
 			//TODO: Fix once vulkan adds support for revision ID
 			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId, "0x00", MAX_GPU_VENDOR_STRING_LENGTH);
-			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = getGPUPresetLevel(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId);	
+			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel =
+				getGPUPresetLevel(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId);	
 		}
 		
 		pRenderer->pVkActiveGPUProperties = &pRenderer->mVkGpuProperties[pRenderer->mActiveGPUIndex];
@@ -2329,7 +2344,8 @@ namespace vk {
 				ppRenderer = NULL;
 				return;
 			}
-
+			/************************************************************************/
+			/************************************************************************/
 			VmaAllocatorCreateInfo createInfo = { 0 };
 			createInfo.device = pRenderer->pVkDevice;
 			createInfo.physicalDevice = pRenderer->pVkActiveGPU;
@@ -2357,6 +2373,8 @@ namespace vk {
 			vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
 			vulkanFunctions.vkMapMemory = vkMapMemory;
 			vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+			vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+			vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
 
 			createInfo.pVulkanFunctions = &vulkanFunctions;
 
@@ -2726,7 +2744,7 @@ namespace vk {
 		ASSERT(VK_NULL_HANDLE != pRenderer->pVkActiveGPU);
 
 		// Most GPUs will not go beyond VK_SAMPLE_COUNT_8_BIT
-		ASSERT(0 != (pRenderer->pVkActiveGPUProperties->limits.framebufferColorSampleCounts & pSwapChain->mDesc.mSampleCount));
+		ASSERT(0 != (pRenderer->pVkActiveGPUProperties->properties.limits.framebufferColorSampleCounts & pSwapChain->mDesc.mSampleCount));
 
 		// Image count
 		if (0 == pSwapChain->mDesc.mImageCount) {
@@ -4533,32 +4551,52 @@ namespace vk {
 
 	void addBlendState(Renderer* pRenderer, const BlendStateDesc* pDesc, BlendState** ppBlendState)
 	{
-		ASSERT(pDesc->mSrcFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mDstFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mSrcAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mDstAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mBlendMode < BlendMode::MAX_BLEND_MODES);
-		ASSERT(pDesc->mBlendAlphaMode < BlendMode::MAX_BLEND_MODES);
+		int blendDescIndex = 0;
+#ifdef _DEBUG
 
-		VkBool32 blendEnable = (gVkBlendConstantTranslator[pDesc->mSrcFactor] != VK_BLEND_FACTOR_ONE || gVkBlendConstantTranslator[pDesc->mDstFactor] != VK_BLEND_FACTOR_ZERO ||
-			gVkBlendConstantTranslator[pDesc->mSrcAlphaFactor] != VK_BLEND_FACTOR_ONE || gVkBlendConstantTranslator[pDesc->mDstAlphaFactor] != VK_BLEND_FACTOR_ZERO);
+		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+		{
+			if (pDesc->mRenderTargetMask & (1 << i))
+			{
+				ASSERT(pDesc->mSrcFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mSrcAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mBlendModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+				ASSERT(pDesc->mBlendAlphaModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+			}
+
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
+		}
+
+		blendDescIndex = 0;
+#endif
 
 		BlendState blendState = {};
 
 		memset(blendState.RTBlendStates, 0, sizeof(blendState.RTBlendStates));
 		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 		{
-			blendState.RTBlendStates[i].colorWriteMask = pDesc->mMask;
 			if (pDesc->mRenderTargetMask & (1 << i))
 			{
+				VkBool32 blendEnable = (gVkBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != VK_BLEND_FACTOR_ONE ||
+					gVkBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != VK_BLEND_FACTOR_ZERO ||
+					gVkBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != VK_BLEND_FACTOR_ONE ||
+					gVkBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != VK_BLEND_FACTOR_ZERO);
+
 				blendState.RTBlendStates[i].blendEnable = blendEnable;
-				blendState.RTBlendStates[i].srcColorBlendFactor = gVkBlendConstantTranslator[pDesc->mSrcFactor];
-				blendState.RTBlendStates[i].dstColorBlendFactor = gVkBlendConstantTranslator[pDesc->mDstFactor];
-				blendState.RTBlendStates[i].colorBlendOp = gVkBlendOpTranslator[pDesc->mBlendMode];
-				blendState.RTBlendStates[i].srcAlphaBlendFactor = gVkBlendConstantTranslator[pDesc->mSrcAlphaFactor];
-				blendState.RTBlendStates[i].dstAlphaBlendFactor = gVkBlendConstantTranslator[pDesc->mDstAlphaFactor];
-				blendState.RTBlendStates[i].alphaBlendOp = gVkBlendOpTranslator[pDesc->mBlendAlphaMode];
+				blendState.RTBlendStates[i].colorWriteMask = pDesc->mMasks[blendDescIndex];
+				blendState.RTBlendStates[i].srcColorBlendFactor = gVkBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]];
+				blendState.RTBlendStates[i].dstColorBlendFactor = gVkBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
+				blendState.RTBlendStates[i].colorBlendOp = gVkBlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
+				blendState.RTBlendStates[i].srcAlphaBlendFactor = gVkBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
+				blendState.RTBlendStates[i].dstAlphaBlendFactor = gVkBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
+				blendState.RTBlendStates[i].alphaBlendOp = gVkBlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
 			}
+
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
 		}
 
 		blendState.LogicOpEnable = false;
@@ -4947,7 +4985,7 @@ namespace vk {
 		ASSERT(ppBuffers);
 		ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
 
-		const uint32_t max_buffers = pCmd->pRenderer->pVkActiveGPUProperties->limits.maxVertexInputBindings;
+		const uint32_t max_buffers = pCmd->pRenderer->pVkActiveGPUProperties->properties.limits.maxVertexInputBindings;
 		uint32_t capped_buffer_count = bufferCount > max_buffers ? max_buffers : bufferCount;
 
 		// No upper bound for this, so use 64 for now
@@ -5485,9 +5523,6 @@ namespace vk {
 				VK_NULL_HANDLE,
 				pFence->pVkFence,
 				pImageIndex);
-			ASSERT(VK_SUCCESS == vk_res);
-
-			pFence->mSubmitted = true;
 
 			// If swapchain is out of date, let caller know by setting image index to -1
 			if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
@@ -5498,10 +5533,7 @@ namespace vk {
 				return;
 			}
 
-			vk_res = vkWaitForFences(pRenderer->pVkDevice, 1, &pFence->pVkFence, VK_TRUE, UINT64_MAX);
-			ASSERT(VK_SUCCESS == vk_res);
-			vkResetFences(pRenderer->pVkDevice, 1, &pFence->pVkFence);
-			pFence->mSubmitted = false;
+			pFence->mSubmitted = true;
 		}
 		else
 		{
@@ -5511,16 +5543,16 @@ namespace vk {
 				pSignalSemaphore->pVkSemaphore,
 				VK_NULL_HANDLE,
 				pImageIndex);
-			ASSERT(VK_SUCCESS == vk_res);
 
 			// If swapchain is out of date, let caller know by setting image index to -1
 			if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
 			{
 				*pImageIndex = -1;
-				pSignalSemaphore->mSignaled = true;
+				pSignalSemaphore->mSignaled = false;
 				return;
 			}
 
+			ASSERT(VK_SUCCESS == vk_res);
 			pSignalSemaphore->mSignaled = true;
 		}
 	}
@@ -5827,7 +5859,7 @@ namespace vk {
 
 		// The framework is using ticks per sec as frequency. Vulkan is nano sec per tick. 
 		// Handle the conversion logic here.
-		*pFrequency = 1.0f / ((double)pQueue->pRenderer->pVkActiveGPUProperties->limits.timestampPeriod/*ns/tick number of nanoseconds required for a timestamp query to be incremented by 1*/
+		*pFrequency = 1.0f / ((double)pQueue->pRenderer->pVkActiveGPUProperties->properties.limits.timestampPeriod/*ns/tick number of nanoseconds required for a timestamp query to be incremented by 1*/
 			* 1e-9); // convert to ticks/sec (DX12 standard)
 	}
 

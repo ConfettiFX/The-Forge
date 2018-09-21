@@ -182,9 +182,9 @@ InputDeviceKeyboard::SetTextInputEnabled(bool enabled)
 }
 
 char
-InputDeviceKeyboard::GetNextCharacter()
+InputDeviceKeyboard::GetNextCharacter(gainput::DeviceButtonId buttonId)
 {
-	return impl_->GetNextCharacter();
+	return impl_->GetNextCharacter(buttonId);
 }
 
 }

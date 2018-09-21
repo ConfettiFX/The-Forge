@@ -141,13 +141,30 @@ public:
 	bool IsTextInputEnabled() const { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) { textInputEnabled_ = enabled; }
 
-	char GetNextCharacter()
+	char GetNextCharacter(gainput::DeviceButtonId buttonId)
 	{
 		if (!textBuffer_.CanGet())
 		{
 			return 0;
 		}
-		return textBuffer_.Get();
+		InputCharDesc currentDesc = textBuffer_.Get();
+
+		//Removed buffered inputs for which we didn't call GetNextCharacter
+		if (buttonId != gainput::InvalidDeviceButtonId && buttonId < gainput::KeyCount_)
+		{
+			while (currentDesc.buttonId != buttonId)
+			{
+				if (!textBuffer_.CanGet())
+				{
+					return 0;
+				}
+				currentDesc = textBuffer_.Get();
+			}
+		}
+
+		//if button id was provided then we return the appropriate character
+		//else we return the first buffered character
+		return currentDesc.inputChar;
 	}
 
 	void HandleMessage(const MSG& msg)
@@ -175,7 +192,17 @@ public:
 				return;
 			}
 			const char charKey = key;
-			textBuffer_.Put(charKey);
+			unsigned char scancode = ((unsigned char*)&msg.lParam)[2];
+			unsigned int virtualKey = MapVirtualKey(scancode, MAPVK_VSC_TO_VK);
+
+			if (dialect_.count(virtualKey))
+			{
+				InputCharDesc inputDesc;
+				inputDesc.buttonId = dialect_[virtualKey];
+				inputDesc.inputChar = charKey;
+				textBuffer_.Put(inputDesc);
+			}
+			
 #ifdef GAINPUT_DEBUG
 			GAINPUT_LOG("Text: %c\n", charKey);
 #endif
@@ -262,7 +289,12 @@ private:
 	InputManager& manager_;
 	InputDevice& device_;
 	bool textInputEnabled_;
-	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, char> textBuffer_;
+	struct InputCharDesc
+	{
+		char inputChar;
+		gainput::DeviceButtonId buttonId;
+	};
+	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, InputCharDesc> textBuffer_;
 	HashMap<unsigned, DeviceButtonId> dialect_;
 	InputState* state_;
 	InputState* previousState_;

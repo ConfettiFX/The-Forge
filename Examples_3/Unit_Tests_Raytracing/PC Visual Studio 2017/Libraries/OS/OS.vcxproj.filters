@@ -173,9 +173,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>Middleware_3\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
-      <Filter>Middleware_3\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
@@ -202,7 +199,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="OS.natvis">
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinySTL\tinystl.natvis">
       <Filter>Utils</Filter>
     </Natvis>
   </ItemGroup>

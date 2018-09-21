@@ -105,7 +105,7 @@ float calcShadowFactor(float4 worldPos)
 float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 {
     uint3 u3uv = uint3(input.position.xy, 0);
-    float2 f2uv = float2(u3uv.xy) / WindowDimension.xy;
+    float2 f2uv = float2(u3uv.xy + 0.5f) / WindowDimension.xy;
 
     float4 normalData   =   gBufferNormal.Load(u3uv);
     float4 position     = gBufferPosition.Load(u3uv);

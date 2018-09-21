@@ -128,12 +128,12 @@ enum ShadowType
 typedef struct RenderSettingsUniformData
 {
     vec4 mWindowDimension = {1, 1, 0, 0};//only first two are used to represents window width and height, z and w are paddings
-	int mRenderOutput = RENDER_OUTPUT_SCENE;//Scene output, can change using GUI editor
+	uint32_t mRenderOutput = RENDER_OUTPUT_SCENE;//Scene output, can change using GUI editor
 
 #ifndef TARGET_IOS
-	int mShadowType = SHADOW_TYPE_ESM;//if not iOS, we start with ESM and can switch using GUI dropdown menu
+	uint32_t mShadowType = SHADOW_TYPE_ESM;//if not iOS, we start with ESM and can switch using GUI dropdown menu
 #else
-	int mShadowType = SHADOW_TYPE_SDF;//if iOS, we only output SDF since GUI editor will not be aviable for iOS
+	uint32_t mShadowType = SHADOW_TYPE_SDF;//if iOS, we only output SDF since GUI editor will not be aviable for iOS
 #endif
 
 }RenderSettingsUniformData;
@@ -192,7 +192,7 @@ typedef struct SdfInputConstants
 	mat4 mViewInverse;
 	vec4 mCameraPosition = {0,0,0,0};
 	float mShadowHardness = 6.0f;
-	uint mMaxIteration = 64U;
+	uint32_t mMaxIteration = 64U;
 	float2 mWindowDimension = { 0, 0 };
 	float mSphereRadius;
 	float mRadsRot;
@@ -500,15 +500,19 @@ static void createScene()
 }
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-class GuiController
+struct GuiController
 {
-public:
-	static void addGui(const class UIProperty* pProperty = NULL);
-	
-private:
-	static tinystl::vector<uint32_t> m_propertyIds;
+	static void addGui();
+	static void updateDynamicUI();
+
+	static DynamicUIControls esmDynamicWidgets;
+	static DynamicUIControls sdfDynamicWidgets;
+
+	static ShadowType currentlyShadowType;
 };
-tinystl::vector<uint32_t> GuiController::m_propertyIds;
+ShadowType GuiController::currentlyShadowType;
+DynamicUIControls GuiController::esmDynamicWidgets;
+DynamicUIControls GuiController::sdfDynamicWidgets;
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 class LightShadowPlayground : public IApp
@@ -1180,6 +1184,10 @@ public:
         }
 
         pCameraController->update(deltaTime);
+
+		// Dynamic UI elements
+		GuiController::updateDynamicUI();
+
         /************************************************************************/
         // Scene Render Settings
         /************************************************************************/
@@ -1816,17 +1824,30 @@ public:
 	}
 };
 
-void GuiController::addGui(const class UIProperty*)
+void GuiController::updateDynamicUI()
 {
-	size_t currentExistingGuiNum = m_propertyIds.size();
-	if (currentExistingGuiNum)
+	if (gRenderSettings.mShadowType != GuiController::currentlyShadowType)
 	{
-		for (size_t i = 0; i < currentExistingGuiNum; i++)
-		{
-			pGuiWindow->RemoveControl(m_propertyIds[i]);
+		if (GuiController::currentlyShadowType == SHADOW_TYPE_ESM)
+			GuiController::esmDynamicWidgets.HideDynamicProperties(pGuiWindow);
+		else if (GuiController::currentlyShadowType == SHADOW_TYPE_SDF)
+			GuiController::sdfDynamicWidgets.HideDynamicProperties(pGuiWindow);
+
+		if (gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
+		{			
+			GuiController::esmDynamicWidgets.ShowDynamicProperties(pGuiWindow);
 		}
-		m_propertyIds.clear();
+		else if (gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
+		{		
+			GuiController::sdfDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+		}
+
+		GuiController::currentlyShadowType = (ShadowType)gRenderSettings.mShadowType;
 	}
+}
+
+void GuiController::addGui()
+{	
 #if DEBUG_OUTPUT
 	static const char* renderModeNames[] = {
 		"Scene",
@@ -1838,7 +1859,7 @@ void GuiController::addGui(const class UIProperty*)
 		"ESM Map",
 		NULL//needed for unix
 	};
-	static const int renderModeValues[] = {
+	static const uint32_t renderModeValues[] = {
 		RENDER_OUTPUT_SCENE,
 		RENDER_OUTPUT_SDF_MAP,
 		RENDER_OUTPUT_ALBEDO,
@@ -1849,51 +1870,58 @@ void GuiController::addGui(const class UIProperty*)
 		0//needed for unix
 	};
 
-	UIProperty renderMode("Render Output", gRenderSettings.mRenderOutput, renderModeNames, renderModeValues);
-	m_propertyIds.emplace_back(pGuiWindow->AddControl(renderMode));
+	pGuiWindow->AddWidget(DropdownWidget("Render Output", &gRenderSettings.mRenderOutput, renderModeNames, renderModeValues, 7));
 #endif
 	const float lightPosBound = 10.0f;
-	UIProperty lightX("Light Position X", gLightCpuSettings.mLightPosition.x, -lightPosBound, lightPosBound, 0.1f);
-	m_propertyIds.emplace_back(pGuiWindow->AddControl(lightX));
-
-	UIProperty lightY("Light Position Y", gLightCpuSettings.mLightPosition.y, 5, 30.0f, 0.1f);
-	m_propertyIds.emplace_back(pGuiWindow->AddControl(lightY));
-
-	UIProperty lightZ("Light Position Z", gLightCpuSettings.mLightPosition.z, -lightPosBound, lightPosBound, 0.1f);
-	m_propertyIds.emplace_back(pGuiWindow->AddControl(lightZ));
-
+	pGuiWindow->AddWidget(SliderFloat3Widget("Light Position", &gLightCpuSettings.mLightPosition,
+		float3(-lightPosBound, 5, -lightPosBound),
+		float3(lightPosBound, 30.0f, lightPosBound),
+		float3(0.1f, 0.1f, 0.1f)));
+	
 	static const char* shadowTypeNames[] = {
 		"No Shadow",
 		"(ESM) Exponential Shadow Mapping",
 		"(SDF) Ray-Traced Soft Shadow",
 		NULL//needed for unix
 	};
-	static const int shadowTypeValues[] = {
+	static const uint32_t shadowTypeValues[] = {
 		SHADOW_TYPE_NONE,
 		SHADOW_TYPE_ESM,
 		SHADOW_TYPE_SDF,
 		0//needed for unix
 	};
-	UIProperty shadpwType("Shadow Type", gRenderSettings.mShadowType, shadowTypeNames, shadowTypeValues, &addGui);
-	m_propertyIds.emplace_back(pGuiWindow->AddControl(shadpwType));
+	
+	pGuiWindow->AddWidget(DropdownWidget("Shadow Type", &gRenderSettings.mShadowType, shadowTypeNames, shadowTypeValues, 3));
+	
+	// ESM dynamic widgets
+	{
+		static SliderUintWidget esmSoftness("ESM Softness", &gEsmCpuSettings.mFilterWidth, 0u, MAX_GAUSSIAN_WIDTH);
+		GuiController::esmDynamicWidgets.mDynamicProperties.emplace_back(&esmSoftness);
+
+		static SliderFloatWidget esmDarkness("ESM Darkness", &gESMBlurUniformDataH_Primary.mExponent, 0.0f, 240.0f, 0.1f);
+		GuiController::esmDynamicWidgets.mDynamicProperties.emplace_back(&esmDarkness);
+	}
+	// SDF dynamic widgets
+	{
+		static SliderFloatWidget sdfHardness("SDF Shadow Hardness", &gSdfUniformData.mShadowHardness, 3, 20, 0.01f);
+		GuiController::sdfDynamicWidgets.mDynamicProperties.emplace_back(&sdfHardness);
+
+		static SliderUintWidget sdfMaxIter("SDF Max Iteration", &gSdfUniformData.mMaxIteration, 32u, 1024u, 1u);
+		GuiController::sdfDynamicWidgets.mDynamicProperties.emplace_back(&sdfMaxIter);
+	}
 
 	if (gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
 	{
-		UIProperty esmSoftness("ESM Softness", gEsmCpuSettings.mFilterWidth, 0, MAX_GAUSSIAN_WIDTH);
-		m_propertyIds.emplace_back(pGuiWindow->AddControl(esmSoftness));
-
-		UIProperty esmExp("ESM Darkness", gESMBlurUniformDataH_Primary.mExponent, 0.0f, 240.0f, 0.1f);
-		m_propertyIds.emplace_back(pGuiWindow->AddControl(esmExp));
+		GuiController::currentlyShadowType = SHADOW_TYPE_ESM;
+		GuiController::esmDynamicWidgets.ShowDynamicProperties(pGuiWindow);
 	}
 	else if (gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
 	{
-		UIProperty sdfControl0("SDF Shadow Hardness", gSdfUniformData.mShadowHardness, 3, 20, 0.01f);
-		m_propertyIds.emplace_back(pGuiWindow->AddControl(sdfControl0));
-
-		UIProperty sdfControl1("SDF Max Iteration", gSdfUniformData.mMaxIteration, 32, 1024, 1);
-		m_propertyIds.emplace_back(pGuiWindow->AddControl(sdfControl1));
+		GuiController::currentlyShadowType = SHADOW_TYPE_SDF;
+		GuiController::sdfDynamicWidgets.ShowDynamicProperties(pGuiWindow);
 	}
-
+	else
+		GuiController::currentlyShadowType = SHADOW_TYPE_NONE;
 }
 
 

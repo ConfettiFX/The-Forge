@@ -299,9 +299,9 @@ public:
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
 		pGuiWindow = mAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-		pGuiWindow->AddControl(UIProperty("Light Direction X", mLightDirection.x, -2.0f, 2.0f, 0.001f));
-		pGuiWindow->AddControl(UIProperty("Light Direction Y", mLightDirection.y, -2.0f, 2.0f, 0.001f));
-		pGuiWindow->AddControl(UIProperty("Light Direction Z", mLightDirection.z, -2.0f, 2.0f, 0.001f));
+		pGuiWindow->AddWidget(SliderFloatWidget("Light Direction X", &mLightDirection.x, -2.0f, 2.0f, 0.001f));
+		pGuiWindow->AddWidget(SliderFloatWidget("Light Direction Y", &mLightDirection.y, -2.0f, 2.0f, 0.001f));
+		pGuiWindow->AddWidget(SliderFloatWidget("Light Direction Z", &mLightDirection.z, -2.0f, 2.0f, 0.001f));
 		/************************************************************************/
 		/************************************************************************/
 		return true;

@@ -386,6 +386,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 #if defined(RENDERER_IMPLEMENTATION)
 
 #ifndef _DURANGO
+#include "../../../Common_3/ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -1153,12 +1154,13 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		add_sampler(pRenderer, &samplerDesc, &pRenderer->mSamplerNullDescriptor);
 
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mDstAlphaFactor = BC_ZERO;
-		blendStateDesc.mDstFactor = BC_ZERO;
-		blendStateDesc.mSrcAlphaFactor = BC_ONE;
-		blendStateDesc.mSrcFactor = BC_ONE;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mDstFactors[0] = BC_ZERO;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pRenderer->pDefaultBlendState);
 
 		DepthStateDesc depthStateDesc = {};
@@ -1749,6 +1751,23 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	/************************************************************************/
 	// Internal init functions
 	/************************************************************************/
+#ifndef _DURANGO
+	dxc::DxcDllSupport gDxcDllHelper;
+
+	// Note that Windows 10 Creator Update SDK is required for enabling Shader Model 6 feature.
+	static HRESULT EnableExperimentalShaderModels()
+	{
+		static const GUID D3D12ExperimentalShaderModelsID = { /* 76f5573e-f13a-40f5-b297-81ce9e18933f */
+			0x76f5573e,
+			0xf13a,
+			0x40f5,
+			{ 0xb2, 0x97, 0x81, 0xce, 0x9e, 0x18, 0x93, 0x3f }
+		};
+
+		return D3D12EnableExperimentalFeatures(1, &D3D12ExperimentalShaderModelsID, nullptr, nullptr);
+	}
+#endif
+
 	static void AddDevice(Renderer* pRenderer)
 	{
 #if defined( _DEBUG ) || defined ( PROFILE )
@@ -1756,6 +1775,12 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->pDXDebug), (void**)&(pRenderer->pDXDebug)))) {
 			if (fnHookEnableDebugLayer != NULL)
 				fnHookEnableDebugLayer(pRenderer);
+		}
+#endif
+#ifndef _DURANGO
+		if (pRenderer->mSettings.mShaderTarget >= shader_target_6_0)
+		{
+			ASSERT(SUCCEEDED(EnableExperimentalShaderModels()));
 		}
 #endif
 		
@@ -1812,8 +1837,11 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 		typedef struct GpuDesc
 		{
+			Renderer* pRenderer = NULL;
 			IDXGIAdapter3* pGpu = NULL;
 			D3D_FEATURE_LEVEL mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
+			D3D12_FEATURE_DATA_D3D12_OPTIONS mFeatureDataOptions;
+			D3D12_FEATURE_DATA_D3D12_OPTIONS1 mFeatureDataOptions1;
 			SIZE_T mDedicatedVideoMemory = 0;
 			char mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
 			char mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -1824,11 +1852,10 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 		GpuDesc gpuDesc[MAX_GPUS] = {};
 
-
 		IDXGIAdapter3* adapter = NULL;
 		for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
 		{
-			DECLARE_ZERO (DXGI_ADAPTER_DESC1, desc);
+			DECLARE_ZERO(DXGI_ADAPTER_DESC1, desc);
 			adapter->GetDesc1(&desc);
 
 			if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
@@ -1836,13 +1863,27 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 				for (uint32_t level = 0; level < sizeof(feature_levels) / sizeof(feature_levels[0]); ++level)
 				{
 					// Make sure the adapter can support a D3D12 device
-					if (SUCCEEDED (D3D12CreateDevice(adapter, feature_levels[level], __uuidof(pRenderer->pDxDevice), NULL)))
+					if (SUCCEEDED(D3D12CreateDevice(adapter, feature_levels[level], __uuidof(ID3D12Device), NULL)))
 					{
 						hres = adapter->QueryInterface(IID_ARGS(&gpuDesc[pRenderer->mNumOfGPUs].pGpu));
 						if (SUCCEEDED(hres))
 						{
+							D3D12CreateDevice(adapter, feature_levels[level], IID_PPV_ARGS(&pRenderer->pDxDevice));
+
+							// Query the level of support of Shader Model.
+							D3D12_FEATURE_DATA_D3D12_OPTIONS featureData = {};
+							D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureData1 = {};
+							// Query the level of support of Wave Intrinsics.
+							pRenderer->pDxDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS,
+								&featureData, sizeof(featureData));
+							pRenderer->pDxDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1,
+								&featureData1, sizeof(featureData1));
+
 							gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = feature_levels[level];
 							gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
+							gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions = featureData;
+							gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions1 = featureData1;
+							gpuDesc[pRenderer->mNumOfGPUs].pRenderer = pRenderer;
 
 							//save vendor and model Id as string
 							//char hexChar[10];
@@ -1860,21 +1901,33 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 							//char sName[MAX_PATH];
 							wcstombs(gpuDesc[pRenderer->mNumOfGPUs].mName, desc.Description, MAX_PATH);
 							++pRenderer->mNumOfGPUs;
+							SAFE_RELEASE(pRenderer->pDxDevice);
 							break;
 						}
+
 					}
 				}
 			}
 
 			adapter->Release();
 		}
-		ASSERT (pRenderer->mNumOfGPUs > 0);
+
+		ASSERT(pRenderer->mNumOfGPUs > 0);
 
 		// Sort GPUs by poth Preset and highest feature level gpu at front
 		//Prioritize Preset first
-		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof(GpuDesc), [](const void* lhs, const void* rhs) {
+		qsort(gpuDesc, pRenderer->mNumOfGPUs, sizeof(GpuDesc), [](const void* lhs, const void* rhs)
+		{
 			GpuDesc* gpu1 = (GpuDesc*)lhs;
 			GpuDesc* gpu2 = (GpuDesc*)rhs;
+
+			// If shader model 6.0 or higher is requested, prefer the GPU which supports it
+			if (gpu1->pRenderer->mSettings.mShaderTarget >= shader_target_6_0)
+			{
+				if (gpu1->mFeatureDataOptions1.WaveOps != gpu2->mFeatureDataOptions1.WaveOps)
+					return gpu1->mFeatureDataOptions1.WaveOps ? -1 : 1;
+			}
+
 			// Check feature level first, sort the greatest feature level gpu to the front
 			if ((int)gpu1->mPreset != (int)gpu2->mPreset)
 			{
@@ -1909,6 +1962,9 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mGpuName, gpuDesc[i].mName, MAX_GPU_VENDOR_STRING_LENGTH);
 			//get preset
 			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = gpuDesc[i].mPreset;
+			//get wave lane count
+			pRenderer->mGpuSettings[i].mWaveLaneCount = gpuDesc[i].mFeatureDataOptions1.WaveLaneCountMin;
+			pRenderer->mGpuSettings[i].mROVsSupported = gpuDesc[i].mFeatureDataOptions.ROVsSupported ? true : false;
 #else 
 			//Default XBox values
 			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, "XboxOne", MAX_GPU_VENDOR_STRING_LENGTH);
@@ -2031,7 +2087,7 @@ namespace d3d12 {
 	API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
-	API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
+	API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 	API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
 	/************************************************************************/
 	// Renderer Init Remove
@@ -2079,6 +2135,36 @@ namespace d3d12 {
 				//This is better than exiting from here in case client has allocated memory or has fallbacks
 				ppRenderer = NULL;
 				return;
+			}
+			if (pRenderer->mSettings.mShaderTarget >= shader_target_6_0)
+			{
+				// Query the level of support of Shader Model.
+				D3D12_FEATURE_DATA_SHADER_MODEL shaderModelSupport = { D3D_SHADER_MODEL_6_0 };
+				D3D12_FEATURE_DATA_D3D12_OPTIONS1 m_WaveIntrinsicsSupport = {};
+				if (!SUCCEEDED(pRenderer->pDxDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_SHADER_MODEL,
+					&shaderModelSupport, sizeof(shaderModelSupport))))
+				{
+					return;
+				}
+				// Query the level of support of Wave Intrinsics.
+				if (!SUCCEEDED(pRenderer->pDxDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1,
+					&m_WaveIntrinsicsSupport, sizeof(m_WaveIntrinsicsSupport))))
+				{
+					return;
+				}
+
+				// If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating the device again.
+				if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
+				{
+					// If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up your application to use the highest supported shader model.
+					// For simplicity we just exit the application here. 
+					if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
+					{
+						RemoveDevice(pRenderer);
+						LOGERROR("Hardware does not support Shader Model 6.0");
+						return;
+					}
+				}
 			}
 #endif
 
@@ -2139,6 +2225,18 @@ namespace d3d12 {
 		if (fnHookPostInitRenderer != NULL)
 			fnHookPostInitRenderer(pRenderer);
 
+#ifndef _DURANGO
+		if (pRenderer->mSettings.mShaderTarget >= shader_target_6_0)
+		{
+			HRESULT dxrSuccess = gDxcDllHelper.Initialize();
+			if (!SUCCEEDED(dxrSuccess))
+			{
+				pRenderer = NULL;
+				return;
+			}
+		}
+#endif
+
 		// Renderer is good! Assign it to result!
 		*(ppRenderer) = pRenderer;
 	}
@@ -2146,6 +2244,13 @@ namespace d3d12 {
 	void removeRenderer(Renderer* pRenderer)
 	{
 		ASSERT(pRenderer);
+
+#ifndef _DURANGO
+		if (gDxcDllHelper.IsEnabled())
+		{
+			gDxcDllHelper.Cleanup();
+		}
+#endif
 
 		SAFE_FREE(pRenderer->pName);
 
@@ -3318,87 +3423,244 @@ namespace d3d12 {
 	/************************************************************************/
 	// Shader Functions
 	/************************************************************************/
-	void compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode)
+	template<typename BlobType>
+	static inline tinystl::string convertBlobToString(BlobType* pBlob)
 	{
+		tinystl::vector<char> infoLog(pBlob->GetBufferSize() + 1);
+		memcpy(infoLog.data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+		infoLog[pBlob->GetBufferSize()] = 0;
+		return tinystl::string(infoLog.data());
+	}
+
+	void compileShader(Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode)
+	{
+		if (shaderTarget > pRenderer->mSettings.mShaderTarget)
+		{
+			ErrorMsg("Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
+				(uint32_t)shaderTarget, (uint32_t)pRenderer->mSettings.mShaderTarget);
+			return;
+		}
+#ifndef _DURANGO
+		if (shaderTarget >= shader_target_6_0)
+		{
+#define d3d_call(x) if(!SUCCEEDED((x))) { ASSERT(false); return; }
+
+			IDxcCompiler* pCompiler;
+			IDxcLibrary* pLibrary;
+			d3d_call(gDxcDllHelper.CreateInstance(CLSID_DxcCompiler, &pCompiler));
+			d3d_call(gDxcDllHelper.CreateInstance(CLSID_DxcLibrary, &pLibrary));
+
+			/************************************************************************/
+			// Determine shader target
+			/************************************************************************/
+			int major;
+			int minor;
+			switch (shaderTarget)
+			{
+			default:
+			case shader_target_6_0: { major = 6; minor = 0; } break;
+			}
+			tinystl::string target;
+			switch (stage)
+			{
+			case SHADER_STAGE_VERT:
+				target = tinystl::string::format("vs_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_TESC:
+				target = tinystl::string::format("hs_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_TESE:
+				target = tinystl::string::format("ds_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_GEOM:
+				target = tinystl::string::format("gs_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_FRAG:
+				target = tinystl::string::format("ps_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_COMP:
+				target = tinystl::string::format("cs_%d_%d", major, minor);
+				break;
+			default:
+				break;
+			}
+			WCHAR* wTarget = (WCHAR*)alloca((target.size() + 1) * sizeof(WCHAR));
+			mbstowcs(wTarget, target.c_str(), target.size());
+			wTarget[target.size()] = L'\0';
+			/************************************************************************/
+			// Collect macros
+			/************************************************************************/
+			uint32_t namePoolSize = 0;
+			for (uint32_t i = 0; i < macroCount; ++i)
+			{
+				namePoolSize += (uint32_t)pMacros[i].definition.size() + 1;
+				namePoolSize += (uint32_t)pMacros[i].value.size() + 1;
+			}
+			WCHAR* namePool = NULL;
+			if (namePoolSize)
+				namePool = (WCHAR*)alloca(namePoolSize * sizeof(WCHAR));
+
+			// Extract shader macro definitions into D3D_SHADER_MACRO scruct
+			// Allocate Size+2 structs: one for D3D12 1 definition and one for null termination
+			DxcDefine* macros = (DxcDefine*)alloca((macroCount + 1) * sizeof(DxcDefine));
+			macros[0] = { L"D3D12", L"1" };
+			WCHAR* pCurrent = namePool;
+			for (uint32_t j = 0; j < macroCount; ++j)
+			{
+				uint32_t len = (uint32_t)pMacros[j].definition.size();
+				mbstowcs(pCurrent, pMacros[j].definition.c_str(), len);
+				pCurrent[len] = L'\0';
+				pCurrent += (len + 1);
+				macros[j + 1].Name = pCurrent;
+
+				len = (uint32_t)pMacros[j].value.size();
+				mbstowcs(pCurrent, pMacros[j].value.c_str(), len);
+				pCurrent[len] = L'\0';
+				pCurrent += (len + 1);
+				macros[j + 1].Value = pCurrent;
+			}
+			/************************************************************************/
+			// Compiler args
+			/************************************************************************/
+			tinystl::vector<const WCHAR*> compilerArgs;
+			compilerArgs.push_back(L"-Zi");
+			compilerArgs.push_back(L"-all_resources_bound");
 #if defined(_DEBUG)
-		// Enable better shader debugging with the graphics debugging tools.
-		UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
+			compilerArgs.push_back(L"-Od");
 #else
-		UINT compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
+			compilerArgs.push_back(L"-O3");
+#endif
+			/************************************************************************/
+			// Create blob from the string
+			/************************************************************************/
+			IDxcBlobEncoding* pTextBlob;
+			d3d_call(pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)code, (UINT32)codeSize, 0, &pTextBlob));
+			IDxcOperationResult* pResult;
+			WCHAR filename[MAX_PATH] = {};
+			mbstowcs(filename, fileName, strlen(fileName));
+			IDxcIncludeHandler* pInclude = NULL;
+			pLibrary->CreateIncludeHandler(&pInclude);
+			d3d_call(pCompiler->Compile(pTextBlob, filename, L"main", wTarget,
+				compilerArgs.data(), (UINT32)compilerArgs.size(),
+				macros, macroCount + 1,
+				pInclude, &pResult));
+
+			pInclude->Release();
+			pLibrary->Release();
+			pCompiler->Release();
+			/************************************************************************/
+			// Verify the result
+			/************************************************************************/
+			HRESULT resultCode;
+			d3d_call(pResult->GetStatus(&resultCode));
+			if (FAILED(resultCode))
+			{
+				IDxcBlobEncoding* pError;
+				d3d_call(pResult->GetErrorBuffer(&pError));
+				tinystl::string log = convertBlobToString(pError);
+				ErrorMsg(log.c_str());
+				pError->Release();
+				return;
+			}
+			/************************************************************************/
+			// Collect blob
+			/************************************************************************/
+			IDxcBlob* pBlob;
+			d3d_call(pResult->GetResult(&pBlob));
+
+			char* pByteCode = (char*)allocator(pBlob->GetBufferSize());
+			memcpy(pByteCode, pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+			*pByteCodeSize = (uint32_t)pBlob->GetBufferSize();
+			*ppByteCode = pByteCode;
+
+			pBlob->Release();
+			/************************************************************************/
+			/************************************************************************/
+		}
+		else
+#endif
+		{
+#if defined(_DEBUG)
+			// Enable better shader debugging with the graphics debugging tools.
+			UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+			UINT compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-		compile_flags |= (D3DCOMPILE_DEBUG | D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
+			compile_flags |= (D3DCOMPILE_DEBUG | D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
 
-		int major;
-		int minor;
-		switch (pRenderer->mSettings.mShaderTarget) {
-		default:
-		case shader_target_5_1: { major = 5; minor = 1; } break;
-		case shader_target_6_0: { major = 6; minor = 0; } break;
+			int major;
+			int minor;
+			switch (shaderTarget)
+			{
+			default:
+			case shader_target_5_1: { major = 5; minor = 1; } break;
+			case shader_target_6_0: { major = 6; minor = 0; } break;
+			}
+
+			tinystl::string target;
+			switch (stage)
+			{
+			case SHADER_STAGE_VERT:
+				target = tinystl::string::format("vs_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_TESC:
+				target = tinystl::string::format("hs_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_TESE:
+				target = tinystl::string::format("ds_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_GEOM:
+				target = tinystl::string::format("gs_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_FRAG:
+				target = tinystl::string::format("ps_%d_%d", major, minor);
+				break;
+			case SHADER_STAGE_COMP:
+				target = tinystl::string::format("cs_%d_%d", major, minor);
+				break;
+			default:
+				break;
+			}
+
+			// Extract shader macro definitions into D3D_SHADER_MACRO scruct
+			// Allocate Size+2 structs: one for D3D12 1 definition and one for null termination
+			D3D_SHADER_MACRO* macros = (D3D_SHADER_MACRO*)alloca((macroCount + 2) * sizeof(D3D_SHADER_MACRO));
+			macros[0] = { "D3D12", "1" };
+			for (uint32_t j = 0; j < macroCount; ++j)
+			{
+				macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
+			}
+			macros[macroCount + 1] = { NULL, NULL };
+
+			if (fnHookShaderCompileFlags != NULL)
+				fnHookShaderCompileFlags(compile_flags);
+
+			tinystl::string entryPoint = "main";
+			ID3DBlob* compiled_code = NULL;
+			ID3DBlob* error_msgs = NULL;
+			HRESULT hres = D3DCompile2(code, (size_t)codeSize, fileName,
+				macros, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+				entryPoint.c_str(), target, compile_flags,
+				0, 0, NULL, 0,
+				&compiled_code, &error_msgs);
+			if (FAILED(hres)) {
+				char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
+				ASSERT(msg);
+				memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
+				tinystl::string error = tinystl::string(fileName) + " " + msg;
+				ErrorMsg(error);
+				SAFE_FREE(msg);
+			}
+			ASSERT(SUCCEEDED(hres));
+
+			char* pByteCode = (char*)allocator(compiled_code->GetBufferSize());
+			memcpy(pByteCode, compiled_code->GetBufferPointer(), compiled_code->GetBufferSize());
+
+			*pByteCodeSize = (uint32_t)compiled_code->GetBufferSize();
+			*ppByteCode = pByteCode;
+			SAFE_RELEASE(compiled_code);
 		}
-
-		tinystl::string target;
-		switch (stage)
-		{
-		case SHADER_STAGE_VERT:
-			target = tinystl::string::format("vs_%d_%d", major, minor);
-			break;
-		case SHADER_STAGE_TESC:
-			target = tinystl::string::format("hs_%d_%d", major, minor);
-			break;
-		case SHADER_STAGE_TESE:
-			target = tinystl::string::format("ds_%d_%d", major, minor);
-			break;
-		case SHADER_STAGE_GEOM:
-			target = tinystl::string::format("gs_%d_%d", major, minor);
-			break;
-		case SHADER_STAGE_FRAG:
-			target = tinystl::string::format("ps_%d_%d", major, minor);
-			break;
-		case SHADER_STAGE_COMP:
-			target = tinystl::string::format("cs_%d_%d", major, minor);
-			break;
-		default:
-			break;
-		}
-
-		// Extract shader macro definitions into D3D_SHADER_MACRO scruct
-		// Allocate Size+2 structs: one for D3D12 1 definition and one for null termination
-		D3D_SHADER_MACRO* macros = (D3D_SHADER_MACRO*)alloca((macroCount + 2) * sizeof(D3D_SHADER_MACRO));
-		macros[0] = { "D3D12", "1" };
-		for (uint32_t j = 0; j < macroCount; ++j)
-		{
-			macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
-		}
-		macros[macroCount + 1] = { NULL, NULL };
-
-		if (fnHookShaderCompileFlags != NULL)
-			fnHookShaderCompileFlags(compile_flags);
-
-		tinystl::string entryPoint = "main";
-		ID3DBlob* compiled_code = NULL;
-		ID3DBlob* error_msgs = NULL;
-		HRESULT hres = D3DCompile2(code, (size_t)codeSize, fileName,
-			macros, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			entryPoint.c_str(), target, compile_flags,
-			0, 0, NULL, 0,
-			&compiled_code, &error_msgs);
-		if (FAILED(hres)) {
-			char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
-			ASSERT(msg);
-			memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-			tinystl::string error = tinystl::string(fileName) + " " + msg;
-			ErrorMsg(error);
-			SAFE_FREE(msg);
-		}
-		ASSERT(SUCCEEDED(hres));
-
-		char* pByteCode = (char*)allocator(compiled_code->GetBufferSize());
-		memcpy(pByteCode, compiled_code->GetBufferPointer(), compiled_code->GetBufferSize());
-
-		*pByteCodeSize = (uint32_t)compiled_code->GetBufferSize();
-		*ppByteCode = pByteCode;
-		SAFE_RELEASE(compiled_code);
 	}
 
 	// renderer shader macros allocated on stack
@@ -4348,15 +4610,27 @@ namespace d3d12 {
 	{
 		UNREF_PARAM(pRenderer);
 
-		ASSERT(pDesc->mSrcFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mDstFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mSrcAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mDstAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mBlendMode < BlendMode::MAX_BLEND_MODES);
-		ASSERT(pDesc->mBlendAlphaMode < BlendMode::MAX_BLEND_MODES);
+		int blendDescIndex = 0;
+#ifdef _DEBUG
+		
+		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+		{
+			if (pDesc->mRenderTargetMask & (1 << i))
+			{
+				ASSERT(pDesc->mSrcFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mSrcAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mBlendModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+				ASSERT(pDesc->mBlendAlphaModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+			}
 
-		BOOL blendEnable = (gDx12BlendConstantTranslator[pDesc->mSrcFactor] != D3D12_BLEND_ONE || gDx12BlendConstantTranslator[pDesc->mDstFactor] != D3D12_BLEND_ZERO ||
-			gDx12BlendConstantTranslator[pDesc->mSrcAlphaFactor] != D3D12_BLEND_ONE || gDx12BlendConstantTranslator[pDesc->mDstAlphaFactor] != D3D12_BLEND_ZERO);
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
+		}
+
+		blendDescIndex = 0;
+#endif
 
 		BlendState* pBlendState = (BlendState*)conf_calloc(1, sizeof(*pBlendState));
 
@@ -4364,17 +4638,25 @@ namespace d3d12 {
 		pBlendState->mDxBlendDesc.IndependentBlendEnable = TRUE;
 		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; i++)
 		{
-			pBlendState->mDxBlendDesc.RenderTarget[i].RenderTargetWriteMask = (UINT8)pDesc->mMask;
 			if (pDesc->mRenderTargetMask & (1 << i))
 			{
+				BOOL blendEnable = (gDx12BlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != D3D12_BLEND_ONE || 
+					gDx12BlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != D3D12_BLEND_ZERO ||
+					gDx12BlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != D3D12_BLEND_ONE || 
+					gDx12BlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != D3D12_BLEND_ZERO);
+
 				pBlendState->mDxBlendDesc.RenderTarget[i].BlendEnable = blendEnable;
-				pBlendState->mDxBlendDesc.RenderTarget[i].BlendOp = gDx12BlendOpTranslator[pDesc->mBlendMode];
-				pBlendState->mDxBlendDesc.RenderTarget[i].SrcBlend = gDx12BlendConstantTranslator[pDesc->mSrcFactor];
-				pBlendState->mDxBlendDesc.RenderTarget[i].DestBlend = gDx12BlendConstantTranslator[pDesc->mDstFactor];
-				pBlendState->mDxBlendDesc.RenderTarget[i].BlendOpAlpha = gDx12BlendOpTranslator[pDesc->mBlendAlphaMode];
-				pBlendState->mDxBlendDesc.RenderTarget[i].SrcBlendAlpha = gDx12BlendConstantTranslator[pDesc->mSrcAlphaFactor];
-				pBlendState->mDxBlendDesc.RenderTarget[i].DestBlendAlpha = gDx12BlendConstantTranslator[pDesc->mDstAlphaFactor];
+				pBlendState->mDxBlendDesc.RenderTarget[i].RenderTargetWriteMask = (UINT8)pDesc->mMasks[blendDescIndex];
+				pBlendState->mDxBlendDesc.RenderTarget[i].BlendOp = gDx12BlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
+				pBlendState->mDxBlendDesc.RenderTarget[i].SrcBlend = gDx12BlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]];
+				pBlendState->mDxBlendDesc.RenderTarget[i].DestBlend = gDx12BlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
+				pBlendState->mDxBlendDesc.RenderTarget[i].BlendOpAlpha = gDx12BlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
+				pBlendState->mDxBlendDesc.RenderTarget[i].SrcBlendAlpha = gDx12BlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
+				pBlendState->mDxBlendDesc.RenderTarget[i].DestBlendAlpha = gDx12BlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
 			}
+
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
 		}
 
 		*ppBlendState = pBlendState;

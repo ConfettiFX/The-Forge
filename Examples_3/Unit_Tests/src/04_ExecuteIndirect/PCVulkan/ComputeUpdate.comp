@@ -140,9 +140,9 @@ void main()
     asteroidDynamic.transform = (orbit * asteroidDynamic.transform) * rotate;
 
     vec3 position = vec3(
-        asteroidDynamic.transform[0][3],
-        asteroidDynamic.transform[1][3],
-        asteroidDynamic.transform[2][3]);
+        asteroidDynamic.transform[3][0],
+        asteroidDynamic.transform[3][1],
+        asteroidDynamic.transform[3][2]);
     float distToEye = length(position - camPos.xyz);
 
     if (distToEye <= 0)

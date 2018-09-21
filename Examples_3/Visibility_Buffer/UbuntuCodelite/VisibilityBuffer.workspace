@@ -6,7 +6,7 @@
   <Project Name="VisibilityBuffer" Path="VisibilityBuffer/VisibilityBuffer.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>

@@ -27,7 +27,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
@@ -64,9 +63,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThreadManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="OS.natvis">
-      <SubType>Designer</SubType>
-    </Natvis>
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinySTL\tinystl.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{30DD3D57-0026-48C8-BFD1-6392F319E23A}</ProjectGuid>

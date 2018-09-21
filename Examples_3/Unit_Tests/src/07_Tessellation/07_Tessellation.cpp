@@ -72,9 +72,9 @@ enum
 	WIND_MODE_RADIAL = 1,
 };
 
-static int gFillMode = FILL_MODE_SOLID;
-static int gWindMode = WIND_MODE_STRAIGHT;
-static int gMaxTessellationLevel = 5;
+static uint32_t gFillMode = FILL_MODE_SOLID;
+static uint32_t gWindMode = WIND_MODE_STRAIGHT;
+static uint32_t gMaxTessellationLevel = 5;
 
 static float gWindSpeed = 25.0f;
 static float gWindWidth = 6.0f;
@@ -490,37 +490,32 @@ public:
 		static const char* enumNames[] = {
 			"SOLID",
 			"WIREFRAME",
-			NULL
 		};
-		static const int enumValues[] = {
+		static const uint32_t enumValues[] = {
 			FILL_MODE_SOLID,
 			FILL_MODE_WIREFRAME,
-			0
 		};
 
 		static const char* enumWindNames[] = {
 			"STRAIGHT",
 			"RADIAL",
-			NULL
 		};
-		static const int enumWindValues[] = {
+		static const uint32_t enumWindValues[] = {
 			WIND_MODE_STRAIGHT,
 			WIND_MODE_RADIAL,
-			0
 		};
 
-		pGui->AddControl(UIProperty("Fill Mode : ", gFillMode, enumNames, enumValues));
-		pGui->AddControl(UIProperty("Wind Mode : ", gWindMode, enumWindNames, enumWindValues));
+		pGui->AddWidget(DropdownWidget("Fill Mode : ", &gFillMode, enumNames, enumValues, 2));
+		pGui->AddWidget(DropdownWidget("Wind Mode", &gWindMode, enumWindNames, enumWindValues, 2));
 
-		pGui->AddControl(UIProperty("Wind Speed : ", gWindSpeed, 1.0f, 100.0f));
-		pGui->AddControl(UIProperty("Wave Width : ", gWindWidth, 1.0f, 20.0f));
-		pGui->AddControl(UIProperty("Wind Strength : ", gWindStrength, 1.0f, 100.0f));
+		pGui->AddWidget(SliderFloatWidget("Wind Speed : ", &gWindSpeed, 1.0f, 100.0f));
+		pGui->AddWidget(SliderFloatWidget("Wave Width : ", &gWindWidth, 1.0f, 20.0f));
+		pGui->AddWidget(SliderFloatWidget("Wind Strength : ", &gWindStrength, 1.0f, 100.0f));
 
-		pGui->AddControl(UIProperty("Max Tessellation Level : ", gMaxTessellationLevel, 1, 10));
+		pGui->AddWidget(SliderUintWidget("Max Tessellation Level : ", &gMaxTessellationLevel, 1, 10));
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddControl(vsyncProp);
+		pGui->AddWidget(CheckboxWidget("Toggle Vsync", &gToggleVSync));
 #endif
 
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };

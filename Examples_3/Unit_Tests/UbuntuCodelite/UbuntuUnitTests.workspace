@@ -13,11 +13,12 @@
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
-  <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="Yes"/>
+  <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
-  <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
+  <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="Yes"/>
+  <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -36,6 +37,7 @@
       <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
       <Project Name="10_PixelProjectedReflections" ConfigName="Debug"/>
       <Project Name="13_UserInterface" ConfigName="Debug"/>
+      <Project Name="15_Transparency" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
@@ -56,6 +58,7 @@
       <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
       <Project Name="13_UserInterface" ConfigName="Release"/>
+      <Project Name="15_Transparency" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

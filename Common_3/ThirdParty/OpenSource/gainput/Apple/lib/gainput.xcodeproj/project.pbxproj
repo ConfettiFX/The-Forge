@@ -179,6 +179,7 @@
 		C7E8F4B50B3F4A2F9D24B15B /* GainputInputDeviceBuiltInImpl.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDeviceBuiltInImpl.h; path = source/gainput/builtin/GainputInputDeviceBuiltInImpl.h; sourceTree = SOURCE_ROOT; };
 		CA4E3FE4DBDB49B1A1F0E8B2 /* GainputInputPlayer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputInputPlayer.cpp; path = source/gainput/recorder/GainputInputPlayer.cpp; sourceTree = SOURCE_ROOT; };
 		CC34C806DD4A4784976C2BCC /* GainputInputDeviceKeyboardMac.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputInputDeviceKeyboardMac.cpp; path = source/gainput/keyboard/GainputInputDeviceKeyboardMac.cpp; sourceTree = SOURCE_ROOT; };
+		D042DEC321425C8000B29269 /* GainputMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GainputMac.h; path = include/gainput/GainputMac.h; sourceTree = "<group>"; };
 		D0CA856D20EB42530011AF1C /* GainputInputDeviceMouseMacRaw.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = GainputInputDeviceMouseMacRaw.mm; path = source/gainput/mouse/GainputInputDeviceMouseMacRaw.mm; sourceTree = "<group>"; };
 		D0CA856F20EB42650011AF1C /* GainputInputDeviceMouseMacRaw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GainputInputDeviceMouseMacRaw.h; path = source/gainput/mouse/GainputInputDeviceMouseMacRaw.h; sourceTree = "<group>"; };
 		D1045EF9D2764982856ABCB4 /* GainputInputDeviceBuiltInAndroid.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDeviceBuiltInAndroid.h; path = source/gainput/builtin/GainputInputDeviceBuiltInAndroid.h; sourceTree = SOURCE_ROOT; };
@@ -368,6 +369,7 @@
 				3B8245805B654CC881625917 /* GainputInputDeviceTouchIos.h */,
 				2485DA56AFEF44F3B7DE9E3D /* GainputInputDeviceTouchNull.h */,
 				01A9A14D76D04F758D6A2ED6 /* GainputTouchInfo.h */,
+				D042DEC321425C8000B29269 /* GainputMac.h */,
 			);
 			name = "Header Files";
 			sourceTree = "<group>";

@@ -9,6 +9,7 @@
 
 #include "GainputInputDeviceKeyboardMac.h"
 
+#import <Carbon/Carbon.h>
 #import <CoreFoundation/CoreFoundation.h>
 #import <IOKit/hid/IOHIDManager.h>
 #import <IOKit/hid/IOHIDUsageTables.h>
@@ -19,67 +20,11 @@ namespace gainput
 
 extern bool MacIsApplicationKey();
 
-namespace {
-
-static void OnDeviceInput(void* inContext, IOReturn inResult, void* inSender, IOHIDValueRef value)
-{
-	if (!MacIsApplicationKey())
-	{
-		return;
-	}
-
-	IOHIDElementRef elem = IOHIDValueGetElement(value);
-
-	InputDeviceKeyboardImplMac* device = reinterpret_cast<InputDeviceKeyboardImplMac*>(inContext);
-	GAINPUT_ASSERT(device);
-
-	uint16_t scancode = IOHIDElementGetUsage(elem);
-
-	if (IOHIDElementGetUsagePage(elem) != kHIDPage_KeyboardOrKeypad
-			|| scancode == kHIDUsage_KeyboardErrorRollOver
-			|| scancode == kHIDUsage_KeyboardPOSTFail
-			|| scancode == kHIDUsage_KeyboardErrorUndefined
-			|| scancode == kHIDUsage_Keyboard_Reserved)
-	{
-		return;
-	}
-
-	const bool pressed = IOHIDValueGetIntegerValue(value) == 1;
-
-	if (device->dialect_.count(scancode))
-	{
-		const DeviceButtonId buttonId = device->dialect_[scancode];
-        InputManager& manager = device->manager_;
-		manager.EnqueueConcurrentChange(device->device_, device->nextState_, device->delta_, buttonId, pressed);
-	}
-#ifdef GAINPUT_DEBUG
-	else
-	{
-		GAINPUT_LOG("Unmapped key >> scancode: %d\n", int(scancode));
-	}
-#endif
-}
-
-static void OnDeviceConnected(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef inIOHIDDeviceRef)
-{
-	InputDeviceKeyboardImplMac* device = reinterpret_cast<InputDeviceKeyboardImplMac*>(inContext);
-	GAINPUT_ASSERT(device);
-	device->deviceState_ = InputDevice::DS_OK;
-}
-
-static void OnDeviceRemoved(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef inIOHIDDeviceRef)
-{
-	InputDeviceKeyboardImplMac* device = reinterpret_cast<InputDeviceKeyboardImplMac*>(inContext);
-	GAINPUT_ASSERT(device);
-	device->deviceState_ = InputDevice::DS_UNAVAILABLE;
-}
-
-}
 
 InputDeviceKeyboardImplMac::InputDeviceKeyboardImplMac(InputManager& manager, InputDevice& device, InputState& state, InputState& previousState) :
 	manager_(manager),
 	device_(device),
-	deviceState_(InputDevice::DS_UNAVAILABLE),
+	deviceState_(InputDevice::DS_OK),
 	textInputEnabled_(true),
 	dialect_(manager_.GetAllocator()),
 	state_(&state),
@@ -87,182 +32,179 @@ InputDeviceKeyboardImplMac::InputDeviceKeyboardImplMac(InputManager& manager, In
 	nextState_(manager.GetAllocator(), KeyCount_),
 	delta_(0)
 {
-	IOHIDManagerRef ioManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDManagerOptionNone);
+	dialect_[kVK_Escape] = KeyEscape;
+	dialect_[kVK_F1] = KeyF1;
+	dialect_[kVK_F2] = KeyF2;
+	dialect_[kVK_F3] = KeyF3;
+	dialect_[kVK_F4] = KeyF4;
+	dialect_[kVK_F5] = KeyF5;
+	dialect_[kVK_F6] = KeyF6;
+	dialect_[kVK_F7] = KeyF7;
+	dialect_[kVK_F8] = KeyF8;
+	dialect_[kVK_F9] = KeyF9;
+	dialect_[kVK_F10] = KeyF10;
+	dialect_[kVK_F11] = KeyF11;
+	dialect_[kVK_F12] = KeyF12;
+	dialect_[kVK_F13] = KeyF13;
+	dialect_[kVK_F14] = KeyF14;
+	dialect_[kVK_F15] = KeyF15;
+	dialect_[kVK_F16] = KeyF16;
+	dialect_[kVK_F17] = KeyF17;
+	dialect_[kVK_F18] = KeyF18;
+	dialect_[kVK_F19] = KeyF19;
+	//dialect_[kVK_PrintScreen] = KeyPrint;
+	//dialect_[kVK_ScrollLock] = KeyScrollLock;
+	//dialect_[kVK_Pause] = KeyBreak;
 
-	if (CFGetTypeID(ioManager) != IOHIDManagerGetTypeID())
-	{
-		return;
-	}
+	dialect_[kVK_ANSI_LeftBracket] = KeyBracketLeft;
+	dialect_[kVK_ANSI_RightBracket] = KeyBracketRight;
+	dialect_[kVK_Space] = KeySpace;
 
-	ioManager_ = ioManager;
+	dialect_[kVK_ANSI_Comma] = KeyComma;
+	dialect_[kVK_ANSI_Minus] = KeyMinus;
+	dialect_[kVK_ANSI_Period] = KeyPeriod;
+	dialect_[kVK_ANSI_Slash] = KeySlash;
+	dialect_[kVK_ANSI_Quote] = KeyApostrophe;
 
-	static const unsigned kKeyCount = 2;
+	dialect_[kVK_ANSI_0] = Key0;
+	dialect_[kVK_ANSI_1] = Key1;
+	dialect_[kVK_ANSI_2] = Key2;
+	dialect_[kVK_ANSI_3] = Key3;
+	dialect_[kVK_ANSI_4] = Key4;
+	dialect_[kVK_ANSI_5] = Key5;
+	dialect_[kVK_ANSI_6] = Key6;
+	dialect_[kVK_ANSI_7] = Key7;
+	dialect_[kVK_ANSI_8] = Key8;
+	dialect_[kVK_ANSI_9] = Key9;
 
-	int usagePage = kHIDPage_GenericDesktop;
-	int usage = kHIDUsage_GD_Keyboard;
+	dialect_[kVK_ANSI_Semicolon] = KeySemicolon;
+	dialect_[kVK_ANSI_Equal] = KeyEqual;
 
-	CFStringRef keys[kKeyCount] = {
-		CFSTR(kIOHIDDeviceUsagePageKey),
-		CFSTR(kIOHIDDeviceUsageKey),
-	};
+	dialect_[kVK_ANSI_A] = KeyA;
+	dialect_[kVK_ANSI_B] = KeyB;
+	dialect_[kVK_ANSI_C] = KeyC;
+	dialect_[kVK_ANSI_D] = KeyD;
+	dialect_[kVK_ANSI_E] = KeyE;
+	dialect_[kVK_ANSI_F] = KeyF;
+	dialect_[kVK_ANSI_G] = KeyG;
+	dialect_[kVK_ANSI_H] = KeyH;
+	dialect_[kVK_ANSI_I] = KeyI;
+	dialect_[kVK_ANSI_J] = KeyJ;
+	dialect_[kVK_ANSI_K] = KeyK;
+	dialect_[kVK_ANSI_L] = KeyL;
+	dialect_[kVK_ANSI_M] = KeyM;
+	dialect_[kVK_ANSI_N] = KeyN;
+	dialect_[kVK_ANSI_O] = KeyO;
+	dialect_[kVK_ANSI_P] = KeyP;
+	dialect_[kVK_ANSI_Q] = KeyQ;
+	dialect_[kVK_ANSI_R] = KeyR;
+	dialect_[kVK_ANSI_S] = KeyS;
+	dialect_[kVK_ANSI_T] = KeyT;
+	dialect_[kVK_ANSI_U] = KeyU;
+	dialect_[kVK_ANSI_V] = KeyV;
+	dialect_[kVK_ANSI_W] = KeyW;
+	dialect_[kVK_ANSI_X] = KeyX;
+	dialect_[kVK_ANSI_Y] = KeyY;
+	dialect_[kVK_ANSI_Z] = KeyZ;
 
-	CFNumberRef values[kKeyCount] = {
-		CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &usagePage),
-		CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &usage),
-	};
+	dialect_[kVK_ANSI_LeftBracket] = KeyBracketLeft;
+	dialect_[kVK_ANSI_Backslash] = KeyBackslash;
+	dialect_[kVK_ANSI_RightBracket] = KeyBracketRight;
+	dialect_[kVK_ANSI_Grave] = KeyGrave;
 
-	CFDictionaryRef matchingDict = CFDictionaryCreate(kCFAllocatorDefault,
-			(const void **) keys, (const void **) values, kKeyCount,
-			&kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	dialect_[kVK_LeftArrow] = KeyLeft;
+	dialect_[kVK_RightArrow] = KeyRight;
+	dialect_[kVK_UpArrow] = KeyUp;
+	dialect_[kVK_DownArrow] = KeyDown;
+	//dialect_[kVK_Insert] = KeyInsert;
+	dialect_[kVK_Home] = KeyHome;
+	dialect_[kVK_ForwardDelete] = KeyDelete;
+	dialect_[kVK_End] = KeyEnd;
+	dialect_[kVK_PageUp] = KeyPageUp;
+	dialect_[kVK_PageDown] = KeyPageDown;
 
-	for (unsigned i = 0; i < kKeyCount; ++i)
-	{
-		CFRelease(keys[i]);
-		CFRelease(values[i]);
-	}
+	dialect_[kVK_ANSI_KeypadEquals] = KeyKpEqual;
+	dialect_[kVK_ANSI_KeypadDivide] = KeyKpDivide;
+	dialect_[kVK_ANSI_KeypadMultiply] = KeyKpMultiply;
+	dialect_[kVK_ANSI_KeypadMinus] = KeyKpSubtract;
+	dialect_[kVK_ANSI_KeypadPlus] = KeyKpAdd;
+	dialect_[kVK_ANSI_KeypadEnter] = KeyKpEnter;
+	dialect_[kVK_ANSI_Keypad0] = KeyKpInsert;
+	dialect_[kVK_ANSI_Keypad1] = KeyKpEnd;
+	dialect_[kVK_ANSI_Keypad2] = KeyKpDown;
+	dialect_[kVK_ANSI_Keypad3] = KeyKpPageDown;
+	dialect_[kVK_ANSI_Keypad4] = KeyKpLeft;
+	dialect_[kVK_ANSI_Keypad5] = KeyKpBegin;
+	dialect_[kVK_ANSI_Keypad6] = KeyKpRight;
+	dialect_[kVK_ANSI_Keypad7] = KeyKpHome;
+	dialect_[kVK_ANSI_Keypad8] = KeyKpUp;
+	dialect_[kVK_ANSI_Keypad9] = KeyKpPageUp;
+	dialect_[kVK_ANSI_KeypadDecimal] = KeyKpDelete;
 
-	IOHIDManagerSetDeviceMatching(ioManager, matchingDict);
-	CFRelease(matchingDict);
-
-	IOHIDManagerRegisterDeviceMatchingCallback(ioManager, OnDeviceConnected, this);
-	IOHIDManagerRegisterDeviceRemovalCallback(ioManager, OnDeviceRemoved, this);
-	IOHIDManagerRegisterInputValueCallback(ioManager, OnDeviceInput, this);
-
-	IOHIDManagerOpen(ioManager, kIOHIDOptionsTypeNone);
-
-	IOHIDManagerScheduleWithRunLoop(ioManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-
-	dialect_[kHIDUsage_KeyboardEscape] = KeyEscape;
-	dialect_[kHIDUsage_KeyboardF1] = KeyF1;
-	dialect_[kHIDUsage_KeyboardF2] = KeyF2;
-	dialect_[kHIDUsage_KeyboardF3] = KeyF3;
-	dialect_[kHIDUsage_KeyboardF4] = KeyF4;
-	dialect_[kHIDUsage_KeyboardF5] = KeyF5;
-	dialect_[kHIDUsage_KeyboardF6] = KeyF6;
-	dialect_[kHIDUsage_KeyboardF7] = KeyF7;
-	dialect_[kHIDUsage_KeyboardF8] = KeyF8;
-	dialect_[kHIDUsage_KeyboardF9] = KeyF9;
-	dialect_[kHIDUsage_KeyboardF10] = KeyF10;
-	dialect_[kHIDUsage_KeyboardF11] = KeyF11;
-	dialect_[kHIDUsage_KeyboardF12] = KeyF12;
-	dialect_[kHIDUsage_KeyboardF13] = KeyF13;
-	dialect_[kHIDUsage_KeyboardF14] = KeyF14;
-	dialect_[kHIDUsage_KeyboardF15] = KeyF15;
-	dialect_[kHIDUsage_KeyboardF16] = KeyF16;
-	dialect_[kHIDUsage_KeyboardF17] = KeyF17;
-	dialect_[kHIDUsage_KeyboardF18] = KeyF18;
-	dialect_[kHIDUsage_KeyboardF19] = KeyF19;
-	dialect_[kHIDUsage_KeyboardPrintScreen] = KeyPrint;
-	dialect_[kHIDUsage_KeyboardScrollLock] = KeyScrollLock;
-	dialect_[kHIDUsage_KeyboardPause] = KeyBreak;
-
-	dialect_[kHIDUsage_KeyboardSpacebar] = KeySpace;
-
-	dialect_[kHIDUsage_KeyboardComma] = KeyComma;
-	dialect_[kHIDUsage_KeyboardHyphen] = KeyMinus;
-	dialect_[kHIDUsage_KeyboardPeriod] = KeyPeriod;
-	dialect_[kHIDUsage_KeyboardSlash] = KeySlash;
-	dialect_[kHIDUsage_KeyboardQuote] = KeyApostrophe;
-
-	dialect_[kHIDUsage_Keyboard0] = Key0;
-	dialect_[kHIDUsage_Keyboard1] = Key1;
-	dialect_[kHIDUsage_Keyboard2] = Key2;
-	dialect_[kHIDUsage_Keyboard3] = Key3;
-	dialect_[kHIDUsage_Keyboard4] = Key4;
-	dialect_[kHIDUsage_Keyboard5] = Key5;
-	dialect_[kHIDUsage_Keyboard6] = Key6;
-	dialect_[kHIDUsage_Keyboard7] = Key7;
-	dialect_[kHIDUsage_Keyboard8] = Key8;
-	dialect_[kHIDUsage_Keyboard9] = Key9;
-
-	dialect_[kHIDUsage_KeyboardSemicolon] = KeySemicolon;
-	dialect_[kHIDUsage_KeyboardEqualSign] = KeyEqual;
-
-	dialect_[kHIDUsage_KeyboardA] = KeyA;
-	dialect_[kHIDUsage_KeyboardB] = KeyB;
-	dialect_[kHIDUsage_KeyboardC] = KeyC;
-	dialect_[kHIDUsage_KeyboardD] = KeyD;
-	dialect_[kHIDUsage_KeyboardE] = KeyE;
-	dialect_[kHIDUsage_KeyboardF] = KeyF;
-	dialect_[kHIDUsage_KeyboardG] = KeyG;
-	dialect_[kHIDUsage_KeyboardH] = KeyH;
-	dialect_[kHIDUsage_KeyboardI] = KeyI;
-	dialect_[kHIDUsage_KeyboardJ] = KeyJ;
-	dialect_[kHIDUsage_KeyboardK] = KeyK;
-	dialect_[kHIDUsage_KeyboardL] = KeyL;
-	dialect_[kHIDUsage_KeyboardM] = KeyM;
-	dialect_[kHIDUsage_KeyboardN] = KeyN;
-	dialect_[kHIDUsage_KeyboardO] = KeyO;
-	dialect_[kHIDUsage_KeyboardP] = KeyP;
-	dialect_[kHIDUsage_KeyboardQ] = KeyQ;
-	dialect_[kHIDUsage_KeyboardR] = KeyR;
-	dialect_[kHIDUsage_KeyboardS] = KeyS;
-	dialect_[kHIDUsage_KeyboardT] = KeyT;
-	dialect_[kHIDUsage_KeyboardU] = KeyU;
-	dialect_[kHIDUsage_KeyboardV] = KeyV;
-	dialect_[kHIDUsage_KeyboardW] = KeyW;
-	dialect_[kHIDUsage_KeyboardX] = KeyX;
-	dialect_[kHIDUsage_KeyboardY] = KeyY;
-	dialect_[kHIDUsage_KeyboardZ] = KeyZ;
-
-	dialect_[kHIDUsage_KeyboardOpenBracket] = KeyBracketLeft;
-	dialect_[kHIDUsage_KeyboardBackslash] = KeyBackslash;
-	dialect_[kHIDUsage_KeyboardCloseBracket] = KeyBracketRight;
-
-	dialect_[kHIDUsage_KeyboardGraveAccentAndTilde] = KeyGrave;
-
-	dialect_[kHIDUsage_KeyboardLeftArrow] = KeyLeft;
-	dialect_[kHIDUsage_KeyboardRightArrow] = KeyRight;
-	dialect_[kHIDUsage_KeyboardUpArrow] = KeyUp;
-	dialect_[kHIDUsage_KeyboardDownArrow] = KeyDown;
-	dialect_[kHIDUsage_KeyboardInsert] = KeyInsert;
-	dialect_[kHIDUsage_KeyboardHome] = KeyHome;
-	dialect_[kHIDUsage_KeyboardDeleteForward] = KeyDelete;
-	dialect_[kHIDUsage_KeyboardEnd] = KeyEnd;
-	dialect_[kHIDUsage_KeyboardPageUp] = KeyPageUp;
-	dialect_[kHIDUsage_KeyboardPageDown] = KeyPageDown;
-
-	dialect_[kHIDUsage_KeypadNumLock] = KeyNumLock;
-	dialect_[kHIDUsage_KeypadEqualSign] = KeyKpEqual;
-	dialect_[kHIDUsage_KeypadSlash] = KeyKpDivide;
-	dialect_[kHIDUsage_KeypadAsterisk] = KeyKpMultiply;
-	dialect_[kHIDUsage_KeypadHyphen] = KeyKpSubtract;
-	dialect_[kHIDUsage_KeypadPlus] = KeyKpAdd;
-	dialect_[kHIDUsage_KeypadEnter] = KeyKpEnter;
-	dialect_[kHIDUsage_Keypad0] = KeyKpInsert;
-	dialect_[kHIDUsage_Keypad1] = KeyKpEnd;
-	dialect_[kHIDUsage_Keypad2] = KeyKpDown;
-	dialect_[kHIDUsage_Keypad3] = KeyKpPageDown;
-	dialect_[kHIDUsage_Keypad4] = KeyKpLeft;
-	dialect_[kHIDUsage_Keypad5] = KeyKpBegin;
-	dialect_[kHIDUsage_Keypad6] = KeyKpRight;
-	dialect_[kHIDUsage_Keypad7] = KeyKpHome;
-	dialect_[kHIDUsage_Keypad8] = KeyKpUp;
-	dialect_[kHIDUsage_Keypad9] = KeyKpPageUp;
-	dialect_[kHIDUsage_KeypadPeriod] = KeyKpDelete;
-
-	dialect_[kHIDUsage_KeyboardDeleteOrBackspace] = KeyBackSpace;
-	dialect_[kHIDUsage_KeyboardTab] = KeyTab;
-	dialect_[kHIDUsage_KeyboardReturnOrEnter] = KeyReturn;
-	dialect_[kHIDUsage_KeyboardCapsLock] = KeyCapsLock;
-	dialect_[kHIDUsage_KeyboardLeftShift] = KeyShiftL;
-	dialect_[kHIDUsage_KeyboardLeftControl] = KeyCtrlL;
-	dialect_[kHIDUsage_KeyboardLeftGUI] = KeySuperL;
-	dialect_[kHIDUsage_KeyboardLeftAlt] = KeyAltL;
-	dialect_[kHIDUsage_KeyboardRightAlt] = KeyAltR;
-	dialect_[kHIDUsage_KeyboardRightGUI] = KeySuperR;
-	dialect_[kHIDUsage_KeyboardRightControl] = KeyCtrlR;
-	dialect_[kHIDUsage_KeyboardRightShift] = KeyShiftR;
-
-	dialect_[kHIDUsage_KeyboardNonUSPound] = KeyNumbersign;
+	dialect_[kVK_Delete] = KeyBackSpace;
+	dialect_[kVK_Tab] = KeyTab;
+	dialect_[kVK_Return] = KeyReturn;
+	dialect_[kVK_CapsLock] = KeyCapsLock;
+	dialect_[kVK_Shift] = KeyShiftL;
+	dialect_[kVK_Control] = KeyCtrlL;
+	dialect_[kVK_Command] = KeySuperL;
+	dialect_[kVK_Option] = KeyAltL;
+	dialect_[kVK_RightOption] = KeyAltR;
+	dialect_[kVK_RightCommand] = KeySuperR;
+	dialect_[kVK_RightControl] = KeyCtrlR;
+	dialect_[kVK_RightShift] = KeyShiftR;
 }
-
+	
+void InputDeviceKeyboardImplMac::HandleKey(int keycode, bool isPressed, char * inputChar)
+{
+	if(dialect_.count(keycode))
+	{
+		const DeviceButtonId buttonId = dialect_[keycode];
+		//manager_.EnqueueConcurrentChange(device_, nextState_, delta_, buttonId, isPressed);
+		HandleButton(device_, nextState_, delta_, buttonId, isPressed);
+		
+		if(inputChar && inputChar[0] != '\0' && isPressed)
+		{
+			InputCharDesc inputDesc;
+			inputDesc.buttonId = buttonId;
+			inputDesc.inputChar = inputChar[0];
+			textBuffer_.Put(inputDesc);
+		}
+	}
+#ifdef GAINPUT_DEBUG
+	else
+	{
+		GAINPUT_LOG("Couldn't find the key translation for regular key code %d\n", keycode);
+	}
+#endif
+}
+	
+void InputDeviceKeyboardImplMac::HandleFlagsChanged(int keycode)
+{
+	if(dialect_.count(keycode))
+	{
+		const DeviceButtonId buttonId = dialect_[keycode];
+		
+		if(nextState_.GetBool(buttonId))
+			HandleButton(device_, nextState_, delta_, buttonId, false);
+		else
+		{
+			HandleButton(device_, nextState_, delta_, buttonId, true);
+		}
+	}
+#ifdef GAINPUT_DEBUG
+	else
+	{
+		GAINPUT_LOG("Couldn't find the key translation for modifier key code %d\n", keycode);
+	}
+#endif
+}
+	
+	
+	
 InputDeviceKeyboardImplMac::~InputDeviceKeyboardImplMac()
 {
-	IOHIDManagerRef ioManager = reinterpret_cast<IOHIDManagerRef>(ioManager_);
-	IOHIDManagerUnscheduleFromRunLoop(ioManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-	IOHIDManagerClose(ioManager, 0);
-	CFRelease(ioManager);
+	
 }
 
 }
