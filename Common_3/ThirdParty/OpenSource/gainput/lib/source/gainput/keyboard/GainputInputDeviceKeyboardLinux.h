@@ -2,7 +2,7 @@
 #ifndef GAINPUTINPUTDEVICEKEYBOARDLINUX_H_
 #define GAINPUTINPUTDEVICEKEYBOARDLINUX_H_
 
-#ifdef LINUX
+#ifdef __linux__
 
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
@@ -179,13 +179,30 @@ public:
 	bool IsTextInputEnabled() const { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) { textInputEnabled_ = enabled; }
 
-	char GetNextCharacter()
+	char GetNextCharacter(gainput::DeviceButtonId buttonId)
 	{
 		if (!textBuffer_.CanGet())
 		{
 			return 0;
 		}
-		return textBuffer_.Get();
+		InputCharDesc currentDesc = textBuffer_.Get();
+
+		//Removed buffered inputs for which we didn't call GetNextCharacter
+		if (buttonId != gainput::InvalidDeviceButtonId && buttonId < gainput::KeyCount_)
+		{
+			while (currentDesc.buttonId != buttonId)
+			{
+				if (!textBuffer_.CanGet())
+				{
+					return 0;
+				}
+				currentDesc = textBuffer_.Get();
+			}
+		}
+
+		//if button id was provided then we return the appropriate character
+		//else we return the first buffered character
+		return currentDesc.inputChar;
 	}
 
 	void HandleEvent(XEvent& event)
@@ -217,6 +234,19 @@ public:
 			{
 				const DeviceButtonId buttonId = dialect_[keySym];
 				HandleButton(device_, nextState_, delta_, buttonId, pressed);
+				
+				if (textInputEnabled_)
+				{
+					char buf[32];
+					int len = XLookupString(&keyEvent, buf, 32, 0, 0);
+					if (len == 1)
+					{
+						InputCharDesc inputDesc;
+						inputDesc.buttonId = buttonId;
+						inputDesc.inputChar = buf[0];
+						textBuffer_.Put(inputDesc);
+					}
+				}
 			}
 #ifdef GAINPUT_DEBUG
 			else
@@ -225,16 +255,6 @@ public:
 				GAINPUT_LOG("Unmapped key >> keycode: %d, keysym: %d, str: %s\n", keyEvent.keycode, int(keySym), str);
 			}
 #endif
-
-			if (textInputEnabled_)
-			{
-				char buf[32];
-				int len = XLookupString(&keyEvent, buf, 32, 0, 0);
-				if (len == 1)
-				{
-					textBuffer_.Put(buf[0]);
-				}
-			}
 		}
 	}
 
@@ -242,7 +262,12 @@ private:
 	InputManager& manager_;
 	InputDevice& device_;
 	bool textInputEnabled_;
-	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, char> textBuffer_;
+	struct InputCharDesc
+	{
+		char inputChar;
+		gainput::DeviceButtonId buttonId;
+	};
+	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, InputCharDesc> textBuffer_;
 	HashMap<unsigned, DeviceButtonId> dialect_;
 	InputState* state_;
 	InputState* previousState_;

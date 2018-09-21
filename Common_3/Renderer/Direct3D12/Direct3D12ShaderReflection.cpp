@@ -30,6 +30,8 @@
 #include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
 #else
 #include <d3dcompiler.h>
+#include "../../../Common_3/ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
+extern dxc::DxcDllSupport gDxcDllHelper;
 #endif
 
 #include "../../OS/Interfaces/IMemoryManager.h"
@@ -50,7 +52,6 @@ static DescriptorType sD3D12_TO_DESCRIPTOR[] =
 	DESCRIPTOR_TYPE_RW_BUFFER,       //D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
 };
 
-
 void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
 	//Check to see if parameters are valid
@@ -70,12 +71,33 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		return;
 	}
 
-
-
 	//Run the D3D12 shader reflection on the compiled shader
-	ID3D12ShaderReflection* d3d12reflection;
+	ID3D12ShaderReflection* d3d12reflection = NULL;
 	D3DReflect(shaderCode, shaderSize, IID_PPV_ARGS(&d3d12reflection));
+#ifndef _DURANGO
+	if (!d3d12reflection)
+	{
+		IDxcLibrary* pLibrary = NULL;
+		gDxcDllHelper.CreateInstance(CLSID_DxcLibrary, &pLibrary);
+		IDxcBlobEncoding* pBlob = NULL;
+		pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)shaderCode, (UINT32)shaderSize, 0, &pBlob);
+#define DXIL_FOURCC(ch0, ch1, ch2, ch3) (                            \
+  (uint32_t)(uint8_t)(ch0)        | (uint32_t)(uint8_t)(ch1) << 8  | \
+  (uint32_t)(uint8_t)(ch2) << 16  | (uint32_t)(uint8_t)(ch3) << 24   \
+  )
 
+		IDxcContainerReflection* pReflection;
+		UINT32 shaderIdx;
+		gDxcDllHelper.CreateInstance(CLSID_DxcContainerReflection, &pReflection);
+		pReflection->Load(pBlob);
+		(pReflection->FindFirstPartKind(DXIL_FOURCC('D', 'X', 'I', 'L'), &shaderIdx));
+		(pReflection->GetPartReflection(shaderIdx, __uuidof(ID3D12ShaderReflection), (void**)&d3d12reflection));
+
+		pBlob->Release();
+		pLibrary->Release();
+		pReflection->Release();
+	}
+#endif
 
 	//Allocate our internal shader reflection structure on the stack
 	ShaderReflection reflection = { }; //initialize the struct to 0

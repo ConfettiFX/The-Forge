@@ -16,7 +16,7 @@ public:
 
 	virtual bool IsTextInputEnabled() const = 0;
 	virtual void SetTextInputEnabled(bool enabled) = 0;
-	virtual char GetNextCharacter() = 0;
+	virtual char GetNextCharacter(gainput::DeviceButtonId buttonId = gainput::InvalidDeviceId) = 0;
 };
 
 }

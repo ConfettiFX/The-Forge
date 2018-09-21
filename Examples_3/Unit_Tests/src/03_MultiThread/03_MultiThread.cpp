@@ -388,12 +388,13 @@ public:
 		addSampler(pRenderer, &skyBoxSamplerDesc, &pSamplerSkyBox);
 
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcAlphaFactor = BC_ONE;
-		blendStateDesc.mDstAlphaFactor = BC_ONE;
-		blendStateDesc.mSrcFactor = BC_ONE;
-		blendStateDesc.mDstFactor = BC_ONE;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mDstFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &gParticleBlend);
 
 		RasterizerStateDesc rasterizerStateDesc = {};

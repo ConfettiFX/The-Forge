@@ -67,7 +67,6 @@
 		5C17301821414D940074EE71 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */; };
 		5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */; };
 		5C512C56214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */; };
-		5C512C57214155FE00E7A798 /* UIControl.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C512C54214155FE00E7A798 /* UIControl.h */; };
 		5C512C602141561E00E7A798 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C592141561E00E7A798 /* imgui_draw.cpp */; };
 		5C512C612141561E00E7A798 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C592141561E00E7A798 /* imgui_draw.cpp */; };
 		5C512C622141561E00E7A798 /* imconfig.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C512C5A2141561E00E7A798 /* imconfig.h */; };
@@ -177,7 +176,6 @@
 		5C17301521414D900074EE71 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ImguiGUIDriver.cpp; path = ../../Middleware_3/UI/ImguiGUIDriver.cpp; sourceTree = "<group>"; };
-		5C512C54214155FE00E7A798 /* UIControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIControl.h; path = ../../Middleware_3/UI/UIControl.h; sourceTree = "<group>"; };
 		5C512C592141561E00E7A798 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_draw.cpp; path = ../ThirdParty/OpenSource/imgui/imgui_draw.cpp; sourceTree = "<group>"; };
 		5C512C5A2141561E00E7A798 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imconfig.h; path = ../ThirdParty/OpenSource/imgui/imconfig.h; sourceTree = "<group>"; };
 		5C512C5B2141561E00E7A798 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_demo.cpp; path = ../ThirdParty/OpenSource/imgui/imgui_demo.cpp; sourceTree = "<group>"; };
@@ -203,27 +201,11 @@
 		C951330A2010E6B1002E584B /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = iOS/iOSFileSystem.mm; sourceTree = "<group>"; };
 		C95133102010E6B1002E584B /* iOSThreadManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSThreadManager.cpp; path = iOS/iOSThreadManager.cpp; sourceTree = "<group>"; };
 		C95133122010E6B2002E584B /* iOSLogManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSLogManager.cpp; path = iOS/iOSLogManager.cpp; sourceTree = "<group>"; };
-		C960AF322003F2EE0007B156 /* float4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float4.h; path = Math/float4.h; sourceTree = "<group>"; };
-		C960AF332003F2EE0007B156 /* float2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float2.h; path = Math/float2.h; sourceTree = "<group>"; };
-		C960AF342003F2EE0007B156 /* float3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = float3.h; path = Math/float3.h; sourceTree = "<group>"; };
 		D205E2821F9F9EC600040CCE /* FileSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FileSystem.cpp; path = Core/FileSystem.cpp; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RingBuffer.h; path = Core/RingBuffer.h; sourceTree = "<group>"; };
 		D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GuiCameraController.cpp; sourceTree = "<group>"; };
 		D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = FpsCameraController.cpp; sourceTree = "<group>"; };
-		EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FloatUtil.cpp; path = ../../../../Common_3/OS/Math/FloatUtil.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CB61EF81FC5005AC8C7 /* FloatUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FloatUtil.h; path = ../../../../Common_3/OS/Math/FloatUtil.h; sourceTree = SOURCE_ROOT; };
-		EA463CB71EF81FC5005AC8C7 /* half.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = half.cpp; path = ../../../../Common_3/OS/Math/half.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CB81EF81FC5005AC8C7 /* half.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = half.h; path = ../../../../Common_3/OS/Math/half.h; sourceTree = SOURCE_ROOT; };
-		EA463CB91EF81FC5005AC8C7 /* IntersectionHelpers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IntersectionHelpers.cpp; path = ../../../../Common_3/OS/Math/IntersectionHelpers.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CBA1EF81FC5005AC8C7 /* IntersectionHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IntersectionHelpers.h; path = ../../../../Common_3/OS/Math/IntersectionHelpers.h; sourceTree = SOURCE_ROOT; };
-		EA463CBB1EF81FC5005AC8C7 /* mat2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mat2.cpp; path = ../../../../Common_3/OS/Math/mat2.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CBC1EF81FC5005AC8C7 /* mat2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat2.h; path = ../../../../Common_3/OS/Math/mat2.h; sourceTree = SOURCE_ROOT; };
-		EA463CBD1EF81FC5005AC8C7 /* mat3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat3.h; path = ../../../../Common_3/OS/Math/mat3.h; sourceTree = SOURCE_ROOT; };
-		EA463CBE1EF81FC5005AC8C7 /* mat4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat4.h; path = ../../../../Common_3/OS/Math/mat4.h; sourceTree = SOURCE_ROOT; };
 		EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MathTypes.h; path = ../../../../Common_3/OS/Math/MathTypes.h; sourceTree = SOURCE_ROOT; };
-		EA463CC21EF81FC5005AC8C7 /* Noise.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Noise.cpp; path = ../../../../Common_3/OS/Math/Noise.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CC31EF81FC5005AC8C7 /* Noise.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Noise.h; path = ../../../../Common_3/OS/Math/Noise.h; sourceTree = SOURCE_ROOT; };
-		EA463CCA1EF81FC5005AC8C7 /* vmInclude.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vmInclude.h; path = ../../../../Common_3/OS/Math/vmInclude.h; sourceTree = SOURCE_ROOT; };
 		EA463CCC1EF81FC5005AC8C7 /* Image.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Image.cpp; path = ../../../../Common_3/OS/Image/Image.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CCD1EF81FC5005AC8C7 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../../../../Common_3/OS/Image/Image.h; sourceTree = SOURCE_ROOT; };
 		EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImageEnums.h; path = ../../../../Common_3/OS/Image/ImageEnums.h; sourceTree = SOURCE_ROOT; };
@@ -298,7 +280,6 @@
 			children = (
 				5C512C582141560D00E7A798 /* imgui */,
 				5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */,
-				5C512C54214155FE00E7A798 /* UIControl.h */,
 				5CD2BBE92080FED8008E3A2C /* AppUI.cpp */,
 				5CD2BBEA2080FED8008E3A2C /* AppUI.h */,
 				5CD2BBE62080FED8008E3A2C /* UIShaders.h */,
@@ -418,23 +399,7 @@
 		EA463CCB1EF81FC5005AC8C7 /* Math */ = {
 			isa = PBXGroup;
 			children = (
-				C960AF332003F2EE0007B156 /* float2.h */,
-				C960AF342003F2EE0007B156 /* float3.h */,
-				C960AF322003F2EE0007B156 /* float4.h */,
-				EA463CB51EF81FC5005AC8C7 /* FloatUtil.cpp */,
-				EA463CB61EF81FC5005AC8C7 /* FloatUtil.h */,
-				EA463CB71EF81FC5005AC8C7 /* half.cpp */,
-				EA463CB81EF81FC5005AC8C7 /* half.h */,
-				EA463CB91EF81FC5005AC8C7 /* IntersectionHelpers.cpp */,
-				EA463CBA1EF81FC5005AC8C7 /* IntersectionHelpers.h */,
-				EA463CBB1EF81FC5005AC8C7 /* mat2.cpp */,
-				EA463CBC1EF81FC5005AC8C7 /* mat2.h */,
-				EA463CBD1EF81FC5005AC8C7 /* mat3.h */,
-				EA463CBE1EF81FC5005AC8C7 /* mat4.h */,
 				EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */,
-				EA463CC21EF81FC5005AC8C7 /* Noise.cpp */,
-				EA463CC31EF81FC5005AC8C7 /* Noise.h */,
-				EA463CCA1EF81FC5005AC8C7 /* vmInclude.h */,
 			);
 			name = Math;
 			sourceTree = "<group>";
@@ -565,7 +530,6 @@
 				5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */,
 				5C512C682141561E00E7A798 /* imgui.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
-				5C512C57214155FE00E7A798 /* UIControl.h in Headers */,
 				5C512C652141561E00E7A798 /* imgui_internal.h in Headers */,
 				5C172F50214148840074EE71 /* IRenderer.h in Headers */,
 				5C512C622141561E00E7A798 /* imconfig.h in Headers */,

@@ -500,10 +500,11 @@ RenderTarget*					pScreenRenderTarget = nullptr;
 /************************************************************************/
 // Screen resolution UI data
 /************************************************************************/
-#if !defined(_DURANGO) && !defined(METAL)
-uint32_t						gResolutionProperty = -1;
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
+IWidget*						gResolutionProperty = nullptr;
 tinystl::vector<Resolution>		gResolutions;
 uint32_t						gResolutionIndex = 0;
+bool							gResolutionChange = false;
 #endif
 /************************************************************************/
 /************************************************************************/
@@ -515,7 +516,7 @@ const uint32_t					pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 // App implementation
 /************************************************************************/
-uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, ControlChangedCallback onResolutionChanged)
+IWidget* addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, WidgetCallback onResolutionChanged)
 {
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 	if (pUIManager)
@@ -547,12 +548,13 @@ uint32_t addResolutionProperty(GuiComponent* pUIManager, uint32_t& resolutionInd
 		}
 		data.resNamePointers[data.resNamePointers.size() - 1] = nullptr;
 
-		UIProperty control = UIProperty("Screen Resolution", resolutionIndex, data.resNamePointers.data(), data.resValues.data(), onResolutionChanged);
-		return pUIManager->AddControl(control);
+		DropdownWidget control("Screen Resolution", &resolutionIndex, data.resNamePointers.data(), data.resValues.data(), (uint32_t)data.resValues.size());
+		control.pOnEdited = onResolutionChanged;
+		return pUIManager->AddWidget(control);
 	}
 
 #endif
-	return -1;
+	return NULL;
 }
 
 class VisibilityBuffer : public IApp
@@ -638,12 +640,13 @@ public:
 		addRasterizerState(pRenderer, &rasterizerStateCullBackMsDesc, &pRasterizerStateCullBackMS);
 
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcAlphaFactor = BC_ZERO;
-		blendStateDesc.mDstAlphaFactor = BC_ZERO;
-		blendStateDesc.mSrcFactor = BC_ONE;
-		blendStateDesc.mDstFactor = BC_ONE;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mDstFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pBlendStateOneZero);
 
 		// Create sampler for VB render target
@@ -957,25 +960,22 @@ public:
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGuiWindow->AddControl(vsyncProp);
+		CheckboxWidget vsyncProp("Toggle VSync", &gToggleVSync);
+		pGuiWindow->AddWidget(vsyncProp);
 #endif
 
 		// Light Settings
 		//---------------------------------------------------------------------------------
 		// offset max angle for sun control so the light won't bleed with
 		// small glancing angles, i.e., when lightDir is almost parallel to the plane
-		UIProperty sunX("Sun Control X", gAppSettings.mSunControl.x, -PI, PI, 0.001f);
-		pGuiWindow->AddControl(sunX);
+		SliderFloat2Widget sunX("Sun Control", &gAppSettings.mSunControl, float2(-PI), float2(PI), float2(0.001f));
+		pGuiWindow->AddWidget(sunX);
 
-		UIProperty sunY("Sun Control Y", gAppSettings.mSunControl.y, -PI, PI, 0.001f);
-		pGuiWindow->AddControl(sunY);
+		SliderFloatWidget esm("Shadow Control", &gAppSettings.mEsmControl, 0, 200.0f);
+		pGuiWindow->AddWidget(esm);
 
-		UIProperty esm("Shadow Control", gAppSettings.mEsmControl, 0, 200.0f);
-		pGuiWindow->AddControl(esm);
-
-		UIProperty localLight("Enable Random Point Lights", gAppSettings.mRenderLocalLights);
-		pGuiWindow->AddControl(localLight);
+		CheckboxWidget localLight("Enable Random Point Lights", &gAppSettings.mRenderLocalLights);
+		pGuiWindow->AddWidget(localLight);
 
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
@@ -997,12 +997,9 @@ public:
 			}
 		}
 		gResolutionProperty =
-		addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
+		addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []()
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
-			setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->pData)]);
-			pVisibilityBuffer->Unload();
-			pVisibilityBuffer->Load();
+			gResolutionChange = true;
 		});
 #endif
 		/************************************************************************/
@@ -1017,44 +1014,42 @@ public:
 			RENDERMODE_VISBUFF,
 			RENDERMODE_DEFERRED,
 		};
-		UIProperty renderMode("Render Mode", gAppSettings.mRenderMode, renderModeNames, renderModeValues);
-		pGuiWindow->AddControl(renderMode);
+		DropdownWidget renderMode("Render Mode", (uint32_t*)&gAppSettings.mRenderMode, renderModeNames, (uint32_t*)renderModeValues, 2U);
+		pGuiWindow->AddWidget(renderMode);
 
-		UIProperty holdProp = UIProperty("Hold filtered results", gAppSettings.mHoldFilteredResults);
-		pGuiWindow->AddControl(holdProp);
+		CheckboxWidget holdProp("Hold filtered results", &gAppSettings.mHoldFilteredResults);
+		pGuiWindow->AddWidget(holdProp);
 
-		UIProperty filtering("Triangle Filtering", gAppSettings.mFilterTriangles);
-		pGuiWindow->AddControl(filtering);
+		CheckboxWidget filtering("Triangle Filtering", &gAppSettings.mFilterTriangles);
+		pGuiWindow->AddWidget(filtering);
 
-		UIProperty cluster("Cluster Culling", gAppSettings.mClusterCulling);
-		pGuiWindow->AddControl(cluster);
+		CheckboxWidget cluster("Cluster Culling", &gAppSettings.mClusterCulling);
+		pGuiWindow->AddWidget(cluster);
 
-		UIProperty asyncCompute("Async Compute", gAppSettings.mAsyncCompute);
-		pGuiWindow->AddControl(asyncCompute);
+		CheckboxWidget asyncCompute("Async Compute", &gAppSettings.mAsyncCompute);
+		pGuiWindow->AddWidget(asyncCompute);
 
 #if MSAASAMPLECOUNT == 1
-		UIProperty debugTargets("Draw Debug Targets", gAppSettings.mDrawDebugTargets);
-		pGuiWindow->AddControl(debugTargets);
+		CheckboxWidget debugTargets("Draw Debug Targets", &gAppSettings.mDrawDebugTargets);
+		pGuiWindow->AddWidget(debugTargets);
 #endif
 		/************************************************************************/
 		// HDAO Settings
 		/************************************************************************/
-		UIProperty toggleAO("Enable HDAO", gAppSettings.mEnableHDAO);
-		pGuiWindow->AddControl(toggleAO);
+		CheckboxWidget toggleAO("Enable HDAO", &gAppSettings.mEnableHDAO);
+		pGuiWindow->AddWidget(toggleAO);
 
-		tinystl::vector<UIProperty>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
-		dynamicPropsAO.push_back(UIProperty("AO accept radius", gAppSettings.mAcceptRadius, 0, 10));
-		dynamicPropsAO.push_back(UIProperty("AO reject radius", gAppSettings.mRejectRadius, 0, 10));
-		dynamicPropsAO.push_back(UIProperty("AO intensity radius", gAppSettings.mAOIntensity, 0, 10));
-		dynamicPropsAO.push_back(UIProperty("AO Quality", gAppSettings.mAOQuality, 1, 4));
+		tinystl::vector<IWidget*>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
+		dynamicPropsAO.emplace_back(SliderFloatWidget("AO accept radius", &gAppSettings.mAcceptRadius, 0, 10).Clone());
+		dynamicPropsAO.emplace_back(SliderFloatWidget("AO reject radius", &gAppSettings.mRejectRadius, 0, 10).Clone());
+		dynamicPropsAO.emplace_back(SliderFloatWidget("AO intensity radius", &gAppSettings.mAOIntensity, 0, 10).Clone());
+		dynamicPropsAO.emplace_back(SliderIntWidget("AO Quality", &gAppSettings.mAOQuality, 1, 4).Clone());
 		if (gAppSettings.mEnableHDAO)
-		{
 			gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
-		}
 
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 		if (!pWindow->fullScreen)
-			pGuiWindow->RemoveControl(gResolutionProperty);
+			pGuiWindow->RemoveWidget(gResolutionProperty);
 #endif
 		/************************************************************************/
 		// Setup the fps camera for navigating through the scene
@@ -1123,6 +1118,7 @@ public:
 
 		removeDebugRendererInterface();
 
+		gAppSettings.mDynamicUIControlsAO.Destroy();
 		gAppUI.Exit();
 
 		// Destroy geometry for light rendering
@@ -1640,13 +1636,21 @@ public:
 
 	void Update(float deltaTime)
 	{
-
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
 			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
+		if (gResolutionChange)
+		{
+			gResolutionChange = false;
+			setResolution(getMonitor(0), &gResolutions[gResolutionIndex]);
+			pVisibilityBuffer->Unload();
+			pVisibilityBuffer->Load();
+		}
+#endif
 #endif
 
 		// Process user input
@@ -2854,17 +2858,14 @@ public:
 			if (gWasFullscreen)
 			{
 				gResolutionProperty =
-				addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), [](const UIProperty* pProp)
+				addResolutionProperty(pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []()
 				{
-					waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
-					setResolution(getMonitor(0), &gResolutions[*((uint32_t*)pProp->pData)]);
-					pVisibilityBuffer->Unload();
-					pVisibilityBuffer->Load();
+					gResolutionChange = true;
 				});
 			}
 			else
 			{
-				pGuiWindow->RemoveControl(gResolutionProperty);
+				pGuiWindow->RemoveWidget(gResolutionProperty);
 			}
 		}
 #endif

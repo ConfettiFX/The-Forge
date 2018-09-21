@@ -20,6 +20,8 @@
 		97FD71E62141D6400051A203 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E02141D6400051A203 /* imgui_draw.cpp */; };
 		97FD71E72141D6400051A203 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E22141D6400051A203 /* imgui_widgets.cpp */; };
 		97FD71E82141D6400051A203 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E22141D6400051A203 /* imgui_widgets.cpp */; };
+		B22EE24B21547612009CD7F2 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22EE24921547612009CD7F2 /* imgui_demo.cpp */; };
+		B22EE24C21547612009CD7F2 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22EE24921547612009CD7F2 /* imgui_demo.cpp */; };
 		B235DC6520EC351300592362 /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B235DC6420EC351300592362 /* InputSystem.cpp */; };
 		B235DC7820EC37B800592362 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7520EC37B000592362 /* libgainputstatic.a */; };
 		B235DC7D20EC387500592362 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7B20EC387500592362 /* Metal.framework */; };
@@ -173,6 +175,7 @@
 		97FD71E02141D6400051A203 /* imgui_draw.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = imgui_draw.cpp; path = OpenSource/imgui/imgui_draw.cpp; sourceTree = "<group>"; };
 		97FD71E12141D6400051A203 /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imgui_internal.h; path = OpenSource/imgui/imgui_internal.h; sourceTree = "<group>"; };
 		97FD71E22141D6400051A203 /* imgui_widgets.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = imgui_widgets.cpp; path = OpenSource/imgui/imgui_widgets.cpp; sourceTree = "<group>"; };
+		B22EE24921547612009CD7F2 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_demo.cpp; path = OpenSource/imgui/imgui_demo.cpp; sourceTree = "<group>"; };
 		B235DC5420EC349800592362 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
 		B235DC6220EC351300592362 /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = ../../../Middleware_3/Input/InputMappings.h; sourceTree = "<group>"; };
 		B235DC6320EC351300592362 /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = ../../../Middleware_3/Input/InputSystem.h; sourceTree = "<group>"; };
@@ -286,6 +289,7 @@
 				97FD71DF2141D6400051A203 /* imconfig.h */,
 				97FD71E02141D6400051A203 /* imgui_draw.cpp */,
 				97FD71E12141D6400051A203 /* imgui_internal.h */,
+				B22EE24921547612009CD7F2 /* imgui_demo.cpp */,
 				97FD71E22141D6400051A203 /* imgui_widgets.cpp */,
 				97FD71DD2141D6400051A203 /* imgui.cpp */,
 				97FD71DE2141D6400051A203 /* imgui.h */,
@@ -766,6 +770,7 @@
 				97FD71E42141D6400051A203 /* imgui.cpp in Sources */,
 				D26E80F81F4720E400C043F1 /* PlatformEvents.cpp in Sources */,
 				97FD71E62141D6400051A203 /* imgui_draw.cpp in Sources */,
+				B22EE24C21547612009CD7F2 /* imgui_demo.cpp in Sources */,
 				C9DCF6641FEAAA82008BFA67 /* iOSLogManager.cpp in Sources */,
 				D26E80FA1F4720E400C043F1 /* Timer.cpp in Sources */,
 				C9DCF6631FEAAA7F008BFA67 /* iOSFileSystem.mm in Sources */,
@@ -824,6 +829,7 @@
 				EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */,
 				97FD71DA2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */,
 				EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */,
+				B22EE24B21547612009CD7F2 /* imgui_demo.cpp in Sources */,
 				97FD71E32141D6400051A203 /* imgui.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

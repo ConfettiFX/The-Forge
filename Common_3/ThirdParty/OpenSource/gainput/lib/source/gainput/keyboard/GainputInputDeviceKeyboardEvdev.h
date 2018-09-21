@@ -217,7 +217,7 @@ public:
 	bool IsTextInputEnabled() const { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) { textInputEnabled_ = enabled; }
 
-	char GetNextCharacter()
+	char GetNextCharacter(gainput::DeviceButtonId buttonId)
 	{
 		if (!textBuffer_.CanGet())
 		{

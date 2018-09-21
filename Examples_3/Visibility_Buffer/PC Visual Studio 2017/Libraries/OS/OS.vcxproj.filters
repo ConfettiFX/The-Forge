@@ -46,6 +46,9 @@
     <Filter Include="Middleware_3\Text">
       <UniqueIdentifier>{ca3815d6-1ebb-4a30-8aa4-6440b07b14ed}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{63ab29b7-c722-463b-98b3-6854c17c424e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -167,9 +170,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>Middleware_3\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
-      <Filter>Middleware_3\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
@@ -194,5 +194,10 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
       <Filter>Middleware_3\UI\imgui</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinySTL\tinystl.natvis">
+      <Filter>Utils</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>

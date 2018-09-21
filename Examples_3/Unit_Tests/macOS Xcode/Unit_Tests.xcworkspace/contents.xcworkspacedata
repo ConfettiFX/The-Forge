@@ -37,4 +37,7 @@
    <FileRef
       location = "group:13_UserInterface/13_UserInterface.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:15_Transparency/15_Transparency.xcodeproj">
+   </FileRef>
 </Workspace>

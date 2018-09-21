@@ -121,6 +121,7 @@ typedef struct ShaderStageLoadDesc
 typedef struct ShaderLoadDesc
 {
 	ShaderStageLoadDesc mStages[SHADER_STAGE_COUNT];
+	ShaderTarget mTarget;
 } ShaderLoadDesc;
 
 void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget = DEFAULT_MEMORY_BUDGET, bool useThreads = false);

@@ -456,7 +456,6 @@
 					../,
 					../../,
 					../../Common_3,
-					/Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include,
 				);
 				INFOPLIST_FILE = 13_UserInterface_iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
@@ -469,8 +468,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
-				SYSTEM_HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USE_HEADERMAP = NO;
 			};
@@ -510,8 +509,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
-				SYSTEM_HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				USE_HEADERMAP = NO;
 				VALIDATE_PRODUCT = YES;
@@ -567,7 +566,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../Common_3/ThirdParty/OpenSource/gainput/lib/include/**";
+				"HEADER_SEARCH_PATHS[arch=*]" = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -640,7 +639,6 @@
 					../../Common_3,
 					../../,
 					../,
-					/Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -651,8 +649,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.13-UserInterface";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
-				SYSTEM_HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
@@ -679,8 +677,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.13-UserInterface";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
-				SYSTEM_HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};

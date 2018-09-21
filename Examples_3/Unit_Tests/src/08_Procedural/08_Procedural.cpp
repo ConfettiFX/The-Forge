@@ -86,7 +86,7 @@ const char* pszRoots[] =
 	"../../../UnitTestResources/Textures/",					// FSR_Textures
 	"../../../UnitTestResources/Meshes/",					// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",					// FSR_Builtin_Fonts
-	"../../../src/08_Procedural/GPUCfg/gpu.cfg",			// FSR_GpuConfig
+	"../../../src/08_Procedural/GPUCfg/",			// FSR_GpuConfig
 	"",														// FSR_OtherFiles
 };
 #endif
@@ -216,9 +216,7 @@ int							gNumOfSpherePoints;
 
 static float				gEplasedTime = 0.0f;
 
-static float				gSunDirX = -1.0f;
-static float				gSunDirY = 1.0f;
-static float				gSunDirZ = 1.0f;
+static float3				gSunDir = float3(-1.0f, 1.0f, 1.0f);
 
 static float				gOceanHeight = 1.0f;
 static float				gShoreHeight = 0.02f;
@@ -425,7 +423,7 @@ public:
 		// Add light to scene
 		Light light;
 		light.mCol = vec4(1.0f, 1.0f, 1.0f, 0.0f);
-		light.mPos = vec4(normalize(vec3(gSunDirX, gSunDirY, gSunDirZ)) * 1000.0f, 0.0f);
+		light.mPos = vec4(normalize(vec3(gSunDir.x, gSunDir.y, gSunDir.z)) * 1000.0f, 0.0f);
 		light.mRadius = 10.0f;
 		light.mIntensity = 40.0f;
 
@@ -444,32 +442,18 @@ public:
 		guiDesc.mStartPosition = vec2(300.0f, guiDesc.mStartSize.getY());
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-		UIProperty sunX = UIProperty("Sunlight X", gSunDirX, -1.0f, 1.0f, 0.01f);
-		UIProperty sunY = UIProperty("Sunlight Y", gSunDirY, -1.0f, 1.0f, 0.01f);
-		UIProperty sunZ = UIProperty("Sunlight Z", gSunDirZ, -1.0f, 1.0f, 0.01f);
-
-		UIProperty OceanHeight = UIProperty("Ocean Level : ", gOceanHeight, 0.0f, 1.5f, 0.01f);
-		UIProperty ShoreHeight = UIProperty("Shoreline Height : ", gShoreHeight, 0.0f, 0.04f, 0.01f);
-		UIProperty SnowHeight = UIProperty("Snowy Land Height : ", gSnowHeight, 0.0f, 2.00f, 0.01f);
-		UIProperty PolarCapsAttitude = UIProperty("PolarCaps Attitude : ", gPolarCapsAttitude, 0.0f, 3.0f, 0.01f);
-		UIProperty TerrainExp = UIProperty("Terrain Exp : ", gTerrainExp, 0.0f, 1.0f, 0.01f);
-		UIProperty TerrainSeed = UIProperty("Terrain Seed : ", gTerrainSeed, 0.0f, 100.0f, 1.0f);
-
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddControl(vsyncProp);
+#if !defined(TARGET_IOS) && !defined(_DURANGO)		
+		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
-		pGui->AddControl(sunX);
-		pGui->AddControl(sunY);
-		pGui->AddControl(sunZ);
+		pGui->AddWidget(SliderFloat3Widget("Sunlight", &gSunDir, float3(-1.0f), float3(1.0f)));
 
-		pGui->AddControl(OceanHeight);
-		pGui->AddControl(ShoreHeight);
-		pGui->AddControl(SnowHeight);
-		pGui->AddControl(PolarCapsAttitude);
-		pGui->AddControl(TerrainExp);
-		pGui->AddControl(TerrainSeed);
+		pGui->AddWidget(SliderFloatWidget("Ocean Level : ", &gOceanHeight, 0.0f, 1.5f, 0.01f));
+		pGui->AddWidget(SliderFloatWidget("Shoreline Height : ", &gShoreHeight, 0.0f, 0.04f, 0.01f));
+		pGui->AddWidget(SliderFloatWidget("Snowy Land Height : ", &gSnowHeight, 0.0f, 2.00f, 0.01f));
+		pGui->AddWidget(SliderFloatWidget("PolarCaps Attitude : ", &gPolarCapsAttitude, 0.0f, 3.0f, 0.01f));
+		pGui->AddWidget(SliderFloatWidget("Terrain Exp : ", &gTerrainExp, 0.0f, 1.0f, 0.01f));
+		pGui->AddWidget(SliderFloatWidget("Terrain Seed : ", &gTerrainSeed, 0.0f, 100.0f, 1.0f));
 
 		CameraMotionParameters camParameters{ 10.0f, 600.0f, 200.0f };
 		vec3 camPos{ 0.0f, 0.0f, 10.0f };
@@ -692,16 +676,33 @@ public:
 		gUniformDataMVP.mTimeInfo = vec4(gEplasedTime * 60.0f, 0.0f, gTerrainExp, gTerrainSeed * 39.0f);
 
 		// Update light buffer
-		gUniformDataLights.mLights[0].mPos = vec4(normalize(vec3(gSunDirX, gSunDirY, gSunDirZ))* 1000.0f, 0.0);
+		gUniformDataLights.mLights[0].mPos = vec4(normalize(vec3(gSunDir.x, gSunDir.y, gSunDir.z))* 1000.0f, 0.0);
 
 		gAppUI.Update(deltaTime);
+		
+		
+		/************************************************************************/
+		// Upload uniform data to GPU
+		/************************************************************************/
+		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
+		updateResource(&camBuffUpdateDesc);
+		
+		BufferUpdateDesc bgBuffUpdateDesc = { pScreenSizeBuffer , &gScreenSizeData };
+		updateResource(&bgBuffUpdateDesc);
+		
+		BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[gFrameIndex][0], &gUniformDataMVP };
+		updateResource(&objBuffUpdateDesc);
+		
+		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights[gFrameIndex], &gUniformDataLights };
+		updateResource(&lightBuffUpdateDesc);
 	}
 
 	void Draw()
 	{
+		uint32_t swapChainIndex;
 		// This will acquire the next swapchain image
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapChainIndex);
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapChainIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -711,20 +712,7 @@ public:
 		loadActions.mClearColorValues[0] = { 0.2109f, 0.6470f, 0.8470f, 1.0f }; // Light blue cclear
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { 1.0f, 0.0f };
-		/************************************************************************/
-		// Upload uniform data to GPU
-		/************************************************************************/
-		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
-		updateResource(&camBuffUpdateDesc);
-
-		BufferUpdateDesc bgBuffUpdateDesc = { pScreenSizeBuffer , &gScreenSizeData };
-		updateResource(&bgBuffUpdateDesc);
-
-		BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[gFrameIndex][0], &gUniformDataMVP };
-		updateResource(&objBuffUpdateDesc);
-
-		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights[gFrameIndex], &gUniformDataLights };
-		updateResource(&lightBuffUpdateDesc);
+		
 		/************************************************************************/
 		// Record commmand buffers
 		/************************************************************************/
@@ -839,7 +827,7 @@ public:
 		allCmds.push_back(cmd);
 
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, swapChainIndex, 1, &pRenderCompleteSemaphore);
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
@@ -848,6 +836,7 @@ public:
 		{
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	tinystl::string GetName()

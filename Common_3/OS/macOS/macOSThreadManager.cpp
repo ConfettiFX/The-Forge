@@ -122,12 +122,15 @@ ThreadHandle _createThread(WorkItem* pData)
 
 void _destroyThread(ThreadHandle handle)
 {
-	// thread is destroyed automatically when function exitsß
-	assert(handle!=nullptr);
 	pthread_join(handle, NULL);
 	handle = NULL;
 }
   
+void _joinThread(ThreadHandle handle)
+{	
+	pthread_join(handle, NULL);
+}
+
 void Thread::Sleep(unsigned mSec)
 {
   usleep(mSec*1000);

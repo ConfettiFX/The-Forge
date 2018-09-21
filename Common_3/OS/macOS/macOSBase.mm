@@ -95,13 +95,13 @@ static bool captureMouse(bool shouldCapture)
         if (shouldCapture)
         {
             CGDisplayHideCursor(kCGDirectMainDisplay);
-            //CGAssociateMouseAndMouseCursorPosition(false);
+            CGAssociateMouseAndMouseCursorPosition(false);
             isCaptured = true;
         }
         else
         {
             CGDisplayShowCursor(kCGDirectMainDisplay);
-            //CGAssociateMouseAndMouseCursorPosition(true);
+            CGAssociateMouseAndMouseCursorPosition(true);
             isCaptured = false;
         }
     }
@@ -305,6 +305,7 @@ int macOSMain(int argc, const char** argv, IApp* app)
 - (void)drawRectResized:(CGSize)size;
 - (void)updateInput;
 - (void)update;
+- (void)shutdown;
 
 @end
 
@@ -327,6 +328,14 @@ int macOSMain(int argc, const char** argv, IApp* app)
     MetalKitApplication *_application;
 }
 
+-(void)dealloc
+{
+	@autoreleasepool
+	{
+		[_application shutdown];	
+	}
+}
+
 - (void) viewDidLoad
 {
     [super viewDidLoad];
@@ -341,6 +350,7 @@ int macOSMain(int argc, const char** argv, IApp* app)
     _view.preferredFramesPerSecond = 60.0;
     
     [_view.window makeFirstResponder:self];
+	_view.autoresizesSubviews = YES;
     isCaptured = false;
     
     // Adjust window size to match retina scaling.
@@ -350,13 +360,15 @@ int macOSMain(int argc, const char** argv, IApp* app)
     
     // Kick-off the MetalKitApplication.
     _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
-    
-    // In order to get mouse move messages (without clicking on the window) we need to set a tracking area covering the whole view
-    NSTrackingAreaOptions options = (NSTrackingActiveAlways | NSTrackingInVisibleRect |
-                                     NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved);
-    NSTrackingArea *area = [[NSTrackingArea alloc] initWithRect:[_view bounds] options:options owner:self userInfo:nil];
-    [_view addTrackingArea:area];
-    
+
+	//
+//    // In order to get mouse move messages (without clicking on the window) we need to set a tracking area covering the whole view
+//    NSTrackingAreaOptions options =
+//	(NSTrackingActiveAlways | NSTrackingInVisibleRect |
+//                                     NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved);
+//    NSTrackingArea *area = [[NSTrackingArea alloc] initWithRect:[_view bounds] options:options owner:self userInfo:nil];
+//    [_view addTrackingArea:area];
+	
     if(!_device)
     {
         NSLog(@"Metal is not supported on this device");
@@ -374,14 +386,13 @@ int macOSMain(int argc, const char** argv, IApp* app)
     return TRUE;
 }
 
-- (void)keyDown:(NSEvent *)event
-{
-}
 
 // Called whenever view changes orientation or layout is changed
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
 {
     [_application drawRectResized:view.bounds.size];
+	//Will remove and re-add mac subview for input with resized area
+	InputSystem::InitSubView((__bridge void*)(_view));
 }
 
 // Called whenever the view needs to render
@@ -392,7 +403,6 @@ int macOSMain(int argc, const char** argv, IApp* app)
         [_application update];
 		InputSystem::Update();
 		[_application updateInput];
-        //updateKeys();
         //this is needed for NON Vsync mode.
         //This enables to force update the display
         if(_view.enableSetNeedsDisplay == YES)
@@ -468,8 +478,8 @@ uint32_t testingMaxFrameCount = 120;
 			}
 		}
 		
-		InputSystem::InitSubView((__bridge void*)(view));
 		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
+		InputSystem::InitSubView((__bridge void*)(view));
 	}
 
 	return self;
@@ -539,6 +549,13 @@ uint32_t testingMaxFrameCount = 120;
             [NSApp terminate:nil];
         }
 #endif
+}
+
+-(void)shutdown
+{
+	InputSystem::Shutdown();
+    pApp->Unload();
+    pApp->Exit();
 }
 @end
 /************************************************************************/

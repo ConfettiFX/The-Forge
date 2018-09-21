@@ -3,6 +3,9 @@
 #define GAINPUTINPUTDEVICEMOUSEMAC_H_
 
 #include "GainputInputDeviceMouseImpl.h"
+#import <Carbon/Carbon.h>
+
+@class GainputMacInputView;
 
 namespace gainput
 {
@@ -21,6 +24,10 @@ public:
 	InputDevice::DeviceState GetState() const { return deviceState_; }
 
 	void Update(InputDeltaState* delta);
+	
+	void HandleMouseMove(float x, float y);
+	void HandleMouseWheel(int deltaY);
+	void HandleMouseButton(bool isPressed, gainput::DeviceButtonId mouseButtonId );
 
 	InputManager& manager_;
 	InputDevice::DeviceState deviceState_;
@@ -29,9 +36,6 @@ public:
 	InputState* previousState_;
 	InputState nextState_;
 	InputDeltaState* delta_;
-
-private:
-	void* ioManager_;
 };
 
 }

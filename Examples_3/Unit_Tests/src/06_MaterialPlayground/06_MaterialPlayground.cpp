@@ -314,7 +314,7 @@ static const char* matEnumNames[] = {
 	NULL
 };
 
-static const int matEnumValues[] = {
+static const uint32_t matEnumValues[] = {
 	Default_Mat,
 	Metal_Mat,
 	0
@@ -345,7 +345,7 @@ static const char* metalEnumNames[] = {
 	NULL
 };
 
-static const int metalEumValues[] = {
+static const uint32_t metalEumValues[] = {
 	RustedIron,
 	Copper,
 	GreasedMetal,
@@ -354,8 +354,8 @@ static const int metalEumValues[] = {
 	0
 };
 
-int gMaterialType = Metal_Mat;
-int gMetalMaterial = RustedIron;
+uint32_t gMaterialType = Metal_Mat;
+uint32_t gMetalMaterial = RustedIron;
 
 mat4 gTextProjView;
 tinystl::vector<mat4> gTextWorldMats;
@@ -1247,17 +1247,15 @@ public:
 		pGui = gAppUI.AddGuiComponent("Select Material", &guiDesc);
 
 		/************************************************************************/
-		/************************************************************************/
-		UIProperty materialTypeProp = UIProperty("Material : ", gMaterialType, matEnumNames, matEnumValues);
-		pGui->AddControl(materialTypeProp);
+		/************************************************************************/		
+		pGui->AddWidget(DropdownWidget("Material : ", &gMaterialType, matEnumNames, matEnumValues, 2));
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddControl(vsyncProp);
+#if !defined(TARGET_IOS) && !defined(_DURANGO)		
+		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
-		UIProperty pbrMaterialProp = UIProperty("Sub Type: ", gMetalMaterial, metalEnumNames, metalEumValues);
-		gMetalSelector.mUIControl.mDynamicProperties.push_back(pbrMaterialProp);
+		static DropdownWidget pbrMaterialWidget("Sub Type: ", &gMetalMaterial, metalEnumNames, metalEumValues, 5);		
+		gMetalSelector.mUIControl.mDynamicProperties.push_back(&pbrMaterialWidget);
 		//gMetalSelector.mUIControl.ShowDynamicProperties(pGui);
 
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
@@ -1512,20 +1510,22 @@ public:
 		}
 
 		gAppUI.Update(deltaTime);
+		
+		
+		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
+		updateResource(&camBuffUpdateDesc);
+		
+		BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky[gFrameIndex], &gUniformDataSky };
+		updateResource(&skyboxViewProjCbv);
 
 	}
 
 	void Draw()
 	{
+		uint32_t swapchainIndex = 0;
 		// This will acquire the next swapchain image
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-
-		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
-		updateResource(&camBuffUpdateDesc);
-
-		BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky[gFrameIndex], &gUniformDataSky };
-		updateResource(&skyboxViewProjCbv);
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -1707,8 +1707,6 @@ public:
 #endif
 		gAppUI.Draw(cmd);
 
-		//cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-
 		// Transition our texture to present state
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
@@ -1716,9 +1714,8 @@ public:
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
-		//queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
@@ -1727,6 +1724,8 @@ public:
 		{
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
+		
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	tinystl::string GetName()

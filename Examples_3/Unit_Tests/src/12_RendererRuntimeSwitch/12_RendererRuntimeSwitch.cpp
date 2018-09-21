@@ -465,7 +465,6 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = { 0.0f, -100.0f };
 		guiDesc.mStartSize = { guiDesc.mStartSize.getX() * 0.5f, guiDesc.mStartSize.getY() * 0.4f };
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
@@ -474,13 +473,13 @@ public:
 			"VULKAN",
 			NULL
 		};
-		static const int enumValues[] = {
+		static const uint32_t enumValues[] = {
 			RENDERER_API_D3D12,
 			RENDERER_API_VULKAN,
 			0
 		};
 
-		pGui->AddControl(UIProperty("Renderer API : ", (int&)gTargetApi, enumNames, enumValues));
+		pGui->AddWidget(DropdownWidget("Renderer API : ", (uint32_t*)&gTargetApi, enumNames, enumValues, 2));
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };

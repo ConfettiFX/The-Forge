@@ -60,6 +60,8 @@ enum UserInputKeys
 	KEY_RIGHT_SHIFT,
 	KEY_RIGHT_CTRL,
 	KEY_LEFT_CTRL,
+	KEY_RIGHT_SUPER, //windows key, cmd key
+	KEY_LEFT_SUPER, //windows key, cmd key
 
 	KEY_CHAR,
 	KEY_COUNT = KEY_CHAR
@@ -128,6 +130,8 @@ static KeyMappingDescription gUserKeys[] = {
 	{ KEY_RIGHT_SHIFT,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyShiftR },{},{},{} } },
 	{ KEY_RIGHT_CTRL,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyCtrlR },{},{},{} } },
 	{ KEY_LEFT_CTRL,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyCtrlL },{},{},{} } },
+	{ KEY_RIGHT_SUPER,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeySuperR },{},{},{} } },
+	{ KEY_LEFT_SUPER,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeySuperL },{},{},{} } },
 
 	//Keyboard chars
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyA },{},{},{} } },

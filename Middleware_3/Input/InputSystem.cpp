@@ -212,18 +212,32 @@ void InputSystem::InitSubView(void* view)
 {
 	if(!view)
 		return;
-#ifdef TARGET_IOS	
-	//automatic reference counting
-	//it will get deallocated.
-	if(pGainputView)
-		pGainputView = NULL;
-	
+    //automatic reference counting
+    //it will get deallocated.
+    if(pGainputView)
+    {
+#ifndef TARGET_IOS
+        GainputMacInputView * view = (__bridge GainputMacInputView *)pGainputView;
+#else
+        GainputView * view = (__bridge GainputView *)pGainputView;
+#endif
+        [view removeFromSuperview];        
+        pGainputView = NULL;
+    }
+#ifdef TARGET_IOS
 	UIView * uiView = (__bridge UIView*)view;
 	GainputView * newView = [[GainputView alloc] initWithFrame:uiView.bounds inputManager:*pInputManager];
 	[uiView addSubview:newView];
 	pGainputView = (__bridge void*)newView;
 #else
-    pGainputView = view;
+    
+    MTKView * mtkView = (__bridge MTKView*)view;
+    NSView * parentView = (__bridge NSView*)view;
+    float retinScale = mtkView.drawableSize.width / mtkView.frame.size.width;
+    GainputMacInputView * newView = [[GainputMacInputView alloc] initWithFrame:parentView.bounds window:parentView.window retinaScale:retinScale inputManager:*pInputManager];
+    newView.needsDisplay = false;
+    [parentView addSubview: newView];
+    pGainputView = (__bridge void*)newView;
 #endif
 }
 #endif
@@ -433,7 +447,11 @@ void InputSystem::AddMappings(KeyMappingDescription* mappings, uint32_t mappingC
 	for (uint32_t i = 0; i < mappingCount; i++)
 	{
 		KeyMappingDescription * mapping = &mappings[i];
-
+        
+        //skip uninitialized devices.
+        if(GetDeviceID(mapping->mDeviceType) == gainput::InvalidDeviceId)
+            continue;
+        
 		//create empty key mapping object if hasn't been found
 		if (mKeyMappings.find(mapping->mUserId) == mKeyMappings.end())
 		{
@@ -460,11 +478,8 @@ void InputSystem::SetDefaultKeyMapping()
 #else
 	uint32_t entryCount = sizeof(gUserKeys) / sizeof(KeyMappingDescription);
 	uint32_t controllerEntryCount = sizeof(gXboxMappings) / sizeof(KeyMappingDescription);
-	if(mMouseDeviceID != gainput::InvalidDeviceId && mKeyboardDeviceID != gainput::InvalidDeviceId)
-		AddMappings(gUserKeys, entryCount);
-
-	if (mGamepadDeviceID != gainput::InvalidDeviceId)
-		AddMappings(gXboxMappings, controllerEntryCount);
+    AddMappings(gUserKeys, entryCount);
+    AddMappings(gXboxMappings, controllerEntryCount);
 #endif
 
 
@@ -527,6 +542,7 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
 	tinystl::vector<UserToDeviceMap> userButtons = mDeviceToUserMappings[deviceButton];
 
 	GainputDeviceType deviceType = GetDeviceType(deviceId);
+    bool isMapped = false;
 
 	for (uint32_t i = 0; i < userButtons.size(); i++)
 	{
@@ -580,6 +596,7 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
 		if (!desc)
 			continue;
 
+        isMapped = true;
 
 		//reset values
 		button.mActiveDevicesMask = GAINPUT_DEFAULT;
@@ -593,8 +610,8 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
 		//broadcast event
 		OnInputEvent(button);
 	}
-
-	return true;
+    
+	return isMapped;
 }
 
 /**
@@ -707,5 +724,5 @@ void InputSystem::FillButtonDataFromDesc(const KeyMappingDescription * keyMappin
 	button.mIsTriggered = prevFrameDelta == 0.0f && button.mIsPressed ? true : false;
 
 	if (keyMapping->mUserId == KEY_CHAR && mKeyboardDeviceID != gainput::InvalidDeviceId)
-		button.mCharacter = (wchar_t)((gainput::InputDeviceKeyboard*)pInputManager->GetDevice(mKeyboardDeviceID))->GetNextCharacter();
+		button.mCharacter = (wchar_t)((gainput::InputDeviceKeyboard*)pInputManager->GetDevice(mKeyboardDeviceID))->GetNextCharacter(eventDeviceButton);
 }

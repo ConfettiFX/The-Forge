@@ -38,8 +38,8 @@
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IThread.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../Middleware_3/Input/InputSystem.h"
+#include "../../../Middleware_3/Input/InputMappings.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
@@ -509,6 +509,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 #endif
 	}
 
+	InputSystem::Shutdown();
 	pApp->Unload();
 	pApp->Exit();
 

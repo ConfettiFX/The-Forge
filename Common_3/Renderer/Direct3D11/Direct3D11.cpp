@@ -891,7 +891,7 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 	API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
 	API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
-	API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
+	API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 	API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
 
 	void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer)
@@ -989,6 +989,7 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 		{
 			IDXGIAdapter1* pGpu = NULL;
 			D3D_FEATURE_LEVEL mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
+			D3D11_FEATURE_DATA_D3D11_OPTIONS2 mFeatureDataOptions2 = {};
 			SIZE_T mDedicatedVideoMemory = 0;
 			char mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
 			char mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -1006,8 +1007,7 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 			adapter->GetDesc1(&desc);
 
 			if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
-			{				
-			
+			{
 				// Make sure the adapter can support a D3D11 device
 				D3D_FEATURE_LEVEL featLevelOut;
 				if (SUCCEEDED(D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, 0, feature_levels, 2, D3D11_SDK_VERSION, NULL, &featLevelOut, NULL)))
@@ -1015,8 +1015,16 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 					hr = adapter->QueryInterface(IID_ARGS(&gpuDesc[pRenderer->mNumOfGPUs].pGpu));
 					if (SUCCEEDED(hr))
 					{
+						D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN,
+							(HMODULE)0, 0, feature_levels, 2,
+							D3D11_SDK_VERSION, &pRenderer->pDxDevice, &featLevelOut, NULL);
+
+						D3D11_FEATURE_DATA_D3D11_OPTIONS2 featureData2 = {};
+						pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &featureData2, sizeof(featureData2));
+
 						gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = featLevelOut;
 						gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
+						gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions2 = featureData2;
 
 						//save vendor and model Id as string
 						//char hexChar[10];
@@ -1034,6 +1042,7 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 						//char sName[MAX_PATH];
 						wcstombs(gpuDesc[pRenderer->mNumOfGPUs].mName, desc.Description, MAX_PATH);
 						++pRenderer->mNumOfGPUs;
+						SAFE_RELEASE(pRenderer->pDxDevice);
 						break;
 					}
 				}
@@ -1083,7 +1092,8 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel = gpuDesc[i].mPreset;
 
 			// Determine root signature size for this gpu driver			
-			pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = 0U; // no such thing			
+			pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = 0U; // no such thing
+			pRenderer->mGpuSettings[i].mROVsSupported = gpuDesc[i].mFeatureDataOptions2.ROVsSupported ? true : false;
 		}
 
 		uint32_t gpuIndex = 0;
@@ -1167,12 +1177,13 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 	static void create_default_resources(Renderer* pRenderer)
 	{
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mDstAlphaFactor = BC_ZERO;
-		blendStateDesc.mDstFactor = BC_ZERO;
-		blendStateDesc.mSrcAlphaFactor = BC_ONE;
-		blendStateDesc.mSrcFactor = BC_ONE;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mDstFactors[0] = BC_ZERO;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pRenderer->pDefaultBlendState);
 
 		DepthStateDesc depthStateDesc = {};
@@ -1748,8 +1759,14 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 	/************************************************************************/
 	// Shader Functions
 	/************************************************************************/
-	void compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode)
+	void compileShader(Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode)
 	{
+		if (shaderTarget > pRenderer->mSettings.mShaderTarget)
+		{
+			ErrorMsg("Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
+				(uint32_t)shaderTarget, (uint32_t)pRenderer->mSettings.mShaderTarget);
+			return;
+		}
 #if defined(_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
 		UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -1761,11 +1778,10 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 
 		int major;
 		int minor;
-		switch (pRenderer->mSettings.mShaderTarget) {
+		switch (shaderTarget)
+		{
 		default:
 		case shader_target_5_0: { major = 5; minor = 0; } break;
-		case shader_target_5_1: { major = 5; minor = 1; } break;
-		case shader_target_6_0: { major = 6; minor = 0; } break;
 		}
 
 		tinystl::string target;
@@ -2870,35 +2886,55 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 	{
 		UNREF_PARAM(pRenderer);
 
-		ASSERT(pDesc->mSrcFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mDstFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mSrcAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mDstAlphaFactor < BlendConstant::MAX_BLEND_CONSTANTS);
-		ASSERT(pDesc->mBlendMode < BlendMode::MAX_BLEND_MODES);
-		ASSERT(pDesc->mBlendAlphaMode < BlendMode::MAX_BLEND_MODES);
+		int blendDescIndex = 0;
+#ifdef _DEBUG
 
-		BOOL blendEnable = (gBlendConstantTranslator[pDesc->mSrcFactor] != D3D11_BLEND_ONE || gBlendConstantTranslator[pDesc->mDstFactor] != D3D11_BLEND_ZERO ||
-			gBlendConstantTranslator[pDesc->mSrcAlphaFactor] != D3D11_BLEND_ONE || gBlendConstantTranslator[pDesc->mDstAlphaFactor] != D3D11_BLEND_ZERO);
+		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+		{
+			if (pDesc->mRenderTargetMask & (1 << i))
+			{
+				ASSERT(pDesc->mSrcFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mSrcAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mDstAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+				ASSERT(pDesc->mBlendModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+				ASSERT(pDesc->mBlendAlphaModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+			}
+
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
+		}
+
+		blendDescIndex = 0;
+#endif
 
 		BlendState* pBlendState = (BlendState*)conf_calloc(1, sizeof(*pBlendState));
 				
-		D3D11_BLEND_DESC desc;
+		D3D11_BLEND_DESC desc = {};
 
 		desc.AlphaToCoverageEnable = (BOOL)pDesc->mAlphaToCoverage;
 		desc.IndependentBlendEnable = TRUE;
 		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; i++)
 		{
-			desc.RenderTarget[i].RenderTargetWriteMask = (UINT8)pDesc->mMask;
 			if (pDesc->mRenderTargetMask & (1 << i))
 			{
+				BOOL blendEnable = (gBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != D3D11_BLEND_ONE || 
+					gBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != D3D11_BLEND_ZERO ||
+					gBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != D3D11_BLEND_ONE || 
+					gBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != D3D11_BLEND_ZERO);
+
 				desc.RenderTarget[i].BlendEnable = blendEnable;
-				desc.RenderTarget[i].BlendOp = gBlendOpTranslator[pDesc->mBlendMode];
-				desc.RenderTarget[i].SrcBlend = gBlendConstantTranslator[pDesc->mSrcFactor];
-				desc.RenderTarget[i].DestBlend = gBlendConstantTranslator[pDesc->mDstFactor];
-				desc.RenderTarget[i].BlendOpAlpha = gBlendOpTranslator[pDesc->mBlendAlphaMode];
-				desc.RenderTarget[i].SrcBlendAlpha = gBlendConstantTranslator[pDesc->mSrcAlphaFactor];
-				desc.RenderTarget[i].DestBlendAlpha = gBlendConstantTranslator[pDesc->mDstAlphaFactor];
+				desc.RenderTarget[i].RenderTargetWriteMask = (UINT8)pDesc->mMasks[blendDescIndex];
+				desc.RenderTarget[i].BlendOp = gBlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
+				desc.RenderTarget[i].SrcBlend = gBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]];
+				desc.RenderTarget[i].DestBlend = gBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
+				desc.RenderTarget[i].BlendOpAlpha = gBlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
+				desc.RenderTarget[i].SrcBlendAlpha = gBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
+				desc.RenderTarget[i].DestBlendAlpha = gBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
 			}
+
+			if (pDesc->mIndependentBlend)
+				++blendDescIndex;
 		}
 
 		if (FAILED(pRenderer->pDxDevice->CreateBlendState(&desc, &pBlendState->pBlendState)))

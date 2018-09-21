@@ -1047,7 +1047,7 @@ void finishResourceLoading()
 // Vulkan has no builtin functions to compile source to spirv
 // So we call the glslangValidator tool located inside VulkanSDK on user machine to compile the glsl code to spirv
 // This code is not added to Vulkan.cpp since it calls no Vulkan specific functions
-void vk_compileShader(Renderer* pRenderer, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
+void vk_compileShader(Renderer* pRenderer, ShaderTarget target, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
 {
 	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
 		FileSystem::CreateDir(FileSystem::GetPath(outFile));
@@ -1068,6 +1068,8 @@ void vk_compileShader(Renderer* pRenderer, const tinystl::string& fileName, cons
 		commandLine += tinystl::string::format("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
 	}
 
+	if (target >= shader_target_6_0)
+		commandLine += " --target-env vulkan1.1 ";
 	//commandLine += " \"-D" + tinystl::string("VULKAN") + "=" + "1" + "\"";
 
 	// Add user defined macros to the command line
@@ -1173,7 +1175,7 @@ void mtl_compileShader(Renderer* pRenderer, const tinystl::string& fileName, con
 }
 #endif
 #if (defined(DIRECT3D12) || defined(DIRECT3D11)) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-extern void compileShader(Renderer* pRenderer, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
+extern void compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void*(*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
 #endif
 
 // Function to generate the timestamp of this shader source file considering all include file timestamp
@@ -1262,7 +1264,7 @@ bool save_byte_code(const tinystl::string& binaryShaderName, const tinystl::vect
 	return true;
 }
 
-bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount, ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode)
+bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount, ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode)
 {
 	File shaderSource = {};
 	tinystl::string code;
@@ -1331,7 +1333,11 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 #endif
 	
 	tinystl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + tinystl::string("/") + rendererApi + tinystl::string("/CompiledShadersBinary/") +
-		FileSystem::GetFileName(fileName) + tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+		FileSystem::GetFileName(fileName) +
+		tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) +
+		extension +
+		tinystl::string::format("%u", (uint32_t)target) +
+		".bin";
 #endif
 
 	// Shader source is newer than binary
@@ -1340,7 +1346,7 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 		if (pRenderer->mSettings.mApi == RENDERER_API_METAL || pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
 		{
 #if defined(VULKAN)
-			vk_compileShader(pRenderer, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode);
+			vk_compileShader(pRenderer, target, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode);
 #elif defined(METAL)
 			mtl_compileShader(pRenderer, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode);
 #endif
@@ -1350,7 +1356,7 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderStage stage, const c
 #if defined(DIRECT3D12) || defined(DIRECT3D11)
 			char* pByteCode = NULL;
 			uint32_t byteCodeSize = 0;
-			compileShader(pRenderer, stage, shaderSource.GetName(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc, &byteCodeSize, &pByteCode);
+			compileShader(pRenderer, target, stage, shaderSource.GetName(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc, &byteCodeSize, &pByteCode);
 			byteCode.resize(byteCodeSize);
 			memcpy(byteCode.data(), pByteCode, byteCodeSize);
 			conf_free(pByteCode);
@@ -1478,7 +1484,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 			BinaryShaderStageDesc* pStage = NULL;
 			if (find_shader_stage(pDesc->mStages[i].mFileName, &binaryDesc, &pStage, &stage))
 			{
-				if (!load_shader_stage_byte_code(pRenderer, stage, pDesc->mStages[i].mFileName, pDesc->mStages[i].mRoot, 
+				if (!load_shader_stage_byte_code(pRenderer, pDesc->mTarget, stage, pDesc->mStages[i].mFileName, pDesc->mStages[i].mRoot,
 												 pDesc->mStages[i].mMacroCount, pDesc->mStages[i].pMacros, 
 												 rendererDefinesDesc.rendererShaderDefinesCnt, rendererDefinesDesc.rendererShaderDefines,
 												 byteCodes[i]))

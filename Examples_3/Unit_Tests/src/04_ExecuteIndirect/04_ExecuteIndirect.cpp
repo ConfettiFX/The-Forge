@@ -224,7 +224,7 @@ ThreadData				gThreadData[gNumSubsets];
 Texture*				pAsteroidTex = NULL;
 bool					gUseThreads = true;
 bool					gToggleVSync = false;
-int						gRenderingMode = RenderingMode_GPUUpdate;
+uint32_t				gRenderingMode = RenderingMode_GPUUpdate;
 int						gPreviousRenderingMode = gRenderingMode;
 
 Renderer*				pRenderer = NULL;
@@ -350,13 +350,13 @@ float					skyBoxPoints[] = {
 
 // Panini Projection state and parameter variables
 #if !defined(TARGET_IOS)
-Panini				gPanini;
+Panini					gPanini;
 PaniniParameters		gPaniniParams;
 #endif
 DynamicUIControls		gPaniniControls;
 RenderTarget*			pIntermediateRenderTarget = NULL;
 bool					gbPaniniEnabled = false;
-TextDrawDesc		gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc			gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class ExecuteIndirect : public IApp
 {
@@ -679,7 +679,7 @@ public:
 			"Execute Indirect with GPU Compute",
 			NULL
 		};
-		static const int enumValues[] = {
+		static const uint32_t enumValues[] = {
 			RenderingMode_Instanced,
 			RenderingMode_ExecuteIndirect,
 			RenderingMode_GPUUpdate,
@@ -687,28 +687,25 @@ public:
 		};
 		/************************************************************************/
 		/************************************************************************/
-		UIProperty renderingModeProp = UIProperty("Rendering Mode: ", gRenderingMode, enumNames, enumValues);
-		UIProperty useThreadsProp = UIProperty("Multithreaded CPU Update", gUseThreads);
-		UIProperty paniniProp = UIProperty("Enable Panini Projection", gbPaniniEnabled);
-
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		UIProperty vsyncProp = UIProperty("Toggle VSync", gToggleVSync);
-		pGui->AddControl(vsyncProp);
+		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
-		pGui->AddControl(renderingModeProp);
-		pGui->AddControl(useThreadsProp);
-		pGui->AddControl(paniniProp);
+		pGui->AddWidget(DropdownWidget("Rendering Mode: ", &gRenderingMode, enumNames, enumValues, 3));
+		pGui->AddWidget(CheckboxWidget("Multithreaded CPU Update", &gUseThreads));
+		pGui->AddWidget(CheckboxWidget("Enable Panini Projection", &gbPaniniEnabled));
 		/************************************************************************/
 		// Panini props
 		/************************************************************************/
-#if !defined(TARGET_IOS)	
-		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Camera Horizontal FoV", gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
-		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Panini D Parameter", gPaniniParams.D, 0.0f, 1.0f, 0.001f));
-		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Panini S Parameter", gPaniniParams.S, 0.0f, 1.0f, 0.001f));
-		gPaniniControls.mDynamicProperties.emplace_back(UIProperty("Screen Scale", gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
+#if !defined(TARGET_IOS)
+		gPaniniControls.mDynamicProperties.emplace_back(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f).Clone());
+		gPaniniControls.mDynamicProperties.emplace_back(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f).Clone());
+		gPaniniControls.mDynamicProperties.emplace_back(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f).Clone());
+		gPaniniControls.mDynamicProperties.emplace_back(SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f).Clone());
 		if (gbPaniniEnabled)
 			gPaniniControls.ShowDynamicProperties(pGui);
+		else
+			gPaniniControls.HideDynamicProperties(pGui);
 #endif
 		/************************************************************************/
 		/************************************************************************/
@@ -737,13 +734,14 @@ public:
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
 #if !defined(TARGET_IOS)
+		gPaniniControls.Destroy();
 		gPanini.Exit();
 #endif
 
 		destroyCameraController(pCameraController);
 
 		removeDebugRendererInterface();
-        
+
 		gAppUI.Exit();
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);

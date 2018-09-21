@@ -86,12 +86,13 @@ public:
 		addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
 
 		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcFactor = BC_SRC_ALPHA;
-		blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mSrcAlphaFactor = BC_SRC_ALPHA;
-		blendStateDesc.mDstAlphaFactor = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mMask = ALL;
+		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mMasks[0] = ALL;
 		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
 
 		DepthStateDesc depthStateDesc = {};
@@ -375,7 +376,7 @@ void Fontstash::drawText(Cmd* pCmd, const char* message,const mat4& projView,con
 {
 	impl->mText3D = true;
 	impl->mProjView = projView;
-	impl->mWorldMat = worldMat * mat4::scale(vec3(impl->mDpiScale.x, impl->mDpiScale.y, 1.0f));
+	impl->mWorldMat = worldMat;
 	impl->pCmd = pCmd;
 	// clamp the font size to max size. 
 	// Precomputed font texture puts limitation to the maximum size.

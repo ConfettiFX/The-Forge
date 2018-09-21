@@ -232,13 +232,11 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 
 def ExecuteCommand(cmdList,outStream):
 	try:
+		print("")
 		print("Executing command: " + ' '.join(cmdList))
-		proc = subprocess.Popen(cmdList, outStream)
-		if outStream:
-			ls_output = proc.communicate()[0]
-			print(ls_output)
-		else:
-			proc.wait()
+		print("") 
+		proc = subprocess.Popen(cmdList, stdout=outStream)
+		proc.wait()
 
 		if proc.returncode != 0:
 			return proc.returncode
@@ -252,7 +250,7 @@ def ExecuteCommand(cmdList,outStream):
 	return 0 #success error code
 
 def ExecuteBuild(cmdList, fileName, configuration, platform):
-	returnCode = ExecuteCommand(cmdList, subprocess.PIPE)
+	returnCode = ExecuteCommand(cmdList, sys.stdout)
 	
 	if returnCode != 0:
 		print("FAILED BUILDING ", fileName, configuration)
@@ -518,13 +516,13 @@ def BuildLinuxProjects():
 			for proj in ubuntuProjects:
 				command = ["codelite-make","-w",filename,"-p", proj,"-c",conf]
 				#sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
-				sucess = ExecuteCommand(command, subprocess.PIPE)
+				sucess = ExecuteCommand(command, sys.stdout)
 				
 				if sucess != 0:
 					errorOccured = True
 				
 				command = ["make", "clean"]
-				sucess = ExecuteCommand(command, subprocess.PIPE)
+				sucess = ExecuteCommand(command, sys.stdout)
 
 				command = ["make", "-s"]
 				sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
@@ -643,31 +641,32 @@ def TestWindowsProjects(useActiveGpuConfig):
 		return -1
 	return 0	
 
-def BuildWindowsProjects(xboxDefined):
+def BuildWindowsProjects(xboxDefined, xboxOnly):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
 	pcConfigurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk", "DebugDx11", "ReleaseDx11"]
 	pcPlatform = "x64"
-	
+
 	xboxConfigurations = ["Debug","Release"]
 	xboxPlatform = "Durango"
-	
+
 	if msBuildPath == "":
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
 		sys.exit(-1)
-	
+
 	projects = GetFilesPathByExtension("./Examples_3","sln",False)
 	xboxProjects = []
 	if xboxDefined:
 		xboxProjects = GetFilesPathByExtension("./Xbox/Examples_3","sln",False)
-	
+
 	fileList = []
 
-	for proj in projects:
-		#we don't want to build Xbox one solutions when building PC
-			if "PC Visual Studio 2017" in proj:
-				fileList.append(proj)
+	if not xboxOnly:
+		for proj in projects:
+			#we don't want to build Xbox one solutions when building PC
+				if "PC Visual Studio 2017" in proj:
+					fileList.append(proj)
 
 	if xboxDefined:
 		for proj in xboxProjects:
@@ -705,7 +704,7 @@ def BuildWindowsProjects(xboxDefined):
 			platform = xboxPlatform
 				
 		for conf in configurations:
-			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Rebuild"]
+			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Rebuild"]
 			retCode = ExecuteBuild(command, filename,conf, platform)
 			
 			if retCode != 0:
@@ -739,9 +738,11 @@ def MainLogic():
 	global setDefines
 	#TODO: Maybe use simpler library for args
 	parser = argparse.ArgumentParser(description='Process the Forge builds')
+	parser.add_argument('--clean', action="store_true", help='If enabled, will delete all unversioned and untracked files/folder excluding the Art folder.')
 	parser.add_argument('--prebuild', action="store_true", help='If enabled, will run PRE_BUILD if assets do not exist.')
 	parser.add_argument('--forceprebuild', action="store_true", help='If enabled, will call PRE_BUILD even if assets exist.')
 	parser.add_argument('--xbox', action="store_true", help='Enable xbox building')
+	parser.add_argument('--xboxonly', action="store_true", help='Enable xbox building')
 	parser.add_argument("--skipiosbuild", action="store_true", default=False, help='Disable iOS building')
 	parser.add_argument("--skipioscodesigning", action="store_true", default=False, help='Disable iOS code signing')
 	parser.add_argument('--testing', action="store_true", help='Test the apps on current platform')
@@ -768,9 +769,14 @@ def MainLogic():
 	os.chdir(sys.path[0])
 	returnCode = 0
 	
-	if arguments.xbox is not True or "XboxOneXDKLatest" not in os.environ:
+	if (arguments.xbox is not True and arguments.xboxonly is not True) or "XboxOneXDKLatest" not in os.environ:
 		arguments.xbox = False
+		arguments.xboxonly = False
 	
+	#if we doing xbox only make sure the --xbox argument is enabled.
+	if arguments.xboxonly:
+		arguments.xbox = True
+
 	setDefines = arguments.defines
 	if setDefines == True:
 		print("Adding defines for automated testing")
@@ -783,12 +789,11 @@ def MainLogic():
 	if arguments.prebuild ==  True or arguments.forceprebuild == True:
 		if os.path.isdir("./Art") == False or arguments.forceprebuild == True:
 			if platform.system() == "Windows":
-				ExecuteCommand(["PRE_BUILD.bat"], subprocess.PIPE)
+				ExecuteCommand(["PRE_BUILD.bat"], sys.stdout)
 			else:
-				ExecuteCommand(["sh","PRE_BUILD.command"], subprocess.PIPE)
+				ExecuteCommand(["sh","PRE_BUILD.command"], sys.stdout)
 	
 	systemOS = platform.system()
-	print systemOS
 	if arguments.testing:
 		#Build for Mac OS (Darwin system)
 		if systemOS == "Darwin":
@@ -798,11 +803,15 @@ def MainLogic():
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = TestLinuxProjects()
 	else:
+		#Clean before Building removing everything but the art folder
+		if arguments.clean == True:
+			print("Cleaning the repo")
+			ExecuteCommand(["git", "clean" , "-fdfx", "--exclude=Art"],sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
 			returnCode = BuildXcodeProjects(arguments.skipiosbuild, arguments.skipioscodesigning)
 		elif systemOS == "Windows":
-			returnCode = BuildWindowsProjects(arguments.xbox)
+			returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 

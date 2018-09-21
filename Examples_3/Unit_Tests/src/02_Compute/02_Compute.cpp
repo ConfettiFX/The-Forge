@@ -456,7 +456,9 @@ public:
 		params[1].ppTextures = &pTextureComputeOutput;
 		cmdBindDescriptors(cmd, pComputeRootSignature, 2, params);
 
-		cmdDispatch(cmd, pTextureComputeOutput->mDesc.mWidth / pThreadGroupSize[0], pTextureComputeOutput->mDesc.mHeight / pThreadGroupSize[1], pThreadGroupSize[2]);
+		uint32_t groupCountX = (pTextureComputeOutput->mDesc.mWidth + pThreadGroupSize[0] - 1) / pThreadGroupSize[0];
+		uint32_t groupCountY = (pTextureComputeOutput->mDesc.mHeight + pThreadGroupSize[1] - 1) / pThreadGroupSize[1];
+		cmdDispatch(cmd, groupCountX, groupCountY, pThreadGroupSize[2]);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 

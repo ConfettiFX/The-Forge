@@ -53,13 +53,232 @@ namespace PlatformEvents
 	extern bool skipMouseCapture;
 }
 
-static tinystl::vector<GuiComponentImpl*> gInstances;
+static tinystl::vector<GuiComponent*> gInstances;
 static Mutex gMutex;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
 
 static bool uiInputEvent(const ButtonData* pData);
+
+static void CloneCallbacks(IWidget* pSrc, IWidget* pDst)
+{
+	// Clone the callbacks
+	pDst->pOnActive = pSrc->pOnActive;
+	pDst->pOnHover = pSrc->pOnHover;
+	pDst->pOnFocus = pSrc->pOnFocus;
+	pDst->pOnEdited = pSrc->pOnEdited;
+	pDst->pOnDeactivated = pSrc->pOnDeactivated;
+	pDst->pOnDeactivatedAfterEdit = pSrc->pOnDeactivatedAfterEdit;
+}
+
+IWidget* CollapsingHeaderWidget::Clone() const
+{
+	CollapsingHeaderWidget* pWidget = conf_placement_new<CollapsingHeaderWidget>(
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+
+	// Need to read the subwidgets as the destructor will remove them all
+	for (size_t i = 0; i < mGroupedWidgets.size(); ++i)
+		pWidget->AddSubWidget(*mGroupedWidgets[i]);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* LabelWidget::Clone() const
+{
+	LabelWidget* pWidget = conf_placement_new<LabelWidget>(
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* ButtonWidget::Clone() const
+{
+	ButtonWidget* pWidget = conf_placement_new<ButtonWidget>(
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* SeparatorWidget::Clone() const
+{
+	SeparatorWidget* pWidget = conf_placement_new<SeparatorWidget>(
+		conf_calloc(1, sizeof(*pWidget)));
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* SliderFloatWidget::Clone() const
+{
+	SliderFloatWidget* pWidget = conf_placement_new<SliderFloatWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* SliderFloat2Widget::Clone() const
+{
+	SliderFloat2Widget* pWidget = conf_placement_new<SliderFloat2Widget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* SliderFloat3Widget::Clone() const
+{
+	SliderFloat3Widget* pWidget = conf_placement_new<SliderFloat3Widget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* SliderFloat4Widget::Clone() const
+{
+	SliderFloat4Widget* pWidget = conf_placement_new<SliderFloat4Widget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* SliderIntWidget::Clone() const
+{
+	SliderIntWidget* pWidget = conf_placement_new<SliderIntWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+
+	return pWidget;
+}
+
+IWidget* SliderUintWidget::Clone() const
+{
+	SliderUintWidget* pWidget = conf_placement_new<SliderUintWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* RadioButtonWidget::Clone() const
+{
+	RadioButtonWidget* pWidget = conf_placement_new<RadioButtonWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mRadioId);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* DropdownWidget::Clone() const
+{
+	const char** ppNames = (const char**)alloca(mValues.size() * sizeof(const char*));
+	for (uint32_t i = 0; i < (uint32_t)mValues.size(); ++i)
+		ppNames[i] = mNames[i].c_str();
+	DropdownWidget* pWidget = conf_placement_new<DropdownWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, ppNames, this->mValues.data(), (uint32_t)this->mValues.size());
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* ProgressBarWidget::Clone() const
+{	
+	ProgressBarWidget* pWidget = conf_placement_new<ProgressBarWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, mMaxProgress);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* ColorSliderWidget::Clone() const
+{
+	ColorSliderWidget* pWidget = conf_placement_new<ColorSliderWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* ColorPickerWidget::Clone() const
+{
+	ColorPickerWidget* pWidget = conf_placement_new<ColorPickerWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* TextboxWidget::Clone() const
+{
+	TextboxWidget* pWidget = conf_placement_new<TextboxWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData, this->mLength, this->mAutoSelectAll);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* CheckboxWidget::Clone() const
+{
+	CheckboxWidget* pWidget = conf_placement_new<CheckboxWidget>(
+		conf_calloc(1, sizeof(*pWidget)),
+		this->mLabel, this->pData);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
 /************************************************************************/
 // UI Implementation
 /************************************************************************/
@@ -72,157 +291,15 @@ struct UIAppImpl
 
 	tinystl::vector<GuiComponent*>				mComponents;
 
-	tinystl::vector<struct GuiComponentImpl*>	mComponentsToUpdate;
+	tinystl::vector<GuiComponent*>	mComponentsToUpdate;
 	float										mDeltaTime;
 };
 UIAppImpl* pInst;
 
-struct GuiComponentImpl
-{
-	bool Init(class UIApp* pApp, const char* pTitle, const GuiDesc* pDesc)
-	{
-		initGUIDriver(pApp->pImpl->pRenderer, &pDriver);
-
-		pDriver->load(pApp->pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
-
-		mInitialWindowRect =
-		{
-			pDesc->mStartPosition.getX(),
-			pDesc->mStartPosition.getY(),
-			pDesc->mStartSize.getX(),
-			pDesc->mStartSize.getY()
-		};
-
-		SetActive(true);
-		SetTitle(pTitle);
-
-		MutexLock lock(gMutex);
-		gInstances.emplace_back(this);
-
-		if (gInstances.size() == 1)
-		{
-			InputSystem::RegisterInputEvent(uiInputEvent);
-		}
-
-		return true;
-	}
-
-	void Exit()
-	{
-		pDriver->unload();
-
-		removeGUIDriver(pDriver);
-
-		MutexLock lock(gMutex);
-		gInstances.erase(gInstances.find(this));
-	}
-
-	void Draw(Cmd* pCmd, float deltaTime)
-	{
-		if (!IsActive())
-			return;
-
-		pDriver->draw(pCmd, deltaTime,
-			mTitle,
-			mInitialWindowRect.x, mInitialWindowRect.y, mInitialWindowRect.z, mInitialWindowRect.w,
-			&mProperties[0], (uint32_t)mProperties.size());
-	}
-
-	void SetTitle(const char* title_)
-	{
-		this->mTitle = title_;
-	}
-
-	void SetActive(bool active)
-	{
-		mActive = active;
-	}
-
-	bool IsActive()
-	{
-		return mActive;
-	}
-
-	unsigned int AddControl(const UIProperty& prop)
-	{
-		// Try first to fill empty property slot
-		for (unsigned int i = 0; i < (uint32_t)mProperties.size(); i++)
-		{
-			UIProperty& prop_slot = mProperties[i];
-			if (prop_slot.pData != NULL)
-				continue;
-
-			prop_slot = prop;
-			return i;
-		}
-
-		mProperties.emplace_back(prop);
-		return (uint32_t)mProperties.size() - 1;
-	}
-
-	UIProperty& GetControl(unsigned int idx)
-	{
-		return mProperties[idx];
-	}
-
-	void ClearControls()
-	{
-		mProperties.clear();
-	}
-
-	void RemoveControl(unsigned int idx)
-	{
-		UIProperty& prop = mProperties[idx];
-		prop.pData = NULL;
-		prop.pCallback = NULL;
-	}
-
-	void SetControlFlag(unsigned int propertyId, UIProperty::FLAG flag, bool state)
-	{
-		ASSERT(propertyId < (uint32_t)mProperties.size());
-		unsigned int& flags = mProperties[propertyId].mFlags;
-		flags = state ? (flags | flag) : (flags & ~flag);
-	}
-
-	// returns: 0: no input handled, 1: input handled
-	bool OnInput(const struct ButtonData* pData)
-	{
-		// Handle the mouse click events:
-		//   We want to send ButtonData with click position to the UI system
-		//   
-		if (   pData->mUserId == KEY_CONFIRM      // left  click
-			|| pData->mUserId == KEY_RIGHT_BUMPER // right click
-			|| pData->mUserId == KEY_MOUSE_WHEEL
-		)
-		{
-			// Query the latest UI_MOVE event since the current event 
-			// which is a click event, doesn't contain the mouse position. 
-			// Here we construct the 'toSend' data to contain both the 
-			// position (from the latest Move event) and click info from the
-			// current event.
-			ButtonData latestUIMoveEventData = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
-			ButtonData toSend = *pData;
-			toSend.mValue[0] = latestUIMoveEventData.mValue[0];
-			toSend.mValue[1] = latestUIMoveEventData.mValue[1];
-
-			PlatformEvents::skipMouseCapture = pDriver->onInput(&toSend);
-			return PlatformEvents::skipMouseCapture;
-		}
-		
-		// just relay the rest of the events to the UI and let the UI system process the events
-		return pDriver->onInput(pData);
-	}
-
-private:
-	GUIDriver*					pDriver;
-	float4						mInitialWindowRect;
-	tinystl::string				mTitle;
-	tinystl::vector<UIProperty>	mProperties;
-	bool						mActive;
-};
-
 bool UIApp::Init(Renderer* renderer)
 {
+	mShowDemoUiWindow = false;
+
 	pImpl = (struct UIAppImpl*)conf_calloc(1, sizeof(*pImpl));
 	pInst = pImpl;
 	pImpl->pRenderer = renderer;
@@ -272,8 +349,30 @@ uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
 GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 {
 	GuiComponent* pComponent = conf_placement_new<GuiComponent>(conf_calloc(1, sizeof(GuiComponent)));
-	pComponent->pImpl = (struct GuiComponentImpl*)conf_calloc(1, sizeof(GuiComponentImpl));
-	pComponent->pImpl->Init(this, pTitle, pDesc);
+	pComponent->mHasCloseButton = false;
+	pComponent->mFlags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
+
+	initGUIDriver(pImpl->pRenderer, &pComponent->pDriver);
+	pComponent->pDriver->load(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
+
+	pComponent->mInitialWindowRect =
+	{
+		pDesc->mStartPosition.getX(),
+		pDesc->mStartPosition.getY(),
+		pDesc->mStartSize.getX(),
+		pDesc->mStartSize.getY()
+	};
+
+	pComponent->mActive = true;
+	pComponent->mTitle = pTitle;
+
+	MutexLock lock(gMutex);
+	gInstances.emplace_back(pComponent);
+
+	if (gInstances.size() == 1)
+	{
+		InputSystem::RegisterInputEvent(uiInputEvent);
+	}
 
 	pImpl->mComponents.emplace_back(pComponent);
 
@@ -284,11 +383,23 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 {
 	ASSERT(pComponent);
 
+	for (uint32_t i = 0; i < (uint32_t)pComponent->mWidgets.size(); ++i)
+	{
+		IWidget* pWidget = pComponent->mWidgets[i];
+		pWidget->~IWidget();
+		conf_free(pWidget);
+	}
+
 	pImpl->mComponents.erase(pImpl->mComponents.find(pComponent));
 
-	pComponent->pImpl->Exit();
-	pComponent->pImpl->~GuiComponentImpl();
-	conf_free(pComponent->pImpl);
+	pComponent->pDriver->unload();
+	pComponent->mWidgets.clear();
+
+	removeGUIDriver(pComponent->pDriver);
+
+	MutexLock lock(gMutex);
+	gInstances.erase(gInstances.find(pComponent));
+
 	pComponent->~GuiComponent();
 	conf_free(pComponent);
 }
@@ -303,25 +414,43 @@ void UIApp::Draw(Cmd* pCmd)
 {
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 	{
-		pImpl->mComponentsToUpdate[i]->Draw(pCmd, pImpl->mDeltaTime);
+		GuiComponent* pGui = pImpl->mComponentsToUpdate[i];
+		if (!pGui->mActive)
+			return;
+
+		pGui->pDriver->draw(pCmd, pImpl->mDeltaTime,
+			pGui->mTitle,
+			pGui->mHasCloseButton ? &pGui->mActive : NULL,
+			pGui->mFlags,
+			pGui->mInitialWindowRect.x, pGui->mInitialWindowRect.y, pGui->mInitialWindowRect.z, pGui->mInitialWindowRect.w,
+			pGui->mWidgets.data(), (uint32_t)pGui->mWidgets.size(),
+			pGui->mContextualMenuLabels, pGui->mContextualMenuCallbacks,
+			(i == 0 && mShowDemoUiWindow) ? true : false);
 	}
 }
 
 void UIApp::Gui(GuiComponent* pGui)
 {
-	pImpl->mComponentsToUpdate.emplace_back(pGui->pImpl);
+	pImpl->mComponentsToUpdate.emplace_back(pGui);
 }
 
-uint32_t GuiComponent::AddControl(const UIProperty& control)
+IWidget* GuiComponent::AddWidget(const IWidget& widget)
 {
-	return pImpl->AddControl(control);
+	mWidgets.emplace_back(widget.Clone());
+	return mWidgets.back();
 }
 
-void GuiComponent::RemoveControl(unsigned int controlID)
+void GuiComponent::RemoveWidget(IWidget* pWidget)
 {
-	pImpl->RemoveControl(controlID);
+	decltype(mWidgets)::iterator it = mWidgets.find(pWidget);
+	if (it != mWidgets.end())
+	{
+		IWidget* pWidget = *it;
+		mWidgets.erase(it);
+		pWidget->~IWidget();
+		conf_free(pWidget);
+	}
 }
-
 /************************************************************************/
 /************************************************************************/
 bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, uint root)
@@ -347,12 +476,13 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	addSampler(pRenderer, &samplerDesc, &pSampler);
 
 	BlendStateDesc blendStateDesc = {};
-	blendStateDesc.mSrcFactor = BC_SRC_ALPHA;
-	blendStateDesc.mDstFactor = BC_ONE_MINUS_SRC_ALPHA;
-	blendStateDesc.mSrcAlphaFactor = BC_SRC_ALPHA;
-	blendStateDesc.mDstAlphaFactor = BC_ONE_MINUS_SRC_ALPHA;
-	blendStateDesc.mMask = ALL;
+	blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+	blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+	blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+	blendStateDesc.mMasks[0] = ALL;
 	blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+	blendStateDesc.mIndependentBlend = false;
 	addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
 
 	DepthStateDesc depthStateDesc = {};
@@ -551,18 +681,52 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraControll
 /************************************************************************/
 // Event Handlers
 /************************************************************************/
+	// returns: 0: no input handled, 1: input handled
+bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
+{
+	// Handle the mouse click events:
+	// We want to send ButtonData with click position to the UI system
+	//
+	if (pData->mUserId == KEY_CONFIRM      // left  click
+		|| pData->mUserId == KEY_RIGHT_BUMPER // right click
+		|| pData->mUserId == KEY_MOUSE_WHEEL)
+	{
+		// Query the latest UI_MOVE event since the current event 
+		// which is a click event, doesn't contain the mouse position.
+		// Here we construct the 'toSend' data to contain both the 
+		// position (from the latest Move event) and click info from the
+		// current event.
+		ButtonData latestUIMoveEventData = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
+		ButtonData toSend = *pData;
+		toSend.mValue[0] = latestUIMoveEventData.mValue[0];
+		toSend.mValue[1] = latestUIMoveEventData.mValue[1];
+
+		PlatformEvents::skipMouseCapture = pDriver->onInput(&toSend);
+		return PlatformEvents::skipMouseCapture;
+	}
+
+	// just relay the rest of the events to the UI and let the UI system process the events
+	return pDriver->onInput(pData);
+}
+
 static bool uiInputEvent(const ButtonData * pData)
 {
 	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-		if (gInstances[i]->IsActive() && gInstances[i]->OnInput(pData))
+	{
+		if (gInstances[i]->mActive && OnInput(pData, gInstances[i]->pDriver))
+		{
 			return true;
+		}
+	}
 
 	// KEY_LEFT_STICK_BUTTON <-> F1 Key : See InputMapphings.h for details
 	// F1: Toggle Displaying UI
 	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
 	{
 		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-			gInstances[i]->SetActive(!gInstances[i]->IsActive());
+			gInstances[i]->mActive = (!gInstances[i]->mActive);
+		
+		PlatformEvents::skipMouseCapture = false;
 	}
 
 	return false;

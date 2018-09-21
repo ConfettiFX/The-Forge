@@ -21,6 +21,7 @@ public:
 	InputDevice::DeviceState GetState() const { return deviceState_; }
 
 	void Update(InputDeltaState* delta);
+	void HandleMouseMove(float x, float y);
 
 	InputManager& manager_;
 	InputDevice::DeviceState deviceState_;
@@ -32,8 +33,6 @@ public:
 
 	float mousePosAccumulationX_;
 	float mousePosAccumulationY_;
-private:
-	void* ioManager_;
 };
 
 }

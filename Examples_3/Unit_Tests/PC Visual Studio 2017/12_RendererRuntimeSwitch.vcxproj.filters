@@ -111,9 +111,6 @@
     <ClCompile Include="..\..\..\Common_3\OS\Core\Timer.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.cpp">
-      <Filter>OS\UI</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
@@ -269,9 +266,6 @@
       <Filter>OS\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Middleware_3\UI\NuklearGUIDriver.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h">
