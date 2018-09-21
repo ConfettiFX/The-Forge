@@ -4,6 +4,7 @@ The Forge is a cross-platform rendering framework supporting
 - PC 
   * Windows 10 
      * with DirectX 12 / Vulkan
+     * DirectX 11 Fallback Layer
      * with DirectX Ray Tracing API
   * Linux Ubuntu 18.04 LTS with Vulkan
 - macOS with Metal 2
@@ -33,6 +34,73 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.16 - September 21st, 2018 - Order-Independent Transparency Unit Test | Wave Intrinsics Unit Test | Updated Confetti Shader Translator
+* There is a new unit test that evaluates various Order-Independent Transparency methods:
+  * Alpha blended transparency
+  * Weighted blended Order Independent Transparency (Morgan McGuire)
+  * Weighted blended Order Independent Transparency by Volition (GDC 2018 Talk)
+  * Adaptive Order Independent Transparency with Raster Order Views (paper by Intel, supports DirectX 11, 12 only)
+  There are more details and a comparison in the documentation folder of the unit test.
+
+PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
+![OIT on PC ](Screenshots/14_OIT.png)
+
+Linux Vulkan 1.1.82.1 GeForce 1080 Driver 390.87 with a resolution of 1080p in full-screen:
+![OIT on PC ](Screenshots/OIT_Linux_NVIDIA1080.png)
+
+MacBook Pro (Model A1706) with a resolution of 1080p in full-screen:
+![OIT on PC ](Screenshots/OIT_MacBookPro1080p.png)
+
+iPhone 7  with a resolution of 1334x750 in full-screen:
+![OIT on PC ](Screenshots/OIT_iPhone7.png)
+
+* There is a new Wave Intrinsics Unit test. It tests the new wave intrinsic instructions and makes sure they are support on PC Windows (DirectX 12 / Vulkan) for now. We are planning to add support on other platforms. On PC with DirectX it utilizes a "preview" integration of the DirectX Shader compiler. We were running into multiple bugs with DXC and decided to only use it for the new Shader model 6 shaders. So The Forge uses DXC for shaders that request shader_target_6_0 and FXC for everything below. The shader target can be specified during load time.
+
+PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
+![OIT on PC ](Screenshots/OIT_PC_DirectX12.png)
+
+
+* PC - fixed resizing ... should now work again with Alt+Enter ...
+* Vulkan
+ * upgraded to the latest Vulkan Memory Allocator
+ * Enabled subgroup extensions for Wave Intrinsics Unit Test
+* macOS / iOS 
+  * on-going work on improving input on macOS and iOS with imGUI
+  * upgraded to macOS: 10.14 (18A389), XCode: 10 (10A254a)
+* imGUI: improved implementation to make it a native citizen and expose the whole functionality. for tools, now there is more flexibility to create individual UIs for all apps. Check out the new screenshot below.
+
+imGUI support:
+
+![imGUI on PC ](Screenshots/13_imGui.gif)
+
+* Linux - upgraded AMDGPU-Pro driver to 18.30-641594
+* The Confetti Shader Translator received lots of bugs fixes and upgrades over the last six weeks. Head over to the URL and check it out. We have a large backlog with bugs and therefore it is still in alpha. New Features are:
+  * include file support
+  * preprocessor branching
+  * switch statement
+  * nested array
+  * texture argments for functions
+  * pur buffer (Buffer) type
+  * Shader Model 6.0 (Wave)
+    * SampleGrad()
+    * GatherRed()   
+    * all()
+    * gatherRed()
+    * f32to16()
+    * f16to32()
+    * NonUniformResourceIndex()
+    * determinate functions 
+  * GLSL
+    * Shader Model 6.0 functions (Subgroup)
+    * #extension system (Now, only necessary extensions are written, automatically)  
+    * textureGather()
+    * textureGrad()
+  * added loading progress bar
+  * and others ... 
+  Here is a screenshot of the latest version.
+![Confetti Shader Translator](Screenshots/ConfettiShaderTranslator.png)
+
+
 ## Release 1.15 - September 7th, 2018 - Hybrid Ray Traced Shadows | DirectX 11 fallback layer | imGUI
 * This is the biggest release so far :-)
 * We added a new unit test -provided by Kostas Anagnostou @KostasAAA- that shows hybrid ray traced (HRT) shadows on  all supported GPUs; Windows / Linux / XBOX One / macOS and iOS. This unit test was build to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. Kostas wrote a blog post about the details at https://interplayoflight.wordpress.com/2018/09/04/hybrid-raytraced-shadows-part-2-performance-improvements/. 
@@ -61,37 +129,17 @@ Kostas plans to use the San Miguel Scene for this and then also merge it with th
   * supports now the descriptor update template extension: VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME
   * added ability to specify instance layers, instance, device extensions from app code
   * upgraded to Vulkan SDK 1.1.82.0
+* We also reformatted the source code (yeaahh :-) )
+  * Replaced spaces with tabs
+  * Removed whitespaces at the end of lines
+  * Added .editorconfig
 * The Torque 3D engine will use The Forge as its rendering layer in the future 
 
 <a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
 alt="Torque 3D" width="417" height="106" border="0" /></a>
 * macOS - one thing notable is that The Forge on macOS can be used with an XBOX controller with this driver: [360Controller](https://github.com/360Controller/360Controller)
 
-## Release 1.14 - August 9th, 2018 - Early Alpha of the Shader Translator system | Refactored Texture / Rendertarget interface for all platforms
-* After evaluating how to approach a unified shader generation system by looking at the DirectX Shader Compiler in GitHub and also implementing it into Lumberyard a whiles ago, we decided to follow a simpler approach by developing our own shader translator based on the work that was done by Thekla with the [hlslparser](https://github.com/Thekla/hlslparser). We are currently extending this shader translator to support a new super HLSL source language (platform specific #defines + material description) and translate that sHLSL into the most current respective shader languages of the target platforms, so that those shaders can then be compiled with the target platform compiler. There is an early alpha version available online at [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) following the excellent approach of [Shader Playground](https://github.com/tgjones/shader-playground) as a base for our online approach (Thanks for your help tgjones!).
-The main motivation to use the shader translator instead of the DirectX Shader Compiler is code maintenance. Maintaining our own code cut of the DirectX Shader Compiler would add too much overhead on the team and it would make it much harder to implement our super HLSL language. We will spend some time  testing this system. As soon as it is more reliable, there will be a Visual Studio extension and an extension for XCode to translate within the IDEs in the future.
-![Confetti Shader Translator](Screenshots/ConfettiShaderTranslator.png)
-* IRenderer Cleanup for all platforms (more cleanups to come)
-  * Remove TextureType, RenderTargetType, TextureUsage, BufferUsage, BufferFeatureFlags
-  * Expand DescriptorType enum to hold all descriptor usage patterns
-  * Add ability to target mip slice UAV
-* macOS 
-  * upgraded to 10.14 Beta (18A353d)
-  * XCode 10.0 beta (10L176w)
-* iOS 11.4.1 (15G77)
 
-## Release 1.13 - July 13th, 2018 - Unified Input System for all Platforms | New unit Test Light and Shadow Playground
-* Added a unified input system based on Gainput to all platforms (https://github.com/jkuhlmann/gainput). The new input system substantially simplified input management on the application level over all platforms. We also simplified the camera controller. Added also new VirtualJoystick class in UI.
-* Added a Light and Shadow Playground unit test. There are two types of shadows supported in the moment exponential shadows and SDF shadows. There is a switch to pick one of them during run-time. In the future there will be more complex lighting and shadow setups.
-![Image of the Light and Shadow Unit test](Screenshots/09_LightShadowPlayground.png)
-
-* There is now functionality to create views per mip / per slice for textures and render target through TextureUsage and RenderTargetUsage flags (typecast cube map to 2D texture array etc.)
-* UIRenderer was removed and there is now a dedicated text rendering system different from UI rendering and no UI rendering interface anymore
-* cmdbindVertexBuffer, cmdBindIndexBuffer now support offsets
-* cmdBindRenderTargets now takes color array, mip slices, depth array and mip slice index
-* The Pixel-Projected Reflections unit test now uses bindless textures on all platforms except for iOS as its too many to bind in one go.
-* iOS: all unit tests run on our iOS test device; Visibility Buffer still doesn't as described below. 
-* Moved the release notes from this page into the release section and added actual releases
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -102,7 +150,7 @@ See the release notes from previous releases in the [Release section](https://gi
 
 2. Drivers
 * AMD / NVIDIA - latest drivers should work. On Vulkan, at least NVIDIA Beta Driver 389.20 are required to support Linked Multi-GPU. 
-* Intel - need to install the latest driver (currently 24.20.100.6094, May 22nd) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/27803/Intel-Graphics-Driver-for-Windows-10). As mentioned above this driver still doesn't have full DirectX 12 and Vulkan support.
+* Intel - need to install the latest driver (currently 24.20.100.6094, May 22nd) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/27803/Intel-Graphics-Driver-for-Windows-10). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
@@ -120,12 +168,11 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 * NVIDIA GeForce 9x, 10x GPUs (various)
 * Intel Skull Canyon
 
-
 # macOS Requirements:
 
-1. macOS: 10.14 beta (18a384a)
+1. macOS: 10.14 (18A389)
 
-2. XCode: 10.0 beta (10L176W) 
+2. XCode: 10 (10A254a) 
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -154,7 +201,7 @@ We are currently testing on
 1. [Ubuntu 18.04 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: 4.15.0-20-generic
 
 2. GPU Drivers:
-* [AMDGpu-Pro 18.20 Early Preview](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-18.20-Early-Preview-Release-Notes.aspx)
+* [AMDGpu-Pro 18.30-641594](https://www.amd.com/en/support/graphics/radeon-500-series/radeon-rx-500-series/radeon-rx-580)
 * [NVIDIA Linux x86_64/AMD64/EM64T 390.87](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
 
 3. Workspace file is provided for [codelite](https://codelite.org/)
@@ -262,7 +309,20 @@ This unit test shows how to switch between the Vulkan and DirectX 12 graphics AP
 ## 13. imGUI integration unit test
 This unit test shows how the integration of imGui with a wide range of functionality.
 
-![Image of the imGui Integrationn in The Forge](Screenshots/13_imGui.gif)
+![Image of the imGui Integration in The Forge](Screenshots/13_imGui.gif)
+
+
+## 14. Order-Independent Transparency unit test
+This unit test compares various Order-Indpendent Transparency Methods.
+
+![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.gif)
+
+
+## 15. Wave Intrinsics unit test
+This unit test shows how to use the new wave intrinsics. In the moment it only supports DirectX 12 and Vulkan on PC Windows. More platforms will be added.
+
+![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.gif)
+
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -300,7 +360,6 @@ The Forge utilizes the following Open-Source libraries:
   * [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h)
   * [stb_image_resize.h](https://github.com/nothings/stb/blob/master/stb_image_resize.h)
   * [stb_image_write.h](https://github.com/nothings/stb/blob/master/stb_image_write.h)
-* [Nuklear UI](https://github.com/vurtun/nuklear)
 * [shaderc](https://github.com/google/shaderc)
 * [SPIRV_Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 * [Task Scheduler](https://github.com/SergeyMakeev/TaskScheduler)
@@ -315,3 +374,4 @@ The Forge utilizes the following Open-Source libraries:
 * [Shader Playground](https://github.com/tgjones/shader-playground)
 * [hlslparser](https://github.com/Thekla/hlslparser)
 * [ImGui](https://github.com/ocornut/imgui)
+* [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
