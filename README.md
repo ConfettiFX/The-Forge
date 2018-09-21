@@ -57,7 +57,7 @@ iPhone 7  with a resolution of 1334x750 in full-screen:
 * There is a new Wave Intrinsics Unit test. It tests the new wave intrinsic instructions and makes sure they are support on PC Windows (DirectX 12 / Vulkan) for now. We are planning to add support on other platforms. On PC with DirectX it utilizes a "preview" integration of the DirectX Shader compiler. We were running into multiple bugs with DXC and decided to only use it for the new Shader model 6 shaders. So The Forge uses DXC for shaders that request shader_target_6_0 and FXC for everything below. The shader target can be specified during load time.
 
 PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
-![OIT on PC ](Screenshots/OIT_PC_DirectX12.png)
+![Wave Intrinsics on PC ](screenshots/15_WaveIntrinsics.png)
 
 
 * PC - fixed resizing ... should now work again with Alt+Enter ...
@@ -315,13 +315,13 @@ This unit test shows how the integration of imGui with a wide range of functiona
 ## 14. Order-Independent Transparency unit test
 This unit test compares various Order-Indpendent Transparency Methods.
 
-![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.gif)
+![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.png)
 
 
 ## 15. Wave Intrinsics unit test
 This unit test shows how to use the new wave intrinsics. In the moment it only supports DirectX 12 and Vulkan on PC Windows. More platforms will be added.
 
-![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.gif)
+![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
 
 # Examples
