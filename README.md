@@ -59,10 +59,9 @@ iPhone 7  with a resolution of 1334x750 in full-screen:
 PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
-* PC - fixed resizing ... should now work again with Alt+Enter ...
 * Vulkan
- * upgraded to the latest Vulkan Memory Allocator
- * Enabled subgroup extensions for Wave Intrinsics Unit Test
+  * upgraded to the latest Vulkan Memory Allocator
+  * Enabled subgroup extensions for Wave Intrinsics Unit Test
 * macOS / iOS 
   * on-going work on improving input on macOS and iOS with imGUI
   * upgraded to macOS: 10.14 (18A389), XCode: 10 (10A254a)
