@@ -3,13 +3,13 @@
 The Forge is a cross-platform rendering framework supporting
 - PC 
   * Windows 10 
-     * with DirectX 12 / Vulkan
-     * DirectX 11 Fallback Layer
+     * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
-  * Linux Ubuntu 18.04 LTS with Vulkan
+     * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
+  * Linux Ubuntu 18.04 LTS with Vulkan 1.1
+- Android Pie with Vulkan 1.1
 - macOS with Metal 2
 - iOS with Metal 2
-- Android with Vulkan (in development)
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 (in development) (only available for accredited developers on request)
 
@@ -20,7 +20,7 @@ Particularly, The Forge supports cross-platform
 - Multi-threaded command buffer generation
 
 Future plans are
-- Unified shader generation check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net)
+- Unified shader generation -> check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net)
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
 
@@ -33,6 +33,41 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.17 - October 4th, 2018 - Android Pie & Vulkan 1.1 Support  | iOS imGUI touch & virtual keyboard | DXR Ray Tracing support | Call for contributors to change IRenderer.h
+* The Forge now has initial support for Android with the same Vulkan 1.1 run-time that is used by the Windows and Linux platforms. 
+
+![Android running Vulkan 1.1 ](Screenshots/Compute_Android.png)
+
+There are only a few phones that support Vulkan 1.1. We developed and support the 
+[Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone).
+This phone uses an Adreno 540 GPU and can be obtained relatively cheap and unlocked from Amazon or similar sources. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
+At the moment only the first two unit tests are running but we will extend the support to as many as we can in an upcoming release. We expect to run into driver bugs. We will not actively support Vulkan 1.0.
+* Vulkan - mobile phone support see above
+* iOS: 
+  * upgraded to 12.0 (16A366)
+  * we extended imGUI support for iOS with touch support and virtual keyboard
+* Windows - fixed resizing ... should now work again with Alt+Enter ...
+* Windows DXR - The Forge was the first rendering framework to support DXR, now that there will be hardware support, we added a screenshot of one of the unit tests below. We will add support for the other Ray Tracing APIs as well. They are useful for devloping Tools. For games we recommend the Hybrid Ray-Traced solutions provided below (so far only shadows).
+
+![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
+
+* Upgraded the Order-Independent Transparency unit test to support Phenomenological Transparency as described in one of Morgan McGuire's papers. Here are screenshots:
+
+![OIT Refraction ](Screenshots/OIT_refraction.png)
+
+Phenomenological Transparency - Refraction
+
+![OIT diffusion ](Screenshots/OIT_diffusion.png)
+
+Phenomenological Transparency - Diffusion
+
+![OIT diffusion, refraction, shadows ](Screenshots/OIT_diffusion_refraction_shadows.png)
+
+Phenomenological Transparency - Diffusion, Refraction, Shadows
+
+* Linux - the wave intrinsics unit test now also works on Linux. We are looking into macOS / iOS next.
+* Call for contributors to change IRenderer.h - as a heads-up, we will change the renderer interface to use our own way of "Render Passes and Compute Passes" similar to the Vulkan render passes. We will analyze render and compute calls and use this information to expose data to a "Render Graph" that will be implemented on a higher level. If you want to be part of the group that thinks about how we should adjust IRenderer.h for this, please send Wolfgang a note and your skype ID
 
 ## Release 1.16 - September 21st, 2018 - Order-Independent Transparency Unit Test | Wave Intrinsics Unit Test | Updated Confetti Shader Translator
 * There is a new unit test that evaluates various Order-Independent Transparency methods:
@@ -60,8 +95,8 @@ PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
 * Vulkan
-  * upgraded to the latest Vulkan Memory Allocator
-  * Enabled subgroup extensions for Wave Intrinsics Unit Test
+ * upgraded to the latest Vulkan Memory Allocator
+ * Enabled subgroup extensions for Wave Intrinsics Unit Test
 * macOS / iOS 
   * on-going work on improving input on macOS and iOS with imGUI
   * upgraded to macOS: 10.14 (18A389), XCode: 10 (10A254a)
@@ -97,45 +132,6 @@ imGUI support:
   * and others ... 
   Here is a screenshot of the latest version.
 ![Confetti Shader Translator](Screenshots/ConfettiShaderTranslator.png)
-
-
-## Release 1.15 - September 7th, 2018 - Hybrid Ray Traced Shadows | DirectX 11 fallback layer | imGUI
-* This is the biggest release so far :-)
-* We added a new unit test -provided by Kostas Anagnostou @KostasAAA- that shows hybrid ray traced (HRT) shadows on  all supported GPUs; Windows / Linux / XBOX One / macOS and iOS. This unit test was build to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. Kostas wrote a blog post about the details at https://interplayoflight.wordpress.com/2018/09/04/hybrid-raytraced-shadows-part-2-performance-improvements/. 
-
-PC Windows 10 Vulkan 1.1.82.1 GeForce 1080 Driver 398.82 with a resolution of 2560 * 1440 in full-screen:
-![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)
-
-iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 2560x1440 in full-screen:
-![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows_macOS.png)
-
-Here is a version running on a iPhone 7 with iOS 11.4.1 (15G77) and a resolution of 1334 x 750 in full-screen:
-![Hybrid Ray Traced Shadows on iOS](Screenshots/09a_HRT_Shadows_iOS.png)
-
-Please note there are no platform specific optimizations for macOS or iOS in the moment. The initial version was developed on PC and then just ported to the other platforms. We might optimize for the other platforms at some point.
-Kostas plans to use the San Miguel Scene for this and then also merge it with the Light and Shadow Playground, so that you can pick different shadow techniques and compare them. He wants to implement HRT Reflections next. I wrote a short blog post about the development of this unit test at https://diaryofagraphicsprogrammer.blogspot.com/2018/09/ray-tracing-without-ray-tracing-api.html
-* Improved the 09_LightShadowPlayground by calculating the SDF shadow in a more generic way
-* Based on customer request and to support Windows 7, we added a DirectX 11 fallback code path. Because this API can not support all unit tests, it is only a choice on a select few
-* IRenderer Cleanup for all platforms
-  * removed several descriptor related structs, which enabled us to simplify the codebase
-  * add render index draw start vertex
-* We replaced NuklearUI with imGui; we are going to replace QT with imGui now for our internal tools, so trying to keep this consistent
-* Created a new unit test for imGui #13 - it shows the current level of integration of imGui into The Forge
-![Image of the imGui Integrationn in The Forge](Screenshots/13_imGui.gif)
-* Linux - changed to standard __linux__ define instead of user defined LINUX
-* Vulkan 
-  * supports now the descriptor update template extension: VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME
-  * added ability to specify instance layers, instance, device extensions from app code
-  * upgraded to Vulkan SDK 1.1.82.0
-* We also reformatted the source code (yeaahh :-) )
-  * Replaced spaces with tabs
-  * Removed whitespaces at the end of lines
-  * Added .editorconfig
-* The Torque 3D engine will use The Forge as its rendering layer in the future 
-
-<a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
-alt="Torque 3D" width="417" height="106" border="0" /></a>
-* macOS - one thing notable is that The Forge on macOS can be used with an XBOX controller with this driver: [360Controller](https://github.com/360Controller/360Controller)
 
 
 
@@ -184,7 +180,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 11.4.1 (15G77) 
+1. iOS: 12.0 (16A366)
 
 2. XCode: see macOS
 
@@ -213,6 +209,17 @@ We are currently testing on
 
 Make sure VulkanSDK environment variables are configured correctly.
 Please read the "Set up the Runtime Environment" and "Environment Variable Persistence" [https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html](https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html)
+
+
+# Android Requirements:
+
+Android Phone with Android Pie (9.x) for Vulkan 1.1 support
+
+We are currently testing on 
+* [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) with Android 9.0 - Build PPR1.181005.034
+
+This phone uses an Adreno 540 GPU. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
+
 
 
 
@@ -317,9 +324,14 @@ This unit test compares various Order-Indpendent Transparency Methods.
 
 
 ## 15. Wave Intrinsics unit test
-This unit test shows how to use the new wave intrinsics. In the moment it only supports DirectX 12 and Vulkan on PC Windows. More platforms will be added.
+This unit test shows how to use the new wave intrinsics. In the moment it only supports DirectX 12 and Vulkan on Windows and with the later on Linux. More platforms will be added.
 
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
+
+## 16. Ray Tracing Unit Test for DXR
+Ray Tracing API unit test, showing how to use DXR on Windows only.
+
+![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
 
 
 # Examples
