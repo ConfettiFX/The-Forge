@@ -72,9 +72,11 @@ static GPUPresetLevel getSinglePresetLevel(tinystl::string line,const tinystl::s
 	}
 
 	return GPU_PRESET_NONE;
-	
+
 }
 #endif
+
+#ifndef __ANDROID__
 //TODO: Add name matching as well.
 static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 {
@@ -87,7 +89,7 @@ static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 
 	//remote comment from line
 	tinystl::vector<tinystl::string> parsedString = line.split(';');
-	
+
 	//We need at least 3 entries (vendor, Model, Preset)
 	//The file is layed out the following way:
 	//Model ID; Vendor ID; Preset; GPU Name; Revision ID;
@@ -123,7 +125,7 @@ static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 		//check if current vendor line is one of the selected gpu's
 		//compare both ModelId and VendorId
 		if (strcmp(currentSettings->mGpuVendorPreset.mVendorId, vendorId.c_str()) == 0 && strcmp(currentSettings->mGpuVendorPreset.mModelId, deviceId.c_str()) == 0) {
-			
+
 			//if we have a revision Id then we want to match it as well
 			if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 && strcmp(revisionId, "0x00") != 0 && strcmp(currentSettings->mGpuVendorPreset.mRevisionId, revisionId.c_str()) == 0)
 				continue;
@@ -148,7 +150,10 @@ static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 		}
 	}
 }
+#endif
+
 #ifndef METAL
+#ifndef __ANDROID__
 static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset &pActiveGpu)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
@@ -197,10 +202,13 @@ static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset &pActiveGpu)
 	//TODO: Hardcoded for now as its only used for automated testing
 	//We will want to test with different presets
 	pActiveGpu.mPresetLevel = GPU_PRESET_ULTRA;
-	
+
 	return true;
 }
 #endif
+#endif
+
+#ifndef __ANDROID__
 //Reads the gpu config and sets the preset level of all available gpu's
 static void setGPUPresetLevel(Renderer * pRenderer)
 {
@@ -219,6 +227,7 @@ static void setGPUPresetLevel(Renderer * pRenderer)
 
 	gpuCfgFile.Close();
 }
+#endif
 
 #ifndef METAL
 //Reads the gpu config and sets the preset level of all available gpu's
@@ -248,6 +257,7 @@ static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const ti
 	return foundLevel;
 }
 
+#if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
 static bool getActiveGpuConfig(GPUVendorPreset &pActiveGpu)
 {
 	File gpuCfgFile = {};
@@ -267,5 +277,6 @@ static bool getActiveGpuConfig(GPUVendorPreset &pActiveGpu)
 
 	return successFinal;
 }
+#endif
 #endif
 #endif

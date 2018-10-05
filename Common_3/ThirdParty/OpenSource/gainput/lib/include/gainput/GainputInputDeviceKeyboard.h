@@ -228,18 +228,19 @@ public:
 	~InputDeviceKeyboard();
 
 	/// Returns DT_KEYBOARD.
-	DeviceType GetType() const { return DT_KEYBOARD; }
-	DeviceVariant GetVariant() const;
-	const char* GetTypeName() const { return "keyboard"; }
-	bool IsValidButtonId(DeviceButtonId deviceButton) const { return deviceButton < KeyCount_; }
+	DeviceType GetType() const override{ return DT_KEYBOARD; }
+	DeviceVariant GetVariant() const override;
+	const char* GetTypeName() const override{ return "keyboard"; }
+	bool IsValidButtonId(DeviceButtonId deviceButton) const override { return deviceButton < KeyCount_; }
 
-	size_t GetAnyButtonDown(DeviceButtonSpec* outButtons, size_t maxButtonCount) const;
+	size_t GetAnyButtonDown(DeviceButtonSpec* outButtons, size_t maxButtonCount) const override;
 
-	size_t GetButtonName(DeviceButtonId deviceButton, char* buffer, size_t bufferLength) const;
-	ButtonType GetButtonType(DeviceButtonId deviceButton) const;
-	DeviceButtonId GetButtonByName(const char* name) const;
+	size_t GetButtonName(DeviceButtonId deviceButton, char* buffer, size_t bufferLength) const override;
+	ButtonType GetButtonType(DeviceButtonId deviceButton) const override;
+	DeviceButtonId GetButtonByName(const char* name) const override;
 
-	InputState* GetNextInputState();
+	InputState* GetNextInputState() override;
+	virtual void ClearButtons() override;
 
 	/// Returns if text input is enabled.
 	bool IsTextInputEnabled() const;
@@ -252,8 +253,8 @@ public:
 	InputDeviceKeyboardImpl* GetPimpl() { return impl_; }
 
 protected:
-	void InternalUpdate(InputDeltaState* delta);
-	DeviceState InternalGetState() const;
+	void InternalUpdate(InputDeltaState* delta) override;
+	DeviceState InternalGetState() const override;
 
 private:
 	InputDeviceKeyboardImpl* impl_;

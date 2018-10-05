@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -33,9 +33,9 @@
 typedef void* FileHandle;
 /************************************************************************************************
 * If you change this class please check the following projects to ensure you don't break them:  *
-* 1) BlackFootBlade																				*
-* 2) Aura																						*
-* 3) Gladiator																					*
+* 1) BlackFootBlade																			 *
+* 2) Aura																					   *
+* 3) Gladiator																				  *
 * Also ask yourself if all of those projects will need the change, or just the one you're work- *
 * ing on. If it is just the one you're working on please add it to an inherited version of the  *
 * class within your project.																	*
@@ -71,18 +71,18 @@ enum FileMode
 };
 
 // TODO : File System should be reworked so that we don't need all of these vague enums.
-//      One suggesting is to just have a list of directories to check for each resource type.
-//      Applications would then just need to add the paths they need to that list.
+//	One suggesting is to just have a list of directories to check for each resource type.
+//	Applications would then just need to add the paths they need to that list.
 enum FSRoot {
 	// universal binary shader place
 	FSR_BinShaders = 0,
 	// the main applications shader source directory
 	FSR_SrcShaders,
-        
-    // shared shaders binary directory
-    FSR_BinShaders_Common,
-    // shared shaders source directory
-    FSR_SrcShaders_Common,
+
+	// shared shaders binary directory
+	FSR_BinShaders_Common,
+	// shared shaders source directory
+	FSR_SrcShaders_Common,
 
 	// the main application texture source directory (TODO processed texture folder)
 	FSR_Textures,
@@ -270,44 +270,44 @@ private:
 class FileSystem
 {
 public:
-	static unsigned	GetFileSize(FileHandle handle);
+	static unsigned GetFileSize(FileHandle handle);
 	// Allows to modify root paths at runtime
-	static void		SetRootPath(FSRoot root, const tinystl::string& rootPath);
+	static void	 SetRootPath(FSRoot root, const tinystl::string& rootPath);
 	// Reverts back to App static defined pszRoots[]
-	static void		ClearModifiedRootPaths();
-	static unsigned	GetLastModifiedTime(const tinystl::string& _fileName);
+	static void	 ClearModifiedRootPaths();
+	static unsigned GetLastModifiedTime(const tinystl::string& _fileName);
 	// First looks it root exists in m_ModifiedRootPaths
 	// otherwise uses App static defined pszRoots[]
-	static tinystl::string	FixPath(const tinystl::string& pszFileName, FSRoot root);
-    static bool		FileExists(const tinystl::string& pszFileName, FSRoot root);
+	static tinystl::string  FixPath(const tinystl::string& pszFileName, FSRoot root);
+	static bool	 FileExists(const tinystl::string& pszFileName, FSRoot root);
 
-	static tinystl::string	GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
-	static tinystl::string	GetProgramDir() { return GetPath(_getExePath()); }
-	static tinystl::string	GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
-	static tinystl::string	GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
-	static void		GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files);
+	static tinystl::string  GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
+	static tinystl::string  GetProgramDir() { return GetPath(_getExePath()); }
+	static tinystl::string  GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
+	static tinystl::string  GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
+	static void	 GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files);
 
-	static void		SetCurrentDir(const tinystl::string& path) { _setCurrentDir(path.c_str()); }
+	static void	 SetCurrentDir(const tinystl::string& path) { _setCurrentDir(path.c_str()); }
 
-	static void		SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension = true);
-	static tinystl::string	GetPath(const tinystl::string& fullPath);
-	static tinystl::string	GetFileName(const tinystl::string& fullPath);
-	static tinystl::string	GetExtension(const tinystl::string& fullPath, bool lowercaseExtension = true);
-	static tinystl::string	GetFileNameAndExtension(const tinystl::string& fullPath, bool lowercaseExtension = false);
-	static tinystl::string	ReplaceExtension(const tinystl::string& fullPath, const tinystl::string& newExtension);
-	static tinystl::string	AddTrailingSlash(const tinystl::string& pathName);
-	static tinystl::string	RemoveTrailingSlash(const tinystl::string& pathName);
-	static tinystl::string	GetParentPath(const tinystl::string& pathName);
-	static tinystl::string	GetInternalPath(const tinystl::string& pathName);
-	static tinystl::string	GetNativePath(const tinystl::string& pathName);
+	static void	 SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension = true);
+	static tinystl::string  GetPath(const tinystl::string& fullPath);
+	static tinystl::string  GetFileName(const tinystl::string& fullPath);
+	static tinystl::string  GetExtension(const tinystl::string& fullPath, bool lowercaseExtension = true);
+	static tinystl::string  GetFileNameAndExtension(const tinystl::string& fullPath, bool lowercaseExtension = false);
+	static tinystl::string  ReplaceExtension(const tinystl::string& fullPath, const tinystl::string& newExtension);
+	static tinystl::string  AddTrailingSlash(const tinystl::string& pathName);
+	static tinystl::string  RemoveTrailingSlash(const tinystl::string& pathName);
+	static tinystl::string  GetParentPath(const tinystl::string& pathName);
+	static tinystl::string  GetInternalPath(const tinystl::string& pathName);
+	static tinystl::string  GetNativePath(const tinystl::string& pathName);
 
-	static bool		DirExists(const tinystl::string& pathName);
-	static bool		CreateDir(const tinystl::string& pathName);
-	static int		SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOut = "");
-	static bool		Delete(const tinystl::string& fileName);
+	static bool	 DirExists(const tinystl::string& pathName);
+	static bool	 CreateDir(const tinystl::string& pathName);
+	static int	  SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOut = "");
+	static bool	 Delete(const tinystl::string& fileName);
 
 private:
 	// The following root paths are the ones that were modified at run-time
-	static tinystl::string	mModifiedRootPaths[FSRoot::FSR_Count];
-	static tinystl::string	mProgramDir;
+	static tinystl::string  mModifiedRootPaths[FSRoot::FSR_Count];
+	static tinystl::string  mProgramDir;
 };

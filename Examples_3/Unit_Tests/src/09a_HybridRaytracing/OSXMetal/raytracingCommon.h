@@ -4,7 +4,7 @@
 #define kEpsilon 0.00001
 #define RAY_OFFSET 0.05
 
-bool RayIntersectsBox(float3 origin, float3 rayDirInv, float3 BboxMin, float3 BboxMax) 
+bool RayIntersectsBox(float3 origin, float3 rayDirInv, float3 BboxMin, float3 BboxMax)
 {
 	const float3 t0 = (BboxMin - origin) * rayDirInv;
 	const float3 t1 = (BboxMax - origin) * rayDirInv;

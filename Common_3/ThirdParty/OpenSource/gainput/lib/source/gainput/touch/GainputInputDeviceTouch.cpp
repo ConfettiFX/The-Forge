@@ -134,6 +134,10 @@ InputDeviceTouch::GetButtonType(DeviceButtonId deviceButton) const
 	return deviceButtonInfos[deviceButton].type;
 }
 
+void InputDeviceTouch::GetVirtualKeyboardInput(char* buffer, uint32_t inBufferLength) const {
+	impl_->GetVirtualKeyboardInput(buffer, inBufferLength);
+}
+
 DeviceButtonId
 InputDeviceTouch::GetButtonByName(const char* name) const
 {

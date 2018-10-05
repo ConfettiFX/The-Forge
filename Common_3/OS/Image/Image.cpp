@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -24,28 +24,39 @@
 
 #include "Image.h"
 #include "../Interfaces/ILogManager.h"
-#include "../../ThirdParty/OpenSource/Nothings/stb_image.h"
-#include "../../ThirdParty/OpenSource/Nothings/stb_image_resize.h"
-#include "../../ThirdParty/OpenSource/Nothings/stb_image_write.h"
-#include "../../ThirdParty/OpenSource/TinyEXR/tinyexr.h"
 #include "../Interfaces/IMemoryManager.h"
+#include "../../ThirdParty/OpenSource/TinyEXR/tinyexr.h"
+//stb_image
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_MALLOC conf_malloc
+#define STBI_REALLOC conf_realloc
+#define STBI_FREE conf_free
+#define STBI_ASSERT ASSERT
+#include "../../ThirdParty/OpenSource/Nothings/stb_image.h"
+//stb_image_write
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBIW_MALLOC conf_malloc
+#define STBIW_REALLOC conf_realloc
+#define STBIW_FREE conf_free
+#define STBIW_ASSERT ASSERT
+#include "../../ThirdParty/OpenSource/Nothings/stb_image_write.h"
 
 // --- IMAGE HEADERS ---
 
 #pragma pack (push, 1)
 
 #define DDPF_ALPHAPIXELS 0x00000001
-#define DDPF_FOURCC      0x00000004
-#define DDPF_RGB         0x00000040
+#define DDPF_FOURCC   0x00000004
+#define DDPF_RGB		 0x00000040
 
-#define DDSD_CAPS        0x00000001
-#define DDSD_HEIGHT      0x00000002
-#define DDSD_WIDTH       0x00000004
-#define DDSD_PITCH       0x00000008
+#define DDSD_CAPS	   0x00000001
+#define DDSD_HEIGHT   0x00000002
+#define DDSD_WIDTH	 0x00000004
+#define DDSD_PITCH	 0x00000008
 #define DDSD_PIXELFORMAT 0x00001000
 #define DDSD_MIPMAPCOUNT 0x00020000
 #define DDSD_LINEARSIZE  0x00080000
-#define DDSD_DEPTH       0x00800000
+#define DDSD_DEPTH	 0x00800000
 
 #define DDSCAPS_COMPLEX  0x00000008
 #define DDSCAPS_TEXTURE  0x00001000
@@ -63,7 +74,7 @@
 #define DDSCAPS2_CUBEMAP_ALL_FACES (DDSCAPS2_CUBEMAP_POSITIVEX | DDSCAPS2_CUBEMAP_NEGATIVEX | DDSCAPS2_CUBEMAP_POSITIVEY | DDSCAPS2_CUBEMAP_NEGATIVEY | DDSCAPS2_CUBEMAP_POSITIVEZ | DDSCAPS2_CUBEMAP_NEGATIVEZ)
 
 #define D3D10_RESOURCE_MISC_TEXTURECUBE 0x4
-#define D3D10_RESOURCE_DIMENSION_BUFFER    1
+#define D3D10_RESOURCE_DIMENSION_BUFFER 1
 #define D3D10_RESOURCE_DIMENSION_TEXTURE1D 2
 #define D3D10_RESOURCE_DIMENSION_TEXTURE2D 3
 #define D3D10_RESOURCE_DIMENSION_TEXTURE3D 4
@@ -80,20 +91,20 @@ struct DDSHeader {
   uint32 mReserved[11];
 
   struct {
-    uint32 mDWSize;
-    uint32 mDWFlags;
-    uint32 mDWFourCC;
-    uint32 mDWRGBBitCount;
-    uint32 mDWRBitMask;
-    uint32 mDWGBitMask;
-    uint32 mDWBBitMask;
-    uint32 mDWRGBAlphaBitMask;
+	uint32 mDWSize;
+	uint32 mDWFlags;
+	uint32 mDWFourCC;
+	uint32 mDWRGBBitCount;
+	uint32 mDWRBitMask;
+	uint32 mDWGBitMask;
+	uint32 mDWBBitMask;
+	uint32 mDWRGBAlphaBitMask;
   } mPixelFormat;
 
   struct {
-    uint32 mDWCaps1;
-    uint32 mDWCaps2;
-    uint32 mReserved[2]; //caps3 and caps4
+	uint32 mDWCaps1;
+	uint32 mDWCaps2;
+	uint32 mReserved[2]; //caps3 and caps4
   } mCaps;
 
   uint32 mDWReserved2;
@@ -109,19 +120,19 @@ struct DDSHeaderDX10 {
 // Describes the header of a PVR header-texture
 typedef struct PVR_Header_Texture_TAG
 {
-  unsigned int mDWHeaderSize;			/*!< size of the structure */
-  unsigned int mDWHeight;				/*!< height of surface to be created */
+  unsigned int mDWHeaderSize;		   /*!< size of the structure */
+  unsigned int mDWHeight;			   /*!< height of surface to be created */
   unsigned int mDWWidth;				/*!< width of input surface */
-  unsigned int mDWMipMapCount;			/*!< number of mip-map levels requested */
-  unsigned int mDWPFFlags;				/*!< pixel format flags */
-  unsigned int mDWTextureDataSize;		/*!< Total size in bytes */
-  unsigned int mDWBitCount;			/*!< number of bits per pixel  */
-  unsigned int mDWRBitMask;			/*!< mask for red bit */
-  unsigned int mDWGBitMask;			/*!< mask for green bits */
-  unsigned int mDWBBitMask;			/*!< mask for blue bits */
-  unsigned int mDWAlphaBitMask;		/*!< mask for alpha channel */
-  unsigned int mDWPVR;					/*!< magic number identifying pvr file */
-  unsigned int mDWNumSurfs;			/*!< the number of surfaces present in the pvr */
+  unsigned int mDWMipMapCount;		  /*!< number of mip-map levels requested */
+  unsigned int mDWPFFlags;			  /*!< pixel format flags */
+  unsigned int mDWTextureDataSize;	  /*!< Total size in bytes */
+  unsigned int mDWBitCount;		 /*!< number of bits per pixel  */
+  unsigned int mDWRBitMask;		 /*!< mask for red bit */
+  unsigned int mDWGBitMask;		 /*!< mask for green bits */
+  unsigned int mDWBBitMask;		 /*!< mask for blue bits */
+  unsigned int mDWAlphaBitMask;	 /*!< mask for alpha channel */
+  unsigned int mDWPVR;				  /*!< magic number identifying pvr file */
+  unsigned int mDWNumSurfs;		 /*!< the number of surfaces present in the pvr */
 } PVR_Texture_Header;
 
 typedef enum iPixelType_TAG
@@ -197,28 +208,28 @@ typedef enum iPixelType_TAG
 } iPixelType;
 
 const unsigned int gPvrtexMipmap = (1 << 8);		// has mip map levels
-const unsigned int gPvrtexTwiddle = (1 << 9);		// is twiddled
-#if !defined(ORBIS) && !defined(METAL) // generates error : unused variable
-const unsigned int gPvrtexBumpmap = (1 << 10);		// has normals encoded for a bump map
-const unsigned int gPvrtexTiling = (1 << 11);		// is bordered for tiled pvr
+const unsigned int gPvrtexTwiddle = (1 << 9);	   // is twiddled
+#if !defined(ORBIS) && !defined(METAL)  && !defined(__ANDROID__) // generates error : unused variable
+const unsigned int gPvrtexBumpmap = (1 << 10);	  // has normals encoded for a bump map
+const unsigned int gPvrtexTiling = (1 << 11);	   // is bordered for tiled pvr
 #endif
-const unsigned int gPvrtexCubemap = (1 << 12);		// is a cubemap/skybox
-#if !defined(ORBIS) && !defined(METAL) // generates error : unused variable
-const unsigned int gPvrtexFalsemipcol = (1 << 13);		//
+const unsigned int gPvrtexCubemap = (1 << 12);	  // is a cubemap/skybox
+#if !defined(ORBIS) && !defined(METAL)  && !defined(__ANDROID__) // generates error : unused variable
+const unsigned int gPvrtexFalsemipcol = (1 << 13);	  //
 const unsigned int gPvrtexVolume = (1 << 14);
 #endif
-const unsigned int gPvrtexPixeltype = 0xff;			// pixel type is always in the last 16bits of the flags
-#if !defined(ORBIS) && !defined(METAL) // generates error : unused variable
-const unsigned int gPvrtexIdentifier = 0x21525650;	// the pvr identifier is the characters 'P','V','R'
+const unsigned int gPvrtexPixeltype = 0xff;		 // pixel type is always in the last 16bits of the flags
+#if !defined(ORBIS) && !defined(METAL)  && !defined(__ANDROID__)// generates error : unused variable
+const unsigned int gPvrtexIdentifier = 0x21525650;  // the pvr identifier is the characters 'P','V','R'
 #endif
 const unsigned int gPvrtexV1HeaderSize = 44;			// old header size was 44 for identification purposes
 const unsigned int gPvrTc2MinTexWidth = 16;
 const unsigned int gPvrTc2MinTexHeight = 8;
-#if !defined(METAL)
+#if !defined(METAL)  && !defined(__ANDROID__)
 const unsigned int gPvrTc4MinTexWidth = 8;
 #endif
 const unsigned int gPvrTc4MinTexHeight = 8;
-#if !defined(ORBIS) && !defined(METAL) // generates error : unused variable
+#if !defined(ORBIS) && !defined(METAL) && !defined(__ANDROID__) // generates error : unused variable
 const unsigned int gEtcMinTexWidth = 4;
 const unsigned int gEtcMinTexHeight = 4;
 #endif
@@ -243,44 +254,44 @@ void iDecodeColorBlock(unsigned char *dest, int w, int h, int xOff, int yOff, Im
   colors[1][2] = (c1 & 0x1F) << 3;
 
   if (c0 > c1 || format == ImageFormat::DXT5) {
-    for (int i = 0; i < 3; i++) {
-      colors[2][i] = (2 * colors[0][i] + colors[1][i] + 1) / 3;
-      colors[3][i] = (colors[0][i] + 2 * colors[1][i] + 1) / 3;
-    }
+	for (int i = 0; i < 3; i++) {
+	  colors[2][i] = (2 * colors[0][i] + colors[1][i] + 1) / 3;
+	  colors[3][i] = (colors[0][i] + 2 * colors[1][i] + 1) / 3;
+	}
   }
   else {
-    for (int i = 0; i < 3; i++) {
-      colors[2][i] = (colors[0][i] + colors[1][i] + 1) >> 1;
-      colors[3][i] = 0;
-    }
+	for (int i = 0; i < 3; i++) {
+	  colors[2][i] = (colors[0][i] + colors[1][i] + 1) >> 1;
+	  colors[3][i] = 0;
+	}
   }
 
   src += 4;
   for (int y = 0; y < h; y++) {
-    unsigned char *dst = dest + yOff * y;
-    unsigned int indexes = src[y];
-    for (int x = 0; x < w; x++) {
-      unsigned int index = indexes & 0x3;
-      dst[red] = colors[index][0];
-      dst[1] = colors[index][1];
-      dst[blue] = colors[index][2];
-      indexes >>= 2;
+	unsigned char *dst = dest + yOff * y;
+	unsigned int indexes = src[y];
+	for (int x = 0; x < w; x++) {
+	  unsigned int index = indexes & 0x3;
+	  dst[red] = colors[index][0];
+	  dst[1] = colors[index][1];
+	  dst[blue] = colors[index][2];
+	  indexes >>= 2;
 
-      dst += xOff;
-    }
+	  dst += xOff;
+	}
   }
 }
 
 void iDecodeDXT3Block(unsigned char *dest, int w, int h, int xOff, int yOff, unsigned char *src)
 {
   for (int y = 0; y < h; y++) {
-    unsigned char *dst = dest + yOff * y;
-    unsigned int alpha = ((unsigned short *)src)[y];
-    for (int x = 0; x < w; x++) {
-      *dst = (alpha & 0xF) * 17;
-      alpha >>= 4;
-      dst += xOff;
-    }
+	unsigned char *dst = dest + yOff * y;
+	unsigned int alpha = ((unsigned short *)src)[y];
+	for (int x = 0; x < w; x++) {
+	  *dst = (alpha & 0xF) * 17;
+	  alpha >>= 4;
+	  dst += xOff;
+	}
   }
 }
 
@@ -290,29 +301,29 @@ void iDecodeDXT5Block(unsigned char *dest, int w, int h, int xOff, int yOff, uns
   uint64_t alpha = (*(uint64_t *)src) >> 16;
 
   for (int y = 0; y < h; y++) {
-    unsigned char *dst = dest + yOff * y;
-    for (int x = 0; x < w; x++) {
-      int k = ((unsigned int)alpha) & 0x7;
-      if (k == 0) {
-        *dst = a0;
-      }
-      else if (k == 1) {
-        *dst = a1;
-      }
-      else if (a0 > a1) {
-        *dst = (unsigned char)(((8 - k) * a0 + (k - 1) * a1) / 7);
-      }
-      else if (k >= 6) {
-        *dst = (k == 6) ? 0 : 255;
-      }
-      else {
-        *dst = (unsigned char)(((6 - k) * a0 + (k - 1) * a1) / 5);
-      }
-      alpha >>= 3;
+	unsigned char *dst = dest + yOff * y;
+	for (int x = 0; x < w; x++) {
+	  int k = ((unsigned int)alpha) & 0x7;
+	  if (k == 0) {
+		*dst = a0;
+	  }
+	  else if (k == 1) {
+		*dst = a1;
+	  }
+	  else if (a0 > a1) {
+		*dst = (unsigned char)(((8 - k) * a0 + (k - 1) * a1) / 7);
+	  }
+	  else if (k >= 6) {
+		*dst = (k == 6) ? 0 : 255;
+	  }
+	  else {
+		*dst = (unsigned char)(((6 - k) * a0 + (k - 1) * a1) / 5);
+	  }
+	  alpha >>= 3;
 
-      dst += xOff;
-    }
-    if (w < 4) alpha >>= (3 * (4 - w));
+	  dst += xOff;
+	}
+	if (w < 4) alpha >>= (3 * (4 - w));
   }
 }
 
@@ -323,33 +334,33 @@ void iDecodeCompressedImage(unsigned char *dest, unsigned char *src, const int w
   int nChannels = ImageFormat::GetChannelCount(format);
 
   for (int y = 0; y < height; y += 4) {
-    for (int x = 0; x < width; x += 4) {
-      unsigned char *dst = dest + (y * width + x) * nChannels;
-      if (format == ImageFormat::DXT3) {
-        iDecodeDXT3Block(dst + 3, sx, sy, nChannels, width * nChannels, src);
-        src += 8;
-      }
-      else if (format == ImageFormat::DXT5) {
-        iDecodeDXT5Block(dst + 3, sx, sy, nChannels, width * nChannels, src);
-        src += 8;
-      }
-      if (format <= ImageFormat::DXT5) {
-        iDecodeColorBlock(dst, sx, sy, nChannels, width * nChannels, format, 0, 2, src);
-        src += 8;
-      }
-      else {
-        if (format == ImageFormat::ATI1N) {
-          iDecodeDXT5Block(dst, sx, sy, 1, width, src);
-          src += 8;
-        }
-        else if ((format == ImageFormat::ATI2N)) {
-          iDecodeDXT5Block(dst, sx, sy, 2, width * 2, src + 8);
-          iDecodeDXT5Block(dst + 1, sx, sy, 2, width * 2, src);
-          src += 16;
-        }
-        else return;
-      }
-    }
+	for (int x = 0; x < width; x += 4) {
+	  unsigned char *dst = dest + (y * width + x) * nChannels;
+	  if (format == ImageFormat::DXT3) {
+		iDecodeDXT3Block(dst + 3, sx, sy, nChannels, width * nChannels, src);
+		src += 8;
+	  }
+	  else if (format == ImageFormat::DXT5) {
+		iDecodeDXT5Block(dst + 3, sx, sy, nChannels, width * nChannels, src);
+		src += 8;
+	  }
+	  if (format <= ImageFormat::DXT5) {
+		iDecodeColorBlock(dst, sx, sy, nChannels, width * nChannels, format, 0, 2, src);
+		src += 8;
+	  }
+	  else {
+		if (format == ImageFormat::ATI1N) {
+		  iDecodeDXT5Block(dst, sx, sy, 1, width, src);
+		  src += 8;
+		}
+		else if ((format == ImageFormat::ATI2N)) {
+		  iDecodeDXT5Block(dst, sx, sy, 2, width * 2, src + 8);
+		  iDecodeDXT5Block(dst + 1, sx, sy, 2, width * 2, src);
+		  src += 16;
+		}
+		else return;
+	  }
+	}
   }
 }
 
@@ -361,19 +372,19 @@ int ImageFormat::GetBytesPerPixel(const ImageFormat::Enum format)
 
 
   static const int bytesPP[] = {
-    0,
-    1, 2, 3, 4,       //  8-bit unsigned
-    2, 4, 6, 8,       // 16-bit unsigned
-    1, 2, 3, 4,       //  8-bit signed
-    2, 4, 6, 8,       // 16-bit signed
-    2, 4, 6, 8,       // 16-bit float
-    4, 8, 12, 16,     // 32-bit float
-    2, 4, 6, 8,       // 16-bit unsigned integer
-    4, 8, 12, 16,     // 32-bit unsigned integer
-    2, 4, 6, 8,       // 16-bit signed integer
-    4, 8, 12, 16,     // 32-bit signed integer
-    4, 4, 4, 2, 2, 4, // Packed
-    2, 4, 4, 4,       // Depth
+	0,
+	1, 2, 3, 4,	//  8-bit unsigned
+	2, 4, 6, 8,	// 16-bit unsigned
+	1, 2, 3, 4,	//  8-bit signed
+	2, 4, 6, 8,	// 16-bit signed
+	2, 4, 6, 8,	// 16-bit float
+	4, 8, 12, 16,	// 32-bit float
+	2, 4, 6, 8,	// 16-bit unsigned integer
+	4, 8, 12, 16,	// 32-bit unsigned integer
+	2, 4, 6, 8,	// 16-bit signed integer
+	4, 8, 12, 16,	// 32-bit signed integer
+	4, 4, 4, 2, 2, 4, // Packed
+	2, 4, 4, 4,	// Depth
   };
 
 	if (format == ImageFormat::BGRA8)
@@ -389,39 +400,39 @@ int ImageFormat::GetBytesPerBlock(const ImageFormat::Enum format)
   ASSERT(ImageFormat::IsCompressedFormat(format));
   switch (format)
   {
-    // BC1 == DXT1
-    // BC2 == DXT2
-    // BC3 == DXT4 / 5
-    // BC4 == ATI1 == One color channel (8 bits)
-    // BC5 == ATI2 == Two color channels (8 bits:8 bits)
-    // BC6 == Three color channels (16 bits:16 bits:16 bits) in "half" floating point*
-    // BC7 == Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
-  case ImageFormat::DXT1:			//	4x4
-  case ImageFormat::ATI1N:			//	4x4
-  case ImageFormat::GNF_BC1:		//	4x4
-  case ImageFormat::ETC1:			//	4x4
-  case ImageFormat::ATC:			//	4x4
-  case ImageFormat::PVR_4BPP:		//	4x4
-  case ImageFormat::PVR_4BPPA:		//	4x4
-  case ImageFormat::PVR_2BPP:		//	4x8
-  case ImageFormat::PVR_2BPPA:		//	4x8
-    return 8;
+	// BC1 == DXT1
+	// BC2 == DXT2
+	// BC3 == DXT4 / 5
+	// BC4 == ATI1 == One color channel (8 bits)
+	// BC5 == ATI2 == Two color channels (8 bits:8 bits)
+	// BC6 == Three color channels (16 bits:16 bits:16 bits) in "half" floating point*
+	// BC7 == Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
+  case ImageFormat::DXT1:		   //  4x4
+  case ImageFormat::ATI1N:		  //  4x4
+  case ImageFormat::GNF_BC1:		//  4x4
+  case ImageFormat::ETC1:		   //  4x4
+  case ImageFormat::ATC:			//  4x4
+  case ImageFormat::PVR_4BPP:	   //  4x4
+  case ImageFormat::PVR_4BPPA:	  //  4x4
+  case ImageFormat::PVR_2BPP:	   //  4x8
+  case ImageFormat::PVR_2BPPA:	  //  4x8
+	return 8;
 
-  case ImageFormat::DXT3:			//	4x4
-  case ImageFormat::DXT5:			//	4x4
-  case ImageFormat::GNF_BC3:		//	4x4
-  case ImageFormat::GNF_BC5:		//	4x4
-  case ImageFormat::ATI2N:			//	4x4
-  case ImageFormat::ATCA:			//	4x4
-  case ImageFormat::ATCI:			//	4x4
+  case ImageFormat::DXT3:		   //  4x4
+  case ImageFormat::DXT5:		   //  4x4
+  case ImageFormat::GNF_BC3:		//  4x4
+  case ImageFormat::GNF_BC5:		//  4x4
+  case ImageFormat::ATI2N:		  //  4x4
+  case ImageFormat::ATCA:		   //  4x4
+  case ImageFormat::ATCI:		   //  4x4
 #ifdef FORGE_JHABLE_EDITS_V01
-  case ImageFormat::GNF_BC6:		//	4x4
-  case ImageFormat::GNF_BC7:		//	4x4
+  case ImageFormat::GNF_BC6:		//  4x4
+  case ImageFormat::GNF_BC7:		//  4x4
 #endif
 	  return 16;
 
   default:
-    return 0;
+	return 0;
   }
 }
 
@@ -429,16 +440,16 @@ int ImageFormat::GetBytesPerChannel(const ImageFormat::Enum format)
 {
   // Accepts only plain formats
   static const int bytesPC[] = {
-    1, //  8-bit unsigned
-    2, // 16-bit unsigned
-    1, //  8-bit signed
-    2, // 16-bit signed
-    2, // 16-bit float
-    4, // 32-bit float
-    2, // 16-bit unsigned integer
-    4, // 32-bit unsigned integer
-    2, // 16-bit signed integer
-    4, // 32-bit signed integer
+	1, //  8-bit unsigned
+	2, // 16-bit unsigned
+	1, //  8-bit signed
+	2, // 16-bit signed
+	2, // 16-bit float
+	4, // 32-bit float
+	2, // 16-bit unsigned integer
+	4, // 32-bit unsigned integer
+	2, // 16-bit signed integer
+	4, // 32-bit signed integer
   };
 
   ASSERT(format <= ImageFormat::RGBA32UI);
@@ -454,8 +465,8 @@ bool ImageFormat::IsIntegerFormat(const ImageFormat::Enum format)
 bool ImageFormat::IsCompressedFormat(const ImageFormat::Enum format)
 {
   return (((format >= ImageFormat::DXT1) && (format <= ImageFormat::PVR_4BPPA))
-    || ((format >= ImageFormat::ETC1) && (format <= ImageFormat::ATCI))
-    || ((format >= ImageFormat::GNF_BC1) && (format <= ImageFormat::GNF_BC7)));
+	|| ((format >= ImageFormat::ETC1) && (format <= ImageFormat::ATCI))
+	|| ((format >= ImageFormat::GNF_BC1) && (format <= ImageFormat::GNF_BC7)));
 }
 
 bool ImageFormat::IsFloatFormat(const ImageFormat::Enum format)
@@ -499,69 +510,69 @@ const ImageFormatString* getFormatStrings()
 {
   static const ImageFormatString formatStrings[] =
   {
-    { ImageFormat::NONE,   "NONE" },
+	{ ImageFormat::NONE,   "NONE" },
 
-    { ImageFormat::R8,     "R8" },
-    { ImageFormat::RG8,    "RG8" },
-    { ImageFormat::RGB8,   "RGB8" },
-    { ImageFormat::RGBA8,  "RGBA8" },
+	{ ImageFormat::R8,   "R8" },
+	{ ImageFormat::RG8, "RG8" },
+	{ ImageFormat::RGB8,   "RGB8" },
+	{ ImageFormat::RGBA8,  "RGBA8" },
 
-    { ImageFormat::R16,    "R16" },
-    { ImageFormat::RG16,   "RG16" },
-    { ImageFormat::RGB16,  "RGB16" },
-    { ImageFormat::RGBA16, "RGBA16" },
+	{ ImageFormat::R16, "R16" },
+	{ ImageFormat::RG16,   "RG16" },
+	{ ImageFormat::RGB16,  "RGB16" },
+	{ ImageFormat::RGBA16, "RGBA16" },
 
-    { ImageFormat::R16F,   "R16F" },
-    { ImageFormat::RG16F,  "RG16F" },
-    { ImageFormat::RGB16F, "RGB16F" },
-    { ImageFormat::RGBA16F,"RGBA16F" },
+	{ ImageFormat::R16F,   "R16F" },
+	{ ImageFormat::RG16F,  "RG16F" },
+	{ ImageFormat::RGB16F, "RGB16F" },
+	{ ImageFormat::RGBA16F,"RGBA16F" },
 
-    { ImageFormat::R32F,   "R32F" },
-    { ImageFormat::RG32F,  "RG32F" },
-    { ImageFormat::RGB32F, "RGB32F" },
-    { ImageFormat::RGBA32F,"RGBA32F" },
+	{ ImageFormat::R32F,   "R32F" },
+	{ ImageFormat::RG32F,  "RG32F" },
+	{ ImageFormat::RGB32F, "RGB32F" },
+	{ ImageFormat::RGBA32F,"RGBA32F" },
 
-    { ImageFormat::RGBE8,  "RGBE8" },
-    { ImageFormat::RGB565, "RGB565" },
-    { ImageFormat::RGBA4,  "RGBA4" },
-    { ImageFormat::RGB10A2,"RGB10A2" },
+	{ ImageFormat::RGBE8,  "RGBE8" },
+	{ ImageFormat::RGB565, "RGB565" },
+	{ ImageFormat::RGBA4,  "RGBA4" },
+	{ ImageFormat::RGB10A2,"RGB10A2" },
 
-    { ImageFormat::DXT1,   "DXT1" },
-    { ImageFormat::DXT3,   "DXT3" },
-    { ImageFormat::DXT5,   "DXT5" },
-    { ImageFormat::ATI1N,  "ATI1N" },
-    { ImageFormat::ATI2N,  "ATI2N" },
+	{ ImageFormat::DXT1,   "DXT1" },
+	{ ImageFormat::DXT3,   "DXT3" },
+	{ ImageFormat::DXT5,   "DXT5" },
+	{ ImageFormat::ATI1N,  "ATI1N" },
+	{ ImageFormat::ATI2N,  "ATI2N" },
 
-    { ImageFormat::PVR_2BPP,  "PVR_2BPP" },
-    { ImageFormat::PVR_2BPPA, "PVR_2BPPA" },
-    { ImageFormat::PVR_4BPP,  "PVR_4BPP" },
-    { ImageFormat::PVR_4BPPA, "PVR_4BPPA" },
+	{ ImageFormat::PVR_2BPP,  "PVR_2BPP" },
+	{ ImageFormat::PVR_2BPPA, "PVR_2BPPA" },
+	{ ImageFormat::PVR_4BPP,  "PVR_4BPP" },
+	{ ImageFormat::PVR_4BPPA, "PVR_4BPPA" },
 
-    { ImageFormat::INTZ,	"ImageFormat::INTZ" },
+	{ ImageFormat::INTZ,	"ImageFormat::INTZ" },
 
-    { ImageFormat::LE_XRGB8, "ImageFormat::LE_XRGB8" },
-    { ImageFormat::LE_ARGB8, "ImageFormat::LE_ARGB8" },
-    { ImageFormat::LE_X2RGB10, "ImageFormat::LE_X2RGB10" },
-    { ImageFormat::LE_A2RGB10, "ImageFormat::LE_A2RGB10" },
+	{ ImageFormat::LE_XRGB8, "ImageFormat::LE_XRGB8" },
+	{ ImageFormat::LE_ARGB8, "ImageFormat::LE_ARGB8" },
+	{ ImageFormat::LE_X2RGB10, "ImageFormat::LE_X2RGB10" },
+	{ ImageFormat::LE_A2RGB10, "ImageFormat::LE_A2RGB10" },
 
-    { ImageFormat::ETC1, "ImageFormat::ETC1" },
-    { ImageFormat::ATC, "ImageFormat::ATC" },
-    { ImageFormat::ATCA, "ImageFormat::ATCA" },
-    { ImageFormat::ATCI, "ImageFormat::ATCI" },
+	{ ImageFormat::ETC1, "ImageFormat::ETC1" },
+	{ ImageFormat::ATC, "ImageFormat::ATC" },
+	{ ImageFormat::ATCA, "ImageFormat::ATCA" },
+	{ ImageFormat::ATCI, "ImageFormat::ATCI" },
 
-    { ImageFormat::GNF_BC1,   "GNF_BC1" },
-    { ImageFormat::GNF_BC2,   "GNF_BC2" },
-    { ImageFormat::GNF_BC3,   "GNF_BC3" },
-    { ImageFormat::GNF_BC4,   "GNF_BC4" },
-    { ImageFormat::GNF_BC5,   "GNF_BC5" },
-    { ImageFormat::GNF_BC6,   "GNF_BC6" },
-    { ImageFormat::GNF_BC7,   "GNF_BC7" },
+	{ ImageFormat::GNF_BC1,   "GNF_BC1" },
+	{ ImageFormat::GNF_BC2,   "GNF_BC2" },
+	{ ImageFormat::GNF_BC3,   "GNF_BC3" },
+	{ ImageFormat::GNF_BC4,   "GNF_BC4" },
+	{ ImageFormat::GNF_BC5,   "GNF_BC5" },
+	{ ImageFormat::GNF_BC6,   "GNF_BC6" },
+	{ ImageFormat::GNF_BC7,   "GNF_BC7" },
 
-    { ImageFormat::BGRA8,   "BGRA8" },
-    { ImageFormat::X8D24PAX32, "X8D24PAX32" },
-    { ImageFormat::S8, "S8" },
-    { ImageFormat::D16S8, "D16S8" },
-    { ImageFormat::D32S8, "D32S8" }
+	{ ImageFormat::BGRA8,   "BGRA8" },
+	{ ImageFormat::X8D24PAX32, "X8D24PAX32" },
+	{ ImageFormat::S8, "S8" },
+	{ ImageFormat::D16S8, "D16S8" },
+	{ ImageFormat::D32S8, "D32S8" }
 
   };
   return formatStrings;
@@ -571,8 +582,8 @@ const char *ImageFormat::GetFormatString(const ImageFormat::Enum format)
 {
   for (unsigned int i = 0; i < ImageFormat::COUNT; i++)
   {
-    if (format == getFormatStrings()[i].format)
-      return getFormatStrings()[i].string;
+	if (format == getFormatStrings()[i].format)
+	  return getFormatStrings()[i].string;
   }
   return NULL;
 }
@@ -581,8 +592,8 @@ ImageFormat::Enum ImageFormat::GetFormatFromString(char *string)
 {
   for (unsigned int i = 0; i < ImageFormat::COUNT; i++)
   {
-    if (stricmp(string, getFormatStrings()[i].string) == 0)
-      return getFormatStrings()[i].format;
+	if (stricmp(string, getFormatStrings()[i].string) == 0)
+	  return getFormatStrings()[i].format;
   }
   return ImageFormat::NONE;
 }
@@ -593,33 +604,33 @@ int ImageFormat::GetChannelCount(const ImageFormat::Enum format)
 	if (format == ImageFormat::BGRA8)
 		return 4;
   static const int channelCount[] = {
-    0,
-    1, 2, 3, 4,       //  8-bit unsigned
-    1, 2, 3, 4,       // 16-bit unsigned
-    1, 2, 3, 4,       //  8-bit signed
-    1, 2, 3, 4,       // 16-bit signed
-    1, 2, 3, 4,       // 16-bit float
-    1, 2, 3, 4,       // 32-bit float
-    1, 2, 3, 4,       // 16-bit signed integer
-    1, 2, 3, 4,       // 32-bit signed integer
-    1, 2, 3, 4,       // 16-bit unsigned integer
-    1, 2, 3, 4,       // 32-bit unsigned integer
-    3, 3, 3, 3, 4, 4, // Packed
-    1, 1, 2, 1,       // Depth
-    3, 4, 4, 1, 2,    // Compressed
-    3, 4, 3, 4,       // PVR
-    1,					//	INTZ
-    3, 4, 3, 4,			//  XBox front buffer formats
-    3, 3, 4, 4,			//	ETC, ATC
-    1, 1,				//	RAWZ, DF16
-    3, 4, 4, 1, 2, 3, 3  // GNF_BC1~GNF_BC7
+	0,
+	1, 2, 3, 4,	//  8-bit unsigned
+	1, 2, 3, 4,	// 16-bit unsigned
+	1, 2, 3, 4,	//  8-bit signed
+	1, 2, 3, 4,	// 16-bit signed
+	1, 2, 3, 4,	// 16-bit float
+	1, 2, 3, 4,	// 32-bit float
+	1, 2, 3, 4,	// 16-bit signed integer
+	1, 2, 3, 4,	// 32-bit signed integer
+	1, 2, 3, 4,	// 16-bit unsigned integer
+	1, 2, 3, 4,	// 32-bit unsigned integer
+	3, 3, 3, 3, 4, 4, // Packed
+	1, 1, 2, 1,	// Depth
+	3, 4, 4, 1, 2,  // Compressed
+	3, 4, 3, 4,	// PVR
+	1,				  //  INTZ
+	3, 4, 3, 4,		 //  XBox front buffer formats
+	3, 3, 4, 4,		 //  ETC, ATC
+	1, 1,			   //  RAWZ, DF16
+	3, 4, 4, 1, 2, 3, 3  // GNF_BC1~GNF_BC7
   };
 
 
   if (format >= sizeof(channelCount) / sizeof(int))
   {
-    LOGERRORF("Fail to find Channel in format : %s", ImageFormat::GetFormatString(format));
-    return 0;
+	LOGERRORF("Fail to find Channel in format : %s", ImageFormat::GetFormatString(format));
+	return 0;
   }
 
   return channelCount[format];
@@ -630,10 +641,10 @@ inline void swapPixelChannels(T *pixels, int num_pixels, const int channels, con
 {
   for (int i = 0; i < num_pixels; i++)
   {
-    T tmp = pixels[ch1];
-    pixels[ch1] = pixels[ch0];
-    pixels[ch0] = tmp;
-    pixels += channels;
+	T tmp = pixels[ch1];
+	pixels[ch1] = pixels[ch0];
+	pixels[ch0] = tmp;
+	pixels += channels;
   }
 }
 
@@ -741,7 +752,7 @@ unsigned char *Image::GetPixels(const uint mipMapLevel) const
 unsigned char *Image::GetPixels(const uint mipMapLevel, const uint arraySlice) const
 {
   if (mipMapLevel >= mMipMapCount || arraySlice >= mArrayCount)
-    return NULL;
+	return NULL;
 
   return pData + GetMipMappedSize(0, mMipMapCount) * arraySlice + GetMipMappedSize(0, mipMapLevel);
 }
@@ -768,8 +779,8 @@ uint Image::GetMipMapCountFromDimensions() const
 
   int i = 0;
   while (m > 0) {
-    m >>= 1;
-    i++;
+	m >>= 1;
+	i++;
   }
 
   return i;
@@ -781,16 +792,16 @@ uint Image::GetArraySliceSize(const uint mipMapLevel, ImageFormat::Enum srcForma
   int h = GetHeight(mipMapLevel);
 
   if (srcFormat == ImageFormat::NONE)
-    srcFormat = mFormat;
+	srcFormat = mFormat;
 
   int size;
   if (ImageFormat::IsCompressedFormat(srcFormat))
   {
-    size = ((w + 3) >> 2) * ((h + 3) >> 2) * ImageFormat::GetBytesPerBlock(srcFormat);
+	size = ((w + 3) >> 2) * ((h + 3) >> 2) * ImageFormat::GetBytesPerBlock(srcFormat);
   }
   else
   {
-    size = w * h * ImageFormat::GetBytesPerPixel(srcFormat);
+	size = w * h * ImageFormat::GetBytesPerPixel(srcFormat);
   }
 
   return size;
@@ -802,16 +813,16 @@ uint Image::GetNumberOfPixels(const uint firstMipMapLevel, uint nMipMapLevels) c
   int d = GetDepth(firstMipMapLevel);
   int size = 0;
   while (nMipMapLevels) {
-    size += w * h * d;
-    w >>= 1;
-    h >>= 1;
-    d >>= 1;
-    if (w + h + d == 0) break;
-    if (w == 0) w = 1;
-    if (h == 0) h = 1;
-    if (d == 0) d = 1;
+	size += w * h * d;
+	w >>= 1;
+	h >>= 1;
+	d >>= 1;
+	if (w + h + d == 0) break;
+	if (w == 0) w = 1;
+	if (h == 0) h = 1;
+	if (d == 0) d = 1;
 
-    nMipMapLevels--;
+	nMipMapLevels--;
   }
 
   return (mDepth == 0) ? 6 * size : size;
@@ -824,15 +835,15 @@ bool Image::GetColorRange(float &min, float &max)
   int nElements = GetNumberOfPixels(0, mMipMapCount) * ImageFormat::GetChannelCount(mFormat) * mArrayCount;
 
   if (nElements <= 0)
-    return false;
+	return false;
 
   float minVal = FLT_MAX;
   float maxVal = -FLT_MAX;
   for (int i = 0; i < nElements; i++)
   {
-    float d = ((float *)pData)[i];
-    if (d > maxVal) maxVal = d;
-    if (d < minVal) minVal = d;
+	float d = ((float *)pData)[i];
+	if (d > maxVal) maxVal = d;
+	if (d < minVal) minVal = d;
   }
   max = maxVal;
   min = minVal;
@@ -842,7 +853,7 @@ bool Image::GetColorRange(float &min, float &max)
 bool Image::Normalize()
 {
   if (mFormat < ImageFormat::R32F || mFormat > ImageFormat::RGBA32F)
-    return false;
+	return false;
 
   float min, max;
   GetColorRange(min, max);
@@ -853,8 +864,8 @@ bool Image::Normalize()
   float b = -min * s;
   for (int i = 0; i < nElements; i++)
   {
-    float d = ((float *)pData)[i];
-    ((float *)pData)[i] = d * s + b;
+	float d = ((float *)pData)[i];
+	((float *)pData)[i] = d * s + b;
   }
 
   return true;
@@ -863,47 +874,47 @@ bool Image::Normalize()
 bool Image::Uncompress()
 {
   if (((mFormat >= ImageFormat::PVR_2BPP) && (mFormat <= ImageFormat::PVR_4BPPA))
-    || ((mFormat >= ImageFormat::ETC1) && (mFormat <= ImageFormat::ATCI)))
+	|| ((mFormat >= ImageFormat::ETC1) && (mFormat <= ImageFormat::ATCI)))
   {
-    //	no decompression
-    return false;
+	//  no decompression
+	return false;
   }
 
   if (ImageFormat::IsCompressedFormat(mFormat))
   {
-    ImageFormat::Enum destFormat;
-    if (mFormat >= ImageFormat::ATI1N) {
-      destFormat = (mFormat == ImageFormat::ATI1N) ? ImageFormat::I8 : ImageFormat::IA8;
-    }
-    else {
-      destFormat = (mFormat == ImageFormat::DXT1) ? ImageFormat::RGB8 : ImageFormat::RGBA8;
-    }
+	ImageFormat::Enum destFormat;
+	if (mFormat >= ImageFormat::ATI1N) {
+	  destFormat = (mFormat == ImageFormat::ATI1N) ? ImageFormat::I8 : ImageFormat::IA8;
+	}
+	else {
+	  destFormat = (mFormat == ImageFormat::DXT1) ? ImageFormat::RGB8 : ImageFormat::RGBA8;
+	}
 
-    ubyte *newPixels = (ubyte*)conf_malloc(sizeof(ubyte) * GetMipMappedSize(0, mMipMapCount, destFormat));
+	ubyte *newPixels = (ubyte*)conf_malloc(sizeof(ubyte) * GetMipMappedSize(0, mMipMapCount, destFormat));
 
-    int level = 0;
-    ubyte *src, *dst = newPixels;
-    while ((src = GetPixels(level)) != NULL) {
-      int w = GetWidth(level);
-      int h = GetHeight(level);
-      int d = (mDepth == 0) ? 6 : GetDepth(level);
+	int level = 0;
+	ubyte *src, *dst = newPixels;
+	while ((src = GetPixels(level)) != NULL) {
+	  int w = GetWidth(level);
+	  int h = GetHeight(level);
+	  int d = (mDepth == 0) ? 6 : GetDepth(level);
 
-      int dstSliceSize = GetArraySliceSize(level, destFormat);
-      int srcSliceSize = GetArraySliceSize(level, mFormat);
+	  int dstSliceSize = GetArraySliceSize(level, destFormat);
+	  int srcSliceSize = GetArraySliceSize(level, mFormat);
 
-      for (int slice = 0; slice < d; slice++) {
-        iDecodeCompressedImage(dst, src, w, h, mFormat);
+	  for (int slice = 0; slice < d; slice++) {
+		iDecodeCompressedImage(dst, src, w, h, mFormat);
 
-        dst += dstSliceSize;
-        src += srcSliceSize;
-      }
-      level++;
-    }
+		dst += dstSliceSize;
+		src += srcSliceSize;
+	  }
+	  level++;
+	}
 
-    mFormat = destFormat;
+	mFormat = destFormat;
 
-    Destroy();
-    pData = newPixels;
+	Destroy();
+	pData = newPixels;
   }
 
   return true;
@@ -914,49 +925,49 @@ bool Image::Unpack() {
 
   ubyte *newPixels;
   if (mFormat == ImageFormat::RGBE8) {
-    mFormat = ImageFormat::RGB32F;
-    newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
+	mFormat = ImageFormat::RGB32F;
+	newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
 
-    for (int i = 0; i < pixelCount; i++) {
-      ((vec3 *)newPixels)[i] = rgbeToRGB(pData + 4 * i);
-    }
+	for (int i = 0; i < pixelCount; i++) {
+	  ((vec3 *)newPixels)[i] = rgbeToRGB(pData + 4 * i);
+	}
   }
   else if (mFormat == ImageFormat::RGB565) {
-    mFormat = ImageFormat::RGB8;
-    newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
+	mFormat = ImageFormat::RGB8;
+	newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
 
-    for (int i = 0; i < pixelCount; i++) {
-      unsigned int rgb565 = (unsigned int)(((uint16_t*)pData)[i]);
-      newPixels[3 * i] = (ubyte)(((rgb565 >> 11) * 2106) >> 8);
-      newPixels[3 * i + 1] = (ubyte)(((rgb565 >> 5) & 0x3F) * 1037 >> 8);
-      newPixels[3 * i + 2] = (ubyte)(((rgb565 & 0x1F) * 2106) >> 8);
-    }
+	for (int i = 0; i < pixelCount; i++) {
+	  unsigned int rgb565 = (unsigned int)(((uint16_t*)pData)[i]);
+	  newPixels[3 * i] = (ubyte)(((rgb565 >> 11) * 2106) >> 8);
+	  newPixels[3 * i + 1] = (ubyte)(((rgb565 >> 5) & 0x3F) * 1037 >> 8);
+	  newPixels[3 * i + 2] = (ubyte)(((rgb565 & 0x1F) * 2106) >> 8);
+	}
   }
   else if (mFormat == ImageFormat::RGBA4) {
-    mFormat = ImageFormat::RGBA8;
-    newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
+	mFormat = ImageFormat::RGBA8;
+	newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
 
-    for (int i = 0; i < pixelCount; i++) {
-      newPixels[4 * i] = (pData[2 * i + 1] & 0xF) * 17;
-      newPixels[4 * i + 1] = (pData[2 * i] >> 4) * 17;
-      newPixels[4 * i + 2] = (pData[2 * i] & 0xF) * 17;
-      newPixels[4 * i + 3] = (pData[2 * i + 1] >> 4) * 17;
-    }
+	for (int i = 0; i < pixelCount; i++) {
+	  newPixels[4 * i] = (pData[2 * i + 1] & 0xF) * 17;
+	  newPixels[4 * i + 1] = (pData[2 * i] >> 4) * 17;
+	  newPixels[4 * i + 2] = (pData[2 * i] & 0xF) * 17;
+	  newPixels[4 * i + 3] = (pData[2 * i + 1] >> 4) * 17;
+	}
   }
   else if (mFormat == ImageFormat::RGB10A2) {
-    mFormat = ImageFormat::RGBA16;
-    newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
+	mFormat = ImageFormat::RGBA16;
+	newPixels = (unsigned char*)conf_malloc(sizeof(unsigned char) * GetMipMappedSize(0, mMipMapCount));
 
-    for (int i = 0; i < pixelCount; i++) {
-      uint32 src = ((uint32 *)pData)[i];
-      ((ushort *)newPixels)[4 * i] = (((src) & 0x3FF) * 4198340) >> 16;
-      ((ushort *)newPixels)[4 * i + 1] = (((src >> 10) & 0x3FF) * 4198340) >> 16;
-      ((ushort *)newPixels)[4 * i + 2] = (((src >> 20) & 0x3FF) * 4198340) >> 16;
-      ((ushort *)newPixels)[4 * i + 3] = (((src >> 30) & 0x003) * 21845);
-    }
+	for (int i = 0; i < pixelCount; i++) {
+	  uint32 src = ((uint32 *)pData)[i];
+	  ((ushort *)newPixels)[4 * i] = (((src) & 0x3FF) * 4198340) >> 16;
+	  ((ushort *)newPixels)[4 * i + 1] = (((src >> 10) & 0x3FF) * 4198340) >> 16;
+	  ((ushort *)newPixels)[4 * i + 2] = (((src >> 20) & 0x3FF) * 4198340) >> 16;
+	  ((ushort *)newPixels)[4 * i + 3] = (((src >> 30) & 0x003) * 21845);
+	}
   }
   else {
-    return false;
+	return false;
   }
 
   conf_free(pData);
@@ -972,72 +983,72 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
   uint d = GetDepth(firstMipMapLevel);
 
   if (srcFormat == ImageFormat::NONE)
-    srcFormat = mFormat;
+	srcFormat = mFormat;
 
   // PVR formats get special case
   if ((srcFormat >= ImageFormat::PVR_2BPP) && (srcFormat <= ImageFormat::PVR_4BPPA))
   {
-    unsigned int TotalSize = 0;
-    unsigned int sizex = w;
-    unsigned int sizey = h;
-    int level = nMipMapLevels;
+	unsigned int TotalSize = 0;
+	unsigned int sizex = w;
+	unsigned int sizey = h;
+	int level = nMipMapLevels;
 
-    while (level > 0)
-    {
-      int MipSize;
+	while (level > 0)
+	{
+	  int MipSize;
 
-      // Calculate how many bytes this MIP level occupies
-      if ((mFormat == ImageFormat::PVR_2BPP) || (mFormat == ImageFormat::PVR_2BPPA))
-      {
-        int BitCount = 2;
-        MipSize = (max(sizex, gPvrTc2MinTexWidth) * max(sizey, gPvrTc2MinTexHeight) * BitCount + 7) / 8;
-      }
-      else
-      {
-        int BitCount = 4;
-        MipSize = (max(sizex, gPvrTc4MinTexHeight) * max(sizey, gPvrTc4MinTexHeight) * BitCount + 7) / 8;
-      }
+	  // Calculate how many bytes this MIP level occupies
+	  if ((mFormat == ImageFormat::PVR_2BPP) || (mFormat == ImageFormat::PVR_2BPPA))
+	  {
+		int BitCount = 2;
+		MipSize = (max(sizex, gPvrTc2MinTexWidth) * max(sizey, gPvrTc2MinTexHeight) * BitCount + 7) / 8;
+	  }
+	  else
+	  {
+		int BitCount = 4;
+		MipSize = (max(sizex, gPvrTc4MinTexHeight) * max(sizey, gPvrTc4MinTexHeight) * BitCount + 7) / 8;
+	  }
 
-      TotalSize += MipSize;
+	  TotalSize += MipSize;
 
-      unsigned int MinimumSize = 1;
-      sizex = max(sizex / 2, MinimumSize);
-      sizey = max(sizey / 2, MinimumSize);
-      level--;
-    }
+	  unsigned int MinimumSize = 1;
+	  sizex = max(sizex / 2, MinimumSize);
+	  sizey = max(sizey / 2, MinimumSize);
+	  level--;
+	}
 
-    return TotalSize;
+	return TotalSize;
   }
 
   int size = 0;
   while (nMipMapLevels)
   {
-    if (ImageFormat::IsCompressedFormat(srcFormat))
-    {
-      size += ((w + 3) >> 2) * ((h + 3) >> 2) * d;
-    }
-    else
-    {
-      size += w * h * d;
-    }
-    w >>= 1;
-    h >>= 1;
-    d >>= 1;
-    if (w + h + d == 0) break;
-    if (w == 0) w = 1;
-    if (h == 0) h = 1;
-    if (d == 0) d = 1;
+	if (ImageFormat::IsCompressedFormat(srcFormat))
+	{
+	  size += ((w + 3) >> 2) * ((h + 3) >> 2) * d;
+	}
+	else
+	{
+	  size += w * h * d;
+	}
+	w >>= 1;
+	h >>= 1;
+	d >>= 1;
+	if (w + h + d == 0) break;
+	if (w == 0) w = 1;
+	if (h == 0) h = 1;
+	if (d == 0) d = 1;
 
-    nMipMapLevels--;
+	nMipMapLevels--;
   }
 
   if (ImageFormat::IsCompressedFormat(srcFormat))
   {
-    size *= ImageFormat::GetBytesPerBlock(srcFormat);
+	size *= ImageFormat::GetBytesPerBlock(srcFormat);
   }
   else
   {
-    size *= ImageFormat::GetBytesPerPixel(srcFormat);
+	size *= ImageFormat::GetBytesPerPixel(srcFormat);
   }
 
   return (mDepth == 0) ? 6 * size : size;
@@ -1125,7 +1136,7 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
   DDSHeader header;
 
   if (memory == NULL || memSize == 0)
-    return false;
+	return false;
 
   MemoryBuffer file(memory, (unsigned)memSize);
   //MemFopen file(memory, memSize);
@@ -1134,7 +1145,7 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
   //MemFopen::FileRead(&header, sizeof(header), 1, file);
 
   if (header.mDWMagic != MAKE_CHAR4('D', 'D', 'S', ' ')) {
-    return false;
+	return false;
   }
 
   mWidth = header.mDWWidth;
@@ -1145,41 +1156,41 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
 
   if (header.mPixelFormat.mDWFourCC == MAKE_CHAR4('D', 'X', '1', '0'))
   {
-    DDSHeaderDX10 dx10Header;
+	DDSHeaderDX10 dx10Header;
 	file.Read(&dx10Header, sizeof(dx10Header));
-    //MemFopen::FileRead(&dx10Header, sizeof(dx10Header), 1, file);
+	//MemFopen::FileRead(&dx10Header, sizeof(dx10Header), 1, file);
 
-    switch (dx10Header.mDXGIFormat)
-    {
-    case 61: mFormat = ImageFormat::R8; break;
-    case 49: mFormat = ImageFormat::RG8; break;
-    case 28: mFormat = ImageFormat::RGBA8; break;
+	switch (dx10Header.mDXGIFormat)
+	{
+	case 61: mFormat = ImageFormat::R8; break;
+	case 49: mFormat = ImageFormat::RG8; break;
+	case 28: mFormat = ImageFormat::RGBA8; break;
 
-    case 56: mFormat = ImageFormat::R16; break;
-    case 35: mFormat = ImageFormat::RG16; break;
-    case 11: mFormat = ImageFormat::RGBA16; break;
+	case 56: mFormat = ImageFormat::R16; break;
+	case 35: mFormat = ImageFormat::RG16; break;
+	case 11: mFormat = ImageFormat::RGBA16; break;
 
-    case 54: mFormat = ImageFormat::R16F; break;
-    case 34: mFormat = ImageFormat::RG16F; break;
-    case 10: mFormat = ImageFormat::RGBA16F; break;
+	case 54: mFormat = ImageFormat::R16F; break;
+	case 34: mFormat = ImageFormat::RG16F; break;
+	case 10: mFormat = ImageFormat::RGBA16F; break;
 
-    case 41: mFormat = ImageFormat::R32F; break;
-    case 16: mFormat = ImageFormat::RG32F; break;
-    case 6:  mFormat = ImageFormat::RGB32F; break;
-    case 2:  mFormat = ImageFormat::RGBA32F; break;
+	case 41: mFormat = ImageFormat::R32F; break;
+	case 16: mFormat = ImageFormat::RG32F; break;
+	case 6:  mFormat = ImageFormat::RGB32F; break;
+	case 2:  mFormat = ImageFormat::RGBA32F; break;
 
-    case 67: mFormat = ImageFormat::RGB9E5; break;
-    case 26: mFormat = ImageFormat::RG11B10F; break;
-    case 24: mFormat = ImageFormat::RGB10A2; break;
+	case 67: mFormat = ImageFormat::RGB9E5; break;
+	case 26: mFormat = ImageFormat::RG11B10F; break;
+	case 24: mFormat = ImageFormat::RGB10A2; break;
 
-    case 71:
+	case 71:
 	case 72:
 		mFormat = ImageFormat::DXT1;
 		break;
-    case 74: mFormat = ImageFormat::DXT3; break;
-    case 77: mFormat = ImageFormat::DXT5; break;
-    case 80: mFormat = ImageFormat::ATI1N; break;
-    case 83: mFormat = ImageFormat::ATI2N; break;
+	case 74: mFormat = ImageFormat::DXT3; break;
+	case 77: mFormat = ImageFormat::DXT5; break;
+	case 80: mFormat = ImageFormat::ATI1N; break;
+	case 83: mFormat = ImageFormat::ATI2N; break;
 #ifdef FORGE_JHABLE_EDITS_V01
 		// these two should be different
 	case 95: // unsigned float
@@ -1192,47 +1203,47 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
 		break;
 #endif
 	default:
-      return false;
-    }
+	  return false;
+	}
   }
   else
   {
-    switch (header.mPixelFormat.mDWFourCC)
-    {
-    case 34:  mFormat = ImageFormat::RG16; break;
-    case 36:  mFormat = ImageFormat::RGBA16; break;
-    case 111: mFormat = ImageFormat::R16F; break;
-    case 112: mFormat = ImageFormat::RG16F; break;
-    case 113: mFormat = ImageFormat::RGBA16F; break;
-    case 114: mFormat = ImageFormat::R32F; break;
-    case 115: mFormat = ImageFormat::RG32F; break;
-    case 116: mFormat = ImageFormat::RGBA32F; break;
-    case MAKE_CHAR4('A', 'T', 'C', ' '): mFormat = ImageFormat::ATC; break;
-    case MAKE_CHAR4('A', 'T', 'C', 'A'): mFormat = ImageFormat::ATCA; break;
-    case MAKE_CHAR4('A', 'T', 'C', 'I'): mFormat = ImageFormat::ATCI; break;
-    case MAKE_CHAR4('A', 'T', 'I', '1'): mFormat = ImageFormat::ATI1N; break;
-    case MAKE_CHAR4('A', 'T', 'I', '2'): mFormat = ImageFormat::ATI2N; break;
-    case MAKE_CHAR4('E', 'T', 'C', ' '): mFormat = ImageFormat::ETC1; break;
-    case MAKE_CHAR4('D', 'X', 'T', '1'): mFormat = ImageFormat::DXT1; break;
-    case MAKE_CHAR4('D', 'X', 'T', '3'): mFormat = ImageFormat::DXT3; break;
-    case MAKE_CHAR4('D', 'X', 'T', '5'): mFormat = ImageFormat::DXT5; break;
-    default:
-      switch (header.mPixelFormat.mDWRGBBitCount)
-      {
-      case 8: mFormat = ImageFormat::I8; break;
-      case 16:
-        mFormat = (header.mPixelFormat.mDWRGBAlphaBitMask == 0xF000) ? ImageFormat::RGBA4 :
-          (header.mPixelFormat.mDWRGBAlphaBitMask == 0xFF00) ? ImageFormat::IA8 :
-          (header.mPixelFormat.mDWBBitMask == 0x1F) ? ImageFormat::RGB565 : ImageFormat::I16;
-        break;
-      case 24: mFormat = ImageFormat::RGB8; break;
-      case 32:
-        mFormat = (header.mPixelFormat.mDWRBitMask == 0x3FF00000) ? ImageFormat::RGB10A2 : ImageFormat::RGBA8;
-        break;
-      default:
-        return false;
-      }
-    }
+	switch (header.mPixelFormat.mDWFourCC)
+	{
+	case 34:  mFormat = ImageFormat::RG16; break;
+	case 36:  mFormat = ImageFormat::RGBA16; break;
+	case 111: mFormat = ImageFormat::R16F; break;
+	case 112: mFormat = ImageFormat::RG16F; break;
+	case 113: mFormat = ImageFormat::RGBA16F; break;
+	case 114: mFormat = ImageFormat::R32F; break;
+	case 115: mFormat = ImageFormat::RG32F; break;
+	case 116: mFormat = ImageFormat::RGBA32F; break;
+	case MAKE_CHAR4('A', 'T', 'C', ' '): mFormat = ImageFormat::ATC; break;
+	case MAKE_CHAR4('A', 'T', 'C', 'A'): mFormat = ImageFormat::ATCA; break;
+	case MAKE_CHAR4('A', 'T', 'C', 'I'): mFormat = ImageFormat::ATCI; break;
+	case MAKE_CHAR4('A', 'T', 'I', '1'): mFormat = ImageFormat::ATI1N; break;
+	case MAKE_CHAR4('A', 'T', 'I', '2'): mFormat = ImageFormat::ATI2N; break;
+	case MAKE_CHAR4('E', 'T', 'C', ' '): mFormat = ImageFormat::ETC1; break;
+	case MAKE_CHAR4('D', 'X', 'T', '1'): mFormat = ImageFormat::DXT1; break;
+	case MAKE_CHAR4('D', 'X', 'T', '3'): mFormat = ImageFormat::DXT3; break;
+	case MAKE_CHAR4('D', 'X', 'T', '5'): mFormat = ImageFormat::DXT5; break;
+	default:
+	  switch (header.mPixelFormat.mDWRGBBitCount)
+	  {
+	  case 8: mFormat = ImageFormat::I8; break;
+	  case 16:
+		mFormat = (header.mPixelFormat.mDWRGBAlphaBitMask == 0xF000) ? ImageFormat::RGBA4 :
+		  (header.mPixelFormat.mDWRGBAlphaBitMask == 0xFF00) ? ImageFormat::IA8 :
+		  (header.mPixelFormat.mDWBBitMask == 0x1F) ? ImageFormat::RGB565 : ImageFormat::I16;
+		break;
+	  case 24: mFormat = ImageFormat::RGB8; break;
+	  case 32:
+		mFormat = (header.mPixelFormat.mDWRBitMask == 0x3FF00000) ? ImageFormat::RGB10A2 : ImageFormat::RGBA8;
+		break;
+	  default:
+		return false;
+	  }
+	}
   }
 
   int size = GetMipMappedSize(0, mMipMapCount);
@@ -1248,29 +1259,29 @@ bool Image::iLoadDDSFromMemory(const char* memory, uint32_t memSize, const bool 
   }
 
   if (IsCube()) {
-    for (int face = 0; face < 6; face++) {
-      for (uint mipMapLevel = 0; mipMapLevel < mMipMapCount; mipMapLevel++) {
-        int faceSize = GetMipMappedSize(mipMapLevel, 1) / 6;
-        unsigned char *src = GetPixels(pData, mipMapLevel, 0) + face * faceSize;
+	for (int face = 0; face < 6; face++) {
+	  for (uint mipMapLevel = 0; mipMapLevel < mMipMapCount; mipMapLevel++) {
+		int faceSize = GetMipMappedSize(mipMapLevel, 1) / 6;
+		unsigned char *src = GetPixels(pData, mipMapLevel, 0) + face * faceSize;
 
 		file.Read(src, faceSize);
-        //MemFopen::FileRead(src, 1, faceSize, file);
-      }
-      // skip mipmaps if needed
-      if (useMipMaps == false && header.mDWMipMapCount > 1) {
+		//MemFopen::FileRead(src, 1, faceSize, file);
+	  }
+	  // skip mipmaps if needed
+	  if (useMipMaps == false && header.mDWMipMapCount > 1) {
 		  file.Seek(GetMipMappedSize(1, header.mDWMipMapCount - 1) / 6);
-        //MemFopen::FileSeek(file, GetMipMappedSize(1, header.mDWMipMapCount - 1) / 6, SEEK_CUR);
-      }
-    }
+		//MemFopen::FileSeek(file, GetMipMappedSize(1, header.mDWMipMapCount - 1) / 6, SEEK_CUR);
+	  }
+	}
   }
   else {
 	  file.Read(pData, size);
-    //MemFopen::FileRead(pData, 1, size, file);
+	//MemFopen::FileRead(pData, 1, size, file);
   }
 
   if ((mFormat == ImageFormat::RGB8 || mFormat == ImageFormat::RGBA8) && header.mPixelFormat.mDWBBitMask == 0xFF) {
-    int nChannels = ImageFormat::GetChannelCount(mFormat);
-    swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
+	int nChannels = ImageFormat::GetChannelCount(mFormat);
+	swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
   }
 
   return true;
@@ -1289,38 +1300,38 @@ bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool use
   // perform checks for old PVR psPVRHeader
   if (psPVRHeader->mDWHeaderSize != sizeof(PVR_Texture_Header))
   {
-    // Header V1
-    if (psPVRHeader->mDWHeaderSize == gPvrtexV1HeaderSize)
-    {
-      // react to old psPVRHeader: i.e. fill in numsurfs as this is missing from old header
-      printf("LoadPartialTextureFromPointer warning: this is an old pvr"
-        " - you can use PVRTexTool to update its header.");
-      if (psPVRHeader->mDWPFFlags & gPvrtexCubemap)
-        u32NumSurfs = 6;
-      else
-        u32NumSurfs = 1;
-    }
-    else
-    {
-      // not a pvr at all
-      printf("LoadPartialTextureFromPointer failed: not a valid pvr. ");
-      return 0;
-    }
+	// Header V1
+	if (psPVRHeader->mDWHeaderSize == gPvrtexV1HeaderSize)
+	{
+	  // react to old psPVRHeader: i.e. fill in numsurfs as this is missing from old header
+	  printf("LoadPartialTextureFromPointer warning: this is an old pvr"
+		" - you can use PVRTexTool to update its header.");
+	  if (psPVRHeader->mDWPFFlags & gPvrtexCubemap)
+		u32NumSurfs = 6;
+	  else
+		u32NumSurfs = 1;
+	}
+	else
+	{
+	  // not a pvr at all
+	  printf("LoadPartialTextureFromPointer failed: not a valid pvr. ");
+	  return 0;
+	}
   }
   else
-  {	// Header V2
-    if (psPVRHeader->mDWNumSurfs < 1)
-    {
-      // encoded with old version of PVRTexTool before zero numsurfs bug found.
-      if (psPVRHeader->mDWPFFlags & gPvrtexCubemap)
-        u32NumSurfs = 6;
-      else
-        u32NumSurfs = 1;
-    }
-    else
-    {
-      u32NumSurfs = psPVRHeader->mDWNumSurfs;
-    }
+  { // Header V2
+	if (psPVRHeader->mDWNumSurfs < 1)
+	{
+	  // encoded with old version of PVRTexTool before zero numsurfs bug found.
+	  if (psPVRHeader->mDWPFFlags & gPvrtexCubemap)
+		u32NumSurfs = 6;
+	  else
+		u32NumSurfs = 1;
+	}
+	else
+	{
+	  u32NumSurfs = psPVRHeader->mDWNumSurfs;
+	}
   }
 
   mWidth = psPVRHeader->mDWWidth;
@@ -1331,64 +1342,64 @@ bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool use
 
   bool IsPVRTCSupported = true; // hack until extension check is available //OpenGLESExt::IsGLExtensionSupported("GL_IMG_texture_compression_pvrtc");
 
-                                //	*texName = 0;	// install warning value
+								//  *texName = 0;   // install warning value
   bool IsCompressedFormatSupported = false, IsCompressedFormat = false;
 
   /* Only accept untwiddled data UNLESS texture format is PVRTC */
   if (((psPVRHeader->mDWPFFlags & gPvrtexTwiddle) == gPvrtexTwiddle)
-    && ((psPVRHeader->mDWPFFlags & gPvrtexPixeltype) != OGL_PVRTC2)
-    && ((psPVRHeader->mDWPFFlags & gPvrtexPixeltype) != OGL_PVRTC4))
+	&& ((psPVRHeader->mDWPFFlags & gPvrtexPixeltype) != OGL_PVRTC2)
+	&& ((psPVRHeader->mDWPFFlags & gPvrtexPixeltype) != OGL_PVRTC4))
   {
-    // We need to load untwiddled textures -- hw will twiddle for us.
-    printf("LoadPartialTextureFromPointer failed: texture should be untwiddled. ");
-    return 0;
+	// We need to load untwiddled textures -- hw will twiddle for us.
+	printf("LoadPartialTextureFromPointer failed: texture should be untwiddled. ");
+	return 0;
   }
 
   switch (psPVRHeader->mDWPFFlags & gPvrtexPixeltype)
   {
   case OGL_PVRTC2:
-    if (IsPVRTCSupported)
-    {
-      IsCompressedFormatSupported = IsCompressedFormat = true;
+	if (IsPVRTCSupported)
+	{
+	  IsCompressedFormatSupported = IsCompressedFormat = true;
 
-      if (psPVRHeader->mDWAlphaBitMask == 0)
-        mFormat = ImageFormat::PVR_2BPP;
-      else
-        mFormat = ImageFormat::PVR_2BPPA;
-    }
-    else
-    {
-      IsCompressedFormatSupported = false;
-      IsCompressedFormat = true;
+	  if (psPVRHeader->mDWAlphaBitMask == 0)
+		mFormat = ImageFormat::PVR_2BPP;
+	  else
+		mFormat = ImageFormat::PVR_2BPPA;
+	}
+	else
+	{
+	  IsCompressedFormatSupported = false;
+	  IsCompressedFormat = true;
 
-      ASSERT(0);
-    }
-    break;
+	  ASSERT(0);
+	}
+	break;
 
   case OGL_PVRTC4:
-    if (IsPVRTCSupported)
-    {
-      IsCompressedFormatSupported = IsCompressedFormat = true;
-      //textureFormat = psPVRHeader->mDWAlphaBitMask==0 ? GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG : GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG ;	// PVRTC4
+	if (IsPVRTCSupported)
+	{
+	  IsCompressedFormatSupported = IsCompressedFormat = true;
+	  //textureFormat = psPVRHeader->mDWAlphaBitMask==0 ? GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG : GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG ;	// PVRTC4
 
-      if (psPVRHeader->mDWAlphaBitMask == 0)
-        mFormat = ImageFormat::PVR_4BPP;
-      else
-        mFormat = ImageFormat::PVR_4BPPA;
-    }
-    else
-    {
-      IsCompressedFormatSupported = false;
-      IsCompressedFormat = true;
+	  if (psPVRHeader->mDWAlphaBitMask == 0)
+		mFormat = ImageFormat::PVR_4BPP;
+	  else
+		mFormat = ImageFormat::PVR_4BPPA;
+	}
+	else
+	{
+	  IsCompressedFormatSupported = false;
+	  IsCompressedFormat = true;
 
-      ASSERT(0);
-    }
-    break;
+	  ASSERT(0);
+	}
+	break;
 
-  default:											// NOT SUPPORTED
-    printf("load PVR failed: pixel type not supported. ");
-    ASSERT(0);
-    return 0;
+  default:										  // NOT SUPPORTED
+	printf("load PVR failed: pixel type not supported. ");
+	ASSERT(0);
+	return 0;
   }
 
   // Extract the pixel data
@@ -1403,7 +1414,7 @@ bool Image::iLoadSTBIFromMemory(const char *buffer, uint32_t memSize, const bool
 {
   // stbi does not generate or load mipmaps. (useMipmaps is ignored)
   if (buffer == 0 || memSize == 0)
-    return false;
+	return false;
 
   int w = 0, h = 0, cmp = 0, requiredCmp = 0;
   stbi_info_from_memory((stbi_uc*)buffer, memSize, &w, &h, &cmp);
@@ -1543,7 +1554,7 @@ bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const b
   UNREF_PARAM(pUserData);
   // tinyexr does not generate or load mipmaps. (useMipmaps is ignored)
   if (buffer == 0 || memSize == 0)
-    return false;
+	return false;
 
   const char* err;
 
@@ -1553,21 +1564,21 @@ bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const b
   int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, (const unsigned char*)buffer, &err);
   if (ret != 0)
   {
-    LOGERRORF("Parse EXR err: %s\n", err);
-    return false;
+	LOGERRORF("Parse EXR err: %s\n", err);
+	return false;
   }
 
   // Read HALF image as FLOAT.
   for (int i = 0; i < exrImage.num_channels; i++)
   {
-    if (exrImage.pixel_types[i] == TINYEXR_PIXELTYPE_HALF)
-      exrImage.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
+	if (exrImage.pixel_types[i] == TINYEXR_PIXELTYPE_HALF)
+	  exrImage.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
   }
 
   ret = LoadMultiChannelEXRFromMemory(&exrImage, (const unsigned char*)buffer, &err);
   if (ret != 0) {
-    LOGERRORF("Load EXR err: %s\n", err);
-    return false;
+	LOGERRORF("Load EXR err: %s\n", err);
+	return false;
   }
 
   // RGBA
@@ -1577,39 +1588,39 @@ bool Image::iLoadEXRFP32FromMemory(const char *buffer, uint32_t memSize, const b
   int idxA = -1;
   int numChannels = 0;
   for (int c = 0; c < exrImage.num_channels; c++) {
-    if (strcmp(exrImage.channel_names[c], "R") == 0) {
-      idxR = c;
-      numChannels++;
-    }
-    else if (strcmp(exrImage.channel_names[c], "G") == 0) {
-      idxG = c;
-      numChannels++;
-    }
-    else if (strcmp(exrImage.channel_names[c], "B") == 0) {
-      idxB = c;
-      numChannels++;
-    }
-    else if (strcmp(exrImage.channel_names[c], "A") == 0) {
-      idxA = c;
-      numChannels++;
-    }
+	if (strcmp(exrImage.channel_names[c], "R") == 0) {
+	  idxR = c;
+	  numChannels++;
+	}
+	else if (strcmp(exrImage.channel_names[c], "G") == 0) {
+	  idxG = c;
+	  numChannels++;
+	}
+	else if (strcmp(exrImage.channel_names[c], "B") == 0) {
+	  idxB = c;
+	  numChannels++;
+	}
+	else if (strcmp(exrImage.channel_names[c], "A") == 0) {
+	  idxA = c;
+	  numChannels++;
+	}
   }
 
   int idxChannels[] = { -1,-1,-1,-1 };
   int idxCur = 0;
   if (idxR != -1)
-    idxChannels[idxCur++] = idxR;
+	idxChannels[idxCur++] = idxR;
   if (idxG != -1)
-    idxChannels[idxCur++] = idxG;
+	idxChannels[idxCur++] = idxG;
   if (idxB != -1)
-    idxChannels[idxCur++] = idxB;
+	idxChannels[idxCur++] = idxB;
   if (idxA != -1)
-    idxChannels[idxCur++] = idxA;
+	idxChannels[idxCur++] = idxA;
 
   unsigned int* out = (unsigned int*)conf_malloc(numChannels * sizeof(float) * exrImage.width * exrImage.height);
   for (int i = 0; i < exrImage.width * exrImage.height; i++)
-    for (int chn = 0; chn < numChannels; chn++)
-      out[i*numChannels + chn] = ((unsigned int**)exrImage.images)[idxChannels[chn]][i];
+	for (int chn = 0; chn < numChannels; chn++)
+	  out[i*numChannels + chn] = ((unsigned int**)exrImage.images)[idxChannels[chn]][i];
 
   pData = (unsigned char*)out;
 
@@ -1638,7 +1649,7 @@ static GnfError iLoadGnfHeaderFromMemory(struct sce::Gnf::Header *outHeader, Mem
 {
   if (outHeader == NULL) //  || gnfFile == NULL)
   {
-    return kGnfErrorInvalidPointer;
+	return kGnfErrorInvalidPointer;
   }
   outHeader->m_magicNumber = 0;
   outHeader->m_contentsSize = 0;
@@ -1650,7 +1661,7 @@ static GnfError iLoadGnfHeaderFromMemory(struct sce::Gnf::Header *outHeader, Mem
   //	fread(outHeader, sizeof(sce::Gnf::Header), 1, gnfFile);
   if (outHeader->m_magicNumber != sce::Gnf::kMagic)
   {
-    return kGnfErrorNotGnfFile;
+	return kGnfErrorNotGnfFile;
   }
   return kGnfErrorNone;
 }
@@ -1666,7 +1677,7 @@ static uint32_t iComputeContentSize(const sce::Gnf::Contents *gnfContents)
   uint32_t missAligned = (headerSize & mask); // number of bytes after the alignemnet point
   if (missAligned) // if none zero we have to add paddings
   {
-    headerSize += align - missAligned;
+	headerSize += align - missAligned;
   }
   return headerSize - sizeof(sce::Gnf::Header);
 }
@@ -1680,34 +1691,34 @@ static GnfError iReadGnfContentsFromMemory(sce::Gnf::Contents *outContents, uint
 
   if (outContents->m_alignment > 31)
   {
-    return kGnfErrorAlignmentOutOfRange;
+	return kGnfErrorAlignmentOutOfRange;
   }
 
   if (outContents->m_version == 1)
   {
-    if ((outContents->m_numTextures * sizeof(sce::Gnm::Texture) + sizeof(sce::Gnf::Contents)) != contentsSizeInBytes)
-    {
-      return kGnfErrorContentsSizeMismatch;
-    }
+	if ((outContents->m_numTextures * sizeof(sce::Gnm::Texture) + sizeof(sce::Gnf::Contents)) != contentsSizeInBytes)
+	{
+	  return kGnfErrorContentsSizeMismatch;
+	}
   }
   else
   {
-    if (outContents->m_version != sce::Gnf::kVersion)
-    {
-      return kGnfErrorVersionMismatch;
-    }
-    else
-    {
-      if (iComputeContentSize(outContents) != contentsSizeInBytes)
-        return kGnfErrorContentsSizeMismatch;
-    }
+	if (outContents->m_version != sce::Gnf::kVersion)
+	{
+	  return kGnfErrorVersionMismatch;
+	}
+	else
+	{
+	  if (iComputeContentSize(outContents) != contentsSizeInBytes)
+		return kGnfErrorContentsSizeMismatch;
+	}
   }
 
   return kGnfErrorNone;
 }
 
 //------------------------------------------------------------------------------
-//	Loads a GNF file from memory.
+//  Loads a GNF file from memory.
 //
 bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool useMipMaps)
 {
@@ -1719,7 +1730,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
   result = iLoadGnfHeaderFromMemory(&header, m1);
   if (result != 0)
   {
-    return false;
+	return false;
   }
 
   char* memoryArray = (char*)conf_calloc(header.m_contentsSize, sizeof(char));
@@ -1742,23 +1753,23 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
   uint32 dataFormat = gnfContents->m_textures[0].getDataFormat().m_asInt;
 
   if (dataFormat == sce::Gnm::kDataFormatBc1Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc1UnormSrgb.m_asInt)
-    mFormat = ImageFormat::GNF_BC1;
+	mFormat = ImageFormat::GNF_BC1;
   //	else if(dataFormat == sce::Gnm::kDataFormatBc2Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc2UnormSrgb.m_asInt)
   //		format = ImageFormat::GNF_BC2;
   else if (dataFormat == sce::Gnm::kDataFormatBc3Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc3UnormSrgb.m_asInt)
-    mFormat = ImageFormat::GNF_BC3;
+	mFormat = ImageFormat::GNF_BC3;
   //	else if(dataFormat == sce::Gnm::kDataFormatBc4Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc4UnormSrgb.m_asInt)
   //		format = ImageFormat::GNF_BC4;
   // it seems in the moment there is no kDataFormatBc5UnormSrgb .. so I just check for the SRGB flag
   else if (dataFormat == sce::Gnm::kDataFormatBc5Unorm.m_asInt || ((dataFormat == sce::Gnm::kDataFormatBc5Unorm.m_asInt) && (gnfContents->m_textures[0].getDataFormat().getTextureChannelType() == sce::Gnm::kTextureChannelTypeSrgb)))
-    mFormat = ImageFormat::GNF_BC5;
+	mFormat = ImageFormat::GNF_BC5;
   //	else if(dataFormat == sce::Gnm::kDataFormatBc6Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc6UnormSrgb.m_asInt)
   //		format = ImageFormat::GNF_BC6;
   else if (dataFormat == sce::Gnm::kDataFormatBc7Unorm.m_asInt || dataFormat == sce::Gnm::kDataFormatBc7UnormSrgb.m_asInt)
-    mFormat = ImageFormat::GNF_BC7;
+	mFormat = ImageFormat::GNF_BC7;
   else {
-    LOGERRORF("Couldn't find the data format of the texture");
-    return false;
+	LOGERRORF("Couldn't find the data format of the texture");
+	return false;
   }
 
   //
@@ -1815,7 +1826,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 # endif
 
 // Image loading
-// struct of table for file format to loading function 
+// struct of table for file format to loading function
 struct ImageLoaderDefinition
 {
   tinystl::string Extension;
@@ -1907,26 +1918,26 @@ bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFun
 
   const char *extension = strrchr(fileName, '.');
   if (extension == NULL)
-    return false;
+	return false;
 
   // open file
   File file = {};
   file.Open (fileName, FM_ReadBinary, root);
   if (!file.IsOpen())
   {
-    LOGERRORF("\"%s\": Image file not found.", fileName);
-    return false;
+	LOGERRORF("\"%s\": Image file not found.", fileName);
+	return false;
   }
 
   // load file into memory
   uint32_t length = file.GetSize();
   if (length == 0)
   {
-    //char output[256];
-    //sprintf(output, "\"%s\": Image file is empty.", fileName);
-    LOGERRORF("\"%s\": Image is an empty file.", fileName);
-    file.Close();
-    return false;
+	//char output[256];
+	//sprintf(output, "\"%s\": Image file is empty.", fileName);
+	LOGERRORF("\"%s\": Image is an empty file.", fileName);
+	file.Close();
+	return false;
   }
 
   // read and close file.
@@ -1939,40 +1950,40 @@ bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFun
   bool support = false;
   for (int i = 0; i < (int)gImageLoaders.size(); i++)
   {
-    if (stricmp(extension, gImageLoaders[i].Extension) == 0)
-    {
-      support = true;
-      loaded = (this->*(gImageLoaders[i].Loader))(data, length, useMipmaps, pAllocator, pUserData);
+	if (stricmp(extension, gImageLoaders[i].Extension) == 0)
+	{
+	  support = true;
+	  loaded = (this->*(gImageLoaders[i].Loader))(data, length, useMipmaps, pAllocator, pUserData);
 	  if (loaded)
 	  {
 		  break;
 	  }
-    }
+	}
   }
   if (!support)
   {
 #if !defined(TARGET_IOS)
-    LOGERRORF("Can't load this file format for image  :  %s", fileName);
+	LOGERRORF("Can't load this file format for image  :  %s", fileName);
 #else
-      // Try fallback with uncompressed textures: TODO: this shouldn't be here
-      char* uncompressedFileName = strdup(fileName);
-      char* uncompressedExtension = strrchr(uncompressedFileName, '.');
-      uncompressedExtension[0] = '.';
-      uncompressedExtension[1] = 't';
-      uncompressedExtension[2] = 'g';
-      uncompressedExtension[3] = 'a';
-      uncompressedExtension[4] = '\0';
-      loaded = loadImage(uncompressedFileName, useMipmaps, pAllocator, pUserData, root);
-      conf_free(uncompressedFileName);
-      if (!loaded)
-      {
-          LOGERRORF("Can't load this file format for image  :  %s", fileName);
-      }
+	  // Try fallback with uncompressed textures: TODO: this shouldn't be here
+	  char* uncompressedFileName = strdup(fileName);
+	  char* uncompressedExtension = strrchr(uncompressedFileName, '.');
+	  uncompressedExtension[0] = '.';
+	  uncompressedExtension[1] = 't';
+	  uncompressedExtension[2] = 'g';
+	  uncompressedExtension[3] = 'a';
+	  uncompressedExtension[4] = '\0';
+	  loaded = loadImage(uncompressedFileName, useMipmaps, pAllocator, pUserData, root);
+	  conf_free(uncompressedFileName);
+	  if (!loaded)
+	  {
+		  LOGERRORF("Can't load this file format for image  :  %s", fileName);
+	  }
 #endif
   }
   else
   {
-    mLoadFileName = fileName;
+	mLoadFileName = fileName;
   }
   // cleanup the compressed data
   conf_free( data);
@@ -1983,47 +1994,47 @@ bool Image::loadImage(const char *fileName, bool useMipmaps, memoryAllocationFun
 bool Image::Convert(const ImageFormat::Enum newFormat) {
   ubyte *newPixels;
   uint nPixels = GetNumberOfPixels(0, mMipMapCount) * mArrayCount;
- 
-  if (mFormat == ImageFormat::RGBE8 && (newFormat == ImageFormat::RGB32F || newFormat == ImageFormat::RGBA32F)) {
-    newPixels = (ubyte*)conf_malloc(sizeof(ubyte) * GetMipMappedSize(0, mMipMapCount, newFormat) * mArrayCount);
-    float *dest = (float *)newPixels;
 
-    bool writeAlpha = (newFormat == ImageFormat::RGBA32F);
-    ubyte *src = pData;
-    do {
-      *((vec3 *)dest) = rgbeToRGB(src);
-      if (writeAlpha) {
-        dest[3] = 1.0f;
-        dest += 4;
-      }
-      else {
-        dest += 3;
-      }
-      src += 4;
-    } while (--nPixels);
-    
+  if (mFormat == ImageFormat::RGBE8 && (newFormat == ImageFormat::RGB32F || newFormat == ImageFormat::RGBA32F)) {
+	newPixels = (ubyte*)conf_malloc(sizeof(ubyte) * GetMipMappedSize(0, mMipMapCount, newFormat) * mArrayCount);
+	float *dest = (float *)newPixels;
+
+	bool writeAlpha = (newFormat == ImageFormat::RGBA32F);
+	ubyte *src = pData;
+	do {
+	  *((vec3 *)dest) = rgbeToRGB(src);
+	  if (writeAlpha) {
+		dest[3] = 1.0f;
+		dest += 4;
+	  }
+	  else {
+		dest += 3;
+	  }
+	  src += 4;
+	} while (--nPixels);
+
   }
   else {
-    if (!ImageFormat::IsPlainFormat(mFormat) || !(ImageFormat::IsPlainFormat(newFormat) || newFormat == ImageFormat::RGB10A2 || newFormat == ImageFormat::RGBE8 || newFormat == ImageFormat::RGB9E5))
-    {
-      LOGERRORF("Image: %s fail to convert from  %s  to  %s",mLoadFileName.c_str(), ImageFormat::GetFormatString(mFormat), ImageFormat::GetFormatString(newFormat));
-      return false;
-    }
-    if (mFormat == newFormat) return true;
+	if (!ImageFormat::IsPlainFormat(mFormat) || !(ImageFormat::IsPlainFormat(newFormat) || newFormat == ImageFormat::RGB10A2 || newFormat == ImageFormat::RGBE8 || newFormat == ImageFormat::RGB9E5))
+	{
+	  LOGERRORF("Image: %s fail to convert from  %s  to  %s",mLoadFileName.c_str(), ImageFormat::GetFormatString(mFormat), ImageFormat::GetFormatString(newFormat));
+	  return false;
+	}
+	if (mFormat == newFormat) return true;
 
-    ubyte *src = pData;
-    ubyte *dest = newPixels = (ubyte*)conf_malloc(sizeof(ubyte) * GetMipMappedSize(0, mMipMapCount, newFormat) * mArrayCount);
+	ubyte *src = pData;
+	ubyte *dest = newPixels = (ubyte*)conf_malloc(sizeof(ubyte) * GetMipMappedSize(0, mMipMapCount, newFormat) * mArrayCount);
 
-    if (mFormat == ImageFormat::RGB8 && newFormat == ImageFormat::RGBA8) {
-      // Fast path for RGB->RGBA8
-      do {
-        dest[0] = src[0];
-        dest[1] = src[1];
-        dest[2] = src[2];
-        dest[3] = 255;
-        dest += 4;
-        src += 3;
-      } while (--nPixels);
+	if (mFormat == ImageFormat::RGB8 && newFormat == ImageFormat::RGBA8) {
+	  // Fast path for RGB->RGBA8
+	  do {
+		dest[0] = src[0];
+		dest[1] = src[1];
+		dest[2] = src[2];
+		dest[3] = 255;
+		dest += 4;
+		src += 3;
+	  } while (--nPixels);
 	} else if (mFormat == ImageFormat::RGBA8 && newFormat == ImageFormat::BGRA8) {
 		// Fast path for RGBA8->BGRA8 (just swizzle)
 		do {
@@ -2035,71 +2046,71 @@ bool Image::Convert(const ImageFormat::Enum newFormat) {
 			src += 4;
 		} while (--nPixels);
 	}
-    else {
-      int srcSize = ImageFormat::GetBytesPerPixel(mFormat);
-      int nSrcChannels = ImageFormat::GetChannelCount(mFormat);
+	else {
+	  int srcSize = ImageFormat::GetBytesPerPixel(mFormat);
+	  int nSrcChannels = ImageFormat::GetChannelCount(mFormat);
 
-      int destSize = ImageFormat::GetBytesPerPixel(newFormat);
-      int nDestChannels = ImageFormat::GetChannelCount(newFormat);
+	  int destSize = ImageFormat::GetBytesPerPixel(newFormat);
+	  int nDestChannels = ImageFormat::GetChannelCount(newFormat);
 
-      do {
-        float rgba[4];
+	  do {
+		float rgba[4];
 
-        if (ImageFormat::IsFloatFormat(mFormat)) {
-          if (mFormat <= ImageFormat::RGBA16F) {
-            for (int i = 0; i < nSrcChannels; i++) rgba[i] = ((half *)src)[i];
-          }
-          else {
-            for (int i = 0; i < nSrcChannels; i++) rgba[i] = ((float *)src)[i];
-          }
-        }
-        else if (mFormat >= ImageFormat::I16 && mFormat <= ImageFormat::RGBA16) {
-          for (int i = 0; i < nSrcChannels; i++) rgba[i] = ((ushort *)src)[i] * (1.0f / 65535.0f);
-        }
-        else {
-          for (int i = 0; i < nSrcChannels; i++) rgba[i] = src[i] * (1.0f / 255.0f);
-        }
-        if (nSrcChannels < 4) rgba[3] = 1.0f;
-        if (nSrcChannels == 1) rgba[2] = rgba[1] = rgba[0];
+		if (ImageFormat::IsFloatFormat(mFormat)) {
+		  if (mFormat <= ImageFormat::RGBA16F) {
+			for (int i = 0; i < nSrcChannels; i++) rgba[i] = ((half *)src)[i];
+		  }
+		  else {
+			for (int i = 0; i < nSrcChannels; i++) rgba[i] = ((float *)src)[i];
+		  }
+		}
+		else if (mFormat >= ImageFormat::I16 && mFormat <= ImageFormat::RGBA16) {
+		  for (int i = 0; i < nSrcChannels; i++) rgba[i] = ((ushort *)src)[i] * (1.0f / 65535.0f);
+		}
+		else {
+		  for (int i = 0; i < nSrcChannels; i++) rgba[i] = src[i] * (1.0f / 255.0f);
+		}
+		if (nSrcChannels < 4) rgba[3] = 1.0f;
+		if (nSrcChannels == 1) rgba[2] = rgba[1] = rgba[0];
 
-        if (nDestChannels == 1)	rgba[0] = 0.30f * rgba[0] + 0.59f * rgba[1] + 0.11f * rgba[2];
+		if (nDestChannels == 1) rgba[0] = 0.30f * rgba[0] + 0.59f * rgba[1] + 0.11f * rgba[2];
 
-        if (ImageFormat::IsFloatFormat(newFormat)) {
-          if (newFormat <= ImageFormat::RGBA32F) {
-            if (newFormat <= ImageFormat::RGBA16F) {
-              for (int i = 0; i < nDestChannels; i++)	((half *)dest)[i] = rgba[i];
-            }
-            else {
-              for (int i = 0; i < nDestChannels; i++)	((float *)dest)[i] = rgba[i];
-            }
-          }
-          else {
-            if (newFormat == ImageFormat::RGBE8) {
-              *(uint32 *)dest = rgbToRGBE8(vec3(rgba[0], rgba[1], rgba[2]));
-            }
-            else {
-              *(uint32 *)dest = rgbToRGB9E5(vec3(rgba[0], rgba[1], rgba[2]));
-            }
-          }
-        }
-        else if (newFormat >= ImageFormat::I16 && newFormat <= ImageFormat::RGBA16) {
-          for (int i = 0; i < nDestChannels; i++)	((ushort *)dest)[i] = (ushort)(65535 * saturate(rgba[i]) + 0.5f);
-        }
-        else if (/*isPackedFormat(newFormat)*/newFormat == ImageFormat::RGB10A2) {
-          *(uint *)dest =
-            (uint(1023.0f * saturate(rgba[0]) + 0.5f) << 22) |
-            (uint(1023.0f * saturate(rgba[1]) + 0.5f) << 12) |
-            (uint(1023.0f * saturate(rgba[2]) + 0.5f) << 2) |
-            (uint(3.0f * saturate(rgba[3]) + 0.5f));
-        }
-        else {
-          for (int i = 0; i < nDestChannels; i++)	dest[i] = (unsigned char)(255 * saturate(rgba[i]) + 0.5f);
-        }
+		if (ImageFormat::IsFloatFormat(newFormat)) {
+		  if (newFormat <= ImageFormat::RGBA32F) {
+			if (newFormat <= ImageFormat::RGBA16F) {
+			  for (int i = 0; i < nDestChannels; i++)   ((half *)dest)[i] = rgba[i];
+			}
+			else {
+			  for (int i = 0; i < nDestChannels; i++)   ((float *)dest)[i] = rgba[i];
+			}
+		  }
+		  else {
+			if (newFormat == ImageFormat::RGBE8) {
+			  *(uint32 *)dest = rgbToRGBE8(vec3(rgba[0], rgba[1], rgba[2]));
+			}
+			else {
+			  *(uint32 *)dest = rgbToRGB9E5(vec3(rgba[0], rgba[1], rgba[2]));
+			}
+		  }
+		}
+		else if (newFormat >= ImageFormat::I16 && newFormat <= ImageFormat::RGBA16) {
+		  for (int i = 0; i < nDestChannels; i++)   ((ushort *)dest)[i] = (ushort)(65535 * saturate(rgba[i]) + 0.5f);
+		}
+		else if (/*isPackedFormat(newFormat)*/newFormat == ImageFormat::RGB10A2) {
+		  *(uint *)dest =
+			(uint(1023.0f * saturate(rgba[0]) + 0.5f) << 22) |
+			(uint(1023.0f * saturate(rgba[1]) + 0.5f) << 12) |
+			(uint(1023.0f * saturate(rgba[2]) + 0.5f) << 2) |
+			(uint(3.0f * saturate(rgba[3]) + 0.5f));
+		}
+		else {
+		  for (int i = 0; i < nDestChannels; i++)   dest[i] = (unsigned char)(255 * saturate(rgba[i]) + 0.5f);
+		}
 
-        src += srcSize;
-        dest += destSize;
-      } while (--nPixels);
-    }
+		src += srcSize;
+		dest += destSize;
+	  } while (--nPixels);
+	}
   }
   conf_free(pData);
   pData = newPixels;
@@ -2202,13 +2213,13 @@ bool Image::iSwap(const int c0, const int c1) {
   unsigned int nChannels = ImageFormat::GetChannelCount(mFormat);
 
   if (mFormat <= ImageFormat::RGBA8) {
-    swapPixelChannels((uint8_t*)pData, nPixels, nChannels, c0, c1);
+	swapPixelChannels((uint8_t*)pData, nPixels, nChannels, c0, c1);
   }
   else if (mFormat <= ImageFormat::RGBA16F) {
-    swapPixelChannels((uint16_t*)pData, nPixels, nChannels, c0, c1);
+	swapPixelChannels((uint16_t*)pData, nPixels, nChannels, c0, c1);
   }
   else {
-    swapPixelChannels((float*)pData, nPixels, nChannels, c0, c1);
+	swapPixelChannels((float*)pData, nPixels, nChannels, c0, c1);
   }
 
   return true;
@@ -2232,75 +2243,75 @@ bool Image::iSaveDDS(const char *fileName)
   header.mDWPitchOrLinearSize = 0;
   header.mDWMipMapCount = (mMipMapCount > 1) ? mMipMapCount : 0;
   header.mPixelFormat.mDWSize = 32;
-  
+
   header.mDWFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT | (mMipMapCount > 1 ? DDSD_MIPMAPCOUNT : 0) | (mDepth > 1 ? DDSD_DEPTH : 0);
 
   int nChannels = ImageFormat::GetChannelCount(mFormat);
 
   if (mFormat == ImageFormat::RGB10A2 || mFormat <= ImageFormat::I16)
   {
-    if (mFormat <= ImageFormat::RGBA8)
-    {
-      header.mPixelFormat.mDWRGBBitCount = 8 * nChannels;
-      header.mPixelFormat.mDWRGBAlphaBitMask = (nChannels == 4) ? 0xFF000000 : (nChannels == 2) ? 0xFF00 : 0;
-      header.mPixelFormat.mDWRBitMask = (nChannels > 2) ? 0x00FF0000 : 0xFF;
-      header.mPixelFormat.mDWGBitMask = (nChannels > 1) ? 0x0000FF00 : 0;
-      header.mPixelFormat.mDWBBitMask = (nChannels > 1) ? 0x000000FF : 0;
-    }
-    else if (mFormat == ImageFormat::I16)
-    {
-      header.mPixelFormat.mDWRGBBitCount = 16;
-      header.mPixelFormat.mDWRBitMask = 0xFFFF;
-    }
-    else
-    {
-      header.mPixelFormat.mDWRGBBitCount = 32;
-      header.mPixelFormat.mDWRGBAlphaBitMask = 0xC0000000;
-      header.mPixelFormat.mDWRBitMask = 0x3FF00000;
-      header.mPixelFormat.mDWGBitMask = 0x000FFC00;
-      header.mPixelFormat.mDWBBitMask = 0x000003FF;
-    }
-    header.mPixelFormat.mDWFlags = ((nChannels < 3) ? 0x00020000 : DDPF_RGB) |
-      ((nChannels & 1) ? 0 : DDPF_ALPHAPIXELS);
+	if (mFormat <= ImageFormat::RGBA8)
+	{
+	  header.mPixelFormat.mDWRGBBitCount = 8 * nChannels;
+	  header.mPixelFormat.mDWRGBAlphaBitMask = (nChannels == 4) ? 0xFF000000 : (nChannels == 2) ? 0xFF00 : 0;
+	  header.mPixelFormat.mDWRBitMask = (nChannels > 2) ? 0x00FF0000 : 0xFF;
+	  header.mPixelFormat.mDWGBitMask = (nChannels > 1) ? 0x0000FF00 : 0;
+	  header.mPixelFormat.mDWBBitMask = (nChannels > 1) ? 0x000000FF : 0;
+	}
+	else if (mFormat == ImageFormat::I16)
+	{
+	  header.mPixelFormat.mDWRGBBitCount = 16;
+	  header.mPixelFormat.mDWRBitMask = 0xFFFF;
+	}
+	else
+	{
+	  header.mPixelFormat.mDWRGBBitCount = 32;
+	  header.mPixelFormat.mDWRGBAlphaBitMask = 0xC0000000;
+	  header.mPixelFormat.mDWRBitMask = 0x3FF00000;
+	  header.mPixelFormat.mDWGBitMask = 0x000FFC00;
+	  header.mPixelFormat.mDWBBitMask = 0x000003FF;
+	}
+	header.mPixelFormat.mDWFlags = ((nChannels < 3) ? 0x00020000 : DDPF_RGB) |
+	  ((nChannels & 1) ? 0 : DDPF_ALPHAPIXELS);
   }
   else
   {
-    header.mPixelFormat.mDWFlags = DDPF_FOURCC;
+	header.mPixelFormat.mDWFlags = DDPF_FOURCC;
 
-    switch (mFormat) {
-    case ImageFormat::RG16:    header.mPixelFormat.mDWFourCC = 34; break;
-    case ImageFormat::RGBA16:  header.mPixelFormat.mDWFourCC = 36; break;
-    case ImageFormat::R16F:    header.mPixelFormat.mDWFourCC = 111; break;
-    case ImageFormat::RG16F:   header.mPixelFormat.mDWFourCC = 112; break;
-    case ImageFormat::RGBA16F: header.mPixelFormat.mDWFourCC = 113; break;
-    case ImageFormat::R32F:    header.mPixelFormat.mDWFourCC = 114; break;
-    case ImageFormat::RG32F:   header.mPixelFormat.mDWFourCC = 115; break;
-    case ImageFormat::RGBA32F: header.mPixelFormat.mDWFourCC = 116; break;
-    case ImageFormat::DXT1:    header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', 'T', '1'); break;
-    case ImageFormat::DXT3:    header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', 'T', '3'); break;
-    case ImageFormat::DXT5:    header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', 'T', '5'); break;
-    case ImageFormat::ATI1N:   header.mPixelFormat.mDWFourCC = MAKE_CHAR4('A', 'T', 'I', '1'); break;
-    case ImageFormat::ATI2N:   header.mPixelFormat.mDWFourCC = MAKE_CHAR4('A', 'T', 'I', '2'); break;
-    default:
-      header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', '1', '0');
-      headerDX10.mArraySize = 1;
-      headerDX10.mDXGIFormat = (mDepth == 0) ? D3D10_RESOURCE_MISC_TEXTURECUBE : 0;
-      if (Is1D())
-        headerDX10.mResourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE1D;
-      else if (Is2D())
-        headerDX10.mResourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE2D;
-      else if (Is3D())
-        headerDX10.mResourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE3D;
+	switch (mFormat) {
+	case ImageFormat::RG16: header.mPixelFormat.mDWFourCC = 34; break;
+	case ImageFormat::RGBA16:  header.mPixelFormat.mDWFourCC = 36; break;
+	case ImageFormat::R16F: header.mPixelFormat.mDWFourCC = 111; break;
+	case ImageFormat::RG16F:   header.mPixelFormat.mDWFourCC = 112; break;
+	case ImageFormat::RGBA16F: header.mPixelFormat.mDWFourCC = 113; break;
+	case ImageFormat::R32F: header.mPixelFormat.mDWFourCC = 114; break;
+	case ImageFormat::RG32F:   header.mPixelFormat.mDWFourCC = 115; break;
+	case ImageFormat::RGBA32F: header.mPixelFormat.mDWFourCC = 116; break;
+	case ImageFormat::DXT1: header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', 'T', '1'); break;
+	case ImageFormat::DXT3: header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', 'T', '3'); break;
+	case ImageFormat::DXT5: header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', 'T', '5'); break;
+	case ImageFormat::ATI1N:   header.mPixelFormat.mDWFourCC = MAKE_CHAR4('A', 'T', 'I', '1'); break;
+	case ImageFormat::ATI2N:   header.mPixelFormat.mDWFourCC = MAKE_CHAR4('A', 'T', 'I', '2'); break;
+	default:
+	  header.mPixelFormat.mDWFourCC = MAKE_CHAR4('D', 'X', '1', '0');
+	  headerDX10.mArraySize = 1;
+	  headerDX10.mDXGIFormat = (mDepth == 0) ? D3D10_RESOURCE_MISC_TEXTURECUBE : 0;
+	  if (Is1D())
+		headerDX10.mResourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE1D;
+	  else if (Is2D())
+		headerDX10.mResourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE2D;
+	  else if (Is3D())
+		headerDX10.mResourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE3D;
 
-      switch (mFormat)
-      {  
-      case ImageFormat::RGB32F:   headerDX10.mDXGIFormat = 6; break;
-      case ImageFormat::RGB9E5:   headerDX10.mDXGIFormat = 67; break;
-      case ImageFormat::RG11B10F: headerDX10.mDXGIFormat = 26; break;
-      default:
-        return false;
-      }
-    }
+	  switch (mFormat)
+	  {
+	  case ImageFormat::RGB32F:   headerDX10.mDXGIFormat = 6; break;
+	  case ImageFormat::RGB9E5:   headerDX10.mDXGIFormat = 67; break;
+	  case ImageFormat::RG11B10F: headerDX10.mDXGIFormat = 26; break;
+	  default:
+		return false;
+	  }
+	}
   }
  // header.
 
@@ -2317,31 +2328,31 @@ bool Image::iSaveDDS(const char *fileName)
   file.Write(&header, sizeof(header));
 
   if (headerDX10.mDXGIFormat)
-    file.Write(&headerDX10, sizeof(headerDX10) * 1);
+	file.Write(&headerDX10, sizeof(headerDX10) * 1);
 
   int size = GetMipMappedSize(0, mMipMapCount);
 
   // RGB to BGR
   if (mFormat == ImageFormat::RGB8 || mFormat == ImageFormat::RGBA8)
-    swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
+	swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
 
   if (IsCube()) {
-    for (int face = 0; face < 6; face++) {
-      for (uint mipMapLevel = 0; mipMapLevel < mMipMapCount; mipMapLevel++) {
-        int faceSize = GetMipMappedSize(mipMapLevel, 1) / 6;
-        ubyte *src = GetPixels(mipMapLevel) + face * faceSize;
-        file.Write(src, faceSize);
-      }
-    }
+	for (int face = 0; face < 6; face++) {
+	  for (uint mipMapLevel = 0; mipMapLevel < mMipMapCount; mipMapLevel++) {
+		int faceSize = GetMipMappedSize(mipMapLevel, 1) / 6;
+		ubyte *src = GetPixels(mipMapLevel) + face * faceSize;
+		file.Write(src, faceSize);
+	  }
+	}
   }
   else {
-    file.Write(pData, size);
+	file.Write(pData, size);
   }
  file.Close();
 
   // Restore to RGB
   if (mFormat == ImageFormat::RGB8 || mFormat == ImageFormat::RGBA8)
-    swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
+	swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
 
   return true;
 }
@@ -2353,7 +2364,7 @@ bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const 
   imgCopy.Uncompress();
   if (imgCopy.Convert(ImageFormat::RGBA8))
   {
-    bSaveImageSuccess = (imgCopy.*saverFunction)(fileName);
+	bSaveImageSuccess = (imgCopy.*saverFunction)(fileName);
   }
 
   imgCopy.Destroy();
@@ -2365,21 +2376,21 @@ bool Image::iSaveTGA(const char* fileName)
   switch (mFormat)
   {
   case ImageFormat::R8:
-    return 0 != stbi_write_tga(fileName, mWidth, mHeight, 1, pData);
-    break;
+	return 0 != stbi_write_tga(fileName, mWidth, mHeight, 1, pData);
+	break;
   case ImageFormat::RG8:
-    return 0 != stbi_write_tga(fileName, mWidth, mHeight, 2, pData);
-    break;
+	return 0 != stbi_write_tga(fileName, mWidth, mHeight, 2, pData);
+	break;
   case ImageFormat::RGB8:
-    return 0 != stbi_write_tga(fileName, mWidth, mHeight, 3, pData);
-    break;
+	return 0 != stbi_write_tga(fileName, mWidth, mHeight, 3, pData);
+	break;
   case ImageFormat::RGBA8:
-    return 0 != stbi_write_tga(fileName, mWidth, mHeight, 4, pData);
-    break;
-  default: 
+	return 0 != stbi_write_tga(fileName, mWidth, mHeight, 4, pData);
+	break;
+  default:
   {
-    // uncompress/convert and try again
-    return convertAndSaveImage(*this, &Image::iSaveTGA, fileName);
+	// uncompress/convert and try again
+	return convertAndSaveImage(*this, &Image::iSaveTGA, fileName);
   }
   }
 
@@ -2391,21 +2402,21 @@ bool Image::iSaveBMP(const char* fileName)
   switch (mFormat)
   {
   case ImageFormat::R8:
-    stbi_write_bmp(fileName, mWidth, mHeight, 1, pData);
-    break;
+	stbi_write_bmp(fileName, mWidth, mHeight, 1, pData);
+	break;
   case ImageFormat::RG8:
-    stbi_write_bmp(fileName, mWidth, mHeight, 2, pData);
-    break;
+	stbi_write_bmp(fileName, mWidth, mHeight, 2, pData);
+	break;
   case ImageFormat::RGB8:
-    stbi_write_bmp(fileName, mWidth, mHeight, 3, pData);
-    break;
+	stbi_write_bmp(fileName, mWidth, mHeight, 3, pData);
+	break;
   case ImageFormat::RGBA8:
-    stbi_write_bmp(fileName, mWidth, mHeight, 4, pData);
-    break;
+	stbi_write_bmp(fileName, mWidth, mHeight, 4, pData);
+	break;
   default:
   {
-    // uncompress/convert and try again
-    return convertAndSaveImage(*this, &Image::iSaveBMP, fileName);
+	// uncompress/convert and try again
+	return convertAndSaveImage(*this, &Image::iSaveBMP, fileName);
   }
   }
   return true;
@@ -2416,21 +2427,21 @@ bool Image::iSavePNG(const char* fileName)
   switch (mFormat)
   {
   case ImageFormat::R8:
-    stbi_write_png(fileName, mWidth, mHeight, 1, pData, 0);
-    break;
+	stbi_write_png(fileName, mWidth, mHeight, 1, pData, 0);
+	break;
   case ImageFormat::RG8:
-    stbi_write_png(fileName, mWidth, mHeight, 2, pData, 0);
-    break;
+	stbi_write_png(fileName, mWidth, mHeight, 2, pData, 0);
+	break;
   case ImageFormat::RGB8:
-    stbi_write_png(fileName, mWidth, mHeight, 3, pData, 0);
-    break;
+	stbi_write_png(fileName, mWidth, mHeight, 3, pData, 0);
+	break;
   case ImageFormat::RGBA8:
-    stbi_write_png(fileName, mWidth, mHeight, 4, pData, 0);
-    break;
+	stbi_write_png(fileName, mWidth, mHeight, 4, pData, 0);
+	break;
   default:
   {
-    // uncompress/convert and try again
-    return convertAndSaveImage(*this, &Image::iSavePNG, fileName);
+	// uncompress/convert and try again
+	return convertAndSaveImage(*this, &Image::iSavePNG, fileName);
   }
   }
 
@@ -2442,21 +2453,21 @@ bool Image::iSaveHDR(const char* fileName)
   switch (mFormat)
   {
   case ImageFormat::R32F:
-    stbi_write_hdr(fileName, mWidth, mHeight, 1, (float*)pData);
-    break;
+	stbi_write_hdr(fileName, mWidth, mHeight, 1, (float*)pData);
+	break;
   case ImageFormat::RG32F:
-    stbi_write_hdr(fileName, mWidth, mHeight, 2, (float*)pData);
-    break;
+	stbi_write_hdr(fileName, mWidth, mHeight, 2, (float*)pData);
+	break;
   case ImageFormat::RGB32F:
-    stbi_write_hdr(fileName, mWidth, mHeight, 3, (float*)pData);
-    break;
+	stbi_write_hdr(fileName, mWidth, mHeight, 3, (float*)pData);
+	break;
   case ImageFormat::RGBA32F:
-    stbi_write_hdr(fileName, mWidth, mHeight, 4, (float*)pData);
-    break;
+	stbi_write_hdr(fileName, mWidth, mHeight, 4, (float*)pData);
+	break;
   default:
   {
-    // uncompress/convert and try again
-    return convertAndSaveImage(*this, &Image::iSaveHDR, fileName);
+	// uncompress/convert and try again
+	return convertAndSaveImage(*this, &Image::iSaveHDR, fileName);
   }
   }
 
@@ -2468,21 +2479,21 @@ bool Image::iSaveJPG(const char * fileName)
   switch (mFormat)
   {
   case ImageFormat::R8:
-    stbi_write_jpg(fileName, mWidth, mHeight, 1, pData, 0);
-    break;
+	stbi_write_jpg(fileName, mWidth, mHeight, 1, pData, 0);
+	break;
   case ImageFormat::RG8:
-    stbi_write_jpg(fileName, mWidth, mHeight, 2, pData, 0);
-    break;
+	stbi_write_jpg(fileName, mWidth, mHeight, 2, pData, 0);
+	break;
   case ImageFormat::RGB8:
-    stbi_write_jpg(fileName, mWidth, mHeight, 3, pData, 0);
-    break;
+	stbi_write_jpg(fileName, mWidth, mHeight, 3, pData, 0);
+	break;
   case ImageFormat::RGBA8:
-    stbi_write_jpg(fileName, mWidth, mHeight, 4, pData, 0);
-    break;
+	stbi_write_jpg(fileName, mWidth, mHeight, 4, pData, 0);
+	break;
   default:
   {
-    // uncompress/convert and try again
-    return convertAndSaveImage(*this, &Image::iSaveJPG, fileName);
+	// uncompress/convert and try again
+	return convertAndSaveImage(*this, &Image::iSaveJPG, fileName);
   }
   }
 
@@ -2513,15 +2524,15 @@ bool Image::SaveImage(const char *fileName) {
   bool support = false;;
   for (int i = 0; i < sizeof(gImageSavers) / sizeof(gImageSavers[0]); i++)
   {
-    if (stricmp(extension, gImageSavers[i].Extension) == 0)
-    {
-      support = true;
-      return (this->*gImageSavers[i].Loader)(fileName);
-    }
+	if (stricmp(extension, gImageSavers[i].Extension) == 0)
+	{
+	  support = true;
+	  return (this->*gImageSavers[i].Loader)(fileName);
+	}
   }
   if (!support)
   {
-    LOGERRORF("Can't save this file format for image  :  %s", fileName);
+	LOGERRORF("Can't save this file format for image  :  %s", fileName);
 
   }
 

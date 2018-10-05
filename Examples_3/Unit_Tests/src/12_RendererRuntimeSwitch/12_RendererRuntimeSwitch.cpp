@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -62,7 +62,7 @@ struct PlanetInfoStruct
 	float mRotationSpeed; // Rotation speed around self
 	mat4 mTranslationMat;
 	mat4 mScaleMat;
-	mat4 mSharedMat;    // Matrix to pass down to children
+	mat4 mSharedMat;	// Matrix to pass down to children
 };
 
 struct UniformBlock
@@ -76,62 +76,62 @@ struct UniformBlock
 	vec3 mLightColor;
 };
 
-const uint32_t		gImageCount = 3;
-const int			gSphereResolution = 30; // Increase for higher resolution spheres
-const float			gSphereDiameter = 0.5f;
-const uint			gNumPlanets = 11;       // Sun, Mercury -> Neptune, Pluto, Moon
-const uint			gTimeOffset = 600000;   // For visually better starting locations 
-const float			gRotSelfScale = 0.0004f;
-const float			gRotOrbitYScale = 0.001f;
-const float			gRotOrbitZScale = 0.00001f;
+const uint32_t	  gImageCount = 3;
+const int		   gSphereResolution = 30; // Increase for higher resolution spheres
+const float		 gSphereDiameter = 0.5f;
+const uint		  gNumPlanets = 11;	  // Sun, Mercury -> Neptune, Pluto, Moon
+const uint		  gTimeOffset = 600000;   // For visually better starting locations
+const float		 gRotSelfScale = 0.0004f;
+const float		 gRotOrbitYScale = 0.001f;
+const float		 gRotOrbitZScale = 0.00001f;
 
-Renderer*			pRenderer = NULL;
+Renderer*		   pRenderer = NULL;
 
-Queue*				pGraphicsQueue = NULL;
+Queue*			  pGraphicsQueue = NULL;
 CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Cmd**			   ppCmds = NULL;
 
-SwapChain*			pSwapChain = NULL;
-RenderTarget*		pDepthBuffer = NULL;
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*		  pSwapChain = NULL;
+RenderTarget*	   pDepthBuffer = NULL;
+Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		  pImageAcquiredSemaphore = NULL;
+Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*				pSphereShader = NULL;
-Buffer*				pSphereVertexBuffer = NULL;
-Pipeline*			pSpherePipeline = NULL;
+Shader*			 pSphereShader = NULL;
+Buffer*			 pSphereVertexBuffer = NULL;
+Pipeline*		   pSpherePipeline = NULL;
 
-Shader*				pSkyBoxDrawShader = NULL;
-Buffer*				pSkyBoxVertexBuffer = NULL;
-Pipeline*			pSkyBoxDrawPipeline = NULL;
-RootSignature*		pRootSignature = NULL;
+Shader*			 pSkyBoxDrawShader = NULL;
+Buffer*			 pSkyBoxVertexBuffer = NULL;
+Pipeline*		   pSkyBoxDrawPipeline = NULL;
+RootSignature*	  pRootSignature = NULL;
 Sampler*			pSamplerSkyBox = NULL;
 Texture*			pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+VirtualJoystickUI   gVirtualJoystick;
 #endif
-DepthState*			pDepth = NULL;
+DepthState*		 pDepth = NULL;
 RasterizerState*	pSkyboxRast = NULL;
 
-Buffer*				pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*				pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*			 pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*			 pSkyboxUniformBuffer[gImageCount] = { NULL };
 
 uint32_t			gFrameIndex = 0;
 
-int					gNumberOfSpherePoints;
+int				 gNumberOfSpherePoints;
 UniformBlock		gUniformData;
 PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 
-ICameraController*	pCameraController = NULL;
+ICameraController*  pCameraController = NULL;
 
 /// UI
-UIApp				gAppUI;
-GuiComponent*		pGui;
+UIApp			   gAppUI;
+GuiComponent*	   pGui;
 
-FileSystem			gFileSystem;
-LogManager			gLogManager;
+FileSystem		  gFileSystem;
+LogManager		  gLogManager;
 
-const char*			pSkyBoxImageFileNames[] =
+const char*		 pSkyBoxImageFileNames[] =
 {
 	"Skybox_right1.png",
 	"Skybox_left2.png",
@@ -145,29 +145,29 @@ const char*			pSkyBoxImageFileNames[] =
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",	// FSR_BinShaders
-	"Shaders/",			// FSR_SrcShaders
-	"Shaders/Binary/",	// FSR_BinShaders_Common
-	"Shaders/",			// FSR_SrcShaders_Common
+	"Shaders/Binary/",  // FSR_BinShaders
+	"Shaders/",		 // FSR_SrcShaders
+	"Shaders/Binary/",  // FSR_BinShaders_Common
+	"Shaders/",		 // FSR_SrcShaders_Common
 	"Textures/",		// FSR_Textures
-	"Meshes/",			// FSR_Meshes
-	"Fonts/",			// FSR_Builtin_Fonts
-	"",					// FSR_GpuConfig
-	"",					// FSR_OtherFiles
+	"Meshes/",		  // FSR_Meshes
+	"Fonts/",		   // FSR_Builtin_Fonts
+	"",				 // FSR_GpuConfig
+	"",				 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-    "",										// FSR_BinShaders
-    "",										// FSR_SrcShaders
-    "",										// FSR_BinShaders_Common
-    "",										// FSR_SrcShaders_Common
-    "../../../UnitTestResources/Textures/",	// FSR_Textures
-    "../../../UnitTestResources/Meshes/",	// FSR_Meshes
+	"",									 // FSR_BinShaders
+	"",									 // FSR_SrcShaders
+	"",									 // FSR_BinShaders_Common
+	"",									 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/", // FSR_Textures
+	"../../../UnitTestResources/Meshes/",   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",	// FSR_Builtin_Fonts
 	"../../../src/12_RendererRuntimeSwitch/GPUCfg/",	// FSR_GpuConfig
-    "",										// FSR_OtherFiles
+	"",									 // FSR_OtherFiles
 };
 #endif
 
@@ -514,11 +514,11 @@ public:
 
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
-        
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
-        
+
 		removeSampler(pRenderer, pSamplerSkyBox);
 		removeShader(pRenderer, pSphereShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
@@ -642,7 +642,7 @@ public:
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
 
-		// update camera with time 
+		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
@@ -711,7 +711,7 @@ public:
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-			
+
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
@@ -773,7 +773,7 @@ public:
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
-        
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif

@@ -1627,9 +1627,10 @@ namespace {
 				memset(&stream, 0, sizeof(stream));
 
 				// In case mz_ulong is 64-bits (argh I hate longs).
+#ifndef __ANDROID__ //  Android generates compiling time error: comparison 'unsigned long' > 4294967295 is always false
 				if ((source_len | *pDest_len) > 0xFFFFFFFFU)
 					return MZ_PARAM_ERROR;
-
+#endif
 				stream.next_in = pSource;
 				stream.avail_in = (mz_uint32)source_len;
 				stream.next_out = pDest;
@@ -1849,8 +1850,10 @@ namespace {
 				memset(&stream, 0, sizeof(stream));
 
 				// In case mz_ulong is 64-bits (argh I hate longs).
+#ifndef __ANDROID__
 				if ((source_len | *pDest_len) > 0xFFFFFFFFU)
 					return MZ_PARAM_ERROR;
+#endif
 
 				stream.next_in = pSource;
 				stream.avail_in = (mz_uint32)source_len;
@@ -5888,8 +5891,10 @@ namespace {
 				if ((!(level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (uncomp_size))
 					return MZ_FALSE;
 				// No zip64 support yet
+#ifndef __ANDROID__
 				if ((buf_size > 0xFFFFFFFF) || (uncomp_size > 0xFFFFFFFF))
 					return MZ_FALSE;
+#endif
 				if (!mz_zip_writer_validate_archive_name(pArchive_name))
 					return MZ_FALSE;
 
@@ -6369,9 +6374,10 @@ namespace {
 						MZ_FALSE);
 					return MZ_FALSE;
 				}
-
+#ifndef __ANDROID__
 				if (pState->m_central_dir.m_size > 0xFFFFFFFF)
 					return MZ_FALSE;
+#endif
 				n = (mz_uint32)orig_central_dir_size;
 				if (!mz_zip_array_push_back(pZip, &pState->m_central_dir_offsets, &n, 1)) {
 					mz_zip_array_resize(pZip, &pState->m_central_dir, orig_central_dir_size,

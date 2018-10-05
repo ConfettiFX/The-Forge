@@ -24,13 +24,13 @@
 
 struct ObjectInfo
 {
-	float4		color;
-	float4x4	toWorld;
+	float4x4 toWorld;
+	float4x4 normalMat;
+	uint matID;
 };
 
 cbuffer ObjectUniformBlock : register(b0)
 {
-	float4x4	viewProj;
 	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
 };
 
@@ -39,17 +39,34 @@ cbuffer DrawInfoRootConstant : register(b1)
 	uint baseInstance = 0;
 };
 
+cbuffer CameraUniform : register(b12)
+{
+	float4x4 camViewProj;
+	float4x4 camViewMat;
+	float4 camClipInfo;
+	float4 camPosition;
+};
+
 struct VSInput
 {
 	float4 Position : POSITION;
-	float4 Normal : NORMAL;
+	float3 Normal : NORMAL;
+	float2 UV : TEXCOORD0;
 };
+
 struct VSOutput
 {
 	float4 Position : SV_POSITION;
-	float4 WorldPosition : POSITION;
-	float4 Color : COLOR;
-	float4 Normal : NORMAL;
+	float4 WorldPosition : POSITION0;
+	float4 Normal : NORMAL0;
+	float4 UV : TEXCOORD0;
+	uint MatID : MAT_ID;
+#if (PT_USE_REFRACTION + PT_USE_DIFFUSION) != 0
+	float4 CSPosition : POSITION1;
+#endif
+#if PT_USE_REFRACTION != 0
+	float4 CSNormal : NORMAL1;
+#endif
 };
 
 
@@ -58,11 +75,19 @@ VSOutput main(VSInput input, uint InstanceID : SV_InstanceID)
 	VSOutput output;
 
 	uint instanceID = InstanceID + baseInstance;
-	output.Normal = normalize(mul(objectInfo[instanceID].toWorld, float4(input.Normal.xyz, 0)));
-	float4x4 mvp = mul(viewProj, objectInfo[instanceID].toWorld);
-	output.Position = mul(mvp, input.Position);
+	output.UV = input.UV.xyyy;
+	output.Normal = normalize(mul(objectInfo[instanceID].normalMat, float4(input.Normal.xyz, 0)));
 	output.WorldPosition = mul(objectInfo[instanceID].toWorld, input.Position);
-	output.Color = objectInfo[instanceID].color;
+	output.Position = mul(camViewProj, output.WorldPosition);
+	output.MatID = objectInfo[instanceID].matID;
+
+#if (PT_USE_REFRACTION + PT_USE_DIFFUSION) != 0
+	output.CSPosition = mul(camViewMat, output.WorldPosition);
+#endif
+#if PT_USE_REFRACTION != 0
+	output.CSNormal  = mul(camViewMat, float4(output.Normal.xyz, 0));
+	output.CSNormal.xyz = normalize(output.CSNormal.xyz);
+#endif
 
 	return output;
 }

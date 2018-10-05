@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -89,7 +89,7 @@ typedef void(*JobFunction)(void*);
 struct WorkItem
 {
 	// Construct
-	WorkItem() 
+	WorkItem()
 		: pFunc(0)
 		, pData(0)
 		, mPriority(0)
@@ -97,12 +97,12 @@ struct WorkItem
 	{}
 
 	/// Work item description and thread index (Main thread => 0)
-	JobFunction		pFunc;
-	void*			pData;
+	JobFunction	 pFunc;
+	void*		   pData;
 	unsigned		mPriority;
-	volatile bool	mCompleted;
+	volatile bool   mCompleted;
 };
-    
+
 #ifndef _WIN32
 /// Forward declaration
 struct Thread;
@@ -137,13 +137,13 @@ private:
 	void Cleanup(unsigned priority);
 
 	tinystl::vector<struct Thread*> mThreads;
-	tinystl::vector <WorkItem*>		mWorkItems;
-	tinystl::vector<WorkItem*>		mWorkQueue;
-	Mutex							mQueueMutex;
-	ConditionVariable				mWaitConditionVar;
-	Mutex							mWaitMutex;
-	volatile bool					mShutDown;
-	volatile bool					mPausing;
+	tinystl::vector <WorkItem*>	 mWorkItems;
+	tinystl::vector<WorkItem*>	  mWorkQueue;
+	Mutex						   mQueueMutex;
+	ConditionVariable			   mWaitConditionVar;
+	Mutex						   mWaitMutex;
+	volatile bool				   mShutDown;
+	volatile bool				   mPausing;
 	bool							mPaused;
 	bool							mCompleting;
 };

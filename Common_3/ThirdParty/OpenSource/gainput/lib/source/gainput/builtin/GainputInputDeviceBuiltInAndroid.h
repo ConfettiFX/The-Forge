@@ -34,7 +34,9 @@ public:
 			return;
 		}
 
-		sensorManager_ = ASensorManager_getInstance();
+		// TODO: FIXME! logic here might be broken, need to double check
+		sensorManager_ = ASensorManager_getInstanceForPackage("");// The original version is deprecated.
+
 		if (!sensorManager_)
 		{
 			return;

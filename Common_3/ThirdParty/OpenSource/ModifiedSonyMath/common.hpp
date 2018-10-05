@@ -94,12 +94,12 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef _ANDROID
-#include "../../Common_2/Code/Renderer/Android/AndroidDefines.h"
-#endif
-
-#ifndef TARGET_IOS
+#ifdef TARGET_IOS
+#else
+#ifdef __ANDROID__
+#else
 #include <immintrin.h>
+#endif
 #endif
 
 #include "../../../OS/Core/Compiler.h"
@@ -929,7 +929,7 @@ struct Frustum
 
 // Frustum to AABB intersection
 // false if aabb is completely outside frustum, true otherwise
-// Based on ÕÒigo QuÌlez' "Correct Frustum Culling" article
+// Based on √ç√±igo Qu√≠lez' "Correct Frustum Culling" article
 // http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
 // If fast is true, function will do extra frustum-in-box checks using the frustum's corner vertices.
 inline bool aabbInsideOrIntersectsFrustum(AABB const& aabb, const Frustum& frustum, bool const& fast = false)

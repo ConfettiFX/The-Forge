@@ -57,49 +57,49 @@ struct SceneConstantBuffer
 	uint padding;
 };
 
-const uint32_t		gImageCount = 3;
+const uint32_t	  gImageCount = 3;
 
-Renderer*			pRenderer = NULL;
+Renderer*		   pRenderer = NULL;
 
-Queue*				pGraphicsQueue = NULL;
+Queue*			  pGraphicsQueue = NULL;
 CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Cmd**			   ppCmds = NULL;
 
-SwapChain*			pSwapChain = NULL;
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*		  pSwapChain = NULL;
+Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		  pImageAcquiredSemaphore = NULL;
+Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-RenderTarget*		pRenderTargetIntermediate = NULL;
+RenderTarget*	   pRenderTargetIntermediate = NULL;
 
-Shader*				pShaderWave = NULL;
-Pipeline*			pPipelineWave = NULL;
-RootSignature*		pRootSignatureWave = NULL;
-Shader*				pShaderMagnify = NULL;
-Pipeline*			pPipelineMagnify = NULL;
-RootSignature*		pRootSignatureMagnify = NULL;
+Shader*			 pShaderWave = NULL;
+Pipeline*		   pPipelineWave = NULL;
+RootSignature*	  pRootSignatureWave = NULL;
+Shader*			 pShaderMagnify = NULL;
+Pipeline*		   pPipelineMagnify = NULL;
+RootSignature*	  pRootSignatureMagnify = NULL;
 
 Sampler*			pSamplerPointWrap = NULL;
 #ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+VirtualJoystickUI   gVirtualJoystick;
 #endif
-DepthState*			pDepthNone = NULL;
+DepthState*		 pDepthNone = NULL;
 RasterizerState*	pRasterizerCullNone = NULL;
 
-Buffer*				pUniformBuffer[gImageCount] = { NULL };
-Buffer*				pVertexBufferTriangle = NULL;
-Buffer*				pVertexBufferQuad = NULL;
+Buffer*			 pUniformBuffer[gImageCount] = { NULL };
+Buffer*			 pVertexBufferTriangle = NULL;
+Buffer*			 pVertexBufferQuad = NULL;
 
 uint32_t			gFrameIndex = 0;
 
-SceneConstantBuffer	gSceneData;
+SceneConstantBuffer gSceneData;
 
 /// UI
-UIApp				gAppUI;
-GuiComponent*		pGui = NULL;
+UIApp			   gAppUI;
+GuiComponent*	   pGui = NULL;
 
-FileSystem			gFileSystem;
-LogManager			gLogManager;
+FileSystem		  gFileSystem;
+LogManager		  gLogManager;
 
 enum RenderMode
 {
@@ -136,28 +136,28 @@ int32_t gRenderModeToggles = 0;
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",	// FSR_BinShaders
-	"Shaders/",		// FSR_SrcShaders
-	"Shaders/Binary/",			// FSR_BinShaders_Common
-	"Shaders/",					// FSR_SrcShaders_Common
+	"Shaders/Binary/",  // FSR_BinShaders
+	"Shaders/",	 // FSR_SrcShaders
+	"Shaders/Binary/",		  // FSR_BinShaders_Common
+	"Shaders/",				 // FSR_SrcShaders_Common
 	"Textures/",						// FSR_Textures
-	"Meshes/",						// FSR_Meshes
-	"Fonts/",						// FSR_Builtin_Fonts
-	"",															// FSR_OtherFiles
+	"Meshes/",					  // FSR_Meshes
+	"Fonts/",					   // FSR_Builtin_Fonts
+	"",														 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../../src/14_WaveIntrinsics/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../../src/14_WaveIntrinsics/" RESOURCE_DIR "/",		// FSR_SrcShaders
-	"",															// FSR_BinShaders_Common
-	"",															// FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",						// FSR_Textures
-	"../../../UnitTestResources/Meshes/",						// FSR_Meshes
+	"../../../src/14_WaveIntrinsics/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
+	"../../../src/14_WaveIntrinsics/" RESOURCE_DIR "/",	 // FSR_SrcShaders
+	"",														 // FSR_BinShaders_Common
+	"",														 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",					 // FSR_Textures
+	"../../../UnitTestResources/Meshes/",					   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"../../../src/14_WaveIntrinsics/GPUCfg/",					// FSR_GpuConfig
-	"",															// FSR_OtherFiles
+	"../../../src/14_WaveIntrinsics/GPUCfg/",				   // FSR_GpuConfig
+	"",														 // FSR_OtherFiles
 };
 #endif
 
@@ -463,8 +463,8 @@ public:
 		gSceneData.time = currentTime;
 		gSceneData.resolution.x = (float)(mSettings.mWidth);
 		gSceneData.resolution.y = (float)(mSettings.mHeight);
-	
-		gSceneData.renderMode = (gRenderModeToggles + 1);	
+
+		gSceneData.renderMode = (gRenderModeToggles + 1);
 	}
 
 	void Draw()

@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -682,7 +682,7 @@ long d3d12_createTexture(
 			//// All steps succeeded.
 			//if (pAllocationInfo != RESOURCE_NULL)
 			//{
-			//	allocator->GetAllocationInfo(*pAllocation, pAllocationInfo);
+			//  allocator->GetAllocationInfo(*pAllocation, pAllocationInfo);
 			//}
 			return res;
 		}
@@ -854,7 +854,7 @@ void AllocatorBlock::Destroy(ResourceAllocator* allocator)
 	//// Callback.
 	//if (allocator->m_DeviceMemoryCallbacks.pfnFree != RESOURCE_NULL)
 	//{
-	//	(*allocator->m_DeviceMemoryCallbacks.pfnFree)(allocator, m_MemoryTypeIndex, m_hMemory, m_Size);
+	//  (*allocator->m_DeviceMemoryCallbacks.pfnFree)(allocator, m_MemoryTypeIndex, m_hMemory, m_Size);
 	//}
 
 	if (m_hMemory)

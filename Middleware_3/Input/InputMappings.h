@@ -1,6 +1,7 @@
 #ifndef INPUT_MAPPING_H
 #define INPUT_MAPPING_H
 #pragma once
+#include "InputSystem.h"
 
 
 enum UserInputKeys
@@ -11,7 +12,7 @@ enum UserInputKeys
 	KEY_LEFT_TRIGGER = 0,
 	KEY_RIGHT_TRIGGER,
 
-	//Left bumper maps to left shift 
+	//Left bumper maps to left shift
 	//Right bumper maps to right click
 	KEY_LEFT_BUMPER,
 	KEY_RIGHT_BUMPER,
@@ -21,7 +22,7 @@ enum UserInputKeys
 	//this maps to mouse movement or right joystick
 	KEY_RIGHT_STICK,
 
-	//Left joystick press or F1 
+	//Left joystick press or F1
 	KEY_LEFT_STICK_BUTTON,
 	//right joystick press or F2
 	KEY_RIGHT_STICK_BUTTON,
@@ -37,7 +38,7 @@ enum UserInputKeys
 	KEY_CONFIRM,
 
 	//Maps to B on controller
-	//Maps to Escape on keyboard 
+	//Maps to Escape on keyboard
 	KEY_CANCEL,
 
 	//Maps to X on controller
@@ -56,12 +57,17 @@ enum UserInputKeys
 
 	KEY_JOYSTICK_CONTROLS,
 	KEY_MOUSE_WHEEL,
+	KEY_MOUSE_WHEEL_BUTTON,
 	//Virtual keyboards or actual keyboards will need these.
 	KEY_RIGHT_SHIFT,
 	KEY_RIGHT_CTRL,
 	KEY_LEFT_CTRL,
+	KEY_RIGHT_ALT,
+	KEY_LEFT_ALT,
 	KEY_RIGHT_SUPER, //windows key, cmd key
 	KEY_LEFT_SUPER, //windows key, cmd key
+
+	KEY_DELETE,
 
 	KEY_CHAR,
 	KEY_COUNT = KEY_CHAR
@@ -81,18 +87,20 @@ static KeyMappingDescription gUserKeys[] = {
 	//Keyboard/Mouse
 	{ KEY_LEFT_BUMPER, GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS , 1, gainput::KeyShiftL },{},{},{} }  },
 	{ KEY_RIGHT_BUMPER,  GainputDeviceType::GAINPUT_MOUSE, 1,{ { INPUT_X_AXIS  , 1, gainput::MouseButton2 },{},{},{} } },
-	
+
 	//STICKS
 	//Keyboard/Mouse
 	{ KEY_LEFT_STICK, GainputDeviceType::GAINPUT_KEYBOARD, 4,{ { INPUT_X_AXIS , 1, gainput::KeyD },{ INPUT_X_AXIS , -1, gainput::KeyA },{ INPUT_Y_AXIS , 1, gainput::KeyW },{ INPUT_Y_AXIS , -1, gainput::KeyS } } },
-	
+
 	{ KEY_UI_MOVE,  GainputDeviceType::GAINPUT_MOUSE, 2,{ { INPUT_X_AXIS , 1, gainput::MouseAxisX },{ INPUT_Y_AXIS , 1, gainput::MouseAxisY },{},{} } },
 	{ KEY_RIGHT_STICK,  GainputDeviceType::GAINPUT_RAW_MOUSE, 2,{ { INPUT_X_AXIS , 1, gainput::MouseAxisX },{ INPUT_Y_AXIS , 1, gainput::MouseAxisY },{},{} }},
-	
+
 	//TOUCH
+	{ KEY_UI_MOVE,  GainputDeviceType::GAINPUT_TOUCH, 2,{ { INPUT_X_AXIS , 1, gainput::Touch0X },{ INPUT_Y_AXIS , 1, gainput::Touch0Y },{},{} } },
+
 	{ KEY_RIGHT_STICK,  GainputDeviceType::GAINPUT_TOUCH, 2,{ { INPUT_X_AXIS , 1, gainput::Touch1X },{ INPUT_Y_AXIS , 1, gainput::Touch1Y },{},{} } },
 	{ KEY_RIGHT_STICK,  GainputDeviceType::GAINPUT_TOUCH, 2,{ { INPUT_X_AXIS , 1, gainput::Touch0X },{ INPUT_Y_AXIS , 1, gainput::Touch0Y },{},{} } },
-	
+
 	{ KEY_LEFT_STICK,  GainputDeviceType::GAINPUT_TOUCH, 2,{ { INPUT_X_AXIS , 1, gainput::Touch0X },{ INPUT_Y_AXIS , 1, gainput::Touch0Y },{},{} } },
 	{ KEY_LEFT_STICK,  GainputDeviceType::GAINPUT_TOUCH, 2,{ { INPUT_X_AXIS , 1, gainput::Touch1X },{ INPUT_Y_AXIS , 1, gainput::Touch1Y },{},{} } },
 
@@ -115,6 +123,7 @@ static KeyMappingDescription gUserKeys[] = {
 	//CONFIRM
 	//MOUSE
 	{ KEY_CONFIRM, GainputDeviceType::GAINPUT_MOUSE, 1,{ { INPUT_X_AXIS , 1, gainput::MouseButton0 },{},{},{} } },
+	{ KEY_CONFIRM, GainputDeviceType::GAINPUT_TOUCH, 1,{ { INPUT_X_AXIS , 1, gainput::Touch0Down },{},{},{} } },
 
 	//CANCEL
 	//Keyboard
@@ -126,12 +135,16 @@ static KeyMappingDescription gUserKeys[] = {
 
 	//Mouse Wheel
 	{ KEY_MOUSE_WHEEL, GainputDeviceType::GAINPUT_MOUSE, 2, { { INPUT_X_AXIS  , 1, gainput::MouseButtonWheelUp }, {INPUT_X_AXIS  , -1, gainput::MouseButtonWheelDown},{},{} } },
+	{ KEY_MOUSE_WHEEL_BUTTON, GainputDeviceType::GAINPUT_MOUSE, 1, { { INPUT_X_AXIS  , 1, gainput::MouseButtonMiddle }, {},{},{} } },
 
 	{ KEY_RIGHT_SHIFT,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyShiftR },{},{},{} } },
 	{ KEY_RIGHT_CTRL,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyCtrlR },{},{},{} } },
 	{ KEY_LEFT_CTRL,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyCtrlL },{},{},{} } },
+	{ KEY_RIGHT_ALT,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyAltR },{},{},{} } },
+	{ KEY_LEFT_ALT,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyAltL },{},{},{} } },
 	{ KEY_RIGHT_SUPER,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeySuperR },{},{},{} } },
 	{ KEY_LEFT_SUPER,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeySuperL },{},{},{} } },
+	{ KEY_DELETE,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyDelete },{},{},{} } },
 
 	//Keyboard chars
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyA },{},{},{} } },
@@ -161,6 +174,11 @@ static KeyMappingDescription gUserKeys[] = {
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyY },{},{},{} } },
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyZ },{},{},{} } },
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeySpace },{},{},{} } },
+	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyComma },{},{},{} } },
+	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyPeriod },{},{},{} } },
+	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyApostrophe },{},{},{} } },
+	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeySlash },{},{},{} } },
+	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyBackslash },{},{},{} } },
 
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::Key0 },{},{},{} } },
 	{ KEY_CHAR,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::Key1 },{},{},{} } },

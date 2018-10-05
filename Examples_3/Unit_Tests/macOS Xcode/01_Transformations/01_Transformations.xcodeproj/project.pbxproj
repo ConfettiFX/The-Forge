@@ -567,7 +567,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../Common_3/ThirdParty/OpenSource/gainput/lib/include/**";
+				"HEADER_SEARCH_PATHS[arch=*]" = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -636,12 +636,7 @@
 					METAL,
 					_DEBUG,
 				);
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-					/Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include,
-				);
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -651,8 +646,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
-				SYSTEM_HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
@@ -665,11 +660,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_PREPROCESSOR_DEFINITIONS = METAL;
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
+				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -679,8 +670,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
-				SYSTEM_HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/samples/basic/../../lib/include;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};

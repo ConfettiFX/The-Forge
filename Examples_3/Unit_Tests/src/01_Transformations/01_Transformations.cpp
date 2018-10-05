@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,7 +48,6 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
-
 /// Demo structures
 struct PlanetInfoStruct
 {
@@ -59,7 +58,7 @@ struct PlanetInfoStruct
 	float mRotationSpeed; // Rotation speed around self
 	mat4 mTranslationMat;
 	mat4 mScaleMat;
-	mat4 mSharedMat;    // Matrix to pass down to children
+	mat4 mSharedMat;	// Matrix to pass down to children
 };
 
 struct UniformBlock
@@ -73,62 +72,61 @@ struct UniformBlock
 	vec3 mLightColor;
 };
 
-const uint32_t		gImageCount = 3;
-const int			gSphereResolution = 30; // Increase for higher resolution spheres
-const float			gSphereDiameter = 0.5f;
-const uint			gNumPlanets = 11;       // Sun, Mercury -> Neptune, Pluto, Moon
-const uint			gTimeOffset = 600000;   // For visually better starting locations 
-const float			gRotSelfScale = 0.0004f;
-const float			gRotOrbitYScale = 0.001f;
-const float			gRotOrbitZScale = 0.00001f;
+const uint32_t	  gImageCount = 3;
+const int		   gSphereResolution = 30; // Increase for higher resolution spheres
+const float		 gSphereDiameter = 0.5f;
+const uint		  gNumPlanets = 11;	  // Sun, Mercury -> Neptune, Pluto, Moon
+const uint		  gTimeOffset = 600000;   // For visually better starting locations
+const float		 gRotSelfScale = 0.0004f;
+const float		 gRotOrbitYScale = 0.001f;
+const float		 gRotOrbitZScale = 0.00001f;
 
-Renderer*			pRenderer = NULL;
+Renderer*		   pRenderer = NULL;
 
-Queue*				pGraphicsQueue = NULL;
+Queue*			  pGraphicsQueue = NULL;
 CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Cmd**			   ppCmds = NULL;
 
-SwapChain*			pSwapChain = NULL;
-RenderTarget*		pDepthBuffer = NULL;
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*		  pSwapChain = NULL;
+RenderTarget*	   pDepthBuffer = NULL;
+Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		  pImageAcquiredSemaphore = NULL;
+Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*				pSphereShader = NULL;
-Buffer*				pSphereVertexBuffer = NULL;
-Pipeline*			pSpherePipeline = NULL;
+Shader*			 pSphereShader = NULL;
+Buffer*			 pSphereVertexBuffer = NULL;
+Pipeline*		   pSpherePipeline = NULL;
 
-Shader*				pSkyBoxDrawShader = NULL;
-Buffer*				pSkyBoxVertexBuffer = NULL;
-Pipeline*			pSkyBoxDrawPipeline = NULL;
-RootSignature*		pRootSignature = NULL;
+Shader*			 pSkyBoxDrawShader = NULL;
+Buffer*			 pSkyBoxVertexBuffer = NULL;
+Pipeline*		   pSkyBoxDrawPipeline = NULL;
+RootSignature*	  pRootSignature = NULL;
 Sampler*			pSamplerSkyBox = NULL;
 Texture*			pSkyBoxTextures[6];
-#ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+VirtualJoystickUI   gVirtualJoystick;
 #endif
-DepthState*			pDepth = NULL;
+DepthState*		 pDepth = NULL;
 RasterizerState*	pSkyboxRast = NULL;
 RasterizerState*	pSphereRast = NULL;
 
-Buffer*				pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*				pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*			 pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*			 pSkyboxUniformBuffer[gImageCount] = { NULL };
 
 uint32_t			gFrameIndex = 0;
 
-int					gNumberOfSpherePoints;
+int				 gNumberOfSpherePoints;
 UniformBlock		gUniformData;
 PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 
-ICameraController*	pCameraController = NULL;
+ICameraController*  pCameraController = NULL;
 
 /// UI
-UIApp				gAppUI;
+UIApp			   gAppUI;
 
-FileSystem			gFileSystem;
-LogManager			gLogManager;
+FileSystem		  gFileSystem;
 
-const char*			pSkyBoxImageFileNames[] =
+const char*		 pSkyBoxImageFileNames[] =
 {
 	"Skybox_right1.png",
 	"Skybox_left2.png",
@@ -143,6 +141,8 @@ const char*			pSkyBoxImageFileNames[] =
 #elif defined(VULKAN)
 	#if defined(_WIN32)
 	#define RESOURCE_DIR "PCVulkan"
+	#elif defined(__ANDROID__)
+	#define RESOURCE_DIR "ANDROIDVulkan"
 	#elif defined(__linux__)
 	#define RESOURCE_DIR "LINUXVulkan"
 	#endif
@@ -154,32 +154,32 @@ const char*			pSkyBoxImageFileNames[] =
 #error PLATFORM NOT SUPPORTED
 #endif
 
-#ifdef _DURANGO
+#if defined(_DURANGO )|| defined(__ANDROID__)
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",	// FSR_BinShaders
-	"Shaders/",		// FSR_SrcShaders
-	"Shaders/Binary/",			// FSR_BinShaders_Common
-	"Shaders/",					// FSR_SrcShaders_Common
+	"Shaders/Binary/",  // FSR_BinShaders
+	"Shaders/",	 // FSR_SrcShaders
+	"Shaders/Binary/",		  // FSR_BinShaders_Common
+	"Shaders/",				 // FSR_SrcShaders_Common
 	"Textures/",						// FSR_Textures
-	"Meshes/",						// FSR_Meshes
-	"Fonts/",						// FSR_Builtin_Fonts
-	"",															// FSR_OtherFiles
+	"Meshes/",					  // FSR_Meshes
+	"Fonts/",					   // FSR_Builtin_Fonts
+	"",														 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-    "../../../src/01_Transformations/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-    "../../../src/01_Transformations/" RESOURCE_DIR "/",		// FSR_SrcShaders
-    "",															// FSR_BinShaders_Common
-    "",															// FSR_SrcShaders_Common
-    "../../../UnitTestResources/Textures/",						// FSR_Textures
-    "../../../UnitTestResources/Meshes/",						// FSR_Meshes
+	"../../../src/01_Transformations/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
+	"../../../src/01_Transformations/" RESOURCE_DIR "/",		// FSR_SrcShaders
+	"",														 // FSR_BinShaders_Common
+	"",														 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",					 // FSR_Textures
+	"../../../UnitTestResources/Meshes/",					   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"../../../src/01_Transformations/GPUCfg/",					// FSR_GpuConfig
-    "",															// FSR_OtherFiles
+	"../../../src/01_Transformations/GPUCfg/",				  // FSR_GpuConfig
+	"",														 // FSR_OtherFiles
 };
 #endif
 
@@ -196,7 +196,7 @@ public:
 		//check for init success
 		if (!pRenderer)
 			return false;
-		
+
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
@@ -228,8 +228,11 @@ public:
 			addResource(&textureDesc, true);
 		}
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
+#elif defined(__ANDROID__)
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
@@ -487,7 +490,7 @@ public:
 
 		removeDebugRendererInterface();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
 #endif
 
@@ -539,7 +542,7 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
 			return false;
 #endif
@@ -596,7 +599,7 @@ public:
 
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
 
@@ -624,7 +627,7 @@ public:
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
 
-		// update camera with time 
+		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
@@ -672,7 +675,8 @@ public:
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
@@ -680,8 +684,8 @@ public:
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-			
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -689,9 +693,13 @@ public:
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = { 1.0f, 1.0f, 0.0f, 0.0f };
+		loadActions.mClearColorValues[0].r = 1.0f;
+		loadActions.mClearColorValues[0].g = 1.0f;
+		loadActions.mClearColorValues[0].b = 0.0f;
+		loadActions.mClearColorValues[0].a = 0.0f;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { 1.0f, 0 };
+		loadActions.mClearDepth.depth = 1.0f;
+		loadActions.mClearDepth.stencil = 0;
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
@@ -742,8 +750,8 @@ public:
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
-        
-#ifdef TARGET_IOS
+
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
@@ -757,7 +765,9 @@ public:
 		endCmd(cmd);
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	tinystl::string GetName()
@@ -787,7 +797,8 @@ public:
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mClearValue.depth = 1.0f;
+		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = ImageFormat::D32F;
 		depthRT.mHeight = mSettings.mHeight;
@@ -814,7 +825,7 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
-	
+
 	static bool cameraInputEvent(const ButtonData* data)
 	{
 		pCameraController->onInputEvent(data);

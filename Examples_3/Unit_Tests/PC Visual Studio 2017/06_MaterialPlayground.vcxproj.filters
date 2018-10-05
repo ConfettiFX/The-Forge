@@ -13,17 +13,11 @@
     <Filter Include="Shaders\PCDX12">
       <UniqueIdentifier>{fdcc7f85-3418-40ef-8fc7-589119da0fed}</UniqueIdentifier>
     </Filter>
-    <Filter Include="AssimpImporter">
-      <UniqueIdentifier>{ae31e0ea-45e0-42b6-ab91-dd3da68604c6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\PCDX11">
       <UniqueIdentifier>{8de9eb5f-4c04-44de-9812-a0f7c11c7ad6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Common_3\Tools\AssimpImporter\AssimpImporter.cpp">
-      <Filter>AssimpImporter</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\06_MaterialPlayground\06_MaterialPlayground.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -101,10 +95,5 @@
     <None Include="..\src\06_MaterialPlayground\PCDX11\skybox.vert">
       <Filter>Shaders\PCDX11</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\Common_3\Tools\AssimpImporter\AssimpImporter.h">
-      <Filter>AssimpImporter</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

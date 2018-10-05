@@ -32,7 +32,7 @@
 // Sony's library includes:
 #define VECTORMATH_FORCE_SCALAR_MODE 0
 
-#if defined(_DURANGO) || defined(TARGET_IOS)
+#if defined(_DURANGO) || defined(TARGET_IOS) || defined(__ANDROID__)
 // SSE mat4 implementation doesn't work well (produces incorrect results)
 #ifdef VECTORMATH_FORCE_SCALAR_MODE
 #undef VECTORMATH_FORCE_SCALAR_MODE

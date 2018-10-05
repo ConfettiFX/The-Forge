@@ -40,7 +40,7 @@ failedBuilds = [] #holds all failed builds
 successfulTests = [] #holds all successfull tests
 failedTests = [] #holds all failed tests
 
-maxIdleTime = 20  #10 seconds of max idle time with cpu usage null
+maxIdleTime = 45  #10 seconds of max idle time with cpu usage null
 
 def PrintResults():
 	if len(successfulBuilds) > 0:
@@ -130,97 +130,41 @@ def RemoveTestingPreProcessor():
 					f.write(line)
 			f.truncate()
 
+
 def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
-	try:
-		import psutil  #TODO: MAKE SURE THIS PACKAGE IS INSTALLED
-		
+	try:		
 		print("Executing command: " + ' '.join(cmdList))
-		#print("Current Working Directory: " +  os.getcwd())
 
 		#open subprocess without piping output
 		# otherwise process blocks until we call communicate or wait
-		proc = subprocess.Popen(cmdList)
+		proc = subprocess.Popen(cmdList, stdout=None, stderr=None)		
 		
 		#get start time of process
 		startTime = time.time()
 		currentTime = 0
 		
-		#gets the psutil process which is used for cpu percentage
-		psUtilProc = None
-		try:
-			#try to get psutil process, it can fail if process is done
-			#time.sleep(0.1)
-			psUtilProc = psutil.Process(proc.pid)
-		except psutil.NoSuchProcess:
-			#print("No such process")
-			#print("Current Process: " + str(proc.pid))
-			pass
-		except psutil.ZombieProcess:
-			#print("Zombie process")
-			#print("Current Process: " + str(proc.pid))
-			pass
-		except psutil.AccessDenied:
-			#print("Access Denied") #mac may cause issues here
-			pass
-
-		readCount = 0
-		memoryPercent = 0
-		while proc.poll() is None:
-			#monitor cpu usage in case application hangs
-			cpuUsage = 0
-			memoryUsage = 0
-			diskReadCount = 0
-			#try catch because cpu_percent will throw exception if process has exited
-			try:
-				cpuUsage = psUtilProc.cpu_percent(interval=0.1)
-				memoryUsage = psUtilProc.memory_percent()
-				#apparently mac process does not have disk_io_counters
-				if platform.system() == "Windows":
-					diskReadCount = psUtilProc.io_counters().read_count
-			except psutil.NoSuchProcess:
-				#print("No such process")
-				pass
-				#break
-			except psutil.AccessDenied:
-				#print("Access Denied")
-				pass
-			except psutil.ZombieProcess:
-				#print("Zombie process")
-				pass
-				#break
-			
-			#print('--------------------------------------------')
-			#print('Cpu Usage:' + str(cpuUsage))
-			#print('Disk Read Count:' + str(readCount))
-			#print('Memory Usage:' + str(memoryUsage))
-			#print('--------------------------------------------')
-			
-			#if cpu usage less than 1% then increment counter
-			if cpuUsage < 1.0 and readCount <= diskReadCount and memoryUsage <= memoryPercent:
-				currentTime = time.time() - startTime
-			else:
-				#process is active so we need to reset time that is used to detect
-				#crashing process
-				startTime = time.time()
-			
-			#update number of times read is called
-			readCount = diskReadCount
-			memoryPercent = memoryUsage
-
-			#current 'idle' time has reached our max duration
-			#then kill process
-			if currentTime > maxIdleTime:
+		"""Wait for a process to finish, or raise exception after timeout"""
+		end = startTime + maxIdleTime
+		interval = max(maxIdleTime / 1000.0, 0.005)
+		
+		#loop until time expires or process exits alone
+		while True:
+			result = proc.poll()
+			if result is not None:
+				break
+			if time.time() >= end:
 				print "Killed Application. Something went wrong with the app, it was idle for too long."
 				proc.kill()
-		
-		#used to get return code
-		rc = proc.wait()
+				proc.wait()
+				break
+			time.sleep(interval)
+			
+		rc = proc.returncode
 		if rc != 0:			
-			#print("Process returned error")
+			print("Process was killed or has crashed.")
 			return rc
 
 	except Exception as ex:
-		#traceback.print_exc()
 		print("-------------------------------------")
 		print("Failed executing command: " + ' '.join(cmdList))
 		print(ex)
@@ -463,7 +407,7 @@ def BuildXcodeProjects(skipIosBuild, skipIosCodeSigning):
 
 			#assuming every xcodeproj has an iOS equivalent. 
 			#TODO: Search to verify file exists
-			if filename != "Visibility_Buffer" and skipIosBuild == False:
+			if (filename != "Visibility_Buffer" and filename != "15_Transparency") and skipIosBuild == False:
 				filename = filename + "_iOS" 
 				command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build"]
 				if skipIosCodeSigning:
@@ -655,7 +599,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
 		sys.exit(-1)
 
-	projects = GetFilesPathByExtension("./Examples_3","sln",False)
+	projects = GetFilesPathByExtension("./Examples_3/","sln",False)
 	xboxProjects = []
 	if xboxDefined:
 		xboxProjects = GetFilesPathByExtension("./Xbox/Examples_3","sln",False)
@@ -736,6 +680,7 @@ setDefines = False
 
 def MainLogic():
 	global setDefines
+	global maxIdleTime
 	#TODO: Maybe use simpler library for args
 	parser = argparse.ArgumentParser(description='Process the Forge builds')
 	parser.add_argument('--clean', action="store_true", help='If enabled, will delete all unversioned and untracked files/folder excluding the Art folder.')
@@ -751,6 +696,7 @@ def MainLogic():
 	parser.add_argument('--macos', action="store_true", help='Needs --testing. Enable macOS testing')
 	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
 	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
+	parser.add_argument('--timeout',type=int, default="45", help='Specify timeout, in seconds, before app is killed when testing. Default value is 45 seconds.')
 
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
@@ -759,6 +705,7 @@ def MainLogic():
 	#we need defines macros
 	if arguments.gpuselection:
 		arguments.defines = True
+		
 
 	#add cleanup handler in case app gets interrupted
 	#keyboard interrupt
@@ -795,6 +742,7 @@ def MainLogic():
 	
 	systemOS = platform.system()
 	if arguments.testing:
+		maxIdleTime = max(arguments.timeout,1)
 		#Build for Mac OS (Darwin system)
 		if systemOS == "Darwin":
 			returnCode = TestXcodeProjects(arguments.ios, arguments.macos, arguments.iosid)

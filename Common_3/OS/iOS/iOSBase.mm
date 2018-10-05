@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -63,23 +63,17 @@ static int gDeviceHeight;
 
 static tinystl::vector <MonitorDesc> monitors;
 
-namespace PlatformEvents
-{
-    extern void onTouch(const TouchEventData* pData);
-    extern void onTouchMove(const TouchEventData* pData);
-}
-
 // Update the state of the keys based on state previous frame
 void updateTouchEvent(int numTaps)
 {
-    gCurrentTouchEvent = numTaps;
+	gCurrentTouchEvent = numTaps;
 }
 
 int getTouchEvent()
 {
-    int prevTouchEvent = gCurrentTouchEvent;
-    gCurrentTouchEvent = 0;
-    return prevTouchEvent;
+	int prevTouchEvent = gCurrentTouchEvent;
+	gCurrentTouchEvent = 0;
+	return prevTouchEvent;
 }
 
 bool isRunning()
@@ -89,12 +83,12 @@ bool isRunning()
 
 void getRecommendedResolution(RectDesc* rect)
 {
-    *rect = RectDesc{ 0, 0, gDeviceWidth, gDeviceHeight };
+	*rect = RectDesc{ 0, 0, gDeviceWidth, gDeviceHeight };
 }
 
 void requestShutDown()
 {
-    gAppRunning = false;
+	gAppRunning = false;
 }
 
 bool getKeyDown(int key)
@@ -113,27 +107,27 @@ bool getKeyUp(int key)
 
 unsigned getSystemTime()
 {
-    long            ms; // Milliseconds
-    time_t          s;  // Seconds
-    struct timespec spec;
-    
-    clock_gettime(CLOCK_REALTIME, &spec);
-    
-    s  = spec.tv_sec;
-    ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-    
-    ms += s * 1000;
-    
-    return (unsigned int)ms;
+	long			ms; // Milliseconds
+	time_t		s;  // Seconds
+	struct timespec spec;
+
+	clock_gettime(CLOCK_REALTIME, &spec);
+
+	s  = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+
+	ms += s * 1000;
+
+	return (unsigned int)ms;
 }
 
 long long getUSec()
 {
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    long us = (ts.tv_nsec / 1000);
-    us += ts.tv_sec * 1e6;
-    return us;
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	long us = (ts.tv_nsec / 1000);
+	us += ts.tv_sec * 1e6;
+	return us;
 }
 
 unsigned getTimeSinceStart()
@@ -153,10 +147,10 @@ static IApp* pApp = NULL;
 
 int iOSMain(int argc, char** argv, IApp* app)
 {
-    pApp = app;    
-    @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
-    }
+	pApp = app;
+	@autoreleasepool {
+		return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+	}
 }
 
 // Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
@@ -168,8 +162,8 @@ int iOSMain(int argc, char** argv, IApp* app)
 @interface MetalKitApplication : NSObject
 
 -(nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-                 renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-                                      view:(nonnull MTKView*)view;
+				 renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
+									  view:(nonnull MTKView*)view;
 
 - (void)drawRectResized:(CGSize)size;
 
@@ -193,46 +187,49 @@ int iOSMain(int argc, char** argv, IApp* app)
 
 @implementation GameViewController
 {
-    MTKView *_view;
-    id<MTLDevice> _device;
-    MetalKitApplication *_application;
+	MTKView *_view;
+	id<MTLDevice> _device;
+	MetalKitApplication *_application;
 }
 
 -(void)dealloc
 {
 	@autoreleasepool
 	{
-		[_application shutdown];	
+		[_application shutdown];
 	}
 }
 
 - (void)viewDidLoad
 {
-    [super viewDidLoad];
-    
-    // Set the view to use the default device
-    _device = MTLCreateSystemDefaultDevice();
-    _view = (MTKView *)self.view;
-    _view.delegate = self;
-    _view.device = _device;
-    
-    // Get the device's width and height.
-    gDeviceWidth = _view.drawableSize.width;
-    gDeviceHeight = _view.drawableSize.height;
-    gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width), (float)(_view.drawableSize.height / _view.frame.size.height) };
-    
-    // Enable multi-touch in our apps.
-    [_view setMultipleTouchEnabled:true];
-    
-    // Kick-off the MetalKitApplication.
-    _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
-    
-    if(!_device)
-    {
-        NSLog(@"Metal is not supported on this device");
-        self.view = [[UIView alloc] initWithFrame:self.view.frame];
-    }
-	
+	[super viewDidLoad];
+
+	// Set the view to use the default device
+	_device = MTLCreateSystemDefaultDevice();
+	_view = (MTKView *)self.view;
+	_view.delegate = self;
+	_view.device = _device;
+
+	// Get the device's width and height.
+	gDeviceWidth = _view.drawableSize.width;
+	gDeviceHeight = _view.drawableSize.height;
+	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width), (float)(_view.drawableSize.height / _view.frame.size.height) };
+
+	// Enable multi-touch in our apps.
+	[_view setMultipleTouchEnabled:true];
+	_view.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
+	_view.autoResizeDrawable = TRUE;
+
+
+	// Kick-off the MetalKitApplication.
+	_application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
+
+	if(!_device)
+	{
+		NSLog(@"Metal is not supported on this device");
+		self.view = [[UIView alloc] initWithFrame:self.view.frame];
+	}
+
 	InputSystem::Init(gDeviceWidth, gDeviceHeight);
 	InputSystem::InitSubView((__bridge void*)_view);
 	InputSystem::SetMouseCapture(true);
@@ -241,18 +238,16 @@ int iOSMain(int argc, char** argv, IApp* app)
 // Called whenever view changes orientation or layout is changed
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
 {
-    [_application drawRectResized:view.bounds.size];
-	//reset subview to rotate it.
-	InputSystem::InitSubView((__bridge void*)_view);
+	[_application drawRectResized:view.bounds.size];
 }
 
 // Called whenever the view needs to render
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
-    @autoreleasepool
-    {
-        [_application update];
-    }
+	@autoreleasepool
+	{
+		[_application update];
+	}
 }
 @end
 
@@ -271,74 +266,74 @@ uint32_t testingMaxFrameCount = 120;
 // Metal application implementation.
 @implementation MetalKitApplication{}
 -(nonnull instancetype) initWithMetalDevice:(nonnull id<MTLDevice>)device
-                  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-                                       view:(nonnull MTKView*)view
+				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
+									   view:(nonnull MTKView*)view
 {
-    self = [super init];
-    if (self)
-    {
-        FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
-        
-        pSettings = &pApp->mSettings;
-        
-        if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
-        {
-            RectDesc rect = {};
-            getRecommendedResolution(&rect);
-            pSettings->mWidth = getRectWidth(rect);
-            pSettings->mHeight = getRectHeight(rect);
-            pSettings->mFullScreen = true;
-        }
-        
-        gCurrentWindow = {};
-        gCurrentWindow.fullscreenRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
-        gCurrentWindow.fullScreen = pSettings->mFullScreen;
-        gCurrentWindow.maximized = false;
-        gCurrentWindow.handle = (void*)CFBridgingRetain(view);
-        //openWindow(pApp->GetName(), &gCurrentWindow);
-        
-        pSettings->mWidth = getRectWidth(gCurrentWindow.fullscreenRect);
-        pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);
-        pApp->pWindow = &gCurrentWindow;
-        
-        @autoreleasepool {
-            if(!pApp->Init())
+	self = [super init];
+	if (self)
+	{
+		FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
+
+		pSettings = &pApp->mSettings;
+
+		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
+		{
+			RectDesc rect = {};
+			getRecommendedResolution(&rect);
+			pSettings->mWidth = getRectWidth(rect);
+			pSettings->mHeight = getRectHeight(rect);
+			pSettings->mFullScreen = true;
+		}
+
+		gCurrentWindow = {};
+		gCurrentWindow.fullscreenRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
+		gCurrentWindow.fullScreen = pSettings->mFullScreen;
+		gCurrentWindow.maximized = false;
+		gCurrentWindow.handle = (void*)CFBridgingRetain(view);
+		//openWindow(pApp->GetName(), &gCurrentWindow);
+
+		pSettings->mWidth = getRectWidth(gCurrentWindow.fullscreenRect);
+		pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);
+		pApp->pWindow = &gCurrentWindow;
+
+		@autoreleasepool {
+			if(!pApp->Init())
 				exit(0);
-			
+
 			if(!pApp->Load())
 				exit(0);
-        }
-    }
-    
-    return self;
+		}
+	}
+
+	return self;
 }
 
 -(void)drawRectResized:(CGSize)size
 {
-    pApp->mSettings.mWidth = size.width * gRetinaScale.x;
-    pApp->mSettings.mHeight = size.height * gRetinaScale.y;
-    pApp->mSettings.mFullScreen = true;
-    pApp->Unload();
-    pApp->Load();
+	pApp->mSettings.mWidth = size.width * gRetinaScale.x;
+	pApp->mSettings.mHeight = size.height * gRetinaScale.y;
+	pApp->mSettings.mFullScreen = true;
+	pApp->Unload();
+	pApp->Load();
 }
 
 -(void)update
 {
-    float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
-    // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
-    if (deltaTime > 0.15f)
-        deltaTime = 0.05f;
-	
+	float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+	if (deltaTime > 0.15f)
+		deltaTime = 0.05f;
+
 	InputSystem::Update();
-    pApp->Update(deltaTime);
-    pApp->Draw();
-    
+	pApp->Update(deltaTime);
+	pApp->Draw();
+
 #ifdef AUTOMATED_TESTING
-        testingCurrentFrameCount++;
-        if(testingCurrentFrameCount >= testingMaxFrameCount)
-        {
-            exit(0);
-        }
+		testingCurrentFrameCount++;
+		if(testingCurrentFrameCount >= testingMaxFrameCount)
+		{
+			exit(0);
+		}
 #endif
 }
 
@@ -346,8 +341,8 @@ uint32_t testingMaxFrameCount = 120;
 -(void)shutdown
 {
 	InputSystem::Shutdown();
-    pApp->Unload();
-    pApp->Exit();
+	pApp->Unload();
+	pApp->Exit();
 }
 @end
 /************************************************************************/

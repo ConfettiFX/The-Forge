@@ -3040,11 +3040,13 @@ bool ImGui::InputTextEx(const char* label, char* buf, int buf_size, const ImVec2
         FocusWindow(window);
         if (!is_multiline && !(flags & ImGuiInputTextFlags_CallbackHistory))
             g.ActiveIdAllowNavDirFlags |= ((1 << ImGuiDir_Up) | (1 << ImGuiDir_Down));
+		edit_state.UserFlags = flags;
     }
     else if (io.MouseClicked[0])
     {
         // Release focus when we click outside
         clear_active_id = true;
+		edit_state.UserFlags = 0;
     }
 
     bool value_changed = false;
@@ -3374,7 +3376,7 @@ bool ImGui::InputTextEx(const char* label, char* buf, int buf_size, const ImVec2
         }
 
         // Clear temporary user storage
-        edit_state.UserFlags = 0;
+        //edit_state.UserFlags = 0;
         edit_state.UserCallback = NULL;
         edit_state.UserCallbackData = NULL;
     }

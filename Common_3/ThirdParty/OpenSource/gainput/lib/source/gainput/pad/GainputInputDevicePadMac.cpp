@@ -298,6 +298,8 @@ InputDevicePadImplMac::InputDevicePadImplMac(InputManager& manager, InputDevice&
 
 	if (CFGetTypeID(ioManager) != IOHIDManagerGetTypeID())
 	{
+		IOHIDManagerClose(ioManager, 0);
+		CFRelease(ioManager);
 		return;
 	}
 

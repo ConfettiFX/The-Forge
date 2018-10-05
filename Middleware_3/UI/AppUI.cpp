@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -221,7 +221,7 @@ IWidget* DropdownWidget::Clone() const
 }
 
 IWidget* ProgressBarWidget::Clone() const
-{	
+{
 	ProgressBarWidget* pWidget = conf_placement_new<ProgressBarWidget>(
 		conf_calloc(1, sizeof(*pWidget)),
 		this->mLabel, this->pData, mMaxProgress);
@@ -284,15 +284,15 @@ IWidget* CheckboxWidget::Clone() const
 /************************************************************************/
 struct UIAppImpl
 {
-	Renderer*									pRenderer;
-	Fontstash*									pFontStash;
+	Renderer*								   pRenderer;
+	Fontstash*								  pFontStash;
 	uint32_t									mWidth;
 	uint32_t									mHeight;
 
-	tinystl::vector<GuiComponent*>				mComponents;
+	tinystl::vector<GuiComponent*>			  mComponents;
 
-	tinystl::vector<GuiComponent*>	mComponentsToUpdate;
-	float										mDeltaTime;
+	tinystl::vector<GuiComponent*>  mComponentsToUpdate;
+	float									   mDeltaTime;
 };
 UIAppImpl* pInst;
 
@@ -306,7 +306,7 @@ bool UIApp::Init(Renderer* renderer)
 	// Figure out the max font size for the current configuration
 	uint32 uiMaxFrontSize = uint32(UIMaxFontSize::UI_MAX_FONT_SIZE_512);
 
-	// Add and initialize the fontstash 
+	// Add and initialize the fontstash
 	pImpl->pFontStash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, (int)uiMaxFrontSize, (int)uiMaxFrontSize);
 
 	return true;
@@ -412,11 +412,21 @@ void UIApp::Update(float deltaTime)
 
 void UIApp::Draw(Cmd* pCmd)
 {
+	bool hasYetToShowDemoUi = true;
+
+	// Only on iOS as this only applies to virtual keyboard.
+	// TODO: add Durango at a later stage
+#ifdef TARGET_IOS
+	//stores whether or not we need text input for
+	//any gui component
+	//if any component requires textInput then this is true.
+	int wantsTextInput = 0;
+#endif
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 	{
 		GuiComponent* pGui = pImpl->mComponentsToUpdate[i];
 		if (!pGui->mActive)
-			return;
+			continue;
 
 		pGui->pDriver->draw(pCmd, pImpl->mDeltaTime,
 			pGui->mTitle,
@@ -425,8 +435,29 @@ void UIApp::Draw(Cmd* pCmd)
 			pGui->mInitialWindowRect.x, pGui->mInitialWindowRect.y, pGui->mInitialWindowRect.z, pGui->mInitialWindowRect.w,
 			pGui->mWidgets.data(), (uint32_t)pGui->mWidgets.size(),
 			pGui->mContextualMenuLabels, pGui->mContextualMenuCallbacks,
-			(i == 0 && mShowDemoUiWindow) ? true : false);
+			(hasYetToShowDemoUi && mShowDemoUiWindow) ? true : false);
+
+		if (mShowDemoUiWindow)
+			hasYetToShowDemoUi = false;
+
+#ifdef TARGET_IOS
+		//check if current component requires textInput
+		//only support one type of text
+		//check for bigger that way we enable keyboard with all characters
+		//if there's one widget that requires digits only and one that requires all text
+		if(pGui->pDriver->needsTextInput() > wantsTextInput)
+			wantsTextInput = pGui->pDriver->needsTextInput();
+#endif
 	}
+
+#ifdef TARGET_IOS
+	//if current Virtual keyboard state is not equal to
+	//text input status then toggle the appropriate behavior (hide, show)
+	if(InputSystem::IsVirtualKeyboardActive() != (wantsTextInput > 0))
+	{
+		InputSystem::ToggleVirtualTouchKeyboard(wantsTextInput);
+	}
+#endif
 }
 
 void UIApp::Gui(GuiComponent* pGui)
@@ -516,20 +547,20 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 		pTexturedVert = (char*)vk_builtin_textured_vert; texturedVertSize = sizeof(vk_builtin_textured_vert);
 		pTexturedFrag = (char*)vk_builtin_textured_frag; texturedFragSize = sizeof(vk_builtin_textured_frag);
 	}
-	
+
 	BinaryShaderDesc texturedShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
 		{ (char*)pTexturedVert, texturedVertSize },{ (char*)pTexturedFrag, texturedFragSize } };
 	addShaderBinary(pRenderer, &texturedShader, &pShader);
 #endif
-	
-	
+
+
 	const char* pStaticSamplerNames[] = { "uSampler" };
 	RootSignatureDesc textureRootDesc = { &pShader, 1 };
 	textureRootDesc.mStaticSamplerCount = 1;
 	textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 	textureRootDesc.ppStaticSamplers = &pSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
-	
+
 	/************************************************************************/
 	// Resources
 	/************************************************************************/
@@ -599,7 +630,7 @@ void VirtualJoystickUI::Unload()
 
 void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraController, const float4& color)
 {
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 	struct RootConstants
 	{
 		float4 color;
@@ -687,13 +718,13 @@ bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
 	// Handle the mouse click events:
 	// We want to send ButtonData with click position to the UI system
 	//
-	if (pData->mUserId == KEY_CONFIRM      // left  click
+	if (pData->mUserId == KEY_CONFIRM	 // left  click
 		|| pData->mUserId == KEY_RIGHT_BUMPER // right click
 		|| pData->mUserId == KEY_MOUSE_WHEEL)
 	{
-		// Query the latest UI_MOVE event since the current event 
+		// Query the latest UI_MOVE event since the current event
 		// which is a click event, doesn't contain the mouse position.
-		// Here we construct the 'toSend' data to contain both the 
+		// Here we construct the 'toSend' data to contain both the
 		// position (from the latest Move event) and click info from the
 		// current event.
 		ButtonData latestUIMoveEventData = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
@@ -725,7 +756,7 @@ static bool uiInputEvent(const ButtonData * pData)
 	{
 		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
 			gInstances[i]->mActive = (!gInstances[i]->mActive);
-		
+
 		PlatformEvents::skipMouseCapture = false;
 	}
 

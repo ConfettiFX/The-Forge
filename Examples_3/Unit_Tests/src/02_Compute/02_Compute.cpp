@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -53,7 +53,6 @@
 #include "../../../../Middleware_3/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
-
 
 // Julia4D Parameters
 #define SIZE_X 412
@@ -108,71 +107,71 @@ HiresTimer gTimer;
 #error PLATFORM NOT SUPPORTED
 #endif
 
-#ifdef _DURANGO
+#if defined(_DURANGO )|| defined(__ANDROID__)
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",									// FSR_BinShaders
-	"Shaders/",											// FSR_SrcShaders
-	"Shaders/Binary/",									// FSR_BinShaders_Common
-	"Shaders/",											// FSR_SrcShaders_Common
+	"Shaders/Binary/",								  // FSR_BinShaders
+	"Shaders/",										 // FSR_SrcShaders
+	"Shaders/Binary/",								  // FSR_BinShaders_Common
+	"Shaders/",										 // FSR_SrcShaders_Common
 	"Textures/",										// FSR_Textures
-	"Meshes/",											// FSR_Meshes
-	"Fonts/",											// FSR_Builtin_Fonts
-	"",													// FSR_OtherFiles
+	"Meshes/",										  // FSR_Meshes
+	"Fonts/",										   // FSR_Builtin_Fonts
+	"",												 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../../src/02_Compute/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+	"../../../src/02_Compute/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
 	"../../../src/02_Compute/" RESOURCE_DIR "/",		// FSR_SrcShaders
-	"",													// FSR_BinShaders_Common
-	"",													// FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",				// FSR_Textures
-	"../../../UnitTestResources/Meshes/",				// FSR_Meshes
+	"",												 // FSR_BinShaders_Common
+	"",												 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",			 // FSR_Textures
+	"../../../UnitTestResources/Meshes/",			   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
-	"../../../src/02_Compute/GPUCfg/",					// FSR_GpuConfig
-	"",													// FSR_OtherFiles
+	"../../../src/02_Compute/GPUCfg/",				  // FSR_GpuConfig
+	"",												 // FSR_OtherFiles
 };
 #endif
 
-const uint32_t		gImageCount = 3;
+const uint32_t	  gImageCount = 3;
 
-Renderer*			pRenderer = NULL;
-Buffer*				pUniformBuffer[gImageCount] = { NULL };
+Renderer*		   pRenderer = NULL;
+Buffer*			 pUniformBuffer[gImageCount] = { NULL };
 
-Queue*				pGraphicsQueue = NULL;
+Queue*			  pGraphicsQueue = NULL;
 CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Cmd**			   ppCmds = NULL;
 Sampler*			pSampler = NULL;
 RasterizerState*	pRast = NULL;
 
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		  pImageAcquiredSemaphore = NULL;
+Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-SwapChain*			pSwapChain = NULL;
+SwapChain*		  pSwapChain = NULL;
 
-Shader*				pShader = NULL;
-Pipeline*			pPipeline = NULL;
-RootSignature*		pRootSignature = NULL;
+Shader*			 pShader = NULL;
+Pipeline*		   pPipeline = NULL;
+RootSignature*	  pRootSignature = NULL;
 
-Shader*				pComputeShader = NULL;
-Pipeline*			pComputePipeline = NULL;
-RootSignature*		pComputeRootSignature = NULL;
+Shader*			 pComputeShader = NULL;
+Pipeline*		   pComputePipeline = NULL;
+RootSignature*	  pComputeRootSignature = NULL;
 Texture*			pTextureComputeOutput = NULL;
 
-#ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+VirtualJoystickUI   gVirtualJoystick;
 #endif
 
 uint32_t			gFrameIndex = 0;
 UniformBlock		gUniformData;
 
-UIApp				gAppUI;
+UIApp			   gAppUI;
 GpuProfiler*		pGpuProfiler = NULL;
-ICameraController*	pCameraController = NULL;
+ICameraController*  pCameraController = NULL;
 
 struct ObjectProperty
 {
@@ -213,8 +212,11 @@ public:
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+			return false;
+#elif defined(__ANDROID__)
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
@@ -283,7 +285,7 @@ public:
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		requestMouseCapture(true);
-		
+
 		pCameraController->setMotionParameters(cmp);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 
@@ -296,9 +298,10 @@ public:
 
 		destroyCameraController(pCameraController);
 
+		// Destroy debug renderer interface
 		removeDebugRendererInterface();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
 #endif
 
@@ -341,7 +344,7 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], 0))
 			return false;
 #endif
@@ -368,7 +371,7 @@ public:
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
 
@@ -424,15 +427,19 @@ public:
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		uint32_t swapchainIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		loadActions.mClearColorValues[0].r = 0.0f;
+		loadActions.mClearColorValues[0].g = 0.0f;
+		loadActions.mClearColorValues[0].b = 0.0f;
+		loadActions.mClearColorValues[0].a = 0.0f;
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
@@ -484,7 +491,7 @@ public:
 
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
@@ -507,7 +514,7 @@ public:
 		endCmd(cmd);
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
 
 		HiresTimer timer;
 		// Stall if CPU is running "Swap Chain Buffer Count - 1" frames ahead of GPU
@@ -516,6 +523,7 @@ public:
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	tinystl::string GetName()
@@ -632,7 +640,7 @@ public:
 		}
 	}
 
-	
+
 	static bool cameraInputEvent(const ButtonData* data)
 	{
 		pCameraController->onInputEvent(data);

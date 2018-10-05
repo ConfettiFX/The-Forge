@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -50,13 +50,13 @@ public:
 	virtual vec3 getViewPosition() const = 0;
 	virtual vec2 getRotationXY() const = 0;
 
-#ifdef TARGET_IOS
-    virtual float getVirtualJoystickInternalRadius() const = 0;
-    virtual float getVirtualJoystickExternalRadius() const = 0;
-    virtual vec2 getVirtualLeftJoystickCenter() const = 0;
-    virtual vec2 getVirtualLeftJoystickPos() const = 0;
-    virtual vec2 getVirtualRightJoystickCenter() const = 0;
-    virtual vec2 getVirtualRightJoystickPos() const = 0;
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+	virtual float getVirtualJoystickInternalRadius() const = 0;
+	virtual float getVirtualJoystickExternalRadius() const = 0;
+	virtual vec2 getVirtualLeftJoystickCenter() const = 0;
+	virtual vec2 getVirtualLeftJoystickPos() const = 0;
+	virtual vec2 getVirtualRightJoystickCenter() const = 0;
+	virtual vec2 getVirtualRightJoystickPos() const = 0;
 #endif
 
 	virtual void moveTo(const vec3& location) = 0;

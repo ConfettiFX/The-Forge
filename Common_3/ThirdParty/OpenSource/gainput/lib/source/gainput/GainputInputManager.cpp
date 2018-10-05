@@ -72,32 +72,6 @@ InputManager::~InputManager()
 
 	GAINPUT_DEV_SHUTDOWN(this);
 }
-	
-	
-InputManager::InputManager(void * appleView, bool useSystemTime, Allocator& allocator) :
-uiView_(appleView),
-allocator_(allocator),
-devices_(allocator_),
-nextDeviceId_(0),
-listeners_(allocator_),
-nextListenerId_(0),
-sortedListeners_(allocator_),
-modifiers_(allocator_),
-nextModifierId_(0),
-deltaState_(allocator_.New<InputDeltaState>(allocator_)),
-currentTime_(0),
-GAINPUT_CONC_CONSTRUCT(concurrentInputs_),
-displayWidth_(-1),
-displayHeight_(-1),
-useSystemTime_(useSystemTime),
-debugRenderingEnabled_(false),
-debugRenderer_(0)
-{
-	GAINPUT_DEV_INIT(this);
-#ifdef GAINPUT_PLATFORM_ANDROID
-	gGainputInputManager = this;
-#endif
-}
 
 void
 InputManager::Update()
@@ -150,6 +124,18 @@ InputManager::Update()
 	{
 		ds->NotifyListeners(sortedListeners_);
 		ds->Clear();
+	}
+	
+	//clear buttons
+	//only Does something for KeyboardIOS
+	for (DeviceMap::iterator it = devices_.begin();
+		 it != devices_.end();
+		 ++it)
+	{
+		if (it->second->GetType() == InputDevice::DT_KEYBOARD)
+		{
+			it->second->ClearButtons();
+		}
 	}
 }
 

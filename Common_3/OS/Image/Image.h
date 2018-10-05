@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,8 +31,6 @@
 
 #define ALL_MIPLEVELS 127
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 /************************************************************************************/
 // Define some useful macros
 #define MCHAR2(a, b) (a | (b << 8))
@@ -102,11 +100,11 @@ public:
   static uint GetMipMappedSize(uint width, uint height, uint depth, uint startMip, uint numLevels, ImageFormat::Enum format);
 
   ImageFormat::Enum getFormat() const { return mFormat; }
-  
+
   void setFormat(const ImageFormat::Enum fmt) { mFormat = fmt; }
-  bool Is1D()    const { return (mDepth == 1 && mHeight == 1); }
-  bool Is2D()    const { return (mDepth == 1 && mHeight > 1); }
-  bool Is3D()    const { return (mDepth > 1); }
+  bool Is1D()   const { return (mDepth == 1 && mHeight == 1); }
+  bool Is2D()   const { return (mDepth == 1 && mHeight > 1); }
+  bool Is3D()   const { return (mDepth > 1); }
   bool IsArray() const { return (mArrayCount > 1); }
   bool IsCube()  const { return (mDepth == 0); }
   bool IsRenderTarget() const { return mIsRendertarget; }
@@ -139,7 +137,7 @@ public:
   bool iSaveHDR(const char* fileName);
   bool iSaveJPG(const char* fileName);
   bool SaveImage(const char* fileName);
-  
+
 protected:
   unsigned char* pData;
   tinystl::string mLoadFileName;
@@ -194,14 +192,14 @@ static inline uint32_t calculateImageFormatStride(ImageFormat::Enum format)
 	case ImageFormat::D16S8: result = 0; break;
 	case ImageFormat::D24S8: result = 0; break;
 	case ImageFormat::D32S8: result = 0; break;
-        default: break;
+		default: break;
 	}
 	return result;
 }
 
 static inline uint32_t calculateImageFormatChannelCount (ImageFormat::Enum format)
 {
-//	uint32_t result = 0;
+//  uint32_t result = 0;
 	if (format == ImageFormat::BGRA8)
 		return 3;
 	else

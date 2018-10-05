@@ -20,6 +20,16 @@
 		5C17305221414E980074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17305121414E980074EE71 /* libThe-Forge_iOS.a */; };
 		5C17305721414EA80074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17305621414EA80074EE71 /* AppDelegate.m */; };
 		5CABF37C2141545300EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF37B2141545300EFD76A /* GameController.framework */; };
+		650E6C2821667E7A00F511AB /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2721667E7A00F511AB /* AssimpImporter.cpp */; };
+		650E6C322166859A00F511AB /* phenomenologicalTransparency.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C292166859900F511AB /* phenomenologicalTransparency.frag.metal */; };
+		650E6C342166859A00F511AB /* generateMips.comp.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2B2166859900F511AB /* generateMips.comp.metal */; };
+		650E6C352166859A00F511AB /* gaussianBlur.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2C2166859A00F511AB /* gaussianBlur.frag.metal */; };
+		650E6C362166859A00F511AB /* shadow.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2D2166859A00F511AB /* shadow.frag.metal */; };
+		650E6C372166859A00F511AB /* shadow.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2E2166859A00F511AB /* shadow.vert.metal */; };
+		650E6C382166859A00F511AB /* phenomenologicalTransparencyComposite.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2F2166859A00F511AB /* phenomenologicalTransparencyComposite.frag.metal */; };
+		650E6C392166859A00F511AB /* copy.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C302166859A00F511AB /* copy.frag.metal */; };
+		650E6C3A2166859A00F511AB /* downsample.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C312166859A00F511AB /* downsample.frag.metal */; };
+		650E6C3C2166AE5800F511AB /* stochasticShadow.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C3B2166AE5800F511AB /* stochasticShadow.frag.metal */; };
 		97EC82D0214C83B300F05EF3 /* weightedBlendedOIT.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 97EC82C5214C83B200F05EF3 /* weightedBlendedOIT.frag.metal */; };
 		97EC82D1214C83B300F05EF3 /* skybox.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 97EC82C6214C83B200F05EF3 /* skybox.frag.metal */; };
 		97EC82D2214C83B300F05EF3 /* forward.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 97EC82C7214C83B200F05EF3 /* forward.vert.metal */; };
@@ -88,6 +98,17 @@
 		5C17305521414EA80074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C17305621414EA80074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
 		5CABF37B2141545300EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		650E6C2621667E7A00F511AB /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssimpImporter.h; sourceTree = "<group>"; };
+		650E6C2721667E7A00F511AB /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AssimpImporter.cpp; sourceTree = "<group>"; };
+		650E6C292166859900F511AB /* phenomenologicalTransparency.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = phenomenologicalTransparency.frag.metal; sourceTree = "<group>"; };
+		650E6C2B2166859900F511AB /* generateMips.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = generateMips.comp.metal; sourceTree = "<group>"; };
+		650E6C2C2166859A00F511AB /* gaussianBlur.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = gaussianBlur.frag.metal; sourceTree = "<group>"; };
+		650E6C2D2166859A00F511AB /* shadow.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = shadow.frag.metal; sourceTree = "<group>"; };
+		650E6C2E2166859A00F511AB /* shadow.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = shadow.vert.metal; sourceTree = "<group>"; };
+		650E6C2F2166859A00F511AB /* phenomenologicalTransparencyComposite.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = phenomenologicalTransparencyComposite.frag.metal; sourceTree = "<group>"; };
+		650E6C302166859A00F511AB /* copy.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = copy.frag.metal; sourceTree = "<group>"; };
+		650E6C312166859A00F511AB /* downsample.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = downsample.frag.metal; sourceTree = "<group>"; };
+		650E6C3B2166AE5800F511AB /* stochasticShadow.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = stochasticShadow.frag.metal; sourceTree = "<group>"; };
 		97EC82C5214C83B200F05EF3 /* weightedBlendedOIT.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; path = weightedBlendedOIT.frag.metal; sourceTree = "<group>"; };
 		97EC82C6214C83B200F05EF3 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; path = skybox.frag.metal; sourceTree = "<group>"; };
 		97EC82C7214C83B200F05EF3 /* forward.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; path = forward.vert.metal; sourceTree = "<group>"; };
@@ -195,9 +216,28 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		650E6C2521667E3B00F511AB /* AssimpImporter */ = {
+			isa = PBXGroup;
+			children = (
+				650E6C2721667E7A00F511AB /* AssimpImporter.cpp */,
+				650E6C2621667E7A00F511AB /* AssimpImporter.h */,
+			);
+			name = AssimpImporter;
+			path = ../../../../../Common_3/Tools/AssimpImporter;
+			sourceTree = "<group>";
+		};
 		97EC82C4214C837C00F05EF3 /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
+				650E6C3B2166AE5800F511AB /* stochasticShadow.frag.metal */,
+				650E6C302166859A00F511AB /* copy.frag.metal */,
+				650E6C312166859A00F511AB /* downsample.frag.metal */,
+				650E6C2C2166859A00F511AB /* gaussianBlur.frag.metal */,
+				650E6C2B2166859900F511AB /* generateMips.comp.metal */,
+				650E6C292166859900F511AB /* phenomenologicalTransparency.frag.metal */,
+				650E6C2F2166859A00F511AB /* phenomenologicalTransparencyComposite.frag.metal */,
+				650E6C2D2166859A00F511AB /* shadow.frag.metal */,
+				650E6C2E2166859A00F511AB /* shadow.vert.metal */,
 				97EC82CB214C83B200F05EF3 /* forward.frag.metal */,
 				97EC82C7214C83B200F05EF3 /* forward.vert.metal */,
 				97EC82C9214C83B200F05EF3 /* fullscreen.vert.metal */,
@@ -235,6 +275,7 @@
 		EA463C941EF81E8F005AC8C7 /* 15_Transparency */ = {
 			isa = PBXGroup;
 			children = (
+				650E6C2521667E3B00F511AB /* AssimpImporter */,
 				5C172FA621414B560074EE71 /* AppDelegate.h */,
 				5C172FA521414B560074EE71 /* AppDelegate.m */,
 				28EE9FF6201B30B200D42AD7 /* 15_Transparency.cpp */,
@@ -300,8 +341,6 @@
 					};
 					EA463C8A1EF81E8F005AC8C7 = {
 						CreatedOnToolsVersion = 8.3.3;
-						DevelopmentTeam = BT67ZY58A8;
-						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -389,8 +428,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650E6C382166859A00F511AB /* phenomenologicalTransparencyComposite.frag.metal in Sources */,
+				650E6C352166859A00F511AB /* gaussianBlur.frag.metal in Sources */,
+				650E6C322166859A00F511AB /* phenomenologicalTransparency.frag.metal in Sources */,
+				650E6C362166859A00F511AB /* shadow.frag.metal in Sources */,
+				650E6C3C2166AE5800F511AB /* stochasticShadow.frag.metal in Sources */,
 				28A5AE39201F7EBE000E571F /* 15_Transparency.cpp in Sources */,
+				650E6C342166859A00F511AB /* generateMips.comp.metal in Sources */,
 				5C17305721414EA80074EE71 /* AppDelegate.m in Sources */,
+				650E6C372166859A00F511AB /* shadow.vert.metal in Sources */,
+				650E6C3A2166859A00F511AB /* downsample.frag.metal in Sources */,
+				650E6C392166859A00F511AB /* copy.frag.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,6 +446,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650E6C2821667E7A00F511AB /* AssimpImporter.cpp in Sources */,
 				5C172FA721414B560074EE71 /* AppDelegate.m in Sources */,
 				28EE9FF7201B30B200D42AD7 /* 15_Transparency.cpp in Sources */,
 			);
@@ -452,13 +501,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
@@ -491,7 +539,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
@@ -635,6 +683,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_WARN_COMMA = NO;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
@@ -655,9 +705,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
-				SYSTEM_HEADER_SEARCH_PATHS = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
 		};
@@ -666,6 +714,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_WARN_COMMA = NO;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
@@ -683,9 +733,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.09-LightShadowPlayground";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
-				SYSTEM_HEADER_SEARCH_PATHS = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};

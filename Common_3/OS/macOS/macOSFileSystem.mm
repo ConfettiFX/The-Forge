@@ -72,53 +72,53 @@ size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
 
 size_t _getFileLastModifiedTime(const char* _fileName)
 {
-    struct stat fileInfo;
-    
-    if (!stat(_fileName, &fileInfo))
-    {
-        return (size_t)fileInfo.st_mtime;
-    }
-    else
-    {
-        // return an impossible large mod time as the file doesn't exist
-        return ~0;
-    }
+	struct stat fileInfo;
+
+	if (!stat(_fileName, &fileInfo))
+	{
+		return (size_t)fileInfo.st_mtime;
+	}
+	else
+	{
+		// return an impossible large mod time as the file doesn't exist
+		return ~0;
+	}
 }
-  
+
 tinystl::string _getCurrentDir()
 {
-    char cwd[256]="";
-    getcwd(cwd, sizeof(cwd));
-    tinystl::string str(cwd);
-    return str;
+	char cwd[256]="";
+	getcwd(cwd, sizeof(cwd));
+	tinystl::string str(cwd);
+	return str;
 }
 
 tinystl::string _getExePath()
 {
-    const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
-    tinystl::string str(exeDir);
-    return str;
+	const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
+	tinystl::string str(exeDir);
+	return str;
 }
 
 tinystl::string _getAppPrefsDir(const char *org, const char *app)
 {
-    const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
-    const char * path;
-    path = strstr(rawUserPath,"/Users/");
-    return tinystl::string(path) + tinystl::string("Library/") + tinystl::string(org) + tinystl::string("/") + tinystl::string(app);
+	const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
+	const char * path;
+	path = strstr(rawUserPath,"/Users/");
+	return tinystl::string(path) + tinystl::string("Library/") + tinystl::string(org) + tinystl::string("/") + tinystl::string(app);
 }
 
 tinystl::string _getUserDocumentsDir()
 {
-    const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
-    const char * path;
-    path = strstr(rawUserPath,"/Users/");
-    return tinystl::string(path);
+	const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
+	const char * path;
+	path = strstr(rawUserPath,"/Users/");
+	return tinystl::string(path);
 }
 
 void _setCurrentDir(const char* path)
 {
-    chdir(path);
+	chdir(path);
 }
 
 #endif

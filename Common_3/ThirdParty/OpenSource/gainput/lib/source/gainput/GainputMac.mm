@@ -294,6 +294,23 @@ namespace gainput
 	keyboard->HandleKey((int)nsEvent.keyCode,false, NULL);
 }
 
+- (void)otherMouseDown:(NSEvent *)nsEvent
+{
+    [self reportMouseButton:gainput::MouseButtonMiddle isPressed:true];
+}
+
+- (void) otherMouseDragged: (NSEvent*) nsEvent
+{
+    //TODO:Differentiate from drag and click
+    [self reportMouseButton:gainput::MouseButtonMiddle isPressed:true];
+    [self reportMouseMove:nsEvent];
+}
+
+- (void) otherMouseUp: (NSEvent*)nsEvent
+{
+    [self reportMouseButton:gainput::MouseButtonMiddle isPressed:false];
+}
+
 // Modifier keys do not trigger keyUp/Down events but only flagsChanged events.
 - (void) flagsChanged: (NSEvent*) nsEvent
 {

@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -74,29 +74,29 @@
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",	// FSR_BinShaders
-	"Shaders/",		// FSR_SrcShaders
-	"Shaders/Binary/",			// FSR_BinShaders_Common
-	"Shaders/",					// FSR_SrcShaders_Common
+	"Shaders/Binary/",  // FSR_BinShaders
+	"Shaders/",	 // FSR_SrcShaders
+	"Shaders/Binary/",		  // FSR_BinShaders_Common
+	"Shaders/",				 // FSR_SrcShaders_Common
 	"Textures/",						// FSR_Textures
-	"Meshes/",						// FSR_Meshes
-	"Fonts/",						// FSR_Builtin_Fonts
-	"",								// FSR_GpuConfig
-	"",															// FSR_OtherFiles
+	"Meshes/",					  // FSR_Meshes
+	"Fonts/",					   // FSR_Builtin_Fonts
+	"",							 // FSR_GpuConfig
+	"",														 // FSR_OtherFiles
 };
 #else
 // Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../..//src/05_FontRendering/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../..//src/05_FontRendering/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"",															// FSR_BinShaders_Common
-	"",															// FSR_SrcShaders_Common
+	"../../..//src/05_FontRendering/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
+	"../../..//src/05_FontRendering/" RESOURCE_DIR "/",		 // FSR_SrcShaders
+	"",														 // FSR_BinShaders_Common
+	"",														 // FSR_SrcShaders_Common
 	"../../..//UnitTestResources/Textures/",					// FSR_Textures
-	"../../..//UnitTestResources/Meshes/",						// FSR_Meshes
-	"../../..//UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
+	"../../..//UnitTestResources/Meshes/",					  // FSR_Meshes
+	"../../..//UnitTestResources/Fonts/",					   // FSR_Builtin_Fonts
 	"../../../src/05_FontRendering/GPUCfg/",				// FSR_GpuConfig
-	"",															// FSR_OtherFiles
+	"",														 // FSR_OtherFiles
 };
 #endif
 
@@ -105,7 +105,7 @@ LogManager gLogManager;
 /* SCENE VARIABLES
 *************************************************************************/
 struct Fonts
-{	// src: https://fontlibrary.org
+{   // src: https://fontlibrary.org
 	int titilliumBold;
 	int comicRelief;
 	int crimsonSerif;
@@ -115,9 +115,9 @@ struct Fonts
 
 struct TextObject
 {
-	tinystl::string	mText;
+	tinystl::string mText;
 	TextDrawDesc	mDrawDesc;
-	float2				mPosition;
+	float2			  mPosition;
 };
 
 struct SceneData
@@ -126,27 +126,27 @@ struct SceneData
 	tinystl::vector<tinystl::vector<TextObject>> sceneTextArray;
 };
 
-const uint32_t	gImageCount = 3;
+const uint32_t  gImageCount = 3;
 
-Renderer*		pRenderer = NULL;
-RenderTarget*	pRenderTarget = NULL;
-Queue*			pGraphicsQueue = NULL;
+Renderer*	   pRenderer = NULL;
+RenderTarget*   pRenderTarget = NULL;
+Queue*		  pGraphicsQueue = NULL;
 CmdPool*		pCmdPool = NULL;
-Cmd**			ppCmds = NULL;
+Cmd**		   ppCmds = NULL;
 GpuProfiler*	pGpuProfiler = NULL;
-UIApp			gAppUI;
-HiresTimer		gTimer;
+UIApp		   gAppUI;
+HiresTimer	  gTimer;
 
-SwapChain*		pSwapChain = NULL;
+SwapChain*	  pSwapChain = NULL;
 
-Fence*			pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*		pImageAcquiredSemaphore = NULL;
-Semaphore*		pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence*		  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*	  pImageAcquiredSemaphore = NULL;
+Semaphore*	  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 uint32_t		gFrameIndex = 0;
 
-SceneData		gSceneData;
-Fonts			gFonts;
+SceneData	   gSceneData;
+Fonts		   gFonts;
 /************************************************************************/
 /* APP FUNCTIONS
 *************************************************************************/
@@ -210,7 +210,7 @@ public:
 
 		// TITLE
 		//--------------------------------------------------------------------------
-		drawDescriptor.mFontColor = 0xff000000;	// black : (ABGR)
+		drawDescriptor.mFontColor = 0xff000000; // black : (ABGR)
 		drawDescriptor.mFontID = gFonts.monoSpaceBold;
 		drawDescriptor.mFontSize = 50.0f * scalingFactor;
 		txt = "Fontstash Font Rendering";
@@ -382,10 +382,10 @@ public:
 	}
 
 	void Update(float deltaTime)
-	{  
+	{
 		// PROCESS INPUT
 		//-------------------------------------------------------------------------------------
-		const int offset = getKeyDown(KEY_LEFT_BUMPER) ? -1 : +1;	// shift+space = previous text
+		const int offset = getKeyDown(KEY_LEFT_BUMPER) ? -1 : +1;   // shift+space = previous text
 		if (getKeyUp(KEY_LEFT_TRIGGER))
 		{
 			gSceneData.sceneTextArrayIndex = (gSceneData.sceneTextArrayIndex + offset) % gSceneData.sceneTextArray.size();

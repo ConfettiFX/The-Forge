@@ -40,31 +40,31 @@ struct DepthState;
 struct RasterizerState;
 
 /************************************************************************/
-/*						 HOW TO USE THIS MODULE
+/*					   HOW TO USE THIS MODULE
 *************************************************************************/
 //
-// - Init()		Compiles the panini shader, creates the vertex and index buffer for panini projection
+// - Init()	 Compiles the panini shader, creates the vertex and index buffer for panini projection
 //
-// - Load()		Links the shader compiled in Init to create the panini projection pipeline
-//				Uses the input render target to provide output format information to pipeline creation
+// - Load()	 Links the shader compiled in Init to create the panini projection pipeline
+//			  Uses the input render target to provide output format information to pipeline creation
 //
-// - Unload()	Destroys the pipeline
+// - Unload()   Destroys the pipeline
 //
-// - Update()	Empty update
+// - Update()   Empty update
 //
-// - Draw()		Runs the panini projection shader on the active render pass. Call SetParams before calling this function to update the panini params
+// - Draw()	 Runs the panini projection shader on the active render pass. Call SetParams before calling this function to update the panini params
 //
-// - Exit()		should be called when exiting the app to clean up Panini rendering resources.
+// - Exit()	 should be called when exiting the app to clean up Panini rendering resources.
 //
-// Panini Post Process takes a texture as input which contains the rendered scene, applies Panini distortion to it and outputs to currently bound render target. 
+// Panini Post Process takes a texture as input which contains the rendered scene, applies Panini distortion to it and outputs to currently bound render target.
 // See UnitTests - 04_ExecuteIndirect project for example use case for this module.
 //
 /************************************************************************/
-/*						 PANINI PROJECTION
+/*					   PANINI PROJECTION
 *************************************************************************/
 //
-// The Pannini projection is a mathematical rule for constructing perspective images with very wide fields of view. 
-// source:	http://tksharpless.net/vedutismo/Pannini/
+// The Pannini projection is a mathematical rule for constructing perspective images with very wide fields of view.
+// source:  http://tksharpless.net/vedutismo/Pannini/
 // paper:   http://tksharpless.net/vedutismo/Pannini/panini.pdf
 //
 struct PaniniParameters
@@ -73,27 +73,27 @@ struct PaniniParameters
 	float FoVH = 90.0f;
 
 	// D parameter: Distance of projection's center from the Panini frame's origin.
-	//				i.e. controls horizontal compression.
-	//				D = 0.0f    : regular rectilinear projection
-	//				D = 1.0f    : Panini projection
-	//				D->Infinity : cylindrical orthographic projection
+	//			  i.e. controls horizontal compression.
+	//			  D = 0.0f	: regular rectilinear projection
+	//			  D = 1.0f	: Panini projection
+	//			  D->Infinity : cylindrical orthographic projection
 	float D = 1.0f;
 
 	// S parameter: A scalar that controls 'Hard Vertical Compression' of the projection.
-	//				Panini projection produces curved horizontal lines, which can feel
-	//				unnatural. Vertical compression attempts to straighten those curved lines.
-	//				S parameter works for FoVH < 180 degrees
-	//				S = 0.0f	: No compression
-	//				S = 1.0f	: Full straightening
+	//			  Panini projection produces curved horizontal lines, which can feel
+	//			  unnatural. Vertical compression attempts to straighten those curved lines.
+	//			  S parameter works for FoVH < 180 degrees
+	//			  S = 0.0f	: No compression
+	//			  S = 1.0f	: Full straightening
 	float S = 0.0f;
 
-	// scale:		Rendering scale to fit the distorted image to the screen. The bigger
-	//				the FoVH, the bigger the distortion is, hence the bigger the scale should 
-	//				be in order to fit the image to screen.
+	// scale:	   Rendering scale to fit the distorted image to the screen. The bigger
+	//			  the FoVH, the bigger the distortion is, hence the bigger the scale should
+	//			  be in order to fit the image to screen.
 	float scale = 1.0f;
 };
 /************************************************************************/
-/*						 INTERFACE
+/*					   INTERFACE
 *************************************************************************/
 class Panini : public IMiddleware
 {
@@ -120,21 +120,21 @@ public:
 	void SetParams(const PaniniParameters& params) { mParams = params; }
 
 private:
-	Renderer*			pRenderer;
+	Renderer*		   pRenderer;
 	Texture*			pSourceTexture = NULL;
 
-	Shader*				pShaderPanini = NULL;
-	RootSignature*		pRootSignaturePaniniPostProcess = NULL;
+	Shader*			 pShaderPanini = NULL;
+	RootSignature*	  pRootSignaturePaniniPostProcess = NULL;
 	Sampler*			pSamplerPointWrap = NULL;
-	DepthState*			pDepthStateDisable = NULL;
+	DepthState*		 pDepthStateDisable = NULL;
 	RasterizerState*	pRasterizerStateCullNone = NULL;
-	Pipeline*			pPipelinePaniniPostProcess = NULL;
+	Pipeline*		   pPipelinePaniniPostProcess = NULL;
 
-	Buffer*				pVertexBufferTessellatedQuad = NULL;
-	Buffer*				pIndexBufferTessellatedQuad = NULL;
+	Buffer*			 pVertexBufferTessellatedQuad = NULL;
+	Buffer*			 pIndexBufferTessellatedQuad = NULL;
 
 	PaniniParameters	mParams;
 
 	// Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
-	const unsigned		mPaniniDistortionTessellation[2] = { 64, 32 };
+	const unsigned	  mPaniniDistortionTessellation[2] = { 64, 32 };
 };

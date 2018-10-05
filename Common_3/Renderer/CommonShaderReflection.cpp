@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -139,7 +139,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 	//Should we be using dynamic arrays for these? Perhaps we can add std::vector
 	// like functionality?
 	ShaderResource* uniqueResources[512];
-	ShaderStage     shaderUsage[512];
+	ShaderStage  shaderUsage[512];
 	ShaderVariable* uniqueVariable[512];
 	ShaderResource* uniqueVariableParent[512];
 	for (uint32_t i = 0; i < stageCount; ++i)
@@ -206,7 +206,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 		{
 			bool unique = true;
 			//Go through all already added shader variables to see if this shader
-			// variable was already added from a different shader stage. If we find a 
+			// variable was already added from a different shader stage. If we find a
 			// duplicate shader variables, we don't add it.
 			for (uint32_t k = 0; k < variableCount; ++k)
 			{

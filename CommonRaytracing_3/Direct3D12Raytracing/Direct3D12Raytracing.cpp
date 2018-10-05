@@ -15,7 +15,7 @@
 #include "../../Common_3/Renderer/Direct3D12/Direct3D12MemoryAllocator.h"
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-#define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
+#define D3D12_GPU_VIRTUAL_ADDRESS_NULL	((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
 typedef struct DescriptorStoreHeap
@@ -124,25 +124,25 @@ WRAPPED_GPU_POINTER util_create_fallback_wrapped_pointer(Raytracing* pRaytracing
 /************************************************************************/
 struct Raytracing
 {
-	Renderer*							pRenderer;
+	Renderer*						   pRenderer;
 	ID3D12DeviceRaytracingPrototype*	pDxrDevice;
-	ID3D12RaytracingFallbackDevice*		pFallbackDevice;
-	//DescriptorStoreHeap*				pDescriptorHeap;
+	ID3D12RaytracingFallbackDevice*	 pFallbackDevice;
+	//DescriptorStoreHeap*			  pDescriptorHeap;
 	uint64_t mDescriptorsAllocated;
 };
 
 struct RaytracingShader
 {
-	ID3DBlob*	pShaderBlob;
-	LPCWSTR		pName;
+	ID3DBlob*   pShaderBlob;
+	LPCWSTR	 pName;
 };
 
 struct AccelerationStructure
 {
-	Buffer*												pBuffer;
-	D3D12_RAYTRACING_GEOMETRY_DESC*						pGeometryDescs;
-	Buffer*												pInstanceDescBuffer;
-	WRAPPED_GPU_POINTER									mFallbackPointer;
+	Buffer*											 pBuffer;
+	D3D12_RAYTRACING_GEOMETRY_DESC*					 pGeometryDescs;
+	Buffer*											 pInstanceDescBuffer;
+	WRAPPED_GPU_POINTER								 mFallbackPointer;
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE		mType;
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS mFlags;
 	uint32_t											mDescCount;
@@ -152,17 +152,17 @@ struct RaytracingPipeline
 {
 	union
 	{
-		ID3D12StateObjectPrototype*				pDxrPipeline;
+		ID3D12StateObjectPrototype*			 pDxrPipeline;
 		ID3D12RaytracingFallbackStateObject*	pFallbackPipeline;
 	};
 };
 
 struct RaytracingShaderTable
 {
-	RaytracingPipeline*			pPipeline;
-	Buffer*						pBuffer;
-	D3D12_GPU_DESCRIPTOR_HANDLE	mViewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	D3D12_GPU_DESCRIPTOR_HANDLE	mSamplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	RaytracingPipeline*		 pPipeline;
+	Buffer*					 pBuffer;
+	D3D12_GPU_DESCRIPTOR_HANDLE mViewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	D3D12_GPU_DESCRIPTOR_HANDLE mSamplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t					mViewDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t					mSamplerDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint64_t					mMaxEntrySize;
@@ -236,7 +236,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 					pOut->Triangles.IndexCount = (UINT)pGeom->pIndexBuffer->mDesc.mSize /
 						(pGeom->pIndexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t));
 					pOut->Triangles.IndexFormat = pGeom->pIndexBuffer->mDxIndexFormat;
-;				}
+;			   }
 
 				pOut->Triangles.VertexBuffer.StartAddress = pGeom->pVertexBuffer->mDxGpuAddress;
 				pOut->Triangles.VertexBuffer.StrideInBytes = (UINT)pGeom->pVertexBuffer->mDesc.mVertexStride;
@@ -428,7 +428,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 	pRootSignature->mDescriptorCount = resourceCount;
 	// Raytracing is executed in compute path
 	pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
-	
+
 	if (resourceCount)
 		pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(*pRootSignature->pDescriptors));
 

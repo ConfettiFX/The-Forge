@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -229,17 +229,17 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		VK_FORMAT_UNDEFINED, // PVR_2BPPA = 57,
 		VK_FORMAT_UNDEFINED, // PVR_4BPP = 58,
 		VK_FORMAT_UNDEFINED, // PVR_4BPPA = 59,
-		VK_FORMAT_UNDEFINED, // INTZ = 60,	//	NVidia hack. Supported on all DX10+ HW
-		//	XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
+		VK_FORMAT_UNDEFINED, // INTZ = 60,  //  NVidia hack. Supported on all DX10+ HW
+		//  XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
 		VK_FORMAT_UNDEFINED, // LE_XRGB8 = 61,
 		VK_FORMAT_UNDEFINED, // LE_ARGB8 = 62,
 		VK_FORMAT_UNDEFINED, // LE_X2RGB10 = 63,
 		VK_FORMAT_UNDEFINED, // LE_A2RGB10 = 64,
 		// compressed mobile forms
-		VK_FORMAT_UNDEFINED, // ETC1 = 65,	//	RGB
-		VK_FORMAT_UNDEFINED, // ATC = 66,	//	RGB
-		VK_FORMAT_UNDEFINED, // ATCA = 67,	//	RGBA, explicit alpha
-		VK_FORMAT_UNDEFINED, // ATCI = 68,	//	RGBA, interpolated alpha
+		VK_FORMAT_UNDEFINED, // ETC1 = 65,  //  RGB
+		VK_FORMAT_UNDEFINED, // ATC = 66,   //  RGB
+		VK_FORMAT_UNDEFINED, // ATCA = 67,  //  RGBA, explicit alpha
+		VK_FORMAT_UNDEFINED, // ATCI = 68,  //  RGBA, interpolated alpha
 		VK_FORMAT_UNDEFINED, // RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
 		VK_FORMAT_UNDEFINED, // DF16 = 70, //depth only, Intel/AMD
 		VK_FORMAT_UNDEFINED, // STENCILONLY = 71, // stencil ony usage
@@ -267,13 +267,15 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
    const char* gVkWantedInstanceExtensions[] =
    {
-      VK_KHR_SURFACE_EXTENSION_NAME,
+	  VK_KHR_SURFACE_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-      VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+	  VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
-      VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
+	  VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-      VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+	  VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+	  VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
 #endif
 	  // Render-Doc does not support the new debug utils extension yet
 #ifdef USE_DEBUG_UTILS_EXTENSION
@@ -293,7 +295,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 #if !defined(USE_RENDER_DOC)
 	  VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME,
 #endif
-      /************************************************************************/
+	  /************************************************************************/
 	  // Property querying extensions
 	  /************************************************************************/
 	   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
@@ -303,8 +305,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
    const char* gVkWantedDeviceExtensions[] =
    {
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-      VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+	  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	  VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 	  VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
 	  VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
@@ -351,18 +353,18 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
    };
 
 #ifdef USE_DEBUG_UTILS_EXTENSION
-	static bool	gDebugUtilsExtension = false;
+	static bool gDebugUtilsExtension = false;
 #endif
-	static bool	gRenderDocLayerEnabled = false;
-	static bool	gDedicatedAllocationExtension = false;
-	static bool	gExternalMemoryExtension = false;
-	static bool	gDrawIndirectCountExtension = false;
-	static bool	gDeviceGroupCreationExtension = false;
-	static bool	gDescriptorIndexingExtension = false;
-	static bool	gAMDDrawIndirectCountExtension = false;
-	static bool	gAMDGCNShaderExtension = false;
+	static bool gRenderDocLayerEnabled = false;
+	static bool gDedicatedAllocationExtension = false;
+	static bool gExternalMemoryExtension = false;
+	static bool gDrawIndirectCountExtension = false;
+	static bool gDeviceGroupCreationExtension = false;
+	static bool gDescriptorIndexingExtension = false;
+	static bool gAMDDrawIndirectCountExtension = false;
+	static bool gAMDGCNShaderExtension = false;
 
-	static bool	gDebugMarkerSupport = false;
+	static bool gDebugMarkerSupport = false;
 
 	PFN_vkCmdDrawIndirectCountKHR pfnVkCmdDrawIndirectCountKHR = NULL;
 	PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
@@ -371,23 +373,25 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 #if defined(RENDERER_IMPLEMENTATION)
 
+#ifdef _MSC_VER
 #pragma comment(lib, "vulkan-1.lib")
+#endif
 
 #define SAFE_FREE(p_var)		\
-    if(p_var) {               \
-       conf_free((void*)p_var);      \
-    }
+	if(p_var) {			\
+	   conf_free((void*)p_var);   \
+	}
 
-#if defined(__cplusplus)  
+#if defined(__cplusplus)
 #define DECLARE_ZERO(type, var) \
-            type var = {};
+			type var = {};
 #else
 #define DECLARE_ZERO(type, var) \
-            type var = {0};
+			type var = {0};
 #endif
 
 	// Internal utility functions (may become external one day)
-	VkSampleCountFlagBits	util_to_vk_sample_count(SampleCount sampleCount);
+	VkSampleCountFlagBits   util_to_vk_sample_count(SampleCount sampleCount);
 	VkFormat				util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 	API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
@@ -546,17 +550,17 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	typedef struct DescriptorManager
 	{
 		/// The root signature associated with this descriptor manager
-		RootSignature*				pRootSignature;
+		RootSignature*			  pRootSignature;
 		/// Array of Dynamic offsets per update frequency to pass the vkCmdBindDescriptorSet for binding dynamic uniform or storage buffers
-		uint32_t*					pDynamicOffsets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		uint32_t*				   pDynamicOffsets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Array of flags to check whether a descriptor set of the update frequency is already bound to avoid unnecessary rebinding of descriptor sets
 		bool						mBoundSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-		VkDescriptorUpdateTemplate	mUpdateTemplates[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		VkDescriptorUpdateTemplate  mUpdateTemplates[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Compact Descriptor data which will be filled up and passed to vkUpdateDescriptorSetWithTemplate
-		DescriptorUpdateData*		pUpdateData[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		DescriptorUpdateData*	   pUpdateData[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Triple buffered Hash map to check if a descriptor table with a descriptor hash already exists to avoid redundant copy descriptors operations
 		DescriptorSetMap			mStaticDescriptorSetMap[MAX_FRAMES_IN_FLIGHT];
-		VkDescriptorSet				pEmptyDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+		VkDescriptorSet			 pEmptyDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Triple buffered array of number of descriptor tables allocated per update frequency
 		/// Only used for recording stats
 		uint32_t					mDescriptorSetCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -732,26 +736,26 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	typedef struct RenderPassDesc
 	{
-		ImageFormat::Enum*	pColorFormats;
-		bool*					pSrgbValues;
+		ImageFormat::Enum*  pColorFormats;
+		bool*				   pSrgbValues;
 		uint32_t				mRenderTargetCount;
-		SampleCount			mSampleCount;
-		ImageFormat::Enum		mDepthStencilFormat;
+		SampleCount		 mSampleCount;
+		ImageFormat::Enum	   mDepthStencilFormat;
 	} RenderPassDesc;
 
 	typedef struct RenderPass
 	{
 		VkRenderPass		pRenderPass;
-		RenderPassDesc	mDesc;
+		RenderPassDesc  mDesc;
 	} RenderPass;
 
 	typedef struct FrameBufferDesc
 	{
-		RenderPass*		pRenderPass;
-		RenderTarget**	ppRenderTargets;
-		RenderTarget*	pDepthStencil;
-		uint32_t*		pColorArraySlices;
-		uint32_t*		pColorMipSlices;
+		RenderPass*	 pRenderPass;
+		RenderTarget**  ppRenderTargets;
+		RenderTarget*   pDepthStencil;
+		uint32_t*	   pColorArraySlices;
+		uint32_t*	   pColorMipSlices;
 		uint32_t		mDepthArraySlice;
 		uint32_t		mDepthMipSlice;
 		uint32_t		mRenderTargetCount;
@@ -759,7 +763,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 	typedef struct FrameBuffer
 	{
-		VkFramebuffer		pFramebuffer;
+		VkFramebuffer	   pFramebuffer;
 		uint32_t			mWidth;
 		uint32_t			mHeight;
 		uint32_t			mArraySize;
@@ -992,8 +996,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	// RenderPass map per thread (this will make lookups lock free and we only need a lock when inserting a RenderPass Map for the first time)
 	tinystl::unordered_map<ThreadID, RenderPassMap >	gRenderPassMap;
 	// FrameBuffer map per thread (this will make lookups lock free and we only need a lock when inserting a FrameBuffer map for the first time)
-	tinystl::unordered_map<ThreadID, FrameBufferMap >	gFrameBufferMap;
-	Mutex												gRenderPassMutex;
+	tinystl::unordered_map<ThreadID, FrameBufferMap >   gFrameBufferMap;
+	Mutex											   gRenderPassMutex;
 
 	static RenderPassMap& get_render_pass_map()
 	{
@@ -1052,10 +1056,10 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	// Proxy debug callback for Vulkan layers
 #ifdef USE_DEBUG_UTILS_EXTENSION
 	static VkBool32 VKAPI_PTR internal_debug_report_callback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT				messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
-		void*										pUserData)
+		VkDebugUtilsMessageSeverityFlagBitsEXT	  messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT			 messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void*									   pUserData)
 	{
 		const char* pLayerPrefix = pCallbackData->pMessageIdName;
 		const char* pMessage = pCallbackData->pMessage;
@@ -1083,14 +1087,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	}
 #else
 	static VKAPI_ATTR VkBool32 VKAPI_CALL internal_debug_report_callback(
-		VkDebugReportFlagsEXT		flags,
-		VkDebugReportObjectTypeEXT	objectType,
+		VkDebugReportFlagsEXT	   flags,
+		VkDebugReportObjectTypeEXT  objectType,
 		uint64_t					object,
-		size_t						location,
-		int32_t						messageCode,
-		const char*					pLayerPrefix,
-		const char*					pMessage,
-		void*						pUserData
+		size_t					  location,
+		int32_t					 messageCode,
+		const char*				 pLayerPrefix,
+		const char*				 pMessage,
+		void*					   pUserData
 	)
 	{
 		if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
@@ -1304,6 +1308,12 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		case VK_FORMAT_D16_UNORM_S8_UINT: result = ImageFormat::D16S8; break;
 		case VK_FORMAT_D24_UNORM_S8_UINT: result = ImageFormat::D24S8; break;
 		case VK_FORMAT_D32_SFLOAT_S8_UINT: result = ImageFormat::D32S8; break;
+		default:
+		{
+			result = ImageFormat::NONE;
+			ASSERT(false && "Image Format not supported!");
+			break;
+		}
 		}
 		return result;
 	}
@@ -1374,6 +1384,12 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		case ImageFormat::D16S8: result = 0; break;
 		case ImageFormat::D24S8: result = 0; break;
 		case ImageFormat::D32S8: result = 0; break;
+		default:
+		{
+			result = ImageFormat::NONE;
+			ASSERT(false && "Image Format not supported!");
+			break;
+		}
 		}
 		return result;
 	}
@@ -1625,7 +1641,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		/************************************************************************/
 		// Set the node indices which need sharing access to the creation node
 		// Example: Texture created on GPU0 but GPU1 will need to access it, GPU2 does not care
-		//			pIndices = { 0, 0, 2 }
+		//		  pIndices = { 0, 0, 2 }
 		/************************************************************************/
 		for (uint32_t i = 0; i < sharedNodeIndexCount; ++i)
 			pIndices[pSharedNodeIndices[i]] = nodeIndex;
@@ -1635,8 +1651,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	void CreateInstance(const char* app_name, Renderer* pRenderer)
 	{
-        uint32_t layerCount = 0;
-        uint32_t count = 0;
+		uint32_t layerCount = 0;
+		uint32_t count = 0;
 		VkLayerProperties layers[100];
 		VkExtensionProperties exts[100];
 		vkEnumerateInstanceLayerProperties(&layerCount, NULL);
@@ -1663,21 +1679,21 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		// Instance
 		{
-           // check to see if the layers are present
-           for(uint32_t i = 0; i < (uint32_t)pRenderer->mInstanceLayers.size(); ++i) {
-                bool layerFound = false;
-                for (uint32_t j = 0; j < layerCount; ++j) {
-                    if(strcmp(pRenderer->mInstanceLayers[i], layers[j].layerName) == 0) {
-                        layerFound = true;
-                        break;
-                    }
+		   // check to see if the layers are present
+		   for(uint32_t i = 0; i < (uint32_t)pRenderer->mInstanceLayers.size(); ++i) {
+				bool layerFound = false;
+				for (uint32_t j = 0; j < layerCount; ++j) {
+					if(strcmp(pRenderer->mInstanceLayers[i], layers[j].layerName) == 0) {
+						layerFound = true;
+						break;
+					}
 				}
-                if(layerFound == false) {
-                    internal_log(LOG_TYPE_WARN, pRenderer->mInstanceLayers[i], "vkinstance-layer-missing");
-                    // deleate layer and get new index
-                    i = (uint32_t)(pRenderer->mInstanceLayers.erase_unordered(pRenderer->mInstanceLayers.data() + i) - pRenderer->mInstanceLayers.data());
-                }
-            }
+				if(layerFound == false) {
+					internal_log(LOG_TYPE_WARN, pRenderer->mInstanceLayers[i], "vkinstance-layer-missing");
+					// deleate layer and get new index
+					i = (uint32_t)(pRenderer->mInstanceLayers.erase_unordered(pRenderer->mInstanceLayers.data() + i) - pRenderer->mInstanceLayers.data());
+				}
+			}
 
 			uint32_t extension_count = 0;
 			const uint32_t initialCount = sizeof(gVkWantedInstanceExtensions) / sizeof(gVkWantedInstanceExtensions[0]);
@@ -1691,7 +1707,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			{
 				wantedInstanceExtensions[initialCount + i] = pRenderer->mSettings.mInstanceExtensions[i];
 			}
-            const uint32_t wanted_extension_count = (uint32_t)wantedInstanceExtensions.size();
+			const uint32_t wanted_extension_count = (uint32_t)wantedInstanceExtensions.size();
 			// Layer extensions
 			for (uint32_t i = -1; i < pRenderer->mInstanceLayers.size(); ++i) {
 				const char* layer_name = pRenderer->mInstanceLayers[i];
@@ -1701,15 +1717,15 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				ASSERT(properties != NULL);
 				vkEnumerateInstanceExtensionProperties(layer_name, &count, properties);
 				for (uint32_t j = 0; j < count; ++j) {
-                    for(uint32_t k = 0; k < wanted_extension_count; ++k) {
-                        if(strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0) {
+					for(uint32_t k = 0; k < wanted_extension_count; ++k) {
+						if(strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0) {
 							pRenderer->gVkInstanceExtensions[extension_count++] = wantedInstanceExtensions[k];
-                            // clear wanted extenstion so we dont load it more then once
-                            //gVkWantedInstanceExtensions[k] = "";
-                            break;
-                        }
-                     }
-					
+							// clear wanted extenstion so we dont load it more then once
+							//gVkWantedInstanceExtensions[k] = "";
+							break;
+						}
+					 }
+
 				}
 				SAFE_FREE((void*)properties);
 			}
@@ -1723,20 +1739,20 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 					ASSERT(properties != NULL);
 					vkEnumerateInstanceExtensionProperties(layer_name, &count, properties);
 					for (uint32_t j = 0; j < count; ++j) {
-                       for(uint32_t k = 0; k < wanted_extension_count; ++k) {
-                          if(strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0) {
-                              pRenderer->gVkInstanceExtensions[extension_count++] = wantedInstanceExtensions[k];
-                              // clear wanted extenstion so we dont load it more then once
-                              //gVkWantedInstanceExtensions[k] = "";
+					   for(uint32_t k = 0; k < wanted_extension_count; ++k) {
+						  if(strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0) {
+							  pRenderer->gVkInstanceExtensions[extension_count++] = wantedInstanceExtensions[k];
+							  // clear wanted extenstion so we dont load it more then once
+							  //gVkWantedInstanceExtensions[k] = "";
 							  if (strcmp(wantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
 								  gDeviceGroupCreationExtension = true;
 #ifdef USE_DEBUG_UTILS_EXTENSION
 							  if (strcmp(wantedInstanceExtensions[k], VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 								  gDebugUtilsExtension = true;
 #endif
-                              break;
-                          }
-                       }
+							  break;
+						  }
+					   }
 					}
 					SAFE_FREE((void*)properties);
 				}
@@ -1772,8 +1788,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 					VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 				create_info.messageType =
 					VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-					VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+					VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 				create_info.flags = 0;
 				create_info.pUserData = NULL;
 				VkResult res = vkCreateDebugUtilsMessengerEXT(pRenderer->pVkInstance, &create_info, NULL, &(pRenderer->pVkDebugUtilsMessenger));
@@ -1897,16 +1913,16 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 			char lhsDevId[MAX_GPU_VENDOR_STRING_LENGTH];
 			sprintf(lhsDevId, "%#x", lhsProps.deviceID);
-			
+
 			char lhsVendId[MAX_GPU_VENDOR_STRING_LENGTH];
 			sprintf(lhsVendId, "%#x", lhsProps.vendorID);
-			
+
 			char rhsDevId[MAX_GPU_VENDOR_STRING_LENGTH];
 			sprintf(rhsDevId, "%#x", rhsProps.deviceID);
-			
+
 			char rhsVendId[MAX_GPU_VENDOR_STRING_LENGTH];
 			sprintf(rhsVendId, "%#x", rhsProps.vendorID);
-			
+
 			//TODO: Fix once vulkan adds support for revision ID
 			GPUPresetLevel lhsPreset = getGPUPresetLevel(lhsVendId, lhsDevId, "0x00");
 			GPUPresetLevel rhsPreset = getGPUPresetLevel(rhsVendId, rhsDevId, "0x00");
@@ -1947,8 +1963,8 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				{
 					return lhsPreset > rhsPreset ? -1 : 1;
 				}
-				else 
-				{ 
+				else
+				{
 					//if presets are the same then sort by vram size
 					VkDeviceSize totalLhsVram = 0;
 					VkDeviceSize totalRhsVram = 0;
@@ -1970,7 +1986,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 
 		// Find gpu that supports atleast graphics
 		pRenderer->mActiveGPUIndex = UINT32_MAX;
-		DECLARE_ZERO(VkQueueFamilyProperties, mQueueProperties);
 
 		typedef struct VkQueueFamily
 		{
@@ -1979,7 +1994,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			VkQueueFlags	mQueueFlags;
 		}VkQueueFamily;
 		tinystl::vector<VkQueueFamily> queueFamilies;
-		
+
 		for (uint32_t gpu_index = 0; gpu_index < pRenderer->mNumOfGPUs; ++gpu_index)
 		{
 			VkPhysicalDevice gpu = pRenderer->pVkGPUs[gpu_index];
@@ -1997,7 +2012,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			//get count of queues and their flags
 			for (uint i = 0; i < count; i++)
 			{
-				DECLARE_ZERO(VkQueueFamily, queueFamily);
 				queueFamilies[i].mQueueFlags = properties[i].queueFlags;
 				queueFamilies[i].mTotalQueues = properties[i].queueCount;
 				queueFamilies[i].mQueueCount = 0;
@@ -2088,18 +2102,16 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			//TODO: Fix once vulkan adds support for revision ID
 			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId, "0x00", MAX_GPU_VENDOR_STRING_LENGTH);
 			pRenderer->mGpuSettings[i].mGpuVendorPreset.mPresetLevel =
-				getGPUPresetLevel(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId);	
+				getGPUPresetLevel(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId);
 		}
-		
+
 		pRenderer->pVkActiveGPUProperties = &pRenderer->mVkGpuProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pVkActiveGpuMemoryProperties = &pRenderer->mVkGpuMemoryProperties[pRenderer->mActiveGPUIndex];
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[pRenderer->mActiveGPUIndex];
-		
+
 		LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
 		LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
 		LOGINFOF("Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-		
-		uint32_t queueCount = 1;
 
 		// need a queue_priorite for each queue in the queue family we create
 		tinystl::vector <tinystl::vector <float> > queue_priorities(queueFamilies.size());
@@ -2125,7 +2137,6 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		}
 
 		uint32_t extension_count = 0;
-		bool debugMarkerExtension = false;
 		bool dedicatedAllocationExtension = false;
 		bool memoryReq2Extension = false;
 		bool externalMemoryExtension = false;
@@ -2680,7 +2691,7 @@ namespace vk {
 
 		SAFE_FREE(ppCmd);
 	}
-	
+
 	void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 	{
 		//toggle vsync on or off
@@ -2736,6 +2747,15 @@ namespace vk {
 		// Add IOS support here
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
 		// Add MacOS support here
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+		DECLARE_ZERO(VkAndroidSurfaceCreateInfoKHR, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+		add_info.pNext = nullptr;
+		add_info.flags = 0;
+		add_info.window = (ANativeWindow*)pDesc->pWindow->handle;
+		vk_res = vkCreateAndroidSurfaceKHR(pRenderer->pVkInstance, &add_info, nullptr, &pSwapChain->pVkSurface);
+#else
+#error PLATFORM NOT SUPPORTED
 #endif
 		ASSERT(VK_SUCCESS == vk_res);
 		/************************************************************************/
@@ -2897,7 +2917,12 @@ namespace vk {
 		swapChainCreateInfo.pNext = NULL;
 		swapChainCreateInfo.flags = 0;
 		swapChainCreateInfo.surface = pSwapChain->pVkSurface;
+#ifndef VK_USE_PLATFORM_ANDROID_KHR
 		swapChainCreateInfo.minImageCount = pSwapChain->mDesc.mImageCount;
+#else
+		//TODO: thomas Fixme hack
+		swapChainCreateInfo.minImageCount = caps.minImageCount;
+#endif
 		swapChainCreateInfo.imageFormat = surface_format.format;
 		swapChainCreateInfo.imageColorSpace = surface_format.colorSpace;
 		swapChainCreateInfo.imageExtent = extent;
@@ -2910,7 +2935,7 @@ namespace vk {
 		swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 		swapChainCreateInfo.presentMode = present_mode;
 		swapChainCreateInfo.clipped = VK_TRUE;
-		swapChainCreateInfo.oldSwapchain = NULL;
+		swapChainCreateInfo.oldSwapchain = 0;
 		vk_res = vkCreateSwapchainKHR(pRenderer->pVkDevice, &swapChainCreateInfo, NULL, &(pSwapChain->pSwapChain));
 		ASSERT(VK_SUCCESS == vk_res);
 
@@ -3327,6 +3352,9 @@ namespace vk {
 			}
 			view_type = VK_IMAGE_VIEW_TYPE_3D;
 			break;
+		default:
+			ASSERT(false && "Image Format not supported!");
+			break;
 		}
 
 		ASSERT(view_type != VK_IMAGE_VIEW_TYPE_MAX_ENUM && "Invalid Image View");
@@ -3710,6 +3738,9 @@ namespace vk {
 					VkResult vk_res = vkCreateShaderModule(pRenderer->pVkDevice, &create_info, NULL, &(modules[counter]));
 					ASSERT(VK_SUCCESS == vk_res);
 				} break;
+				default:
+					ASSERT(false && "Shader Stage not supported!");
+					break;
 				}
 
 				++counter;
@@ -4215,6 +4246,9 @@ namespace vk {
 						stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->mReflection.mPixelStageIndex];
 					} break;
+					default:
+						ASSERT(false && "Shader Stage not supported!");
+						break;
 					}
 					++stage_count;
 				}
@@ -4224,9 +4258,9 @@ namespace vk {
 			ASSERT(0 != stage_count);
 
 			uint32_t input_binding_count = 0;
-			VkVertexInputBindingDescription input_bindings[MAX_VERTEX_BINDINGS] = { 0 };
+			VkVertexInputBindingDescription input_bindings[MAX_VERTEX_BINDINGS] = {{ 0 }};
 			uint32_t input_attribute_count = 0;
-			VkVertexInputAttributeDescription input_attributes[MAX_VERTEX_ATTRIBS] = { 0 };
+			VkVertexInputAttributeDescription input_attributes[MAX_VERTEX_ATTRIBS] = {{ 0 }};
 
 			// Make sure there's attributes
 			if (pVertexLayout != NULL)
@@ -4364,6 +4398,8 @@ namespace vk {
 			case PRIMITIVE_TOPO_LINE_STRIP: topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; break;
 			case PRIMITIVE_TOPO_TRI_STRIP: topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; break;
 			case PRIMITIVE_TOPO_PATCH_LIST: topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST; break;
+			case PRIMITIVE_TOPO_TRI_LIST: topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
+			default: ASSERT(false && "Primitive Topo not supported!");break;
 			}
 			DECLARE_ZERO(VkPipelineInputAssemblyStateCreateInfo, ia);
 			ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -5069,7 +5105,7 @@ namespace vk {
 					vkCmdBindDescriptorSets(pCmd->pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->pPipelineLayout,
 						setIndex, 1,
 						&pm->pEmptyDescriptorSets[setIndex],
-						0, NULL);				// Reset other data
+						0, NULL);			   // Reset other data
 				}
 				pm->mBoundSets[setIndex] = true;
 			}
@@ -5558,13 +5594,13 @@ namespace vk {
 	}
 
 	void queueSubmit(
-		Queue*      pQueue,
-		uint32_t       cmdCount,
-		Cmd**       ppCmds,
+		Queue*	pQueue,
+		uint32_t	   cmdCount,
+		Cmd**	  ppCmds,
 		Fence* pFence,
-		uint32_t       waitSemaphoreCount,
+		uint32_t	   waitSemaphoreCount,
 		Semaphore** ppWaitSemaphores,
-		uint32_t       signalSemaphoreCount,
+		uint32_t	   signalSemaphoreCount,
 		Semaphore** ppSignalSemaphores
 	)
 	{
@@ -5626,14 +5662,12 @@ namespace vk {
 		submit_info.signalSemaphoreCount = signalCount;
 		submit_info.pSignalSemaphores = signal_semaphores;
 
-		const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
 		VkDeviceGroupSubmitInfo deviceGroupSubmitInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO_KHR };
-		uint32_t* pVkDeviceMasks = NULL;
-		uint32_t* pSignalIndices = NULL;
-		uint32_t* pWaitIndices = NULL;
-
 		if (pQueue->pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
 		{
+			uint32_t* pVkDeviceMasks = NULL;
+			uint32_t* pSignalIndices = NULL;
+			uint32_t* pWaitIndices = NULL;
 			deviceGroupSubmitInfo.pNext = NULL;
 			deviceGroupSubmitInfo.commandBufferCount = submit_info.commandBufferCount;
 			deviceGroupSubmitInfo.signalSemaphoreCount = submit_info.signalSemaphoreCount;
@@ -5676,8 +5710,6 @@ namespace vk {
 		}
 
 		ASSERT(VK_NULL_HANDLE != pQueue->pVkQueue);
-
-		Renderer* renderer = pQueue->pRenderer;
 
 		VkSemaphore* wait_semaphores = waitSemaphoreCount ? (VkSemaphore*)alloca(waitSemaphoreCount * sizeof(VkSemaphore)) : NULL;
 		waitSemaphoreCount = waitSemaphoreCount > MAX_PRESENT_WAIT_SEMAPHORES ? MAX_PRESENT_WAIT_SEMAPHORES : waitSemaphoreCount;
@@ -5762,7 +5794,12 @@ namespace vk {
 	/************************************************************************/
 	ImageFormat::Enum getRecommendedSwapchainFormat(bool hintHDR)
 	{
+		//TODO: figure out this properly. BGRA not supported on android
+#ifndef VK_USE_PLATFORM_ANDROID_KHR
 		return ImageFormat::BGRA8;
+#else
+		return ImageFormat::RGBA8;
+#endif
 	}
 
 	bool isImageFormatSupported(ImageFormat::Enum format)
@@ -5857,7 +5894,7 @@ namespace vk {
 		ASSERT(pQueue);
 		ASSERT(pFrequency);
 
-		// The framework is using ticks per sec as frequency. Vulkan is nano sec per tick. 
+		// The framework is using ticks per sec as frequency. Vulkan is nano sec per tick.
 		// Handle the conversion logic here.
 		*pFrequency = 1.0f / ((double)pQueue->pRenderer->pVkActiveGPUProperties->properties.limits.timestampPeriod/*ns/tick number of nanoseconds required for a timestamp query to be incremented by 1*/
 			* 1e-9); // convert to ticks/sec (DX12 standard)

@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,18 +31,18 @@ typedef struct ResourceAllocator MemoryAllocator;
 
 typedef struct BufferCreateInfo
 {
-	const D3D12_RESOURCE_DESC*	pDesc;
-	D3D12_RESOURCE_STATES		mStartState;
-	const wchar_t*					pDebugName;
+	const D3D12_RESOURCE_DESC*  pDesc;
+	D3D12_RESOURCE_STATES	   mStartState;
+	const wchar_t*				  pDebugName;
 } BufferCreateInfo;
 
 typedef struct TextureCreateInfo
 {
-	const TextureDesc*			pTextureDesc;
-	const D3D12_RESOURCE_DESC*	pDesc;
+	const TextureDesc*		  pTextureDesc;
+	const D3D12_RESOURCE_DESC*  pDesc;
 	const D3D12_CLEAR_VALUE*	pClearValue;
-	D3D12_RESOURCE_STATES		mStartState;
-	const wchar_t*					pDebugName;
+	D3D12_RESOURCE_STATES	   mStartState;
+	const wchar_t*				  pDebugName;
 } TextureCreateInfo;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -466,7 +466,7 @@ here if you need other then default behavior depending on your environment.
 // Normal assert to check for programmer's errors, especially in Debug configuration.
 #ifndef ASSERT
 #ifdef _DEBUG
-#define ASSERT(expr)         ASSERT(expr)
+#define ASSERT(expr)		 ASSERT(expr)
 #else
 #define ASSERT(expr)
 #endif
@@ -488,7 +488,7 @@ here if you need other then default behavior depending on your environment.
 #endif
 
 #ifndef RESOURCE_ALIGN_OF
-#define RESOURCE_ALIGN_OF(type)       (__alignof(type))
+#define RESOURCE_ALIGN_OF(type)	(__alignof(type))
 #endif
 
 #ifndef RESOURCE_SYSTEM_ALIGNED_MALLOC
@@ -511,11 +511,11 @@ static inline void swap(T& a, T& b)
 #define max(x,y) x>y?x:y
 
 #ifndef RESOURCE_MIN
-#define RESOURCE_MIN(v1, v2)    (min((v1), (v2)))
+#define RESOURCE_MIN(v1, v2)	(min((v1), (v2)))
 #endif
 
 #ifndef RESOURCE_MAX
-#define RESOURCE_MAX(v1, v2)    (max((v1), (v2)))
+#define RESOURCE_MAX(v1, v2)	(max((v1), (v2)))
 #endif
 
 #ifndef RESOURCE_SWAP
@@ -623,7 +623,7 @@ END OF CONFIGURATION
 */
 
 //static VkAllocationCallbacks AllocatorEmptyAllocationCallbacks = {
-//	RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL };
+//  RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL, RESOURCE_NULL };
 
 // Returns number of bits set to 1 in (v).
 static inline uint32_t CountBitsSet(uint32_t v)
@@ -1826,7 +1826,7 @@ struct ResourceAllocator
 
 	//const VkAllocationCallbacks* GetAllocationCallbacks() const
 	//{
-	//	return m_AllocationCallbacksSpecified ? &m_AllocationCallbacks : 0;
+	//  return m_AllocationCallbacksSpecified ? &m_AllocationCallbacks : 0;
 	//}
 
 	UINT64 GetPreferredBlockSize(ResourceMemoryUsage memUsage, uint32_t memTypeIndex) const;
@@ -2025,9 +2025,9 @@ static HRESULT AllocateMemoryForImage(
   AllocatorSuballocationType suballocType,
   ResourceAllocation** pAllocation)
 {
-    ASSERT(allocator && desc && pMemoryRequirements && pAllocation);
+	ASSERT(allocator && desc && pMemoryRequirements && pAllocation);
 
-    D3D12_RESOURCE_ALLOCATION_INFO info = allocator->m_hDevice->GetResourceAllocationInfo(0, 1, desc);
+	D3D12_RESOURCE_ALLOCATION_INFO info = allocator->m_hDevice->GetResourceAllocationInfo(0, 1, desc);
 	if (fnHookResourceAllocationInfo != NULL)
 		fnHookResourceAllocationInfo(info, desc->Alignment);
 

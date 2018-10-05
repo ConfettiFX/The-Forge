@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -156,13 +156,13 @@ float  grad1(int hash, float x)
 {
 	int h = hash & 15;
 	float grad = 1.0f + (h & 7);   // Gradient value 1.0, 2.0, ..., 8.0
-	if (h & 8) grad = -grad;         // Set a random sign for the gradient
-	return (grad * x);           // Multiply the gradient with the distance
+	if (h & 8) grad = -grad;		 // Set a random sign for the gradient
+	return (grad * x);		 // Multiply the gradient with the distance
 }
 
 float  grad2(int hash, float x, float y)
 {
-	int h = hash & 7;      // Convert low 3 bits of hash code
+	int h = hash & 7;	 // Convert low 3 bits of hash code
 	float u = h<4 ? x : y;  // into 8 simple gradient directions,
 	float v = h<4 ? y : x;  // and compute the dot product with (x,y).
 	return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f*v : 2.0f*v);
@@ -170,7 +170,7 @@ float  grad2(int hash, float x, float y)
 
 float  grad3(int hash, float x, float y, float z)
 {
-	int h = hash & 15;     // Convert low 4 bits of hash code into 12 simple
+	int h = hash & 15;   // Convert low 4 bits of hash code into 12 simple
 	float u = h<8 ? x : y; // gradient directions, and compute dot product.
 	float v = h<4 ? y : h == 12 || h == 14 ? x : z; // Fix repeats at h = 12 to 15
 	return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
@@ -178,7 +178,7 @@ float  grad3(int hash, float x, float y, float z)
 
 float  grad4(int hash, float x, float y, float z, float t)
 {
-	int h = hash & 31;      // Convert low 5 bits of hash code into 32 simple
+	int h = hash & 31;	// Convert low 5 bits of hash code into 32 simple
 	float u = h<24 ? x : y; // gradient directions, and compute dot product.
 	float v = h<16 ? y : z;
 	float w = h<8 ? z : t;
@@ -251,7 +251,7 @@ float snoise2(float x, float y)
 	// Determine which simplex we are in.
 	int i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
 	if (x0>y0) { i1 = 1; j1 = 0; } // lower triangle, XY order: (0,0)->(1,0)->(1,1)
-	else { i1 = 0; j1 = 1; }      // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+	else { i1 = 0; j1 = 1; }	  // upper triangle, YX order: (0,0)->(0,1)->(1,1)
 
 																// A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
 																// a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where

@@ -26,7 +26,7 @@
 
 layout(location = 0) in vec4 vs_in_position;
 
-layout (std140, set=0, binding=0) uniform skyboxUniformBlock{
+layout (std140, set=0, binding=0) uniform SkyboxUniformBlock{
 	uniform mat4 vp;
 };
 

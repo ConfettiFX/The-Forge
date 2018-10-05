@@ -110,6 +110,9 @@
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
 		5C55831421413D690019960B /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEA920EAD160001BB8C4 /* libgainputstatic.a */; };
+		650E6C2221667E2D00F511AB /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 650E6C1F21667E2C00F511AB /* assimp.a */; };
+		650E6C2321667E2D00F511AB /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 650E6C2021667E2D00F511AB /* zlibstatic.a */; };
+		650E6C2421667E2D00F511AB /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 650E6C2121667E2D00F511AB /* IrrXML.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -190,6 +193,9 @@
 		5CD2BBE62080FED8008E3A2C /* UIShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIShaders.h; path = ../../Middleware_3/UI/UIShaders.h; sourceTree = "<group>"; };
 		5CD2BBE92080FED8008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
 		5CD2BBEA2080FED8008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
+		650E6C1F21667E2C00F511AB /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
+		650E6C2021667E2D00F511AB /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		650E6C2121667E2D00F511AB /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		B25AC24220EFF14500ED50CF /* TextShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TextShaders.h; path = ../../Middleware_3/Text/TextShaders.h; sourceTree = "<group>"; };
@@ -237,6 +243,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650E6C2221667E2D00F511AB /* assimp.a in Frameworks */,
+				650E6C2321667E2D00F511AB /* zlibstatic.a in Frameworks */,
+				650E6C2421667E2D00F511AB /* IrrXML.a in Frameworks */,
 				5C172FC021414BE60074EE71 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C172F22214145450074EE71 /* MetalKit.framework in Frameworks */,
 				5C172F20214145410074EE71 /* Metal.framework in Frameworks */,
@@ -250,6 +259,9 @@
 		5C172F1E214145400074EE71 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				650E6C1F21667E2C00F511AB /* assimp.a */,
+				650E6C2121667E2D00F511AB /* IrrXML.a */,
+				650E6C2021667E2D00F511AB /* zlibstatic.a */,
 				5CABF32C214151F500EFD76A /* UIKit.framework */,
 				5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */,
 				5C17301521414D900074EE71 /* MetalKit.framework */,

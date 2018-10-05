@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -100,6 +100,7 @@ tinystl::string _getExePath()
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	ssize_t count = readlink( "/proc/self/exe", exeName, MAX_PATH );
+	exeName[count] = '\0';
 	return tinystl::string(exeName);
 }
 
@@ -107,7 +108,7 @@ tinystl::string _getAppPrefsDir(const char *org, const char *app)
 {
 	const char* homedir;
 
-	if ((homedir = getenv("HOME")) == NULL) 
+	if ((homedir = getenv("HOME")) == NULL)
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}
@@ -117,7 +118,7 @@ tinystl::string _getAppPrefsDir(const char *org, const char *app)
 tinystl::string _getUserDocumentsDir()
 {
 	const char* homedir;
-	if ((homedir = getenv("HOME")) == NULL) 
+	if ((homedir = getenv("HOME")) == NULL)
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}

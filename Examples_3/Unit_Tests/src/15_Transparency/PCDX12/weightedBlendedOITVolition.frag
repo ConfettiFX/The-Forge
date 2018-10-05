@@ -22,14 +22,15 @@
 * under the License.
 */
 
-#define SPECULAR_EXP 10.0f
+#include "shading.hlsl"
 
 struct VSOutput
 {
 	float4 Position : SV_POSITION;
 	float4 WorldPosition : POSITION;
-	float4 Color : COLOR;
 	float4 Normal : NORMAL;
+	float4 UV : TEXCOORD0;
+	uint MatID : MAT_ID;
 };
 
 struct PSOutput
@@ -38,19 +39,7 @@ struct PSOutput
 	float4 Revealage : SV_Target1;
 };
 
-cbuffer LightUniformBlock : register(b0)
-{
-	float4x4 lightViewProj;
-	float4 lightDirection;
-	float4 lightColor;
-};
-
-cbuffer CameraUniform : register(b3)
-{
-	float4 CameraPosition;
-};
-
-cbuffer WBOITSettings : register(b4)
+cbuffer WBOITSettings : register(b0)
 {
 	float opacitySensitivity = 3.0; // Should be greater than 1, so that we only downweight nearly transparent things. Otherwise, everything at the same depth should get equal weight. Can be artist controlled
 	float weightBias = 5.0; //Must be greater than zero. Weight bias helps prevent distant things from getting hugely lower weight than near things, as well as preventing floating point underflow
@@ -108,15 +97,7 @@ PSOutput main(VSOutput input)
 {    
 	PSOutput output;
 
-	float3 normal = normalize(input.Normal.xyz);
-	float3 lightVec = -normalize(lightDirection.xyz);
-	float3 viewVec = normalize(input.WorldPosition.xyz - CameraPosition.xyz);
-	float dotP = dot(normal, lightVec.xyz);
-	if (dotP < 0.05f)
-		dotP = 0.05f;//set as ambient color
-	float3 diffuse = lightColor.xyz * input.Color.xyz * dotP;
-	float3 specular = lightColor.xyz * pow(saturate(dot(reflect(lightVec, normal), viewVec)), SPECULAR_EXP);
-	float4 finalColor = float4(saturate(diffuse+ specular*0.5f), input.Color.a);
+	float4 finalColor = Shade(input.MatID, input.UV.xy, input.WorldPosition.xyz, normalize(input.Normal.xyz));
 
 	float d = input.Position.z / input.Position.w;
 	float4 premultipliedColor = float4(finalColor.rgb * finalColor.a, finalColor.a);

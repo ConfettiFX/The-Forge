@@ -2,10 +2,10 @@
 
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -13,9 +13,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -619,7 +619,7 @@ VsOut main(VsIn input)
 	VsOut output = (VsOut)0;
 	output.position = float4(input.position.xy * scaleBias.xy + float2(-1.0f, 1.0f), 0.0f, 1.0f);
 	output.texcoord = input.texcoord;
-	
+
 	return output;
 };
 */
@@ -1747,8 +1747,8 @@ using namespace metal;
 
 struct UniformBlock
 {
-	float4 color;
-	float2 scaleBias;
+    float4 color;
+    float2 scaleBias;
 };
 
 struct VSIn
@@ -1778,7 +1778,7 @@ using namespace metal;
 
 struct UniformBlock
 {
-	float2 scaleBias;
+    float2 scaleBias;
 };
 
 struct VSIn
@@ -1811,29 +1811,29 @@ using namespace metal;
 
 struct VsIn
 {
-	float2 position [[attribute(0)]];
-	float2 texCoord [[attribute(1)]];
+    float2 position [[attribute(0)]];
+    float2 texCoord [[attribute(1)]];
 };
 
 struct PsIn
 {
-	float4 position [[position]];
-	float2 texCoord;
+    float4 position [[position]];
+    float2 texCoord;
 };
 
 struct UniformBlock
 {
-	float4 color;
-	float2 scaleBias;
+    float4 color;
+    float2 scaleBias;
 };
 
 vertex PsIn VSMain(VsIn In [[stage_in]], constant UniformBlock& uRootConstants [[buffer(1)]])
 {
-	PsIn Out;
-	Out.position = float4 (In.position, 0.0f, 1.0f);
-	Out.position.xy = Out.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f);
-	Out.texCoord = In.texCoord;
-	return Out;
+    PsIn Out;
+    Out.position = float4 (In.position, 0.0f, 1.0f);
+    Out.position.xy = Out.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f);
+    Out.texCoord = In.texCoord;
+    return Out;
 }
 
 fragment float4 PSMain(PsIn In [[stage_in]],
@@ -1841,7 +1841,7 @@ fragment float4 PSMain(PsIn In [[stage_in]],
                        sampler uSampler [[sampler(0)]],
                        constant UniformBlock& uRootConstants [[buffer(1)]])
 {
-	return uTex.sample(uSampler, In.texCoord) * uRootConstants.color;
+    return uTex.sample(uSampler, In.texCoord) * uRootConstants.color;
 }
 )";
 
@@ -1852,52 +1852,52 @@ static const char* mtl_builtin_textured_imgui_vert = R"(
 using namespace metal;
 
 inline float3x3 matrix_ctor(float4x4 m) {
-	return float3x3(m[0].xyz, m[1].xyz, m[2].xyz);
+    return float3x3(m[0].xyz, m[1].xyz, m[2].xyz);
 }
 struct Vertex_Shader
 {
 
-	struct Uniforms_uniformBlockVS {
+    struct Uniforms_uniformBlockVS {
 
-		float4x4 ProjectionMatrix;
-	};
-	constant Uniforms_uniformBlockVS & uniformBlockVS;
+        float4x4 ProjectionMatrix;
+    };
+    constant Uniforms_uniformBlockVS & uniformBlockVS;
 
-	struct VS_INPUT
-	{
-		float2 pos[[attribute(0)]];
-		float2 uv[[attribute(1)]];
-		float4 col[[attribute(2)]];
-	};
+    struct VS_INPUT
+    {
+        float2 pos[[attribute(0)]];
+        float2 uv[[attribute(1)]];
+        float4 col[[attribute(2)]];
+    };
 
-	struct PS_INPUT
-	{
-		float4 pos[[position]];
-		float4 col;
-		float2 uv;
-	};
+    struct PS_INPUT
+    {
+        float4 pos[[position]];
+        float4 col;
+        float2 uv;
+    };
 
-	PS_INPUT main(VS_INPUT input)
-	{
-		PS_INPUT output;
-		output.pos = ((uniformBlockVS.ProjectionMatrix)*(float4(input.pos.xy, 0.0, 1.0)));
-		output.col = input.col;
-		output.uv = input.uv;
-		return output;
-	};
+    PS_INPUT main(VS_INPUT input)
+    {
+        PS_INPUT output;
+        output.pos = ((uniformBlockVS.ProjectionMatrix)*(float4(input.pos.xy, 0.0, 1.0)));
+        output.col = input.col;
+        output.uv = input.uv;
+        return output;
+    };
 
-	Vertex_Shader(constant Uniforms_uniformBlockVS & uniformBlockVS) : uniformBlockVS(uniformBlockVS) {}
+    Vertex_Shader(constant Uniforms_uniformBlockVS & uniformBlockVS) : uniformBlockVS(uniformBlockVS) {}
 };
 
 
 vertex Vertex_Shader::PS_INPUT stageMain(Vertex_Shader::VS_INPUT input[[stage_in]],
-	constant     Vertex_Shader::Uniforms_uniformBlockVS & uniformBlockVS[[buffer(1)]]) {
-	Vertex_Shader::VS_INPUT input0;
-	input0.pos = input.pos;
-	input0.uv = input.uv;
-	input0.col = input.col / 255.0f;
-	Vertex_Shader main(uniformBlockVS);
-	return main.main(input0);
+    constant     Vertex_Shader::Uniforms_uniformBlockVS & uniformBlockVS[[buffer(1)]]) {
+    Vertex_Shader::VS_INPUT input0;
+    input0.pos = input.pos;
+    input0.uv = input.uv;
+    input0.col = input.col / 255.0f;
+    Vertex_Shader main(uniformBlockVS);
+    return main.main(input0);
 }
 )";
 
@@ -1908,42 +1908,42 @@ static const char* mtl_builtin_textured_imgui_frag = R"(
 using namespace metal;
 
 inline float3x3 matrix_ctor(float4x4 m) {
-	return float3x3(m[0].xyz, m[1].xyz, m[2].xyz);
+    return float3x3(m[0].xyz, m[1].xyz, m[2].xyz);
 }
 struct Fragment_Shader
 {
 
-	struct PS_INPUT
-	{
-		float4 pos[[position]];
-		float4 col;
-		float2 uv;
-	};
+    struct PS_INPUT
+    {
+        float4 pos[[position]];
+        float4 col;
+        float2 uv;
+    };
 
-	texture2d<float> uTex;
-	sampler uSampler;
+    texture2d<float> uTex;
+    sampler uSampler;
 
-	float4 main(PS_INPUT input)
-	{
-		float4 out_col = input.col *  uTex.sample(uSampler, input.uv);
-		return out_col;
-	};
+    float4 main(PS_INPUT input)
+    {
+        float4 out_col = input.col *  uTex.sample(uSampler, input.uv);
+        return out_col;
+    };
 
-	Fragment_Shader(texture2d<float> uTex,
-		sampler uSampler) : uTex(uTex),
-		uSampler(uSampler) {}
+    Fragment_Shader(texture2d<float> uTex,
+        sampler uSampler) : uTex(uTex),
+        uSampler(uSampler) {}
 };
 
 
 fragment float4 stageMain(Fragment_Shader::PS_INPUT input[[stage_in]],
-	texture2d<float> uTex[[texture(2)]],
-	sampler uSampler[[sampler(3)]]) {
-	Fragment_Shader::PS_INPUT input0;
-	input0.pos = float4(input.pos.xyz, 1.0 / input.pos.w);
-	input0.col = input.col;
-	input0.uv = input.uv;
-	Fragment_Shader main(uTex, uSampler);
-	return main.main(input0);
+    texture2d<float> uTex[[texture(2)]],
+    sampler uSampler[[sampler(3)]]) {
+    Fragment_Shader::PS_INPUT input0;
+    input0.pos = float4(input.pos.xyz, 1.0 / input.pos.w);
+    input0.col = input.col;
+    input0.uv = input.uv;
+    Fragment_Shader main(uTex, uSampler);
+    return main.main(input0);
 }
 )";
 /************************************************************************/

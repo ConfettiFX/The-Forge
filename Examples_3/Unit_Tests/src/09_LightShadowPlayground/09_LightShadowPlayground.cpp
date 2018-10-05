@@ -23,8 +23,8 @@
 */
 
 
-#define SPHERE_EACH_ROW 5 //MUST MATCH with the same macro in all shaders 
-#define SPHERE_EACH_COL 5 //MUST MATCH with the same macro in all shaders 
+#define SPHERE_EACH_ROW 5 //MUST MATCH with the same macro in all shaders
+#define SPHERE_EACH_COL 5 //MUST MATCH with the same macro in all shaders
 #define SPHERE_NUM (SPHERE_EACH_ROW*SPHERE_EACH_COL + 1) // Must match with same macro in all shader.... +1 for plane
 #define MAX_GAUSSIAN_WIDTH 31//MUST MATCH with shade
 #define MAX_GAUSSIAN_WEIGHTS_SIZE 64//MUST MATCH with shader = 32*2+1
@@ -59,62 +59,62 @@
 
 //Generate sky box vertex buffer
 const float gSkyboxPointArray[] = {
-    10.0f,  -10.0f, -10.0f,6.0f, // -z
-    -10.0f, -10.0f, -10.0f,6.0f,
-    -10.0f, 10.0f, -10.0f,6.0f,
-    -10.0f, 10.0f, -10.0f,6.0f,
-    10.0f,  10.0f, -10.0f,6.0f,
-    10.0f,  -10.0f, -10.0f,6.0f,
+	10.0f,  -10.0f, -10.0f,6.0f, // -z
+	-10.0f, -10.0f, -10.0f,6.0f,
+	-10.0f, 10.0f, -10.0f,6.0f,
+	-10.0f, 10.0f, -10.0f,6.0f,
+	10.0f,  10.0f, -10.0f,6.0f,
+	10.0f,  -10.0f, -10.0f,6.0f,
 
-    -10.0f, -10.0f,  10.0f,2.0f,  //-x
-    -10.0f, -10.0f, -10.0f,2.0f,
-    -10.0f,  10.0f, -10.0f,2.0f,
-    -10.0f,  10.0f, -10.0f,2.0f,
-    -10.0f,  10.0f,  10.0f,2.0f,
-    -10.0f, -10.0f,  10.0f,2.0f,
+	-10.0f, -10.0f,  10.0f,2.0f,  //-x
+	-10.0f, -10.0f, -10.0f,2.0f,
+	-10.0f,  10.0f, -10.0f,2.0f,
+	-10.0f,  10.0f, -10.0f,2.0f,
+	-10.0f,  10.0f,  10.0f,2.0f,
+	-10.0f, -10.0f,  10.0f,2.0f,
 
-    10.0f, -10.0f, -10.0f,1.0f, //+x
-    10.0f, -10.0f,  10.0f,1.0f,
-    10.0f,  10.0f,  10.0f,1.0f,
-    10.0f,  10.0f,  10.0f,1.0f,
-    10.0f,  10.0f, -10.0f,1.0f,
-    10.0f, -10.0f, -10.0f,1.0f,
+	10.0f, -10.0f, -10.0f,1.0f, //+x
+	10.0f, -10.0f,  10.0f,1.0f,
+	10.0f,  10.0f,  10.0f,1.0f,
+	10.0f,  10.0f,  10.0f,1.0f,
+	10.0f,  10.0f, -10.0f,1.0f,
+	10.0f, -10.0f, -10.0f,1.0f,
 
-    -10.0f, -10.0f,  10.0f,5.0f,  // +z
-    -10.0f,  10.0f,  10.0f,5.0f,
-    10.0f,  10.0f,  10.0f,5.0f,
-    10.0f,  10.0f,  10.0f,5.0f,
-    10.0f, -10.0f,  10.0f,5.0f,
-    -10.0f, -10.0f,  10.0f,5.0f,
+	-10.0f, -10.0f,  10.0f,5.0f,  // +z
+	-10.0f,  10.0f,  10.0f,5.0f,
+	10.0f,  10.0f,  10.0f,5.0f,
+	10.0f,  10.0f,  10.0f,5.0f,
+	10.0f, -10.0f,  10.0f,5.0f,
+	-10.0f, -10.0f,  10.0f,5.0f,
 
-    -10.0f,  10.0f, -10.0f, 3.0f,  //+y
-    10.0f,  10.0f, -10.0f,3.0f,
-    10.0f,  10.0f,  10.0f,3.0f,
-    10.0f,  10.0f,  10.0f,3.0f,
-    -10.0f,  10.0f,  10.0f,3.0f,
-    -10.0f,  10.0f, -10.0f,3.0f,
+	-10.0f,  10.0f, -10.0f, 3.0f,  //+y
+	10.0f,  10.0f, -10.0f,3.0f,
+	10.0f,  10.0f,  10.0f,3.0f,
+	10.0f,  10.0f,  10.0f,3.0f,
+	-10.0f,  10.0f,  10.0f,3.0f,
+	-10.0f,  10.0f, -10.0f,3.0f,
 
-    10.0f,  -10.0f, 10.0f, 4.0f,  //-y
-    10.0f,  -10.0f, -10.0f,4.0f,
-    -10.0f,  -10.0f,  -10.0f,4.0f,
-    -10.0f,  -10.0f,  -10.0f,4.0f,
-    -10.0f,  -10.0f,  10.0f,4.0f,
-    10.0f,  -10.0f, 10.0f,4.0f,
+	10.0f,  -10.0f, 10.0f, 4.0f,  //-y
+	10.0f,  -10.0f, -10.0f,4.0f,
+	-10.0f,  -10.0f,  -10.0f,4.0f,
+	-10.0f,  -10.0f,  -10.0f,4.0f,
+	-10.0f,  -10.0f,  10.0f,4.0f,
+	10.0f,  -10.0f, 10.0f,4.0f,
 };
 
 enum RenderOutput
 {
-    RENDER_OUTPUT_SCENE,//render all scenes normally
+	RENDER_OUTPUT_SCENE,//render all scenes normally
 
 	///@note all enum below will only be used when DEBUG_OUTPUT is enabled.
 	RENDER_OUTPUT_SDF_MAP,//render sdf shadows
-    RENDER_OUTPUT_ALBEDO,//render color only
-    RENDER_OUTPUT_NORMAL,//render normals in range[0,1]
-    RENDER_OUTPUT_POSITION,//render world position in RGBA32F
-    RENDER_OUTPUT_DEPTH,//render camera depth in range[0,1]
-    RENDER_OUTPUT_ESM_MAP,//render ESM shadow map, from light pov
+	RENDER_OUTPUT_ALBEDO,//render color only
+	RENDER_OUTPUT_NORMAL,//render normals in range[0,1]
+	RENDER_OUTPUT_POSITION,//render world position in RGBA32F
+	RENDER_OUTPUT_DEPTH,//render camera depth in range[0,1]
+	RENDER_OUTPUT_ESM_MAP,//render ESM shadow map, from light pov
 
-    RENDER_OUTPUT_COUNT
+	RENDER_OUTPUT_COUNT
 };
 
 enum ShadowType
@@ -127,7 +127,7 @@ enum ShadowType
 };
 typedef struct RenderSettingsUniformData
 {
-    vec4 mWindowDimension = {1, 1, 0, 0};//only first two are used to represents window width and height, z and w are paddings
+	vec4 mWindowDimension = {1, 1, 0, 0};//only first two are used to represents window width and height, z and w are paddings
 	uint32_t mRenderOutput = RENDER_OUTPUT_SCENE;//Scene output, can change using GUI editor
 
 #ifndef TARGET_IOS
@@ -140,50 +140,50 @@ typedef struct RenderSettingsUniformData
 
 typedef struct ObjectInfoStruct
 {
-    vec4 mColor;
-    vec3 mTranslation;
-    mat4 mTranslationMat;
-    mat4 mScaleMat;
+	vec4 mColor;
+	vec3 mTranslation;
+	mat4 mTranslationMat;
+	mat4 mScaleMat;
 }ObjectInfoStruct;
 
 typedef struct ObjectInfoUniformBlock
 {
-    mat4 mViewProject;
-    mat4 mToWorldMat[SPHERE_NUM];
+	mat4 mViewProject;
+	mat4 mToWorldMat[SPHERE_NUM];
 }ObjectInfoUniformBlock;
 
 typedef struct SkyboxUniformBlock
 {
-    mat4 mViewProject;
+	mat4 mViewProject;
 }SkyboxUniformBlock;
 
 typedef struct GaussianWeightsUniformBlock
 {
-    //use float4 for data alignment, but only x component is used
-    float4 mWeights[MAX_GAUSSIAN_WEIGHTS_SIZE] = {{0, 0, 0, 0}};
+	//use float4 for data alignment, but only x component is used
+	float4 mWeights[MAX_GAUSSIAN_WEIGHTS_SIZE] = {{0, 0, 0, 0}};
 }GaussianWeightsUniformBlock;
 
 typedef struct LightUniformBlock
 {
-    mat4 mLightViewProj;
-    vec4 mLightDirection = {-1, -1, -1, 0};
-    vec4 mLightColor = {1, 0, 0, 1};
+	mat4 mLightViewProj;
+	vec4 mLightDirection = {-1, -1, -1, 0};
+	vec4 mLightColor = {1, 0, 0, 1};
 }LightUniformBlock;
 
 typedef struct CameraUniform
 {
-    vec4 mPosition;
+	vec4 mPosition;
 }CameraUniform;
 
 
 typedef struct ESMInputConstants
 {
-    float2 mWindowDimension = {0, 0};
-    float2 mNearFarDist = {1.f, 180};
-    float mExponent = 240.0f;
-    uint mBlurWidth = 1U;
-    int mIfHorizontalBlur = 1; //as boolean
-    int padding = 0;
+	float2 mWindowDimension = {0, 0};
+	float2 mNearFarDist = {1.f, 180};
+	float mExponent = 240.0f;
+	uint mBlurWidth = 1U;
+	int mIfHorizontalBlur = 1; //as boolean
+	int padding = 0;
 }ESMInputConstants;
 
 
@@ -200,11 +200,11 @@ typedef struct SdfInputConstants
 
 enum
 {
-    DEFERRED_RT_ALBEDO = 0,
-    DEFERRED_RT_NORMAL,
-    DEFERRED_RT_POSITION,
+	DEFERRED_RT_ALBEDO = 0,
+	DEFERRED_RT_NORMAL,
+	DEFERRED_RT_POSITION,
 
-    DEFERRED_RT_COUNT
+	DEFERRED_RT_COUNT
 };
 
 /************************************************************************/
@@ -213,7 +213,7 @@ enum
 RenderTarget* pRenderTargetScreen;
 RenderTarget* pRenderTargetDepth = NULL;
 RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = {NULL};
-RenderTarget* pRenderTargetShadowMap; 
+RenderTarget* pRenderTargetShadowMap;
 RenderTarget* pRenderTargetESMBlur[2]; //2: horizontal + vertical blur
 RenderTarget* pRenderTargetSkybox;
 RenderTarget* pRenderTargetSdfSimple;
@@ -302,19 +302,19 @@ Texture*			pTextureScene[2];
 /************************************************************************/
 struct
 {
-    uint32 mFilterWidth = 24U;
+	uint32 mFilterWidth = 24U;
 } gEsmCpuSettings;
 
 
 struct
 {
-    float3 mLightPosition = { -5, 30, -5 };//light position, will be changed by GUI editor if not iOS
+	float3 mLightPosition = { -5, 30, -5 };//light position, will be changed by GUI editor if not iOS
 } gLightCpuSettings;
 
 /************************************************************************/
 
 #ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+VirtualJoystickUI   gVirtualJoystick;
 #endif
 
 // Constants
@@ -340,8 +340,8 @@ ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 
 /// UI
-UIApp							gAppUI;
-GuiComponent*					pGuiWindow = NULL;
+UIApp						   gAppUI;
+GuiComponent*				   pGuiWindow = NULL;
 TextDrawDesc				gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 FileSystem gFileSystem;
@@ -364,17 +364,17 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = {NULL};
 
 const char* pSkyboxImageFileNames[] =
 {
-    "skybox/hw_sahara/sahara_rt.tga",
-    "skybox/hw_sahara/sahara_lf.tga",
-    "skybox/hw_sahara/sahara_up.tga",
-    "skybox/hw_sahara/sahara_dn.tga",
-    "skybox/hw_sahara/sahara_ft.tga",
-    "skybox/hw_sahara/sahara_bk.tga",
+	"skybox/hw_sahara/sahara_rt.tga",
+	"skybox/hw_sahara/sahara_lf.tga",
+	"skybox/hw_sahara/sahara_up.tga",
+	"skybox/hw_sahara/sahara_dn.tga",
+	"skybox/hw_sahara/sahara_ft.tga",
+	"skybox/hw_sahara/sahara_bk.tga",
 };
 const char* pSceneFileNames[] =
 {
-    "Warehouse-with-lights.tga",
-    "rect.tga",
+	"Warehouse-with-lights.tga",
+	"rect.tga",
 };
 
 
@@ -394,57 +394,57 @@ const char* pSceneFileNames[] =
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-    "Shaders/Binary/",	// FSR_BinShaders
-    "Shaders/",		// FSR_SrcShaders
-    "Shaders/Binary/",			// FSR_BinShaders_Common
-    "Shaders/",					// FSR_SrcShaders_Common
-    "Textures/",						// FSR_Textures
-    "Meshes/",						// FSR_Meshes
-    "Fonts/",						// FSR_Builtin_Fonts
-    "",															// FSR_OtherFiles
+	"Shaders/Binary/",  // FSR_BinShaders
+	"Shaders/",	 // FSR_SrcShaders
+	"Shaders/Binary/",		  // FSR_BinShaders_Common
+	"Shaders/",				 // FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",					  // FSR_Meshes
+	"Fonts/",					   // FSR_Builtin_Fonts
+	"",														 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-    "../../../src/09_LightShadowPlayground/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
-    "../../../src/09_LightShadowPlayground/" RESOURCE_DIR "/", // FSR_SrcShaders
-    "", // FSR_BinShaders_Common
-    "", // FSR_SrcShaders_Common
-    "../../../UnitTestResources/Textures/", // FSR_Textures
-    "../../../UnitTestResources/Meshes/", // FSR_Meshes
-    "../../../UnitTestResources/Fonts/", // FSR_Builtin_Fonts
+	"../../../src/09_LightShadowPlayground/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
+	"../../../src/09_LightShadowPlayground/" RESOURCE_DIR "/", // FSR_SrcShaders
+	"", // FSR_BinShaders_Common
+	"", // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/", // FSR_Textures
+	"../../../UnitTestResources/Meshes/", // FSR_Meshes
+	"../../../UnitTestResources/Fonts/", // FSR_Builtin_Fonts
 	"../../../src/09_LightShadowPlayground/GPUCfg/",			// FSR_GpuConfig
-    "", // FSR_OtherFiles
+	"", // FSR_OtherFiles
 };
 #endif
 
 static void calcGaussianWeights(GaussianWeightsUniformBlock* block, int gaussianWidth)
 {
-    for (int i = 0; i < MAX_GAUSSIAN_WEIGHTS_SIZE; i++)
-    {
-        block->mWeights[i] = {0, 0, 0, 0};
-    }
-    gaussianWidth = clamp(gaussianWidth, 0, MAX_GAUSSIAN_WIDTH);
-    const int width = gaussianWidth;
-    const int width2 = 2 * width;
-    const int width2p1 = 2 * width + 1;
-    block->mWeights[width] = 1;
-    const float s = (float)(width) / 3.0f;
-    float totalWeight = block->mWeights[width].getX();
-    //establish weights
-    for (int i = 0; i < width; ++i)
-    {
-        float weight = exp(-((width - i) * (width - i)) / (2 * s * s));
-        block->mWeights[i] = weight;
-        block->mWeights[width2 - i] = weight;
-        totalWeight += 2.0f * weight;
-    }
-    //normalize weights
-    for (int i = 0; i < width2p1; ++i)
-    {
-        block->mWeights[i] /= totalWeight;
-    }
+	for (int i = 0; i < MAX_GAUSSIAN_WEIGHTS_SIZE; i++)
+	{
+		block->mWeights[i] = {0, 0, 0, 0};
+	}
+	gaussianWidth = clamp(gaussianWidth, 0, MAX_GAUSSIAN_WIDTH);
+	const int width = gaussianWidth;
+	const int width2 = 2 * width;
+	const int width2p1 = 2 * width + 1;
+	block->mWeights[width] = 1;
+	const float s = (float)(width) / 3.0f;
+	float totalWeight = block->mWeights[width].getX();
+	//establish weights
+	for (int i = 0; i < width; ++i)
+	{
+		float weight = exp(-((width - i) * (width - i)) / (2 * s * s));
+		block->mWeights[i] = weight;
+		block->mWeights[width2 - i] = weight;
+		totalWeight += 2.0f * weight;
+	}
+	//normalize weights
+	for (int i = 0; i < width2p1; ++i)
+	{
+		block->mWeights[i] /= totalWeight;
+	}
 }
 
 
@@ -465,11 +465,11 @@ static void createScene()
 	vec3 curTrans = { -sphereDist*(SPHERE_EACH_ROW - 1)/2.f, sphereRadius * 2.3f, -sphereDist*(SPHERE_EACH_COL - 1)/2.f };
 
 	for (int i = 0; i < SPHERE_EACH_ROW; ++i)
-	{		
+	{
 		curTrans.setX(-sphereDist * (SPHERE_EACH_ROW - 1) / 2.f);
 
 		for (int j = 0; j < SPHERE_EACH_COL; j++)
-		{					
+		{
 			gObjectInfoData[sphereIndex].mTranslation = curTrans;
 			gObjectInfoData[sphereIndex].mScaleMat = mat4::scale(vec3(sphereRadius));
 			gObjectInfoData[sphereIndex].mColor = vec4(1, 1, 1, 1);
@@ -477,7 +477,7 @@ static void createScene()
 
 			curTrans.setX(curTrans.getX() + sphereDist);
 		}
-		
+
 		curTrans.setZ(curTrans.getZ() + sphereDist);
 	}
 
@@ -487,7 +487,7 @@ static void createScene()
 	gObjectInfoData[SPHERE_NUM - 1].mScaleMat = mat4::scale(
 		vec3(
 			sphereDist * SPHERE_EACH_ROW / 0.9f,
-			1.f, 
+			1.f,
 			sphereDist * SPHERE_EACH_COL / 0.9f));
 	gObjectInfoData[SPHERE_NUM - 1].mColor = vec4(1, 1, 1, 1);
 
@@ -518,16 +518,16 @@ DynamicUIControls GuiController::sdfDynamicWidgets;
 class LightShadowPlayground : public IApp
 {
 public:
-    bool Init() override
-    {
-        RendererDesc settings = {NULL};
-        initRenderer(GetName(), &settings, &pRenderer);
+	bool Init() override
+	{
+		RendererDesc settings = {NULL};
+		initRenderer(GetName(), &settings, &pRenderer);
 
-        QueueDesc queueDesc = {};
-        queueDesc.mType = CMD_POOL_DIRECT;
-        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-        addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-        addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		QueueDesc queueDesc = {};
+		queueDesc.mType = CMD_POOL_DIRECT;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
 
 		DepthStateDesc depthStateEnabledDesc = {};
 		depthStateEnabledDesc.mDepthFunc = CMP_LEQUAL;
@@ -537,79 +537,79 @@ public:
 		DepthStateDesc depthStateDisabledDesc = {};
 		depthStateDisabledDesc.mDepthWrite = false;
 		depthStateDisabledDesc.mDepthTest  = false;
-		
-        addDepthState(pRenderer, &depthStateEnabledDesc, &pDepthStateEnable);
-        addDepthState(pRenderer, &depthStateDisabledDesc, &pDepthStateDisable);
 
-        for (uint32_t i = 0; i < gImageCount; ++i)
-        {
-            addFence(pRenderer, &pRenderCompleteFences[i]);
-            addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-        }
-        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+		addDepthState(pRenderer, &depthStateEnabledDesc, &pDepthStateEnable);
+		addDepthState(pRenderer, &depthStateDisabledDesc, &pDepthStateDisable);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 
-        initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
-        for (int i = 0; i < 6; ++i)
-        {
-            TextureLoadDesc textureDesc = {};
-            textureDesc.mRoot = FSR_Textures;
-            textureDesc.mUseMipmaps = true;
-            textureDesc.pFilename = pSkyboxImageFileNames[i];
-            textureDesc.ppTexture = &pTextureSkybox[i];
-            addResource(&textureDesc, true);
-        } 
-        for (int i = 0; i < 2; ++i)
-        {
-            TextureLoadDesc textureDesc = {};
-            textureDesc.mRoot = FSR_Textures;
-            textureDesc.mUseMipmaps = true;
-            textureDesc.pFilename = pSceneFileNames[i];
-            textureDesc.ppTexture = &pTextureScene[i];
-            addResource(&textureDesc, true);
-        } 
+		for (int i = 0; i < 6; ++i)
+		{
+			TextureLoadDesc textureDesc = {};
+			textureDesc.mRoot = FSR_Textures;
+			textureDesc.mUseMipmaps = true;
+			textureDesc.pFilename = pSkyboxImageFileNames[i];
+			textureDesc.ppTexture = &pTextureSkybox[i];
+			addResource(&textureDesc, true);
+		}
+		for (int i = 0; i < 2; ++i)
+		{
+			TextureLoadDesc textureDesc = {};
+			textureDesc.mRoot = FSR_Textures;
+			textureDesc.mUseMipmaps = true;
+			textureDesc.pFilename = pSceneFileNames[i];
+			textureDesc.ppTexture = &pTextureScene[i];
+			addResource(&textureDesc, true);
+		}
 
-        /************************************************************************/
-        // Geometry data for the scene
-        /************************************************************************/
-        float* pSpherePoints;
-        generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereRadius);
+		/************************************************************************/
+		// Geometry data for the scene
+		/************************************************************************/
+		float* pSpherePoints;
+		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereRadius);
 
-        uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
-        BufferLoadDesc sphereVbDesc = {};
-        sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        sphereVbDesc.mDesc.mSize = sphereDataSize;
-        sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
-        sphereVbDesc.pData = pSpherePoints;
-        sphereVbDesc.ppBuffer = &pBufferSphereVertex;
-        addResource(&sphereVbDesc);
-        // Need to free memory;
-        conf_free(pSpherePoints);
-        //------------------------Skybox--------------------------
-        uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-        BufferLoadDesc skyboxVbDesc = {};
-        skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-        skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-        skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
-        skyboxVbDesc.pData = gSkyboxPointArray;
-        skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
-        addResource(&skyboxVbDesc);
+		uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
+		BufferLoadDesc sphereVbDesc = {};
+		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		sphereVbDesc.mDesc.mSize = sphereDataSize;
+		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
+		sphereVbDesc.pData = pSpherePoints;
+		sphereVbDesc.ppBuffer = &pBufferSphereVertex;
+		addResource(&sphereVbDesc);
+		// Need to free memory;
+		conf_free(pSpherePoints);
+		//------------------------Skybox--------------------------
+		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		BufferLoadDesc skyboxVbDesc = {};
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
+		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
+		skyboxVbDesc.pData = gSkyboxPointArray;
+		skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
+		addResource(&skyboxVbDesc);
 
-        /************************************************************************/
-        // Setup constant buffer data
-        /************************************************************************/
-        BufferLoadDesc ubDesc = {};
-        ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        ubDesc.mDesc.mSize = sizeof(ObjectInfoUniformBlock);
-        ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        ubDesc.pData = NULL;
-        ubDesc.ppBuffer = &pBufferObjectTransforms;
-        addResource(&ubDesc);
+		/************************************************************************/
+		// Setup constant buffer data
+		/************************************************************************/
+		BufferLoadDesc ubDesc = {};
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubDesc.mDesc.mSize = sizeof(ObjectInfoUniformBlock);
+		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubDesc.pData = NULL;
+		ubDesc.ppBuffer = &pBufferObjectTransforms;
+		addResource(&ubDesc);
 
 		BufferLoadDesc ubEsmBlurDescH = {};
 		ubEsmBlurDescH.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -639,99 +639,99 @@ public:
 		sdfDesc.ppBuffer = &pBufferSdfInputUniform;
 		addResource(&sdfDesc);
 
-        calcGaussianWeights(&gESMBlurGaussianWeights, gEsmCpuSettings.mFilterWidth);
-        BufferLoadDesc esmgwUbDesc = {};
-        esmgwUbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        esmgwUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        esmgwUbDesc.mDesc.mSize = sizeof(GaussianWeightsUniformBlock);
-        esmgwUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        esmgwUbDesc.pData = &gESMBlurGaussianWeights;
-        esmgwUbDesc.ppBuffer = &pBufferESMGaussianWeights;
-        addResource(&esmgwUbDesc);
+		calcGaussianWeights(&gESMBlurGaussianWeights, gEsmCpuSettings.mFilterWidth);
+		BufferLoadDesc esmgwUbDesc = {};
+		esmgwUbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		esmgwUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		esmgwUbDesc.mDesc.mSize = sizeof(GaussianWeightsUniformBlock);
+		esmgwUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		esmgwUbDesc.pData = &gESMBlurGaussianWeights;
+		esmgwUbDesc.ppBuffer = &pBufferESMGaussianWeights;
+		addResource(&esmgwUbDesc);
 
 
-        BufferLoadDesc skyboxDesc = {};
-        skyboxDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        skyboxDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        skyboxDesc.mDesc.mSize = sizeof(SkyboxUniformBlock);
-        skyboxDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        skyboxDesc.pData = NULL;
-        skyboxDesc.ppBuffer = &pBufferSkyboxUniform;
-        addResource(&skyboxDesc);
+		BufferLoadDesc skyboxDesc = {};
+		skyboxDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		skyboxDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		skyboxDesc.mDesc.mSize = sizeof(SkyboxUniformBlock);
+		skyboxDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		skyboxDesc.pData = NULL;
+		skyboxDesc.ppBuffer = &pBufferSkyboxUniform;
+		addResource(&skyboxDesc);
 
 
-        BufferLoadDesc camUniDesc = {};
-        camUniDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        camUniDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        camUniDesc.mDesc.mSize = sizeof(CameraUniform);
-        camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        camUniDesc.pData = &gCameraUniformData;
-        camUniDesc.ppBuffer = &pBufferCameraUniform;
-        addResource(&camUniDesc);
+		BufferLoadDesc camUniDesc = {};
+		camUniDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		camUniDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		camUniDesc.mDesc.mSize = sizeof(CameraUniform);
+		camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		camUniDesc.pData = &gCameraUniformData;
+		camUniDesc.ppBuffer = &pBufferCameraUniform;
+		addResource(&camUniDesc);
 
-        BufferLoadDesc renderSettingsDesc = {};
-        renderSettingsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        renderSettingsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        renderSettingsDesc.mDesc.mSize = sizeof(RenderSettingsUniformData);
-        renderSettingsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        renderSettingsDesc.pData = &gRenderSettings;
-        renderSettingsDesc.ppBuffer = &pBufferRenderSettings;
-        addResource(&renderSettingsDesc);
+		BufferLoadDesc renderSettingsDesc = {};
+		renderSettingsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		renderSettingsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		renderSettingsDesc.mDesc.mSize = sizeof(RenderSettingsUniformData);
+		renderSettingsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		renderSettingsDesc.pData = &gRenderSettings;
+		renderSettingsDesc.ppBuffer = &pBufferRenderSettings;
+		addResource(&renderSettingsDesc);
 
 
-        BufferLoadDesc lightUniformDesc = {};
-        lightUniformDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        lightUniformDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        lightUniformDesc.mDesc.mSize = sizeof(LightUniformBlock);
-        lightUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        lightUniformDesc.pData = NULL;
-        lightUniformDesc.ppBuffer = &pBufferLightUniform;
-        addResource(&lightUniformDesc);
+		BufferLoadDesc lightUniformDesc = {};
+		lightUniformDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		lightUniformDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		lightUniformDesc.mDesc.mSize = sizeof(LightUniformBlock);
+		lightUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		lightUniformDesc.pData = NULL;
+		lightUniformDesc.ppBuffer = &pBufferLightUniform;
+		addResource(&lightUniformDesc);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
 			return false;
 #endif
 
-        ShaderLoadDesc deferredPassShaderDesc = {};
-        deferredPassShaderDesc.mStages[0] = { "gbuffer.vert", NULL, 0, FSR_SrcShaders };
-        deferredPassShaderDesc.mStages[1] = { "gbuffer.frag", NULL, 0, FSR_SrcShaders };
-        ShaderLoadDesc deferredShadeShaderDesc = {};
-        deferredShadeShaderDesc.mStages[0] = { "finalPass.vert", NULL, 0, FSR_SrcShaders };
-        deferredShadeShaderDesc.mStages[1] = { "finalPass.frag", NULL, 0, FSR_SrcShaders };
-        ShaderLoadDesc shadowPassShaderDesc = {};
-        shadowPassShaderDesc.mStages[0] = { "shadowMapPass.vert", NULL, 0, FSR_SrcShaders };
-        shadowPassShaderDesc.mStages[1] = { "shadowMapPass.frag", NULL, 0, FSR_SrcShaders };
-        ShaderLoadDesc esmBlurShaderDesc = {};
-        esmBlurShaderDesc.mStages[0] = { "blurESM.vert", NULL, 0, FSR_SrcShaders };
-        esmBlurShaderDesc.mStages[1] = { "blurESM.frag", NULL, 0, FSR_SrcShaders };
-        ShaderLoadDesc skyboxShaderDesc = {};
-        skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-        skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
-        ShaderLoadDesc sdfShaderDesc = {};
-        sdfShaderDesc.mStages[0] = { "sdfSimple.vert", NULL, 0, FSR_SrcShaders };
+		ShaderLoadDesc deferredPassShaderDesc = {};
+		deferredPassShaderDesc.mStages[0] = { "gbuffer.vert", NULL, 0, FSR_SrcShaders };
+		deferredPassShaderDesc.mStages[1] = { "gbuffer.frag", NULL, 0, FSR_SrcShaders };
+		ShaderLoadDesc deferredShadeShaderDesc = {};
+		deferredShadeShaderDesc.mStages[0] = { "finalPass.vert", NULL, 0, FSR_SrcShaders };
+		deferredShadeShaderDesc.mStages[1] = { "finalPass.frag", NULL, 0, FSR_SrcShaders };
+		ShaderLoadDesc shadowPassShaderDesc = {};
+		shadowPassShaderDesc.mStages[0] = { "shadowMapPass.vert", NULL, 0, FSR_SrcShaders };
+		shadowPassShaderDesc.mStages[1] = { "shadowMapPass.frag", NULL, 0, FSR_SrcShaders };
+		ShaderLoadDesc esmBlurShaderDesc = {};
+		esmBlurShaderDesc.mStages[0] = { "blurESM.vert", NULL, 0, FSR_SrcShaders };
+		esmBlurShaderDesc.mStages[1] = { "blurESM.frag", NULL, 0, FSR_SrcShaders };
+		ShaderLoadDesc skyboxShaderDesc = {};
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		ShaderLoadDesc sdfShaderDesc = {};
+		sdfShaderDesc.mStages[0] = { "sdfSimple.vert", NULL, 0, FSR_SrcShaders };
 		sdfShaderDesc.mStages[1] = { "sdfSimple.frag", NULL, 0, FSR_SrcShaders };
-        /************************************************************************/
-        // Add shaders
-        /************************************************************************/
-        addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
-        addShader(pRenderer, &shadowPassShaderDesc, &pShaderShadowPass);
-        addShader(pRenderer, &deferredPassShaderDesc, &pShaderDeferredPass);
-        addShader(pRenderer, &deferredShadeShaderDesc, &pShaderDeferredShade);
-        addShader(pRenderer, &esmBlurShaderDesc, &pShaderESMBlur);
+		/************************************************************************/
+		// Add shaders
+		/************************************************************************/
+		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
+		addShader(pRenderer, &shadowPassShaderDesc, &pShaderShadowPass);
+		addShader(pRenderer, &deferredPassShaderDesc, &pShaderDeferredPass);
+		addShader(pRenderer, &deferredShadeShaderDesc, &pShaderDeferredShade);
+		addShader(pRenderer, &esmBlurShaderDesc, &pShaderESMBlur);
 		addShader(pRenderer, &sdfShaderDesc, &pShaderSdfSimple);
 
 
-        /************************************************************************/
-        // Add GPU profiler
-        /************************************************************************/
+		/************************************************************************/
+		// Add GPU profiler
+		/************************************************************************/
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
-        /************************************************************************/
-        // Add samplers
-        /************************************************************************/
+		/************************************************************************/
+		// Add samplers
+		/************************************************************************/
 		SamplerDesc samplerPointDesc= {};
-        addSampler(pRenderer, &samplerPointDesc, &pSamplerPoint);
+		addSampler(pRenderer, &samplerPointDesc, &pSamplerPoint);
 
 		SamplerDesc samplerPointClampDesc = {};
 		samplerPointClampDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -740,7 +740,7 @@ public:
 		samplerPointClampDesc.mMinFilter = FILTER_NEAREST;
 		samplerPointClampDesc.mMagFilter = FILTER_NEAREST;
 		samplerPointClampDesc.mMipMapMode = MIPMAP_MODE_NEAREST;
-        addSampler(pRenderer, &samplerPointClampDesc, &pSamplerPointClamp);
+		addSampler(pRenderer, &samplerPointClampDesc, &pSamplerPointClamp);
 
 		SamplerDesc samplerBiliniearDesc = {};
 		samplerBiliniearDesc.mAddressU = ADDRESS_MODE_REPEAT;
@@ -749,7 +749,7 @@ public:
 		samplerBiliniearDesc.mMinFilter = FILTER_LINEAR;
 		samplerBiliniearDesc.mMagFilter = FILTER_LINEAR;
 		samplerBiliniearDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
-        addSampler(pRenderer, &samplerBiliniearDesc, &pSamplerBilinear);
+		addSampler(pRenderer, &samplerBiliniearDesc, &pSamplerBilinear);
 
 		SamplerDesc samplerShadowDesc = {};
 		samplerShadowDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -760,7 +760,7 @@ public:
 		samplerShadowDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
 		samplerShadowDesc.mMipLosBias = 0.0f;
 		samplerShadowDesc.mMaxAnisotropy = 8.0f;
-        addSampler(pRenderer, &samplerShadowDesc, &pSamplerShadow);
+		addSampler(pRenderer, &samplerShadowDesc, &pSamplerShadow);
 
 		SamplerDesc samplerTrilinearAnisoDesc = {};
 		samplerTrilinearAnisoDesc.mAddressU = ADDRESS_MODE_REPEAT;
@@ -771,7 +771,7 @@ public:
 		samplerTrilinearAnisoDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
 		samplerTrilinearAnisoDesc.mMipLosBias = 0.0f;
 		samplerTrilinearAnisoDesc.mMaxAnisotropy = 8.0f;
-        addSampler(pRenderer, &samplerTrilinearAnisoDesc, &pSamplerTrilinearAniso);
+		addSampler(pRenderer, &samplerTrilinearAnisoDesc, &pSamplerTrilinearAniso);
 
 		SamplerDesc samplerpSamplerSkyboxDesc = {};
 		samplerpSamplerSkyboxDesc.mAddressU = ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -780,7 +780,7 @@ public:
 		samplerpSamplerSkyboxDesc.mMinFilter = FILTER_LINEAR;
 		samplerpSamplerSkyboxDesc.mMagFilter = FILTER_LINEAR;
 		samplerpSamplerSkyboxDesc.mMipMapMode = MIPMAP_MODE_NEAREST;
-        addSampler(pRenderer, &samplerpSamplerSkyboxDesc, &pSamplerSkybox);
+		addSampler(pRenderer, &samplerpSamplerSkyboxDesc, &pSamplerSkybox);
 
 		/************************************************************************/
 		// setup root signitures
@@ -837,75 +837,75 @@ public:
 		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignatureSkybox);
 		addRootSignature(pRenderer, &sdfSimpleRootDesc, &pRootSignatureSdfSimple);
 
-        /************************************************************************/
-        // setup Rasterizer State
-        /************************************************************************/
+		/************************************************************************/
+		// setup Rasterizer State
+		/************************************************************************/
 		RasterizerStateDesc rasterStateDesc = {};
 		rasterStateDesc.mCullMode = CULL_MODE_BACK;
-        addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullBack);
+		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullBack);
 
 		rasterStateDesc.mCullMode = CULL_MODE_FRONT;
-        addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullFront);
+		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullFront);
 
 		rasterStateDesc.mCullMode = CULL_MODE_NONE;
-        addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullNone);
-        
+		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullNone);
 
-        /************************************************************************/
-        finishResourceLoading();
-        /************************************************************************/
-        ////////////////////////////////////////////////
 
-        /************************************************************************/
-        // Initialize Resources
-        /************************************************************************/
+		/************************************************************************/
+		finishResourceLoading();
+		/************************************************************************/
+		////////////////////////////////////////////////
 
-        gESMBlurUniformDataH_Primary.mIfHorizontalBlur = 1;
-        gESMBlurUniformDataH_Primary.mBlurWidth = gEsmCpuSettings.mFilterWidth;
-        gESMBlurUniformDataH_Primary.mWindowDimension.x = (float)(mSettings.mWidth);
-        gESMBlurUniformDataH_Primary.mWindowDimension.y = (float)(mSettings.mHeight);
-        BufferUpdateDesc esmBlurBufferCbvH = {pBufferESMBlurUniformH_Primary, &gESMBlurUniformDataH_Primary};
-        updateResource(&esmBlurBufferCbvH);
+		/************************************************************************/
+		// Initialize Resources
+		/************************************************************************/
 
-        gESMBlurUniformDataV.mIfHorizontalBlur = 0;
-        gESMBlurUniformDataV.mBlurWidth = gEsmCpuSettings.mFilterWidth;
-        gESMBlurUniformDataV.mWindowDimension.x = (float)(mSettings.mWidth);
-        gESMBlurUniformDataV.mWindowDimension.y = (float)(mSettings.mHeight);
-        BufferUpdateDesc esmBlurBufferCbvV = {pBufferESMBlurUniformV, &gESMBlurUniformDataV};
-        updateResource(&esmBlurBufferCbvV);
+		gESMBlurUniformDataH_Primary.mIfHorizontalBlur = 1;
+		gESMBlurUniformDataH_Primary.mBlurWidth = gEsmCpuSettings.mFilterWidth;
+		gESMBlurUniformDataH_Primary.mWindowDimension.x = (float)(mSettings.mWidth);
+		gESMBlurUniformDataH_Primary.mWindowDimension.y = (float)(mSettings.mHeight);
+		BufferUpdateDesc esmBlurBufferCbvH = {pBufferESMBlurUniformH_Primary, &gESMBlurUniformDataH_Primary};
+		updateResource(&esmBlurBufferCbvH);
+
+		gESMBlurUniformDataV.mIfHorizontalBlur = 0;
+		gESMBlurUniformDataV.mBlurWidth = gEsmCpuSettings.mFilterWidth;
+		gESMBlurUniformDataV.mWindowDimension.x = (float)(mSettings.mWidth);
+		gESMBlurUniformDataV.mWindowDimension.y = (float)(mSettings.mHeight);
+		BufferUpdateDesc esmBlurBufferCbvV = {pBufferESMBlurUniformV, &gESMBlurUniformDataV};
+		updateResource(&esmBlurBufferCbvV);
 
 		createScene();
 
-        /*************************************************/
-        //                      UI 
-        /*************************************************/
-        if (!gAppUI.Init(pRenderer))
-            return false;
+		/*************************************************/
+		//					UI
+		/*************************************************/
+		if (!gAppUI.Init(pRenderer))
+			return false;
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
-        
-        GuiDesc guiDesc = {};
-        guiDesc.mStartPosition = vec2(5, 200.0f);
-        guiDesc.mStartSize = vec2(450, 600);
-        pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(5, 200.0f);
+		guiDesc.mStartSize = vec2(450, 600);
+		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		GuiController::addGui();
-		
 
-        CameraMotionParameters cmp{16.0f, 60.0f, 20.0f};
-        vec3 camPos{12, 13, -15};
-        vec3 lookAt{0};
 
-        pLightView = createGuiCameraController(camPos, lookAt);
-        pCameraController = createFpsCameraController(camPos, lookAt);
-        requestMouseCapture(true);
+		CameraMotionParameters cmp{16.0f, 60.0f, 20.0f};
+		vec3 camPos{12, 13, -15};
+		vec3 lookAt{0};
 
-        pCameraController->setMotionParameters(cmp);
-		
+		pLightView = createGuiCameraController(camPos, lookAt);
+		pCameraController = createFpsCameraController(camPos, lookAt);
+		requestMouseCapture(true);
+
+		pCameraController->setMotionParameters(cmp);
+
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		return true;
-    }
+	}
 	void RemoveRenderTargetsAndSwapChian()
-    {
+	{
 		removeRenderTarget(pRenderer, pRenderTargetDepth);
 		for (int i = 0; i < 2; i++)
 		{
@@ -920,95 +920,95 @@ public:
 			removeRenderTarget(pRenderer, pRenderTargetDeferredPass[i]);
 		}
 		removeSwapChain(pRenderer, pSwapChain);
-    }
-    void Exit() override
-    {
-        waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-        waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
-        destroyCameraController(pCameraController);
-        destroyCameraController(pLightView);
+	}
+	void Exit() override
+	{
+		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		destroyCameraController(pCameraController);
+		destroyCameraController(pLightView);
 
-        gAppUI.Exit();
-        removeDebugRendererInterface();
+		gAppUI.Exit();
+		removeDebugRendererInterface();
 
-        removeResource(pBufferObjectTransforms);
-        removeResource(pBufferLightUniform);
-        removeResource(pBufferESMBlurUniformH_Primary);
-        removeResource(pBufferESMBlurUniformV);
-        removeResource(pBufferESMGaussianWeights);
-        removeResource(pBufferRenderSettings);
-        removeResource(pBufferSphereVertex);
-        removeResource(pBufferSkyboxVertex);
-        removeResource(pBufferSkyboxUniform);
-        removeResource(pBufferCameraUniform);
-        removeResource(pBufferSdfInputUniform);
+		removeResource(pBufferObjectTransforms);
+		removeResource(pBufferLightUniform);
+		removeResource(pBufferESMBlurUniformH_Primary);
+		removeResource(pBufferESMBlurUniformV);
+		removeResource(pBufferESMGaussianWeights);
+		removeResource(pBufferRenderSettings);
+		removeResource(pBufferSphereVertex);
+		removeResource(pBufferSkyboxVertex);
+		removeResource(pBufferSkyboxUniform);
+		removeResource(pBufferCameraUniform);
+		removeResource(pBufferSdfInputUniform);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
-        removeSampler(pRenderer, pSamplerTrilinearAniso);
-        removeSampler(pRenderer, pSamplerBilinear);
-        removeSampler(pRenderer, pSamplerShadow);
-        removeSampler(pRenderer, pSamplerPointClamp);
-        removeSampler(pRenderer, pSamplerSkybox);
-        removeSampler(pRenderer, pSamplerPoint);
+		removeSampler(pRenderer, pSamplerTrilinearAniso);
+		removeSampler(pRenderer, pSamplerBilinear);
+		removeSampler(pRenderer, pSamplerShadow);
+		removeSampler(pRenderer, pSamplerPointClamp);
+		removeSampler(pRenderer, pSamplerSkybox);
+		removeSampler(pRenderer, pSamplerPoint);
 
-        removeShader(pRenderer, pShaderDeferredPass);
-        removeShader(pRenderer, pShaderESMBlur);
-        removeShader(pRenderer, pShaderDeferredShade);
-        removeShader(pRenderer, pShaderShadowPass);
-        removeShader(pRenderer, pShaderSkybox);
-        removeShader(pRenderer, pShaderSdfSimple);
-
-
-        removeRootSignature(pRenderer, pRootSignatureDeferredPass);
-        removeRootSignature(pRenderer, pRootSignatureDeferredShade);
-        removeRootSignature(pRenderer, pRootSignatureESMBlur);
-        removeRootSignature(pRenderer, pRootSignatureShadowPass);
-        removeRootSignature(pRenderer, pRootSignatureSkybox);
-        removeRootSignature(pRenderer, pRootSignatureSdfSimple);
+		removeShader(pRenderer, pShaderDeferredPass);
+		removeShader(pRenderer, pShaderESMBlur);
+		removeShader(pRenderer, pShaderDeferredShade);
+		removeShader(pRenderer, pShaderShadowPass);
+		removeShader(pRenderer, pShaderSkybox);
+		removeShader(pRenderer, pShaderSdfSimple);
 
 
-        removeDepthState(pDepthStateEnable);
-        removeDepthState(pDepthStateDisable);
-
-        removeRasterizerState(pRasterizerStateCullBack);
-        removeRasterizerState(pRasterizerStateCullFront);
-        removeRasterizerState(pRasterizerStateCullNone);
-
-        for (uint i = 0; i < 6; ++i)
-            removeResource(pTextureSkybox[i]);
-        
-
-        for (uint i = 0; i < 2; ++i)
-            removeResource(pTextureScene[i]);
+		removeRootSignature(pRenderer, pRootSignatureDeferredPass);
+		removeRootSignature(pRenderer, pRootSignatureDeferredShade);
+		removeRootSignature(pRenderer, pRootSignatureESMBlur);
+		removeRootSignature(pRenderer, pRootSignatureShadowPass);
+		removeRootSignature(pRenderer, pRootSignatureSkybox);
+		removeRootSignature(pRenderer, pRootSignatureSdfSimple);
 
 
-        for (uint32_t i = 0; i < gImageCount; ++i)
-        {
-            removeFence(pRenderer, pRenderCompleteFences[i]);
-            removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-        }
-        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+		removeDepthState(pDepthStateEnable);
+		removeDepthState(pDepthStateDisable);
 
-        removeCmd_n(pCmdPool, gImageCount, ppCmds);
-        removeCmdPool(pRenderer, pCmdPool);
+		removeRasterizerState(pRasterizerStateCullBack);
+		removeRasterizerState(pRasterizerStateCullFront);
+		removeRasterizerState(pRasterizerStateCullNone);
 
-        removeResourceLoaderInterface(pRenderer);
-        removeQueue(pGraphicsQueue);
-        removeRenderer(pRenderer);
+		for (uint i = 0; i < 6; ++i)
+			removeResource(pTextureSkybox[i]);
 
 
-    }
+		for (uint i = 0; i < 2; ++i)
+			removeResource(pTextureScene[i]);
 
-    bool Load() override
-    {
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmdPool(pRenderer, pCmdPool);
+
+		removeResourceLoaderInterface(pRenderer);
+		removeQueue(pGraphicsQueue);
+		removeRenderer(pRenderer);
+
+
+	}
+
+	bool Load() override
+	{
 		if (!AddRenderTargetsAndSwapChain())
 			return false;
-        if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
-            return false;
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+			return false;
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
 			return false;
@@ -1081,7 +1081,7 @@ public:
 		deferredShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		deferredShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		addPipeline(pRenderer, &deferredShadePipelineSettings, &pPipelineDeferredShadeSrgb);
-		
+
 		/************************************************************************/
 		// Setup the resources needed for shadow map
 		/************************************************************************/
@@ -1149,18 +1149,18 @@ public:
 		sdfSimplePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		addPipeline(pRenderer, &sdfSimplePipelineSettings, &pPipelineSdfSimple);
 
-        return true;
-    }
+		return true;
+	}
 
-    void Unload() override
-    {
+	void Unload() override
+	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
 #endif
 
-        gAppUI.Unload();
+		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipelineDeferredPass);
 		removePipeline(pRenderer, pPipelineESMBlur);
@@ -1170,100 +1170,100 @@ public:
 		removePipeline(pRenderer, pPipelineSdfSimple);
 
 		RemoveRenderTargetsAndSwapChian();
-    }
+	}
 
-    void Update(float deltaTime) override
-    {
+	void Update(float deltaTime) override
+	{
 
-        /************************************************************************/
-        // Input
-        /************************************************************************/
-        if (getKeyDown(KEY_BUTTON_X))
-        {
-            RecenterCameraView(170.0f);
-        }
+		/************************************************************************/
+		// Input
+		/************************************************************************/
+		if (getKeyDown(KEY_BUTTON_X))
+		{
+			RecenterCameraView(170.0f);
+		}
 
-        pCameraController->update(deltaTime);
+		pCameraController->update(deltaTime);
 
 		// Dynamic UI elements
 		GuiController::updateDynamicUI();
 
-        /************************************************************************/
-        // Scene Render Settings
-        /************************************************************************/
-        BufferUpdateDesc renderSettingCbv = {pBufferRenderSettings, &gRenderSettings};
+		/************************************************************************/
+		// Scene Render Settings
+		/************************************************************************/
+		BufferUpdateDesc renderSettingCbv = {pBufferRenderSettings, &gRenderSettings};
 
-        gRenderSettings.mWindowDimension.setX((float)mSettings.mWidth);
-        gRenderSettings.mWindowDimension.setY((float)mSettings.mHeight);
-        updateResource(&renderSettingCbv);
-        /************************************************************************/
-        // Scene Update
-        /************************************************************************/
-        static float currentTime = 0.0f;
-        currentTime += deltaTime * 1000.0f;
+		gRenderSettings.mWindowDimension.setX((float)mSettings.mWidth);
+		gRenderSettings.mWindowDimension.setY((float)mSettings.mHeight);
+		updateResource(&renderSettingCbv);
+		/************************************************************************/
+		// Scene Update
+		/************************************************************************/
+		static float currentTime = 0.0f;
+		currentTime += deltaTime * 1000.0f;
 
-        // update camera with time 
-        mat4 viewMat = pCameraController->getViewMatrix();
-        const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-        const float horizontal_fov = PI / 2.0f;
-        mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 1.0f, 4000.0f);//view matrix
+		// update camera with time
+		mat4 viewMat = pCameraController->getViewMatrix();
+		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
+		const float horizontal_fov = PI / 2.0f;
+		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 1.0f, 4000.0f);//view matrix
 
-        gObjectInfoUniformData.mViewProject = projMat * viewMat;
+		gObjectInfoUniformData.mViewProject = projMat * viewMat;
 
-        BufferUpdateDesc viewProjCbv = {pBufferObjectTransforms, &gObjectInfoUniformData};
-        updateResource(&viewProjCbv);
-        /************************************************************************/
-        // Update Camera
-        /************************************************************************/
-        BufferUpdateDesc cameraCbv = { pBufferCameraUniform, &gCameraUniformData };
-        gCameraUniformData.mPosition = vec4(pCameraController->getViewPosition(), 1);
-        updateResource(&cameraCbv);
+		BufferUpdateDesc viewProjCbv = {pBufferObjectTransforms, &gObjectInfoUniformData};
+		updateResource(&viewProjCbv);
+		/************************************************************************/
+		// Update Camera
+		/************************************************************************/
+		BufferUpdateDesc cameraCbv = { pBufferCameraUniform, &gCameraUniformData };
+		gCameraUniformData.mPosition = vec4(pCameraController->getViewPosition(), 1);
+		updateResource(&cameraCbv);
 
-        /************************************************************************/
-        // Update Skybox
-        /************************************************************************/
-        BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform, &gSkyboxUniformData };
-        viewMat.setTranslation(vec3(0,0,0));
-        gSkyboxUniformData.mViewProject = projMat * viewMat;
-        updateResource(&skyboxViewProjCbv);
+		/************************************************************************/
+		// Update Skybox
+		/************************************************************************/
+		BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform, &gSkyboxUniformData };
+		viewMat.setTranslation(vec3(0,0,0));
+		gSkyboxUniformData.mViewProject = projMat * viewMat;
+		updateResource(&skyboxViewProjCbv);
 
-        /************************************************************************/
-        // Light Matrix Update - for shadow map
-        /************************************************************************/
-        BufferUpdateDesc lightBufferCbv = {pBufferLightUniform, &gLightUniformData};
+		/************************************************************************/
+		// Light Matrix Update - for shadow map
+		/************************************************************************/
+		BufferUpdateDesc lightBufferCbv = {pBufferLightUniform, &gLightUniformData};
 
-        vec3 lightPos = vec3(gLightCpuSettings.mLightPosition.x, gLightCpuSettings.mLightPosition.y, gLightCpuSettings.mLightPosition.z);
-        pLightView->moveTo(lightPos);
-        pLightView->lookAt(gObjectsCenter);
+		vec3 lightPos = vec3(gLightCpuSettings.mLightPosition.x, gLightCpuSettings.mLightPosition.y, gLightCpuSettings.mLightPosition.z);
+		pLightView->moveTo(lightPos);
+		pLightView->lookAt(gObjectsCenter);
 
-        mat4 lightViewMat = pLightView->getViewMatrix();
+		mat4 lightViewMat = pLightView->getViewMatrix();
 		//perspective as spotlight, for future use
-        mat4 lightProjMat = mat4::perspective(PI / 1.2f, aspectInverse, gESMBlurUniformDataH_Primary.mNearFarDist.x, gESMBlurUniformDataH_Primary.mNearFarDist.y);
-        gLightUniformData.mLightDirection = vec4(gObjectsCenter - lightPos, 0);
-        gLightUniformData.mLightViewProj = lightProjMat * lightViewMat;
-        gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
+		mat4 lightProjMat = mat4::perspective(PI / 1.2f, aspectInverse, gESMBlurUniformDataH_Primary.mNearFarDist.x, gESMBlurUniformDataH_Primary.mNearFarDist.y);
+		gLightUniformData.mLightDirection = vec4(gObjectsCenter - lightPos, 0);
+		gLightUniformData.mLightViewProj = lightProjMat * lightViewMat;
+		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
 
-        updateResource(&lightBufferCbv);
-       
-        /************************************************************************/
-        // Update ESM
-        /************************************************************************/
-        if (gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
-        {
-            BufferUpdateDesc esmBlurCbvH = {pBufferESMBlurUniformH_Primary, &gESMBlurUniformDataH_Primary};
-            BufferUpdateDesc esmBlurCbvV = {pBufferESMBlurUniformV, &gESMBlurUniformDataV};
-            BufferUpdateDesc esmBlurWeights = {pBufferESMGaussianWeights, &gESMBlurGaussianWeights};
-            gESMBlurUniformDataH_Primary.mWindowDimension.x = (float)(mSettings.mWidth);
-            gESMBlurUniformDataH_Primary.mWindowDimension.y = (float)(mSettings.mHeight);
-            gESMBlurUniformDataV.mWindowDimension.x = (float)(mSettings.mWidth);
-            gESMBlurUniformDataV.mWindowDimension.y = (float)(mSettings.mHeight);
-            gESMBlurUniformDataH_Primary.mBlurWidth = gEsmCpuSettings.mFilterWidth;
-            gESMBlurUniformDataV.mBlurWidth = gEsmCpuSettings.mFilterWidth;
-            calcGaussianWeights(&gESMBlurGaussianWeights, gEsmCpuSettings.mFilterWidth);
-            updateResource(&esmBlurCbvH);
-            updateResource(&esmBlurCbvV);
-            updateResource(&esmBlurWeights);
-        }
+		updateResource(&lightBufferCbv);
+
+		/************************************************************************/
+		// Update ESM
+		/************************************************************************/
+		if (gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
+		{
+			BufferUpdateDesc esmBlurCbvH = {pBufferESMBlurUniformH_Primary, &gESMBlurUniformDataH_Primary};
+			BufferUpdateDesc esmBlurCbvV = {pBufferESMBlurUniformV, &gESMBlurUniformDataV};
+			BufferUpdateDesc esmBlurWeights = {pBufferESMGaussianWeights, &gESMBlurGaussianWeights};
+			gESMBlurUniformDataH_Primary.mWindowDimension.x = (float)(mSettings.mWidth);
+			gESMBlurUniformDataH_Primary.mWindowDimension.y = (float)(mSettings.mHeight);
+			gESMBlurUniformDataV.mWindowDimension.x = (float)(mSettings.mWidth);
+			gESMBlurUniformDataV.mWindowDimension.y = (float)(mSettings.mHeight);
+			gESMBlurUniformDataH_Primary.mBlurWidth = gEsmCpuSettings.mFilterWidth;
+			gESMBlurUniformDataV.mBlurWidth = gEsmCpuSettings.mFilterWidth;
+			calcGaussianWeights(&gESMBlurGaussianWeights, gEsmCpuSettings.mFilterWidth);
+			updateResource(&esmBlurCbvH);
+			updateResource(&esmBlurCbvV);
+			updateResource(&esmBlurWeights);
+		}
 		/************************************************************************/
 		// Update SDF Settings
 		/************************************************************************/
@@ -1280,108 +1280,108 @@ public:
 
 		// Rotate spheres
 		for (int i = 0; i < SPHERE_NUM; i++)
-		{			
+		{
 			gObjectInfoUniformData.mToWorldMat[i] = mat4::rotationY(rads) * gObjectInfoData[i].mTranslationMat * gObjectInfoData[i].mScaleMat;
 		}
 
-        /************************************************************************/
-        ////////////////////////////////////////////////////////////////
-        gAppUI.Update(deltaTime);
-    }
+		/************************************************************************/
+		////////////////////////////////////////////////////////////////
+		gAppUI.Update(deltaTime);
+	}
 
-    static void drawDeferredPass(Cmd* cmd)
-    {
-        LoadActionsDesc loadActions = {};
-        for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
-        {
-            loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[i] = pRenderTargetDeferredPass[i]->mDesc.mClearValue;
-        }
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
+	static void drawDeferredPass(Cmd* cmd)
+	{
+		LoadActionsDesc loadActions = {};
+		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+		{
+			loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
+			loadActions.mClearColorValues[i] = pRenderTargetDeferredPass[i]->mDesc.mClearValue;
+		}
+		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
+		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
 
-        // Start render pass and apply load actions
+		// Start render pass and apply load actions
 		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth,
-                       (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth,
-                      pRenderTargetDeferredPass[0]->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth,
+					   (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth,
+					  pRenderTargetDeferredPass[0]->mDesc.mHeight);
 
 		// Draw the skybox.
-        cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw GBuffers");
+		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw GBuffers");
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Render G-Buffer", true);
 
-        cmdBindVertexBuffer(cmd, 1, &pBufferSphereVertex, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pBufferSphereVertex, NULL);
 
-        cmdBindPipeline(cmd, pPipelineDeferredPass);
+		cmdBindPipeline(cmd, pPipelineDeferredPass);
 
 		DescriptorData params[3] = {};
-        params[0].pName = "objectUniformBlock";
-        params[0].ppBuffers = &pBufferObjectTransforms;
-        params[1].pName = "SphereTex";
-        params[1].ppTextures = &pTextureScene[0];
-        params[2].pName = "PlaneTex";
-        params[2].ppTextures = &pTextureScene[1];
+		params[0].pName = "objectUniformBlock";
+		params[0].ppBuffers = &pBufferObjectTransforms;
+		params[1].pName = "SphereTex";
+		params[1].ppTextures = &pTextureScene[0];
+		params[2].pName = "PlaneTex";
+		params[2].ppTextures = &pTextureScene[1];
 
 		cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 3, params);
-        cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
+		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-        cmdEndDebugMarker(cmd);
-    }
+		cmdEndDebugMarker(cmd);
+	}
 
-    static void drawDeferredShade(Cmd* cmd)
-    {
-        RenderTarget* pDestinationRenderTarget = pRenderTargetScreen;
+	static void drawDeferredShade(Cmd* cmd)
+	{
+		RenderTarget* pDestinationRenderTarget = pRenderTargetScreen;
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetScreen->mDesc.mClearValue;
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+		loadActions.mClearColorValues[0] = pRenderTargetScreen->mDesc.mClearValue;
 
 		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth,
-                       (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth,
+					   (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
 		// Draw the skybox.
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Final Render Pass");
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Final Render Pass", true);
 
-        cmdBindPipeline(cmd, pPipelineDeferredShadeSrgb);
+		cmdBindPipeline(cmd, pPipelineDeferredShadeSrgb);
 
 		DescriptorData params[11] = {};
-        params[0].pName = "gBufferColor";
-        params[0].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture;
-        params[1].pName = "gBufferNormal";
-        params[1].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]->pTexture;
-        params[2].pName = "gBufferPosition";
-        params[2].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_POSITION]->pTexture;
-        params[3].pName = "gBufferDepth";
-        params[3].ppTextures = &pRenderTargetDepth->pTexture;
-        params[4].pName = "lightUniformBlock";
-        params[4].ppBuffers = &pBufferLightUniform;
-        params[5].pName = "renderSettingUniformBlock";
-        params[5].ppBuffers = &pBufferRenderSettings;
-        params[6].pName = "ESMInputConstants";
-        params[6].ppBuffers = &pBufferESMBlurUniformH_Primary;
-        params[7].pName = "shadowMap";
-        params[7].ppTextures = &pRenderTargetESMBlur[1]->pTexture;
-        params[8].pName = "skyboxTex";
-        params[8].ppTextures = &pRenderTargetSkybox->pTexture;
-        params[9].pName = "sdfScene";
-        params[9].ppTextures = &pRenderTargetSdfSimple->pTexture;
-        params[10].pName = "cameraUniform";
-        params[10].ppBuffers = &pBufferCameraUniform;
+		params[0].pName = "gBufferColor";
+		params[0].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture;
+		params[1].pName = "gBufferNormal";
+		params[1].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]->pTexture;
+		params[2].pName = "gBufferPosition";
+		params[2].ppTextures = &pRenderTargetDeferredPass[DEFERRED_RT_POSITION]->pTexture;
+		params[3].pName = "gBufferDepth";
+		params[3].ppTextures = &pRenderTargetDepth->pTexture;
+		params[4].pName = "lightUniformBlock";
+		params[4].ppBuffers = &pBufferLightUniform;
+		params[5].pName = "renderSettingUniformBlock";
+		params[5].ppBuffers = &pBufferRenderSettings;
+		params[6].pName = "ESMInputConstants";
+		params[6].ppBuffers = &pBufferESMBlurUniformH_Primary;
+		params[7].pName = "shadowMap";
+		params[7].ppTextures = &pRenderTargetESMBlur[1]->pTexture;
+		params[8].pName = "skyboxTex";
+		params[8].ppTextures = &pRenderTargetSkybox->pTexture;
+		params[9].pName = "sdfScene";
+		params[9].ppTextures = &pRenderTargetSdfSimple->pTexture;
+		params[10].pName = "cameraUniform";
+		params[10].ppBuffers = &pBufferCameraUniform;
 		cmdBindDescriptors(cmd, pRootSignatureDeferredShade, 11, params);
 
-        // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
-        cmdDraw(cmd, 3, 0);
+		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
+		cmdDraw(cmd, 3, 0);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndDebugMarker(cmd);
-    }
+	}
 	void drawSdfShadow(Cmd* cmd)
 	{
 
@@ -1412,110 +1412,110 @@ public:
 		cmdEndDebugMarker(cmd);
 	}
 
-    static void blurEsmMap(Cmd* cmd, uint32_t rtId)
-    {
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetESMBlur[rtId]->mDesc.mClearValue;
-        cmdBeginDebugMarker(cmd, 1, 0, 1, rtId == 0 ? "Blur ESM Pass H" : "Blur ESM Pass V");
+	static void blurEsmMap(Cmd* cmd, uint32_t rtId)
+	{
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+		loadActions.mClearColorValues[0] = pRenderTargetESMBlur[rtId]->mDesc.mClearValue;
+		cmdBeginDebugMarker(cmd, 1, 0, 1, rtId == 0 ? "Blur ESM Pass H" : "Blur ESM Pass V");
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, rtId == 0 ? "Blur ESM Pass H" : "Blur ESM Pass V");
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetESMBlur[rtId], NULL, &loadActions, NULL, NULL, -1, -1);
 
 		DescriptorData params[3] = {};
-        params[0].pName = "shadowExpMap";
-        params[0].ppTextures = rtId == 0 ? &pRenderTargetShadowMap->pTexture : &pRenderTargetESMBlur[0]->pTexture;
-        params[1].pName = "ESMInputConstants";
-        params[1].ppBuffers = rtId == 0 ? &pBufferESMBlurUniformH_Primary : &pBufferESMBlurUniformV;
-        params[2].pName = "GaussianWeightsBuffer";
+		params[0].pName = "shadowExpMap";
+		params[0].ppTextures = rtId == 0 ? &pRenderTargetShadowMap->pTexture : &pRenderTargetESMBlur[0]->pTexture;
+		params[1].pName = "ESMInputConstants";
+		params[1].ppBuffers = rtId == 0 ? &pBufferESMBlurUniformH_Primary : &pBufferESMBlurUniformV;
+		params[2].pName = "GaussianWeightsBuffer";
 		params[2].ppBuffers = &pBufferESMGaussianWeights;
 		cmdBindDescriptors(cmd, pRootSignatureESMBlur, 3, params);
-        cmdBindPipeline(cmd, pPipelineESMBlur);
-        // A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
-        cmdDraw(cmd, 3, 0);
+		cmdBindPipeline(cmd, pPipelineESMBlur);
+		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
+		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-        cmdEndDebugMarker(cmd);
-    }
+		cmdEndDebugMarker(cmd);
+	}
 
-    static void drawEsmShadowMap(Cmd* cmd)
-    {
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetShadowMap->mDesc.mClearValue;
+	static void drawEsmShadowMap(Cmd* cmd)
+	{
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+		loadActions.mClearColorValues[0] = pRenderTargetShadowMap->mDesc.mClearValue;
 
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
+		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
+		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
 
-        cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Shadow Map");
+		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Shadow Map");
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw ESM Shadow Map");
-        // Start render pass and apply load actions
+		// Start render pass and apply load actions
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetShadowMap, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mDesc.mWidth,
-                       (float)pRenderTargetShadowMap->mDesc.mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mDesc.mWidth, pRenderTargetShadowMap->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mDesc.mWidth,
+					   (float)pRenderTargetShadowMap->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mDesc.mWidth, pRenderTargetShadowMap->mDesc.mHeight);
 
-        cmdBindVertexBuffer(cmd, 1, &pBufferSphereVertex, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pBufferSphereVertex, NULL);
 
-        cmdBindPipeline(cmd, pPipelineShadowPass);
-        DescriptorData params[3] = {};
-        params[0].pName = "objectUniformBlock";
-        params[0].ppBuffers = &pBufferObjectTransforms;
-        params[1].pName = "lightUniformBlock";
-        params[1].ppBuffers = &pBufferLightUniform;
-        params[2].pName = "ESMInputConstants";
-        params[2].ppBuffers = &pBufferESMBlurUniformH_Primary;
-        cmdBindDescriptors(cmd, pRootSignatureShadowPass, 3, params);
-		
-        cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
+		cmdBindPipeline(cmd, pPipelineShadowPass);
+		DescriptorData params[3] = {};
+		params[0].pName = "objectUniformBlock";
+		params[0].ppBuffers = &pBufferObjectTransforms;
+		params[1].pName = "lightUniformBlock";
+		params[1].ppBuffers = &pBufferLightUniform;
+		params[2].pName = "ESMInputConstants";
+		params[2].ppBuffers = &pBufferESMBlurUniformH_Primary;
+		cmdBindDescriptors(cmd, pRootSignatureShadowPass, 3, params);
+
+		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-        cmdEndDebugMarker(cmd);
-    }
-    static void drawSkybox(Cmd* cmd)
-    {
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetSkybox->mDesc.mClearValue;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
+		cmdEndDebugMarker(cmd);
+	}
+	static void drawSkybox(Cmd* cmd)
+	{
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+		loadActions.mClearColorValues[0] = pRenderTargetSkybox->mDesc.mClearValue;
+		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
+		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
 
-        cmdBeginDebugMarker(cmd, 0, 0, 1, "Draw skybox");
+		cmdBeginDebugMarker(cmd, 0, 0, 1, "Draw skybox");
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Skybox", true);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetSkybox, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetSkybox->mDesc.mWidth, (float)pRenderTargetSkybox->mDesc.mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pRenderTargetSkybox->mDesc.mWidth, pRenderTargetSkybox->mDesc.mHeight);
-        
-        cmdBindPipeline(cmd, pPipelineSkybox);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetSkybox->mDesc.mWidth, (float)pRenderTargetSkybox->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTargetSkybox->mDesc.mWidth, pRenderTargetSkybox->mDesc.mHeight);
+
+		cmdBindPipeline(cmd, pPipelineSkybox);
 
 		DescriptorData params[7] = {};
-        params[0].pName = "skyboxUniformBlock";
-        params[0].ppBuffers = &pBufferSkyboxUniform;
-        params[1].pName = "RightText";
-        params[1].ppTextures = &pTextureSkybox[0];
-        params[2].pName = "LeftText";
-        params[2].ppTextures = &pTextureSkybox[1];
-        params[3].pName = "TopText";
-        params[3].ppTextures = &pTextureSkybox[2];
-        params[4].pName = "BotText";
-        params[4].ppTextures = &pTextureSkybox[3];
-        params[5].pName = "FrontText";
-        params[5].ppTextures = &pTextureSkybox[4];
-        params[6].pName = "BackText";
+		params[0].pName = "skyboxUniformBlock";
+		params[0].ppBuffers = &pBufferSkyboxUniform;
+		params[1].pName = "RightText";
+		params[1].ppTextures = &pTextureSkybox[0];
+		params[2].pName = "LeftText";
+		params[2].ppTextures = &pTextureSkybox[1];
+		params[3].pName = "TopText";
+		params[3].ppTextures = &pTextureSkybox[2];
+		params[4].pName = "BotText";
+		params[4].ppTextures = &pTextureSkybox[3];
+		params[5].pName = "FrontText";
+		params[5].ppTextures = &pTextureSkybox[4];
+		params[6].pName = "BackText";
 		params[6].ppTextures = &pTextureSkybox[5];
 		cmdBindDescriptors(cmd, pRootSignatureSkybox, 7, params);
 		cmdBindVertexBuffer(cmd, 1, &pBufferSkyboxVertex, NULL);
-        cmdDraw(cmd, 36, 0);
+		cmdDraw(cmd, 36, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-        cmdEndDebugMarker(cmd);
+		cmdEndDebugMarker(cmd);
 
-    }
+	}
 
-    static void renderTargetBarriers(Cmd* cmd)
-    {
+	static void renderTargetBarriers(Cmd* cmd)
+	{
 		tinystl::vector<TextureBarrier> rtBarrier;
 		//skybox
 		rtBarrier.push_back({ pRenderTargetSkybox->pTexture, RESOURCE_STATE_RENDER_TARGET });
@@ -1537,286 +1537,286 @@ public:
 			rtBarrier.push_back({ pRenderTargetSdfSimple->pTexture, RESOURCE_STATE_RENDER_TARGET  });
 		}
 		cmdResourceBarrier(cmd, 0, NULL, (uint32_t)rtBarrier.size(), &rtBarrier.front(), true);
-    }
+	}
 
-    void Draw() override
-    {
-        acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+	void Draw() override
+	{
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
-        Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-        Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
-        // Get command list to store rendering commands for this frame
-        Cmd* cmd = ppCmds[gFrameIndex];
+		// Get command list to store rendering commands for this frame
+		Cmd* cmd = ppCmds[gFrameIndex];
 
-        pRenderTargetScreen = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-        beginCmd(cmd);
+		pRenderTargetScreen = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 		renderTargetBarriers(cmd);
-        TextureBarrier barriers1[] = {
-            {pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET},
-            {pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE},
-        };
-        cmdResourceBarrier(cmd, 0, NULL, 2, barriers1, false);
-        
-        cmdFlushBarriers(cmd);
+		TextureBarrier barriers1[] = {
+			{pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET},
+			{pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE},
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers1, false);
 
-        ////////////////////////////////////////////////////////
-        //  Draw Skybox 
-        drawSkybox(cmd);
-        TextureBarrier barriersSky[] = {
-            {pRenderTargetSkybox->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-        };
-        cmdResourceBarrier(cmd, 0, NULL, 1, barriersSky, true);
-        cmdFlushBarriers(cmd);
+		cmdFlushBarriers(cmd);
 
-        ////////////////////////////////////////////////////////
-        ///// Draw ESM Map
-        if (gRenderSettings.mRenderOutput == RENDER_OUTPUT_ESM_MAP || gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
-        {
-            drawEsmShadowMap(cmd);
+		////////////////////////////////////////////////////////
+		//  Draw Skybox
+		drawSkybox(cmd);
+		TextureBarrier barriersSky[] = {
+			{pRenderTargetSkybox->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriersSky, true);
+		cmdFlushBarriers(cmd);
 
-            TextureBarrier drawShadowMapBarrier[] = {
-                {pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE}
-            };
-            cmdResourceBarrier(cmd, 0, NULL, 1, drawShadowMapBarrier, false);
-            cmdFlushBarriers(cmd);
-            ////////////////////////////////////////////////////////
-            ///// Blur ESM Map
-            for (int i = 0; i < 2; i++)
-            {
-                blurEsmMap(cmd, i);
-                TextureBarrier blurEsmBarrier = { pRenderTargetESMBlur[i]->pTexture, RESOURCE_STATE_SHADER_RESOURCE};
-                cmdResourceBarrier(cmd, 0, NULL, 1, &blurEsmBarrier, false);
-                cmdFlushBarriers(cmd);
-            }
-        }
-	    else if (gRenderSettings.mRenderOutput == RENDER_OUTPUT_SDF_MAP || gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
-	    {
+		////////////////////////////////////////////////////////
+		///// Draw ESM Map
+		if (gRenderSettings.mRenderOutput == RENDER_OUTPUT_ESM_MAP || gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
+		{
+			drawEsmShadowMap(cmd);
+
+			TextureBarrier drawShadowMapBarrier[] = {
+				{pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE}
+			};
+			cmdResourceBarrier(cmd, 0, NULL, 1, drawShadowMapBarrier, false);
+			cmdFlushBarriers(cmd);
+			////////////////////////////////////////////////////////
+			///// Blur ESM Map
+			for (int i = 0; i < 2; i++)
+			{
+				blurEsmMap(cmd, i);
+				TextureBarrier blurEsmBarrier = { pRenderTargetESMBlur[i]->pTexture, RESOURCE_STATE_SHADER_RESOURCE};
+				cmdResourceBarrier(cmd, 0, NULL, 1, &blurEsmBarrier, false);
+				cmdFlushBarriers(cmd);
+			}
+		}
+		else if (gRenderSettings.mRenderOutput == RENDER_OUTPUT_SDF_MAP || gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
+		{
 			drawSdfShadow(cmd);
-	    }
+		}
 
-        ////////////////////////////////////////////////////////
-        ///// Fill GBuffer
-        drawDeferredPass(cmd);
+		////////////////////////////////////////////////////////
+		///// Fill GBuffer
+		drawDeferredPass(cmd);
 
-        TextureBarrier barriers2[] = {
-            {pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-            {pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-            {pRenderTargetDeferredPass[DEFERRED_RT_POSITION]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-            {pRenderTargetDepth->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-            {pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE}
-        };
-        cmdResourceBarrier(cmd, 0, NULL, DEFERRED_RT_COUNT + 2, barriers2, true);
-        cmdFlushBarriers(cmd);
+		TextureBarrier barriers2[] = {
+			{pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
+			{pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
+			{pRenderTargetDeferredPass[DEFERRED_RT_POSITION]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
+			{pRenderTargetDepth->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
+			{pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE}
+		};
+		cmdResourceBarrier(cmd, 0, NULL, DEFERRED_RT_COUNT + 2, barriers2, true);
+		cmdFlushBarriers(cmd);
 
-        ////////////////////////////////////////////////////////
-        ///// Last Step: Combine Everything
+		////////////////////////////////////////////////////////
+		///// Last Step: Combine Everything
 		TextureBarrier drawSdfBarrier[] = {
 			{ pRenderTargetSdfSimple->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 1, drawSdfBarrier, false);
-        drawDeferredShade(cmd);
-        ////////////////////////////////////////////////////////
+		drawDeferredShade(cmd);
+		////////////////////////////////////////////////////////
 
 
-        ////////////////////////////////////////////////////////
-        //  Draw UIs
-        cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-        //cmdBeginRender(cmd, 1, &pRenderTargetScreen, NULL, NULL);
+		////////////////////////////////////////////////////////
+		//  Draw UIs
+		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
+		//cmdBeginRender(cmd, 1, &pRenderTargetScreen, NULL, NULL);
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetScreen, NULL, NULL, NULL, NULL, -1, -1);
 
-        static HiresTimer gTimer;
-        gTimer.GetUSec(true);
+		static HiresTimer gTimer;
+		gTimer.GetUSec(true);
 
 #ifndef TARGET_IOS
-        drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #else
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
-		
+
 #ifndef TARGET_IOS
 		gAppUI.Gui(pGuiWindow);
 #endif
-        gAppUI.Draw(cmd);
+		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-        cmdEndDebugMarker(cmd);
-        ////////////////////////////////////////////////////////
+		cmdEndDebugMarker(cmd);
+		////////////////////////////////////////////////////////
 
-        barriers1[0] = {pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT};
-        cmdResourceBarrier(cmd, 0, NULL, 1, barriers1, true);
+		barriers1[0] = {pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT};
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers1, true);
 
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
-        endCmd(cmd);
-
-		
-        queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
-                    &pRenderCompleteSemaphore);
-        queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-        // Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-        Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-        FenceStatus fenceStatus;
-        getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-        if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-            waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+		endCmd(cmd);
 
 
-    }
+		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
+					&pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
-    tinystl::string GetName() override
-    {
-        return "09_LightShadowPlayground";
-    }
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 
-    bool addSwapChain() const
-    {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
-        SwapChainDesc swapChainDesc = {};
-        swapChainDesc.pWindow = pWindow;
-        swapChainDesc.mPresentQueueCount = 1;
-        swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-        swapChainDesc.mWidth = width;
-        swapChainDesc.mHeight = height;
-        swapChainDesc.mImageCount = gImageCount;
-        swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-        swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-        swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
-        swapChainDesc.mSrgb = false;
 
-        swapChainDesc.mEnableVsync = false;
-        ::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
-        return pSwapChain != NULL;
-    }
+	}
 
-    bool AddRenderTargetsAndSwapChain() const
-    {
-        const uint32_t width = mSettings.mWidth;
-        const uint32_t height = mSettings.mHeight;
+	tinystl::string GetName() override
+	{
+		return "09_LightShadowPlayground";
+	}
 
-        const ClearValue depthClear = {1.0f, 0};
-        const ClearValue colorClearBlack = {0.0f, 0.0f, 0.0f, 0.0f};
-        const ClearValue colorClearWhite = {1.0f, 1.0f, 1.0f, 1.0f};
+	bool addSwapChain() const
+	{
+		const uint32_t width = mSettings.mWidth;
+		const uint32_t height = mSettings.mHeight;
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
+		swapChainDesc.mWidth = width;
+		swapChainDesc.mHeight = height;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
+		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
+		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
+		swapChainDesc.mSrgb = false;
 
-        /************************************************************************/
-        // Main depth buffer
-        /************************************************************************/
-        RenderTargetDesc depthRT = {};
-        depthRT.mArraySize = 1;
-        depthRT.mClearValue = depthClear;
-        depthRT.mDepth = 1;
-        depthRT.mFormat = ImageFormat::D32F;
-        depthRT.mWidth = width;
-        depthRT.mHeight = height;
-        depthRT.mSampleCount = SAMPLE_COUNT_1;
-        depthRT.mSampleQuality = 0;
-                depthRT.pDebugName = L"Depth RT";
-        addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
-        /************************************************************************/
-        // Shadow Map Render Target
-        /************************************************************************/
-        RenderTargetDesc shadowRTDesc = {};
-        shadowRTDesc.mArraySize = 1;
-        shadowRTDesc.mClearValue = colorClearWhite;
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		return pSwapChain != NULL;
+	}
+
+	bool AddRenderTargetsAndSwapChain() const
+	{
+		const uint32_t width = mSettings.mWidth;
+		const uint32_t height = mSettings.mHeight;
+
+		const ClearValue depthClear = {1.0f, 0};
+		const ClearValue colorClearBlack = {0.0f, 0.0f, 0.0f, 0.0f};
+		const ClearValue colorClearWhite = {1.0f, 1.0f, 1.0f, 1.0f};
+
+		/************************************************************************/
+		// Main depth buffer
+		/************************************************************************/
+		RenderTargetDesc depthRT = {};
+		depthRT.mArraySize = 1;
+		depthRT.mClearValue = depthClear;
+		depthRT.mDepth = 1;
+		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mWidth = width;
+		depthRT.mHeight = height;
+		depthRT.mSampleCount = SAMPLE_COUNT_1;
+		depthRT.mSampleQuality = 0;
+				depthRT.pDebugName = L"Depth RT";
+		addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
+		/************************************************************************/
+		// Shadow Map Render Target
+		/************************************************************************/
+		RenderTargetDesc shadowRTDesc = {};
+		shadowRTDesc.mArraySize = 1;
+		shadowRTDesc.mClearValue = colorClearWhite;
 		shadowRTDesc.mDepth = 1;
-        shadowRTDesc.mFormat = ImageFormat::R32F;//ESM needs full width
-        shadowRTDesc.mWidth = width;
-        shadowRTDesc.mHeight = height;
-        shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        shadowRTDesc.mSampleQuality = 0;
-                shadowRTDesc.pDebugName = L"Shadow Map RT";
+		shadowRTDesc.mFormat = ImageFormat::R32F;//ESM needs full width
+		shadowRTDesc.mWidth = width;
+		shadowRTDesc.mHeight = height;
+		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		shadowRTDesc.mSampleQuality = 0;
+				shadowRTDesc.pDebugName = L"Shadow Map RT";
 
-        addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
-        /************************************************************************/
-        // Deferred pass render targets
-        /************************************************************************/
-        RenderTargetDesc deferredRTDesc = {};
-        deferredRTDesc.mArraySize = 1;
-        deferredRTDesc.mClearValue = colorClearBlack;
-        deferredRTDesc.mDepth = 1;
-        deferredRTDesc.mFormat = ImageFormat::RGBA8;
-        deferredRTDesc.mWidth = width;
-        deferredRTDesc.mHeight = height;
-        deferredRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        deferredRTDesc.mSampleQuality = 0;
-                deferredRTDesc.pDebugName = L"G-Buffer RTs";
-        addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]);
-        addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]);
+		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
+		/************************************************************************/
+		// Deferred pass render targets
+		/************************************************************************/
+		RenderTargetDesc deferredRTDesc = {};
+		deferredRTDesc.mArraySize = 1;
+		deferredRTDesc.mClearValue = colorClearBlack;
+		deferredRTDesc.mDepth = 1;
+		deferredRTDesc.mFormat = ImageFormat::RGBA8;
+		deferredRTDesc.mWidth = width;
+		deferredRTDesc.mHeight = height;
+		deferredRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		deferredRTDesc.mSampleQuality = 0;
+				deferredRTDesc.pDebugName = L"G-Buffer RTs";
+		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]);
+		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]);
 
-        deferredRTDesc.mFormat = ImageFormat::RGBA32F; // use 32-bit float for world scale position
-        addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_POSITION]);
+		deferredRTDesc.mFormat = ImageFormat::RGBA32F; // use 32-bit float for world scale position
+		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_POSITION]);
 
-        /************************************************************************/
-        // Skybox render target
-        /************************************************************************/
-        RenderTargetDesc skyboxRTDesc = {};
-        skyboxRTDesc.mArraySize = 1;
-        skyboxRTDesc.mClearValue = colorClearBlack;
-        skyboxRTDesc.mDepth = 1;
-        skyboxRTDesc.mFormat = ImageFormat::RGBA8;
-        skyboxRTDesc.mWidth = width;
-        skyboxRTDesc.mHeight = height;
-        skyboxRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        skyboxRTDesc.mSampleQuality = 0;
-                skyboxRTDesc.pDebugName = L"Skybox RT";
-        addRenderTarget(pRenderer, &skyboxRTDesc, &pRenderTargetSkybox);
+		/************************************************************************/
+		// Skybox render target
+		/************************************************************************/
+		RenderTargetDesc skyboxRTDesc = {};
+		skyboxRTDesc.mArraySize = 1;
+		skyboxRTDesc.mClearValue = colorClearBlack;
+		skyboxRTDesc.mDepth = 1;
+		skyboxRTDesc.mFormat = ImageFormat::RGBA8;
+		skyboxRTDesc.mWidth = width;
+		skyboxRTDesc.mHeight = height;
+		skyboxRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		skyboxRTDesc.mSampleQuality = 0;
+				skyboxRTDesc.pDebugName = L"Skybox RT";
+		addRenderTarget(pRenderer, &skyboxRTDesc, &pRenderTargetSkybox);
 
-        /************************************************************************/
-        // Sdf render target
-        /************************************************************************/
-        RenderTargetDesc sdfSimpleRTDesc = {};
-        sdfSimpleRTDesc.mArraySize = 1;
-        sdfSimpleRTDesc.mClearValue = colorClearBlack;
-        sdfSimpleRTDesc.mDepth = 1;
-        sdfSimpleRTDesc.mFormat = ImageFormat::RGBA8;//TODO: use R8 for as shadow factor
-        sdfSimpleRTDesc.mWidth = width;
-        sdfSimpleRTDesc.mHeight = height;
-        sdfSimpleRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        sdfSimpleRTDesc.mSampleQuality = 0;
-                sdfSimpleRTDesc.pDebugName = L"Sdf RT";
-        addRenderTarget(pRenderer, &sdfSimpleRTDesc, &pRenderTargetSdfSimple);
+		/************************************************************************/
+		// Sdf render target
+		/************************************************************************/
+		RenderTargetDesc sdfSimpleRTDesc = {};
+		sdfSimpleRTDesc.mArraySize = 1;
+		sdfSimpleRTDesc.mClearValue = colorClearBlack;
+		sdfSimpleRTDesc.mDepth = 1;
+		sdfSimpleRTDesc.mFormat = ImageFormat::RGBA8;//TODO: use R8 for as shadow factor
+		sdfSimpleRTDesc.mWidth = width;
+		sdfSimpleRTDesc.mHeight = height;
+		sdfSimpleRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		sdfSimpleRTDesc.mSampleQuality = 0;
+				sdfSimpleRTDesc.pDebugName = L"Sdf RT";
+		addRenderTarget(pRenderer, &sdfSimpleRTDesc, &pRenderTargetSdfSimple);
 
-        /************************************************************************/
-        // ESM Blur render target
-        /************************************************************************/
-        RenderTargetDesc esmBlurRTDesc = {};
-        esmBlurRTDesc.mArraySize = 1;
+		/************************************************************************/
+		// ESM Blur render target
+		/************************************************************************/
+		RenderTargetDesc esmBlurRTDesc = {};
+		esmBlurRTDesc.mArraySize = 1;
 		esmBlurRTDesc.mClearValue = colorClearWhite;
-        esmBlurRTDesc.mDepth = 1;
-        esmBlurRTDesc.mFormat = ImageFormat::R32F;
-        esmBlurRTDesc.mWidth = width;
-        esmBlurRTDesc.mHeight = height;
-        esmBlurRTDesc.mSampleCount = SAMPLE_COUNT_1;
-        esmBlurRTDesc.mSampleQuality = 0;
-                esmBlurRTDesc.pDebugName = L"ESM Blur RT H";
-        addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[0]);
-        esmBlurRTDesc.pDebugName = L"ESM Blur RT V";
-        addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[1]);
+		esmBlurRTDesc.mDepth = 1;
+		esmBlurRTDesc.mFormat = ImageFormat::R32F;
+		esmBlurRTDesc.mWidth = width;
+		esmBlurRTDesc.mHeight = height;
+		esmBlurRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		esmBlurRTDesc.mSampleQuality = 0;
+				esmBlurRTDesc.pDebugName = L"ESM Blur RT H";
+		addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[0]);
+		esmBlurRTDesc.pDebugName = L"ESM Blur RT V";
+		addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[1]);
 
 		return addSwapChain();
-    }
+	}
 
-    void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0)) const
-    {
-        vec3 p = pCameraController->getViewPosition();
-        vec3 d = p - lookAt;
+	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0)) const
+	{
+		vec3 p = pCameraController->getViewPosition();
+		vec3 d = p - lookAt;
 
-        float lenSqr = lengthSqr(d);
-        if (lenSqr > maxDistance * maxDistance)
-        {
-            d *= maxDistance / sqrtf(lenSqr);
-        }
+		float lenSqr = lengthSqr(d);
+		if (lenSqr > maxDistance * maxDistance)
+		{
+			d *= maxDistance / sqrtf(lenSqr);
+		}
 
-        p = d + lookAt;
-        pCameraController->moveTo(p);
-        pCameraController->lookAt(lookAt);
-    }
-	
+		p = d + lookAt;
+		pCameraController->moveTo(p);
+		pCameraController->lookAt(lookAt);
+	}
+
 	static bool cameraInputEvent(const ButtonData* data)
 	{
 		pCameraController->onInputEvent(data);
@@ -1834,11 +1834,11 @@ void GuiController::updateDynamicUI()
 			GuiController::sdfDynamicWidgets.HideDynamicProperties(pGuiWindow);
 
 		if (gRenderSettings.mShadowType == SHADOW_TYPE_ESM)
-		{			
+		{
 			GuiController::esmDynamicWidgets.ShowDynamicProperties(pGuiWindow);
 		}
 		else if (gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
-		{		
+		{
 			GuiController::sdfDynamicWidgets.ShowDynamicProperties(pGuiWindow);
 		}
 
@@ -1847,7 +1847,7 @@ void GuiController::updateDynamicUI()
 }
 
 void GuiController::addGui()
-{	
+{
 #if DEBUG_OUTPUT
 	static const char* renderModeNames[] = {
 		"Scene",
@@ -1877,7 +1877,7 @@ void GuiController::addGui()
 		float3(-lightPosBound, 5, -lightPosBound),
 		float3(lightPosBound, 30.0f, lightPosBound),
 		float3(0.1f, 0.1f, 0.1f)));
-	
+
 	static const char* shadowTypeNames[] = {
 		"No Shadow",
 		"(ESM) Exponential Shadow Mapping",
@@ -1890,9 +1890,9 @@ void GuiController::addGui()
 		SHADOW_TYPE_SDF,
 		0//needed for unix
 	};
-	
+
 	pGuiWindow->AddWidget(DropdownWidget("Shadow Type", &gRenderSettings.mShadowType, shadowTypeNames, shadowTypeValues, 3));
-	
+
 	// ESM dynamic widgets
 	{
 		static SliderUintWidget esmSoftness("ESM Softness", &gEsmCpuSettings.mFilterWidth, 0u, MAX_GAUSSIAN_WIDTH);

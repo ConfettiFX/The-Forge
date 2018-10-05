@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -300,58 +300,58 @@ Scene* loadScene(const char* fileName)
 	assimpScene.Read(&scene->totalTriangles, sizeof(uint32_t));
 
 	scene->meshes = (Mesh*)conf_calloc(scene->numMeshes, sizeof(Mesh));
-    scene->indices = tinystl::vector<uint32>(scene->totalTriangles, uint32_t(0));
+	scene->indices = tinystl::vector<uint32>(scene->totalTriangles, uint32_t(0));
 	scene->positions = tinystl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
 	scene->texCoords = tinystl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
 	scene->normals = tinystl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-    scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
+	scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
 
-    tinystl::vector<float2> texcoords(scene->totalVertices);
-    tinystl::vector<float3> normals(scene->totalVertices);
-    tinystl::vector<float3> tangents(scene->totalVertices);
+	tinystl::vector<float2> texcoords(scene->totalVertices);
+	tinystl::vector<float3> normals(scene->totalVertices);
+	tinystl::vector<float3> tangents(scene->totalVertices);
 
-    assimpScene.Read(scene->indices.data(), sizeof(uint32_t) * scene->totalTriangles);
-    assimpScene.Read(scene->positions.data(), sizeof(float3) * scene->totalVertices);
-    assimpScene.Read(texcoords.data(), sizeof(float2) * scene->totalVertices);
-    assimpScene.Read(normals.data(), sizeof(float3) * scene->totalVertices);
-    assimpScene.Read(tangents.data(), sizeof(float3) * scene->totalVertices);
+	assimpScene.Read(scene->indices.data(), sizeof(uint32_t) * scene->totalTriangles);
+	assimpScene.Read(scene->positions.data(), sizeof(float3) * scene->totalVertices);
+	assimpScene.Read(texcoords.data(), sizeof(float2) * scene->totalVertices);
+	assimpScene.Read(normals.data(), sizeof(float3) * scene->totalVertices);
+	assimpScene.Read(tangents.data(), sizeof(float3) * scene->totalVertices);
 
-    for (uint32_t v = 0; v < scene->totalVertices; v++)
-    {
-        const float3& normal = normals[v];
-        const float3& tangent = tangents[v];
-        const float2& tc = texcoords[v];
-        
+	for (uint32_t v = 0; v < scene->totalVertices; v++)
+	{
+		const float3& normal = normals[v];
+		const float3& tangent = tangents[v];
+		const float2& tc = texcoords[v];
+
 #if defined(METAL) || defined(__linux__)
-        scene->normals[v].nx = normal.x;
-        scene->normals[v].ny = normal.y;
-        scene->normals[v].nz = normal.z;
-        
-        scene->tangents[v].tx = tangent.x;
-        scene->tangents[v].ty = tangent.y;
-        scene->tangents[v].tz = tangent.z;
-        
-        scene->texCoords[v].u = tc.x;
-        scene->texCoords[v].v = 1.0f - tc.y;
+		scene->normals[v].nx = normal.x;
+		scene->normals[v].ny = normal.y;
+		scene->normals[v].nz = normal.z;
+
+		scene->tangents[v].tx = tangent.x;
+		scene->tangents[v].ty = tangent.y;
+		scene->tangents[v].tz = tangent.z;
+
+		scene->texCoords[v].u = tc.x;
+		scene->texCoords[v].v = 1.0f - tc.y;
 #else
-        scene->normals[v].normal = encodeDir(normal);
-        scene->tangents[v].tangent = encodeDir(tangent);
-        scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
+		scene->normals[v].normal = encodeDir(normal);
+		scene->tangents[v].tangent = encodeDir(tangent);
+		scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
 #endif
-    }
+	}
 
 	for (uint32_t i = 0; i < scene->numMeshes; ++i)
 	{
 		Mesh& batch = scene->meshes[i];
 
 		assimpScene.Read(&batch.materialId, sizeof(uint32_t));
-        assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
+		assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
 #if defined(METAL)
-        assimpScene.Read(&batch.startVertex, sizeof(uint32_t));
-        assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
+		assimpScene.Read(&batch.startVertex, sizeof(uint32_t));
+		assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
 #else
 	assimpScene.Read(&batch.startIndex, sizeof(uint32_t));
-        assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
+		assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
 #endif
 	}
 
@@ -409,7 +409,7 @@ Scene* loadScene(const char* fileName)
 			scene->textures[i] = (char*)conf_calloc(base_filename.size() + 1, sizeof(char));
 			strcpy(scene->textures[i], base_filename.c_str());
 
-			// try load the associated normal map 
+			// try load the associated normal map
 			tinystl::string normalMap(base_filename);
 			normalMap.rfind('.', -1, &dotPos);
 			normalMap.insert(dotPos, "_NRM", 4);
@@ -420,7 +420,7 @@ Scene* loadScene(const char* fileName)
 			scene->normalMaps[i] = (char*)conf_calloc(normalMap.size() + 1, sizeof(char));
 			strcpy(scene->normalMaps[i], normalMap.c_str());
 
-			// try load the associated spec map 
+			// try load the associated spec map
 			tinystl::string specMap(base_filename);
 			dotPos = 0;
 			specMap.rfind('.', -1, &dotPos);
@@ -460,37 +460,37 @@ Scene* loadScene(const char* fileName)
 	}
 
 	assimpScene.Close();
-    
+
 #ifdef METAL
-    // Once we have read all the geometry from the original asset, expand indices into vertices so the models are compatible with Metal implementation.
-    Scene originalScene = *scene;
-    
-    scene->totalTriangles = 0;
-    scene->totalVertices = 0;
-    scene->positions.clear();
-    scene->texCoords.clear();
-    scene->normals.clear();
-    scene->tangents.clear();
-    
-    uint32_t originalIdx = 0;
-    for (uint32_t i = 0; i < scene->numMeshes; i++)
-    {
-        scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
-        
-        uint32_t idxCount = originalScene.meshes[i].vertexCount; // Index count is stored in the vertex count member when reading the mesh on Metal.
-        for (uint32_t j = 0; j < idxCount; j++)
-        {
-            uint32_t idx = originalScene.indices[originalIdx++];
-            scene->positions.push_back(originalScene.positions[idx]);
-            scene->texCoords.push_back(originalScene.texCoords[idx]);
-            scene->normals.push_back(originalScene.normals[idx]);
-            scene->tangents.push_back(originalScene.tangents[idx]);
-        }
-        scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
-        scene->meshes[i].triangleCount = scene->meshes[i].vertexCount / 3;
-        scene->totalTriangles += scene->meshes[i].triangleCount;
-        scene->totalVertices += scene->meshes[i].vertexCount;
-    }
+	// Once we have read all the geometry from the original asset, expand indices into vertices so the models are compatible with Metal implementation.
+	Scene originalScene = *scene;
+
+	scene->totalTriangles = 0;
+	scene->totalVertices = 0;
+	scene->positions.clear();
+	scene->texCoords.clear();
+	scene->normals.clear();
+	scene->tangents.clear();
+
+	uint32_t originalIdx = 0;
+	for (uint32_t i = 0; i < scene->numMeshes; i++)
+	{
+		scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
+
+		uint32_t idxCount = originalScene.meshes[i].vertexCount; // Index count is stored in the vertex count member when reading the mesh on Metal.
+		for (uint32_t j = 0; j < idxCount; j++)
+		{
+			uint32_t idx = originalScene.indices[originalIdx++];
+			scene->positions.push_back(originalScene.positions[idx]);
+			scene->texCoords.push_back(originalScene.texCoords[idx]);
+			scene->normals.push_back(originalScene.normals[idx]);
+			scene->tangents.push_back(originalScene.tangents[idx]);
+		}
+		scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
+		scene->meshes[i].triangleCount = scene->meshes[i].vertexCount / 3;
+		scene->totalTriangles += scene->meshes[i].triangleCount;
+		scene->totalVertices += scene->meshes[i].vertexCount;
+	}
 #endif
 
 	return scene;
@@ -541,7 +541,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh)
 
 	mesh->clusterCount = (mesh->triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
 	mesh->clusters = (Cluster*)conf_malloc(mesh->clusterCount * sizeof(Cluster));
-    mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
+	mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
 	memset(mesh->clusters, 0, mesh->clusterCount * sizeof(Cluster));
 
 	const uint32_t triangleStart = mesh->startVertex / 3;  // Assumes that we have no indices and every 3 vertices are a triangle (due to Metal limitation).
@@ -791,8 +791,8 @@ void addClusterToBatchChunk(const ClusterCompact* cluster, const Mesh* mesh, uin
 
 	batchData->triangleCount = cluster->triangleCount;
 	batchData->triangleOffset = cluster->clusterStart + mesh->startVertex / 3; // each 3 vertices form a triangle
-    batchData->meshIdx = meshIdx;
-    batchData->twoSided = (isTwoSided ? 1 : 0);
+	batchData->meshIdx = meshIdx;
+	batchData->twoSided = (isTwoSided ? 1 : 0);
 }
 #else
 void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk)

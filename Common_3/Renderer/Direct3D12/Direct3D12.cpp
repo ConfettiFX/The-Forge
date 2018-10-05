@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -49,7 +49,7 @@
 
 //
 // C++ is the only language supported by D3D12:
-//     https://msdn.microsoft.com/en-us/library/windows/desktop/dn899120(v=vs.85).aspx
+//   https://msdn.microsoft.com/en-us/library/windows/desktop/dn899120(v=vs.85).aspx
 //
 #if ! defined(__cplusplus)
 #error "D3D12 requires C++! Sorry!"
@@ -86,8 +86,8 @@ static const char * g_hackSemanticList[]
 // Prefer Higher Performance GPU on switchable GPU systems
 extern "C"
 {
-	__declspec(dllexport) DWORD	NvOptimusEnablement = 1;
-	__declspec(dllexport) int	AmdPowerXpressRequestHighPerformance = 1;
+	__declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	__declspec(dllexport) int   AmdPowerXpressRequestHighPerformance = 1;
 }
 #endif
 
@@ -225,17 +225,17 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		DXGI_FORMAT_UNKNOWN, // PVR_2BPPA = 57,
 		DXGI_FORMAT_UNKNOWN, // PVR_4BPP = 58,
 		DXGI_FORMAT_UNKNOWN, // PVR_4BPPA = 59,
-		DXGI_FORMAT_UNKNOWN, // INTZ = 60,	//	NVidia hack. Supported on all DX10+ HW
-		//	XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
+		DXGI_FORMAT_UNKNOWN, // INTZ = 60,  //  NVidia hack. Supported on all DX10+ HW
+		//  XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
 		DXGI_FORMAT_UNKNOWN, // LE_XRGB8 = 61,
 		DXGI_FORMAT_UNKNOWN, // LE_ARGB8 = 62,
 		DXGI_FORMAT_UNKNOWN, // LE_X2RGB10 = 63,
 		DXGI_FORMAT_UNKNOWN, // LE_A2RGB10 = 64,
 		// compressed mobile forms
-		DXGI_FORMAT_UNKNOWN, // ETC1 = 65,	//	RGB
-		DXGI_FORMAT_UNKNOWN, // ATC = 66,	//	RGB
-		DXGI_FORMAT_UNKNOWN, // ATCA = 67,	//	RGBA, explicit alpha
-		DXGI_FORMAT_UNKNOWN, // ATCI = 68,	//	RGBA, interpolated alpha
+		DXGI_FORMAT_UNKNOWN, // ETC1 = 65,  //  RGB
+		DXGI_FORMAT_UNKNOWN, // ATC = 66,   //  RGB
+		DXGI_FORMAT_UNKNOWN, // ATCA = 67,  //  RGBA, explicit alpha
+		DXGI_FORMAT_UNKNOWN, // ATCI = 68,  //  RGBA, interpolated alpha
 		DXGI_FORMAT_UNKNOWN, // RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
 		DXGI_FORMAT_UNKNOWN, // DF16 = 70, //depth only, Intel/AMD
 		DXGI_FORMAT_UNKNOWN, // STENCILONLY = 71, // stencil ony usage
@@ -262,16 +262,16 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	};
 	const DXGI_FORMAT gDX12FormatTranslator[] = {
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::NONE
-		DXGI_FORMAT_R8_UNORM,							// ImageFormat::R8
-		DXGI_FORMAT_R8G8_UNORM,							// ImageFormat::RG8
+		DXGI_FORMAT_R8_UNORM,						   // ImageFormat::R8
+		DXGI_FORMAT_R8G8_UNORM,						 // ImageFormat::RG8
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8 not directly supported
-		DXGI_FORMAT_R8G8B8A8_UNORM,						// ImageFormat::RGBA8
-		DXGI_FORMAT_R16_UNORM,							// ImageFormat::R16
-		DXGI_FORMAT_R16G16_UNORM,						// ImageFormat::RG16
+		DXGI_FORMAT_R8G8B8A8_UNORM,					 // ImageFormat::RGBA8
+		DXGI_FORMAT_R16_UNORM,						  // ImageFormat::R16
+		DXGI_FORMAT_R16G16_UNORM,					   // ImageFormat::RG16
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB16 not directly supported
-		DXGI_FORMAT_R16G16B16A16_UNORM,					// ImageFormat::RGBA16
-		DXGI_FORMAT_R8_SNORM,							// ImageFormat::R8S
-		DXGI_FORMAT_R8G8_SNORM,							// ImageFormat::RG8S
+		DXGI_FORMAT_R16G16B16A16_UNORM,				 // ImageFormat::RGBA16
+		DXGI_FORMAT_R8_SNORM,						   // ImageFormat::R8S
+		DXGI_FORMAT_R8G8_SNORM,						 // ImageFormat::RG8S
 		DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8S not directly supported
 		DXGI_FORMAT_R8G8B8A8_SNORM,
 		DXGI_FORMAT_R16_SNORM,
@@ -322,17 +322,17 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		DXGI_FORMAT_UNKNOWN, // PVR_2BPPA = 57,
 		DXGI_FORMAT_UNKNOWN, // PVR_4BPP = 58,
 		DXGI_FORMAT_UNKNOWN, // PVR_4BPPA = 59,
-		DXGI_FORMAT_UNKNOWN, // INTZ = 60,	//	NVidia hack. Supported on all DX10+ HW
-		//	XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
+		DXGI_FORMAT_UNKNOWN, // INTZ = 60,  //  NVidia hack. Supported on all DX10+ HW
+		//  XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
 		DXGI_FORMAT_UNKNOWN, // LE_XRGB8 = 61,
 		DXGI_FORMAT_UNKNOWN, // LE_ARGB8 = 62,
 		DXGI_FORMAT_UNKNOWN, // LE_X2RGB10 = 63,
 		DXGI_FORMAT_UNKNOWN, // LE_A2RGB10 = 64,
 		// compressed mobile forms
-		DXGI_FORMAT_UNKNOWN, // ETC1 = 65,	//	RGB
-		DXGI_FORMAT_UNKNOWN, // ATC = 66,	//	RGB
-		DXGI_FORMAT_UNKNOWN, // ATCA = 67,	//	RGBA, explicit alpha
-		DXGI_FORMAT_UNKNOWN, // ATCI = 68,	//	RGBA, interpolated alpha
+		DXGI_FORMAT_UNKNOWN, // ETC1 = 65,  //  RGB
+		DXGI_FORMAT_UNKNOWN, // ATC = 66,   //  RGB
+		DXGI_FORMAT_UNKNOWN, // ATCA = 67,  //  RGBA, explicit alpha
+		DXGI_FORMAT_UNKNOWN, // ATCI = 68,  //  RGBA, interpolated alpha
 		DXGI_FORMAT_UNKNOWN, // RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
 		DXGI_FORMAT_UNKNOWN, // DF16 = 70, //depth only, Intel/AMD
 		DXGI_FORMAT_UNKNOWN, // STENCILONLY = 71, // stencil ony usage
@@ -358,7 +358,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	};
 
 	const D3D12_COMMAND_LIST_TYPE gDx12CmdTypeTranslator[CmdPoolType::MAX_CMD_TYPE] =
-	{ 
+	{
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
 		D3D12_COMMAND_LIST_TYPE_BUNDLE,
 		D3D12_COMMAND_LIST_TYPE_COPY,
@@ -394,39 +394,39 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 #endif
 
 #define SAFE_FREE(p_var)	\
-    if (p_var) {			\
-       conf_free(p_var);			\
-    }
+	if (p_var) {			\
+	   conf_free(p_var);			\
+	}
 
-#if defined(__cplusplus)  
+#if defined(__cplusplus)
 #define DECLARE_ZERO(type, var) \
-            type var = {};
+			type var = {};
 #else
 #define DECLARE_ZERO(type, var) \
-            type var = {0};                        
+			type var = {0};
 #endif
 
 #define SAFE_RELEASE(p_var) \
-    if (p_var) {               \
-       p_var->Release();               \
-       p_var = NULL;                   \
-    }
+	if (p_var) {			   \
+	   p_var->Release();			   \
+	   p_var = NULL;				   \
+	}
 
 	// Internal utility functions (may become external one day)
 	uint64_t						util_dx_determine_storage_counter_offset(uint64_t buffer_size);
-	DXGI_FORMAT						util_to_dx_image_format_typeless(ImageFormat::Enum format);
-	DXGI_FORMAT						util_to_dx_uav_format(DXGI_FORMAT defaultFormat);
-	DXGI_FORMAT						util_to_dx_dsv_format(DXGI_FORMAT defaultFormat);
-	DXGI_FORMAT						util_to_dx_srv_format(DXGI_FORMAT defaultFormat);
-	DXGI_FORMAT						util_to_dx_stencil_format(DXGI_FORMAT defaultFormat);
-	DXGI_FORMAT						util_to_dx_image_format(ImageFormat::Enum format, bool srgb);
-	DXGI_FORMAT						util_to_dx_swapchain_format(ImageFormat::Enum format);
-	D3D12_SHADER_VISIBILITY			util_to_dx_shader_visibility(ShaderStage stages);
-	D3D12_DESCRIPTOR_RANGE_TYPE		util_to_dx_descriptor_range(DescriptorType type);
-	D3D12_RESOURCE_STATES			util_to_dx_resource_state(ResourceState state);
+	DXGI_FORMAT					 util_to_dx_image_format_typeless(ImageFormat::Enum format);
+	DXGI_FORMAT					 util_to_dx_uav_format(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT					 util_to_dx_dsv_format(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT					 util_to_dx_srv_format(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT					 util_to_dx_stencil_format(DXGI_FORMAT defaultFormat);
+	DXGI_FORMAT					 util_to_dx_image_format(ImageFormat::Enum format, bool srgb);
+	DXGI_FORMAT					 util_to_dx_swapchain_format(ImageFormat::Enum format);
+	D3D12_SHADER_VISIBILITY		 util_to_dx_shader_visibility(ShaderStage stages);
+	D3D12_DESCRIPTOR_RANGE_TYPE	 util_to_dx_descriptor_range(DescriptorType type);
+	D3D12_RESOURCE_STATES		   util_to_dx_resource_state(ResourceState state);
 	D3D12_FILTER					util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled);
-	D3D12_TEXTURE_ADDRESS_MODE		util_to_dx_texture_address_mode(AddressMode addressMode);
-	D3D12_PRIMITIVE_TOPOLOGY_TYPE	util_to_dx_primitive_topology_type(PrimitiveTopology topology);
+	D3D12_TEXTURE_ADDRESS_MODE	  util_to_dx_texture_address_mode(AddressMode addressMode);
+	D3D12_PRIMITIVE_TOPOLOGY_TYPE   util_to_dx_primitive_topology_type(PrimitiveTopology topology);
 
 	//
 	// internal functions start with a capital letter / API starts with a small letter
@@ -436,26 +436,26 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	// Functions points for functions that need to be loaded
 	PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER			fnD3D12CreateRootSignatureDeserializer = NULL;
 	PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE			fnD3D12SerializeVersionedRootSignature = NULL;
-	PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER	fnD3D12CreateVersionedRootSignatureDeserializer = NULL;
+	PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER  fnD3D12CreateVersionedRootSignatureDeserializer = NULL;
 
 	// Declare hooks for platform specific behavior
-	PFN_HOOK_ADD_DESCRIPTIOR_HEAP				fnHookAddDescriptorHeap = NULL;
-	PFN_HOOK_POST_INIT_RENDERER					fnHookPostInitRenderer = NULL;
-	PFN_HOOK_ADD_BUFFER							fnHookAddBuffer = NULL;
-	PFN_HOOK_ENABLE_DEBUG_LAYER					fnHookEnableDebugLayer = NULL;
-	PFN_HOOK_HEAP_DESC							fnHookHeapDesc = NULL;
-	PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT	fnHookGetRecommendedSwapChainFormat = NULL;
-	PFN_HOOK_MODIFY_SWAP_CHAIN_DESC				fnHookModifySwapChainDesc = NULL;
-	PFN_HOOK_GET_SWAP_CHAIN_IMAGE_INDEX			fnHookGetSwapChainImageIndex = NULL;
-	PFN_HOOK_SHADER_COMPILE_FLAGS				fnHookShaderCompileFlags = NULL;
-	PFN_HOOK_RESOURCE_ALLOCATION_INFO			fnHookResourceAllocationInfo = NULL;
-	PFN_HOOK_SPECIAL_BUFFER_ALLOCATION			fnHookSpecialBufferAllocation = NULL;
-	PFN_HOOK_SPECIAL_TEXTURE_ALLOCATION			fnHookSpecialTextureAllocation = NULL;
-	PFN_HOOK_RESOURCE_FLAGS						fnHookResourceFlags = NULL;
+	PFN_HOOK_ADD_DESCRIPTIOR_HEAP			   fnHookAddDescriptorHeap = NULL;
+	PFN_HOOK_POST_INIT_RENDERER				 fnHookPostInitRenderer = NULL;
+	PFN_HOOK_ADD_BUFFER						 fnHookAddBuffer = NULL;
+	PFN_HOOK_ENABLE_DEBUG_LAYER				 fnHookEnableDebugLayer = NULL;
+	PFN_HOOK_HEAP_DESC						  fnHookHeapDesc = NULL;
+	PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT  fnHookGetRecommendedSwapChainFormat = NULL;
+	PFN_HOOK_MODIFY_SWAP_CHAIN_DESC			 fnHookModifySwapChainDesc = NULL;
+	PFN_HOOK_GET_SWAP_CHAIN_IMAGE_INDEX		 fnHookGetSwapChainImageIndex = NULL;
+	PFN_HOOK_SHADER_COMPILE_FLAGS			   fnHookShaderCompileFlags = NULL;
+	PFN_HOOK_RESOURCE_ALLOCATION_INFO		   fnHookResourceAllocationInfo = NULL;
+	PFN_HOOK_SPECIAL_BUFFER_ALLOCATION		  fnHookSpecialBufferAllocation = NULL;
+	PFN_HOOK_SPECIAL_TEXTURE_ALLOCATION		 fnHookSpecialTextureAllocation = NULL;
+	PFN_HOOK_RESOURCE_FLAGS					 fnHookResourceFlags = NULL;
 	/************************************************************************/
 	// Descriptor Heap Defines
 	/************************************************************************/
-#define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
+#define D3D12_GPU_VIRTUAL_ADDRESS_NULL	((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
 	typedef struct DescriptorHeapProperties
@@ -466,16 +466,16 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 
 	DescriptorHeapProperties gCpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] =
 	{
-		{ 1024 * 256,	D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// CBV SRV UAV
-		{ 2048,			D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// Sampler
-		{ 512,			D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// RTV
-		{ 512,			D3D12_DESCRIPTOR_HEAP_FLAG_NONE },	// DSV
+		{ 1024 * 256,   D3D12_DESCRIPTOR_HEAP_FLAG_NONE },  // CBV SRV UAV
+		{ 2048,		 D3D12_DESCRIPTOR_HEAP_FLAG_NONE },  // Sampler
+		{ 512,		  D3D12_DESCRIPTOR_HEAP_FLAG_NONE },  // RTV
+		{ 512,		  D3D12_DESCRIPTOR_HEAP_FLAG_NONE },  // DSV
 	};
 
 	DescriptorHeapProperties gGpuDescriptorHeapProperties[2] =
 	{
-		{ 1024 * 256,	D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE },	// CBV SRV UAV
-		{ 2048,		D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE },	// Sampler
+		{ 1024 * 256,   D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE },	// CBV SRV UAV
+		{ 2048,	 D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE },	// Sampler
 	};
 	/************************************************************************/
 	// Descriptor Heap Structures
@@ -701,11 +701,11 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	/// Descriptor table structure holding the native descriptor set handle
 	typedef struct DescriptorTable {
 		/// Handle to the start of the cbv_srv_uav descriptor table in the gpu visible cbv_srv_uav heap
-		D3D12_CPU_DESCRIPTOR_HANDLE		mBaseViewCpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE		mBaseViewGpuHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE	 mBaseViewCpuHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE	 mBaseViewGpuHandle;
 		/// Handle to the start of the sampler descriptor table in the gpu visible sampler heap
-		D3D12_CPU_DESCRIPTOR_HANDLE		mBaseSamplerCpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE		mBaseSamplerGpuHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE	 mBaseSamplerCpuHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE	 mBaseSamplerGpuHandle;
 	} DescriptorTable;
 
 	using DescriptorTableMap = tinystl::unordered_map<uint64_t, DescriptorTable>;
@@ -716,7 +716,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	typedef struct DescriptorManager
 	{
 		/// The root signature associated with this descriptor manager
-		RootSignature*					pRootSignature;
+		RootSignature*				  pRootSignature;
 		/// Array of flags to check whether a descriptor table of the update frequency is already bound to avoid unnecessary rebinding of descriptor tables
 		bool							mBoundTables[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Array of view descriptor handles per update frequency to be copied into the gpu visible view heap
@@ -724,7 +724,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		/// Array of sampler descriptor handles per update frequency to be copied into the gpu visible sampler heap
 		D3D12_CPU_DESCRIPTOR_HANDLE*	pSamplerDescriptorHandles[DESCRIPTOR_UPDATE_FREQ_COUNT];
 		/// Triple buffered Hash map to check if a descriptor table with a descriptor hash already exists to avoid redundant copy descriptors operations
-		DescriptorTableMap				mStaticDescriptorTableMap[MAX_FRAMES_IN_FLIGHT];
+		DescriptorTableMap			  mStaticDescriptorTableMap[MAX_FRAMES_IN_FLIGHT];
 		/// Triple buffered array of number of descriptor tables allocated per update frequency
 		/// Only used for recording stats
 		uint32_t						mDescriptorTableCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -860,14 +860,14 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 	/************************************************************************/
 	// Gloabals
 	/************************************************************************/
-	static const uint32_t		gDescriptorTableDWORDS = 1;
-	static const uint32_t		gRootDescriptorDWORDS = 2;
+	static const uint32_t	   gDescriptorTableDWORDS = 1;
+	static const uint32_t	   gRootDescriptorDWORDS = 2;
 
-	static volatile uint64_t	gBufferIds	= 0;
-	static volatile uint64_t	gTextureIds	= 0;
-	static volatile uint64_t	gSamplerIds	= 0;
+	static volatile uint64_t	gBufferIds  = 0;
+	static volatile uint64_t	gTextureIds = 0;
+	static volatile uint64_t	gSamplerIds = 0;
 
-	static uint32_t				gMaxRootConstantsPerRootParam = 4U;
+	static uint32_t			 gMaxRootConstantsPerRootParam = 4U;
 	/************************************************************************/
 	// Logging functions
 	/************************************************************************/
@@ -1349,8 +1349,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			return (comparisonFilterEnabled ? D3D12_FILTER_COMPARISON_ANISOTROPIC : D3D12_FILTER_ANISOTROPIC);
 
 		// control bit : minFilter  magFilter   mipMapMode
-		//     point   :     00         00          00
-		//     linear  :     01         01          01
+		//   point   :   00	  00	   00
+		//   linear  :   01	  01	   01
 		// ex : trilinear == 010101
 		int filter = (minFilter << 4) | (magFilter << 2) | mipMapMode;
 		int baseFilter = comparisonFilterEnabled ? D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT : D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -1783,7 +1783,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			ASSERT(SUCCEEDED(EnableExperimentalShaderModels()));
 		}
 #endif
-		
+
 		D3D_FEATURE_LEVEL feature_levels[4] =
 		{
 			D3D_FEATURE_LEVEL_12_1,
@@ -1805,7 +1805,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		IDXGIDevice1* dxgiDevice;
 		hres = pRenderer->pDxDevice->QueryInterface(IID_ARGS(&dxgiDevice));
 		ASSERT(SUCCEEDED(hres));
-		
+
 		// Identify the physical adapter (GPU or card) this device is running on.
 		IDXGIAdapter* dxgiAdapter;
 		hres = dxgiDevice->GetAdapter(&dxgiAdapter);
@@ -1814,7 +1814,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		// And obtain the factory object that created it.
 		hres = dxgiAdapter->GetParent(IID_ARGS(&pRenderer->pDXGIFactory));
 		ASSERT(SUCCEEDED(hres));
-		
+
 		typedef struct GpuDesc
 		{
 			IDXGIAdapter* pGpu = NULL;
@@ -1893,10 +1893,10 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 							sprintf(gpuDesc[pRenderer->mNumOfGPUs].mVendorId, "%#x\0", desc.VendorId);
 							//convert Revision Id
 							sprintf(gpuDesc[pRenderer->mNumOfGPUs].mRevisionId, "%#x\0", desc.Revision);
-							
+
 							//get preset for current gpu description
 							gpuDesc[pRenderer->mNumOfGPUs].mPreset = getGPUPresetLevel(gpuDesc[pRenderer->mNumOfGPUs].mVendorId, gpuDesc[pRenderer->mNumOfGPUs].mDeviceId, gpuDesc[pRenderer->mNumOfGPUs].mRevisionId);
-							
+
 							//save gpu name (Some situtations this can show description instead of name)
 							//char sName[MAX_PATH];
 							wcstombs(gpuDesc[pRenderer->mNumOfGPUs].mName, desc.Description, MAX_PATH);
@@ -1965,7 +1965,7 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 			//get wave lane count
 			pRenderer->mGpuSettings[i].mWaveLaneCount = gpuDesc[i].mFeatureDataOptions1.WaveLaneCountMin;
 			pRenderer->mGpuSettings[i].mROVsSupported = gpuDesc[i].mFeatureDataOptions.ROVsSupported ? true : false;
-#else 
+#else
 			//Default XBox values
 			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId, "XboxOne", MAX_GPU_VENDOR_STRING_LENGTH);
 			strncpy(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId, "XboxOne", MAX_GPU_VENDOR_STRING_LENGTH);
@@ -1988,8 +1988,8 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		bool activeTestingGpu = getActiveGpuConfig(activeTestingPreset);
 		if(activeTestingGpu) {
 			for(uint32_t i = 0 ; i < pRenderer->mNumOfGPUs ; i++) {
-				if(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId == activeTestingPreset.mVendorId 
-					&& pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId == activeTestingPreset.mModelId) 
+				if(pRenderer->mGpuSettings[i].mGpuVendorPreset.mVendorId == activeTestingPreset.mVendorId
+					&& pRenderer->mGpuSettings[i].mGpuVendorPreset.mModelId == activeTestingPreset.mModelId)
 				{
 					//if revision ID is valid then use it to select active GPU
 					if (pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId != "0x00" && pRenderer->mGpuSettings[i].mGpuVendorPreset.mRevisionId != activeTestingPreset.mRevisionId)
@@ -1997,14 +1997,14 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 					gpuIndex = i ;
 					break;
 				}
-			}		
+			}
 		}
 #endif
 		// Get the latest and greatest feature level gpu
 		pRenderer->pDxActiveGPU = pRenderer->pDxGPUs[gpuIndex];
 		ASSERT(pRenderer->pDxActiveGPU != NULL);
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[gpuIndex];
-		
+
 		//print selected GPU information
 		LOGINFOF("GPU[%d] is selected as default GPU", gpuIndex);
 		LOGINFOF("Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
@@ -2040,9 +2040,9 @@ extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pT
 		//HRESULT hr = pRenderer->pDxDevice->QueryInterface(IID_ARGS(&pd3dInfoQueue));
 		//if (SUCCEEDED(hr))
 		//{
-		//	pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
-		//	pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
-		//	pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, false);
+		//  pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
+		//  pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+		//  pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, false);
 		//}
 #endif
 
@@ -2157,7 +2157,7 @@ namespace d3d12 {
 				if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
 				{
 					// If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up your application to use the highest supported shader model.
-					// For simplicity we just exit the application here. 
+					// For simplicity we just exit the application here.
 					if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
 					{
 						RemoveDevice(pRenderer);
@@ -2218,7 +2218,7 @@ namespace d3d12 {
 			info.physicalDevice = pRenderer->pDxActiveGPU;
 			createAllocator(&info, &pRenderer->pResourceAllocator);
 		}
-			
+
 		create_default_resources(pRenderer);
 		/************************************************************************/
 		/************************************************************************/
@@ -3207,7 +3207,7 @@ namespace d3d12 {
 		}
 
 		if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
-		{	
+		{
 			ASSERT(srvDesc.ViewDimension != D3D12_SRV_DIMENSION_UNKNOWN);
 
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -4612,7 +4612,7 @@ namespace d3d12 {
 
 		int blendDescIndex = 0;
 #ifdef _DEBUG
-		
+
 		for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 		{
 			if (pDesc->mRenderTargetMask & (1 << i))
@@ -4640,9 +4640,9 @@ namespace d3d12 {
 		{
 			if (pDesc->mRenderTargetMask & (1 << i))
 			{
-				BOOL blendEnable = (gDx12BlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != D3D12_BLEND_ONE || 
+				BOOL blendEnable = (gDx12BlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != D3D12_BLEND_ONE ||
 					gDx12BlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != D3D12_BLEND_ZERO ||
-					gDx12BlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != D3D12_BLEND_ONE || 
+					gDx12BlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != D3D12_BLEND_ONE ||
 					gDx12BlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != D3D12_BLEND_ZERO);
 
 				pBlendState->mDxBlendDesc.RenderTarget[i].BlendEnable = blendEnable;
@@ -4951,7 +4951,7 @@ namespace d3d12 {
 		D3D12_INDEX_BUFFER_VIEW ibView = {};
 		ibView.BufferLocation = pBuffer->mDxGpuAddress + offset;
 		ibView.Format = pBuffer->mDxIndexFormat;
-		ibView.SizeInBytes = (UINT)pBuffer->mDesc.mSize;
+		ibView.SizeInBytes = (UINT)(pBuffer->mDesc.mSize - offset);
 
 		//bind given index buffer
 		pCmd->pDxCmdList->IASetIndexBuffer(&ibView);
@@ -5233,7 +5233,7 @@ namespace d3d12 {
 					}
 #endif
 					//if (j < arrayCount - 1)
-					//	_mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
+					//  _mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
 					Texture* tex = ppTextures[j];
 					pHash[setIndex] = tinystl::hash_state(&tex->mTextureId, 1, pHash[setIndex]);
 					handlePtr[j] = tex->mDxSRVDescriptor;
@@ -5263,7 +5263,7 @@ namespace d3d12 {
 					}
 #endif
 					//if (j < arrayCount - 1)
-					//	_mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
+					//  _mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
 					Texture* tex = ppTextures[j];
 					pHash[setIndex] = tinystl::hash_state(&tex->mTextureId, 1, pHash[setIndex]);
 					handlePtr[j] = tex->pDxUAVDescriptors[pParam->mUAVMipSlice];
@@ -5780,13 +5780,13 @@ namespace d3d12 {
 	}
 
 	void queueSubmit(
-		Queue*      pQueue,
-		uint32_t       cmdCount,
-		Cmd**       ppCmds,
+		Queue*	pQueue,
+		uint32_t	   cmdCount,
+		Cmd**	  ppCmds,
 		Fence* pFence,
-		uint32_t       waitSemaphoreCount,
+		uint32_t	   waitSemaphoreCount,
 		Semaphore** ppWaitSemaphores,
-		uint32_t       signalSemaphoreCount,
+		uint32_t	   signalSemaphoreCount,
 		Semaphore** ppSignalSemaphores
 	)
 	{

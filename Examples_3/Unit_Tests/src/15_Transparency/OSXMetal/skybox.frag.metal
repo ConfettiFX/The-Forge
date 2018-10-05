@@ -31,7 +31,7 @@ struct VSOutput
 };
 
 fragment float4 stageMain(VSOutput input                          [[stage_in]],
-                       sampler skySampler                         [[sampler(0)]],
+                       sampler SkySampler                         [[sampler(0)]],
                        texture2d<float,access::sample> RightText  [[texture(0)]],
                        texture2d<float,access::sample> LeftText   [[texture(1)]],
                        texture2d<float,access::sample> TopText    [[texture(2)]],
@@ -46,36 +46,36 @@ fragment float4 stageMain(VSOutput input                          [[stage_in]],
     {
         newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return RightText.sample(skySampler, newtextcoord);
+        return RightText.sample(SkySampler, newtextcoord);
     }
     else if (side == 2.0f)
     {
         newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return LeftText.sample(skySampler, newtextcoord);
+        return LeftText.sample(SkySampler, newtextcoord);
     }
     if (side == 4.0f)
     {
         newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return BotText.sample(skySampler, newtextcoord);
+        return BotText.sample(SkySampler, newtextcoord);
     }
     else if (side == 5.0f)
     {
         newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return FrontText.sample(skySampler, newtextcoord);
+        return FrontText.sample(SkySampler, newtextcoord);
     }
     else if (side == 6.0f)
     {
         newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return BackText.sample(skySampler, newtextcoord);
+        return BackText.sample(SkySampler, newtextcoord);
     }
     else
     {
         newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        return TopText.sample(skySampler, newtextcoord);
+        return TopText.sample(SkySampler, newtextcoord);
     }
 }

@@ -87,6 +87,7 @@ public:
 	DeviceButtonId GetButtonByName(const char* name) const;
 
     InputState* GetNextInputState();
+	void GetVirtualKeyboardInput(char* buffer, uint32_t inBufferLength) const;
 
 	/// Returns the platform-specific implementation of this device.
 	InputDeviceTouchImpl* GetPimpl() { return impl_; }

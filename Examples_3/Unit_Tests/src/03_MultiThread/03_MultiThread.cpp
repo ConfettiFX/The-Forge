@@ -52,7 +52,7 @@
 #pragma comment(lib, "comsuppw.lib")
 #endif
 #elif defined(__linux__)
-#include <unistd.h>	// sysconf(), _SC_NPROCESSORS_ONLN
+#include <unistd.h> // sysconf(), _SC_NPROCESSORS_ONLN
 #else
 #include <mach/mach.h>
 #include <mach/processor_info.h>
@@ -94,8 +94,8 @@ struct ObjectProperty
 	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
-const uint32_t	gSampleCount = 60;
-const uint32_t	gImageCount = 3;
+const uint32_t  gSampleCount = 60;
+const uint32_t  gImageCount = 3;
 
 struct CpuGraphData
 {
@@ -127,43 +127,43 @@ struct CpuGraph
 	GraphVertex mPoints[gSampleCount * 3];
 };
 
-const int				gTotalParticleCount = 2000000;
+const int			   gTotalParticleCount = 2000000;
 uint32_t				gGraphWidth = 200;
 uint32_t				gGraphHeight = 100;
 
-Renderer*				pRenderer = NULL;
+Renderer*			   pRenderer = NULL;
 
-Queue*					pGraphicsQueue = NULL;
+Queue*				  pGraphicsQueue = NULL;
 CmdPool*				pCmdPool = NULL;
-Cmd**					ppCmds = NULL;
+Cmd**				   ppCmds = NULL;
 CmdPool*				pGraphCmdPool = NULL;
-Cmd**					ppGraphCmds = NULL;
+Cmd**				   ppGraphCmds = NULL;
 
-Fence*					pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*				pImageAcquiredSemaphore = NULL;
-Semaphore*				pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence*				  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*			  pImageAcquiredSemaphore = NULL;
+Semaphore*			  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-SwapChain*				pSwapChain = NULL;
+SwapChain*			  pSwapChain = NULL;
 
-Shader*					pShader = NULL;
-Shader*					pSkyBoxDrawShader = NULL;
-Shader*					pGraphShader = NULL;
-Buffer*					pParticleVertexBuffer = NULL;
-Buffer*					pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*					pSkyboxUniformBuffer[gImageCount] = { NULL };
-Buffer*					pSkyBoxVertexBuffer = NULL;
-Buffer*					pBackGroundVertexBuffer[gImageCount] = { NULL };
-Pipeline*				pPipeline = NULL;
-Pipeline*				pSkyBoxDrawPipeline = NULL;
-Pipeline*				pGraphLinePipeline = NULL;
-Pipeline*				pGraphLineListPipeline = NULL;
-Pipeline*				pGraphTrianglePipeline = NULL;
-RootSignature*			pRootSignature = NULL;
-RootSignature*			pGraphRootSignature = NULL;
+Shader*				 pShader = NULL;
+Shader*				 pSkyBoxDrawShader = NULL;
+Shader*				 pGraphShader = NULL;
+Buffer*				 pParticleVertexBuffer = NULL;
+Buffer*				 pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*				 pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*				 pSkyBoxVertexBuffer = NULL;
+Buffer*				 pBackGroundVertexBuffer[gImageCount] = { NULL };
+Pipeline*			   pPipeline = NULL;
+Pipeline*			   pSkyBoxDrawPipeline = NULL;
+Pipeline*			   pGraphLinePipeline = NULL;
+Pipeline*			   pGraphLineListPipeline = NULL;
+Pipeline*			   pGraphTrianglePipeline = NULL;
+RootSignature*		  pRootSignature = NULL;
+RootSignature*		  pGraphRootSignature = NULL;
 Texture*				pTextures[5];
 Texture*				pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-VirtualJoystickUI		gVirtualJoystick;
+VirtualJoystickUI	   gVirtualJoystick;
 #endif
 Sampler*				pSampler = NULL;
 Sampler*				pSamplerSkyBox = NULL;
@@ -172,49 +172,49 @@ uint32_t				gFrameIndex = 0;
 #if defined(_WIN32)
 #if defined(_DURANGO)
 #else
-IWbemServices*			pService;
-IWbemLocator*			pLocator;
-uint64_t*				pOldTimeStamp;
-uint64_t*				pOldPprocUsage;
+IWbemServices*		  pService;
+IWbemLocator*		   pLocator;
+uint64_t*			   pOldTimeStamp;
+uint64_t*			   pOldPprocUsage;
 #endif
 #elif(__linux__)
-uint64_t*				pOldTimeStamp;
-uint64_t*				pOldPprocUsage;
+uint64_t*			   pOldTimeStamp;
+uint64_t*			   pOldPprocUsage;
 #else
-NSLock*					CPUUsageLock;
-processor_info_array_t	prevCpuInfo;
-mach_msg_type_number_t	numPrevCpuInfo;
+NSLock*				 CPUUsageLock;
+processor_info_array_t  prevCpuInfo;
+mach_msg_type_number_t  numPrevCpuInfo;
 #endif
 
 uint					gCoresCount;
-float*					pCoresLoadData;
+float*				  pCoresLoadData;
 
-BlendState*				gParticleBlend;
+BlendState*			 gParticleBlend;
 RasterizerState*		gSkyboxRast;
 
-const uint				gThreadCount = 3;
+const uint			  gThreadCount = 3;
 
-ThreadData				gThreadData[gThreadCount];
+ThreadData			  gThreadData[gThreadCount];
 mat4					gProjectView;
 mat4					gSkyboxProjectView;
 ParticleData			gParticleData;
 uint32_t				gSeed;
-float					gPaletteFactor;
+float				   gPaletteFactor;
 uint					gTextureIndex;
 
 GpuProfiler*			pGpuProfilers[gThreadCount] = { NULL };
-UIApp					gAppUI;
-ICameraController*		pCameraController = NULL;
+UIApp				   gAppUI;
+ICameraController*	  pCameraController = NULL;
 
-FileSystem				gFileSystem;
-ThreadPool				gThreadSystem;
-LogManager				gLogManager;
+FileSystem			  gFileSystem;
+ThreadPool			  gThreadSystem;
+LogManager			  gLogManager;
 
 GraphVertex gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
-CpuGraph*     pCpuGraph;
+CpuGraph*	pCpuGraph;
 
-const char*				pImageFileNames[] =
+const char*			 pImageFileNames[] =
 {
 	"Palette_Fire.png",
 	"Palette_Purple.png",
@@ -222,7 +222,7 @@ const char*				pImageFileNames[] =
 	"Palette_Rainbow.png",
 	"Palette_Sky.png"
 };
-const char*				pSkyBoxImageFileNames[] =
+const char*			 pSkyBoxImageFileNames[] =
 {
 	"Skybox_right1.png",
 	"Skybox_left2.png",
@@ -250,28 +250,28 @@ const char*				pSkyBoxImageFileNames[] =
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",									// FSR_BinShaders
-	"Shaders/",											// FSR_SrcShaders
-	"Shaders/Binary/",									// FSR_BinShaders_Common
-	"Shaders/",											// FSR_SrcShaders_Common
+	"Shaders/Binary/",								  // FSR_BinShaders
+	"Shaders/",										 // FSR_SrcShaders
+	"Shaders/Binary/",								  // FSR_BinShaders_Common
+	"Shaders/",										 // FSR_SrcShaders_Common
 	"Textures/",										// FSR_Textures
-	"Meshes/",											// FSR_Meshes
-	"Fonts/",											// FSR_Builtin_Fonts
-	"",													// FSR_OtherFiles
+	"Meshes/",										  // FSR_Meshes
+	"Fonts/",										   // FSR_Builtin_Fonts
+	"",												 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../../src/03_MultiThread/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+	"../../../src/03_MultiThread/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
 	"../../../src/03_MultiThread/" RESOURCE_DIR "/",		// FSR_SrcShaders
-	"",													// FSR_BinShaders_Common
-	"",													// FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",				// FSR_Textures
-	"../../../UnitTestResources/Meshes/",				// FSR_Meshes
+	"",												 // FSR_BinShaders_Common
+	"",												 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",			 // FSR_Textures
+	"../../../UnitTestResources/Meshes/",			   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
-	"../../../src/03_MultiThread/GPUCfg/",		// FSR_GpuConfig
-	"",													// FSR_OtherFiles
+	"../../../src/03_MultiThread/GPUCfg/",	  // FSR_GpuConfig
+	"",												 // FSR_OtherFiles
 };
 #endif
 
@@ -303,7 +303,7 @@ public:
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pGraphCmdPool);
 		addCmd_n(pGraphCmdPool, false, gImageCount, &ppGraphCmds);
 
-		// initial needed datat for each thread 
+		// initial needed datat for each thread
 		for (int i = 0; i < gThreadCount; ++i)
 		{
 			// create cmd pools and and cmdbuffers for all thread
@@ -420,11 +420,11 @@ public:
 		gTextureIndex = 0;
 
 //#ifdef _WIN32
-//		SYSTEM_INFO sysinfo;
-//		GetSystemInfo(&sysinfo);
-//		gCPUCoreCount = sysinfo.dwNumberOfProcessors;
+//	  SYSTEM_INFO sysinfo;
+//	  GetSystemInfo(&sysinfo);
+//	  gCPUCoreCount = sysinfo.dwNumberOfProcessors;
 //#elif defined(__APPLE__)
-//		gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
+//	  gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
 //#endif
 
 		//Generate sky box vertex buffer
@@ -625,7 +625,7 @@ public:
 			removeResource(pTextures[i]);
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
-        
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
@@ -808,7 +808,7 @@ public:
 		/************************************************************************/
 		// Compute matrices
 		/************************************************************************/
-		// update camera with time 
+		// update camera with time
 		mat4 modelMat = mat4::rotationX(gObjSettings.mRotX) * mat4::rotationY(gObjSettings.mRotY);
 		mat4 viewMat = pCameraController->getViewMatrix();
 
@@ -929,11 +929,11 @@ public:
 
 		static HiresTimer timer;
 		timer.GetUSec(true);
-        
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
-		
+
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if !defined(METAL)
@@ -1061,15 +1061,15 @@ public:
 	enum CPUStates
 	{
 		S_USER = 0,
-	    S_NICE,
-	    S_SYSTEM,
-	    S_IDLE,
-	    S_IOWAIT,
-	    S_IRQ,
-	    S_SOFTIRQ,
-	    S_STEAL,
-	    S_GUEST,
-	    S_GUEST_NICE,
+		S_NICE,
+		S_SYSTEM,
+		S_IDLE,
+		S_IOWAIT,
+		S_IRQ,
+		S_SOFTIRQ,
+		S_STEAL,
+		S_GUEST,
+		S_GUEST_NICE,
 
 		NUM_CPU_STATES
 	};
@@ -1155,30 +1155,30 @@ public:
 		fileStat.Open("/proc/stat", FM_ReadBinary, FSR_OtherFiles);
 
 		FILE* statHandle = (FILE*)fileStat.GetHandle();
-		if (statHandle) 
+		if (statHandle)
 		{
 			// While eof not detected, keep parsing the stat file
 			while (!feof(statHandle))
 			{
 				entries.emplace_back(CPUData());
-				CPUData & entry = entries.back();		
+				CPUData & entry = entries.back();
 				char dummyCpuName[256]; // dummy cpu name, not used.
-				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], 
+				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0],
 							&entry.times[0], &entry.times[1], &entry.times[2], &entry.times[3],
 							&entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
 							&entry.times[8], &entry.times[9]);
-			} 
+			}
 			// Close the cpu stat file
 			fileStat.Close();
 		}
 
-		for (uint32_t i = 0; i < gCoresCount; i++) 
+		for (uint32_t i = 0; i < gCoresCount; i++)
 		{
-			float ACTIVE_TIME	= static_cast<float>(GetActiveTime(entries[i]));
-			float IDLE_TIME	= static_cast<float>(GetIdleTime(entries[i]));
-		
+			float ACTIVE_TIME   = static_cast<float>(GetActiveTime(entries[i]));
+			float IDLE_TIME = static_cast<float>(GetIdleTime(entries[i]));
+
 			pCoresLoadData[i] = (ACTIVE_TIME - pOldPprocUsage[i]) / ((float)(IDLE_TIME + ACTIVE_TIME) - pOldTimeStamp[i])* 100.0f;
-			
+
 			pOldPprocUsage[i] = ACTIVE_TIME;
 			pOldTimeStamp[i] = IDLE_TIME + ACTIVE_TIME;
 		}
@@ -1445,7 +1445,7 @@ public:
 		updateResource(&vbUpdate, true);
 	}
 
-	// thread for recording particle draw 
+	// thread for recording particle draw
 	static void ParticleThreadDraw(void* pData)
 	{
 		ThreadData* data = (ThreadData*)pData;
@@ -1474,7 +1474,7 @@ public:
 		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
 		endCmd(cmd);
 	}
-	
+
 	static bool cameraInputEvent(const ButtonData* data)
 	{
 		pCameraController->onInputEvent(data);
