@@ -48,7 +48,7 @@ At the moment only the first two unit tests are running but we will extend the s
   * upgraded to 12.0 (16A366)
   * we extended imGUI support for iOS with touch support and virtual keyboard
 * Windows - fixed resizing ... should now work again with Alt+Enter ...
-* Windows DXR - The Forge was the first rendering framework to support DXR, now that there will be hardware support, we added a screenshot of one of the unit tests below. We will add support for the other Ray Tracing APIs as well. They are useful for devloping Tools. For games we recommend the Hybrid Ray-Traced solutions provided below (so far only shadows).
+* Windows DXR - The Forge was the first rendering framework to support DXR, now that there will be hardware support, we added a screenshot of one of the unit tests below. We will add support for the other Ray Tracing APIs as well. They are useful for developing Tools. For games we recommend the Hybrid Ray-Traced solutions provided below (so far only shadows).
 
 ![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
 
