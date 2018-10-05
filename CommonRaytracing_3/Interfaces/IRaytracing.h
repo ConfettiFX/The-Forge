@@ -29,7 +29,7 @@ static inline ENUM_TYPE operator&=(ENUM_TYPE& a, ENUM_TYPE b) \
 #if defined(VULKAN)
 #define ApiExport //extern "C"
 #else
-#define ApiExport 
+#define ApiExport
 #endif
 
 typedef struct Renderer Renderer;
@@ -91,81 +91,81 @@ MAKE_ENUM_FLAG(unsigned, AccelerationStructureInstanceFlags)
 typedef struct AccelerationStructureInstanceDesc
 {
 	/// Bottom Level Acceleration structure to instance (Instancing Geometry stored in this acceleration structure)
-	AccelerationStructure*	pAccelerationStructure;
+	AccelerationStructure*  pAccelerationStructure;
 	/// Row major affine transform for transforming the vertices in the geometry stored in pAccelerationStructure
-	float					mTransform[12];
+	float				   mTransform[12];
 	/// User defined instanced ID which can be queried in the shader
 	unsigned				mInstanceID;
 	unsigned				mInstanceMask;
 	unsigned				mInstanceContributionToHitGroupIndex;
-	AccelerationStructureInstanceFlags	mFlags;
+	AccelerationStructureInstanceFlags  mFlags;
 } AccelerationStructureInstanceDesc;
 
 typedef struct AccelerationStructureGeometryDesc
 {
-	AccelerationStructureGeometryType	mType;
-	AccelerationStructureGeometryFlags	mFlags;
-	Buffer*								pVertexBuffer;
-	Buffer*								pIndexBuffer;
+	AccelerationStructureGeometryType   mType;
+	AccelerationStructureGeometryFlags  mFlags;
+	Buffer*							 pVertexBuffer;
+	Buffer*							 pIndexBuffer;
 } AccelerationStructureGeometryDesc;
 /************************************************************************/
 // #mType - Either Top or Bottom Level
-//		Bottom Level Structures define the geometry data such as vertex buffers, index buffers
-//		Top Level Structures define the instance data for the geometry such as instance matrix, instance ID, ...
+//	  Bottom Level Structures define the geometry data such as vertex buffers, index buffers
+//	  Top Level Structures define the instance data for the geometry such as instance matrix, instance ID, ...
 // #mDescCount - Number of geometries or instances in this structure
 /************************************************************************/
 typedef struct AccelerationStructureDesc
 {
-	AccelerationStructureType				mType;
-	AccelerationStructureBuildFlags			mFlags;
+	AccelerationStructureType			   mType;
+	AccelerationStructureBuildFlags		 mFlags;
 	/// Number of geometries / instances in thie acceleration structure
 	unsigned								mDescCount;
 	union
 	{
 		/// Array of instances in the top level acceleration structure
-		AccelerationStructureInstanceDesc*	pInstanceDescs;
+		AccelerationStructureInstanceDesc*  pInstanceDescs;
 		/// Array of geometries in the bottom level acceleration structure
-		AccelerationStructureGeometryDesc*	pGeometryDescs;
+		AccelerationStructureGeometryDesc*  pGeometryDescs;
 	};
 } AccelerationStructureDesc;
 /************************************************************************/
 // Defines which shaders will be used by this hit group
 // #pIntersectionShaderName - Name of shader used to test intersection with ray
-//		This will be NULL as long as user does not specify ACCELERATION_STRUCTURE_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS
+//	  This will be NULL as long as user does not specify ACCELERATION_STRUCTURE_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS
 // #pAnyHitShaderName - Name of shader executed when a ray hits
-//		This will be NULL if user specifies ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE in geometry creation
-//		This shader is usually used for work like alpha testing geometry to see if an intersection is valid
+//	  This will be NULL if user specifies ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE in geometry creation
+//	  This shader is usually used for work like alpha testing geometry to see if an intersection is valid
 // #pClosestHitShaderName - Name of shader executed for the intersection closest to the ray
-//		This shader will do most of the work like shading
+//	  This shader will do most of the work like shading
 // #pHitGroupName - User defined name of the hit group. Use the same name when creating the shader table
 /************************************************************************/
 typedef struct RaytracingHitGroup
 {
-	RootSignature*		pRootSignature;
-	RaytracingShader*	pIntersectionShader;
-	RaytracingShader*	pAnyHitShader;
-	RaytracingShader*	pClosestHitShader;
-	const char*			pHitGroupName;
+	RootSignature*	  pRootSignature;
+	RaytracingShader*   pIntersectionShader;
+	RaytracingShader*   pAnyHitShader;
+	RaytracingShader*   pClosestHitShader;
+	const char*		 pHitGroupName;
 } RaytracingHitGroup;
 /************************************************************************/
 // #pGlobalRootSignature - Root Signature used by all shaders in the ppShaders array
 // #ppShaders - Array of all shaders which can be called during the raytracing operation
-//		This includes the ray generation shader, all miss, any hit, closest hit shaders
+//	  This includes the ray generation shader, all miss, any hit, closest hit shaders
 // #pHitGroups - Name of the hit groups which will tell the pipeline about which combination of hit shaders to use
 // #mPayloadSize - Size of the payload struct for passing data to and from the shaders.
-//		Example - float4 payload sent by raygen shader which will be filled by miss shader as a skybox color
-//					or by hit shader as shaded color
+//	  Example - float4 payload sent by raygen shader which will be filled by miss shader as a skybox color
+//				  or by hit shader as shaded color
 // #mAttributeSize - Size of the intersection attribute. As long as user uses the default intersection shader
-//		this size is sizeof(float2) which represents the ZW of the barycentric co-ordinates of the intersection
+//	  this size is sizeof(float2) which represents the ZW of the barycentric co-ordinates of the intersection
 /************************************************************************/
 typedef struct RaytracingPipelineDesc
 {
-	RootSignature*		pGlobalRootSignature;
-	RaytracingShader*	pRayGenShader;
-	RootSignature*		pRayGenRootSignature;
-	RaytracingShader**	ppMissShaders;
-	RootSignature**		ppMissRootSignatures;
-	RaytracingHitGroup*	pHitGroups;
+	RootSignature*	  pGlobalRootSignature;
+	RaytracingShader*   pRayGenShader;
+	RootSignature*	  pRayGenRootSignature;
+	RaytracingShader**  ppMissShaders;
+	RootSignature**	 ppMissRootSignatures;
+	RaytracingHitGroup* pHitGroups;
 	unsigned			mMissShaderCount;
 	unsigned			mHitGroupCount;
 	// #TODO : Remove this after adding shader reflection for raytracing shaders
@@ -177,15 +177,15 @@ typedef struct RaytracingPipelineDesc
 
 typedef struct RaytracingShaderTableRecordDesc
 {
-	const char*		pName;
-	RootSignature*	pRootSignature;
+	const char*	 pName;
+	RootSignature*  pRootSignature;
 	DescriptorData* pRootData;
 	unsigned		mRootDataCount;
 } RaytracingShaderTableRecordDesc;
 
 typedef struct RaytracingShaderTableDesc
 {
-	RaytracingPipeline*					pPipeline;
+	RaytracingPipeline*				 pPipeline;
 	RaytracingShaderTableRecordDesc*	pRayGenShader;
 	RaytracingShaderTableRecordDesc*	pMissShaders;
 	RaytracingShaderTableRecordDesc*	pHitGroups;
@@ -197,9 +197,9 @@ typedef struct RaytracingDispatchDesc
 {
 	uint32_t				mWidth;
 	uint32_t				mHeight;
-	AccelerationStructure*	pTopLevelAccelerationStructure;
+	AccelerationStructure*  pTopLevelAccelerationStructure;
 	// #TODO: Provide a way to provide offsets into the shader table
-	RaytracingShaderTable*	pShaderTable;
+	RaytracingShaderTable*  pShaderTable;
 } RaytracingDispatchDesc;
 
 ApiExport void initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);

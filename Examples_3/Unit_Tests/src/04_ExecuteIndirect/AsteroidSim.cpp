@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -65,7 +65,7 @@
 
 vec3 RandomPointOnSphere(MyRandom& rng)
 {
-    float angleDist = rng.GetUniformDistribution(-PI, PI);
+	float angleDist = rng.GetUniformDistribution(-PI, PI);
 	float heightDist = rng.GetUniformDistribution(-1.0f, 1.0f);
 
 	float angle = angleDist;
@@ -107,25 +107,25 @@ void AsteroidSimulation::Init(
 	for (int i = 0; i < NUM_COLOR_SCHEMES * 6; ++i)
 		linearColorSchemes[i] = sRGBToLinear((float)COLOR_SCHEMES[i] / 255.0f);
 
-    MyRandom rng(rngSeed);
+	MyRandom rng(rngSeed);
 
 	uint32_t instancesPerMesh = MAX(1, numAsteroids / numMeshes);
 
 	for (unsigned i = 0; i < numAsteroids; ++i)
 	{
-        float orbitRadiusDist = rng.GetNormalDistribution(orbitRadius, 0.6f * discRadius);
-        float heightDist = rng.GetNormalDistribution(0, 0.4f);
-        float angleDist = rng.GetUniformDistribution(-PI, PI);
-        float orbitSpeedDist = rng.GetUniformDistribution(5.0f, 15.0f);
-        float rotateSpeedDist = rng.GetUniformDistribution(-2.0f, 2.0f);
-        float scaleDist = rng.GetNormalDistribution(1.3f, 0.7f);
-        float colorSchemeDist = rng.GetNormalDistribution(0, NUM_COLOR_SCHEMES - 1);
-        int textureIndexDist = rng.GetUniformDistribution(0, textureCount - 1);
+		float orbitRadiusDist = rng.GetNormalDistribution(orbitRadius, 0.6f * discRadius);
+		float heightDist = rng.GetNormalDistribution(0, 0.4f);
+		float angleDist = rng.GetUniformDistribution(-PI, PI);
+		float orbitSpeedDist = rng.GetUniformDistribution(5.0f, 15.0f);
+		float rotateSpeedDist = rng.GetUniformDistribution(-2.0f, 2.0f);
+		float scaleDist = rng.GetNormalDistribution(1.3f, 0.7f);
+		float colorSchemeDist = rng.GetNormalDistribution(0, NUM_COLOR_SCHEMES - 1);
+		int textureIndexDist = rng.GetUniformDistribution(0, textureCount - 1);
 
 		AsteroidStatic staticAsteroid;
 
 		staticAsteroid.scale = scaleDist;
-		
+
 		float orbitRadius = orbitRadiusDist;
 
 		float height = heightDist * discRadius;
@@ -135,16 +135,16 @@ void AsteroidSimulation::Init(
 		staticAsteroid.rotationSpeed = rotateSpeedDist / staticAsteroid.scale;
 		staticAsteroid.orbitSpeed = orbitSpeedDist / (staticAsteroid.scale * orbitRadius);
 		staticAsteroid.vertexStart = vertexCountPerMesh * meshInstance;
-		
+
 		staticAsteroid.rotationAxis = v4ToF4(normalize(vec4(RandomPointOnSphere(rng), 0.0f)));
-		
+
 		staticAsteroid.textureID = unsigned(textureIndexDist);
-		
+
 		int colorScheme = ((int)abs(colorSchemeDist)) % NUM_COLOR_SCHEMES;
 		float* c = linearColorSchemes + 6 * colorScheme;
 		staticAsteroid.surfaceColor = float4(c[0], c[1], c[2], 1);
 		staticAsteroid.deepColor = float4(c[3], c[4], c[5], 1);
-		
+
 
 		asteroidsStatic.push_back(staticAsteroid);
 
@@ -175,9 +175,9 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 		AsteroidStatic& staticAsteroid = asteroidsStatic[i];
 		AsteroidDynamic& dynamicAsteroid = asteroidsDynamic[i];
 
-        ALIGNED_(16) mat4 orbit = mat4::rotation(staticAsteroid.orbitSpeed * deltaTime, vec3(0, 1, 0));
-        ALIGNED_(16) mat4 rotate = mat4::rotation(staticAsteroid.rotationSpeed * deltaTime,
-            vec3(staticAsteroid.rotationAxis.getX(), staticAsteroid.rotationAxis.getY(), staticAsteroid.rotationAxis.getZ()));
+		ALIGNED_(16) mat4 orbit = mat4::rotation(staticAsteroid.orbitSpeed * deltaTime, vec3(0, 1, 0));
+		ALIGNED_(16) mat4 rotate = mat4::rotation(staticAsteroid.rotationSpeed * deltaTime,
+			vec3(staticAsteroid.rotationAxis.getX(), staticAsteroid.rotationAxis.getY(), staticAsteroid.rotationAxis.getZ()));
 
 #if defined(_DURANGO) || defined(TARGET_IOS)
 		// XBoxOne/iOS don't support some of these SSE instructions.
@@ -214,13 +214,13 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			_mm_load_ps(rotate2),
 			_mm_load_ps(rotate3) };
 
-        __m128 transformSSE[4] = {
-            _mm_loadu_ps(transform0),
-            _mm_loadu_ps(transform1),
-            _mm_loadu_ps(transform2),
-            _mm_loadu_ps(transform3)
-        };
-        __m128 intermediateSSE[4];
+		__m128 transformSSE[4] = {
+			_mm_loadu_ps(transform0),
+			_mm_loadu_ps(transform1),
+			_mm_loadu_ps(transform2),
+			_mm_loadu_ps(transform3)
+		};
+		__m128 intermediateSSE[4];
 
 		for(int i = 0; i < 4; ++i)
 		{
@@ -230,7 +230,7 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			const __m128 vy = _mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1));
 			const __m128 vz = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2));
 			const __m128 vw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
-			intermediateSSE[i] = 
+			intermediateSSE[i] =
 				_mm_fmadd_ps(orbitSSE[0], vx,
 					_mm_fmadd_ps(orbitSSE[1], vy,
 						_mm_fmadd_ps(orbitSSE[2], vz,
@@ -250,10 +250,10 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 						_mm_fmadd_ps(intermediateSSE[2], vz,
 							_mm_mul_ps(intermediateSSE[3], vw))));
 		}
-        _mm_store_ps(transform0, transformSSE[0]);
-        _mm_store_ps(transform1, transformSSE[1]);
-        _mm_store_ps(transform2, transformSSE[2]);
-        _mm_store_ps(transform3, transformSSE[3]);
+		_mm_store_ps(transform0, transformSSE[0]);
+		_mm_store_ps(transform1, transformSSE[1]);
+		_mm_store_ps(transform2, transformSSE[2]);
+		_mm_store_ps(transform3, transformSSE[3]);
 
 		for (uint32_t i = 0; i < 4; i++)
 		{
@@ -263,12 +263,12 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			dynamicAsteroid.transform[3][i] = transform3[i];
 		}
 #endif
-        vec3 position = dynamicAsteroid.transform.getTranslation();
+		vec3 position = dynamicAsteroid.transform.getTranslation();
 		float distanceToEye = length(position - cameraPosition);
 		float relativeScreenSizeLog2 = VeryApproxLog2f(staticAsteroid.scale / distanceToEye);
 		float LODfloat = max(0.f, relativeScreenSizeLog2 - minSubdivSizeLog2);
 		unsigned LOD = min(numLODs - 1, unsigned(LODfloat));
-		
+
 		dynamicAsteroid.indexStart = indexOffsets[LOD];
 		dynamicAsteroid.indexCount = indexOffsets[LOD + 1] - dynamicAsteroid.indexStart;
 	}

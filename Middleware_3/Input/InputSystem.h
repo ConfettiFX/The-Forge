@@ -44,7 +44,7 @@
 enum GainputDeviceType
 {
 	GAINPUT_DEFAULT = 0,
-    GAINPUT_RAW_MOUSE = 1,
+	GAINPUT_RAW_MOUSE = 1,
 	GAINPUT_MOUSE = 1 << 1,
 	GAINPUT_KEYBOARD = 1 << 2,
 	GAINPUT_GAMEPAD = 1 << 3,
@@ -68,10 +68,10 @@ struct ButtonData
 		mPrevValue[0] = 0;
 		mPrevValue[1] = 0;
 		mDeltaValue[0] = 0;
-		mDeltaValue[1] = 0;	
-	} 
-	ButtonData(const ButtonData& rhs) : 
-		mUserId(rhs.mUserId), 
+		mDeltaValue[1] = 0;
+	}
+	ButtonData(const ButtonData& rhs) :
+		mUserId(rhs.mUserId),
 		mActiveDevicesMask(rhs.mActiveDevicesMask),
 		mIsPressed(rhs.mIsPressed),
 		mIsTriggered(rhs.mIsTriggered),
@@ -131,7 +131,7 @@ struct TargetMapping
 //typedef void(*InputCallbackFn)(ButtonData& button);
 //void RawMouseCallback(ButtonData& button);
 
-//Describes all the device buttons for the given 
+//Describes all the device buttons for the given
 //user key and device type
 struct KeyMappingDescription
 {
@@ -141,7 +141,7 @@ struct KeyMappingDescription
 	//max of 2 axis (x,y)
 	uint32_t mAxisCount;
 
-	//max of 4 per button. 
+	//max of 4 per button.
 	//KEyboard has 2 for axis
 	//Mouse has 1 per axis
 	//Gamepad has 1 per axis
@@ -169,10 +169,13 @@ class InputSystem
 	 ** MTKView is a subclass of UIView so we just need UIView.
 	 **/
 	static void InitSubView(void* view);
+	static void ShutdownSubView(void* view);
 #endif
 
 #ifdef _WINDOWS
 	static void HandleMessage(MSG& msg) { pInputManager->HandleMessage(msg); }
+#elif defined __ANDROID__
+	static int32_t HandleMessage(AInputEvent* msg) { return pInputManager->HandleInput(msg); }
 #elif defined(__linux__)
 	static void HandleMessage(XEvent& msg) { pInputManager->HandleEvent(msg); }
 #endif
@@ -188,7 +191,7 @@ class InputSystem
 
 	/**
 	 ** True if user key is registered.
-	 ** param:	userKey -> Used defined ID for given button. 
+	 ** param:  userKey -> Used defined ID for given button.
 	 ** userKey is defined in the KeyMappingDescription that's being used. (From InputMappings.h)
 	 **/
 	static bool IsButtonMapped(const uint32_t& userKey);
@@ -218,14 +221,14 @@ class InputSystem
 	// returns whether or not the button is mapped and has valid data
 	// button data is saved in passed struct
 	static ButtonData GetButtonData(const uint32_t& buttonId, const GainputDeviceType& device = GainputDeviceType::GAINPUT_DEFAULT);
-	
+
 	/**
 	 ** The id for touch determines which touch finger to retrieve.
 	 ** We'll get all the info for that finger
 	 ** param: buttonId -> Used defined ID for given button.
 	 ** ID was defined when calling Map or using one of the defaults defined in Init
 	 **/
-	
+
 	static void SetMouseCapture(bool mouseCapture);
 
 
@@ -235,10 +238,13 @@ class InputSystem
 	//helper function to reset mouse position when it goes to screen edge
 	static void WarpMouse(const float& x, const float& y);
 
+	static void ToggleVirtualTouchKeyboard(int enabled);
+	static bool IsVirtualKeyboardActive() {return mVirtualKeyboardActive;}
+	static void GetVirtualKeyboardTextInput(char * inputBuffer, uint32_t inputBufferSize);
 
-	//Callback for modifying data returned from gainput
-	//and normalizes the output for app logic
-	void RawMouseCallback(ButtonData& button);
+	//helper function to reduce code ducplication. Given an array of key mappings will add all keys to input map.
+	//This determines which device/Hardware keys are mapped to which user enums
+	static void AddMappings(KeyMappingDescription* mappings, uint32_t mappingCount, bool overrideMappings = false);
  private:
 
 	//Event listener for when a button's state changes
@@ -261,9 +267,9 @@ class InputSystem
 		int index_;
 	};
 
-	
-    static GainputDeviceType GetDeviceType(uint32_t deviceId);
-    
+
+	static GainputDeviceType GetDeviceType(uint32_t deviceId);
+
 	//helper functions for default mappings
 	static void SetDefaultKeyMapping();
 
@@ -278,8 +284,6 @@ class InputSystem
 #ifdef METAL
 	static void * pGainputView;
 #endif
-	//helper function to reduce code ducplication. Given an array of key mappings will add all keys to input map.
-	static void AddMappings(KeyMappingDescription* mappings, uint32_t mappingCount);
 
 	//callback broadcasters for platform events
 	static void OnInputEvent(const ButtonData& buttonData);
@@ -311,16 +315,18 @@ class InputSystem
 	static gainput::ListenerId mDeviceInputListnerID;
 
 	static tinystl::unordered_map<uint32_t, tinystl::vector<KeyMappingDescription>> mKeyMappings;
-    
-    struct UserToDeviceMap
-    {
-        uint32_t userMapping;
-        gainput::DeviceId deviceId;
-    };
-    
-    //Map holding device to user mapping
-    //[device ID, vector of all user mapped ids]
-    static tinystl::unordered_map<uint32_t, tinystl::vector<UserToDeviceMap>> mDeviceToUserMappings;
+
+	struct UserToDeviceMap
+	{
+		uint32_t userMapping;
+		gainput::DeviceId deviceId;
+	};
+
+	//Map holding device to user mapping
+	//[device ID, vector of all user mapped ids]
+	static tinystl::unordered_map<uint32_t, tinystl::vector<UserToDeviceMap>> mDeviceToUserMappings;
+
+	static bool mVirtualKeyboardActive;
 };
 
 #endif

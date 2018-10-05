@@ -22,38 +22,18 @@
 * under the License.
 */
 
-#define SPECULAR_EXP 10.0f
+#include "shading.hlsl"
 
 struct VSOutput
 {
 	float4 Position : SV_POSITION;
 	float4 WorldPosition : POSITION;
-	float4 Color : COLOR;
 	float4 Normal : NORMAL;
-};
-
-cbuffer LightUniformBlock : register(b0)
-{
-	float4x4 lightViewProj;
-	float4 lightDirection;
-	float4 lightColor;
-};
-
-cbuffer CameraUniform : register(b3)
-{
-	float4 CameraPosition;
+	float4 UV : TEXCOORD0;
+	uint MatID : MAT_ID;
 };
 
 float4 main(VSOutput input) : SV_Target
 {    
-	float3 normal = normalize(input.Normal.xyz);
-	float3 lightVec = -normalize(lightDirection.xyz);
-	float3 viewVec = normalize(input.WorldPosition.xyz - CameraPosition.xyz);
-	float dotP = dot(normal, lightVec.xyz);
-	if (dotP < 0.05f)
-		dotP = 0.05f;//set as ambient color
-	float3 diffuse = lightColor.xyz * input.Color.xyz * dotP;
-	float3 specular = lightColor.xyz * pow(saturate(dot(reflect(lightVec, normal), viewVec)), SPECULAR_EXP);
-	float3 finalColor = saturate(diffuse+ specular*0.5f);
-	return float4((finalColor).xyz, input.Color.a);
+	return Shade(input.MatID, input.UV.xy, input.WorldPosition.xyz, normalize(input.Normal.xyz));
 }

@@ -77,29 +77,29 @@
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",	// FSR_BinShaders
-	"Shaders/",		// FSR_SrcShaders
-	"Shaders/Binary/",			// FSR_BinShaders_Common
-	"Shaders/",					// FSR_SrcShaders_Common
+	"Shaders/Binary/",  // FSR_BinShaders
+	"Shaders/",	 // FSR_SrcShaders
+	"Shaders/Binary/",		  // FSR_BinShaders_Common
+	"Shaders/",				 // FSR_SrcShaders_Common
 	"Textures/",						// FSR_Textures
-	"Meshes/",						// FSR_Meshes
-	"Fonts/",						// FSR_Builtin_Fonts
-	"",								// FSR_GpuConfig
-	"",															// FSR_OtherFiles
+	"Meshes/",					  // FSR_Meshes
+	"Fonts/",					   // FSR_Builtin_Fonts
+	"",							 // FSR_GpuConfig
+	"",														 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../../src/06_MaterialPlayground/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../../src/06_MaterialPlayground/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"",													// FSR_BinShaders_Common
-	"",													// FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",				// FSR_Textures
-	"../../../UnitTestResources/Meshes/",				// FSR_Meshes
+	"../../../src/06_MaterialPlayground/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
+	"../../../src/06_MaterialPlayground/" RESOURCE_DIR "/",		 // FSR_SrcShaders
+	"",												 // FSR_BinShaders_Common
+	"",												 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",			 // FSR_Textures
+	"../../../UnitTestResources/Meshes/",			   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
-	"../../../src/06_MaterialPlayground/GPUCfg/",				// FSR_GpuConfig
-	"",													// FSR_OtherFiles
+	"../../../src/06_MaterialPlayground/GPUCfg/",			   // FSR_GpuConfig
+	"",												 // FSR_OtherFiles
 };
 #endif
 
@@ -147,7 +147,7 @@ struct Light
 
 struct UniformLightData
 {
-	// Used to tell our shaders how many lights are currently present 
+	// Used to tell our shaders how many lights are currently present
 	Light mLights[16]; // array of lights seem to be broken so just a single light for now
 	int mCurrAmountOfLights = 0;
 };
@@ -177,111 +177,111 @@ struct DynamicUiProp {
 };
 
 // PBR Texture values (these values are mirrored on the shaders).
-const uint32_t              gBRDFIntegrationSize = 512;
-const uint32_t              gSkyboxSize = 1024;
-const uint32_t              gSkyboxMips = 11;
-const uint32_t              gIrradianceSize = 32;
-const uint32_t              gSpecularSize = 128;
-const uint32_t              gSpecularMips = 5;
+const uint32_t			gBRDFIntegrationSize = 512;
+const uint32_t			gSkyboxSize = 1024;
+const uint32_t			gSkyboxMips = 11;
+const uint32_t			gIrradianceSize = 32;
+const uint32_t			gSpecularSize = 128;
+const uint32_t			gSpecularMips = 5;
 
-const uint32_t				gImageCount = 3;
+const uint32_t			  gImageCount = 3;
 
-Renderer*					pRenderer = NULL;
-UIApp						gAppUI;
-GuiComponent*			    pGui;
+Renderer*				   pRenderer = NULL;
+UIApp					   gAppUI;
+GuiComponent*			   pGui;
 
-Queue*						pGraphicsQueue = NULL;
+Queue*					  pGraphicsQueue = NULL;
 CmdPool*					pCmdPool = NULL;
-Cmd**						ppCmds = NULL;
+Cmd**					   ppCmds = NULL;
 
 CmdPool*					pUICmdPool = NULL;
-Cmd**						ppUICmds = NULL;
+Cmd**					   ppUICmds = NULL;
 
-SwapChain*					pSwapChain = NULL;
+SwapChain*				  pSwapChain = NULL;
 
-RenderTarget*				pDepthBuffer = NULL;
-Fence*						pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*					pImageAcquiredSemaphore = NULL;
-Semaphore*					pRenderCompleteSemaphores[gImageCount] = { NULL };
+RenderTarget*			   pDepthBuffer = NULL;
+Fence*					  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*				  pImageAcquiredSemaphore = NULL;
+Semaphore*				  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*						pShaderBRDF = NULL;
-Pipeline*					pPipelineBRDF = NULL;
-RootSignature*				pRootSigBRDF = NULL;
+Shader*					 pShaderBRDF = NULL;
+Pipeline*				   pPipelineBRDF = NULL;
+RootSignature*			  pRootSigBRDF = NULL;
 
-Buffer*						pSkyboxVertexBuffer = NULL;
-Shader*						pSkyboxShader = NULL;
-Pipeline*					pSkyboxPipeline = NULL;
-RootSignature*				pSkyboxRootSignature = NULL;
+Buffer*					 pSkyboxVertexBuffer = NULL;
+Shader*					 pSkyboxShader = NULL;
+Pipeline*				   pSkyboxPipeline = NULL;
+RootSignature*			  pSkyboxRootSignature = NULL;
 
 Texture*					pSkybox = NULL;
 Texture*					pBRDFIntegrationMap = NULL;
 Texture*					pIrradianceMap = NULL;
-Texture*                    pSpecularMap = NULL;
+Texture*					pSpecularMap = NULL;
 
 //added
 Texture*					pMaterialTextures[TOTAL_TEXTURES];
 
 #ifdef TARGET_IOS
-VirtualJoystickUI			gVirtualJoystick;
+VirtualJoystickUI		   gVirtualJoystick;
 #endif
 
-UniformObjData				pUniformDataMVP;
-DynamicUiProp 				gMetalSelector;
+UniformObjData			  pUniformDataMVP;
+DynamicUiProp			   gMetalSelector;
 
 /************************************************************************/
 // Vertex buffers for the model
 /************************************************************************/
-Buffer*							pVertexBufferPosition = NULL;
-Buffer*							pIndexBufferAll = NULL;
+Buffer*						 pVertexBufferPosition = NULL;
+Buffer*						 pIndexBufferAll = NULL;
 
-Buffer*						pSurfaceVertexBufferPosition = NULL;
-Buffer*						pSurfaceIndexBuffer = NULL;
-Buffer* 					pSurfaceBuffer = NULL;
+Buffer*					 pSurfaceVertexBufferPosition = NULL;
+Buffer*					 pSurfaceIndexBuffer = NULL;
+Buffer*				 pSurfaceBuffer = NULL;
 
 tinystl::vector<Buffer*>	gPlateBuffers;
 
-Buffer*						pBufferUniformCamera[gImageCount] = { NULL };
-Buffer*						pBufferUniformCameraSky[gImageCount] = { NULL };
-UniformCamData				gUniformDataCamera;
-UniformCamData				gUniformDataSky;
+Buffer*					 pBufferUniformCamera[gImageCount] = { NULL };
+Buffer*					 pBufferUniformCameraSky[gImageCount] = { NULL };
+UniformCamData			  gUniformDataCamera;
+UniformCamData			  gUniformDataSky;
 
-Buffer*						pBufferUniformLights;
+Buffer*					 pBufferUniformLights;
 UniformLightData			pUniformDataLights;
 
-Shader*						pShaderPostProc = NULL;
-Pipeline*					pPipelinePostProc = NULL;
+Shader*					 pShaderPostProc = NULL;
+Pipeline*				   pPipelinePostProc = NULL;
 
-DepthState*					pDepth = NULL;
+DepthState*				 pDepth = NULL;
 RasterizerState*			pRasterstateDefault = NULL;
 Sampler*					pSamplerBilinear = NULL;
 Sampler*					pSamplerLinear = NULL;
 
 // Vertex buffers
-Buffer*						pSphereVertexBuffer = NULL;
+Buffer*					 pSphereVertexBuffer = NULL;
 
 uint32_t					gFrameIndex = 0;
 
 GpuProfiler*				pGpuProfiler = NULL;
 
-BlendState*					pBlendStateOneZero = nullptr;
+BlendState*				 pBlendStateOneZero = nullptr;
 
 //for toggling VSync
 bool						gToggleVSync = false;
 
-const int					gSphereResolution = 30; // Increase for higher resolution spheres
-const float					gSphereDiameter = 0.5f;
-int							gNumOfSpherePoints;
+const int				   gSphereResolution = 30; // Increase for higher resolution spheres
+const float				 gSphereDiameter = 0.5f;
+int						 gNumOfSpherePoints;
 
 // How many objects in x and y direction
-const int					gAmountObjectsinX = 5;
-const int					gAmountObjectsinY = 1;
-const int 					gTotalObjects = gAmountObjectsinX * gAmountObjectsinY;
+const int				   gAmountObjectsinX = 5;
+const int				   gAmountObjectsinY = 1;
+const int				   gTotalObjects = gAmountObjectsinX * gAmountObjectsinY;
 
 
 tinystl::vector<Buffer*>	gSphereBuffers;
 tinystl::vector<UniformObjData> gUniformMVPs;
 
-ICameraController*			pCameraController = NULL;
+ICameraController*		  pCameraController = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 TextDrawDesc gMaterialPropDraw = TextDrawDesc(0, 0xff00ffff, 25);
@@ -320,7 +320,7 @@ static const uint32_t matEnumValues[] = {
 	0
 };
 
-const char*		pTextureName[] =
+const char*	 pTextureName[] =
 {
 	"albedoMap",
 	"normalMap",
@@ -330,8 +330,8 @@ const char*		pTextureName[] =
 };
 
 
-const char*		gModelName = "matBall.obj";
-const char*		gSurfaceModelName = "cube.obj";
+const char*	 gModelName = "matBall.obj";
+const char*	 gSurfaceModelName = "cube.obj";
 
 //5 textures per pbr material
 #define TEXTURE_COUNT 5
@@ -914,7 +914,7 @@ public:
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		//adding material textures
-        for (int i = 0; i <TOTAL_TEXTURES; ++i)
+		for (int i = 0; i <TOTAL_TEXTURES; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
 #ifndef TARGET_IOS
@@ -1247,14 +1247,14 @@ public:
 		pGui = gAppUI.AddGuiComponent("Select Material", &guiDesc);
 
 		/************************************************************************/
-		/************************************************************************/		
+		/************************************************************************/
 		pGui->AddWidget(DropdownWidget("Material : ", &gMaterialType, matEnumNames, matEnumValues, 2));
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)		
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
-		static DropdownWidget pbrMaterialWidget("Sub Type: ", &gMetalMaterial, metalEnumNames, metalEumValues, 5);		
+		static DropdownWidget pbrMaterialWidget("Sub Type: ", &gMetalMaterial, metalEnumNames, metalEumValues, 5);
 		gMetalSelector.mUIControl.mDynamicProperties.push_back(&pbrMaterialWidget);
 		//gMetalSelector.mUIControl.ShowDynamicProperties(pGui);
 
@@ -1510,11 +1510,11 @@ public:
 		}
 
 		gAppUI.Update(deltaTime);
-		
-		
+
+
 		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
 		updateResource(&camBuffUpdateDesc);
-		
+
 		BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky[gFrameIndex], &gUniformDataSky };
 		updateResource(&skyboxViewProjCbv);
 
@@ -1661,7 +1661,7 @@ public:
 
 				cmdDraw(cmd, gSurfaceIndices, 0);
 			}
-#endif		
+#endif
 		}
 
 
@@ -1684,7 +1684,7 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 		//draw text
-#ifdef LOAD_MATERIAL_BALL		
+#ifdef LOAD_MATERIAL_BALL
 		if (gMaterialType == Metal_Mat) {
 
 			int metalEnumIndex = 0;
@@ -1724,7 +1724,7 @@ public:
 		{
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
-		
+
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 

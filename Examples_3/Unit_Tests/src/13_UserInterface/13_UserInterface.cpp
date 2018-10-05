@@ -23,11 +23,11 @@
 */
 
 /********************************************************************************************************
-* 
+*
 * The Forge - USER INTERFACE UNIT TEST
 *
-* The purpose of this demo is to show how to use the UI layer of The Forge, 
-* covering every feature the UI library has to offer. 
+* The purpose of this demo is to show how to use the UI layer of The Forge,
+* covering every feature the UI library has to offer.
 *
 *********************************************************************************************************/
 
@@ -78,27 +78,27 @@
 const char* pszRoots[] =
 {
 	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",         // FSR_SrcShaders
+	"Shaders/",	  // FSR_SrcShaders
 	"Shaders/Binary/",  // FSR_BinShaders_Common
-	"Shaders/",         // FSR_SrcShaders_Common
-	"Textures/",        // FSR_Textures
-	"Meshes/",          // FSR_Meshes
-	"Fonts/",           // FSR_Builtin_Fonts
-	"",                 // FSR_OtherFiles
+	"Shaders/",	  // FSR_SrcShaders_Common
+	"Textures/",		// FSR_Textures
+	"Meshes/",		// FSR_Meshes
+	"Fonts/",		  // FSR_Builtin_Fonts
+	"",			  // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
 	"../../../src/13_UserInterface/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
-	"../../../src/13_UserInterface/" RESOURCE_DIR "/",        // FSR_SrcShaders
-	"",                                                         // FSR_BinShaders_Common
-	"",                                                         // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",                     // FSR_Textures
-	"../../../UnitTestResources/Meshes/",                       // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",                        // FSR_Builtin_Fonts
-	"../../../src/13_UserInterface/GPUCfg/",                  // FSR_GpuConfig
-	"",                                                         // FSR_OtherFiles
+	"../../../src/13_UserInterface/" RESOURCE_DIR "/",	  // FSR_SrcShaders
+	"",													  // FSR_BinShaders_Common
+	"",													  // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",				  // FSR_Textures
+	"../../../UnitTestResources/Meshes/",					  // FSR_Meshes
+	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
+	"../../../src/13_UserInterface/GPUCfg/",				  // FSR_GpuConfig
+	"",													  // FSR_OtherFiles
 };
 #endif
 
@@ -106,39 +106,39 @@ const char* pszRoots[] =
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
-const uint32_t		gImageCount = 3;
-Renderer*			pRenderer = NULL;
+const uint32_t	  gImageCount = 3;
+Renderer*		   pRenderer = NULL;
 
-Queue*				pGraphicsQueue = NULL;
+Queue*			  pGraphicsQueue = NULL;
 CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Cmd**			   ppCmds = NULL;
 
-SwapChain*			pSwapChain = NULL;
-RenderTarget*		pDepthBuffer = NULL;
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*		  pSwapChain = NULL;
+RenderTarget*	   pDepthBuffer = NULL;
+Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		  pImageAcquiredSemaphore = NULL;
+Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 #ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+VirtualJoystickUI   gVirtualJoystick;
 #endif
-DepthState*			pDepth = NULL;
+DepthState*		 pDepth = NULL;
 
-//Buffer*				pProjViewUniformBuffer[gImageCount] = { NULL };
+//Buffer*			   pProjViewUniformBuffer[gImageCount] = { NULL };
 uint32_t			gFrameIndex = 0;
 
 
 //--------------------------------------------------------------------------------------------
 // CAMERA CONTROLLER & SYSTEMS (File/Log/UI)
 //--------------------------------------------------------------------------------------------
-ICameraController*	pCameraController = NULL;
-FileSystem			gFileSystem;
-LogManager			gLogManager;
+ICameraController*  pCameraController = NULL;
+FileSystem		  gFileSystem;
+LogManager		  gLogManager;
 
 
-UIApp				gAppUI;
-GuiComponent*		pStandaloneControlsGUIWindow = NULL;
-GuiComponent*		pGroupedGUIWindow = NULL;
+UIApp			   gAppUI;
+GuiComponent*	   pStandaloneControlsGUIWindow = NULL;
+GuiComponent*	   pGroupedGUIWindow = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00dddd, 18);
 
@@ -157,15 +157,15 @@ struct UserInterfaceUnitTestingData
 	struct Standalone
 	{
 		DropDownItemDataType	mSelectedDropdownItemValue;
-		int			mSliderInt;
+		int		 mSliderInt;
 		unsigned	mSliderUint;
-		float		mSliderFloat;
-		float		mSliderFloatSteps;
+		float	   mSliderFloat;
+		float	   mSliderFloatSteps;
 		bool		mCheckboxToggle;
-		int32_t		mRadioButtonToggle;		
+		int32_t	 mRadioButtonToggle;
 		char		mText[STRING_SIZE];
-		size_t		mProgressBarValue;
-		size_t		mProgressBarValueMax;
+		size_t	  mProgressBarValue;
+		size_t	  mProgressBarValueMax;
 		uint		mColorForSlider;
 		const char** mContextItems;
 	} mStandalone;
@@ -186,21 +186,21 @@ tinystl::string sContextMenuItems[7] =
 	, "Dummy Context Menu Item7"
 };
 void fnItem1Callback() // sets slider color value: RGBA
-{ 
-	// LOGINFO("Contextual: Menu Item 1 Function called."); 
+{
+	// LOGINFO("Contextual: Menu Item 1 Function called.");
 	gUIData.mStandalone.mColorForSlider = packColorF32(
 		2.0f * rand() / (float)RAND_MAX - 1.0f, // r
 		2.0f * rand() / (float)RAND_MAX - 1.0f, // g
-		2.0f * rand() / (float)RAND_MAX - 1.0f, // b 
-		1.0f                                    // a
+		2.0f * rand() / (float)RAND_MAX - 1.0f, // b
+		1.0f									// a
 	);
 }
 void fnItem2Callback() // sets debug text's font color: ABGR
-{ 
-	//LOGINFO("Contextual: Menu Item 2 Function called."); 
+{
+	//LOGINFO("Contextual: Menu Item 2 Function called.");
 	gFrameTimeDraw.mFontColor = packColorF32(
-		1.0f,                                   // a
-		2.0f * rand() / (float)RAND_MAX - 1.0f, // b 
+		1.0f,								  // a
+		2.0f * rand() / (float)RAND_MAX - 1.0f, // b
 		2.0f * rand() / (float)RAND_MAX - 1.0f, // g
 		2.0f * rand() / (float)RAND_MAX - 1.0f  // r
 	);
@@ -222,10 +222,10 @@ static const char* dropDownItemNames[] =
 	NULL
 };
 static const DropDownItemDataType dropDownItemValues[] =
-{	// can be any type - not only int.
-	0xff0000dd,	// r
-	0xff00dd00,	// g
-	0xffdd0000,	// b
+{   // can be any type - not only int.
+	0xff0000dd, // r
+	0xff00dd00, // g
+	0xffdd0000, // b
 	0xff00dddd, // y
 	0xffdddd00, // c
 	0xff076fe2, // o
@@ -240,19 +240,19 @@ void ColorDropDownCallback()
 
 struct ProgressBarAnimationData
 {
-	float mFillPeriod = 5.0f;		// filling the progress bar takes 5s
-	float mCurrentTime = 0.0f;		// [0.0f, mFillPeriod]
+	float mFillPeriod = 5.0f;	   // filling the progress bar takes 5s
+	float mCurrentTime = 0.0f;	  // [0.0f, mFillPeriod]
 	bool mbAnimate = true;
 	void Update(float dt)
 	{
 		if (!mbAnimate) return;
-		mCurrentTime += dt;	// animate progress bar
+		mCurrentTime += dt; // animate progress bar
 		gUIData.mStandalone.mProgressBarValue = (size_t)((mCurrentTime / mFillPeriod) * gUIData.mStandalone.mProgressBarValueMax);
 		if (mCurrentTime >= mFillPeriod)
 		{
 			mbAnimate = false;
 			mCurrentTime = 0.0f;
-			
+
 			gUIData.mStandalone.mProgressBarValue = gUIData.mStandalone.mProgressBarValueMax;
 		}
 	}
@@ -280,9 +280,9 @@ public:
 		//
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer)	//check for init success
+		if (!pRenderer) //check for init success
 			return false;
-		
+
 
 		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
 		//
@@ -342,16 +342,16 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
-		// Add the GUI Panels/Windows 
+		// Add the GUI Panels/Windows
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0,  0xffff00ff, 16 };
 
 		// Add the UI Controls to the GUI Panel
-		// 
+		//
 		//-----------------------------------------------------------------------
 		// Note:
-		//	We bind the UI controls to data we've declared in the gUIData struct.
-		//	The UI controls directly update the variable we bind to it with the 
-		//	UIProperty() constructor.
+		//  We bind the UI controls to data we've declared in the gUIData struct.
+		//  The UI controls directly update the variable we bind to it with the
+		//  UIProperty() constructor.
 		//-----------------------------------------------------------------------
 
 		//-----------------------------------------------------------------------
@@ -367,19 +367,19 @@ public:
 			pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(sContextMenuItems[i]);
 		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
 		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
-		
+
 		// Let's show the UI demo window
 		gAppUI.mShowDemoUiWindow = true;
 
 		{
-			// Drop Down 
-			gFrameTimeDraw.mFontColor = dropDownItemValues[5];	// initial value
+			// Drop Down
+			gFrameTimeDraw.mFontColor = dropDownItemValues[5];  // initial value
 			gUIData.mStandalone.mSelectedDropdownItemValue = 5u;
 			DropdownWidget DropDown("[Drop Down] Select Text Color", &gUIData.mStandalone.mSelectedDropdownItemValue, dropDownItemNames, dropDownItemValues, 6);
 			// Add a callback
 			DropDown.pOnDeactivatedAfterEdit = ColorDropDownCallback;
 
-			// Button			
+			// Button
 			ButtonWidget Button("[Button] Fill the Progress Bar!");
 			Button.pOnDeactivatedAfterEdit = ButtonCallback;
 
@@ -403,7 +403,7 @@ public:
 			// Slider<int>
 			const int intValMin = -10;
 			const int intValMax = +10;
-			const int sliderStepSizeI = 1;			
+			const int sliderStepSizeI = 1;
 			CollapsingSliderWidgets.AddSubWidget(SliderIntWidget("[Slider<int>]", &gUIData.mStandalone.mSliderInt, intValMin, intValMax, sliderStepSizeI));
 
 			// Slider<unsigned>
@@ -415,25 +415,25 @@ public:
 			// Slider<float w/ step size>
 			const float fValMin = 0;
 			const float fValMax = 100;
-			const float sliderStepSizeF = 0.1f;			
+			const float sliderStepSizeF = 0.1f;
 			CollapsingSliderWidgets.AddSubWidget(SliderFloatWidget("[Slider<float>] Step Size=0.1f", &gUIData.mStandalone.mSliderFloat, fValMin, fValMax, sliderStepSizeF));
 
-			// Slider<float w/ step count>	
+			// Slider<float w/ step count>
 			const float _fValMin = -100.0f;
 			const float _fValMax = +100.0f;
 			const int stepCount = 6;
 			CollapsingSliderWidgets.AddSubWidget(SliderFloatWidget("[Slider<float>] Step Count=6", &gUIData.mStandalone.mSliderFloatSteps, _fValMin, _fValMax, (_fValMax - _fValMin)/ stepCount));
-			
 
-			// Textbox 
+
+			// Textbox
 			strcpy(gUIData.mStandalone.mText, "Edit Here!");
 			TextboxWidget Textbox("[Textbox]", gUIData.mStandalone.mText, UserInterfaceUnitTestingData::STRING_SIZE);
 
 			// Color Slider & Picker
 			CollapsingHeaderWidget CollapsingColorWidgets("COLOR WIDGETS");
 
-			gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);	// dark blue			
-			CollapsingColorWidgets.AddSubWidget(ColorSliderWidget("[Color Slider]", &gUIData.mStandalone.mColorForSlider));			
+			gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);   // dark blue
+			CollapsingColorWidgets.AddSubWidget(ColorSliderWidget("[Color Slider]", &gUIData.mStandalone.mColorForSlider));
 			CollapsingColorWidgets.AddSubWidget(ColorPickerWidget("[Color Picker]", &gUIData.mStandalone.mColorForSlider));
 
 			// Register the GUI elements to the Window
@@ -475,7 +475,7 @@ public:
 
 		//for (uint32_t i = 0; i < gImageCount; ++i)
 		//{
-		//	removeResource(pProjViewUniformBuffer[i]);
+		//  removeResource(pProjViewUniformBuffer[i]);
 		//}
 
 		removeDepthState(pDepth);
@@ -498,7 +498,7 @@ public:
 	bool Load()
 	{
 		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
-		// 
+		//
 		if (!addSwapChain())
 			return false;
 		if (!addDepthBuffer())
@@ -514,7 +514,7 @@ public:
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
 			return false;
 #endif
-		
+
 		return true;
 	}
 
@@ -550,16 +550,16 @@ public:
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
 
-		
-#if 0	// quick code template in case we decide to user viewProj matrices
-		// update camera with time 
+
+#if 0   // quick code template in case we decide to user viewProj matrices
+		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		gUniformData.mProjectView = projMat * viewMat;
-#endif	
+#endif
 
 		/************************************************************************/
 		// GUI
@@ -572,7 +572,7 @@ public:
 	{
 		static HiresTimer gTimer;
 		const vec4 backgroundColor = unpackColorU32(gUIData.mStandalone.mColorForSlider);
-		const ClearValue clearVal = 
+		const ClearValue clearVal =
 		{
 			backgroundColor.getX(),
 			backgroundColor.getY(),
@@ -581,7 +581,7 @@ public:
 		};
 
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		
+
 		// FRAME SYNC & ACQUIRE SWAPCHAIN RENDER TARGET
 		//
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
@@ -595,10 +595,10 @@ public:
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-		Cmd* cmd = ppCmds[gFrameIndex];	
+		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);  // start recording commands
 
-		TextureBarrier barriers[] =		// wait for resource transition
+		TextureBarrier barriers[] =	 // wait for resource transition
 		{
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
@@ -606,7 +606,7 @@ public:
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
 		// bind and clear the render target
-		LoadActionsDesc loadActions = {};	// render target clean command
+		LoadActionsDesc loadActions = {};   // render target clean command
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = clearVal;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
@@ -699,7 +699,7 @@ public:
 		pCameraController->moveTo(p);
 		pCameraController->lookAt(lookAt);
 	}
-	
+
 	static bool cameraInputEvent(const ButtonData* data)
 	{
 		pCameraController->onInputEvent(data);

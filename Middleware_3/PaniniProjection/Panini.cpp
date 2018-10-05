@@ -52,10 +52,10 @@ void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, 
 	const unsigned n = tessellationY + 1;
 	for (unsigned i = 0; i < n; ++i)
 	{
-		const float y = i * dy - 1.0f;		// offset w/ -1.0f :  [0,2]->[-1,1]
+		const float y = i * dy - 1.0f;	  // offset w/ -1.0f :  [0,2]->[-1,1]
 		for (unsigned j = 0; j < m; ++j)
 		{
-			const float x = j * dx - 1.0f;	// offset w/ -1.0f :  [0,2]->[-1,1]
+			const float x = j * dx - 1.0f;  // offset w/ -1.0f :  [0,2]->[-1,1]
 			vertices[i*m + j] = vec4(x, y, 0, 1);
 		}
 	}
@@ -72,21 +72,21 @@ void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, 
 
 	// Tessellate the quad
 	tinystl::vector<uint16_t> indices(numQuads * 6);
-	//	  A	+------+ B
-	//		|	 / |
-	//		|	/  |
-	//		|  /   |
-	//		| /	   |
-	//		|/	   |
-	//	  C	+------+ D
+	//	A +------+ B
+	//	  |	/ |
+	//	  |   /  |
+	//	  |  /   |
+	//	  | /	|
+	//	  |/	 |
+	//	C +------+ D
 	//
-	//	A	: V(i  , j  )
-	//	B	: V(i  , j+1)
-	//	C	: V(i+1, j  )
-	//	D	: V(i+1, j+1)
+	//  A   : V(i  , j  )
+	//  B   : V(i  , j+1)
+	//  C   : V(i+1, j  )
+	//  D   : V(i+1, j+1)
 	//
-	//	ABC	: (i*n +j    , i*n + j+1, (i+1)*n + j  )
-	//	CBD : ((i+1)*n +j, i*n + j+1, (i+1)*n + j+1)
+	//  ABC : (i*n +j   , i*n + j+1, (i+1)*n + j  )
+	//  CBD : ((i+1)*n +j, i*n + j+1, (i+1)*n + j+1)
 	unsigned quad = 0;
 	for (unsigned i = 0; i < tessellationY; ++i)
 	{
@@ -210,7 +210,7 @@ void Panini::Draw(Cmd* cmd)
 
 	//beginCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App
 
-	// set pipeline state 
+	// set pipeline state
 	DescriptorData params[2] = {};
 	params[0].pName = "uTex";
 	params[0].ppTextures = &pSourceTexture;

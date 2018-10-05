@@ -171,7 +171,7 @@ fragment float4 stageMain(VSOutput input                                       [
     float3 shadedColor = float3(1.0f, 1.0f, 1.0f);
     
     // Early exit if this pixel doesn't contain triangle data
-    if (alphaBit_drawID_triID != ~0)
+    if (alphaBit_drawID_triID != ~0u)
     {
         // Extract packed data
         uint drawID = (alphaBit_drawID_triID >> 23) & 0x000000FF;

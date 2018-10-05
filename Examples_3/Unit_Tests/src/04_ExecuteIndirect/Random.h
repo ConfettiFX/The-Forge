@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -32,51 +32,51 @@ class MyRandom
 {
 private:
 public:
-    MyRandom(unsigned seed = 1) {
-        SetSeed(seed);
-    }
+	MyRandom(unsigned seed = 1) {
+		SetSeed(seed);
+	}
 
-    void SetSeed(unsigned seed)
-    {
-        srand(seed);
-    }
+	void SetSeed(unsigned seed)
+	{
+		srand(seed);
+	}
 
-    float GetUniformDistribution(float min, float max)
-    {
-        return min + float(rand()) / (float(RAND_MAX / (max - min)));
-    }
+	float GetUniformDistribution(float min, float max)
+	{
+		return min + float(rand()) / (float(RAND_MAX / (max - min)));
+	}
 
-    int GetUniformDistribution(int min, int max)
-    {
-        return (rand() % (max - min)) + min;
-    }
+	int GetUniformDistribution(int min, int max)
+	{
+		return (rand() % (max - min)) + min;
+	}
 
-    // Using polar method
-    float GetNormalDistribution(float mean, float stdDev)
-    {
-        static bool hasSpare = false; // not thread-safe
-        static float spare;
-        float u, v, s;
+	// Using polar method
+	float GetNormalDistribution(float mean, float stdDev)
+	{
+		static bool hasSpare = false; // not thread-safe
+		static float spare;
+		float u, v, s;
 
-        if (hasSpare)
-        {
-            hasSpare = false;
-            return mean + stdDev * spare;
-        }
+		if (hasSpare)
+		{
+			hasSpare = false;
+			return mean + stdDev * spare;
+		}
 
-        hasSpare = true;
+		hasSpare = true;
 
-        do
-        {
-            u = (rand() / ((float)RAND_MAX)) * 2.0f - 1.0f;
-            v = (rand() / ((float)RAND_MAX)) * 2.0f - 1.0f;
-            s = u * u + v * v;
-        } while (s >= 1 || s == 0);
+		do
+		{
+			u = (rand() / ((float)RAND_MAX)) * 2.0f - 1.0f;
+			v = (rand() / ((float)RAND_MAX)) * 2.0f - 1.0f;
+			s = u * u + v * v;
+		} while (s >= 1 || s == 0);
 
-        s = sqrt((-2.0f * log(s)) / s);
-        spare = v * s;
-        return (mean + stdDev * u * s);
-    }
+		s = sqrt((-2.0f * log(s)) / s);
+		spare = v * s;
+		return (mean + stdDev * u * s);
+	}
 
-    
+
 };

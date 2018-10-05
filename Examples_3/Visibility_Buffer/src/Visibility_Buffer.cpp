@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -81,8 +81,8 @@ HiresTimer gTimer;
 
 #if defined(__linux__)
 //_countof is MSVS macro, add define for Linux. a is expected to be static array type
-#define _countof(a)                               \
-  ((sizeof(a) / sizeof(*(a))) /                     \
+#define _countof(a)							\
+  ((sizeof(a) / sizeof(*(a))) /				  \
   static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
 #endif
 
@@ -92,42 +92,42 @@ HiresTimer gTimer;
 const char* pszRoots[FSR_Count] =
 {
 #if defined(_DURANGO)
-	"Shaders/Binary/",													// FSR_BinShaders
-	"Shaders/",															// FSR_SrcShaders
-	"Shaders/Binary/",													// FSR_BinShaders_Common
-	"Shaders/",															// FSR_SrcShaders_Common
+	"Shaders/Binary/",												  // FSR_BinShaders
+	"Shaders/",														 // FSR_SrcShaders
+	"Shaders/Binary/",												  // FSR_BinShaders_Common
+	"Shaders/",														 // FSR_SrcShaders_Common
 	"Meshes/SanMiguel/",												// FSR_Textures
 	"Meshes/SanMiguel/",												// FSR_Meshes
-	"Fonts/",															// FSR_Builtin_Fonts
+	"Fonts/",														   // FSR_Builtin_Fonts
 #elif !defined(TARGET_IOS)
 	// TODO: Remove after Metal support for loading bytecode implemented
 #if defined(METAL)
-	"../../../src/" RESOURCE_DIR  "/Binary/",							// FSR_BinShaders
+	"../../../src/" RESOURCE_DIR  "/Binary/",						   // FSR_BinShaders
 #else
-	"CompiledShaders/",													// FSR_BinShaders
+	"CompiledShaders/",												 // FSR_BinShaders
 #endif
-	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders
+	"../../../src/" RESOURCE_DIR "/",								   // FSR_SrcShaders
 	"../../../src/" RESOURCE_DIR "/Binary/",							// FSR_BinShaders_Common (Currently just in same folder as other shaders)
-	"../../../src/" RESOURCE_DIR "/",									// FSR_SrcShaders_Common
-	"../../../../../Art/SanMiguel_2/",									// FSR_Textures
-	"../../../../../Art/SanMiguel_2/",									// FSR_Meshes
+	"../../../src/" RESOURCE_DIR "/",								   // FSR_SrcShaders_Common
+	"../../../../../Art/SanMiguel_2/",								  // FSR_Textures
+	"../../../../../Art/SanMiguel_2/",								  // FSR_Meshes
 	"../../../Resources/Fonts/",										// Fonts
 #else   // !defined(TARGET_IOS)
-	"",																	// FSR_BinShaders
-	"",																	// FSR_SrcShaders
-	"",																	// FSR_BinShaders_Common (Currently just in same folder as other shaders)
-	"",																	// FSR_SrcShaders_Common
-	"",																	// FSR_Textures
-	"",																	// FSR_Meshes
-	"",																	// Fonts
+	"",																 // FSR_BinShaders
+	"",																 // FSR_SrcShaders
+	"",																 // FSR_BinShaders_Common (Currently just in same folder as other shaders)
+	"",																 // FSR_SrcShaders_Common
+	"",																 // FSR_Textures
+	"",																 // FSR_Meshes
+	"",																 // Fonts
 #endif  // !defined(TARGET_IOS)
 #ifdef _DURANGO
 	"",
 	"",
-	"Shaders/",															// FSR_Lib0_SrcShaders
+	"Shaders/",														 // FSR_Lib0_SrcShaders
 #else
-	"../../../src/GPUCfg/",												// FSR_GpuConfig
-	"../../../Resources/",												// FSR_OtherFiles
+	"../../../src/GPUCfg/",											 // FSR_GpuConfig
+	"../../../Resources/",											  // FSR_OtherFiles
 #endif
 };
 
@@ -187,19 +187,19 @@ struct PerBatchConstants
 typedef struct AppSettings
 {
 	// Current active rendering mode
-    RenderMode mRenderMode = RENDERMODE_VISBUFF;
+	RenderMode mRenderMode = RENDERMODE_VISBUFF;
 
 	// Set this variable to true to bypass triangle filtering calculations, holding and representing the last filtered data.
 	// This is useful for inspecting filtered geometry for debugging purposes.
 	bool mHoldFilteredResults = false;
 
 	// This variable enables or disables triangle filtering. When filtering is disabled, all the scene is rendered unconditionally.
-    bool mFilterTriangles = true;
+	bool mFilterTriangles = true;
 	// Turns off cluster culling by default
 	// Cluster culling increases CPU time and does not provide enough benefit in terms of culling results to keep it enabled by default
-    bool mClusterCulling = false;
+	bool mClusterCulling = false;
 
-    bool mAsyncCompute = true;
+	bool mAsyncCompute = true;
 
 	// toggle rendering of local point lights
 	bool mRenderLocalLights = false;
@@ -230,7 +230,7 @@ typedef struct AppSettings
 /************************************************************************/
 // Constants
 /************************************************************************/
-const char*		gSceneName = "SanMiguel.cmesh";
+const char*	 gSceneName = "SanMiguel.cmesh";
 
 // Number of in-flight buffers
 const uint32_t gImageCount = 3;
@@ -268,124 +268,124 @@ struct PerFrameData
 /************************************************************************/
 // Settings
 /************************************************************************/
-AppSettings						gAppSettings;
+AppSettings					 gAppSettings;
 /************************************************************************/
 // Rendering data
 /************************************************************************/
-Renderer*						pRenderer = nullptr;
+Renderer*					   pRenderer = nullptr;
 /************************************************************************/
 // Synchronization primitives
 /************************************************************************/
-Fence*							pRenderCompleteFences[gImageCount] = { nullptr };
-Fence*							pComputeCompleteFences[gImageCount] = { nullptr };
-Semaphore*						pImageAcquiredSemaphore = nullptr;
-Semaphore*						pRenderCompleteSemaphores[gImageCount] = { nullptr };
-Semaphore*						pComputeCompleteSemaphores[gImageCount] = { nullptr };
+Fence*						  pRenderCompleteFences[gImageCount] = { nullptr };
+Fence*						  pComputeCompleteFences[gImageCount] = { nullptr };
+Semaphore*					  pImageAcquiredSemaphore = nullptr;
+Semaphore*					  pRenderCompleteSemaphores[gImageCount] = { nullptr };
+Semaphore*					  pComputeCompleteSemaphores[gImageCount] = { nullptr };
 /************************************************************************/
 // Queues and Command buffers
 /************************************************************************/
-Queue*							pGraphicsQueue = nullptr;
+Queue*						  pGraphicsQueue = nullptr;
 CmdPool*						pCmdPool = nullptr;
-Cmd**							ppCmds = nullptr;
+Cmd**						   ppCmds = nullptr;
 
-Queue*							pComputeQueue = nullptr;
+Queue*						  pComputeQueue = nullptr;
 CmdPool*						pComputeCmdPool = nullptr;
-Cmd**							ppComputeCmds = nullptr;
+Cmd**						   ppComputeCmds = nullptr;
 /************************************************************************/
 // Swapchain
 /************************************************************************/
-SwapChain*						pSwapChain = nullptr;
+SwapChain*					  pSwapChain = nullptr;
 /************************************************************************/
 // Clear buffers pipeline
 /************************************************************************/
-Shader*							pShaderClearBuffers = nullptr;
-Pipeline*						pPipelineClearBuffers = nullptr;
-RootSignature*					pRootSignatureClearBuffers = nullptr;
+Shader*						 pShaderClearBuffers = nullptr;
+Pipeline*					   pPipelineClearBuffers = nullptr;
+RootSignature*				  pRootSignatureClearBuffers = nullptr;
 /************************************************************************/
 // Triangle filtering pipeline
 /************************************************************************/
-Shader*							pShaderTriangleFiltering = nullptr;
-Pipeline*						pPipelineTriangleFiltering = nullptr;
-RootSignature*					pRootSignatureTriangleFiltering = nullptr;
+Shader*						 pShaderTriangleFiltering = nullptr;
+Pipeline*					   pPipelineTriangleFiltering = nullptr;
+RootSignature*				  pRootSignatureTriangleFiltering = nullptr;
 /************************************************************************/
 // Batch compaction pipeline
 /************************************************************************/
 #if !defined(METAL)
-Shader*							pShaderBatchCompaction = nullptr;
-Pipeline*						pPipelineBatchCompaction = nullptr;
-RootSignature*					pRootSignatureBatchCompaction = nullptr;
+Shader*						 pShaderBatchCompaction = nullptr;
+Pipeline*					   pPipelineBatchCompaction = nullptr;
+RootSignature*				  pRootSignatureBatchCompaction = nullptr;
 #endif
 /************************************************************************/
 // Clear light clusters pipeline
 /************************************************************************/
-Shader*							pShaderClearLightClusters = nullptr;
-Pipeline*						pPipelineClearLightClusters = nullptr;
-RootSignature*					pRootSignatureClearLightClusters = nullptr;
+Shader*						 pShaderClearLightClusters = nullptr;
+Pipeline*					   pPipelineClearLightClusters = nullptr;
+RootSignature*				  pRootSignatureClearLightClusters = nullptr;
 /************************************************************************/
 // Compute light clusters pipeline
 /************************************************************************/
-Shader*							pShaderClusterLights = nullptr;
-Pipeline*						pPipelineClusterLights = nullptr;
-RootSignature*					pRootSignatureClusterLights = nullptr;
+Shader*						 pShaderClusterLights = nullptr;
+Pipeline*					   pPipelineClusterLights = nullptr;
+RootSignature*				  pRootSignatureClusterLights = nullptr;
 /************************************************************************/
 // Shadow pass pipeline
 /************************************************************************/
-Shader*							pShaderShadowPass[gNumGeomSets] = { nullptr };
-Pipeline*						pPipelineShadowPass[gNumGeomSets] = { nullptr };
+Shader*						 pShaderShadowPass[gNumGeomSets] = { nullptr };
+Pipeline*					   pPipelineShadowPass[gNumGeomSets] = { nullptr };
 /************************************************************************/
 // VB pass pipeline
 /************************************************************************/
-Shader*							pShaderVisibilityBufferPass[gNumGeomSets] = {};
-Pipeline*						pPipelineVisibilityBufferPass[gNumGeomSets] = {};
-RootSignature*					pRootSignatureVBPass = nullptr;
-CommandSignature*				pCmdSignatureVBPass = nullptr;
+Shader*						 pShaderVisibilityBufferPass[gNumGeomSets] = {};
+Pipeline*					   pPipelineVisibilityBufferPass[gNumGeomSets] = {};
+RootSignature*				  pRootSignatureVBPass = nullptr;
+CommandSignature*			   pCmdSignatureVBPass = nullptr;
 /************************************************************************/
 // VB shade pipeline
 /************************************************************************/
-Shader*							pShaderVisibilityBufferShade[2] = { nullptr };
-Pipeline*						pPipelineVisibilityBufferShadeSrgb[2] = { nullptr };
-RootSignature*					pRootSignatureVBShade = nullptr;
+Shader*						 pShaderVisibilityBufferShade[2] = { nullptr };
+Pipeline*					   pPipelineVisibilityBufferShadeSrgb[2] = { nullptr };
+RootSignature*				  pRootSignatureVBShade = nullptr;
 /************************************************************************/
 // Deferred pass pipeline
 /************************************************************************/
-Shader*							pShaderDeferredPass[gNumGeomSets] = {};
-Pipeline*						pPipelineDeferredPass[gNumGeomSets] = {};
-RootSignature*					pRootSignatureDeferredPass = nullptr;
-CommandSignature*				pCmdSignatureDeferredPass = nullptr;
+Shader*						 pShaderDeferredPass[gNumGeomSets] = {};
+Pipeline*					   pPipelineDeferredPass[gNumGeomSets] = {};
+RootSignature*				  pRootSignatureDeferredPass = nullptr;
+CommandSignature*			   pCmdSignatureDeferredPass = nullptr;
 /************************************************************************/
 // Deferred shade pipeline
 /************************************************************************/
-Shader*							pShaderDeferredShade[2] = { nullptr };
-Pipeline*						pPipelineDeferredShadeSrgb[2] = { nullptr };
-RootSignature*					pRootSignatureDeferredShade = nullptr;
+Shader*						 pShaderDeferredShade[2] = { nullptr };
+Pipeline*					   pPipelineDeferredShadeSrgb[2] = { nullptr };
+RootSignature*				  pRootSignatureDeferredShade = nullptr;
 /************************************************************************/
 // Deferred point light shade pipeline
 /************************************************************************/
-Shader*							pShaderDeferredShadePointLight = nullptr;
-Pipeline*						pPipelineDeferredShadePointLightSrgb = nullptr;
-RootSignature*					pRootSignatureDeferredShadePointLight = nullptr;
+Shader*						 pShaderDeferredShadePointLight = nullptr;
+Pipeline*					   pPipelineDeferredShadePointLightSrgb = nullptr;
+RootSignature*				  pRootSignatureDeferredShadePointLight = nullptr;
 /************************************************************************/
 // AO pipeline
 /************************************************************************/
-Shader*							pShaderAO[4] = { nullptr };
-Pipeline*						pPipelineAO[4] = { nullptr };
-RootSignature*					pRootSignatureAO = nullptr;
+Shader*						 pShaderAO[4] = { nullptr };
+Pipeline*					   pPipelineAO[4] = { nullptr };
+RootSignature*				  pRootSignatureAO = nullptr;
 /************************************************************************/
 // Resolve pipeline
 /************************************************************************/
-Shader*							pShaderResolve = nullptr;
-Pipeline*						pPipelineResolve = nullptr;
-Pipeline*						pPipelineResolvePost = nullptr;
-RootSignature*					pRootSignatureResolve = nullptr;
+Shader*						 pShaderResolve = nullptr;
+Pipeline*					   pPipelineResolve = nullptr;
+Pipeline*					   pPipelineResolvePost = nullptr;
+RootSignature*				  pRootSignatureResolve = nullptr;
 /************************************************************************/
 // Render targets
 /************************************************************************/
-RenderTarget*					pDepthBuffer = nullptr;
-RenderTarget*					pRenderTargetVBPass = nullptr;
-RenderTarget*					pRenderTargetMSAA = nullptr;
-RenderTarget*					pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { nullptr };
-RenderTarget*					pRenderTargetShadow = nullptr;
-RenderTarget*					pRenderTargetAO = nullptr;
+RenderTarget*				   pDepthBuffer = nullptr;
+RenderTarget*				   pRenderTargetVBPass = nullptr;
+RenderTarget*				   pRenderTargetMSAA = nullptr;
+RenderTarget*				   pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { nullptr };
+RenderTarget*				   pRenderTargetShadow = nullptr;
+RenderTarget*				   pRenderTargetAO = nullptr;
 /************************************************************************/
 // Rasterizer states
 /************************************************************************/
@@ -398,12 +398,12 @@ RasterizerState*				pRasterizerStateCullNoneMS = nullptr;
 /************************************************************************/
 // Depth states
 /************************************************************************/
-DepthState*						pDepthStateEnable = nullptr;
-DepthState*						pDepthStateDisable = nullptr;
+DepthState*					 pDepthStateEnable = nullptr;
+DepthState*					 pDepthStateDisable = nullptr;
 /************************************************************************/
 // Blend state used in deferred point light shading
 /************************************************************************/
-BlendState*						pBlendStateOneZero = nullptr;
+BlendState*					 pBlendStateOneZero = nullptr;
 /************************************************************************/
 // Samplers
 /************************************************************************/
@@ -417,102 +417,102 @@ Texture*						gDiffuseMapsStorage = NULL;
 Texture*						gNormalMapsStorage = NULL;
 Texture*						gSpecularMapsStorage = NULL;
 
-tinystl::vector<Texture*>		gDiffuseMaps;
-tinystl::vector<Texture*>		gNormalMaps;
-tinystl::vector<Texture*>		gSpecularMaps;
+tinystl::vector<Texture*>	   gDiffuseMaps;
+tinystl::vector<Texture*>	   gNormalMaps;
+tinystl::vector<Texture*>	   gSpecularMaps;
 
-tinystl::vector<Texture*>		gDiffuseMapsPacked;
-tinystl::vector<Texture*>		gNormalMapsPacked;
-tinystl::vector<Texture*>		gSpecularMapsPacked;
+tinystl::vector<Texture*>	   gDiffuseMapsPacked;
+tinystl::vector<Texture*>	   gNormalMapsPacked;
+tinystl::vector<Texture*>	   gSpecularMapsPacked;
 /************************************************************************/
 // Vertex buffers for the scene
 /************************************************************************/
-Buffer*							pVertexBufferPosition = nullptr;
-Buffer*							pVertexBufferTexCoord = nullptr;
-Buffer*							pVertexBufferNormal = nullptr;
-Buffer*							pVertexBufferTangent = nullptr;
+Buffer*						 pVertexBufferPosition = nullptr;
+Buffer*						 pVertexBufferTexCoord = nullptr;
+Buffer*						 pVertexBufferNormal = nullptr;
+Buffer*						 pVertexBufferTangent = nullptr;
 /************************************************************************/
 // Indirect buffers
 /************************************************************************/
-Buffer*							pMaterialPropertyBuffer = nullptr;
-Buffer*							pPerFrameUniformBuffers[gImageCount] = { nullptr };
+Buffer*						 pMaterialPropertyBuffer = nullptr;
+Buffer*						 pPerFrameUniformBuffers[gImageCount] = { nullptr };
 
 #if defined(METAL)
 // Buffer containing all indirect draw commands for all geometry sets (no culling)
-Buffer*							pIndirectDrawArgumentsBufferAll = nullptr;
-Buffer*							pIndirectMaterialBufferAll = nullptr;
+Buffer*						 pIndirectDrawArgumentsBufferAll = nullptr;
+Buffer*						 pIndirectMaterialBufferAll = nullptr;
 // Buffer containing filtered indirect draw commands for all geometry sets (culled)
-Buffer*							pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumViews] = {};
+Buffer*						 pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumViews] = {};
 #else
 // Buffers containing all indirect draw commands per geometry set (no culling)
-Buffer*							pIndirectDrawArgumentsBufferAll[gNumGeomSets] = { nullptr };
-Buffer*							pIndirectMaterialBufferAll = nullptr;
-Buffer*							pMeshConstantsBuffer = nullptr;
+Buffer*						 pIndirectDrawArgumentsBufferAll[gNumGeomSets] = { nullptr };
+Buffer*						 pIndirectMaterialBufferAll = nullptr;
+Buffer*						 pMeshConstantsBuffer = nullptr;
 // Buffers containing filtered indirect draw commands per geometry set (culled)
-Buffer*							pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumGeomSets][gNumViews] = { nullptr };
+Buffer*						 pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumGeomSets][gNumViews] = { nullptr };
 // Buffer containing the draw args after triangle culling which will be stored compactly in the indirect buffer
-Buffer*							pUncompactedDrawArgumentsBuffer[gImageCount][gNumViews] = { nullptr };
-Buffer*							pFilterIndirectMaterialBuffer[gImageCount] = { nullptr };
+Buffer*						 pUncompactedDrawArgumentsBuffer[gImageCount][gNumViews] = { nullptr };
+Buffer*						 pFilterIndirectMaterialBuffer[gImageCount] = { nullptr };
 #endif
 /************************************************************************/
 // Index buffers
 /************************************************************************/
-Buffer*							pIndexBufferAll = nullptr;
-Buffer*							pFilteredIndexBuffer[gImageCount][gNumViews] = {};
+Buffer*						 pIndexBufferAll = nullptr;
+Buffer*						 pFilteredIndexBuffer[gImageCount][gNumViews] = {};
 /************************************************************************/
 // Other buffers for lighting, point lights,...
 /************************************************************************/
-Buffer*							pLightsBuffer = nullptr;
+Buffer*						 pLightsBuffer = nullptr;
 Buffer**						gPerBatchUniformBuffers = nullptr;
-Buffer*							pVertexBufferCube = nullptr;
-Buffer*							pIndexBufferCube = nullptr;
-Buffer*							pLightClustersCount[gImageCount] = { nullptr };
-Buffer*							pLightClusters[gImageCount] = { nullptr };
+Buffer*						 pVertexBufferCube = nullptr;
+Buffer*						 pIndexBufferCube = nullptr;
+Buffer*						 pLightClustersCount[gImageCount] = { nullptr };
+Buffer*						 pLightClusters[gImageCount] = { nullptr };
 uint64_t						gFrameCount = 0;
-Scene*							pScene = nullptr;
-UIApp							gAppUI;
-GuiComponent*					pGuiWindow = nullptr;
+Scene*						  pScene = nullptr;
+UIApp						   gAppUI;
+GuiComponent*				   pGuiWindow = nullptr;
 TextDrawDesc					gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
 #if defined(METAL)
-FilterBatchChunk*				pFilterBatchChunk[gImageCount] = { nullptr };
+FilterBatchChunk*			   pFilterBatchChunk[gImageCount] = { nullptr };
 #else
-const uint32_t					gSmallBatchChunkCount = max(1U, 512U / CLUSTER_SIZE) * 16U;
-FilterBatchChunk*				pFilterBatchChunk[gImageCount][gSmallBatchChunkCount] = { nullptr };
-UniformRingBuffer*				pFilterBatchDataBuffer[gImageCount] = { nullptr };
+const uint32_t				  gSmallBatchChunkCount = max(1U, 512U / CLUSTER_SIZE) * 16U;
+FilterBatchChunk*			   pFilterBatchChunk[gImageCount][gSmallBatchChunkCount] = { nullptr };
+UniformRingBuffer*			  pFilterBatchDataBuffer[gImageCount] = { nullptr };
 #endif
 /************************************************************************/
 // GPU Profilers
 /************************************************************************/
 GpuProfiler*					pGraphicsGpuProfiler =  nullptr;
 GpuProfiler*					pComputeGpuProfiler  =  nullptr;
-ICameraController*				pCameraController = nullptr;
+ICameraController*			  pCameraController = nullptr;
 /************************************************************************/
 // CPU staging data
 /************************************************************************/
 // CPU buffers for light data
-LightData						gLightData[LIGHT_COUNT] = {};
+LightData					   gLightData[LIGHT_COUNT] = {};
 
 PerFrameData					gPerFrame[gImageCount] = {};
-RenderTarget*					pScreenRenderTarget = nullptr;
+RenderTarget*				   pScreenRenderTarget = nullptr;
 /************************************************************************/
 // Screen resolution UI data
 /************************************************************************/
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 IWidget*						gResolutionProperty = nullptr;
-tinystl::vector<Resolution>		gResolutions;
+tinystl::vector<Resolution>	 gResolutions;
 uint32_t						gResolutionIndex = 0;
 bool							gResolutionChange = false;
 #endif
 /************************************************************************/
 /************************************************************************/
-class VisibilityBuffer*			pVisibilityBuffer = nullptr;
+class VisibilityBuffer*		 pVisibilityBuffer = nullptr;
 /************************************************************************/
 // Culling intrinsic data
 /************************************************************************/
-const uint32_t					pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
+const uint32_t				  pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 // App implementation
 /************************************************************************/
@@ -826,7 +826,7 @@ public:
 		Shader* pShaders[gNumGeomSets * 2] = {};
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
-            pShaders[i * 2] = pShaderVisibilityBufferPass[i];
+			pShaders[i * 2] = pShaderVisibilityBufferPass[i];
 			pShaders[i * 2 + 1] = pShaderShadowPass[i];
 		}
 		RootSignatureDesc vbRootDesc = { pShaders, gNumGeomSets * 2 };
@@ -1039,7 +1039,7 @@ public:
 		CheckboxWidget toggleAO("Enable HDAO", &gAppSettings.mEnableHDAO);
 		pGuiWindow->AddWidget(toggleAO);
 
-		tinystl::vector<IWidget*>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;	// shorthand
+		tinystl::vector<IWidget*>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;   // shorthand
 		dynamicPropsAO.emplace_back(SliderFloatWidget("AO accept radius", &gAppSettings.mAcceptRadius, 0, 10).Clone());
 		dynamicPropsAO.emplace_back(SliderFloatWidget("AO reject radius", &gAppSettings.mRejectRadius, 0, 10).Clone());
 		dynamicPropsAO.emplace_back(SliderFloatWidget("AO intensity radius", &gAppSettings.mAOIntensity, 0, 10).Clone());
@@ -1435,7 +1435,7 @@ public:
 		vbShadePipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
 		vbShadePipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		vbShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		
+
 #endif
 
 #if defined(_DURANGO) && 1
@@ -1603,7 +1603,7 @@ public:
 		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
 		waitForFences(pComputeQueue, gImageCount, pComputeCompleteFences, true);
 
-		gAppUI.Unload();		
+		gAppUI.Unload();
 
 		for (uint32_t i = 0; i < 4; ++i)
 			removePipeline(pRenderer, pPipelineAO[i]);
@@ -1669,12 +1669,12 @@ public:
 
 	void Draw()
 	{
-        gRenderFrameIdx = (gRenderFrameIdx + 1) % gImageCount;
-        
+		gRenderFrameIdx = (gRenderFrameIdx + 1) % gImageCount;
+
 		if (!gAppSettings.mAsyncCompute || gFrameCount > 0)
 		{
-            // Get the current render target for this frame
-            acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &gPresentFrameIdx);
+			// Get the current render target for this frame
+			acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &gPresentFrameIdx);
 			// check to see if we can use the cmd buffer
 			Fence* pNextFence = pRenderCompleteFences[gRenderFrameIdx];
 			FenceStatus fenceStatus;
@@ -1869,7 +1869,7 @@ public:
 			Semaphore* pWaitSemaphores[] = { pRenderCompleteSemaphores[gRenderFrameIdx] };
 			queuePresent(pGraphicsQueue, pSwapChain, gPresentFrameIdx, 1, pWaitSemaphores);
 		}
-        
+
 		++gFrameCount;
 	}
 
@@ -1877,7 +1877,7 @@ public:
 	{
 		return "Visibility Buffer";
 	}
-    
+
 
 
 	/************************************************************************/
@@ -2922,8 +2922,8 @@ public:
 				DescriptorData meshParams[2] = {};
 				meshParams[0].pName = "perBatch";
 				meshParams[0].ppBuffers = &gPerBatchUniformBuffers[m];
-                meshParams[1].pName = "diffuseMap";
-                meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
+				meshParams[1].pName = "diffuseMap";
+				meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
 				cmdBindDescriptors(cmd, pRootSignatureVBPass, 2, meshParams);
 				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), nullptr, 0);
 			}
@@ -3073,7 +3073,7 @@ public:
 		cmdBindPipeline(cmd, pPipelineVisibilityBufferShadeSrgb[gAppSettings.mEnableHDAO]);
 
 #if defined(METAL)
-		const uint32_t numDescriptors = 17;
+		const uint32_t numDescriptors = 16;
 #else
 		const uint32_t numDescriptors = 18;
 		Buffer* pIndirectBuffers[gNumGeomSets] = { nullptr };
@@ -3125,8 +3125,6 @@ public:
 		vbShadeParams[15].pName = "indirectMaterialBuffer";
 #if defined(METAL)
 		vbShadeParams[15].ppBuffers = &pIndirectMaterialBufferAll;
-        vbShadeParams[16].pName = "textureSampler";
-        vbShadeParams[16].ppSamplers = &pSamplerBilinear;
 #else
 		vbShadeParams[15].ppBuffers = gAppSettings.mFilterTriangles ? &pFilterIndirectMaterialBuffer[frameIdx] : &pIndirectMaterialBufferAll;
 		vbShadeParams[16].pName = "filteredIndexBuffer";
@@ -3346,12 +3344,12 @@ public:
 	{
 		struct HDAORootConstants
 		{
-			float2 g_f2RTSize;                  // Used by HDAO shaders for scaling texture coords
-			float g_fHDAORejectRadius;          // HDAO param
-			float g_fHDAOIntensity;             // HDAO param
-			float g_fHDAOAcceptRadius;          // HDAO param
-			float g_fQ;                         // far / (far - near)
-			float g_fQTimesZNear;               // Q * near
+			float2 g_f2RTSize;				// Used by HDAO shaders for scaling texture coords
+			float g_fHDAORejectRadius;		// HDAO param
+			float g_fHDAOIntensity;		  // HDAO param
+			float g_fHDAOAcceptRadius;		// HDAO param
+			float g_fQ;					  // far / (far - near)
+			float g_fQTimesZNear;			  // Q * near
 		} data;
 
 		const mat4& mainProj = gPerFrame[frameIdx].gPerFrameUniformData.transform[VIEW_CAMERA].projection;
@@ -3436,7 +3434,7 @@ public:
 	// The results of executing this shader are stored in:
 	// - pFilteredTriangles: list of triangle IDs that passed the culling tests
 	// - pIndirectDrawArguments: the vertexCount member of this structure is calculated in order to
-	//                           indicate the renderer the amount of vertices per batch to render.
+	//						 indicate the renderer the amount of vertices per batch to render.
 #if defined(METAL)
 	void filterTriangles(Cmd *cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk, uint64_t bufferOffset)
 	{
@@ -3547,20 +3545,20 @@ public:
 
 	//static inline uint32_t genClipMask(float4 f)
 	//{
-	//	uint32_t result = 0;
+	//  uint32_t result = 0;
 	//
-	//	//X
-	//	if (f.x <= f.w)  result |=  0x1;
-	//	if (f.x >= -f.w) result |=  0x2;
+	//  //X
+	//  if (f.x <= f.w)  result |=  0x1;
+	//  if (f.x >= -f.w) result |=  0x2;
 	//
-	//	//Y
-	//	if (f.y <= f.w)  result |=  0x4;
-	//	if (f.y >= -f.w) result |=  0x8;
+	//  //Y
+	//  if (f.y <= f.w)  result |=  0x4;
+	//  if (f.y >= -f.w) result |=  0x8;
 	//
-	//	//Z
-	//	if (f.z <= f.w)  result |= 0x10;
-	//	if (f.z >= 0)    result |= 0x20;
-	//	return result;
+	//  //Z
+	//  if (f.z <= f.w)  result |= 0x10;
+	//  if (f.z >= 0)   result |= 0x20;
+	//  return result;
 	//}
 
 	void sortClusters(Cluster** clusters, uint32_t len)
@@ -3888,7 +3886,7 @@ public:
 			}
 #endif
 
-			// end of that mash, set it up so we can add the next mesh to this culling batch 
+			// end of that mash, set it up so we can add the next mesh to this culling batch
 			if (batchChunk->currentBatchCount > 0)
 			{
 				FilterBatchChunk* batchChunk2 = pFilterBatchChunk[frameIdx][currentSmallBatchChunk];
@@ -3937,7 +3935,7 @@ public:
 			}
 
 
-			// end of that mash, set it up so we can add the next mesh to this culling batch 
+			// end of that mash, set it up so we can add the next mesh to this culling batch
 			if (batchChunk->currentBatchCount > 0)
 			{
 				FilterBatchChunk* batchChunk2 = pFilterBatchChunk[frameIdx][currentSmallBatchChunk];

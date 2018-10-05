@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -41,21 +41,21 @@ void ReflectBoundResources(
 {
    for(size_t i = 0; i < allResources.size(); ++i)
    {
-      spirv_cross::Resource const& input = allResources[i];
-      SPIRV_Resource& resource = resources[(*current_resource)++];
+	  spirv_cross::Resource const& input = allResources[i];
+	  SPIRV_Resource& resource = resources[(*current_resource)++];
 
-      resource.SPIRV_code.id = input.id;
-      resource.SPIRV_code.type_id = input.type_id;
-      resource.SPIRV_code.base_type_id = input.base_type_id;
+	  resource.SPIRV_code.id = input.id;
+	  resource.SPIRV_code.type_id = input.type_id;
+	  resource.SPIRV_code.base_type_id = input.base_type_id;
 
-      resource.type = spriv_type;
+	  resource.type = spriv_type;
 
-      resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
+	  resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
 
-      resource.set = pCompiler->get_decoration(resource.SPIRV_code.id, spv::DecorationDescriptorSet);
-      resource.binding = pCompiler->get_decoration(resource.SPIRV_code.id, spv::DecorationBinding);
+	  resource.set = pCompiler->get_decoration(resource.SPIRV_code.id, spv::DecorationDescriptorSet);
+	  resource.binding = pCompiler->get_decoration(resource.SPIRV_code.id, spv::DecorationBinding);
 
-      spirv_cross::SPIRType type = pCompiler->get_type(resource.SPIRV_code.type_id);
+	  spirv_cross::SPIRType type = pCompiler->get_type(resource.SPIRV_code.type_id);
 
 	  // Special case for textureBuffer / imageBuffer
 	  // textureBuffer is considered as separate image  with dimension buffer in SpirV but they require a buffer descriptor of type uniform texel buffer
@@ -68,28 +68,28 @@ void ReflectBoundResources(
 			  resource.type = SPIRV_TYPE_STORAGE_TEXEL_BUFFERS;
 	  }
 
-      //if(spriv_type != SPIRV_TYPE_UNIFORM_BUFFERS)
-      {
-         if(type.array.size())
-            resource.size = type.array[0];
-         else
-            resource.size = 1;
-      }
-      //else
-      //{
-      //   resource.size = (uint32_t)pCompiler->get_declared_struct_size(type);
-      //}
+	  //if(spriv_type != SPIRV_TYPE_UNIFORM_BUFFERS)
+	  {
+		 if(type.array.size())
+			resource.size = type.array[0];
+		 else
+			resource.size = 1;
+	  }
+	  //else
+	  //{
+	  //   resource.size = (uint32_t)pCompiler->get_declared_struct_size(type);
+	  //}
 
 	  // Use the instance name if there is one
 	  std::string name = pCompiler->get_name(resource.SPIRV_code.id);
 	  if (name.empty())
 		  name = input.name;
 
-      resource.name_size = (uint32_t)name.size();
-      resource.name = new char[resource.name_size + 1];
-      // name is a const char * but we just allocated it so it is fine to modify it now
-      memcpy((char*)resource.name, name.data(), resource.name_size);
-      ((char*)resource.name)[resource.name_size] = 0;
+	  resource.name_size = (uint32_t)name.size();
+	  resource.name = new char[resource.name_size + 1];
+	  // name is a const char * but we just allocated it so it is fine to modify it now
+	  memcpy((char*)resource.name, name.data(), resource.name_size);
+	  ((char*)resource.name)[resource.name_size] = 0;
    }
 }
 
@@ -98,7 +98,7 @@ SPIRV_INTERFACE  void CALLTYPE CreateCrossCompiler(uint32_t const* SpirvBinary, 
 {
    if(outCompiler == NULL)
    {
-      return; // error code here
+	  return; // error code here
    }
    // build the compiler
    spirv_cross::Compiler* compiler = new spirv_cross::Compiler(SpirvBinary, BinarySize);
@@ -116,7 +116,7 @@ SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* pCompiler)
 {
    if(pCompiler == NULL)
    {
-      return; // error code here
+	  return; // error code here
    }
 
    spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
@@ -125,14 +125,14 @@ SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* pCompiler)
 
    for(uint32_t i = 0; i < pCompiler->ShaderResourceCount; ++i)
    {
-      delete[] pCompiler->pShaderResouces[i].name;
+	  delete[] pCompiler->pShaderResouces[i].name;
    }
 
    delete[] pCompiler->pShaderResouces;
 
    for(uint32_t i = 0; i < pCompiler->UniformVariablesCount; ++i)
    {
-      delete[] pCompiler->pUniformVariables[i].name;
+	  delete[] pCompiler->pUniformVariables[i].name;
    }
 
    delete[] pCompiler->pUniformVariables;
@@ -166,9 +166,9 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
 {
    if(pCompiler == NULL)
    {
-      return; // error code here
+	  return; // error code here
    }
-   spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler; 
+   spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
 
    // 1. get all shader resources
    spirv_cross::ShaderResources allResources;
@@ -180,20 +180,20 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
 
    uint32_t resource_count = 0;
    // resources we want to reflect
-   resource_count += (uint32_t)allResources.stage_inputs.size();            // inputs
-   resource_count += (uint32_t)allResources.stage_outputs.size();           // outputs
-   resource_count += (uint32_t)allResources.uniform_buffers.size();         // const buffers
-   resource_count += (uint32_t)allResources.storage_buffers.size();         // buffers
-   resource_count += (uint32_t)allResources.separate_images.size();         // textures
-   resource_count += (uint32_t)allResources.storage_images.size();          // uav textures
-   resource_count += (uint32_t)allResources.separate_samplers.size();       // samplers
+   resource_count += (uint32_t)allResources.stage_inputs.size();			// inputs
+   resource_count += (uint32_t)allResources.stage_outputs.size();		   // outputs
+   resource_count += (uint32_t)allResources.uniform_buffers.size();		 // const buffers
+   resource_count += (uint32_t)allResources.storage_buffers.size();		 // buffers
+   resource_count += (uint32_t)allResources.separate_images.size();		 // textures
+   resource_count += (uint32_t)allResources.storage_images.size();		  // uav textures
+   resource_count += (uint32_t)allResources.separate_samplers.size();	   // samplers
    resource_count += (uint32_t)allResources.push_constant_buffers.size();   // push const
    resource_count += (uint32_t)allResources.subpass_inputs.size();
 
    // these we dont care about right
    // subpass_inputs - we are not going to use this   TODO: warn when found
-   // sampled_images - we wont be using these         TODO: warn when found
-   // atomic_counters - not useable in Vulkan         TODO: warn when found
+   // sampled_images - we wont be using these		 TODO: warn when found
+   // atomic_counters - not useable in Vulkan		 TODO: warn when found
 
    // allocate array for resources
    SPIRV_Resource* resources = new SPIRV_Resource[resource_count];
@@ -203,61 +203,61 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
    // 3. start by reflecting the shader inputs
    for(size_t i = 0; i < allResources.stage_inputs.size(); ++i)
    {
-      spirv_cross::Resource const& input = allResources.stage_inputs[i];
-      SPIRV_Resource& resource = resources[current_resource++];
-      
+	  spirv_cross::Resource const& input = allResources.stage_inputs[i];
+	  SPIRV_Resource& resource = resources[current_resource++];
 
-      resource.SPIRV_code.id = input.id;
-      resource.SPIRV_code.type_id = input.type_id;
-      resource.SPIRV_code.base_type_id = input.base_type_id;
 
-      resource.type = SPIRV_TYPE_STAGE_INPUTS;
+	  resource.SPIRV_code.id = input.id;
+	  resource.SPIRV_code.type_id = input.type_id;
+	  resource.SPIRV_code.base_type_id = input.base_type_id;
 
-      resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
+	  resource.type = SPIRV_TYPE_STAGE_INPUTS;
 
-      resource.set = uint32_t(-1); // stage inputs dont have sets
-      resource.binding = compiler->get_decoration(resource.SPIRV_code.id, spv::DecorationLocation); // location is the binding point for inputs
+	  resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
 
-      spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
-      // bit width * vecsize = size
-      resource.size = (type.width / 8) * type.vecsize;
+	  resource.set = uint32_t(-1); // stage inputs dont have sets
+	  resource.binding = compiler->get_decoration(resource.SPIRV_code.id, spv::DecorationLocation); // location is the binding point for inputs
 
-      resource.name_size = (uint32_t)input.name.size();
-      resource.name = new char[resource.name_size + 1];
-      // name is a const char * but we just allocated it so it is fine to modify it now
-      memcpy((char*)resource.name, input.name.data(), resource.name_size);
-      ((char*)resource.name)[resource.name_size] = 0;
+	  spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
+	  // bit width * vecsize = size
+	  resource.size = (type.width / 8) * type.vecsize;
+
+	  resource.name_size = (uint32_t)input.name.size();
+	  resource.name = new char[resource.name_size + 1];
+	  // name is a const char * but we just allocated it so it is fine to modify it now
+	  memcpy((char*)resource.name, input.name.data(), resource.name_size);
+	  ((char*)resource.name)[resource.name_size] = 0;
    }
 
    // 4. reflect output
    for(size_t i = 0; i < allResources.stage_outputs.size(); ++i)
    {
-      spirv_cross::Resource const& input = allResources.stage_outputs[i];
-      SPIRV_Resource& resource = resources[current_resource++];
+	  spirv_cross::Resource const& input = allResources.stage_outputs[i];
+	  SPIRV_Resource& resource = resources[current_resource++];
 
 
-      resource.SPIRV_code.id = input.id;
-      resource.SPIRV_code.type_id = input.type_id;
-      resource.SPIRV_code.base_type_id = input.base_type_id;
+	  resource.SPIRV_code.id = input.id;
+	  resource.SPIRV_code.type_id = input.type_id;
+	  resource.SPIRV_code.base_type_id = input.base_type_id;
 
-      resource.type = SPIRV_TYPE_STAGE_OUTPUTS;
+	  resource.type = SPIRV_TYPE_STAGE_OUTPUTS;
 
-      resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
+	  resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
 
-      resource.set = uint32_t(-1); // stage outputs dont have sets
-      resource.binding = compiler->get_decoration(resource.SPIRV_code.id, spv::DecorationLocation); // location is the binding point for inputs
+	  resource.set = uint32_t(-1); // stage outputs dont have sets
+	  resource.binding = compiler->get_decoration(resource.SPIRV_code.id, spv::DecorationLocation); // location is the binding point for inputs
 
-      spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
-      // bit width * vecsize = size
-      resource.size = (type.width / 8) * type.vecsize;
+	  spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
+	  // bit width * vecsize = size
+	  resource.size = (type.width / 8) * type.vecsize;
 
-      resource.name_size = (uint32_t)input.name.size();
-      resource.name = new char[resource.name_size + 1];
-      // name is a const char * but we just allocated it so it is fine to modify it now
-      memcpy((char*)resource.name, input.name.data(), resource.name_size);
-      ((char*)resource.name)[resource.name_size] = 0;
+	  resource.name_size = (uint32_t)input.name.size();
+	  resource.name = new char[resource.name_size + 1];
+	  // name is a const char * but we just allocated it so it is fine to modify it now
+	  memcpy((char*)resource.name, input.name.data(), resource.name_size);
+	  ((char*)resource.name)[resource.name_size] = 0;
    }
-   
+
    // 5. reflect the 'normal' resources
    ReflectBoundResources(compiler, allResources.uniform_buffers, usedResouces, resources, &current_resource, SPIRV_TYPE_UNIFORM_BUFFERS);
    ReflectBoundResources(compiler, allResources.storage_buffers, usedResouces, resources, &current_resource, SPIRV_TYPE_STORAGE_BUFFERS);
@@ -269,29 +269,29 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
    // 6. reflect push buffers
    for(size_t i = 0; i < allResources.push_constant_buffers.size(); ++i)
    {
-      spirv_cross::Resource const& input = allResources.push_constant_buffers[i];
-      SPIRV_Resource& resource = resources[current_resource++];
+	  spirv_cross::Resource const& input = allResources.push_constant_buffers[i];
+	  SPIRV_Resource& resource = resources[current_resource++];
 
 
-      resource.SPIRV_code.id = input.id;
-      resource.SPIRV_code.type_id = input.type_id;
-      resource.SPIRV_code.base_type_id = input.base_type_id;
+	  resource.SPIRV_code.id = input.id;
+	  resource.SPIRV_code.type_id = input.type_id;
+	  resource.SPIRV_code.base_type_id = input.base_type_id;
 
-      resource.type = SPIRV_TYPE_PUSH_CONSTANT;
+	  resource.type = SPIRV_TYPE_PUSH_CONSTANT;
 
-      resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
+	  resource.is_used = (usedResouces.count(resource.SPIRV_code.id) != 0);
 
-      resource.set = uint32_t(-1); // push consts dont have sets
-      resource.binding = uint32_t(-1); // push consts dont have bindings
+	  resource.set = uint32_t(-1); // push consts dont have sets
+	  resource.binding = uint32_t(-1); // push consts dont have bindings
 
-      spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
-      resource.size = (uint32_t)compiler->get_declared_struct_size(type);
+	  spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
+	  resource.size = (uint32_t)compiler->get_declared_struct_size(type);
 
-      resource.name_size = (uint32_t)input.name.size();
-      resource.name = new char[resource.name_size + 1];
-      // name is a const char * but we just allocated it so it is fine to modify it now
-      memcpy((char*)resource.name, input.name.data(), resource.name_size);
-      ((char*)resource.name)[resource.name_size] = 0;
+	  resource.name_size = (uint32_t)input.name.size();
+	  resource.name = new char[resource.name_size + 1];
+	  // name is a const char * but we just allocated it so it is fine to modify it now
+	  memcpy((char*)resource.name, input.name.data(), resource.name_size);
+	  ((char*)resource.name)[resource.name_size] = 0;
    }
 
    pCompiler->pShaderResouces = resources;
@@ -302,11 +302,11 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
 {
    if(pCompiler == NULL)
    {
-      return; // error code here
+	  return; // error code here
    }
    if(pCompiler->ShaderResourceCount == 0)
    {
-      return; // error code here
+	  return; // error code here
    }
    spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
 
@@ -315,13 +315,13 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
 
    for(uint32_t i = 0; i < pCompiler->ShaderResourceCount; ++i)
    {
-      SPIRV_Resource& resource = pCompiler->pShaderResouces[i];
+	  SPIRV_Resource& resource = pCompiler->pShaderResouces[i];
 
-      if(resource.type == SPIRV_TYPE_UNIFORM_BUFFERS || resource.type == SPIRV_TYPE_PUSH_CONSTANT)
-      {
-         spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
-         variable_count += (uint32_t)type.member_types.size();
-      }
+	  if(resource.type == SPIRV_TYPE_UNIFORM_BUFFERS || resource.type == SPIRV_TYPE_PUSH_CONSTANT)
+	  {
+		 spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
+		 variable_count += (uint32_t)type.member_types.size();
+	  }
    }
 
    // 2. allocate memory
@@ -331,42 +331,42 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
    // 3. reflect
    for(uint32_t i = 0; i < pCompiler->ShaderResourceCount; ++i)
    {
-      SPIRV_Resource& resource = pCompiler->pShaderResouces[i];
+	  SPIRV_Resource& resource = pCompiler->pShaderResouces[i];
 
-      if(resource.type == SPIRV_TYPE_UNIFORM_BUFFERS || resource.type == SPIRV_TYPE_PUSH_CONSTANT)
-      {
-         uint32_t start_of_block = current_variable;
+	  if(resource.type == SPIRV_TYPE_UNIFORM_BUFFERS || resource.type == SPIRV_TYPE_PUSH_CONSTANT)
+	  {
+		 uint32_t start_of_block = current_variable;
 
-         spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
-         for(uint32_t j = 0; j < (uint32_t)type.member_types.size(); ++j)
-         {
-            SPIRV_Variable& variable = variables[current_variable++];
+		 spirv_cross::SPIRType type = compiler->get_type(resource.SPIRV_code.type_id);
+		 for(uint32_t j = 0; j < (uint32_t)type.member_types.size(); ++j)
+		 {
+			SPIRV_Variable& variable = variables[current_variable++];
 
-            variable.SPIRV_type_id = type.member_types[j];
+			variable.SPIRV_type_id = type.member_types[j];
 
-            variable.parent_SPIRV_code = resource.SPIRV_code;
-            variable.parent_index = i;
+			variable.parent_SPIRV_code = resource.SPIRV_code;
+			variable.parent_index = i;
 
-            variable.is_used = false;
+			variable.is_used = false;
 
-            variable.size = (uint32_t)compiler->get_declared_struct_member_size(type, j);
-            variable.offset = compiler->get_member_decoration(resource.SPIRV_code.base_type_id, j, spv::DecorationOffset);
+			variable.size = (uint32_t)compiler->get_declared_struct_member_size(type, j);
+			variable.offset = compiler->get_member_decoration(resource.SPIRV_code.base_type_id, j, spv::DecorationOffset);
 
-            std::string member_name = compiler->get_member_name(resource.SPIRV_code.base_type_id, j);
-            variable.name_size = (uint32_t)member_name.size();
-            variable.name = new char[variable.name_size + 1];
-            // name is a const char * but we just allocated it so it is fine to modify it now
-            memcpy((char*)variable.name, member_name.data(), variable.name_size);
-            ((char*)variable.name)[variable.name_size] = 0;
-         }
+			std::string member_name = compiler->get_member_name(resource.SPIRV_code.base_type_id, j);
+			variable.name_size = (uint32_t)member_name.size();
+			variable.name = new char[variable.name_size + 1];
+			// name is a const char * but we just allocated it so it is fine to modify it now
+			memcpy((char*)variable.name, member_name.data(), variable.name_size);
+			((char*)variable.name)[variable.name_size] = 0;
+		 }
 
-         std::vector<spirv_cross::BufferRange> range = compiler->get_active_buffer_ranges(resource.SPIRV_code.id);
+		 std::vector<spirv_cross::BufferRange> range = compiler->get_active_buffer_ranges(resource.SPIRV_code.id);
 
-         for(uint32_t j = 0; j < (uint32_t)range.size(); ++j)
-         {
-            variables[start_of_block + range[j].index].is_used = true;
-         }
-      }
+		 for(uint32_t j = 0; j < (uint32_t)range.size(); ++j)
+		 {
+			variables[start_of_block + range[j].index].is_used = true;
+		 }
+	  }
    }
 
    pCompiler->pUniformVariables = variables;

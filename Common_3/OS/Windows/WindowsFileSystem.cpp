@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -102,8 +102,8 @@ tinystl::string _getAppPrefsDir(const char *org, const char *app)
 	* Vista and later has a new API for this, but SHGetFolderPath works there,
 	*  and apparently just wraps the new API. This is the new way to do it:
 	*
-	*     SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE,
-	*                          NULL, &wszPath);
+	*	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE,
+	*						 NULL, &wszPath);
 	*/
 
 	char path[MAX_PATH];

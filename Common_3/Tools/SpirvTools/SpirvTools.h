@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -27,30 +27,30 @@
 #include <stdint.h>
 #if defined _WIN32 || defined __CYGWIN__ || defined __MINGW32__
   #ifdef API_EXPORT
-    #ifdef __GNUC__
-      #define SPIRV_INTERFACE __attribute__ ((dllexport))
-    #else
-      #define SPIRV_INTERFACE __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
-    #endif
+	#ifdef __GNUC__
+	  #define SPIRV_INTERFACE __attribute__ ((dllexport))
+	#else
+	  #define SPIRV_INTERFACE __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
+	#endif
   #else
-    #ifdef __GNUC__
-      #define SPIRV_INTERFACE __attribute__ ((dllimport))
-    #else
-      #define SPIRV_INTERFACE __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
-    #endif
+	#ifdef __GNUC__
+	  #define SPIRV_INTERFACE __attribute__ ((dllimport))
+	#else
+	  #define SPIRV_INTERFACE __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
+	#endif
   #endif
 #else
   #if __GNUC__ >= 4
-    #define SPIRV_INTERFACE __attribute__ ((visibility ("default")))
+	#define SPIRV_INTERFACE __attribute__ ((visibility ("default")))
   #else
-    #define SPIRV_INTERFACE
+	#define SPIRV_INTERFACE
   #endif
 #endif
 
 #if defined( _WIN32 )
 #define CALLTYPE __cdecl
 #else
-#define CALLTYPE 
+#define CALLTYPE
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,10 +103,10 @@ struct SPIRV_Resource
 
    // If the resouce was used in the shader
    bool is_used;
-   
+
    // The resouce set if it has one
    uint32_t set;
-   
+
    // The resource binding location
    uint32_t binding;
 
@@ -153,11 +153,11 @@ struct CrossCompiler
 {
    // this points to the internal compiler class
    void* pCompiler;
-   
+
    // resources
    SPIRV_Resource* pShaderResouces;
    uint32_t ShaderResourceCount;
-   
+
    // uniforms
    SPIRV_Variable* pUniformVariables;
    uint32_t UniformVariablesCount;

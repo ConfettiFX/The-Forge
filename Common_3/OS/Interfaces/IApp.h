@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,7 +30,7 @@
 //
 // To design an application interface, think about what the user can do to the application
 // change resolution, change device by switching from hardware to Warp, change MSAA, hot-swap an input device
-// 
+//
 
 
 /*
@@ -51,7 +51,7 @@ bool parseArgs(const char* cmdLn);
 bool initApp();
 void exitApp();
 
-// 
+//
 // this pair of functions loads and unloads everything that need to be re-loaded in case of a device change.
 // device changes can come from a user switching from hardware to Warp rendering support or switching on and off MSAA and other quality settings
 // typically shaders, textures, render targets and buffers are loaded here
@@ -84,6 +84,9 @@ void drawFrame(float deltaTime);
 #define _IAPP_H_
 
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#ifdef __ANDROID__
+#include <android_native_app_glue.h>
+#endif
 
 class IApp
 {
@@ -102,9 +105,9 @@ public:
 	struct Settings
 	{
 		/// Window width
-		int32_t	mWidth = -1;
+		int32_t mWidth = -1;
 		/// Window height
-		int32_t	mHeight = -1;
+		int32_t mHeight = -1;
 		/// Set to true if fullscreen mode has been requested
 		bool	mFullScreen = false;
 		/// Set to true if app wants to use an external window
@@ -116,49 +119,59 @@ public:
 };
 
 #if defined(_DURANGO)
-#define DEFINE_APPLICATION_MAIN(appClass)						\
-extern int DurangoMain(int argc, char** argv, IApp* app);		\
+#define DEFINE_APPLICATION_MAIN(appClass)					   \
+extern int DurangoMain(int argc, char** argv, IApp* app);	   \
 																\
-int main(int argc, char** argv)									\
-{																\
-	appClass app;												\
-	return DurangoMain(argc, argv, &app);						\
+int main(int argc, char** argv)								 \
+{															   \
+	appClass app;											   \
+	return DurangoMain(argc, argv, &app);					   \
 }
 #elif defined(_WIN32)
-#define DEFINE_APPLICATION_MAIN(appClass)						\
-extern int WindowsMain(int argc, char** argv, IApp* app);		\
+#define DEFINE_APPLICATION_MAIN(appClass)					   \
+extern int WindowsMain(int argc, char** argv, IApp* app);	   \
 																\
-int main(int argc, char** argv)									\
-{																\
-	appClass app;												\
-	return WindowsMain(argc, argv, &app);						\
+int main(int argc, char** argv)								 \
+{															   \
+	appClass app;											   \
+	return WindowsMain(argc, argv, &app);					   \
 }
 #elif defined(TARGET_IOS)
-#define DEFINE_APPLICATION_MAIN(appClass)						\
-extern int iOSMain(int argc, char** argv, IApp* app);			\
+#define DEFINE_APPLICATION_MAIN(appClass)					   \
+extern int iOSMain(int argc, char** argv, IApp* app);		   \
 																\
-int main(int argc, char** argv)									\
-{																\
-	appClass app;												\
-	return iOSMain(argc, argv, &app);							\
+int main(int argc, char** argv)								 \
+{															   \
+	appClass app;											   \
+	return iOSMain(argc, argv, &app);						   \
 }
 #elif defined(__APPLE__)
-#define DEFINE_APPLICATION_MAIN(appClass)						\
-extern int macOSMain(int argc, const char** argv, IApp* app);	\
+#define DEFINE_APPLICATION_MAIN(appClass)					   \
+extern int macOSMain(int argc, const char** argv, IApp* app);   \
 																\
-int main(int argc, const char* argv[])                          \
-{																\
-    appClass app;												\
-    return macOSMain(argc, argv, &app);							\
+int main(int argc, const char* argv[])						\
+{															   \
+	appClass app;											   \
+	return macOSMain(argc, argv, &app);						 \
 }
-#elif defined(__linux__)
-#define DEFINE_APPLICATION_MAIN(appClass)						\
-extern int LinuxMain(int argc, char** argv, IApp* app);			\
+#elif defined(__ANDROID__)
+#define DEFINE_APPLICATION_MAIN(appClass)					   \
+extern int AndroidMain(void* param, IApp* app);				 \
 																\
-int main(int argc, char** argv)									\
-{																\
-	appClass app;												\
-	return LinuxMain(argc, argv, &app);							\
+void android_main(struct android_app* param)					\
+{															   \
+	appClass app;											   \
+	AndroidMain(param, &app);								   \
+}
+
+#elif defined(__linux__)
+#define DEFINE_APPLICATION_MAIN(appClass)					   \
+extern int LinuxMain(int argc, char** argv, IApp* app);		 \
+																\
+int main(int argc, char** argv)								 \
+{															   \
+	appClass app;											   \
+	return LinuxMain(argc, argv, &app);						 \
 }
 #else
 #endif

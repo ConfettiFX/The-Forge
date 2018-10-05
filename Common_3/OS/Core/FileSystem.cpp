@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -31,6 +31,7 @@
 #include <limits.h>  // for UINT_MAX
 #include <sys/stat.h>  // for mkdir
 #include <sys/errno.h> // for errno
+#include <dirent.h>
 #endif
 #ifdef _WIN32
 #include  <io.h>
@@ -43,16 +44,17 @@
 #include <sys/stat.h>  // for mkdir
 #include <sys/errno.h> // for errno
 #include <sys/wait.h>
+#include <dirent.h>
 #endif
 
 static const char* pszFileAccessFlags[] =
 {
-	"rb",	//!< 	FM_ReadBinary		= 0,
-	"wb",	//!< 	FM_WriteBinary,
-	"w+b",	//!< 	FM_ReadWriteBinary,
-	"rb",	//!< 	FM_Read,
-	"w",	//!< 	FM_Write,
-	"w+",	//!< 	FM_ReadWrite,
+	"rb",   //!<	FM_ReadBinary	   = 0,
+	"wb",   //!<	FM_WriteBinary,
+	"w+b",  //!<	FM_ReadWriteBinary,
+	"rb",   //!<	FM_Read,
+	"w",	//!<	FM_Write,
+	"w+",   //!<	FM_ReadWrite,
 	"--",   //!<	FM_Count
 };
 
@@ -697,14 +699,14 @@ unsigned FileSystem::GetFileSize(FileHandle handle)
 	_seekFile((::FILE*)handle, curPos, SEEK_SET);
 	return (unsigned)length;
 }
-    
+
 bool FileSystem::FileExists(const tinystl::string& _fileName, FSRoot _root)
 {
 	tinystl::string fileName = FileSystem::FixPath(_fileName, _root);
 #ifdef _DURANGO
 	return (fopen(fileName, "rb") != NULL);
 #else
-    return ((access(fileName.c_str(), 0 )) != -1);
+	return ((access(fileName.c_str(), 0 )) != -1);
 #endif
 }
 
@@ -718,8 +720,8 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 	//on iOS all assets are stored in the root of the app bundle.
 	//so getting any resource will be at the root.
 	return pszFileName;
-#endif
-	
+#else
+
 	ASSERT(root < FSR_Count);
 	tinystl::string res;
 	if (pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU
@@ -753,14 +755,15 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 
 	tinystl::string res = tinystl::string (rootPaths[root] ) + filename;
 
-	#ifdef	SN_TARGET_PS3
+	#ifdef  SN_TARGET_PS3
 	res.replace("\\","/");
-	//	Igor: this can be handled differently: just replace the last 3 chars.
+	//  Igor: this can be handled differently: just replace the last 3 chars.
 	if (root==FSR_Textures)
 	res.replace(".dds",".gtf");
 	#endif
 	*/
 	return res;
+#endif
 }
 
 void FileSystem::SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension)
@@ -980,15 +983,15 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 
 	return exitCode;
 #elif defined(__linux__)
-		tinystl::vector<const char*> argPtrs; 
+		tinystl::vector<const char*> argPtrs;
 		tinystl::string cmd(fixedFileName.c_str());
-		char* space = " ";
-		cmd.append(space, space+1);
+		char space = ' ';
+		cmd.append(&space, &space+1);
 		for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
 		{
 			cmd.append(arguments[i].begin(), arguments[i].end());
 		}
-		
+
 		int res = system(cmd.c_str());
 		return res;
 #else
@@ -1007,7 +1010,7 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 	else if (pid > 0)
 	{
 		int exitCode = EINTR;
-        while(exitCode == EINTR) wait(&exitCode);
+		while(exitCode == EINTR) wait(&exitCode);
 		return exitCode;
 	}
 	else
@@ -1041,6 +1044,16 @@ void FileSystem::GetFilesWithExtension(const tinystl::string& dir, const tinystl
 			files[fileIndex++] = path + fd.cFileName;
 		} while (::FindNextFileA(hFind, &fd));
 		::FindClose(hFind);
+	}
+#elif defined(__APPLE__) || defined(__linux__)
+	DIR* pDir = opendir(dir.c_str());
+	dirent* entry = NULL;
+	while((entry = readdir(pDir)) != NULL)
+	{
+		if(FileSystem::GetExtension(entry->d_name) == ext)
+		{
+			files.push_back(path + entry->d_name);
+		}
 	}
 #endif
 }

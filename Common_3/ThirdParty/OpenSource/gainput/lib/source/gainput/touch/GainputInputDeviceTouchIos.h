@@ -26,21 +26,25 @@ public:
         supportsPressure_(false)
 	{
 	}
+	
+	virtual ~InputDeviceTouchImplIos() override
+	{
+	}
 
-	InputDevice::DeviceVariant GetVariant() const
+	InputDevice::DeviceVariant GetVariant() const override
 	{
 		return InputDevice::DV_STANDARD;
 	}
 
-	void Update(InputDeltaState* delta)
+	void Update(InputDeltaState* delta) override
 	{
 		delta_ = delta;
 		*state_ = nextState_;
 	}
 
-	InputDevice::DeviceState GetState() const { return InputDevice::DS_OK; }
+	InputDevice::DeviceState GetState() const override { return InputDevice::DS_OK; }
 
-    bool SupportsPressure() const
+    bool SupportsPressure() const override
     {
         return supportsPressure_;
     }
@@ -111,35 +115,47 @@ public:
 			return;
 		}
 
-		touches_[touchIdx] = 0;
-
-		HandleBool(gainput::Touch0Down + touchIdx*4, false);
-		HandleFloat(gainput::Touch0X + touchIdx*4, 0);
-		HandleFloat(gainput::Touch0Y + touchIdx*4, 0);
-		HandleFloat(gainput::Touch0Pressure + touchIdx*4, 0);
+		if(touches_[touchIdx] != 0)
+		{
+			touches_[touchIdx] = 0;
+			HandleBool(gainput::Touch0Down + touchIdx*4, false);
+			HandleFloat(gainput::Touch0X + touchIdx*4, x);
+			HandleFloat(gainput::Touch0Y + touchIdx*4, y);
+			HandleFloat(gainput::Touch0Pressure + touchIdx*4, z);
+		}
 	}
 
 private:
-	InputManager& manager_;
+	__unused InputManager& manager_;
 	InputDevice& device_;
 	InputState* state_;
-	InputState* previousState_;
+	__unused InputState* previousState_;
 	InputState nextState_;
 	InputDeltaState* delta_;
-
+	
+	
 	typedef gainput::Array< void* > TouchList;
 	TouchList touches_;
 
     bool supportsPressure_;
-
 	void HandleBool(DeviceButtonId buttonId, bool value)
 	{
-        manager_.EnqueueConcurrentChange(device_, nextState_, delta_, buttonId, value);
+        if (delta_)
+		{
+			const bool oldValue = nextState_.GetBool(buttonId);
+			delta_->AddChange(device_.GetDeviceId(), buttonId, oldValue, value);
+		}
+		nextState_.Set(buttonId, value);
 	}
 
 	void HandleFloat(DeviceButtonId buttonId, float value)
 	{
-        manager_.EnqueueConcurrentChange(device_, nextState_, delta_, buttonId, value);
+       if (delta_)
+		{
+			const float oldValue = nextState_.GetFloat(buttonId);
+			delta_->AddChange(device_.GetDeviceId(), buttonId, oldValue, value);
+		}
+		nextState_.Set(buttonId, value);
 	}
 };
 

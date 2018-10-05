@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -129,9 +129,9 @@ float3 calculateIllumination(float3 normal, float3 camPos, float esmControl, flo
 	// Ambient + Diffuse + Specular
 	// Ambient = 0.15 * albedo
 	// Diffuse = DiffuseColor * albedo * N.L * SUN_COLOR
-	// Specular = SpecColor * N.N^n 
+	// Specular = SpecColor * N.N^n
 
-	
+
 	float3 Ambient = 0.15 * albedo * ao;
 	float3 Diffuse = nDotL * albedo * lightColor;
 	float3 Specular = calculateSpecular(specularColor, camPos, position, -normalizedDirToLight, normal);

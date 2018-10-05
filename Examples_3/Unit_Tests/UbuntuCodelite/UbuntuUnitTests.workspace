@@ -16,6 +16,7 @@
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="Yes"/>
+  <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="Yes"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
@@ -37,6 +38,7 @@
       <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
       <Project Name="10_PixelProjectedReflections" ConfigName="Debug"/>
       <Project Name="13_UserInterface" ConfigName="Debug"/>
+      <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
@@ -58,6 +60,7 @@
       <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
       <Project Name="13_UserInterface" ConfigName="Release"/>
+      <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="15_Transparency" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>

@@ -168,6 +168,7 @@
 		AFA8A449B3A4403DADEB2526 /* GainputWindows.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputWindows.h; path = source/gainput/GainputWindows.h; sourceTree = SOURCE_ROOT; };
 		B1FAC11F1C464EFD815C6E0A /* GainputDoubleClickGesture.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputDoubleClickGesture.cpp; path = source/gainput/gestures/GainputDoubleClickGesture.cpp; sourceTree = SOURCE_ROOT; };
 		B24D2A8320EACFA400CF8EA0 /* libgainputstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgainputstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2EB85E8215D479500BD0A35 /* GainputInputDeviceKeyboardIOS.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = GainputInputDeviceKeyboardIOS.h; path = source/gainput/keyboard/GainputInputDeviceKeyboardIOS.h; sourceTree = "<group>"; };
 		B4680492A0E0431DB1EDE6C3 /* GainputGestures.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputGestures.h; path = include/gainput/gestures/GainputGestures.h; sourceTree = SOURCE_ROOT; };
 		B617213BBCDC45D0B869F3C7 /* GainputInputDeviceBuiltInIos.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputInputDeviceBuiltInIos.mm; path = source/gainput/builtin/GainputInputDeviceBuiltInIos.mm; sourceTree = SOURCE_ROOT; };
 		B7E0AE9BF0AB43898806BD6E /* GainputButtonStickGesture.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputButtonStickGesture.cpp; path = source/gainput/gestures/GainputButtonStickGesture.cpp; sourceTree = SOURCE_ROOT; };
@@ -344,6 +345,7 @@
 				ABB41F335EF441FC919FF8D0 /* GainputInputDeviceKeyboardImpl.h */,
 				A085E9ABCD454370AEB53A5D /* GainputInputDeviceKeyboardLinux.h */,
 				17BC54C411A54A639FC0D19D /* GainputInputDeviceKeyboardMac.h */,
+				B2EB85E8215D479500BD0A35 /* GainputInputDeviceKeyboardIOS.h */,
 				E3352A177D364B89A112510A /* GainputInputDeviceKeyboardNull.h */,
 				43284EADF01644779168F436 /* GainputInputDeviceKeyboardWin.h */,
 				135849A4627C4E389DE1F802 /* GainputInputDeviceKeyboardWinRaw.h */,

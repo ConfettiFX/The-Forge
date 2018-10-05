@@ -2,10 +2,10 @@
 
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -13,9 +13,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -889,31 +889,31 @@ struct PsIn
 
 struct UniformBlock
 {
-	float4 color;
-	float2 scaleBias;
+    float4 color;
+    float2 scaleBias;
 };
 
 struct UniformBlock1
 {
-	float4x4 mvp;
+    float4x4 mvp;
 };
 
 vertex PsIn VSMain(VsIn In [[stage_in]], constant UniformBlock& uRootConstants [[buffer(1)]])
 {
-	PsIn Out;
-	Out.position = float4 (In.position, 0.0f, 1.0f);
-	Out.position.xy = Out.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f);
-	Out.texCoord = In.texCoord;
-	return Out;
+    PsIn Out;
+    Out.position = float4 (In.position, 0.0f, 1.0f);
+    Out.position.xy = Out.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f);
+    Out.texCoord = In.texCoord;
+    return Out;
 }
 
 vertex PsIn VSMain3D(VsIn In [[stage_in]], constant UniformBlock& uRootConstants [[buffer(1)]],
-					constant UniformBlock1& uniformBlock [[buffer(2)]])
+                    constant UniformBlock1& uniformBlock [[buffer(2)]])
 {
-	PsIn Out;
-	Out.position = uniformBlock.mvp * float4 (In.position.xy * uRootConstants.scaleBias.xy, 1.0f, 1.0f);
-	Out.texCoord = In.texCoord;
-	return Out;
+    PsIn Out;
+    Out.position = uniformBlock.mvp * float4 (In.position.xy * uRootConstants.scaleBias.xy, 1.0f, 1.0f);
+    Out.texCoord = In.texCoord;
+    return Out;
 }
 
 fragment float4 PSMain(PsIn In [[stage_in]],
@@ -921,6 +921,6 @@ fragment float4 PSMain(PsIn In [[stage_in]],
                        sampler uSampler0 [[sampler(0)]],
                        constant UniformBlock& uRootConstants [[buffer(1)]])
 {
-	return float4(1.0, 1.0, 1.0, uTex0.sample(uSampler0, In.texCoord).r) * uRootConstants.color;
+    return float4(1.0, 1.0, 1.0, uTex0.sample(uSampler0, In.texCoord).r) * uRootConstants.color;
 }
 )";

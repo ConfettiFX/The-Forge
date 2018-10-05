@@ -25,7 +25,6 @@
 		B21F76E821420EDB00DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76E521420EDB00DF2297 /* UIKit.framework */; };
 		B21F76E921420EDB00DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76E621420EDB00DF2297 /* MetalKit.framework */; };
 		B21F76EA21420EDB00DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76E721420EDB00DF2297 /* Metal.framework */; };
-		B23CFB5B20EC2EAC0053944B /* blurESM.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B23CFB5220EC2EAB0053944B /* blurESM.vert.metal */; };
 		B23CFB7320EC2FD60053944B /* finalPass.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = B23CFB6620EC2EB40053944B /* finalPass.frag.metal */; };
 		B23CFB7420EC2FD60053944B /* gbuffer.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = B23CFB6420EC2EB40053944B /* gbuffer.vert.metal */; };
 		B23CFB7620EC2FD60053944B /* sdfSimple.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = B23CFB6820EC2EB40053944B /* sdfSimple.vert.metal */; };
@@ -402,7 +401,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				28A5AE39201F7EBE000E571F /* 09_LightShadowPlayground.cpp in Sources */,
-				B23CFB5B20EC2EAC0053944B /* blurESM.vert.metal in Sources */,
 				5C17305721414EA80074EE71 /* AppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

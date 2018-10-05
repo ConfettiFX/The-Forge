@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,13 +44,13 @@
 
 typedef struct SceneVertexPos
 {
-    float x,y,z;
+	float x,y,z;
 } SceneVertexPos;
 
 typedef struct SceneVertexTexCoord
 {
 #if defined(METAL) || defined(__linux__)
-    float u,v;      // texture coords
+	float u,v;	// texture coords
 #else
 	uint32_t texCoord;
 #endif
@@ -82,68 +82,68 @@ typedef struct ClusterCompact
 
 typedef struct Cluster
 {
-    float3 aabbMin, aabbMax;
-    float3 coneCenter, coneAxis;
-    float coneAngleCosine;
-    float distanceFromCamera;
-    bool valid;
+	float3 aabbMin, aabbMax;
+	float3 coneCenter, coneAxis;
+	float coneAngleCosine;
+	float distanceFromCamera;
+	bool valid;
 } Cluster;
 
 typedef struct Mesh
 {
 #if defined(METAL)
-    uint32_t startVertex;
-    uint32_t triangleCount;
+	uint32_t startVertex;
+	uint32_t triangleCount;
 #else
 	uint32_t startIndex;
 	uint32_t indexCount;
 #endif
-    uint32_t vertexCount;
-    float3 minBBox, maxBBox;
-    uint32_t clusterCount;
+	uint32_t vertexCount;
+	float3 minBBox, maxBBox;
+	uint32_t clusterCount;
 	ClusterCompact* clusterCompacts;
 	Cluster* clusters;
-    uint32_t materialId;
+	uint32_t materialId;
 } Mesh;
 
 typedef struct Material
 {
-    bool twoSided;
-    bool alphaTested;
+	bool twoSided;
+	bool alphaTested;
 } Material;
 
 typedef struct Scene
 {
-    uint32_t numMeshes;
-    uint32_t numMaterials;
-    uint32_t totalTriangles;
-    uint32_t totalVertices;
-    Mesh* meshes;
-    Material* materials;
-    tinystl::vector<SceneVertexPos> positions;
-    tinystl::vector<SceneVertexTexCoord> texCoords;
+	uint32_t numMeshes;
+	uint32_t numMaterials;
+	uint32_t totalTriangles;
+	uint32_t totalVertices;
+	Mesh* meshes;
+	Material* materials;
+	tinystl::vector<SceneVertexPos> positions;
+	tinystl::vector<SceneVertexTexCoord> texCoords;
 	tinystl::vector<SceneVertexNormal> normals;
 	tinystl::vector<SceneVertexTangent> tangents;
-    char** textures;
-    char** normalMaps;
-    char** specularMaps;
-    
-	tinystl::vector<uint32_t>			indices;
+	char** textures;
+	char** normalMaps;
+	char** specularMaps;
+
+	tinystl::vector<uint32_t>		   indices;
 } Scene;
 
 typedef struct FilterBatchData
 {
 #if defined(METAL)
-    uint32_t triangleCount;
-    uint32_t triangleOffset;
-    uint32_t meshIdx;
-    uint32_t twoSided;
+	uint32_t triangleCount;
+	uint32_t triangleOffset;
+	uint32_t meshIdx;
+	uint32_t twoSided;
 #else
-	uint meshIndex;         // Index into meshConstants
-	uint indexOffset;       // Index relative to the meshConstants[meshIndex].indexOffset
-	uint faceCount;         // Number of faces in this small batch
+	uint meshIndex;	  // Index into meshConstants
+	uint indexOffset;	  // Index relative to the meshConstants[meshIndex].indexOffset
+	uint faceCount;	  // Number of faces in this small batch
 	uint outputIndexOffset; // Offset into the output index buffer
-	uint drawBatchStart;    // First slot for the current draw call
+	uint drawBatchStart;	// First slot for the current draw call
 	uint accumDrawIndex;
 	uint _pad0;
 	uint _pad1;
@@ -152,11 +152,11 @@ typedef struct FilterBatchData
 
 typedef struct FilterBatchChunk
 {
-    FilterBatchData* batches;
-    uint32_t currentBatchCount;
-    uint32_t currentDrawCallCount;
+	FilterBatchData* batches;
+	uint32_t currentBatchCount;
+	uint32_t currentDrawCallCount;
 #if defined(METAL)
-    Buffer* batchDataBuffer; // GPU buffer containing all batch data
+	Buffer* batchDataBuffer; // GPU buffer containing all batch data
 #else
 #endif
 } FilterBatchChunk;

@@ -10,6 +10,22 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/15_Transparency/15_Transparency.cpp"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+  </Dependencies>
+  <VirtualDirectory Name="AssimpImporter">
+    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
+    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
+  </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -34,12 +50,16 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
+        <Library Value="libassimp.a"/>
+        <Library Value="libIrrXML.a"/>
+        <Library Value="libzlibstatic.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -89,12 +109,16 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
+        <Library Value="libassimp.a"/>
+        <Library Value="libIrrXML.a"/>
+        <Library Value="libzlibstatic.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -131,16 +155,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-  </Dependencies>
 </CodeLite_Project>

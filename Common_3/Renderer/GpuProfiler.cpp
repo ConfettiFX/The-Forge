@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -69,7 +69,7 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 		}
 
 		uint32_t historyIndex = pRoot->mGpuTimer.mHistoryIndex;
-		
+
 		pRoot->mGpuTimer.mStartGpuTime = timeStamp1;
 		pRoot->mGpuTimer.mEndGpuTime = timeStamp2;
 		pRoot->mGpuTimer.mGpuTime = elapsedTime;
@@ -165,7 +165,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	pGpuProfiler->pGpuTimerPool = (GpuTimerTree*)conf_calloc(maxTimers, sizeof(*pGpuProfiler->pGpuTimerPool));
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->mRoot;
 	pGpuProfiler->mCurrentPoolIndex = 0;
-	
+
 	*ppGpuProfiler = pGpuProfiler;
 }
 
@@ -270,9 +270,9 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 {
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// resolve last frame
-	cmdResolveQuery(pCmd, 
+	cmdResolveQuery(pCmd,
 		pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex],
-		pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], 
+		pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex],
 		0, pGpuProfiler->mCurrentTimerCount * 2);
 
 	uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;

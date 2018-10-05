@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -86,6 +86,8 @@ namespace ImGui
 class ImguiGUIDriver : public GUIDriver
 {
 public:
+	// Declare virtual destructor
+	virtual ~ImguiGUIDriver() {};
 	bool init(Renderer* pRenderer);
 	void exit();
 
@@ -105,12 +107,8 @@ public:
 		bool const showDemoWindow);
 
 	bool onInput(const ButtonData* data);
+	int needsTextInput() const;
 
-	// NuklearUI doesn't support touch events.
-	void onTouch(const struct TouchEventData* data) {}
-
-	// NuklearUI doesn't support touch events.
-	void onTouchMove(const struct TouchEventData* data) {}
 
 protected:
 	ImGuiContext* context;
@@ -120,15 +118,15 @@ protected:
 
 	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
 
-	Renderer*					pRenderer;
-	Shader*						pShaderTextured;
-	RootSignature*				pRootSignatureTextured;
-	PipelineMap					mPipelinesTextured;
-	MeshRingBuffer*				pPlainMeshRingBuffer;
-	UniformRingBuffer*			pRingBuffer;
+	Renderer*				   pRenderer;
+	Shader*					 pShaderTextured;
+	RootSignature*			  pRootSignatureTextured;
+	PipelineMap				 mPipelinesTextured;
+	MeshRingBuffer*			 pPlainMeshRingBuffer;
+	UniformRingBuffer*		  pRingBuffer;
 	/// Default states
-	BlendState*					pBlendAlpha;
-	DepthState*					pDepthState;
+	BlendState*				 pBlendAlpha;
+	DepthState*				 pDepthState;
 	RasterizerState*			pRasterizerState;
 	Sampler*					pDefaultSampler;
 	VertexLayout				mVertexLayoutTextured = {};
@@ -150,7 +148,7 @@ void removeGUIDriver(GUIDriver* pDriver)
 
 static float4 ToFloat4Color(uint color)
 {
-	float4 col;	// Translate colours back by bit shifting
+	float4 col; // Translate colours back by bit shifting
 	col.x = (float)((color & 0xFF000000) >> 24);
 	col.y = (float)((color & 0x00FF0000) >> 16);
 	col.z = (float)((color & 0x0000FF00) >> 8);
@@ -193,7 +191,7 @@ void CollapsingHeaderWidget::Draw()
 	{
 		for (IWidget* widget : mGroupedWidgets)
 			widget->Draw();
-	}	
+	}
 	ProcessCallbacks();
 }
 
@@ -267,7 +265,7 @@ void SliderUintWidget::Draw()
 }
 
 void RadioButtonWidget::Draw()
-{	
+{
 	ImGui::RadioButton(mLabel.c_str(), pData, mRadioId);
 	ProcessCallbacks();
 }
@@ -291,7 +289,7 @@ void DropdownWidget::Draw()
 			{
 				uint32_t prevVal = current;
 				current = i;
-				
+
 				// Note that callbacks are sketchy with BeginCombo/EndCombo, so we manually process them here
 				if (pOnEdited)
 					pOnEdited();
@@ -316,10 +314,10 @@ void ProgressBarWidget::Draw()
 }
 
 void ColorSliderWidget::Draw()
-{	
+{
 	uint& colorPick = *(uint*)pData;
 	float4 combo_color = ToFloat4Color(colorPick) / 255.0f;
-	
+
 	float col[4] = { combo_color.x, combo_color.y, combo_color.z, combo_color.w };
 	ImGui::Text("%s", mLabel.c_str());
 	if (ImGui::ColorEdit4(LABELID1(pData), col, ImGuiColorEditFlags_AlphaPreview))
@@ -587,6 +585,7 @@ bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorT
 	io.KeyMap[ImGuiKey_UpArrow] = KEY_PAD_UP;
 	io.KeyMap[ImGuiKey_DownArrow] = KEY_PAD_DOWN;
 	io.KeyMap[ImGuiKey_Backspace] = KEY_RIGHT_STICK_BUTTON;
+	io.KeyMap[ImGuiKey_Delete] = KEY_DELETE;
 	io.KeyMap[ImGuiKey_Space] = KEY_LEFT_TRIGGER;
 	io.KeyMap[ImGuiKey_Enter] = KEY_MENU;
 	io.KeyMap[ImGuiKey_Escape] = KEY_CANCEL;
@@ -622,22 +621,31 @@ bool ImguiGUIDriver::onInput(const ButtonData* data)
 		io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
 		return false;
 	}
-
 	if (data->mUserId == KEY_UI_MOVE)
 	{
 		io.MousePos = ImVec2((float)data->mValue[0], (float)data->mValue[1]);
+#ifdef TARGET_IOS
+		io.MousePos.x *= (float)io.DisplaySize.x;
+		io.MousePos.y *= (float)io.DisplaySize.y;
+#endif
 		return ImGui::IsMouseHoveringAnyWindow() || ImGui::IsMouseHoveringRect(
 			ImVec2(mCurrentWindowRect.x, mCurrentWindowRect.y),
 			ImVec2(mCurrentWindowRect.x + mCurrentWindowRect.z,
 				mCurrentWindowRect.y + mCurrentWindowRect.w), false);
 	}
-	else if (data->mUserId == KEY_CONFIRM || data->mUserId == KEY_RIGHT_BUMPER)
+	else if (data->mUserId == KEY_CONFIRM ||
+			data->mUserId == KEY_RIGHT_BUMPER ||
+			data->mUserId == KEY_MOUSE_WHEEL_BUTTON)
 	{
 		uint32_t index = data->mUserId == KEY_CONFIRM
 			? 0
 			: (data->mUserId == KEY_RIGHT_BUMPER ? 1 : 2);
 		io.MouseDown[index] = data->mIsPressed;
 		io.MousePos = ImVec2((float)data->mValue[0], (float)data->mValue[1]);
+#ifdef TARGET_IOS
+		io.MousePos.x *= (float)io.DisplaySize.x;
+		io.MousePos.y *= (float)io.DisplaySize.y;
+#endif
 		return ImGui::IsMouseHoveringAnyWindow() || ImGui::IsMouseHoveringRect(
 			ImVec2(mCurrentWindowRect.x, mCurrentWindowRect.y),
 			ImVec2(mCurrentWindowRect.x + mCurrentWindowRect.z,
@@ -651,9 +659,10 @@ bool ImguiGUIDriver::onInput(const ButtonData* data)
 	}
 	else if (KEY_LEFT_STICK == data->mUserId)
 	{
-		io.KeysDown['A'] = data->mIsPressed;
+		io.KeysDown[(int)'A'] = data->mIsPressed;
 	}
-	else if (KEY_RIGHT_STICK_BUTTON == data->mUserId)
+	else if (KEY_RIGHT_STICK_BUTTON == data->mUserId ||
+			KEY_DELETE == data->mUserId)
 	{
 		io.KeysDown[data->mUserId] = data->mIsPressed;
 	}
@@ -712,6 +721,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
 	io.NavInputs[ImGuiNavInput_FocusPrev] = InputSystem::GetButtonData(KEY_LEFT_BUMPER).mIsPressed ? 1.0f : 0.0f;
 	io.NavInputs[ImGuiNavInput_TweakFast] = InputSystem::GetButtonData(KEY_RIGHT_BUMPER).mIsPressed ? 1.0f : 0.0f;
 	io.NavInputs[ImGuiNavInput_TweakSlow] = InputSystem::GetButtonData(KEY_LEFT_BUMPER).mIsPressed ? 1.0f : 0.0f;
+
 	ImGui::NewFrame();
 	/************************************************************************/
 	// Draw window
@@ -763,8 +773,8 @@ void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
 		{
 			for (size_t i = 0; i < contextualMenuLabels.size(); i++)
 			{
-				if (ImGui::MenuItem(contextualMenuLabels[i].c_str())) 
-				{ 
+				if (ImGui::MenuItem(contextualMenuLabels[i].c_str()))
+				{
 					if (i < contextualMenuCallbacks.size())
 						contextualMenuCallbacks[i]();
 				}
@@ -772,8 +782,18 @@ void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
 			ImGui::EndPopup();
 		}
 
-		ImGui::SetWindowSize(ImVec2(w * dpiScale.x, h * dpiScale.y), ImGuiCond_Once);
-		ImGui::SetWindowPos(ImVec2(x * dpiScale.x, y * dpiScale.y), ImGuiCond_Once);
+		bool overrideSize = false;
+		bool overridePos = false;
+
+		if ((guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) &&
+			!(guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
+			overrideSize = true;
+
+		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+			overridePos = true;
+
+		ImGui::SetWindowSize(ImVec2(w * dpiScale.x, h * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
+		ImGui::SetWindowPos(ImVec2(x * dpiScale.x, y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
 
 		ImVec2 min = ImGui::GetWindowPos();
 		ImVec2 max = ImGui::GetWindowSize();
@@ -855,10 +875,10 @@ void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
 	float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
 	float mvp[4][4] =
 	{
-		{ 2.0f / (R - L),   0.0f,           0.0f,       0.0f },
-		{ 0.0f,         2.0f / (T - B),     0.0f,       0.0f },
-		{ 0.0f,         0.0f,           0.5f,       0.0f },
-		{ (R + L) / (L - R),  (T + B) / (B - T),    0.5f,       1.0f },
+		{ 2.0f / (R - L),   0.0f,		  0.0f,	   0.0f },
+		{ 0.0f,	  2.0f / (T - B),	 0.0f,	 0.0f },
+		{ 0.0f,	  0.0f,		 0.5f,	   0.0f },
+		{ (R + L) / (L - R),  (T + B) / (B - T),	0.5f,	  1.0f },
 	};
 	RingBufferOffset offset = getUniformBufferOffset(pRingBuffer, sizeof(mvp));
 	BufferUpdateDesc update = { offset.pBuffer, mvp, 0, offset.mOffset, sizeof(mvp) };
@@ -909,4 +929,24 @@ void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
 		}
 		vtx_offset += cmd_list->VtxBuffer.Size;
 	}
+}
+
+int ImguiGUIDriver::needsTextInput() const
+{
+	//The User flags are not what I expect them to be.
+	//We need access to Per-Component InputFlags
+	ImGuiContext* guiContext = (ImGuiContext*)this->context;
+	ImGuiInputTextFlags currentInputFlags = guiContext->InputTextState.UserFlags;
+
+	//0 -> Not pressed
+	//1 -> Digits Only keyboard
+	//2 -> Full Keyboard (Chars + Digits)
+	int inputState = ImGui::GetIO().WantTextInput ? 2 : 0;
+	//keyboard only Numbers
+	if(inputState > 0 && (currentInputFlags & ImGuiInputTextFlags_CharsDecimal))
+	{
+		inputState = 1;
+	}
+
+	return inputState;
 }

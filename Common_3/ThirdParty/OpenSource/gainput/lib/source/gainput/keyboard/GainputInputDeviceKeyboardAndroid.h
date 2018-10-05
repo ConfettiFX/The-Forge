@@ -148,7 +148,24 @@ public:
 		{
 			return 0;
 		}
-		return textBuffer_.Get();
+		InputCharDesc currentDesc = textBuffer_.Get();
+
+		//Removed buffered inputs for which we didn't call GetNextCharacter
+		if (buttonId != gainput::InvalidDeviceButtonId && buttonId < gainput::KeyCount_)
+		{
+			while (currentDesc.buttonId != buttonId)
+			{
+				if (!textBuffer_.CanGet())
+				{
+					return 0;
+				}
+				currentDesc = textBuffer_.Get();
+			}
+		}
+
+		//if button id was provided then we return the appropriate character
+		//else we return the first buffered character
+		return currentDesc.inputChar;
 	}
 
 	InputState* GetNextInputState()

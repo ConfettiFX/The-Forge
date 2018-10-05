@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -40,21 +40,21 @@ typedef struct BufferLoadDesc
 {
 	Buffer**	ppBuffer;
 	const void* pData;
-	BufferDesc	mDesc;
+	BufferDesc  mDesc;
 	/// Force Reset buffer to NULL
 	bool		mForceReset;
 } BufferLoadDesc;
 
 typedef struct TextureLoadDesc
 {
-	Texture**				ppTexture;
+	Texture**			   ppTexture;
 	/// Load texture from image
-	Image*					pImage;
+	Image*				  pImage;
 	/// Load empty texture
 	TextureDesc*			pDesc;
 	/// Load texture from disk
-	const char*				pFilename;
-	FSRoot					mRoot;
+	const char*			 pFilename;
+	FSRoot				  mRoot;
 	uint32_t				mNodeIndex;
 	bool					mUseMipmaps;
 	bool					mSrgb;
@@ -67,15 +67,15 @@ typedef struct BufferUpdateDesc
 
 	Buffer* pBuffer;
 	const void* pData;
-    uint64_t mSrcOffset;
-    uint64_t mDstOffset;
-    uint64_t mSize; // If 0, uses size of pBuffer
+	uint64_t mSrcOffset;
+	uint64_t mDstOffset;
+	uint64_t mSize; // If 0, uses size of pBuffer
 } BufferUpdateDesc;
 
 typedef struct TextureUpdateDesc
 {
 	Texture*	pTexture;
-	Image*		pImage;
+	Image*	  pImage;
 } TextureUpdateDesc;
 
 typedef enum ResourceType
@@ -112,10 +112,10 @@ typedef struct ResourceUpdateDesc
 
 typedef struct ShaderStageLoadDesc
 {
-	tinystl::string			mFileName;
+	tinystl::string		 mFileName;
 	ShaderMacro*	pMacros;
 	uint32_t		mMacroCount;
-	FSRoot			mRoot;
+	FSRoot		  mRoot;
 } ShaderStageLoadDesc;
 
 typedef struct ShaderLoadDesc

@@ -219,7 +219,7 @@ struct UpdateSubresourcesCmd
 struct CachedCmd {
 	Cmd* pCmd;
 	CmdType sType;
-	union 
+	union
 	{
 		BindRenderTargetsCmd mBindRenderTargetsCmd;
 		SetViewportCmd mSetViewportCmd;

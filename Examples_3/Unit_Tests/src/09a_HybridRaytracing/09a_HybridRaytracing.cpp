@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -84,28 +84,28 @@ HiresTimer gTimer;
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",									// FSR_BinShaders
-	"Shaders/",											// FSR_SrcShaders
-	"Shaders/Binary/",									// FSR_BinShaders_Common
-	"Shaders/",											// FSR_SrcShaders_Common
+	"Shaders/Binary/",								  // FSR_BinShaders
+	"Shaders/",										 // FSR_SrcShaders
+	"Shaders/Binary/",								  // FSR_BinShaders_Common
+	"Shaders/",										 // FSR_SrcShaders_Common
 	"Textures/",										// FSR_Textures
-	"Meshes/",											// FSR_Meshes
-	"Fonts/",											// FSR_Builtin_Fonts
-	"",													// FSR_OtherFiles
+	"Meshes/",										  // FSR_Meshes
+	"Fonts/",										   // FSR_Builtin_Fonts
+	"",												 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../../src/09a_HybridRaytracing/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../../src/09a_HybridRaytracing/" RESOURCE_DIR "/",		// FSR_SrcShaders
-	"",													// FSR_BinShaders_Common
-	"",													// FSR_SrcShaders_Common
-	"../../../../../Art/Sponza/Textures/",			// FSR_Textures
+	"../../../src/09a_HybridRaytracing/" RESOURCE_DIR "/Binary/",   // FSR_BinShaders
+	"../../../src/09a_HybridRaytracing/" RESOURCE_DIR "/",	  // FSR_SrcShaders
+	"",												 // FSR_BinShaders_Common
+	"",												 // FSR_SrcShaders_Common
+	"../../../../../Art/Sponza/Textures/",		  // FSR_Textures
 	"../../../../../Art/Sponza/Meshes/",				// FSR_Meshes
 	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
 	"../../../src/09a_HybridRaytracing/GPUCfg/",			// FSR_GpuConfig
-	"",													// FSR_OtherFiles
+	"",												 // FSR_OtherFiles
 };
 #endif
 
@@ -117,9 +117,9 @@ struct AABBox
 	vec3		Vertex0;
 	vec3		Vertex1;
 	vec3		Vertex2;
-	int			InstanceID;
-	float		SurfaceAreaLeft;
-	float		SurfaceAreaRight;
+	int		 InstanceID;
+	float	   SurfaceAreaLeft;
+	float	   SurfaceAreaRight;
 
 	AABBox()
 	{
@@ -145,36 +145,36 @@ struct AABBox
 
 struct BVHNodeBBox
 {
-	float4		MinBounds; // OffsetToNextNode in w component
-	float4		MaxBounds;
+	float4	  MinBounds; // OffsetToNextNode in w component
+	float4	  MaxBounds;
 };
 
-struct BVHLeafBBox 
+struct BVHLeafBBox
 {
-	float4		Vertex0; // OffsetToNextNode in w component
-	float4		Vertex1MinusVertex0;
-	float4		Vertex2MinusVertex0;
+	float4	  Vertex0; // OffsetToNextNode in w component
+	float4	  Vertex1MinusVertex0;
+	float4	  Vertex2MinusVertex0;
 };
 
 struct BVHNode
 {
-	float				SplitCost;
-	AABBox				BoundingBox;
+	float			   SplitCost;
+	AABBox			  BoundingBox;
 	BVHNode*			Left;
 	BVHNode*			Right;
 };
 
-const uint32_t		gImageCount = 3;
+const uint32_t	  gImageCount = 3;
 
 class RenderPassData
 {
 public:
-	Shader*				pShader;
-	RootSignature*		pRootSignature;
-	Pipeline*			pPipeline;
+	Shader*			 pShader;
+	RootSignature*	  pRootSignature;
+	Pipeline*		   pPipeline;
 	CmdPool*			pCmdPool;
-	Cmd**				ppCmds;
-	Buffer*				pPerPassCB[gImageCount];
+	Cmd**			   ppCmds;
+	Buffer*			 pPerPassCB[gImageCount];
 	tinystl::vector<RenderTarget*> RenderTargets;
 	tinystl::vector<Texture*> Textures;
 
@@ -241,16 +241,16 @@ struct UniformObjData
 struct MeshBatch
 {
 	tinystl::vector<float3> PositionsData;
-	tinystl::vector<uint>	IndicesData;
+	tinystl::vector<uint>   IndicesData;
 
 	Buffer* pPositionStream;
 	Buffer* pNormalStream;
 	Buffer* pUVStream;
 	Buffer* pIndicesStream;
-	int		NoofVertices;
-	int		NoofIndices;
-	int		NoofInstances;
-	int		MaterialID;
+	int	 NoofVertices;
+	int	 NoofIndices;
+	int	 NoofInstances;
+	int	 MaterialID;
 };
 
 //Enum for easy access of GBuffer RTs
@@ -267,44 +267,44 @@ struct  GBufferRT
 struct PropData
 {
 	mat4						WorldMatrix;
-	tinystl::vector<MeshBatch*>	MeshBatches;
-	Buffer*						pConstantBuffer;
+	tinystl::vector<MeshBatch*> MeshBatches;
+	Buffer*					 pConstantBuffer;
 };
 
 typedef tinystl::unordered_map<RenderPass::Enum, RenderPassData*> RenderPassMap;
 
-Renderer*			pRenderer = NULL;
-Queue*				pGraphicsQueue = NULL;
+Renderer*		   pRenderer = NULL;
+Queue*			  pGraphicsQueue = NULL;
 
 Sampler*			pSamplerPointClamp = NULL;
 Sampler*			pSamplerLinearWrap = NULL;
 
 RasterizerState*	pRasterDefault = NULL;
-DepthState*			pDepthDefault = NULL;
-DepthState*			pDepthNone = NULL;
+DepthState*		 pDepthDefault = NULL;
+DepthState*		 pDepthNone = NULL;
 
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		  pImageAcquiredSemaphore = NULL;
+Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-SwapChain*			pSwapChain = NULL;
+SwapChain*		  pSwapChain = NULL;
 
-Buffer*				BVHBoundingBoxesBuffer;
+Buffer*			 BVHBoundingBoxesBuffer;
 
 //The render passes used in the demo
-RenderPassMap		RenderPasses;
+RenderPassMap	   RenderPasses;
 
 uint32_t			gFrameIndex = 0;
 
-UIApp				gAppUI;
+UIApp			   gAppUI;
 GpuProfiler*		pGpuProfiler = NULL;
-ICameraController*	pCameraController = NULL;
+ICameraController*  pCameraController = NULL;
 
 //Sponza
-const char*			gModel_Sponza_File = "sponza.obj";
-Model				gModel_Sponza;
+const char*		 gModel_Sponza_File = "sponza.obj";
+Model			   gModel_Sponza;
 
-const char*			pMaterialImageFileNames[] =
+const char*		 pMaterialImageFileNames[] =
 {
 	"SponzaPBR_Textures/ao.png",
 	"SponzaPBR_Textures/ao.png",
@@ -444,7 +444,7 @@ const char*			pMaterialImageFileNames[] =
 //Workaround for too many bindless textures on iOS
 //we bind textures individually for each draw call.
 #ifdef TARGET_IOS
-const char*		pTextureName[] =
+const char*	 pTextureName[] =
 {
 	"albedoMap",
 	"normalMap",
@@ -453,7 +453,7 @@ const char*		pTextureName[] =
 	"aoMap"
 };
 
-VirtualJoystickUI			gVirtualJoystick;
+VirtualJoystickUI		   gVirtualJoystick;
 #endif
 
 PropData			SponzaProp;
@@ -463,9 +463,9 @@ Texture*			pMaterialTextures[TOTAL_IMGS];
 
 tinystl::vector<int> gSponzaTextureIndexforMaterial;
 
-AABBox				gWholeSceneBBox;
+AABBox			  gWholeSceneBBox;
 
-RenderTarget*		pDepthBuffer = NULL;
+RenderTarget*	   pDepthBuffer = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -473,7 +473,7 @@ uint				gFrameNumber = 0;
 
 void addPropToPrimitivesAABBList(
 	tinystl::vector<AABBox>&	bboxData,
-	PropData&					prop
+	PropData&				   prop
 )
 {
 	mat4& world = prop.WorldMatrix;
@@ -625,58 +625,58 @@ void sortAlongAxis(tinystl::vector<AABBox>& bboxData, int begin, int end, int ax
 
 //BVHNode* createBVHNodeMedianSplit(tinystl::vector<AABBox>& bboxData, int begin, int end)
 //{
-//	int count = end - begin + 1;
+//  int count = end - begin + 1;
 //
-//	vec3 minBounds;
-//	vec3 maxBounds;
+//  vec3 minBounds;
+//  vec3 maxBounds;
 //
-//	calculateBounds(bboxData, begin, end, minBounds, maxBounds);
+//  calculateBounds(bboxData, begin, end, minBounds, maxBounds);
 //
-//	vec3 bboxSize = maxBounds - minBounds;
+//  vec3 bboxSize = maxBounds - minBounds;
 //
-//	float maxDim = maxElem(bboxSize);
+//  float maxDim = maxElem(bboxSize);
 //
-//	if (maxDim == bboxSize.getX())
-//		sortAlongAxis(bboxData, begin, end, 0);
-//	else if (maxDim == bboxSize.getY())
-//		sortAlongAxis(bboxData, begin, end, 1);
-//	else
-//		sortAlongAxis(bboxData, begin, end, 2);
+//  if (maxDim == bboxSize.getX())
+//	  sortAlongAxis(bboxData, begin, end, 0);
+//  else if (maxDim == bboxSize.getY())
+//	  sortAlongAxis(bboxData, begin, end, 1);
+//  else
+//	  sortAlongAxis(bboxData, begin, end, 2);
 //
-//	BVHNode* node = (BVHNode*)conf_placement_new<BVHNode>(conf_calloc(1, sizeof(BVHNode)));
+//  BVHNode* node = (BVHNode*)conf_placement_new<BVHNode>(conf_calloc(1, sizeof(BVHNode)));
 //
-//	node->BoundingBox.Expand(minBounds);
-//	node->BoundingBox.Expand(maxBounds);
+//  node->BoundingBox.Expand(minBounds);
+//  node->BoundingBox.Expand(maxBounds);
 //
-//	int split = count / 2;
+//  int split = count / 2;
 //
-//	if (count == 1)
-//	{
-//		//this is a leaf node
-//		node->Left = nullptr;
-//		node->Right = nullptr;
+//  if (count == 1)
+//  {
+//	  //this is a leaf node
+//	  node->Left = nullptr;
+//	  node->Right = nullptr;
 //
-//		node->BoundingBox.InstanceID = bboxData[begin].InstanceID;
+//	  node->BoundingBox.InstanceID = bboxData[begin].InstanceID;
 //
-//		node->BoundingBox.Vertex0 = bboxData[begin].Vertex0;
-//		node->BoundingBox.Vertex1 = bboxData[begin].Vertex1;
-//		node->BoundingBox.Vertex2 = bboxData[begin].Vertex2;
-//	}
-//	else
-//	{
-//		//create the two branches
-//		node->Left = createBVHNodeMedianSplit(bboxData, begin, begin + split - 1);
-//		node->Right = createBVHNodeMedianSplit(bboxData, begin + split, end);
+//	  node->BoundingBox.Vertex0 = bboxData[begin].Vertex0;
+//	  node->BoundingBox.Vertex1 = bboxData[begin].Vertex1;
+//	  node->BoundingBox.Vertex2 = bboxData[begin].Vertex2;
+//  }
+//  else
+//  {
+//	  //create the two branches
+//	  node->Left = createBVHNodeMedianSplit(bboxData, begin, begin + split - 1);
+//	  node->Right = createBVHNodeMedianSplit(bboxData, begin + split, end);
 //
-//		node->BoundingBox.Vertex0 = vec3(0.0f);
-//		node->BoundingBox.Vertex1 = vec3(0.0f);
-//		node->BoundingBox.Vertex2 = vec3(0.0f);
+//	  node->BoundingBox.Vertex0 = vec3(0.0f);
+//	  node->BoundingBox.Vertex1 = vec3(0.0f);
+//	  node->BoundingBox.Vertex2 = vec3(0.0f);
 //
-//		//this is an intermediate Node
-//		node->BoundingBox.InstanceID = -1;
-//	}
+//	  //this is an intermediate Node
+//	  node->BoundingBox.InstanceID = -1;
+//  }
 //
-//	return node;
+//  return node;
 //}
 
 inline float calculateSurfaceArea(const AABBox& bbox)
@@ -759,7 +759,7 @@ BVHNode* createBVHNodeSHA(tinystl::vector<AABBox>& bboxData, int begin, int end,
 	calculateBounds(bboxData, begin, end, minBounds, maxBounds);
 
 	BVHNode* node = (BVHNode*)conf_placement_new<BVHNode>(conf_calloc(1, sizeof(BVHNode)));
-	
+
 	node->BoundingBox.Expand(minBounds);
 	node->BoundingBox.Expand(maxBounds);
 
@@ -807,7 +807,7 @@ BVHNode* createBVHNodeSHA(tinystl::vector<AABBox>& bboxData, int begin, int end,
 		node->BoundingBox.Vertex2 = vec3(0.0f);
 
 		//this is an intermediate Node
-		node->BoundingBox.InstanceID = -1;		 		
+		node->BoundingBox.InstanceID = -1;
 	}
 
 	return node;
@@ -816,7 +816,7 @@ BVHNode* createBVHNodeSHA(tinystl::vector<AABBox>& bboxData, int begin, int end,
 void writeBVHTree(BVHNode *root, BVHNode *node, uint8* bboxData, int& dataOffset, int& index)
 {
 	if (node)
-	{		
+	{
 		if (node->BoundingBox.InstanceID < 0.0f)
 		{
 			int tempIndex = 0;
@@ -883,12 +883,12 @@ class HybridRaytracing : public IApp
 {
 public:
 
-	HybridRaytracing() 
+	HybridRaytracing()
 	{
 #ifndef METAL
 		//set window size
- 		mSettings.mWidth = 1920;
-	 	mSettings.mHeight = 1080;
+		mSettings.mWidth = 1920;
+		mSettings.mHeight = 1080;
 #endif
 	}
 
@@ -939,7 +939,7 @@ public:
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-        
+
 		//Load shaders
 		{
 			//Load shaders for GPrepass
@@ -993,7 +993,7 @@ public:
 			depthStateDesc.mDepthTest = false;
 			depthStateDesc.mDepthWrite = false;
 			depthStateDesc.mDepthFunc = CMP_ALWAYS;
-			addDepthState(pRenderer, &depthStateDesc, &pDepthNone);	
+			addDepthState(pRenderer, &depthStateDesc, &pDepthNone);
 		}
 
 		//Create sampler state objects
@@ -1135,12 +1135,12 @@ public:
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
-				
+
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
 			return false;
 #endif
-		
+
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
@@ -1171,18 +1171,18 @@ public:
 		removeDebugRendererInterface();
 
 		gAppUI.Exit();
-		
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
-		
+
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
 			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        
+
 		removeSampler(pRenderer, pSamplerLinearWrap);
 		removeSampler(pRenderer, pSamplerPointClamp);
 
@@ -1191,13 +1191,13 @@ public:
 		removeDepthState(pDepthNone);
 
 		//Delete rendering passes
-		for (RenderPassMap::iterator iter =  RenderPasses.begin(); iter != RenderPasses.end(); ++iter) 
+		for (RenderPassMap::iterator iter =  RenderPasses.begin(); iter != RenderPasses.end(); ++iter)
 		{
 			RenderPassData* pass = iter->second;
 
 			if (!pass)
 				continue;
-			
+
 			for (RenderTarget* rt : pass->RenderTargets)
 			{
 				removeRenderTarget(pRenderer, rt);
@@ -1233,14 +1233,14 @@ public:
 			removeResource(meshBatch->pIndicesStream);
 			removeResource(meshBatch->pNormalStream);
 			removeResource(meshBatch->pPositionStream);
-			removeResource(meshBatch->pUVStream);	
+			removeResource(meshBatch->pUVStream);
 			meshBatch->~MeshBatch();
 			conf_free(meshBatch);
 		}
 
 		removeResource(SponzaProp.pConstantBuffer);
 		SponzaProp.MeshBatches.empty();
-		
+
 		for (uint i = 0; i < TOTAL_IMGS; ++i)
 			removeResource(pMaterialTextures[i]);
 
@@ -1476,7 +1476,7 @@ public:
 			return false;
 		}
 
-		
+
 		size_t meshCount = gModel_Sponza.mMeshArray.size();
 		size_t sponza_matCount = gModel_Sponza.mMaterialList.size();
 
@@ -1543,7 +1543,7 @@ public:
 				desc.pData = subMesh.mIndices.data();
 				desc.ppBuffer = &pMeshBatch->pIndicesStream;
 				addResource(&desc);
-			}						
+			}
 		}
 
 		//set constant buffer for sponza
@@ -1573,7 +1573,7 @@ public:
 		triBBoxes.reserve(1000000);
 
 		//create buffers for BVH
-		
+
 		addPropToPrimitivesAABBList(triBBoxes, SponzaProp);
 
 		int count = (int)triBBoxes.size();
@@ -1607,7 +1607,7 @@ public:
 
 		conf_free(bvhTreeNodes);
 		deleteBVHTree(bvhRoot);
-		
+
 	}
 
 	void CreateRenderTargets()
@@ -1728,7 +1728,7 @@ public:
 				RenderPasses[RenderPass::Composite]->Textures.push_back(pTexture);
 			}
 		}
-	
+
 	}
 
 	bool Load()
@@ -1737,7 +1737,7 @@ public:
 			return false;
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
-			return false;	
+			return false;
 
 		CreateRenderTargets();
 
@@ -1766,7 +1766,7 @@ public:
 				vertexLayoutGPrepass.mAttribs[2].mFormat = ImageFormat::RG32F;
 				vertexLayoutGPrepass.mAttribs[2].mLocation = 2;
 				vertexLayoutGPrepass.mAttribs[2].mBinding = 2;
-				vertexLayoutGPrepass.mAttribs[2].mOffset = 0;  
+				vertexLayoutGPrepass.mAttribs[2].mOffset = 0;
 			}
 
 			//set up g-prepass buffer formats
@@ -1849,12 +1849,12 @@ public:
 		vec3 midpoint = 0.5f * (gWholeSceneBBox.MaxBounds + gWholeSceneBBox.MinBounds);
 		pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
 		pCameraController->lookAt(midpoint - vec3(0, 450, 0));
-		
+
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], 0))
 			return false;
 #endif
-		
+
 		return true;
 	}
 
@@ -1863,7 +1863,7 @@ public:
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 		gAppUI.Unload();
-		
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
 #endif
@@ -1875,7 +1875,7 @@ public:
 
 			for (RenderTarget* rt : pass->RenderTargets)
 			{
-				removeRenderTarget(pRenderer, rt);				
+				removeRenderTarget(pRenderer, rt);
 			}
 
 			for (Texture* texture : pass->Textures)
@@ -1949,7 +1949,7 @@ public:
 			buffer.mProjectView = projectView;
 			BufferUpdateDesc desc = { RenderPasses[RenderPass::GBuffer]->pPerPassCB[gFrameIndex], &buffer };
 			updateResource(&desc);
-		}  
+		}
 
 		//update Shadow pass constant buffer
 		{
@@ -1967,7 +1967,7 @@ public:
 
 			const float horizontalFOV = PI / 2.0f;
 			float pixelSize = tanf(0.5f * horizontalFOV) / float(buffer.mRTSize.getX());
-		
+
 			buffer.mCameraPosition = vec4(pCameraController->getViewPosition(), pixelSize);
 
 			BufferUpdateDesc desc = { RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[gFrameIndex], &buffer };
@@ -2014,8 +2014,8 @@ public:
 		//use an index for swapchains only.
 		uint32_t swapchainIndex = 0;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
-		
-		
+
+
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -2076,7 +2076,7 @@ public:
 				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, 2, params);
 #endif
 
-				struct MaterialMaps 
+				struct MaterialMaps
 				{
 					uint mapIDs[5];
 				} data;
@@ -2090,7 +2090,7 @@ public:
 #ifndef TARGET_IOS
 					params[0].pName = "cbTextureRootConstants";
 					params[0].pRootConstant = &data;
-					
+
 					for (int j = 0; j < 5; ++j)
 					{
 						data.mapIDs[j] = gSponzaTextureIndexforMaterial[materialID + j];
@@ -2171,7 +2171,7 @@ public:
 			endCmd(cmd);
 			allCmds.push_back(cmd);
 		}
-		
+
 		// Lighting pass *********************************************************************************
 		{
 			Cmd* cmd = RenderPasses[RenderPass::Lighting]->ppCmds[gFrameIndex];
@@ -2211,7 +2211,7 @@ public:
 			endCmd(cmd);
 			allCmds.push_back(cmd);
 		}
-		
+
 		// Composite pass *********************************************************************************
 		{
 			Cmd* cmd = RenderPasses[RenderPass::Composite]->ppCmds[gFrameIndex];
@@ -2220,7 +2220,7 @@ public:
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
 
 			// Transfer albedo and lighting to SRV State
-			TextureBarrier barriers[] = {	
+			TextureBarrier barriers[] = {
 				{ RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE },
 				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS }
@@ -2281,11 +2281,11 @@ public:
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 			gTimer.GetUSec(true);
-			
+
 #ifdef TARGET_IOS
 			gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
-			
+
 			drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL // Metal doesn't support GPU profilers
@@ -2293,7 +2293,7 @@ public:
 			drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
- 			gAppUI.Draw(cmd);
+			gAppUI.Draw(cmd);
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 			TextureBarrier barriers[] = {
@@ -2307,15 +2307,15 @@ public:
 			endCmd(cmd);
 			allCmds.push_back(cmd);
 		}
-		
+
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
-		
+
 		//update frame index to be use next frame index in next Update and draw calls.
 		//otherwise uniforms update the wrong buffers.
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
-		
+
 	}
 
 	tinystl::string GetName()

@@ -35,7 +35,7 @@ FileHandle _openFile(const char* filename, const char* flags)
 {
 	//first we need to look into main bundle which has read-only access
 	NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:filename] ofType:@""];
-	
+
 	//there is no write permission for files in bundle,
 	//iOS can only write in documents
 	//if 'w' flag is present then look in documents folder of Application (Appdata equivalent)
@@ -44,13 +44,13 @@ FileHandle _openFile(const char* filename, const char* flags)
 		NSString * documentsDirectory = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
 		fileUrl = [documentsDirectory stringByAppendingString:[NSString stringWithUTF8String:filename]];
 	}
-	
+
 	//No point in calling fopen if file path is null
 	if(fileUrl == nil)
 		return NULL;
-	
+
 	filename = [fileUrl fileSystemRepresentation];
-	
+
 
   FILE* fp = fopen(filename, flags);
   return fp;
@@ -88,17 +88,17 @@ size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
 
 tinystl::string _getCurrentDir()
 {
-    char cwd[256]="";
-    getcwd(cwd, sizeof(cwd));
-    tinystl::string str(cwd);
-    return str;
+	char cwd[256]="";
+	getcwd(cwd, sizeof(cwd));
+	tinystl::string str(cwd);
+	return str;
 }
 
 tinystl::string _getExePath()
 {
-    const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
-    tinystl::string str(exeDir);
-    return str;
+	const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
+	tinystl::string str(exeDir);
+	return str;
 }
 
 size_t _getFileLastModifiedTime(const char* _fileName)
@@ -107,28 +107,28 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 
   if (!stat(_fileName, &fileInfo))
   {
-    return (size_t)fileInfo.st_mtime;
+	return (size_t)fileInfo.st_mtime;
   }
   else
   {
-    // return an impossible large mod time as the file doesn't exist
-    return ~0;
+	// return an impossible large mod time as the file doesn't exist
+	return ~0;
   }
 }
 
 tinystl::string _getAppPrefsDir(const char *org, const char *app)
 {
-    ASSERT(false && "Unsupported on target iOS");
-    return tinystl::string();
+	ASSERT(false && "Unsupported on target iOS");
+	return tinystl::string();
 }
 
 tinystl::string _getUserDocumentsDir()
 {
-    ASSERT(false && "Unsupported on target iOS");
-    return tinystl::string();
+	ASSERT(false && "Unsupported on target iOS");
+	return tinystl::string();
 }
 
 void _setCurrentDir(const char* path)
 {
-    chdir(path);
+	chdir(path);
 }

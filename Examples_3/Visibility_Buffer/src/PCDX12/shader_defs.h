@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -34,7 +34,7 @@
 #define LIGHT_CLUSTER_COUNT_POS(ix, iy) ( (iy*LIGHT_CLUSTER_WIDTH)+ix )
 #define LIGHT_CLUSTER_DATA_POS(il, ix, iy) ( LIGHT_CLUSTER_COUNT_POS(ix, iy)*LIGHT_COUNT + il )
 
-// This defines the amount of triangles that will be processed in parallel by the 
+// This defines the amount of triangles that will be processed in parallel by the
 // compute shader in the triangle filtering process.
 // Should be a multiple of the wavefront size
 #define CLUSTER_SIZE 256
@@ -53,12 +53,12 @@
 // indirect draw buffers.
 #define CLEAR_THREAD_COUNT 256
 
-// The following value defines the maximum amount of indirect draw calls that will be 
-// drawn at once. This value depends on the number of submeshes or individual objects 
+// The following value defines the maximum amount of indirect draw calls that will be
+// drawn at once. This value depends on the number of submeshes or individual objects
 // in the scene. Changing a scene will require to change this value accordingly.
-#define MAX_DRAWS_INDIRECT 300 
+#define MAX_DRAWS_INDIRECT 300
 
-// The following values point to the position in the indirect draw buffer that holds the 
+// The following values point to the position in the indirect draw buffer that holds the
 // number of draw calls to draw after triangle filtering and batch compaction.
 // This value number is stored in the last position of the indirect draw buffer.
 // So it depends on MAX_DRAWS_INDIRECT
@@ -85,11 +85,11 @@ struct RootConstant
 
 struct SmallBatchData
 {
-	uint meshIndex;         // Index into meshConstants
-	uint indexOffset;       // Index relative to the meshConstants[meshIndex].indexOffset
-	uint faceCount;         // Number of faces in this small batch
+	uint meshIndex;	  // Index into meshConstants
+	uint indexOffset;	  // Index relative to the meshConstants[meshIndex].indexOffset
+	uint faceCount;	  // Number of faces in this small batch
 	uint outputIndexOffset; // Offset into the output index buffer
-	uint drawBatchStart;    // First slot for the current draw call
+	uint drawBatchStart;	// First slot for the current draw call
 	uint accumDrawIndex;
 	uint _pad0;
 	uint _pad1;
@@ -97,8 +97,8 @@ struct SmallBatchData
 
 struct MeshConstants
 {
-	uint    faceCount;
-	uint    indexOffset;
+	uint	faceCount;
+	uint	indexOffset;
 	uint	materialID;
 	uint	twoSided; //0 or 1
 };

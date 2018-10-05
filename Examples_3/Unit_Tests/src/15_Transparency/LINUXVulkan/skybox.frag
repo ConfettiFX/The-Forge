@@ -30,7 +30,7 @@ layout (set=0, binding=3) uniform texture2D  TopText;
 layout (set=0, binding=4) uniform texture2D  BotText;
 layout (set=0, binding=5) uniform texture2D  FrontText;
 layout (set=0, binding=6) uniform texture2D  BackText;
-layout (set=0, binding=7) uniform sampler   skySampler;
+layout (set=0, binding=7) uniform sampler   SkySampler;
 layout(location = 0) in INVOCATION
 {
   vec4 texcoord;
@@ -51,32 +51,32 @@ void main(void)
   
       newtextcoord = (fs_in.texcoord.zy)/20+vec2(0.5);
       newtextcoord = vec2(1-newtextcoord.x,1-newtextcoord.y);
-      fs_out_color  =  texture(sampler2D(RightText, skySampler), newtextcoord);
+      fs_out_color  =  texture(sampler2D(RightText, SkySampler), newtextcoord);
   }
   else if(side==2)
   {
   
       vec2 newtextcoord = (fs_in.texcoord.zy)/20+vec2(0.5);
       newtextcoord = vec2(newtextcoord.x,1-newtextcoord.y);
-      fs_out_color  =  texture(sampler2D(LeftText, skySampler), newtextcoord);
+      fs_out_color  =  texture(sampler2D(LeftText, SkySampler), newtextcoord);
   }
   else if(side==3)
   {
-       fs_out_color  =  texture(sampler2D(TopText, skySampler), (fs_in.texcoord.xz)/20+vec2(0.5));
+       fs_out_color  =  texture(sampler2D(TopText, SkySampler), (fs_in.texcoord.xz)/20+vec2(0.5));
   }
   if(side == 4.0f)
   {
     
        newtextcoord = (fs_in.texcoord.xz)/20+vec2(0.5);
        newtextcoord = vec2(newtextcoord.x,1-newtextcoord.y);
-       fs_out_color  =  texture(sampler2D(BotText, skySampler), newtextcoord);
+       fs_out_color  =  texture(sampler2D(BotText, SkySampler), newtextcoord);
   }
   else if(side==5)
   {
      
        newtextcoord = (fs_in.texcoord.xy)/20+vec2(0.5);
        newtextcoord = vec2(newtextcoord.x,1-newtextcoord.y);
-       fs_out_color = texture(sampler2D(FrontText, skySampler), newtextcoord);
+       fs_out_color = texture(sampler2D(FrontText, SkySampler), newtextcoord);
        
   }
   else if(side==6)
@@ -84,7 +84,7 @@ void main(void)
       
        newtextcoord = (fs_in.texcoord.xy)/20+vec2(0.5);
        newtextcoord = vec2(1-newtextcoord.x,1-newtextcoord.y);
-       fs_out_color = texture(sampler2D(BackText, skySampler), newtextcoord);
+       fs_out_color = texture(sampler2D(BackText, SkySampler), newtextcoord);
   }
   
 }

@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -50,8 +50,8 @@ typedef HINSTANCE HINST;
 typedef uint64_t uint64;
 #endif
 #endif
-
-#if defined(__linux__)
+#if defined(__ANDROID__)
+#elif defined(__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
 #if defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_XCB_KHR)
 #include <X11/Xutil.h>
@@ -107,18 +107,18 @@ inline int getRectHeight(const RectDesc& rect)
 typedef struct WindowsDesc
 {
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
- 	Display *display;
- 	Window xlib_window;
- 	Atom xlib_wm_delete_window;
+	Display *display;
+	Window xlib_window;
+	Atom xlib_wm_delete_window;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
- 	Display *display;
- 	xcb_connection_t *connection;
- 	xcb_screen_t *screen;
- 	xcb_window_t xcb_window;
- 	xcb_intern_atom_reply_t *atom_wm_delete_window;
+	Display *display;
+	xcb_connection_t *connection;
+	xcb_screen_t *screen;
+	xcb_window_t xcb_window;
+	xcb_intern_atom_reply_t *atom_wm_delete_window;
 #else
 	WindowHandle handle = NULL; //hWnd
-#endif	
+#endif
 	RectDesc windowedRect;
 	RectDesc fullscreenRect;
 	RectDesc clientRect;

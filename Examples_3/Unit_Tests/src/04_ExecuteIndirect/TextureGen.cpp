@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -58,13 +58,13 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 
 	for (uint32_t t = 0; t < texture_count; ++t)
 	{
-        MyRandom rng(seeds[t]);
+		MyRandom rng(seeds[t]);
 
 		for (uint32_t a = 0; a < array_count; ++a)
 		{
-            float randomNoise = rng.GetUniformDistribution(0.0f, 10000.0f);
-            float randomNoiseScale = rng.GetUniformDistribution(100.0f, 150.0f);
-            float randomPersistence = rng.GetNormalDistribution(0.9f, 0.2f);
+			float randomNoise = rng.GetUniformDistribution(0.0f, 10000.0f);
+			float randomNoiseScale = rng.GetUniformDistribution(100.0f, 150.0f);
+			float randomPersistence = rng.GetNormalDistribution(0.9f, 0.2f);
 
 			// Use same parameters for each of the tri-planar projection planes/cube map faces/etc.
 			float noiseScale = randomNoiseScale / float(textureDim);
@@ -73,9 +73,9 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 			float strength = 1.5f;
 
 			NoiseOctaves<4> textureNoise(persistence);
-			
-            uint mipLevel = 0;
-            uint slice = t * array_count + a;
+
+			uint mipLevel = 0;
+			uint slice = t * array_count + a;
 			uint32_t* scanline = (uint32_t*)image->GetPixels(mipLevel, slice);
 			for (size_t y = 0; y < textureDim; ++y)
 			{
@@ -93,7 +93,7 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 				scanline += image->GetWidth();
 			}
 		}
-	}	
+	}
 
 	//*out_textures = images;
 }

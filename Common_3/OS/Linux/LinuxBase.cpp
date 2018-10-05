@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,7 +44,6 @@
 #include "../Interfaces/IMemoryManager.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
-#define MAX_KEYS 256
 #define MAX_CURSOR_DELTA 200
 
 #define GETX(l) (int(l & 0xFFFF))
@@ -58,19 +57,10 @@ namespace
 	bool isCaptured = false;
 }
 
-struct KeyState
-{
-	bool current;   // What is the current key state?
-	bool previous;  // What is the previous key state?
-	bool down;      // Was the key down this frame?
-	bool released;  // Was the key released this frame?
-};
+static bool		 gWindowClassInitialized = false;
+//static WNDCLASSW  gWindowClass;
+static bool		 gAppRunning = false;
 
-static bool			gWindowClassInitialized = false;
-//static WNDCLASSW	gWindowClass;
-static bool			gAppRunning = false;
-
-static KeyState		gKeys[MAX_KEYS] = { { false, false, false, false } };
 static int gCursorLastX = 0, gCursorLastY = 0;
 
 static tinystl::vector <MonitorDesc> gMonitors;
@@ -86,12 +76,6 @@ namespace PlatformEvents
 	extern bool skipMouseCapture;
 
 	extern void onWindowResize(const WindowResizeEventData* pData);
-	extern void onKeyboardChar(const KeyboardCharEventData* pData);
-	extern void onKeyboardButton(const KeyboardButtonEventData* pData);
-	extern void onMouseMove(const MouseMoveEventData* pData);
-	extern void onRawMouseMove(const RawMouseMoveEventData* pData);
-	extern void onMouseButton(const MouseButtonEventData* pData);
-	extern void onMouseWheel(const MouseWheelEventData* pData);
 }
 
 bool isRunning()
@@ -109,71 +93,14 @@ void requestShutDown()
 	gAppRunning = false;
 }
 
-// Update the state of the keys based on state previous frame
-void updateKeys(void)
-{
-	// Calculate each of the key states here
-	for (KeyState& element : gKeys)
-	{
-		element.down = element.current == true;
-		element.released = ((element.previous == true) && (element.current == false));
-		// Record this state
-		element.previous = element.current;
-	}
-}
-
-// Update the given key
-static void updateKeyArray(int uMsg, unsigned int keyid)
-{
-	KeyboardButtonEventData eventData;
-	eventData.key = keyid;
-	switch (uMsg)
-	{
-	case KeyPress:
-		if ((0 <= keyid) && (keyid <= MAX_KEYS))
-			gKeys[keyid].current = true;
-
-		eventData.pressed = true;
-		break;
-
-	case KeyRelease:
-		if ((0 <= keyid) && (keyid <= MAX_KEYS))
-			gKeys[keyid].current = false;
-
-		eventData.pressed = false;
-		break;
-
-	default:
-		break;
-	}
-
-	PlatformEvents::onKeyboardButton(&eventData);
-}
-
 bool getKeyDown(int key)
 {
 	return InputSystem::IsButtonPressed(key);
-	int syskey = -1;
-	if (key >= 0x20) 
-	{
-		syskey = XKeysymToKeycode(gWindow.display, (KeySym)key);
-	} else {
-		ASSERT(0);//out of range char
-	}
-	return gKeys[syskey].down;
 }
 
 bool getKeyUp(int key)
 {
 	return InputSystem::IsButtonReleased(key);
-	int syskey = -1;
-	if (key >= 0x20) 
-	{
-		syskey = XKeysymToKeycode(gWindow.display, (KeySym)key);
-	} else {
-		ASSERT(0);//out of range char
-	}
-	return gKeys[syskey].released;
 }
 
 bool getJoystickButtonDown(int button)
@@ -194,27 +121,27 @@ bool getJoystickButtonUp(int button)
 
 unsigned getSystemTime()
 {
-    long            ms; // Milliseconds
-    time_t          s;  // Seconds
-    struct timespec spec;
-    
-    clock_gettime(CLOCK_REALTIME, &spec);
-    
-    s  = spec.tv_sec;
-    ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-    
-    ms += s * 1000;
-    
-    return (unsigned int)ms;
+	long			ms; // Milliseconds
+	time_t		s;  // Seconds
+	struct timespec spec;
+
+	clock_gettime(CLOCK_REALTIME, &spec);
+
+	s  = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+
+	ms += s * 1000;
+
+	return (unsigned int)ms;
 }
 
 long getUSec()
 {
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    long us = (ts.tv_nsec / 1000);
-    us += ts.tv_sec * 1e6;
-    return us;
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	long us = (ts.tv_nsec / 1000);
+	us += ts.tv_sec * 1e6;
+	return us;
 }
 
 unsigned getTimeSinceStart()
@@ -223,7 +150,7 @@ unsigned getTimeSinceStart()
 }
 
 int64_t getTimerFrequency()
-{    
+{
 	// This is us to s
 	return 1000000LL;
 }
@@ -257,11 +184,11 @@ static double PlatformGetMonitorDPI(Display* display)
 	XrmValue value;
 	char *type = NULL;
 	double dpi = 0.0;
-	
+
 	XrmInitialize(); /* Need to initialize the DB before calling Xrm* functions */
-	
+
 	db = XrmGetStringDatabase(resourceString);
-	
+
 	if (resourceString)
 	{
 		if (XrmGetResource(db, "Xft.dpi", "String", &type, &value) == True)
@@ -280,70 +207,70 @@ static double PlatformGetMonitorDPI(Display* display)
 void openWindow(const char* app_name, WindowsDesc* winDesc)
 {
 	const char *display_envar = getenv("DISPLAY");
-    if (display_envar == NULL || display_envar[0] == '\0') {
-        printf("Environment variable DISPLAY requires a valid value.\nExiting ...\n");
-        fflush(stdout);
-        exit(1);
-    }
+	if (display_envar == NULL || display_envar[0] == '\0') {
+		printf("Environment variable DISPLAY requires a valid value.\nExiting ...\n");
+		fflush(stdout);
+		exit(1);
+	}
 
-    XInitThreads();
-    winDesc->display = XOpenDisplay(NULL);
-    long visualMask = VisualScreenMask;
-    int numberOfVisuals;
-    XVisualInfo vInfoTemplate = {};
-    vInfoTemplate.screen = DefaultScreen(winDesc->display);
-    XVisualInfo *visualInfo = XGetVisualInfo(winDesc->display, visualMask, &vInfoTemplate, &numberOfVisuals);
+	XInitThreads();
+	winDesc->display = XOpenDisplay(NULL);
+	long visualMask = VisualScreenMask;
+	int numberOfVisuals;
+	XVisualInfo vInfoTemplate = {};
+	vInfoTemplate.screen = DefaultScreen(winDesc->display);
+	XVisualInfo *visualInfo = XGetVisualInfo(winDesc->display, visualMask, &vInfoTemplate, &numberOfVisuals);
 
-    Colormap colormap =
-        XCreateColormap(winDesc->display, RootWindow(winDesc->display, vInfoTemplate.screen), visualInfo->visual, AllocNone);
+	Colormap colormap =
+		XCreateColormap(winDesc->display, RootWindow(winDesc->display, vInfoTemplate.screen), visualInfo->visual, AllocNone);
 
-    XSetWindowAttributes windowAttributes = {};
-    windowAttributes.colormap = colormap;
-    windowAttributes.background_pixel = 0xFFFFFFFF;
-    windowAttributes.border_pixel = 0;
-    windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
+	XSetWindowAttributes windowAttributes = {};
+	windowAttributes.colormap = colormap;
+	windowAttributes.background_pixel = 0xFFFFFFFF;
+	windowAttributes.border_pixel = 0;
+	windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
 
-    winDesc->xlib_window = XCreateWindow(winDesc->display, RootWindow(winDesc->display, vInfoTemplate.screen), 
-									  winDesc->windowedRect.left, winDesc->windowedRect.top, 
+	winDesc->xlib_window = XCreateWindow(winDesc->display, RootWindow(winDesc->display, vInfoTemplate.screen),
+									  winDesc->windowedRect.left, winDesc->windowedRect.top,
 									  winDesc->windowedRect.right - winDesc->windowedRect.left,
 									  winDesc->windowedRect.bottom - winDesc->windowedRect.top,
 									  0, visualInfo->depth, InputOutput, visualInfo->visual,
-                                      CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
+									  CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
 
 
-    //Added
-    //set window title name
-    XStoreName(winDesc->display, winDesc->xlib_window,app_name);
-      
-    char windowName[200];
-    sprintf(windowName , "%s",app_name);  
-    
-    //set hint name for window
-    XClassHint hint;
-    hint.res_class = windowName;//class name
-    hint.res_name = windowName;//application name
-    XSetClassHint(winDesc->display, winDesc->xlib_window,&hint);
+	//Added
+	//set window title name
+	XStoreName(winDesc->display, winDesc->xlib_window,app_name);
 
-    
-    XSelectInput(winDesc->display, winDesc->xlib_window, 
-		ExposureMask | 
-		KeyPressMask |      //Key press
-		KeyReleaseMask |    //Key release
+	char windowName[200];
+	sprintf(windowName , "%s",app_name);
+
+	//set hint name for window
+	XClassHint hint;
+	hint.res_class = windowName;//class name
+	hint.res_name = windowName;//application name
+	XSetClassHint(winDesc->display, winDesc->xlib_window,&hint);
+
+
+	XSelectInput(winDesc->display, winDesc->xlib_window,
+		ExposureMask |
+		KeyPressMask |	//Key press
+		KeyReleaseMask |	//Key release
 		ButtonPressMask |   //Mouse click
 		ButtonReleaseMask|  //Mouse release
 		StructureNotifyMask | //Resize
 		PointerMotionMask  //Mouse movement
 		);
-    XMapWindow(winDesc->display, winDesc->xlib_window);
-    XFlush(winDesc->display);
-    winDesc->xlib_wm_delete_window = XInternAtom(winDesc->display, "WM_DELETE_WINDOW", False);
-	
+	XMapWindow(winDesc->display, winDesc->xlib_window);
+	XFlush(winDesc->display);
+	winDesc->xlib_wm_delete_window = XInternAtom(winDesc->display, "WM_DELETE_WINDOW", False);
+
 	double baseDpi = 96.0;
 	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->display) / baseDpi);
 }
 
 void handleMessages(WindowsDesc* winDesc)
-{	
+{
 	//this needs to be done before updating the events
 	//that way current frame data will be delta after resetting mouse position
 	if(InputSystem::IsMouseCaptured())
@@ -351,7 +278,7 @@ void handleMessages(WindowsDesc* winDesc)
 		ButtonData button = InputSystem::GetButtonData(KEY_UI_MOVE);
 		gCursorLastX = button.mValue[0];
 		gCursorLastY = button.mValue[1];
-		{	
+		{
 			float x=0;
 			float y=0;
 			x = (gWindow.windowedRect.right - gWindow.windowedRect.left) /2;
@@ -359,39 +286,39 @@ void handleMessages(WindowsDesc* winDesc)
 			XWarpPointer(gWindow.display, None, gWindow.xlib_window, 0, 0, 0, 0, x, y);
 			InputSystem::WarpMouse(x,y);
 			XFlush(winDesc->display);
-			
+
 		}
 	}
-	
+
 	XEvent event;
-	while (XPending(winDesc->display) > 0) 
+	while (XPending(winDesc->display) > 0)
 	{
 		XNextEvent(winDesc->display, &event);
 		InputSystem::HandleMessage(event);
 		switch (event.type) {
 			case ClientMessage:
 				if ((Atom)event.xclient.data.l[0] == winDesc->xlib_wm_delete_window) gAppRunning = false;
-				break;            
-            case DestroyNotify:
-            {
-                LOGINFO("Destroying the window");
-                break;
-            }
+				break;
+			case DestroyNotify:
+			{
+				LOGINFO("Destroying the window");
+				break;
+			}
 			case ConfigureNotify:
 			{
 				// Handle Resize event
 				{
 					RectDesc rect = { 0 };
-					rect = { (int)event.xconfigure.x, 
+					rect = { (int)event.xconfigure.x,
 							 (int)event.xconfigure.y,
-							 (int)event.xconfigure.width + (int)event.xconfigure.x, 
+							 (int)event.xconfigure.width + (int)event.xconfigure.x,
 							 (int)event.xconfigure.height + (int)event.xconfigure.y };
 					gWindow.windowedRect = rect;
 
 					WindowResizeEventData eventData = { rect, &gWindow };
 					PlatformEvents::onWindowResize(&eventData);
 					InputSystem::UpdateSize(event.xconfigure.width, event.xconfigure.height);
-			
+
 				}
 				break;
 			}
@@ -399,9 +326,9 @@ void handleMessages(WindowsDesc* winDesc)
 				break;
 		}
 	}
-		
+
 	XFlush(winDesc->display);
-		
+
 	if (InputSystem::IsButtonTriggered(KEY_CANCEL))
 	{
 		if (!isCaptured)
@@ -415,7 +342,7 @@ void handleMessages(WindowsDesc* winDesc)
 			InputSystem::SetMouseCapture(false);
 		}
 	}
-	
+
 	if (InputSystem::IsButtonPressed(KEY_CONFIRM) && !PlatformEvents::skipMouseCapture && !isCaptured)
 	{
 		// Create invisible cursor that will be used when mouse is captured
@@ -425,21 +352,21 @@ void handleMessages(WindowsDesc* winDesc)
 		static char emptyData[] = { 0,0,0,0,0,0,0,0 };
 		emptyColor.red = emptyColor.green = emptyColor.blue = 0;
 		bitmapEmpty = XCreateBitmapFromData(gWindow.display, gWindow.xlib_window, emptyData, 8, 8);
-		invisibleCursor = XCreatePixmapCursor(gWindow.display, bitmapEmpty, bitmapEmpty, 
+		invisibleCursor = XCreatePixmapCursor(gWindow.display, bitmapEmpty, bitmapEmpty,
 											 &emptyColor, &emptyColor, 0, 0);
 		// Capture mouse
-		unsigned int masks = 
+		unsigned int masks =
 		PointerMotionMask | //Mouse movement
 		ButtonPressMask | //Mouse click
 		ButtonReleaseMask; // Mouse release
 		int XRes = XGrabPointer(gWindow.display, gWindow.xlib_window, 1/*reports with respect to the grab window*/,
 					 masks, GrabModeAsync, GrabModeAsync, None, invisibleCursor, CurrentTime);
-		
+
 		isCaptured = true;
 		InputSystem::SetMouseCapture(true);
 	}
 	return;
-} 
+}
 
 int LinuxMain(int argc, char** argv, IApp* app)
 {
@@ -476,15 +403,15 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 	if (!pApp->Init())
 		return EXIT_FAILURE;
-	
+
 	if (!pApp->Load())
 		return EXIT_FAILURE;
-		
+
 	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-	
+
 	// Mark the app as running
 	gAppRunning = true;
-	
+
 	registerWindowResizeEvent(onResize);
 
 	while (isRunning())
@@ -494,13 +421,13 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
-		
+
 		InputSystem::Update();
 		handleMessages(&gWindow);
-		
+
 		pApp->Update(deltaTime);
 		pApp->Draw();
-		
+
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 			testingFrameCount++;

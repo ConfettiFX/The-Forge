@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -30,7 +30,7 @@
 float F16toF32(uint val)
 {
 	return ((val & 0x8000) << 16)
-	 | (((val & 0x7c00) + 0x1C000) << 13) 
+	 | (((val & 0x7c00) + 0x1C000) << 13)
 	 | ((val & 0x03FF) << 13);
 }
 
@@ -44,26 +44,26 @@ uint F32toF16(float val)
 
 vec2 OctWrap( vec2 v )
 {
-    return ( 1.0 - abs( v.yx ) ) * vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0 );
+	return ( 1.0 - abs( v.yx ) ) * vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0 );
 }
 
 vec3 decodeDir(vec2 encN)
 {
-    encN = encN * 2.0 - 1.0;
- 
-    vec3 n;
-    n.z = 1.0 - abs( encN.x ) - abs( encN.y );
-    n.xy = n.z >= 0.0 ? encN.xy : OctWrap( encN.xy );
-    n = normalize( n );
-    return n;
+	encN = encN * 2.0 - 1.0;
+
+	vec3 n;
+	n.z = 1.0 - abs( encN.x ) - abs( encN.y );
+	n.xy = n.z >= 0.0 ? encN.xy : OctWrap( encN.xy );
+	n = normalize( n );
+	return n;
 }
 
 vec2 encodeDir(vec3 n)
 {
 	n /= ( abs( n.x ) + abs( n.y ) + abs( n.z ) );
-    n.xy = n.z >= 0.0 ? n.xy : OctWrap( n.xy );
-    n.xy = n.xy * 0.5 + 0.5;
-    return n.xy;
+	n.xy = n.z >= 0.0 ? n.xy : OctWrap( n.xy );
+	n.xy = n.xy * 0.5 + 0.5;
+	return n.xy;
 }
 
 vec2 sign_not_zero(vec2 v)

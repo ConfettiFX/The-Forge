@@ -65,29 +65,29 @@
 // Durango load assets from 'Layout\Image\Loose'
 const char* pszRoots[] =
 {
-	"Shaders/Binary/",									// FSR_BinShaders
-	"Shaders/",											// FSR_SrcShaders
-	"Shaders/Binary/",									// FSR_BinShaders_Common
-	"Shaders/",											// FSR_SrcShaders_Common
+	"Shaders/Binary/",								  // FSR_BinShaders
+	"Shaders/",										 // FSR_SrcShaders
+	"Shaders/Binary/",								  // FSR_BinShaders_Common
+	"Shaders/",										 // FSR_SrcShaders_Common
 	"Textures/",										// FSR_Textures
-	"Meshes/",											// FSR_Meshes
-	"Fonts/",											// FSR_Builtin_Fonts
-	"",													// FSR_GpuConfig
-	"",													// FSR_OtherFiles
+	"Meshes/",										  // FSR_Meshes
+	"Fonts/",										   // FSR_Builtin_Fonts
+	"",												 // FSR_GpuConfig
+	"",												 // FSR_OtherFiles
 };
 #else
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
-	"../../../src/08_Procedural/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../../src/08_Procedural/" RESOURCE_DIR "/",			// FSR_SrcShaders
-	"",														// FSR_BinShaders_Common
-	"",														// FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",					// FSR_Textures
-	"../../../UnitTestResources/Meshes/",					// FSR_Meshes
+	"../../../src/08_Procedural/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
+	"../../../src/08_Procedural/" RESOURCE_DIR "/",		 // FSR_SrcShaders
+	"",													 // FSR_BinShaders_Common
+	"",													 // FSR_SrcShaders_Common
+	"../../../UnitTestResources/Textures/",				 // FSR_Textures
+	"../../../UnitTestResources/Meshes/",				   // FSR_Meshes
 	"../../../UnitTestResources/Fonts/",					// FSR_Builtin_Fonts
-	"../../../src/08_Procedural/GPUCfg/",			// FSR_GpuConfig
-	"",														// FSR_OtherFiles
+	"../../../src/08_Procedural/GPUCfg/",		   // FSR_GpuConfig
+	"",													 // FSR_OtherFiles
 };
 #endif
 
@@ -133,7 +133,7 @@ struct Light
 
 struct UniformLightData
 {
-	// Used to tell our shaders how many lights are currently present 
+	// Used to tell our shaders how many lights are currently present
 	int mCurrAmountOfLights = 0;
 	int pad0;
 	int pad1;
@@ -141,82 +141,82 @@ struct UniformLightData
 	Light mLights[16]; // array of lights seem to be broken so just a single light for now
 };
 
-const uint32_t				gImageCount = 3;
+const uint32_t			  gImageCount = 3;
 bool						gToggleVSync = false;
 Texture*					pEnvTex = NULL;
 Sampler*					pSamplerEnv = NULL;
 
 #ifdef TARGET_IOS
-VirtualJoystickUI			gVirtualJoystick;
+VirtualJoystickUI		   gVirtualJoystick;
 #endif
 
-Renderer*					pRenderer = NULL;
+Renderer*				   pRenderer = NULL;
 
-UIApp						gAppUI;
-GuiComponent*				pGui;
+UIApp					   gAppUI;
+GuiComponent*			   pGui;
 
-Queue*						pGraphicsQueue = NULL;
+Queue*					  pGraphicsQueue = NULL;
 CmdPool*					pCmdPool = NULL;
-Cmd**						ppCmds = NULL;
+Cmd**					   ppCmds = NULL;
 
 CmdPool*					pUICmdPool = NULL;
-Cmd**						ppUICmds = NULL;
+Cmd**					   ppUICmds = NULL;
 
-SwapChain*					pSwapChain = NULL;
+SwapChain*				  pSwapChain = NULL;
 
-RenderTarget*				pDepthBuffer = NULL;
-Fence*						pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*					pImageAcquiredSemaphore = NULL;
-Semaphore*					pRenderCompleteSemaphores[gImageCount] = { NULL };
+RenderTarget*			   pDepthBuffer = NULL;
+Fence*					  pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*				  pImageAcquiredSemaphore = NULL;
+Semaphore*				  pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*						pShaderBRDF = NULL;
-Pipeline*					pPipelineBRDF = NULL;
-RootSignature*				pRootSigBRDF = NULL;
+Shader*					 pShaderBRDF = NULL;
+Pipeline*				   pPipelineBRDF = NULL;
+RootSignature*			  pRootSigBRDF = NULL;
 
-Shader*						pShaderBG = NULL;
-Pipeline*					pPipelineBG = NULL;
-RootSignature*				pRootSigBG = NULL;
+Shader*					 pShaderBG = NULL;
+Pipeline*				   pPipelineBG = NULL;
+RootSignature*			  pRootSigBG = NULL;
 
-UniformObjData				gUniformDataMVP;
-ScreenSize					gScreenSizeData;
+UniformObjData			  gUniformDataMVP;
+ScreenSize				  gScreenSizeData;
 
 
-Buffer*						pBufferUniformCamera[gImageCount];
-UniformCamData				gUniformDataCamera;
+Buffer*					 pBufferUniformCamera[gImageCount];
+UniformCamData			  gUniformDataCamera;
 
-Buffer*						pBufferUniformLights[gImageCount];
+Buffer*					 pBufferUniformLights[gImageCount];
 UniformLightData			gUniformDataLights;
 
-Shader*						pShaderPostProc = NULL;
-Pipeline*					pPipelinePostProc = NULL;
+Shader*					 pShaderPostProc = NULL;
+Pipeline*				   pPipelinePostProc = NULL;
 
-DepthState*					pDepth = NULL;
+DepthState*				 pDepth = NULL;
 RasterizerState*			pRasterstateDefault = NULL;
 
 // Vertex buffers
-Buffer*						pSphereVertexBuffer = NULL;
-Buffer*						pBGVertexBuffer = NULL;
+Buffer*					 pSphereVertexBuffer = NULL;
+Buffer*					 pBGVertexBuffer = NULL;
 
 uint32_t					gFrameIndex = 0;
 
 GpuProfiler*				pGpuProfiler = NULL;
-ICameraController*			pCameraController = NULL;
+ICameraController*		  pCameraController = NULL;
 
 #ifndef TARGET_IOS
-const int					gSphereResolution = 1024; // Increase for higher resolution spheres
+const int				   gSphereResolution = 1024; // Increase for higher resolution spheres
 #else
-const int					gSphereResolution = 512; // Halve the resolution of the planet on iOS.
+const int				   gSphereResolution = 512; // Halve the resolution of the planet on iOS.
 #endif
-const char*					pEnvImageFileNames[] =
+const char*				 pEnvImageFileNames[] =
 {
 	"environment_sky.png"
 };
 
-int							gNumOfSpherePoints;
+int						 gNumOfSpherePoints;
 
 static float				gEplasedTime = 0.0f;
 
-static float3				gSunDir = float3(-1.0f, 1.0f, 1.0f);
+static float3			   gSunDir = float3(-1.0f, 1.0f, 1.0f);
 
 static float				gOceanHeight = 1.0f;
 static float				gShoreHeight = 0.02f;
@@ -225,12 +225,12 @@ static float				gPolarCapsAttitude = 1.1f;
 static float				gTerrainExp = 0.35f;
 static float				gTerrainSeed = 0.0f;
 
-float						gBgVertex[256];
+float					   gBgVertex[256];
 
 tinystl::vector<Buffer*>	gSphereBuffers[gImageCount];
-Buffer*						pScreenSizeBuffer;
+Buffer*					 pScreenSizeBuffer;
 
-float					gCameraYRotateScale;   // decide how fast camera rotate 
+float				   gCameraYRotateScale;   // decide how fast camera rotate
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -442,7 +442,7 @@ public:
 		guiDesc.mStartPosition = vec2(300.0f, guiDesc.mStartSize.getY());
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)		
+#if !defined(TARGET_IOS) && !defined(_DURANGO)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
@@ -488,7 +488,7 @@ public:
 		}
 
 		removeResource(pScreenSizeBuffer);
-        
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
@@ -679,20 +679,20 @@ public:
 		gUniformDataLights.mLights[0].mPos = vec4(normalize(vec3(gSunDir.x, gSunDir.y, gSunDir.z))* 1000.0f, 0.0);
 
 		gAppUI.Update(deltaTime);
-		
-		
+
+
 		/************************************************************************/
 		// Upload uniform data to GPU
 		/************************************************************************/
 		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
 		updateResource(&camBuffUpdateDesc);
-		
+
 		BufferUpdateDesc bgBuffUpdateDesc = { pScreenSizeBuffer , &gScreenSizeData };
 		updateResource(&bgBuffUpdateDesc);
-		
+
 		BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[gFrameIndex][0], &gUniformDataMVP };
 		updateResource(&objBuffUpdateDesc);
-		
+
 		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights[gFrameIndex], &gUniformDataLights };
 		updateResource(&lightBuffUpdateDesc);
 	}
@@ -712,7 +712,7 @@ public:
 		loadActions.mClearColorValues[0] = { 0.2109f, 0.6470f, 0.8470f, 1.0f }; // Light blue cclear
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { 1.0f, 0.0f };
-		
+
 		/************************************************************************/
 		// Record commmand buffers
 		/************************************************************************/
@@ -801,7 +801,7 @@ public:
 
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
-        
+
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
@@ -877,7 +877,7 @@ public:
 
 		return pDepthBuffer != NULL;
 	}
-	
+
 
 #if defined(VULKAN)
 	void transitionRenderTargets()

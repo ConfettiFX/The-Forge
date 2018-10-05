@@ -15,14 +15,14 @@ typedef struct GpuProfileDrawDesc
 } GpuProfileDrawDesc;
 
 using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
-static Fontstash*			pFontstash = NULL;
-static TextDrawDesc			gDefaultTextDrawDesc = TextDrawDesc(0, 0xffffffff, 16);
-static GpuProfileDrawDesc	gDefaultGpuProfileDrawDesc = {};
+static Fontstash*		   pFontstash = NULL;
+static TextDrawDesc		 gDefaultTextDrawDesc = TextDrawDesc(0, 0xffffffff, 16);
+static GpuProfileDrawDesc   gDefaultGpuProfileDrawDesc = {};
 #ifndef METAL
-static Shader*				pShaderTextured;
-static RootSignature*		pRootSignatureTextured;
-static PipelineMap			gPipelinesTextured;
-static Sampler*				pDefaultSampler;
+static Shader*			  pShaderTextured;
+static RootSignature*	   pRootSignatureTextured;
+static PipelineMap		  gPipelinesTextured;
+static Sampler*			 pDefaultSampler;
 #endif
 
 #if defined(__linux__)
@@ -91,7 +91,7 @@ void drawDebugText(Cmd* pCmd, float x, float y, const char* pText, const TextDra
 
 //text rendering in world space
 void drawDebugText(Cmd* pCmd, const mat4& mProjView,const mat4& mWorldMat, const char* pText,const TextDrawDesc* pDrawDesc) {
-	
+
 	const TextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
 	pFontstash->drawText(pCmd, pText,mProjView,mWorldMat,
 		pDesc->mFontID, pDesc->mFontColor,

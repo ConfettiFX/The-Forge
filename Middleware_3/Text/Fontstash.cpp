@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Confetti Interactive Inc.
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,13 +44,13 @@
 class _Impl_FontStash
 {
 public:
-	_Impl_FontStash() 
+	_Impl_FontStash()
 	{
-		pCurrentTexture = NULL; 
+		pCurrentTexture = NULL;
 		mWidth = 0;
-		mHeight = 0; 
+		mHeight = 0;
 		pContext = NULL;
-		
+
 		mText3D  = false;
 	}
 
@@ -70,7 +70,7 @@ public:
 		params.renderCreate = fonsImplementationGenerateTexture;
 		params.renderResize = fonsImplementationResizeTexture;
 		params.renderUpdate = fonsImplementationModifyTexture;
-		params.renderDraw = fonsImplementationRenderText; 
+		params.renderDraw = fonsImplementationRenderText;
 		params.renderDelete = fonsImplementationRemoveTexture;
 		params.userPtr = this;
 
@@ -253,38 +253,38 @@ public:
 
 	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
 
-	Renderer*							pRenderer;
+	Renderer*						   pRenderer;
 	FONScontext*						pContext;
 
-	Image								mStagingImage;
+	Image							   mStagingImage;
 	Texture*							pCurrentTexture;
 
 	uint32_t							mWidth;
 	uint32_t							mHeight;
 
-	tinystl::vector<void*>				mFontBuffers;
-	tinystl::vector<uint32_t>			mFontBufferSizes;
+	tinystl::vector<void*>			  mFontBuffers;
+	tinystl::vector<uint32_t>		   mFontBufferSizes;
 	tinystl::vector<tinystl::string>	mFontNames;
-	tinystl::vector<Texture*>			mTextureList;
+	tinystl::vector<Texture*>		   mTextureList;
 
 	mat4								mProjView;
 	mat4								mWorldMat;
 	Cmd*								pCmd;
 
-	Shader*								pShaders[2];
-	RootSignature*						pRootSignature;
-	PipelineMap							mPipelines[2];
+	Shader*							 pShaders[2];
+	RootSignature*					  pRootSignature;
+	PipelineMap						 mPipelines[2];
 	/// Default states
-	BlendState*							pBlendAlpha;
-	DepthState*							pDepthStates[2];
+	BlendState*						 pBlendAlpha;
+	DepthState*						 pDepthStates[2];
 	RasterizerState*					pRasterizerStates[2];
 	Sampler*							pDefaultSampler;
-	UniformRingBuffer*					pUniformRingBuffer;
-	MeshRingBuffer*						pMeshRingBuffer;
+	UniformRingBuffer*				  pUniformRingBuffer;
+	MeshRingBuffer*					 pMeshRingBuffer;
 	VertexLayout						mVertexLayout = {};
 	GraphicsPipelineDesc				mPipelineDesc = {};
-	float2								mDpiScale;
-	float								mDpiScaleMin;
+	float2							  mDpiScale;
+	float							   mDpiScaleMin;
 	bool								mText3D;
 };
 
@@ -357,7 +357,7 @@ void Fontstash::drawText(Cmd* pCmd, const char* message, float x, float y, int f
 {
 	impl->mText3D = false;
 	impl->pCmd = pCmd;
-	// clamp the font size to max size. 
+	// clamp the font size to max size.
 	// Precomputed font texture puts limitation to the maximum size.
 	size = min(size, m_fFontMaxSize);
 
@@ -378,7 +378,7 @@ void Fontstash::drawText(Cmd* pCmd, const char* message,const mat4& projView,con
 	impl->mProjView = projView;
 	impl->mWorldMat = worldMat;
 	impl->pCmd = pCmd;
-	// clamp the font size to max size. 
+	// clamp the font size to max size.
 	// Precomputed font texture puts limitation to the maximum size.
 	size = min(size, m_fFontMaxSize);
 
@@ -427,7 +427,7 @@ int _Impl_FontStash::fonsImplementationGenerateTexture(void* userPtr, int width,
 	// R8 mode
 	//addTexture2d(ctx->renderer, width, height, SampleCount::SAMPLE_COUNT_1, ctx->img.getFormat(), ctx->img.GetMipMapCount(), NULL, false, TextureUsage::TEXTURE_USAGE_SAMPLED_IMAGE, &ctx->tex);
 	addResource(&loadDesc);
-	
+
 	// Create may be called multiple times, delete existing texture.
 	// NOTE: deleting the texture afterwards seems to fix a driver bug on Intel where it would reuse the old contents of ctx->img, causing the texture not to update.
 	if (oldTex)
@@ -451,7 +451,7 @@ void _Impl_FontStash::fonsImplementationModifyTexture(void* userPtr, int* rect, 
 	// TODO: Update the GPU texture instead of changing the CPU texture and rebuilding it on GPU.
 	ctx->mStagingImage.loadFromMemoryXY(data + rect[0] + rect[1]*ctx->mWidth, rect[0], rect[1], rect[2], rect[3], ctx->mWidth);
 
-	fonsImplementationGenerateTexture(userPtr, ctx->mWidth, ctx->mHeight);		// rebuild texture
+	fonsImplementationGenerateTexture(userPtr, ctx->mWidth, ctx->mHeight);	  // rebuild texture
 }
 
 void _Impl_FontStash::fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
