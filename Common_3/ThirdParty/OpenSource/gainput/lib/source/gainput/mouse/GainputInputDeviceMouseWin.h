@@ -23,6 +23,10 @@ public:
 	{
 	}
 
+	virtual InputState * GetNextInputState() override 
+	{ 
+		return &nextState_; 
+	}
 	InputDevice::DeviceVariant GetVariant() const
 	{
 		return InputDevice::DV_STANDARD;

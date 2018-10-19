@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="ozz_base" InternalType="" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="source">
+    <File Name="../src/base/memory/allocator.cc"/>
+    <File Name="../src/base/io/archive.cc"/>
+    <File Name="../src/base/maths/box.cc"/>
+    <File Name="../src/base/log.cc"/>
+    <File Name="../src/base/maths/math_archive.cc"/>
+    <File Name="../src/base/platform.cc"/>
+    <File Name="../src/base/maths/simd_math.cc"/>
+    <File Name="../src/base/maths/simd_math_archive.cc"/>
+    <File Name="../src/base/maths/soa_math_archive.cc"/>
+    <File Name="../src/base/io/stream.cc"/>
+    <File Name="../src/base/containers/string_archive.cc"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="include">
+    <File Name="../include/ozz/base/containers/deque.h"/>
+    <File Name="../include/ozz/base/containers/intrusive_list.h"/>
+    <File Name="../include/ozz/base/containers/list.h"/>
+    <File Name="../include/ozz/base/containers/map.h"/>
+    <File Name="../include/ozz/base/containers/queue.h"/>
+    <File Name="../include/ozz/base/containers/set.h"/>
+    <File Name="../include/ozz/base/containers/stack.h"/>
+    <File Name="../include/ozz/base/containers/std_allocator.h"/>
+    <File Name="../include/ozz/base/containers/string.h"/>
+    <File Name="../include/ozz/base/containers/string_archive.h"/>
+    <File Name="../include/ozz/base/containers/vector.h"/>
+    <File Name="../include/ozz/base/containers/vector_archive.h"/>
+    <File Name="../include/ozz/base/endianness.h"/>
+    <File Name="../include/ozz/base/gtest_helper.h"/>
+    <File Name="../include/ozz/base/io/archive.h"/>
+    <File Name="../include/ozz/base/io/archive_traits.h"/>
+    <File Name="../include/ozz/base/io/stream.h"/>
+    <File Name="../include/ozz/base/log.h"/>
+    <File Name="../include/ozz/base/maths/box.h"/>
+    <File Name="../include/ozz/base/maths/gtest_math_helper.h"/>
+    <File Name="../include/ozz/base/maths/internal/simd_math_config.h"/>
+    <File Name="../include/ozz/base/maths/internal/simd_math_ref-inl.h"/>
+    <File Name="../include/ozz/base/maths/internal/simd_math_sse-inl.h"/>
+    <File Name="../include/ozz/base/maths/math_archive.h"/>
+    <File Name="../include/ozz/base/maths/math_constant.h"/>
+    <File Name="../include/ozz/base/maths/math_ex.h"/>
+    <File Name="../include/ozz/base/maths/quaternion.h"/>
+    <File Name="../include/ozz/base/maths/rect.h"/>
+    <File Name="../include/ozz/base/maths/simd_math.h"/>
+    <File Name="../include/ozz/base/maths/simd_math_archive.h"/>
+    <File Name="../include/ozz/base/maths/soa_float.h"/>
+    <File Name="../include/ozz/base/maths/soa_float4x4.h"/>
+    <File Name="../include/ozz/base/maths/soa_math_archive.h"/>
+    <File Name="../include/ozz/base/maths/soa_quaternion.h"/>
+    <File Name="../include/ozz/base/maths/soa_transform.h"/>
+    <File Name="../include/ozz/base/maths/transform.h"/>
+    <File Name="../include/ozz/base/maths/vec_float.h"/>
+    <File Name="../include/ozz/base/memory/allocator.h"/>
+    <File Name="../include/ozz/base/platform.h"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+  </Dependencies>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="$(WorkspacePath)/../../../Common_3/ThirdParty/OpenSource/ozz-animation/include"/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-std=c++11;" C_Options="-g;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <Preprocessor Value="VULKAN"/>
+        <Preprocessor Value="_DEBUG"/>
+      </Compiler>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-O2;-std=c++11;-Wall;" C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(VULKAN_SDK)/include/"/>
+        <Preprocessor Value="VULKAN"/>
+        <Preprocessor Value="NDEBUG"/>
+      </Compiler>
+      <Linker Options="-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(WorkspacePath)/OSBase/Release/"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

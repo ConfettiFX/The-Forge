@@ -2999,13 +2999,14 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 
 		ASSERT(pDesc->mFillMode < FillMode::MAX_FILL_MODES);
 		ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
+		ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
 
 		RasterizerState* pRasterizerState = (RasterizerState*)conf_calloc(1, sizeof(*pRasterizerState));
 
 		D3D11_RASTERIZER_DESC desc;
 		desc.FillMode = gFillModeTranslator[pDesc->mFillMode];
 		desc.CullMode = gCullModeTranslator[pDesc->mCullMode];
-		desc.FrontCounterClockwise = TRUE;
+		desc.FrontCounterClockwise = pDesc->mFrontFace == FRONT_FACE_CCW;
 		desc.DepthBias = pDesc->mDepthBias;
 		desc.DepthBiasClamp = 0.0f;
 		desc.SlopeScaledDepthBias = pDesc->mSlopeScaledDepthBias;

@@ -1,0 +1,41 @@
+/*
+* Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+Texture2D<float4>	albedobuffer : register(t0);
+Texture2D<float4>	lightbuffer : register(t1);
+
+RWTexture2D<float4> outputRT : register(u2);
+
+[numthreads(16, 16, 1)]
+void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
+{
+	float3 albedo =  albedobuffer[DTid.xy].xyz;
+
+	//linearise albedo before applying light to it
+	albedo = pow(abs(albedo), 2.2);
+
+	float3 diffuse = lightbuffer[DTid.xy].xyz;
+
+	outputRT[DTid.xy] = float4(diffuse*albedo, 0);
+}

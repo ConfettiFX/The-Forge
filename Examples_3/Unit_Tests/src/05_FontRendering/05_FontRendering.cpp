@@ -55,50 +55,18 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(__linux__)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",	 // FSR_SrcShaders
-	"Shaders/Binary/",		  // FSR_BinShaders_Common
-	"Shaders/",				 // FSR_SrcShaders_Common
-	"Textures/",						// FSR_Textures
-	"Meshes/",					  // FSR_Meshes
-	"Fonts/",					   // FSR_Builtin_Fonts
-	"",							 // FSR_GpuConfig
+	"../../../src/05_FontRendering/",							// FSR_BinShaders
+	"../../../src/05_FontRendering/",							// FSR_SrcShaders
+	"",															// FSR_BinShaders_Common
+	"",															// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",								// FSR_Textures
+	"../../../UnitTestResources/",								// FSR_Meshes
+	"../../../UnitTestResources/",								// FSR_Builtin_Fonts
+	"../../../src/05_FontRendering/",							// FSR_GpuConfig
 	"",														 // FSR_OtherFiles
 };
-#else
-// Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../..//src/05_FontRendering/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
-	"../../..//src/05_FontRendering/" RESOURCE_DIR "/",		 // FSR_SrcShaders
-	"",														 // FSR_BinShaders_Common
-	"",														 // FSR_SrcShaders_Common
-	"../../..//UnitTestResources/Textures/",					// FSR_Textures
-	"../../..//UnitTestResources/Meshes/",					  // FSR_Meshes
-	"../../..//UnitTestResources/Fonts/",					   // FSR_Builtin_Fonts
-	"../../../src/05_FontRendering/GPUCfg/",				// FSR_GpuConfig
-	"",														 // FSR_OtherFiles
-};
-#endif
 
 LogManager gLogManager;
 /************************************************************************/
@@ -186,15 +154,11 @@ public:
 			return false;
 
 		// setup scene text
-		FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
-#if defined(TARGET_IOS)
-		fontRoot = FSRoot::FSR_Absolute;
-#endif
-
+		const FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
 		gFonts.titilliumBold = addDebugFont("TitilliumText/TitilliumText-Bold.ttf", fontRoot);
-		gFonts.comicRelief = addDebugFont("ComicRelief/ComicRelief.ttf", fontRoot);
-		gFonts.crimsonSerif = addDebugFont("Crimson/Crimson-Roman.ttf", fontRoot);
-		gFonts.monoSpace = addDebugFont("InconsolataLGC/Inconsolata-LGC.ttf", fontRoot);
+		gFonts.comicRelief   = addDebugFont("ComicRelief/ComicRelief.ttf", fontRoot);
+		gFonts.crimsonSerif  = addDebugFont("Crimson/Crimson-Roman.ttf", fontRoot);
+		gFonts.monoSpace     = addDebugFont("InconsolataLGC/Inconsolata-LGC.ttf", fontRoot);
 		gFonts.monoSpaceBold = addDebugFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", fontRoot);
 
 		requestMouseCapture(false);
@@ -203,6 +167,7 @@ public:
 		TextDrawDesc drawDescriptor;
 		const char* txt = "";
 
+		
 		// This demo was created with a target resolution of 1920x1080.
 		// To keep sizing and spacing coherent between devices, we need to take the device's resolution into account
 		// and scale font size and font spacing accordingly.

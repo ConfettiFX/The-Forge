@@ -32,10 +32,13 @@
       location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
    </FileRef>
    <FileRef
-	   location = "group:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+      location = "group:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:13_UserInterface/13_UserInterface.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:15_Transparency/15_Transparency.xcodeproj">

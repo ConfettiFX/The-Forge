@@ -1,0 +1,63 @@
+{
+  //  Skeleton to import
+  "skeleton" : 
+  {
+    "filename" : "skeleton.ozz", //  Specifies skeleton input/output filename. The file will be outputted if import is true. It will also be used as an input reference during animations import.
+    //  Define skeleton import settings.
+    "import" : 
+    {
+      "enable" : true, //  Imports (from source data file) and writes skeleton output file.
+      "raw" : false, //  Outputs raw skeleton.
+      //  Define nodes types that should be considered as skeleton joints.
+      "types" : 
+      {
+        "skeleton" : true, //  Uses skeleton nodes as skeleton joints.
+        "marker" : false, //  Uses marker nodes as skeleton joints.
+        "camera" : false, //  Uses camera nodes as skeleton joints.
+        "geometry" : false, //  Uses geometry nodes as skeleton joints.
+        "light" : false, //  Uses light nodes as skeleton joints.
+        "null" : false, //  Uses null nodes as skeleton joints.
+        "any" : false //  Uses any node type as skeleton joints, including those listed above and any other.
+      }
+    }
+  },
+  //  Animations to import.
+  "animations" : 
+  [
+    {
+      "clip" : "*", //  Specifies clip name (take) of the animation to import from the source file. Wildcard characters '*' and '?' are supported
+      "filename" : "*.ozz", //  Specifies animation output filename. Use a '*' character to specify part(s) of the filename that should be replaced by the clip name.
+      "raw" : false, //  Outputs raw animation.
+      "additive" : false, //  Creates a delta animation that can be used for additive blending.
+      "sampling_rate" : 0, //  Selects animation sampling rate in hertz. Set a value <= 0 to use imported scene default frame rate.
+      "optimize" : true, //  Activates keyframes reduction optimization.
+      //  Optimization tolerances.
+      "optimization_tolerances" : 
+      {
+        "translation" : 0.001, //  Translation optimization tolerance, defined as the distance between two translation values in meters.
+        "rotation" : 0.001745, //  Rotation optimization tolerance, ie: the angle between two rotation values in radian.
+        "scale" : 0.001, //  Scale optimization tolerance, ie: the norm of the difference of two scales.
+        "hierarchical" : 0.001 //  Hierarchical translation optimization tolerance, ie: the maximum error (distance) that an optimization on a joint is allowed to generate on its whole child hierarchy.
+      },
+      //  Tracks to build.
+      "tracks" : 
+      [
+        {
+          //  Properties to import.
+          "properties" : 
+          [
+            {
+              "filename" : "*.ozz", //  Specifies track output filename(s). Use a '*' character to specify part(s) of the filename that should be replaced by the track (aka "joint_name-property_name") name.
+              "joint_name" : "*", //  Name of the joint that contains the property to import. Wildcard characters '*' and '?' are supported.
+              "property_name" : "*", //  Name of the property to import. Wildcard characters '*' and '?' are supported.
+              "type" : 1, //  Type of the property, aka the number of floating point components. 1 to 4 components are supported.
+              "raw" : false, //  Outputs raw track.
+              "optimize" : true, //  Activates keyframes optimization.
+              "optimization_tolerance" : 0.001 //  Optimization tolerance
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

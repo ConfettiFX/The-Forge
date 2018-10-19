@@ -59,6 +59,7 @@ enum UserInputKeys
 	KEY_MOUSE_WHEEL,
 	KEY_MOUSE_WHEEL_BUTTON,
 	//Virtual keyboards or actual keyboards will need these.
+	KEY_LEFT_SHIFT,
 	KEY_RIGHT_SHIFT,
 	KEY_RIGHT_CTRL,
 	KEY_LEFT_CTRL,
@@ -137,6 +138,7 @@ static KeyMappingDescription gUserKeys[] = {
 	{ KEY_MOUSE_WHEEL, GainputDeviceType::GAINPUT_MOUSE, 2, { { INPUT_X_AXIS  , 1, gainput::MouseButtonWheelUp }, {INPUT_X_AXIS  , -1, gainput::MouseButtonWheelDown},{},{} } },
 	{ KEY_MOUSE_WHEEL_BUTTON, GainputDeviceType::GAINPUT_MOUSE, 1, { { INPUT_X_AXIS  , 1, gainput::MouseButtonMiddle }, {},{},{} } },
 
+	{ KEY_LEFT_SHIFT,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyShiftL },{},{},{} } },
 	{ KEY_RIGHT_SHIFT,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyShiftR },{},{},{} } },
 	{ KEY_RIGHT_CTRL,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyCtrlR },{},{},{} } },
 	{ KEY_LEFT_CTRL,  GainputDeviceType::GAINPUT_KEYBOARD, 1,{ { INPUT_X_AXIS, 1, gainput::KeyCtrlL },{},{},{} } },

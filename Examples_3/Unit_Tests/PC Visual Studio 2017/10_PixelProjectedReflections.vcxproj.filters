@@ -20,94 +20,94 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\BRDFIntegration.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\BRDFIntegration.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\computeIrradianceMap.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\computeIrradianceMap.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\computeSpecularMap.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\computeSpecularMap.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\panoToCube.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\panoToCube.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\renderSceneBRDF.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\renderSceneBRDF.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\skybox.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\skybox.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\BRDFIntegration.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\BRDFIntegration.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\computeIrradianceMap.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\computeIrradianceMap.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\computeSpecularMap.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\computeSpecularMap.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\panoToCube.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\panoToCube.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\renderSceneBRDF.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\renderSceneBRDF.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\skybox.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\skybox.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\renderSceneBRDF.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\renderSceneBRDF.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\fillGbuffers.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\fillGbuffers.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\fillGbuffers.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\fillGbuffers.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Projection.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Projection.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Reflection.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Reflection.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Reflection.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Reflection.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Holepatching.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Holepatching.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Holepatching.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Holepatching.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\fillGbuffers.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\fillGbuffers.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\fillGbuffers.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\fillGbuffers.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Projection.comp">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Projection.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Holepatching.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Holepatching.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Holepatching.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Holepatching.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Reflection.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Reflection.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Reflection.vert">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Reflection.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
   </ItemGroup>

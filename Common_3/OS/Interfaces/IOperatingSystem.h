@@ -51,6 +51,8 @@ typedef uint64_t uint64;
 #endif
 #endif
 #if defined(__ANDROID__)
+#include <android_native_app_glue.h>
+#include <android/log.h>
 #elif defined(__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
 #if defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_XCB_KHR)

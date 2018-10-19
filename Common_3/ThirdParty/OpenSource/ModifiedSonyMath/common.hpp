@@ -246,6 +246,8 @@ struct half
 				sh |= (e << 10) | (m >> 13);
 			}
 		}
+
+		
 	}
 
 	inline operator float() const
@@ -798,6 +800,246 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 	*pNumberOfPoints = numberOfPoints * 3 * 2;
 	(*ppPoints) = (float*)pPoints;
 }
+
+// Generates an array of vertices and normals for a 3D rectangle (cuboid)
+inline void generateCuboidPoints(float **ppPoints, int *pNumberOfPoints, float width = 1.f, float height = 1.f, float depth = 1.f, Vector3 center = Vector3{ 0.f,0.f,0.f })
+{
+	uint32_t numberOfPoints = 6 * 6;
+	float3* pPoints = (float3*)conf_malloc(numberOfPoints * sizeof(float3) * 2);
+	uint32_t vertexCounter = 0;
+
+	Vector3 topLeftFrontPoint = Vector3{ -width / 2, height / 2, depth / 2 } +center;
+	Vector3 topRightFrontPoint = Vector3{ width / 2, height / 2, depth / 2 } +center;
+	Vector3 botLeftFrontPoint = Vector3{ -width / 2, -height / 2, depth / 2 } +center;
+	Vector3 botRightFrontPoint = Vector3{ width / 2, -height / 2, depth / 2 } +center;
+
+	Vector3 topLeftBackPoint = Vector3{ -width / 2, height / 2, -depth / 2 } +center;
+	Vector3 topRightBackPoint = Vector3{ width / 2, height / 2, -depth / 2 } +center;
+	Vector3 botLeftBackPoint = Vector3{ -width / 2, -height / 2, -depth / 2 } +center;
+	Vector3 botRightBackPoint = Vector3{ width / 2, -height / 2, -depth / 2 } +center;
+
+	Vector3 leftNormal = Vector3{ -1.0f, 0.0f, 0.0f };
+	Vector3 rightNormal = Vector3{ 1.0f, 0.0f, 0.0f };
+	Vector3 botNormal = Vector3{ 0.0f, -1.0f, 0.0f };
+	Vector3 topNormal = Vector3{ 0.0f, 1.0f, 0.0f };
+	Vector3 backNormal = Vector3{ 0.0f, 0.0f, -1.0f };
+	Vector3 frontNormal = Vector3{ 0.0f, 0.0f, 1.0f };
+
+	//Front Face
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(frontNormal);
+
+	//Back Face
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(backNormal);
+	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(backNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(backNormal);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(backNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(backNormal);
+	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(backNormal);
+
+	//Left Face
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(leftNormal);
+
+	//Right Face
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(rightNormal);
+
+	//Top Face
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(topNormal);
+	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(topNormal);
+	pPoints[vertexCounter++] = v3ToF3(topRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(topNormal);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(topLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(topNormal);
+	pPoints[vertexCounter++] = v3ToF3(topLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(topNormal);
+	pPoints[vertexCounter++] = v3ToF3(topRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(topNormal);
+
+	//Bottom Face
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(botNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(botNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(botNormal);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(botLeftBackPoint);
+	pPoints[vertexCounter++] = v3ToF3(botNormal);
+	pPoints[vertexCounter++] = v3ToF3(botRightFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(botNormal);
+	pPoints[vertexCounter++] = v3ToF3(botLeftFrontPoint);
+	pPoints[vertexCounter++] = v3ToF3(botNormal);
+
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	(*ppPoints) = (float*)pPoints;
+}
+
+
+// Generates an array of vertices and normals for a bone of length = 1.f and width = widthRatio
+inline void generateBonePoints(float **ppPoints, int *pNumberOfPoints, float widthRatio)
+{
+	uint32_t numberOfPoints = 8 * 3;
+	float3* pPoints = (float3*)conf_malloc(numberOfPoints * sizeof(float3) * 2);
+	uint32_t vertexCounter = 0;
+
+	Vector3 origin		= Vector3{ 0.f, 0.f, 0.f };
+	Vector3 topWidth	= Vector3{ widthRatio, .1f, .1f };
+	Vector3 botWidth	= Vector3{ widthRatio, -.1f, -.1f };
+	Vector3 frontWidth	= Vector3{ widthRatio, -.1f, .1f };
+	Vector3 backWidth	= Vector3{ widthRatio, .1f, -.1f };
+	Vector3 boneLength	= Vector3{ 1.f, 0.f, 0.f };
+
+	Vector3 frontTopLeftFaceNormal = normalize(cross(frontWidth - origin, topWidth - origin));
+	Vector3 backTopLeftFaceNormal = normalize(cross(topWidth - origin, backWidth - origin));
+	Vector3 frontBotLeftFaceNormal = normalize(cross(botWidth - origin, frontWidth - origin));
+	Vector3 backBotLeftFaceNormal = normalize(cross(backWidth - origin, botWidth - origin));
+	Vector3 frontTopRightFaceNormal = normalize(cross(boneLength - frontWidth, topWidth - frontWidth));
+	Vector3 backTopRightFaceNormal = normalize(cross(topWidth - backWidth, boneLength - backWidth));
+	Vector3 frontBotRightFaceNormal = normalize(cross(botWidth - frontWidth, boneLength - frontWidth));
+	Vector3 backBotRightFaceNormal = normalize(cross(boneLength - backWidth, botWidth - backWidth));
+
+	float rightFaceArea = length(cross(boneLength - frontWidth, topWidth - frontWidth));
+	float leftFaceArea = length(cross(frontWidth - origin, topWidth - origin));
+	float maxFaceArea = max(leftFaceArea, rightFaceArea);
+	
+	float leftRatio = leftFaceArea / maxFaceArea;
+	float rightRatio = rightFaceArea / maxFaceArea;
+
+	Vector3 originNorm = normalize((frontTopLeftFaceNormal + backTopLeftFaceNormal + frontBotLeftFaceNormal + backBotLeftFaceNormal) / 4);
+	Vector3 boneLengthNorm = normalize((frontTopRightFaceNormal + backTopRightFaceNormal + frontBotRightFaceNormal + backBotRightFaceNormal) / 4);
+	Vector3 topWidthNorm = normalize((leftRatio * frontTopLeftFaceNormal + leftRatio * backTopLeftFaceNormal + rightRatio * frontTopRightFaceNormal + rightRatio * backTopRightFaceNormal) / 4);
+	Vector3 botWidthNorm = normalize((leftRatio * frontBotLeftFaceNormal + leftRatio * backBotLeftFaceNormal + rightRatio * frontBotRightFaceNormal + rightRatio * backBotRightFaceNormal) / 4);
+	Vector3 frontWidthNorm = normalize((leftRatio * frontBotLeftFaceNormal + leftRatio * frontTopLeftFaceNormal + rightRatio * frontBotRightFaceNormal + rightRatio * frontTopRightFaceNormal) / 4);
+	Vector3 backWidthNorm = normalize((leftRatio * backBotLeftFaceNormal + leftRatio * backTopLeftFaceNormal + rightRatio * backBotRightFaceNormal + rightRatio * backTopRightFaceNormal) / 4);
+
+	//Front
+	// Top left triangle
+	pPoints[vertexCounter++] = v3ToF3(origin);
+	pPoints[vertexCounter++] = v3ToF3(normalize(originNorm));
+	pPoints[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints[vertexCounter++] = v3ToF3(normalize(frontWidthNorm));
+	pPoints[vertexCounter++] = v3ToF3(topWidth);
+	pPoints[vertexCounter++] = v3ToF3(normalize(topWidthNorm));
+
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topWidth);
+	pPoints[vertexCounter++] = v3ToF3(topWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints[vertexCounter++] = v3ToF3(frontWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(boneLength);
+	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(origin);
+	pPoints[vertexCounter++] = v3ToF3(originNorm);
+	pPoints[vertexCounter++] = v3ToF3(botWidth);
+	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints[vertexCounter++] = v3ToF3(frontWidthNorm);
+
+	// Bot right triangle
+	pPoints[vertexCounter++] = v3ToF3(frontWidth);
+	pPoints[vertexCounter++] = v3ToF3(frontWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(botWidth);
+	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(boneLength);
+	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
+
+	//Back
+	// Top left triangle
+	pPoints[vertexCounter++] = v3ToF3(origin);
+	pPoints[vertexCounter++] = v3ToF3(originNorm);
+	pPoints[vertexCounter++] = v3ToF3(topWidth);
+	pPoints[vertexCounter++] = v3ToF3(topWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(backWidth);
+	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
+
+	// Top right triangle
+	pPoints[vertexCounter++] = v3ToF3(topWidth);
+	pPoints[vertexCounter++] = v3ToF3(topWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(boneLength);
+	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
+	pPoints[vertexCounter++] = v3ToF3(backWidth);
+	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
+
+	// Bot left triangle
+	pPoints[vertexCounter++] = v3ToF3(origin);
+	pPoints[vertexCounter++] = v3ToF3(originNorm);
+	pPoints[vertexCounter++] = v3ToF3(backWidth);
+	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(botWidth);
+	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
+
+	// Bot right triangle
+	pPoints[vertexCounter++] = v3ToF3(backWidth);
+	pPoints[vertexCounter++] = v3ToF3(backWidthNorm);
+	pPoints[vertexCounter++] = v3ToF3(boneLength);
+	pPoints[vertexCounter++] = v3ToF3(boneLengthNorm);
+	pPoints[vertexCounter++] = v3ToF3(botWidth);
+	pPoints[vertexCounter++] = v3ToF3(botWidthNorm);
+
+
+
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	(*ppPoints) = (float*)pPoints;
+}
+
 
 #define MAKEQUAD(x0, y0, x1, y1, o)\
 	float2(x0 + o, y0 + o),\

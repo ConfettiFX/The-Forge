@@ -20,76 +20,76 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\blurESM.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\blurESM.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\finalPass.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\finalPass.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\finalPass.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\finalPass.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\gbuffer.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\gbuffer.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\gbuffer.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\gbuffer.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\sdfSimple.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\sdfSimple.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\sdfSimple.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\sdfSimple.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\shadowMapPass.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\shadowMapPass.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\shadowMapPass.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\shadowMapPass.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\skybox.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\skybox.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\skybox.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCDX12\blurESM.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\blurESM.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\finalPass.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\finalPass.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\gbuffer.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\gbuffer.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\gbuffer.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\gbuffer.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\sdfSimple.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\sdfSimple.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\sdfSimple.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\sdfSimple.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\shadowMapPass.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\shadowMapPass.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\shadowMapPass.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\shadowMapPass.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\skybox.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\skybox.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\blurESM.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\blurESM.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\blurESM.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\blurESM.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\PCVulkan\finalPass.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\finalPass.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

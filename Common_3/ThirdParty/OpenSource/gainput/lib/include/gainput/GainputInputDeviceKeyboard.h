@@ -241,7 +241,7 @@ public:
 
 	InputState* GetNextInputState() override;
 	virtual void ClearButtons() override;
-
+	
 	/// Returns if text input is enabled.
 	bool IsTextInputEnabled() const;
 	/// Sets if text input is enabled and therefore if calling GetNextCharacter() make sense.

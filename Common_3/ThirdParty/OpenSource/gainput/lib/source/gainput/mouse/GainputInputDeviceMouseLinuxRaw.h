@@ -70,6 +70,10 @@ public:
 		previousState_->Set( MouseAxisY, 0.f);
 	}
 
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
+	
 	void Update(InputDeltaState* delta)
 	{
 		delta_ = delta;

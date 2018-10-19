@@ -583,6 +583,17 @@ inline Vector4::Vector4(__m128 vf4)
     mVec128 = vf4;
 }
 
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline Vector4::Vector4(const Vector4Int vecInt)
+{
+    mVec128 = _mm_cvtepi32_ps(vecInt);
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 inline const Vector4 Vector4::xAxis()
 {
     return Vector4(sseUnitVec1000());
@@ -602,6 +613,22 @@ inline const Vector4 Vector4::wAxis()
 {
     return Vector4(sseUnitVec0001());
 }
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline const Vector4 Vector4::zero()
+{
+    return Vector4(_mm_setr_ps(0.0f, 0.0f, 0.0f, 0.0f));
+}
+
+inline const Vector4 Vector4::one()
+{
+    return Vector4(_mm_setr_ps(1.0f, 1.0f, 1.0f, 1.0f));
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
 
 inline const Vector4 lerp(float t, const Vector4 & vec0, const Vector4 & vec1)
 {
@@ -850,6 +877,37 @@ inline const Vector4 recipPerElem(const Vector4 & vec)
     return Vector4(_mm_rcp_ps(vec.get128()));
 }
 
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline const Vector4 sqrtPerElem(const Vector4 & vec)
+{
+    return Vector4(_mm_sqrt_ps(vec.get128()));
+}
+
+inline const Vector4 rsqrtPerElem(const Vector4 & vec)
+{
+    return Vector4(_mm_rsqrt_ps(vec.get128()));
+}
+
+inline const Vector4 rcpEst(const Vector4& v) {
+    return Vector4(_mm_rcp_ps(v.get128()));
+}
+
+inline const Vector4 rSqrtEst(const Vector4& v) {
+  return Vector4(_mm_rsqrt_ps(v.get128()));
+}
+
+inline const Vector4 rSqrtEstNR(const Vector4& v) {
+  const __m128 nr = _mm_rsqrt_ps(v.get128());
+  // Do one more Newton-Raphson step to improve precision.
+  const __m128 muls = _mm_mul_ps(_mm_mul_ps(v.get128(), nr), nr);
+  return Vector4(_mm_mul_ps(_mm_mul_ps(_mm_set_ps1(.5f), nr), _mm_sub_ps(_mm_set_ps1(3.f), muls)));
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 inline const Vector4 absPerElem(const Vector4 & vec)
 {
     return Vector4(sseFabsf(vec.get128()));
@@ -928,6 +986,142 @@ inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, const Bo
 {
     return Vector4(sseSelect(vec0.get128(), vec1.get128(), select1.get128()));
 }
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline const Vector4Int cmpEq(const Vector4& a, const Vector4& b) {
+    return _mm_castps_si128(_mm_cmpeq_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4Int cmpNotEq(const Vector4& a, const Vector4& b) {
+    return _mm_castps_si128(_mm_cmpneq_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4Int cmpLt(const Vector4& a, const Vector4& b) {
+    return _mm_castps_si128(_mm_cmplt_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4Int cmpLe(const Vector4& a, const Vector4& b) {
+    return _mm_castps_si128(_mm_cmple_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4Int cmpGt(const Vector4& a, const Vector4& b) {
+    return _mm_castps_si128(_mm_cmpgt_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4Int cmpGe(const Vector4& a, const Vector4& b) {
+    return _mm_castps_si128(_mm_cmpge_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4Int signBit(const Vector4& v) {
+    return _mm_slli_epi32(_mm_srli_epi32(_mm_castps_si128(v.get128()), 31), 31);
+}
+
+inline const Vector4 xorPerElem(const Vector4& a, const Vector4Int b) {
+    return Vector4(_mm_xor_ps(a.get128(), _mm_castsi128_ps(b)));
+}
+
+inline const Vector4 orPerElem(const Vector4& a, const Vector4Int b) {
+    return Vector4(_mm_or_ps(a.get128(), _mm_castsi128_ps(b)));
+}
+
+inline const Vector4 orPerElem(const Vector4& a, const Vector4& b) {
+    return Vector4(_mm_or_ps(a.get128(), b.get128()));
+}
+
+inline const Vector4 andPerElem(const Vector4& a, const Vector4Int b) {
+    return Vector4(_mm_and_ps(a.get128(), _mm_castsi128_ps(b)));
+}
+
+inline const Vector4 halfToFloat(const Vector4Int vecInt) {
+    const __m128i mask_nosign = _mm_set1_epi32(0x7fff);
+    const __m128 magic = _mm_castsi128_ps(_mm_set1_epi32((254 - 15) << 23));
+    const __m128i was_infnan = _mm_set1_epi32(0x7bff);
+    const __m128 exp_infnan = _mm_castsi128_ps(_mm_set1_epi32(255 << 23));
+
+    const __m128i expmant = _mm_and_si128(mask_nosign, vecInt);
+    const __m128i shifted = _mm_slli_epi32(expmant, 13);
+    const __m128 scaled = _mm_mul_ps(_mm_castsi128_ps(shifted), magic);
+    const __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant, was_infnan);
+    const __m128i sign = _mm_slli_epi32(_mm_xor_si128(vecInt, expmant), 16);
+    const __m128 infnanexp =
+        _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), exp_infnan);
+    const __m128 sign_inf = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
+    return Vector4(_mm_or_ps(scaled, sign_inf));
+}
+
+inline void transpose3x4(const Vector4 in[3], Vector4 out[4]) {
+    const __m128 zero = _mm_setzero_ps();
+    const __m128 temp0 = _mm_unpacklo_ps(in[0].get128(), in[1].get128());
+    const __m128 temp1 = _mm_unpacklo_ps(in[2].get128(), zero);
+    const __m128 temp2 = _mm_unpackhi_ps(in[0].get128(), in[1].get128());
+    const __m128 temp3 = _mm_unpackhi_ps(in[2].get128(), zero);
+    out[0] = Vector4(_mm_movelh_ps(temp0, temp1));
+    out[1] = Vector4(_mm_movehl_ps(temp1, temp0));
+    out[2] = Vector4(_mm_movelh_ps(temp2, temp3));
+    out[3] = Vector4(_mm_movehl_ps(temp3, temp2));
+}
+
+inline void transpose4x4(const Vector4 in[4], Vector4 out[4]) {
+    const __m128 tmp0 = _mm_unpacklo_ps(in[0].get128(), in[2].get128());
+    const __m128 tmp1 = _mm_unpacklo_ps(in[1].get128(), in[3].get128());
+    const __m128 tmp2 = _mm_unpackhi_ps(in[0].get128(), in[2].get128());
+    const __m128 tmp3 = _mm_unpackhi_ps(in[1].get128(), in[3].get128());
+    out[0] = Vector4(_mm_unpacklo_ps(tmp0, tmp1));
+    out[1] = Vector4(_mm_unpackhi_ps(tmp0, tmp1));
+    out[2] = Vector4(_mm_unpacklo_ps(tmp2, tmp3));
+    out[3] = Vector4(_mm_unpackhi_ps(tmp2, tmp3));
+}
+
+inline void transpose16x16(const Vector4 in[16], Vector4 out[16]) {
+    const __m128 tmp0 = _mm_unpacklo_ps(in[0].get128(), in[2].get128());
+    const __m128 tmp1 = _mm_unpacklo_ps(in[1].get128()  , in[3].get128());
+    const __m128 tmp2 = _mm_unpackhi_ps(in[0].get128()  , in[2].get128());
+    const __m128 tmp3 = _mm_unpackhi_ps(in[1].get128()  , in[3].get128());
+    const __m128 tmp4 = _mm_unpacklo_ps(in[4].get128()  , in[6].get128());
+    const __m128 tmp5 = _mm_unpacklo_ps(in[5].get128()  , in[7].get128());
+    const __m128 tmp6 = _mm_unpackhi_ps(in[4].get128()  , in[6].get128());
+    const __m128 tmp7 = _mm_unpackhi_ps(in[5].get128()  , in[7].get128());
+    const __m128 tmp8 = _mm_unpacklo_ps(in[8].get128()  , in[10].get128());
+    const __m128 tmp9 = _mm_unpacklo_ps(in[9].get128()  , in[11].get128());
+    const __m128 tmp10 = _mm_unpackhi_ps(in[8].get128(), in[10].get128());
+    const __m128 tmp11 = _mm_unpackhi_ps(in[9].get128(), in[11].get128());
+    const __m128 tmp12 = _mm_unpacklo_ps(in[12].get128(), in[14].get128());
+    const __m128 tmp13 = _mm_unpacklo_ps(in[13].get128(), in[15].get128());
+    const __m128 tmp14 = _mm_unpackhi_ps(in[12].get128(), in[14].get128());
+    const __m128 tmp15 = _mm_unpackhi_ps(in[13].get128(), in[15].get128());
+    out[0] = Vector4(_mm_unpacklo_ps(tmp0, tmp1));
+    out[1] = Vector4(_mm_unpacklo_ps(tmp4, tmp5));
+    out[2] = Vector4(_mm_unpacklo_ps(tmp8, tmp9));
+    out[3] = Vector4(_mm_unpacklo_ps(tmp12, tmp13));
+    out[4] = Vector4(_mm_unpackhi_ps(tmp0, tmp1));
+    out[5] = Vector4(_mm_unpackhi_ps(tmp4, tmp5));
+    out[6] = Vector4(_mm_unpackhi_ps(tmp8, tmp9));
+    out[7] = Vector4(_mm_unpackhi_ps(tmp12, tmp13));
+    out[8] = Vector4(_mm_unpacklo_ps(tmp2, tmp3));
+    out[9] = Vector4(_mm_unpacklo_ps(tmp6, tmp7));
+    out[10] = Vector4(_mm_unpacklo_ps(tmp10, tmp11));
+    out[11] = Vector4(_mm_unpacklo_ps(tmp14, tmp15));
+    out[12] = Vector4(_mm_unpackhi_ps(tmp2, tmp3));
+    out[13] = Vector4(_mm_unpackhi_ps(tmp6, tmp7));
+    out[14] = Vector4(_mm_unpackhi_ps(tmp10, tmp11));
+    out[15] = Vector4(_mm_unpackhi_ps(tmp14, tmp15));
+}
+
+inline void storePtrU(const Vector4& v, float* f) {
+    _mm_storeu_ps(f, v.get128());
+}
+
+inline void store3PtrU(const Vector4& v, float* f) {
+    _mm_store_ss(f + 0, v.get128());
+    const __m128 a = _mm_shuffle_ps(v.get128(), v.get128(), _MM_SHUFFLE(1, 1, 1, 1));
+    _mm_store_ss(f + 1, a);
+    _mm_store_ss(f + 2, _mm_movehl_ps(v.get128(), v.get128()));
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
 
 #ifdef VECTORMATH_DEBUG
 
@@ -1272,6 +1466,438 @@ inline void print(const Point3 & pnt, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+#define SSE_SELECT_I(_b, _true, _false) \
+  _mm_xor_si128(_false, _mm_and_si128(_b, _mm_xor_si128(_true, _false)))
+
+#define SSE_SPLAT_I(_v, _i)                                               \
+  _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(_v), _mm_castsi128_ps(_v), \
+                                  _MM_SHUFFLE(_i, _i, _i, _i)))
+
+// ========================================================
+// Vector4Int
+// ========================================================
+
+namespace vector4int {
+
+inline Vector4Int zero() { return _mm_setzero_si128(); }
+
+inline Vector4Int one() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_srli_epi32(ffff, 31);
+}
+
+inline Vector4Int x_axis() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_srli_si128(_mm_srli_epi32(ffff, 31), 12);
+}
+
+inline Vector4Int y_axis() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_slli_si128(_mm_srli_si128(_mm_srli_epi32(ffff, 31), 12), 4);
+}
+
+inline Vector4Int z_axis() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_slli_si128(_mm_srli_si128(_mm_srli_epi32(ffff, 31), 12), 8);
+}
+
+inline Vector4Int w_axis() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_slli_si128(_mm_srli_epi32(ffff, 31), 12);
+}
+
+inline Vector4Int all_true() {
+  return _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128());
+}
+
+inline Vector4Int all_false() { return _mm_setzero_si128(); }
+
+inline Vector4Int mask_sign() {
+  const __m128i ffff =
+      _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128());
+  return _mm_slli_epi32(ffff, 31);
+}
+
+inline Vector4Int mask_not_sign() {
+  const __m128i ffff =
+      _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128());
+  return _mm_srli_epi32(ffff, 1);
+}
+
+inline Vector4Int mask_ffff() {
+  return _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128());
+}
+
+inline Vector4Int mask_0000() { return _mm_setzero_si128(); }
+
+inline Vector4Int mask_fff0() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_srli_si128(ffff, 4);
+}
+
+inline Vector4Int mask_f000() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_srli_si128(ffff, 12);
+}
+
+inline Vector4Int mask_0f00() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_srli_si128(_mm_slli_si128(ffff, 12), 8);
+}
+
+inline Vector4Int mask_00f0() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_srli_si128(_mm_slli_si128(ffff, 12), 4);
+}
+
+inline Vector4Int mask_000f() {
+  const __m128i zero = _mm_setzero_si128();
+  const __m128i ffff = _mm_cmpeq_epi32(zero, zero);
+  return _mm_slli_si128(ffff, 12);
+}
+
+inline Vector4Int Load(int _x, int _y, int _z, int _w) {
+  return _mm_set_epi32(_w, _z, _y, _x);
+}
+
+inline Vector4Int LoadX(int _x) { return _mm_set_epi32(0, 0, 0, _x); }
+
+inline Vector4Int Load1(int _x) { return _mm_set1_epi32(_x); }
+
+inline Vector4Int Load(bool _x, bool _y, bool _z, bool _w) {
+  return _mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(_w, _z, _y, _x));
+}
+
+inline Vector4Int LoadX(bool _x) {
+  return _mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(0, 0, 0, _x));
+}
+
+inline Vector4Int Load1(bool _x) {
+  return _mm_sub_epi32(_mm_setzero_si128(), _mm_set1_epi32(_x));
+}
+
+inline Vector4Int LoadPtr(const int* _i) {
+  return _mm_load_si128(reinterpret_cast<const __m128i*>(_i));
+}
+
+inline Vector4Int LoadXPtr(const int* _i) {
+  return _mm_cvtsi32_si128(*_i);
+}
+
+inline Vector4Int Load1Ptr(const int* _i) {
+  return _mm_shuffle_epi32(
+      _mm_loadl_epi64(reinterpret_cast<const __m128i*>(_i)),
+      _MM_SHUFFLE(0, 0, 0, 0));
+}
+
+inline Vector4Int Load2Ptr(const int* _i) {
+  return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(_i));
+}
+
+inline Vector4Int Load3Ptr(const int* _i) {
+  return _mm_set_epi32(0, _i[2], _i[1], _i[0]);
+}
+
+inline Vector4Int LoadPtrU(const int* _i) {
+  return _mm_loadu_si128(reinterpret_cast<const __m128i*>(_i));
+}
+
+inline Vector4Int LoadXPtrU(const int* _i) {
+  return _mm_cvtsi32_si128(*_i);
+}
+
+inline Vector4Int Load1PtrU(const int* _i) {
+  return _mm_set1_epi32(*_i);
+}
+
+inline Vector4Int Load2PtrU(const int* _i) {
+  return _mm_set_epi32(0, 0, _i[1], _i[0]);
+}
+
+inline Vector4Int Load3PtrU(const int* _i) {
+  return _mm_set_epi32(0, _i[2], _i[1], _i[0]);
+}
+
+inline Vector4Int FromFloatRound(const Vector4& _f) {
+  return _mm_cvtps_epi32(_f.get128());
+}
+
+inline Vector4Int FromFloatTrunc(const Vector4& _f) {
+  return _mm_cvttps_epi32(_f.get128());
+}
+}  // namespace vector4int
+
+inline int GetX(const Vector4Int _v) { return _mm_cvtsi128_si32(_v); }
+
+inline int GetY(const Vector4Int _v) {
+  return _mm_cvtsi128_si32(SSE_SPLAT_I(_v, 1));
+}
+
+inline int GetZ(const Vector4Int _v) {
+  return _mm_cvtsi128_si32(_mm_unpackhi_epi32(_v, _v));
+}
+
+inline int GetW(const Vector4Int _v) {
+  return _mm_cvtsi128_si32(SSE_SPLAT_I(_v, 3));
+}
+
+inline Vector4Int SetX(const Vector4Int _v, int _i) {
+  return _mm_castps_si128(
+      _mm_move_ss(_mm_castsi128_ps(_v), _mm_castsi128_ps(_mm_set1_epi32(_i))));
+}
+
+inline Vector4Int SetY(const Vector4Int _v, int _i) {
+  const __m128 i = _mm_castsi128_ps(_mm_set1_epi32(_i));
+  const __m128 v = _mm_castsi128_ps(_v);
+  const __m128 yxzw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 2, 0, 1));
+  const __m128 fxzw = _mm_move_ss(yxzw, i);
+  return _mm_castps_si128(_mm_shuffle_ps(fxzw, fxzw, _MM_SHUFFLE(3, 2, 0, 1)));
+}
+
+inline Vector4Int SetZ(const Vector4Int _v, int _i) {
+  const __m128 i = _mm_castsi128_ps(_mm_set1_epi32(_i));
+  const __m128 v = _mm_castsi128_ps(_v);
+  const __m128 yxzw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 0, 1, 2));
+  const __m128 fxzw = _mm_move_ss(yxzw, i);
+  return _mm_castps_si128(_mm_shuffle_ps(fxzw, fxzw, _MM_SHUFFLE(3, 0, 1, 2)));
+}
+
+inline Vector4Int SetW(const Vector4Int _v, int _i) {
+  const __m128 i = _mm_castsi128_ps(_mm_set1_epi32(_i));
+  const __m128 v = _mm_castsi128_ps(_v);
+  const __m128 yxzw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(0, 2, 1, 3));
+  const __m128 fxzw = _mm_move_ss(yxzw, i);
+  return _mm_castps_si128(_mm_shuffle_ps(fxzw, fxzw, _MM_SHUFFLE(0, 2, 1, 3)));
+}
+
+inline Vector4Int SetI(const Vector4Int _v, int _ith, int _i) {
+  union {
+    Vector4Int ret;
+    int af[4];
+  } u = {_v};
+  u.af[_ith] = _i;
+  return u.ret;
+}
+
+inline void StorePtr(const Vector4Int _v, int* _i) {
+  _mm_store_si128(reinterpret_cast<__m128i*>(_i), _v);
+}
+
+inline void Store1Ptr(const Vector4Int _v, int* _i) {
+  *_i = _mm_cvtsi128_si32(_v);
+}
+
+inline void Store2Ptr(const Vector4Int _v, int* _i) {
+  _i[0] = _mm_cvtsi128_si32(_v);
+  _i[1] = _mm_cvtsi128_si32(SSE_SPLAT_I(_v, 1));
+}
+
+inline void Store3Ptr(const Vector4Int _v, int* _i) {
+  _i[0] = _mm_cvtsi128_si32(_v);
+  _i[1] = _mm_cvtsi128_si32(SSE_SPLAT_I(_v, 1));
+  _i[2] = _mm_cvtsi128_si32(_mm_unpackhi_epi32(_v, _v));
+}
+
+inline void StorePtrU(const Vector4Int _v, int* _i) {
+  _mm_storeu_si128(reinterpret_cast<__m128i*>(_i), _v);
+}
+
+inline void Store1PtrU(const Vector4Int _v, int* _i) {
+  *_i = _mm_cvtsi128_si32(_v);
+}
+
+inline void Store2PtrU(const Vector4Int _v, int* _i) {
+  _i[0] = _mm_cvtsi128_si32(_v);
+  _i[1] = _mm_cvtsi128_si32(SSE_SPLAT_I(_v, 1));
+}
+
+inline void Store3PtrU(const Vector4Int _v, int* _i) {
+  _i[0] = _mm_cvtsi128_si32(_v);
+  _i[1] = _mm_cvtsi128_si32(SSE_SPLAT_I(_v, 1));
+  _i[2] = _mm_cvtsi128_si32(_mm_unpackhi_epi32(_v, _v));
+}
+
+inline Vector4Int SplatX(const Vector4Int _a) { return SSE_SPLAT_I(_a, 0); }
+
+inline Vector4Int SplatY(const Vector4Int _a) { return SSE_SPLAT_I(_a, 1); }
+
+inline Vector4Int SplatZ(const Vector4Int _a) { return SSE_SPLAT_I(_a, 2); }
+
+inline Vector4Int SplatW(const Vector4Int _a) { return SSE_SPLAT_I(_a, 3); }
+
+inline int MoveMask(const Vector4Int _v) {
+  return _mm_movemask_ps(_mm_castsi128_ps(_v));
+}
+
+inline bool AreAllTrue(const Vector4Int _v) {
+  return _mm_movemask_ps(_mm_castsi128_ps(_v)) == 0xf;
+}
+
+inline bool AreAllTrue3(const Vector4Int _v) {
+  return (_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x7) == 0x7;
+}
+
+inline bool AreAllTrue2(const Vector4Int _v) {
+  return (_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x3) == 0x3;
+}
+
+inline bool AreAllTrue1(const Vector4Int _v) {
+  return (_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x1) == 0x1;
+}
+
+inline bool AreAllFalse(const Vector4Int _v) {
+  return _mm_movemask_ps(_mm_castsi128_ps(_v)) == 0;
+}
+
+inline bool AreAllFalse3(const Vector4Int _v) {
+  return (_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x7) == 0;
+}
+
+inline bool AreAllFalse2(const Vector4Int _v) {
+  return (_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x3) == 0;
+}
+
+inline bool AreAllFalse1(const Vector4Int _v) {
+  return (_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x1) == 0;
+}
+
+inline Vector4Int HAdd2(const Vector4Int _v) {
+  const __m128i hadd = _mm_add_epi32(_v, SSE_SPLAT_I(_v, 1));
+  return _mm_castps_si128(
+      _mm_move_ss(_mm_castsi128_ps(_v), _mm_castsi128_ps(hadd)));
+}
+
+inline Vector4Int HAdd3(const Vector4Int _v) {
+  const __m128i hadd = _mm_add_epi32(_mm_add_epi32(_v, SSE_SPLAT_I(_v, 1)),
+                                     _mm_unpackhi_epi32(_v, _v));
+  return _mm_castps_si128(
+      _mm_move_ss(_mm_castsi128_ps(_v), _mm_castsi128_ps(hadd)));
+}
+
+inline Vector4Int HAdd4(const Vector4Int _v) {
+  const __m128 v = _mm_castsi128_ps(_v);
+  const __m128i haddxyzw =
+      _mm_add_epi32(_v, _mm_castps_si128(_mm_movehl_ps(v, v)));
+  return _mm_castps_si128(_mm_move_ss(
+      v,
+      _mm_castsi128_ps(_mm_add_epi32(haddxyzw, SSE_SPLAT_I(haddxyzw, 1)))));
+}
+
+inline Vector4Int Abs(const Vector4Int _v) {
+  const __m128i zero = _mm_setzero_si128();
+  return SSE_SELECT_I(_mm_cmplt_epi32(_v, zero), _mm_sub_epi32(zero, _v),
+                          _v);
+}
+
+inline Vector4Int Sign(const Vector4Int _v) {
+  return _mm_slli_epi32(_mm_srli_epi32(_v, 31), 31);
+}
+
+inline Vector4Int Min(const Vector4Int _a, const Vector4Int _b) {
+  // SSE4 _mm_min_epi32
+  return SSE_SELECT_I(_mm_cmplt_epi32(_a, _b), _a, _b);
+}
+
+inline Vector4Int Max(const Vector4Int _a, const Vector4Int _b) {
+  // SSE4 _mm_max_epi32
+  return SSE_SELECT_I(_mm_cmpgt_epi32(_a, _b), _a, _b);
+}
+
+inline Vector4Int Min0(const Vector4Int _v) {
+  // SSE4 _mm_min_epi32
+  const __m128i zero = _mm_setzero_si128();
+  return SSE_SELECT_I(_mm_cmplt_epi32(zero, _v), zero, _v);
+}
+
+inline Vector4Int Max0(const Vector4Int _v) {
+  // SSE4 _mm_max_epi32
+  const __m128i zero = _mm_setzero_si128();
+  return SSE_SELECT_I(_mm_cmpgt_epi32(zero, _v), zero, _v);
+}
+
+inline Vector4Int Clamp(const Vector4Int _a, const Vector4Int _v, const Vector4Int _b) {
+  // SSE4 _mm_min_epi32/_mm_max_epi32
+  const __m128i min = SSE_SELECT_I(_mm_cmplt_epi32(_v, _b), _v, _b);
+  return SSE_SELECT_I(_mm_cmpgt_epi32(_a, min), _a, min);
+}
+
+inline Vector4Int Select(const Vector4Int _b, const Vector4Int _true, const Vector4Int _false) {
+  return SSE_SELECT_I(_b, _true, _false);
+}
+
+inline Vector4Int And(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_and_si128(_a, _b);
+}
+
+inline Vector4Int Or(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_or_si128(_a, _b);
+}
+
+inline Vector4Int Xor(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_xor_si128(_a, _b);
+}
+
+inline Vector4Int Not(const Vector4Int _v) {
+  return _mm_andnot_si128(
+      _v, _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128()));
+}
+
+inline Vector4Int ShiftL(const Vector4Int _v, int _bits) {
+  return _mm_slli_epi32(_v, _bits);
+}
+
+inline Vector4Int ShiftR(const Vector4Int _v, int _bits) {
+  return _mm_srai_epi32(_v, _bits);
+}
+
+inline Vector4Int ShiftRu(const Vector4Int _v, int _bits) {
+  return _mm_srli_epi32(_v, _bits);
+}
+
+inline Vector4Int CmpEq(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_cmpeq_epi32(_a, _b);
+}
+
+inline Vector4Int CmpNe(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_castps_si128(
+      _mm_cmpneq_ps(_mm_castsi128_ps(_a), _mm_castsi128_ps(_b)));
+}
+
+inline Vector4Int CmpLt(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_cmplt_epi32(_a, _b);
+}
+
+inline Vector4Int CmpLe(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_andnot_si128(
+      _mm_cmpgt_epi32(_a, _b),
+      _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128()));
+}
+
+inline Vector4Int CmpGt(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_cmpgt_epi32(_a, _b);
+}
+
+inline Vector4Int CmpGe(const Vector4Int _a, const Vector4Int _b) {
+  return _mm_andnot_si128(
+      _mm_cmplt_epi32(_a, _b),
+      _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128()));
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
 
 } // namespace SSE
 } // namespace Vectormath

@@ -61,50 +61,29 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.frag">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\basic.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.vert">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\basic.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ComputeUpdate.comp">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\ComputeUpdate.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.frag">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\ExecuteIndirect.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.vert">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\ExecuteIndirect.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.frag">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.vert">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\ComputeUpdate.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\ExecuteIndirect.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\ExecuteIndirect.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag">
       <Filter>Panini\PCDX12</Filter>
     </None>
@@ -116,6 +95,27 @@
     </None>
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.vert">
       <Filter>Panini\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ComputeUpdate.comp">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.vert">
+      <Filter>Shaders\PCDX12</Filter>
     </None>
   </ItemGroup>
 </Project>

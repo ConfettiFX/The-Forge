@@ -34,7 +34,7 @@
     <ClInclude Include="..\src\04_ExecuteIndirect\TextureGen.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.frag">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\basic.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -61,7 +61,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\basic.vert">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\basic.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -88,7 +88,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ComputeUpdate.comp">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\ComputeUpdate.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -115,7 +115,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.frag">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\ExecuteIndirect.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -142,7 +142,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\ExecuteIndirect.vert">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\ExecuteIndirect.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -169,7 +169,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.frag">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\skybox.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -196,7 +196,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\04_ExecuteIndirect\PCVulkan\skybox.vert">
+    <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\PCVulkan\skybox.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -229,13 +229,13 @@
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert" />
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.frag" />
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.vert" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.frag" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\basic.vert" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\ComputeUpdate.comp" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\ExecuteIndirect.frag" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\ExecuteIndirect.vert" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.frag" />
-    <None Include="..\src\04_ExecuteIndirect\PCDX12\skybox.vert" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.frag" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.vert" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ComputeUpdate.comp" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.frag" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.vert" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.frag" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.vert" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Libraries\OS\OS.vcxproj">

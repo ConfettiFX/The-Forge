@@ -1,0 +1,82 @@
+version: '{build}'
+image: Visual Studio 2017
+environment:
+  matrix:
+  # Comilers matrix
+  - env_cmake_generator: "Visual Studio 12 2013"
+    env_cmake_configuration: Debug
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2013_win.exe"
+  - env_cmake_generator: "Visual Studio 14 2015"
+    env_cmake_configuration: Debug
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 14 2015"
+    env_cmake_configuration: Release
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 14 2015 Win64"
+    env_cmake_configuration: Debug
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 14 2015 Win64"
+    env_cmake_configuration: Release
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 15 2017"
+    env_cmake_configuration: Debug
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 15 2017 Win64"
+    env_cmake_configuration: Debug
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 15 2017"
+    env_cmake_configuration: Release
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 15 2017 Win64"
+    env_cmake_configuration: Release
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+    env_build_msvc_rt_dll: "1"
+  - env_cmake_generator: "Visual Studio 15 2017 Win64"
+    env_cmake_configuration: Release
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+    env_build_msvc_rt_dll: "0"
+
+  # No fbx sdk
+  - env_cmake_generator: "Visual Studio 15 2017"
+    env_cmake_configuration: Release
+
+  # Use ozz as a sub project (should set msvc rt dll for ozz as this is the default in cmake)
+  - env_cmake_generator: "Visual Studio 15 2017 Win64"
+    env_cmake_configuration: Release
+    env_src_root: "../test/sub/"
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+  - env_cmake_generator: "Visual Studio 15 2017 Win64"
+    env_cmake_configuration: Debug
+    env_src_root: "../test/sub/"
+    env_fbxsdk_path: "http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_vs2015_win.exe"
+
+install:
+# Setup Fbx sdk
+- ps: >-
+    if ($Env:env_fbxsdk_path) {
+      md fbx
+      cd fbx
+      Start-FileDownload $Env:env_fbxsdk_path "fbxsdk.exe"
+      Start-Process -FilePath "fbxsdk.exe" /S -Wait
+      cd ..
+    }
+# Fixes up env_src_root if it isn't defined
+- ps: >-
+    if (!$Env:env_src_root) {
+      $Env:env_src_root=".."
+    }
+# Fixes up env_build_msvc_rt_dll if it isn't defined
+- ps: >-
+    if (!$Env:env_build_msvc_rt_dll) {
+      $Env:env_build_msvc_rt_dll="1"
+    }
+
+build_script:
+- cmake --version
+- mkdir build
+- cd build
+- cmake -G "%env_cmake_generator%" -Dozz_build_tests=1 -Dozz_build_data=1 -Dozz_build_msvc_rt_dll=%env_build_msvc_rt_dll% -DCMAKE_BUILD_TYPE=%env_cmake_configuration% %env_src_root%
+- cmake --build ./ --config %env_cmake_configuration%
+
+test_script:
+- ctest --build-config %env_cmake_configuration%

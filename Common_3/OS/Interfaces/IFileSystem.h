@@ -56,6 +56,8 @@ tinystl::string _getCurrentDir();
 tinystl::string _getExePath();
 tinystl::string _getAppPrefsDir(const char* org, const char* app);
 tinystl::string _getUserDocumentsDir();
+void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut);
+bool _fileExists(const char* fileFullPath);
 
 void _setCurrentDir(const char* path);
 
@@ -90,6 +92,7 @@ enum FSRoot {
 	FSR_Meshes, // Meshes
 	FSR_Builtin_Fonts,
 	FSR_GpuConfig,
+	FSR_Animation,  // Animation Ozz files
 	FSR_OtherFiles,
 
 	// libraries will want there own directories
@@ -285,7 +288,7 @@ public:
 	static tinystl::string  GetProgramDir() { return GetPath(_getExePath()); }
 	static tinystl::string  GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
 	static tinystl::string  GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
-	static void	 GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files);
+	static void GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files) { _getFilesWithExtension(dir.c_str(), ext.c_str(), files); }
 
 	static void	 SetCurrentDir(const tinystl::string& path) { _setCurrentDir(path.c_str()); }
 

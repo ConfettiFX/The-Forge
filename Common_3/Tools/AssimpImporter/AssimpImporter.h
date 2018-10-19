@@ -125,13 +125,19 @@ enum TextureMapType
 	*/
 	TEXTURE_MAP_REFLECTION = 0xB,
 
+	/** glTF metallic roughness texture
+	*
+	* Contains the metalness (Green) and the roughness (Blue) factors.
+	*/
+	TEXTURE_MAP_GLTF_METALLIC_ROUGHNESS = 0xC,
+
 	/** Unknown texture
 	*
 	*  A texture reference that does not match any of the definitions
 	*  above is considered to be 'unknown'. It is still imported,
 	*  but is excluded from any further postprocessing.
 	*/
-	TEXTURE_MAP_UNKNOWN = 0xC,
+	TEXTURE_MAP_UNKNOWN = 0xD,
 	TEXTURE_MAP_COUNT = TEXTURE_MAP_UNKNOWN,
 };
 
@@ -153,6 +159,8 @@ enum TextureMapType
 #define MATKEY_COLOR_TRANSPARENT "$clr.transparent"
 #define MATKEY_COLOR_REFLECTIVE "$clr.reflective"
 #define MATKEY_GLOBAL_BACKGROUND_IMAGE "?bg.global"
+#define MATKEY_GLTF_METALLIC "$mat.gltf.pbrMetallicRoughness.metallicFactor"
+#define MATKEY_GLTF_ROUGHNESS "$mat.gltf.pbrMetallicRoughness.roughnessFactor"
 
 #define MAX_ELEMENTS_PER_PROPERTY 4U
 

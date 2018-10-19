@@ -65,20 +65,6 @@ FileSystem mFileSystem;
 LogManager mLogManager;
 HiresTimer gTimer;
 
-#if defined(DIRECT3D12)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(__linux__)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
 #if defined(__linux__)
 //_countof is MSVS macro, add define for Linux. a is expected to be static array type
 #define _countof(a)							\
@@ -88,48 +74,19 @@ HiresTimer gTimer;
 
 #define SCENE_SCALE 1.0f
 
-// Define the root folders for dynamically loaded assets on every platform
-const char* pszRoots[FSR_Count] =
+const char* pszBases[] =
 {
-#if defined(_DURANGO)
-	"Shaders/Binary/",												  // FSR_BinShaders
-	"Shaders/",														 // FSR_SrcShaders
-	"Shaders/Binary/",												  // FSR_BinShaders_Common
-	"Shaders/",														 // FSR_SrcShaders_Common
-	"Meshes/SanMiguel/",												// FSR_Textures
-	"Meshes/SanMiguel/",												// FSR_Meshes
-	"Fonts/",														   // FSR_Builtin_Fonts
-#elif !defined(TARGET_IOS)
-	// TODO: Remove after Metal support for loading bytecode implemented
-#if defined(METAL)
-	"../../../src/" RESOURCE_DIR  "/Binary/",						   // FSR_BinShaders
-#else
-	"CompiledShaders/",												 // FSR_BinShaders
-#endif
-	"../../../src/" RESOURCE_DIR "/",								   // FSR_SrcShaders
-	"../../../src/" RESOURCE_DIR "/Binary/",							// FSR_BinShaders_Common (Currently just in same folder as other shaders)
-	"../../../src/" RESOURCE_DIR "/",								   // FSR_SrcShaders_Common
-	"../../../../../Art/SanMiguel_2/",								  // FSR_Textures
-	"../../../../../Art/SanMiguel_2/",								  // FSR_Meshes
-	"../../../Resources/Fonts/",										// Fonts
-#else   // !defined(TARGET_IOS)
-	"",																 // FSR_BinShaders
-	"",																 // FSR_SrcShaders
-	"",																 // FSR_BinShaders_Common (Currently just in same folder as other shaders)
-	"",																 // FSR_SrcShaders_Common
-	"",																 // FSR_Textures
-	"",																 // FSR_Meshes
-	"",																 // Fonts
-#endif  // !defined(TARGET_IOS)
-#ifdef _DURANGO
-	"",
-	"",
-	"Shaders/",														 // FSR_Lib0_SrcShaders
-#else
-	"../../../src/GPUCfg/",											 // FSR_GpuConfig
-	"../../../Resources/",											  // FSR_OtherFiles
-#endif
+	"../../../src/",									// FSR_BinShaders
+	"../../../src/",									// FSR_SrcShaders
+	"../../../src/",									// FSR_BinShaders_Common
+	"../../../src/",									// FSR_SrcShaders_Common
+	"../../../../../Art/SanMiguel_2/",					// FSR_Textures
+	"../../../../../Art/SanMiguel_2/",					// FSR_Meshes
+	"../../../Resources/",								// FSR_Builtin_Fonts
+	"../../../src/",									// FSR_GpuConfig
+	"../../../Resources/",								// FSR_OtherFiles											// FSR_OtherFiles
 };
+
 
 #ifdef _DURANGO
 #include "../../../Xbox/CommonXBOXOne_3/Renderer/Direct3D12/Direct3D12X.h"
@@ -562,6 +519,11 @@ class VisibilityBuffer : public IApp
 public:
 	bool Init()
 	{
+		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
+		// We need to set the modified root path so that filesystem can find the meshes and textures.
+		FileSystem::SetRootPath(FSRoot::FSR_Meshes, "/");
+		FileSystem::SetRootPath(FSRoot::FSR_Textures, "/");
+
 		pVisibilityBuffer = this;
 		/************************************************************************/
 		// Initialize the Forge renderer with the appropriate parameters.

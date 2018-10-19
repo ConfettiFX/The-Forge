@@ -457,6 +457,20 @@ inline Vector4::Vector4(float scalar)
     mW = scalar;
 }
 
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline Vector4::Vector4(const Vector4Int & vecInt)
+{
+    mX = static_cast<float>(vecInt.x);
+    mY = static_cast<float>(vecInt.y);
+    mZ = static_cast<float>(vecInt.z);
+    mW = static_cast<float>(vecInt.w);
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 inline const Vector4 Vector4::xAxis()
 {
     return Vector4(1.0f, 0.0f, 0.0f, 0.0f);
@@ -476,6 +490,28 @@ inline const Vector4 Vector4::wAxis()
 {
     return Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 }
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline const Vector4 Vector4::zero()
+{
+    return Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+inline const Vector4 Vector4::one()
+{
+    return Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+inline const float * Vector4::getXPtr() const
+{
+    return &mX;
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 
 inline const Vector4 lerp(float t, const Vector4 & vec0, const Vector4 & vec1)
 {
@@ -686,6 +722,125 @@ inline const Vector4 sqrtPerElem(const Vector4 & vec)
                    std::sqrtf(vec.getW()));
 }
 
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+#define RCP_EST(_in, _out)                 \
+do {                                           \
+    const float in = _in;                      \
+    const union {                              \
+      float f;                                 \
+      int i;                                   \
+    } uf = {in};                               \
+    const union {                              \
+      int i;                                   \
+      float f;                                 \
+    } ui = {(0x3f800000 * 2) - uf.i};          \
+    const float fp = ui.f * (2.f - in * ui.f); \
+    _out = fp * (2.f - in * fp);               \
+} while (void(0), 0)
+
+#define RSQRT_EST(_in, _out)                               \
+do {                                                           \
+    const float in = _in;                                      \
+    union {                                                    \
+      float f;                                                 \
+      int i;                                                   \
+    } uf = {in};                                               \
+    union {                                                    \
+      int i;                                                   \
+      float f;                                                 \
+    } ui = {0x5f3759df - (uf.i / 2)};                          \
+    const float fp = ui.f * (1.5f - (in * .5f * ui.f * ui.f)); \
+    _out = fp * (1.5f - (in * .5f * fp * fp));                 \
+} while (void(0), 0)
+
+#define RSQRT_EST_NR(_in, _out)                \
+do {                                               \
+    float fp2;                                     \
+    RSQRT_EST(_in, fp2);                       \
+    _out = fp2 * (1.5f - (_in * .5f * fp2 * fp2)); \
+} while (void(0), 0)
+
+inline const Vector4 rcpEst(const Vector4& v) {
+  Vector4 ret;
+  float vX = v.getX();
+  float vY = v.getY();
+  float vZ = v.getZ();
+  float vW = v.getW();
+  
+  float rX = ret.getX();
+  float rY = ret.getY();
+  float rZ = ret.getZ();
+  float rW = ret.getW();
+
+  RCP_EST(vX, rX);
+  RCP_EST(vY, rY);
+  RCP_EST(vZ, rZ);
+  RCP_EST(vW, rW);
+
+  ret.setX(rX);
+  ret.setY(rY);
+  ret.setZ(rZ);
+  ret.setW(rW);
+
+  return ret;
+}
+
+inline const Vector4 rSqrtEst(const Vector4& v) {
+  Vector4 ret;
+  float vX = v.getX();
+  float vY = v.getY();
+  float vZ = v.getZ();
+  float vW = v.getW();
+  
+  float rX = ret.getX();
+  float rY = ret.getY();
+  float rZ = ret.getZ();
+  float rW = ret.getW();
+
+  RSQRT_EST(vX, rX);
+  RSQRT_EST(vY, rY);
+  RSQRT_EST(vZ, rZ);
+  RSQRT_EST(vW, rW);
+
+  ret.setX(rX);
+  ret.setY(rY);
+  ret.setZ(rZ);
+  ret.setW(rW);
+
+  return ret;
+}
+
+inline const Vector4 rSqrtEstNR(const Vector4& v) {
+  Vector4 ret;
+  float vX = v.getX();
+  float vY = v.getY();
+  float vZ = v.getZ();
+  float vW = v.getW();
+  
+  float rX = ret.getX();
+  float rY = ret.getY();
+  float rZ = ret.getZ();
+  float rW = ret.getW();
+
+  RSQRT_EST_NR(vX, rX);
+  RSQRT_EST_NR(vY, rY);
+  RSQRT_EST_NR(vZ, rZ);
+  RSQRT_EST_NR(vW, rW);
+
+  ret.setX(rX);
+  ret.setY(rY);
+  ret.setZ(rZ);
+  ret.setW(rW);
+
+  return ret;
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 inline const Vector4 rsqrtPerElem(const Vector4 & vec)
 {
     return Vector4((1.0f / std::sqrtf(vec.getX())),
@@ -796,6 +951,205 @@ inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, bool sel
                    (select1) ? vec1.getZ() : vec0.getZ(),
                    (select1) ? vec1.getW() : vec0.getW());
 }
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+inline const Vector4Int cmpEq(const Vector4& a, const Vector4& b) {
+    const Vector4Int ret = {
+        -static_cast<int>(a.getX() == b.getX()), -static_cast<int>(a.getY() == b.getY()),
+        -static_cast<int>(a.getZ() == b.getZ()), -static_cast<int>(a.getW() == b.getW())};
+    return ret;
+}
+
+inline const Vector4Int cmpNotEq(const Vector4& a, const Vector4& b) {
+    const Vector4Int ret = {
+        -static_cast<int>(a.getX() != b.getX()), -static_cast<int>(a.getY() != b.getY()),
+        -static_cast<int>(a.getZ() != b.getZ()), -static_cast<int>(a.getW() != b.getW())};
+    return ret;
+}
+
+inline const Vector4Int cmpLt(const Vector4& a, const Vector4& b) {
+    const Vector4Int ret = {
+        -static_cast<int>(a.getX() < b.getX()), -static_cast<int>(a.getY() < b.getY()),
+        -static_cast<int>(a.getZ() < b.getZ()), -static_cast<int>(a.getW() < b.getW())};
+    return ret;
+}
+
+inline const Vector4Int cmpLe(const Vector4& a, const Vector4& b) {
+    const Vector4Int ret = {
+        -static_cast<int>(a.getX() <= b.getX()), -static_cast<int>(a.getY() <= b.getY()),
+        -static_cast<int>(a.getZ() <= b.getZ()), -static_cast<int>(a.getW() <= b.getW())};
+    return ret;
+}
+
+inline const Vector4Int cmpGt(const Vector4& a, const Vector4& b) {
+    const Vector4Int ret = {
+        -static_cast<int>(a.getX() > b.getX()), -static_cast<int>(a.getY() > b.getY()),
+        -static_cast<int>(a.getZ() > b.getZ()), -static_cast<int>(a.getW() > b.getW())};
+    return ret;
+}
+
+inline const Vector4Int cmpGe(const Vector4& a, const Vector4& b) {
+    const Vector4Int ret = {
+        -static_cast<int>(a.getX() >= b.getX()), -static_cast<int>(a.getY() >= b.getY()),
+        -static_cast<int>(a.getZ() >= b.getZ()), -static_cast<int>(a.getW() >= b.getW())};
+    return ret;
+}
+
+inline const Vector4Int signBit(const Vector4& v) {
+    VectorFI4 fi = {v};
+    const Vector4Int ret = {fi.i.x & static_cast<int>(0x80000000),
+                        fi.i.y & static_cast<int>(0x80000000),
+                        fi.i.z & static_cast<int>(0x80000000),
+                        fi.i.w & static_cast<int>(0x80000000)};
+    return ret;
+}
+
+inline const Vector4 xorPerElem(const Vector4& a, const Vector4Int& b) {
+    const VectorFI4 c = {a};
+    const VectorIF4 ret = {
+        {c.i.x ^ b.x, c.i.y ^ b.y, c.i.z ^ b.z, c.i.w ^ b.w}};
+    return ret.f;
+}
+    
+inline const Vector4 orPerElem(const Vector4& a, const Vector4Int& b) {
+    const VectorFI4 c = {a};
+    const VectorIF4 ret = {
+        {c.i.x | b.x, c.i.y | b.y, c.i.z | b.z, c.i.w | b.w}};
+    return ret.f;
+}
+
+inline const Vector4 orPerElem(const Vector4& a, const Vector4& b) {
+    const VectorFI4 c = {a};
+    const VectorFI4 d = {b};
+    const VectorIF4 ret = {
+        {c.i.x | d.i.x, c.i.y | d.i.y, c.i.z | d.i.z, c.i.w | d.i.w}};
+    return ret.f;
+}
+
+inline const Vector4 andPerElem(const Vector4& a, const Vector4Int& b) {
+    const VectorFI4 c = {a};
+    const VectorIF4 ret = {
+        {c.i.x & b.x, c.i.y & b.y, c.i.z & b.z, c.i.w & b.w}};
+    return ret.f;
+}
+
+inline float HalfToFloat(uint16_t _h) {
+  const union {
+    uint32_t u;
+    float f;
+  } magic = {(254 - 15) << 23};
+  const union {
+    uint32_t u;
+    float f;
+  } infnan = {(127 + 16) << 23};
+
+  const uint32_t sign = _h & 0x8000;
+  const union {
+    int32_t u;
+    float f;
+  } exp_mant = {(_h & 0x7fff) << 13};
+  const union {
+    float f;
+    uint32_t u;
+  } adjust = {exp_mant.f * magic.f};
+  // Make sure Inf/NaN survive
+  const union {
+    uint32_t u;
+    float f;
+  } result = {(adjust.f >= infnan.f ? (adjust.u | 255 << 23) : adjust.u) |
+              (sign << 16)};
+  return result.f;
+}
+
+inline const Vector4 halfToFloat(const Vector4Int& vecInt) {
+
+    const Vector4 ret = {
+        HalfToFloat(vecInt.x & 0x0000ffff), HalfToFloat(vecInt.y & 0x0000ffff),
+        HalfToFloat(vecInt.z & 0x0000ffff), HalfToFloat(vecInt.w & 0x0000ffff)};
+    return ret;
+}
+
+inline void transpose3x4(const Vector4 in[3], Vector4 out[4]) {
+
+	out[0].setX(in[0].getX());
+    out[0].setY(in[1].getX());
+    out[0].setZ(in[2].getX());
+    out[0].setW(0.f);
+    out[1].setX(in[0].getY());
+    out[1].setY(in[1].getY());
+    out[1].setZ(in[2].getY());
+    out[1].setW(0.f);
+    out[2].setX(in[0].getZ());
+    out[2].setY(in[1].getZ());
+    out[2].setZ(in[2].getZ());
+    out[2].setW(0.f);
+    out[3].setX(in[0].getW());
+    out[3].setY(in[1].getW());
+    out[3].setZ(in[2].getW());
+    out[3].setW(0.f);
+}
+
+inline void transpose4x4(const Vector4 in[4], Vector4 out[4]) {
+
+    out[0].setX(in[0].getX());
+    out[1].setX(in[0].getY());
+    out[2].setX(in[0].getZ());
+    out[3].setX(in[0].getW());
+    out[0].setY(in[1].getX());
+    out[1].setY(in[1].getY());
+    out[2].setY(in[1].getZ());
+    out[3].setY(in[1].getW());
+    out[0].setZ(in[2].getX());
+    out[1].setZ(in[2].getY());
+    out[2].setZ(in[2].getZ());
+    out[3].setZ(in[2].getW());
+    out[0].setW(in[3].getX());
+    out[1].setW(in[3].getY());
+    out[2].setW(in[3].getZ());
+    out[3].setW(in[3].getW());
+}
+
+inline void transpose16x16(const Vector4 in[16], Vector4 out[16]) {
+    for (int i = 0; i < 4; ++i) {
+        const int i4 = i * 4;
+        
+        out[i4 + 0].setX(*(in[0].getXPtr() + i));
+		out[i4 + 0].setY(*(in[1].getXPtr() + i));
+        out[i4 + 0].setZ(*(in[2].getXPtr() + i));
+        out[i4 + 0].setW(*(in[3].getXPtr() + i));
+        out[i4 + 1].setX(*(in[4].getXPtr() + i));
+        out[i4 + 1].setY(*(in[5].getXPtr() + i));
+        out[i4 + 1].setZ(*(in[6].getXPtr() + i));
+        out[i4 + 1].setW(*(in[7].getXPtr() + i));
+        out[i4 + 2].setX(*(in[8].getXPtr() + i));
+        out[i4 + 2].setY(*(in[9].getXPtr() + i));
+        out[i4 + 2].setZ(*(in[10].getXPtr() + i));
+        out[i4 + 2].setW(*(in[11].getXPtr() + i));
+        out[i4 + 3].setX(*(in[12].getXPtr() + i));
+        out[i4 + 3].setY(*(in[13].getXPtr() + i));
+        out[i4 + 3].setZ(*(in[14].getXPtr() + i));
+        out[i4 + 3].setW(*(in[15].getXPtr() + i));
+    }
+}
+
+inline void storePtrU(const Vector4& v, float* f) {
+    f[0] = v.getX();
+    f[1] = v.getY();
+    f[2] = v.getZ();
+    f[3] = v.getW();
+}
+
+inline void store3PtrU(const Vector4& v, float* f) {
+    f[0] = v.getX();
+    f[1] = v.getY();
+    f[2] = v.getZ();
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 
 #ifdef VECTORMATH_DEBUG
 
@@ -1094,6 +1448,518 @@ inline void print(const Point3 & pnt, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
+
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+// ========================================================
+// Vector4Int
+// ========================================================
+
+namespace vector4int {
+
+inline Vector4Int zero() {
+  const Vector4Int ret = {0, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int one() {
+  const Vector4Int ret = {1, 1, 1, 1};
+  return ret;
+}
+
+inline Vector4Int x_axis() {
+  const Vector4Int ret = {1, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int y_axis() {
+  const Vector4Int ret = {0, 1, 0, 0};
+  return ret;
+}
+
+inline Vector4Int z_axis() {
+  const Vector4Int ret = {0, 0, 1, 0};
+  return ret;
+}
+
+inline Vector4Int w_axis() {
+  const Vector4Int ret = {0, 0, 0, 1};
+  return ret;
+}
+
+inline Vector4Int all_true() {
+  const Vector4Int ret = {~0, ~0, ~0, ~0};
+  return ret;
+}
+
+inline Vector4Int all_false() {
+  const Vector4Int ret = {0, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int mask_sign() {
+  const Vector4Int ret = {
+      static_cast<int>(0x80000000), static_cast<int>(0x80000000),
+      static_cast<int>(0x80000000), static_cast<int>(0x80000000)};
+  return ret;
+}
+
+inline Vector4Int mask_not_sign() {
+  const Vector4Int ret = {
+      static_cast<int>(0x7fffffff), static_cast<int>(0x7fffffff),
+      static_cast<int>(0x7fffffff), static_cast<int>(0x7fffffff)};
+  return ret;
+}
+
+inline Vector4Int mask_ffff() {
+  const Vector4Int ret = {~0, ~0, ~0, ~0};
+  return ret;
+}
+
+inline Vector4Int mask_fff0() {
+  const Vector4Int ret = {~0, ~0, ~0, 0};
+  return ret;
+}
+
+inline Vector4Int mask_0000() {
+  const Vector4Int ret = {0, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int mask_f000() {
+  const Vector4Int ret = {~0, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int mask_0f00() {
+  const Vector4Int ret = {0, ~0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int mask_00f0() {
+  const Vector4Int ret = {0, 0, ~0, 0};
+  return ret;
+}
+
+inline Vector4Int mask_000f() {
+  const Vector4Int ret = {0, 0, 0, ~0};
+  return ret;
+}
+
+inline Vector4Int Load(int _x, int _y, int _z, int _w) {
+  const Vector4Int ret = {_x, _y, _z, _w};
+  return ret;
+}
+
+inline Vector4Int LoadX(int _x) {
+  const Vector4Int ret = {_x, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int Load1(int _x) {
+  const Vector4Int ret = {_x, _x, _x, _x};
+  return ret;
+}
+
+inline Vector4Int Load(bool _x, bool _y, bool _z, bool _w) {
+  const Vector4Int ret = {-static_cast<int>(_x), -static_cast<int>(_y),
+                        -static_cast<int>(_z), -static_cast<int>(_w)};
+  return ret;
+}
+
+inline Vector4Int LoadX(bool _x) {
+  const Vector4Int ret = {-static_cast<int>(_x), 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int Load1(bool _x) {
+  const int i = -static_cast<int>(_x);
+  const Vector4Int ret = {i, i, i, i};
+  return ret;
+}
+
+inline Vector4Int LoadPtr(const int* _i) {
+  const Vector4Int ret = {_i[0], _i[1], _i[2], _i[3]};
+  return ret;
+}
+
+inline Vector4Int LoadXPtr(const int* _i) {
+  const Vector4Int ret = {*_i, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int Load1Ptr(const int* _i) {
+  const Vector4Int ret = {*_i, *_i, *_i, *_i};
+  return ret;
+}
+
+inline Vector4Int Load2Ptr(const int* _i) {
+  const Vector4Int ret = {_i[0], _i[1], 0, 0};
+  return ret;
+}
+
+inline Vector4Int Load3Ptr(const int* _i) {
+  const Vector4Int ret = {_i[0], _i[1], _i[2], 0};
+  return ret;
+}
+
+inline Vector4Int LoadPtrU(const int* _i) {
+  const Vector4Int ret = {_i[0], _i[1], _i[2], _i[3]};
+  return ret;
+}
+
+inline Vector4Int LoadXPtrU(const int* _i) {
+  const Vector4Int ret = {*_i, 0, 0, 0};
+  return ret;
+}
+
+inline Vector4Int Load1PtrU(const int* _i) {
+  const Vector4Int ret = {*_i, *_i, *_i, *_i};
+  return ret;
+}
+
+inline Vector4Int Load2PtrU(const int* _i) {
+  const Vector4Int ret = {_i[0], _i[1], 0, 0};
+  return ret;
+}
+
+inline Vector4Int Load3PtrU(const int* _i) {
+  const Vector4Int ret = {_i[0], _i[1], _i[2], 0};
+  return ret;
+}
+
+inline Vector4Int FromFloatRound(const Vector4& _f) {
+  const Vector4Int ret = {
+      static_cast<int>(floor(_f.getX() + .5f)), static_cast<int>(floor(_f.getY() + .5f)),
+      static_cast<int>(floor(_f.getZ() + .5f)), static_cast<int>(floor(_f.getW() + .5f))};
+  return ret;
+}
+
+inline Vector4Int FromFloatTrunc(const Vector4& _f) {
+  const Vector4Int ret = {static_cast<int>(_f.getX()), static_cast<int>(_f.getY()),
+                        static_cast<int>(_f.getZ()), static_cast<int>(_f.getW())};
+  return ret;
+}
+
+}  // namespace vector4int
+
+inline int GetX(const Vector4Int& _v) { return _v.x; }
+
+inline int GetY(const Vector4Int& _v) { return _v.y; }
+
+inline int GetZ(const Vector4Int& _v) { return _v.z; }
+
+inline int GetW(const Vector4Int& _v) { return _v.w; }
+
+inline Vector4Int SetX(const Vector4Int& _v, int _i) {
+  const Vector4Int ret = {_i, _v.y, _v.z, _v.w};
+  return ret;
+}
+
+inline Vector4Int SetY(const Vector4Int& _v, int _i) {
+  const Vector4Int ret = {_v.x, _i, _v.z, _v.w};
+  return ret;
+}
+
+inline Vector4Int SetZ(const Vector4Int& _v, int _i) {
+  const Vector4Int ret = {_v.x, _v.y, _i, _v.w};
+  return ret;
+}
+
+inline Vector4Int SetW(const Vector4Int& _v, int _i) {
+  const Vector4Int ret = {_v.x, _v.y, _v.z, _i};
+  return ret;
+}
+
+inline Vector4Int SetI(const Vector4Int& _v, int _ith, int _i) {
+  Vector4Int ret = _v;
+  (&ret.x)[_ith] = _i;
+  return ret;
+}
+
+inline void StorePtr(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+  _i[1] = _v.y;
+  _i[2] = _v.z;
+  _i[3] = _v.w;
+}
+
+inline void Store1Ptr(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+}
+
+inline void Store2Ptr(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+  _i[1] = _v.y;
+}
+
+inline void Store3Ptr(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+  _i[1] = _v.y;
+  _i[2] = _v.z;
+}
+
+inline void StorePtrU(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+  _i[1] = _v.y;
+  _i[2] = _v.z;
+  _i[3] = _v.w;
+}
+
+inline void Store1PtrU(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+}
+
+inline void Store2PtrU(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+  _i[1] = _v.y;
+}
+
+inline void Store3PtrU(const Vector4Int& _v, int* _i) {
+  _i[0] = _v.x;
+  _i[1] = _v.y;
+  _i[2] = _v.z;
+}
+
+inline Vector4Int SplatX(const Vector4Int& _a) {
+  const Vector4Int ret = {_a.x, _a.x, _a.x, _a.x};
+  return ret;
+}
+
+inline Vector4Int SplatY(const Vector4Int& _a) {
+  const Vector4Int ret = {_a.y, _a.y, _a.y, _a.y};
+  return ret;
+}
+
+inline Vector4Int SplatZ(const Vector4Int& _a) {
+  const Vector4Int ret = {_a.z, _a.z, _a.z, _a.z};
+  return ret;
+}
+
+inline Vector4Int SplatW(const Vector4Int& _a) {
+  const Vector4Int ret = {_a.w, _a.w, _a.w, _a.w};
+  return ret;
+}
+
+inline int MoveMask(const Vector4Int& _v) {
+  return ((_v.x & 0x80000000) >> 31) | ((_v.y & 0x80000000) >> 30) |
+         ((_v.z & 0x80000000) >> 29) | ((_v.w & 0x80000000) >> 28);
+}
+
+inline bool AreAllTrue(const Vector4Int& _v) {
+  return _v.x != 0 && _v.y != 0 && _v.z != 0 && _v.w != 0;
+}
+
+inline bool AreAllTrue3(const Vector4Int& _v) {
+  return _v.x != 0 && _v.y != 0 && _v.z != 0;
+}
+
+inline bool AreAllTrue2(const Vector4Int& _v) { return _v.x != 0 && _v.y != 0; }
+
+inline bool AreAllTrue1(const Vector4Int& _v) { return _v.x != 0; }
+
+inline bool AreAllFalse(const Vector4Int& _v) {
+  return _v.x == 0 && _v.y == 0 && _v.z == 0 && _v.w == 0;
+}
+
+inline bool AreAllFalse3(const Vector4Int& _v) {
+  return _v.x == 0 && _v.y == 0 && _v.z == 0;
+}
+
+inline bool AreAllFalse2(const Vector4Int& _v) { return _v.x == 0 && _v.y == 0; }
+
+inline bool AreAllFalse1(const Vector4Int& _v) { return _v.x == 0; }
+
+inline Vector4Int MAdd(const Vector4Int& _a, const Vector4Int& _b, const Vector4Int& _addend) {
+  const Vector4Int ret = {_a.x * _b.x + _addend.x, _a.y * _b.y + _addend.y,
+                        _a.z * _b.z + _addend.z, _a.w * _b.w + _addend.w};
+  return ret;
+}
+
+inline Vector4Int DivX(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x / _b.x, _a.y, _a.z, _a.w};
+  return ret;
+}
+
+inline Vector4Int HAdd2(const Vector4Int& _v) {
+  const Vector4Int ret = {_v.x + _v.y, _v.y, _v.z, _v.w};
+  return ret;
+}
+
+inline Vector4Int HAdd3(const Vector4Int& _v) {
+  const Vector4Int ret = {_v.x + _v.y + _v.z, _v.y, _v.z, _v.w};
+  return ret;
+}
+
+inline Vector4Int HAdd4(const Vector4Int& _v) {
+  const Vector4Int ret = {_v.x + _v.y + _v.z + _v.w, _v.y, _v.z, _v.w};
+  return ret;
+}
+
+inline Vector4Int Dot2(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x * _b.x + _a.y * _b.y, _a.y, _a.z, _a.w};
+  return ret;
+}
+
+inline Vector4Int Dot3(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x * _b.x + _a.y * _b.y + _a.z * _b.z, _a.y, _a.z,
+                        _a.w};
+  return ret;
+}
+
+inline Vector4Int Dot4(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w,
+                        _a.y, _a.z, _a.w};
+  return ret;
+}
+inline Vector4Int Abs(const Vector4Int& _v) {
+  const Vector4Int mash = {_v.x >> 31, _v.y >> 31, _v.z >> 31, _v.w >> 31};
+  const Vector4Int ret = {
+      (_v.x + (mash.x)) ^ (mash.x), (_v.y + (mash.y)) ^ (mash.y),
+      (_v.z + (mash.z)) ^ (mash.z), (_v.w + (mash.w)) ^ (mash.w)};
+  return ret;
+}
+
+inline Vector4Int Sign(const Vector4Int& _v) {
+  const Vector4Int ret = {
+      _v.x & static_cast<int>(0x80000000), _v.y & static_cast<int>(0x80000000),
+      _v.z & static_cast<int>(0x80000000), _v.w & static_cast<int>(0x80000000)};
+  return ret;
+}
+
+inline Vector4Int Min(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x < _b.x ? _a.x : _b.x, _a.y < _b.y ? _a.y : _b.y,
+                        _a.z < _b.z ? _a.z : _b.z, _a.w < _b.w ? _a.w : _b.w};
+  return ret;
+}
+
+inline Vector4Int Max(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x > _b.x ? _a.x : _b.x, _a.y > _b.y ? _a.y : _b.y,
+                        _a.z > _b.z ? _a.z : _b.z, _a.w > _b.w ? _a.w : _b.w};
+  return ret;
+}
+
+inline Vector4Int Min0(const Vector4Int& _v) {
+  const Vector4Int ret = {_v.x < 0 ? _v.x : 0, _v.y < 0 ? _v.y : 0,
+                        _v.z < 0 ? _v.z : 0, _v.w < 0 ? _v.w : 0};
+  return ret;
+}
+
+inline Vector4Int Max0(const Vector4Int& _v) {
+  const Vector4Int ret = {_v.x > 0 ? _v.x : 0, _v.y > 0 ? _v.y : 0,
+                        _v.z > 0 ? _v.z : 0, _v.w > 0 ? _v.w : 0};
+  return ret;
+}
+
+inline Vector4Int Clamp(const Vector4Int& _a, const Vector4Int& _v, const Vector4Int& _b) {
+  const Vector4Int min = {_v.x < _b.x ? _v.x : _b.x, _v.y < _b.y ? _v.y : _b.y,
+                        _v.z < _b.z ? _v.z : _b.z, _v.w < _b.w ? _v.w : _b.w};
+  const Vector4Int r = {_a.x > min.x ? _a.x : min.x, _a.y > min.y ? _a.y : min.y,
+                      _a.z > min.z ? _a.z : min.z, _a.w > min.w ? _a.w : min.w};
+  return r;
+}
+
+inline Vector4Int Select(const Vector4Int& _b, const Vector4Int& _true, const Vector4Int& _false) {
+  const Vector4Int ret = {_false.x ^ (_b.x & (_true.x ^ _false.x)),
+                        _false.y ^ (_b.y & (_true.y ^ _false.y)),
+                        _false.z ^ (_b.z & (_true.z ^ _false.z)),
+                        _false.w ^ (_b.w & (_true.w ^ _false.w))};
+  return ret;
+}
+
+inline Vector4Int And(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x & _b.x, _a.y & _b.y, _a.z & _b.z, _a.w & _b.w};
+  return ret;
+}
+
+inline Vector4Int Or(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x | _b.x, _a.y | _b.y, _a.z | _b.z, _a.w | _b.w};
+  return ret;
+}
+
+inline Vector4Int Xor(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {_a.x ^ _b.x, _a.y ^ _b.y, _a.z ^ _b.z, _a.w ^ _b.w};
+  return ret;
+}
+
+inline Vector4Int Not(const Vector4Int& _v) {
+  const Vector4Int ret = {~_v.x, ~_v.y, ~_v.z, ~_v.w};
+  return ret;
+}
+
+inline Vector4Int ShiftL(const Vector4Int& _v, int _bits) {
+  const Vector4Int ret = {_v.x << _bits, _v.y << _bits, _v.z << _bits,
+                        _v.w << _bits};
+  return ret;
+}
+
+inline Vector4Int ShiftR(const Vector4Int& _v, int _bits) {
+  const Vector4Int ret = {_v.x >> _bits, _v.y >> _bits, _v.z >> _bits,
+                        _v.w >> _bits};
+  return ret;
+}
+
+inline Vector4Int ShiftRu(const Vector4Int& _v, int _bits) {
+  const union IU {
+    int i[4];
+    unsigned int u[4];
+  } iu = {{_v.x, _v.y, _v.z, _v.w}};
+  const union UI {
+    unsigned int u[4];
+    int i[4];
+  } ui = {
+      {iu.u[0] >> _bits, iu.u[1] >> _bits, iu.u[2] >> _bits, iu.u[3] >> _bits}};
+  const Vector4Int ret = {ui.i[0], ui.i[1], ui.i[2], ui.i[3]};
+  return ret;
+}
+
+inline Vector4Int CmpEq(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {
+      -static_cast<int>(_a.x == _b.x), -static_cast<int>(_a.y == _b.y),
+      -static_cast<int>(_a.z == _b.z), -static_cast<int>(_a.w == _b.w)};
+  return ret;
+}
+
+inline Vector4Int CmpNe(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {
+      -static_cast<int>(_a.x != _b.x), -static_cast<int>(_a.y != _b.y),
+      -static_cast<int>(_a.z != _b.z), -static_cast<int>(_a.w != _b.w)};
+  return ret;
+}
+
+inline Vector4Int CmpLt(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {
+      -static_cast<int>(_a.x < _b.x), -static_cast<int>(_a.y < _b.y),
+      -static_cast<int>(_a.z < _b.z), -static_cast<int>(_a.w < _b.w)};
+  return ret;
+}
+
+inline Vector4Int CmpLe(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {
+      -static_cast<int>(_a.x <= _b.x), -static_cast<int>(_a.y <= _b.y),
+      -static_cast<int>(_a.z <= _b.z), -static_cast<int>(_a.w <= _b.w)};
+  return ret;
+}
+
+inline Vector4Int CmpGt(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {
+      -static_cast<int>(_a.x > _b.x), -static_cast<int>(_a.y > _b.y),
+      -static_cast<int>(_a.z > _b.z), -static_cast<int>(_a.w > _b.w)};
+  return ret;
+}
+
+inline Vector4Int CmpGe(const Vector4Int& _a, const Vector4Int& _b) {
+  const Vector4Int ret = {
+      -static_cast<int>(_a.x >= _b.x), -static_cast<int>(_a.y >= _b.y),
+      -static_cast<int>(_a.z >= _b.z), -static_cast<int>(_a.w >= _b.w)};
+  return ret;
+}
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 
 } // namespace Scalar
 } // namespace Vectormath
