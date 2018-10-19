@@ -20,7 +20,7 @@ Particularly, The Forge supports cross-platform
 - Multi-threaded command buffer generation
 
 Future plans are
-- Unified shader generation -> check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net)
+- Unified shader generation -> check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net). This shader translator is build with the purpose of supporting a higher-level shading language, which we call super HLSL or short sHLSL
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
 
@@ -33,6 +33,25 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.18 - October 18th, 2018 - Animation System Ozz support | Vulkan native Ubuntu Linux package support
+* The Forge now uses the Ozz animation system. This is our first major change to the math library because we needed to add what is necessary for animation. We compared the speed of our math library then with the speed of the Ozz animation system math library and they are about the same. At some point we need to do AVX 1 and ARM specific optimizations to our math library, which is still based on the open-sourced changed Sony math library [Vectormath](https://github.com/glampert/vectormath), which is similar to the Bullet math library ...
+
+
+We added several unit tests. Please see description below.
+* Changed the file system for all platforms, making it more consistent to use and more functional
+* Tabified - tabified the whole code base ... finally ... 
+* glTF - we made sure glTF 2.0 support is improved in the latest assimp we use. This should allow us in the future to use glTF 2.0 art assets easier
+* Linux / Vulkan - we applaud Khronos for the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/) and will support those from now on. This is something that makes gaming on Linux Ubuntu easier to approach for end-users.
+* macOS
+  * we have a hard time to get the "Wave Intrinsics unit test" running. It runs now on our MacBook Pro test machines with Intel GPUs but not on the iMacs with AMD GPUs. It throws compile errors on the iPhone 7. We are providing Apple with info on their bug tracker.
+  * upgraded to Xcode Version: 10.0 (10A255) and MacOS Version: 10.14 (18A389) 
+* iOS 
+  * there are numerous improvements for the input system, imGUI and other things
+  * support shader includes on iOS like on the other platforms
+* Android Pie & Vulkan 1.1 - we are waiting for devkits with better driver support before we move on with this target platform
+* XBOX One - see internal GitLab list for improvements as usual ...
+
 
 ## Release 1.17 - October 4th, 2018 - Android Pie & Vulkan 1.1 Support  | iOS imGUI touch & virtual keyboard | DXR Ray Tracing support | Call for contributors to change IRenderer.h
 * The Forge now has initial support for Android with the same Vulkan 1.1 run-time that is used by the Windows and Linux platforms. 
@@ -69,71 +88,6 @@ Phenomenological Transparency - Diffusion, Refraction, Shadows
 * Linux - the wave intrinsics unit test now also works on Linux. We are looking into macOS / iOS next.
 * Call for contributors to change IRenderer.h - as a heads-up, we will change the renderer interface to use our own way of "Render Passes and Compute Passes" similar to the Vulkan render passes. We will analyze render and compute calls and use this information to expose data to a "Render Graph" that will be implemented on a higher level. If you want to be part of the group that thinks about how we should adjust IRenderer.h for this, please send Wolfgang a note and your skype ID
 
-## Release 1.16 - September 21st, 2018 - Order-Independent Transparency Unit Test | Wave Intrinsics Unit Test | Updated Confetti Shader Translator
-* There is a new unit test that evaluates various Order-Independent Transparency methods:
-  * Alpha blended transparency
-  * Weighted blended Order Independent Transparency (Morgan McGuire)
-  * Weighted blended Order Independent Transparency by Volition (GDC 2018 Talk)
-  * Adaptive Order Independent Transparency with Raster Order Views (paper by Intel, supports DirectX 11, 12 only)
-  There are more details and a comparison in the documentation folder of the unit test.
-
-PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
-![OIT on PC ](Screenshots/14_OIT.png)
-
-Linux Vulkan 1.1.82.1 GeForce 1080 Driver 390.87 with a resolution of 1080p in full-screen:
-![OIT on PC ](Screenshots/OIT_Linux_NVIDIA1080.png)
-
-MacBook Pro (Model A1706) with a resolution of 1080p in full-screen:
-![OIT on PC ](Screenshots/OIT_MacBookPro1080p.png)
-
-iPhone 7  with a resolution of 1334x750 in full-screen:
-![OIT on PC ](Screenshots/OIT_iPhone7.png)
-
-* There is a new Wave Intrinsics Unit test. It tests the new wave intrinsic instructions and makes sure they are support on PC Windows (DirectX 12 / Vulkan) for now. We are planning to add support on other platforms. On PC with DirectX it utilizes a "preview" integration of the DirectX Shader compiler. We were running into multiple bugs with DXC and decided to only use it for the new Shader model 6 shaders. So The Forge uses DXC for shaders that request shader_target_6_0 and FXC for everything below. The shader target can be specified during load time.
-
-PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p in full-screen:
-![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
-
-* Vulkan
- * upgraded to the latest Vulkan Memory Allocator
- * Enabled subgroup extensions for Wave Intrinsics Unit Test
-* macOS / iOS 
-  * on-going work on improving input on macOS and iOS with imGUI
-  * upgraded to macOS: 10.14 (18A389), XCode: 10 (10A254a)
-* imGUI: improved implementation to make it a native citizen and expose the whole functionality. for tools, now there is more flexibility to create individual UIs for all apps. Check out the new screenshot below.
-
-imGUI support:
-
-![imGUI on PC ](Screenshots/13_imGui.gif)
-
-* Linux - upgraded AMDGPU-Pro driver to 18.30-641594
-* The Confetti Shader Translator received lots of bugs fixes and upgrades over the last six weeks. Head over to the URL and check it out. We have a large backlog with bugs and therefore it is still in alpha. New Features are:
-  * include file support
-  * preprocessor branching
-  * switch statement
-  * nested array
-  * texture argments for functions
-  * pur buffer (Buffer) type
-  * Shader Model 6.0 (Wave)
-    * SampleGrad()
-    * GatherRed()   
-    * all()
-    * gatherRed()
-    * f32to16()
-    * f16to32()
-    * NonUniformResourceIndex()
-    * determinate functions 
-  * GLSL
-    * Shader Model 6.0 functions (Subgroup)
-    * #extension system (Now, only necessary extensions are written, automatically)  
-    * textureGather()
-    * textureGrad()
-  * added loading progress bar
-  * and others ... 
-  Here is a screenshot of the latest version.
-![Confetti Shader Translator](Screenshots/ConfettiShaderTranslator.png)
-
-
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -144,7 +98,7 @@ See the release notes from previous releases in the [Release section](https://gi
 
 2. Drivers
 * AMD / NVIDIA - latest drivers should work. On Vulkan, at least NVIDIA Beta Driver 389.20 are required to support Linked Multi-GPU. 
-* Intel - need to install the latest driver (currently 24.20.100.6094, May 22nd) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/27803/Intel-Graphics-Driver-for-Windows-10). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
+* Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
@@ -166,7 +120,7 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 1. macOS: 10.14 (18A389)
 
-2. XCode: 10 (10A254a) 
+2. XCode: 10.0 (10A255)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -200,7 +154,7 @@ We are currently testing on
 
 3. Workspace file is provided for [codelite](https://codelite.org/)
 
-4. Vulkan SDK Version: [1.1.82.1](https://vulkan.lunarg.com/sdk/home)
+4. Vulkan SDK Version: download the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/)
 
 5. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
@@ -213,12 +167,14 @@ Please read the "Set up the Runtime Environment" and "Environment Variable Persi
 
 # Android Requirements:
 
-Android Phone with Android Pie (9.x) for Vulkan 1.1 support
+1. Android Phone with Android Pie (9.x) for Vulkan 1.1 support
 
-We are currently testing on 
+2. Android Studio with API level 28 and follow the instructions
+
+3. We are currently testing on 
 * [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) with Android 9.0 - Build PPR1.181005.034
 
-This phone uses an Adreno 540 GPU. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
+In the moment we only support the first two unit tests. We are waiting for devkits with more stable drivers before we bring over the other unit tests. The Essential phone uses an Adreno 540 GPU. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
 
 
 
@@ -324,7 +280,7 @@ This unit test compares various Order-Indpendent Transparency Methods.
 
 
 ## 15. Wave Intrinsics unit test
-This unit test shows how to use the new wave intrinsics. In the moment it only supports DirectX 12 and Vulkan on Windows and with the later on Linux. More platforms will be added.
+This unit test shows how to use the new wave intrinsics. In the moment it only supports Windows (DirectX 12 / Vulkan 1.1) and Linux with Vulkan 1.1. More platforms will be added.
 
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
@@ -372,7 +328,6 @@ The Forge utilizes the following Open-Source libraries:
   * [stb_image_write.h](https://github.com/nothings/stb/blob/master/stb_image_write.h)
 * [shaderc](https://github.com/google/shaderc)
 * [SPIRV_Cross](https://github.com/KhronosGroup/SPIRV-Cross)
-* [Task Scheduler](https://github.com/SergeyMakeev/TaskScheduler)
 * [TinyEXR](https://github.com/syoyo/tinyexr)
 * [TinySTL](https://github.com/mendsley/tinystl)
 * [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
@@ -385,3 +340,4 @@ The Forge utilizes the following Open-Source libraries:
 * [hlslparser](https://github.com/Thekla/hlslparser)
 * [ImGui](https://github.com/ocornut/imgui)
 * [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
+* [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
