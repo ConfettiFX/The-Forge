@@ -22,33 +22,33 @@
     <ClCompile Include="..\src\10_PixelProjectedReflections\10_PixelProjectedReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\BRDFIntegration.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\computeIrradianceMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\computeSpecularMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\fillGbuffers.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\fillGbuffers.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\panoToCube.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Holepatching.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Holepatching.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Projection.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Reflection.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\PPR_Reflection.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\renderSceneBRDF.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\renderSceneBRDF.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\skybox.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCDX12\skybox.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\BRDFIntegration.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\computeIrradianceMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\computeSpecularMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\fillGbuffers.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\fillGbuffers.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\panoToCube.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Holepatching.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Holepatching.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Projection.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Reflection.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\PPR_Reflection.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\renderSceneBRDF.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\BRDFIntegration.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\computeIrradianceMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\computeSpecularMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\fillGbuffers.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\fillGbuffers.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\panoToCube.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Holepatching.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Holepatching.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Projection.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Reflection.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Reflection.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\BRDFIntegration.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\computeIrradianceMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\computeSpecularMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\fillGbuffers.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\fillGbuffers.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\panoToCube.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Holepatching.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Holepatching.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Projection.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Reflection.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Reflection.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\renderSceneBRDF.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
       </ExcludedFromBuild>
       <FileType>Document</FileType>
@@ -63,9 +63,9 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\renderSceneBRDF.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\skybox.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\PCVulkan\skybox.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\renderSceneBRDF.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\skybox.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>

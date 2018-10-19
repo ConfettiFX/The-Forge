@@ -53,8 +53,18 @@
     #define VECTORMATH_MODE_SSE    0
 #endif // Vectormath mode selection
 
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+#include "soa/soa.hpp"
+using namespace Vectormath::Soa;
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 #include "vec2d.hpp"  // - Extended 2D vector and point classes; not aligned and always in scalar floats mode.
 #include "common.hpp" // - Miscellaneous helper functions.
+
 using namespace Vectormath;
 
 #endif // VECTORMATH_HPP

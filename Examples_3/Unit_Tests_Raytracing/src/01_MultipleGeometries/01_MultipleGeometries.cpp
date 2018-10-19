@@ -56,17 +56,16 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[FSR_Count] =
+const char* pszBases[] =
 {
-	"",									 // FSR_BinShaders
-	"",									 // FSR_SrcShaders
-	"",									 // FSR_BinShaders_Common
-	"",									 // FSR_SrcShaders_Common
-	"",									 // FSR_Textures
-	"",									 // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",	// FSR_Builtin_Fonts
-	"",									 // FSR_OtherFiles
+	"",									// FSR_BinShaders
+	"",									// FSR_SrcShaders
+	"",									// FSR_BinShaders_Common
+	"",									// FSR_SrcShaders_Common
+	"",									// FSR_Textures
+	"",									// FSR_Meshes
+	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
+	"",									// FSR_GpuConfig
 };
 
 class UnitTest_MultipleGeometries : public IApp

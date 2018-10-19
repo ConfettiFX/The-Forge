@@ -15,25 +15,29 @@ public:
 	InputDeviceKeyboardImplMac(InputManager& manager, InputDevice& device, InputState& state, InputState& previousState);
 	~InputDeviceKeyboardImplMac();
 
-	InputDevice::DeviceVariant GetVariant() const
+	InputDevice::DeviceVariant GetVariant() const override
 	{
 		return InputDevice::DV_RAW;
 	}
 	void HandleKey(int keycode, bool isPressed, char * inputChar = NULL);
 	void HandleFlagsChanged(int keycode);
 
-	InputDevice::DeviceState GetState() const { return deviceState_; }
+	InputDevice::DeviceState GetState() const override { return deviceState_; }
 
-	void Update(InputDeltaState* delta)
+	void Update(InputDeltaState* delta) override
 	{
 		delta_ = delta;
 		*state_ = nextState_;
 	}
 
-	bool IsTextInputEnabled() const { return textInputEnabled_; }
-	void SetTextInputEnabled(bool enabled) { textInputEnabled_ = enabled; }
+	bool IsTextInputEnabled() const override { return textInputEnabled_; }
+	void SetTextInputEnabled(bool enabled) override { textInputEnabled_ = enabled; }
 
-	char GetNextCharacter(gainput::DeviceButtonId buttonId)
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
+	
+	char GetNextCharacter(gainput::DeviceButtonId buttonId) override
 	{
 		if (!textBuffer_.CanGet())
 		{

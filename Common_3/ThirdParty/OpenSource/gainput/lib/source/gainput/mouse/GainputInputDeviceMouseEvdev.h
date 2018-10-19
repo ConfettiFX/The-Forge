@@ -63,7 +63,7 @@ public:
 	{
 		return fd_ != -1 ? InputDevice::DS_OK : InputDevice::DS_UNAVAILABLE;
 	}
-
+	
 	void Update(InputDeltaState* delta)
 	{
 		for (Array<DeviceButtonId>::const_iterator it = buttonsToReset_.begin();

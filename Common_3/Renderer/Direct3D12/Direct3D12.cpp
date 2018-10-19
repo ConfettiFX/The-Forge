@@ -4712,12 +4712,13 @@ namespace d3d12 {
 
 		ASSERT(pDesc->mFillMode < FillMode::MAX_FILL_MODES);
 		ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
+		ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
 
 		RasterizerState* pRasterizerState = (RasterizerState*)conf_calloc(1, sizeof(*pRasterizerState));
 
 		pRasterizerState->mDxRasterizerDesc.FillMode = gDx12FillModeTranslator[pDesc->mFillMode];
 		pRasterizerState->mDxRasterizerDesc.CullMode = gDx12CullModeTranslator[pDesc->mCullMode];
-		pRasterizerState->mDxRasterizerDesc.FrontCounterClockwise = TRUE;
+		pRasterizerState->mDxRasterizerDesc.FrontCounterClockwise = pDesc->mFrontFace == FRONT_FACE_CCW;
 		pRasterizerState->mDxRasterizerDesc.DepthBias = pDesc->mDepthBias;
 		pRasterizerState->mDxRasterizerDesc.DepthBiasClamp = 0.0f;
 		pRasterizerState->mDxRasterizerDesc.SlopeScaledDepthBias = pDesc->mSlopeScaledDepthBias;

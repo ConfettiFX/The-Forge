@@ -93,7 +93,7 @@ public:
 	virtual const char* GetTypeName() const = 0;
 	/// Returns if this device should be updated after other devices.
 	virtual bool IsLateUpdate() const { return false; }
-	// Clears all buttons to be unset (false) if implemented.
+	//clears all buttons to be unset (false), if implemented
 	virtual void ClearButtons() { return; }
 	/// Returns the device state.
 	DeviceState GetState() const;

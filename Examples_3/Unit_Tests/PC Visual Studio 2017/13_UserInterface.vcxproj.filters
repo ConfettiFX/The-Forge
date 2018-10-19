@@ -1,20 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="..\src\01_Transformations\PCVulkan\basic.frag">
-      <Filter>Shaders</Filter>
+    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\PCVulkan\basic.vert">
-      <Filter>Shaders</Filter>
+    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\01_Transformations\PCDX12\basic.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\src\01_Transformations\PCDX12\basic.vert">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -22,6 +14,12 @@
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{8a6117a7-f1f9-42ac-9d96-a706e38dd7df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{72ea36bd-7e20-461c-b0ac-f8418cbcea96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{52e40b20-3b87-4a5c-99a9-bd1d84ec7eda}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

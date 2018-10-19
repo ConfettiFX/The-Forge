@@ -62,6 +62,17 @@ static const char* pszFileAccessFlags[] =
 
 extern const char* pszRoots[];
 
+// pszBases handles behavior divergence between host device and remote device.
+// Host device hosts assets in a relative path outside of the project root dir.
+// Remove device, on the other hand, can only access files within project root dir.
+// When we run on remote device, we ignore pszbase.
+extern const char* pszBases[];
+#if defined(__ANDROID__) || defined(_DURANGO) || defined(TARGET_IOS)
+#define __IGNORE_PSZBASE 1
+#else
+#define __IGNORE_PSZBASE 0
+#endif
+
 static inline unsigned SDBMHash(unsigned hash, unsigned char c) { return c + (hash << 6) + (hash << 16) - hash; }
 
 /************************************************************************/
@@ -196,7 +207,7 @@ tinystl::string Deserializer::ReadString()
 		if (!c)
 			break;
 		else
-			ret.push_back (c);
+			ret.push_back(c);
 	}
 
 	return ret;
@@ -432,7 +443,7 @@ void File::Close()
 void File::Flush()
 {
 	if (pHandle)
-		_flushFile (pHandle);
+		_flushFile(pHandle);
 }
 
 unsigned File::Read(void* dest, unsigned size)
@@ -507,7 +518,7 @@ unsigned File::Write(const void* data, unsigned size)
 		return 0;
 	}
 
-	if (IsReadOnly ())
+	if (IsReadOnly())
 	{
 		LOGERROR("File not opened for writing");
 		return 0;
@@ -571,7 +582,7 @@ tinystl::string File::ReadText()
 	tinystl::string text;
 
 	if (!mSize)
-		return tinystl::string ();
+		return tinystl::string();
 
 	text.resize(mSize);
 
@@ -631,7 +642,7 @@ unsigned MemoryBuffer::Read(void* dest, unsigned size)
 
 unsigned MemoryBuffer::Seek(unsigned position, SeekDir seekDir /* = SeekDir::SEEK_DIR_BEGIN*/)
 {
-  UNREF_PARAM(seekDir);
+	UNREF_PARAM(seekDir);
 	if (position > mSize)
 		position = mSize;
 
@@ -706,36 +717,40 @@ bool FileSystem::FileExists(const tinystl::string& _fileName, FSRoot _root)
 #ifdef _DURANGO
 	return (fopen(fileName, "rb") != NULL);
 #else
-	return ((access(fileName.c_str(), 0 )) != -1);
+	return ((access(fileName.c_str(), 0)) != -1);
 #endif
 }
 
 // TODO: FIX THIS FUNCTION
 tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot root)
 {
-	if (root == FSR_Absolute)
-		return pszFileName;
-
-#ifdef TARGET_IOS
-	//on iOS all assets are stored in the root of the app bundle.
-	//so getting any resource will be at the root.
-	return pszFileName;
-#else
-
 	ASSERT(root < FSR_Count);
 	tinystl::string res;
-	if (pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU
+	if (root != FSR_Absolute && pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU
 	{
 		// was the path modified? if so use that, otherwise use static array
 		if (mModifiedRootPaths[root].size() != 0)
 			res = mModifiedRootPaths[root] + pszFileName;
 		else
 			res = tinystl::string(pszRoots[root]) + pszFileName;
+#if !__IGNORE_PSZBASE
+		res = tinystl::string(pszBases[root]) + res;
+#endif
 	}
 	else
 	{
 		res = pszFileName;
 	}
+
+#ifdef TARGET_IOS
+	// iOS is deployed on the device so we need to get the
+	// bundle path via _getCurrentDir()
+	const tinystl::string currDir = _getCurrentDir();
+	if (res.find(currDir, 0) == tinystl::string::npos)
+		res = currDir + "/" + res;
+	res.replace('\\', '/'); // eliminate windows separators here.
+#endif
+
 	/*
 	ASSERT( root < FSR_Count );
 	// absolute or already relative to absolute paths we can assume are already fixed,
@@ -755,15 +770,14 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 
 	tinystl::string res = tinystl::string (rootPaths[root] ) + filename;
 
-	#ifdef  SN_TARGET_PS3
+	#ifdef	SN_TARGET_PS3
 	res.replace("\\","/");
-	//  Igor: this can be handled differently: just replace the last 3 chars.
+	//	Igor: this can be handled differently: just replace the last 3 chars.
 	if (root==FSR_Textures)
 	res.replace(".dds",".gtf");
 	#endif
 	*/
 	return res;
-#endif
 }
 
 void FileSystem::SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension)
@@ -924,7 +938,7 @@ bool FileSystem::CreateDir(const tinystl::string& pathName)
 
 int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOutFile)
 {
-  UNREF_PARAM(arguments);
+	UNREF_PARAM(arguments);
 	tinystl::string fixedFileName = GetNativePath(fileName);
 
 #ifdef _DURANGO
@@ -983,17 +997,17 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 
 	return exitCode;
 #elif defined(__linux__)
-		tinystl::vector<const char*> argPtrs;
-		tinystl::string cmd(fixedFileName.c_str());
-		char space = ' ';
-		cmd.append(&space, &space+1);
-		for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
-		{
-			cmd.append(arguments[i].begin(), arguments[i].end());
-		}
+	tinystl::vector<const char*> argPtrs;
+	tinystl::string cmd(fixedFileName.c_str());
+	char space = ' ';
+	cmd.append(&space, &space + 1);
+	for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
+	{
+		cmd.append(arguments[i].begin(), arguments[i].end());
+	}
 
-		int res = system(cmd.c_str());
-		return res;
+	int res = system(cmd.c_str());
+	return res;
 #else
 	pid_t pid = fork();
 	if (!pid)
@@ -1010,7 +1024,7 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 	else if (pid > 0)
 	{
 		int exitCode = EINTR;
-		while(exitCode == EINTR) wait(&exitCode);
+		while (exitCode == EINTR) wait(&exitCode);
 		return exitCode;
 	}
 	else
@@ -1026,36 +1040,3 @@ bool FileSystem::Delete(const tinystl::string& fileName)
 	return remove(GetNativePath(fileName).c_str()) == 0;
 #endif
 }
-
-void FileSystem::GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files)
-{
-	tinystl::string path = GetNativePath(AddTrailingSlash(dir));
-#ifdef _WIN32
-	WIN32_FIND_DATAA fd;
-	HANDLE hFind = ::FindFirstFileA(path + "*" + ext, &fd);
-	uint32_t fileIndex = (uint32_t)files.size();
-	if (hFind != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			files.resize(fileIndex + 1);
-			//copy the strings to avoid the memory being cleaned up by windows.
-			files[fileIndex] = "";
-			files[fileIndex++] = path + fd.cFileName;
-		} while (::FindNextFileA(hFind, &fd));
-		::FindClose(hFind);
-	}
-#elif defined(__APPLE__) || defined(__linux__)
-	DIR* pDir = opendir(dir.c_str());
-	dirent* entry = NULL;
-	while((entry = readdir(pDir)) != NULL)
-	{
-		if(FileSystem::GetExtension(entry->d_name) == ext)
-		{
-			files.push_back(path + entry->d_name);
-		}
-	}
-#endif
-}
-/************************************************************************/
-/************************************************************************/

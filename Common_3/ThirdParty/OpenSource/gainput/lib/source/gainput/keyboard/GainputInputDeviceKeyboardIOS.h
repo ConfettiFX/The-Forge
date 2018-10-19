@@ -113,6 +113,11 @@ public:
 	{
 		
 	}
+	
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
+	
 	InputDevice::DeviceState GetState() const override{ return deviceState_; }
 	void ClearButtons() override
 	{

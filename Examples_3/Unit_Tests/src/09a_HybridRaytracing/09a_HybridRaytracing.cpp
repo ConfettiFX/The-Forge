@@ -64,50 +64,18 @@ LogManager gLogManager;
 Timer gAccumTimer;
 HiresTimer gTimer;
 
-#if defined(DIRECT3D12)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(__linux__)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#elif defined(_DURANGO)
-#define RESOURCE_DIR "PCDX12"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",								  // FSR_BinShaders
-	"Shaders/",										 // FSR_SrcShaders
-	"Shaders/Binary/",								  // FSR_BinShaders_Common
-	"Shaders/",										 // FSR_SrcShaders_Common
-	"Textures/",										// FSR_Textures
-	"Meshes/",										  // FSR_Meshes
-	"Fonts/",										   // FSR_Builtin_Fonts
-	"",												 // FSR_OtherFiles
+	"../../../src/09a_HybridRaytracing/",									// FSR_BinShaders
+	"../../../src/09a_HybridRaytracing/",									// FSR_SrcShaders
+	"",																		// FSR_BinShaders_Common
+	"",																		// FSR_SrcShaders_Common
+	"../../../../../Art/Sponza/",											// FSR_Textures
+	"../../../../../Art/Sponza/",											// FSR_Meshes
+	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
+	"../../../src/09a_HybridRaytracing/",									// FSR_GpuConfig
+	"",																		// FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../../src/09a_HybridRaytracing/" RESOURCE_DIR "/Binary/",   // FSR_BinShaders
-	"../../../src/09a_HybridRaytracing/" RESOURCE_DIR "/",	  // FSR_SrcShaders
-	"",												 // FSR_BinShaders_Common
-	"",												 // FSR_SrcShaders_Common
-	"../../../../../Art/Sponza/Textures/",		  // FSR_Textures
-	"../../../../../Art/Sponza/Meshes/",				// FSR_Meshes
-	"../../../UnitTestResources/Fonts/",				// FSR_Builtin_Fonts
-	"../../../src/09a_HybridRaytracing/GPUCfg/",			// FSR_GpuConfig
-	"",												 // FSR_OtherFiles
-};
-#endif
 
 struct AABBox
 {
@@ -293,6 +261,10 @@ Buffer*			 BVHBoundingBoxesBuffer;
 
 //The render passes used in the demo
 RenderPassMap	   RenderPasses;
+GPrepassUniformBuffer gPrepasUniformData;
+ShadowpassUniformBuffer gShadowPassUniformData;
+LightpassUniformBuffer gLightPassUniformData;
+DefaultpassUniformBuffer gDefaultPassUniformData;
 
 uint32_t			gFrameIndex = 0;
 
@@ -1945,63 +1917,49 @@ public:
 
 		//update GPrepass constant buffer
 		{
-			GPrepassUniformBuffer buffer;
-			buffer.mProjectView = projectView;
-			BufferUpdateDesc desc = { RenderPasses[RenderPass::GBuffer]->pPerPassCB[gFrameIndex], &buffer };
-			updateResource(&desc);
+			gPrepasUniformData.mProjectView = projectView;
 		}
 
 		//update Shadow pass constant buffer
 		{
-			ShadowpassUniformBuffer buffer;
-			buffer.mProjectView = projectView;
-			buffer.mInvProjectView = invProjectView;
-			buffer.mRTSize = vec4(
+			gShadowPassUniformData.mProjectView = projectView;
+			gShadowPassUniformData.mInvProjectView = invProjectView;
+			gShadowPassUniformData.mRTSize = vec4(
 				(float)RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth,
 				(float)RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight,
 				1.0f / RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth,
 				1.0f / RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight
 			);
 
-			buffer.mLightDir = lightDir;
+			gShadowPassUniformData.mLightDir = lightDir;
 
 			const float horizontalFOV = PI / 2.0f;
-			float pixelSize = tanf(0.5f * horizontalFOV) / float(buffer.mRTSize.getX());
+			float pixelSize = tanf(0.5f * horizontalFOV) / float(gShadowPassUniformData.mRTSize.getX());
 
-			buffer.mCameraPosition = vec4(pCameraController->getViewPosition(), pixelSize);
-
-			BufferUpdateDesc desc = { RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[gFrameIndex], &buffer };
-			updateResource(&desc);
+			gShadowPassUniformData.mCameraPosition = vec4(pCameraController->getViewPosition(), pixelSize);
 		}
 
 		//update Lighting pass constant buffer
 		{
-			LightpassUniformBuffer buffer;
-			buffer.mProjectView = projectView;
-			buffer.mInvProjectView = invProjectView;
-			buffer.mRTSize = vec4(
+			gLightPassUniformData.mProjectView = projectView;
+			gLightPassUniformData.mInvProjectView = invProjectView;
+			gLightPassUniformData.mRTSize = vec4(
 				(float)RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth,
 				(float)RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight,
 				1.0f / RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth,
 				1.0f / RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight
 			);
-			buffer.mLightDir = lightDir;
-
-			BufferUpdateDesc desc = { RenderPasses[RenderPass::Lighting]->pPerPassCB[gFrameIndex], &buffer };
-			updateResource(&desc);
+			gLightPassUniformData.mLightDir = lightDir;
 		}
 
 		//update Composite pass constant buffer
 		{
-			DefaultpassUniformBuffer buffer;
-			buffer.mRTSize = vec4(
+			gDefaultPassUniformData.mRTSize = vec4(
 				(float)RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth,
 				(float)RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight,
 				1.0f / RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth,
 				1.0f / RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight
 			);
-			BufferUpdateDesc desc = { RenderPasses[RenderPass::Composite]->pPerPassCB[gFrameIndex], &buffer };
-			updateResource(&desc);
 		}
 
 		gFrameNumber++;
@@ -2011,12 +1969,25 @@ public:
 	void Draw()
 	{
 		tinystl::vector<Cmd*> allCmds;
-		//use an index for swapchains only.
-		uint32_t swapchainIndex = 0;
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		/************************************************************************/
+		// Update uniform buffers
+		/************************************************************************/
+		BufferUpdateDesc desc = { RenderPasses[RenderPass::GBuffer]->pPerPassCB[gFrameIndex], &gPrepasUniformData };
+		updateResource(&desc);
 
+		desc = { RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[gFrameIndex], &gShadowPassUniformData };
+		updateResource(&desc);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
+		desc = { RenderPasses[RenderPass::Lighting]->pPerPassCB[gFrameIndex], &gLightPassUniformData };
+		updateResource(&desc);
+
+		desc = { RenderPasses[RenderPass::Composite]->pPerPassCB[gFrameIndex], &gDefaultPassUniformData };
+		updateResource(&desc);
+		/************************************************************************/
+		// Rendering
+		/************************************************************************/
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 		// GPrepass *********************************************************************************
@@ -2309,13 +2280,8 @@ public:
 		}
 
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
-
-		//update frame index to be use next frame index in next Update and draw calls.
-		//otherwise uniforms update the wrong buffers.
-		gFrameIndex = (gFrameIndex + 1) % gImageCount;
-
 	}
 
 	tinystl::string GetName()

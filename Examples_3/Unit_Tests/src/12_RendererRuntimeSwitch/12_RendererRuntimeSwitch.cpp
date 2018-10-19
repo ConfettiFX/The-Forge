@@ -120,6 +120,7 @@ uint32_t			gFrameIndex = 0;
 
 int				 gNumberOfSpherePoints;
 UniformBlock		gUniformData;
+UniformBlock		gUniformDataSky;
 PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 
 ICameraController*  pCameraController = NULL;
@@ -141,35 +142,18 @@ const char*		 pSkyBoxImageFileNames[] =
 	"Skybox_back6.png"
 };
 
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",		 // FSR_SrcShaders
-	"Shaders/Binary/",  // FSR_BinShaders_Common
-	"Shaders/",		 // FSR_SrcShaders_Common
-	"Textures/",		// FSR_Textures
-	"Meshes/",		  // FSR_Meshes
-	"Fonts/",		   // FSR_Builtin_Fonts
-	"",				 // FSR_GpuConfig
-	"",				 // FSR_OtherFiles
+	"",                                         // FSR_BinShaders
+	"",                                         // FSR_SrcShaders
+	"",                                         // FSR_BinShaders_Common
+	"",                                         // FSR_SrcShaders_Common
+	"../../../UnitTestResources/",              // FSR_Textures
+	"../../../UnitTestResources/",              // FSR_Meshes
+	"../../../UnitTestResources/",              // FSR_Builtin_Fonts
+	"../../../src/12_RendererRuntimeSwitch/",   // FSR_GpuConfig
+	"",                                         // FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"",									 // FSR_BinShaders
-	"",									 // FSR_SrcShaders
-	"",									 // FSR_BinShaders_Common
-	"",									 // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/", // FSR_Textures
-	"../../../UnitTestResources/Meshes/",   // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",	// FSR_Builtin_Fonts
-	"../../../src/12_RendererRuntimeSwitch/GPUCfg/",	// FSR_GpuConfig
-	"",									 // FSR_OtherFiles
-};
-#endif
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -192,11 +176,11 @@ public:
 
 		if (settings.mApi == RENDERER_API_VULKAN)
 		{
-			FileSystem::SetRootPath(FSR_SrcShaders, "../../../src/12_RendererRuntimeSwitch/PCVulkan/");
+			FileSystem::SetRootPath(FSR_SrcShaders, "../../../src/12_RendererRuntimeSwitch/Shaders/PCVulkan/");
 		}
 		else if (settings.mApi == RENDERER_API_D3D12)
 		{
-			FileSystem::SetRootPath(FSR_SrcShaders, "../../../src/12_RendererRuntimeSwitch/PCDX12/");
+			FileSystem::SetRootPath(FSR_SrcShaders, "../../../src/12_RendererRuntimeSwitch/Shaders/PCDX12/");
 		}
 
 		QueueDesc queueDesc = {};
@@ -675,14 +659,9 @@ public:
 			gUniformData.mColor[i] = gPlanetInfoData[i].mColor;
 		}
 
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
-
+		gUniformDataSky = gUniformData;
 		viewMat.setTranslation(vec3(0));
-		gUniformData.mProjectView = projMat * viewMat;
-
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&skyboxViewProjCbv);
+		gUniformDataSky.mProjectView = projMat * viewMat;
 
 		gAppUI.Update(deltaTime);
 
@@ -711,6 +690,13 @@ public:
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+
+		// Update uniform buffers
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
+		updateResource(&viewProjCbv);
+
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
+		updateResource(&skyboxViewProjCbv);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 

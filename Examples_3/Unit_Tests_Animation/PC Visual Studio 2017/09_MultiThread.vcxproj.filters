@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{d387e65c-c69e-4e65-a5cb-704f4a909972}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{fc9ef30f-29e1-453c-bfb8-0b3232350ec4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{4b1b1215-0041-4775-b404-35527f549a7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{405cf979-fcc2-488c-a3fd-ecf622d143d7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\09_MultiThread\09_MultiThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\09_MultiThread\Shaders\PCDX12\basic.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCDX12\basic.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCDX12\plane.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCDX12\plane.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\plane.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\plane.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+  </ItemGroup>
+</Project>

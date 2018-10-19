@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Durango">
+      <Configuration>Debug</Configuration>
+      <Platform>Durango</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Profile|Durango">
+      <Configuration>Profile</Configuration>
+      <Platform>Durango</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Durango">
+      <Configuration>Release</Configuration>
+      <Platform>Durango</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{86B571D7-6DAD-326E-992A-E1FFC64D2B1E}</ProjectGuid>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>Win32</Platform>
+    <ProjectName>ozz_base</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Durango'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Durango'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugVK|Win32'">
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugVK|x64'">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVK|Durango'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">
+    <IntDir>$(ProjectDir)$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
+    <ExecutablePath>$(Console_SdkRoot)bin;$(VCInstallDir)bin\x86_amd64;$(VCInstallDir)bin;$(WindowsSDK_ExecutablePath_x86);$(VSInstallDir)Common7\Tools\bin;$(VSInstallDir)Common7\tools;$(VSInstallDir)Common7\ide;$(ProgramFiles)\HTML Help Workshop;$(MSBuildToolsPath32);$(FxCopDir);$(PATH);</ExecutablePath>
+    <IncludePath>$(Console_SdkIncludeRoot)</IncludePath>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <SourcePath>$(VC_ATLMFC_SourcePath)</SourcePath>
+    <ExcludePath>$(VC_IncludePath);$(VC_ATLMFC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuildToolsPath);$(MSBuildToolsPath32);$(VC_LibraryPath_ATL_x64);</ExcludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">
+    <IntDir>$(ProjectDir)$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
+    <ExecutablePath>$(Console_SdkRoot)bin;$(VCInstallDir)bin\x86_amd64;$(VCInstallDir)bin;$(WindowsSDK_ExecutablePath_x86);$(VSInstallDir)Common7\Tools\bin;$(VSInstallDir)Common7\tools;$(VSInstallDir)Common7\ide;$(ProgramFiles)\HTML Help Workshop;$(MSBuildToolsPath32);$(FxCopDir);$(PATH);</ExecutablePath>
+    <IncludePath>$(Console_SdkIncludeRoot)</IncludePath>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <SourcePath>$(VC_ATLMFC_SourcePath)</SourcePath>
+    <ExcludePath>$(VC_IncludePath);$(VC_ATLMFC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuildToolsPath);$(MSBuildToolsPath32);$(VC_LibraryPath_ATL_x64);</ExcludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Durango'">
+    <IntDir>$(ProjectDir)$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
+    <ExecutablePath>$(Console_SdkRoot)bin;$(VCInstallDir)bin\x86_amd64;$(VCInstallDir)bin;$(WindowsSDK_ExecutablePath_x86);$(VSInstallDir)Common7\Tools\bin;$(VSInstallDir)Common7\tools;$(VSInstallDir)Common7\ide;$(ProgramFiles)\HTML Help Workshop;$(MSBuildToolsPath32);$(FxCopDir);$(PATH);</ExecutablePath>
+    <IncludePath>$(Console_SdkIncludeRoot)</IncludePath>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <SourcePath>$(VC_ATLMFC_SourcePath)</SourcePath>
+    <ExcludePath>$(VC_IncludePath);$(VC_ATLMFC_IncludePath);$(WindowsSDK_IncludePath);$(MSBuildToolsPath);$(MSBuildToolsPath32);$(VC_LibraryPath_ATL_x64);</ExcludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DURANGO;GAINPUT_LIB_DYNAMIC=0;__WRL_NO_DEFAULT_LIB__;_DEBUGl;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <AdditionalUsingDirectories>$(Console_SdkPackagesRoot);$(Console_SdkWindowsMetadataPath);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <AdditionalUsingDirectories>"$(DurangoXdkInstallPath)xdk\VS2017\vc\platform\amd64";%(AdditionalIncludeDirectories)</AdditionalUsingDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>None</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Durango'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <AdditionalUsingDirectories>"$(DurangoXdkInstallPath)xdk\VS2017\vc\platform\amd64";%(AdditionalIncludeDirectories)</AdditionalUsingDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>None</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\src\base\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\ozz\base\endianness.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\gtest_helper.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\memory\allocator.h" />
+    <ClCompile Include="..\..\..\src\base\memory\allocator.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\platform.h" />
+    <ClCompile Include="..\..\..\src\base\platform.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\log.h" />
+    <ClCompile Include="..\..\..\src\base\log.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\intrusive_list.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\deque.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\list.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\map.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\queue.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\set.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\stack.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\string.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\string_archive.h" />
+    <ClCompile Include="..\..\..\src\base\containers\string_archive.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\vector.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\vector_archive.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\containers\std_allocator.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\io\archive.h" />
+    <ClCompile Include="..\..\..\src\base\io\archive.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\io\archive_traits.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\io\stream.h" />
+    <ClCompile Include="..\..\..\src\base\io\stream.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\box.h" />
+    <ClCompile Include="..\..\..\src\base\maths\box.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\gtest_math_helper.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\internal\simd_math_config.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\internal\simd_math_ref-inl.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\internal\simd_math_sse-inl.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\math_ex.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\math_constant.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\quaternion.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\rect.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\simd_math.h" />
+    <ClCompile Include="..\..\..\src\base\maths\simd_math.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\soa_float.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\soa_quaternion.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\soa_transform.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\soa_float4x4.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\transform.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\vec_float.h" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\math_archive.h" />
+    <ClCompile Include="..\..\..\src\base\maths\math_archive.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\soa_math_archive.h" />
+    <ClCompile Include="..\..\..\src\base\maths\soa_math_archive.cc" />
+    <ClInclude Include="..\..\..\include\ozz\base\maths\simd_math_archive.h" />
+    <ClCompile Include="..\..\..\src\base\maths\simd_math_archive.cc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

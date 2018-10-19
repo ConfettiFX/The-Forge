@@ -73,6 +73,54 @@ InputManager::~InputManager()
 	GAINPUT_DEV_SHUTDOWN(this);
 }
 
+void InputManager::ClearAllStates(gainput::DeviceId deviceId)
+{
+	if (deviceId == gainput::InvalidDeviceId)
+		return;
+
+	DeviceButtonSpec buttonsDown[256];
+
+	size_t activeButtons = GetAnyButtonDown(buttonsDown, 256);
+	InputDeltaState* ds = listeners_.empty() ? 0 : deltaState_;
+
+
+	for (size_t i = 0; i < activeButtons; i++)
+	{
+		if (buttonsDown[i].deviceId != deviceId)
+			continue;
+
+		InputDevice * inDevice = GetDevice(buttonsDown[i].deviceId);
+		if (!inDevice)
+			continue;
+		//get next input state
+		InputState * nextDeviceState = inDevice->GetNextInputState();
+		InputState * currentDeviceState = inDevice->GetInputState();
+		if (!nextDeviceState || !nextDeviceState)
+		{
+			continue;
+		}
+		
+		if (inDevice->GetButtonType(buttonsDown[i].buttonId) == BT_BOOL)
+		{
+			if(nextDeviceState)
+				HandleButton(*inDevice, *nextDeviceState, ds, buttonsDown[i].buttonId, false);
+
+			if (currentDeviceState)
+				HandleButton(*inDevice, *currentDeviceState, NULL, buttonsDown[i].buttonId, false);
+		}
+		else
+		{
+			if (nextDeviceState)
+				HandleAxis(*inDevice, *nextDeviceState, ds, buttonsDown[i].buttonId, 0.0f);
+
+			if (currentDeviceState)
+				HandleAxis(*inDevice, *currentDeviceState, NULL, buttonsDown[i].buttonId, 0.0f);
+		}
+	}
+
+}
+
+
 void
 InputManager::Update()
 {
@@ -126,6 +174,8 @@ InputManager::Update()
 		ds->Clear();
 	}
 	
+
+#ifdef GAINPUT_PLATFORM_IOS
 	//clear buttons
 	//only Does something for KeyboardIOS
 	for (DeviceMap::iterator it = devices_.begin();
@@ -137,6 +187,7 @@ InputManager::Update()
 			it->second->ClearButtons();
 		}
 	}
+#endif
 }
 
 void

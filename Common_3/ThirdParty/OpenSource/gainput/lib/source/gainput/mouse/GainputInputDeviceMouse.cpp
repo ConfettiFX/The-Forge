@@ -159,5 +159,10 @@ InputDeviceMouse::GetButtonByName(const char* name) const
 	return InvalidDeviceButtonId;
 }
 
+InputState*
+InputDeviceMouse::GetNextInputState()
+{
+	return impl_->GetNextInputState();
+}
 }
 

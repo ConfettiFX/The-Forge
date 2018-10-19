@@ -29,6 +29,29 @@
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IMemoryManager.h"
 
+#if defined(DIRECT3D12)
+	#define RESOURCE_DIR "Shaders/PCDX12"
+#elif defined(DIRECT3D11)
+	#define RESOURCE_DIR "Shaders/PCDX11"
+#elif defined(VULKAN)
+	#define RESOURCE_DIR "Shaders/PCVulkan"
+#endif
+
+const char* pszRoots[] =
+{
+	RESOURCE_DIR "/Binary/",			// FSR_BinShaders
+	RESOURCE_DIR "/",					// FSR_SrcShaders
+	RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
+	RESOURCE_DIR "/",					// FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",							// FSR_Meshes
+	"Fonts/",							// FSR_Builtin_Fonts
+	"GPUCfg/",							// FSR_GpuConfig
+	"Animation/",							// FSR_Animation
+	"",									// FSR_OtherFiles
+	RESOURCE_DIR "/",					// FSR_Lib0_SrcShaders
+};
+
 FileHandle _openFile(const char* filename, const char* flags)
 {
 	FILE* fp;
@@ -156,6 +179,25 @@ tinystl::string _getUserDocumentsDir()
 void _setCurrentDir(const char* path)
 {
 	SetCurrentDirectoryA(path);
+}
+
+void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+{
+	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	WIN32_FIND_DATAA fd;
+	HANDLE hFind = ::FindFirstFileA(path + "*" + ext, &fd);
+	uint32_t fileIndex = (uint32_t)filesOut.size();
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			filesOut.resize(fileIndex + 1);
+			//copy the strings to avoid the memory being cleaned up by windows.
+			filesOut[fileIndex] = "";
+			filesOut[fileIndex++] = path + fd.cFileName;
+		} while (::FindNextFileA(hFind, &fd));
+		::FindClose(hFind);
+	}
 }
 
 #endif

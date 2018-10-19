@@ -20,76 +20,76 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\PCDX12\blurESM.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\blurESM.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\finalPass.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\finalPass.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\finalPass.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\finalPass.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\gbuffer.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\gbuffer.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\gbuffer.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\gbuffer.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\sdfSimple.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\sdfSimple.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\sdfSimple.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\sdfSimple.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\shadowMapPass.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\shadowMapPass.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\shadowMapPass.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\shadowMapPass.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\skybox.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\skybox.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\skybox.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCDX12\blurESM.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCDX12\blurESM.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\finalPass.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\finalPass.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\gbuffer.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\gbuffer.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\gbuffer.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\gbuffer.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\sdfSimple.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\sdfSimple.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\sdfSimple.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\sdfSimple.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\shadowMapPass.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\shadowMapPass.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\shadowMapPass.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\shadowMapPass.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\skybox.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\skybox.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\blurESM.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\blurESM.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\blurESM.vert">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\blurESM.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\PCVulkan\finalPass.frag">
+    <None Include="..\src\15_Transparency\Shaders\PCVulkan\finalPass.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

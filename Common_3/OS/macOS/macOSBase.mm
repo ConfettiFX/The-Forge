@@ -417,6 +417,16 @@ uint32_t testingMaxFrameCount = 120;
 			pSettings->mWidth = getRectWidth(rect);
 			pSettings->mHeight = getRectHeight(rect);
 		}
+		else
+		{
+			//if width and height were set manually in App constructor
+			//then override and set window size to user width/height.
+			//That means we now render at size * gRetinaScale.
+			//TODO: make sure pSettings->mWidth determines window size and not drawable size as on retina displays we need to make sure that's what user wants.
+			NSSize windowSize = CGSizeMake(pSettings->mWidth, pSettings->mHeight);
+			[view.window setContentSize:windowSize];
+			[view setFrameSize:windowSize];
+		}
 
 		gCurrentWindow = {};
 		gCurrentWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };

@@ -7,20 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		281FA9E320333E1300CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9E220333E1300CD5D9C /* circlepad.png */; };
-		288F62FE2035A13100B758DE /* display.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F62FC20359FBE00B758DE /* display.frag.metal */; };
 		28A5ABA2201F459F000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA0201F459F000E571F /* Main.storyboard */; };
 		28A5ABA4201F459F000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA3201F459F000E571F /* Assets.xcassets */; };
 		28A5ABA7201F459F000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA5201F459F000E571F /* LaunchScreen.storyboard */; };
-		28A5ABB7201F465B000E571F /* TitilliumText in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABB6201F465B000E571F /* TitilliumText */; };
 		28A5ABB8201F4662000E571F /* 02_Compute.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D25F24E31F347D7500751335 /* 02_Compute.cpp */; };
-		28A5ABE4201F472A000E571F /* compute.comp.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABB2201F4637000E571F /* compute.comp.metal */; };
-		28A5ABE5201F472F000E571F /* display.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABB3201F4637000E571F /* display.vert.metal */; };
 		5C172F2A214145D50074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F29214145CB0074EE71 /* libThe-Forge.a */; };
 		5C172F38214147930074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F36214147930074EE71 /* AppDelegate.m */; };
 		5C17300C21414D530074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17300B21414D4C0074EE71 /* libThe-Forge_iOS.a */; };
 		5C17300F21414D620074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17300E21414D610074EE71 /* AppDelegate.m */; };
 		5CABF3822141549D00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3152141512000EFD76A /* GameController.framework */; };
+		97CF9250216FDBED0036A63B /* circlepad.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 281FA9E220333E1300CD5D9C /* circlepad.png */; };
+		97CF9251216FDBFA0036A63B /* TitilliumText in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5ABB6201F465B000E571F /* TitilliumText */; };
+		97CF9252216FDC190036A63B /* compute.comp.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5ABB2201F4637000E571F /* compute.comp.metal */; };
+		97CF9253216FDC190036A63B /* display.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5ABB3201F4637000E571F /* display.vert.metal */; };
+		97CF9254216FDC190036A63B /* display.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 288F62FC20359FBE00B758DE /* display.frag.metal */; };
 		B2087DD721421A1E006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD521421A1E006F372D /* MetalKit.framework */; };
 		B2087DD821421A1E006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD621421A1E006F372D /* Metal.framework */; };
 		B21F76B821420E5D00DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76B521420E5D00DF2297 /* UIKit.framework */; };
@@ -62,16 +62,51 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		97CF924D216FDBBF0036A63B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Textures;
+			dstSubfolderSpec = 7;
+			files = (
+				97CF9250216FDBED0036A63B /* circlepad.png in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		97CF924E216FDBCE0036A63B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Fonts;
+			dstSubfolderSpec = 7;
+			files = (
+				97CF9251216FDBFA0036A63B /* TitilliumText in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		97CF924F216FDBD10036A63B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Shaders/OSXMetal;
+			dstSubfolderSpec = 7;
+			files = (
+				97CF9252216FDC190036A63B /* compute.comp.metal in CopyFiles */,
+				97CF9253216FDC190036A63B /* display.vert.metal in CopyFiles */,
+				97CF9254216FDC190036A63B /* display.frag.metal in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		281FA9E220333E1300CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		288F62FC20359FBE00B758DE /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../../../src/02_Compute/OSXMetal/display.frag.metal; sourceTree = "<group>"; };
+		288F62FC20359FBE00B758DE /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../../../src/02_Compute/Shaders/OSXMetal/display.frag.metal; sourceTree = "<group>"; };
 		28A5AB92201F459F000E571F /* 02_Compute_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 02_Compute_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5ABA1201F459F000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5ABA3201F459F000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5ABA6201F459F000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5ABA8201F459F000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		28A5ABB2201F4637000E571F /* compute.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = compute.comp.metal; path = ../../../src/02_Compute/OSXMetal/compute.comp.metal; sourceTree = "<group>"; };
-		28A5ABB3201F4637000E571F /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../../../src/02_Compute/OSXMetal/display.vert.metal; sourceTree = "<group>"; };
+		28A5ABB2201F4637000E571F /* compute.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = compute.comp.metal; path = ../../../src/02_Compute/Shaders/OSXMetal/compute.comp.metal; sourceTree = "<group>"; };
+		28A5ABB3201F4637000E571F /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../../../src/02_Compute/Shaders/OSXMetal/display.vert.metal; sourceTree = "<group>"; };
 		28A5ABB6201F465B000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		5C172F24214145CB0074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5C172F36214147930074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
@@ -84,7 +119,7 @@
 		B21F76B521420E5D00DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76B621420E5D00DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76B721420E5D00DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		D25F24E31F347D7500751335 /* 02_Compute.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 02_Compute.cpp; path = ../../../src/02_Compute/02_Compute.cpp; sourceTree = "<group>"; };
+		D25F24E31F347D7500751335 /* 02_Compute.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 02_Compute.cpp; path = ../../src/02_Compute/02_Compute.cpp; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 02_Compute.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 02_Compute.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,6 +158,7 @@
 				281FA9E220333E1300CD5D9C /* circlepad.png */,
 			);
 			name = Textures;
+			path = 02_Compute_iOS;
 			sourceTree = "<group>";
 		};
 		28A5AB93201F459F000E571F /* 02_Compute_iOS */ = {
@@ -130,9 +166,6 @@
 			children = (
 				5C17300D21414D610074EE71 /* AppDelegate.h */,
 				5C17300E21414D610074EE71 /* AppDelegate.m */,
-				28A5ABAE201F4600000E571F /* Fonts */,
-				281FA9E120333E0000CD5D9C /* Textures */,
-				28A5ABB1201F461C000E571F /* Shaders */,
 				28A5ABA0201F459F000E571F /* Main.storyboard */,
 				28A5ABA3201F459F000E571F /* Assets.xcassets */,
 				28A5ABA5201F459F000E571F /* LaunchScreen.storyboard */,
@@ -147,6 +180,7 @@
 				28A5ABB6201F465B000E571F /* TitilliumText */,
 			);
 			name = Fonts;
+			path = 02_Compute_iOS;
 			sourceTree = "<group>";
 		};
 		28A5ABB1201F461C000E571F /* Shaders */ = {
@@ -157,6 +191,7 @@
 				288F62FC20359FBE00B758DE /* display.frag.metal */,
 			);
 			name = Shaders;
+			path = 02_Compute_iOS;
 			sourceTree = "<group>";
 		};
 		28A5ABF3201F489E000E571F /* Frameworks */ = {
@@ -185,6 +220,10 @@
 			isa = PBXGroup;
 			children = (
 				5C172F24214145CB0074EE71 /* The-Forge.xcodeproj */,
+				28A5ABAE201F4600000E571F /* Fonts */,
+				281FA9E120333E0000CD5D9C /* Textures */,
+				28A5ABB1201F461C000E571F /* Shaders */,
+				D25F24E31F347D7500751335 /* 02_Compute.cpp */,
 				EA463C941EF81E8F005AC8C7 /* 02_Compute */,
 				28A5AB93201F459F000E571F /* 02_Compute_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
@@ -206,7 +245,6 @@
 			children = (
 				5C172F37214147930074EE71 /* AppDelegate.h */,
 				5C172F36214147930074EE71 /* AppDelegate.m */,
-				D25F24E31F347D7500751335 /* 02_Compute.cpp */,
 				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
 				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
 				EADF9D661EFD160E00B2008B /* Info.plist */,
@@ -224,6 +262,9 @@
 				28A5AB8E201F459F000E571F /* Sources */,
 				28A5AB8F201F459F000E571F /* Frameworks */,
 				28A5AB90201F459F000E571F /* Resources */,
+				97CF924D216FDBBF0036A63B /* CopyFiles */,
+				97CF924E216FDBCE0036A63B /* CopyFiles */,
+				97CF924F216FDBD10036A63B /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -320,14 +361,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				288F62FE2035A13100B758DE /* display.frag.metal in Resources */,
-				28A5ABE5201F472F000E571F /* display.vert.metal in Resources */,
-				28A5ABE4201F472A000E571F /* compute.comp.metal in Resources */,
 				28A5ABA7201F459F000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5ABA4201F459F000E571F /* Assets.xcassets in Resources */,
 				28A5ABA2201F459F000E571F /* Main.storyboard in Resources */,
-				281FA9E320333E1300CD5D9C /* circlepad.png in Resources */,
-				28A5ABB7201F465B000E571F /* TitilliumText in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1389,6 +1389,7 @@ typedef struct RasterizerStateDesc
 	FillMode	mFillMode;
 	bool		mMultiSample;
 	bool		mScissor;
+	FrontFace	mFrontFace;
 } RasterizerStateDesc;
 
 typedef struct RasterizerState
@@ -1414,6 +1415,7 @@ typedef struct RasterizerState
 	float				   depthBias;
 	bool					scissorEnable;
 	bool					multisampleEnable;
+    MTLWinding           frontFace;
 #endif
 #if defined(DIRECT3D11)
 	ID3D11RasterizerState*  pDxRasterizerState;

@@ -36,6 +36,23 @@
 #include <linux/limits.h> //PATH_MAX declaration
 #define MAX_PATH PATH_MAX
 
+#define RESOURCE_DIR "Shaders/LINUXVulkan"
+
+const char* pszRoots[] =
+{
+	RESOURCE_DIR "/Binary/",			// FSR_BinShaders
+	RESOURCE_DIR "/",					// FSR_SrcShaders
+	RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
+	RESOURCE_DIR "/",					// FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",							// FSR_Meshes
+	"Fonts/",							// FSR_Builtin_Fonts
+	"GPUCfg/",							// FSR_GpuConfig
+	"Animation/",							// FSR_Animation
+	"",									// FSR_OtherFiles
+};
+
+
 FileHandle _openFile(const char* filename, const char* flags)
 {
 	FILE* fp;

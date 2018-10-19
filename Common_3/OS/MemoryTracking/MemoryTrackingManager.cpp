@@ -30,10 +30,12 @@
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/nommgr.h"
 #define malloc(sz)  m_allocator  (__FILE__,__LINE__,__FUNCTION__,m_alloc_malloc,sz)
 #define calloc(count,size) m_allocator  (__FILE__,__LINE__,__FUNCTION__,m_alloc_calloc,((size)*(count)))
+#define	realloc(ptr, sz)	m_reallocator  (__FILE__,__LINE__,__FUNCTION__,m_alloc_realloc,sz, ptr)
 #define free(ptr)   m_deallocator(__FILE__,__LINE__,__FUNCTION__,m_alloc_free,ptr)
 
 #undef conf_malloc
 #undef conf_calloc
+#undef conf_realloc
 #undef conf_free
 
 void* conf_malloc(size_t size)
@@ -44,6 +46,11 @@ void* conf_malloc(size_t size)
 void* conf_calloc(size_t count, size_t size)
 {
 	return calloc(count, size);
+}
+
+void* conf_realloc(void* ptr, size_t size)
+{
+	return realloc(ptr, size);
 }
 
 void conf_free(void* ptr)
@@ -82,6 +89,7 @@ void m_deallocator(void* ptr)
 
 #undef conf_malloc
 #undef conf_calloc
+#undef conf_realloc
 #undef conf_free
 
 void* conf_malloc(size_t size)
@@ -92,6 +100,11 @@ void* conf_malloc(size_t size)
 void* conf_calloc(size_t count, size_t size)
 {
 	return calloc(count, size);
+}
+
+void* conf_realloc(void* ptr, size_t size)
+{
+	return realloc(ptr, size);
 }
 
 void conf_free(void* ptr)

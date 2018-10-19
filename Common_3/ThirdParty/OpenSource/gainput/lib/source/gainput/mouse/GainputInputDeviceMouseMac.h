@@ -16,14 +16,18 @@ public:
 	InputDeviceMouseImplMac(InputManager& manager, InputDevice& device, InputState& state, InputState& previousState);
 	~InputDeviceMouseImplMac();
 
-	InputDevice::DeviceVariant GetVariant() const
+	InputDevice::DeviceVariant GetVariant() const override
 	{
 		return InputDevice::DV_STANDARD;
 	}
 	
-	InputDevice::DeviceState GetState() const { return deviceState_; }
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
+	
+	InputDevice::DeviceState GetState() const override { return deviceState_; }
 
-	void Update(InputDeltaState* delta);
+	void Update(InputDeltaState* delta) override;
 	
 	void HandleMouseMove(float x, float y);
 	void HandleMouseWheel(int deltaY);

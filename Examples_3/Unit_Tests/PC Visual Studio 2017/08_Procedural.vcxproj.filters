@@ -20,30 +20,30 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\proceduralPlanet.frag">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\proceduralPlanet.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\proceduralPlanet.vert">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\proceduralPlanet.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\background.frag">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\background.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\background.vert">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\background.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\08_Procedural\PCDX12\background.frag">
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\background.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\08_Procedural\PCDX12\background.vert">
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\background.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\08_Procedural\PCDX12\proceduralPlanet.frag">
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\proceduralPlanet.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\08_Procedural\PCDX12\proceduralPlanet.vert">
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\proceduralPlanet.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
   </ItemGroup>

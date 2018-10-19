@@ -407,7 +407,7 @@ def BuildXcodeProjects(skipIosBuild, skipIosCodeSigning):
 
 			#assuming every xcodeproj has an iOS equivalent. 
 			#TODO: Search to verify file exists
-			if (filename != "Visibility_Buffer" and filename != "15_Transparency") and skipIosBuild == False:
+			if (filename != "Visibility_Buffer" and filename != "15_Transparency" and filename != "14_WaveIntrinsics") and skipIosBuild == False:
 				filename = filename + "_iOS" 
 				command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build"]
 				if skipIosCodeSigning:
@@ -454,7 +454,7 @@ def BuildLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -509,7 +509,7 @@ def TestLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -640,7 +640,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
 		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
 			configurations = ["DebugDx", "ReleaseDx"]
-		elif filename == "VisibilityBuffer.sln":
+		elif filename == "VisibilityBuffer.sln" or filename == 'Unit_Tests_Animation.sln':
 			configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
 			
 		if "XBOXOne" in proj:

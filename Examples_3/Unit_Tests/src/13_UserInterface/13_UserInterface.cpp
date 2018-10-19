@@ -53,55 +53,18 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-
-//--------------------------------------------------------------------------------------------
-// SET RESOURCE DIRECTORIES FOR PLATFORMS
-//--------------------------------------------------------------------------------------------
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-#if defined(_WIN32)
-#define RESOURCE_DIR "PCVulkan"
-#elif defined(__linux__)
-#define RESOURCE_DIR "LINUXVulkan"
-#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#elif defined(_DURANGO)
-#define RESOURCE_DIR "PCDX12"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",	  // FSR_SrcShaders
-	"Shaders/Binary/",  // FSR_BinShaders_Common
-	"Shaders/",	  // FSR_SrcShaders_Common
-	"Textures/",		// FSR_Textures
-	"Meshes/",		// FSR_Meshes
-	"Fonts/",		  // FSR_Builtin_Fonts
-	"",			  // FSR_OtherFiles
+	"../../../src/13_UserInterface/",										// FSR_BinShaders
+	"../../../src/13_UserInterface/",									// FSR_SrcShaders
+	"",																		// FSR_BinShaders_Common
+	"",																		// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",											// FSR_Textures
+	"../../../UnitTestResources/",											// FSR_Meshes
+	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
+	"../../../src/13_UserInterface/",										// FSR_GpuConfig
+	"",																		// FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../../src/13_UserInterface/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
-	"../../../src/13_UserInterface/" RESOURCE_DIR "/",	  // FSR_SrcShaders
-	"",													  // FSR_BinShaders_Common
-	"",													  // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",				  // FSR_Textures
-	"../../../UnitTestResources/Meshes/",					  // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"../../../src/13_UserInterface/GPUCfg/",				  // FSR_GpuConfig
-	"",													  // FSR_OtherFiles
-};
-#endif
-
 
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
@@ -305,7 +268,7 @@ public:
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 		finishResourceLoading();

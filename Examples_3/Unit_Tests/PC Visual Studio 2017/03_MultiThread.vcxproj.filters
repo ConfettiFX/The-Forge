@@ -20,43 +20,41 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Graph.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Graph.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Particle.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Particle.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\PCVulkan\Skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\03_MultiThread\PCDX12\Graph.frag">
+    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Graph.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\03_MultiThread\PCDX12\Graph.vert">
+    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Graph.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\03_MultiThread\PCDX12\Particle.frag">
+    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Particle.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\03_MultiThread\PCDX12\Particle.vert">
+    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Particle.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\03_MultiThread\PCDX12\Skybox.frag">
+    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Skybox.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\03_MultiThread\PCDX12\Skybox.vert">
+    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\Shaders\PCVulkan\Graph.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\Shaders\PCVulkan\Graph.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\Shaders\PCVulkan\Particle.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\Shaders\PCVulkan\Particle.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\Shaders\PCVulkan\Skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\03_MultiThread\Shaders\PCVulkan\Skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -84,9 +84,6 @@ void drawFrame(float deltaTime);
 #define _IAPP_H_
 
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
-#ifdef __ANDROID__
-#include <android_native_app_glue.h>
-#endif
 
 class IApp
 {

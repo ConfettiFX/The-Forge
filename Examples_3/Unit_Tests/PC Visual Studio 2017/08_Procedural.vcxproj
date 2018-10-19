@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\proceduralPlanet.frag">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\proceduralPlanet.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -66,7 +66,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">true</ExcludedFromBuild>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\proceduralPlanet.vert">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\proceduralPlanet.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -110,7 +110,7 @@
     <ClCompile Include="..\src\08_Procedural\08_Procedural.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\background.frag">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\background.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -149,7 +149,7 @@
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">false</LinkObjects>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\PCVulkan\background.vert">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\background.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -190,10 +190,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\08_Procedural\PCDX12\background.frag" />
-    <None Include="..\src\08_Procedural\PCDX12\background.vert" />
-    <None Include="..\src\08_Procedural\PCDX12\proceduralPlanet.frag" />
-    <None Include="..\src\08_Procedural\PCDX12\proceduralPlanet.vert" />
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\background.frag" />
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\background.vert" />
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\proceduralPlanet.frag" />
+    <None Include="..\src\08_Procedural\Shaders\PCDX12\proceduralPlanet.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{23493642-8398-4E1E-9D71-D69447C72A3D}</ProjectGuid>

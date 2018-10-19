@@ -236,58 +236,6 @@ ImageFormat::Enum gPTRenderTargetFormats[3] =
 	ImageFormat::RGBA16F, ImageFormat::RGBA8, ImageFormat::RG16F
 };
 
-typedef enum RenderPass
-{
-	PASS_SKYBOX,
-#if USE_SHADOWS != 0
-	PASS_SHADOW,
-	PASS_SHADOW_FILTER,
-#endif
-	PASS_FORWARD_SHADE,
-	PASS_TRANSPARENT_FORWARD_SHADE,
-	PASS_WBOIT_SHADE,
-	PASS_WBOIT_COMPOSITE,
-	PASS_WBOITV_SHADE,
-	PASS_WBOITV_COMPOSITE,
-	PASS_PT_SHADE,
-	PASS_PT_COMPOSITE,
-#if PT_USE_DIFFUSION != 0
-	PASS_PT_COPY_DEPTH,
-	PASS_PT_GENERATE_MIPS,
-#endif
-#if PT_USE_CAUSTICS != 0
-	PASS_PT_SHADOW,
-	PASS_PT_SHADOW_DOWNSAMPLE,
-	PASS_PT_COPY_SHADOW_DEPTH,
-#endif
-	PASS_AOIT_SHADE,
-	PASS_AOIT_COMPOSITE,
-	PASS_AOIT_CLEAR,
-	RENDER_PASS_COUNT
-} RenderPass;
-
-typedef struct RenderPassData
-{
-	Shader*			 pShader = NULL;
-	RootSignature*	  pRootSignature = NULL;
-	Pipeline*		   pPipeline = NULL;
-	uint32_t			mRenderTargetCount = 0;
-	SwapChain**		 ppSwapChain = NULL;
-	RenderTarget**	  ppRenderTargets = NULL;
-	ImageFormat::Enum   pColorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
-	bool				pSrgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = {};
-	SampleCount		 mSampleCount = SAMPLE_COUNT_1;
-	uint32_t			mSampleQuality;
-	ImageFormat::Enum   mDepthStencilFormat;
-	VertexLayout*	   pVertexLayout = NULL;
-	RasterizerState*	pRasterizerState = NULL;
-	DepthState*		 pDepthState = NULL;
-	BlendState*		 pBlendState = NULL;
-	bool				mIsComputePipeline = false;
-} RenderPassData;
-
-RenderPassData* pRenderPasses[RENDER_PASS_COUNT];
-
 typedef enum TextureResource
 {
 	TEXTURE_SKYBOX_RIGHT,
@@ -299,6 +247,97 @@ typedef enum TextureResource
 	TEXTURE_MEASURING_GRID,
 	TEXTURE_COUNT
 } TextureResource;
+
+/************************************************************************/
+// Shaders
+/************************************************************************/
+Shader* pShaderSkybox = NULL;
+#if USE_SHADOWS != 0
+Shader* pShaderShadow = NULL;
+Shader* pShaderGaussianBlur = NULL;
+#if PT_USE_CAUSTICS != 0
+Shader* pShaderPTShadow = NULL;
+Shader* pShaderPTDownsample = NULL;
+Shader* pShaderPTCopyShadowDepth = NULL;
+#endif
+#endif
+Shader* pShaderForward = NULL;
+Shader* pShaderWBOITShade = NULL;
+Shader* pShaderWBOITComposite = NULL;
+Shader* pShaderWBOITVShade = NULL;
+Shader* pShaderWBOITVComposite = NULL;
+Shader* pShaderPTShade = NULL;
+Shader* pShaderPTComposite = NULL;
+#if PT_USE_DIFFUSION != 0
+Shader* pShaderPTCopyDepth = NULL;
+Shader* pShaderPTGenMips = NULL;
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+Shader* pShaderAOITShade = NULL;
+Shader* pShaderAOITComposite = NULL;
+Shader* pShaderAOITClear = NULL;
+#endif
+
+/************************************************************************/
+// Root signature
+/************************************************************************/
+RootSignature* pRootSignatureSkybox = NULL;
+#if USE_SHADOWS != 0
+RootSignature* pRootSignatureShadow = NULL;
+RootSignature* pRootSignatureGaussianBlur = NULL;
+#if PT_USE_CAUSTICS != 0
+RootSignature* pRootSignaturePTShadow = NULL;
+RootSignature* pRootSignaturePTDownsample = NULL;
+RootSignature* pRootSignaturePTCopyShadowDepth = NULL;
+#endif
+#endif
+RootSignature* pRootSignatureForward = NULL;
+RootSignature* pRootSignatureWBOITShade = NULL;
+RootSignature* pRootSignatureWBOITComposite = NULL;
+RootSignature* pRootSignatureWBOITVShade = NULL;
+RootSignature* pRootSignatureWBOITVComposite = NULL;
+RootSignature* pRootSignaturePTShade = NULL;
+RootSignature* pRootSignaturePTComposite = NULL;
+#if PT_USE_DIFFUSION != 0
+RootSignature* pRootSignaturePTCopyDepth = NULL;
+RootSignature* pRootSignaturePTGenMips = NULL;
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+RootSignature* pRootSignatureAOITShade = NULL;
+RootSignature* pRootSignatureAOITComposite = NULL;
+RootSignature* pRootSignatureAOITClear = NULL;
+#endif
+
+/************************************************************************/
+// Pipelines
+/************************************************************************/
+Pipeline* pPipelineSkybox = NULL;
+#if USE_SHADOWS != 0
+Pipeline* pPipelineShadow = NULL;
+Pipeline* pPipelineGaussianBlur = NULL;
+#if PT_USE_CAUSTICS != 0
+Pipeline* pPipelinePTShadow = NULL;
+Pipeline* pPipelinePTDownsample = NULL;
+Pipeline* pPipelinePTCopyShadowDepth = NULL;
+#endif
+#endif
+Pipeline* pPipelineForward = NULL;
+Pipeline* pPipelineTransparentForward = NULL;
+Pipeline* pPipelineWBOITShade = NULL;
+Pipeline* pPipelineWBOITComposite = NULL;
+Pipeline* pPipelineWBOITVShade = NULL;
+Pipeline* pPipelineWBOITVComposite = NULL;
+Pipeline* pPipelinePTShade = NULL;
+Pipeline* pPipelinePTComposite = NULL;
+#if PT_USE_DIFFUSION != 0
+Pipeline* pPipelinePTCopyDepth = NULL;
+Pipeline* pPipelinePTGenMips = NULL;
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+Pipeline* pPipelineAOITShade = NULL;
+Pipeline* pPipelineAOITComposite = NULL;
+Pipeline* pPipelineAOITClear = NULL;
+#endif
 
 /************************************************************************/
 // Render targets
@@ -380,13 +419,13 @@ Texture*	pTextures[TEXTURE_COUNT] = {};
 // Uniform buffers
 /************************************************************************/
 Buffer* pBufferMaterials[gImageCount] = { NULL };
-Buffer* pBufferOpaqueObjectTransforms = NULL;
+Buffer* pBufferOpaqueObjectTransforms[gImageCount] = { NULL };
 Buffer* pBufferTransparentObjectTransforms[gImageCount] = { NULL };
-Buffer* pBufferSkyboxUniform = NULL;
-Buffer* pBufferLightUniform = NULL;
-Buffer* pBufferCameraUniform = NULL;
-Buffer* pBufferCameraLightUniform = NULL;
-Buffer* pBufferWBOITSettings = NULL;
+Buffer* pBufferSkyboxUniform[gImageCount] = { NULL };
+Buffer* pBufferLightUniform[gImageCount] = { NULL };
+Buffer* pBufferCameraUniform[gImageCount] = { NULL };
+Buffer* pBufferCameraLightUniform[gImageCount] = { NULL };
+Buffer* pBufferWBOITSettings[gImageCount] = { NULL };
 
 typedef enum TransparencyType
 {
@@ -457,149 +496,28 @@ Semaphore*			  pRenderCompleteSemaphores[gImageCount] = {NULL};
 
 uint32_t				gTransparencyType = TRANSPARENCY_TYPE_PHENOMENOLOGICAL;
 
-#if defined(DIRECT3D12) && !defined(_DURANGO) || defined(DIRECT3D11)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-#define RESOURCE_DIR "PCVulkan"
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#elif defined(_DURANGO)
-#define RESOURCE_DIR "PCDX12"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pSkyboxImageFileNames[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",	 // FSR_SrcShaders
-	"Shaders/Binary/",		  // FSR_BinShaders_Common
-	"Shaders/",				 // FSR_SrcShaders_Common
-	"Textures/",						// FSR_Textures
-	"Meshes/",					  // FSR_Meshes
-	"Fonts/",					   // FSR_Builtin_Fonts
-	"",														 // FSR_OtherFiles
+	"skybox/hw_sahara/sahara_rt.tga",
+	"skybox/hw_sahara/sahara_lf.tga",
+	"skybox/hw_sahara/sahara_up.tga",
+	"skybox/hw_sahara/sahara_dn.tga",
+	"skybox/hw_sahara/sahara_ft.tga",
+	"skybox/hw_sahara/sahara_bk.tga",
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
+
+const char* pszBases[] =
 {
-	"../../../src/15_Transparency/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
-	"../../../src/15_Transparency/" RESOURCE_DIR "/",		   // FSR_SrcShaders
-	"",														 // FSR_BinShaders_Common
-	"",														 // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",					 // FSR_Textures
-	"../../../UnitTestResources/Meshes/",					   // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"../../../src/15_Transparency/GPUCfg/",					 // FSR_GpuConfig
-	"",														 // FSR_OtherFiles
+	"../../../src/15_Transparency/",										// FSR_BinShaders
+	"../../../src/15_Transparency/",										// FSR_SrcShaders
+	"",																		// FSR_BinShaders_Common
+	"",																		// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",											// FSR_Textures
+	"../../../UnitTestResources/",											// FSR_Meshes
+	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
+	"../../../src/15_Transparency/",										// FSR_GpuConfig
+	"",																		// FSR_OtherFiles
 };
-#endif
-
-void SetRenderPass(RenderPassData* pRenderPass, const char* pVertexShader, const char* pFragmentShader, ShaderMacro* pShaderMacros, uint32_t shaderMacroCount, Sampler** pStaticSamplers, const char** pStaticSamplerNames,
-	uint32_t staticSamplerCount, ImageFormat::Enum depthStencilFormat, VertexLayout* pVertexLayout, RasterizerState* pRasterizerState, DepthState* pDepthState, BlendState* pBlendState)
-{
-	ShaderLoadDesc shaderDesc = {};
-	shaderDesc.mStages[0] = { pVertexShader, pShaderMacros, shaderMacroCount, FSR_SrcShaders };
-	shaderDesc.mStages[1] = { pFragmentShader, pShaderMacros, shaderMacroCount, FSR_SrcShaders };
-	addShader(pRenderer, &shaderDesc, &pRenderPass->pShader);
-
-	RootSignatureDesc rootSignatureDesc = {};
-	rootSignatureDesc.ppShaders = &pRenderPass->pShader;
-	rootSignatureDesc.mShaderCount = 1;
-	rootSignatureDesc.ppStaticSamplers = pStaticSamplers;
-	rootSignatureDesc.mStaticSamplerCount = staticSamplerCount;
-	rootSignatureDesc.ppStaticSamplerNames = pStaticSamplerNames;
-	rootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
-	addRootSignature(pRenderer, &rootSignatureDesc, &pRenderPass->pRootSignature);
-
-	pRenderPass->mDepthStencilFormat = depthStencilFormat;
-	pRenderPass->pVertexLayout = pVertexLayout;
-	pRenderPass->pRasterizerState = pRasterizerState;
-	pRenderPass->pDepthState = pDepthState;
-	pRenderPass->pBlendState = pBlendState;
-}
-
-void SetRenderPass(RenderPass renderPass, const char* pVertexShader, const char* pFragmentShader, ShaderMacro* pShaderMacros, uint32_t shaderMacroCount, Sampler** pStaticSamplers, const char** pStaticSamplerNames,
-	uint32_t staticSamplerCount, VertexLayout* pVertexLayout, SwapChain** ppSwapChain, ImageFormat::Enum depthStencilFormat, RasterizerState* pRasterizerState, DepthState* pDepthState, BlendState* pBlendState)
-{
-	RenderPassData* pRenderPass = conf_placement_new<RenderPassData>(conf_malloc(sizeof(RenderPassData)));
-
-	pRenderPass->mRenderTargetCount = 1;
-	pRenderPass->ppSwapChain = ppSwapChain;
-
-	SetRenderPass(pRenderPass, pVertexShader, pFragmentShader, pShaderMacros, shaderMacroCount, pStaticSamplers, pStaticSamplerNames, staticSamplerCount, depthStencilFormat, pVertexLayout, pRasterizerState, pDepthState, pBlendState);
-
-	pRenderPasses[renderPass] = pRenderPass;
-}
-
-void SetRenderPass(RenderPass renderPass, const char* pVertexShader, const char* pFragmentShader, ShaderMacro* pShaderMacros, uint32_t shaderMacroCount, Sampler** pStaticSamplers, const char** pStaticSamplerNames,
-	uint32_t staticSamplerCount, VertexLayout* pVertexLayout, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, ImageFormat::Enum depthStencilFormat, RasterizerState* pRasterizerState, DepthState* pDepthState, BlendState* pBlendState)
-{
-	RenderPassData* pRenderPass = conf_placement_new<RenderPassData>(conf_malloc(sizeof(RenderPassData)));
-
-	pRenderPass->mRenderTargetCount = renderTargetCount;
-	pRenderPass->ppRenderTargets = ppRenderTargets;
-
-	SetRenderPass(pRenderPass, pVertexShader, pFragmentShader, pShaderMacros, shaderMacroCount, pStaticSamplers, pStaticSamplerNames, staticSamplerCount, depthStencilFormat, pVertexLayout, pRasterizerState, pDepthState, pBlendState);
-
-	pRenderPasses[renderPass] = pRenderPass;
-}
-
-void SetRenderPass(RenderPass renderPass, const char* pVertexShader, const char* pFragmentShader, ShaderMacro* pShaderMacros, uint32_t shaderMacroCount, Sampler** pStaticSamplers, const char** pStaticSamplerNames,
-	uint32_t staticSamplerCount, VertexLayout* pVertexLayout, uint32_t renderTargetCount, ImageFormat::Enum* pColorFormats, bool* pSrgbValues, SampleCount sampleCount, uint32_t sampleQuality, ImageFormat::Enum depthStencilFormat,
-	RasterizerState* pRasterizerState, DepthState* pDepthState, BlendState* pBlendState)
-{
-	RenderPassData* pRenderPass = conf_placement_new<RenderPassData>(conf_malloc(sizeof(RenderPassData)));
-
-	pRenderPass->mRenderTargetCount = renderTargetCount;
-	for (uint i = 0; i < renderTargetCount; ++i)
-	{
-		pRenderPass->pColorFormats[i] = pColorFormats[i];
-		pRenderPass->pSrgbValues[i] = pSrgbValues[i];
-	}
-	pRenderPass->mSampleCount = sampleCount;
-	pRenderPass->mSampleQuality = sampleQuality;
-
-	SetRenderPass(pRenderPass, pVertexShader, pFragmentShader, pShaderMacros, shaderMacroCount, pStaticSamplers, pStaticSamplerNames, staticSamplerCount, depthStencilFormat, pVertexLayout, pRasterizerState, pDepthState, pBlendState);
-
-	pRenderPasses[renderPass] = pRenderPass;
-}
-
-void SetRenderPass(RenderPass renderPass, const char* pComputeShader, ShaderMacro* pShaderMacros, uint32_t shaderMacroCount, Sampler** pStaticSamplers, const char** pStaticSamplerNames, uint32_t staticSamplerCount)
-{
-	RenderPassData* pRenderPass = conf_placement_new<RenderPassData>(conf_malloc(sizeof(RenderPassData)));
-
-	ShaderLoadDesc shaderDesc = {};
-	shaderDesc.mStages[0] = { pComputeShader, pShaderMacros, shaderMacroCount, FSR_SrcShaders };
-	addShader(pRenderer, &shaderDesc, &pRenderPass->pShader);
-
-	RootSignatureDesc rootSignatureDesc = {};
-	rootSignatureDesc.ppShaders = &pRenderPass->pShader;
-	rootSignatureDesc.mShaderCount = 1;
-	rootSignatureDesc.ppStaticSamplers = pStaticSamplers;
-	rootSignatureDesc.mStaticSamplerCount = staticSamplerCount;
-	rootSignatureDesc.ppStaticSamplerNames = pStaticSamplerNames;
-	rootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
-	addRootSignature(pRenderer, &rootSignatureDesc, &pRenderPass->pRootSignature);
-
-	pRenderPass->mIsComputePipeline = true;
-
-	pRenderPasses[renderPass] = pRenderPass;
-}
-
-void ClearRenderPass(RenderPass renderPass)
-{
-	if (pRenderPasses[renderPass])
-	{
-		removeRootSignature(pRenderer, pRenderPasses[renderPass]->pRootSignature);
-		removeShader(pRenderer, pRenderPasses[renderPass]->pShader);
-	}
-
-	conf_free(pRenderPasses[renderPass]);
-}
 
 void AddObject(MeshResource mesh, vec3 position, vec4 color, vec3 translucency = vec3(0.0f), float eta = 1.0f, float collimation = 0.0f, vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
 {
@@ -770,7 +688,8 @@ public:
 		CreateRasterizerStates();
 		CreateDepthStates();
 		CreateBlendStates();
-		CreateVertexLayouts();
+		CreateShaders();
+		CreateRootSignatures();
 		CreateResources();
 		CreateUniformBuffers();
 
@@ -778,68 +697,6 @@ public:
 		// Add GPU profiler
 		/************************************************************************/
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-
-		/************************************************************************/
-		// setup render passes
-		/************************************************************************/
-
-		// Create list of static samplers
-		const char* skyboxSamplerName = "SkySampler";
-		const char* pointSamplerName = "PointSampler";
-		const char* linearSamplerName = "LinearSampler";
-		const char* shadowSamplerName = USE_SHADOWS ? "VSMSampler" : 0;
-
-		Sampler* staticSamplers[] = { pSamplerSkybox, pSamplerPoint, pSamplerBilinear, pSamplerShadow };
-		const char* staticSamplerNames[] = { skyboxSamplerName, pointSamplerName, linearSamplerName, shadowSamplerName };
-		const uint numStaticSamplers = sizeof(staticSamplers) / sizeof(staticSamplers[0]);
-
-		// Create list of shader macros
-		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", tinystl::string::format("%i", MAX_NUM_OBJECTS) };
-		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", tinystl::string::format("%i", TEXTURE_COUNT) };
-		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", tinystl::string::format("%i", AOIT_NODE_COUNT) };
-		ShaderMacro useShadowsMacro = { "USE_SHADOWS", tinystl::string::format("%i", USE_SHADOWS) };
-		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", tinystl::string::format("%i", PT_USE_REFRACTION) };
-		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", tinystl::string::format("%i", PT_USE_DIFFUSION) };
-		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", tinystl::string::format("%i", PT_USE_CAUSTICS) };
-
-		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro, useRefractionMacro, useDiffusionMacro, useCausticsMacro };
-		const uint numShaderMacros = sizeof(shaderMacros) / sizeof(shaderMacros[0]);
-
-		bool srgbValues[MAX_RENDER_TARGET_ATTACHMENTS] = { false };
-
-		SetRenderPass(PASS_SKYBOX, "skybox.vert", "skybox.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutSkybox, &pSwapChain, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-#if USE_SHADOWS != 0
-		SetRenderPass(PASS_SHADOW, "shadow.vert", "shadow.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, 1, &pRenderTargetShadowVariance[0], ImageFormat::D16, pRasterizerStateCullFront, pDepthStateEnable, NULL);
-		SetRenderPass(PASS_SHADOW_FILTER, "fullscreen.vert", "gaussianBlur.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, 1, &pRenderTargetShadowVariance[0], ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-#if PT_USE_CAUSTICS != 0
-		SetRenderPass(PASS_PT_SHADOW, "forward.vert", "stochasticShadow.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, 3, &pRenderTargetPTShadowVariance[0], ImageFormat::NONE, pRasterizerStateCullFront, pDepthStateDisable, pBlendStatePTMinBlend);
-		SetRenderPass(PASS_PT_SHADOW_DOWNSAMPLE, "fullscreen.vert", "downsample.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, 1, &pRenderTargetPTShadowFinal[0][0], ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-		SetRenderPass(PASS_PT_COPY_SHADOW_DEPTH, "fullscreen.vert", "copy.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, 1, &pRenderTargetPTShadowVariance[0], ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-#endif
-#endif
-		SetRenderPass(PASS_FORWARD_SHADE, "forward.vert", "forward.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, &pSwapChain, ImageFormat::D32F, pRasterizerStateCullFront, pDepthStateEnable, NULL);
-		SetRenderPass(PASS_TRANSPARENT_FORWARD_SHADE, "forward.vert", "forward.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, &pSwapChain, ImageFormat::D32F, pRasterizerStateCullNone, pDepthStateNoWrite, pBlendStateAlphaBlend);
-		SetRenderPass(PASS_WBOIT_SHADE, "forward.vert", "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, WBOIT_RT_COUNT, gWBOITRenderTargetFormats, srgbValues, SAMPLE_COUNT_1, 0, ImageFormat::D32F, pRasterizerStateCullNone, pDepthStateNoWrite, pBlendStateWBOITShade);
-		SetRenderPass(PASS_WBOIT_COMPOSITE, "fullscreen.vert", "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, &pSwapChain, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, pBlendStateAlphaBlend);
-		SetRenderPass(PASS_WBOITV_SHADE, "forward.vert", "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, WBOIT_RT_COUNT, gWBOITRenderTargetFormats, srgbValues, SAMPLE_COUNT_1, 0, ImageFormat::D32F, pRasterizerStateCullNone, pDepthStateNoWrite, pBlendStateWBOITVolitionShade);
-		SetRenderPass(PASS_WBOITV_COMPOSITE, "fullscreen.vert", "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, &pSwapChain, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, pBlendStateAlphaBlend);
-		SetRenderPass(PASS_PT_SHADE, "forward.vert", "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, PT_RT_COUNT, gPTRenderTargetFormats, srgbValues, SAMPLE_COUNT_1, 0, ImageFormat::D32F, pRasterizerStateCullFront, pDepthStateNoWrite, pBlendStatePTShade);
-		SetRenderPass(PASS_PT_COMPOSITE, "fullscreen.vert", "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, &pSwapChain, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-#if PT_USE_DIFFUSION != 0
-		{
-			ImageFormat::Enum format = ImageFormat::R32F;
-			SetRenderPass(PASS_PT_COPY_DEPTH, "fullscreen.vert", "copy.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, 1, &format, srgbValues, SAMPLE_COUNT_1, 0, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-			SetRenderPass(PASS_PT_GENERATE_MIPS, "generateMips.comp", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers);
-		}
-#endif
-#if defined(DIRECT3D12) && !defined(_DURANGO)
-		if (pRenderer->pActiveGpuSettings->mROVsSupported)
-		{
-			SetRenderPass(PASS_AOIT_SHADE, "forward.vert", "adaptiveOIT.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, pVertexLayoutDefault, 0, NULL, NULL, SAMPLE_COUNT_1, 0, ImageFormat::D32F, pRasterizerStateCullNone, pDepthStateNoWrite, NULL);
-			SetRenderPass(PASS_AOIT_COMPOSITE, "fullscreen.vert", "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, &pSwapChain, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, pBlendStateAOITComposite);
-			SetRenderPass(PASS_AOIT_CLEAR, "fullscreen.vert", "adaptiveOITClear.frag", shaderMacros, numShaderMacros, staticSamplers, staticSamplerNames, numStaticSamplers, NULL, 0, NULL, NULL, SAMPLE_COUNT_1, 0, ImageFormat::NONE, pRasterizerStateCullNone, pDepthStateDisable, NULL);
-		}
-#endif
 
 		CreateScene();
 		finishResourceLoading();
@@ -893,13 +750,10 @@ public:
 		DestroyRasterizerStates();
 		DestroyDepthStates();
 		DestroyBlendStates();
-		DestroyVertexLayouts();
+		DestroyShaders();
+		DestroyRootSignatures();
 		DestroyResources();
 		DestroyUniformBuffers();
-
-		for (int i = 0; i < RENDER_PASS_COUNT; ++i)
-			ClearRenderPass((RenderPass)i);
-
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -927,8 +781,7 @@ public:
 			return false;
 #endif
 
-		for(int i = 0; i < RENDER_PASS_COUNT; ++i)
-			CreateRenderPass((RenderPass)i);
+		CreatePipelines();
 
 		return true;
 	}
@@ -943,8 +796,7 @@ public:
 
 		gAppUI.Unload();
 
-		for (int i = 0; i < RENDER_PASS_COUNT; ++i)
-			DestroyRenderPass((RenderPass)i);
+		DestroyPipelines();
 
 		DestroyRenderTargetsAndSwapChian();
 	}
@@ -992,64 +844,30 @@ public:
 		// Scene Update
 		/************************************************************************/
 		UpdateScene(deltaTime, viewMat, camPos);
-
-		BufferUpdateDesc materialBufferUpdateDesc = { pBufferMaterials[gFrameIndex], &gMaterialUniformData };
-		updateResource(&materialBufferUpdateDesc);
-		BufferUpdateDesc opaqueBufferUpdateDesc = { pBufferOpaqueObjectTransforms, &gObjectInfoUniformData };
-		updateResource(&opaqueBufferUpdateDesc);
-		BufferUpdateDesc transparentBufferUpdateDesc = { pBufferTransparentObjectTransforms[gFrameIndex], &gTransparentObjectInfoUniformData };
-		updateResource(&transparentBufferUpdateDesc);
 		/************************************************************************/
 		// Update Cameras
 		/************************************************************************/
-		BufferUpdateDesc cameraCbv = { pBufferCameraUniform, &gCameraUniformData };
 		gCameraUniformData.mViewProject = vpMatrix;
 		gCameraUniformData.mViewMat = viewMat;
 		gCameraUniformData.mClipInfo = vec4(zNear * zFar, zNear - zFar, zFar, 0.0f);
 		gCameraUniformData.mPosition = vec4(pCameraController->getViewPosition(), 1);
-		updateResource(&cameraCbv);
 
-		BufferUpdateDesc cameraLightBufferCbv = { pBufferCameraLightUniform, &gCameraLightUniformData };
 		gCameraLightUniformData.mViewProject = lightVPMatrix;
 		gCameraLightUniformData.mViewMat = lightViewMat;
 		gCameraLightUniformData.mClipInfo = vec4(lightZNear * lightZFar, lightZNear - lightZFar, lightZFar, 0.0f);
 		gCameraLightUniformData.mPosition = vec4(lightPos, 1);
-		updateResource(&cameraLightBufferCbv);
 
 		/************************************************************************/
 		// Update Skybox
 		/************************************************************************/
-		BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform, &gSkyboxUniformData };
 		viewMat.setTranslation(vec3(0,0,0));
 		gSkyboxUniformData.mViewProject = projMat * viewMat;
-		updateResource(&skyboxViewProjCbv);
-
 		/************************************************************************/
 		// Light Matrix Update
 		/************************************************************************/
-		BufferUpdateDesc lightBufferCbv = {pBufferLightUniform, &gLightUniformData};
 		gLightUniformData.mLightDirection = vec4(lightDir, 0);
 		gLightUniformData.mLightViewProj = lightVPMatrix;
 		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
-		updateResource(&lightBufferCbv);
-
-		/************************************************************************/
-		// Update transparency settings
-		/************************************************************************/
-		if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-		{
-			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings, &gWBOITSettingsData };
-			wboitSettingsUpdateDesc.mSize = sizeof(WBOITSettings);
-			updateResource(&wboitSettingsUpdateDesc);
-
-		}
-		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-		{
-			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings, &gWBOITVolitionSettingsData };
-			wboitSettingsUpdateDesc.mSize = sizeof(WBOITVolitionSettings);
-			updateResource(&wboitSettingsUpdateDesc);
-		}
-
 		/************************************************************************/
 		////////////////////////////////////////////////////////////////
 		gAppUI.Update(deltaTime);
@@ -1299,11 +1117,11 @@ public:
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mDesc.mWidth, (float)rt->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, rt->mDesc.mWidth, rt->mDesc.mHeight);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_SKYBOX]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineSkybox);
 
 		DescriptorData params[7] = {};
 		params[0].pName = "SkyboxUniformBlock";
-		params[0].ppBuffers = &pBufferSkyboxUniform;
+		params[0].ppBuffers = &pBufferSkyboxUniform[gFrameIndex];
 		params[1].pName = "RightText";
 		params[1].ppTextures = &pTextures[TEXTURE_SKYBOX_RIGHT];
 		params[2].pName = "LeftText";
@@ -1316,7 +1134,7 @@ public:
 		params[5].ppTextures = &pTextures[TEXTURE_SKYBOX_FRONT];
 		params[6].pName = "BackText";
 		params[6].ppTextures = &pTextures[TEXTURE_SKYBOX_BACK];
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_SKYBOX]->pRootSignature, 7, params);
+		cmdBindDescriptors(pCmd, pRootSignatureSkybox, 7, params);
 		cmdBindVertexBuffer(pCmd, 1, &pBufferSkyboxVertex, NULL);
 		cmdDraw(pCmd, 36, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1347,9 +1165,9 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw shadow map");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render shadow map", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_SHADOW]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineShadow);
 
-		DrawObjects(pCmd, &gOpaqueDrawCalls, pRenderPasses[PASS_SHADOW]->pRootSignature, pBufferOpaqueObjectTransforms, pBufferCameraLightUniform, false, false);
+		DrawObjects(pCmd, &gOpaqueDrawCalls, pRootSignatureShadow, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraLightUniform[gFrameIndex], false, false);
 		cmdEndDebugMarker(pCmd);
 
 		// Blur shadow map
@@ -1367,7 +1185,7 @@ public:
 
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[1], NULL, &loadActions, NULL, NULL, -1, -1);
 
-			cmdBindPipeline(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pPipeline);
+			cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 			DescriptorData params[2] = {};
 			float axis = 0.0f;
@@ -1375,7 +1193,7 @@ public:
 			params[0].pRootConstant = &axis;
 			params[1].pName = "Source";
 			params[1].pRootConstant = &pRenderTargetShadowVariance[0]->pTexture;
-			cmdBindDescriptors(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pRootSignature, 2, params);
+			cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
 
 			cmdDraw(pCmd, 3, 0);
 
@@ -1386,14 +1204,14 @@ public:
 			cmdResourceBarrier(pCmd, 0, NULL, 2, barriers, false);
 
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[0], NULL, &loadActions, NULL, NULL, -1, -1);
-			cmdBindPipeline(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pPipeline);
+			cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 			axis = 1.0f;
 			params[0].pName = "RootConstant";
 			params[0].pRootConstant = &axis;
 			params[1].pName = "Source";
 			params[1].pRootConstant = &pRenderTargetShadowVariance[1]->pTexture;
-			cmdBindDescriptors(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pRootSignature, 2, params);
+			cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
 
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1434,14 +1252,14 @@ public:
 		for (int w = 0; w < 3; ++w)
 		{
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowVariance[w], NULL, &loadActions, NULL, NULL, -1, -1);
-			cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_COPY_SHADOW_DEPTH]->pPipeline);
+			cmdBindPipeline(pCmd, pPipelinePTCopyShadowDepth);
 			cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mDesc.mWidth, pRenderTargetPTShadowVariance[0]->mDesc.mHeight);
 
 			DescriptorData param = {};
 			param.pName = "Source";
 			param.ppTextures = &pRenderTargetShadowVariance[0]->pTexture;
-			cmdBindDescriptors(pCmd, pRenderPasses[PASS_PT_COPY_SHADOW_DEPTH]->pRootSignature, 1, &param);
+			cmdBindDescriptors(pCmd, pRootSignaturePTCopyShadowDepth, 1, &param);
 
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1458,9 +1276,9 @@ public:
 		// Draw the opaque objects.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw stochastic shadow map");
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_SHADOW]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelinePTShadow);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRenderPasses[PASS_PT_SHADOW]->pRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraLightUniform, true, false);
+		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignaturePTShadow, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraLightUniform[gFrameIndex], true, false);
 		cmdEndDebugMarker(pCmd);
 
 		// Downsample shadow map
@@ -1480,12 +1298,12 @@ public:
 			cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth, (float)pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth, pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight);
 
-			cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_SHADOW_DOWNSAMPLE]->pPipeline);
+			cmdBindPipeline(pCmd, pPipelinePTDownsample);
 
 			DescriptorData param = {};
 			param.pName = "Source";
 			param.pRootConstant = &pRenderTargetPTShadowVariance[w]->pTexture;
-			cmdBindDescriptors(pCmd, pRenderPasses[PASS_PT_SHADOW_DOWNSAMPLE]->pRootSignature, 1, &param);
+			cmdBindDescriptors(pCmd, pRootSignaturePTDownsample, 1, &param);
 
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1508,7 +1326,7 @@ public:
 
 				cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowFinal[1][w], NULL, &loadActions, NULL, NULL, -1, -1);
 
-				cmdBindPipeline(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pPipeline);
+				cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 				DescriptorData params[2] = {};
 				float axis = 0.0f;
@@ -1516,7 +1334,7 @@ public:
 				params[0].pRootConstant = &axis;
 				params[1].pName = "Source";
 				params[1].ppTextures = &pRenderTargetPTShadowFinal[0][w]->pTexture;
-				cmdBindDescriptors(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pRootSignature, 2, params);
+				cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
 
 				cmdDraw(pCmd, 3, 0);
 
@@ -1527,14 +1345,14 @@ public:
 				cmdResourceBarrier(pCmd, 0, NULL, 2, barriers, false);
 
 				cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowFinal[0][w], NULL, &loadActions, NULL, NULL, -1, -1);
-				cmdBindPipeline(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pPipeline);
+				cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 				axis = 1.0f;
 				params[0].pName = "RootConstant";
 				params[0].pRootConstant = &axis;
 				params[1].pName = "Source";
 				params[1].ppTextures = &pRenderTargetPTShadowFinal[1][w]->pTexture;
-				cmdBindDescriptors(pCmd, pRenderPasses[PASS_SHADOW_FILTER]->pRootSignature, 2, params);
+				cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
 
 				cmdDraw(pCmd, 3, 0);
 			}
@@ -1577,7 +1395,7 @@ public:
 		if (bindLights)
 		{
 			params[descriptorCount].pName = "LightUniformBlock";
-			params[descriptorCount].ppBuffers = &pBufferLightUniform;
+			params[descriptorCount].ppBuffers = &pBufferLightUniform[gFrameIndex];
 			++descriptorCount;
 #if USE_SHADOWS != 0
 			params[descriptorCount].pName = "VSM";
@@ -1650,9 +1468,9 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw opaque geometry");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render opaque geometry", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_FORWARD_SHADE]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineForward);
 
-		DrawObjects(pCmd, &gOpaqueDrawCalls, pRenderPasses[PASS_FORWARD_SHADE]->pRootSignature, pBufferOpaqueObjectTransforms, pBufferCameraUniform);
+		DrawObjects(pCmd, &gOpaqueDrawCalls, pRootSignatureForward, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 #if PT_USE_DIFFUSION != 0
@@ -1665,7 +1483,7 @@ public:
 
 			uint mipSizeX = 1 << (uint)ceil(log2((float)rt->mDesc.mWidth));
 			uint mipSizeY = 1 << (uint)ceil(log2((float)rt->mDesc.mHeight));
-			cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_GENERATE_MIPS]->pPipeline);
+			cmdBindPipeline(pCmd, pPipelinePTGenMips);
 			for (uint i = 1; i < rt->mDesc.mMipLevels; ++i)
 			{
 				mipSizeX >>= 1;
@@ -1681,7 +1499,7 @@ public:
 				params[1].mUAVMipSlice = i;
 				params[2].pName = "RootConstant";
 				params[2].pRootConstant = mipSize;
-				cmdBindDescriptors(pCmd, pRenderPasses[PASS_PT_GENERATE_MIPS]->pRootSignature, 3, params);
+				cmdBindDescriptors(pCmd, pRootSignaturePTGenMips, 3, params);
 
 				uint groupCountX = mipSizeX / 16;
 				uint groupCountY = mipSizeY / 16;
@@ -1715,9 +1533,9 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_TRANSPARENT_FORWARD_SHADE]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineTransparentForward);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRenderPasses[PASS_TRANSPARENT_FORWARD_SHADE]->pRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform);
+		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignatureForward, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1726,10 +1544,10 @@ public:
 
 	void WeightedBlendedOrderIndependentTransparencyPass(Cmd* pCmd, bool volition)
 	{
-		Pipeline* pShadePipeline = volition ? pRenderPasses[PASS_WBOITV_SHADE]->pPipeline : pRenderPasses[PASS_WBOIT_SHADE]->pPipeline;
-		Pipeline* pCompositePipeline = volition ? pRenderPasses[PASS_WBOITV_COMPOSITE]->pPipeline : pRenderPasses[PASS_WBOIT_COMPOSITE]->pPipeline;
-		RootSignature* pShadeRootSignature = volition ? pRenderPasses[PASS_WBOITV_SHADE]->pRootSignature : pRenderPasses[PASS_WBOIT_SHADE]->pRootSignature;
-		RootSignature* pCompositeRootSignature = volition ? pRenderPasses[PASS_WBOITV_COMPOSITE]->pRootSignature : pRenderPasses[PASS_WBOIT_COMPOSITE]->pRootSignature;
+		Pipeline* pShadePipeline = volition ? pPipelineWBOITVShade : pPipelineWBOITShade;
+		Pipeline* pCompositePipeline = volition ? pPipelineWBOITVComposite : pPipelineWBOITComposite;
+		RootSignature* pShadeRootSignature = volition ? pRootSignatureWBOITVShade : pRootSignatureWBOITShade;
+		RootSignature* pCompositeRootSignature = volition ? pRootSignatureWBOITVComposite : pRootSignatureWBOITComposite;
 
 		TextureBarrier textureBarriers[WBOIT_RT_COUNT] = {};
 		for (int i = 0; i < WBOIT_RT_COUNT; ++i)
@@ -1759,10 +1577,10 @@ public:
 
 		DescriptorData shadeParam = {};
 		shadeParam.pName = "WBOITSettings";
-		shadeParam.ppBuffers = &pBufferWBOITSettings;
+		shadeParam.ppBuffers = &pBufferWBOITSettings[gFrameIndex];
 		cmdBindDescriptors(pCmd, pShadeRootSignature, 1, &shadeParam);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pShadeRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform);
+		DrawObjects(pCmd, &gTransparentDrawCalls, pShadeRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1828,12 +1646,12 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "PT Copy depth buffer");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "PT Copy depth buffer", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_COPY_DEPTH]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelinePTCopyDepth);
 
 		DescriptorData copyParam = {};
 		copyParam.pName = "Source";
 		copyParam.ppTextures = &pRenderTargetDepth->pTexture;
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_PT_COPY_DEPTH]->pRootSignature, 1, &copyParam);
+		cmdBindDescriptors(pCmd, pRootSignaturePTCopyDepth, 1, &copyParam);
 
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1871,16 +1689,16 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (PT)");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry (PT)", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_SHADE]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelinePTShade);
 
 #if PT_USE_DIFFUSION != 0
 		DescriptorData shadeParam = {};
 		shadeParam.pName = "DepthTexture";
 		shadeParam.ppTextures = &pRenderTargetPTDepthCopy->pTexture;
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_PT_SHADE]->pRootSignature, 1, &shadeParam);
+		cmdBindDescriptors(pCmd, pRootSignaturePTShade, 1, &shadeParam);
 #endif
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRenderPasses[PASS_PT_SHADE]->pRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform);
+		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignaturePTShade, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1908,7 +1726,7 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite PT buffers");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Composite PT buffers", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_PT_COMPOSITE]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelinePTComposite);
 
 		uint compositeParamCount = 3;
 		DescriptorData compositeParams[4] = {};
@@ -1923,7 +1741,7 @@ public:
 		compositeParams[3].pName = "RefractionTexture";
 		compositeParams[3].ppTextures = &pRenderTargetPT[PT_RT_REFRACTION]->pTexture;
 #endif
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_PT_COMPOSITE]->pRootSignature, compositeParamCount, compositeParams);
+		cmdBindDescriptors(pCmd, pRootSignaturePTComposite, compositeParamCount, compositeParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1946,13 +1764,13 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Clear AOIT buffers");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Clear AOIT buffers", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_AOIT_CLEAR]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineAOITClear);
 
 		DescriptorData clearParams[1] = {};
 		clearParams[0].pName = "AOITClearMaskUAV";
 		clearParams[0].ppTextures = &pTextureAOITClearMask;
 
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_AOIT_CLEAR]->pRootSignature, 1, clearParams);
+		cmdBindDescriptors(pCmd, pRootSignatureAOITClear, 1, clearParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1974,7 +1792,7 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry (AOIT)", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_AOIT_SHADE]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineAOITShade);
 
 		int shadeParamsCount = 2;
 		DescriptorData shadeParams[3] = {};
@@ -1987,9 +1805,9 @@ public:
 		shadeParams[2].ppBuffers = &pBufferAOITDepthData;
 		shadeParamsCount = 3;
 #endif
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_AOIT_SHADE]->pRootSignature, shadeParamsCount, shadeParams);
+		cmdBindDescriptors(pCmd, pRootSignatureAOITShade, shadeParamsCount, shadeParams);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRenderPasses[PASS_AOIT_SHADE]->pRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform);
+		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignatureAOITShade, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -2017,7 +1835,7 @@ public:
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite AOIT buffers");
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Composite AOIT buffers", true);
 
-		cmdBindPipeline(pCmd, pRenderPasses[PASS_AOIT_COMPOSITE]->pPipeline);
+		cmdBindPipeline(pCmd, pPipelineAOITComposite);
 
 		DescriptorData compositeParams[2] = {};
 		compositeParams[0].pName = "AOITClearMaskSRV";
@@ -2025,7 +1843,7 @@ public:
 		compositeParams[1].pName = "AOITColorDataSRV";
 		compositeParams[1].ppBuffers = &pBufferAOITColorData;
 
-		cmdBindDescriptors(pCmd, pRenderPasses[PASS_AOIT_COMPOSITE]->pRootSignature, 2, compositeParams);
+		cmdBindDescriptors(pCmd, pRootSignatureAOITComposite, 2, compositeParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -2035,18 +1853,55 @@ public:
 
 	void Draw() override
 	{
-		uint swapchainIndex = 0;
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		gCpuTimer.GetUSec(true);
+		/************************************************************************/
+		// Update uniform buffers
+		/************************************************************************/
+		BufferUpdateDesc materialBufferUpdateDesc = { pBufferMaterials[gFrameIndex], &gMaterialUniformData };
+		updateResource(&materialBufferUpdateDesc);
+		BufferUpdateDesc opaqueBufferUpdateDesc = { pBufferOpaqueObjectTransforms[gFrameIndex], &gObjectInfoUniformData };
+		updateResource(&opaqueBufferUpdateDesc);
+		BufferUpdateDesc transparentBufferUpdateDesc = { pBufferTransparentObjectTransforms[gFrameIndex], &gTransparentObjectInfoUniformData };
+		updateResource(&transparentBufferUpdateDesc);
 
+		BufferUpdateDesc cameraCbv = { pBufferCameraUniform[gFrameIndex], &gCameraUniformData };
+		updateResource(&cameraCbv);
+
+		BufferUpdateDesc cameraLightBufferCbv = { pBufferCameraLightUniform[gFrameIndex], &gCameraLightUniformData };
+		updateResource(&cameraLightBufferCbv);
+
+		BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform[gFrameIndex], &gSkyboxUniformData };
+		updateResource(&skyboxViewProjCbv);
+
+		BufferUpdateDesc lightBufferCbv = { pBufferLightUniform[gFrameIndex], &gLightUniformData };
+		updateResource(&lightBufferCbv);
+		/************************************************************************/
+		// Update transparency settings
+		/************************************************************************/
+		if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
+		{
+			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings[gFrameIndex], &gWBOITSettingsData };
+			wboitSettingsUpdateDesc.mSize = sizeof(WBOITSettings);
+			updateResource(&wboitSettingsUpdateDesc);
+		}
+		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
+		{
+			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings[gFrameIndex], &gWBOITVolitionSettingsData };
+			wboitSettingsUpdateDesc.mSize = sizeof(WBOITVolitionSettings);
+			updateResource(&wboitSettingsUpdateDesc);
+		}
+		/************************************************************************/
+		// Rendering
+		/************************************************************************/
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Get command list to store rendering commands for this frame
 		Cmd* pCmd = ppCmds[gFrameIndex];
 
-		pRenderTargetScreen = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
+		pRenderTargetScreen = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 		beginCmd(pCmd);
 		cmdBeginGpuFrameProfile(pCmd, pGpuProfiler);
 		TextureBarrier barriers1[] = {
@@ -2112,9 +1967,7 @@ public:
 
 		queueSubmit(pGraphicsQueue, 1, &pCmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 					&pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
-
-		gFrameIndex = (gFrameIndex + 1) % gImageCount;
+		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
@@ -2395,41 +2248,405 @@ public:
 #endif
 	}
 
-	void CreateVertexLayouts()
+	void CreateShaders()
 	{
-		pVertexLayoutSkybox = conf_placement_new<VertexLayout>(conf_malloc(sizeof(VertexLayout)));
-		*pVertexLayoutSkybox = {};
-		pVertexLayoutSkybox->mAttribCount = 1;
-		pVertexLayoutSkybox->mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		pVertexLayoutSkybox->mAttribs[0].mFormat = ImageFormat::RGBA32F;
-		pVertexLayoutSkybox->mAttribs[0].mBinding = 0;
-		pVertexLayoutSkybox->mAttribs[0].mLocation = 0;
-		pVertexLayoutSkybox->mAttribs[0].mOffset = 0;
+		// Define shader macros
+		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", tinystl::string::format("%i", MAX_NUM_OBJECTS) };
+		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", tinystl::string::format("%i", TEXTURE_COUNT) };
+		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", tinystl::string::format("%i", AOIT_NODE_COUNT) };
+		ShaderMacro useShadowsMacro = { "USE_SHADOWS", tinystl::string::format("%i", USE_SHADOWS) };
+		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", tinystl::string::format("%i", PT_USE_REFRACTION) };
+		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", tinystl::string::format("%i", PT_USE_DIFFUSION) };
+		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", tinystl::string::format("%i", PT_USE_CAUSTICS) };
 
-		pVertexLayoutDefault = conf_placement_new<VertexLayout>(conf_malloc(sizeof(VertexLayout)));
-		*pVertexLayoutDefault = {};
-		pVertexLayoutDefault->mAttribCount = 3;
-		pVertexLayoutDefault->mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		pVertexLayoutDefault->mAttribs[0].mFormat = ImageFormat::RGB32F;
-		pVertexLayoutDefault->mAttribs[0].mBinding = 0;
-		pVertexLayoutDefault->mAttribs[0].mLocation = 0;
-		pVertexLayoutDefault->mAttribs[0].mOffset = 0;
-		pVertexLayoutDefault->mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		pVertexLayoutDefault->mAttribs[1].mFormat = ImageFormat::RGB32F;
-		pVertexLayoutDefault->mAttribs[1].mBinding = 0;
-		pVertexLayoutDefault->mAttribs[1].mLocation = 1;
-		pVertexLayoutDefault->mAttribs[1].mOffset = 3 * sizeof(float);
-		pVertexLayoutDefault->mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		pVertexLayoutDefault->mAttribs[2].mFormat = ImageFormat::RG32F;
-		pVertexLayoutDefault->mAttribs[2].mBinding = 0;
-		pVertexLayoutDefault->mAttribs[2].mLocation = 2;
-		pVertexLayoutDefault->mAttribs[2].mOffset = 6 * sizeof(float);
+		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro, useRefractionMacro, useDiffusionMacro, useCausticsMacro };
+		const uint numShaderMacros = sizeof(shaderMacros) / sizeof(shaderMacros[0]);
+
+		// Skybox shader
+		ShaderLoadDesc skyboxShaderDesc = {};
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
+
+#if USE_SHADOWS != 0
+		// Shadow mapping shader
+		ShaderLoadDesc shadowShaderDesc = {};
+		shadowShaderDesc.mStages[0] = { "shadow.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		shadowShaderDesc.mStages[1] = { "shadow.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &shadowShaderDesc, &pShaderShadow);
+
+		// Gaussian blur shader
+		ShaderLoadDesc blurShaderDesc = {};
+		blurShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &blurShaderDesc, &pShaderGaussianBlur);
+
+#if PT_USE_CAUSTICS != 0
+		// Stochastic shadow mapping shader
+		ShaderLoadDesc stochasticShadowShaderDesc = {};
+		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &stochasticShadowShaderDesc, &pShaderPTShadow);
+
+		// Downsample shader
+		ShaderLoadDesc downsampleShaderDesc = {};
+		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &downsampleShaderDesc, &pShaderPTDownsample);
+
+		// Shadow map copy shader
+		ShaderLoadDesc copyShadowDepthShaderDesc = {};
+		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &copyShadowDepthShaderDesc, &pShaderPTCopyShadowDepth);
+#endif
+#endif
+
+		// Forward shading shader
+		ShaderLoadDesc forwardShaderDesc = {};
+		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &forwardShaderDesc, &pShaderForward);
+
+		// WBOIT shade shader
+		ShaderLoadDesc wboitShadeShaderDesc = {};
+		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &wboitShadeShaderDesc, &pShaderWBOITShade);
+
+		// WBOIT composite shader
+		ShaderLoadDesc wboitCompositeShaderDesc = {};
+		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &wboitCompositeShaderDesc, &pShaderWBOITComposite);
+
+		// WBOIT Volition shade shader
+		ShaderLoadDesc wboitVolitionShadeShaderDesc = {};
+		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &wboitVolitionShadeShaderDesc, &pShaderWBOITVShade);
+
+		// WBOIT Volition composite shader
+		ShaderLoadDesc wboitVolitionCompositeShaderDesc = {};
+		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
+
+		// PT shade shader
+		ShaderLoadDesc ptShadeShaderDesc = {};
+		ptShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &ptShadeShaderDesc, &pShaderPTShade);
+
+		// PT composite shader
+		ShaderLoadDesc ptCompositeShaderDesc = {};
+		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &ptCompositeShaderDesc, &pShaderPTComposite);
+
+#if PT_USE_DIFFUSION != 0
+		// PT copy depth shader
+		ShaderLoadDesc ptCopyShaderDesc = {};
+		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &ptCopyShaderDesc, &pShaderPTCopyDepth);
+
+		// PT generate mips shader
+		ShaderLoadDesc ptGenMipsShaderDesc = {};
+		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		addShader(pRenderer, &ptGenMipsShaderDesc, &pShaderPTGenMips);
+#endif
+
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			// AOIT shade shader
+			ShaderLoadDesc aoitShadeShaderDesc = {};
+			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			addShader(pRenderer, &aoitShadeShaderDesc, &pShaderAOITShade);
+
+			// AOIT composite shader
+			ShaderLoadDesc aoitCompositeShaderDesc = {};
+			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			addShader(pRenderer, &aoitCompositeShaderDesc, &pShaderAOITComposite);
+
+			// AOIT clear shader
+			ShaderLoadDesc aoitClearShaderDesc = {};
+			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
+
+		}
+#endif
 	}
 
-	void DestroyVertexLayouts()
+	void DestroyShaders()
 	{
-		conf_free(pVertexLayoutSkybox);
-		conf_free(pVertexLayoutDefault);
+		removeShader(pRenderer, pShaderSkybox);
+#if USE_SHADOWS != 0
+		removeShader(pRenderer, pShaderShadow);
+		removeShader(pRenderer, pShaderGaussianBlur);
+#if PT_USE_CAUSTICS != 0
+		removeShader(pRenderer, pShaderPTShadow);
+		removeShader(pRenderer, pShaderPTDownsample);
+		removeShader(pRenderer, pShaderPTCopyShadowDepth);
+#endif
+#endif
+		removeShader(pRenderer, pShaderForward);
+		removeShader(pRenderer, pShaderWBOITShade);
+		removeShader(pRenderer, pShaderWBOITComposite);
+		removeShader(pRenderer, pShaderWBOITVShade);
+		removeShader(pRenderer, pShaderWBOITVComposite);
+		removeShader(pRenderer, pShaderPTShade);
+		removeShader(pRenderer, pShaderPTComposite);
+#if PT_USE_DIFFUSION != 0
+		removeShader(pRenderer, pShaderPTCopyDepth);
+		removeShader(pRenderer, pShaderPTGenMips);
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		removeShader(pRenderer, pShaderAOITShade);
+		removeShader(pRenderer, pShaderAOITComposite);
+		removeShader(pRenderer, pShaderAOITClear);
+#endif
+	}
+
+	void CreateRootSignatures()
+	{
+		// Define static samplers
+		const char* skyboxSamplerName = "SkySampler";
+		const char* pointSamplerName = "PointSampler";
+		const char* linearSamplerName = "LinearSampler";
+		const char* shadowSamplerName = USE_SHADOWS ? "VSMSampler" : 0;
+
+		Sampler* staticSamplers[] = { pSamplerSkybox, pSamplerPoint, pSamplerBilinear, pSamplerShadow };
+		const char* staticSamplerNames[] = { skyboxSamplerName, pointSamplerName, linearSamplerName, shadowSamplerName };
+		const uint numStaticSamplers = sizeof(staticSamplers) / sizeof(staticSamplers[0]);
+
+		// Skybox root signature
+		RootSignatureDesc skyboxRootSignatureDesc = {};
+		skyboxRootSignatureDesc.ppShaders = &pShaderSkybox;
+		skyboxRootSignatureDesc.mShaderCount = 1;
+		skyboxRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		skyboxRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		skyboxRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		skyboxRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &skyboxRootSignatureDesc, &pRootSignatureSkybox);
+
+#if USE_SHADOWS != 0
+		// Shadow mapping root signature
+		RootSignatureDesc shadowRootSignatureDesc = {};
+		shadowRootSignatureDesc.ppShaders = &pShaderShadow;
+		shadowRootSignatureDesc.mShaderCount = 1;
+		shadowRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		shadowRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		shadowRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		shadowRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &shadowRootSignatureDesc, &pRootSignatureShadow);
+
+		// Shadow mapping root signature
+		RootSignatureDesc blurRootSignatureDesc = {};
+		blurRootSignatureDesc.ppShaders = &pShaderGaussianBlur;
+		blurRootSignatureDesc.mShaderCount = 1;
+		blurRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		blurRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		blurRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		blurRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &blurRootSignatureDesc, &pRootSignatureGaussianBlur);
+
+#if PT_USE_CAUSTICS != 0
+		// Shadow mapping root signature
+		RootSignatureDesc stochasticShadowRootSignatureDesc = {};
+		stochasticShadowRootSignatureDesc.ppShaders = &pShaderPTShadow;
+		stochasticShadowRootSignatureDesc.mShaderCount = 1;
+		stochasticShadowRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		stochasticShadowRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		stochasticShadowRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		stochasticShadowRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &stochasticShadowRootSignatureDesc, &pRootSignaturePTShadow);
+
+		// Shadow downsample root signature
+		RootSignatureDesc downsampleRootSignatureDesc = {};
+		downsampleRootSignatureDesc.ppShaders = &pShaderPTDownsample;
+		downsampleRootSignatureDesc.mShaderCount = 1;
+		downsampleRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		downsampleRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		downsampleRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		downsampleRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &downsampleRootSignatureDesc, &pRootSignaturePTDownsample);
+
+		// Copy shadow root signature
+		RootSignatureDesc copyShadowDepthRootSignatureDesc = {};
+		copyShadowDepthRootSignatureDesc.ppShaders = &pShaderPTCopyShadowDepth;
+		copyShadowDepthRootSignatureDesc.mShaderCount = 1;
+		copyShadowDepthRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		copyShadowDepthRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		copyShadowDepthRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		copyShadowDepthRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &copyShadowDepthRootSignatureDesc, &pRootSignaturePTCopyShadowDepth);
+#endif
+#endif
+
+		// Forward shading root signature
+		RootSignatureDesc forwardRootSignatureDesc = {};
+		forwardRootSignatureDesc.ppShaders = &pShaderForward;
+		forwardRootSignatureDesc.mShaderCount = 1;
+		forwardRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		forwardRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		forwardRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		forwardRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &forwardRootSignatureDesc, &pRootSignatureForward);
+
+		// WBOIT shade root signature
+		RootSignatureDesc wboitShadeRootSignatureDesc = {};
+		wboitShadeRootSignatureDesc.ppShaders = &pShaderWBOITShade;
+		wboitShadeRootSignatureDesc.mShaderCount = 1;
+		wboitShadeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		wboitShadeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		wboitShadeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		wboitShadeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &wboitShadeRootSignatureDesc, &pRootSignatureWBOITShade);
+
+		// WBOIT composite root signature
+		RootSignatureDesc wboitCompositeRootSignatureDesc = {};
+		wboitCompositeRootSignatureDesc.ppShaders = &pShaderWBOITComposite;
+		wboitCompositeRootSignatureDesc.mShaderCount = 1;
+		wboitCompositeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		wboitCompositeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		wboitCompositeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		wboitCompositeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &wboitCompositeRootSignatureDesc, &pRootSignatureWBOITComposite);
+
+		// WBOIT Volition shade root signature
+		RootSignatureDesc wboitVolitionShadeRootSignatureDesc = {};
+		wboitVolitionShadeRootSignatureDesc.ppShaders = &pShaderWBOITVShade;
+		wboitVolitionShadeRootSignatureDesc.mShaderCount = 1;
+		wboitVolitionShadeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		wboitVolitionShadeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		wboitVolitionShadeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		wboitVolitionShadeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &wboitVolitionShadeRootSignatureDesc, &pRootSignatureWBOITVShade);
+
+		// WBOIT Volition composite root signature
+		RootSignatureDesc wboitVolitionCompositeRootSignatureDesc = {};
+		wboitVolitionCompositeRootSignatureDesc.ppShaders = &pShaderWBOITVComposite;
+		wboitVolitionCompositeRootSignatureDesc.mShaderCount = 1;
+		wboitVolitionCompositeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		wboitVolitionCompositeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		wboitVolitionCompositeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		wboitVolitionCompositeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &wboitVolitionCompositeRootSignatureDesc, &pRootSignatureWBOITVComposite);
+
+		// PT shade root signature
+		RootSignatureDesc ptShadeRootSignatureDesc = {};
+		ptShadeRootSignatureDesc.ppShaders = &pShaderPTShade;
+		ptShadeRootSignatureDesc.mShaderCount = 1;
+		ptShadeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		ptShadeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		ptShadeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		ptShadeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &ptShadeRootSignatureDesc, &pRootSignaturePTShade);
+
+		// PT composite root signature
+		RootSignatureDesc ptCompositeRootSignatureDesc = {};
+		ptCompositeRootSignatureDesc.ppShaders = &pShaderPTComposite;
+		ptCompositeRootSignatureDesc.mShaderCount = 1;
+		ptCompositeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		ptCompositeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		ptCompositeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		ptCompositeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &ptCompositeRootSignatureDesc, &pRootSignaturePTComposite);
+
+#if PT_USE_DIFFUSION != 0
+		// PT copy depth root signature
+		RootSignatureDesc ptCopyDepthRootSignatureDesc = {};
+		ptCopyDepthRootSignatureDesc.ppShaders = &pShaderPTCopyDepth;
+		ptCopyDepthRootSignatureDesc.mShaderCount = 1;
+		ptCopyDepthRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		ptCopyDepthRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		ptCopyDepthRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		ptCopyDepthRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &ptCopyDepthRootSignatureDesc, &pRootSignaturePTCopyDepth);
+
+		// PT generate mips root signature
+		RootSignatureDesc ptGenMipsRootSignatureDesc = {};
+		ptGenMipsRootSignatureDesc.ppShaders = &pShaderPTGenMips;
+		ptGenMipsRootSignatureDesc.mShaderCount = 1;
+		ptGenMipsRootSignatureDesc.ppStaticSamplers = staticSamplers;
+		ptGenMipsRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+		ptGenMipsRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+		ptGenMipsRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+		addRootSignature(pRenderer, &ptGenMipsRootSignatureDesc, &pRootSignaturePTGenMips);
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			// AOIT shade root signature
+			RootSignatureDesc aoitShadeRootSignatureDesc = {};
+			aoitShadeRootSignatureDesc.ppShaders = &pShaderAOITShade;
+			aoitShadeRootSignatureDesc.mShaderCount = 1;
+			aoitShadeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+			aoitShadeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+			aoitShadeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+			aoitShadeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+			addRootSignature(pRenderer, &aoitShadeRootSignatureDesc, &pRootSignatureAOITShade);
+
+			// AOIT composite root signature
+			RootSignatureDesc aoitCompositeRootSignatureDesc = {};
+			aoitCompositeRootSignatureDesc.ppShaders = &pShaderAOITComposite;
+			aoitCompositeRootSignatureDesc.mShaderCount = 1;
+			aoitCompositeRootSignatureDesc.ppStaticSamplers = staticSamplers;
+			aoitCompositeRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+			aoitCompositeRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+			aoitCompositeRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+			addRootSignature(pRenderer, &aoitCompositeRootSignatureDesc, &pRootSignatureAOITComposite);
+
+			// AOIT clear signature
+			RootSignatureDesc aoitClearRootSignatureDesc = {};
+			aoitClearRootSignatureDesc.ppShaders = &pShaderAOITClear;
+			aoitClearRootSignatureDesc.mShaderCount = 1;
+			aoitClearRootSignatureDesc.ppStaticSamplers = staticSamplers;
+			aoitClearRootSignatureDesc.mStaticSamplerCount = numStaticSamplers;
+			aoitClearRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
+			aoitClearRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
+			addRootSignature(pRenderer, &aoitClearRootSignatureDesc, &pRootSignatureAOITClear);
+
+		}
+#endif
+	}
+
+	void DestroyRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignatureSkybox);
+#if USE_SHADOWS != 0
+		removeRootSignature(pRenderer, pRootSignatureShadow);
+		removeRootSignature(pRenderer, pRootSignatureGaussianBlur);
+#if PT_USE_CAUSTICS != 0
+		removeRootSignature(pRenderer, pRootSignaturePTShadow);
+		removeRootSignature(pRenderer, pRootSignaturePTDownsample);
+		removeRootSignature(pRenderer, pRootSignaturePTCopyShadowDepth);
+#endif
+#endif
+		removeRootSignature(pRenderer, pRootSignatureForward);
+		removeRootSignature(pRenderer, pRootSignatureWBOITShade);
+		removeRootSignature(pRenderer, pRootSignatureWBOITComposite);
+		removeRootSignature(pRenderer, pRootSignatureWBOITVShade);
+		removeRootSignature(pRenderer, pRootSignatureWBOITVComposite);
+		removeRootSignature(pRenderer, pRootSignaturePTShade);
+		removeRootSignature(pRenderer, pRootSignaturePTComposite);
+#if PT_USE_DIFFUSION != 0
+		removeRootSignature(pRenderer, pRootSignaturePTCopyDepth);
+		removeRootSignature(pRenderer, pRootSignaturePTGenMips);
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			removeRootSignature(pRenderer, pRootSignatureAOITShade);
+			removeRootSignature(pRenderer, pRootSignatureAOITComposite);
+			removeRootSignature(pRenderer, pRootSignatureAOITClear);
+		}
+#endif
 	}
 
 	void CreateResources()
@@ -2627,6 +2844,7 @@ public:
 					BufferLoadDesc indexBufferDesc = {};
 					indexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 					indexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+					indexBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 					indexBufferDesc.mDesc.mSize = sizeof(uint) * meshData->mIndexCount;
 					indexBufferDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 					indexBufferDesc.pData = indices.data();
@@ -2702,8 +2920,11 @@ public:
 		ubDesc.mDesc.mSize = sizeof(ObjectInfoUniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
-		ubDesc.ppBuffer = &pBufferOpaqueObjectTransforms;
-		addResource(&ubDesc);
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pBufferOpaqueObjectTransforms[i];
+			addResource(&ubDesc);
+		}
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferTransparentObjectTransforms[i];
@@ -2717,9 +2938,11 @@ public:
 		skyboxDesc.mDesc.mSize = sizeof(SkyboxUniformBlock);
 		skyboxDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyboxDesc.pData = NULL;
-		skyboxDesc.ppBuffer = &pBufferSkyboxUniform;
-		addResource(&skyboxDesc);
-
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			skyboxDesc.ppBuffer = &pBufferSkyboxUniform[i];
+			addResource(&skyboxDesc);
+		}
 
 		BufferLoadDesc camUniDesc = {};
 		camUniDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2727,9 +2950,11 @@ public:
 		camUniDesc.mDesc.mSize = sizeof(CameraUniform);
 		camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		camUniDesc.pData = &gCameraUniformData;
-		camUniDesc.ppBuffer = &pBufferCameraUniform;
-		addResource(&camUniDesc);
-
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			camUniDesc.ppBuffer = &pBufferCameraUniform[i];
+			addResource(&camUniDesc);
+		}
 
 		BufferLoadDesc camLightUniDesc = {};
 		camLightUniDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2737,9 +2962,11 @@ public:
 		camLightUniDesc.mDesc.mSize = sizeof(CameraUniform);
 		camLightUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		camLightUniDesc.pData = &gCameraLightUniformData;
-		camLightUniDesc.ppBuffer = &pBufferCameraLightUniform;
-		addResource(&camLightUniDesc);
-
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			camLightUniDesc.ppBuffer = &pBufferCameraLightUniform[i];
+			addResource(&camLightUniDesc);
+		}
 
 		BufferLoadDesc lightUniformDesc = {};
 		lightUniformDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2747,31 +2974,37 @@ public:
 		lightUniformDesc.mDesc.mSize = sizeof(LightUniformBlock);
 		lightUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		lightUniformDesc.pData = NULL;
-		lightUniformDesc.ppBuffer = &pBufferLightUniform;
-		addResource(&lightUniformDesc);
-
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			lightUniformDesc.ppBuffer = &pBufferLightUniform[i];
+			addResource(&lightUniformDesc);
+		}
 		BufferLoadDesc wboitSettingsDesc = {};
 		wboitSettingsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		wboitSettingsDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		wboitSettingsDesc.mDesc.mSize = max(sizeof(WBOITSettings), sizeof(WBOITVolitionSettings));
 		wboitSettingsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		wboitSettingsDesc.pData = NULL;
-		wboitSettingsDesc.ppBuffer = &pBufferWBOITSettings;
-		addResource(&wboitSettingsDesc);
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			wboitSettingsDesc.ppBuffer = &pBufferWBOITSettings[i];
+			addResource(&wboitSettingsDesc);
+		}
 	}
 
 	void DestroyUniformBuffers()
 	{
-		for(int i = 0; i < gImageCount; ++i)
+		for (int i = 0; i < gImageCount; ++i)
+		{
 			removeResource(pBufferMaterials[i]);
-		removeResource(pBufferOpaqueObjectTransforms);
-		for(int i = 0; i < gImageCount; ++i)
+			removeResource(pBufferOpaqueObjectTransforms[i]);
 			removeResource(pBufferTransparentObjectTransforms[i]);
-		removeResource(pBufferLightUniform);
-		removeResource(pBufferSkyboxUniform);
-		removeResource(pBufferCameraUniform);
-		removeResource(pBufferCameraLightUniform);
-		removeResource(pBufferWBOITSettings);
+			removeResource(pBufferLightUniform[i]);
+			removeResource(pBufferSkyboxUniform[i]);
+			removeResource(pBufferCameraUniform[i]);
+			removeResource(pBufferCameraLightUniform[i]);
+			removeResource(pBufferWBOITSettings[i]);
+		}
 	}
 
 	/************************************************************************/
@@ -2975,62 +3208,395 @@ public:
 		removeSwapChain(pRenderer, pSwapChain);
 	}
 
-	void CreateRenderPass(RenderPass renderPass)
+	void CreatePipelines()
 	{
-		RenderPassData* rp = pRenderPasses[renderPass];
+		// Define vertex layouts
+		VertexLayout vertexLayoutSkybox = {};
+		vertexLayoutSkybox.mAttribCount = 1;
+		vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutSkybox.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
+		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
+		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
 
-		if (rp)
+		VertexLayout vertexLayoutDefault = {};
+		vertexLayoutDefault.mAttribCount = 3;
+		vertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutDefault.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayoutDefault.mAttribs[0].mBinding = 0;
+		vertexLayoutDefault.mAttribs[0].mLocation = 0;
+		vertexLayoutDefault.mAttribs[0].mOffset = 0;
+		vertexLayoutDefault.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayoutDefault.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayoutDefault.mAttribs[1].mBinding = 0;
+		vertexLayoutDefault.mAttribs[1].mLocation = 1;
+		vertexLayoutDefault.mAttribs[1].mOffset = 3 * sizeof(float);
+		vertexLayoutDefault.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutDefault.mAttribs[2].mFormat = ImageFormat::RG32F;
+		vertexLayoutDefault.mAttribs[2].mBinding = 0;
+		vertexLayoutDefault.mAttribs[2].mLocation = 2;
+		vertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);
+
+		bool srgbEnabled[] = { true, true, true, true, true, true, true, true };
+		bool srgbDisabled[] = { false, false, false, false, false, false, false, false };
+
+		// Skybox pipeline
+		GraphicsPipelineDesc skyboxPipelineDesc = {};
+		skyboxPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		skyboxPipelineDesc.pShaderProgram = pShaderSkybox;
+		skyboxPipelineDesc.pRootSignature = pRootSignatureSkybox;
+		skyboxPipelineDesc.mRenderTargetCount = 1;
+		skyboxPipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		skyboxPipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		skyboxPipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		skyboxPipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		skyboxPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		skyboxPipelineDesc.pVertexLayout = &vertexLayoutSkybox;
+		skyboxPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		skyboxPipelineDesc.pDepthState = pDepthStateDisable;
+		skyboxPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &skyboxPipelineDesc, &pPipelineSkybox);
+
+#if USE_SHADOWS != 0
+		// Shadow pipeline
+		GraphicsPipelineDesc shadowPipelineDesc = {};
+		shadowPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		shadowPipelineDesc.pShaderProgram = pShaderShadow;
+		shadowPipelineDesc.pRootSignature = pRootSignatureShadow;
+		shadowPipelineDesc.mRenderTargetCount = 1;
+		shadowPipelineDesc.pColorFormats = &pRenderTargetShadowVariance[0]->mDesc.mFormat;
+		shadowPipelineDesc.pSrgbValues = &pRenderTargetShadowVariance[0]->mDesc.mSrgb;
+		shadowPipelineDesc.mSampleCount = pRenderTargetShadowVariance[0]->mDesc.mSampleCount;
+		shadowPipelineDesc.mSampleQuality = pRenderTargetShadowVariance[0]->mDesc.mSampleQuality;
+		shadowPipelineDesc.mDepthStencilFormat = ImageFormat::D16;
+		shadowPipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		shadowPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
+		shadowPipelineDesc.pDepthState = pDepthStateEnable;
+		shadowPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &shadowPipelineDesc, &pPipelineShadow);
+
+		// Gaussian blur pipeline
+		GraphicsPipelineDesc blurPipelineDesc = {};
+		blurPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		blurPipelineDesc.pShaderProgram = pShaderGaussianBlur;
+		blurPipelineDesc.pRootSignature = pRootSignatureGaussianBlur;
+		blurPipelineDesc.mRenderTargetCount = 1;
+		blurPipelineDesc.pColorFormats = &pRenderTargetShadowVariance[0]->mDesc.mFormat;
+		blurPipelineDesc.pSrgbValues = &pRenderTargetShadowVariance[0]->mDesc.mSrgb;
+		blurPipelineDesc.mSampleCount = pRenderTargetShadowVariance[0]->mDesc.mSampleCount;
+		blurPipelineDesc.mSampleQuality = pRenderTargetShadowVariance[0]->mDesc.mSampleQuality;
+		blurPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		blurPipelineDesc.pVertexLayout = NULL;
+		blurPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		blurPipelineDesc.pDepthState = pDepthStateDisable;
+		blurPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &blurPipelineDesc, &pPipelineGaussianBlur);
+
+#if PT_USE_CAUSTICS != 0
+		ImageFormat::Enum stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mDesc.mFormat, pRenderTargetPTShadowVariance[1]->mDesc.mFormat, pRenderTargetPTShadowVariance[2]->mDesc.mFormat };
+
+		// Stochastic shadow pipeline
+		GraphicsPipelineDesc stochasticShadowPipelineDesc = {};
+		stochasticShadowPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		stochasticShadowPipelineDesc.pShaderProgram = pShaderPTShadow;
+		stochasticShadowPipelineDesc.pRootSignature = pRootSignaturePTShadow;
+		stochasticShadowPipelineDesc.mRenderTargetCount = 3;
+		stochasticShadowPipelineDesc.pColorFormats = stochasticShadowColorFormats;
+		stochasticShadowPipelineDesc.pSrgbValues = srgbDisabled;
+		stochasticShadowPipelineDesc.mSampleCount = pRenderTargetPTShadowVariance[0]->mDesc.mSampleCount;
+		stochasticShadowPipelineDesc.mSampleQuality = pRenderTargetPTShadowVariance[0]->mDesc.mSampleQuality;
+		stochasticShadowPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		stochasticShadowPipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		stochasticShadowPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
+		stochasticShadowPipelineDesc.pDepthState = pDepthStateDisable;
+		stochasticShadowPipelineDesc.pBlendState = pBlendStatePTMinBlend;
+		addPipeline(pRenderer, &stochasticShadowPipelineDesc, &pPipelinePTShadow);
+
+		// Downsample shadow pipeline
+		GraphicsPipelineDesc downsampleShadowPipelineDesc = {};
+		downsampleShadowPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		downsampleShadowPipelineDesc.pShaderProgram = pShaderPTDownsample;
+		downsampleShadowPipelineDesc.pRootSignature = pRootSignaturePTDownsample;
+		downsampleShadowPipelineDesc.mRenderTargetCount = 1;
+		downsampleShadowPipelineDesc.pColorFormats = &pRenderTargetPTShadowFinal[0][0]->mDesc.mFormat;
+		downsampleShadowPipelineDesc.pSrgbValues = &pRenderTargetPTShadowFinal[0][0]->mDesc.mSrgb;
+		downsampleShadowPipelineDesc.mSampleCount = pRenderTargetPTShadowFinal[0][0]->mDesc.mSampleCount;
+		downsampleShadowPipelineDesc.mSampleQuality = pRenderTargetPTShadowFinal[0][0]->mDesc.mSampleQuality;
+		downsampleShadowPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		downsampleShadowPipelineDesc.pVertexLayout = NULL;
+		downsampleShadowPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		downsampleShadowPipelineDesc.pDepthState = pDepthStateDisable;
+		downsampleShadowPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &downsampleShadowPipelineDesc, &pPipelinePTDownsample);
+
+		// Copy shadow map pipeline
+		GraphicsPipelineDesc copyShadowDepthPipelineDesc = {};
+		copyShadowDepthPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		copyShadowDepthPipelineDesc.pShaderProgram = pShaderPTCopyShadowDepth;
+		copyShadowDepthPipelineDesc.pRootSignature = pRootSignaturePTCopyShadowDepth;
+		copyShadowDepthPipelineDesc.mRenderTargetCount = 1;
+		copyShadowDepthPipelineDesc.pColorFormats = &pRenderTargetPTShadowVariance[0]->mDesc.mFormat;
+		copyShadowDepthPipelineDesc.pSrgbValues = &pRenderTargetPTShadowVariance[0]->mDesc.mSrgb;
+		copyShadowDepthPipelineDesc.mSampleCount = pRenderTargetPTShadowVariance[0]->mDesc.mSampleCount;
+		copyShadowDepthPipelineDesc.mSampleQuality = pRenderTargetPTShadowVariance[0]->mDesc.mSampleQuality;
+		copyShadowDepthPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		copyShadowDepthPipelineDesc.pVertexLayout = NULL;
+		copyShadowDepthPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		copyShadowDepthPipelineDesc.pDepthState = pDepthStateDisable;
+		copyShadowDepthPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &copyShadowDepthPipelineDesc, &pPipelinePTCopyShadowDepth);
+
+#endif
+#endif
+
+		// Forward shading pipeline
+		GraphicsPipelineDesc forwardPipelineDesc = {};
+		forwardPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		forwardPipelineDesc.pShaderProgram = pShaderForward;
+		forwardPipelineDesc.pRootSignature = pRootSignatureForward;
+		forwardPipelineDesc.mRenderTargetCount = 1;
+		forwardPipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		forwardPipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		forwardPipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		forwardPipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		forwardPipelineDesc.mDepthStencilFormat = ImageFormat::D32F;
+		forwardPipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		forwardPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
+		forwardPipelineDesc.pDepthState = pDepthStateEnable;
+		forwardPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &forwardPipelineDesc, &pPipelineForward);
+
+		// Transparent forward shading pipeline
+		GraphicsPipelineDesc transparentForwardPipelineDesc = {};
+		transparentForwardPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		transparentForwardPipelineDesc.pShaderProgram = pShaderForward;
+		transparentForwardPipelineDesc.pRootSignature = pRootSignatureForward;
+		transparentForwardPipelineDesc.mRenderTargetCount = 1;
+		transparentForwardPipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		transparentForwardPipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		transparentForwardPipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		transparentForwardPipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		transparentForwardPipelineDesc.mDepthStencilFormat = ImageFormat::D32F;
+		transparentForwardPipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		transparentForwardPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		transparentForwardPipelineDesc.pDepthState = pDepthStateNoWrite;
+		transparentForwardPipelineDesc.pBlendState = pBlendStateAlphaBlend;
+		addPipeline(pRenderer, &transparentForwardPipelineDesc, &pPipelineTransparentForward);
+
+		// WBOIT shading pipeline
+		GraphicsPipelineDesc wboitShadePipelineDesc = {};
+		wboitShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		wboitShadePipelineDesc.pShaderProgram = pShaderWBOITShade;
+		wboitShadePipelineDesc.pRootSignature = pRootSignatureWBOITShade;
+		wboitShadePipelineDesc.mRenderTargetCount = WBOIT_RT_COUNT;
+		wboitShadePipelineDesc.pColorFormats = gWBOITRenderTargetFormats;
+		wboitShadePipelineDesc.pSrgbValues = srgbDisabled;
+		wboitShadePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		wboitShadePipelineDesc.mSampleQuality = 0;
+		wboitShadePipelineDesc.mDepthStencilFormat = ImageFormat::D32F;
+		wboitShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		wboitShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		wboitShadePipelineDesc.pDepthState = pDepthStateNoWrite;
+		wboitShadePipelineDesc.pBlendState = pBlendStateWBOITShade;
+		addPipeline(pRenderer, &wboitShadePipelineDesc, &pPipelineWBOITShade);
+
+		// WBOIT composite pipeline
+		GraphicsPipelineDesc wboitCompositePipelineDesc = {};
+		wboitCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		wboitCompositePipelineDesc.pShaderProgram = pShaderWBOITComposite;
+		wboitCompositePipelineDesc.pRootSignature = pRootSignatureWBOITComposite;
+		wboitCompositePipelineDesc.mRenderTargetCount = 1;
+		wboitCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		wboitCompositePipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		wboitCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		wboitCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		wboitCompositePipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		wboitCompositePipelineDesc.pVertexLayout = NULL;
+		wboitCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		wboitCompositePipelineDesc.pDepthState = pDepthStateDisable;
+		wboitCompositePipelineDesc.pBlendState = pBlendStateAlphaBlend;
+		addPipeline(pRenderer, &wboitCompositePipelineDesc, &pPipelineWBOITComposite);
+
+		// WBOIT Volition shading pipeline
+		GraphicsPipelineDesc wboitVolitionShadePipelineDesc = {};
+		wboitVolitionShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		wboitVolitionShadePipelineDesc.pShaderProgram = pShaderWBOITVShade;
+		wboitVolitionShadePipelineDesc.pRootSignature = pRootSignatureWBOITVShade;
+		wboitVolitionShadePipelineDesc.mRenderTargetCount = WBOIT_RT_COUNT;
+		wboitVolitionShadePipelineDesc.pColorFormats = gWBOITRenderTargetFormats;
+		wboitVolitionShadePipelineDesc.pSrgbValues = srgbDisabled;
+		wboitVolitionShadePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		wboitVolitionShadePipelineDesc.mSampleQuality = 0;
+		wboitVolitionShadePipelineDesc.mDepthStencilFormat = ImageFormat::D32F;
+		wboitVolitionShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		wboitVolitionShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		wboitVolitionShadePipelineDesc.pDepthState = pDepthStateNoWrite;
+		wboitVolitionShadePipelineDesc.pBlendState = pBlendStateWBOITVolitionShade;
+		addPipeline(pRenderer, &wboitVolitionShadePipelineDesc, &pPipelineWBOITVShade);
+
+		// WBOIT Volition composite pipeline
+		GraphicsPipelineDesc wboitVolitionCompositePipelineDesc = {};
+		wboitVolitionCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		wboitVolitionCompositePipelineDesc.pShaderProgram = pShaderWBOITVComposite;
+		wboitVolitionCompositePipelineDesc.pRootSignature = pRootSignatureWBOITVComposite;
+		wboitVolitionCompositePipelineDesc.mRenderTargetCount = 1;
+		wboitVolitionCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		wboitVolitionCompositePipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		wboitVolitionCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		wboitVolitionCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		wboitVolitionCompositePipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		wboitVolitionCompositePipelineDesc.pVertexLayout = NULL;
+		wboitVolitionCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		wboitVolitionCompositePipelineDesc.pDepthState = pDepthStateDisable;
+		wboitVolitionCompositePipelineDesc.pBlendState = pBlendStateAlphaBlend;
+		addPipeline(pRenderer, &wboitVolitionCompositePipelineDesc, &pPipelineWBOITVComposite);
+
+		// PT shading pipeline
+		GraphicsPipelineDesc ptShadePipelineDesc = {};
+		ptShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		ptShadePipelineDesc.pShaderProgram = pShaderPTShade;
+		ptShadePipelineDesc.pRootSignature = pRootSignaturePTShade;
+		ptShadePipelineDesc.mRenderTargetCount = PT_RT_COUNT;
+		ptShadePipelineDesc.pColorFormats = gPTRenderTargetFormats;
+		ptShadePipelineDesc.pSrgbValues = srgbDisabled;
+		ptShadePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		ptShadePipelineDesc.mSampleQuality = 0;
+		ptShadePipelineDesc.mDepthStencilFormat = ImageFormat::D32F;
+		ptShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
+		ptShadePipelineDesc.pRasterizerState = pRasterizerStateCullFront;
+		ptShadePipelineDesc.pDepthState = pDepthStateNoWrite;
+		ptShadePipelineDesc.pBlendState = pBlendStatePTShade;
+		addPipeline(pRenderer, &ptShadePipelineDesc, &pPipelinePTShade);
+
+		// PT composite pipeline
+		GraphicsPipelineDesc ptCompositePipelineDesc = {};
+		ptCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		ptCompositePipelineDesc.pShaderProgram = pShaderPTComposite;
+		ptCompositePipelineDesc.pRootSignature = pRootSignaturePTComposite;
+		ptCompositePipelineDesc.mRenderTargetCount = 1;
+		ptCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+		ptCompositePipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+		ptCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+		ptCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		ptCompositePipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		ptCompositePipelineDesc.pVertexLayout = NULL;
+		ptCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ptCompositePipelineDesc.pDepthState = pDepthStateDisable;
+		ptCompositePipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &ptCompositePipelineDesc, &pPipelinePTComposite);
+
+#if PT_USE_DIFFUSION != 0
+		ImageFormat::Enum ptCopyDepthFormat = ImageFormat::R32F;
+
+		// PT copy depth pipeline
+		GraphicsPipelineDesc ptCopyDepthPipelineDesc = {};
+		ptCopyDepthPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		ptCopyDepthPipelineDesc.pShaderProgram = pShaderPTCopyDepth;
+		ptCopyDepthPipelineDesc.pRootSignature = pRootSignaturePTCopyDepth;
+		ptCopyDepthPipelineDesc.mRenderTargetCount = 1;
+		ptCopyDepthPipelineDesc.pColorFormats = &ptCopyDepthFormat;
+		ptCopyDepthPipelineDesc.pSrgbValues = srgbDisabled;
+		ptCopyDepthPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		ptCopyDepthPipelineDesc.mSampleQuality = 0;
+		ptCopyDepthPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+		ptCopyDepthPipelineDesc.pVertexLayout = NULL;
+		ptCopyDepthPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ptCopyDepthPipelineDesc.pDepthState = pDepthStateDisable;
+		ptCopyDepthPipelineDesc.pBlendState = NULL;
+		addPipeline(pRenderer, &ptCopyDepthPipelineDesc, &pPipelinePTCopyDepth);
+
+		// PT generate mips pipeline
+		ComputePipelineDesc ptGenMipsPipelineDesc = {};
+		ptGenMipsPipelineDesc.pShaderProgram = pShaderPTGenMips;
+		ptGenMipsPipelineDesc.pRootSignature = pRootSignaturePTGenMips;
+		addComputePipeline(pRenderer, &ptGenMipsPipelineDesc, &pPipelinePTGenMips);
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
 		{
-			if(rp->ppSwapChain)
-			{
-				ASSERT(rp->mRenderTargetCount == 1);
-				rp->ppRenderTargets = &(*rp->ppSwapChain)->ppSwapchainRenderTargets[0];
-			}
+			// AOIT shading pipeline
+			GraphicsPipelineDesc aoitShadePipelineDesc = {};
+			aoitShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			aoitShadePipelineDesc.pShaderProgram = pShaderAOITShade;
+			aoitShadePipelineDesc.pRootSignature = pRootSignatureAOITShade;
+			aoitShadePipelineDesc.mRenderTargetCount = 0;
+			aoitShadePipelineDesc.pColorFormats = NULL;
+			aoitShadePipelineDesc.pSrgbValues = NULL;
+			aoitShadePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+			aoitShadePipelineDesc.mSampleQuality = 0;
+			aoitShadePipelineDesc.mDepthStencilFormat = ImageFormat::D32F;
+			aoitShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
+			aoitShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+			aoitShadePipelineDesc.pDepthState = pDepthStateNoWrite;
+			aoitShadePipelineDesc.pBlendState = NULL;
+			addPipeline(pRenderer, &aoitShadePipelineDesc, &pPipelineAOITShade);
 
-			if (rp->ppRenderTargets)
-			{
-				for (uint i = 0; i < rp->mRenderTargetCount; ++i)
-				{
-					rp->pColorFormats[i] = rp->ppRenderTargets[i]->mDesc.mFormat;
-					rp->pSrgbValues[i] = rp->ppRenderTargets[i]->mDesc.mSrgb;
-				}
+			// AOIT composite pipeline
+			GraphicsPipelineDesc aoitCompositePipelineDesc = {};
+			aoitCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			aoitCompositePipelineDesc.pShaderProgram = pShaderAOITComposite;
+			aoitCompositePipelineDesc.pRootSignature = pRootSignatureAOITComposite;
+			aoitCompositePipelineDesc.mRenderTargetCount = 1;
+			aoitCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
+			aoitCompositePipelineDesc.pSrgbValues = &pSwapChain->mDesc.mSrgb;
+			aoitCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
+			aoitCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+			aoitCompositePipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+			aoitCompositePipelineDesc.pVertexLayout = NULL;
+			aoitCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+			aoitCompositePipelineDesc.pDepthState = pDepthStateDisable;
+			aoitCompositePipelineDesc.pBlendState = pBlendStateAOITComposite;
+			addPipeline(pRenderer, &aoitCompositePipelineDesc, &pPipelineAOITComposite);
 
-				rp->mSampleCount = rp->ppRenderTargets[0]->mDesc.mSampleCount;
-				rp->mSampleQuality = rp->ppRenderTargets[0]->mDesc.mSampleQuality;
-			}
-
-			if (!rp->mIsComputePipeline)
-			{
-				GraphicsPipelineDesc pipelineDesc = {};
-				pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-				pipelineDesc.pShaderProgram = rp->pShader;
-				pipelineDesc.pRootSignature = rp->pRootSignature;
-				pipelineDesc.mRenderTargetCount = rp->mRenderTargetCount;
-				pipelineDesc.pColorFormats = rp->pColorFormats;
-				pipelineDesc.pSrgbValues = rp->pSrgbValues;
-				pipelineDesc.mSampleCount = rp->mSampleCount;
-				pipelineDesc.mSampleQuality = rp->mSampleQuality;
-				pipelineDesc.mDepthStencilFormat = rp->mDepthStencilFormat;
-				pipelineDesc.pVertexLayout = rp->pVertexLayout;
-				pipelineDesc.pRasterizerState = rp->pRasterizerState;
-				pipelineDesc.pDepthState = rp->pDepthState;
-				pipelineDesc.pBlendState = rp->pBlendState;
-				addPipeline(pRenderer, &pipelineDesc, &rp->pPipeline);
-			}
-			else
-			{
-				ComputePipelineDesc pipelineDesc = {};
-				pipelineDesc.pShaderProgram = rp->pShader;
-				pipelineDesc.pRootSignature = rp->pRootSignature;
-				addComputePipeline(pRenderer, &pipelineDesc, &rp->pPipeline);
-			}
+			// AOIT clear pipeline
+			GraphicsPipelineDesc aoitClearPipelineDesc = {};
+			aoitClearPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			aoitClearPipelineDesc.pShaderProgram = pShaderAOITClear;
+			aoitClearPipelineDesc.pRootSignature = pRootSignatureAOITClear;
+			aoitClearPipelineDesc.mRenderTargetCount = 0;
+			aoitClearPipelineDesc.pColorFormats = NULL;
+			aoitClearPipelineDesc.pSrgbValues = NULL;
+			aoitClearPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+			aoitClearPipelineDesc.mSampleQuality = 0;
+			aoitClearPipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+			aoitClearPipelineDesc.pVertexLayout = NULL;
+			aoitClearPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+			aoitClearPipelineDesc.pDepthState = pDepthStateDisable;
+			aoitClearPipelineDesc.pBlendState = NULL;
+			addPipeline(pRenderer, &aoitClearPipelineDesc, &pPipelineAOITClear);
 		}
+#endif
 	}
 
-	void DestroyRenderPass(RenderPass renderPass)
+	void DestroyPipelines()
 	{
-		if(pRenderPasses[renderPass])
-			removePipeline(pRenderer, pRenderPasses[renderPass]->pPipeline);
+		removePipeline(pRenderer, pPipelineSkybox);
+#if USE_SHADOWS != 0
+		removePipeline(pRenderer, pPipelineShadow);
+		removePipeline(pRenderer, pPipelineGaussianBlur);
+#if PT_USE_CAUSTICS != 0
+		removePipeline(pRenderer, pPipelinePTShadow);
+		removePipeline(pRenderer, pPipelinePTDownsample);
+		removePipeline(pRenderer, pPipelinePTCopyShadowDepth);
+#endif
+#endif
+		removePipeline(pRenderer, pPipelineForward);
+		removePipeline(pRenderer, pPipelineTransparentForward);
+		removePipeline(pRenderer, pPipelineWBOITShade);
+		removePipeline(pRenderer, pPipelineWBOITComposite);
+		removePipeline(pRenderer, pPipelineWBOITVShade);
+		removePipeline(pRenderer, pPipelineWBOITVComposite);
+		removePipeline(pRenderer, pPipelinePTShade);
+		removePipeline(pRenderer, pPipelinePTComposite);
+#if PT_USE_DIFFUSION != 0
+		removePipeline(pRenderer, pPipelinePTCopyDepth);
+		removePipeline(pRenderer, pPipelinePTGenMips);
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		removePipeline(pRenderer, pPipelineAOITShade);
+		removePipeline(pRenderer, pPipelineAOITComposite);
+		removePipeline(pRenderer, pPipelineAOITClear);
+#endif
 	}
 };
 
