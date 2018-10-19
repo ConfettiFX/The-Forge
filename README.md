@@ -36,7 +36,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 ## Release 1.18 - October 18th, 2018 - Animation System Ozz support | Vulkan native Ubuntu Linux package support
 * The Forge now uses the Ozz animation system. This is our first major change to the math library because we needed to add what is necessary for animation. We compared the speed of our math library then with the speed of the Ozz animation system math library and they are about the same. At some point we need to do AVX 1 and ARM specific optimizations to our math library, which is still based on the open-sourced changed Sony math library [Vectormath](https://github.com/glampert/vectormath), which is similar to the Bullet math library ... 
-
+  
 A screenshot of the PC version:
 
 ![Ozz ](Screenshots/Ozz_moneyShot.gif)
