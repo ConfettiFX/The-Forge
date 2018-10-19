@@ -188,28 +188,28 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\12_RendererDLL\PCDX12\basic.frag">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\basic.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCDX12\basic.vert">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\basic.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCDX12\skybox.frag">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\skybox.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCDX12\skybox.vert">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCVulkan\basic.frag">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\basic.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCVulkan\basic.vert">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\basic.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCVulkan\skybox.frag">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\12_RendererDLL\PCVulkan\skybox.vert">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

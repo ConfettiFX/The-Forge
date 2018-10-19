@@ -154,6 +154,12 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		VK_POLYGON_MODE_LINE
 	};
 
+	VkFrontFace gVkFrontFaceTranslator[] =
+	{
+		VK_FRONT_FACE_COUNTER_CLOCKWISE,
+		VK_FRONT_FACE_CLOCKWISE
+	};
+
 	static const VkFormat gVkFormatTranslator[] = {
 		VK_FORMAT_UNDEFINED,
 
@@ -309,6 +315,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	  VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 	  VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
 	  VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+	  VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME,
 	  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 	  VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 	  VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
@@ -2192,6 +2199,18 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 								gAMDGCNShaderExtension = true;
 							if (strcmp(wantedDeviceExtensions[k], VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
 								gDescriptorIndexingExtension = true;
+							if (strcmp(wantedDeviceExtensions[k], VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME) ==0)
+							{
+								//ballot supported
+								int i = 0;
+								i ++;
+							}
+							if (strcmp(wantedDeviceExtensions[k], VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME) ==0)
+							{
+								//ballot supported
+								int i = 0;
+								i ++;
+							}
 							break;
 						}
 					}
@@ -4698,13 +4717,14 @@ namespace vk {
 	{
 		ASSERT(pDesc->mFillMode < FillMode::MAX_FILL_MODES);
 		ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
+		ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
 
 		RasterizerState rasterizerState = {};
 
 		rasterizerState.DepthClampEnable = VK_TRUE;
 		rasterizerState.PolygonMode = gVkFillModeTranslator[pDesc->mFillMode];
 		rasterizerState.CullMode = gVkCullModeTranslator[pDesc->mCullMode];
-		rasterizerState.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // Change this when negative viewport is in
+		rasterizerState.FrontFace = gVkFrontFaceTranslator[pDesc->mFrontFace];
 		rasterizerState.DepthBiasEnable = (pDesc->mDepthBias != 0) ? VK_TRUE : VK_FALSE;
 		rasterizerState.DepthBiasConstantFactor = float(pDesc->mDepthBias);
 		rasterizerState.DepthBiasClamp = 0.f;

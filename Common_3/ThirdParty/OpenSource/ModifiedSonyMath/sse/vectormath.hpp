@@ -74,6 +74,21 @@ class Quat;
 class Matrix3;
 class Matrix4;
 class Transform3;
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+// ========================================================
+// A 4-D int vector in array-of-structures format
+// (used for math and bitwise operations)
+// ========================================================
+
+typedef __m128i Vector4Int;
+
+typedef const __m128i _Vector4Int;
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 
 // ========================================================
 // A 3-D vector in array-of-structures format
@@ -481,6 +496,16 @@ public:
     //
     explicit inline Vector4(__m128 vf4);
 
+    //========================================= #ConfettiMathExtensionsBegin ================================================
+    //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+    // Convert from integer vector to float vector.
+    //
+    explicit inline Vector4(const Vector4Int vecInt);
+
+    //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+    //========================================= #ConfettiMathExtensionsEnd ================================================
+
     // Get vector float data from a 4-D vector
     //
     inline __m128 get128() const;
@@ -635,6 +660,20 @@ public:
     //
     static inline const Vector4 wAxis();
 
+    //========================================= #ConfettiMathExtensionsBegin ================================================
+    //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+    // Construct zero vector
+    //
+    static inline const Vector4 zero();
+
+    // Construct one vector
+    //
+    static inline const Vector4 one();
+
+    //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+	//========================================= #ConfettiMathExtensionsEnd ================================================
+
 } VECTORMATH_ALIGNED_TYPE_POST;
 
 // Multiply a 4-D vector by a scalar
@@ -660,6 +699,37 @@ inline const Vector4 divPerElem(const Vector4 & vec0, const Vector4 & vec1);
 // Floating-point behavior matches standard library function recipf4.
 //
 inline const Vector4 recipPerElem(const Vector4 & vec);
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+// Compute the squareroot of a 4-D vector per element
+// NOTE:
+// Floating-point behavior matches standard library function recipf4.
+//
+inline const Vector4 sqrtPerElem(const Vector4 & vec);
+
+// Compute the reciprocal squareroot of a 4-D vector per element
+// NOTE:
+// Floating-point behavior matches standard library function recipf4.
+//
+inline const Vector4 rsqrtPerElem(const Vector4 & vec);
+
+// Returns the per component estimated reciprocal of v.
+//
+inline const Vector4 rcpEst(const Vector4& v);
+
+// Returns the per component estimated reciprocal square root of v.
+//
+inline const Vector4 rSqrtEst(const Vector4& v);
+
+// Returns the per component estimated reciprocal square root of v, where
+// approximation is improved with one more new Newton-Raphson step.
+//
+inline const Vector4 rSqrtEstNR(const Vector4& v);
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
 
 // Compute the absolute value of a 4-D vector per element
 //
@@ -750,6 +820,77 @@ inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, bool sel
 // This function uses a conditional select instruction to avoid a branch.
 //
 inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, const BoolInVec & select1);
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+// Per element "equal" comparison of _a and _b.
+inline const Vector4Int cmpEq(const Vector4& a, const Vector4& b);
+
+// Per element "not equal" comparison of _a and _b.
+inline const Vector4Int cmpNotEq(const Vector4& a, const Vector4& b);
+
+// Per element "less than" comparison of _a and _b.
+inline const Vector4Int cmpLt(const Vector4& a, const Vector4& b);
+
+// Per element "less than or equal" comparison of _a and _b.
+inline const Vector4Int cmpLe(const Vector4& a, const Vector4& b);
+
+// Per element "greater than" comparison of _a and _b.
+inline const Vector4Int cmpGt(const Vector4& a, const Vector4& b);
+
+// Per element "greater than or equal" comparison of _a and _b.
+inline const Vector4Int cmpGe(const Vector4& a, const Vector4& b);
+
+// Returns the sign bit of v.
+inline const Vector4Int signBit(const Vector4& v);
+
+// Returns per element binary logical xor operation of _a and _b.
+// _v[0...127] = _a[0...127] ^ _b[0...127]
+inline const Vector4 xorPerElem(const Vector4& a, const Vector4Int b);
+
+// Returns per element binary or operation of _a and _b.
+// _v[0...127] = _a[0...127] | _b[0...127] 
+inline const Vector4 orPerElem(const Vector4& a, const Vector4Int b);
+
+// Returns per element binary or operation of _a and _b.
+// _v[0...127] = _a[0...127] | _b[0...127]
+inline const Vector4 orPerElem(const Vector4& a, const Vector4& b);
+
+// Returns per element binary and operation of _a and _b.
+// _v[0...127] = _a[0...127] & _b[0...127]
+inline const Vector4 andPerElem(const Vector4& a, const Vector4Int b);
+
+// Converts from a half to a float.
+inline const Vector4 halfToFloat(const Vector4Int vecInt);
+
+// Transposes the 3 Vector4 of in into the x, y and z components of the 4
+// Vector4 of out. Remaining w are set to 0.
+inline void transpose3x4(const Vector4 in[3], Vector4 out[4]);
+
+// Transposes the 4 Vector4 of in into the 4 Vector4 of out.
+inline void transpose4x4(const Vector4 in[4], Vector4 out[4]);
+
+// Transposes the 16 Vector4 of in into the 16 Vector4 of out.
+inline void transpose16x16(const Vector4 in[16], Vector4 out[16]);
+
+// Stores the 4 components of v to the four first floats of f.
+// f must be aligned to 4 bytes.
+// f[0] = v.x
+// f[1] = v.y
+// f[2] = v.z
+// f[3] = v.w
+inline void storePtrU(const Vector4& v, float* f);
+
+// Stores x, y and z components of v to the three first floats of f.
+// f must be aligned to 4 bytes.
+// f[0] = v.x
+// f[1] = v.y
+// f[2] = v.z
+inline void store3PtrU(const Vector4& v, float* f);
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
 
 #ifdef VECTORMATH_DEBUG
 
@@ -2271,6 +2412,424 @@ inline void print(const Transform3 & tfrm);
 inline void print(const Transform3 & tfrm, const char * name);
 
 #endif // VECTORMATH_DEBUG
+
+//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+
+// ========================================================
+// A 4-D int vector in array-of-structures format
+// (used for math and bitwise operations)
+// ========================================================
+
+namespace vector4int
+{
+
+    // Returns a Vector4Int vector with all components set to 0.
+    inline Vector4Int zero();
+
+    // Returns a Vector4Int vector with all components set to 1.
+    inline Vector4Int one();
+
+    // Returns a Vector4Int vector with the x component set to 1 and all the others
+    // to 0.
+    inline Vector4Int x_axis();
+
+    // Returns a Vector4Int vector with the y component set to 1 and all the others
+    // to 0.
+    inline Vector4Int y_axis();
+
+    // Returns a Vector4Int vector with the z component set to 1 and all the others
+    // to 0.
+    inline Vector4Int z_axis();
+
+    // Returns a Vector4Int vector with the w component set to 1 and all the others
+    // to 0.
+    inline Vector4Int w_axis();
+
+    // Returns a Vector4Int vector with all components set to true (0xffffffff).
+    inline Vector4Int all_true();
+
+    // Returns a Vector4Int vector with all components set to false (0).
+    inline Vector4Int all_false();
+
+    // Returns a Vector4Int vector with sign bits set to 1.
+    inline Vector4Int mask_sign();
+
+    // Returns a Vector4Int vector with all bits set to 1 except sign.
+    inline Vector4Int mask_not_sign();
+
+    // Returns a Vector4Int vector with all bits set to 1.
+    inline Vector4Int mask_ffff();
+
+    // Returns a Vector4Int vector with all bits set to 0.
+    inline Vector4Int mask_0000();
+
+    // Returns a Vector4Int vector with all the bits of the x, y, z components set to
+    // 1, while z is set to 0.
+    inline Vector4Int mask_fff0();
+
+    // Returns a Vector4Int vector with all the bits of the x component set to 1,
+    // while the others are set to 0.
+    inline Vector4Int mask_f000();
+
+    // Returns a Vector4Int vector with all the bits of the y component set to 1,
+    // while the others are set to 0.
+    inline Vector4Int mask_0f00();
+
+    // Returns a Vector4Int vector with all the bits of the z component set to 1,
+    // while the others are set to 0.
+    inline Vector4Int mask_00f0();
+
+    // Returns a Vector4Int vector with all the bits of the w component set to 1,
+    // while the others are set to 0.
+    inline Vector4Int mask_000f();
+
+    // Loads _x, _y, _z, _w to the returned vector.
+    // r.x = _x
+    // r.y = _y
+    // r.z = _z
+    // r.w = _w
+    inline Vector4Int Load(int _x, int _y, int _z, int _w);
+
+    // Loads _x, _y, _z, _w to the returned vector using the following conversion
+    // rule.
+    // r.x = _x ? 0xffffffff:0
+    // r.y = _y ? 0xffffffff:0
+    // r.z = _z ? 0xffffffff:0
+    // r.w = _w ? 0xffffffff:0
+    inline Vector4Int Load(bool _x, bool _y, bool _z, bool _w);
+
+    // Loads _x to the x component of the returned vector using the following
+    // conversion rule, and sets y, z and w to 0.
+    // r.x = _x ? 0xffffffff:0
+    // r.y = 0
+    // r.z = 0
+    // r.w = 0
+    inline Vector4Int LoadX(bool _x);
+
+    // Loads _x to the all the components of the returned vector using the following
+    // conversion rule.
+    // r.x = _x ? 0xffffffff:0
+    // r.y = _x ? 0xffffffff:0
+    // r.z = _x ? 0xffffffff:0
+    // r.w = _x ? 0xffffffff:0
+    inline Vector4Int Load1(bool _x);
+
+    // Loads the 4 values of _f to the returned vector.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = _i[3]
+    inline Vector4Int LoadPtr(const int* _i);
+
+    // Loads _i[0] to the x component of the returned vector, and sets y, z and w
+    // to 0.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = 0
+    // r.z = 0
+    // r.w = 0
+    inline Vector4Int LoadXPtr(const int* _i);
+
+    // Loads _i[0] to all the components of the returned vector.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[0]
+    // r.z = _i[0]
+    // r.w = _i[0]
+    inline Vector4Int Load1Ptr(const int* _i);
+
+    // Loads the 2 first value of _i to the x and y components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = 0
+    // r.w = 0
+    inline Vector4Int Load2Ptr(const int* _i);
+
+    // Loads the 3 first value of _i to the x, y and z components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = 0
+    inline Vector4Int Load3Ptr(const int* _i);
+
+    // Loads the 4 values of _f to the returned vector.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = _i[3]
+    inline Vector4Int LoadPtrU(const int* _i);
+
+    // Loads _i[0] to the x component of the returned vector, and sets y, z and w
+    // to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = 0
+    // r.z = 0
+    // r.w = 0
+    inline Vector4Int LoadXPtrU(const int* _i);
+
+    // Loads the 4 values of _i to the returned vector.
+    // _i must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[0]
+    // r.z = _i[0]
+    // r.w = _i[0]
+    inline Vector4Int Load1PtrU(const int* _i);
+
+    // Loads the 2 first value of _i to the x and y components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = 0
+    // r.w = 0
+    inline Vector4Int Load2PtrU(const int* _i);
+
+    // Loads the 3 first value of _i to the x, y and z components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = 0
+    inline Vector4Int Load3PtrU(const int* _i);
+
+    // Convert from float to integer by rounding the nearest value.
+    inline Vector4Int FromFloatRound(const Vector4& _f);
+
+    // Convert from float to integer by truncating.
+    inline Vector4Int FromFloatTrunc(const Vector4& _f);
+
+} //namespace vector4int
+
+// Returns the x component of _v as an integer.
+inline int GetX(const Vector4Int _v);
+
+// Returns the y component of _v as a integer.
+inline int GetY(const Vector4Int _v);
+
+// Returns the z component of _v as a integer.
+inline int GetZ(const Vector4Int _v);
+
+// Returns the w component of _v as a integer.
+inline int GetW(const Vector4Int _v);
+
+// Returns _v with the x component set to _i.
+inline Vector4Int SetX(const Vector4Int _v, int _i);
+
+// Returns _v with the y component set to _i.
+inline Vector4Int SetY(const Vector4Int _v, int _i);
+
+// Returns _v with the z component set to _i.
+inline Vector4Int SetZ(const Vector4Int _v, int _i);
+
+// Returns _v with the w component set to _i.
+inline Vector4Int SetW(const Vector4Int _v, int _i);
+
+// Returns _v with the _ith component set to _i.
+// _i must be in range [0,3]
+inline Vector4Int SetI(const Vector4Int _v, int _ith, int _i);
+
+// Stores the 4 components of _v to the four first integers of _i.
+// _i must be aligned to 16 bytes.
+// _i[0] = _v.x
+// _i[1] = _v.y
+// _i[2] = _v.z
+// _i[3] = _v.w
+inline void StorePtr(const Vector4Int _v, int* _i);
+
+// Stores the x component of _v to the first integers of _i.
+// _i must be aligned to 16 bytes.
+// _i[0] = _v.x
+inline void Store1Ptr(const Vector4Int _v, int* _i);
+
+// Stores x and y components of _v to the two first integers of _i.
+// _i must be aligned to 16 bytes.
+// _i[0] = _v.x
+// _i[1] = _v.y
+inline void Store2Ptr(const Vector4Int _v, int* _i);
+
+// Stores x, y and z components of _v to the three first integers of _i.
+// _i must be aligned to 16 bytes.
+// _i[0] = _v.x
+// _i[1] = _v.y
+// _i[2] = _v.z
+inline void Store3Ptr(const Vector4Int _v, int* _i);
+
+// Stores the 4 components of _v to the four first integers of _i.
+// _i must be aligned to 4 bytes.
+// _i[0] = _v.x
+// _i[1] = _v.y
+// _i[2] = _v.z
+// _i[3] = _v.w
+inline void StorePtrU(const Vector4Int _v, int* _i);
+
+// Stores the x component of _v to the first float of _i.
+// _i must be aligned to 4 bytes.
+// _i[0] = _v.x
+inline void Store1PtrU(const Vector4Int _v, int* _i);
+
+// Stores x and y components of _v to the two first integers of _i.
+// _i must be aligned to 4 bytes.
+// _i[0] = _v.x
+// _i[1] = _v.y
+inline void Store2PtrU(const Vector4Int _v, int* _i);
+
+// Stores x, y and z components of _v to the three first integers of _i.
+// _i must be aligned to 4 bytes.
+// _i[0] = _v.x
+// _i[1] = _v.y
+// _i[2] = _v.z
+inline void Store3PtrU(const Vector4Int _v, int* _i);
+
+// Replicates x of _a to all the components of the returned vector.
+inline Vector4Int SplatX(const Vector4Int _v);
+
+// Replicates y of _a to all the components of the returned vector.
+inline Vector4Int SplatY(const Vector4Int _v);
+
+// Replicates z of _a to all the components of the returned vector.
+inline Vector4Int SplatZ(const Vector4Int _v);
+
+// Replicates w of _a to all the components of the returned vector.
+inline Vector4Int SplatW(const Vector4Int _v);
+
+// Creates a 4-bit mask from the most significant bits of each component of _v.
+// i := sign(a3)<<3 | sign(a2)<<2 | sign(a1)<<1 | sign(a0)
+inline int MoveMask(const Vector4Int _v);
+
+// Returns true if all the components of _v are not 0.
+inline bool AreAllTrue(const Vector4Int _v);
+
+// Returns true if x, y and z components of _v are not 0.
+inline bool AreAllTrue3(const Vector4Int _v);
+
+// Returns true if x and y components of _v are not 0.
+inline bool AreAllTrue2(const Vector4Int _v);
+
+// Returns true if x component of _v is not 0.
+inline bool AreAllTrue1(const Vector4Int _v);
+
+// Returns true if all the components of _v are 0.
+inline bool AreAllFalse(const Vector4Int _v);
+
+// Returns true if x, y and z components of _v are 0.
+inline bool AreAllFalse3(const Vector4Int _v);
+
+// Returns true if x and y components of _v are 0.
+inline bool AreAllFalse2(const Vector4Int _v);
+
+// Returns true if x component of _v is 0.
+inline bool AreAllFalse1(const Vector4Int _v);
+
+// Computes the (horizontal) addition of x and y components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are the same as their respective components in _v.
+// r.x = _a.x + _a.y
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+inline Vector4Int HAdd2(const Vector4Int _v);
+
+// Computes the (horizontal) addition of x, y and z components of _v. The result
+// is stored in the x component of the returned value. y, z, w of the returned
+// vector are the same as their respective components in _v.
+// r.x = _a.x + _a.y + _a.z
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+inline Vector4Int HAdd3(const Vector4Int _v);
+
+// Computes the (horizontal) addition of x and y components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are the same as their respective components in _v.
+// r.x = _a.x + _a.y + _a.z + _a.w
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+inline Vector4Int HAdd4(const Vector4Int _v);
+
+// Returns the per element absolute value of _v.
+inline Vector4Int Abs(const Vector4Int _v);
+
+// Returns the sign bit of _v.
+inline Vector4Int Sign(const Vector4Int _v);
+
+// Returns the per component minimum of _a and _b.
+inline Vector4Int Min(const Vector4Int _a, const Vector4Int _b);
+
+// Returns the per component maximum of _a and _b.
+inline Vector4Int Max(const Vector4Int _a, const Vector4Int _b);
+
+// Returns the per component minimum of _v and 0.
+inline Vector4Int Min0(const Vector4Int _v);
+
+// Returns the per component maximum of _v and 0.
+inline Vector4Int Max0(const Vector4Int _v);
+
+// Clamps each element of _x between _a and _b.
+// Result is unknown if _a is not less or equal to _b.
+inline Vector4Int Clamp(const Vector4Int _a, const Vector4Int _v, const Vector4Int _b);
+
+// Returns Per bit selection of vectors _true and _false according to _b.
+// _v[0...127] = _b[0...127] ? _true[0...127]:_false[0...127]
+inline Vector4Int Select(const Vector4Int _b, const Vector4Int _true, const Vector4Int _false);
+
+// Returns per element binary and operation of _a and _b.
+// _v[0...127] = _a[0...127] & _b[0...127]
+inline Vector4Int And(const Vector4Int _a, const Vector4Int _b);
+
+// Returns per element binary or operation of _a and _b.
+// _v[0...127] = _a[0...127] | _b[0...127]
+inline Vector4Int Or(const Vector4Int _a, const Vector4Int _b);
+
+// Returns per element binary logical xor operation of _a and _b.
+// _v[0...127] = _a[0...127] ^ _b[0...127]
+inline Vector4Int Xor(const Vector4Int _a, const Vector4Int _b);
+
+// Returns per element binary complement of _v.
+// _v[0...127] = ~_b[0...127]
+inline Vector4Int Not(const Vector4Int _v);
+
+// Shifts the 4 signed or unsigned 32-bit integers in a left by count _bits
+// while shifting in zeros.
+inline Vector4Int ShiftL(const Vector4Int _v, int _bits);
+
+// Shifts the 4 signed 32-bit integers in a right by count bits while shifting
+// in the sign bit.
+inline Vector4Int ShiftR(const Vector4Int _v, int _bits);
+
+// Shifts the 4 signed or unsigned 32-bit integers in a right by count bits
+// while shifting in zeros.
+inline Vector4Int ShiftRu(const Vector4Int _v, int _bits);
+
+// Per element "equal" comparison of _a and _b.
+inline Vector4Int CmpEq(const Vector4Int _a, const Vector4Int _b);
+
+// Per element "not equal" comparison of _a and _b.
+inline Vector4Int CmpNe(const Vector4Int _a, const Vector4Int _b);
+
+// Per element "less than" comparison of _a and _b.
+inline Vector4Int CmpLt(const Vector4Int _a, const Vector4Int _b);
+
+// Per element "less than or equal" comparison of _a and _b.
+inline Vector4Int CmpLe(const Vector4Int _a, const Vector4Int _b);
+
+// Per element "greater than" comparison of _a and _b.
+inline Vector4Int CmpGt(const Vector4Int _a, const Vector4Int _b);
+
+// Per element "greater than or equal" comparison of _a and _b.
+inline Vector4Int CmpGe(const Vector4Int _a, const Vector4Int _b);
+
+//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #ConfettiMathExtensionsEnd ================================================
 
 } // namespace SSE
 } // namespace Vectormath

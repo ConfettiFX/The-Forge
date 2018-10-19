@@ -1,0 +1,243 @@
+language: cpp
+
+dist: trusty
+sudo: required
+
+matrix:
+  include:
+
+  # Emscripten cross compiling
+  #- os: linux
+  #  compiler: gcc
+  #  env:
+  #  - env_build_emscripten=1
+
+  # mac os
+  # Default mac os clang build
+  - os: osx
+    compiler: clang
+  - os: osx
+    compiler: clang
+    env:
+    - env_cmake_configuration=Release
+  # Xcode mac os clang build
+  - os: osx
+    compiler: clang
+    env :
+    - env_cmake_generator=Xcode
+  - os: osx
+    compiler: clang
+    env :
+    - env_cmake_generator=Xcode
+    - env_cmake_configuration=Release
+
+  # Linux
+  # Default linux gcc
+  - os: linux
+    compiler: gcc
+  # Default linux gcc
+  - os: linux
+    compiler: gcc
+    env:
+    - env_cmake_configuration=Release
+  # Default linux clang
+  - os: linux
+    compiler: clang
+  # Default linux release clang
+  - os: linux
+    compiler: clang
+    env:
+    - env_cmake_configuration=Release
+
+  # Specific configurations
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_cpp11=1
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_fbx=0 
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_howtos=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_samples=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_simdref=1
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_tests=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_fbx=0
+    - env_build_samples=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_fbx=0
+    - env_build_tests=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_data=0
+    - env_build_fbx=0
+    - env_build_samples=0
+    - env_build_tests=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_build_data=0
+  - os: linux
+    compiler: clang
+    env:
+    - env_src_root="../test/sub/"
+
+  # Newer compilers
+  # gcc
+  - os: linux
+    compiler: gcc-4.9
+    env: 
+    - env_cmake_cxx_compiler=g++-4.9
+    - env_cmake_c_compiler=gcc-4.9
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-4.9
+  - os: linux
+    compiler: gcc-5
+    env: 
+    - env_cmake_cxx_compiler=g++-5
+    - env_cmake_c_compiler=gcc-5
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-5
+  - os: linux
+    compiler: gcc-6
+    env: 
+    - env_cmake_cxx_compiler=g++-6
+    - env_cmake_c_compiler=gcc-6
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-6
+  # clang
+  - os: linux
+    compiler: clang-3.8
+    env:
+    - env_cmake_cxx_compiler=clang++-3.8
+    - env_cmake_c_compiler=clang-3.8
+    addons:
+      apt:
+        sources:
+        - llvm-toolchain-precise-3.8
+        packages:
+        - clang-3.8
+
+before_install:
+- echo before_install----------------------------------------------------------
+
+install:
+- echo install-----------------------------------------------------------------
+# Download and install mesa dev
+- if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+    sudo apt-get install libgl1-mesa-dev libglu1-mesa-dev;
+  fi
+# Download and install fbx sdk
+- if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+    mkdir fbx;
+    cd fbx;
+    sudo wget http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_linux.tar.gz;
+    sudo tar -xf "fbx20171_fbxsdk_linux.tar.gz";
+    yes yes | sudo ./fbx20171_fbxsdk_linux /usr/local;
+    cd ..;
+  fi
+- if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+    mkdir fbx;
+    cd fbx;
+    sudo wget http://download.autodesk.com/us/fbx/2017/2017.1/fbx20171_fbxsdk_clang_mac.pkg.tgz;
+    sudo tar -xf "fbx20171_fbxsdk_clang_mac.pkg.tgz";
+    sudo installer -pkg fbx20171_fbxsdk_clang_macos.pkg -target /;
+    cd ..;
+  fi
+# Download and install emscripten sdk  
+- if [[ $env_build_emscripten ]]; then
+    sudo apt-get install software-properties-common -y;
+    sudo add-apt-repository ppa:george-edison55/cmake-3.x -y;
+    sudo apt-get update;
+    sudo apt-get install --only-upgrade cmake -y;
+    git clone https://github.com/juj/emsdk.git;
+    cd emsdk;
+    sudo ./emsdk update-tags;
+    sudo ./emsdk install sdk-nightly-latest-64bit;
+    sudo ./emsdk activate --embedded sdk-nightly-latest-64bit;
+    source ./emsdk_env.sh;
+    cd ..;
+  fi
+
+before_script:
+- echo before_script-----------------------------------------------------------
+
+# Setup default environment variables
+- if [[ -z $env_src_root ]]; then export env_src_root=".."; fi
+- if [[ -z $env_build_cpp11 ]]; then export env_build_cpp11=0; fi
+- if [[ -z $env_build_fbx ]]; then export env_build_fbx=1; fi
+- if [[ -z $env_build_data ]]; then export env_build_data=1; fi
+- if [[ -z $env_build_howtos ]]; then export env_build_howtos=1; fi
+- if [[ -z $env_build_samples ]]; then export env_build_samples=1; fi
+- if [[ -z $env_build_simd_ref ]]; then export env_build_simd_ref=0; fi
+- if [[ -z $env_build_tests ]]; then export env_build_tests=1; fi
+- if [[ -z $env_cmake_configuration ]]; then export env_cmake_configuration=Debug; fi
+- if [[ -z $env_cmake_cxx_compiler ]]; then export env_cmake_cxx_compiler=$CXX; fi
+- if [[ -z $env_cmake_c_compiler ]]; then export env_cmake_c_compiler=$CC; fi
+- if [[ -z $env_cmake_generator ]]; then export env_cmake_generator="Unix Makefiles"; fi
+- if [[ $env_cmake_generator == "Unix Makefiles" ]]; then export env_cmake_generator_specific="-j2"; fi
+- if [[ $env_cmake_generator == "Unix Makefiles" ]]; then export env_ctest_generator_specific="-j16"; fi
+- if [[ $EMSCRIPTEN ]]; then env_cmake_toolchain="-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake"; fi
+
+# Display cmake version
+- cmake --version
+
+script:
+- echo script------------------------------------------------------------------
+# Configure build
+- mkdir build
+- cd build
+- echo $env_cmake_toolchain
+- cmake -G "$env_cmake_generator" $env_cmake_toolchain -DCMAKE_CXX_COMPILER=$env_cmake_cxx_compiler -DCMAKE_C_COMPILER=$env_cmake_c_compiler -DCMAKE_BUILD_TYPE=$env_cmake_configuration -Dozz_build_cpp11=$env_build_cpp11 -Dozz_build_fbx=$env_build_fbx -Dozz_build_data=$env_build_data -Dozz_build_howtos=$env_build_howtos -Dozz_build_samples=$env_build_samples -Dozz_build_simd_ref=$env_build_simd_ref -Dozz_build_tests=$env_build_tests $env_src_root
+# Build
+- cmake --build ./ --config $env_cmake_configuration --use-stderr -- $env_cmake_generator_specific
+# Test
+- ctest --build-config $env_cmake_configuration --output-on-failure -- $env_ctest_generator_specific
+
+after_success:
+- echo after_success-----------------------------------------------------------
+
+after_failure:
+- echo after_failure-----------------------------------------------------------
+
+before_deploy:
+#- echo before_deploy-----------------------------------------------------------
+
+deploy:
+#- echo deploy------------------------------------------------------------------
+
+after_deploy:
+#- echo after_deploy------------------------------------------------------------
+
+after_script:
+#- echo after_script------------------------------------------------------------

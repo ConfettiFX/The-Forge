@@ -13,14 +13,18 @@ public:
 	InputDeviceMouseImplMacRaw(InputManager& manager, InputDevice& device, InputState& state, InputState& previousState);
 	~InputDeviceMouseImplMacRaw();
 
-	InputDevice::DeviceVariant GetVariant() const
+	InputDevice::DeviceVariant GetVariant() const override
 	{
 		return InputDevice::DV_RAW;
 	}
+	
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
 
-	InputDevice::DeviceState GetState() const { return deviceState_; }
+	InputDevice::DeviceState GetState() const override { return deviceState_; }
 
-	void Update(InputDeltaState* delta);
+	void Update(InputDeltaState* delta) override;
 	void HandleMouseMove(float x, float y);
 
 	InputManager& manager_;

@@ -110,13 +110,14 @@ DepthState*		 pDepth = NULL;
 RasterizerState*	pSkyboxRast = NULL;
 RasterizerState*	pSphereRast = NULL;
 
-Buffer*			 pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*			 pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*				pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*				pSkyboxUniformBuffer[gImageCount] = { NULL };
 
 uint32_t			gFrameIndex = 0;
 
-int				 gNumberOfSpherePoints;
+int					gNumberOfSpherePoints;
 UniformBlock		gUniformData;
+UniformBlock		gUniformDataSky;
 PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 
 ICameraController*  pCameraController = NULL;
@@ -125,6 +126,7 @@ ICameraController*  pCameraController = NULL;
 UIApp			   gAppUI;
 
 FileSystem		  gFileSystem;
+LogManager        gLogManager;
 
 const char*		 pSkyBoxImageFileNames[] =
 {
@@ -136,52 +138,18 @@ const char*		 pSkyBoxImageFileNames[] =
 	"Skybox_back6.png"
 };
 
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(__ANDROID__)
-	#define RESOURCE_DIR "ANDROIDVulkan"
-	#elif defined(__linux__)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#elif defined(_DURANGO)
-#define RESOURCE_DIR "PCDX12"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#if defined(_DURANGO )|| defined(__ANDROID__)
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",	 // FSR_SrcShaders
-	"Shaders/Binary/",		  // FSR_BinShaders_Common
-	"Shaders/",				 // FSR_SrcShaders_Common
-	"Textures/",						// FSR_Textures
-	"Meshes/",					  // FSR_Meshes
-	"Fonts/",					   // FSR_Builtin_Fonts
-	"",														 // FSR_OtherFiles
+	"../../../src/01_Transformations/", // FSR_BinShaders
+	"../../../src/01_Transformations/", // FSR_SrcShaders
+	"../../../UnitTestResources/",		// FSR_BinShaders_Common
+	"../../../UnitTestResources/",		// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",		// FSR_Textures
+	"../../../UnitTestResources/",		// FSR_Meshes
+	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
+	"../../../src/01_Transformations/",	// FSR_GpuConfig
+	"",									// FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../../src/01_Transformations/" RESOURCE_DIR "/Binary/", // FSR_BinShaders
-	"../../../src/01_Transformations/" RESOURCE_DIR "/",		// FSR_SrcShaders
-	"",														 // FSR_BinShaders_Common
-	"",														 // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",					 // FSR_Textures
-	"../../../UnitTestResources/Meshes/",					   // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"../../../src/01_Transformations/GPUCfg/",				  // FSR_GpuConfig
-	"",														 // FSR_OtherFiles
-};
-#endif
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -211,29 +179,25 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
-#else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
 
-#if defined(TARGET_IOS)
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
-			return false;
-#elif defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		{
+			LOGERRORF("Could not initialize Virtual Joystick.");
 			return false;
+		}
 #endif
 
 		ShaderLoadDesc skyShader = {};
@@ -661,22 +625,23 @@ public:
 			gUniformData.mColor[i] = gPlanetInfoData[i].mColor;
 		}
 
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
-
 		viewMat.setTranslation(vec3(0));
-		gUniformData.mProjectView = projMat * viewMat;
-
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&skyboxViewProjCbv);
+		gUniformDataSky = gUniformData;
+		gUniformDataSky.mProjectView = projMat * viewMat;
 		/************************************************************************/
 		/************************************************************************/
 	}
 
 	void Draw()
 	{
-		uint32_t swapchainIndex;
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainIndex);
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
+		// Update uniform buffers
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
+		updateResource(&viewProjCbv);
+
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
+		updateResource(&skyboxViewProjCbv);
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
@@ -685,7 +650,7 @@ public:
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapchainIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -765,9 +730,7 @@ public:
 		endCmd(cmd);
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, swapchainIndex, 1, &pRenderCompleteSemaphore);
-
-		gFrameIndex = (gFrameIndex + 1) % gImageCount;
+		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
 	tinystl::string GetName()

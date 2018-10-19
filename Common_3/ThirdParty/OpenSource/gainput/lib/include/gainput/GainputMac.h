@@ -15,6 +15,8 @@
 
 - (id)initWithFrame:(NSRect)frame window:(NSWindow *)window retinaScale:(float)retinaScale inputManager:(gainput::InputManager&)inputManager;
 
+-(void)SetMouseCapture:(BOOL)captured;
+
 @end
 
 

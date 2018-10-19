@@ -47,49 +47,18 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(__linux__)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",								  // FSR_BinShaders
-	"Shaders/",										 // FSR_SrcShaders
-	"Shaders/Binary/",								  // FSR_BinShaders_Common
-	"Shaders/",										 // FSR_SrcShaders_Common
-	"Textures/",										// FSR_Textures
-	"Meshes/",										  // FSR_Meshes
-	"Fonts/",										   // FSR_Builtin_Fonts
-	"",												 // FSR_GpuConfig
-	"",												 // FSR_OtherFiles
+	"../../../src/08_Procedural/",									// FSR_BinShaders
+	"../../../src/08_Procedural/",									// FSR_SrcShaders
+	"",																// FSR_BinShaders_Common
+	"",																// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",									// FSR_Textures
+	"../../../UnitTestResources/",									// FSR_Meshes
+	"../../../UnitTestResources/",									// FSR_Builtin_Fonts
+	"../../../src/08_Procedural/",									// FSR_GpuConfig
+	"",																// FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../../src/08_Procedural/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
-	"../../../src/08_Procedural/" RESOURCE_DIR "/",		 // FSR_SrcShaders
-	"",													 // FSR_BinShaders_Common
-	"",													 // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",				 // FSR_Textures
-	"../../../UnitTestResources/Meshes/",				   // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",					// FSR_Builtin_Fonts
-	"../../../src/08_Procedural/GPUCfg/",		   // FSR_GpuConfig
-	"",													 // FSR_OtherFiles
-};
-#endif
 
 LogManager gLogManager;
 
@@ -267,18 +236,14 @@ public:
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
 		TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 		textureDesc.mRoot = FSR_Textures;
-#else
-		textureDesc.mRoot = FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
 		textureDesc.mUseMipmaps = true;
 		textureDesc.pFilename = pEnvImageFileNames[0];
 		textureDesc.ppTexture = &pEnvTex;
 		addResource(&textureDesc);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
@@ -679,8 +644,12 @@ public:
 		gUniformDataLights.mLights[0].mPos = vec4(normalize(vec3(gSunDir.x, gSunDir.y, gSunDir.z))* 1000.0f, 0.0);
 
 		gAppUI.Update(deltaTime);
+	}
 
-
+	void Draw()
+	{
+		// This will acquire the next swapchain image
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 		/************************************************************************/
 		// Upload uniform data to GPU
 		/************************************************************************/
@@ -695,15 +664,10 @@ public:
 
 		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights[gFrameIndex], &gUniformDataLights };
 		updateResource(&lightBuffUpdateDesc);
-	}
-
-	void Draw()
-	{
-		uint32_t swapChainIndex;
-		// This will acquire the next swapchain image
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapChainIndex);
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[swapChainIndex];
-
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		/************************************************************************/
+		// Rendering
+		/************************************************************************/
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -827,7 +791,7 @@ public:
 		allCmds.push_back(cmd);
 
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, swapChainIndex, 1, &pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
 		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
 		FenceStatus fenceStatus;
@@ -836,7 +800,6 @@ public:
 		{
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 		}
-		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	tinystl::string GetName()

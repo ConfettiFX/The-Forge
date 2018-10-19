@@ -40,6 +40,10 @@ public:
 		return InputDevice::DV_STANDARD;
 	}
 
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
+	
 	void Update(InputDeltaState* delta)
 	{
 		delta_ = delta;

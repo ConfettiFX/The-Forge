@@ -32,6 +32,9 @@
 #define STBI_REALLOC conf_realloc
 #define STBI_FREE conf_free
 #define STBI_ASSERT ASSERT
+#if defined(__ANDROID__)
+#define STBI_NO_SIMD
+#endif
 #include "../../ThirdParty/OpenSource/Nothings/stb_image.h"
 //stb_image_write
 #define STB_IMAGE_WRITE_IMPLEMENTATION

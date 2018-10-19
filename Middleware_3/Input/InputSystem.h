@@ -179,7 +179,10 @@ class InputSystem
 #elif defined(__linux__)
 	static void HandleMessage(XEvent& msg) { pInputManager->HandleEvent(msg); }
 #endif
-
+	//This will clear all active buttons.
+	//if deviceType == GAINPUT_DEFAULT then we clear all active buttons from all active devices
+	//if deviceType points to a specific deviceType then we clear all buttons related to that deviceType
+	static void ClearInputStates(GainputDeviceType deviceType = GainputDeviceType::GAINPUT_DEFAULT);
 	//Updates input system and broadcasts platform events
 	static void Update(float dt = 0.016f);
 	// Map from custom defined buttons to internal button mappings

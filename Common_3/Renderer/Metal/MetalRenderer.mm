@@ -1113,6 +1113,40 @@ namespace RENDERER_CPP_NAMESPACE {
 		}
 	}
 #endif
+	uint32_t queryThreadExecutionWidth(Renderer * pRenderer)
+	{
+		if(!pRenderer)
+			return 0;
+		
+		NSError* error=nil;
+		NSString * defaultComputeShader = @"#include <metal_stdlib>\n"
+		"using namespace metal;\n"
+		"kernel void simplest(texture2d<float, access::write> output [[texture(0)]],uint2 gid [[thread_position_in_grid]])\n"
+		"{output.write(float4(0, 0, 0, 1), gid);}";
+		
+		// Load all the shader files with a .metal file extension in the project
+		id<MTLLibrary> defaultLibrary = [pRenderer->pDevice newLibraryWithSource:defaultComputeShader options:nil error:&error];
+		
+		if(error != nil)
+		{
+			LOGWARNINGF("Could not create library for simple compute shader: %s", [[error localizedDescription] UTF8String]);
+			return 0;
+		}
+		
+		// Load the kernel function from the library
+		id<MTLFunction> kernelFunction = [defaultLibrary newFunctionWithName:@"simplest"];
+		
+		// Create a compute pipeline state
+		id<MTLComputePipelineState> computePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:kernelFunction error:&error];
+		if(error != nil)
+		{
+			LOGWARNINGF("Could not create compute pipeline state for simple compute shader: %s", [[error localizedDescription] UTF8String]);
+			return 0;
+		}
+		
+		return (uint32_t)computePipelineState.threadExecutionWidth;
+	}
+	
 	void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
 	{
 		Renderer* pRenderer = (Renderer*)conf_calloc(1, sizeof(*pRenderer));
@@ -1131,7 +1165,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			pRenderer->pDevice = MTLCreateSystemDefaultDevice();
 
 			//get gpu vendor and model id.
-			//TODO: Parse gpu.cfg to figure out preset level.
 			GPUVendorPreset gpuVendor;
 			gpuVendor.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 #ifndef TARGET_IOS
@@ -1155,6 +1188,8 @@ namespace RENDERER_CPP_NAMESPACE {
 			pRenderer->mGpuSettings[0].mMultiDrawIndirect = false; // multi draw indirect is not supported on Metal: only single draw indirect
 			pRenderer->mGpuSettings[0].mGpuVendorPreset = gpuVendor;
 			pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
+			pRenderer->mGpuSettings[0].mROVsSupported = [pRenderer->pDevice areRasterOrderGroupsSupported];
+			pRenderer->mGpuSettings[0].mWaveLaneCount = queryThreadExecutionWidth(pRenderer);
 #ifndef TARGET_IOS
 			setGPUPresetLevel(pRenderer);
 			//exit app if gpu being used has an office preset.
@@ -2185,6 +2220,7 @@ namespace RENDERER_CPP_NAMESPACE {
 	{
 		ASSERT(pDesc->mFillMode < FillMode::MAX_FILL_MODES);
 		ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
+		ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
 
 		RasterizerState rasterizerState = {};
 
@@ -2199,6 +2235,7 @@ namespace RENDERER_CPP_NAMESPACE {
 		rasterizerState.depthBiasSlopeFactor = pDesc->mSlopeScaledDepthBias;
 		rasterizerState.scissorEnable = pDesc->mScissor;
 		rasterizerState.multisampleEnable = pDesc->mMultiSample;
+        rasterizerState.frontFace = (pDesc->mFrontFace == FRONT_FACE_CCW ? MTLWindingCounterClockwise : MTLWindingClockwise);
 
 		*ppRasterizerState = (RasterizerState*)conf_malloc(sizeof(rasterizerState));
 		memcpy(*ppRasterizerState, &rasterizerState, sizeof(rasterizerState));
@@ -2479,7 +2516,6 @@ namespace RENDERER_CPP_NAMESPACE {
 			pCmd->mtlRenderEncoder = [pCmd->mtlCommandBuffer renderCommandEncoderWithDescriptor:pCmd->pRenderPassDesc];
 			if(switchedEncoders) [pCmd->mtlRenderEncoder waitForFence:pCmd->mtlEncoderFence beforeStages:MTLRenderStageVertex];
 
-			[pCmd->mtlRenderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
 			pCmd->mRenderPassActive = true;
 		}
 	}
@@ -2547,6 +2583,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				RasterizerState* rasterizerState = pPipeline->mGraphics.pRasterizerState ? pPipeline->mGraphics.pRasterizerState : pDefaultRasterizerState;
 				[pCmd->mtlRenderEncoder setCullMode:rasterizerState->cullMode];
 				[pCmd->mtlRenderEncoder setTriangleFillMode:rasterizerState->fillMode];
+                [pCmd->mtlRenderEncoder setFrontFacingWinding:rasterizerState->frontFace];
 
 				if(pCmd->pRenderPassDesc.depthAttachment.texture != nil) {
 					DepthState* depthState = pPipeline->mGraphics.pDepthState ? pPipeline->mGraphics.pDepthState : pDefaultDepthState;

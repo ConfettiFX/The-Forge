@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Repos\TheForge\Common_3\ThirdParty\OpenSource\ozz-animation\Win64\CMakeFiles\abcbfe2c191a071849b2f2c81471e367\PACKAGE_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{1D89B73A-97AE-30E2-AE1C-B69E286574D9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

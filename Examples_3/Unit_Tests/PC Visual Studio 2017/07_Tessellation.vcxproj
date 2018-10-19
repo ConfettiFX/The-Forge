@@ -22,7 +22,7 @@
     <ClCompile Include="..\src\07_Tessellation\07_Tessellation.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\07_Tessellation\PCVulkan\compute.comp">
+    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\compute.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -53,7 +53,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </ExcludedFromBuild>
     </None>
-    <None Include="..\src\07_Tessellation\PCVulkan\grass.tesc">
+    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.tesc">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -84,7 +84,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </ExcludedFromBuild>
     </None>
-    <None Include="..\src\07_Tessellation\PCVulkan\grass.tese">
+    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.tese">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -115,7 +115,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </ExcludedFromBuild>
     </None>
-    <None Include="..\src\07_Tessellation\PCVulkan\grass.frag">
+    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -146,7 +146,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </ExcludedFromBuild>
     </None>
-    <None Include="..\src\07_Tessellation\PCVulkan\grass.vert">
+    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -179,11 +179,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\07_Tessellation\PCDX12\compute.comp" />
-    <None Include="..\src\07_Tessellation\PCDX12\grass.frag" />
-    <None Include="..\src\07_Tessellation\PCDX12\grass.tesc" />
-    <None Include="..\src\07_Tessellation\PCDX12\grass.tese" />
-    <None Include="..\src\07_Tessellation\PCDX12\grass.vert" />
+    <None Include="..\src\07_Tessellation\Shaders\PCDX12\compute.comp" />
+    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.frag" />
+    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.tesc" />
+    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.tese" />
+    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{95AEBEE2-4980-4C6D-A4A9-B78B9A469E67}</ProjectGuid>

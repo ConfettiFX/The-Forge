@@ -30,7 +30,7 @@
     <ClCompile Include="..\src\01_Transformations\01_Transformations.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_Transformations\PCVulkan\basic.frag">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -69,7 +69,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\PCVulkan\basic.vert">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -108,7 +108,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\PCVulkan\skybox.frag">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\skybox.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -147,7 +147,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\PCVulkan\skybox.vert">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\skybox.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -188,10 +188,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\01_Transformations\PCDX12\basic.frag" />
-    <None Include="..\src\01_Transformations\PCDX12\basic.vert" />
-    <None Include="..\src\01_Transformations\PCDX12\skybox.frag" />
-    <None Include="..\src\01_Transformations\PCDX12\skybox.vert" />
+    <None Include="..\src\01_Transformations\Shaders\PCDX12\basic.frag" />
+    <None Include="..\src\01_Transformations\Shaders\PCDX12\basic.vert" />
+    <None Include="..\src\01_Transformations\Shaders\PCDX12\skybox.frag" />
+    <None Include="..\src\01_Transformations\Shaders\PCDX12\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>

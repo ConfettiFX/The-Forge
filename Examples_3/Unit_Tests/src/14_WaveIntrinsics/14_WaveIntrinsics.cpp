@@ -116,56 +116,30 @@ enum RenderMode
 };
 int32_t gRenderModeToggles = 0;
 
-#if defined(DIRECT3D12) || defined(DIRECT3D11)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-#if defined(_WIN32)
-#define RESOURCE_DIR "PCVulkan"
-#elif defined(__linux__)
-#define RESOURCE_DIR "LINUXVulkan"
-#endif
-#elif defined(METAL)
-#define RESOURCE_DIR "OSXMetal"
-#elif defined(_DURANGO)
-#define RESOURCE_DIR "PCDX12"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",	 // FSR_SrcShaders
-	"Shaders/Binary/",		  // FSR_BinShaders_Common
-	"Shaders/",				 // FSR_SrcShaders_Common
-	"Textures/",						// FSR_Textures
-	"Meshes/",					  // FSR_Meshes
-	"Fonts/",					   // FSR_Builtin_Fonts
-	"",														 // FSR_OtherFiles
+	"../../../src/14_WaveIntrinsics/",										// FSR_BinShaders
+	"../../../src/14_WaveIntrinsics/",									// FSR_SrcShaders
+	"",																		// FSR_BinShaders_Common
+	"",																		// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",											// FSR_Textures
+	"../../../UnitTestResources/",											// FSR_Meshes
+	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
+	"../../../src/14_WaveIntrinsics/",										// FSR_GpuConfig
+	"",																		// FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../../src/14_WaveIntrinsics/" RESOURCE_DIR "/Binary/",  // FSR_BinShaders
-	"../../../src/14_WaveIntrinsics/" RESOURCE_DIR "/",	 // FSR_SrcShaders
-	"",														 // FSR_BinShaders_Common
-	"",														 // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",					 // FSR_Textures
-	"../../../UnitTestResources/Meshes/",					   // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",						// FSR_Builtin_Fonts
-	"../../../src/14_WaveIntrinsics/GPUCfg/",				   // FSR_GpuConfig
-	"",														 // FSR_OtherFiles
-};
-#endif
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class WaveIntrinsics : public IApp
 {
 public:
+	WaveIntrinsics()
+	{
+		mSettings.mWidth = 1920;
+		mSettings.mHeight =1080;
+	}
+	
 	bool Init()
 	{
 		// window and renderer setup
@@ -175,6 +149,15 @@ public:
 		//check for init success
 		if (!pRenderer)
 			return false;
+		
+#ifdef METAL
+		//Instead of setting the gpu to Office and disabling the Unit test on more platforms, we do it here as the issue is only specific to Metal.
+		if(stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId,"0x1002") == 0 && stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId, "0x67df") == 0)
+		{
+			LOGERROR("This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
+			return false;
+		}
+#endif
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -608,13 +591,18 @@ public:
 	{
 		if (InputSystem::IsMouseCaptured())
 		{
-			if (InputSystem::GetButtonData(KEY_CONFIRM).mIsPressed)
+			if (pData->mUserId == KEY_UI_MOVE)
 			{
-				gSceneData.mousePosition.x = InputSystem::GetButtonData(KEY_UI_MOVE).mValue[0];
-				gSceneData.mousePosition.y = InputSystem::GetButtonData(KEY_UI_MOVE).mValue[1];
+				if(InputSystem::IsButtonPressed(KEY_CONFIRM))
+				{
+					gSceneData.mousePosition.x = pData->mValue[0];
+					gSceneData.mousePosition.y = pData->mValue[1];
+					
+					return true;
+				}
 			}
 		}
-		return true;
+		return false;
 	}
 };
 

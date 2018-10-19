@@ -20,28 +20,28 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\14_WaveIntrinsics\PCDX12\magnify.frag">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\magnify.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCDX12\magnify.vert">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\magnify.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCDX12\wave.frag">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.frag">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCDX12\wave.vert">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCVulkan\magnify.frag">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\magnify.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCVulkan\magnify.vert">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\magnify.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCVulkan\wave.frag">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\wave.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\PCVulkan\wave.vert">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\wave.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

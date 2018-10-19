@@ -29,13 +29,13 @@
 #include "../../../Common_3/Renderer/ResourceLoader.h"
 
 #if defined(METAL)
-#include "OSXMetal/shader_defs.h"
+#include "Shaders/OSXMetal/shader_defs.h"
 #elif defined(DIRECT3D12) || defined(_DURANGO)
 #define NO_HLSL_DEFINITIONS
-#include "PCDX12/shader_defs.h"
+#include "Shaders/PCDX12/shader_defs.h"
 #elif defined(VULKAN)
 #define NO_GLSL_DEFINITIONS
-#include "PCVulkan/shader_defs.h"
+#include "Shaders/PCVulkan/shader_defs.h"
 #endif
 
 #define MAX_PATH 260

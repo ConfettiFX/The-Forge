@@ -31,43 +31,62 @@
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IMemoryManager.h"
 
-#include <sys/stat.h>
 #include <unistd.h>
+#include <limits.h>  // for UINT_MAX
+#include <sys/stat.h>  // for mkdir
+#include <sys/errno.h> // for errno
+#include <dirent.h>
+
+#define RESOURCE_DIR "Shaders/OSXMetal"
+
+const char* pszRoots[] =
+{
+	RESOURCE_DIR "/Binary/",			// FSR_BinShaders
+	RESOURCE_DIR "/",					// FSR_SrcShaders
+	RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
+	RESOURCE_DIR "/",					// FSR_SrcShaders_Common
+	"Textures/",						// FSR_Textures
+	"Meshes/",							// FSR_Meshes
+	"Fonts/",							// FSR_Builtin_Fonts
+	"GPUCfg/",							// FSR_GpuConfig
+	"Animation/"						// FSR_Animation
+	"",									// FSR_OtherFiles
+};
 
 FileHandle _openFile(const char* filename, const char* flags)
 {
-  FILE* fp = fopen(filename, flags);
-  return fp;
+	FILE* fp = fopen(filename, flags);
+	return fp;
 }
 
 void _closeFile(FileHandle handle)
 {
-  fclose((::FILE*)handle);
+	fclose((::FILE*)handle);
 }
 
 void _flushFile(FileHandle handle)
 {
-  fflush((::FILE*)handle);
+	fflush((::FILE*)handle);
 }
 
 size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
 {
-  return fread(buffer, byteCount, 1, (::FILE*)handle);
+	return fread(buffer, byteCount, 1, (::FILE*)handle);
 }
 
 bool _seekFile(FileHandle handle, long offset, int origin)
 {
-  return fseek((::FILE*)handle, offset, origin) == 0;
+	return fseek((::FILE*)handle, offset, origin) == 0;
 }
 
 long _tellFile(FileHandle handle)
 {
-  return ftell((::FILE*)handle);
+	return ftell((::FILE*)handle);
 }
 
 size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
 {
-  return fwrite(buffer, byteCount, 1, (::FILE*)handle);
+	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
 size_t _getFileLastModifiedTime(const char* _fileName)
@@ -121,4 +140,25 @@ void _setCurrentDir(const char* path)
 	chdir(path);
 }
 
-#endif
+void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+{
+	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	DIR* pDir = opendir(dir);
+	if(!pDir)
+	{
+		LOGWARNINGF("Could not open directory: %s", dir);
+		return;
+	}
+	
+	// recursively search the directory for files with given extension
+	dirent* entry = NULL;
+	while((entry = readdir(pDir)) != NULL)
+	{
+		if(FileSystem::GetExtension(entry->d_name) == ext)
+		{
+			filesOut.push_back(path + entry->d_name);
+		}
+	}
+}
+
+#endif // __APPLE__

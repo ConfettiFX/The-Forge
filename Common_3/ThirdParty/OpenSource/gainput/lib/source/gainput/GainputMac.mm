@@ -27,6 +27,14 @@ namespace gainput
 	NSView * parentView;
 	NSTrackingArea * pTrackingArea;
 	float mRetinaScale;
+	bool isMouseCaptured;
+	CGPoint capturedMouseLocation;
+}
+
+
+-(void)SetMouseCapture:(BOOL)captured
+{
+	isMouseCaptured = captured;
 }
 
 - (id)initWithFrame:(NSRect)frame window:(NSWindow *)window retinaScale:(float)retinaScale inputManager:(gainput::InputManager &)inputManager
@@ -183,19 +191,29 @@ namespace gainput
 	
 	MTKView * mtkView = (__bridge MTKView*)parentView;
 	mRetinaScale = mtkView.drawableSize.width / mtkView.frame.size.width;
+	if(!isMouseCaptured)
+	{
+		// Translate the cursor position into view coordinates, accounting for the fact that
+		// App Kit's default window coordinate space has its origin in the bottom left
+		capturedMouseLocation = [mtkView convertPoint:[nsEvent locationInWindow] fromView:nil];
+		capturedMouseLocation.y = mtkView.bounds.size.height - capturedMouseLocation.y;
+		
+		// Multiply the mouse coordinates by the retina scale factor.
+		capturedMouseLocation.x *= mRetinaScale;
+		capturedMouseLocation.y *= mRetinaScale;
+	}
+	else
+	{
+		// Move the static mouse location with deltas.
+		//if mouse is captured that means we disassociated mouse position and cursor
+		//which makes locationInWindow return the cursor position instead of actual mouse.
+		capturedMouseLocation.x += [nsEvent deltaX];
+		capturedMouseLocation.y += [nsEvent deltaY];
+	}
 	
-	// Translate the cursor position into view coordinates, accounting for the fact that
-	// App Kit's default window coordinate space has its origin in the bottom left
-	CGPoint location = [mtkView convertPoint:[nsEvent locationInWindow] fromView:nil];
-	location.y = mtkView.bounds.size.height - location.y;
-
-	
-	// Multiply the mouse coordinates by the retina scale factor.
-	location.x *= mRetinaScale;
-	location.y *= mRetinaScale;
 	
 	if(mouse)
-		mouse->HandleMouseMove(location.x, location.y);
+		mouse->HandleMouseMove(capturedMouseLocation.x, capturedMouseLocation.y);
 	
 	if(mouseRaw)
 		mouseRaw->HandleMouseMove([nsEvent deltaX], [nsEvent deltaY]);

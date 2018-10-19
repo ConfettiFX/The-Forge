@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{b6a2ef99-2535-4e08-bc22-61631afa22d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCVulkan">
+      <UniqueIdentifier>{a952e6fa-f30d-48ed-a770-d9b4bc130b71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\PCDX12">
+      <UniqueIdentifier>{4c9ad439-05ea-4d3e-b202-e8f81eedfd31}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\02_Blending\02_Blending.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\02_Blending\Shaders\PCDX12\basic.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCDX12\basic.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCDX12\plane.frag">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCDX12\plane.vert">
+      <Filter>Shaders\PCDX12</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCVulkan\basic.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCVulkan\basic.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCVulkan\plane.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\02_Blending\Shaders\PCVulkan\plane.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+  </ItemGroup>
+</Project>

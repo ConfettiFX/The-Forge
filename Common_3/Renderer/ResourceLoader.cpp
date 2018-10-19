@@ -28,7 +28,7 @@
 #include "../OS/Interfaces/IMemoryManager.h"
 #include "../OS/Interfaces/IThread.h"
 
-//this is needed for unix as PATH_MAX is defined intead of MAX_PATH
+//this is needed for unix as PATH_MAX is defined instead of MAX_PATH
 #ifndef _WIN32
 //linux needs limits.h for PATH_MAX
 #ifdef __linux__
@@ -1245,58 +1245,87 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 		if (fileTimeStamp > outTimeStamp)
 			outTimeStamp = fileTimeStamp;
 	}
-
+	
 	const tinystl::string pIncludeDirective = "#include";
-	const uint32_t filePos = (uint32_t)strlen(pIncludeDirective);
-
 	while (!file->IsEof())
 	{
 		tinystl::string line = file->ReadLine();
+		uint32_t filePos = line.find(pIncludeDirective, 0);
+		const uint commentPosCpp = line.find("//", 0);
+		const uint commentPosC = line.find("/*", 0);
+		
+		// if we have an "#include \"" in our current line
+		const bool bLineHasIncludeDirective = filePos != tinystl::string::npos;
+		const bool bLineIsCommentedOut = (commentPosCpp != tinystl::string::npos && commentPosCpp < filePos)
+										|| (commentPosC != tinystl::string::npos && commentPosC < filePos);
 
-		if (line.substring(0, filePos) == pIncludeDirective)
+		if(bLineHasIncludeDirective && !bLineIsCommentedOut)
 		{
-			uint32_t currentPos = filePos;
+			// get the include file name
+			uint32_t currentPos = filePos + (uint32_t)strlen(pIncludeDirective);
 			tinystl::string fileName;
-			while (line.at(currentPos++) == ' ');
-			if (currentPos >= (uint32_t)line.size())
-				continue;
-			if (line.at(currentPos - 1) != '\"')
-			{
-				continue;
-			}
+			while (line.at(currentPos++) == ' ');	// skip empty spaces
+			if (currentPos >= (uint32_t)line.size()) continue;
+			if (line.at(currentPos - 1) != '\"')	 continue;
 			else
 			{
+				// read char by char until we have the include file name
 				while(line.at(currentPos) != '\"')
 				{
 					fileName.push_back(line.at(currentPos));
 					++currentPos;
 				}
 			}
+			
+			// get the include file path
 			tinystl::string includeFileName = FileSystem::GetPath(file->GetName()) + fileName;
-			if (FileSystem::GetFileName(includeFileName).at(0) == '<')
+			if (FileSystem::GetFileName(includeFileName).at(0) == '<') // disregard bracketsauthop
 				continue;
+			
+			// open the include file
 			File includeFile = {};
 			includeFile.Open(includeFileName, FM_ReadBinary, FSR_Absolute);
 			if (!includeFile.IsOpen())
+			{
+				LOGERRORF("Cannot open #include file: %s", includeFileName.c_str());
 				return false;
-
+			}
+			
 			// Add the include file into the current code recursively
 			if (!process_source_file(original, &includeFile, outTimeStamp, outCode))
 			{
 				includeFile.Close();
 				return false;
 			}
-
+			
 			includeFile.Close();
 		}
-
-		if (file == original)
+		
+		
+#ifdef TARGET_IOS
+		// iOS doesn't have support for resolving user header includes in shader code
+		// when compiling with shader source using Metal runtime.
+		// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/FunctionsandLibraries.html
+		//
+		// Here we write out the contents of the header include into the original source
+		// where its included from -- we're expanding the headers as the pre-processor 
+		// would do.
+		//
+		const bool bAreWeProcessingAnIncludedHeader = file != original;
+		if (bAreWeProcessingAnIncludedHeader || !bLineHasIncludeDirective)
 		{
-			outCode += line;
-			outCode += "\n";
+			outCode += line + "\n";
 		}
+#else
+		// Simply write out the current line if we are not in a header file
+		const bool bAreWeProcessingTheShaderSource = file == original;
+		if (bAreWeProcessingTheShaderSource)
+		{
+			outCode += line + "\n";
+		}
+#endif
 	}
-
+	
 	return true;
 }
 
@@ -1410,7 +1439,7 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderTarget target, Shade
 	appName = lowerStr!=pRenderer->pName ? lowerStr : lowerStr+"_";
 #endif
 
-	tinystl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + tinystl::string("/") + rendererApi + tinystl::string("/CompiledShadersBinary/") +
+	tinystl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + tinystl::string("/Shaders/") + rendererApi + tinystl::string("/CompiledShadersBinary/") +
 		FileSystem::GetFileName(fileName) +
 		tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) +
 		extension +
@@ -1602,11 +1631,12 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 			if (find_shader_stage(pDesc->mStages[i].mFileName, &desc, &pStage, &stage))
 			{
 				File shaderSource = {};
-				shaderSource.Open(pDesc->mStages[i].mFileName + ".metal", FM_ReadBinary, FSR_Absolute);
+				shaderSource.Open(pDesc->mStages[i].mFileName + ".metal", FM_ReadBinary, pDesc->mStages[i].mRoot);
 				ASSERT(shaderSource.IsOpen());
 
 				pStage->mName = pDesc->mStages[i].mFileName;
-				pStage->mCode = shaderSource.ReadText();
+				uint timestamp = 0;
+				process_source_file(&shaderSource, &shaderSource, timestamp, pStage->mCode);
 				pStage->mEntryPoint = "stageMain";
 				// Apply user specified shader macros
 				for (uint32_t j = 0; j < pDesc->mStages[i].mMacroCount; j++)

@@ -7,16 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		281FA9EE20333E9200CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.png */; };
-		288F631A2035BB4E00B758DE /* backGround.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63142035B30D00B758DE /* backGround.vert.metal */; };
-		288F631B2035BB5000B758DE /* backGround.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63132035B30D00B758DE /* backGround.frag.metal */; };
-		288F631C2035BB5500B758DE /* proceduralPlanet.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */; };
 		28A5AE18201F7D41000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE16201F7D41000E571F /* Main.storyboard */; };
 		28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE19201F7D41000E571F /* Assets.xcassets */; };
 		28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */; };
-		28A5AE31201F7D9E000E571F /* TitilliumText in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE30201F7D9E000E571F /* TitilliumText */; };
-		28A5AE34201F7DB4000E571F /* environment_sky.png in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.png */; };
-		28A5AE38201F7DF5000E571F /* proceduralPlanet.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE36201F7DE7000E571F /* proceduralPlanet.vert.metal */; };
 		28A5AE39201F7EBE000E571F /* 08_Procedural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28EE9FF6201B30B200D42AD7 /* 08_Procedural.cpp */; };
 		28EE9FF7201B30B200D42AD7 /* 08_Procedural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28EE9FF6201B30B200D42AD7 /* 08_Procedural.cpp */; };
 		5C172F9B21414AFF0074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F9921414AFF0074EE71 /* AppDelegate.m */; };
@@ -24,6 +17,13 @@
 		5C17304921414E7C0074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17304821414E7C0074EE71 /* libThe-Forge_iOS.a */; };
 		5C17304E21414E8D0074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17304D21414E8D0074EE71 /* AppDelegate.m */; };
 		5CABF37A2141544C00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3792141544C00EFD76A /* GameController.framework */; };
+		971BCF092170181D007F2B2F /* TitilliumText in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AE30201F7D9E000E571F /* TitilliumText */; };
+		971BCF0A21701821007F2B2F /* circlepad.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.png */; };
+		971BCF0B21701821007F2B2F /* environment_sky.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.png */; };
+		971BCF0C21701825007F2B2F /* backGround.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 288F63142035B30D00B758DE /* backGround.vert.metal */; };
+		971BCF0D21701825007F2B2F /* backGround.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 288F63132035B30D00B758DE /* backGround.frag.metal */; };
+		971BCF0E21701825007F2B2F /* proceduralPlanet.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AE36201F7DE7000E571F /* proceduralPlanet.vert.metal */; };
+		971BCF0F21701825007F2B2F /* proceduralPlanet.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */; };
 		B2087DEF21421A5C006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DED21421A5C006F372D /* MetalKit.framework */; };
 		B2087DF021421A5C006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DEE21421A5C006F372D /* Metal.framework */; };
 		B21F76E221420ECC00DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76DF21420ECC00DF2297 /* UIKit.framework */; };
@@ -64,11 +64,48 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		971BCF0621701800007F2B2F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Fonts;
+			dstSubfolderSpec = 7;
+			files = (
+				971BCF092170181D007F2B2F /* TitilliumText in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		971BCF0721701804007F2B2F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Textures;
+			dstSubfolderSpec = 7;
+			files = (
+				971BCF0A21701821007F2B2F /* circlepad.png in CopyFiles */,
+				971BCF0B21701821007F2B2F /* environment_sky.png in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		971BCF0821701806007F2B2F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Shaders/OSXMetal;
+			dstSubfolderSpec = 7;
+			files = (
+				971BCF0C21701825007F2B2F /* backGround.vert.metal in CopyFiles */,
+				971BCF0D21701825007F2B2F /* backGround.frag.metal in CopyFiles */,
+				971BCF0E21701825007F2B2F /* proceduralPlanet.vert.metal in CopyFiles */,
+				971BCF0F21701825007F2B2F /* proceduralPlanet.frag.metal in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = proceduralPlanet.frag.metal; path = ../../../src/08_Procedural/OSXMetal/proceduralPlanet.frag.metal; sourceTree = "<group>"; };
-		288F63132035B30D00B758DE /* backGround.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = backGround.frag.metal; path = ../../../src/08_Procedural/OSXMetal/backGround.frag.metal; sourceTree = "<group>"; };
-		288F63142035B30D00B758DE /* backGround.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = backGround.vert.metal; path = ../../../src/08_Procedural/OSXMetal/backGround.vert.metal; sourceTree = "<group>"; };
+		288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = proceduralPlanet.frag.metal; path = ../../../src/08_Procedural/Shaders/OSXMetal/proceduralPlanet.frag.metal; sourceTree = "<group>"; };
+		288F63132035B30D00B758DE /* backGround.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = backGround.frag.metal; path = ../../../src/08_Procedural/Shaders/OSXMetal/backGround.frag.metal; sourceTree = "<group>"; };
+		288F63142035B30D00B758DE /* backGround.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = backGround.vert.metal; path = ../../../src/08_Procedural/Shaders/OSXMetal/backGround.vert.metal; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 08_Procedural_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_Procedural_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AE17201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -76,7 +113,7 @@
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		28A5AE32201F7DB4000E571F /* environment_sky.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = environment_sky.png; path = ../../../UnitTestResources/Textures/environment_sky.png; sourceTree = "<group>"; };
-		28A5AE36201F7DE7000E571F /* proceduralPlanet.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = proceduralPlanet.vert.metal; path = ../../../src/08_Procedural/OSXMetal/proceduralPlanet.vert.metal; sourceTree = "<group>"; };
+		28A5AE36201F7DE7000E571F /* proceduralPlanet.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = proceduralPlanet.vert.metal; path = ../../../src/08_Procedural/Shaders/OSXMetal/proceduralPlanet.vert.metal; sourceTree = "<group>"; };
 		28EE9FF6201B30B200D42AD7 /* 08_Procedural.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 08_Procedural.cpp; path = ../../../src/08_Procedural/08_Procedural.cpp; sourceTree = "<group>"; };
 		5C172F9921414AFF0074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C172F9A21414AFF0074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
@@ -126,9 +163,6 @@
 			children = (
 				5C17304C21414E8D0074EE71 /* AppDelegate.h */,
 				5C17304D21414E8D0074EE71 /* AppDelegate.m */,
-				28A5AE2F201F7D91000E571F /* Fonts */,
-				28A5AE2E201F7D89000E571F /* Textures */,
-				28A5AE2D201F7D82000E571F /* Shaders */,
 				28A5AE16201F7D41000E571F /* Main.storyboard */,
 				28A5AE19201F7D41000E571F /* Assets.xcassets */,
 				28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */,
@@ -159,6 +193,7 @@
 				288F63112035B28C00B758DE /* proceduralPlanet.frag.metal */,
 			);
 			name = Shaders;
+			path = 08_Procedural_iOS;
 			sourceTree = "<group>";
 		};
 		28A5AE2E201F7D89000E571F /* Textures */ = {
@@ -168,6 +203,7 @@
 				28A5AE32201F7DB4000E571F /* environment_sky.png */,
 			);
 			name = Textures;
+			path = 08_Procedural_iOS;
 			sourceTree = "<group>";
 		};
 		28A5AE2F201F7D91000E571F /* Fonts */ = {
@@ -176,6 +212,7 @@
 				28A5AE30201F7D9E000E571F /* TitilliumText */,
 			);
 			name = Fonts;
+			path = 08_Procedural_iOS;
 			sourceTree = "<group>";
 		};
 		5C172F9D21414B080074EE71 /* Products */ = {
@@ -191,6 +228,9 @@
 			isa = PBXGroup;
 			children = (
 				5C172F9C21414B080074EE71 /* The-Forge.xcodeproj */,
+				28A5AE2F201F7D91000E571F /* Fonts */,
+				28A5AE2E201F7D89000E571F /* Textures */,
+				28A5AE2D201F7D82000E571F /* Shaders */,
 				EA463C941EF81E8F005AC8C7 /* 08_Procedural */,
 				28A5AE09201F7D41000E571F /* 08_Procedural_iOS */,
 				EA463C8C1EF81E8F005AC8C7 /* Products */,
@@ -230,6 +270,9 @@
 				28A5AE04201F7D41000E571F /* Sources */,
 				28A5AE05201F7D41000E571F /* Frameworks */,
 				28A5AE06201F7D41000E571F /* Resources */,
+				971BCF0621701800007F2B2F /* CopyFiles */,
+				971BCF0721701804007F2B2F /* CopyFiles */,
+				971BCF0821701806007F2B2F /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -327,16 +370,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				288F631A2035BB4E00B758DE /* backGround.vert.metal in Resources */,
-				288F631B2035BB5000B758DE /* backGround.frag.metal in Resources */,
-				28A5AE38201F7DF5000E571F /* proceduralPlanet.vert.metal in Resources */,
-				288F631C2035BB5500B758DE /* proceduralPlanet.frag.metal in Resources */,
 				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */,
 				28A5AE18201F7D41000E571F /* Main.storyboard in Resources */,
-				28A5AE31201F7D9E000E571F /* TitilliumText in Resources */,
-				281FA9EE20333E9200CD5D9C /* circlepad.png in Resources */,
-				28A5AE34201F7DB4000E571F /* environment_sky.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

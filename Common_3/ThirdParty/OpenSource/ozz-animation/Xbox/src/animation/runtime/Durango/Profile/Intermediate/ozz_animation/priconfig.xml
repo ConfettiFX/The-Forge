@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources targetOsVersion="6.3.0" majorVersion="1">
+  <index root="\" startIndexAt="D:\Repos\The-Forge\Common_3\ThirdParty\OpenSource\ozz-animation\Xbox\src\animation\runtime\Durango\Profile\Intermediate\ozz_animation\filtered.layout.resfiles">
+    <default>
+      <qualifier name="Language" value="en-US" />
+    </default>
+    <indexer-config type="RESFILES" qualifierDelimiter="." />
+  </index>
+  <index root="\" startIndexAt="D:\Repos\The-Forge\Common_3\ThirdParty\OpenSource\ozz-animation\Xbox\src\animation\runtime\Durango\Profile\Intermediate\ozz_animation\resources.resfiles">
+    <default>
+      <qualifier name="Language" value="en-US" />
+    </default>
+    <indexer-config type="RESW" convertDotsToSlashes="true" initialPath="ozz_animation" />
+    <indexer-config type="RESJSON" initialPath="ozz_animation" />
+    <indexer-config type="RESFILES" qualifierDelimiter="." />
+  </index>
+  <index root="\" startIndexAt="D:\Repos\The-Forge\Common_3\ThirdParty\OpenSource\ozz-animation\Xbox\src\animation\runtime\Durango\Profile\Intermediate\ozz_animation\pri.resfiles">
+    <default>
+      <qualifier name="Language" value="en-US" />
+    </default>
+    <indexer-config type="PRI" />
+    <indexer-config type="RESFILES" qualifierDelimiter="." />
+  </index>
+</resources>

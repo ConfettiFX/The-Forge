@@ -88,6 +88,12 @@ public:
 	 */
 	void Update();
 
+
+	/**
+	 * This is used to to clear all input states from all registered devices
+	 */
+	void ClearAllStates(gainput::DeviceId deviceId = gainput::InvalidDeviceId);
+
 	/// Updates the input state and the manager's time, call this every frame.
 	/**
 	 * Updates the time returned by GetTime() and then calls the regular Update(). This function

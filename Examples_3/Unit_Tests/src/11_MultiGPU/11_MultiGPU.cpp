@@ -127,6 +127,7 @@ uint32_t			gFrameIndex = 0;
 
 int				 gNumberOfSpherePoints;
 UniformBlock		gUniformData;
+UniformBlock		gUniformDataSky;
 PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
 
 ICameraController*  pCameraController = NULL;
@@ -148,54 +149,18 @@ const char*		 pSkyBoxImageFileNames[] =
 	"Skybox_back6.png"
 };
 
-#if defined(DIRECT3D12)
-#define RESOURCE_DIR "PCDX12"
-#elif defined(VULKAN)
-// #NOTE : Multi GPU in Vulkan requires NVIDIA Beta Driver 389.20
-	#if defined(_WIN32)
-	#define RESOURCE_DIR "PCVulkan"
-	#elif defined(LINUX)
-	#define RESOURCE_DIR "LINUXVulkan"
-	#endif
-#elif defined(METAL)
-#error Multi GPU not implemented for Metal Runtime
-//#define RESOURCE_DIR "OSXMetal"
-#elif defined(_DURANGO)
-#error Multi GPU not supported
-//#define RESOURCE_DIR "PCDX12"
-#else
-#error PLATFORM NOT SUPPORTED
-#endif
-
-#ifdef _DURANGO
-// Durango load assets from 'Layout\Image\Loose'
-const char* pszRoots[] =
+const char* pszBases[] =
 {
-	"Shaders/Binary/",  // FSR_BinShaders
-	"Shaders/",	 // FSR_SrcShaders
-	"Shaders/Binary/",		  // FSR_BinShaders_Common
-	"Shaders/",				 // FSR_SrcShaders_Common
-	"Textures/",						// FSR_Textures
-	"Meshes/",					  // FSR_Meshes
-	"Fonts/",					   // FSR_Builtin_Fonts
-	"",				 // FSR_GpuConfig
-	"",														 // FSR_OtherFiles
+	"../../../src/11_MultiGPU/",                       // FSR_BinShaders
+	"../../../src/11_MultiGPU/",                       // FSR_SrcShaders
+	"../../../../../Middleware_3/PaniniProjection/",   // FSR_BinShaders_Common
+	"../../../../../Middleware_3/PaniniProjection/",   // FSR_SrcShaders_Common
+	"../../../UnitTestResources/",                     // FSR_Textures
+	"../../../UnitTestResources/",                     // FSR_Meshes
+	"../../../UnitTestResources/",                     // FSR_Builtin_Fonts
+	"../../../src/11_MultiGPU/",                       // FSR_GpuConfig
+	"",                                                // FSR_OtherFiles
 };
-#else
-//Example for using roots or will cause linker error with the extern root in FileSystem.cpp
-const char* pszRoots[] =
-{
-	"../../../src/11_MultiGPU/" RESOURCE_DIR "/Binary/",								// FSR_BinShaders
-	"../../../src/11_MultiGPU/" RESOURCE_DIR "/",									   // FSR_SrcShaders
-	"../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders_Common
-	"../../../../../Middleware_3/PaniniProjection/Shaders/" RESOURCE_DIR "/",		   // FSR_SrcShaders_Common
-	"../../../UnitTestResources/Textures/",											 // FSR_Textures
-	"../../../UnitTestResources/Meshes/",											   // FSR_Meshes
-	"../../../UnitTestResources/Fonts/",												// FSR_Builtin_Fonts
-	"../../../src/11_MultiGPU/GPUCfg/",												 // FSR_GpuConfig
-	"",																				 // FSR_OtherFiles
-};
-#endif
 
 TextDrawDesc		gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 ClearValue			  gClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -761,14 +726,9 @@ public:
 			gUniformData.mColor[i] = gPlanetInfoData[i].mColor;
 		}
 
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
-
+		gUniformDataSky = gUniformData;
 		viewMat.setTranslation(vec3(0));
-		gUniformData.mProjectView = projMat * viewMat;
-
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&skyboxViewProjCbv);
+		gUniformDataSky.mProjectView = projMat * viewMat;
 		/************************************************************************/
 		/************************************************************************/
 
@@ -801,6 +761,13 @@ public:
 		static HiresTimer gTimer;
 
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
+		// Update uniform buffers
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
+		updateResource(&viewProjCbv);
+
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
+		updateResource(&skyboxViewProjCbv);
 
 		for (int i = gViewCount - 1; i >= 0; --i)
 		{

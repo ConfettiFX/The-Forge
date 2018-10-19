@@ -56,6 +56,10 @@ public:
 	{
 		return deviceState_;
 	}
+	
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
 
 	void Update(InputDeltaState* delta)
 	{

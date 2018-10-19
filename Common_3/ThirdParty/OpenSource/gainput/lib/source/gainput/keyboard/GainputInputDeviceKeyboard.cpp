@@ -191,10 +191,10 @@ InputDeviceKeyboard::GetNextCharacter(gainput::DeviceButtonId buttonId)
 	return impl_->GetNextCharacter(buttonId);
 }
 
-void InputDeviceKeyboard::ClearButtons()
+void
+InputDeviceKeyboard::ClearButtons()
 {
 	impl_->ClearButtons();
 }
-
 }
 

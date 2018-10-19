@@ -285,6 +285,11 @@ public:
 		}
 	}
 
+
+	virtual InputState * GetNextInputState() override {
+		return &nextState_;
+	}
+
 private:
 	InputManager& manager_;
 	InputDevice& device_;

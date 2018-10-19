@@ -495,7 +495,10 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	addResource(&loadDesc);
 
 	if (!pTexture)
+	{
+		LOGERRORF("Error loading texture file: %s", pJoystickTexture);
 		return false;
+	}
 	/************************************************************************/
 	// States
 	/************************************************************************/

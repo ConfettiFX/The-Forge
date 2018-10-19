@@ -73,10 +73,10 @@ void createTessellatedQuadBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, 
 	// Tessellate the quad
 	tinystl::vector<uint16_t> indices(numQuads * 6);
 	//	A +------+ B
-	//	  |	/ |
+	//	  |    / |
 	//	  |   /  |
 	//	  |  /   |
-	//	  | /	|
+	//	  | /	 |
 	//	  |/	 |
 	//	C +------+ D
 	//

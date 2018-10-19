@@ -90,20 +90,6 @@ void* InputSystem::pGainputView = NULL;
 #endif
 
 
-//void RawMouseCallback(ButtonData& button)
-//{
-//  button.mValue[0] = button.mValue[0] - button.mPrevValue[0];
-//  button.mValue[1] = button.mValue[1] - button.mPrevValue[1];
-//  static float maxX = fmax(0.0f, fabs(button.mValue[0]));
-//  LOGINFOF("Mouse max delta: X%f", maxX);
-//  LOGINFOF("Mouse delta: X%f Y%f", button.mValue[0], button.mValue[1]);
-//}
-//
-//void TouchInputCallback(ButtonData& button)
-//{
-//  //Get Virtual joystick positions and return correct values based on that.
-//}
-
 void InputSystem::Shutdown()
 {
 	if (mDeviceInputListnerID != -1)
@@ -177,6 +163,13 @@ void InputSystem::Init(const uint32_t& width, const uint32_t& height)
 
 	SetDefaultKeyMapping();
 
+}
+
+void InputSystem::ClearInputStates(GainputDeviceType deviceType)
+{
+	gainput::DeviceId deviceId = GetDeviceID(deviceType);
+	if (pInputManager)
+		pInputManager->ClearAllStates(deviceId);
 }
 
 void InputSystem::Update(float dt)
@@ -417,13 +410,14 @@ uint32_t InputSystem::GetDeviceID(GainputDeviceType deviceType)
 	case GAINPUT_TOUCH:
 		return mTouchDeviceID;
 		break;
+	case GAINPUT_DEFAULT:
 	case DEVICE_COUNT:
-		return UINT_MAX;
+		return gainput::InvalidDeviceButtonId;
 		break;
 	default:
 		break;
 	}
-	return UINT_MAX;
+	return gainput::InvalidDeviceButtonId;
 }
 
 /*
@@ -458,7 +452,7 @@ void InputSystem::AddMappings(KeyMappingDescription* mappings, uint32_t mappingC
 	if (overrideMappings)
 	{
 		mKeyMappings.clear();
-		if (mActiveInputMap >= 0 && pInputMap.size() > mActiveInputMap)
+		if (pInputMap.size() > mActiveInputMap)
 		{
 			pInputMap[mActiveInputMap]->Clear();
 		}
@@ -509,6 +503,11 @@ void InputSystem::SetDefaultKeyMapping()
 void InputSystem::SetMouseCapture(bool mouseCapture)
 {
 	mIsMouseCaptured = mouseCapture;
+#if defined(METAL) && !defined(TARGET_IOS)
+    GainputMacInputView * view = (__bridge GainputMacInputView *)(pGainputView);
+    [view SetMouseCapture:mouseCapture];
+    view = NULL;
+#endif
 }
 
 void InputSystem::UpdateSize(const uint32_t& width, const uint32_t& height)
