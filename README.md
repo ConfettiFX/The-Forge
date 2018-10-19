@@ -35,11 +35,32 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 # News
 
 ## Release 1.18 - October 18th, 2018 - Animation System Ozz support | Vulkan native Ubuntu Linux package support
-* The Forge now uses the Ozz animation system. This is our first major change to the math library because we needed to add what is necessary for animation. We compared the speed of our math library then with the speed of the Ozz animation system math library and they are about the same. At some point we need to do AVX 1 and ARM specific optimizations to our math library, which is still based on the open-sourced changed Sony math library [Vectormath](https://github.com/glampert/vectormath), which is similar to the Bullet math library ...
+* The Forge now uses the Ozz animation system. This is our first major change to the math library because we needed to add what is necessary for animation. We compared the speed of our math library then with the speed of the Ozz animation system math library and they are about the same. At some point we need to do AVX 1 and ARM specific optimizations to our math library, which is still based on the open-sourced changed Sony math library [Vectormath](https://github.com/glampert/vectormath), which is similar to the Bullet math library ... 
 
+A screenshot of the PC version:
 
-We added several unit tests. Please see description below.
-* Changed the file system for all platforms, making it more consistent to use and more functional
+![Ozz ](Screenshots/Ozz_moneyShot.gif)
+
+Here are shots of four of the supported platforms:
+
+PC Windows 10 Vulkan 1.1.77 GeForce 1080 Driver 399.07 with a resolution of 2560x1440 in full-screen:  
+![Ozz Baked Physics on PC](Screenshots/Ozz_PC.png)
+
+Linux Vulkan 1.1.82.1 RADEON  480 Driver 18.30 with a resolution of 1920x1080 in full-screen: 
+![Ozz Baked Physics on Linux](Screenshots/Ozz_linux.png)
+
+iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 5120x2880 in full-screen:  
+![Ozz Baked Physics on iMac](Screenshots/Ozz_imac.png)
+
+iPhone 7 with iOS 12.0 (16A366) and a resolution of 1334 x 750 in full-screen:
+![Ozz Baked Physics on iPhone](Screenshots/Ozz_iphone.png)
+
+XBOX One:
+![Ozz Baked Physics on iPhone](Screenshots/Ozz_xbox_BakedPhysics.png)
+
+We added several unit tests for Ozz. Please find descriptions below.
+
+* Extended the file system for all platforms, making it more consistent to use and more functional
 * Tabified - tabified the whole code base ... finally ... 
 * glTF - we made sure glTF 2.0 support is improved in the latest assimp we use. This should allow us in the future to use glTF 2.0 art assets easier
 * Linux / Vulkan - we applaud Khronos for the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/) and will support those from now on. This is something that makes gaming on Linux Ubuntu easier to approach for end-users.
@@ -177,12 +198,8 @@ Please read the "Set up the Runtime Environment" and "Environment Variable Persi
 In the moment we only support the first two unit tests. We are waiting for devkits with more stable drivers before we bring over the other unit tests. The Essential phone uses an Adreno 540 GPU. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
 
 
-
-
 # Install 
 For PC Windows run PRE_BUILD.bat. For the other platforms run the shell script. It will download and unzip the art assets and only on PC install the shader builder extension for Visual Studio.
-
-
 
 # Unit Tests
 There are the following unit tests in The Forge:
@@ -288,6 +305,43 @@ This unit test shows how to use the new wave intrinsics. In the moment it only s
 Ray Tracing API unit test, showing how to use DXR on Windows only.
 
 ![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
+
+
+## 17. Playback Animation
+This unit test shows how to playback a clip on a rig.
+
+![Image of Playback Animation in The Forge](Screenshots/01_Playback.gif)
+
+## 18. Playback Blending
+This unit test shows how to blend multiple clips and play them back on a rig.
+
+![Image of Playback Blending in The Forge](Screenshots/02_Blending.gif)
+
+## 19. Joint Attachment
+This unit test shows how to attach an object to a rig which is being posed by an animation.
+
+![Image of Ozz Joint Attachment in The Forge](Screenshots/03_JointAttachment.gif)
+
+## 20. Partial Blending
+This unit test shows how to blend clips having each only effect a certain portion of joints.
+
+![Image of Ozz Partial Blending in The Forge](Screenshots/04_PartialBlending.gif)
+
+## 21. Additive Blending
+This unit test shows how to introduce an additive clip onto another clip and play the result on a rig.
+
+![Image of Ozz Additive Blending in The Forge](Screenshots/05_Additive.gif)
+
+## 22. Baked Physics
+This unit test shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
+
+![Image of Ozz Baked Physics in The Forge](Screenshots/07_BakedPhysics.gif)
+
+## 23. Ozz Multi Threading
+This unit test shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates.
+
+![Image of Ozz Multi Threading in The Forge](Screenshots/09_MultiThread.gif)
+
 
 
 # Examples
