@@ -431,7 +431,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3 camPos{ 48.0f, 48.0f, 20.0f };
@@ -636,24 +636,22 @@ public:
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
 		updateResource(&viewProjCbv);
 
 		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
 		updateResource(&skyboxViewProjCbv);
-
-		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};

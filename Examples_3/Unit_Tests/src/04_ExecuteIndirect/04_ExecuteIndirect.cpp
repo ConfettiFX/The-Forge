@@ -356,18 +356,14 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
 		for (int i = 0; i < 6; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
-#else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
@@ -375,7 +371,7 @@ public:
 		}
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
@@ -636,7 +632,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
@@ -974,12 +970,19 @@ public:
 
 		// Prepare images for frame buffers
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
 		RenderTarget* pSwapchainRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 		RenderTarget* pSceneRenderTarget = gbPaniniEnabled ? pIntermediateRenderTarget : pSwapchainRenderTarget;
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
 
 		uint32_t frameIdx = gFrameIndex;
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[frameIdx];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[frameIdx];
 
 		// Update projection view matrices
 
@@ -1262,13 +1265,6 @@ public:
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		// Stall if CPU is running "Swap Chain Buffer Count - 1" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	tinystl::string GetName()

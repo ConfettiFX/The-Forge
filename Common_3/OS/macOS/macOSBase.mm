@@ -349,6 +349,19 @@ int macOSMain(int argc, const char** argv, IApp* app)
 		NSLog(@"Metal is not supported on this device");
 		self.view = [[NSView alloc] initWithFrame:self.view.frame];
 	}
+	
+	//register terminate callback
+	NSApplication *app = [NSApplication sharedApplication];
+	[[NSNotificationCenter defaultCenter]
+	 addObserver:self
+	 selector:@selector(applicationWillTerminate:)
+	 name: NSApplicationWillTerminateNotification object:app];
+}
+
+/*A notification named NSApplicationWillTerminateNotification.*/
+- (void)applicationWillTerminate:(NSNotification *)notification
+{
+	[_application shutdown];
 }
 
 - (BOOL)acceptsFirstResponder
@@ -438,7 +451,10 @@ uint32_t testingMaxFrameCount = 120;
 		pSettings->mWidth = gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);
 		pSettings->mHeight = gCurrentWindow.fullScreen ? getRectHeight(gCurrentWindow.fullscreenRect) : getRectHeight(gCurrentWindow.windowedRect);
 		pApp->pWindow = &gCurrentWindow;
-
+		
+		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
+		InputSystem::InitSubView((__bridge void*)(view));
+		
 		@autoreleasepool {
 			//if init fails then exit the app
 			if(!pApp->Init())
@@ -446,8 +462,8 @@ uint32_t testingMaxFrameCount = 120;
 				for (NSWindow *window in [NSApplication sharedApplication].windows) {
 					[window close];
 				}
-
-				[NSApp terminate:nil];
+				
+				exit(1);
 			}
 
 			//if load fails then exit the app
@@ -457,12 +473,9 @@ uint32_t testingMaxFrameCount = 120;
 					[window close];
 				}
 
-				[NSApp terminate:nil];
+				exit(1);
 			}
 		}
-
-		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-		InputSystem::InitSubView((__bridge void*)(view));
 	}
 
 	return self;

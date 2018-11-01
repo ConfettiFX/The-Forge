@@ -559,7 +559,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				SYMROOT = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/Apple/lib/build;
 			};
 			name = Release;
 		};
@@ -598,7 +597,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				SYMROOT = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/Apple/lib/build;
 			};
 			name = Debug;
 		};
@@ -614,7 +612,7 @@
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/lib/include;
+				HEADER_SEARCH_PATHS = ../lib/include;
 				INSTALL_PATH = "";
 				LIBRARY_STYLE = STATIC;
 				OTHER_CPLUSPLUSFLAGS = "    -DNDEBUG  ";
@@ -623,7 +621,6 @@
 				PRODUCT_NAME = gainputstatic;
 				SDKROOT = macosx;
 				SECTORDER_FLAGS = "";
-				SYMROOT = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/Apple/lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
@@ -655,7 +652,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SECTORDER_FLAGS = "";
-				SYMROOT = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/Apple/lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
@@ -678,7 +674,7 @@
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/lib/include;
+				HEADER_SEARCH_PATHS = ../lib/include;
 				INSTALL_PATH = "";
 				LIBRARY_STYLE = STATIC;
 				OTHER_CPLUSPLUSFLAGS = "    -DNDEBUG  ";
@@ -687,7 +683,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SECTORDER_FLAGS = "";
-				SYMROOT = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/Apple/lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",
@@ -710,7 +705,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = "'CMAKE_INTDIR=\"$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)\"'";
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				HEADER_SEARCH_PATHS = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/lib/include;
+				HEADER_SEARCH_PATHS = ../lib/include;
 				INSTALL_PATH = "";
 				LIBRARY_STYLE = STATIC;
 				OTHER_CPLUSPLUSFLAGS = "    ";
@@ -719,7 +714,6 @@
 				PRODUCT_NAME = gainputstatic;
 				SDKROOT = macosx;
 				SECTORDER_FLAGS = "";
-				SYMROOT = /Users/macosmetalmachine/Desktop/TheForge/Common_3/ThirdParty/OpenSource/gainput/Apple/lib;
 				USE_HEADERMAP = NO;
 				WARNING_CFLAGS = (
 					"-Wmost",

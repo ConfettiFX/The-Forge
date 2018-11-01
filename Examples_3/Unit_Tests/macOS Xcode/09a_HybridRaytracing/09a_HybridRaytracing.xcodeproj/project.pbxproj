@@ -120,7 +120,7 @@
 		971BCF3221701A78007F2B2F /* Copy Textures */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
+			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
 				971BCF3421701A9C007F2B2F /* lion in Copy Textures */,

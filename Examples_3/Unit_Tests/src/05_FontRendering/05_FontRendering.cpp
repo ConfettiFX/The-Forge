@@ -31,11 +31,11 @@
 *********************************************************************************************************/
 
 
-//tiny stl
+// tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 
-//Interfaces
+// Interfaces
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
@@ -46,29 +46,31 @@
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-//Math
+// Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
-//Input
+// Input
 #include "../../../../Middleware_3/Input/InputSystem.h"
 #include "../../../../Middleware_3/Input/InputMappings.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+// Memory
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h" // NOTE: should be the last include in a .cpp!
 
+// Define App directories
 const char* pszBases[] =
 {
-	"../../../src/05_FontRendering/",							// FSR_BinShaders
-	"../../../src/05_FontRendering/",							// FSR_SrcShaders
-	"",															// FSR_BinShaders_Common
-	"",															// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",								// FSR_Textures
-	"../../../UnitTestResources/",								// FSR_Meshes
-	"../../../UnitTestResources/",								// FSR_Builtin_Fonts
-	"../../../src/05_FontRendering/",							// FSR_GpuConfig
-	"",														 // FSR_OtherFiles
+	"../../../src/05_FontRendering/",	// FSR_BinShaders
+	"../../../src/05_FontRendering/",	// FSR_SrcShaders
+	"",									// FSR_BinShaders_Common
+	"",									// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",		// FSR_Textures
+	"../../../UnitTestResources/",		// FSR_Meshes
+	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
+	"../../../src/05_FontRendering/",	// FSR_GpuConfig
+	"",									// FSR_OtherFiles
 };
 
-LogManager gLogManager;
+
 /************************************************************************/
 /* SCENE VARIABLES
 *************************************************************************/
@@ -85,7 +87,7 @@ struct TextObject
 {
 	tinystl::string mText;
 	TextDrawDesc	mDrawDesc;
-	float2			  mPosition;
+	float2			mPosition;
 };
 
 struct SceneData
@@ -96,25 +98,24 @@ struct SceneData
 
 const uint32_t  gImageCount = 3;
 
-Renderer*	   pRenderer = NULL;
-RenderTarget*   pRenderTarget = NULL;
-Queue*		  pGraphicsQueue = NULL;
-CmdPool*		pCmdPool = NULL;
-Cmd**		   ppCmds = NULL;
-GpuProfiler*	pGpuProfiler = NULL;
-UIApp		   gAppUI;
-HiresTimer	  gTimer;
+Renderer*       pRenderer = NULL;
+Queue*          pGraphicsQueue = NULL;
+CmdPool*        pCmdPool = NULL;
+Cmd**           ppCmds = NULL;
+GpuProfiler*    pGpuProfiler = NULL;
+HiresTimer      gTimer;
 
-SwapChain*	  pSwapChain = NULL;
+SwapChain*      pSwapChain = NULL;
+Fence*          pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*      pImageAcquiredSemaphore = NULL;
+Semaphore*      pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Fence*		  pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*	  pImageAcquiredSemaphore = NULL;
-Semaphore*	  pRenderCompleteSemaphores[gImageCount] = { NULL };
+uint32_t        gFrameIndex = 0;
 
-uint32_t		gFrameIndex = 0;
-
-SceneData	   gSceneData;
-Fonts		   gFonts;
+LogManager      gLogManager;
+UIApp           gAppUI;
+SceneData       gSceneData;
+Fonts           gFonts;
 /************************************************************************/
 /* APP FUNCTIONS
 *************************************************************************/
@@ -155,11 +156,11 @@ public:
 
 		// setup scene text
 		const FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
-		gFonts.titilliumBold = addDebugFont("TitilliumText/TitilliumText-Bold.ttf", fontRoot);
+		gFonts.titilliumBold = addDebugFont("TitilliumText/TitilliumText-Bold.otf", fontRoot);
 		gFonts.comicRelief   = addDebugFont("ComicRelief/ComicRelief.ttf", fontRoot);
 		gFonts.crimsonSerif  = addDebugFont("Crimson/Crimson-Roman.ttf", fontRoot);
-		gFonts.monoSpace     = addDebugFont("InconsolataLGC/Inconsolata-LGC.ttf", fontRoot);
-		gFonts.monoSpaceBold = addDebugFont("InconsolataLGC/Inconsolata-LGC-Bold.ttf", fontRoot);
+		gFonts.monoSpace     = addDebugFont("InconsolataLGC/Inconsolata-LGC.otf", fontRoot);
+		gFonts.monoSpaceBold = addDebugFont("InconsolataLGC/Inconsolata-LGC-Bold.otf", fontRoot);
 
 		requestMouseCapture(false);
 
@@ -362,10 +363,16 @@ public:
 		gTimer.GetUSec(true);
 
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -416,13 +423,6 @@ public:
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	tinystl::string GetName()

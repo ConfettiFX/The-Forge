@@ -564,7 +564,7 @@ public:
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer, gMemoryBudget);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler);
 		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler);
@@ -915,7 +915,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);

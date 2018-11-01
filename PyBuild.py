@@ -33,7 +33,6 @@ import traceback
 import signal #used for handling ctrl+c keyboard interrupt
 import xml.etree.ElementTree as ET  #used for parsing XML ubuntu project file
 
-
 successfulBuilds = [] #holds all successfull builds
 failedBuilds = [] #holds all failed builds
 
@@ -130,7 +129,6 @@ def RemoveTestingPreProcessor():
 					f.write(line)
 			f.truncate()
 
-
 def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 	try:		
 		print("Executing command: " + ' '.join(cmdList))
@@ -174,6 +172,22 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 	print("Success")
 	return 0 #success error code
 
+def ExecuteCommandWOutput(cmdList):
+	try:
+		print("")
+		print("Executing command: " + ' '.join(cmdList))
+		print("") 
+		ls_lines = subprocess.check_output(cmdList).splitlines()
+		return ls_lines
+	except Exception as ex:
+		print("-------------------------------------")
+		print("Failed executing command: " + ' '.join(cmdList))
+		print(ex)
+		print("-------------------------------------")
+		return ""  #error return code
+	
+	return "" #success error code
+
 def ExecuteCommand(cmdList,outStream):
 	try:
 		print("")
@@ -206,7 +220,7 @@ def ExecuteBuild(cmdList, fileName, configuration, platform):
 
 def ExecuteTest(cmdList, fileName, regularCommand, gpuLine = ""):
 	if regularCommand:
-		returnCode = ExecuteCommand(cmdList, subprocess.PIPE)
+		returnCode = ExecuteCommand(cmdList, None)
 	else:
 		returnCode = ExecuteTimedCommand(cmdList,None)
 	
@@ -219,7 +233,22 @@ def ExecuteTest(cmdList, fileName, regularCommand, gpuLine = ""):
 		
 	return returnCode
 
-def GetFilesPathByExtension(rootToSearch, extension, wantDirectory):
+#Get list of folders in given root with the given name
+#xan specific depth to look only under a limited amount of child dirs
+#default depth value is -1 --> no limit on depth
+def FindFolderPathByName(rootToSearch, name, depth = -1):
+	folderPathList = []
+	finalPath = rootToSearch
+	# traverse root directory, and list directories as dirs and files as files
+	for root, dirs, files in os.walk(finalPath):
+		for dirName in fnmatch.filter(dirs, name):
+			folderPathList.append(os.path.join(os.path.join(root,dirName)) + os.path.sep)
+		if depth == 0:
+			break
+		depth = depth - 1
+	return folderPathList
+
+def GetFilesPathByExtension(rootToSearch, extension, wantDirectory, maxDepth=-1):
 	filesPathList = []
 	finalPath = rootToSearch
 	# traverse root directory, and list directories as dirs and files as files
@@ -240,6 +269,10 @@ def GetFilesPathByExtension(rootToSearch, extension, wantDirectory):
 		else:
 			for filename in fnmatch.filter(files, "*."+extension):
 				filesPathList.append(os.path.join(root,filename))
+
+		if maxDepth == 0:
+			break
+		maxDepth = maxDepth - 1
 
 	return filesPathList
 
@@ -363,7 +396,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 		if "_iOS" in filename:
 			#if specific ios id was passed then run for that device
 			#otherwise run on first device available
-			print iosDeviceId
+			#print iosDeviceId
 			if iosDeviceId == "-1" or iosDeviceId == "": 
 				command = ["ios-deploy","--uninstall","-b",filename + ".app","-I"]
 			else:
@@ -385,44 +418,154 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 	else:
 		return 0
 
-def BuildXcodeProjects(skipIosBuild, skipIosCodeSigning):
+def GetXcodeSchemes(targetPath, getMacOS, getIOS):
+	command = ["xcodebuild", "-list"]
+	if ".xcworkspace" in targetPath:
+		command.append("-workspace")
+		command.append(targetPath)
+	elif ".xcodeproj" in targetPath:
+		command.append("-project")
+		command.append(targetPath)
+
+	schemesList = ExecuteCommandWOutput(command)
+	parsedSchemes = []
+	filteredSchemes = []
+	#try to detect any error and return null if detected
+	#also detect any informational line (such as List of Schemes:)
+	#As fas as I've seen the information lines all have : at the end
+	schemesStartFound = False
+	for line in schemesList:
+		if "error" in line:
+			print("Error retrieving the schemes from: " + targetPath)
+			print(line)
+			return []
+		if "Schemes:" in line:
+			schemesStartFound = True
+			continue
+		
+		buildAllFound = False
+		if schemesStartFound:
+			line = line.strip()
+			if line.isspace() or not line:
+				break
+			if ":" in line:
+				break
+			if "BuildAll" in line:
+				buildAllFound = True
+			#add scheme
+			parsedSchemes.append(line)
+
+	buildBothOS = getMacOS and getIOS
+	for scheme in parsedSchemes:
+		
+		#current scheme is build all but we not building both platforms
+		#filter it out
+		if "BuildAll" in scheme and not buildBothOS:
+			continue
+		#building both platforms and we found a build all scheme
+		#filter all the other schemes out
+		if not "BuildAll" in scheme and buildBothOS and buildAllFound:
+			continue
+		#filter macos scheme if necessary
+		if not getMacOS and "iOS" not in scheme:
+			continue
+		#filter ios scheme if necessary
+		if not getIOS and "iOS" in scheme:
+			continue
+		
+		filteredSchemes.append(scheme)
+
+	return filteredSchemes
+
+#Helper to create xcodebuild command for given scheme, workspace(full path from current working directory) and configuration(Debug, Release)
+#can filter out schemes based on what to skip and will return "" in those cases
+def CreateXcodeBuildCommand(skipMacos, skipIos, skipIosCodeSigning,path,scheme,configuration, isWorkspace):
+	if isWorkspace and "BuildAll" in scheme:
+		#build all projects in workspace using special BuildAll scheme. enables more parallel builds
+		command = ["xcodebuild","-quiet","-workspace",path,"-configuration",configuration,"build","-scheme","BuildAll", "-parallelizeTargets"]
+	elif isWorkspace and scheme != "":
+	 	command = ["xcodebuild","-quiet","-workspace",path,"-configuration",configuration,"build","-parallelizeTargets", "-scheme",scheme]
+	elif not isWorkspace:
+		#if filtering platforms then we build using schemes
+		if scheme != "" and (skipMacos or skipIos):
+			command = ["xcodebuild","-quiet","-project",path,"-configuration",configuration,"build", "-parallelizeTargets", "-scheme", scheme]
+		else:
+			#otherwise build all targets of projects in parallel
+			command = ["xcodebuild","-quiet","-project",path,"-configuration",configuration,"build", "-parallelizeTargets", "-alltargets"]
+	else:
+		return ""
+
+	if skipIosCodeSigning:
+		command.extend([
+		"CODE_SIGN_IDENTITY=\"\"",
+		"CODE_SIGNING_REQUIRED=\"NO\"",
+		"CODE_SIGN_ENTITLEMENTS=\"\"",
+		"CODE_SIGNING_ALLOWED=\"NO\""])
+	return command
+		
+def ListDirs(path):
+    return [dir for dir in os.listdir(path) if os.path.isdir(os.path.join(path,dir))]
+
+
+
+def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning):
 	errorOccured = False
-	
-	projsToBuild = GetFilesPathByExtension("./Examples_3/","xcodeproj", True)
-	for projectPath in projsToBuild:
+	buildConfigurations = ["Debug", "Release"]
+
+	#since our projects for macos are all under a macos Xcode folder we can search for
+	#that specific folder name to gather source folders containing project/workspace for xcode
+	#macSourceFolders = FindFolderPathByName("Examples_3/","macOS Xcode", -1)
+	xcodeProjects = ["/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj", 
+				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace",
+				"/Examples_3/Unit_Tests_Animation/macOS Xcode/Unit_Tests_Animation.xcworkspace"]
+
+	for proj in xcodeProjects:
 		#get working directory (excluding the xcodeproj in path)
-		rootPath = os.sep.join(projectPath.split(os.sep)[0:-1])
+		rootPath = os.getcwd() + os.sep.join(proj.split(os.sep)[0:-1])
 		#save current work dir
 		currDir = os.getcwd()
-		#change dir to xcodeproj location
+		#change dir to xcworkspace location
 		os.chdir(rootPath)
-		configurations = ["Debug", "Release"]
-		for conf in configurations:					
-			#create command for xcodebuild
-			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
-			command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build"]
-			sucess = ExecuteBuild(command, filename,conf, "macOS")
-			if sucess != 0:
-				errorOccured = True
+		#create command for xcodebuild
+		filenameWExt = proj.split(os.sep)[-1]
+		filename = filenameWExt.split(os.extsep)[0]
+		extension = filenameWExt.split(os.extsep)[1]
 
-			#assuming every xcodeproj has an iOS equivalent. 
-			#TODO: Search to verify file exists
-			if (filename != "Visibility_Buffer" and filename != "15_Transparency" and filename != "14_WaveIntrinsics") and skipIosBuild == False:
-				filename = filename + "_iOS" 
-				command = ["xcodebuild","clean","-quiet","-scheme", filename,"-configuration",conf,"build"]
-				if skipIosCodeSigning:
-					command.extend([
-					"CODE_SIGN_IDENTITY=\"\"",
-					"CODE_SIGNING_REQUIRED=\"NO\"",
-					"CODE_SIGN_ENTITLEMENTS=\"\"",
-					"CODE_SIGNING_ALLOWED=\"NO\""])
-				sucess = ExecuteBuild(command, filename,conf, "iOS")
+		#get and filter xcode schemes
+		schemesList = GetXcodeSchemes(filenameWExt,not skipMacos, not skipIos)
+		#if building both iOS and macOS then build them in parallel
+		#by building whole project instead of schemes
+		if "xcodeproj" in extension and not (skipMacos or skipIos):
+			#no need for any schemes we will build whole project
+			schemesList = [filename]
+		else:
+			for scheme in schemesList:
+				if "BuildAll" in scheme:
+					#remove all other schemes
+					schemesList = ["BuildAll"]
+					break
+		for conf in buildConfigurations:
+			#will build all targets for vien project
+			#canot remove ios / macos for now
+			for scheme in schemesList:
+				command = CreateXcodeBuildCommand(skipMacos, skipIos, skipIosCodeSigning, filenameWExt,scheme,conf, "xcworkspace" in extension)
+				platformName = "macOS/iOS"
+				if "iOS" in scheme:
+					platformName = "iOS"
+				elif "BuildAll" not in scheme:
+					platformName = "macOS"
+
+				#just switch otu filename and scheme in case we are building BuildAll
+				#display the project name intead.
+				if "BuildAll" in scheme:
+					sucess = ExecuteBuild(command, filename, conf, platformName)
+				else:
+					sucess = ExecuteBuild(command, filename + "/" + scheme, conf, platformName)
+
 				if sucess != 0:
 					errorOccured = True
-			
-		#set working dir to initial
 		os.chdir(currDir)
-	
+
 	if errorOccured == True:
 		return -1
 	return 0
@@ -585,6 +728,43 @@ def TestWindowsProjects(useActiveGpuConfig):
 		return -1
 	return 0	
 
+#this needs the JAVA_HOME environment variable set up correctly
+def BuildAndroidProjects():
+	errorOccured = False
+	
+	projsToBuild = GetFilesPathByExtension("./Examples_3/","iml", False)
+	for projectPath in projsToBuild:
+		#get working directory (excluding the workspace in path)
+		rootPath = os.sep.join(projectPath.split(os.sep)[0:-1])
+		#save current work dir
+		currDir = os.getcwd()
+		#get name 
+		projname = projectPath.split(os.sep)[-1].split(os.extsep)[0]
+		if projname == "app":
+			continue;
+		#change dir to workspace location
+		os.chdir(rootPath)
+		print "chdir to the root directory"
+		print rootPath
+		
+		confs = ["assembleDebug", "assembleRelease"]
+		for conf in confs:					
+			command = ["gradlew.bat", conf]
+			sucess = ExecuteBuild(command, projname,conf, "android")
+			#sucess = os.system(command + " " + buildcmd)
+			#sucess = ExecuteCommand(command, sys.stdout)
+			if sucess != 0:
+				print "Building Android projects FAILED " + rootPath
+				errorOccured = True
+
+		#set working dir to initial
+		os.chdir(currDir)
+	
+	if errorOccured == True:
+		print "Building Android projects FAILED"
+		return -1
+	return 0
+	
 def BuildWindowsProjects(xboxDefined, xboxOnly):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
@@ -689,11 +869,13 @@ def MainLogic():
 	parser.add_argument('--xbox', action="store_true", help='Enable xbox building')
 	parser.add_argument('--xboxonly', action="store_true", help='Enable xbox building')
 	parser.add_argument("--skipiosbuild", action="store_true", default=False, help='Disable iOS building')
-	parser.add_argument("--skipioscodesigning", action="store_true", default=False, help='Disable iOS code signing')
+	parser.add_argument("--skipmacosbuild", action="store_true", default=False, help='Disable Macos building')
+	parser.add_argument("--skipioscodesigning", action="store_true", default=False, help='Disable iOS code signing during build stage')
 	parser.add_argument('--testing', action="store_true", help='Test the apps on current platform')
 	parser.add_argument('--ios', action="store_true", help='Needs --testing. Enable iOS testing')
 	parser.add_argument("--iosid", type=str, default="-1", help='Use a specific ios device. Id taken from ios-deploy --detect.')
 	parser.add_argument('--macos', action="store_true", help='Needs --testing. Enable macOS testing')
+	parser.add_argument('--android', action="store_true", help='Enable android building')
 	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
 	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
 	parser.add_argument('--timeout',type=int, default="45", help='Specify timeout, in seconds, before app is killed when testing. Default value is 45 seconds.')
@@ -713,6 +895,7 @@ def MainLogic():
 	signal.signal(signal.SIGINT, CleanupHandler)
 
 	#change path to scripts location
+	print sys.path[0]
 	os.chdir(sys.path[0])
 	returnCode = 0
 	
@@ -757,9 +940,12 @@ def MainLogic():
 			ExecuteCommand(["git", "clean" , "-fdfx", "--exclude=Art"],sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
-			returnCode = BuildXcodeProjects(arguments.skipiosbuild, arguments.skipioscodesigning)
+			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning)
 		elif systemOS == "Windows":
-			returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly)
+			if arguments.android:
+				returnCode = BuildAndroidProjects();
+			else:
+				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 

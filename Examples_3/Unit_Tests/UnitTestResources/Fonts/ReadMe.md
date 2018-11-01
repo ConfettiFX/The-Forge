@@ -12,5 +12,3 @@ All the fonts are donwloaded from https://fontlibrary.org
  - [Crimson](https://fontlibrary.org/en/font/crimson)
  - [Comic Relief](https://fontlibrary.org/en/font/comic-relief)
 
- 
-Some fonts are only available as `.otf` files. For such fonts, a web converter is used to convert from `.otf` to `.ttf` for The Forge to use the font file. 

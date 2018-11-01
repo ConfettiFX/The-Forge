@@ -25,34 +25,46 @@
 */
 
 
-struct Light
+struct PointLight
 {
-	vec4 pos;
-	vec4 col;
+	vec3 pos;
 	float radius;
+	vec3 col;
 	float intensity;
-	float _pad0;
-	float _pad1;
 };
 
-layout (std140, set=0, binding=0) uniform cbCamera 
+struct DirectionalLight
+{
+	vec3 direction;
+	vec3 color;
+	float intensity;
+};
+
+layout(set = 0, binding = 0) uniform cbCamera 
 {
 	uniform mat4 projView;
 	uniform vec3 camPos;
 };
 
-layout (std140, set=1, binding=0) uniform cbObject 
+layout (set = 0, binding = 1) uniform cbObject 
 {
-	uniform mat4 worldMat;
+	mat4 worldMat;
+	vec3 albedo;
 	float roughness;
 	float metalness;
-	int objectId;
+	int textureConfig;
 };
 
-layout (std140, set=2, binding=0) uniform cbLights 
+layout (set=0, binding=2) uniform cbPointLights 
 {
-	Light lights[16];
-	int currAmountOfLights;
+	PointLight PointLights[MAX_NUM_POINT_LIGHTS];
+	uint NumPointLights;
+};
+
+layout(set = 0, binding = 13) uniform cbDirectionalLights
+{
+	DirectionalLight DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
+	uint NumDirectionalLights;
 };
 
 const float PI = 3.14159265359;
@@ -113,7 +125,6 @@ layout(location = 0) out vec4 outColor;
 layout(set = 0, binding = 3) uniform texture2D brdfIntegrationMap;
 layout(set = 0, binding = 4) uniform textureCube irradianceMap;
 layout(set = 0, binding = 5) uniform textureCube  specularMap;
-layout(set = 0, binding = 6) uniform sampler envSampler;
 
 // material parameters
 layout(set = 0, binding = 7)  uniform texture2D albedoMap;
@@ -122,13 +133,18 @@ layout(set = 0, binding = 9)  uniform texture2D metallicMap;
 layout(set = 0, binding = 10) uniform texture2D roughnessMap;
 layout(set = 0, binding = 11) uniform texture2D aoMap;
 
-layout(set = 0, binding = 12) uniform sampler defaultSampler;
+layout(set = 0, binding = 12) uniform sampler bilinearSampler;
+layout(set = 0, binding = 6) uniform sampler bilinearClampedSampler;
 
-
+bool HasDiffuseTexture(int textureConfig) { return (textureConfig & (1 << 0)) != 0; }
+bool HasNormalTexture(int textureConfig) { return (textureConfig & (1 << 1)) != 0; }
+bool HasMetallicTexture(int textureConfig) { return (textureConfig & (1 << 2)) != 0; }
+bool HasRoughnessTexture(int textureConfig) { return (textureConfig & (1 << 3)) != 0; }
+bool HasAOTexture(int textureConfig) { return (textureConfig & (1 << 4)) != 0; }
 
 vec3 getNormalFromMap()
 {
-	vec3 tangentNormal = texture(sampler2D(normalMap, defaultSampler),uv).xyz * 2.0 - 1.0;
+	vec3 tangentNormal = texture(sampler2D(normalMap, bilinearSampler),uv).xyz * 2.0 - 1.0;
 
 	vec3 Q1  = dFdx(pos);
 	vec3 Q2  = dFdy(pos);
@@ -143,110 +159,118 @@ vec3 getNormalFromMap()
 	return normalize(TBN * tangentNormal);
 }
 
+vec3 CalculateLightContribution(vec3 lightDirection, vec3 worldNormal, vec3 viewDirection, vec3 halfwayVec, vec3 radiance, vec3 albedo, float roughness, float metalness, vec3 F0)
+{
+	float NDF = distributionGGX(worldNormal, halfwayVec, roughness);
+	float G = GeometrySmith(worldNormal, viewDirection, lightDirection, roughness);
+	vec3 F = fresnelSchlick(max(dot(worldNormal, halfwayVec), 0.0f), F0);
+
+	vec3 nominator = NDF * G * F;
+	float denominator = 4.0f * max(dot(worldNormal, viewDirection), 0.0f) * max(dot(worldNormal, lightDirection), 0.0f) + 0.001f;
+	vec3 specular = nominator / denominator;
+
+	vec3 kS = F;
+
+	vec3 kD = vec3(1.0f, 1.0f, 1.0f) - kS;
+
+	kD *= 1.0f - metalness;
+
+	float NdotL = max(dot(worldNormal, lightDirection), 0.0f);
+
+	return (kD * albedo / PI + specular) * radiance * NdotL;
+}
+
+vec3 CalculateDirectionalLightContribution(uint lightIndex, vec3 worldNormal, vec3 viewDirection, vec3 albedo, float roughness, float metalness, vec3 F0)
+{
+	const DirectionalLight light = DirectionalLights[lightIndex];
+	vec3 H = normalize(viewDirection + light.direction);
+	vec3 radiance = light.color * light.intensity;
+	return CalculateLightContribution(light.direction, worldNormal, viewDirection, H, radiance, albedo, roughness, metalness, F0);
+}
+
+vec3 CalculatePointLightContribution(uint lightIndex, vec3 worldPosition, vec3 worldNormal, vec3 viewDirection, vec3 albedo, float roughness, float metalness, vec3 F0)
+{
+	const PointLight light = PointLights[lightIndex];
+	vec3 L = normalize(light.pos - worldPosition);
+	vec3 H = normalize(viewDirection + L);
+
+	float distance = length(light.pos - worldPosition);
+	float distanceByRadius = 1.0f - pow((distance / light.radius), 4);
+	float clamped = pow(clamp(distanceByRadius, 0.0f, 1.0f), 2.0f);
+	float attenuation = clamped / (distance * distance + 1.0f);
+	vec3 radiance = light.col.rgb * attenuation * light.intensity;
+
+	return CalculateLightContribution(L, worldNormal, viewDirection, H, radiance, albedo, roughness, metalness, F0);
+}
+
 void main()
 {
-	// default albedo 
-	vec3 albedo = vec3(0.5f, 0.0f, 0.0f);
+	// Read material surface properties
+	//
+	vec3 _albedo = HasDiffuseTexture(textureConfig)
+		? texture(sampler2D(albedoMap, bilinearSampler), uv).rgb
+		: albedo.rgb;
 
-	float _roughness = roughness;
-	float _metalness = metalness;
-	float ao = 1.0f;
+	const float _roughness = HasRoughnessTexture(textureConfig)
+		? texture(sampler2D(roughnessMap, bilinearSampler), uv).r
+		: roughness;
 
-	vec3 N = normalize(normal);
+	const float _metalness = HasMetallicTexture(textureConfig)
+		? texture(sampler2D(metallicMap, bilinearSampler), uv).r
+		: metalness;
 
-	//this means pbr materials is set for these so sample from textures
-	if(objectId!=-1) 
-	{
-		 N = getNormalFromMap();
-		albedo = pow(texture(sampler2D(albedoMap, defaultSampler),uv).rgb,vec3(2.2)) ;
-		_metalness   = texture(sampler2D(metallicMap, defaultSampler), uv).r;
-		_roughness = texture(sampler2D(roughnessMap, defaultSampler), uv).r;
-		ao = texture(sampler2D(aoMap, defaultSampler), uv).r;
+	const float _ao = HasAOTexture(textureConfig)
+		? texture(sampler2D(aoMap, bilinearSampler), uv).r
+		: 1.0f;
 
-		if(objectId==2) 
-		{
-			albedo  = vec3(0.1f, 0.1f, 0.1f);
-			_roughness = 2.0f; 
-		}
-		else if(objectId==3) 
-			albedo  = vec3(0.8f, 0.1f, 0.1f);
-	} 
+	const vec3 N = HasNormalTexture(textureConfig)
+		? getNormalFromMap()
+		: normalize(normal);
+
+	_albedo = pow(_albedo, vec3(2.2f, 2.2f, 2.2f));
 
 
+	const vec3 V = normalize(camPos - pos);
+	const vec3 R = reflect(-V, N);
 
-	vec3 V = normalize(camPos - pos);
-	vec3 R = reflect(-V, N);
-	
-	// 0.04 is the index of refraction for metal
-	vec3 F0 = vec3(0.04f);
-	F0 = mix(F0, albedo, _metalness);
 
-	vec3 Lo = vec3(0.0);
-	for(int i = 0; i < currAmountOfLights; ++i)
-	{
-		 // Vec from world pos to light pos
-		vec3 L =  normalize(vec3(lights[i].pos) - pos);
+	// F0 represents the base reflectivity (calculated using IOR: index of refraction)
+	vec3 F0 = vec3(0.04f, 0.04f, 0.04f);
+	F0 = mix(F0, _albedo, _metalness);
 
-		// halfway vec
-		vec3 H = normalize(V + L);
+	// Lo = outgoing radiance
+	vec3 Lo = vec3(0.0f, 0.0f, 0.0f);
 
-		// get distance
-		float distance = length(vec3(lights[i].pos) - pos);
+	for (int i = 0; i < NumPointLights; ++i)
+		Lo += CalculatePointLightContribution(i, pos.xyz, N, V, _albedo, _roughness, _metalness, F0);
 
-		
-		// Distance attenuation from Epic Games' paper 
-		float distanceByRadius = 1.0f - pow((distance/ lights[i].radius), 4);
-		float clamped = pow(clamp(distanceByRadius, 0.0f, 1.0f), 2.0f);
-		float attenuation = clamped/(distance * distance + 1.0f);
+	for (int i = 0; i < NumDirectionalLights; ++i)
+		Lo += CalculateDirectionalLightContribution(i, N, V, _albedo, _roughness, _metalness, F0);
 
-		//float attenuation = 1.0f;
-		// Radiance is color mul with attenuation mul intensity 
-		vec3 radiance = vec3(lights[i].col) * attenuation * lights[i].intensity;
-
-		float NDF = distributionGGX(N, H, _roughness);
-		float G = GeometrySmith(N, V, L, _roughness);
-		vec3 F = fresnelSchlick(max(dot(N,H), 0.0), F0);
-		
-		vec3 nominator = NDF * G * F;
-		float denominator = 4.0f * max(dot(N,V), 0.0) * max(dot(N, L), 0.0) + 0.001;
-		vec3 specular = nominator / denominator;
-
-		vec3 kS = F;
-
-		vec3 kD = vec3(1.0) - kS;
-
-		kD *= 1.0f - _metalness;
-
-		float NdotL = max(dot(N, L), 0.0);
-
-		if(NdotL>0.0f) 
-			Lo +=  (kD * albedo / PI + specular) * radiance * NdotL;
-		else
-			Lo+= vec3(0.0f);		
-	}
-	
-	vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, _roughness);
+	vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, _roughness);
 	vec3 kS = F;
-	vec3 kD = vec3(1.0) - kS;
-	kD *= 1.0 - _metalness;
+	vec3 kD = vec3(1.0f, 1.0f, 1.0f) - kS;
+	kD *= 1.0f - _metalness;
 
-	vec3 irradiance = texture(samplerCube(irradianceMap, envSampler), N).rgb;
-	vec3 diffuse = kD * irradiance * albedo;
+	vec3 irradiance = texture(samplerCube(irradianceMap, bilinearSampler), N).rgb;
+	vec3 diffuse = kD * irradiance * _albedo;
 
-	vec3 specularColor = textureLod(samplerCube(specularMap, envSampler), R, uint(_roughness * 4)).rgb;
+	vec3 specularColor = textureLod(samplerCube(specularMap, bilinearSampler), R, _roughness * 4).rgb;
 
 	vec2 maxNVRough = vec2(max(dot(N, V), 0.0), _roughness);
+	vec2 brdf = texture(sampler2D(brdfIntegrationMap, bilinearClampedSampler), maxNVRough).rg;
 
-	vec2 brdf = texture(sampler2D(brdfIntegrationMap, defaultSampler), maxNVRough).rg;
 	vec3 specular = specularColor * (F * brdf.x + brdf.y);
-	vec3 ambient = vec3(diffuse + specular) * vec3(ao);
-	
-	vec3 color = Lo + ambient;
-	
-	// Tonemap and gamma correct
-	color = color/(color+vec3(1.0));
-	color = pow(color, vec3(1.0/2.2));
 
-	outColor = vec4(color,1.0f);
+	vec3 ambient = vec3(diffuse + specular) * _ao;
+
+	vec3 color = Lo + ambient;
+
+	color = color / (color + vec3(1.0f, 1.0f, 1.0f));
+
+	float gammaCorr = 1.0f / 2.2f;
+	color = pow(color, vec3(gammaCorr));
+
+	outColor = vec4(color, 1.0f);
 	
 }

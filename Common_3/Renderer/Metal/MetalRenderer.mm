@@ -740,13 +740,25 @@ namespace RENDERER_CPP_NAMESPACE {
 						break;
 					}
 					case DESCRIPTOR_TYPE_SAMPLER:
-						if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
-							[pCmd->mtlRenderEncoder setVertexSamplerState:descriptorData->ppSamplers[0]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg];
-						if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
-							[pCmd->mtlRenderEncoder setFragmentSamplerState:descriptorData->ppSamplers[0]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg];
-						if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
-							[pCmd->mtlComputeEncoder setSamplerState:descriptorData->ppSamplers[0]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg];
+					{
+						uint32_t samplerCount = max(1U, descriptorData->mCount);
+						for(uint32_t j = 0 ;j < samplerCount ; j++)
+						{
+							if(!descriptorData->ppSamplers[j] || !descriptorData->ppSamplers[j]->mtlSamplerState)
+							{
+								LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+								return;
+							}
+							
+							if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+							[pCmd->mtlRenderEncoder setVertexSamplerState:descriptorData->ppSamplers[j]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg + j];
+							if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+							[pCmd->mtlRenderEncoder setFragmentSamplerState:descriptorData->ppSamplers[j]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg + j];
+							if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+							[pCmd->mtlComputeEncoder setSamplerState:descriptorData->ppSamplers[j]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg + j];
+						}
 						break;
+					}
 					case DESCRIPTOR_TYPE_ROOT_CONSTANT:
 						if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
 							[pCmd->mtlRenderEncoder setVertexBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
@@ -1208,6 +1220,10 @@ namespace RENDERER_CPP_NAMESPACE {
 				LOGERROR("Office Preset is not supported by the Forge");
 
 				ppRenderer = NULL;
+#ifdef AUTOMATED_TESTING
+				//exit with success return code not to show failure on Jenkins
+				exit(0);
+#endif
 				return;
 			}
 #endif
@@ -1724,10 +1740,20 @@ namespace RENDERER_CPP_NAMESPACE {
 				options.preprocessorMacros = macroDictionary;
 				id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithSource:shaderSource options:options error:&error];
 
+				// Warning
 				if (error)
 				{
-					LOGERRORF("Couldn't load shader %s with the following error:\n %s",shader_name, [[error localizedDescription] UTF8String]);
-					error = 0;  //  error string is an autorelease object.
+					if (lib)
+					{
+						LOGWARNINGF("Loaded shader %s with the following warnings:\n %s",shader_name, [[error localizedDescription] UTF8String]);
+						error = 0;  //  error string is an autorelease object.
+					}
+					// Error
+					else
+					{
+						LOGERRORF("Couldn't load shader %s with the following error:\n %s",shader_name, [[error localizedDescription] UTF8String]);
+						error = 0;  //  error string is an autorelease object.
+					}
 				}
 
 				if (lib)

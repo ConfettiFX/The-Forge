@@ -25,7 +25,12 @@ if exist %filename% (
 
 echo Pulling Art Assets
 "Tools/wget" -O %filename% http://www.conffx.com/%filename%
-"Tools/7z" x %filename% > NUL
+
+echo Unzipping Art Assets...
+"Tools/7z" x %filename% -y > NUL
+
+echo Finishing up...
+:: robocopy "Art/PBR/" "./Examples_3/Unit_Tests/UnitTestResources/Textures/PBR/" /MOVE /E > NUL
 
 del %filename%
 

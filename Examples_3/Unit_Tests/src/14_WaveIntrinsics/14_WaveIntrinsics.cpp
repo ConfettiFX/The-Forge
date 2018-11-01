@@ -155,7 +155,8 @@ public:
 		if(stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId,"0x1002") == 0 && stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId, "0x67df") == 0)
 		{
 			LOGERROR("This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
-			return false;
+			//exit instead of returning not to trigger failure in Jenkins
+			exit(0);
 		}
 #endif
 
@@ -173,7 +174,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -283,7 +284,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent("Render Modes", &guiDesc);
 

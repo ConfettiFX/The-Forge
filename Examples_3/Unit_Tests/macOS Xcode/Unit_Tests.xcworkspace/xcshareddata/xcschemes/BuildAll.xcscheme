@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "1000"
+   version = "1.3">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "01_Transformations.app"
+               BlueprintName = "01_Transformations"
+               ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "01_Transformations_iOS.app"
+               BlueprintName = "01_Transformations_iOS"
+               ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "02_Compute.app"
+               BlueprintName = "02_Compute"
+               ReferencedContainer = "container:02_Compute/02_Compute.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AB91201F459F000E571F"
+               BuildableName = "02_Compute_iOS.app"
+               BlueprintName = "02_Compute_iOS"
+               ReferencedContainer = "container:02_Compute/02_Compute.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "03_MultiThread.app"
+               BlueprintName = "03_MultiThread"
+               ReferencedContainer = "container:03_MultiThread/03_MultiThread.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5ABFF201F58BF000E571F"
+               BuildableName = "03_MultiThread_iOS.app"
+               BlueprintName = "03_MultiThread_iOS"
+               ReferencedContainer = "container:03_MultiThread/03_MultiThread.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "04_ExecuteIndirect.app"
+               BlueprintName = "04_ExecuteIndirect"
+               ReferencedContainer = "container:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AC78201F682F000E571F"
+               BuildableName = "04_ExecuteIndirect_iOS.app"
+               BlueprintName = "04_ExecuteIndirect_iOS"
+               ReferencedContainer = "container:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "05_FontRendering.app"
+               BlueprintName = "05_FontRendering"
+               ReferencedContainer = "container:05_FontRendering/05_FontRendering.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5ACED201F6E8B000E571F"
+               BuildableName = "05_FontRendering_iOS.app"
+               BlueprintName = "05_FontRendering_iOS"
+               ReferencedContainer = "container:05_FontRendering/05_FontRendering.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "06_MaterialPlayground.app"
+               BlueprintName = "06_MaterialPlayground"
+               ReferencedContainer = "container:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AD42201F7276000E571F"
+               BuildableName = "06_MaterialPlayground_iOS.app"
+               BlueprintName = "06_MaterialPlayground_iOS"
+               ReferencedContainer = "container:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "07_Tessellation.app"
+               BlueprintName = "07_Tessellation"
+               ReferencedContainer = "container:07_Tessellation/07_Tessellation.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5ADA6201F7587000E571F"
+               BuildableName = "07_Tessellation_iOS.app"
+               BlueprintName = "07_Tessellation_iOS"
+               ReferencedContainer = "container:07_Tessellation/07_Tessellation.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "08_Procedural.app"
+               BlueprintName = "08_Procedural"
+               ReferencedContainer = "container:08_Procedural/08_Procedural.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
+               BuildableName = "08_Procedural_iOS.app"
+               BlueprintName = "08_Procedural_iOS"
+               ReferencedContainer = "container:08_Procedural/08_Procedural.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "09_LightShadowPlayground.app"
+               BlueprintName = "09_LightShadowPlayground"
+               ReferencedContainer = "container:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
+               BuildableName = "09_LightShadowPlayground_iOS.app"
+               BlueprintName = "09_LightShadowPlayground_iOS"
+               ReferencedContainer = "container:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "09a_HybridRaytracing.app"
+               BlueprintName = "09a_HybridRaytracing"
+               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
+               BuildableName = "09a_HybridRaytracing_iOS.app"
+               BlueprintName = "09a_HybridRaytracing_iOS"
+               ReferencedContainer = "container:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "10_PixelProjectedReflections.app"
+               BlueprintName = "10_PixelProjectedReflections"
+               ReferencedContainer = "container:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "10_PixelProjectedReflections_iOS.app"
+               BlueprintName = "10_PixelProjectedReflections_iOS"
+               ReferencedContainer = "container:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "13_UserInterface.app"
+               BlueprintName = "13_UserInterface"
+               ReferencedContainer = "container:13_UserInterface/13_UserInterface.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "13_UserInterface_iOS.app"
+               BlueprintName = "13_UserInterface_iOS"
+               ReferencedContainer = "container:13_UserInterface/13_UserInterface.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "14_WaveIntrinsics.app"
+               BlueprintName = "14_WaveIntrinsics"
+               ReferencedContainer = "container:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "15_Transparency.app"
+               BlueprintName = "15_Transparency"
+               ReferencedContainer = "container:15_Transparency/15_Transparency.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+      </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+            BuildableName = "01_Transformations.app"
+            BlueprintName = "01_Transformations"
+            ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+      <AdditionalOptions>
+      </AdditionalOptions>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+            BuildableName = "01_Transformations.app"
+            BlueprintName = "01_Transformations"
+            ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+      <AdditionalOptions>
+      </AdditionalOptions>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+            BuildableName = "01_Transformations.app"
+            BlueprintName = "01_Transformations"
+            ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>

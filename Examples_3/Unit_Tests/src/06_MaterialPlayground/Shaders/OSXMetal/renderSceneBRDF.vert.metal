@@ -34,8 +34,9 @@ struct CameraData
 struct ObjectData
 {
     float4x4 worldMat;
-    float roughness;
+	float4 albedoAndRoughness;
     float metalness;
+	int textureConfig;
 };
 
 struct VSInput

@@ -28,12 +28,16 @@ cbuffer cbCamera : register(b0)
 	float3 camPos;
 }
 
-cbuffer cbObject : register(b1) 
+cbuffer cbObject : register(b1)
 {
 	float4x4 worldMat;
+	float3 albedo;
 	float roughness;
 	float metalness;
-	int objectId;
+
+	// specifies which texture maps are to be used 
+	// instead of the constant buffer values above.
+	int textureConfig;
 }
 
 struct VSInput
