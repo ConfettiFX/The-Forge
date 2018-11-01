@@ -197,7 +197,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -447,7 +447,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		guiDesc.mStartSize = { guiDesc.mStartSize.getX() * 0.5f, guiDesc.mStartSize.getY() * 0.4f };
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
@@ -684,12 +684,16 @@ public:
 	void Draw()
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
 		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
@@ -697,11 +701,6 @@ public:
 
 		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
 		updateResource(&skyboxViewProjCbv);
-
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};

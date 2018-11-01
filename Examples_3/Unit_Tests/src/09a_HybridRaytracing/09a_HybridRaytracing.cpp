@@ -908,7 +908,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -1109,11 +1109,11 @@ public:
 			return false;
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 		vec3 camPos{ 100.0f, 25.0f, 0.0f };
@@ -1422,12 +1422,7 @@ public:
 		for (int i = 0; i < TOTAL_IMGS; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
-#else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
-
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pMaterialImageFileNames[i];
 			textureDesc.ppTexture = &pMaterialTextures[i];
@@ -1435,12 +1430,6 @@ public:
 		}
 
 		tinystl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza_File, FSRoot::FSR_Meshes);
-#ifdef TARGET_IOS
-		//TODO: need to unify this using filsystem interface
-		//iOS requires path using bundle identifier
-		NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gModel_Sponza_File] ofType : @""];
-		sceneFullPath = [fileUrl fileSystemRepresentation];
-#endif
 		if (!AssimpImporter::ImportModel(sceneFullPath.c_str(), &gModel_Sponza))
 		{
 			ErrorMsg("Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());

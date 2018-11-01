@@ -1311,8 +1311,8 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 		// where its included from -- we're expanding the headers as the pre-processor 
 		// would do.
 		//
-		const bool bAreWeProcessingAnIncludedHeader = file != original;
-		if (bAreWeProcessingAnIncludedHeader || !bLineHasIncludeDirective)
+		//const bool bAreWeProcessingAnIncludedHeader = file != original;
+		if (!bLineHasIncludeDirective)
 		{
 			outCode += line + "\n";
 		}

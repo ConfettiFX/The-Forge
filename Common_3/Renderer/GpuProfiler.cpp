@@ -38,7 +38,6 @@ extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 #endif
 
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 void clearChildren(GpuTimerTree* pRoot)
 {
 	if (!pRoot)
@@ -55,26 +54,31 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 	if (!pRoot)
 		return;
 
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	ASSERT(pGpuProfiler->pTimeStamp != NULL && "Time stamp readback buffer is not mapped");
+#endif
+	
 	if (pRoot != &pGpuProfiler->mRoot)
 	{
+		uint32_t historyIndex = pRoot->mGpuTimer.mHistoryIndex;
+		int64_t elapsedTime = 0;
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 		uint32_t id = pRoot->mGpuTimer.mIndex;
 		uint64_t timeStamp1 = pGpuProfiler->pTimeStamp[id * 2];
 		uint64_t timeStamp2 = pGpuProfiler->pTimeStamp[id * 2 + 1];
 
-		int64_t elapsedTime = int64_t(timeStamp2 - timeStamp1);
+		elapsedTime = int64_t(timeStamp2 - timeStamp1);
 		if (timeStamp2 <= timeStamp1)
 		{
 			elapsedTime = 0;
 		}
 
-		uint32_t historyIndex = pRoot->mGpuTimer.mHistoryIndex;
-
 		pRoot->mGpuTimer.mStartGpuTime = timeStamp1;
 		pRoot->mGpuTimer.mEndGpuTime = timeStamp2;
 		pRoot->mGpuTimer.mGpuTime = elapsedTime;
 		pRoot->mGpuTimer.mGpuHistory[historyIndex] = elapsedTime;
-
+#endif
+		
 		elapsedTime = pRoot->mGpuTimer.mEndCpuTime - pRoot->mGpuTimer.mStartCpuTime;
 		if (elapsedTime < 0)
 		{
@@ -90,7 +94,6 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 	for (uint32_t i = 0; i < (uint32_t)pRoot->mChildren.size(); ++i)
 		calculateTimes(pCmd, pGpuProfiler, pRoot->mChildren[i]);
 }
-#endif
 
 double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpuTimer)
 {
@@ -194,10 +197,8 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 
 void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker, const float3& color)
 {
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
-
 	// hash name
-	char _buffer[MAX_PATH] = {}; //Initialize to empty
+	char _buffer[128] = {}; //Initialize to empty
 	sprintf(_buffer, "%s_%u", pName, pGpuProfiler->mCurrentTimerCount);
 	uint32_t _hash = tinystl::hash(_buffer);
 
@@ -229,9 +230,11 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	pGpuProfiler->pCurrentNode->mChildren.emplace_back(node);
 	pGpuProfiler->pCurrentNode = pGpuProfiler->pCurrentNode->mChildren.back();
 
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	QueryDesc desc = { 2 * node->mGpuTimer.mIndex };
 	cmdBeginQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
-
+#endif
+	
 	if (addMarker)
 	{
 		cmdBeginDebugMarker(pCmd, color.getX(), color.getY(), color.getZ(), pName);
@@ -241,19 +244,19 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	node->mGpuTimer.mStartCpuTime = getUSec();
 
 	++pGpuProfiler->mCurrentTimerCount;
-#endif
 }
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTimer** ppGpuTimer)
 {
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// Record cpu time
 	pGpuProfiler->pCurrentNode->mGpuTimer.mEndCpuTime = getUSec();
 
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// Record gpu time
 	QueryDesc desc = { 2 * pGpuProfiler->pCurrentNode->mGpuTimer.mIndex + 1 };
 	cmdEndQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
-
+#endif
+	
 	if (pGpuProfiler->pCurrentNode->mDebugMarker)
 	{
 		cmdEndDebugMarker(pCmd);
@@ -263,7 +266,6 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 		*ppGpuTimer = &pGpuProfiler->pCurrentNode->mGpuTimer;
 
 	pGpuProfiler->pCurrentNode = pGpuProfiler->pCurrentNode->pParent;
-#endif
 }
 
 void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker)
@@ -274,7 +276,8 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 		pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex],
 		pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex],
 		0, pGpuProfiler->mCurrentTimerCount * 2);
-
+#endif
+	
 	uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;
 	pGpuProfiler->mBufferIndex = nextIndex;
 
@@ -288,12 +291,10 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->mRoot;
 
 	cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "ROOT", bUseMarker);
-#endif
 }
 
 void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 {
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 
 	for (uint32_t i = 0; i < (uint32_t)pGpuProfiler->mRoot.mChildren.size(); ++i)
@@ -303,15 +304,18 @@ void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 		pGpuProfiler->mCumulativeCpuTimeInternal += getAverageCpuTime(pGpuProfiler, &pGpuProfiler->mRoot.mChildren[i]->mGpuTimer);
 	}
 
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// readback n + 1 frame
 	ReadRange range = {};
 	range.mOffset = 0;
 	range.mSize = max(sizeof(uint64_t) * 2, (pGpuProfiler->mCurrentTimerCount) * sizeof(uint64_t) * 2);
 	mapBuffer(pCmd->pRenderer, pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], &range);
 	pGpuProfiler->pTimeStamp = (uint64_t*)pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex]->pCpuMappedAddress;
-
+#endif
+	
 	calculateTimes(pCmd, pGpuProfiler, &pGpuProfiler->mRoot);
 
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	unmapBuffer(pCmd->pRenderer, pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex]);
 	pGpuProfiler->pTimeStamp = NULL;
 

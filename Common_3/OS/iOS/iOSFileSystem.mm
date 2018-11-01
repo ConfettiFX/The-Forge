@@ -33,7 +33,7 @@
 
 #define RESOURCE_DIR "Shaders/OSXMetal"
 
-const char* pszRoots[] =
+const char* pszRoots[FSR_Count] =
 {
 	RESOURCE_DIR "/Binary/",			// FSR_BinShaders
 	RESOURCE_DIR "/",					// FSR_SrcShaders
@@ -43,7 +43,7 @@ const char* pszRoots[] =
 	"Meshes/",							// FSR_Meshes
 	"Fonts/",							// FSR_Builtin_Fonts
 	"GPUCfg/",							// FSR_GpuConfig
-	"Animation/"						// FSR_Animation
+	"Animation/",						// FSR_Animation
 	"",									// FSR_OtherFiles
 };
 

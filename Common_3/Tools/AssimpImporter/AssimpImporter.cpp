@@ -301,7 +301,6 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 		aiProcess_ImproveCacheLocality |
 		aiProcess_FindDegenerates |
 		aiProcess_FindInvalidData |
-		aiProcess_FixInfacingNormals |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_ConvertToLeftHanded;
 	flags &= ~aiProcess_SortByPType;

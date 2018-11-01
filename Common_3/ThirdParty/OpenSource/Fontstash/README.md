@@ -3,11 +3,11 @@ Font Stash
 
 Font stash is light-weight online font texture atlas builder written in C. It uses [stb_truetype](http://nothings.org) to render fonts on demand to a texture atlas.
 
-The code is split in two parts, the font atlas and glyph quad generator [fontstash.h](/src/fontstash.h), and an example OpenGL backend ([glfontstash.h](/glfontstash.h)).
+The code is split in two parts, the font atlas and glyph quad generator [fontstash.h](/src/fontstash.h), and an example OpenGL backend ([glstash.h](/glstash.h).
 
 ## Screenshot
 
-![screenshot of some text rendered witht the sample program](/example/example.png?raw=true)
+![screenshot of some text rendered witht the sample program](/screenshots/screen-01.png?raw=true)
 
 ## Example
 ``` C
@@ -109,35 +109,25 @@ The size of the internal buffer is defined using `FONS_VERTEX_COUNT` define. The
 
 ## Compiling
 
+In order to compile the demo project, your will need to install [GLFW](http://www.glfw.org/) to compile.
+
+FontStash example project uses [premake4](http://industriousone.com/premake) to build platform specific projects, now is good time to install it if you don't have it already. To build the example, navigate into the root folder in your favorite terminal, then:
+
+- *OS X*: `premake4 xcode4`
+- *Windows*: `premake4 vs2010`
+- *Linux*: `premake4 gmake`
+
+See premake4 documentation for full list of supported build file types. The projects will be created in `build` folder. An example of building and running the example on OS X:
+
 ```bash
-$ mkdir build
+$ premake4 gmake
 $ cd build/
-$ cmake ..
 $ make
-$ ./bin/fontstash
-```
-
-# OpenGL 3+ support (by Bastiaan Olij)
-
-When using font stash with OpenGL 3 you run into problems due to OGLs switch to using vertex arrays, vertex buffers and removal of the fixed rendering pipeline. 
-Simply include gl3fontstash.h instead of glfontstash.h to use the OpenGL 3 render additions.
-
-Note that this requires an extension manager to be used such as [GLEW](http://glew.sourceforge.net/) and that a new function called gl3fonsProjection must be called before rendering text. 
-
-``` c
-GLfloat mat[16];
-
-memset(mat, 0, 16 * sizeof(GLfloat));
-gl3fonsProjection(mFS, mat, screenWidth, screenHeight);
-
+$ ./example
 ```
 
 # License
 The library is licensed under [zlib license](LICENSE.txt)
 
 ## Links
-- **[stb_truetype](http://nothings.org)** - used for font rendering.
-
-- **[Jukka Jylänki's Skyline bin packer](https://github.com/juj/RectangleBinPack)** - used for atlas building.
-
-- **[Bjoern Hoehrmann's dfa](http://bjoern.hoehrmann.de/utf-8/decoder/dfa/)** - used for UTF-8 decoding.
+Uses [stb_truetype](http://nothings.org) for font rendering.

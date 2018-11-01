@@ -560,11 +560,7 @@ void computePBRMaps()
 
 	// Load the skybox panorama texture.
 	TextureLoadDesc panoDesc = {};
-#ifndef TARGET_IOS
 	panoDesc.mRoot = FSR_Textures;
-#else
-	panoDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
 	panoDesc.mUseMipmaps = true;
 	panoDesc.pFilename = "LA_Helipad.hdr";
 	panoDesc.ppTexture = &pPanoSkybox;
@@ -842,12 +838,6 @@ bool loadModels()
 	//Load Sponza
 	Model sponza;
 	tinystl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza, FSRoot::FSR_Meshes);
-#ifdef TARGET_IOS
-	//TODO: need to unify this using filsystem interface
-	//iOS requires path using bundle identifier
-	NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gModel_Sponza] ofType : @""];
-	sceneFullPath = [fileUrl fileSystemRepresentation];
-#endif
 
 	if (!AssimpImporter::ImportModel(sceneFullPath.c_str(), &sponza))
 	{
@@ -916,12 +906,6 @@ bool loadModels()
 
 	Model lion;
 	sceneFullPath = FileSystem::FixPath(gModel_Lion, FSRoot::FSR_Meshes);
-#ifdef TARGET_IOS
-	//TODO: need to unify this using filsystem interface
-	//iOS requires path using bundle identifier
-	fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:gModel_Lion] ofType:@""];
-	sceneFullPath = [fileUrl fileSystemRepresentation];
-#endif
 
 	if (!AssimpImporter::ImportModel(sceneFullPath.c_str(), &lion))
 	{
@@ -1028,19 +1012,14 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		//tinystl::vector<Image> toLoad(TOTAL_IMGS);
 		//adding material textures
 		for (int i = 0; i <TOTAL_IMGS; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
-#else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
-
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pMaterialImageFileNames[i];
 			textureDesc.ppTexture = &pMaterialTextures[i];
@@ -1048,7 +1027,7 @@ public:
 		}
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
@@ -1440,7 +1419,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 
 		GuiDesc guiDesc = {};
@@ -1948,6 +1927,12 @@ public:
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+
 		tinystl::vector<Cmd*> allCmds;
 
 		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &pUniformDataCamera };
@@ -2410,19 +2395,8 @@ public:
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
-
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		//Wait for image to be available
-		//Have to do it here otherwise triple buffered compute data causes issues on metal
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-		{
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-		}
 	}
 
 	tinystl::string GetName()

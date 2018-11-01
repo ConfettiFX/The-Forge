@@ -8,7 +8,9 @@ filename=Art.zip
 rm $filename
 
 curl -L -o $filename http://www.conffx.com/$filename
-unzip $filename
+unzip -o $filename
+
+# rsync --remove-source-files -a "./Art/PBR/" "./Examples_3/Unit_Tests/UnitTestResources/Textures/PBR"
 
 rm $filename
 

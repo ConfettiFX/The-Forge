@@ -214,7 +214,7 @@ GraphVertex gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
 CpuGraph*	pCpuGraph;
 
-const char*			 pImageFileNames[] =
+const char* pImageFileNames[] =
 {
 	"Palette_Fire.png",
 	"Palette_Purple.png",
@@ -222,7 +222,7 @@ const char*			 pImageFileNames[] =
 	"Palette_Rainbow.png",
 	"Palette_Sky.png"
 };
-const char*			 pSkyBoxImageFileNames[] =
+const char* pSkyBoxImageFileNames[] =
 {
 	"Skybox_right1.png",
 	"Skybox_left2.png",
@@ -234,14 +234,14 @@ const char*			 pSkyBoxImageFileNames[] =
 
 const char* pszBases[] =
 {
-	"../../../src/03_MultiThread/", // FSR_BinShaders
-	"../../../src/03_MultiThread/", // FSR_SrcShaders
+	"../../../src/03_MultiThread/", 	// FSR_BinShaders
+	"../../../src/03_MultiThread/", 	// FSR_SrcShaders
 	"",									// FSR_BinShaders_Common
 	"",									// FSR_SrcShaders_Common
 	"../../../UnitTestResources/",		// FSR_Textures
 	"../../../UnitTestResources/",		// FSR_Meshes
 	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
-	"../../../src/03_MultiThread/",	// FSR_GpuConfig
+	"../../../src/03_MultiThread/",		// FSR_GpuConfig
 	"",									// FSR_OtherFiles
 };
 
@@ -294,17 +294,13 @@ public:
 
 		HiresTimer timer;
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
-#else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pImageFileNames[i];
 			textureDesc.ppTexture = &pTextures[i];
@@ -314,11 +310,7 @@ public:
 		for (int i = 0; i < 6; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-#ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
-#else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
-#endif
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
@@ -326,7 +318,7 @@ public:
 		}
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
 
@@ -537,7 +529,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
 
@@ -829,11 +821,18 @@ public:
 	void Draw()
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
 
 		uint32_t frameIdx = gFrameIndex;
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[frameIdx];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[frameIdx];
 		/*******record command for drawing particles***************/
 		WorkItem pWorkGroups[gThreadCount];
 
@@ -984,13 +983,6 @@ public:
 
 		queueSubmit(pGraphicsQueue, gThreadCount + 2, allCmds, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		// Stall if CPU is running "Swap Chain Buffer Count - 1" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
 	}
 
 	tinystl::string GetName()

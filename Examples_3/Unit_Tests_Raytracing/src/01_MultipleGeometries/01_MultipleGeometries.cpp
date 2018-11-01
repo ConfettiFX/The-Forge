@@ -98,9 +98,9 @@ public:
 		if (!mAppUI.Init(pRenderer))
 			return false;
 
-		mAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		mAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		/************************************************************************/
 		// 02 Creation Acceleration Structure
 		/************************************************************************/

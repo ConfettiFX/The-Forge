@@ -186,7 +186,7 @@ public:
 
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
@@ -483,7 +483,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 

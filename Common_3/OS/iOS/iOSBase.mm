@@ -181,6 +181,7 @@ int iOSMain(int argc, char** argv, IApp* app)
 
 @end
 
+UIViewController* pMainViewController;
 /************************************************************************/
 // GameViewController implementation
 /************************************************************************/
@@ -204,6 +205,7 @@ int iOSMain(int argc, char** argv, IApp* app)
 {
 	[super viewDidLoad];
 
+	pMainViewController = self;
 	// Set the view to use the default device
 	_device = MTLCreateSystemDefaultDevice();
 	_view = (MTKView *)self.view;
@@ -229,10 +231,24 @@ int iOSMain(int argc, char** argv, IApp* app)
 		NSLog(@"Metal is not supported on this device");
 		self.view = [[UIView alloc] initWithFrame:self.view.frame];
 	}
+	
+	//register terminate callback
+	UIApplication *app = [UIApplication sharedApplication];
+	[[NSNotificationCenter defaultCenter]
+	 addObserver:self
+	 selector:@selector(applicationWillTerminate:)
+	 name:  UIApplicationWillTerminateNotification object:app];
+}
 
-	InputSystem::Init(gDeviceWidth, gDeviceHeight);
-	InputSystem::InitSubView((__bridge void*)_view);
-	InputSystem::SetMouseCapture(true);
+/*A notification named NSApplicationWillTerminateNotification.*/
+- (void)handleAppTerminate:(UIApplication *)app
+{
+	[_application shutdown];
+}
+
+- (BOOL)prefersStatusBarHidden
+{
+	return pApp->mSettings.mShowStatusBar ? NO : YES;
 }
 
 // Called whenever view changes orientation or layout is changed
@@ -296,12 +312,16 @@ uint32_t testingMaxFrameCount = 120;
 		pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);
 		pApp->pWindow = &gCurrentWindow;
 
+        InputSystem::Init(gDeviceWidth, gDeviceHeight);
+        InputSystem::InitSubView((__bridge void*)view);
+        InputSystem::SetMouseCapture(true);
+
 		@autoreleasepool {
 			if(!pApp->Init())
-				exit(0);
+				exit(1);
 
 			if(!pApp->Load())
-				exit(0);
+				exit(1);
 		}
 	}
 

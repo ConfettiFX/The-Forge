@@ -32,6 +32,12 @@
 // from Confetti Special Effects Inc.
 //
 //--------------------------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------------------------
+// NOTE: Make sure this is the last include in a .cpp file!
+//--------------------------------------------------------------------------------------------
+
+
 #include <new>
 #ifdef USE_MEMORY_TRACKING
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.h"

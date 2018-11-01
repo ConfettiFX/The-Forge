@@ -23,7 +23,15 @@
 * under the License.
 */
 
-// Unit Test for testing materials and pbr.
+/********************************************************************************************************
+*
+* The Forge - MATERIALS UNIT TEST
+*
+* The purpose of this demo is to show the material workflow of The-Forge,
+* featuring PBR materials and environment lighting.
+*
+*********************************************************************************************************/
+
 
 //asimp importer
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
@@ -57,18 +65,23 @@
 
 const char* pszBases[] =
 {
-	"../../../src/06_MaterialPlayground/",							// FSR_BinShaders
-	"../../../src/06_MaterialPlayground/",							// FSR_SrcShaders
-	"",																// FSR_BinShaders_Common
-	"",																// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",									// FSR_Textures
-	"../../../UnitTestResources/",									// FSR_Meshes
-	"../../../UnitTestResources/",									// FSR_Builtin_Fonts
-	"../../../src/06_MaterialPlayground/",							// FSR_GpuConfig
-	"",																// FSR_OtherFiles
+	"../../../src/06_MaterialPlayground/",	// FSR_BinShaders
+	"../../../src/06_MaterialPlayground/",	// FSR_SrcShaders
+	"",										// FSR_BinShaders_Common
+	"",										// FSR_SrcShaders_Common
+	"../../../UnitTestResources/",			// FSR_Textures
+	"../../../UnitTestResources/",			// FSR_Meshes
+	"../../../UnitTestResources/",			// FSR_Builtin_Fonts
+	"../../../src/06_MaterialPlayground/",	// FSR_GpuConfig
+	"",										// FSR_Animation
+	"../../../../../Art/",					// FSR_OtherFiles
 };
 
-#define LOAD_MATERIAL_BALL
+
+// quick way to skip loading the assets
+#define LOAD_MATERIAL_BALL 1
+#define MAX_NUM_POINT_LIGHTS 16 // >= 1
+#define MAX_NUM_DIRECTIONAL_LIGHTS 1 // >= 1
 
 //--------------------------------------------------------------------------------------------
 // ENUM DEFINTIONS
@@ -88,6 +101,7 @@ typedef enum MetalTypes
 	METAL_TITANIUM,
 	METAL_GREASED_METAL,
 	METAL_GOLD,
+	METAL_GOLD2,
 	METAL_COUNT
 } MetalTypes;
 
@@ -135,25 +149,49 @@ struct UniformCamData
 struct UniformObjData
 {
 	mat4 mWorldMat;
+	float3 mAlbedo = float3(1, 1, 1);
 	float mRoughness = 0.04f;
 	float mMetallic = 0.0f;
-	int objectId = -1;
+	int textureConfig = 0;
 };
-
-struct Light
+enum ETextureConfigFlags
 {
-	vec4 mPos;
-	vec4 mCol;
+	DIFFUSE    = (1 << 0),
+	NORMAL     = (1 << 1),
+	METALLIC   = (1 << 2),
+	ROUGHNESS  = (1 << 3),
+	AO         = (1 << 4),
+
+	TEXTURE_CONFIG_FLAGS_ALL = DIFFUSE | NORMAL | METALLIC | ROUGHNESS | AO,
+
+
+	NUM_TEXTURE_CONFIG_FLAGS = 5
+};
+struct PointLight
+{
+	float3 mPosition;
 	float mRadius;
+	float3 mColor;
 	float mIntensity;
-	float _pad0;
-	float _pad1;
 };
 
-struct UniformLightData
+struct UniformDataPointLights
 {
-	Light mLights[16];
-	int mCurrAmountOfLights = 0;
+	PointLight mPointLights[MAX_NUM_POINT_LIGHTS];
+	int mNumPointLights = 0;
+};
+
+struct DirectionalLight
+{
+	vec3 mDirection;
+	float3 mColor;
+	float mIntensity;
+};
+
+struct UniformDataDirectionalLights
+{
+	DirectionalLight mDirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
+	uint mNumDirectionalLights = 0;
 };
 
 //--------------------------------------------------------------------------------------------
@@ -179,7 +217,7 @@ uint32_t			gFrameIndex = 0;
 LogManager			gLogManager;
 UIApp				gAppUI;
 ICameraController*	pCameraController = NULL;
-TextDrawDesc		gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc		gFrameTimeDraw = TextDrawDesc(0, 0xff00ff00, 18);
 GpuProfiler*		pGpuProfiler = NULL;
 GuiComponent*		pGuiWindow = NULL;
 #ifdef TARGET_IOS
@@ -244,10 +282,11 @@ MeshData* pMeshes[MESH_COUNT] = { NULL };
 //--------------------------------------------------------------------------------------------
 Buffer*				pUniformBufferCamera[gImageCount] = { NULL };
 Buffer*				pUniformBufferCameraSkybox[gImageCount] = { NULL };
-Buffer*				pUniformBufferSurface = NULL;
+Buffer*				pUniformBufferGroundPlane = NULL;
 Buffer*				pUniformBufferMatBall[gImageCount][METAL_COUNT];
 Buffer*				pUniformBufferNamePlates[METAL_COUNT];
-Buffer*				pUniformBufferLights = NULL;
+Buffer*				pUniformBufferPointLights = NULL;
+Buffer*				pUniformBufferDirectionalLights = NULL;
 
 //--------------------------------------------------------------------------------------------
 // TEXTURES
@@ -256,18 +295,20 @@ const int gMaterialTextureCount = METAL_COUNT * MATERIAL_TEXTURE_COUNT;
 
 Texture*			pTextureSkybox = NULL;
 Texture*			pTextureBRDFIntegrationMap = NULL;
+Texture*			pTextureMaterialMaps[gMaterialTextureCount];        // objects
+Texture*			pTextureMaterialMapsGround[MATERIAL_TEXTURE_COUNT]; // ground
 Texture*			pTextureIrradianceMap = NULL;
 Texture*			pTextureSpecularMap = NULL;
-Texture*			pTextureMaterialMaps[gMaterialTextureCount];
 
 //--------------------------------------------------------------------------------------------
 // UNIFORM DATA
 //--------------------------------------------------------------------------------------------
 UniformCamData		gUniformDataCamera;
 UniformCamData		gUniformDataCameraSkybox;
-UniformLightData	gUniformDataLights;
+UniformDataPointLights	gUniformDataPointLights;
 UniformObjData		gUniformDataObject;
 UniformObjData		gUniformDataMatBall[METAL_COUNT];
+UniformDataDirectionalLights gUniformDataDirectionalLights;
 
 //--------------------------------------------------------------------------------------------
 // OTHER
@@ -278,7 +319,8 @@ uint32_t			gMaterialType = MATERIAL_METAL;
 const int			gSphereResolution = 30; // Increase for higher resolution spheres
 const float			gSphereDiameter = 0.5f;
 int					gNumOfSpherePoints;
-TextDrawDesc gMaterialPropDraw = TextDrawDesc(0, 0xff00ffff, 25);
+TextDrawDesc		gMaterialPropDraw = TextDrawDesc(0, 0xffaaaaaa, 32);
+float3				gDirectionalLightPosition = float3(0.0f, 10.0f, 10.0f);
 
 const char*	 pTextureName[] =
 {
@@ -289,13 +331,21 @@ const char*	 pTextureName[] =
 	"aoMap"
 };
 
+// testing a material made of raisins...
+#define RAISINS 0
+
 static const char* metalEnumNames[] =
 {
-	"Rusted Iron",
+	"Aluminum",
+	"Gold Tiles",
 	"Copper",
-	"Greased Metal",
-	"Gold",
-	"Titanium",
+	"Blue Tiles",
+#if RAISINS
+	"Raisins",
+#else
+	"Scratched Gold",
+	"Painted Gold",
+#endif
 	NULL
 };
 
@@ -415,9 +465,10 @@ class MaterialPlayground : public IApp
 public:
 	bool Init()
 	{
+		// INITIALIZE RENDERER, COMMAND BUFFERS
+		//
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
-		//check for init success
 		if (!pRenderer)
 			return false;
 
@@ -438,17 +489,20 @@ public:
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
+		// INITIALIZE SYSTEMS
+		//
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
-
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
-
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
+
+		// CREATE RENDERING RESOURCES
+		//
 		CreateRasterizerStates();
 		CreateDepthStates();
 		CreateBlendStates();
@@ -467,11 +521,13 @@ public:
 
 		InitializeUniformBuffers();
 
-		// Create UI
+
+		// INITIALIZE UI
+		//
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(5, 200.0f);
@@ -479,14 +535,13 @@ public:
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		GuiController::AddGui();
 
-		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
 
-#ifdef LOAD_MATERIAL_BALL
-		vec3 camPos{ 0.0f, 8.0f, 30.0f };
-#else
-		vec3 camPos{ 0.0f, 0.0f, 10.0f };
-#endif
-		vec3 lookat{ 0 };
+		// INITIALIZE CAMERA & INPUT
+		//
+		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
+		vec3 camPos{ -6.12865686f, 12.2564745f, 59.3652649f };
+		
+		vec3 lookat{ -6.10978842f, 0, 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookat);
 		requestMouseCapture(true);
@@ -597,7 +652,7 @@ public:
 		// Update camera
 		mat4 viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-		const float horizontal_fov = PI / 2.0f;
+		const float horizontal_fov = PI / 3.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		gUniformDataCamera.mProjectView = projMat * viewMat;
 		gTextProjView = gUniformDataCamera.mProjectView;
@@ -607,25 +662,35 @@ public:
 		gUniformDataCameraSkybox = gUniformDataCamera;
 		gUniformDataCameraSkybox.mProjectView = projMat * viewMat;
 
-
-		int val = -1;
-		gMaterialType == MATERIAL_DEFAULT ? (val = -1) : (val = 1);
-		for (size_t totalBuf = 0; totalBuf < METAL_COUNT; ++totalBuf) 
-		{
-			gUniformDataMatBall[totalBuf].objectId = val;
-		}
+		// Update uniform buffers
+		gUniformDataDirectionalLights.mDirectionalLights[0].mDirection = normalize(f3Tov3(gDirectionalLightPosition));
+		gUniformDataDirectionalLights.mNumDirectionalLights = 1;
+		
+		gUniformDataPointLights.mNumPointLights = 0;
 
 		gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
 	{
+		// FRAME SYNC
+		//
 		// This will acquire the next swapchain image
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		/************************************************************************/
-		// Update uniform buffers
-		/************************************************************************/
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+		
+
+		// SET CONSTANT BUFFERS
+		//
 		for (size_t totalBuf = 0; totalBuf < METAL_COUNT; ++totalBuf)
 		{
 			BufferUpdateDesc objBuffUpdateDesc = { pUniformBufferMatBall[gFrameIndex][totalBuf], &gUniformDataMatBall[totalBuf] };
@@ -637,11 +702,13 @@ public:
 
 		BufferUpdateDesc skyboxViewProjCbv = { pUniformBufferCameraSkybox[gFrameIndex], &gUniformDataCameraSkybox };
 		updateResource(&skyboxViewProjCbv);
-		/************************************************************************/
-		/************************************************************************/
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
+		BufferUpdateDesc directionalLightsBufferUpdateDesc = { pUniformBufferDirectionalLights, &gUniformDataDirectionalLights };
+		updateResource(&directionalLightsBufferUpdateDesc);
+		
+
+		// SET UP DRAW COMMANDS (SCENE)
+		//
 		tinystl::vector<Cmd*> allCmds;
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
@@ -655,7 +722,8 @@ public:
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
-		// Draw skybox
+		// DRAW SKYBOX
+		//
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
@@ -674,7 +742,9 @@ public:
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferSkybox, NULL);
 		cmdDraw(cmd, 36, 0);
 
-		// Draw the spheres.
+
+		// DRAW THE OBJECTS W/ MATERIALS
+		//
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
@@ -684,49 +754,53 @@ public:
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 		cmdBindPipeline(cmd, pPipelineBRDF);
 
-		DescriptorData params[13] = {};
+		DescriptorData params[6] = {};
 		params[0].pName = "cbCamera";
 		params[0].ppBuffers = &pUniformBufferCamera[gFrameIndex];
-		params[1].pName = "cbLights";
-		params[1].ppBuffers = &pUniformBufferLights;
-		params[2].pName = "brdfIntegrationMap";
-		params[2].ppTextures = &pTextureBRDFIntegrationMap;
-		params[3].pName = "irradianceMap";
-		params[3].ppTextures = &pTextureIrradianceMap;
-		params[4].pName = "specularMap";
-		params[4].ppTextures = &pTextureSpecularMap;
+		params[1].pName = "cbPointLights";
+		params[1].ppBuffers = &pUniformBufferPointLights;
+		params[2].pName = "cbDirectionalLights";
+		params[2].ppBuffers = &pUniformBufferDirectionalLights;
+		params[3].pName = "brdfIntegrationMap";
+		params[3].ppTextures = &pTextureBRDFIntegrationMap;
+		params[4].pName = "irradianceMap";
+		params[4].ppTextures = &pTextureIrradianceMap;
+		params[5].pName = "specularMap";
+		params[5].ppTextures = &pTextureSpecularMap;
+		cmdBindDescriptors(cmd, pRootSignatureBRDF, 6, params);
 
 		int matId = gMetalMaterial == METAL_NONE ? 0 : gMetalMaterial;
 		int textureIndex = 0;
 
-#ifdef LOAD_MATERIAL_BALL
+#if LOAD_MATERIAL_BALL
 		cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_MAT_BALL]->pVertexBuffer, NULL);
 		cmdBindIndexBuffer(cmd, pMeshes[MESH_MAT_BALL]->pIndexBuffer, NULL);
 #endif
 
+#if 1
 		for (int i = 0; i < METAL_COUNT; ++i)
 		{
-			// Add the uniform buffer for eveWry sphere
-			params[5].pName = "cbObject";
-			params[5].ppBuffers = &pUniformBufferMatBall[gFrameIndex][i];
+			params[0].pName = "cbObject";
+			params[0].ppBuffers = &pUniformBufferMatBall[gFrameIndex][i];
+			cmdBindDescriptors(cmd, pRootSignatureBRDF, 1, params);
 
 			//binding pbr material textures
-			for (int j = 0; j <5; ++j) 
+			for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j) 
 			{
-				int index = j + 5 * i;
+				int index = j + MATERIAL_TEXTURE_COUNT * i;
 				textureIndex = matId + index;
-				params[6 + j].pName = pTextureName[j];
+				params[j].pName = pTextureName[j];
 				if (textureIndex >= gMaterialTextureCount)
 				{
 					LOGERROR("texture index greater than array size, setting it to default texture");
 					textureIndex = matId + j;
 				}
-				params[6 + j].ppTextures = &pTextureMaterialMaps[textureIndex];
+				params[j].ppTextures = &pTextureMaterialMaps[textureIndex];
 			}
 
-			cmdBindDescriptors(cmd, pRootSignatureBRDF, 11, params);
+			cmdBindDescriptors(cmd, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
 
-#ifdef LOAD_MATERIAL_BALL
+#if LOAD_MATERIAL_BALL
 
 			cmdDrawIndexed(cmd, pMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
 
@@ -735,58 +809,68 @@ public:
 			cmdDrawInstanced(cmd, gNumOfSpherePoints, 0, 1, 0);
 #endif
 		}
+#endif
 
-#ifdef LOAD_MATERIAL_BALL
+#if LOAD_MATERIAL_BALL
+
+
+		// DRAW THE GROUND PLANE
+		//
 		cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_CUBE]->pVertexBuffer, NULL);
 		cmdBindIndexBuffer(cmd, pMeshes[MESH_CUBE]->pIndexBuffer, NULL);
 
-		params[5].pName = "cbObject";
-		params[5].ppBuffers = &pUniformBufferSurface;
+		params[0].pName = "cbObject";
+		params[0].ppBuffers = &pUniformBufferGroundPlane;
+		cmdBindDescriptors(cmd, pRootSignatureBRDF, 1, params);
 
-		for (int j = 0; j <5; ++j) 
+		for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j) 
 		{
-			params[6 + j].pName = pTextureName[j];
-			params[6 + j].ppTextures = &pTextureMaterialMaps[j];
+			params[j].pName = pTextureName[j];
+			params[j].ppTextures = &pTextureMaterialMapsGround[j];
 		}
 
-		cmdBindDescriptors(cmd, pRootSignatureBRDF, 11, params);
+		cmdBindDescriptors(cmd, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
 
 		cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 #endif
 
-		//draw the label plates
+		
+		// DRAW THE LABEL PLATES
+		//
 		if (gMaterialType == MATERIAL_METAL) 
 		{
-
-#ifdef LOAD_MATERIAL_BALL
-
-			for (int j = 0; j <5; ++j)
+#if LOAD_MATERIAL_BALL
+			for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
 			{
-				params[6 + j].pName = pTextureName[j];
-				params[6 + j].ppTextures = &pTextureMaterialMaps[j + 4];
+				params[j].pName = pTextureName[j];
+				params[j].ppTextures = &pTextureMaterialMaps[j + 4];
 			}
+			cmdBindDescriptors(cmd, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
 
 			for (int j = 0; j < METAL_COUNT; ++j) 
 			{
-				params[5].pName = "cbObject";
-				params[5].ppBuffers = &pUniformBufferNamePlates[j];
-
-				cmdBindDescriptors(cmd, pRootSignatureBRDF, 11, params);
-
+				params[0].pName = "cbObject";
+				params[0].ppBuffers = &pUniformBufferNamePlates[j];
+				cmdBindDescriptors(cmd, pRootSignatureBRDF, 1, params);
 				cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 			}
 #endif
 		}
 
-
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
+
+
+		// SET UP DRAW COMMANDS (UI)
+		//
 		cmd = ppUICmds[gFrameIndex];
 		beginCmd(cmd);
-
-		// Prepare UI command buffers
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, NULL, NULL, NULL, -1, -1);
+		
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
+		
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -798,7 +882,7 @@ public:
 		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 		//draw text
-#ifdef LOAD_MATERIAL_BALL
+#if LOAD_MATERIAL_BALL
 		if (gMaterialType == MATERIAL_METAL) 
 		{
 			int metalEnumIndex = 0;
@@ -830,16 +914,6 @@ public:
 
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-		{
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-		}
-
-		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	tinystl::string GetName()
@@ -975,14 +1049,18 @@ public:
 
 	void CreateShaders()
 	{
+		ShaderMacro pointLightsShaderMacro = { "MAX_NUM_POINT_LIGHTS", tinystl::string::format("%i", MAX_NUM_POINT_LIGHTS) };
+		ShaderMacro directionalLightsShaderMacro = { "MAX_NUM_DIRECTIONAL_LIGHTS", tinystl::string::format("%i", MAX_NUM_DIRECTIONAL_LIGHTS) };
+		ShaderMacro lightMacros[] = { pointLightsShaderMacro, directionalLightsShaderMacro };
+
 		ShaderLoadDesc skyboxShaderDesc = {};
 		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
 		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
-		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, FSR_SrcShaders };
-		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, FSR_SrcShaders };
+		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", lightMacros, 2, FSR_SrcShaders };
+		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", lightMacros, 2, FSR_SrcShaders };
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
 	}
 
@@ -994,7 +1072,7 @@ public:
 
 	void CreateRootSignatures()
 	{
-		const char* pStaticSamplerNames[] = { "envSampler", "defaultSampler", "skyboxSampler" };
+		const char* pStaticSamplerNames[] = { "bilinearSampler", "bilinearClampedSampler", "skyboxSampler" };
 		Sampler* pStaticSamplers[] = { pSamplerBilinear, pSamplerBilinearClamped, pSamplerBilinear };
 		uint numStaticSamplers = sizeof(pStaticSamplerNames) / sizeof(pStaticSamplerNames[0]);
 
@@ -1365,7 +1443,7 @@ public:
 
 					for (size_t j = 0; j < mesh->mIndices.size(); ++j)
 						indices.push_back(mesh->mIndices[j]);
-			}
+				}
 
 				MeshData* meshData = conf_placement_new<MeshData>(conf_malloc(sizeof(MeshData)));
 				meshData->mVertexCount = (uint)vertices.size();
@@ -1391,10 +1469,10 @@ public:
 					indexBufferDesc.pData = indices.data();
 					indexBufferDesc.ppBuffer = &meshData->pIndexBuffer;
 					addResource(&indexBufferDesc);
-		}
+				}
 
 				pMeshes[m] = meshData;
-	}
+			}
 			else
 				ErrorMsg("Failed to load model.");
 		}
@@ -1411,44 +1489,90 @@ public:
 		}
 	}
 
+#if defined(TARGET_IOS) || defined(ANDROID)
+	#define TEXTURE_RESOLUTION "1K"
+#else 
+	#define TEXTURE_RESOLUTION "2K"
+#endif
 	void LoadTextures()
 	{
 		const char* textureNames[] =
 		{
-			"rusted_iron/albedo.png",
-			"rusted_iron/normal.png",
-			"rusted_iron/metallic.png",
-			"rusted_iron/roughness.png",
-			"rusted_iron/ao.png",
-			"copper/albedo.png",
-			"copper/normal.png",
-			"copper/metallic.png",
-			"copper/roughness.png",
-			"copper/ao.png",
-			"grease/albedo.png",
-			"grease/normal.png",
-			"grease/metallic.png",
-			"grease/roughness.png",
-			"grease/ao.png",
-			"gold/albedo.png",
-			"gold/normal.png",
-			"gold/metallic.png",
-			"gold/roughness.png",
-			"gold/ao.png",
-			"titanium/albedo.png",
-			"titanium/normal.png",
-			"titanium/metallic.png",
-			"titanium/roughness.png",
-			"titanium/ao.png"
+			"PBR/round_aluminum_panel_01/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/round_aluminum_panel_01/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/Metallic_on.png",
+			"PBR/round_aluminum_panel_01/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/round_aluminum_panel_01/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+			"PBR/metal_tiles_03/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/metal_tiles_03/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/Metallic_on.png",
+			"PBR/metal_tiles_03/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/metal_tiles_03/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+			"PBR/copper_tiles_01/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/copper_tiles_01/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/Metallic_on.png",
+			"PBR/copper_tiles_01/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/copper_tiles_01/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+			"PBR/blue_tiles_01/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/blue_tiles_01/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/Metallic_off.png",
+			"PBR/blue_tiles_01/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/blue_tiles_01/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+#if RAISINS
+			//------------------------------
+			"PBR/raisins_01/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/raisins_01/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/raisins_01/" TEXTURE_RESOLUTION "/Metallic.png",
+			"PBR/raisins_01/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/raisins_01/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+#else
+			//------------------------------
+			"PBR/scratched_gold_01/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/scratched_gold_01/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/Metallic_on.png",
+			"PBR/scratched_gold_01/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/scratched_gold_01/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+#endif
+			//------------------------------
+			"PBR/painted_metal_02/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/painted_metal_02/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/painted_metal_02/" TEXTURE_RESOLUTION "/Metallic.png",
+			"PBR/painted_metal_02/" TEXTURE_RESOLUTION "/Roughness.png",
+			"PBR/painted_metal_02/" TEXTURE_RESOLUTION "/AO.png",
+			//------------------------------
+		};
+		const char* textureNamesGround[] =
+		{
+			"PBR/snow_white_tiles_02/" TEXTURE_RESOLUTION "/Albedo.png",
+			"PBR/snow_white_tiles_02/" TEXTURE_RESOLUTION "/Normal.png",
+			"PBR/Metallic_on.png",
+			"PBR/snow_white_tiles_02/" TEXTURE_RESOLUTION "/Roughness2.png",
+			"PBR/snow_white_tiles_02/" TEXTURE_RESOLUTION "/AO.png"
 		};
 
+		const bool bGenerateMips = true;
 		for (int i = 0; i < gMaterialTextureCount; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_Textures;
+			textureDesc.mRoot = FSR_OtherFiles;
 			textureDesc.ppTexture = &pTextureMaterialMaps[i];
-			textureDesc.mUseMipmaps = true;
+			textureDesc.mUseMipmaps = bGenerateMips;
 			textureDesc.pFilename = textureNames[i];
+			addResource(&textureDesc, true);
+		}
+		for (int i = 0; i < MATERIAL_TEXTURE_COUNT; ++i)
+		{
+			TextureLoadDesc textureDesc = {};
+			textureDesc.mRoot = FSR_OtherFiles;
+			textureDesc.ppTexture = &pTextureMaterialMapsGround[i];
+			textureDesc.mUseMipmaps = bGenerateMips;
+			textureDesc.pFilename = textureNamesGround[i];
 			addResource(&textureDesc, true);
 		}
 	}
@@ -1457,6 +1581,9 @@ public:
 	{
 		for (uint i = 0; i < gMaterialTextureCount; ++i)
 			removeResource(pTextureMaterialMaps[i]);
+
+		for (int i = 0; i < MATERIAL_TEXTURE_COUNT; ++i)
+			removeResource(pTextureMaterialMapsGround[i]);
 	}
 
 	void CreateResources()
@@ -1548,15 +1675,15 @@ public:
 
 	void CreateUniformBuffers()
 	{
-#ifdef LOAD_MATERIAL_BALL
-		// Surface uniform buffer
+#if LOAD_MATERIAL_BALL
+		// Ground plane uniform buffer
 		BufferLoadDesc surfaceUBDesc = {};
 		surfaceUBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		surfaceUBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		surfaceUBDesc.mDesc.mSize = sizeof(UniformObjData);
 		surfaceUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		surfaceUBDesc.pData = NULL;
-		surfaceUBDesc.ppBuffer = &pUniformBufferSurface;
+		surfaceUBDesc.ppBuffer = &pUniformBufferGroundPlane;
 		addResource(&surfaceUBDesc);
 
 		// Nameplate uniform buffers
@@ -1608,17 +1735,25 @@ public:
 		BufferLoadDesc lightsUBDesc = {};
 		lightsUBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		lightsUBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		lightsUBDesc.mDesc.mSize = sizeof(UniformLightData);
+		lightsUBDesc.mDesc.mSize = sizeof(UniformDataPointLights);
 		lightsUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		lightsUBDesc.pData = NULL;
-		lightsUBDesc.ppBuffer = &pUniformBufferLights;
+		lightsUBDesc.ppBuffer = &pUniformBufferPointLights;
 		addResource(&lightsUBDesc);
+
+		// Uniform buffer for directional light data
+		BufferLoadDesc directionalLightBufferDesc = {};
+		directionalLightBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		directionalLightBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		directionalLightBufferDesc.mDesc.mSize = sizeof(UniformDataDirectionalLights);
+		directionalLightBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		directionalLightBufferDesc.pData = NULL;
+		directionalLightBufferDesc.ppBuffer = &pUniformBufferDirectionalLights;
+		addResource(&directionalLightBufferDesc);
 	}
 
 	void DestroyUniformBuffers()
 	{
-		removeResource(pUniformBufferLights);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pUniformBufferCameraSkybox[i]);
@@ -1629,10 +1764,13 @@ public:
 			for (int i = 0; i < METAL_COUNT; ++i)
 				removeResource(pUniformBufferMatBall[frameIdx][i]);
 
-#ifdef LOAD_MATERIAL_BALL
-		removeResource(pUniformBufferSurface);
+#if LOAD_MATERIAL_BALL
+		removeResource(pUniformBufferGroundPlane);
 		for (int j = 0; j < METAL_COUNT; ++j)
 			removeResource(pUniformBufferNamePlates[j]);
+
+		removeResource(pUniformBufferPointLights);
+		removeResource(pUniformBufferDirectionalLights);
 #endif
 	}
 
@@ -1640,23 +1778,22 @@ public:
 	{
 		// Update the uniform buffer for the objects
 		float baseX = 4.5f;
-		float baseY = -4.5f;
-		float baseZ = 9.0f;
+		float baseY = -1.8f;
+		float baseZ = 12.0f;
 		float offsetX = 0.1f;
-		float offsetY = 0.0f;
 		float offsetZ = 10.0f;
 		float scaleVal = 1.0f;
 		float roughDelta = 1.0f;
-#ifdef LOAD_MATERIAL_BALL
+		float materialPlateOffset = 4.0f;
+#if LOAD_MATERIAL_BALL
 		baseX = 17.0f;
 		offsetX = 8.0f;
-		offsetY = 1.5f;
-		scaleVal = 1.5f;
+		scaleVal = 4.0f;
 #endif
 		for (int i = 0; i < METAL_COUNT; ++i)
 		{
 
-#ifdef LOAD_MATERIAL_BALL
+#if LOAD_MATERIAL_BALL
 			mat4 modelmat = mat4::translation(vec3(baseX - i - offsetX * i, baseY, baseZ)) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
 #else
 			mat4 modelmat = mat4::translation(vec3(baseX - i - offsetX * i, baseY, 0.0f)) * mat4::scale(vec3(scaleVal));
@@ -1664,7 +1801,8 @@ public:
 			gUniformDataObject.mWorldMat = modelmat;
 			gUniformDataObject.mMetallic = i / (float)METAL_COUNT;
 			gUniformDataObject.mRoughness = 0.04f + roughDelta;
-			gUniformDataObject.objectId = -1;
+			//gUniformDataObject.textureConfig = 0;
+			gUniformDataObject.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
 			//if not enough materials specified then set pbrMaterials to -1
 
 			gUniformDataMatBall[i] = gUniformDataObject;
@@ -1674,69 +1812,57 @@ public:
 				updateResource(&objBuffUpdateDesc);
 			}
 			roughDelta -= .25f;
-#ifdef LOAD_MATERIAL_BALL
+#if LOAD_MATERIAL_BALL
 			{
 				//plates
-				modelmat = mat4::translation(vec3(baseX - i - offsetX * i, -5.9f, baseZ + 3)) * mat4::scale(vec3(3.0f, 0.1f, 1.0f));
+				modelmat = 
+					  mat4::translation(vec3(baseX - i - offsetX * i, -5.8f, baseZ + materialPlateOffset)) 
+					* mat4::rotationX(3.1415f * 0.2f) 
+					* mat4::scale(vec3(3.0f, 0.1f, 1.0f));
 				gUniformDataObject.mWorldMat = modelmat;
-				gUniformDataObject.mMetallic = 1;
-				gUniformDataObject.mRoughness = 1.0f;
-				gUniformDataObject.objectId = 3;
+				gUniformDataObject.mMetallic = 1.0f;
+				gUniformDataObject.mRoughness = 0.4f;
+				gUniformDataObject.mAlbedo = float3(0.04f);
+				gUniformDataObject.textureConfig = 0;
 				BufferUpdateDesc objBuffUpdateDesc1 = { pUniformBufferNamePlates[i], &gUniformDataObject };
 				updateResource(&objBuffUpdateDesc1);
 
 				//text
-				gTextWorldMats.push_back(mat4::translation(vec3(baseX - i - offsetX * i, -6.8f, baseZ + 3))*mat4::rotationX(-PI / 2)*mat4::scale(vec3(16.0f, 10.0f, 1.0f)));
+				const float ANGLE_OFFSET = 0.6f; // angle offset to tilt the text shown on the plates for materials
+				gTextWorldMats.push_back(
+					mat4::translation(vec3(baseX - i - offsetX * i, -6.2f, baseZ + materialPlateOffset - 0.65f))
+					* mat4::rotationX(-PI * 0.5f + ANGLE_OFFSET)
+					* mat4::scale(vec3(16.0f, 10.0f, 1.0f)));
 			}
 #endif
 		}
 
-#ifdef LOAD_MATERIAL_BALL
-		//surface
-		mat4 modelmat = mat4::translation(vec3(0.0f, -6.0f, 0.0f)) * mat4::scale(vec3(50.0f, 0.2f, 40.0f));
+#if LOAD_MATERIAL_BALL
+		// ground plane
+		mat4 modelmat = mat4::translation(vec3(-5.0f, -6.0f, 5.0f)) * mat4::scale(vec3(40.0f, 0.2f, 20.0f));
 		gUniformDataObject.mWorldMat = modelmat;
 		gUniformDataObject.mMetallic = 0;
-		gUniformDataObject.mRoughness = 0.04f;
-		gUniformDataObject.objectId = 2;
-		BufferUpdateDesc objBuffUpdateDesc = { pUniformBufferSurface, &gUniformDataObject };
+		gUniformDataObject.mRoughness = 0.74f;
+		gUniformDataObject.mAlbedo = float3(0.3f, 0.3f, 0.3f);
+		gUniformDataObject.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
+		//gUniformDataObject.textureConfig = ETextureConfigFlags::NORMAL | ETextureConfigFlags::METALLIC | ETextureConfigFlags::AO | ETextureConfigFlags::ROUGHNESS;
+		BufferUpdateDesc objBuffUpdateDesc = { pUniformBufferGroundPlane, &gUniformDataObject };
 		updateResource(&objBuffUpdateDesc);
 
 #endif
 
-		// Add light to scene
-		Light light;
-		light.mCol = vec4(1.0f, 1.0f, 1.0f, 0.0f);
-		light.mPos = vec4(0.0f, 0.0f, 2.0f, 0.0f);
-		light.mRadius = 100.0f;
-		light.mIntensity = 40.0f;
+		// Directional light
+		gUniformDataDirectionalLights.mDirectionalLights[0].mDirection = normalize(f3Tov3(gDirectionalLightPosition));
+		gUniformDataDirectionalLights.mDirectionalLights[0].mColor = float3(255.0f, 180.0f, 117.0f) / 255.0f;
+		gUniformDataDirectionalLights.mDirectionalLights[0].mIntensity = 10.0f;
+		gUniformDataDirectionalLights.mNumDirectionalLights = 1;
+		BufferUpdateDesc directionalLightsBufferUpdateDesc = { pUniformBufferDirectionalLights, &gUniformDataDirectionalLights };
+		updateResource(&directionalLightsBufferUpdateDesc);
 
-		gUniformDataLights.mLights[0] = light;
-
-		light.mCol = vec4(0.0f, 0.0f, 1.0f, 0.0f);
-		light.mPos = vec4(6.0f, 0.0f, 0.0f, 0.0f);
-		light.mRadius = 100.0f;
-		light.mIntensity = 40.0f;
-
-		gUniformDataLights.mLights[1] = light;
-
-		// Add light to scene
-		light.mCol = vec4(0.0f, 1.0f, 0.0f, 0.0f);
-		light.mPos = vec4(6.0f, 6.0f, 2.0f, 0.0f);
-		light.mRadius = 100.0f;
-		light.mIntensity = 40.0f;
-
-		gUniformDataLights.mLights[2] = light;
-
-		light.mCol = vec4(1.0f, 0.0f, 0.0f, 0.0f);
-		light.mPos = vec4(0.0f, 6.0f, 2.0f, 0.0f);
-		light.mRadius = 100.0f;
-		light.mIntensity = 40.0f;
-
-		gUniformDataLights.mLights[3] = light;
-
-		gUniformDataLights.mCurrAmountOfLights = 4;
-		BufferUpdateDesc lightBuffUpdateDesc = { pUniformBufferLights, &gUniformDataLights };
-		updateResource(&lightBuffUpdateDesc);
+		// Point lights (currently none)
+		gUniformDataPointLights.mNumPointLights = 0;
+		BufferUpdateDesc pointLightBufferUpdateDesc = { pUniformBufferPointLights, &gUniformDataPointLights };
+		updateResource(&pointLightBufferUpdateDesc);
 	}
 
 	//--------------------------------------------------------------------------------------------
@@ -1845,8 +1971,10 @@ void GuiController::AddGui()
 
 	const uint32_t dropDownCount = (sizeof(materialTypeNames) / sizeof(materialTypeNames[0])) - 1;
 
-	pGuiWindow->AddWidget(DropdownWidget("Material Type", &gMaterialType, materialTypeNames, materialTypeValues, dropDownCount));
-	pGuiWindow->AddWidget(CheckboxWidget("V-Sync", &gVSyncEnabled));
+
+	//pGuiWindow->AddWidget(DropdownWidget("Material Type", &gMaterialType, materialTypeNames, materialTypeValues, dropDownCount));
+	pGuiWindow->AddWidget(CheckboxWidget("Vertical Sync", &gVSyncEnabled));
+	pGuiWindow->AddWidget(SliderFloat3Widget("Light Position", &gDirectionalLightPosition, float3(-10.0f), float3(10.0f)));
 }
 
 DEFINE_APPLICATION_MAIN(MaterialPlayground)

@@ -9,19 +9,12 @@
 /* Begin PBXBuildFile section */
 		5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3812029FDFC00AB83C6 /* macOSBase.mm */; };
 		5CA4AFD82088FB22005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFD72088FB22005BB7C6 /* DebugRenderer.cpp */; };
-		5CA4AFD92088FB22005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFD72088FB22005BB7C6 /* DebugRenderer.cpp */; };
 		5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC662080FFCB008E3A2C /* AppUI.cpp */; };
-		5CD2BC6D2080FFCB008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC662080FFCB008E3A2C /* AppUI.cpp */; };
 		97FD71DA2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71D82141D5E00051A203 /* ImguiGUIDriver.cpp */; };
-		97FD71DB2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71D82141D5E00051A203 /* ImguiGUIDriver.cpp */; };
 		97FD71E32141D6400051A203 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71DD2141D6400051A203 /* imgui.cpp */; };
-		97FD71E42141D6400051A203 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71DD2141D6400051A203 /* imgui.cpp */; };
 		97FD71E52141D6400051A203 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E02141D6400051A203 /* imgui_draw.cpp */; };
-		97FD71E62141D6400051A203 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E02141D6400051A203 /* imgui_draw.cpp */; };
 		97FD71E72141D6400051A203 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E22141D6400051A203 /* imgui_widgets.cpp */; };
-		97FD71E82141D6400051A203 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E22141D6400051A203 /* imgui_widgets.cpp */; };
 		B22EE24B21547612009CD7F2 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22EE24921547612009CD7F2 /* imgui_demo.cpp */; };
-		B22EE24C21547612009CD7F2 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22EE24921547612009CD7F2 /* imgui_demo.cpp */; };
 		B235DC6520EC351300592362 /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B235DC6420EC351300592362 /* InputSystem.cpp */; };
 		B235DC7820EC37B800592362 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7520EC37B000592362 /* libgainputstatic.a */; };
 		B235DC7D20EC387500592362 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7B20EC387500592362 /* Metal.framework */; };
@@ -30,40 +23,11 @@
 		B28506F71F4FB0280013C61A /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28506F61F4FB0270013C61A /* MemoryTrackingManager.cpp */; };
 		B2B6F7DC20F414AC0059F2B0 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B6F7DB20F414AC0059F2B0 /* Fontstash.cpp */; };
 		C96E13312007C1CD004363F0 /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C96E13302007C1CD004363F0 /* macOSFileSystem.mm */; };
-		C97EC01F2010BA910044D188 /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28506F61F4FB0270013C61A /* MemoryTrackingManager.cpp */; };
-		C97EC0212010BAC50044D188 /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = D2A295C31FA20A00003AB495 /* MetalShaderReflection.mm */; };
-		C97EC0222010BAC90044D188 /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2A295BF1FA2096F003AB495 /* CommonShaderReflection.cpp */; };
-		C97EC0232010BACC0044D188 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2A295C01FA2096F003AB495 /* GpuProfiler.cpp */; };
-		C97EC0242010BB220044D188 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D247581F1FA0E89A00E62C0D /* FileSystem.cpp */; };
-		C97EC03D2010C1150044D188 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C97EC0322010BEE80044D188 /* Metal.framework */; };
-		C97EC03E2010C1200044D188 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C97EC0302010BED90044D188 /* MetalKit.framework */; };
-		C97EC03F2010C1270044D188 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C97EC02E2010BED00044D188 /* ModelIO.framework */; };
-		C9DCF6601FEAAA77008BFA67 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6501FEAA827008BFA67 /* AppDelegate.m */; };
-		C9DCF6621FEAAA7D008BFA67 /* iOSBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6511FEAA827008BFA67 /* iOSBase.cpp */; };
-		C9DCF6631FEAAA7F008BFA67 /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF64E1FEAA827008BFA67 /* iOSFileSystem.mm */; };
-		C9DCF6641FEAAA82008BFA67 /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6561FEAA828008BFA67 /* iOSLogManager.cpp */; };
-		C9DCF6651FEAAA85008BFA67 /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C9DCF6541FEAA828008BFA67 /* iOSThreadManager.cpp */; };
 		D018D75F20CB9AF9000BEB0D /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75C20CB9AF9000BEB0D /* IrrXML.a */; };
 		D018D76020CB9AF9000BEB0D /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75D20CB9AF9000BEB0D /* assimp.a */; };
 		D018D76120CB9AF9000BEB0D /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75E20CB9AF9000BEB0D /* zlibstatic.a */; };
 		D0ADCF5420C2451C0031B732 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0ADCF5220C2451C0031B732 /* AssimpImporter.cpp */; };
-		D0ADCF5520C2451C0031B732 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0ADCF5220C2451C0031B732 /* AssimpImporter.cpp */; };
 		D24758201FA0E89A00E62C0D /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D247581F1FA0E89A00E62C0D /* FileSystem.cpp */; };
-		D26E80611F471B2300C043F1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D26E805F1F471B2300C043F1 /* Main.storyboard */; };
-		D26E80631F471B2300C043F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D26E80621F471B2300C043F1 /* Assets.xcassets */; };
-		D26E80661F471B2300C043F1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D26E80641F471B2300C043F1 /* LaunchScreen.storyboard */; };
-		D26E80F61F4720DD00C043F1 /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D278835D1F327ED100F4362D /* FpsCameraController.cpp */; };
-		D26E80F71F4720DF00C043F1 /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D278835B1F320D1800F4362D /* GuiCameraController.cpp */; };
-		D26E80F81F4720E400C043F1 /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
-		D26E80F91F4720E400C043F1 /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
-		D26E80FA1F4720E400C043F1 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
-		D26E80FB1F4720EC00C043F1 /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
-		D26E810C1F47212500C043F1 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
-		D26E810D1F47212E00C043F1 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2B157221F1CBB5E0037A8C8 /* ResourceLoader.cpp */; };
-		D26E810E1F47212E00C043F1 /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CDF1EF81FC5005AC8C7 /* MetalRenderer.mm */; };
-		D26E810F1F47213700C043F1 /* tinyexr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */; };
-		D26E81101F47213D00C043F1 /* Visibility_Buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */; };
-		D26E81111F47214200C043F1 /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
 		D278835C1F320D1800F4362D /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D278835B1F320D1800F4362D /* GuiCameraController.cpp */; };
 		D278835E1F327ED300F4362D /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D278835D1F327ED100F4362D /* FpsCameraController.cpp */; };
 		D2A295C11FA2096F003AB495 /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2A295BF1FA2096F003AB495 /* CommonShaderReflection.cpp */; };
@@ -109,45 +73,6 @@
 			remoteInfo = gainputstatic;
 		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		D26E80741F471DC900C043F1 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		D26E808E1F471EA500C043F1 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 8;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-		D2D3095E1F476D820086ED2E /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		D2D30A181F4772880086ED2E /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		288F63232035CE2D00B758DE /* visibilityBuffer_shade.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_shade.frag.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_shade.frag.metal; sourceTree = "<group>"; };
@@ -218,7 +143,6 @@
 		D0ADCF5220C2451C0031B732 /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssimpImporter.cpp; path = Tools/AssimpImporter/AssimpImporter.cpp; sourceTree = "<group>"; };
 		D0ADCF5320C2451C0031B732 /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AssimpImporter.h; path = Tools/AssimpImporter/AssimpImporter.h; sourceTree = "<group>"; };
 		D247581F1FA0E89A00E62C0D /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = ../../../Common_3/OS/Core/FileSystem.cpp; sourceTree = SOURCE_ROOT; };
-		D26E80511F471B2300C043F1 /* Visibility_Buffer_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Visibility_Buffer_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D26E80601F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		D26E80621F471B2300C043F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D26E80651F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -256,16 +180,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		D26E804E1F471B2300C043F1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C97EC03F2010C1270044D188 /* ModelIO.framework in Frameworks */,
-				C97EC03E2010C1200044D188 /* MetalKit.framework in Frameworks */,
-				C97EC03D2010C1150044D188 /* Metal.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -448,7 +362,6 @@
 			isa = PBXGroup;
 			children = (
 				EA463C8B1EF81E8F005AC8C7 /* Visibility_Buffer.app */,
-				D26E80511F471B2300C043F1 /* Visibility_Buffer_iOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -635,27 +548,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D26E80501F471B2300C043F1 /* Visibility_Buffer_iOS */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = D26E806A1F471B2300C043F1 /* Build configuration list for PBXNativeTarget "Visibility_Buffer_iOS" */;
-			buildPhases = (
-				D26E804D1F471B2300C043F1 /* Sources */,
-				D26E804E1F471B2300C043F1 /* Frameworks */,
-				D26E804F1F471B2300C043F1 /* Resources */,
-				D26E80741F471DC900C043F1 /* CopyFiles */,
-				D26E808E1F471EA500C043F1 /* CopyFiles */,
-				D2D3095E1F476D820086ED2E /* CopyFiles */,
-				D2D30A181F4772880086ED2E /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Visibility_Buffer_iOS;
-			productName = Visibility_Buffer_iOS;
-			productReference = D26E80511F471B2300C043F1 /* Visibility_Buffer_iOS.app */;
-			productType = "com.apple.product-type.application";
-		};
 		EA463C8A1EF81E8F005AC8C7 /* Visibility_Buffer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "Visibility_Buffer" */;
@@ -683,10 +575,6 @@
 				LastUpgradeCheck = 1000;
 				ORGANIZATIONNAME = Confetti;
 				TargetAttributes = {
-					D26E80501F471B2300C043F1 = {
-						CreatedOnToolsVersion = 9.0;
-						DevelopmentTeam = BT67ZY58A8;
-					};
 					EA463C8A1EF81E8F005AC8C7 = {
 						CreatedOnToolsVersion = 8.3.3;
 						ProvisioningStyle = Automatic;
@@ -713,7 +601,6 @@
 			projectRoot = "";
 			targets = (
 				EA463C8A1EF81E8F005AC8C7 /* Visibility_Buffer */,
-				D26E80501F471B2300C043F1 /* Visibility_Buffer_iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -736,16 +623,6 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
-		D26E804F1F471B2300C043F1 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D26E80661F471B2300C043F1 /* LaunchScreen.storyboard in Resources */,
-				D26E80631F471B2300C043F1 /* Assets.xcassets in Resources */,
-				D26E80611F471B2300C043F1 /* Main.storyboard in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		EA463C891EF81E8F005AC8C7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -758,43 +635,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		D26E804D1F471B2300C043F1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C97EC0242010BB220044D188 /* FileSystem.cpp in Sources */,
-				D26E810C1F47212500C043F1 /* Image.cpp in Sources */,
-				D26E810D1F47212E00C043F1 /* ResourceLoader.cpp in Sources */,
-				D26E810F1F47213700C043F1 /* tinyexr.cpp in Sources */,
-				D0ADCF5520C2451C0031B732 /* AssimpImporter.cpp in Sources */,
-				97FD71E42141D6400051A203 /* imgui.cpp in Sources */,
-				D26E80F81F4720E400C043F1 /* PlatformEvents.cpp in Sources */,
-				97FD71E62141D6400051A203 /* imgui_draw.cpp in Sources */,
-				B22EE24C21547612009CD7F2 /* imgui_demo.cpp in Sources */,
-				C9DCF6641FEAAA82008BFA67 /* iOSLogManager.cpp in Sources */,
-				D26E80FA1F4720E400C043F1 /* Timer.cpp in Sources */,
-				C9DCF6631FEAAA7F008BFA67 /* iOSFileSystem.mm in Sources */,
-				C9DCF6621FEAAA7D008BFA67 /* iOSBase.cpp in Sources */,
-				D26E80F71F4720DF00C043F1 /* GuiCameraController.cpp in Sources */,
-				97FD71E82141D6400051A203 /* imgui_widgets.cpp in Sources */,
-				97FD71DB2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */,
-				5CD2BC6D2080FFCB008E3A2C /* AppUI.cpp in Sources */,
-				D26E80F61F4720DD00C043F1 /* FpsCameraController.cpp in Sources */,
-				C97EC01F2010BA910044D188 /* MemoryTrackingManager.cpp in Sources */,
-				D26E810E1F47212E00C043F1 /* MetalRenderer.mm in Sources */,
-				C9DCF6651FEAAA85008BFA67 /* iOSThreadManager.cpp in Sources */,
-				C97EC0212010BAC50044D188 /* MetalShaderReflection.mm in Sources */,
-				D26E80FB1F4720EC00C043F1 /* LogManager.cpp in Sources */,
-				D26E81111F47214200C043F1 /* Geometry.cpp in Sources */,
-				C97EC0222010BAC90044D188 /* CommonShaderReflection.cpp in Sources */,
-				D26E81101F47213D00C043F1 /* Visibility_Buffer.cpp in Sources */,
-				5CA4AFD92088FB22005BB7C6 /* DebugRenderer.cpp in Sources */,
-				C9DCF6601FEAAA77008BFA67 /* AppDelegate.m in Sources */,
-				C97EC0232010BACC0044D188 /* GpuProfiler.cpp in Sources */,
-				D26E80F91F4720E400C043F1 /* ThreadSystem.cpp in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		EA463C871EF81E8F005AC8C7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -872,98 +712,6 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		D26E806B1F471B2300C043F1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Build";
-				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					_DEBUG,
-					TARGET_IOS,
-				);
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
-				INFOPLIST_FILE = Visibility_Buffer_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/code/Release-iphoneos",
-					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/Release-iphoneos",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_PREPROCESSOR_DEFINITIONS = TARGET_IOS;
-				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		D26E806C1F471B2300C043F1 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Build";
-				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					TARGET_IOS,
-				);
-				HEADER_SEARCH_PATHS = (
-					../../Common_3,
-					../../,
-					../,
-				);
-				INFOPLIST_FILE = Visibility_Buffer_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/code/Release-iphoneos",
-					"../../../Common_3/ThirdParty/OpenSource/assimp/3.3.1/iOS-build/contrib/zlib/Release-iphoneos",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_PREPROCESSOR_DEFINITIONS = TARGET_IOS;
-				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.VisibilityBuffer;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1127,15 +875,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D26E806A1F471B2300C043F1 /* Build configuration list for PBXNativeTarget "Visibility_Buffer_iOS" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				D26E806B1F471B2300C043F1 /* Debug */,
-				D26E806C1F471B2300C043F1 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "Visibility_Buffer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

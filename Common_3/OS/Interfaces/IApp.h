@@ -109,6 +109,9 @@ public:
 		bool	mFullScreen = false;
 		/// Set to true if app wants to use an external window
 		bool	mExternalWindow = false;
+#if defined(TARGET_IOS)
+		bool	mShowStatusBar = false;
+#endif
 	} mSettings;
 
 	WindowsDesc* pWindow;

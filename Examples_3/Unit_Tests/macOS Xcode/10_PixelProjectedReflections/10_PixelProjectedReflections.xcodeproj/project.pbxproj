@@ -36,6 +36,9 @@
 		971BCFA8217040F9007F2B2F /* renderSceneBRDF.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0A2072B20DB72AC0008F6A4 /* renderSceneBRDF.vert.metal */; };
 		971BCFA9217040F9007F2B2F /* skybox.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0A2072720DB72AC0008F6A4 /* skybox.frag.metal */; };
 		971BCFAA217040F9007F2B2F /* skybox.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0A2071F20DB72AC0008F6A4 /* skybox.vert.metal */; };
+		971BD0B1218A17C2007F2B2F /* lion.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221920F701C30074529C /* lion.obj */; };
+		971BD0B2218A17C2007F2B2F /* sponza.mtl in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221A20F701C40074529C /* sponza.mtl */; };
+		971BD0B3218A17C2007F2B2F /* sponza.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221820F701C30074529C /* sponza.obj */; };
 		B2087DFB21421A76006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF921421A76006F372D /* MetalKit.framework */; };
 		B2087DFC21421A76006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DFA21421A76006F372D /* Metal.framework */; };
 		B212C47E20DD6C6D00211A33 /* 10_PixelProjectedReflections.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D00A0D8120DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp */; };
@@ -139,6 +142,19 @@
 				971BCFAA217040F9007F2B2F /* skybox.vert.metal in Copy Shaders */,
 			);
 			name = "Copy Shaders";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		971BD0B0218A17B2007F2B2F /* Copy Meshes */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Meshes;
+			dstSubfolderSpec = 7;
+			files = (
+				971BD0B1218A17C2007F2B2F /* lion.obj in Copy Meshes */,
+				971BD0B2218A17C2007F2B2F /* sponza.mtl in Copy Meshes */,
+				971BD0B3218A17C2007F2B2F /* sponza.obj in Copy Meshes */,
+			);
+			name = "Copy Meshes";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -390,6 +406,7 @@
 				971BCF92217040B4007F2B2F /* Copy Textures */,
 				971BCF93217040B6007F2B2F /* Copy Fonts */,
 				971BCF94217040B8007F2B2F /* Copy Shaders */,
+				971BD0B0218A17B2007F2B2F /* Copy Meshes */,
 			);
 			buildRules = (
 			);

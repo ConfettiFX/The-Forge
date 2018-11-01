@@ -522,7 +522,7 @@ public:
 
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		for (int i = 0; i < 6; ++i)
 		{
@@ -874,7 +874,7 @@ public:
 		/*************************************************/
 		if (!gAppUI.Init(pRenderer))
 			return false;
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(5, 200.0f);
@@ -1509,6 +1509,15 @@ public:
 	void Draw() override
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
 		/************************************************************************/
 		// Update uniform buffers
 		/************************************************************************/
@@ -1542,9 +1551,6 @@ public:
 		/************************************************************************/
 		// Rendering
 		/************************************************************************/
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-
 		// Get command list to store rendering commands for this frame
 		Cmd* cmd = ppCmds[gFrameIndex];
 
@@ -1656,15 +1662,6 @@ public:
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 					&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-
-
 	}
 
 	tinystl::string GetName() override

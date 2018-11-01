@@ -231,7 +231,7 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -400,7 +400,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.ttf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartSize = vec2(300.0f, 360.0f);
@@ -650,6 +650,16 @@ public:
 	{
 		// This will acquire the next swapchain image
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+
+		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+		FenceStatus fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
 		/************************************************************************/
 		// Upload uniform data to GPU
 		/************************************************************************/
@@ -664,13 +674,9 @@ public:
 
 		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights[gFrameIndex], &gUniformDataLights };
 		updateResource(&lightBuffUpdateDesc);
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 		/************************************************************************/
 		// Rendering
 		/************************************************************************/
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = { 0.2109f, 0.6470f, 0.8470f, 1.0f }; // Light blue cclear
@@ -792,14 +798,6 @@ public:
 
 		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-
-		Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount];
-		FenceStatus fenceStatus;
-		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
-		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-		{
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
-		}
 	}
 
 	tinystl::string GetName()

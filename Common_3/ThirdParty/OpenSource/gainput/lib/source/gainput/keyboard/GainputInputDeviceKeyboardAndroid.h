@@ -142,7 +142,8 @@ public:
 	bool IsTextInputEnabled() const override { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) override { textInputEnabled_ = enabled; }
 
-	virtual InputState * GetNextInputState() override {
+	virtual InputState * GetNextInputState() override
+    {
 		return &nextState_;
 	}
 

@@ -2553,11 +2553,12 @@ namespace d3d12 {
 
 	void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 	{
-#ifndef _DURANGO
+
 		ASSERT(*ppSwapChain);
 
 		//set descriptor vsync boolean
 		(*ppSwapChain)->mDesc.mEnableVsync = !(*ppSwapChain)->mDesc.mEnableVsync;
+#ifndef _DURANGO
 		if (!(*ppSwapChain)->mDesc.mEnableVsync)
 		{
 			(*ppSwapChain)->mFlags |= DXGI_PRESENT_ALLOW_TEARING;
@@ -2566,10 +2567,11 @@ namespace d3d12 {
 		{
 			(*ppSwapChain)->mFlags &= ~DXGI_PRESENT_ALLOW_TEARING;
 		}
+#endif
 
 		//toggle vsync present flag (this can go up to 4 but we don't need to refresh on nth vertical sync)
 		(*ppSwapChain)->mDxSyncInterval = ((*ppSwapChain)->mDxSyncInterval + 1) % 2;
-#endif
+
 	}
 
 	void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)

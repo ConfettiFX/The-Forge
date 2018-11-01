@@ -30,18 +30,19 @@ layout(location = 1) in vec3 Normal;
 layout(location = 2) in vec2 UV;
 
 
-layout (std140, set=0, binding=0) uniform cbCamera 
+layout(set = 0, binding = 0) uniform cbCamera 
 {
-	uniform mat4 projView;
-	uniform vec3 camPos;
+	mat4 projView;
+	vec3 camPos;
 };
 
-layout (std140, set=1, binding=0) uniform cbObject 
+layout(set = 0, binding = 1) uniform cbObject
 {
-	uniform mat4 worldMat;
-	uniform float roughness;
-	uniform float metalness;
-	uniform int   objectId;
+	mat4 worldMat;
+	vec3 albedo;
+	float roughness;
+	float metalness;
+	int textureConfig;
 };
 
 layout(location = 0) out vec3 normal;

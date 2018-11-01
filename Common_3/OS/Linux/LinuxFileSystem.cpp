@@ -38,7 +38,7 @@
 
 #define RESOURCE_DIR "Shaders/LINUXVulkan"
 
-const char* pszRoots[] =
+const char* pszRoots[FSR_Count] =
 {
 	RESOURCE_DIR "/Binary/",			// FSR_BinShaders
 	RESOURCE_DIR "/",					// FSR_SrcShaders
