@@ -34,6 +34,34 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.19 - November 1st, 2018 - Material Playground
+* Added more materials to the Material Playground. Therefore you want to download the Art folder again just for this release (see the Install section below on how to do this).
+Here are shots of five of the supported platforms:
+
+PC Windows 10 Vulkan 1.1.82.1 GeForce 1080 Driver 399.07 with a resolution of 1920x1080 in full-screen:  
+![Material Playground on PC](Screenshots/MaterialPlayground/01-PC-Vulkan-1920x1080.png)
+
+Linux Vulkan 1.1.82.1 RADEON  480 Driver 18.30 with a resolution of 1920x1080 in full-screen: 
+![Material Playground on PC](Screenshots/MaterialPlayground/03-Linux-Vulkan-1920x1080.png)
+
+iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 5120x2880 in full-screen:  
+![Material Playground on iMac](Screenshots/MaterialPlayground/04-iMac-5120x2880.png)
+
+iPad (Model A1803) with iOS 12.0 and a resolution of 2048x1536 in full-screen:
+![Material Playground on iPad](Screenshots/MaterialPlayground/02-iPad-2048x1536.png)
+
+XBOX One:
+![Material Playground on XBOX One](Screenshots/MaterialPlayground/05-Xbox-One-1920x1080.png)
+
+* Updated Fontstash library to the latest version and added .OTF font file support
+* macOS / iOS Metal 2 we are working on applications running on those run-times, so there is a constant stream of improvmements coming in:
+  * Sampler arrays
+  * Enable some parts of GPU profiler code for debug markers, cpu timestamps on Metal runtime
+  * File system bug fixes
+  * Include headers fixes
+  * Improved error and warnings in Metal shaders
+
+
 ## Release 1.18 - October 18th, 2018 - Animation System Ozz support | Vulkan native Ubuntu Linux package support
 * The Forge now uses the Ozz animation system. This is our first major change to the math library because we needed to add what is necessary for animation. We compared the speed of our math library then with the speed of the Ozz animation system math library and they are about the same. At some point we need to do AVX 1 and ARM specific optimizations to our math library, which is still based on the open-sourced changed Sony math library [Vectormath](https://github.com/glampert/vectormath), which is similar to the Bullet math library ... 
   
@@ -163,6 +191,7 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 
 We are currently testing on 
 * iPhone 7 (Model A1778)
+* iPad (Model A1803)
 
 
 # PC Linux Requirements:
@@ -199,7 +228,7 @@ In the moment we only support the first two unit tests. We are waiting for devki
 
 
 # Install 
-For PC Windows run PRE_BUILD.bat. For the other platforms run the shell script. It will download and unzip the art assets and only on PC install the shader builder extension for Visual Studio.
+For PC Windows run PRE_BUILD.bat. For the other platforms run the shell script. It will download and unzip the art assets and only on PC install the shader builder extension for Visual Studio 2017.
 
 # Unit Tests
 There are the following unit tests in The Forge:
@@ -246,7 +275,7 @@ This unit test shows the current state of our font rendering library that is bas
 
 This unit test will show a wide range of game related materials in the future.
 
-![Image of the Material Playground Unit test](Screenshots/06_MaterialPlayground.png)
+![Material Playground on PC](Screenshots/MaterialPlayground/01-PC-Vulkan-1920x1080.png)
 
 ## 7. Hardware Tessellation
 
@@ -307,32 +336,32 @@ Ray Tracing API unit test, showing how to use DXR on Windows only.
 ![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
 
 
-## 17. Playback Animation
+## 17. Ozz Playback Animation
 This unit test shows how to playback a clip on a rig.
 
 ![Image of Playback Animation in The Forge](Screenshots/01_Playback.gif)
 
-## 18. Playback Blending
+## 18. Ozz Playback Blending
 This unit test shows how to blend multiple clips and play them back on a rig.
 
 ![Image of Playback Blending in The Forge](Screenshots/02_Blending.gif)
 
-## 19. Joint Attachment
+## 19. Ozz Joint Attachment
 This unit test shows how to attach an object to a rig which is being posed by an animation.
 
 ![Image of Ozz Joint Attachment in The Forge](Screenshots/03_JointAttachment.gif)
 
-## 20. Partial Blending
+## 20. Ozz Partial Blending
 This unit test shows how to blend clips having each only effect a certain portion of joints.
 
 ![Image of Ozz Partial Blending in The Forge](Screenshots/04_PartialBlending.gif)
 
-## 21. Additive Blending
+## 21. Ozz Additive Blending
 This unit test shows how to introduce an additive clip onto another clip and play the result on a rig.
 
 ![Image of Ozz Additive Blending in The Forge](Screenshots/05_Additive.gif)
 
-## 22. Baked Physics
+## 22. Ozz Baked Physics
 This unit test shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
 
 ![Image of Ozz Baked Physics in The Forge](Screenshots/07_BakedPhysics.gif)
