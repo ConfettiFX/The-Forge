@@ -3,12 +3,13 @@
 The Forge is a cross-platform rendering framework supporting
 - PC 
   * Windows 10 
-     * with DirectX 12 / Vulkan
+     * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
-  * Linux Ubuntu 18.04 LTS with Vulkan
+     * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
+  * Linux Ubuntu 18.04 LTS with Vulkan 1.1
+- Android Pie with Vulkan 1.1
 - macOS with Metal 2
 - iOS with Metal 2
-- Android with Vulkan (in development)
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 (in development) (only available for accredited developers on request)
 
@@ -19,7 +20,7 @@ Particularly, The Forge supports cross-platform
 - Multi-threaded command buffer generation
 
 Future plans are
-- Unified shader generation check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net)
+- Unified shader generation -> check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net). This shader translator is build with the purpose of supporting a higher-level shading language, which we call super HLSL or short sHLSL
 
 The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
 
@@ -33,69 +34,109 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
-## Release 1.15 - September 7th, 2018 - Hybrid Ray Traced Shadows | DirectX 11 fallback layer | imGUI
-* This is the biggest release so far :-)
-* We added a new unit test -provided by Kostas Anagnostou @KostasAAA- that shows hybrid ray traced (HRT) shadows on  all supported GPUs; Windows / Linux / XBOX One / macOS and iOS. This unit test was build to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. Kostas wrote a blog post about the details at https://interplayoflight.wordpress.com/2018/09/04/hybrid-raytraced-shadows-part-2-performance-improvements/. 
+## Release 1.19 - November 1st, 2018 - Material Playground
+* Added more materials to the Material Playground. Therefore you want to download the Art folder again just for this release (see the Install section below on how to do this).
+Here are shots of five of the supported platforms:
 
-PC Windows 10 Vulkan 1.1.82.1 GeForce 1080 Driver 398.82 with a resolution of 2560 * 1440 in full-screen:
-![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)
+PC Windows 10 Vulkan 1.1.82.1 GeForce 1080 Driver 399.07 with a resolution of 1920x1080 in full-screen:  
+![Material Playground on PC](Screenshots/MaterialPlayground/01-PC-Vulkan-1920x1080.png)
 
-iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 2560x1440 in full-screen:
-![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows_macOS.png)
+Linux Vulkan 1.1.82.1 RADEON  480 Driver 18.30 with a resolution of 1920x1080 in full-screen: 
+![Material Playground on PC](Screenshots/MaterialPlayground/03-Linux-Vulkan-1920x1080.png)
 
-Here is a version running on a iPhone 7 with iOS 11.4.1 (15G77) and a resolution of 1334 x 750 in full-screen:
-![Hybrid Ray Traced Shadows on iOS](Screenshots/09a_HRT_Shadows_iOS.png)
+iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 5120x2880 in full-screen:  
+![Material Playground on iMac](Screenshots/MaterialPlayground/04-iMac-5120x2880.png)
 
-Please note there are no platform specific optimizations for macOS or iOS in the moment. The initial version was developed on PC and then just ported to the other platforms. We might optimize for the other platforms at some point.
-Kostas plans to use the San Miguel Scene for this and then also merge it with the Light and Shadow Playground, so that you can pick different shadow techniques and compare them. He wants to implement HRT Reflections next. I wrote a short blog post about the development of this unit test at https://diaryofagraphicsprogrammer.blogspot.com/2018/09/ray-tracing-without-ray-tracing-api.html
-* Improved the 09_LightShadowPlayground by calculating the SDF shadow in a more generic way
-* Based on customer request and to support Windows 7, we added a DirectX 11 fallback code path. Because this API can not support all unit tests, it is only a choice on a select few
-* IRenderer Cleanup for all platforms
-  * removed several descriptor related structs, which enabled us to simplify the codebase
-  * add render index draw start vertex
-* We replaced NuklearUI with imGui; we are going to replace QT with imGui now for our internal tools, so trying to keep this consistent
-* Created a new unit test for imGui #13 - it shows the current level of integration of imGui into The Forge
-![Image of the imGui Integrationn in The Forge](Screenshots/13_imGui.gif)
-* Linux - changed to standard __linux__ define instead of user defined LINUX
-* Vulkan 
-  * supports now the descriptor update template extension: VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME
-  * added ability to specify instance layers, instance, device extensions from app code
-  * upgraded to Vulkan SDK 1.1.82.0
-* We also reformatted the source code (yeaahh :-) )
-  * Replaced spaces with tabs
-  * Removed whitespaces at the end of lines
-  * Added .editorconfig
-* The Torque 3D engine will use The Forge as its rendering layer in the future 
+iPad (Model A1803) with iOS 12.0 and a resolution of 2048x1536 in full-screen:
+![Material Playground on iPad](Screenshots/MaterialPlayground/02-iPad-2048x1536.png)
 
-<a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
-alt="Torque 3D" width="417" height="106" border="0" /></a>
-* macOS - one thing notable is that The Forge on macOS can be used with an XBOX controller with this driver: [360Controller](https://github.com/360Controller/360Controller)
+XBOX One:
+![Material Playground on XBOX One](Screenshots/MaterialPlayground/05-Xbox-One-1920x1080.png)
 
-## Release 1.14 - August 9th, 2018 - Early Alpha of the Shader Translator system | Refactored Texture / Rendertarget interface for all platforms
-* After evaluating how to approach a unified shader generation system by looking at the DirectX Shader Compiler in GitHub and also implementing it into Lumberyard a whiles ago, we decided to follow a simpler approach by developing our own shader translator based on the work that was done by Thekla with the [hlslparser](https://github.com/Thekla/hlslparser). We are currently extending this shader translator to support a new super HLSL source language (platform specific #defines + material description) and translate that sHLSL into the most current respective shader languages of the target platforms, so that those shaders can then be compiled with the target platform compiler. There is an early alpha version available online at [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) following the excellent approach of [Shader Playground](https://github.com/tgjones/shader-playground) as a base for our online approach (Thanks for your help tgjones!).
-The main motivation to use the shader translator instead of the DirectX Shader Compiler is code maintenance. Maintaining our own code cut of the DirectX Shader Compiler would add too much overhead on the team and it would make it much harder to implement our super HLSL language. We will spend some time  testing this system. As soon as it is more reliable, there will be a Visual Studio extension and an extension for XCode to translate within the IDEs in the future.
-![Confetti Shader Translator](Screenshots/ConfettiShaderTranslator.png)
-* IRenderer Cleanup for all platforms (more cleanups to come)
-  * Remove TextureType, RenderTargetType, TextureUsage, BufferUsage, BufferFeatureFlags
-  * Expand DescriptorType enum to hold all descriptor usage patterns
-  * Add ability to target mip slice UAV
-* macOS 
-  * upgraded to 10.14 Beta (18A353d)
-  * XCode 10.0 beta (10L176w)
-* iOS 11.4.1 (15G77)
+* Updated Fontstash library to the latest version and added .OTF font file support
+* macOS / iOS Metal 2 we are working on applications running on those run-times, so there is a constant stream of improvmements coming in:
+  * Sampler arrays
+  * Enable some parts of GPU profiler code for debug markers, cpu timestamps on Metal runtime
+  * File system bug fixes
+  * Include headers fixes
+  * Improved error and warnings in Metal shaders
 
-## Release 1.13 - July 13th, 2018 - Unified Input System for all Platforms | New unit Test Light and Shadow Playground
-* Added a unified input system based on Gainput to all platforms (https://github.com/jkuhlmann/gainput). The new input system substantially simplified input management on the application level over all platforms. We also simplified the camera controller. Added also new VirtualJoystick class in UI.
-* Added a Light and Shadow Playground unit test. There are two types of shadows supported in the moment exponential shadows and SDF shadows. There is a switch to pick one of them during run-time. In the future there will be more complex lighting and shadow setups.
-![Image of the Light and Shadow Unit test](Screenshots/09_LightShadowPlayground.png)
 
-* There is now functionality to create views per mip / per slice for textures and render target through TextureUsage and RenderTargetUsage flags (typecast cube map to 2D texture array etc.)
-* UIRenderer was removed and there is now a dedicated text rendering system different from UI rendering and no UI rendering interface anymore
-* cmdbindVertexBuffer, cmdBindIndexBuffer now support offsets
-* cmdBindRenderTargets now takes color array, mip slices, depth array and mip slice index
-* The Pixel-Projected Reflections unit test now uses bindless textures on all platforms except for iOS as its too many to bind in one go.
-* iOS: all unit tests run on our iOS test device; Visibility Buffer still doesn't as described below. 
-* Moved the release notes from this page into the release section and added actual releases
+## Release 1.18 - October 18th, 2018 - Animation System Ozz support | Vulkan native Ubuntu Linux package support
+* The Forge now uses the Ozz animation system. This is our first major change to the math library because we needed to add what is necessary for animation. We compared the speed of our math library then with the speed of the Ozz animation system math library and they are about the same. At some point we need to do AVX 1 and ARM specific optimizations to our math library, which is still based on the open-sourced changed Sony math library [Vectormath](https://github.com/glampert/vectormath), which is similar to the Bullet math library ... 
+  
+A screenshot of the PC version:
+
+![Ozz ](Screenshots/Ozz_moneyShot.gif)
+
+Here are shots of four of the supported platforms:
+
+PC Windows 10 Vulkan 1.1.77 GeForce 1080 Driver 399.07 with a resolution of 2560x1440 in full-screen:  
+![Ozz Baked Physics on PC](Screenshots/Ozz_PC.png)
+
+Linux Vulkan 1.1.82.1 RADEON  480 Driver 18.30 with a resolution of 1920x1080 in full-screen: 
+![Ozz Baked Physics on Linux](Screenshots/Ozz_linux.png)
+
+iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 5120x2880 in full-screen:  
+![Ozz Baked Physics on iMac](Screenshots/Ozz_imac.png)
+
+iPhone 7 with iOS 12.0 (16A366) and a resolution of 1334 x 750 in full-screen:
+![Ozz Baked Physics on iPhone](Screenshots/Ozz_iphone.png)
+
+XBOX One:
+![Ozz Baked Physics on iPhone](Screenshots/Ozz_xbox_BakedPhysics.png)
+
+We added several unit tests for Ozz. Please find descriptions below.
+
+* Extended the file system for all platforms, making it more consistent to use and more functional
+* Tabified - tabified the whole code base ... finally ... 
+* glTF - we made sure glTF 2.0 support is improved in the latest assimp we use. This should allow us in the future to use glTF 2.0 art assets easier
+* Linux / Vulkan - we applaud Khronos for the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/) and will support those from now on. This is something that makes gaming on Linux Ubuntu easier to approach for end-users.
+* macOS
+  * we have a hard time to get the "Wave Intrinsics unit test" running. It runs now on our MacBook Pro test machines with Intel GPUs but not on the iMacs with AMD GPUs. It throws compile errors on the iPhone 7. We are providing Apple with info on their bug tracker.
+  * upgraded to Xcode Version: 10.0 (10A255) and MacOS Version: 10.14 (18A389) 
+* iOS 
+  * there are numerous improvements for the input system, imGUI and other things
+  * support shader includes on iOS like on the other platforms
+* Android Pie & Vulkan 1.1 - we are waiting for devkits with better driver support before we move on with this target platform
+* XBOX One - see internal GitLab list for improvements as usual ...
+
+
+## Release 1.17 - October 4th, 2018 - Android Pie & Vulkan 1.1 Support  | iOS imGUI touch & virtual keyboard | DXR Ray Tracing support | Call for contributors to change IRenderer.h
+* The Forge now has initial support for Android with the same Vulkan 1.1 run-time that is used by the Windows and Linux platforms. 
+
+![Android running Vulkan 1.1 ](Screenshots/Compute_Android.png)
+
+There are only a few phones that support Vulkan 1.1. We developed and support the 
+[Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone).
+This phone uses an Adreno 540 GPU and can be obtained relatively cheap and unlocked from Amazon or similar sources. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
+At the moment only the first two unit tests are running but we will extend the support to as many as we can in an upcoming release. We expect to run into driver bugs. We will not actively support Vulkan 1.0.
+* Vulkan - mobile phone support see above
+* iOS: 
+  * upgraded to 12.0 (16A366)
+  * we extended imGUI support for iOS with touch support and virtual keyboard
+* Windows - fixed resizing ... should now work again with Alt+Enter ...
+* Windows DXR - The Forge was the first rendering framework to support DXR, now that there will be hardware support, we added a screenshot of one of the unit tests below. We will add support for the other Ray Tracing APIs as well. They are useful for developing Tools. For games we recommend the Hybrid Ray-Traced solutions provided below (so far only shadows).
+
+![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
+
+* Upgraded the Order-Independent Transparency unit test to support Phenomenological Transparency as described in one of Morgan McGuire's papers. Here are screenshots:
+
+![OIT Refraction ](Screenshots/OIT_refraction.png)
+
+Phenomenological Transparency - Refraction
+
+![OIT diffusion ](Screenshots/OIT_diffusion.png)
+
+Phenomenological Transparency - Diffusion
+
+![OIT diffusion, refraction, shadows ](Screenshots/OIT_diffusion_refraction_shadows.png)
+
+Phenomenological Transparency - Diffusion, Refraction, Shadows
+
+* Linux - the wave intrinsics unit test now also works on Linux. We are looking into macOS / iOS next.
+* Call for contributors to change IRenderer.h - as a heads-up, we will change the renderer interface to use our own way of "Render Passes and Compute Passes" similar to the Vulkan render passes. We will analyze render and compute calls and use this information to expose data to a "Render Graph" that will be implemented on a higher level. If you want to be part of the group that thinks about how we should adjust IRenderer.h for this, please send Wolfgang a note and your skype ID
+
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -106,7 +147,7 @@ See the release notes from previous releases in the [Release section](https://gi
 
 2. Drivers
 * AMD / NVIDIA - latest drivers should work. On Vulkan, at least NVIDIA Beta Driver 389.20 are required to support Linked Multi-GPU. 
-* Intel - need to install the latest driver (currently 24.20.100.6094, May 22nd) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/27803/Intel-Graphics-Driver-for-Windows-10). As mentioned above this driver still doesn't have full DirectX 12 and Vulkan support.
+* Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
@@ -124,12 +165,11 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 * NVIDIA GeForce 9x, 10x GPUs (various)
 * Intel Skull Canyon
 
-
 # macOS Requirements:
 
-1. macOS: 10.14 beta (18a384a)
+1. macOS: 10.14 (18A389)
 
-2. XCode: 10.0 beta (10L176W) 
+2. XCode: 10.0 (10A255)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -143,7 +183,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 11.4.1 (15G77) 
+1. iOS: 12.0 (16A366)
 
 2. XCode: see macOS
 
@@ -151,6 +191,7 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 
 We are currently testing on 
 * iPhone 7 (Model A1778)
+* iPad (Model A1803)
 
 
 # PC Linux Requirements:
@@ -158,12 +199,12 @@ We are currently testing on
 1. [Ubuntu 18.04 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: 4.15.0-20-generic
 
 2. GPU Drivers:
-* [AMDGpu-Pro 18.20 Early Preview](https://support.amd.com/en-us/kb-articles/Pages/Radeon-Software-for-Linux-18.20-Early-Preview-Release-Notes.aspx)
+* [AMDGpu-Pro 18.30-641594](https://www.amd.com/en/support/graphics/radeon-500-series/radeon-rx-500-series/radeon-rx-580)
 * [NVIDIA Linux x86_64/AMD64/EM64T 390.87](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
 
 3. Workspace file is provided for [codelite](https://codelite.org/)
 
-4. Vulkan SDK Version: [1.1.82.1](https://vulkan.lunarg.com/sdk/home)
+4. Vulkan SDK Version: download the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/)
 
 5. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
@@ -174,11 +215,20 @@ Make sure VulkanSDK environment variables are configured correctly.
 Please read the "Set up the Runtime Environment" and "Environment Variable Persistence" [https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html](https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html)
 
 
+# Android Requirements:
+
+1. Android Phone with Android Pie (9.x) for Vulkan 1.1 support
+
+2. Android Studio with API level 28 and follow the instructions
+
+3. We are currently testing on 
+* [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) with Android 9.0 - Build PPR1.181005.034
+
+In the moment we only support the first two unit tests. We are waiting for devkits with more stable drivers before we bring over the other unit tests. The Essential phone uses an Adreno 540 GPU. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
+
 
 # Install 
-For PC Windows run PRE_BUILD.bat. For the other platforms run the shell script. It will download and unzip the art assets and only on PC install the shader builder extension for Visual Studio.
-
-
+For PC Windows run PRE_BUILD.bat. For the other platforms run the shell script. It will download and unzip the art assets and only on PC install the shader builder extension for Visual Studio 2017.
 
 # Unit Tests
 There are the following unit tests in The Forge:
@@ -225,7 +275,7 @@ This unit test shows the current state of our font rendering library that is bas
 
 This unit test will show a wide range of game related materials in the future.
 
-![Image of the Material Playground Unit test](Screenshots/06_MaterialPlayground.png)
+![Material Playground on PC](Screenshots/MaterialPlayground/01-PC-Vulkan-1920x1080.png)
 
 ## 7. Hardware Tessellation
 
@@ -266,7 +316,62 @@ This unit test shows how to switch between the Vulkan and DirectX 12 graphics AP
 ## 13. imGUI integration unit test
 This unit test shows how the integration of imGui with a wide range of functionality.
 
-![Image of the imGui Integrationn in The Forge](Screenshots/13_imGui.gif)
+![Image of the imGui Integration in The Forge](Screenshots/13_imGui.gif)
+
+
+## 14. Order-Independent Transparency unit test
+This unit test compares various Order-Indpendent Transparency Methods.
+
+![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.png)
+
+
+## 15. Wave Intrinsics unit test
+This unit test shows how to use the new wave intrinsics. In the moment it only supports Windows (DirectX 12 / Vulkan 1.1) and Linux with Vulkan 1.1. More platforms will be added.
+
+![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
+
+## 16. Ray Tracing Unit Test for DXR
+Ray Tracing API unit test, showing how to use DXR on Windows only.
+
+![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
+
+
+## 17. Ozz Playback Animation
+This unit test shows how to playback a clip on a rig.
+
+![Image of Playback Animation in The Forge](Screenshots/01_Playback.gif)
+
+## 18. Ozz Playback Blending
+This unit test shows how to blend multiple clips and play them back on a rig.
+
+![Image of Playback Blending in The Forge](Screenshots/02_Blending.gif)
+
+## 19. Ozz Joint Attachment
+This unit test shows how to attach an object to a rig which is being posed by an animation.
+
+![Image of Ozz Joint Attachment in The Forge](Screenshots/03_JointAttachment.gif)
+
+## 20. Ozz Partial Blending
+This unit test shows how to blend clips having each only effect a certain portion of joints.
+
+![Image of Ozz Partial Blending in The Forge](Screenshots/04_PartialBlending.gif)
+
+## 21. Ozz Additive Blending
+This unit test shows how to introduce an additive clip onto another clip and play the result on a rig.
+
+![Image of Ozz Additive Blending in The Forge](Screenshots/05_Additive.gif)
+
+## 22. Ozz Baked Physics
+This unit test shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
+
+![Image of Ozz Baked Physics in The Forge](Screenshots/07_BakedPhysics.gif)
+
+## 23. Ozz Multi Threading
+This unit test shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates.
+
+![Image of Ozz Multi Threading in The Forge](Screenshots/09_MultiThread.gif)
+
+
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -304,10 +409,8 @@ The Forge utilizes the following Open-Source libraries:
   * [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h)
   * [stb_image_resize.h](https://github.com/nothings/stb/blob/master/stb_image_resize.h)
   * [stb_image_write.h](https://github.com/nothings/stb/blob/master/stb_image_write.h)
-* [Nuklear UI](https://github.com/vurtun/nuklear)
 * [shaderc](https://github.com/google/shaderc)
 * [SPIRV_Cross](https://github.com/KhronosGroup/SPIRV-Cross)
-* [Task Scheduler](https://github.com/SergeyMakeev/TaskScheduler)
 * [TinyEXR](https://github.com/syoyo/tinyexr)
 * [TinySTL](https://github.com/mendsley/tinystl)
 * [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
@@ -319,3 +422,5 @@ The Forge utilizes the following Open-Source libraries:
 * [Shader Playground](https://github.com/tgjones/shader-playground)
 * [hlslparser](https://github.com/Thekla/hlslparser)
 * [ImGui](https://github.com/ocornut/imgui)
+* [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
+* [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
