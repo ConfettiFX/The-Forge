@@ -93,39 +93,62 @@ GradientInterpolationResults interpolateAttributeWithGradient(float3x2 attribute
 	return result;
 }
 
+float depthLinearization(float depth, float near, float far)
+{
+	return (2.0 * near) / (far + near - depth * (far - near));
+}
+
 // Static descriptors
 #if(SAMPLE_COUNT > 1)
-Texture2DMS<float4, SAMPLE_COUNT> vbTex;
+Texture2DMS<float4, SAMPLE_COUNT> vbTex: register(t0);
 #else
-Texture2D vbTex;
+Texture2D vbTex: register(t0);
 #endif
+
+
 #if USE_AMBIENT_OCCLUSION
 Texture2D<float> aoTex : register(t100);
 #endif
+
+Texture2D shadowMap : register(t101);
+
+
 Texture2D diffuseMaps[] : register(t0, space1);
 Texture2D normalMaps[] : register(t0, space2);
 Texture2D specularMaps[] : register(t0, space3);
-StructuredBuffer<float3> vertexPos;
-StructuredBuffer<uint> vertexTexCoord;
-StructuredBuffer<uint> vertexNormal;
-StructuredBuffer<uint> vertexTangent;
-StructuredBuffer<uint> filteredIndexBuffer;
-StructuredBuffer<uint> indirectMaterialBuffer;
-StructuredBuffer<MeshConstants> meshConstantsBuffer;
-SamplerState textureSampler;
-SamplerState depthSampler;
+
+StructuredBuffer<float3> vertexPos: register(t10);
+StructuredBuffer<uint> vertexTexCoord: register(t11);
+StructuredBuffer<uint> vertexNormal: register(t12);
+StructuredBuffer<uint> vertexTangent: register(t13);
+StructuredBuffer<uint> filteredIndexBuffer: register(t14);
+StructuredBuffer<uint> indirectMaterialBuffer: register(t15);
+StructuredBuffer<MeshConstants> meshConstantsBuffer: register(t16);
 
 // Per frame descriptors
-StructuredBuffer<uint> indirectDrawArgs[2];
-ConstantBuffer<PerFrameConstants> uniforms;
-Texture2D shadowMap;
+StructuredBuffer<uint> indirectDrawArgs[2]: register(t17);
 
-StructuredBuffer<LightData> lights;
-ByteAddressBuffer lightClustersCount;
-ByteAddressBuffer lightClusters;
+StructuredBuffer<LightData> lights: register(t19);
+ByteAddressBuffer lightClustersCount: register(t20);
+ByteAddressBuffer lightClusters: register(t21);
+
+SamplerState textureSampler: register(s0);
+SamplerState depthSampler: register(s1);
+
+
+ConstantBuffer<PerFrameConstants> uniforms : register(b0);
+
+cbuffer RootConstantDrawScene : register(b1)
+{
+	float4 lightColor;
+	uint lightingMode;
+	uint outputMode;
+	float4 CameraPlane; //x : near, y : far
+	
+};
 
 // Pixel shader
-float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
+float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 {
 	// Load Visibility Buffer raw packed float4 data from render target
 #if(SAMPLE_COUNT > 1)
@@ -138,7 +161,9 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 
 	// Early exit if this pixel doesn't contain triangle data
 	if (alphaBit_drawID_triID == ~0)
-		return float4(1,1,1,1);
+	{
+		discard;
+	}
 
 	// Extract packed data
 	uint drawID = (alphaBit_drawID_triID >> 23) & 0x000000FF;
@@ -206,11 +231,14 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 
 	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
 	GradientInterpolationResults results = interpolateAttributeWithGradient(texCoords, derivativesOut.db_dx, derivativesOut.db_dy, d, uniforms.twoOverRes);
-	float2 texCoordDX = results.dx * w;
-	float2 texCoordDY = results.dy * w;
+			
+	float linearZ = depthLinearization(z/w, CameraPlane.x, CameraPlane.y);
+	float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
+	
+	float2 texCoordDX = results.dx * w * mip;
+	float2 texCoordDY = results.dy * w * mip;
 	float2 texCoord = results.interp * w;
-
-
+	
 
 	/////////////LOAD///////////////////////////////
 	// TANGENT INTERPOLATION
@@ -248,13 +276,14 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 	// Reconstruct normal map Z from X and Y
 	// "NonUniformResourceIndex" is a "pseudo" function see
 	// http://asawicki.info/news_1608_direct3d_12_-_watch_out_for_non-uniform_resource_index.html
-	float2 normalMapRG = normalMaps[NonUniformResourceIndex(materialID)].SampleGrad(textureSampler, texCoord, texCoordDX, texCoordDY).rg;
+	
+	float4 normalMapRG = normalMaps[NonUniformResourceIndex(materialID)].SampleGrad(textureSampler, texCoord, texCoordDX, texCoordDY);	
 
 	float3 reconstructedNormalMap;
-	reconstructedNormalMap.xy = normalMapRG * 2 - 1;
+	reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
 	reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
 
-		// NORMAL INTERPOLATION
+	// NORMAL INTERPOLATION
 	// Apply perspective division to normals
 	float3x3 normals =
 	{
@@ -273,17 +302,76 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 	// Sample Diffuse color
 	float4 posLS = mul(uniforms.transform[VIEW_SHADOW].vp, float4(position, 1));
 	float4 diffuseColor = diffuseMaps[NonUniformResourceIndex(materialID)].SampleGrad(textureSampler, texCoord, texCoordDX, texCoordDY);
-	float3 specularData = specularMaps[NonUniformResourceIndex(materialID)].SampleGrad(textureSampler, texCoord, texCoordDX, texCoordDY).xyz;
+	float4 speculaColor = specularMaps[NonUniformResourceIndex(materialID)].SampleGrad(textureSampler, texCoord, texCoordDX, texCoordDY);
+	
+	float Roughness = clamp(speculaColor.a, 0.05f, 0.99f);
+	float Metallic = speculaColor.b;
+
 #if USE_AMBIENT_OCCLUSION
 	float ao = aoTex.Load(uint3(input.position.xy, 0));
 #else
 	float ao = 1.0f;
 #endif
+	
+
 	bool isTwoSided = (alpha1_opaque0 == 1) && meshConstantsBuffer[NonUniformResourceIndex(materialID)].twoSided;
+	bool isBackFace = false;
 
-	// directional light
-	float3 shadedColor = calculateIllumination(normal, uniforms.camPos.xyz, uniforms.esmControl, uniforms.lightDir.xyz, isTwoSided, posLS, position, shadowMap, diffuseColor.xyz, specularData.xyz, ao, depthSampler);
+	float3 ViewVec = normalize(uniforms.camPos.xyz - position.xyz);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
 
+	float3 HalfVec = normalize(ViewVec - uniforms.lightDir.xyz);
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+
+	float NoL = dot(normal, -uniforms.lightDir.xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	float3 shadedColor;
+
+	float3 F0 = speculaColor.xyz;
+	float3 DiffuseColor = diffuseColor.xyz;
+	
+	float shadowFactor = 1.0f;
+
+	float fLightingMode = saturate(float(lightingMode));
+
+	shadedColor = calculateIllumination(
+		    normal,
+		    ViewVec,
+			HalfVec,
+			ReflectVec,
+			NoL,
+			NoV,
+			uniforms.camPos.xyz,
+			uniforms.esmControl,
+			uniforms.lightDir.xyz,
+			posLS,
+			position,
+			shadowMap,
+			DiffuseColor,
+			F0,
+			Roughness,
+			Metallic,			
+			depthSampler,
+			isBackFace,
+			fLightingMode,
+			shadowFactor);
+			
+	
+	shadedColor = shadedColor * lightColor.rgb * lightColor.a * NoL * ao;
+	
 	// point lights
 	// Find the light cluster for the current pixel
 	uint2 clusterCoords = uint2(floor((input.screenPos * 0.5 + 0.5) * float2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));
@@ -294,8 +382,35 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 	for (uint i = 0; i < numLightsInCluster; i++)
 	{
 		uint lightId = lightClusters.Load(LIGHT_CLUSTER_DATA_POS(i, clusterCoords.x, clusterCoords.y) * 4);
-		shadedColor += pointLightShade(lights[lightId].position, lights[lightId].color, uniforms.camPos.xyz, position, normal, specularData, isTwoSided);
+
+		shadedColor += pointLightShade(
+		normal,
+		ViewVec,
+		HalfVec,
+		ReflectVec,
+		NoL,
+		NoV,
+		lights[lightId].position,
+		lights[lightId].color,
+		uniforms.camPos.xyz,
+		uniforms.lightDir.xyz,
+		posLS,
+		position,
+		DiffuseColor,
+		F0,
+		Roughness,
+		Metallic,		
+		isBackFace,
+		fLightingMode);
 	}
-	// Output final pixel color
-	return float4(shadedColor, 1);
+
+
+	float ambientIntencity = 0.2f;
+	float3 ambient = diffuseColor.xyz * ambientIntencity;
+
+	float3 FinalColor = shadedColor + ambient;
+
+	return float4(FinalColor, 1.0);
 }
+
+

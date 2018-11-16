@@ -53,43 +53,43 @@ const char* pszRoots[FSR_Count] =
 	"",									// FSR_OtherFiles
 };
 
-FileHandle _openFile(const char* filename, const char* flags)
+FileHandle open_file(const char* filename, const char* flags)
 {
 	FILE* fp = fopen(filename, flags);
 	return fp;
 }
 
-void _closeFile(FileHandle handle)
+void close_file(FileHandle handle)
 {
 	fclose((::FILE*)handle);
 }
 
-void _flushFile(FileHandle handle)
+void flush_file(FileHandle handle)
 {
 	fflush((::FILE*)handle);
 }
 
-size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
+size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {
 	return fread(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-bool _seekFile(FileHandle handle, long offset, int origin)
+bool seek_file(FileHandle handle, long offset, int origin)
 {
 	return fseek((::FILE*)handle, offset, origin) == 0;
 }
 
-long _tellFile(FileHandle handle)
+long tell_file(FileHandle handle)
 {
 	return ftell((::FILE*)handle);
 }
 
-size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
+size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
 	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-size_t _getFileLastModifiedTime(const char* _fileName)
+size_t get_file_last_modified_time(const char* _fileName)
 {
 	struct stat fileInfo;
 
@@ -104,7 +104,7 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-tinystl::string _getCurrentDir()
+tinystl::string get_current_dir()
 {
 	char cwd[256]="";
 	getcwd(cwd, sizeof(cwd));
@@ -112,14 +112,14 @@ tinystl::string _getCurrentDir()
 	return str;
 }
 
-tinystl::string _getExePath()
+tinystl::string get_exe_path()
 {
 	const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
 	tinystl::string str(exeDir);
 	return str;
 }
 
-tinystl::string _getAppPrefsDir(const char *org, const char *app)
+tinystl::string get_app_prefs_dir(const char *org, const char *app)
 {
 	const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
 	const char * path;
@@ -127,7 +127,7 @@ tinystl::string _getAppPrefsDir(const char *org, const char *app)
 	return tinystl::string(path) + tinystl::string("Library/") + tinystl::string(org) + tinystl::string("/") + tinystl::string(app);
 }
 
-tinystl::string _getUserDocumentsDir()
+tinystl::string get_user_documents_dir()
 {
 	const char * rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
 	const char * path;
@@ -135,12 +135,12 @@ tinystl::string _getUserDocumentsDir()
 	return tinystl::string(path);
 }
 
-void _setCurrentDir(const char* path)
+void set_current_dir(const char* path)
 {
 	chdir(path);
 }
 
-void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
 {
 	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	DIR* pDir = opendir(dir);

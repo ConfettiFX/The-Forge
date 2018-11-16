@@ -22,8 +22,6 @@
  * under the License.
 */
 
-////
-
 struct PsIn
 {
     float4 position : SV_Position;

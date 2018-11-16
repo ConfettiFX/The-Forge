@@ -15,11 +15,12 @@
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
-  <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="Yes"/>
-  <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="Yes"/>
+  <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
+  <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
+  <Project Name="16_SphereTracing" Path="16_SphereTracing/16_SphereTracing.project" Active="Yes"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -40,8 +41,9 @@
       <Project Name="13_UserInterface" ConfigName="Debug"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
+      <Project Name="16_SphereTracing" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
@@ -62,6 +64,7 @@
       <Project Name="13_UserInterface" ConfigName="Release"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="15_Transparency" ConfigName="Release"/>
+      <Project Name="16_SphereTracing" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

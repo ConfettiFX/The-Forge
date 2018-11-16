@@ -69,26 +69,26 @@ const char* pszBases[] =
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
-const uint32_t	  gImageCount = 3;
-Renderer*		   pRenderer = NULL;
+const uint32_t	gImageCount = 3;
+Renderer*		pRenderer = NULL;
 
-Queue*			  pGraphicsQueue = NULL;
-CmdPool*			pCmdPool = NULL;
-Cmd**			   ppCmds = NULL;
+Queue*			pGraphicsQueue = NULL;
+CmdPool*		pCmdPool = NULL;
+Cmd**			ppCmds = NULL;
 
-SwapChain*		  pSwapChain = NULL;
-RenderTarget*	   pDepthBuffer = NULL;
-Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*		  pImageAcquiredSemaphore = NULL;
-Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*		pSwapChain = NULL;
+RenderTarget*	pDepthBuffer = NULL;
+Fence*			pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*		pImageAcquiredSemaphore = NULL;
+Semaphore*		pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 #ifdef TARGET_IOS
 VirtualJoystickUI   gVirtualJoystick;
 #endif
-DepthState*		 pDepth = NULL;
+DepthState*		pDepth = NULL;
 
-//Buffer*			   pProjViewUniformBuffer[gImageCount] = { NULL };
-uint32_t			gFrameIndex = 0;
+//Buffer*			pProjViewUniformBuffer[gImageCount] = { NULL };
+uint32_t		gFrameIndex = 0;
 
 
 //--------------------------------------------------------------------------------------------

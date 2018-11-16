@@ -37,7 +37,7 @@
 #define USE_SHADOWS 1
 #define PT_USE_REFRACTION 1
 #define PT_USE_DIFFUSION 1
-#define PT_USE_CAUSTICS (1 & USE_SHADOWS)
+#define PT_USE_CAUSTICS (0 & USE_SHADOWS)
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -547,7 +547,7 @@ void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f)
 static void CreateScene()
 {
 	// Set plane
-	AddObject(MESH_CUBE, vec3(0.0f), vec4(1.0f), vec3(0.0f), 1.0f, 1.0f, vec3(200.0f, 1.0f, 200.0f));
+	AddObject(MESH_CUBE, vec3(0.0f), vec4(1.0f), vec3(0.0f), 1.0f, 1.0f, vec3(100.0f, 0.5f, 100.0f));
 
 	// Set cubes
 	const float cubeDist = 3.0f;
@@ -559,32 +559,32 @@ static void CreateScene()
 
 		for (int j = 0; j < CUBES_EACH_COL; j++)
 		{
-			AddObject(MESH_CUBE,  curTrans, vec4(float(i + 1) / CUBES_EACH_ROW, 1.0f - float(i + 1) / CUBES_EACH_ROW, 0.0f, float(j + 1) / CUBES_EACH_COL), vec3(0.0f), 1.0f, 1.0f, vec3(2.0f));
+			AddObject(MESH_CUBE,  curTrans, vec4(float(i + 1) / CUBES_EACH_ROW, 1.0f - float(i + 1) / CUBES_EACH_ROW, 0.0f, float(j + 1) / CUBES_EACH_COL), vec3(0.0f), 1.0f, 1.0f, vec3(1.0f));
 			curTrans.setX(curTrans.getX() + cubeDist);
 		}
 
 		curTrans.setZ(curTrans.getZ() + cubeDist);
 	}
 
-	AddObject(MESH_CUBE, vec3(15.0f, 4.0f, 5.0f), vec4(1.0f, 0.0f, 0.0f, 0.9f), vec3(0.0f), 1.0f, 1.0f, vec3(8.0f, 8.0f, 0.2f));
-	AddObject(MESH_CUBE, vec3(15.0f, 4.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.9f), vec3(0.0f), 1.0f, 1.0f, vec3(8.0f, 8.0f, 0.2f));
-	AddObject(MESH_CUBE, vec3(15.0f, 4.0f, -5.0f), vec4(0.0f, 0.0f, 1.0f, 0.9f), vec3(0.0f), 1.0f, 1.0f, vec3(8.0f, 8.0f, 0.2f));
+	AddObject(MESH_CUBE, vec3(15.0f, 4.0f, 5.0f), vec4(1.0f, 0.0f, 0.0f, 0.9f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
+	AddObject(MESH_CUBE, vec3(15.0f, 4.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.9f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
+	AddObject(MESH_CUBE, vec3(15.0f, 4.0f, -5.0f), vec4(0.0f, 0.0f, 1.0f, 0.9f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
 
-	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, 5.0f), vec4(1.0f, 0.0f, 0.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(8.0f, 8.0f, 0.2f));
-	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(8.0f, 8.0f, 0.2f));
-	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, -5.0f), vec4(0.0f, 0.0f, 1.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(8.0f, 8.0f, 0.2f));
+	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, 5.0f), vec4(1.0f, 0.0f, 0.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
+	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, 0.0f), vec4(0.0f, 1.0f, 0.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
+	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, -5.0f), vec4(0.0f, 0.0f, 1.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
 
 	for (int i = 0; i < 25; ++i)
-		AddObject(MESH_CUBE, vec3(i * 2.0f - 25.0f, 4.0f, 25.0f), vec4(3.0f, 3.0f, 10.0f, 0.1f), vec3(0.0f), 1.0f, 1.0f, vec3(0.2f, 8.0f, 8.0f));
+		AddObject(MESH_CUBE, vec3(i * 2.0f - 25.0f, 4.0f, 25.0f), vec4(3.0f, 3.0f, 10.0f, 0.1f), vec3(0.0f), 1.0f, 1.0f, vec3(0.1f, 4.0f, 4.0f));
 
-	AddObject(MESH_CUBE, vec3(1.0f, 5.0f, -22.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(1.0f, 1.0f, 0.01f));
-	AddObject(MESH_CUBE, vec3(-1.0f, 5.0f, -35.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(2.0f, 2.0f, 0.01f));
+	AddObject(MESH_CUBE, vec3(1.0f, 5.0f, -22.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(0.5f, 0.5f, 0.01f));
+	AddObject(MESH_CUBE, vec3(-1.0f, 5.0f, -35.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(1.0f, 1.0f, 0.005f));
 	AddObject(MESH_SPHERE, vec3(0.0f, 5.0f, -25.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.5f, 0.0f, vec3(4.0f));
 
 	AddObject(MESH_LION, vec3(10.0f, 0.0f, -25.0f), vec4(1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(0.25f), vec3(0.0f, PI, 0.0f));
-	AddObject(MESH_CUBE, vec3(7.0f, 5.0f, -22.0f), vec4(1.0f, 0.3f, 0.3f, 0.9f), vec3(1.0f, 0.3f, 0.3f), 1.0f, 0.0f, vec3(3.0f, 8.0f, 0.01f));
-	AddObject(MESH_CUBE, vec3(10.0f, 5.0f, -22.0f), vec4(0.3f, 1.0f, 0.3f, 0.9f), vec3(0.3f, 1.0f, 0.3f), 1.0f, 0.5f, vec3(3.0f, 8.0f, 0.01f));
-	AddObject(MESH_CUBE, vec3(13.0f, 5.0f, -22.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.0f, 0.9f, vec3(3.0f, 8.0f, 0.01f));
+	AddObject(MESH_CUBE, vec3(7.0f, 5.0f, -22.0f), vec4(1.0f, 0.3f, 0.3f, 0.9f), vec3(1.0f, 0.3f, 0.3f), 1.0f, 0.0f, vec3(1.5f, 4.0f, 0.005f));
+	AddObject(MESH_CUBE, vec3(10.0f, 5.0f, -22.0f), vec4(0.3f, 1.0f, 0.3f, 0.9f), vec3(0.3f, 1.0f, 0.3f), 1.0f, 0.5f, vec3(1.5f, 4.0f, 0.005f));
+	AddObject(MESH_CUBE, vec3(13.0f, 5.0f, -22.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.0f, 0.9f, vec3(1.5f, 4.0f, 0.005f));
 
 	AddParticleSystem(vec3(30.0f, 5.0f, 20.0f), vec4(1.0f, 0.0f, 0.0f, 0.5f));
 	AddParticleSystem(vec3(30.0f, 5.0f, 25.0f), vec4(1.0f, 1.0f, 0.0f, 0.5f));
@@ -1148,7 +1148,9 @@ public:
 		TextureBarrier barriers[2] = {};
 		barriers[0].pTexture = pRenderTargetShadowVariance[0]->pTexture;
 		barriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
-		cmdResourceBarrier(pCmd, 0, NULL, 1, barriers, false);
+		barriers[1].pTexture = pRenderTargetShadowDepth->pTexture;
+		barriers[1].mNewState = RESOURCE_STATE_DEPTH_WRITE;
+		cmdResourceBarrier(pCmd, 0, NULL, 2, barriers, false);
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -1177,6 +1179,8 @@ public:
 
 		for (int i = 0; i < 1; ++i)
 		{
+			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
 			barriers[0].pTexture = pRenderTargetShadowVariance[0]->pTexture;
 			barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 			barriers[1].pTexture = pRenderTargetShadowVariance[1]->pTexture;
@@ -1196,6 +1200,8 @@ public:
 			cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
 
 			cmdDraw(pCmd, 3, 0);
+
+			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 			barriers[0].pTexture = pRenderTargetShadowVariance[1]->pTexture;
 			barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -1288,6 +1294,8 @@ public:
 
 		for (int w = 0; w < 3; ++w)
 		{
+			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
 			barriers[0].pTexture = pRenderTargetPTShadowVariance[w]->pTexture;
 			barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 			barriers[1].pTexture = pRenderTargetPTShadowFinal[0][w]->pTexture;
@@ -1318,6 +1326,8 @@ public:
 		{
 			for (int w = 0; w < 3; ++w)
 			{
+				cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
 				barriers[0].pTexture = pRenderTargetPTShadowFinal[0][w]->pTexture;
 				barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 				barriers[1].pTexture = pRenderTargetPTShadowFinal[1][w]->pTexture;
@@ -1337,6 +1347,8 @@ public:
 				cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
 
 				cmdDraw(pCmd, 3, 0);
+
+				cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 				barriers[0].pTexture = pRenderTargetPTShadowFinal[1][w]->pTexture;
 				barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
@@ -1358,6 +1370,8 @@ public:
 			}
 		}
 
+		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
 		for (int w = 0; w < 3; ++w)
 		{
 			barriers[0].pTexture = pRenderTargetPTShadowFinal[0][w]->pTexture;
@@ -1365,7 +1379,6 @@ public:
 			cmdResourceBarrier(pCmd, 0, NULL, 1, barriers, false);
 		}
 
-		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 		cmdEndDebugMarker(pCmd);
 #endif
@@ -2332,8 +2345,12 @@ public:
 		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
 
 		// PT shade shader
+		ShaderMacro ptShaderMacros[numShaderMacros + 1];
+		for (int i = 0; i < numShaderMacros; ++i)
+			ptShaderMacros[i] = shaderMacros[i];
+		ptShaderMacros[numShaderMacros] = { "PHENOMENOLOGICAL_TRANSPARENCY", "" };
 		ShaderLoadDesc ptShadeShaderDesc = {};
-		ptShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1, FSR_SrcShaders };
 		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
 		addShader(pRenderer, &ptShadeShaderDesc, &pShaderPTShade);
 

@@ -28,6 +28,7 @@
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/ResourceLoader.h"
 
+
 #if defined(METAL)
 #include "Shaders/OSXMetal/shader_defs.h"
 #elif defined(DIRECT3D12) || defined(_DURANGO)
@@ -44,13 +45,19 @@
 
 typedef struct SceneVertexPos
 {
-	float x,y,z;
+	float x, y, z;
 } SceneVertexPos;
+
+struct Vertex {
+	float3 mPos;
+	float3 mNormal;
+	float2 mUv;
+};
 
 typedef struct SceneVertexTexCoord
 {
 #if defined(METAL) || defined(__linux__)
-	float u,v;	// texture coords
+	float u, v;      // texture coords
 #else
 	uint32_t texCoord;
 #endif
@@ -89,7 +96,18 @@ typedef struct Cluster
 	bool valid;
 } Cluster;
 
-typedef struct Mesh
+typedef struct AABoundingBox
+{
+	float4 Center;            // Center of the box.
+	float4 Extents;           // Distance from the center to each side.
+
+	float4 minPt;
+	float4 maxPt;
+
+	float4 corners[8];
+} AABoundingBox;
+
+typedef struct MeshIn
 {
 #if defined(METAL)
 	uint32_t startVertex;
@@ -104,7 +122,13 @@ typedef struct Mesh
 	ClusterCompact* clusterCompacts;
 	Cluster* clusters;
 	uint32_t materialId;
-} Mesh;
+
+	AABoundingBox AABB;
+
+	Buffer* pVertexBuffer;
+	Buffer* pIndexBuffer;
+
+} MeshIn;
 
 typedef struct Material
 {
@@ -112,13 +136,15 @@ typedef struct Material
 	bool alphaTested;
 } Material;
 
+
+
 typedef struct Scene
 {
 	uint32_t numMeshes;
 	uint32_t numMaterials;
 	uint32_t totalTriangles;
 	uint32_t totalVertices;
-	Mesh* meshes;
+	MeshIn* meshes;
 	Material* materials;
 	tinystl::vector<SceneVertexPos> positions;
 	tinystl::vector<SceneVertexTexCoord> texCoords;
@@ -128,7 +154,7 @@ typedef struct Scene
 	char** normalMaps;
 	char** specularMaps;
 
-	tinystl::vector<uint32_t>		   indices;
+	tinystl::vector<uint32_t>			indices;
 } Scene;
 
 typedef struct FilterBatchData
@@ -139,11 +165,11 @@ typedef struct FilterBatchData
 	uint32_t meshIdx;
 	uint32_t twoSided;
 #else
-	uint meshIndex;	  // Index into meshConstants
-	uint indexOffset;	  // Index relative to the meshConstants[meshIndex].indexOffset
-	uint faceCount;	  // Number of faces in this small batch
+	uint meshIndex;         // Index into meshConstants
+	uint indexOffset;       // Index relative to the meshConstants[meshIndex].indexOffset
+	uint faceCount;         // Number of faces in this small batch
 	uint outputIndexOffset; // Offset into the output index buffer
-	uint drawBatchStart;	// First slot for the current draw call
+	uint drawBatchStart;    // First slot for the current draw call
 	uint accumDrawIndex;
 	uint _pad0;
 	uint _pad1;
@@ -163,11 +189,15 @@ typedef struct FilterBatchChunk
 
 // Exposed functions
 
-Scene* loadScene(const char* fileName);
+Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
 void removeScene(Scene* scene);
-void CreateClusters(bool twoSided, const Scene* pScene, Mesh* mesh);
+void CreateAABB(const Scene* pScene, MeshIn* mesh);
+void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
+
+void loadModel(const tinystl::string &FileName, Buffer* &pVertexBuffer, uint &vertexCount, Buffer* &IndexBuffer, uint &indexCount);
+
 #if defined(METAL)
-void addClusterToBatchChunk(const ClusterCompact* cluster, const Mesh* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
+void addClusterToBatchChunk(const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
 #else
 void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk);
 #endif

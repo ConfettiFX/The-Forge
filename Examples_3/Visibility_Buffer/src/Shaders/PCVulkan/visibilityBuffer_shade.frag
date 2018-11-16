@@ -30,8 +30,9 @@
 // USERMACRO: VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED [0,1]
 
 #extension GL_GOOGLE_include_directive : enable
+
 #if VK_EXT_DESCRIPTOR_INDEXING_ENABLED
-#extension GL_EXT_nonuniform_qualifier : enable
+	#extension GL_EXT_nonuniform_qualifier : enable
 #endif
 
 #define REPEAT_TEN(base) CASE(base) CASE(base+1) CASE(base+2) CASE(base+3) CASE(base+4) CASE(base+5) CASE(base+6) CASE(base+7) CASE(base+8) CASE(base+9)
@@ -102,6 +103,11 @@ GradientInterpolationResults interpolateAttributeWithGradient(mat3x2 attributes,
 	result.dy = attribute_y * twoOverRes.y;
 	result.interp = (attribute_s + d.x * attribute_x + d.y * attribute_y);
 	return result;
+}
+
+float depthLinearization(float depth, float near, float far)
+{
+	return (2.0 * near) / (far + near - depth * (far - near));
 }
 
 struct VertexPos
@@ -187,6 +193,16 @@ layout(set = 0, binding = 16) uniform texture2D shadowMap;
 layout(set = 0, binding = 17) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
 layout(set = 0, binding = 18 + MAX_TEXTURE_UNITS) uniform texture2D normalMaps[MAX_TEXTURE_UNITS];
 layout(set = 0, binding = 18 + MAX_TEXTURE_UNITS * 2) uniform texture2D specularMaps[MAX_TEXTURE_UNITS];
+
+
+layout(push_constant) uniform RootConstantDrawScene_Block
+{
+    vec4 lightColor;
+	uint lightingMode;
+	uint outputMode;
+	vec4 CameraPlane; //x : near, y : far
+}RootConstantDrawScene;
+
 
 layout(location = 0) in vec2 iScreenPos;
 
@@ -276,9 +292,13 @@ void main()
 
 		// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
 		GradientInterpolationResults results = interpolateAttributeWithGradient(texCoords, derivativesOut.db_dx, derivativesOut.db_dy, d, uniformsData.twoOverRes);
-		vec2 texCoordDX = results.dx * w;
-		vec2 texCoordDY = results.dy * w;
-		vec2 texCoord = results.interp * w;
+	
+        float linearZ = depthLinearization(z/w, RootConstantDrawScene.CameraPlane.x, RootConstantDrawScene.CameraPlane.y);
+	    float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
+	
+	    vec2 texCoordDX = results.dx * w * mip;
+	    vec2 texCoordDY = results.dy * w * mip;
+	    vec2 texCoord = results.interp * w;
 
 		// NORMAL INTERPOLATION
 		// Apply perspective division to normals
@@ -305,29 +325,29 @@ void main()
 		uint materialBaseSlot = BaseMaterialBuffer(alpha1_opaque0 == 1, 1);
 		uint materialID = indirectMaterialBufferData[materialBaseSlot + drawID];
 
-		vec2 normalMapRG;
+		vec4 normalMapRG;
 		vec4 diffuseColor;
-		vec3 specularData;
+		vec4 specularData;
 		bool isTwoSided;
 #if VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED
-		normalMapRG = textureGrad(sampler2D(normalMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
+		normalMapRG = textureGrad(sampler2D(normalMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
 		diffuseColor = textureGrad(sampler2D(diffuseMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
-		specularData = textureGrad(sampler2D(specularMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
+		specularData = textureGrad(sampler2D(specularMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
 		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
 #elif VK_EXT_DESCRIPTOR_INDEXING_ENABLED
-		normalMapRG = textureGrad(sampler2D(normalMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY).rg;
+		normalMapRG = textureGrad(sampler2D(normalMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
 		diffuseColor = textureGrad(sampler2D(diffuseMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
-		specularData = textureGrad(sampler2D(specularMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY).xyz;
+		specularData = textureGrad(sampler2D(specularMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
 		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
 #else
 		switch (materialID)
 		{
 			// define an enum
 #define CASE(id) case id: \
-normalMapRG = textureGrad(sampler2D(normalMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY).rg; \
-diffuseColor = textureGrad(sampler2D(diffuseMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
-specularData = textureGrad(sampler2D(specularMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY).xyz; \
-isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1); \
+		normalMapRG = textureGrad(sampler2D(normalMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
+		diffuseColor = textureGrad(sampler2D(diffuseMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
+		specularData = textureGrad(sampler2D(specularMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
+		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1); \
 break;
 			CASE_LIST
 		}
@@ -335,7 +355,7 @@ break;
 #endif
 
 		vec3 reconstructedNormalMap;
-		reconstructedNormalMap.xy = normalMapRG * 2 - 1;
+		reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
 		reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
 
 		// Calculate vertex binormal from normal and tangent
@@ -343,6 +363,10 @@ break;
 
 		// Calculate pixel normal using the normal map and the tangent space vectors
 		normal = reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal;
+
+		
+		float Roughness = clamp(specularData.a, 0.05f, 0.99f);
+		float Metallic = specularData.b;
 
 		// Sample Diffuse color
 		vec4 posLS = uniformsData.transform[VIEW_SHADOW].vp * vec4(position, 1);
@@ -352,7 +376,60 @@ break;
 		float ao = 1.0f;
 #endif
 
-		shadedColor = calculateIllumination(normal, uniformsData.camPos.xyz, uniformsData.esmControl, uniformsData.lightDir.xyz, isTwoSided, posLS, position, shadowMap, diffuseColor.xyz, specularData.xyz, ao, depthSampler);
+    bool isBackFace = false;    
+
+	vec3 ViewVec = normalize(uniformsData.camPos.xyz - position.xyz);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	vec3 HalfVec = normalize(ViewVec - uniformsData.lightDir.xyz);
+	vec3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = clamp(dot(normal, ViewVec), 0.0, 1.0);
+
+	float NoL = dot(normal, -uniformsData.lightDir.xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : clamp(NoL, 0.0, 1.0));
+
+	vec3 shadedColor;
+	
+	vec3 DiffuseColor = diffuseColor.xyz;
+	
+	float shadowFactor = 1.0f;
+
+	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
+
+	shadedColor = calculateIllumination(
+		    normal,
+		    ViewVec,
+			HalfVec,
+			ReflectVec,
+			NoL,
+			NoV,
+			uniformsData.camPos.xyz,
+			uniformsData.esmControl,
+			uniformsData.lightDir.xyz,
+			posLS,
+			position,
+			shadowMap,
+			DiffuseColor,
+			DiffuseColor,
+			Roughness,
+			Metallic,			
+			depthSampler,
+			isBackFace,
+			fLightingMode,
+			shadowFactor);
+
+	shadedColor = shadedColor * RootConstantDrawScene.lightColor.rgb * RootConstantDrawScene.lightColor.a * NoL * ao;
 
 		// Find the light cluster for the current pixel
 		uvec2 clusterCoords = uvec2(floor((iScreenPos * 0.5f + 0.5f) * uvec2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));
@@ -363,10 +440,37 @@ break;
 		for (uint i = 0; i < numLightsInCluster; i++)
 		{
 			uint lightId = lightClustersBuffer[LIGHT_CLUSTER_DATA_POS(i, clusterCoords.x, clusterCoords.y)];
-			shadedColor += pointLightShade(lightsBuffer[lightId].position.xyz, lightsBuffer[lightId].color.xyz, uniformsData.camPos.xyz, position, normal, specularData, isTwoSided);
+			
+            shadedColor += pointLightShade(
+            normal,
+            ViewVec,
+            HalfVec,
+            ReflectVec,
+            NoL,
+            NoV,
+            lightsBuffer[lightId].position.xyz,
+            lightsBuffer[lightId].color.rgb,
+            uniformsData.camPos.xyz,
+            uniformsData.lightDir.xyz,
+            posLS,
+            position.xyz,
+            DiffuseColor,
+            DiffuseColor,
+            Roughness,
+            Metallic,		
+            isBackFace,
+            fLightingMode);
 		}
-	}
 
-	// Output final pixel color
-	oColor = vec4(shadedColor, 1);
+		float ambientIntencity = 0.2f;
+        vec3 ambient = diffuseColor.xyz * ambientIntencity;
+
+        vec3 FinalColor = shadedColor + ambient;
+
+        // Output final pixel color
+        oColor = vec4(FinalColor, 1);
+	}
+    else
+    oColor = vec4(shadedColor, 0);
+	
 }

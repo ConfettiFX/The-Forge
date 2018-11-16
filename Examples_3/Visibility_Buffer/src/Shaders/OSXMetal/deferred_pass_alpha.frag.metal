@@ -69,20 +69,22 @@ fragment PSOutput stageMain(VSOutput input                  [[stage_in]],
     PSOutput Out;
     
     float4 albedo = diffuseMap.sample(textureSampler,input.texCoord);
+	uint twoSided = input.twoSided;
     if (albedo.a < 0.5) discard_fragment();
     
-    float2 normalMapRG = normalMap.sample(textureSampler,input.texCoord).rg;
+    float4 normalMapRG = normalMap.sample(textureSampler,input.texCoord);
     
     float3 reconstructedNormalMap;
-    reconstructedNormalMap.xy = normalMapRG * 2 - 1;
+    reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
     reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
     
     float3 normal = input.normal;
     float3 tangent = input.tangent;
     float3 binormal = cross(tangent, normal);
     
-    Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, input.twoSided);
-    Out.albedo = albedo;
+	Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
+	Out.albedo = albedo;
+	Out.albedo.a = twoSided > 0 ? 1.0f : 0.0f;
     Out.specular = specularMap.sample(textureSampler, input.texCoord);
     Out.simulation = float4(0.0f);
     return Out;

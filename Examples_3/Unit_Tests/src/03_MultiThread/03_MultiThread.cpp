@@ -159,6 +159,7 @@ Pipeline*			   pGraphLinePipeline = NULL;
 Pipeline*			   pGraphLineListPipeline = NULL;
 Pipeline*			   pGraphTrianglePipeline = NULL;
 RootSignature*		  pRootSignature = NULL;
+RootSignature*		  pSkyBoxRootSignature = NULL;
 RootSignature*		  pGraphRootSignature = NULL;
 Texture*				pTextures[5];
 Texture*				pSkyBoxTextures[6];
@@ -365,14 +366,22 @@ public:
 
 		const char* pStaticSamplerNames[] = { "uSampler0", "uSkyboxSampler" };
 		Sampler* pSamplers[] = { pSampler, pSamplerSkyBox };
-		Shader* shaders[] = { pShader, pSkyBoxDrawShader };
+
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 2;
+		rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		rootDesc.ppStaticSamplers = pSamplers;
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pShader;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
 		RootSignatureDesc skyBoxRootDesc = {};
 		skyBoxRootDesc.mStaticSamplerCount = 2;
 		skyBoxRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		skyBoxRootDesc.ppStaticSamplers = pSamplers;
-		skyBoxRootDesc.mShaderCount = 2;
-		skyBoxRootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
+		skyBoxRootDesc.mShaderCount = 1;
+		skyBoxRootDesc.ppShaders = &pSkyBoxDrawShader;
+		addRootSignature(pRenderer, &skyBoxRootDesc, &pSkyBoxRootSignature);
 
 		RootSignatureDesc graphRootDesc = {};
 		graphRootDesc.mShaderCount = 1;
@@ -599,6 +608,7 @@ public:
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeShader(pRenderer, pGraphShader);
 		removeRootSignature(pRenderer, pRootSignature);
+		removeRootSignature(pRenderer, pSkyBoxRootSignature);
 		removeRootSignature(pRenderer, pGraphRootSignature);
 
 		removeBlendState(gParticleBlend);
@@ -683,7 +693,7 @@ public:
 		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pRootSignature = pSkyBoxRootSignature;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
@@ -876,7 +886,9 @@ public:
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+
 		//// draw skybox
+		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 		DescriptorData params[7] = {};
 		params[0].pName = "RightText";
@@ -893,8 +905,7 @@ public:
 		params[5].ppTextures = &pSkyBoxTextures[5];
 		params[6].pName = "uniformBlock";
 		params[6].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignature, 7, params);
-		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
+		cmdBindDescriptors(cmd, pSkyBoxRootSignature, 7, params);
 
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);

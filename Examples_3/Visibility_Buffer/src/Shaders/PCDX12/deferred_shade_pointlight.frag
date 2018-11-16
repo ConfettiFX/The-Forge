@@ -35,17 +35,29 @@ struct VSOutput
 };
 
 ConstantBuffer<PerFrameConstants> uniforms : register(b0);
+
+cbuffer RootConstantDrawScene : register(b1)
+{
+	float4 lightColor;
+	uint lightingMode;
+	uint outputMode;
+	float4 CameraPlane; //x : near, y : far
+	
+};
+
 StructuredBuffer<LightData> lights : register(t1);
 #if (SAMPLE_COUNT > 1)
-Texture2DMS<float4, SAMPLE_COUNT> gBufferNormal : register(t2);
-Texture2DMS<float4, SAMPLE_COUNT> gBufferDepth : register(t3);
-Texture2DMS<float4, SAMPLE_COUNT> gBufferSpecular : register(t4);
-Texture2DMS<float4, SAMPLE_COUNT> gBufferSimulation : register(t5);
+Texture2DMS<float4, SAMPLE_COUNT> gBufferColor : register(t2);
+Texture2DMS<float4, SAMPLE_COUNT> gBufferNormal : register(t3);
+Texture2DMS<float4, SAMPLE_COUNT> gBufferDepth : register(t4);
+Texture2DMS<float4, SAMPLE_COUNT> gBufferSpecular : register(t5);
+Texture2DMS<float4, SAMPLE_COUNT> gBufferSimulation : register(t6);
 #else
-Texture2D gBufferNormal : register(t2);
-Texture2D gBufferDepth : register(t3);
-Texture2D gBufferSpecular : register(t4);
-Texture2D gBufferSimulation : register(t5);
+Texture2D gBufferColor : register(t2);
+Texture2D gBufferNormal : register(t3);
+Texture2D gBufferDepth : register(t4);
+Texture2D gBufferSpecular : register(t5);
+Texture2D gBufferSimulation : register(t6);
 #endif
 
 float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
@@ -56,10 +68,15 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 	float4 normalData = gBufferNormal.Load(uint3(input.position.xy, 0));
 #endif
 
+#if (SAMPLE_COUNT > 1)
+    float4 albedoData = gBufferColor.Load(uint2(input.position.xy), i);
+#else
+	float4 albedoData = gBufferColor.Load(uint3(input.position.xy, 0));
+#endif
+
 	if (normalData.x == 0 && normalData.y == 0 && normalData.z == 0)
 	{
 		discard;
-		return float4(0, 0, 0, 0);
 	}
 
 #if (SAMPLE_COUNT > 1)
@@ -71,14 +88,64 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
     float4 specularData = gBufferSpecular.Load(uint3(input.position.xy, 0));
 	float4 simulation = gBufferSimulation.Load(uint3(input.position.xy, 0));
 #endif
+
+	float fLightingMode = saturate(float(lightingMode));
     
     float2 screenPos = ((input.position.xy / uniforms.cullingViewports[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
     screenPos.y = -screenPos.y;
-    float3 normal = normalData.xyz*2.0 - 1.0;
+    float3 normal = normalize(normalData.xyz*2.0 - 1.0);
     float4 position = mul(uniforms.transform[VIEW_CAMERA].invVP, float4(screenPos,depth,1));
     float3 posWS = position.xyz/position.w;
-    bool twoSided = (normalData.w > 0.5);
+
+    bool isTwoSided = (albedoData.a > 0.5);
+	bool isBackFace = false;
+
+	float3 ViewVec = normalize(uniforms.camPos.xyz - posWS.xyz);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	float3 HalfVec = normalize(ViewVec - uniforms.lightDir.xyz);
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+
+	float NoL = dot(normal, -uniforms.lightDir.xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	float3 F0 = specularData.xyz;
+	float3 DiffuseColor = albedoData.xyz;
+
+	float Roughness = specularData.w;
+	float Metallic = normalData.w;
+
+	float3 color = pointLightShade(
+	normal,
+	ViewVec,
+	HalfVec,
+	ReflectVec,
+	NoL,
+	NoV,
+	input.lightPos,
+	input.color,
+	uniforms.camPos.xyz + simulation,
+	uniforms.lightDir.xyz,
+	position,
+	posWS,
+	DiffuseColor,
+	F0,
+	Roughness,
+	Metallic,		
+	isBackFace,
+	fLightingMode);
     
-    float3 color = pointLightShade(input.lightPos, input.color, uniforms.camPos.xyz + simulation, posWS, normal, specularData.xyz, twoSided);
-    return float4(color,1);
+	return float4(color, 1.0);
 }

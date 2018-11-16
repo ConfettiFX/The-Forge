@@ -179,7 +179,7 @@ typedef struct CameraUniform
 typedef struct ESMInputConstants
 {
 	float2 mWindowDimension = {0, 0};
-	float2 mNearFarDist = {1.f, 180};
+	float2 mNearFarDist = {1.f, 180.0f};
 	float mExponent = 240.0f;
 	uint mBlurWidth = 1U;
 	int mIfHorizontalBlur = 1; //as boolean
@@ -1870,7 +1870,7 @@ void GuiController::addGui()
 #endif
 	const float lightPosBound = 10.0f;
 	pGuiWindow->AddWidget(SliderFloat3Widget("Light Position", &gLightCpuSettings.mLightPosition,
-		float3(-lightPosBound, 5, -lightPosBound),
+		float3(-lightPosBound, 5.0f, -lightPosBound),
 		float3(lightPosBound, 30.0f, lightPosBound),
 		float3(0.1f, 0.1f, 0.1f)));
 

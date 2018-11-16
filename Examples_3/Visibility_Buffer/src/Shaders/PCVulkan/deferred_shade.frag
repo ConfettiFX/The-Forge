@@ -54,6 +54,14 @@ layout(set = 0, binding = 8) uniform uniforms
 	PerFrameConstants uniformsData;
 };
 
+layout(push_constant) uniform RootConstantDrawScene_Block
+{
+    vec4 lightColor;
+	uint lightingMode;
+	uint outputMode;
+	vec4 CameraPlane; //x : near, y : far
+}RootConstantDrawScene;
+
 layout(location = 0) in vec2 iScreenPos;
 
 layout(location = 0) out vec4 oColor;
@@ -73,12 +81,12 @@ void main()
 		discard;
     }
 #if(SAMPLE_COUNT > 1)
-	vec3 colorData = texelFetch(sampler2DMS(gBufferColor, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID).rgb;
+	vec4 colorData = texelFetch(sampler2DMS(gBufferColor, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID);
     vec4 specularData = texelFetch(sampler2DMS(gBufferSpecular, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID);
 	vec4 simulation = texelFetch(sampler2DMS(gBufferSimulation, depthSampler), ivec2(gl_FragCoord.xy), gl_SampleID);
     vec4 normalData = texelFetch(sampler2DMS(gBufferNormal, depthSampler),ivec2(gl_FragCoord.xy), gl_SampleID);
 #else
-	vec3 colorData = texelFetch(sampler2D(gBufferColor, depthSampler), ivec2(gl_FragCoord.xy), 0).rgb;
+	vec4 colorData = texelFetch(sampler2D(gBufferColor, depthSampler), ivec2(gl_FragCoord.xy), 0);
     vec4 specularData = texelFetch(sampler2D(gBufferSpecular, depthSampler), ivec2(gl_FragCoord.xy), 0);
 	vec4 simulation = texelFetch(sampler2D(gBufferSimulation, depthSampler), ivec2(gl_FragCoord.xy), 0);
     vec4 normalData = texelFetch(sampler2D(gBufferNormal, depthSampler), ivec2(gl_FragCoord.xy), 0);
@@ -89,15 +97,75 @@ void main()
 #else
 	float ao = 1.0f;
 #endif
-	bool twoSided = (normalData.w > 0.5f);
 
-	vec3 normal = normalData.xyz * 2.0f - 1.0f;
-
+	vec3 normal = normalize(normalData.xyz * 2.0f - 1.0f);
 	vec4 position = uniformsData.transform[VIEW_CAMERA].invVP * vec4(iScreenPos, depth, 1);
 	vec3 posWS = position.xyz / position.w;
 
-	vec4 posLS = uniformsData.transform[VIEW_SHADOW].vp * position + simulation;;
-	vec3 color = calculateIllumination(normal, uniformsData.camPos.xyz, uniformsData.esmControl, uniformsData.lightDir.xyz, twoSided, posLS, posWS, shadowMap, colorData.xyz, specularData.xyz, ao, depthSampler);
+	bool isTwoSided = colorData.a > 0.5f ? true : false;
+	bool isBackFace = false;
 
-	oColor = vec4(color, 1);
+	vec3 ViewVec = normalize(uniformsData.camPos.xyz - posWS);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	vec3 HalfVec = normalize(ViewVec - uniformsData.lightDir.xyz);
+	vec3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = clamp(dot(normal, ViewVec), 0.0, 1.0);
+
+	float NoL = dot(normal, -uniformsData.lightDir.xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : clamp(NoL, 0.0, 1.0));
+
+	vec4 posLS = uniformsData.transform[VIEW_SHADOW].vp * position + simulation;
+
+	vec3 DiffuseColor = colorData.xyz;
+	
+	float shadowFactor = 1.0f;
+
+	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
+
+	float Roughness = clamp(specularData.a, 0.05f, 0.99f);
+	float Metallic = specularData.b;
+
+	vec3 shadedColor = calculateIllumination(
+		    normal,
+		    ViewVec,
+			HalfVec,
+			ReflectVec,
+			NoL,
+			NoV,
+			uniformsData.camPos.xyz,
+			uniformsData.esmControl,
+			uniformsData.lightDir.xyz,
+			posLS,
+			posWS,  
+			shadowMap,
+			DiffuseColor,
+			DiffuseColor,
+			Roughness,
+			Metallic,			
+			depthSampler,
+			isBackFace,
+			fLightingMode,
+			shadowFactor);
+
+
+	shadedColor = shadedColor * RootConstantDrawScene.lightColor.rgb * RootConstantDrawScene.lightColor.a * NoL * ao;
+
+	float ambientIntencity = 0.2f;
+	vec3 ambient = colorData.xyz * ambientIntencity;
+
+	vec3 FinalColor = shadedColor + ambient;
+		
+	oColor = vec4(FinalColor, 1.0);
 }

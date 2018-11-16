@@ -60,7 +60,7 @@ const char* pszRoots[FSR_Count] =
 // In this case, the substring() logic will fail.
 //
 //-------------------------------------------------------------------------------------------------------------
-FileHandle _openFile(const char* filename, const char* flags)
+FileHandle open_file(const char* filename, const char* flags)
 {
 #if 0  // OLD IMPLEMENTATION HERE FOR REFERENCE
 	//first we need to look into main bundle which has read-only access
@@ -93,7 +93,7 @@ FileHandle _openFile(const char* filename, const char* flags)
 	// Hence, if we request to open a file with write permissions, we will use Documents for that.
 	if(strstr(flags,"w") != NULL)
 	{
-		const tinystl::string currDir = _getCurrentDir();
+		const tinystl::string currDir = get_current_dir();
 		tinystl::string strFileName(filename);
 		
 		// @filename will have absolute path before being passed into this function.
@@ -114,50 +114,50 @@ FileHandle _openFile(const char* filename, const char* flags)
 	return fp; // error logging is done from the caller in case fp == NULL
 }
 
-void _closeFile(FileHandle handle)
+void close_file(FileHandle handle)
 {
 	//ASSERT(FALSE);
 	fclose((::FILE*)handle);
 }
 
-void _flushFile(FileHandle handle)
+void flush_file(FileHandle handle)
 {// TODO: use NSBundle
 	fflush((::FILE*)handle);
 }
 
-size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
+size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {// TODO: use NSBundle
 	return fread(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-bool _seekFile(FileHandle handle, long offset, int origin)
+bool seek_file(FileHandle handle, long offset, int origin)
 {// TODO: use NSBundle
 	return fseek((::FILE*)handle, offset, origin) == 0;
 }
 
-long _tellFile(FileHandle handle)
+long tell_file(FileHandle handle)
 {// TODO: use NSBundle
 	return ftell((::FILE*)handle);
 }
 
-size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
+size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {// TODO: use NSBundle
 	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-tinystl::string _getCurrentDir()
+tinystl::string get_current_dir()
 {
 	return tinystl::string([[[NSBundle mainBundle] bundlePath] cStringUsingEncoding:NSUTF8StringEncoding]);
 }
 
-tinystl::string _getExePath()
+tinystl::string get_exe_path()
 {
 	const char* exeDir = [[[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent] cStringUsingEncoding:NSUTF8StringEncoding];
 	tinystl::string str(exeDir);
 	return str;
 }
 
-size_t _getFileLastModifiedTime(const char* _fileName)
+size_t get_file_last_modified_time(const char* _fileName)
 {// TODO: use NSBundle
 	struct stat fileInfo;
 
@@ -172,25 +172,25 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-tinystl::string _getAppPrefsDir(const char *org, const char *app)
+tinystl::string get_app_prefs_dir(const char *org, const char *app)
 {
 	ASSERT(false && "Unsupported on target iOS");
 	return tinystl::string();
 }
 
-tinystl::string _getUserDocumentsDir()
+tinystl::string get_user_documents_dir()
 {
 	ASSERT(false && "Unsupported on target iOS");
 	return tinystl::string();
 }
 
-void _setCurrentDir(const char* path)
+void set_current_dir(const char* path)
 {// TODO: use NSBundle
 	chdir(path);
 }
 
 
-void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesIn)
+void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesIn)
 {
 	if(!dir || strlen(dir) == 0)
 	{
@@ -233,7 +233,7 @@ void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<ti
 	}
 }
 
-bool _fileExists(const char* fileFullPath)
+bool file_exist(const char* fileFullPath)
 {
 	NSFileManager *fileMan = [NSFileManager defaultManager];
 	BOOL isDir = NO;

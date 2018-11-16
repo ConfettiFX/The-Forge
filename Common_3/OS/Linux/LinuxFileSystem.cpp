@@ -53,44 +53,44 @@ const char* pszRoots[FSR_Count] =
 };
 
 
-FileHandle _openFile(const char* filename, const char* flags)
+FileHandle open_file(const char* filename, const char* flags)
 {
 	FILE* fp;
 	fp = fopen(filename, flags);
 	return fp;
 }
 
-void _closeFile(FileHandle handle)
+void close_file(FileHandle handle)
 {
 	fclose((::FILE*)handle);
 }
 
-void _flushFile(FileHandle handle)
+void flush_file(FileHandle handle)
 {
 	fflush((::FILE*)handle);
 }
 
-size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
+size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {
 	return fread(buffer, 1, byteCount, (::FILE*)handle);
 }
 
-bool _seekFile(FileHandle handle, long offset, int origin)
+bool seek_file(FileHandle handle, long offset, int origin)
 {
 	return fseek((::FILE*)handle, offset, origin) == 0;
 }
 
-long _tellFile(FileHandle handle)
+long tell_file(FileHandle handle)
 {
 	return ftell((::FILE*)handle);
 }
 
-size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
+size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
 	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-size_t _getFileLastModifiedTime(const char* _fileName)
+size_t get_file_last_modified_time(const char* _fileName)
 {
 	struct stat fileInfo;
 
@@ -105,14 +105,14 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-tinystl::string _getCurrentDir()
+tinystl::string get_current_dir()
 {
 	char curDir[MAX_PATH];
 	getcwd(curDir, sizeof(curDir));
 	return tinystl::string (curDir);
 }
 
-tinystl::string _getExePath()
+tinystl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
@@ -121,7 +121,7 @@ tinystl::string _getExePath()
 	return tinystl::string(exeName);
 }
 
-tinystl::string _getAppPrefsDir(const char *org, const char *app)
+tinystl::string get_app_prefs_dir(const char *org, const char *app)
 {
 	const char* homedir;
 
@@ -132,7 +132,7 @@ tinystl::string _getAppPrefsDir(const char *org, const char *app)
 	return tinystl::string(homedir);
 }
 
-tinystl::string _getUserDocumentsDir()
+tinystl::string get_user_documents_dir()
 {
 	const char* homedir;
 	if ((homedir = getenv("HOME")) == NULL)
@@ -145,7 +145,7 @@ tinystl::string _getUserDocumentsDir()
 	return homeString;
 }
 
-void _setCurrentDir(const char* path)
+void set_current_dir(const char* path)
 {
 	// change working directory
 	// http://man7.org/linux/man-pages/man2/chdir.2.html

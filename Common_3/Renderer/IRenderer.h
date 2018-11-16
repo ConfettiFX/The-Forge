@@ -160,7 +160,8 @@ typedef enum LoadActionType
 {
 	LOAD_ACTION_DONTCARE,
 	LOAD_ACTION_LOAD,
-	LOAD_ACTION_CLEAR
+	LOAD_ACTION_CLEAR,
+	MAX_LOAD_ACTION
 } LoadActionType;
 
 typedef void(*LogFn)(LogType, const char*, const char*);

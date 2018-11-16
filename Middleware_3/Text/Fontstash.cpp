@@ -368,7 +368,11 @@ void Fontstash::drawText(Cmd* pCmd, const char* message, float x, float y, int f
 	fonsSetSpacing(fs, spacing * impl->mDpiScaleMin);
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
-	fonsDrawText(fs, x * impl->mDpiScale.x, y * impl->mDpiScale.y, message, NULL);
+	
+	// considering the retina scaling:
+	// the render target is already scaled up (w/ retina) and the (x,y) position given to this function
+	// is expected to be in the render target's area. Hence, we don't scale up the position again.
+	fonsDrawText(fs, x /** impl->mDpiScale.x*/, y /** impl->mDpiScale.y*/, message, NULL);
 }
 
 
@@ -392,16 +396,22 @@ void Fontstash::drawText(Cmd* pCmd, const char* message,const mat4& projView,con
 	fonsDrawText(fs, 0.0f, 0.0f, message,NULL);
 }
 
-float Fontstash::measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=3.0f*/, float blur/*=0.0f*/)
-{
-	return measureText(out_bounds, message, (int)strlen(message), x, y, fontID, color, size, spacing, blur);
-}
-
-float Fontstash::measureText(float* out_bounds, const char* message, int messageLength, float x, float y, int fontID, unsigned int color/*=0xffffffff*/, float size/*=16.0f*/, float spacing/*=0.0f*/, float blur/*=0.0f*/)
+float Fontstash::measureText(
+	  float* out_bounds
+	, const char* message
+	, float x
+	, float y
+	, int fontID
+	, unsigned int color/*=0xffffffff*/
+	, float size/*=16.0f*/
+	, float spacing/*=0.0f*/
+	, float blur/*=0.0f*/
+)
 {
 	if(out_bounds == NULL)
 		return 0;
-
+	
+	const int messageLength = (int)strlen(message);
 	FONScontext* fs=impl->pContext;
 	fonsSetSize(fs, size * impl->mDpiScaleMin);
 	fonsSetFont(fs, fontID);
@@ -409,7 +419,11 @@ float Fontstash::measureText(float* out_bounds, const char* message, int message
 	fonsSetSpacing(fs, spacing * impl->mDpiScaleMin);
 	fonsSetBlur(fs, blur);
 	fonsSetAlign(fs, FONS_ALIGN_LEFT | FONS_ALIGN_TOP);
-	return fonsTextBounds(fs, x * impl->mDpiScale.x, y * impl->mDpiScale.y, message, message+messageLength, out_bounds);
+	
+	// considering the retina scaling:
+	// the render target is already scaled up (w/ retina) and the (x,y) position given to this function
+	// is expected to be in the render target's area. Hence, we don't scale up the position again.
+	return fonsTextBounds(fs, x /** impl->mDpiScale.x*/, y /** impl->mDpiScale.y*/, message, message+messageLength, out_bounds);
 }
 
 // --  FONS renderer implementation --

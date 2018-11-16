@@ -43,23 +43,23 @@ typedef void* FileHandle;
 
 /// Low level file system interface providing basic file I/O operations
 /// Implementations platform dependent
-FileHandle _openFile(const char* filename, const char* flags);
-void _closeFile(FileHandle handle);
-void _flushFile(FileHandle handle);
-size_t _readFile(void *buffer, size_t byteCount, FileHandle handle);
-bool _seekFile(FileHandle handle, long offset, int origin);
-long _tellFile(FileHandle handle);
-size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle);
-size_t _getFileLastModifiedTime(const char* _fileName);
+FileHandle open_file(const char* filename, const char* flags);
+void close_file(FileHandle handle);
+void flush_file(FileHandle handle);
+size_t read_file(void *buffer, size_t byteCount, FileHandle handle);
+bool seek_file(FileHandle handle, long offset, int origin);
+long tell_file(FileHandle handle);
+size_t write_file(const void *buffer, size_t byteCount, FileHandle handle);
+size_t get_file_last_modified_time(const char* _fileName);
 
-tinystl::string _getCurrentDir();
-tinystl::string _getExePath();
-tinystl::string _getAppPrefsDir(const char* org, const char* app);
-tinystl::string _getUserDocumentsDir();
-void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut);
-bool _fileExists(const char* fileFullPath);
+tinystl::string get_current_dir();
+tinystl::string get_exe_path();
+tinystl::string get_app_prefs_dir(const char* org, const char* app);
+tinystl::string get_user_documents_dir();
+void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut);
+bool file_exists(const char* fileFullPath);
 
-void _setCurrentDir(const char* path);
+void set_current_dir(const char* path);
 
 enum FileMode
 {
@@ -284,13 +284,13 @@ public:
 	static tinystl::string  FixPath(const tinystl::string& pszFileName, FSRoot root);
 	static bool	 FileExists(const tinystl::string& pszFileName, FSRoot root);
 
-	static tinystl::string  GetCurrentDir() { return AddTrailingSlash(_getCurrentDir()); }
-	static tinystl::string  GetProgramDir() { return GetPath(_getExePath()); }
-	static tinystl::string  GetUserDocumentsDir() { return AddTrailingSlash(_getUserDocumentsDir()); }
-	static tinystl::string  GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(_getAppPrefsDir(org, app)); }
-	static void GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files) { _getFilesWithExtension(dir.c_str(), ext.c_str(), files); }
+	static tinystl::string  GetCurrentDir() { return AddTrailingSlash(get_current_dir()); }
+	static tinystl::string  GetProgramDir() { return GetPath(get_exe_path()); }
+	static tinystl::string  GetUserDocumentsDir() { return AddTrailingSlash(get_user_documents_dir()); }
+	static tinystl::string  GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(get_app_prefs_dir(org, app)); }
+	static void GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files) { get_files_with_extensions(dir.c_str(), ext.c_str(), files); }
 
-	static void	 SetCurrentDir(const tinystl::string& path) { _setCurrentDir(path.c_str()); }
+	static void	 SetCurrentDir(const tinystl::string& path) { set_current_dir(path.c_str()); }
 
 	static void	 SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension = true);
 	static tinystl::string  GetPath(const tinystl::string& fullPath);

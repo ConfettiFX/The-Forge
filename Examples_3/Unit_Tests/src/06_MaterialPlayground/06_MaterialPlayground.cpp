@@ -890,7 +890,7 @@ public:
 			{
 				//if there are more objects than metalEnumNames
 				metalEnumIndex = i >= METAL_COUNT ? METAL_RUSTED_IRON : i;
-				drawDebugText(cmd, gTextProjView, gTextWorldMats[i], tinystl::string::format(metalEnumNames[metalEnumIndex]), &gMaterialPropDraw);
+				gAppUI.DrawTextInWorldSpace(cmd, tinystl::string::format(metalEnumNames[metalEnumIndex]).c_str(), gMaterialPropDraw, gTextWorldMats[i], gTextProjView);
 			}
 		}
 #endif

@@ -43,4 +43,7 @@
    <FileRef
       location = "group:15_Transparency/15_Transparency.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:16_SphereTracing/16_SphereTracing.xcodeproj">
+   </FileRef>
 </Workspace>

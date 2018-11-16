@@ -33,8 +33,8 @@ struct PsIn
 };
 
 ConstantBuffer<RootConstant> indirectRootConstant : register(b1);
-StructuredBuffer<uint> indirectMaterialBuffer : register(t0);
-StructuredBuffer<MeshConstants> meshConstantsBuffer : register(t1);
+StructuredBuffer<uint> indirectMaterialBuffer: register(t0);
+StructuredBuffer<MeshConstants> meshConstantsBuffer: register(t1);
 Texture2D diffuseMaps[] : register(t0, space1);
 Texture2D normalMaps[] : register(t0, space2);
 Texture2D specularMaps[] : register(t0, space3);
@@ -60,10 +60,10 @@ PSOut main(PsIn In)
 
     // CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
     // Reconstruct normal map Z from X and Y
-    float2 normalMapRG = normalMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord).rg;
+    float4 normalMapRG = normalMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord).rgba;
 
     float3 reconstructedNormalMap;
-    reconstructedNormalMap.xy = normalMapRG * 2 - 1;
+    reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
     reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
 
 	float3 normal = normalize(In.normal);
@@ -71,9 +71,11 @@ PSOut main(PsIn In)
 	// Calculate vertex binormal from normal and tangent
 	float3 binormal = normalize(cross(tangent, normal));
     // Calculate pixel normal using the normal map and the tangent space vectors
-    Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, twoSided);
-    Out.albedo = albedo;
+    Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
+    Out.albedo = albedo;	
+    Out.albedo.a = twoSided > 0 ? 1.0f : 0.0f;
     Out.specular = specularMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord);
     Out.simulation = 0.0f;
+
     return Out;
 }

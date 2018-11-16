@@ -152,5 +152,6 @@ void main( void )
   }
 
     gl_Position = viewProject * p;
+	gl_PointSize = 1.0;
     textcoord = c;
 }

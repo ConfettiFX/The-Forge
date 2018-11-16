@@ -303,13 +303,23 @@ bool UIApp::Init(Renderer* renderer)
 	pImpl = (struct UIAppImpl*)conf_calloc(1, sizeof(*pImpl));
 	pInst = pImpl;
 	pImpl->pRenderer = renderer;
-	// Figure out the max font size for the current configuration
-	uint32 uiMaxFrontSize = uint32(UIMaxFontSize::UI_MAX_FONT_SIZE_512);
 
-	// Add and initialize the fontstash
-	pImpl->pFontStash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, (int)uiMaxFrontSize, (int)uiMaxFrontSize);
 
-	return true;
+	// Initialize the fontstash
+	//
+	// To support more characters and different font configurations
+	// the app will need more memory for the fontstash atlas.
+	//
+#if defined(TARGET_IOS) || defined(ANDROID)
+	const int TextureAtlasDimension = 512;
+#elif defined(DURANGO)
+	const int TextureAtlasDimension = 1024;
+#else // PC / LINUX / MAC
+	const int TextureAtlasDimension = 2048;
+#endif
+	pImpl->pFontStash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, TextureAtlasDimension, TextureAtlasDimension);
+
+	return pImpl->pFontStash != NULL;
 }
 
 void UIApp::Exit()
@@ -344,6 +354,29 @@ uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
 	ASSERT(fontID != -1);
 
 	return fontID;
+}
+
+float2 UIApp::MeasureText(const char* pText, const TextDrawDesc& drawDesc ) const
+{
+	float textBounds[4] = {};
+	pImpl->pFontStash->measureText(textBounds, pText, 0, 0, drawDesc.mFontID, drawDesc.mFontColor, drawDesc.mFontSize, drawDesc.mFontSpacing, drawDesc.mFontBlur);
+	return float2(textBounds[2] - textBounds[0], textBounds[3] - textBounds[1]);
+}
+
+void UIApp::DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc& drawDesc) const
+{
+	const TextDrawDesc* pDesc = &drawDesc;
+	pImpl->pFontStash->drawText(cmd, pText, screenCoordsInPx.getX(), screenCoordsInPx.getY(),
+		pDesc->mFontID, pDesc->mFontColor,
+		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
+}
+
+void UIApp::DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const TextDrawDesc& drawDesc, const mat4& matWorld, const mat4& matProjView)
+{
+	const TextDrawDesc* pDesc = &drawDesc;
+	pImpl->pFontStash->drawText(pCmd, pText, matProjView, matWorld,
+		pDesc->mFontID, pDesc->mFontColor,
+		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
 }
 
 GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)

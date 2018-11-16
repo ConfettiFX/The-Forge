@@ -37,7 +37,7 @@ layout(set = 0, binding = 0) uniform uniforms
 };
 
 layout(location = 0) in vec3 iPosition;
-layout(location = 1) in uint iTexCoord;
+layout(location = 1) in vec2 iTexCoord;
 
 layout(location = 0) out vec2 oTexCoord;
 layout(location = 1) out flat uint oDrawId;
@@ -46,6 +46,6 @@ void main()
 {
 	uint drawId = gl_DrawIDARB;
 	gl_Position = uniformsData.transform[VIEW_SHADOW].mvp * vec4(iPosition, 1);
-	oTexCoord = unpack2Floats(iTexCoord);
+	oTexCoord = iTexCoord;
 	oDrawId = drawId;
 }

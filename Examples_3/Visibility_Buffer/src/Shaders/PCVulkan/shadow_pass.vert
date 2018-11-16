@@ -37,7 +37,6 @@ layout(set = 0, binding = 0) uniform uniforms
 };
 
 layout(location = 0) in vec3 iPosition;
-layout(location = 1) in uint iTexCoord;
 
 void main()
 {

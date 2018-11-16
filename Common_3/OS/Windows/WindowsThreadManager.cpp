@@ -98,14 +98,14 @@ bool Thread::IsMainThread()
 	return GetCurrentThreadID() == mainThreadID;
 }
 
-ThreadHandle _createThread(WorkItem* pData)
+ThreadHandle create_thread(WorkItem* pData)
 {
 	ThreadHandle handle = CreateThread(0, 0, ThreadFunctionStatic, pData, 0, 0);
 	ASSERT(handle != NULL);
 	return handle;
 }
 
-void _destroyThread(ThreadHandle handle)
+void destroy_thread(ThreadHandle handle)
 {
 	ASSERT(handle != NULL);
 	WaitForSingleObject((HANDLE)handle, INFINITE);
@@ -113,7 +113,7 @@ void _destroyThread(ThreadHandle handle)
 	handle = 0;
 }
 
-void _joinThread(ThreadHandle handle)
+void join_thread(ThreadHandle handle)
 {
 	WaitForSingleObject((HANDLE)handle, INFINITE);
 }
