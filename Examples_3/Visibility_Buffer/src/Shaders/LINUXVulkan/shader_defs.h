@@ -58,7 +58,7 @@
 // The following value defines the maximum amount of indirect draw calls that will be
 // drawn at once. This value depends on the number of submeshes or individual objects
 // in the scene. Changing a scene will require to change this value accordingly.
-#define MAX_DRAWS_INDIRECT 300
+#define MAX_DRAWS_INDIRECT 256
 
 // The following values point to the position in the indirect draw buffer that holds the
 // number of draw calls to draw after triangle filtering and batch compaction.

@@ -39,6 +39,14 @@ struct VSOutput {
     uint triangleId;
 };
 
+struct RootConstantDrawSceneData
+{
+	float4 lightColor;
+	uint lightingMode;
+	uint outputMode;
+	float4 CameraPlane; //x : near, y : far
+};
+
 // Pixel shader
 fragment float4 stageMain(VSOutput input                                       [[stage_in]],
                           uint32_t sampleID                                    [[sample_id]],
@@ -59,6 +67,7 @@ fragment float4 stageMain(VSOutput input                                       [
                           depth2d<float,access::sample> shadowMap              [[texture(6)]],
                           constant PerFrameConstants& uniforms                 [[buffer(7)]],
                           constant LightData* lights                           [[buffer(8)]],
+						  constant RootConstantDrawSceneData& RootConstantDrawScene          [[buffer(9)]],
                           sampler depthSampler                                 [[sampler(0)]])
 {
     // Load gBuffer data from render target
@@ -75,15 +84,76 @@ fragment float4 stageMain(VSOutput input                                       [
 #else
     float ao = 1.0f;
 #endif
-    bool twoSided = (normalData.w > 0.5);
-     
+	
     float3 normal = normalData.xyz * 2.0f - 1.0f;
     float4 position = uniforms.transform[VIEW_CAMERA].invVP * float4(input.screenPos, depth, 1.0f);
     float3 posWS = position.xyz / position.w;
     
-    float4 posLS = uniforms.transform[VIEW_SHADOW].vp * position + simulation;
-    float3 color = calculateIllumination(normal, float4(uniforms.camPos).xyz, uniforms.esmControl, float4(uniforms.lightDir).xyz, twoSided, posLS, posWS, shadowMap, colorData.xyz, specularData.xyz, ao, depthSampler);
-    
-    return float4(color,1);
+	bool isTwoSided = colorData.a > 0.5f ? true : false;
+	bool isBackFace = false;
+	
+	float3 ViewVec = normalize(uniforms.camPos.xyz - posWS);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+	
+	float3 HalfVec = normalize(ViewVec - uniforms.lightDir.xyz);
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+	
+	float NoL = dot(normal, -uniforms.lightDir.xyz);
+	
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+	
+	float4 posLS = uniforms.transform[VIEW_SHADOW].vp * float4(posWS, 1.0) + simulation;
+	
+	float3 DiffuseColor = colorData.xyz;
+	
+	float shadowFactor = 1.0f;
+	
+	float fLightingMode = saturate(float(RootConstantDrawScene.lightingMode));
+	
+	float Roughness = clamp(specularData.a, 0.05f, 0.99f);
+	float Metallic = specularData.b;
+	
+	float3 shadedColor = calculateIllumination(
+											   normal,
+											   ViewVec,
+											   HalfVec,
+											   ReflectVec,
+											   NoL,
+											   NoV,
+											   uniforms.camPos.xyz,
+											   uniforms.esmControl,
+											   uniforms.lightDir.xyz,
+											   posLS,
+											   posWS,
+											   shadowMap,
+											   DiffuseColor,
+											   DiffuseColor,
+											   Roughness,
+											   Metallic,
+											   depthSampler,
+											   isBackFace,
+											   fLightingMode,
+											   shadowFactor);
+	
+	
+	shadedColor = shadedColor * RootConstantDrawScene.lightColor.rgb * RootConstantDrawScene.lightColor.a * NoL * ao;
+	
+	float ambientIntencity = 0.2f;
+	float3 ambient = colorData.xyz * ambientIntencity;
+	
+	float3 FinalColor = shadedColor + ambient;
+	
+	return float4(FinalColor, 1.0);
 }
 

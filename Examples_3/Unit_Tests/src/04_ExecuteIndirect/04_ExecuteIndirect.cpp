@@ -456,6 +456,7 @@ public:
 		bufDesc = {};
 		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		bufDesc.mDesc.mSize = skyBoxDataSize;
 		bufDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		bufDesc.pData = skyBoxPoints;

@@ -46,14 +46,14 @@ Thread::Thread(ThreadPool* pThreadSystem)
 	pItem->pFunc = ThreadPool::ProcessItems;
 	pItem->mCompleted = false;
 
-	pHandle = _createThread(pItem);
+	pHandle = create_thread(pItem);
 }
 
 Thread::~Thread()
 {
 	if (pHandle != 0)
 	{
-		_destroyThread(pHandle);
+		destroy_thread(pHandle);
 		conf_free(pItem);
 	}
 }

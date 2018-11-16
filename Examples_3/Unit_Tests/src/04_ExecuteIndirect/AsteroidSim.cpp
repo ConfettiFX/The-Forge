@@ -142,8 +142,8 @@ void AsteroidSimulation::Init(
 
 		int colorScheme = ((int)abs(colorSchemeDist)) % NUM_COLOR_SCHEMES;
 		float* c = linearColorSchemes + 6 * colorScheme;
-		staticAsteroid.surfaceColor = float4(c[0], c[1], c[2], 1);
-		staticAsteroid.deepColor = float4(c[3], c[4], c[5], 1);
+		staticAsteroid.surfaceColor = float4(c[0], c[1], c[2], 1.0f);
+		staticAsteroid.deepColor = float4(c[3], c[4], c[5], 1.0f);
 
 
 		asteroidsStatic.push_back(staticAsteroid);

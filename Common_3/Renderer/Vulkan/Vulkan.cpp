@@ -271,6 +271,13 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		VK_FORMAT_UNDEFINED, // D32S8 = 83,
 	};
 
+	VkAttachmentLoadOp gVkAttachmentLoadOpTranslator[LoadActionType::MAX_LOAD_ACTION] = 
+	{
+		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		VK_ATTACHMENT_LOAD_OP_LOAD,
+		VK_ATTACHMENT_LOAD_OP_CLEAR,
+	};
+
    const char* gVkWantedInstanceExtensions[] =
    {
 	  VK_KHR_SURFACE_EXTENSION_NAME,
@@ -743,11 +750,14 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	typedef struct RenderPassDesc
 	{
-		ImageFormat::Enum*  pColorFormats;
-		bool*				   pSrgbValues;
+		ImageFormat::Enum*		pColorFormats;
+		const LoadActionType*	pLoadActionsColor;
+		bool*					pSrgbValues;
 		uint32_t				mRenderTargetCount;
-		SampleCount		 mSampleCount;
-		ImageFormat::Enum	   mDepthStencilFormat;
+		SampleCount				mSampleCount;
+		ImageFormat::Enum		mDepthStencilFormat;
+		LoadActionType			mLoadActionDepth;
+		LoadActionType			mLoadActionStencil;
 	} RenderPassDesc;
 
 	typedef struct RenderPass
@@ -816,7 +826,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 				attachments[ssidx].flags = 0;
 				attachments[ssidx].format = util_to_vk_image_format(pDesc->pColorFormats[i], pDesc->pSrgbValues[i]);
 				attachments[ssidx].samples = sample_count;
-				attachments[ssidx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				attachments[ssidx].loadOp = pDesc->pLoadActionsColor ? gVkAttachmentLoadOpTranslator[pDesc->pLoadActionsColor[i]] : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				attachments[ssidx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				attachments[ssidx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				attachments[ssidx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -835,9 +845,9 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 			attachments[idx].flags = 0;
 			attachments[idx].format = util_to_vk_image_format(pDesc->mDepthStencilFormat, false);
 			attachments[idx].samples = sample_count;
-			attachments[idx].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[idx].loadOp = gVkAttachmentLoadOpTranslator[pDesc->mLoadActionDepth];
 			attachments[idx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachments[idx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[idx].stencilLoadOp = gVkAttachmentLoadOpTranslator[pDesc->mLoadActionStencil];
 			attachments[idx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachments[idx].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			attachments[idx].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -4823,8 +4833,9 @@ namespace vk {
 				(uint32_t)ppRenderTargets[i]->mDesc.mFormat,
 				(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
 				(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
+				pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : 0,
 			};
-			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+			renderPassHash = tinystl::hash_state(hashValues, 4, renderPassHash);
 			frameBufferHash = tinystl::hash_state(&ppRenderTargets[i]->pTexture->mTextureId, 1, frameBufferHash);
 
 			pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
@@ -4836,8 +4847,10 @@ namespace vk {
 				(uint32_t)pDepthStencil->mDesc.mFormat,
 				(uint32_t)pDepthStencil->mDesc.mSampleCount,
 				(uint32_t)pDepthStencil->mDesc.mSrgb,
+				pLoadActions ? (uint32_t)pLoadActions->mLoadActionDepth : 0,
+				pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : 0,
 			};
-			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+			renderPassHash = tinystl::hash_state(hashValues, 5, renderPassHash);
 			frameBufferHash = tinystl::hash_state(&pDepthStencil->pTexture->mTextureId, 1, frameBufferHash);
 
 			pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
@@ -4891,6 +4904,9 @@ namespace vk {
 			renderPassDesc.pColorFormats = colorFormats;
 			renderPassDesc.pSrgbValues = srgbValues;
 			renderPassDesc.mDepthStencilFormat = depthStencilFormat;
+			renderPassDesc.pLoadActionsColor = pLoadActions ? pLoadActions->mLoadActionsColor : NULL;
+			renderPassDesc.mLoadActionDepth = pLoadActions ? pLoadActions->mLoadActionDepth : LOAD_ACTION_DONTCARE;
+			renderPassDesc.mLoadActionStencil = pLoadActions ? pLoadActions->mLoadActionStencil : LOAD_ACTION_DONTCARE;
 			add_render_pass(pCmd->pRenderer, &renderPassDesc, &pRenderPass);
 
 			// No need of a lock here since this map is per thread
@@ -4928,59 +4944,33 @@ namespace vk {
 		pCmd->mBoundWidth = pFrameBuffer->mWidth;
 		pCmd->mBoundHeight = pFrameBuffer->mHeight;
 
+		uint32_t clearValueCount = renderTargetCount;
+		VkClearValue clearValues[MAX_RENDER_TARGET_ATTACHMENTS + 1] = {};
+		if (pLoadActions)
+		{
+			for (uint32_t i = 0; i < renderTargetCount; ++i)
+			{
+				ClearValue clearValue = pLoadActions->mClearColorValues[i];
+				clearValues[i].color = { clearValue.r, clearValue.g, clearValue.b, clearValue.a };
+			}
+			if (pDepthStencil)
+			{
+				clearValues[renderTargetCount].depthStencil = { pLoadActions->mClearDepth.depth, pLoadActions->mClearDepth.stencil };
+				++clearValueCount;
+			}
+		}
+
 		DECLARE_ZERO(VkRenderPassBeginInfo, begin_info);
 		begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		begin_info.pNext = NULL;
 		begin_info.renderPass = pRenderPass->pRenderPass;
 		begin_info.framebuffer = pFrameBuffer->pFramebuffer;
 		begin_info.renderArea = render_area;
-		begin_info.clearValueCount = 0; // we will clear on our own
-		begin_info.pClearValues = NULL;
+		begin_info.clearValueCount = clearValueCount;
+		begin_info.pClearValues = clearValues;
 
 		vkCmdBeginRenderPass(pCmd->pVkCmdBuf, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 		pCmd->pVkActiveRenderPass = pRenderPass->pRenderPass;
-
-		// Process clear actions
-		if (pLoadActions)
-		{
-			DECLARE_ZERO(VkClearRect, rect);
-			rect.baseArrayLayer = 0;
-			rect.layerCount = pFrameBuffer->mArraySize;
-			rect.rect.offset.x = 0;
-			rect.rect.offset.y = 0;
-			rect.rect.extent.width = pFrameBuffer->mWidth;
-			rect.rect.extent.height = pFrameBuffer->mHeight;
-
-			for (uint32_t i = 0; i < renderTargetCount; ++i)
-			{
-				if (pLoadActions->mLoadActionsColor[i] == LOAD_ACTION_CLEAR)
-				{
-					DECLARE_ZERO(VkClearAttachment, attachment);
-					attachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-					attachment.colorAttachment = i;
-					attachment.clearValue.color.float32[0] = pLoadActions->mClearColorValues[i].r;
-					attachment.clearValue.color.float32[1] = pLoadActions->mClearColorValues[i].g;
-					attachment.clearValue.color.float32[2] = pLoadActions->mClearColorValues[i].b;
-					attachment.clearValue.color.float32[3] = pLoadActions->mClearColorValues[i].a;
-					vkCmdClearAttachments(pCmd->pVkCmdBuf, 1, &attachment, 1, &rect);
-				}
-			}
-			if (pLoadActions->mLoadActionDepth == LOAD_ACTION_CLEAR || pLoadActions->mLoadActionStencil == LOAD_ACTION_CLEAR)
-			{
-				VkImageAspectFlags flag = 0;
-				if (pLoadActions->mLoadActionDepth == LOAD_ACTION_CLEAR)
-					flag |= VK_IMAGE_ASPECT_DEPTH_BIT;
-				if (pLoadActions->mLoadActionStencil == LOAD_ACTION_CLEAR)
-					flag |= VK_IMAGE_ASPECT_STENCIL_BIT;
-
-				DECLARE_ZERO(VkClearAttachment, attachment);
-				attachment.aspectMask = flag;
-				attachment.clearValue.depthStencil.depth = pLoadActions->mClearDepth.depth;
-				attachment.clearValue.depthStencil.stencil = pLoadActions->mClearDepth.stencil;
-
-				vkCmdClearAttachments(pCmd->pVkCmdBuf, 1, &attachment, 1, &rect);
-			}
-		}
 	}
 
 	void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)

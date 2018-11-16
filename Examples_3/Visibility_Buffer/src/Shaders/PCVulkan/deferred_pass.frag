@@ -59,7 +59,9 @@ void main()
 
 	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
 	// Reconstruct normal map Z from X and Y
-	vec2 normalMapRG = texture(sampler2D(normalMaps[NonUniformResourceIndex(materialID)], textureFilter), iTexCoord).rg;
+	vec4 normalData = texture(sampler2D(normalMaps[NonUniformResourceIndex(materialID)], textureFilter), iTexCoord);
+
+	vec2 normalMapRG = normalData.ga;
 
 	vec3 reconstructedNormalMap;
 	reconstructedNormalMap.xy = normalMapRG * 2 - 1;
@@ -71,7 +73,8 @@ void main()
 	vec3 binormal = normalize(cross(tangent, normal));
 	// Calculate pixel normal using the normal map and the tangent space vectors
 	oColor = texture(sampler2D(diffuseMaps[NonUniformResourceIndex(materialID)], textureFilter), iTexCoord);
-	oNormal = vec4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0);
+	oColor.a = 0.0;
+	oNormal = vec4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
 	oSpecular = texture(sampler2D(specularMaps[NonUniformResourceIndex(materialID)], textureFilter), iTexCoord);
 	oSimulation = vec4(0,0,0,0);
 }

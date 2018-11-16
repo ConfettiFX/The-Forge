@@ -113,7 +113,7 @@ bool Thread::IsMainThread()
 }
 
 
-ThreadHandle _createThread(WorkItem* pData)
+ThreadHandle create_thread(WorkItem* pData)
 {
 	pthread_t handle;
 	int res = pthread_create(&handle,NULL,ThreadFunctionStatic,pData);
@@ -121,13 +121,13 @@ ThreadHandle _createThread(WorkItem* pData)
 	return (ThreadHandle)handle;
 }
 
-void _destroyThread(ThreadHandle handle)
+void destroy_thread(ThreadHandle handle)
 {
 	pthread_join(handle, NULL);
 	handle = NULL;
 }
 
-void _joinThread(ThreadHandle handle)
+void join_thread(ThreadHandle handle)
 {
 	pthread_join(handle, NULL);
 }

@@ -107,9 +107,9 @@ public:
 		// Create Vertex Buffer
 		const float3 vertices[] =
 		{
-			float3(0,		 1,  0),
-			float3(0.866f,  -0.5f, 0),
-			float3(-0.866f, -0.5f, 0),
+			float3(0.0f,	1.0f,  0.0f),
+			float3(0.866f,  -0.5f, 0.0f),
+			float3(-0.866f, -0.5f, 0.0f),
 		};
 		BufferLoadDesc vbDesc = {};
 		vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;

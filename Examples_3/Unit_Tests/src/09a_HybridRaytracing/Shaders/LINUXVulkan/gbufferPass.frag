@@ -47,7 +47,7 @@ layout(push_constant) uniform cbTextureRootConstantsData
 	uint aoMap;
 } cbTextureRootConstants;
 
-layout(set = 0, binding = 6) uniform texture2D textureMaps[256];
+layout(set = 0, binding = 6) uniform texture2D textureMaps[TOTAL_IMGS];
 layout(set = 0, binding = 7) uniform sampler samplerLinear;
 
 //SamplerState samplerLinear : register(s2);

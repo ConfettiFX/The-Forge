@@ -31,8 +31,20 @@ struct Renderer;
 
 typedef struct TextDrawDesc
 {
-	TextDrawDesc(uint font = 0, uint32_t color = 0xffffffff, float size = 15.0f, float spacing = 0.0f, float blur = 0.0f) :
-		mFontID(font), mFontColor(color), mFontSize(size), mFontSpacing(spacing), mFontBlur(blur) {}
+	TextDrawDesc
+	(
+		  uint font = 0
+		, uint32_t color = 0xffffffff
+		, float size = 15.0f
+		, float spacing = 0.0f
+		, float blur = 0.0f
+	) 
+		: mFontID(font)
+		, mFontColor(color)
+		, mFontSize(size)
+		, mFontSpacing(spacing)
+		, mFontBlur(blur) 
+	{}
 
 	uint32_t mFontID;
 	uint32_t mFontColor;
@@ -68,7 +80,7 @@ public:
 
 	//! Measure text boundaries. Results will be written to out_bounds (x,y,x2,y2).
 	float measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
-	float measureText(float* out_bounds, const char* message, int messageLength, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
+	
 protected:
 	float m_fFontMaxSize;
 	class _Impl_FontStash* impl;

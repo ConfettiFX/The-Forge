@@ -154,9 +154,9 @@ typedef void* ThreadHandle;
 typedef pthread_t ThreadHandle;
 #endif
 
-ThreadHandle _createThread(WorkItem* pItem);
-void _destroyThread(ThreadHandle handle);
-void _joinThread(ThreadHandle handle);
+ThreadHandle create_thread(WorkItem* pItem);
+void destroy_thread(ThreadHandle handle);
+void join_thread(ThreadHandle handle);
 
 struct Thread
 {

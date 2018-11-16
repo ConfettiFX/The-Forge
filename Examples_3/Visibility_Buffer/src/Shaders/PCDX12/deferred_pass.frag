@@ -34,11 +34,14 @@ struct PsIn
 };
 
 ConstantBuffer<RootConstant> indirectRootConstant : register(b1);
-StructuredBuffer<uint> indirectMaterialBuffer : register(t0);
-StructuredBuffer<MeshConstants> meshConstantsBuffer : register(t1);
+
 Texture2D diffuseMaps[] : register(t0, space1);
 Texture2D normalMaps[] : register(t0, space2);
 Texture2D specularMaps[] : register(t0, space3);
+
+StructuredBuffer<uint> indirectMaterialBuffer: register(t0);
+StructuredBuffer<MeshConstants> meshConstantsBuffer : register(t1);
+
 SamplerState textureFilter : register(s0);
 
 struct PSOut
@@ -52,12 +55,20 @@ struct PSOut
 PSOut main(PsIn In)
 {
     PSOut Out = (PSOut)0;
-    uint matBaseSlot = BaseMaterialBuffer(false, 1); //1 is camera view, 0 is shadow map view
-    uint materialID = indirectMaterialBuffer[matBaseSlot + indirectRootConstant.drawId];
+
+	 uint matBaseSlot = BaseMaterialBuffer(false, 1); //1 is camera view, 0 is shadow map view
+     uint materialID = indirectMaterialBuffer[matBaseSlot + indirectRootConstant.drawId];
+
+	 Out.albedo = diffuseMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord);
+
+
+   
 
     // CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
     // Reconstruct normal map Z from X and Y
-    float2 normalMapRG = normalMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord).rg;
+    float4 normalData = normalMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord);
+
+	float2 normalMapRG = normalData.ga;
 
     float3 reconstructedNormalMap;
     reconstructedNormalMap.xy = normalMapRG * 2 - 1;
@@ -68,8 +79,9 @@ PSOut main(PsIn In)
     // Calculate vertex binormal from normal and tangent
     float3 binormal = normalize(cross(tangent, normal));
     // Calculate pixel normal using the normal map and the tangent space vectors
-    Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0);
-    Out.albedo = diffuseMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord);
+    Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
+	Out.albedo.a = 0.0;
     Out.specular = specularMaps[NonUniformResourceIndex(materialID)].Sample(textureFilter, In.texCoord);
+	
     return Out;
 }

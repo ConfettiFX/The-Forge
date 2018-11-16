@@ -398,7 +398,7 @@ bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 		return false;
 	}
 
-	pHandle = _openFile(fileName, pszFileAccessFlags[mode]);
+	pHandle = open_file(fileName, pszFileAccessFlags[mode]);
 
 	if (!pHandle)
 	{
@@ -431,7 +431,7 @@ void File::Close()
 {
 	if (pHandle)
 	{
-		_closeFile(pHandle);
+		close_file(pHandle);
 		pHandle = 0;
 		mPosition = 0;
 		mSize = 0;
@@ -443,7 +443,7 @@ void File::Close()
 void File::Flush()
 {
 	if (pHandle)
-		_flushFile(pHandle);
+		flush_file(pHandle);
 }
 
 unsigned File::Read(void* dest, unsigned size)
@@ -467,11 +467,11 @@ unsigned File::Read(void* dest, unsigned size)
 
 	if (mReadSyncNeeded)
 	{
-		_seekFile(pHandle, mPosition + mOffset, SEEK_SET);
+		seek_file(pHandle, mPosition + mOffset, SEEK_SET);
 		mReadSyncNeeded = false;
 	}
 
-	size = (unsigned int)_readFile(dest, size, pHandle);
+	size = (unsigned int)read_file(dest, size, pHandle);
 	mWriteSyncNeeded = true;
 	mPosition += size;
 	return size;
@@ -503,7 +503,7 @@ unsigned File::Seek(unsigned position, SeekDir seekDir /* = SeekDir::SEEK_DIR_BE
 	default:
 		break;
 	}
-	_seekFile(pHandle, position + mOffset, origin);
+	seek_file(pHandle, position + mOffset, origin);
 	mPosition = position;
 	mReadSyncNeeded = false;
 	mWriteSyncNeeded = false;
@@ -529,17 +529,17 @@ unsigned File::Write(const void* data, unsigned size)
 
 	if (mWriteSyncNeeded)
 	{
-		_seekFile(pHandle, mPosition + mOffset, SEEK_SET);
+		seek_file(pHandle, mPosition + mOffset, SEEK_SET);
 		mWriteSyncNeeded = false;
 	}
 
 	// fwrite returns how many bytes were written.
 	// which should be the same as size.
 	// If not, then it's a write error.
-	if (_writeFile(data, size, pHandle) != 1)
+	if (write_file(data, size, pHandle) != 1)
 	{
 		// Return to the position where the write began
-		_seekFile(pHandle, mPosition + mOffset, SEEK_SET);
+		seek_file(pHandle, mPosition + mOffset, SEEK_SET);
 		LOGERROR("Error while writing to file " + GetName());
 		return 0;
 	}
@@ -699,15 +699,15 @@ void FileSystem::ClearModifiedRootPaths()
 
 unsigned FileSystem::GetLastModifiedTime(const tinystl::string& fileName)
 {
-	return (unsigned)_getFileLastModifiedTime(fileName);
+	return (unsigned)get_file_last_modified_time(fileName);
 }
 
 unsigned FileSystem::GetFileSize(FileHandle handle)
 {
-	long curPos = _tellFile((::FILE*)handle);
-	_seekFile(handle, 0, SEEK_END);
-	size_t length = _tellFile((::FILE*)handle);
-	_seekFile((::FILE*)handle, curPos, SEEK_SET);
+	long curPos = tell_file((::FILE*)handle);
+	seek_file(handle, 0, SEEK_END);
+	size_t length = tell_file((::FILE*)handle);
+	seek_file((::FILE*)handle, curPos, SEEK_SET);
 	return (unsigned)length;
 }
 
@@ -744,8 +744,8 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 
 #ifdef TARGET_IOS
 	// iOS is deployed on the device so we need to get the
-	// bundle path via _getCurrentDir()
-	const tinystl::string currDir = _getCurrentDir();
+	// bundle path via get_current_dir()
+	const tinystl::string currDir = get_current_dir();
 	if (res.find(currDir, 0) == tinystl::string::npos)
 		res = currDir + "/" + res;
 	res.replace('\\', '/'); // eliminate windows separators here.

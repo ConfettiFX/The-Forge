@@ -55,7 +55,7 @@ layout(location = 2) out vec4 outRoughness;
 
 
 // material parameters
-layout(set = 0, binding = 6) uniform texture2D textureMaps[256];
+layout(set = 0, binding = 6) uniform texture2D textureMaps[TOTAL_IMGS];
 layout(set = 0, binding = 7) uniform sampler defaultSampler;
 
 vec3 getNormalFromMap()

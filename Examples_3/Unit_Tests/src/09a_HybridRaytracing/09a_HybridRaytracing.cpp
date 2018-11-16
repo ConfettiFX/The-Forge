@@ -48,7 +48,6 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 //input
 #include "../../../../Middleware_3/Input/InputSystem.h"
@@ -56,6 +55,7 @@
 
 //asimp importer
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 const float gTimeScale = 0.2f;
 
@@ -915,10 +915,11 @@ public:
 		//Load shaders
 		{
 			//Load shaders for GPrepass
+			ShaderMacro totalImagesShaderMacro = { "TOTAL_IMGS", tinystl::string::format("%i", TOTAL_IMGS) };
 			ShaderLoadDesc shaderGPrepass = {};
 			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0, FSR_SrcShaders };
 #ifndef TARGET_IOS
-			shaderGPrepass.mStages[1] = { "gbufferPass.frag", NULL, 0, FSR_SrcShaders };
+			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
 #else
 			//separate fragment gbuffer pass for iOs that does not use bindless textures
 			shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0, FSR_SrcShaders };
@@ -1562,6 +1563,7 @@ public:
 		desc.mDesc.mSize = dataOffset;
 		desc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		desc.mDesc.mElementCount = desc.mDesc.mSize / sizeof(float4);
+		desc.mDesc.mStructStride = sizeof(float4);
 		desc.pData = bvhTreeNodes;
 		desc.ppBuffer = &BVHBoundingBoxesBuffer;
 		addResource(&desc);

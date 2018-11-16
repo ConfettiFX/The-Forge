@@ -30,7 +30,6 @@ uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
 	return (opaque) ? drawID_primID : (1 << 31) | drawID_primID;
 }
 
-layout(location = 0) in vec2 iTexCoord;
 layout(location = 1) in flat uint iDrawId;
 
 layout(location = 0) out vec4 oColor;

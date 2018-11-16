@@ -206,7 +206,7 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 float2 getMousePosition()
 {
 	NSPoint mouseLoc = [NSEvent mouseLocation];
-	return float2(mouseLoc.x, mouseLoc.y);
+	return float2((float)mouseLoc.x, (float)mouseLoc.y);
 }
 
 bool getKeyDown(int key)

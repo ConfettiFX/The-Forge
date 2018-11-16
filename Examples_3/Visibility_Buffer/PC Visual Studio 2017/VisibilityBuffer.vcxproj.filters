@@ -201,5 +201,65 @@
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.vert">
       <Filter>Shaders\PCDirectX12</Filter>
     </None>
+    <None Include="..\src\Shaders\PCDX12\skybox.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\skybox.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\display.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\display.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\panoToCube.comp">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\CurveConversion.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\sun.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\sun.vert">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\godray.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCDX12\resolveGodray.frag">
+      <Filter>Shaders\PCDirectX12</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\CurveConversion.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\display.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\display.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\godray.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\panoToCube.comp">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\resolveGodray.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\skybox.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\skybox.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\sun.frag">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\PCVulkan\sun.vert">
+      <Filter>Shaders\PCVulkan</Filter>
+    </None>
   </ItemGroup>
 </Project>

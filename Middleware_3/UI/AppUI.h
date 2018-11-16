@@ -393,14 +393,6 @@ struct DepthState;
 struct BlendState;
 struct MeshRingBuffer;
 
-enum UIMaxFontSize
-{
-	UI_MAX_FONT_SIZE_UNDEFINED = 0, // Undefined size, will defaults to use UI_MAX_FONT_SIZE_512
-	UI_MAX_FONT_SIZE_128 = 128,  // Max font size is 12.8f
-	UI_MAX_FONT_SIZE_256 = 256,  // Max font size is 25.6f
-	UI_MAX_FONT_SIZE_512 = 512,  // Max font size is 51.2f
-	UI_MAX_FONT_SIZE_1024 = 1024	// Max font size is 102.4f
-};
 
 typedef struct GuiDesc
 {
@@ -423,19 +415,19 @@ enum GuiComponentFlags
 {
 	GUI_COMPONENT_FLAGS_NONE							= 0,
 	GUI_COMPONENT_FLAGS_NO_TITLE_BAR					= 1 << 0,   // Disable title-bar
-	GUI_COMPONENT_FLAGS_NO_RESIZE					   = 1 << 1,   // Disable user resizing
-	GUI_COMPONENT_FLAGS_NO_MOVE						 = 1 << 2,   // Disable user moving the window
+	GUI_COMPONENT_FLAGS_NO_RESIZE						= 1 << 1,   // Disable user resizing
+	GUI_COMPONENT_FLAGS_NO_MOVE							= 1 << 2,   // Disable user moving the window
 	GUI_COMPONENT_FLAGS_NO_SCROLLBAR					= 1 << 3,   // Disable scrollbars (window can still scroll with mouse or programatically)
-	GUI_COMPONENT_FLAGS_NO_COLLAPSE					 = 1 << 4,   // Disable user collapsing window by double-clicking on it
-	GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE			  = 1 << 5,   // Resize every window to its content every frame
-	GUI_COMPONENT_FLAGS_NO_INPUTS					   = 1 << 6,   // Disable catching mouse or keyboard inputs, hovering test with pass through.
+	GUI_COMPONENT_FLAGS_NO_COLLAPSE						= 1 << 4,   // Disable user collapsing window by double-clicking on it
+	GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE				= 1 << 5,   // Resize every window to its content every frame
+	GUI_COMPONENT_FLAGS_NO_INPUTS						= 1 << 6,   // Disable catching mouse or keyboard inputs, hovering test with pass through.
 	GUI_COMPONENT_FLAGS_MEMU_BAR						= 1 << 7,   // Has a menu-bar
 	GUI_COMPONENT_FLAGS_HORIZONTAL_SCROLLBAR			= 1 << 8,   // Allow horizontal scrollbar to appear (off by default).
-	GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING		   = 1 << 9,   // Disable taking focus when transitioning from hidden to visible state
-	GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS	  = 1 << 10,  // Disable bringing window to front when taking focus (e.g. clicking on it or programatically giving it focus)
-	GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR	   = 1 << 11,  // Always show vertical scrollbar (even if ContentSize.y < Size.y)
-	GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR	 = 1 << 12,  // Always show horizontal scrollbar (even if ContentSize.x < Size.x)
-	GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING	   = 1 << 13,  // Ensure child windows without border uses style.WindowPadding (ignored by default for non-bordered child windows, because more convenient)
+	GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING			= 1 << 9,   // Disable taking focus when transitioning from hidden to visible state
+	GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS		= 1 << 10,  // Disable bringing window to front when taking focus (e.g. clicking on it or programatically giving it focus)
+	GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR		= 1 << 11,  // Always show vertical scrollbar (even if ContentSize.y < Size.y)
+	GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR		= 1 << 12,  // Always show horizontal scrollbar (even if ContentSize.x < Size.x)
+	GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING		= 1 << 13,  // Ensure child windows without border uses style.WindowPadding (ignored by default for non-bordered child windows, because more convenient)
 	GUI_COMPONENT_FLAGS_NO_NAV_INPUT					= 1 << 14,  // No gamepad/keyboard navigation within the window
 	GUI_COMPONENT_FLAGS_NO_NAV_FOCUS					= 1 << 15   // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
 };
@@ -448,18 +440,18 @@ public:
 	void RemoveWidget(IWidget* pWidget);
 
 	class GUIDriver*					pDriver;
-	tinystl::vector<IWidget*>		   mWidgets;
-	float4							  mInitialWindowRect;
-	tinystl::string					 mTitle;
+	tinystl::vector<IWidget*>			mWidgets;
+	float4								mInitialWindowRect;
+	tinystl::string						mTitle;
 	bool								mActive;
 	// UI Component settings that can be modified at runtime by the client.
 	bool								mHasCloseButton;
 	// defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
-	int32_t							 mFlags;
+	int32_t								mFlags;
 
 	// Contextual menus when right clicking the title bar
 	tinystl::vector<tinystl::string>	mContextualMenuLabels;
-	tinystl::vector<WidgetCallback>	 mContextualMenuCallbacks;
+	tinystl::vector<WidgetCallback>		mContextualMenuCallbacks;
 };
 /************************************************************************/
 // Helper Class for removing and adding properties easily
@@ -530,6 +522,10 @@ public:
 /************************************************************************/
 // UI interface for App
 /************************************************************************/
+// undefine the DrawText macro (WinUser.h) if its defined
+#ifdef DrawText
+#undef DrawText
+#endif
 class UIApp : public IMiddleware
 {
 public:
@@ -543,10 +539,29 @@ public:
 	void			Draw(Cmd* cmd);
 
 	uint			LoadFont(const char* pFontPath, uint root);
+
 	GuiComponent*   AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void			RemoveGuiComponent(GuiComponent* pComponent);
 
 	void			Gui(GuiComponent* pGui);
+
+
+	// given a text and TextDrawDesc, this function returns the width and height of the printed text in pixels.
+	//
+	float2			MeasureText(const char* pText, const TextDrawDesc& drawDesc) const;
+
+	// draws the @pText on screen using the @drawDesc descriptor and @screenCoordsInPx.
+	//
+	// Note:
+	// @screenCoordsInPx: (0,0)                       is top left corner of the screen,
+	//                    (screenWidth, screenHeight) is bottom right corner of the screen
+	//
+	void			DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc& drawDesc) const;
+	inline void		DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText) const { TextDrawDesc defaultDesc; DrawText(cmd, screenCoordsInPx, pText, defaultDesc); }
+
+	// draws the @pText in world space by using the linear transformation pipeline.
+	//
+	void			DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const TextDrawDesc& drawDesc, const mat4& matWorld, const mat4& matProjView);
 
 	/************************************************************************/
 	// Data

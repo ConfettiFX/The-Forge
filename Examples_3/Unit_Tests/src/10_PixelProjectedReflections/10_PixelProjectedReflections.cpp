@@ -969,7 +969,7 @@ bool loadModels()
 	return true;
 }
 
-class MaterialPlayground : public IApp
+class PixelProjectedReflections : public IApp
 {
 public:
 	bool Init()
@@ -1047,10 +1047,11 @@ public:
 		addSampler(pRenderer, &nearstSamplerDesc, &pSamplerNearest);
 
 		// GBuffer
+		ShaderMacro totalImagesShaderMacro = { "TOTAL_IMGS", tinystl::string::format("%i", TOTAL_IMGS) };
 		ShaderLoadDesc gBuffersShaderDesc = {};
 		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, FSR_SrcShaders };
 #ifndef TARGET_IOS
-		gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", NULL, 0, FSR_SrcShaders };
+		gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
 #else
 		gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0, FSR_SrcShaders };
 #endif
@@ -1685,6 +1686,7 @@ public:
 		deferredPassPipelineSettings.mRenderTargetCount = DEFERRED_RT_COUNT;
 		deferredPassPipelineSettings.pDepthState = NULL;
 
+		deferredPassPipelineSettings.mRenderTargetCount = 1;
 		deferredPassPipelineSettings.pColorFormats = deferredFormats;
 		deferredPassPipelineSettings.pSrgbValues = deferredSrgb;
 		deferredPassPipelineSettings.mSampleCount = pRenderTargetDeferredPass[0]->mDesc.mSampleCount;
@@ -1983,7 +1985,7 @@ public:
 		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
 
 
-		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, pRenderTargetDeferredPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth, (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth, pRenderTargetDeferredPass[0]->mDesc.mHeight);
 
@@ -2000,6 +2002,11 @@ public:
 		cmdBindDescriptors(cmd, pSkyboxRootSignature, 2, skyParams);
 		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
+
+
+		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth, (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth, pRenderTargetDeferredPass[0]->mDesc.mHeight);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		// Draw Sponza
@@ -2758,4 +2765,4 @@ void assignSponzaTextures()
 	gSponzaTextureIndexforMaterial.push_back(AO);
 }
 
-DEFINE_APPLICATION_MAIN(MaterialPlayground)
+DEFINE_APPLICATION_MAIN(PixelProjectedReflections)

@@ -25,7 +25,6 @@
 */
 
 layout(location = 0) out vec2 oScreenPos;
-layout(location = 1) out flat uint oTriangleId;
 
 // Vertex shader
 void main()
@@ -39,5 +38,4 @@ void main()
     gl_Position.y = (gl_VertexIndex == 0 ? -3.0f : 1.0f);
     gl_Position.zw = vec2(0, 1);
     oScreenPos = gl_Position.xy;
-    oTriangleId = gl_VertexIndex / 3;
 }

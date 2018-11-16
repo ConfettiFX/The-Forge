@@ -57,11 +57,13 @@ layout (location = 0) out vec4 WorldPosition;
 layout (location = 1) out vec4 NormalOut;
 layout (location = 2) out vec4 UV;
 layout (location = 3) flat out uint MatID;
+#ifdef PHENOMENOLOGICAL_TRANSPARENCY
 #if (PT_USE_REFRACTION + PT_USE_DIFFUSION) != 0
 layout (location = 4) out vec4 CSPosition;
 #endif
 #if PT_USE_REFRACTION != 0
 layout (location = 5) out vec4 CSNormal;
+#endif
 #endif
 
 
@@ -74,11 +76,13 @@ void main()
 	gl_Position = camViewProj * WorldPosition;
 	MatID = objectInfo[instanceID].matID;
 
+#ifdef PHENOMENOLOGICAL_TRANSPARENCY
 #if (PT_USE_REFRACTION + PT_USE_DIFFUSION) != 0
 	CSPosition = camViewMat * WorldPosition;
 #endif
 #if PT_USE_REFRACTION != 0
 	CSNormal = camViewMat * vec4(NormalOut.xyz, 0);
 	CSNormal.xyz = normalize(CSNormal.xyz);
+#endif
 #endif
 }

@@ -52,44 +52,44 @@ const char* pszRoots[FSR_Count] =
 	RESOURCE_DIR "/",					// FSR_Lib0_SrcShaders
 };
 
-FileHandle _openFile(const char* filename, const char* flags)
+FileHandle open_file(const char* filename, const char* flags)
 {
 	FILE* fp;
 	fopen_s(&fp, filename, flags);
 	return fp;
 }
 
-void _closeFile(FileHandle handle)
+void close_file(FileHandle handle)
 {
 	fclose((::FILE*)handle);
 }
 
-void _flushFile(FileHandle handle)
+void flush_file(FileHandle handle)
 {
 	fflush((::FILE*)handle);
 }
 
-size_t _readFile(void *buffer, size_t byteCount, FileHandle handle)
+size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {
 	return fread(buffer, 1, byteCount, (::FILE*)handle);
 }
 
-bool _seekFile(FileHandle handle, long offset, int origin)
+bool seek_file(FileHandle handle, long offset, int origin)
 {
 	return fseek((::FILE*)handle, offset, origin) == 0;
 }
 
-long _tellFile(FileHandle handle)
+long tell_file(FileHandle handle)
 {
 	return ftell((::FILE*)handle);
 }
 
-size_t _writeFile(const void *buffer, size_t byteCount, FileHandle handle)
+size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
 	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
 }
 
-size_t _getFileLastModifiedTime(const char* _fileName)
+size_t get_file_last_modified_time(const char* _fileName)
 {
 	struct stat fileInfo;
 
@@ -104,14 +104,14 @@ size_t _getFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-tinystl::string _getCurrentDir()
+tinystl::string get_current_dir()
 {
 	char curDir[MAX_PATH];
 	GetCurrentDirectoryA(MAX_PATH, curDir);
 	return tinystl::string (curDir);
 }
 
-tinystl::string _getExePath()
+tinystl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
@@ -119,7 +119,7 @@ tinystl::string _getExePath()
 	return tinystl::string(exeName);
 }
 
-tinystl::string _getAppPrefsDir(const char *org, const char *app)
+tinystl::string get_app_prefs_dir(const char *org, const char *app)
 {
 	/*
 	* Vista and later has a new API for this, but SHGetFolderPath works there,
@@ -168,7 +168,7 @@ tinystl::string _getAppPrefsDir(const char *org, const char *app)
 	return tinystl::string (path);
 }
 
-tinystl::string _getUserDocumentsDir()
+tinystl::string get_user_documents_dir()
 {
 	char pathName[MAX_PATH];
 	pathName[0] = 0;
@@ -176,12 +176,12 @@ tinystl::string _getUserDocumentsDir()
 	return tinystl::string(pathName);
 }
 
-void _setCurrentDir(const char* path)
+void set_current_dir(const char* path)
 {
 	SetCurrentDirectoryA(path);
 }
 
-void _getFilesWithExtension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
 {
 	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	WIN32_FIND_DATAA fd;

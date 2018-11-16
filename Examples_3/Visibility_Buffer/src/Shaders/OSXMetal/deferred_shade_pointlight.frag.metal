@@ -43,36 +43,97 @@ struct VSOutput
     float3 lightPos;
 };
 
+struct RootConstantDrawSceneData
+{
+	float4 lightColor;
+	uint lightingMode;
+	uint outputMode;
+	float4 CameraPlane; //x : near, y : far
+};
+
 fragment float4 stageMain(VSOutput input                                        [[stage_in]],
                           uint32_t sampleID                                     [[sample_id]],
                           constant PerFrameConstants& uniforms                  [[buffer(1)]],
+						  constant RootConstantDrawSceneData& RootConstantDrawScene          [[buffer(2)]],
 #if SAMPLE_COUNT > 1
-                          texture2d_ms<float,access::read> gBufferNormal        [[texture(0)]],
-                          texture2d_ms<float,access::read> gBufferSpecular      [[texture(1)]],
-                          texture2d_ms<float,access::read> gBufferSimulation    [[texture(2)]],
-                          depth2d_ms<float,access::read> gBufferDepth           [[texture(3)]])
+						  texture2d_ms<float,access::read> gBufferColor         [[texture(0)]],
+						  texture2d_ms<float,access::read> gBufferNormal        [[texture(1)]],
+                          texture2d_ms<float,access::read> gBufferSpecular      [[texture(2)]],
+                          texture2d_ms<float,access::read> gBufferSimulation    [[texture(3)]],
+                          depth2d_ms<float,access::read> gBufferDepth           [[texture(4)]])
 #else
-                          texture2d<float,access::read> gBufferNormal           [[texture(0)]],
-                          texture2d<float,access::read> gBufferSpecular         [[texture(1)]],
-                          texture2d<float,access::read> gBufferSimulation       [[texture(2)]],
-                          depth2d<float,access::read> gBufferDepth              [[texture(3)]])
+						  texture2d<float,access::read> gBufferColor            [[texture(0)]],
+						  texture2d<float,access::read> gBufferNormal           [[texture(1)]],
+                          texture2d<float,access::read> gBufferSpecular         [[texture(2)]],
+                          texture2d<float,access::read> gBufferSimulation       [[texture(3)]],
+                          depth2d<float,access::read> gBufferDepth              [[texture(4)]])
 #endif
 {
+	float4 albedoData = gBufferColor.read(uint2(input.position.xy), sampleID);
     float4 normalData = gBufferNormal.read(uint2(input.position.xy), sampleID);
     if (normalData.x == 0 && normalData.y == 0 && normalData.z == 0) return float4(0);
 
     float depth = gBufferDepth.read(uint2(input.position.xy), sampleID);
     float4 specularData = gBufferSpecular.read(uint2(input.position.xy), sampleID);
     float4 simulation = gBufferSimulation.read(uint2(input.position.xy), sampleID);
-    
-    bool twoSided = (normalData.w > 0.5);
-    
+	
     float3 normal = normalData.xyz * 2.0 - 1.0;
     float2 screenPos = ((input.position.xy / uniforms.cullingViewports[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
     screenPos.y = -screenPos.y;
     float4 position = uniforms.transform[VIEW_CAMERA].invVP * float4(screenPos,depth,1) + simulation;
     float3 posWS = position.xyz / position.w;
-    
-    float3 color = pointLightShade(input.lightPos, input.color, float4(uniforms.camPos).xyz, posWS, normal, specularData.xyz, twoSided);
-    return float4(color,1);
+	
+	bool isTwoSided = (albedoData.a > 0.5);
+	bool isBackFace = false;
+	
+	float3 ViewVec = normalize(uniforms.camPos.xyz - posWS.xyz);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+	
+	float3 HalfVec = normalize(ViewVec - uniforms.lightDir.xyz);
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+	
+	float NoL = dot(normal, -uniforms.lightDir.xyz);
+	
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+	
+	float3 F0 = specularData.xyz;
+	float3 DiffuseColor = albedoData.xyz;
+	
+	float Roughness = specularData.w;
+	float Metallic = normalData.w;
+	
+	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
+	
+	float3 color = pointLightShade(
+								   normal,
+								   ViewVec,
+								   HalfVec,
+								   ReflectVec,
+								   NoL,
+								   NoV,
+								   input.lightPos,
+								   input.color,
+								   float4(uniforms.camPos).xyz + simulation.xyz,
+								   float4(uniforms.lightDir).xyz,
+								   position,
+								   posWS,
+								   DiffuseColor,
+								   F0,
+								   Roughness,
+								   Metallic,
+								   isBackFace,
+								   fLightingMode);
+	
+	return float4(color, 1.0);
 }

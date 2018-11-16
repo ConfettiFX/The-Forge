@@ -962,6 +962,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <None Include="..\src\Shaders\PCDX12\clear_buffers.comp" />
     <None Include="..\src\Shaders\PCDX12\clear_light_clusters.comp" />
     <None Include="..\src\Shaders\PCDX12\cluster_lights.comp" />
+    <None Include="..\src\Shaders\PCDX12\CurveConversion.frag" />
     <None Include="..\src\Shaders\PCDX12\deferred_pass.frag" />
     <None Include="..\src\Shaders\PCDX12\deferred_pass.vert" />
     <None Include="..\src\Shaders\PCDX12\deferred_pass_alpha.frag" />
@@ -969,13 +970,22 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <None Include="..\src\Shaders\PCDX12\deferred_shade.vert" />
     <None Include="..\src\Shaders\PCDX12\deferred_shade_pointlight.frag" />
     <None Include="..\src\Shaders\PCDX12\deferred_shade_pointlight.vert" />
+    <None Include="..\src\Shaders\PCDX12\display.frag" />
+    <None Include="..\src\Shaders\PCDX12\display.vert" />
+    <None Include="..\src\Shaders\PCDX12\godray.frag" />
     <None Include="..\src\Shaders\PCDX12\HDAO.frag" />
     <None Include="..\src\Shaders\PCDX12\HDAO.vert" />
+    <None Include="..\src\Shaders\PCDX12\panoToCube.comp" />
     <None Include="..\src\Shaders\PCDX12\resolve.frag" />
     <None Include="..\src\Shaders\PCDX12\resolve.vert" />
+    <None Include="..\src\Shaders\PCDX12\resolveGodray.frag" />
     <None Include="..\src\Shaders\PCDX12\shadow_pass.vert" />
     <None Include="..\src\Shaders\PCDX12\shadow_pass_alpha.frag" />
     <None Include="..\src\Shaders\PCDX12\shadow_pass_alpha.vert" />
+    <None Include="..\src\Shaders\PCDX12\skybox.frag" />
+    <None Include="..\src\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\Shaders\PCDX12\sun.frag" />
+    <None Include="..\src\Shaders\PCDX12\sun.vert" />
     <None Include="..\src\Shaders\PCDX12\triangle_filtering.comp" />
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass.frag" />
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass.vert" />
@@ -983,6 +993,16 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass_alpha.vert" />
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.frag" />
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.vert" />
+    <None Include="..\src\Shaders\PCVulkan\CurveConversion.frag" />
+    <None Include="..\src\Shaders\PCVulkan\display.frag" />
+    <None Include="..\src\Shaders\PCVulkan\display.vert" />
+    <None Include="..\src\Shaders\PCVulkan\godray.frag" />
+    <None Include="..\src\Shaders\PCVulkan\panoToCube.comp" />
+    <None Include="..\src\Shaders\PCVulkan\resolveGodray.frag" />
+    <None Include="..\src\Shaders\PCVulkan\skybox.frag" />
+    <None Include="..\src\Shaders\PCVulkan\skybox.vert" />
+    <None Include="..\src\Shaders\PCVulkan\sun.frag" />
+    <None Include="..\src\Shaders\PCVulkan\sun.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>

@@ -24,14 +24,10 @@
  * under the License.
 */
 
-
-layout(location = 0) out vec2 oTexCoord;
-
 void main()
 {
 	// Produce a fullscreen triangle	
 	gl_Position.x = (gl_VertexIndex == 2) ? 3.0 : -1.0;
 	gl_Position.y = (gl_VertexIndex == 0) ? -3.0 : 1.0;
 	gl_Position.zw = vec2(0.0f, 1.0f);
-	oTexCoord = gl_Position.xy * vec2(.5f, -.5f) + vec2(.5f, .5f);
 }

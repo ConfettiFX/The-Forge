@@ -22,6 +22,16 @@
 		B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7F20EC387C00592362 /* ModelIO.framework */; };
 		B28506F71F4FB0280013C61A /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28506F61F4FB0270013C61A /* MemoryTrackingManager.cpp */; };
 		B2B6F7DC20F414AC0059F2B0 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B6F7DB20F414AC0059F2B0 /* Fontstash.cpp */; };
+		B2EFFDC92196471C009A9637 /* skybox.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDBE2196471C009A9637 /* skybox.frag.metal */; };
+		B2EFFDCA2196471C009A9637 /* sun.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC02196471C009A9637 /* sun.vert.metal */; };
+		B2EFFDCB2196471C009A9637 /* godray.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC12196471C009A9637 /* godray.frag.metal */; };
+		B2EFFDCC2196471C009A9637 /* skybox.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC22196471C009A9637 /* skybox.vert.metal */; };
+		B2EFFDCD2196471C009A9637 /* panoToCube.comp.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */; };
+		B2EFFDCE2196471C009A9637 /* CurveConversion.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */; };
+		B2EFFDCF2196471C009A9637 /* display.vert.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC52196471C009A9637 /* display.vert.metal */; };
+		B2EFFDD02196471C009A9637 /* sun.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC62196471C009A9637 /* sun.frag.metal */; };
+		B2EFFDD12196471C009A9637 /* display.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC72196471C009A9637 /* display.frag.metal */; };
+		B2EFFDD22196471C009A9637 /* resolveGodray.frag.metal in Sources */ = {isa = PBXBuildFile; fileRef = B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */; };
 		C96E13312007C1CD004363F0 /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C96E13302007C1CD004363F0 /* macOSFileSystem.mm */; };
 		D018D75F20CB9AF9000BEB0D /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75C20CB9AF9000BEB0D /* IrrXML.a */; };
 		D018D76020CB9AF9000BEB0D /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D018D75D20CB9AF9000BEB0D /* assimp.a */; };
@@ -112,6 +122,16 @@
 		B2B6F7D920F414AC0059F2B0 /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B2B6F7DA20F414AC0059F2B0 /* TextShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TextShaders.h; path = ../../Middleware_3/Text/TextShaders.h; sourceTree = "<group>"; };
 		B2B6F7DB20F414AC0059F2B0 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
+		B2EFFDBE2196471C009A9637 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.frag.metal; path = ../src/Shaders/OSXMetal/skybox.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC02196471C009A9637 /* sun.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.vert.metal; path = ../src/Shaders/OSXMetal/sun.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC12196471C009A9637 /* godray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = godray.frag.metal; path = ../src/Shaders/OSXMetal/godray.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC22196471C009A9637 /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.vert.metal; path = ../src/Shaders/OSXMetal/skybox.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panoToCube.comp.metal; path = ../src/Shaders/OSXMetal/panoToCube.comp.metal; sourceTree = "<group>"; };
+		B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = CurveConversion.frag.metal; path = ../src/Shaders/OSXMetal/CurveConversion.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC52196471C009A9637 /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../src/Shaders/OSXMetal/display.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC62196471C009A9637 /* sun.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.frag.metal; path = ../src/Shaders/OSXMetal/sun.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC72196471C009A9637 /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../src/Shaders/OSXMetal/display.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = resolveGodray.frag.metal; path = ../src/Shaders/OSXMetal/resolveGodray.frag.metal; sourceTree = "<group>"; };
 		C94FF50D2008AA50006A07B0 /* resolve.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = resolve.vert.metal; path = ../src/Shaders/OSXMetal/resolve.vert.metal; sourceTree = "<group>"; };
 		C96E13302007C1CD004363F0 /* macOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSFileSystem.mm; path = ../../../Common_3/OS/macOS/macOSFileSystem.mm; sourceTree = SOURCE_ROOT; };
 		C96E13342007C7FE004363F0 /* HDAO.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = HDAO.vert.metal; path = ../src/Shaders/OSXMetal/HDAO.vert.metal; sourceTree = "<group>"; };
@@ -291,6 +311,16 @@
 		D2C8A3D21F13CD650099B68D /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
+				B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */,
+				B2EFFDC72196471C009A9637 /* display.frag.metal */,
+				B2EFFDC52196471C009A9637 /* display.vert.metal */,
+				B2EFFDC12196471C009A9637 /* godray.frag.metal */,
+				B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */,
+				B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */,
+				B2EFFDBE2196471C009A9637 /* skybox.frag.metal */,
+				B2EFFDC22196471C009A9637 /* skybox.vert.metal */,
+				B2EFFDC62196471C009A9637 /* sun.frag.metal */,
+				B2EFFDC02196471C009A9637 /* sun.vert.metal */,
 				C9DCF6361FEAA769008BFA67 /* clear_buffers.comp.metal */,
 				C9DCF6371FEAA769008BFA67 /* clear_light_clusters.comp.metal */,
 				C9DCF6411FEAA76B008BFA67 /* cluster_lights.comp.metal */,
@@ -644,6 +674,7 @@
 				5CA4AFD82088FB22005BB7C6 /* DebugRenderer.cpp in Sources */,
 				B2B6F7DC20F414AC0059F2B0 /* Fontstash.cpp in Sources */,
 				5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */,
+				B2EFFDCD2196471C009A9637 /* panoToCube.comp.metal in Sources */,
 				C96E13312007C1CD004363F0 /* macOSFileSystem.mm in Sources */,
 				D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */,
 				D2B157271F1CD2CA0037A8C8 /* Visibility_Buffer.cpp in Sources */,
@@ -658,19 +689,28 @@
 				D2A295C21FA2096F003AB495 /* GpuProfiler.cpp in Sources */,
 				EA463D001EF81FC5005AC8C7 /* macOSThreadManager.cpp in Sources */,
 				97FD71E72141D6400051A203 /* imgui_widgets.cpp in Sources */,
+				B2EFFDCE2196471C009A9637 /* CurveConversion.frag.metal in Sources */,
 				EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */,
 				D278835E1F327ED300F4362D /* FpsCameraController.cpp in Sources */,
+				B2EFFDCF2196471C009A9637 /* display.vert.metal in Sources */,
 				97FD71E52141D6400051A203 /* imgui_draw.cpp in Sources */,
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */,
+				B2EFFDD02196471C009A9637 /* sun.frag.metal in Sources */,
+				B2EFFDCA2196471C009A9637 /* sun.vert.metal in Sources */,
+				B2EFFDD22196471C009A9637 /* resolveGodray.frag.metal in Sources */,
 				EA463D011EF81FC5005AC8C7 /* MetalRenderer.mm in Sources */,
+				B2EFFDD12196471C009A9637 /* display.frag.metal in Sources */,
+				B2EFFDC92196471C009A9637 /* skybox.frag.metal in Sources */,
 				D278835C1F320D1800F4362D /* GuiCameraController.cpp in Sources */,
 				EA463D021EF81FC5005AC8C7 /* tinyexr.cpp in Sources */,
+				B2EFFDCC2196471C009A9637 /* skybox.vert.metal in Sources */,
 				EA463CFA1EF81FC5005AC8C7 /* AppDelegate.m in Sources */,
 				97FD71DA2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */,
 				EA463D161EF94E43005AC8C7 /* PlatformEvents.cpp in Sources */,
 				B22EE24B21547612009CD7F2 /* imgui_demo.cpp in Sources */,
 				97FD71E32141D6400051A203 /* imgui.cpp in Sources */,
+				B2EFFDCB2196471C009A9637 /* godray.frag.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
