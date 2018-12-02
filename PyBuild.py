@@ -777,18 +777,22 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		sys.exit(-1)
 
 	projects = GetFilesPathByExtension("./Jenkins/","buildproj",False)
+	
+	#if MSBuild tasks were not found then parse all projects
+	if len(projects) == 0:
+		projects = GetFilesPathByExtension("./Examples_3/","sln",False)
 
 	fileList = []
 
 	if not xboxOnly:
 		for proj in projects:
 			#we don't want to build Xbox one solutions when building PC
-			if "Xbox" not in proj:
+			if "Xbox" not in proj and "XBOXOne" not in proj:
 				fileList.append(proj)
 
 	if xboxDefined:
 		for proj in projects:
-			if "Xbox" in proj:
+			if "Xbox" in proj or "XBOXOne" in proj:
 				fileList.append(proj)
 		
 				
@@ -807,23 +811,31 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		#change working directory to sln file
 		os.chdir(rootPath)
 		
-		#configurations = pcConfigurations
+		configurations = pcConfigurations
 		
+		#strip extension
 		filename = proj.split(os.sep)[-1]
+		
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		#if filename == "Aura.buildproj" or filename == 'Unit_Tests_Raytracing.buildproj':
-		#	configurations = ["DebugDx", "ReleaseDx"]
-		#elif filename == "VisibilityBuffer.buildproj" or filename == 'Unit_Tests_Animation.buildproj':
-		#	configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
+		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
+			configurations = ["DebugDx", "ReleaseDx"]
+		elif filename == "VisibilityBuffer.sln" or filename == 'Unit_Tests_Animation.sln':
+			configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
 			
-		if "Xbox" in proj:
+		
+		if "Xbox" in proj or "XBOXOne" in proj:
 			platform = xboxPlatform
 		else:
 			platform = pcPlatform
 				
 		#for conf in configurations:
-		command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;WarningsOnly;Summary","/verbosity:minimal","/t:Build"]
-		retCode = ExecuteBuild(command, filename,"All Configurations", platform)
+		if ".sln" in filename:
+			for conf in configurations:
+				command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Rebuild"]
+				retCode = ExecuteBuild(command, filename,conf, platform)
+		else:
+			command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;WarningsOnly;Summary","/verbosity:minimal","/t:Build"]
+			retCode = ExecuteBuild(command, filename,"All Configurations", platform)
 		
 		if retCode != 0:
 			errorOccured = True
