@@ -34,6 +34,39 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.21 - December 1st, 2018 - Season Greetings with new Skinning Unit Test | Unified Vulkan Shaders
+The team will soon go into winter hybernation mode ... which means many Confetti people will fly home over the holiday season to spend time with their loved ones. We will be back with more releases next year, probably in February. 
+
+To send you season greetings, we extended our Ozz implementation by adding a new Skinning unit test:
+
+PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p
+![PC Windows 10 skinning unit test](Screenshots/Skinning_PC.gif)
+
+Linux Ubuntu 18.04.1 LTS Vulkan 1.1.92 RADEON 480 Driver 18.30 with a resolution of 1920x1080
+![Ubuntu skinning unit test](Screenshots/Skinning_Ubuntu.png)
+
+iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 1920x1080
+![macOS skinning unit test](Screenshots/Skinning_macOS.png)
+
+iPhone 7 iOS 12.0.1 (16A404) with a resolution of 1334x750
+![iOS skinning unit test](Screenshots/Skinning_iOS.png)
+
+XBOX One
+![XBOX One skinning unit test](Screenshots/Skinning_XBOX.png)
+
+- Vulkan: 
+  - all three Vulkan platforms (Windows, Linux, Android) use now the same Vulkan shaders
+  - Upgraded Linux and Windows SDK to 1.1.92.1
+- The math library now supports more integer data types
+- Updated assimp to use latest master + added projects instead of shipping binaries
+- macOS / iOS
+  - Added support for iOS Gestures (Not currently in use in the unit-tests)
+  - Improved pixel projected reflections on Metal Platforms
+  - Upgraded all the XCode projects to target Xcode 10.1 (10B61) and  iOS Version 12.0.1 (16A404) 
+  - Started Testing additionally on A12 Devices Phone Xs Max (Model MT5D2LL/A)
+- Numerous shader translator updates. Head over to [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) check them out :-) It is getting more and more stable.
+
+
 ## Release 1.20 - November 15th, 2018 - Triangle Visibility Buffer with PBR | Ray Marching Unit Test | Font Rendering Dark Mode
 * Triangle Visibility Buffer (PC, XBOX One, macOS, Linux will be supported in the next release): 
   * Added PBR art assets and PBR Lighting (please download the art assets again with the script see Install section below)
@@ -123,7 +156,7 @@ See the release notes from previous releases in the [Release section](https://gi
 3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan [1.1.85](https://vulkan.lunarg.com/sdk/home)
+4. Vulkan [1.1.92.1](https://vulkan.lunarg.com/sdk/home)
 
 
 5. Ray Tracing 
@@ -135,11 +168,12 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 * NVIDIA GeForce 9x, 10x GPUs (various)
 * Intel Skull Canyon
 
+
 # macOS Requirements:
 
 1. macOS: 10.14 (18A389)
 
-2. XCode: 10.0 (10A255)
+2. XCode: 10.1 (10B61)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -153,7 +187,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 12.0 (16A366)
+1. iOS: 12.0.1 (16A404)
 
 2. XCode: see macOS
 
@@ -162,6 +196,7 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 We are currently testing on 
 * iPhone 7 (Model A1778)
 * iPad (Model A1803)
+* iPhone Xs Max (Model MT5D2LL/A)
 
 
 # PC Linux Requirements:
