@@ -1,0 +1,617 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FF393DFD-F110-37FF-821E-278391675B1D}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>Win32</Platform>
+    <ProjectName>assimp</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SOLUTION_DIR)..\win64\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">assimp.dir\$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">assimp</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">assimp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SOLUTION_DIR)..\win64\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">assimp.dir\$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">assimp</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">assimp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(Project_Dir)..\.;$(Project_Dir)..\include;$(Project_Dir)..\win64;$(Project_Dir)..\win64\include;$(Project_Dir)..\contrib\zlib;$(Project_Dir)..\code\..\contrib\rapidjson\include;$(Project_Dir)..\code\..\contrib;$(Project_Dir)..\code\..\contrib\unzip;$(Project_Dir)..\contrib\irrXML;$(Project_Dir)..\code\..\contrib\openddlparser\include;$(Project_Dir)..\code\..\include;$(Project_Dir)\code\..\include;$(Project_Dir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level1</WarningLevel>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X64</AdditionalOptions>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(Project_Dir)..\.;$(Project_Dir)..\include;$(Project_Dir)..\win64;$(Project_Dir)..\win64\include;$(Project_Dir)..\contrib\zlib;$(Project_Dir)..\code\..\contrib\rapidjson\include;$(Project_Dir)..\code\..\contrib;$(Project_Dir)..\code\..\contrib\unzip;$(Project_Dir)..\contrib\irrXML;$(Project_Dir)..\code\..\contrib\openddlparser\include;$(Project_Dir)..\code\..\include;$(Project_Dir)\code\..\include;$(Project_Dir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level1</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(SOLUTION_DIR)..\.;$(SOLUTION_DIR)..\include;$(SOLUTION_DIR)..\win64;$(SOLUTION_DIR)..\win64\include;$(SOLUTION_DIR)..\contrib\zlib;$(SOLUTION_DIR)..\win64\contrib\zlib;$(SOLUTION_DIR)..\code\..\contrib\rapidjson\include;$(SOLUTION_DIR)..\code\..\contrib;$(SOLUTION_DIR)..\code\..\contrib\unzip;$(SOLUTION_DIR)..\contrib\irrXML;$(SOLUTION_DIR)..\code\..\contrib\openddlparser\include;$(SOLUTION_DIR)..\code\..\include;$(SOLUTION_DIR)..\win64\code\..\include;$(SOLUTION_DIR)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X64</AdditionalOptions>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Assimp.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\BaseImporter.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\BaseProcess.cpp" />
+    <ClCompile Include="..\code\BlenderBMesh.cpp" />
+    <ClCompile Include="..\code\BlenderCustomData.cpp" />
+    <ClCompile Include="..\code\BlenderDNA.cpp" />
+    <ClCompile Include="..\code\BlenderLoader.cpp" />
+    <ClCompile Include="..\code\BlenderModifier.cpp" />
+    <ClCompile Include="..\code\BlenderScene.cpp" />
+    <ClCompile Include="..\code\BlenderTessellator.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\BaseProcess.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\Importer.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ScenePrivate.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\PostStepRegistry.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ImporterRegistry.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\DefaultProgressHandler.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\DefaultIOStream.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\DefaultIOSystem.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\CInterfaceIOWrapper.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\CInterfaceIOWrapper.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Importer.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\IFF.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SGSpatialSort.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\VertexTriangleAdjacency.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\VertexTriangleAdjacency.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SpatialSort.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SceneCombiner.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ScenePreprocessor.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ScenePreprocessor.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SkeletonMeshBuilder.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SplitByBoneCountProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\SplitByBoneCountProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\StandardShapes.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\TargetAnimation.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\TargetAnimation.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\RemoveComments.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Subdivision.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\scene.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Bitmap.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Version.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\CreateAnimMesh.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\simd.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\simd.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\LogStream.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Logger.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\Win32DebugLogStream.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\DefaultLogger.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FileLogStream.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\StdOStreamLogStream.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Exporter.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\AssimpCExport.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\BlobIOSystem.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\CalcTangentsProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\CalcTangentsProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ComputeUVMappingProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ComputeUVMappingProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ConvertToLHProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ConvertToLHProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\EmbedTexturesProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\EmbedTexturesProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FindDegenerates.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FindDegenerates.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FindInstancesProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FindInstancesProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FindInvalidDataProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FindInvalidDataProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FixNormalsStep.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FixNormalsStep.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\DropFaceNormalsProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\DropFaceNormalsProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\GenFaceNormalsProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\GenFaceNormalsProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\GenVertexNormalsProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\GenVertexNormalsProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\PretransformVertices.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\PretransformVertices.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ImproveCacheLocality.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ImproveCacheLocality.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\JoinVerticesProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\JoinVerticesProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\LimitBoneWeightsProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\LimitBoneWeightsProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\RemoveRedundantMaterials.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\RemoveRedundantMaterials.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\RemoveVCProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\RemoveVCProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SortByPTypeProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\SortByPTypeProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\SplitLargeMeshes.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\SplitLargeMeshes.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\TextureTransform.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\TextureTransform.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\TriangulateProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\TriangulateProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ValidateDataStructure.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ValidateDataStructure.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OptimizeGraph.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OptimizeGraph.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OptimizeMeshes.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OptimizeMeshes.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\DeboneProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\DeboneProcess.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ProcessHelper.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ProcessHelper.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\PolyTools.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\MakeVerboseFormat.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\MakeVerboseFormat.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ScaleProcess.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ScaleProcess.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\MaterialSystem.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\MaterialSystem.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\STEPFile.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\Importer\StepFile\StepFileImporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Importer\StepFile\StepFileImporter.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Importer\StepFile\StepFileGen1.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Importer\StepFile\StepFileGen2.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\Importer\StepFile\StepFileGen3.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\Importer\StepFile\StepReaderGen.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\StepExporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\StepExporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ColladaHelper.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ColladaLoader.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ColladaLoader.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ColladaParser.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ColladaParser.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ColladaExporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ColladaExporter.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\IRRMeshLoader.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\IRRMeshLoader.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\IRRShared.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\IRRShared.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\IRRLoader.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\IRRLoader.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ObjFileData.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ObjFileImporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ObjFileImporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ObjFileMtlImporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ObjFileMtlImporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ObjFileParser.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ObjFileParser.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ObjTools.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\ObjExporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\ObjExporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OgreImporter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OgreStructs.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OgreParsingUtils.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OgreBinarySerializer.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\OgreXmlSerializer.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OgreImporter.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OgreStructs.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OgreBinarySerializer.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OgreXmlSerializer.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\OgreMaterial.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXImporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXCompileConfig.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXImporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXParser.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXParser.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXTokenizer.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXTokenizer.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXImportSettings.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXConverter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXConverter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXUtil.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXUtil.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXDocument.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXDocument.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXProperties.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXProperties.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXMeshGeometry.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXMeshGeometry.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXMaterial.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXModel.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXAnimation.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXNodeAttribute.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXDeformer.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXBinaryTokenizer.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXDocumentUtil.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXExporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXExporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXExportNode.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXExportNode.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXExportProperty.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\FBXExportProperty.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\FBXCommon.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\RawLoader.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\RawLoader.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\STLLoader.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\STLLoader.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\STLExporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\STLExporter.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\UnrealLoader.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\UnrealLoader.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTFAsset.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTFAsset.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTFAssetWriter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTFAssetWriter.inl" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\glTFImporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTFImporter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTFExporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\glTFExporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTF2Asset.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTF2Asset.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTF2AssetWriter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTF2AssetWriter.inl" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\glTF2Importer.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTF2Importer.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\code\glTF2Exporter.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\code\glTF2Exporter.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\irrXMLWrapper.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\unzip\crypt.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\unzip\ioapi.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\unzip\ioapi.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\unzip\unzip.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\unzip\unzip.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\common\shapes.cc" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\common\shapes.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\common\utils.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\advancing_front.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\advancing_front.cc" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\cdt.cc" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\cdt.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\sweep.cc" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\sweep.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\sweep_context.cc" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\poly2tri\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\clipper\clipper.hpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\clipper\clipper.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\openddlparser\code\OpenDDLParser.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\openddlparser\code\DDLNode.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\openddlparser\code\OpenDDLCommon.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\openddlparser\code\OpenDDLExport.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\openddlparser\code\Value.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\openddlparser\code\OpenDDLStream.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\OpenDDLParser.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\OpenDDLParserUtils.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\OpenDDLCommon.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\OpenDDLExport.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\OpenDDLStream.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\DDLNode.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\openddlparser\include\openddlparser\Value.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcAdjacencyInfo.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcArithmeticCodec.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcArithmeticCodec.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcBinaryStream.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcCommon.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcDVEncodeParams.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcDynamicVector.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcFIFO.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcIndexedFaceSet.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcIndexedFaceSet.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcSC3DMCDecoder.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcSC3DMCDecoder.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcSC3DMCEncodeParams.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcSC3DMCEncoder.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcSC3DMCEncoder.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTimer.h" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTools.cpp" />
+    <ClCompile Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTriangleFans.cpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTriangleFans.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTriangleListDecoder.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTriangleListDecoder.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTriangleListEncoder.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcTriangleListEncoder.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcVector.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\contrib\Open3DGC\o3dgcVector.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\anim.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\ai_assert.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\camera.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\color4.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\color4.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\win64\include\assimp\config.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\defs.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Defines.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\cfileio.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\light.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\material.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\material.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\matrix3x3.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\matrix3x3.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\matrix4x4.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\matrix4x4.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\mesh.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\postprocess.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\quaternion.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\quaternion.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\scene.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\metadata.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\texture.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\types.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\vector2.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\vector2.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\vector3.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\vector3.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\version.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\cimport.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\importerdesc.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Importer.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\IOStream.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\cexport.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Exporter.hpp" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\fast_atof.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\qnan.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\BaseImporter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Hash.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\StreamReader.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\StreamWriter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\StringComparison.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\StringUtils.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\GenericProperty.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\SpatialSort.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\SmoothingGroups.inl" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\StandardShapes.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\RemoveComments.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Subdivision.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Vertex.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\LineSplitter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Profiler.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\LogAux.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Bitmap.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\XMLTools.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\MathFunctions.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Macros.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Exceptional.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Compiler\poppack1.h" />
+    <ClInclude Include="$(SOLUTION_DIR)..\include\assimp\Compiler\pstdint.h" />
+    <ClInclude Include="..\code\BlenderBMesh.h" />
+    <ClInclude Include="..\code\BlenderCustomData.h" />
+    <ClInclude Include="..\code\BlenderDNA.h" />
+    <ClInclude Include="..\code\BlenderIntermediate.h" />
+    <ClInclude Include="..\code\BlenderLoader.h" />
+    <ClInclude Include="..\code\BlenderModifier.h" />
+    <ClInclude Include="..\code\BlenderScene.h" />
+    <ClInclude Include="..\code\BlenderSceneGen.h" />
+    <ClInclude Include="..\code\BlenderTessellator.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SOLUTION_DIR)..\win64\IrrXML.vcxproj">
+      <Project>{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}</Project>
+      <Name>IrrXML</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="$(SOLUTION_DIR)..\win64\zlibstatic.vcxproj">
+      <Project>{9A562A76-1F59-3628-8142-4667602EE708}</Project>
+      <Name>zlibstatic</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\code\BlenderDNA.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

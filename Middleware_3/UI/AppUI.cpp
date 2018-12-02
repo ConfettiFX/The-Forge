@@ -75,7 +75,7 @@ static void CloneCallbacks(IWidget* pSrc, IWidget* pDst)
 IWidget* CollapsingHeaderWidget::Clone() const
 {
 	CollapsingHeaderWidget* pWidget = conf_placement_new<CollapsingHeaderWidget>(
-		conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mDefaultOpen, this->mCollapsed);
 
 	// Need to read the subwidgets as the destructor will remove them all
 	for (size_t i = 0; i < mGroupedWidgets.size(); ++i)
@@ -284,26 +284,24 @@ IWidget* CheckboxWidget::Clone() const
 /************************************************************************/
 struct UIAppImpl
 {
-	Renderer*								   pRenderer;
-	Fontstash*								  pFontStash;
-	uint32_t									mWidth;
-	uint32_t									mHeight;
+	Renderer*						pRenderer;
+	Fontstash*						pFontStash;
+	uint32_t						mWidth;
+	uint32_t						mHeight;
 
-	tinystl::vector<GuiComponent*>			  mComponents;
+	tinystl::vector<GuiComponent*>	mComponents;
 
-	tinystl::vector<GuiComponent*>  mComponentsToUpdate;
-	float									   mDeltaTime;
+	tinystl::vector<GuiComponent*>	mComponentsToUpdate;
 };
-UIAppImpl* pInst;
 
 bool UIApp::Init(Renderer* renderer)
 {
 	mShowDemoUiWindow = false;
 
 	pImpl = (struct UIAppImpl*)conf_calloc(1, sizeof(*pImpl));
-	pInst = pImpl;
 	pImpl->pRenderer = renderer;
 
+	pDriver = NULL;
 
 	// Initialize the fontstash
 	//
@@ -331,6 +329,13 @@ void UIApp::Exit()
 
 	pImpl->pFontStash->destroy();
 	conf_free(pImpl->pFontStash);
+	
+	if (pDriver)
+	{
+		pDriver->unload();
+		removeGUIDriver(pDriver);
+		pDriver = NULL;
+	}
 
 	pImpl->~UIAppImpl();
 	conf_free(pImpl);
@@ -385,8 +390,11 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 	pComponent->mHasCloseButton = false;
 	pComponent->mFlags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
 
-	initGUIDriver(pImpl->pRenderer, &pComponent->pDriver);
-	pComponent->pDriver->load(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
+	if (!pDriver)
+	{
+		initGUIDriver(pImpl->pRenderer, &pDriver);
+		pDriver->load(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
+	}
 
 	pComponent->mInitialWindowRect =
 	{
@@ -398,6 +406,7 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 
 	pComponent->mActive = true;
 	pComponent->mTitle = pTitle;
+	pComponent->pDriver = pDriver;
 
 	MutexLock lock(gMutex);
 	gInstances.emplace_back(pComponent);
@@ -416,19 +425,10 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 {
 	ASSERT(pComponent);
 
-	for (uint32_t i = 0; i < (uint32_t)pComponent->mWidgets.size(); ++i)
-	{
-		IWidget* pWidget = pComponent->mWidgets[i];
-		pWidget->~IWidget();
-		conf_free(pWidget);
-	}
-
+	pComponent->RemoveAllWidgets();
 	pImpl->mComponents.erase(pImpl->mComponents.find(pComponent));
 
-	pComponent->pDriver->unload();
 	pComponent->mWidgets.clear();
-
-	removeGUIDriver(pComponent->pDriver);
 
 	MutexLock lock(gMutex);
 	gInstances.erase(gInstances.find(pComponent));
@@ -439,14 +439,17 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 
 void UIApp::Update(float deltaTime)
 {
-	pImpl->mComponentsToUpdate.clear();
-	pImpl->mDeltaTime = deltaTime;
-}
+	if (!pDriver)
+		return;
 
-void UIApp::Draw(Cmd* pCmd)
-{
-	bool hasYetToShowDemoUi = true;
-
+	tinystl::vector<GuiComponent*> activeComponents(pImpl->mComponentsToUpdate.size());
+	uint32_t activeComponentCount = 0;
+	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
+		if (pImpl->mComponentsToUpdate[i]->mActive)
+			activeComponents[activeComponentCount++] = pImpl->mComponentsToUpdate[i];
+	
+	mHovering = pDriver->update(deltaTime, activeComponents.data(), activeComponentCount, mShowDemoUiWindow);
+		
 	// Only on iOS as this only applies to virtual keyboard.
 	// TODO: add Durango at a later stage
 #ifdef TARGET_IOS
@@ -454,36 +457,14 @@ void UIApp::Draw(Cmd* pCmd)
 	//any gui component
 	//if any component requires textInput then this is true.
 	int wantsTextInput = 0;
-#endif
-	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
-	{
-		GuiComponent* pGui = pImpl->mComponentsToUpdate[i];
-		if (!pGui->mActive)
-			continue;
-
-		pGui->pDriver->draw(pCmd, pImpl->mDeltaTime,
-			pGui->mTitle,
-			pGui->mHasCloseButton ? &pGui->mActive : NULL,
-			pGui->mFlags,
-			pGui->mInitialWindowRect.x, pGui->mInitialWindowRect.y, pGui->mInitialWindowRect.z, pGui->mInitialWindowRect.w,
-			pGui->mWidgets.data(), (uint32_t)pGui->mWidgets.size(),
-			pGui->mContextualMenuLabels, pGui->mContextualMenuCallbacks,
-			(hasYetToShowDemoUi && mShowDemoUiWindow) ? true : false);
-
-		if (mShowDemoUiWindow)
-			hasYetToShowDemoUi = false;
-
-#ifdef TARGET_IOS
-		//check if current component requires textInput
-		//only support one type of text
-		//check for bigger that way we enable keyboard with all characters
-		//if there's one widget that requires digits only and one that requires all text
-		if(pGui->pDriver->needsTextInput() > wantsTextInput)
-			wantsTextInput = pGui->pDriver->needsTextInput();
-#endif
-	}
-
-#ifdef TARGET_IOS
+	
+	//check if current component requires textInput
+	//only support one type of text
+	//check for bigger that way we enable keyboard with all characters
+	//if there's one widget that requires digits only and one that requires all text
+	if(pDriver->needsTextInput() > wantsTextInput)
+		wantsTextInput = pDriver->needsTextInput();
+	
 	//if current Virtual keyboard state is not equal to
 	//text input status then toggle the appropriate behavior (hide, show)
 	if(InputSystem::IsVirtualKeyboardActive() != (wantsTextInput > 0))
@@ -491,6 +472,16 @@ void UIApp::Draw(Cmd* pCmd)
 		InputSystem::ToggleVirtualTouchKeyboard(wantsTextInput);
 	}
 #endif
+
+	pImpl->mComponentsToUpdate.clear();
+}
+
+void UIApp::Draw(Cmd* pCmd)
+{
+	if (!pDriver)
+		return;
+
+	pDriver->draw(pCmd);
 }
 
 void UIApp::Gui(GuiComponent* pGui)
@@ -498,9 +489,10 @@ void UIApp::Gui(GuiComponent* pGui)
 	pImpl->mComponentsToUpdate.emplace_back(pGui);
 }
 
-IWidget* GuiComponent::AddWidget(const IWidget& widget)
+IWidget* GuiComponent::AddWidget(const IWidget& widget, bool clone /* = true*/)
 {
-	mWidgets.emplace_back(widget.Clone());
+	mWidgets.emplace_back((clone ? widget.Clone() : (IWidget*)&widget));
+	mWidgetsClone.emplace_back(clone);
 	return mWidgets.back();
 }
 
@@ -510,11 +502,31 @@ void GuiComponent::RemoveWidget(IWidget* pWidget)
 	if (it != mWidgets.end())
 	{
 		IWidget* pWidget = *it;
+		if (mWidgetsClone[it - mWidgets.begin()])
+		{
+			pWidget->~IWidget();
+			conf_free(pWidget);
+			mWidgetsClone.erase(mWidgetsClone.begin() + (it - mWidgets.begin()));
+		}
 		mWidgets.erase(it);
-		pWidget->~IWidget();
-		conf_free(pWidget);
 	}
 }
+
+void GuiComponent::RemoveAllWidgets()
+{
+	for (uint32_t i = 0; i < (uint32_t)mWidgets.size(); ++i)
+	{
+		if (mWidgetsClone[i])
+		{
+			mWidgets[i]->~IWidget();
+			conf_free(mWidgets[i]);
+		}
+	}
+
+	mWidgets.clear();
+	mWidgetsClone.clear();
+}
+
 /************************************************************************/
 /************************************************************************/
 bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, uint root)
@@ -749,7 +761,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraControll
 // Event Handlers
 /************************************************************************/
 	// returns: 0: no input handled, 1: input handled
-bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
+bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver, const float4& currentWindowRect)
 {
 	// Handle the mouse click events:
 	// We want to send ButtonData with click position to the UI system
@@ -768,19 +780,19 @@ bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
 		toSend.mValue[0] = latestUIMoveEventData.mValue[0];
 		toSend.mValue[1] = latestUIMoveEventData.mValue[1];
 
-		PlatformEvents::skipMouseCapture = pDriver->onInput(&toSend);
+		PlatformEvents::skipMouseCapture = pDriver->onInput(&toSend, currentWindowRect);
 		return PlatformEvents::skipMouseCapture;
 	}
 
 	// just relay the rest of the events to the UI and let the UI system process the events
-	return pDriver->onInput(pData);
+	return pDriver->onInput(pData, currentWindowRect);
 }
 
 static bool uiInputEvent(const ButtonData * pData)
 {
 	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
 	{
-		if (gInstances[i]->mActive && OnInput(pData, gInstances[i]->pDriver))
+		if (gInstances[i]->mActive && OnInput(pData, gInstances[i]->pDriver, gInstances[i]->mCurrentWindowRect))
 		{
 			return true;
 		}

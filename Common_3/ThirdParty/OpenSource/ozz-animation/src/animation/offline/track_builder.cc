@@ -166,33 +166,42 @@ Float4Track* TrackBuilder::operator()(const RawFloat4Track& _input) const {
 namespace {
 // Fixes-up successive opposite quaternions that would fail to take the shortest
 // path during the lerp.
+//CONFFX_BEGIN
 template <>
 void Fixup<RawQuaternionTrack::Keyframes>(
     RawQuaternionTrack::Keyframes* _keyframes) {
   assert(_keyframes->size() >= 2);
 
-  const math::Quaternion identity = math::Quaternion::identity();
+  const Quat identity = Quat::identity();
   for (size_t i = 0; i < _keyframes->size(); ++i) {
     RawQuaternionTrack::ValueType& src_key = _keyframes->at(i).value;
 
     // Normalizes input quaternion.
-    src_key = NormalizeSafe(src_key, identity);
+    if (norm(src_key) != 0.f) 
+	{
+      src_key = normalize(src_key);
+    } 
+	else 
+	{
+      src_key = identity;
+    }
 
     // Ensures quaternions are all on the same hemisphere.
     if (i == 0) {
-      if (src_key.w < 0.f) {
+      if (src_key.getW() < 0.f) {
         src_key = -src_key;  // Q an -Q are the same rotation.
       }
     } else {
       RawQuaternionTrack::ValueType& prev_key = _keyframes->at(i - 1).value;
-      const float dot = src_key.x * prev_key.x + src_key.y * prev_key.y +
-                        src_key.z * prev_key.z + src_key.w * prev_key.w;
+      const float dot = src_key.getX() * prev_key.getX() + src_key.getY() * prev_key.getY() +
+                        src_key.getZ() * prev_key.getZ() + src_key.getW() * prev_key.getW();
       if (dot < 0.f) {
         src_key = -src_key;  // Q an -Q are the same rotation.
       }
     }
   }
 }
+//CONFFX_END
 }  // namespace
 
 QuaternionTrack* TrackBuilder::operator()(

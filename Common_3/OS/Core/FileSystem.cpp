@@ -536,7 +536,7 @@ unsigned File::Write(const void* data, unsigned size)
 	// fwrite returns how many bytes were written.
 	// which should be the same as size.
 	// If not, then it's a write error.
-	if (write_file(data, size, pHandle) != 1)
+	if (write_file(data, size, pHandle) != size)
 	{
 		// Return to the position where the write began
 		seek_file(pHandle, mPosition + mOffset, SEEK_SET);
@@ -743,12 +743,18 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 	}
 
 #ifdef TARGET_IOS
-	// iOS is deployed on the device so we need to get the
-	// bundle path via get_current_dir()
-	const tinystl::string currDir = get_current_dir();
-	if (res.find(currDir, 0) == tinystl::string::npos)
-		res = currDir + "/" + res;
-	res.replace('\\', '/'); // eliminate windows separators here.
+	// Dont append bundle path if input path is already an absolute path
+	// Example: Files outside the application folder picked using the Files API, iCloud files, ...
+	if (!absolute_path(res))
+	{
+		// iOS is deployed on the device so we need to get the
+		// bundle path via get_current_dir()
+		const tinystl::string currDir = get_current_dir();
+		if (res.find(currDir, 0) == tinystl::string::npos)
+			res = currDir + "/" + res;
+		
+		res = GetInternalPath(res); // eliminate windows separators here.
+	}
 #endif
 
 	/*
@@ -886,6 +892,14 @@ tinystl::string FileSystem::GetNativePath(const tinystl::string& pathName)
 #else
 	return pathName;
 #endif
+}
+
+bool FileSystem::CopyFile(const tinystl::string& src, const tinystl::string& dst, bool failIfExists)
+{
+	if (failIfExists && FileExists(dst, FSR_Absolute))
+		return false;
+	
+	return copy_file(src, dst);
 }
 
 bool FileSystem::DirExists(const tinystl::string& pathName)

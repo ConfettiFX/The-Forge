@@ -109,7 +109,8 @@ public:
 			}
 		}
 
-		GAINPUT_ASSERT(touchIdx != -1);
+		// #NOTE: touchIdx is -1 whenever gestures are used
+//		GAINPUT_ASSERT(touchIdx != -1);
 		if (touchIdx == -1)
 		{
 			return;
@@ -123,6 +124,12 @@ public:
 			HandleFloat(gainput::Touch0Y + touchIdx*4, y);
 			HandleFloat(gainput::Touch0Pressure + touchIdx*4, z);
 		}
+	}
+	
+	void HandleGesture(DeviceButtonId buttonId, gainput::GestureChange& gesture)
+	{
+		if (delta_)
+			delta_->AddChange(device_.GetDeviceId(), buttonId, gesture);
 	}
 
 private:

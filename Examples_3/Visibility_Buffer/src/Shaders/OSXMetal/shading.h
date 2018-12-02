@@ -388,7 +388,7 @@ float3 pointLightShade(
 					   float isPBR)
 {
 	float3 lVec = (lightPos - position) * (1.0 / LIGHT_SIZE);
-	float3 lightVec = normalize(lVec);
+	//float3 lightVec = normalize(lVec);
 	float atten = saturate(1.0f - dot(lVec, lVec));
 	
 	float3 finalColor;

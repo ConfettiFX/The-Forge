@@ -1,0 +1,738 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DefaultLanguage>en-US</DefaultLanguage>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Durango">
+      <Configuration>Debug</Configuration>
+      <Platform>Durango</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Durango">
+      <Configuration>Release</Configuration>
+      <Platform>Durango</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FF393DFD-F110-37FF-821E-278391675B1D}</ProjectGuid>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>Win32</Platform>
+    <ProjectName>assimp</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+    <XdkEditionTarget>180200</XdkEditionTarget>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Durango'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\Xbox\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">assimp.dir\$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">assimp</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">assimp</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">assimp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\Xbox\Bin\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">assimp.dir\$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">assimp</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">assimp</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">assimp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">.lib</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">
+    <ExecutablePath>$(Console_SdkRoot)bin;$(VCInstallDir)bin\x86_amd64;$(VCInstallDir)bin;$(WindowsSDK_ExecutablePath_x86);$(VSInstallDir)Common7\Tools\bin;$(VSInstallDir)Common7\tools;$(VSInstallDir)Common7\ide;$(ProgramFiles)\HTML Help Workshop;$(MSBuildToolsPath32);$(FxCopDir);$(PATH);</ExecutablePath>
+    <IncludePath>$(Console_SdkIncludeRoot);</IncludePath>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <OutDir>$(ProjectDir)\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)\Temp\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">
+    <ExecutablePath>$(Console_SdkRoot)bin;$(VCInstallDir)bin\x86_amd64;$(VCInstallDir)bin;$(WindowsSDK_ExecutablePath_x86);$(VSInstallDir)Common7\Tools\bin;$(VSInstallDir)Common7\tools;$(VSInstallDir)Common7\ide;$(ProgramFiles)\HTML Help Workshop;$(MSBuildToolsPath32);$(FxCopDir);$(PATH);</ExecutablePath>
+    <IncludePath>$(Console_SdkIncludeRoot)</IncludePath>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <OutDir>$(ProjectDir)\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)\Temp\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(Project_Dir)..\.;$(Project_Dir)..\include;$(Project_Dir)..\Xbox;$(Project_Dir)..\Xbox\include;$(Project_Dir)..\contrib\zlib;$(Project_Dir)..\code\..\contrib\rapidjson\include;$(Project_Dir)..\code\..\contrib;$(Project_Dir)..\code\..\contrib\unzip;$(Project_Dir)..\contrib\irrXML;$(Project_Dir)..\code\..\contrib\openddlparser\include;$(Project_Dir)..\code\..\include;$(Project_Dir)\code\..\include;$(Project_Dir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\include;$(ProjectDir)..\contrib\;$(ProjectDir)..\contrib\openddlparser\include;$(ProjectDir)..\.;$(ProjectDir)..\Xbox;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/await /std:c++latest /d2Qvec-mathlib- /Wv:19.10.25000 %(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level1</WarningLevel>
+      <PreprocessorDefinitions>DEBUG;DURANGO;_DURANGO;__WRL_NO_DEFAULT_LIB_;ASSIMP_BUILD_NO_EXPORT;OPENDDLPARSER_BUILD;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=0;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalUsingDirectories>$(Console_SdkPackagesRoot);$(Console_SdkWindowsMetadataPath);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(Project_Dir)..\.;$(Project_Dir)..\include;$(Project_Dir)..\Xbox;$(Project_Dir)..\Xbox\include;$(Project_Dir)..\contrib\zlib;$(Project_Dir)..\code\..\contrib\rapidjson\include;$(Project_Dir)..\code\..\contrib;$(Project_Dir)..\code\..\contrib\unzip;$(Project_Dir)..\contrib\irrXML;$(Project_Dir)..\code\..\contrib\openddlparser\include;$(Project_Dir)..\code\..\include;$(Project_Dir)\code\..\include;$(Project_Dir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>false</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\include;$(ProjectDir)..\contrib\;$(ProjectDir)..\contrib\openddlparser\include;$(ProjectDir)..\.;$(ProjectDir)..\Xbox;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/await /std:c++latest /Wv:19.10.25000 %(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Full</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level1</WarningLevel>
+      <PreprocessorDefinitions>_DURANGO;DURANGO;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <AdditionalUsingDirectories>$(Console_SdkPackagesRoot);$(Console_SdkWindowsMetadataPath);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_BUILD_NO_EXPORT;ASSIMP_BUILD_NO_C4D_IMPORTER;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\.;$(ProjectDir)..\include;$(ProjectDir)..\Xbox;$(ProjectDir)..\Xbox\include;$(ProjectDir)..\contrib\zlib;$(ProjectDir)..\Xbox\contrib\zlib;$(ProjectDir)..\code\..\contrib\rapidjson\include;$(ProjectDir)..\code\..\contrib;$(ProjectDir)..\code\..\contrib\unzip;$(ProjectDir)..\contrib\irrXML;$(ProjectDir)..\code\..\contrib\openddlparser\include;$(ProjectDir)..\code\..\include;$(ProjectDir)..\Xbox\code\..\include;$(ProjectDir)..\code\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(ProjectDir)..\code\Assimp.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\BaseImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\BaseProcess.cpp" />
+    <ClCompile Include="..\code\BlenderBMesh.cpp" />
+    <ClCompile Include="..\code\BlenderCustomData.cpp" />
+    <ClCompile Include="..\code\BlenderDNA.cpp" />
+    <ClCompile Include="..\code\BlenderLoader.cpp" />
+    <ClCompile Include="..\code\BlenderModifier.cpp" />
+    <ClCompile Include="..\code\BlenderScene.cpp" />
+    <ClCompile Include="..\code\BlenderTessellator.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\BaseProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\Importer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ScenePrivate.h" />
+    <ClCompile Include="$(ProjectDir)..\code\PostStepRegistry.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ImporterRegistry.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\DefaultProgressHandler.h" />
+    <ClCompile Include="$(ProjectDir)..\code\DefaultIOStream.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\DefaultIOSystem.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\CInterfaceIOWrapper.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\CInterfaceIOWrapper.h" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\IFF.h" />
+    <ClCompile Include="$(ProjectDir)..\code\SGSpatialSort.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\VertexTriangleAdjacency.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\VertexTriangleAdjacency.h" />
+    <ClCompile Include="$(ProjectDir)..\code\SpatialSort.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SceneCombiner.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ScenePreprocessor.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ScenePreprocessor.h" />
+    <ClCompile Include="$(ProjectDir)..\code\SkeletonMeshBuilder.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SplitByBoneCountProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\SplitByBoneCountProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\StandardShapes.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\TargetAnimation.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\TargetAnimation.h" />
+    <ClCompile Include="$(ProjectDir)..\code\RemoveComments.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Subdivision.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\scene.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Bitmap.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Version.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\CreateAnimMesh.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\simd.h" />
+    <ClCompile Include="$(ProjectDir)..\code\simd.cpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\LogStream.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Logger.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="$(ProjectDir)..\code\Win32DebugLogStream.h" />
+    <ClCompile Include="$(ProjectDir)..\code\DefaultLogger.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FileLogStream.h" />
+    <ClInclude Include="$(ProjectDir)..\code\StdOStreamLogStream.h" />
+    <ClCompile Include="$(ProjectDir)..\code\Exporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\AssimpCExport.cpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\BlobIOSystem.h" />
+    <ClCompile Include="$(ProjectDir)..\code\CalcTangentsProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\CalcTangentsProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ComputeUVMappingProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ComputeUVMappingProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ConvertToLHProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ConvertToLHProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\EmbedTexturesProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\EmbedTexturesProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FindDegenerates.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FindDegenerates.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FindInstancesProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FindInstancesProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FindInvalidDataProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FindInvalidDataProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FixNormalsStep.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FixNormalsStep.h" />
+    <ClCompile Include="$(ProjectDir)..\code\DropFaceNormalsProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\DropFaceNormalsProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\GenFaceNormalsProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\GenFaceNormalsProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\GenVertexNormalsProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\GenVertexNormalsProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\PretransformVertices.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\PretransformVertices.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ImproveCacheLocality.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ImproveCacheLocality.h" />
+    <ClCompile Include="$(ProjectDir)..\code\JoinVerticesProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\JoinVerticesProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\LimitBoneWeightsProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\LimitBoneWeightsProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\RemoveRedundantMaterials.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\RemoveRedundantMaterials.h" />
+    <ClCompile Include="$(ProjectDir)..\code\RemoveVCProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\RemoveVCProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\SortByPTypeProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\SortByPTypeProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\SplitLargeMeshes.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\SplitLargeMeshes.h" />
+    <ClCompile Include="$(ProjectDir)..\code\TextureTransform.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\TextureTransform.h" />
+    <ClCompile Include="$(ProjectDir)..\code\TriangulateProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\TriangulateProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ValidateDataStructure.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ValidateDataStructure.h" />
+    <ClCompile Include="$(ProjectDir)..\code\OptimizeGraph.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\OptimizeGraph.h" />
+    <ClCompile Include="$(ProjectDir)..\code\OptimizeMeshes.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\OptimizeMeshes.h" />
+    <ClCompile Include="$(ProjectDir)..\code\DeboneProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\DeboneProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ProcessHelper.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ProcessHelper.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\PolyTools.h" />
+    <ClCompile Include="$(ProjectDir)..\code\MakeVerboseFormat.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\MakeVerboseFormat.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ScaleProcess.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ScaleProcess.h" />
+    <ClCompile Include="$(ProjectDir)..\code\MaterialSystem.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\MaterialSystem.h" />
+    <ClInclude Include="$(ProjectDir)..\code\STEPFile.h" />
+    <ClInclude Include="$(ProjectDir)..\code\Importer\StepFile\StepFileImporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileGen1.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileGen2.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileGen3.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\Importer\StepFile\StepReaderGen.h" />
+    <ClInclude Include="$(ProjectDir)..\code\StepExporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\StepExporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaHelper.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ColladaLoader.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaLoader.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ColladaParser.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaParser.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaExporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ColladaExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\IRRMeshLoader.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\IRRMeshLoader.h" />
+    <ClCompile Include="$(ProjectDir)..\code\IRRShared.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\IRRShared.h" />
+    <ClCompile Include="$(ProjectDir)..\code\IRRLoader.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\IRRLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileData.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjFileImporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileImporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjFileMtlImporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileMtlImporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjFileParser.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileParser.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjTools.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjExporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjExporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreStructs.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreParsingUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreBinarySerializer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreXmlSerializer.h" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreStructs.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreBinarySerializer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreXmlSerializer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreMaterial.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXImporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXCompileConfig.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXImporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXParser.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXParser.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXTokenizer.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXTokenizer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXImportSettings.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXConverter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXConverter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXUtil.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXUtil.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXDocument.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXDocument.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXProperties.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXProperties.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXMeshGeometry.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXMeshGeometry.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXMaterial.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXModel.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXAnimation.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXNodeAttribute.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXDeformer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXBinaryTokenizer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXDocumentUtil.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXExporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXExporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXExportNode.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXExportNode.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXExportProperty.h" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXExportProperty.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXCommon.h" />
+    <ClCompile Include="$(ProjectDir)..\code\RawLoader.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\RawLoader.h" />
+    <ClCompile Include="$(ProjectDir)..\code\STLLoader.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\STLLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\STLExporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\STLExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\UnrealLoader.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\UnrealLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAsset.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAsset.inl" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAssetWriter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAssetWriter.inl" />
+    <ClCompile Include="$(ProjectDir)..\code\glTFImporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFExporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\glTFExporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Asset.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Asset.inl" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2AssetWriter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2AssetWriter.inl" />
+    <ClCompile Include="$(ProjectDir)..\code\glTF2Importer.cpp" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Importer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Exporter.h" />
+    <ClCompile Include="$(ProjectDir)..\code\glTF2Exporter.cpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\irrXMLWrapper.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\unzip\crypt.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\unzip\ioapi.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="$(ProjectDir)..\contrib\unzip\ioapi.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\unzip\unzip.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Durango'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Durango'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClInclude Include="$(ProjectDir)..\contrib\unzip\unzip.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\common\shapes.cc" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\common\shapes.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\common\utils.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\advancing_front.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\advancing_front.cc" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\cdt.cc" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\cdt.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep.cc" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep_context.cc" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\clipper\clipper.hpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\clipper\clipper.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLParser.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\DDLNode.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLCommon.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLExport.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\Value.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLStream.cpp" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLParser.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLParserUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLCommon.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLExport.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLStream.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\DDLNode.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\Value.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcAdjacencyInfo.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcArithmeticCodec.cpp" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcArithmeticCodec.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcBinaryStream.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcCommon.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDVEncodeParams.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.cpp" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.cpp" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVector.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcFIFO.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcIndexedFaceSet.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcIndexedFaceSet.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCDecoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCDecoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCEncodeParams.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCEncoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCEncoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTimer.h" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTools.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleFans.cpp" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleFans.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListDecoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListDecoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListEncoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListEncoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcVector.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcVector.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\zip\src\miniz.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\anim.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ai_assert.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\camera.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\color4.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\color4.inl" />
+    <ClInclude Include="$(ProjectDir)..\Xbox\include\assimp\config.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\defs.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Defines.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\cfileio.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\light.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\material.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\material.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix3x3.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix3x3.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix4x4.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix4x4.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\mesh.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\postprocess.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\quaternion.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\quaternion.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\scene.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\metadata.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\texture.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\types.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector2.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector2.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector3.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector3.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\version.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\cimport.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\importerdesc.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Importer.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\IOStream.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\cexport.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Exporter.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\fast_atof.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\qnan.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\BaseImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Hash.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StreamReader.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StreamWriter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StringComparison.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StringUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\GenericProperty.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SpatialSort.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SmoothingGroups.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StandardShapes.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\RemoveComments.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Subdivision.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Vertex.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\LineSplitter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Profiler.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\LogAux.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Bitmap.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\XMLTools.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\MathFunctions.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Macros.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Exceptional.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Compiler\poppack1.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Compiler\pstdint.h" />
+    <ClInclude Include="..\..\..\..\..\..\Xbox\CommonXBOXOne_3\OS\pch.h" />
+    <ClInclude Include="..\code\BlenderBMesh.h" />
+    <ClInclude Include="..\code\BlenderCustomData.h" />
+    <ClInclude Include="..\code\BlenderDNA.h" />
+    <ClInclude Include="..\code\BlenderIntermediate.h" />
+    <ClInclude Include="..\code\BlenderLoader.h" />
+    <ClInclude Include="..\code\BlenderModifier.h" />
+    <ClInclude Include="..\code\BlenderScene.h" />
+    <ClInclude Include="..\code\BlenderSceneGen.h" />
+    <ClInclude Include="..\code\BlenderTessellator.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(ProjectDir)..\Xbox\IrrXML.vcxproj">
+      <Project>{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}</Project>
+      <Name>IrrXML</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="$(ProjectDir)..\Xbox\zlibstatic.vcxproj">
+      <Project>{9A562A76-1F59-3628-8142-4667602EE708}</Project>
+      <Name>zlibstatic</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\code\BlenderDNA.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -20,16 +20,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\proceduralPlanet.frag">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\Vulkan\proceduralPlanet.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\proceduralPlanet.vert">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\Vulkan\proceduralPlanet.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\background.frag">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\Vulkan\background.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\08_Procedural\Shaders\PCVulkan\background.vert">
+    <CustomBuild Include="..\src\08_Procedural\Shaders\Vulkan\background.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
   </ItemGroup>

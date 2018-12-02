@@ -159,7 +159,6 @@ Pipeline*			   pGraphLinePipeline = NULL;
 Pipeline*			   pGraphLineListPipeline = NULL;
 Pipeline*			   pGraphTrianglePipeline = NULL;
 RootSignature*		  pRootSignature = NULL;
-RootSignature*		  pSkyBoxRootSignature = NULL;
 RootSignature*		  pGraphRootSignature = NULL;
 Texture*				pTextures[5];
 Texture*				pSkyBoxTextures[6];
@@ -282,7 +281,7 @@ public:
 			addCmd_n(gThreadData[i].pCmdPool, false, gImageCount, &gThreadData[i].ppCmds);
 
 			// fill up the data for drawing point
-			gThreadData[i].mStartPoint = i*(gTotalParticleCount / gThreadCount);
+			gThreadData[i].mStartPoint = i * (gTotalParticleCount / gThreadCount);
 			gThreadData[i].mDrawCount = (gTotalParticleCount / gThreadCount);
 		}
 
@@ -305,7 +304,7 @@ public:
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pImageFileNames[i];
 			textureDesc.ppTexture = &pTextures[i];
-			addResource (&textureDesc, true);
+			addResource(&textureDesc, true);
 		}
 
 		for (int i = 0; i < 6; ++i)
@@ -315,7 +314,7 @@ public:
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource (&textureDesc, true);
+			addResource(&textureDesc, true);
 		}
 
 #ifdef TARGET_IOS
@@ -366,22 +365,14 @@ public:
 
 		const char* pStaticSamplerNames[] = { "uSampler0", "uSkyboxSampler" };
 		Sampler* pSamplers[] = { pSampler, pSamplerSkyBox };
-
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 2;
-		rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		rootDesc.ppStaticSamplers = pSamplers;
-		rootDesc.mShaderCount = 1;
-		rootDesc.ppShaders = &pShader;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
+		Shader* shaders[] = { pShader, pSkyBoxDrawShader };
 		RootSignatureDesc skyBoxRootDesc = {};
 		skyBoxRootDesc.mStaticSamplerCount = 2;
 		skyBoxRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		skyBoxRootDesc.ppStaticSamplers = pSamplers;
-		skyBoxRootDesc.mShaderCount = 1;
-		skyBoxRootDesc.ppShaders = &pSkyBoxDrawShader;
-		addRootSignature(pRenderer, &skyBoxRootDesc, &pSkyBoxRootSignature);
+		skyBoxRootDesc.mShaderCount = 2;
+		skyBoxRootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
 
 		RootSignatureDesc graphRootDesc = {};
 		graphRootDesc.mShaderCount = 1;
@@ -390,15 +381,15 @@ public:
 
 		gTextureIndex = 0;
 
-//#ifdef _WIN32
-//	  SYSTEM_INFO sysinfo;
-//	  GetSystemInfo(&sysinfo);
-//	  gCPUCoreCount = sysinfo.dwNumberOfProcessors;
-//#elif defined(__APPLE__)
-//	  gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
-//#endif
+		//#ifdef _WIN32
+		//	  SYSTEM_INFO sysinfo;
+		//	  GetSystemInfo(&sysinfo);
+		//	  gCPUCoreCount = sysinfo.dwNumberOfProcessors;
+		//#elif defined(__APPLE__)
+		//	  gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
+		//#endif
 
-		//Generate sky box vertex buffer
+				//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
 			10.0f,  -10.0f, -10.0f,6.0f, // -z
 			-10.0f, -10.0f, -10.0f,6.0f,
@@ -448,10 +439,10 @@ public:
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof (float) * 4;
+		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource (&skyboxVbDesc);
+		addResource(&skyboxVbDesc);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -468,11 +459,12 @@ public:
 		}
 
 		finishResourceLoading();
-		LOGINFOF ("Load Time %lld", timer.GetUSec (false) / 1000);
+		LOGINFOF("Load Time %lld", timer.GetUSec(false) / 1000);
 
 		// generate partcile data
 		unsigned int particleSeed = 23232323; //we have gseed as global declaration, pick a name that is not gseed
-		for (int i = 0; i < 6 * 9; ++i) {
+		for (int i = 0; i < 6 * 9; ++i)
+		{
 			RND_GEN(particleSeed);
 		}
 		uint32_t* seedArray = NULL;
@@ -492,7 +484,7 @@ public:
 		particleVbDesc.mDesc.mVertexStride = parDataStride;
 		particleVbDesc.pData = seedArray;
 		particleVbDesc.ppBuffer = &pParticleVertexBuffer;
-		addResource (&particleVbDesc);
+		addResource(&particleVbDesc);
 
 		conf_free(seedArray);
 
@@ -608,7 +600,6 @@ public:
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeShader(pRenderer, pGraphShader);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeRootSignature(pRenderer, pSkyBoxRootSignature);
 		removeRootSignature(pRenderer, pGraphRootSignature);
 
 		removeBlendState(gParticleBlend);
@@ -693,7 +684,7 @@ public:
 		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pRootSignature = pSkyBoxRootSignature;
+		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
@@ -787,7 +778,7 @@ public:
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
-		gProjectView = projMat*viewMat*modelMat;
+		gProjectView = projMat * viewMat*modelMat;
 		// update particle position matrix
 
 		viewMat.setTranslation(vec3(0));
@@ -886,9 +877,7 @@ public:
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
-
 		//// draw skybox
-		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 		DescriptorData params[7] = {};
 		params[0].pName = "RightText";
@@ -905,7 +894,8 @@ public:
 		params[5].ppTextures = &pSkyBoxTextures[5];
 		params[6].pName = "uniformBlock";
 		params[6].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pSkyBoxRootSignature, 7, params);
+		cmdBindDescriptors(cmd, pRootSignature, 7, params);
+		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
@@ -1058,19 +1048,19 @@ public:
 	size_t GetIdleTime(const CPUData & e)
 	{
 		return  e.times[S_IDLE] +
-				e.times[S_IOWAIT];
+			e.times[S_IOWAIT];
 	}
 
 	size_t GetActiveTime(const CPUData & e)
 	{
 		return  e.times[S_USER] +
-				e.times[S_NICE] +
-				e.times[S_SYSTEM] +
-				e.times[S_IRQ] +
-				e.times[S_SOFTIRQ] +
-				e.times[S_STEAL] +
-				e.times[S_GUEST] +
-				e.times[S_GUEST_NICE];
+			e.times[S_NICE] +
+			e.times[S_SYSTEM] +
+			e.times[S_IRQ] +
+			e.times[S_SOFTIRQ] +
+			e.times[S_STEAL] +
+			e.times[S_GUEST] +
+			e.times[S_GUEST_NICE];
 	}
 #endif
 
@@ -1088,11 +1078,13 @@ public:
 
 		hr = pService->ExecQuery(bstr_t("WQL"), bstr_t("SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor"),
 			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
-		for (i = 0; i < gCoresCount; i++) {
+		for (i = 0; i < gCoresCount; i++)
+		{
 			//Waiting for inifinite blocks resources and app.
 			//Waiting for 15 ms (arbitrary) instead works much better
 			hr = pEnumerator->Next(15, 1, &pclassObj, &retVal);
-			if (!retVal) {
+			if (!retVal)
+			{
 				break;
 			}
 
@@ -1140,9 +1132,9 @@ public:
 				CPUData & entry = entries.back();
 				char dummyCpuName[256]; // dummy cpu name, not used.
 				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0],
-							&entry.times[0], &entry.times[1], &entry.times[2], &entry.times[3],
-							&entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
-							&entry.times[8], &entry.times[9]);
+					&entry.times[0], &entry.times[1], &entry.times[2], &entry.times[3],
+					&entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
+					&entry.times[8], &entry.times[9]);
 			}
 			// Close the cpu stat file
 			fileStat.Close();
@@ -1150,7 +1142,7 @@ public:
 
 		for (uint32_t i = 0; i < gCoresCount; i++)
 		{
-			float ACTIVE_TIME   = static_cast<float>(GetActiveTime(entries[i]));
+			float ACTIVE_TIME = static_cast<float>(GetActiveTime(entries[i]));
 			float IDLE_TIME = static_cast<float>(GetIdleTime(entries[i]));
 
 			pCoresLoadData[i] = (ACTIVE_TIME - pOldPprocUsage[i]) / ((float)(IDLE_TIME + ACTIVE_TIME) - pOldTimeStamp[i])* 100.0f;
@@ -1166,11 +1158,13 @@ public:
 		natural_t numCPUsU = 0U;
 		kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &numCPUsU, &cpuInfo, &numCpuInfo);
 
-		if (err == KERN_SUCCESS) {
+		if (err == KERN_SUCCESS)
+		{
 
 			[CPUUsageLock lock];
 
-			for (uint32_t i = 0; i < gCoresCount; i++) {
+			for (uint32_t i = 0; i < gCoresCount; i++)
+			{
 
 				float inUse, total;
 
@@ -1197,7 +1191,8 @@ public:
 
 			[CPUUsageLock unlock];
 
-			if (prevCpuInfo) {
+			if (prevCpuInfo)
+			{
 				size_t prevCpuInfoSize = sizeof(integer_t) * numPrevCpuInfo;
 				vm_deallocate(mach_task_self(), (vm_address_t)prevCpuInfo, prevCpuInfoSize);
 			}
@@ -1246,7 +1241,8 @@ public:
 		hr = pService->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Processor"),
 			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
 		hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclassObj, &retVal);
-		if (retVal) {
+		if (retVal)
+		{
 			VARIANT vtProp;
 			VariantInit(&vtProp);
 			hr = pclassObj->Get(L"NumberOfLogicalProcessors", 0, &vtProp, 0, 0);
@@ -1266,7 +1262,7 @@ public:
 #elif defined(__linux__)
 		int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 		gCoresCount = numCPU;
-				if (gCoresCount)
+		if (gCoresCount)
 		{
 			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
 			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
@@ -1445,7 +1441,7 @@ public:
 
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 
-		cmdDrawInstanced(cmd, data->mDrawCount, data->mStartPoint , 1, 0);
+		cmdDrawInstanced(cmd, data->mDrawCount, data->mStartPoint, 1, 0);
 
 		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
 		endCmd(cmd);

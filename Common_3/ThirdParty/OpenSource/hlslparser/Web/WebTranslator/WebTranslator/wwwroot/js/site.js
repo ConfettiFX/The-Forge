@@ -1,17 +1,25 @@
-﻿// Write your JavaScript code.
+// Write your JavaScript code.
 
 $(function () {
 
 	/** @type {HTMLSelectElement} */
 	var selectOption = document.getElementById('selectShader');
 
+
+	var includeHeader = document.getElementById('IncludeHeader');
+
 	var allShaders = window.AllShaders;	
+
+	//var loading_bar = document.getElementById('output-loading');
 
 	for (var kind of allShaders) {
 		selectOption.options.add(new Option(kind, kind));
 	}
+	var CurrentFileName;
+	var CurrentLanguage;
 
-	
+	//var IncludeFilesContents = ["", "", "", "", "", "", "", "",	"", "", "", "", "", "", "", "",];
+	var includeFileCounter = 0;
 
 	const codeMirrorTheme = "darcula";		
 	//const header = "/*\n * Copyright (c) 2018 Confetti Interactive Inc.\n * \n * This file is part of The-Forge\n * (see https://github.com/ConfettiFX/The-Forge). \n *\n * Licensed to the Apache Software Foundation (ASF) under one\n * or more contributor license agreements.  See the NOTICE file\n * distributed with this work for additional information\n * regarding copyright ownership.  The ASF licenses this file\n * to you under the Apache License, Version 2.0 (the\n * \"License\") you may not use this file except in compliance\n * with the License.  You may obtain a copy of the License at\n *\n *   http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing,\n * software distributed under the License is distributed on an\n * \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY\n * KIND, either express or implied.  See the License for the\n * specific language governing permissions and limitations\n * under the License.\n*/\n";
@@ -31,6 +39,8 @@ $(function () {
 
 		codeEditor0.setSize("100%", 200);
 		codeEditor0.setValue(header);
+
+		//startLoading();
 	}
 
 	init();
@@ -61,6 +71,10 @@ $(function () {
 	var File1Label = document.getElementById("File1Label");
 
 	
+	var InputIncludeFile = document.getElementById("IncludeFile1");
+
+
+
 
 	function getSelectedShader() {
 
@@ -129,7 +143,50 @@ $(function () {
 			temporaryFileReader.readAsText(input.files[0]);
 		});
 	}
+
+
+	IncludeFile1.onchange = () => {
+
+		var Result = readURL(IncludeFile1);
+
+		Result.then(function (result) {
+
 			
+			var fileName = IncludeFile1.files[0];			
+
+			//if it is same file name, ignore to add it
+			var bDuplicated = false;
+			for (var i = 0; i < includeHeader.options.length; i++)
+			{
+				if (includeHeader.options[i].value === fileName.name)
+				{
+					bDuplicated = true;
+					break;
+				}
+			}
+
+			if (!bDuplicated)
+			includeHeader.options.add(new Option(fileName.name, fileName.name));
+
+			
+			var url = "/Home/CreateIncludeFile";
+
+			var model = { FileName: fileName.name, FileContents: result};
+
+			$.post(url, model, function (result)
+			{
+				finishLoading();
+
+				//to reset file input event
+				IncludeFile1.value = "";
+			});
+			
+
+			//IncludeFilesContents[includeFileCounter++] = result;
+
+		});
+	};
+
 
 	InputFile1.onchange = () => {
 
@@ -141,7 +198,7 @@ $(function () {
 
 			//var name = document.getElementById("File1");
 			var fileName = InputFile1.files[0];
-
+			CurrentFileName = fileName.name;
 			//if it is known extenions
 			if (fileName !== undefined) {
 
@@ -178,7 +235,7 @@ $(function () {
 						break;
 					default:
 
-						window.alert("default selection Error!");
+						window.alert("Unknowned extension" + "\"" + ext + "\"" + " is founded! Please, select the right shader type before translate it.");
 						break;
 				}
 			}
@@ -187,6 +244,9 @@ $(function () {
 			}
 
 			codeEditor1.setValue(result);
+
+			//to reset file input event
+			InputFile1.value = "";
 
 		});
 	};	
@@ -229,27 +289,17 @@ $(function () {
 
 		}
 
-		var name = document.getElementById("File1");
-		var fileName = name.files[0];  
-
-
 		var lastIndex;
 		var newName;
 
-		if (fileName === undefined) {
-
+		if (CurrentFileName === undefined || CurrentFileName === "") {
 			newName = "output";
 		}
-		else {
-
-			if (fileName.name === undefined || fileName.name === "") {
-				newName = "output";
-			}
-			else {
-				lastIndex = fileName.name.lastIndexOf('.');
-				newName = fileName.name.substr(0, lastIndex);
-			}
+		else {			
+			lastIndex = CurrentFileName.lastIndexOf('.');
+			newName = CurrentFileName.substr(0, lastIndex);
 		}
+		
 
 		if (getSelectedShader() === "Vertex") {
 			newName = newName + ".vert";
@@ -270,16 +320,25 @@ $(function () {
 			newName = newName + ".comp";
 		}
 
+		if (CurrentLanguage === "MSL")
+			newName += ".metal";
+
 		download(newName, codeEditor2.getValue());
 	})
 
 	function startLoading() {
-		$("#output-loading").show();
+		//modal.style.display = "block";
+		//$("#output-loading").show();
+		$(".progress-bar").css("width", 100 + "%");
+		//loading_bar
 	}
 	
 
 	function finishLoading() {
-		$("#output-loading").hide();		
+		//$("#loading-container").hide();	
+		//modal.style.display = "none";
+		$(".progress-bar").css("width", 0 + "%");
+		//loading_bar.setAttribute("aria-valuenow", "0"); 
 	}
 
 	function HomeParse(fileName, fileContents, entryName, shaderString, languageString)
@@ -384,15 +443,139 @@ $(function () {
 		
 	}
 
+	
+	$("#Translation").click(function () {
+
+		Translate("HLSL");
+		Translate("GLSL");
+
+		if (getSelectedShader() === "Hull") {
+
+			var vertexShaderInput = $(document.createElement("input"));
+			vertexShaderInput.attr("type", "file");
+			// add onchange handler if you wish to get the file :)
+
+			window.alert("Please, open a vertex shader for generating Metal's hull shader!");
+
+			vertexShaderInput.trigger("click"); // opening dialog
+
+			vertexShaderInput.change(function () {
+
+				var Result = readURL(this);
+
+				Result.then(function (secondaryContents) {
+
+					var name = document.getElementById("File1");
+					var fileName = name.files[0];
+
+					var shaderString = "Hull";
+					var languageString = "MSL";
+
+					var fileContents = codeEditor1.getValue();//  InputShaderWindow.value;
+
+					var entry = document.getElementById("Entry");
+					var entryName = entry.value;
+					if (entryName === "")
+						entryName = "main";
+
+
+					if (fileContents === undefined || fileContents === "") {
+
+						window.alert("There is no input!");
+						return;
+					}
+
+					fileContents = secondaryContents + fileContents;
+
+
+					//HomeParse(fileName, fileContents, entryName, shaderString, languageString);
+					startLoading();
+
+					var url = "/Home/LocalParse";
+
+					if (fileName === undefined) {
+
+						var model = { FileName: "NoFile", FileContents: fileContents, EntryName: entryName, Shader: shaderString, Language: languageString, Result: "" };
+
+						$.post(url, model, function (result) {
+							finishLoading();
+							codeEditor2.setValue(codeEditor0.getValue() + result.result);
+							GetErrorShader(result.result);
+
+						});
+					}
+					else {
+						model = { FileName: fileName.name, FileContents: fileContents, EntryName: entryName, Shader: shaderString, Language: languageString, Result: "" };
+
+						$.post(url, model, function (result) {
+							finishLoading();
+							codeEditor2.setValue(codeEditor0.getValue() + result.result);
+							GetErrorShader(result.result);
+						});
+					}
+
+				});
+			});
+		}
+		else
+			Translate("MSL");
+
+	})
+
+	$("#ShowHLSL").click(function () {
+
+		var url = "/Home/GetStoredResult";
+
+		var model = { Language: "HLSL", Result: "" };
+
+		$.post(url, model, function (result) {
+			finishLoading();
+			codeEditor2.setValue(codeEditor0.getValue() + result.result);
+			GetErrorShader(result.result);
+
+		});
+	})
+
+	$("#ShowGLSL").click(function () {
+
+		var url = "/Home/GetStoredResult";
+
+		var model = { Language: "GLSL", Result: "" };
+
+		$.post(url, model, function (result) {
+			finishLoading();
+			codeEditor2.setValue(codeEditor0.getValue() + result.result);
+			GetErrorShader(result.result);
+
+		});
+	})
+
+	$("#ShowMSL").click(function () {
+
+		var url = "/Home/GetStoredResult";
+
+		var model = { Language: "MSL", Result: "" };
+
+		$.post(url, model, function (result) {
+			finishLoading();
+			codeEditor2.setValue(codeEditor0.getValue() + result.result);
+			GetErrorShader(result.result);
+
+		});
+	})
+
+
 
 	$("#ToHLSL").click(function () {
 
 		Translate("HLSL");
+		CurrentLanguage = "HLSL";
 	})
 
 	$("#ToGLSL").click(function () {
 
 		Translate("GLSL");
+		CurrentLanguage = "GLSL";
 	})
 
 	$("#ToMSL").click(function () {
@@ -467,6 +650,8 @@ $(function () {
 		}
 		else
 			Translate("MSL");
+
+		CurrentLanguage = "MSL";
 	})    
 });
 

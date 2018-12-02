@@ -34,7 +34,7 @@
 #elif defined(DIRECT3D11)
 	#define RESOURCE_DIR "Shaders/PCDX11"
 #elif defined(VULKAN)
-	#define RESOURCE_DIR "Shaders/PCVulkan"
+	#define RESOURCE_DIR "Shaders/Vulkan"
 #endif
 
 const char* pszRoots[FSR_Count] =
@@ -86,7 +86,7 @@ long tell_file(FileHandle handle)
 
 size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
-	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
+	return fwrite(buffer, 1, byteCount, (::FILE*)handle);
 }
 
 size_t get_file_last_modified_time(const char* _fileName)
@@ -181,7 +181,7 @@ void set_current_dir(const char* path)
 	SetCurrentDirectoryA(path);
 }
 
-void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
 {
 	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	WIN32_FIND_DATAA fd;
@@ -198,6 +198,34 @@ void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector
 		} while (::FindNextFileA(hFind, &fd));
 		::FindClose(hFind);
 	}
+}
+
+void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
+{
+	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	WIN32_FIND_DATAA fd;
+	HANDLE hFind = ::FindFirstFileA(path + "*", &fd);
+	uint32_t fileIndex = (uint32_t)subDirectoriesOut.size();
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			// skip files, ./ and ../
+			if (!strchr(fd.cFileName, '.'))
+			{
+				subDirectoriesOut.resize(fileIndex + 1);
+				//copy the strings to avoid the memory being cleaned up by windows.
+				subDirectoriesOut[fileIndex] = "";
+				subDirectoriesOut[fileIndex++] = path + fd.cFileName;
+			}
+		} while (::FindNextFileA(hFind, &fd));
+		::FindClose(hFind);
+	}
+}
+
+bool copy_file(const char* src, const char* dst)
+{
+	return CopyFileA(src, dst, FALSE) ? true : false;
 }
 
 #endif

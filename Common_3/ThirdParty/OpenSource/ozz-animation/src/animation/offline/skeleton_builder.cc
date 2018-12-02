@@ -32,7 +32,7 @@
 #include "ozz/animation/offline/raw_skeleton.h"
 #include "ozz/animation/runtime/skeleton.h"
 #include "ozz/base/containers/vector.h"
-#include "ozz/base/maths/soa_transform.h"
+//#include "ozz/base/maths/soa_transform.h" //CONFFX_BEGIN
 #include "ozz/base/memory/allocator.h"
 
 namespace ozz {
@@ -74,7 +74,7 @@ struct JointLister {
 // Uses RawSkeleton::IterateJointsBF to traverse in DAG breadth-first order.
 // This favors cache coherency (when traversing joints) and reduces
 // Load-Hit-Stores (reusing the parent that has just been computed).
-Skeleton* SkeletonBuilder::operator()(const RawSkeleton& _raw_skeleton) const {
+/*Skeleton* SkeletonBuilder::operator()(const RawSkeleton& _raw_skeleton) const {
   // Tests _raw_skeleton validity.
   if (!_raw_skeleton.Validate()) {
     return NULL;
@@ -118,24 +118,32 @@ Skeleton* SkeletonBuilder::operator()(const RawSkeleton& _raw_skeleton) const {
   }
 
   // Transfers t-poses.
-  const math::SimdFloat4 w_axis = math::simd_float4::w_axis();
-  const math::SimdFloat4 zero = math::simd_float4::zero();
-  const math::SimdFloat4 one = math::simd_float4::one();
+  //CONFFX_BEGIN
+  const Vector4 w_axis = Vector4::wAxis();
+  const Vector4 zero = Vector4::zero();
+  const Vector4 one = Vector4::one();
 
   for (int i = 0; i < skeleton->num_soa_joints(); ++i) {
-    math::SimdFloat4 translations[4];
-    math::SimdFloat4 scales[4];
-    math::SimdFloat4 rotations[4];
+    Vector4 translations[4];
+    Vector4 scales[4];
+    Vector4 rotations[4];
     for (int j = 0; j < 4; ++j) {
       if (i * 4 + j < num_joints) {
         const RawSkeleton::Joint& src_joint =
             *lister.linear_joints[i * 4 + j].joint;
         translations[j] =
-            math::simd_float4::Load3PtrU(&src_joint.transform.translation.x);
-        rotations[j] = math::NormalizeSafe4(
-            math::simd_float4::LoadPtrU(&src_joint.transform.rotation.x),
-            w_axis);
-        scales[j] = math::simd_float4::Load3PtrU(&src_joint.transform.scale.x);
+            Vector4(src_joint.transform.translation, 0.f);
+
+		if (norm(src_joint.transform.rotation) != 0.f)
+		{
+          rotations[j] = Vector4(normalize(src_joint.transform.rotation));
+		}
+		else
+		{
+          rotations[j] = w_axis;
+		}
+
+        scales[j] = Vector4(src_joint.transform.scale, 0.f);
       } else {
         translations[j] = zero;
         rotations[j] = w_axis;
@@ -143,13 +151,108 @@ Skeleton* SkeletonBuilder::operator()(const RawSkeleton& _raw_skeleton) const {
       }
     }
     // Fills the SoaTransform structure.
-    math::Transpose4x3(translations, &skeleton->bind_pose_[i].translation.x);
-    math::Transpose4x4(rotations, &skeleton->bind_pose_[i].rotation.x);
-    math::Transpose4x3(scales, &skeleton->bind_pose_[i].scale.x);
+    transpose4x3(translations, &skeleton->bind_pose_[i].translation.x);
+    transpose4x4(rotations, &skeleton->bind_pose_[i].rotation.x);
+    transpose4x3(scales, &skeleton->bind_pose_[i].scale.x);
   }
 
   return skeleton;  // Success.
+}*/
+//CONFFX_END
+
+//CONFFX_BEGIN
+bool SkeletonBuilder::Build(const RawSkeleton& _raw_skeleton, Skeleton* skeleton)
+{
+	// Tests _raw_skeleton validity.
+	if (!_raw_skeleton.Validate())
+	{
+		return false;
+	}
+
+	const int num_joints = _raw_skeleton.num_joints();
+
+	// Iterates through all the joint of the raw skeleton and fills a sorted joint
+	// list.
+	JointLister lister(num_joints);
+	_raw_skeleton.IterateJointsBF<JointLister&>(lister);
+	assert(static_cast<int>(lister.linear_joints.size()) == num_joints);
+
+	// Computes name's buffer size.
+	size_t chars_size = 0;
+	for (int i = 0; i < num_joints; ++i)
+	{
+		const RawSkeleton::Joint& current = *lister.linear_joints[i].joint;
+		chars_size += (current.name.size() + 1) * sizeof(char);
+	}
+
+	// Allocates all skeleton members.
+	char* cursor = skeleton->Allocate(chars_size, num_joints);
+
+	// Copy names. All names are allocated in a single buffer. Only the first name
+	// is set, all other names array entries must be initialized.
+	for (int i = 0; i < num_joints; ++i)
+	{
+		const RawSkeleton::Joint& current = *lister.linear_joints[i].joint;
+		skeleton->joint_names_[i] = cursor;
+		strcpy(cursor, current.name.c_str());
+		cursor += (current.name.size() + 1) * sizeof(char);
+	}
+
+	// Transfers sorted joints hierarchy to the new skeleton.
+	for (int i = 0; i < num_joints; ++i)
+	{
+		skeleton->joint_properties_[i].parent = lister.linear_joints[i].parent;
+		skeleton->joint_properties_[i].is_leaf =
+			lister.linear_joints[i].joint->children.empty();
+	}
+
+	// Transfers t-poses.
+	//CONFFX_BEGIN
+	const Vector4 w_axis = Vector4::wAxis();
+	const Vector4 zero = Vector4::zero();
+	const Vector4 one = Vector4::one();
+
+	for (int i = 0; i < skeleton->num_soa_joints(); ++i)
+	{
+		Vector4 translations[4];
+		Vector4 scales[4];
+		Vector4 rotations[4];
+		for (int j = 0; j < 4; ++j)
+		{
+			if (i * 4 + j < num_joints)
+			{
+				const RawSkeleton::Joint& src_joint =
+					*lister.linear_joints[i * 4 + j].joint;
+				translations[j] =
+					Vector4(src_joint.transform.translation, 0.f);
+
+				if (norm(src_joint.transform.rotation) != 0.f)
+				{
+					rotations[j] = Vector4(normalize(src_joint.transform.rotation));
+				}
+				else
+				{
+					rotations[j] = w_axis;
+				}
+
+				scales[j] = Vector4(src_joint.transform.scale, 0.f);
+			}
+			else
+			{
+				translations[j] = zero;
+				rotations[j] = w_axis;
+				scales[j] = one;
+			}
+		}
+		// Fills the SoaTransform structure.
+		transpose4x3(translations, &skeleton->bind_pose_[i].translation.x);
+		transpose4x4(rotations, &skeleton->bind_pose_[i].rotation.x);
+		transpose4x3(scales, &skeleton->bind_pose_[i].scale.x);
+	}
+
+	return true;  // Success.
 }
+// CONFFX_END
 }  // namespace offline
 }  // namespace animation
 }  // namespace ozz

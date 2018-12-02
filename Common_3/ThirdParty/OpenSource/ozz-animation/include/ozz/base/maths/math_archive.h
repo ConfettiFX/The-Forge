@@ -31,60 +31,63 @@
 #include "ozz/base/io/archive_traits.h"
 #include "ozz/base/platform.h"
 
+//CONFFX_BEGIN
+#include "../../../../../../../OS/Math/MathTypes.h"
+
 namespace ozz {
 namespace math {
-struct Float2;
-struct Float3;
-struct Float4;
-struct Quaternion;
-struct Transform;
+//struct Float2;
+//struct Float3;
+//struct Float4;
+//struct Quaternion;
+//struct Transform;
 struct Box;
 struct RectFloat;
 struct RectInt;
 }  // namespace math
 namespace io {
-OZZ_IO_TYPE_NOT_VERSIONABLE(math::Float2)
+OZZ_IO_TYPE_NOT_VERSIONABLE(Vector2)
 template <>
-struct Extern<math::Float2> {
-  static void Save(OArchive& _archive, const math::Float2* _values,
+struct Extern<Vector2> {
+  static void Save(OArchive& _archive, const Vector2* _values,
                    size_t _count);
-  static void Load(IArchive& _archive, math::Float2* _values, size_t _count,
+  static void Load(IArchive& _archive, Vector2* _values, size_t _count,
                    uint32_t _version);
 };
 
-OZZ_IO_TYPE_NOT_VERSIONABLE(math::Float3)
+OZZ_IO_TYPE_NOT_VERSIONABLE(Vector3)
 template <>
-struct Extern<math::Float3> {
-  static void Save(OArchive& _archive, const math::Float3* _values,
+struct Extern<Vector3> {
+  static void Save(OArchive& _archive, const Vector3* _values,
                    size_t _count);
-  static void Load(IArchive& _archive, math::Float3* _values, size_t _count,
+  static void Load(IArchive& _archive, Vector3* _values, size_t _count,
                    uint32_t _version);
 };
 
-OZZ_IO_TYPE_NOT_VERSIONABLE(math::Float4)
+OZZ_IO_TYPE_NOT_VERSIONABLE(Vector4)
 template <>
-struct Extern<math::Float4> {
-  static void Save(OArchive& _archive, const math::Float4* _values,
+struct Extern<Vector4> {
+  static void Save(OArchive& _archive, const Vector4* _values,
                    size_t _count);
-  static void Load(IArchive& _archive, math::Float4* _values, size_t _count,
+  static void Load(IArchive& _archive, Vector4* _values, size_t _count,
                    uint32_t _version);
 };
 
-OZZ_IO_TYPE_NOT_VERSIONABLE(math::Quaternion)
+OZZ_IO_TYPE_NOT_VERSIONABLE(Quat)
 template <>
-struct Extern<math::Quaternion> {
-  static void Save(OArchive& _archive, const math::Quaternion* _values,
+struct Extern<Quat> {
+  static void Save(OArchive& _archive, const Quat* _values,
                    size_t _count);
-  static void Load(IArchive& _archive, math::Quaternion* _values, size_t _count,
+  static void Load(IArchive& _archive, Quat* _values, size_t _count,
                    uint32_t _version);
 };
 
-OZZ_IO_TYPE_NOT_VERSIONABLE(math::Transform)
+OZZ_IO_TYPE_NOT_VERSIONABLE(AffineTransform)
 template <>
-struct Extern<math::Transform> {
-  static void Save(OArchive& _archive, const math::Transform* _values,
+struct Extern<AffineTransform> {
+  static void Save(OArchive& _archive, const AffineTransform* _values,
                    size_t _count);
-  static void Load(IArchive& _archive, math::Transform* _values, size_t _count,
+  static void Load(IArchive& _archive, AffineTransform* _values, size_t _count,
                    uint32_t _version);
 };
 
@@ -116,3 +119,92 @@ struct Extern<math::RectInt> {
 }  // namespace io
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_MATHS_MATH_ARCHIVE_H_
+
+//CONFFX_END
+
+//
+//namespace ozz {
+//namespace math {
+//struct Float2;
+//struct Float3;
+//struct Float4;
+//struct Quaternion;
+//struct Transform;
+//struct Box;
+//struct RectFloat;
+//struct RectInt;
+//}  // namespace math
+//namespace io {
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::Float2)
+//template <>
+//struct Extern<math::Float2> {
+//  static void Save(OArchive& _archive, const math::Float2* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::Float2* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::Float3)
+//template <>
+//struct Extern<math::Float3> {
+//  static void Save(OArchive& _archive, const math::Float3* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::Float3* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::Float4)
+//template <>
+//struct Extern<math::Float4> {
+//  static void Save(OArchive& _archive, const math::Float4* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::Float4* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::Quaternion)
+//template <>
+//struct Extern<math::Quaternion> {
+//  static void Save(OArchive& _archive, const math::Quaternion* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::Quaternion* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::Transform)
+//template <>
+//struct Extern<math::Transform> {
+//  static void Save(OArchive& _archive, const math::Transform* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::Transform* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::Box)
+//template <>
+//struct Extern<math::Box> {
+//  static void Save(OArchive& _archive, const math::Box* _values, size_t _count);
+//  static void Load(IArchive& _archive, math::Box* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::RectFloat)
+//template <>
+//struct Extern<math::RectFloat> {
+//  static void Save(OArchive& _archive, const math::RectFloat* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::RectFloat* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//
+//OZZ_IO_TYPE_NOT_VERSIONABLE(math::RectInt)
+//template <>
+//struct Extern<math::RectInt> {
+//  static void Save(OArchive& _archive, const math::RectInt* _values,
+//                   size_t _count);
+//  static void Load(IArchive& _archive, math::RectInt* _values, size_t _count,
+//                   uint32_t _version);
+//};
+//}  // namespace io
+//}  // namespace ozz
+//#endif  // OZZ_OZZ_BASE_MATHS_MATH_ARCHIVE_H_

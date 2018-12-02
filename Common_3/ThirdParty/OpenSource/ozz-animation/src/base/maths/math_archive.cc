@@ -29,6 +29,9 @@
 
 #include <cassert>
 
+//CONFFX_BEGIN
+/*
+
 #include "ozz/base/io/archive.h"
 #include "ozz/base/maths/box.h"
 #include "ozz/base/maths/quaternion.h"
@@ -123,3 +126,5 @@ void Extern<math::RectInt>::Load(IArchive& _archive, math::RectInt* _values,
 }
 }  // namespace io
 }  // namespace ozz
+*/
+//CONFFX_END

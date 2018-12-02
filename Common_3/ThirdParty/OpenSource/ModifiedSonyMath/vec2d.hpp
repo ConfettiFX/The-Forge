@@ -15,6 +15,8 @@ namespace Vectormath
 
 class Vector2;
 class Point2;
+class IVector2;
+class UVector2;
 
 // ========================================================
 // A 2-D unpadded vector (sizeof = 8 bytes)
@@ -713,6 +715,604 @@ inline void print(const Point2 & pnt, const char * name)
 #endif // VECTORMATH_DEBUG
 
 //========================================= #ConfettiMathExtensionsBegin ================================================
+
+// ========================================================
+// A 2-D unpadded vector (sizeof = 8 bytes)
+// ========================================================
+
+class IVector2
+{
+	int mX;
+	int mY;
+
+public:
+
+	// Default constructor; does no initialization
+	//
+	inline IVector2() {}
+
+	// Construct a 2-D vector from x and y elements
+	//
+	inline IVector2(int x, int y);
+
+	// Set all elements of a 2-D vector to the same scalar value
+	//
+	explicit inline IVector2(int scalar);
+
+	// Set the x element of a 2-D vector
+	//
+	inline IVector2 & setX(int x);
+
+	// Set the y element of a 2-D vector
+	//
+	inline IVector2 & setY(int y);
+
+	// Get the x element of a 2-D vector
+	//
+	inline int getX() const;
+
+	// Get the y element of a 2-D vector
+	//
+	inline int getY() const;
+
+	// Set an x or y element of a 2-D vector by index
+	//
+	inline IVector2 & setElem(int idx, int value);
+
+	// Get an x or y element of a 2-D vector by index
+	//
+	inline int getElem(int idx) const;
+
+	// Subscripting operator to set or get an element
+	//
+	inline int & operator[](int idx);
+
+	// Subscripting operator to get an element
+	//
+	inline int operator[](int idx) const;
+
+	// Add two 2-D vectors
+	//
+	inline const IVector2 operator + (const IVector2 & vec) const;
+
+	// Subtract a 2-D vector from another 2-D vector
+	//
+	inline const IVector2 operator - (const IVector2 & vec) const;
+
+	// Multiply a 2-D vector by a scalar
+	//
+	inline const IVector2 operator * (int scalar) const;
+
+	// Divide a 2-D vector by a scalar
+	//
+	inline const IVector2 operator / (int scalar) const;
+
+	// Perform compound assignment and addition with a 2-D vector
+	//
+	inline IVector2 & operator += (const IVector2 & vec);
+
+	// Perform compound assignment and subtraction by a 2-D vector
+	//
+	inline IVector2 & operator -= (const IVector2 & vec);
+
+	// Perform compound assignment and multiplication by a scalar
+	//
+	inline IVector2 & operator *= (int scalar);
+
+	// Perform compound assignment and division by a scalar
+	//
+	inline IVector2 & operator /= (int scalar);
+
+	// Negate all elements of a 2-D vector
+	//
+	inline const IVector2 operator - () const;
+
+	// Construct x axis
+	//
+	static inline const IVector2 xAxis();
+
+	// Construct y axis
+	//
+	static inline const IVector2 yAxis();
+};
+
+// Multiply a 2-D vector by a scalar
+//
+inline const IVector2 operator * (int scalar, const IVector2 & vec);
+
+// Compute the absolute value of a 2-D vector per element
+//
+inline const IVector2 absPerElem(const IVector2 & vec);
+
+// Maximum of two 2-D vectors per element
+//
+inline const IVector2 maxPerElem(const IVector2 & vec0, const IVector2 & vec1);
+
+// Minimum of two 2-D vectors per element
+//
+inline const IVector2 minPerElem(const IVector2 & vec0, const IVector2 & vec1);
+
+// Maximum element of a 2-D vector
+//
+inline int maxElem(const IVector2 & vec);
+
+// Minimum element of a 2-D vector
+//
+inline int minElem(const IVector2 & vec);
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a 2-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const IVector2 & vec);
+
+// Print a 2-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const IVector2 & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+// ================================================================================================
+// IVector2 implementation
+// ================================================================================================
+
+inline IVector2::IVector2(int _x, int _y)
+	: mX(_x), mY(_y)
+{
+}
+
+inline IVector2::IVector2(int scalar)
+	: mX(scalar), mY(scalar)
+{
+}
+
+inline IVector2 & IVector2::setX(int _x)
+{
+	mX = _x;
+	return *this;
+}
+
+inline IVector2 & IVector2::setY(int _y)
+{
+	mY = _y;
+	return *this;
+}
+
+inline int IVector2::getX() const
+{
+	return mX;
+}
+
+inline int IVector2::getY() const
+{
+	return mY;
+}
+
+inline IVector2 & IVector2::setElem(int idx, int value)
+{
+	*(&mX + idx) = value;
+	return *this;
+}
+
+inline int IVector2::getElem(int idx) const
+{
+	return *(&mX + idx);
+}
+
+inline int & IVector2::operator[](int idx)
+{
+	return *(&mX + idx);
+}
+
+inline int IVector2::operator[](int idx) const
+{
+	return *(&mX + idx);
+}
+
+inline const IVector2 IVector2::operator + (const IVector2 & vec) const
+{
+	return IVector2((mX + vec.mX), (mY + vec.mY));
+}
+
+inline const IVector2 IVector2::operator - (const IVector2 & vec) const
+{
+	return IVector2((mX - vec.mX), (mY - vec.mY));
+}
+
+inline const IVector2 IVector2::operator * (int scalar) const
+{
+	return IVector2((mX * scalar), (mY * scalar));
+}
+
+inline const IVector2 IVector2::operator / (int scalar) const
+{
+	return IVector2((mX / scalar), (mY / scalar));
+}
+
+inline IVector2 & IVector2::operator += (const IVector2 & vec)
+{
+	mX += vec.mX;
+	mY += vec.mY;
+	return *this;
+}
+
+inline IVector2 & IVector2::operator -= (const IVector2 & vec)
+{
+	mX -= vec.mX;
+	mY -= vec.mY;
+	return *this;
+}
+
+inline IVector2 & IVector2::operator *= (int scalar)
+{
+	mX *= scalar;
+	mY *= scalar;
+	return *this;
+}
+
+inline IVector2 & IVector2::operator /= (int scalar)
+{
+	mX /= scalar;
+	mY /= scalar;
+	return *this;
+}
+
+inline const IVector2 IVector2::operator - () const
+{
+	return IVector2(-mX, -mY);
+}
+
+inline const IVector2 IVector2::xAxis()
+{
+	return IVector2(1, 0);
+}
+
+inline const IVector2 IVector2::yAxis()
+{
+	return IVector2(0, 1);
+}
+
+inline const IVector2 operator * (int scalar, const IVector2 & vec)
+{
+	return vec * scalar;
+}
+
+inline const IVector2 absPerElem(const IVector2 & vec)
+{
+	return IVector2(vec.getX() < 0 ? -vec.getX() : vec.getX(),
+					vec.getY() < 0 ? -vec.getY() : vec.getY());
+}
+
+inline const IVector2 maxPerElem(const IVector2 & vec0, const IVector2 & vec1)
+{
+	return IVector2((vec0.getX() > vec1.getX()) ? vec0.getX() : vec1.getX(),
+		(vec0.getY() > vec1.getY()) ? vec0.getY() : vec1.getY());
+}
+
+inline const IVector2 minPerElem(const IVector2 & vec0, const IVector2 & vec1)
+{
+	return IVector2((vec0.getX() < vec1.getX()) ? vec0.getX() : vec1.getX(),
+		(vec0.getY() < vec1.getY()) ? vec0.getY() : vec1.getY());
+}
+
+inline int maxElem(const IVector2 & vec)
+{
+	return (vec.getX() > vec.getY()) ? vec.getX() : vec.getY();
+}
+
+inline int minElem(const IVector2 & vec)
+{
+	return (vec.getX() < vec.getY()) ? vec.getX() : vec.getY();
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const IVector2 & vec)
+{
+	std::printf("( %i %i )\n", vec.getX(), vec.getY());
+}
+
+inline void print(const IVector2 & vec, const char * name)
+{
+	std::printf("%s: ( %i %i )\n", name, vec.getX(), vec.getY());
+}
+
+#endif // VECTORMATH_DEBUG
+
+
+// ========================================================
+// A 2-D unpadded vector (sizeof = 8 bytes)
+// ========================================================
+
+typedef unsigned int uint;
+
+class UVector2
+{
+	uint mX;
+	uint mY;
+
+public:
+
+	// Default constructor; does no initialization
+	//
+	inline UVector2() {}
+
+	// Construct a 2-D vector from x and y elements
+	//
+	inline UVector2(uint x, uint y);
+
+	// Set all elements of a 2-D vector to the same scalar value
+	//
+	explicit inline UVector2(uint scalar);
+
+	// Set the x element of a 2-D vector
+	//
+	inline UVector2 & setX(uint x);
+
+	// Set the y element of a 2-D vector
+	//
+	inline UVector2 & setY(uint y);
+
+	// Get the x element of a 2-D vector
+	//
+	inline uint getX() const;
+
+	// Get the y element of a 2-D vector
+	//
+	inline uint getY() const;
+
+	// Set an x or y element of a 2-D vector by index
+	//
+	inline UVector2 & setElem(uint idx, uint value);
+
+	// Get an x or y element of a 2-D vector by index
+	//
+	inline uint getElem(uint idx) const;
+
+	// Subscripting operator to set or get an element
+	//
+	inline uint & operator[](uint idx);
+
+	// Subscripting operator to get an element
+	//
+	inline uint operator[](uint idx) const;
+
+	// Add two 2-D vectors
+	//
+	inline const UVector2 operator + (const UVector2 & vec) const;
+
+	// Subtract a 2-D vector from another 2-D vector
+	//
+	inline const UVector2 operator - (const UVector2 & vec) const;
+
+	// Multiply a 2-D vector by a scalar
+	//
+	inline const UVector2 operator * (uint scalar) const;
+
+	// Divide a 2-D vector by a scalar
+	//
+	inline const UVector2 operator / (uint scalar) const;
+
+	// Perform compound assignment and addition with a 2-D vector
+	//
+	inline UVector2 & operator += (const UVector2 & vec);
+
+	// Perform compound assignment and subtraction by a 2-D vector
+	//
+	inline UVector2 & operator -= (const UVector2 & vec);
+
+	// Perform compound assignment and multiplication by a scalar
+	//
+	inline UVector2 & operator *= (uint scalar);
+
+	// Perform compound assignment and division by a scalar
+	//
+	inline UVector2 & operator /= (uint scalar);
+
+	// Construct x axis
+	//
+	static inline const UVector2 xAxis();
+
+	// Construct y axis
+	//
+	static inline const UVector2 yAxis();
+};
+
+// Multiply a 2-D vector by a scalar
+//
+inline const UVector2 operator * (uint scalar, const UVector2 & vec);
+
+// Maximum of two 2-D vectors per element
+//
+inline const UVector2 maxPerElem(const UVector2 & vec0, const UVector2 & vec1);
+
+// Minimum of two 2-D vectors per element
+//
+inline const UVector2 minPerElem(const UVector2 & vec0, const UVector2 & vec1);
+
+// Maximum element of a 2-D vector
+//
+inline uint maxElem(const UVector2 & vec);
+
+// Minimum element of a 2-D vector
+//
+inline uint minElem(const UVector2 & vec);
+
+#ifdef VECTORMATH_DEBUG
+
+// Pruint a 2-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void pruint(const UVector2 & vec);
+
+// Pruint a 2-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void pruint(const UVector2 & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+// ================================================================================================
+// UVector2 implementation
+// ================================================================================================
+
+inline UVector2::UVector2(uint _x, uint _y)
+	: mX(_x), mY(_y)
+{
+}
+
+inline UVector2::UVector2(uint scalar)
+	: mX(scalar), mY(scalar)
+{
+}
+
+inline UVector2 & UVector2::setX(uint _x)
+{
+	mX = _x;
+	return *this;
+}
+
+inline UVector2 & UVector2::setY(uint _y)
+{
+	mY = _y;
+	return *this;
+}
+
+inline uint UVector2::getX() const
+{
+	return mX;
+}
+
+inline uint UVector2::getY() const
+{
+	return mY;
+}
+
+inline UVector2 & UVector2::setElem(uint idx, uint value)
+{
+	*(&mX + idx) = value;
+	return *this;
+}
+
+inline uint UVector2::getElem(uint idx) const
+{
+	return *(&mX + idx);
+}
+
+inline uint & UVector2::operator[](uint idx)
+{
+	return *(&mX + idx);
+}
+
+inline uint UVector2::operator[](uint idx) const
+{
+	return *(&mX + idx);
+}
+
+inline const UVector2 UVector2::operator + (const UVector2 & vec) const
+{
+	return UVector2((mX + vec.mX), (mY + vec.mY));
+}
+
+inline const UVector2 UVector2::operator - (const UVector2 & vec) const
+{
+	return UVector2((mX - vec.mX), (mY - vec.mY));
+}
+
+inline const UVector2 UVector2::operator * (uint scalar) const
+{
+	return UVector2((mX * scalar), (mY * scalar));
+}
+
+inline const UVector2 UVector2::operator / (uint scalar) const
+{
+	return UVector2((mX / scalar), (mY / scalar));
+}
+
+inline UVector2 & UVector2::operator += (const UVector2 & vec)
+{
+	mX += vec.mX;
+	mY += vec.mY;
+	return *this;
+}
+
+inline UVector2 & UVector2::operator -= (const UVector2 & vec)
+{
+	mX -= vec.mX;
+	mY -= vec.mY;
+	return *this;
+}
+
+inline UVector2 & UVector2::operator *= (uint scalar)
+{
+	mX *= scalar;
+	mY *= scalar;
+	return *this;
+}
+
+inline UVector2 & UVector2::operator /= (uint scalar)
+{
+	mX /= scalar;
+	mY /= scalar;
+	return *this;
+}
+
+inline const UVector2 UVector2::xAxis()
+{
+	return UVector2(1, 0);
+}
+
+inline const UVector2 UVector2::yAxis()
+{
+	return UVector2(0, 1);
+}
+
+inline const UVector2 operator * (uint scalar, const UVector2 & vec)
+{
+	return vec * scalar;
+}
+
+inline const UVector2 maxPerElem(const UVector2 & vec0, const UVector2 & vec1)
+{
+	return UVector2((vec0.getX() > vec1.getX()) ? vec0.getX() : vec1.getX(),
+		(vec0.getY() > vec1.getY()) ? vec0.getY() : vec1.getY());
+}
+
+inline const UVector2 minPerElem(const UVector2 & vec0, const UVector2 & vec1)
+{
+	return UVector2((vec0.getX() < vec1.getX()) ? vec0.getX() : vec1.getX(),
+		(vec0.getY() < vec1.getY()) ? vec0.getY() : vec1.getY());
+}
+
+inline uint maxElem(const UVector2 & vec)
+{
+	return (vec.getX() > vec.getY()) ? vec.getX() : vec.getY();
+}
+
+inline uint minElem(const UVector2 & vec)
+{
+	return (vec.getX() < vec.getY()) ? vec.getX() : vec.getY();
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void pruint(const UVector2 & vec)
+{
+	std::printf("( %u %u )\n", vec.getX(), vec.getY());
+}
+
+inline void pruint(const UVector2 & vec, const char * name)
+{
+	std::printf("%s: ( %u %u )\n", name, vec.getX(), vec.getY());
+}
+
+#endif // VECTORMATH_DEBUG
 
 // ========================================================
 // A 2x2 matrix in array-of-structures format

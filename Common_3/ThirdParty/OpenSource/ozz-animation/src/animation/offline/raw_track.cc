@@ -118,10 +118,12 @@ void RawTrack<_ValueType>::Load(io::IArchive& _archive, uint32_t _version) {
 
 // Explicitly instantiate supported raw tracks.
 template struct RawTrack<float>;
-template struct RawTrack<math::Float2>;
-template struct RawTrack<math::Float3>;
-template struct RawTrack<math::Float4>;
-template struct RawTrack<math::Quaternion>;
+//CONFFX_BEGIN
+template struct RawTrack<Vector2>;
+template struct RawTrack<Vector3>;
+template struct RawTrack<Vector4>;
+template struct RawTrack<Quat>;
+//CONFFX_END
 }  // namespace internal
 }  // namespace offline
 }  // namespace animation

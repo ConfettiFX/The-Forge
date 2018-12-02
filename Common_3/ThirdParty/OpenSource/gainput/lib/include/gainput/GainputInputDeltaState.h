@@ -5,6 +5,22 @@
 namespace gainput
 {
 
+struct GestureChange
+{
+	unsigned type;
+	// Average position of all touches
+	float position[2];
+	union
+	{
+		// Pan gesture data
+		struct { float translation[2]; };
+		// Pinch gesture data
+		struct { float scale; float velocity; float distance[2]; };
+		// Rotate gesture data
+		struct { float rotation; };
+	};
+};
+	
 /// Stores a list of input state changes.
 class GAINPUT_LIBEXPORT InputDeltaState
 {
@@ -27,7 +43,13 @@ public:
 	 * \param newValue The new button state.
 	 */
 	void AddChange(DeviceId device, DeviceButtonId deviceButton, float oldValue, float newValue);
-
+	/// Add a state change for a gesture-type button.
+	/**
+	 * \param device The input device the change occurred on.
+	 * \param deviceButton The input button that was changed.
+	 * \param newValue The new gesture state.
+	 */
+	void AddChange(DeviceId device, DeviceButtonId deviceButton, const GestureChange& newValue);
 	/// Clear list of state changes.
 	void Clear();
 
@@ -45,9 +67,16 @@ private:
 		ButtonType type;
 		union
 		{
-			bool b;
-			float f;
-		} oldValue, newValue;
+			struct 
+			{
+				union
+				{
+					bool b;
+					float f;
+				} oldValue, newValue;
+			};
+			GestureChange g;
+		};
 	};
 
 	Array<Change> changes_;

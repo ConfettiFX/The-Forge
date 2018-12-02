@@ -162,6 +162,7 @@
     </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -216,7 +217,6 @@
       <Compiler Options="-O2;-std=c++11;-Wall;" C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>

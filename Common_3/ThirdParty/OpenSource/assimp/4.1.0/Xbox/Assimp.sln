@@ -1,0 +1,40 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2046
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IrrXML", "IrrXML.vcxproj", "{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "assimp", "assimp.vcxproj", "{FF393DFD-F110-37FF-821E-278391675B1D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C976728F-DF53-3F0E-BDD5-2AF39A6BF426} = {C976728F-DF53-3F0E-BDD5-2AF39A6BF426}
+		{9A562A76-1F59-3628-8142-4667602EE708} = {9A562A76-1F59-3628-8142-4667602EE708}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlibstatic", "zlibstatic.vcxproj", "{9A562A76-1F59-3628-8142-4667602EE708}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Durango = Debug|Durango
+		Release|Durango = Release|Durango
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}.Debug|Durango.ActiveCfg = Debug|Durango
+		{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}.Debug|Durango.Build.0 = Debug|Durango
+		{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}.Release|Durango.ActiveCfg = Release|Durango
+		{C976728F-DF53-3F0E-BDD5-2AF39A6BF426}.Release|Durango.Build.0 = Release|Durango
+		{FF393DFD-F110-37FF-821E-278391675B1D}.Debug|Durango.ActiveCfg = Debug|Durango
+		{FF393DFD-F110-37FF-821E-278391675B1D}.Debug|Durango.Build.0 = Debug|Durango
+		{FF393DFD-F110-37FF-821E-278391675B1D}.Release|Durango.ActiveCfg = Release|Durango
+		{FF393DFD-F110-37FF-821E-278391675B1D}.Release|Durango.Build.0 = Release|Durango
+		{9A562A76-1F59-3628-8142-4667602EE708}.Debug|Durango.ActiveCfg = Debug|Durango
+		{9A562A76-1F59-3628-8142-4667602EE708}.Debug|Durango.Build.0 = Debug|Durango
+		{9A562A76-1F59-3628-8142-4667602EE708}.Release|Durango.ActiveCfg = Release|Durango
+		{9A562A76-1F59-3628-8142-4667602EE708}.Release|Durango.Build.0 = Release|Durango
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {30D19299-605A-36FA-9119-5940C3A87D49}
+	EndGlobalSection
+EndGlobal

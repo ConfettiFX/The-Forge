@@ -27,13 +27,13 @@
     <ClInclude Include="..\src\Shaders\PCDX12\packing.h" />
     <ClInclude Include="..\src\Shaders\PCDX12\shader_defs.h" />
     <ClInclude Include="..\src\Shaders\PCDX12\shading.h" />
-    <ClInclude Include="..\src\Shaders\PCVulkan\non_uniform_resource_index.h" />
-    <ClInclude Include="..\src\Shaders\PCVulkan\packing.h" />
-    <ClInclude Include="..\src\Shaders\PCVulkan\shader_defs.h" />
-    <ClInclude Include="..\src\Shaders\PCVulkan\shading.h" />
+    <ClInclude Include="..\src\Shaders\Vulkan\non_uniform_resource_index.h" />
+    <ClInclude Include="..\src\Shaders\Vulkan\packing.h" />
+    <ClInclude Include="..\src\Shaders\Vulkan\shader_defs.h" />
+    <ClInclude Include="..\src\Shaders\Vulkan\shading.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\HDAO.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\HDAO.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -68,7 +68,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\resolve.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\resolve.vert">
       <FileType>Document</FileType>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
@@ -105,7 +105,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\batch_compaction.comp">
+    <CustomBuild Include="..\src\Shaders\Vulkan\batch_compaction.comp">
       <FileType>Document</FileType>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
@@ -136,7 +136,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\clear_buffers.comp">
+    <CustomBuild Include="..\src\Shaders\Vulkan\clear_buffers.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -167,7 +167,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\clear_light_clusters.comp">
+    <CustomBuild Include="..\src\Shaders\Vulkan\clear_light_clusters.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -198,7 +198,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\cluster_lights.comp">
+    <CustomBuild Include="..\src\Shaders\Vulkan\cluster_lights.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -229,7 +229,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_pass.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_pass.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -260,7 +260,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_pass.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_pass.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -291,7 +291,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_pass_alpha.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_pass_alpha.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -322,7 +322,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_shade.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -353,7 +353,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_shade_pointlight.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -384,7 +384,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\shadow_pass.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -415,7 +415,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\shadow_pass_alpha.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass_alpha.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -446,7 +446,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\triangle_filtering.comp">
+    <CustomBuild Include="..\src\Shaders\Vulkan\triangle_filtering.comp">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -477,7 +477,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\visibilityBuffer_pass.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -508,7 +508,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\visibilityBuffer_pass.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -539,7 +539,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\visibilityBuffer_pass_alpha.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -570,7 +570,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\visibilityBuffer_shade.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
 $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
@@ -603,7 +603,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_shade.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade.frag">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -662,7 +662,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\deferred_shade_pointlight.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.frag">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -713,7 +713,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\HDAO.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\HDAO.frag">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -780,7 +780,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\resolve.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\resolve.frag">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -835,7 +835,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
       </AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\shadow_pass_alpha.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass_alpha.vert">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -866,7 +866,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\visibilityBuffer_pass_alpha.vert">
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.vert">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -897,7 +897,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\PCVulkan\visibilityBuffer_shade.frag">
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.frag">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
@@ -993,16 +993,16 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass_alpha.vert" />
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.frag" />
     <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.vert" />
-    <None Include="..\src\Shaders\PCVulkan\CurveConversion.frag" />
-    <None Include="..\src\Shaders\PCVulkan\display.frag" />
-    <None Include="..\src\Shaders\PCVulkan\display.vert" />
-    <None Include="..\src\Shaders\PCVulkan\godray.frag" />
-    <None Include="..\src\Shaders\PCVulkan\panoToCube.comp" />
-    <None Include="..\src\Shaders\PCVulkan\resolveGodray.frag" />
-    <None Include="..\src\Shaders\PCVulkan\skybox.frag" />
-    <None Include="..\src\Shaders\PCVulkan\skybox.vert" />
-    <None Include="..\src\Shaders\PCVulkan\sun.frag" />
-    <None Include="..\src\Shaders\PCVulkan\sun.vert" />
+    <None Include="..\src\Shaders\Vulkan\CurveConversion.frag" />
+    <None Include="..\src\Shaders\Vulkan\display.frag" />
+    <None Include="..\src\Shaders\Vulkan\display.vert" />
+    <None Include="..\src\Shaders\Vulkan\godray.frag" />
+    <None Include="..\src\Shaders\Vulkan\panoToCube.comp" />
+    <None Include="..\src\Shaders\Vulkan\resolveGodray.frag" />
+    <None Include="..\src\Shaders\Vulkan\skybox.frag" />
+    <None Include="..\src\Shaders\Vulkan\skybox.vert" />
+    <None Include="..\src\Shaders\Vulkan\sun.frag" />
+    <None Include="..\src\Shaders\Vulkan\sun.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>
@@ -1057,26 +1057,26 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -1088,6 +1088,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -1095,7 +1096,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -1111,6 +1112,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -1118,7 +1120,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)"</Command>
@@ -1139,6 +1141,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -1148,7 +1151,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <EntryPointName />
@@ -1173,6 +1176,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -1182,7 +1186,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)"</Command>

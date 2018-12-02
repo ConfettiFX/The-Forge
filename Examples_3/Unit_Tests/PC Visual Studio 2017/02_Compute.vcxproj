@@ -33,7 +33,7 @@
     <None Include="..\src\02_Compute\Shaders\PCDX12\compute.comp" />
     <None Include="..\src\02_Compute\Shaders\PCDX12\display.frag" />
     <None Include="..\src\02_Compute\Shaders\PCDX12\display.vert" />
-    <CustomBuild Include="..\src\02_Compute\Shaders\PCVulkan\compute.comp">
+    <CustomBuild Include="..\src\02_Compute\Shaders\Vulkan\compute.comp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -46,8 +46,8 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <None Include="..\src\02_Compute\Shaders\PCVulkan\display.frag" />
-    <None Include="..\src\02_Compute\Shaders\PCVulkan\display.vert" />
+    <None Include="..\src\02_Compute\Shaders\Vulkan\display.frag" />
+    <None Include="..\src\02_Compute\Shaders\Vulkan\display.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E696ABA2-EFC0-490E-9A52-0A610F0D5F4B}</ProjectGuid>
@@ -171,8 +171,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -213,8 +212,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -299,8 +297,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -345,8 +342,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

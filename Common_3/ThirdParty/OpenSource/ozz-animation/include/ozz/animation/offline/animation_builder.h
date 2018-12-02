@@ -49,7 +49,8 @@ class AnimationBuilder {
   // The returned animation will then need to be deleted using the default
   // allocator Delete() function.
   // See RawAnimation::Validate() for more details about failure reasons.
-  Animation* operator()(const RawAnimation& _raw_animation) const;
+  //Animation* operator()(const RawAnimation& _raw_animation) const;	// Deleted because it causes problems with the memory allocator
+	 static bool Build(const RawAnimation& _raw_animation, Animation* animation);
 };
 }  // namespace offline
 }  // namespace animation

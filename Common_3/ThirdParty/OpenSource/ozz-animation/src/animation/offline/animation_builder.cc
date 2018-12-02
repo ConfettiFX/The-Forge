@@ -36,7 +36,7 @@
 #include "ozz/base/containers/vector.h"
 #include "ozz/base/memory/allocator.h"
 
-#include "ozz/base/maths/simd_math.h"
+//#include "ozz/base/maths/simd_math.h" //CONFFX_BEGIN
 
 #include "ozz/animation/offline/raw_animation.h"
 
@@ -44,7 +44,49 @@
 
 // Internal include file
 #define OZZ_INCLUDE_PRIVATE_HEADER  // Allows to include private headers.
-#include "animation/runtime/animation_keyframe.h"
+#include "../src/animation/runtime/animation_keyframe.h"
+
+//CONFFX_BEGIN
+static uint16_t FloatToHalfTemp(float _f) {
+  const uint32_t f32infty = 255 << 23;
+  const uint32_t f16infty = 31 << 23;
+  const union {
+    uint32_t u;
+    float f;
+  } magic = {15 << 23};
+  const uint32_t sign_mask = 0x80000000u;
+  const uint32_t round_mask = ~0x00000fffu;
+
+  const union {
+    float f;
+    uint32_t u;
+  } f = {_f};
+  const uint32_t sign = f.u & sign_mask;
+  const uint32_t f_nosign = f.u & ~sign_mask;
+
+  if (f_nosign >= f32infty) {  // Inf or NaN (all exponent bits set)
+    // NaN->qNaN and Inf->Inf
+    const uint32_t result =
+        ((f_nosign > f32infty) ? 0x7e00 : 0x7c00) | (sign >> 16);
+    return static_cast<uint16_t>(result);
+  } else {  // (De)normalized number or zero
+    const union {
+      uint32_t u;
+      float f;
+    } rounded = {f_nosign & round_mask};
+    const union {
+      float f;
+      uint32_t u;
+    } exp = {rounded.f * magic.f};
+    const uint32_t re_rounded = exp.u - round_mask;
+    // Clamp to signed infinity if overflowed
+    const uint32_t result =
+        ((re_rounded > f16infty ? f16infty : re_rounded) >> 13) | (sign >> 16);
+    return static_cast<uint16_t>(result);
+  }
+}
+//CONFFX_END
+
 
 namespace ozz {
 namespace animation {
@@ -145,9 +187,11 @@ void CopyToAnimation(ozz::Vector<SortingTranslationKey>::Std* _src,
     TranslationKey& key = _dest->begin[i];
     key.ratio = src[i].key.time * _inv_duration;
     key.track = src[i].track;
-    key.value[0] = ozz::math::FloatToHalf(src[i].key.value.x);
-    key.value[1] = ozz::math::FloatToHalf(src[i].key.value.y);
-    key.value[2] = ozz::math::FloatToHalf(src[i].key.value.z);
+	//CONFFX_BEGIN
+    key.value[0] = FloatToHalfTemp(src[i].key.value.getX());
+    key.value[1] = FloatToHalfTemp(src[i].key.value.getY());
+    key.value[2] = FloatToHalfTemp(src[i].key.value.getZ());
+	//CONFFX_END
   }
 }
 
@@ -168,9 +212,11 @@ void CopyToAnimation(ozz::Vector<SortingScaleKey>::Std* _src,
     ScaleKey& key = _dest->begin[i];
     key.ratio = src[i].key.time * _inv_duration;
     key.track = src[i].track;
-    key.value[0] = ozz::math::FloatToHalf(src[i].key.value.x);
-    key.value[1] = ozz::math::FloatToHalf(src[i].key.value.y);
-    key.value[2] = ozz::math::FloatToHalf(src[i].key.value.z);
+	//CONFFX_BEGIN
+    key.value[0] = FloatToHalfTemp(src[i].key.value.getX());
+    key.value[1] = FloatToHalfTemp(src[i].key.value.getY());
+    key.value[2] = FloatToHalfTemp(src[i].key.value.getZ());
+	//CONFFX_END
   }
 }
 
@@ -185,10 +231,11 @@ bool LessAbs(float _left, float _right) {
 // property (x^2+y^2+z^2+w^2 = 1). Because the 3 components are the 3 smallest,
 // their value cannot be greater than sqrt(2)/2. Thus quantization quality is
 // improved by pre-multiplying each componenent by sqrt(2).
-void CompressQuat(const ozz::math::Quaternion& _src,
+//CONFFX_BEGIN
+void CompressQuat(const Quat& _src,
                   ozz::animation::RotationKey* _dest) {
   // Finds the largest quaternion component.
-  const float quat[4] = {_src.x, _src.y, _src.z, _src.w};
+  const float quat[4] = {_src.getX(), _src.getY(), _src.getZ(), _src.getW()};
   const size_t largest = std::max_element(quat, quat + 4, LessAbs) - quat;
   assert(largest <= 3);
   _dest->largest = largest & 0x3;
@@ -197,16 +244,18 @@ void CompressQuat(const ozz::math::Quaternion& _src,
   _dest->sign = quat[largest] < 0.f;
 
   // Quantize the 3 smallest components on 16 bits signed integers.
-  const float kFloat2Int = 32767.f * math::kSqrt2;
+  static const float kSqrt2 = 1.4142135623730950488016887242097f;
+  const float kFloat2Int = 32767.f * kSqrt2;
   const int kMapping[4][3] = {{1, 2, 3}, {0, 2, 3}, {0, 1, 3}, {0, 1, 2}};
   const int* map = kMapping[largest];
   const int a = static_cast<int>(floor(quat[map[0]] * kFloat2Int + .5f));
   const int b = static_cast<int>(floor(quat[map[1]] * kFloat2Int + .5f));
   const int c = static_cast<int>(floor(quat[map[2]] * kFloat2Int + .5f));
-  _dest->value[0] = math::Clamp(-32767, a, 32767) & 0xffff;
-  _dest->value[1] = math::Clamp(-32767, b, 32767) & 0xffff;
-  _dest->value[2] = math::Clamp(-32767, c, 32767) & 0xffff;
+  _dest->value[0] = clamp(a, -32767, 32767) & 0xffff;
+  _dest->value[1] = clamp(b, -32767, 32767) & 0xffff;
+  _dest->value[2] = clamp(c, -32767, 32767) & 0xffff;
 }
+//CONFFX_END
 
 // Specialize for rotations in order to normalize quaternions.
 // Consecutive opposite quaternions are also fixed up in order to avoid checking
@@ -223,21 +272,30 @@ void CopyToAnimation(ozz::Vector<SortingRotationKey>::Std* _src,
   // shortest path during the normalized-lerp.
   // Note that keys are still sorted per-track at that point, which allows this
   // algorithm to process all consecutive keys.
+  //CONFFX_BEGIN
   size_t track = std::numeric_limits<size_t>::max();
-  const math::Quaternion identity = math::Quaternion::identity();
+  const Quat identity = Quat::identity();
   SortingRotationKey* src = &_src->front();
   for (size_t i = 0; i < src_count; ++i) {
-    math::Quaternion normalized = NormalizeSafe(src[i].key.value, identity);
+    Quat normalized;
+	if (norm(src[i].key.value) != 0.f)
+	{
+      normalized = normalize(src[i].key.value);
+	}
+	else
+	{
+      normalized = identity;
+	}
     if (track != src[i].track) {   // First key of the track.
-      if (normalized.w < 0.f) {    // .w eq to a dot with identity quaternion.
+      if (normalized.getW() < 0.f) {    // .w eq to a dot with identity quaternion.
         normalized = -normalized;  // Q an -Q are the same rotation.
       }
     } else {  // Still on the same track: so fixes-up quaternion.
-      const math::Float4 prev(src[i - 1].key.value.x, src[i - 1].key.value.y,
-                              src[i - 1].key.value.z, src[i - 1].key.value.w);
-      const math::Float4 curr(normalized.x, normalized.y, normalized.z,
-                              normalized.w);
-      if (Dot(prev, curr) < 0.f) {
+      const Vector4 prev(src[i - 1].key.value.getX(), src[i - 1].key.value.getY(),
+                              src[i - 1].key.value.getZ(), src[i - 1].key.value.getW());
+      const Vector4 curr(normalized.getX(), normalized.getY(), normalized.getZ(),
+                        normalized.getW());
+      if (sum(mulPerElem(prev, curr)) < 0.f) {
         normalized = -normalized;  // Q an -Q are the same rotation.
       }
     }
@@ -245,6 +303,7 @@ void CopyToAnimation(ozz::Vector<SortingRotationKey>::Std* _src,
     src[i].key.value = normalized;
     track = src[i].track;
   }
+  //CONFFX_END
 
   // Sort.
   std::sort(array_begin(*_src), array_end(*_src),
@@ -267,7 +326,7 @@ void CopyToAnimation(ozz::Vector<SortingRotationKey>::Std* _src,
 // An animation needs to have at least two key frames per joint, the first at
 // t = 0 and the last at t = duration. If at least one of those keys are not
 // in the RawAnimation then the builder creates it.
-Animation* AnimationBuilder::operator()(const RawAnimation& _input) const {
+/*Animation* AnimationBuilder::operator()(const RawAnimation& _input) const {
   // Tests _raw_animation validity.
   if (!_input.Validate()) {
     return NULL;
@@ -290,7 +349,10 @@ Animation* AnimationBuilder::operator()(const RawAnimation& _input) const {
   // already been validated.
   const uint16_t num_tracks = static_cast<uint16_t>(_input.num_tracks());
   animation->num_tracks_ = num_tracks;
-  const uint16_t num_soa_tracks = math::Align(num_tracks, 4);
+  //CONFFX_BEGIN
+  int allignment = 4;
+  const uint16_t num_soa_tracks = static_cast<int>(num_tracks + (allignment - 1)) & (0 - allignment);
+  //CONFFX_END
 
   // Declares and preallocates tracks to sort.
   size_t translations = 0, rotations = 0, scales = 0;
@@ -345,7 +407,93 @@ Animation* AnimationBuilder::operator()(const RawAnimation& _input) const {
   strcpy(animation->name_, _input.name.c_str());
 
   return animation;  // Success.
+}*/
+
+//CONFFX_BEGIN
+bool AnimationBuilder::Build(const RawAnimation& _input, Animation* animation)
+{
+	// Tests _raw_animation validity.
+	if (!_input.Validate())
+	{
+		return false;
+	}
+
+	// Sets duration.
+	const float duration = _input.duration;
+	const float inv_duration = 1.f / _input.duration;
+	animation->duration_ = duration;
+	// A _duration == 0 would create some division by 0 during sampling.
+	// Also we need at least to keys with different times, which cannot be done
+	// if duration is 0.
+	assert(duration > 0.f);  // This case is handled by Validate().
+
+	// Sets tracks count. Can be safely casted to uint16_t as number of tracks as
+	// already been validated.
+	const uint16_t num_tracks = static_cast<uint16_t>(_input.num_tracks());
+	animation->num_tracks_ = num_tracks;
+	//CONFFX_BEGIN
+	int allignment = 4;
+	const uint16_t num_soa_tracks = static_cast<int>(num_tracks + (allignment - 1)) & (0 - allignment);
+	//CONFFX_END
+
+	// Declares and preallocates tracks to sort.
+	size_t translations = 0, rotations = 0, scales = 0;
+	for (int i = 0; i < num_tracks; ++i)
+	{
+		const RawAnimation::JointTrack& raw_track = _input.tracks[i];
+		translations += raw_track.translations.size() + 2;  // +2 because worst case
+		rotations += raw_track.rotations.size() + 2;        // needs to add the
+		scales += raw_track.scales.size() + 2;              // first and last keys.
+	}
+	ozz::Vector<SortingTranslationKey>::Std sorting_translations;
+	sorting_translations.reserve(translations);
+	ozz::Vector<SortingRotationKey>::Std sorting_rotations;
+	sorting_rotations.reserve(rotations);
+	ozz::Vector<SortingScaleKey>::Std sorting_scales;
+	sorting_scales.reserve(scales);
+
+	// Filters RawAnimation keys and copies them to the output sorting structure.
+	uint16_t i = 0;
+	for (; i < num_tracks; ++i)
+	{
+		const RawAnimation::JointTrack& raw_track = _input.tracks[i];
+		CopyRaw(raw_track.translations, i, duration, &sorting_translations);
+		CopyRaw(raw_track.rotations, i, duration, &sorting_rotations);
+		CopyRaw(raw_track.scales, i, duration, &sorting_scales);
+	}
+
+	// Add enough identity keys to match soa requirements.
+	for (; i < num_soa_tracks; ++i)
+	{
+		typedef RawAnimation::TranslationKey SrcTKey;
+		PushBackIdentityKey<SrcTKey>(i, 0.f, &sorting_translations);
+		PushBackIdentityKey<SrcTKey>(i, duration, &sorting_translations);
+
+		typedef RawAnimation::RotationKey SrcRKey;
+		PushBackIdentityKey<SrcRKey>(i, 0.f, &sorting_rotations);
+		PushBackIdentityKey<SrcRKey>(i, duration, &sorting_rotations);
+
+		typedef RawAnimation::ScaleKey SrcSKey;
+		PushBackIdentityKey<SrcSKey>(i, 0.f, &sorting_scales);
+		PushBackIdentityKey<SrcSKey>(i, duration, &sorting_scales);
+	}
+
+	// Allocate animation members.
+	animation->Allocate(_input.name.length() + 1, sorting_translations.size(),
+		sorting_rotations.size(), sorting_scales.size());
+
+	// Copy sorted keys to final animation.
+	CopyToAnimation(&sorting_translations, &animation->translations_,
+		inv_duration);
+	CopyToAnimation(&sorting_rotations, &animation->rotations_, inv_duration);
+	CopyToAnimation(&sorting_scales, &animation->scales_, inv_duration);
+
+	// Copy animation's name.
+	strcpy(animation->name_, _input.name.c_str());
+
+	return true;  // Success.
 }
+//CONFFX_END
 }  // namespace offline
 }  // namespace animation
 }  // namespace ozz

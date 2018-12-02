@@ -181,6 +181,17 @@ struct MaterialData
 	tinystl::unordered_map<tinystl::string, MaterialProperty> mProperties;
 };
 
+struct BoneNames
+{
+	tinystl::string mNames[4];
+};
+
+struct Bone
+{
+	tinystl::string mName;
+	mat4 mOffsetMatrix;
+};
+
 struct Mesh
 {
 	tinystl::vector <float3>	mPositions;
@@ -188,6 +199,9 @@ struct Mesh
 	tinystl::vector <float3>	mTangents;
 	tinystl::vector <float3>	mBitangents;
 	tinystl::vector <float2>	mUvs;
+	tinystl::vector <float4>	mBoneWeights;
+	tinystl::vector <BoneNames> mBoneNames;
+	tinystl::vector <Bone>		mBones;
 	tinystl::vector <uint32_t>	mIndices;
 	BoundingBox					mBounds;
 	uint32_t					mMaterialId;

@@ -211,7 +211,7 @@ public:
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, false);
+			addResource(&textureDesc, true);
 		}
 
 #ifdef TARGET_IOS

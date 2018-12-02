@@ -29,7 +29,6 @@
 #include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/metadata.h"
 #include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/config.h"
 #include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/cimport.h"
-#include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
 #include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
 #include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/DefaultLogger.hpp"
 
@@ -175,6 +174,34 @@ static void CreateGeom(const aiMesh* mesh, const char* name, Mesh* pMesh)
 		memcpy(pMesh->mUvs.data(), uvBuffer, mesh->mNumVertices * sizeof(float2));
 	}
 
+	if (mesh->HasBones())
+	{
+		pMesh->mBoneWeights.resize(mesh->mNumVertices);
+		pMesh->mBoneNames.resize(mesh->mNumVertices);
+		pMesh->mBones.resize(mesh->mNumBones);
+		tinystl::vector<uint> vertexBoneCount(mesh->mNumVertices, 0);
+
+		for (uint32_t i = 0; i < mesh->mNumBones; ++i)
+		{
+			aiBone* bone = mesh->mBones[i];
+			for (uint32_t j = 0; j < bone->mNumWeights; ++j)
+			{
+				aiVertexWeight weight = bone->mWeights[j];
+				uint index = vertexBoneCount[weight.mVertexId];
+				ASSERT(index < 4);
+
+				pMesh->mBoneWeights[weight.mVertexId][index] = weight.mWeight;
+				pMesh->mBoneNames[weight.mVertexId].mNames[index] = bone->mName.C_Str();
+
+				++vertexBoneCount[weight.mVertexId];
+			}
+			
+			aiMatrix4x4 mat = bone->mOffsetMatrix;
+			mat4 offsetMat = *(mat4*)&mat;
+			pMesh->mBones[i] = { bone->mName.C_Str(), transpose(offsetMat)};
+		}
+	}
+
 	pMesh->mIndices.resize(sizeInde);
 	memcpy(pMesh->mIndices.data(), indexBuffer, sizeInde * sizeof(unsigned int));
 
@@ -302,6 +329,7 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 		aiProcess_FindDegenerates |
 		aiProcess_FindInvalidData |
 		aiProcess_JoinIdenticalVertices |
+		aiProcess_LimitBoneWeights |
 		aiProcess_ConvertToLeftHanded;
 	flags &= ~aiProcess_SortByPType;
 	flags &= ~aiProcess_FindInstances;

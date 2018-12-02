@@ -71,7 +71,7 @@ void flush_file(FileHandle handle)
 
 size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {
-	return fread(buffer, byteCount, 1, (::FILE*)handle);
+	return fread(buffer, 1, byteCount, (::FILE*)handle);
 }
 
 bool seek_file(FileHandle handle, long offset, int origin)
@@ -86,7 +86,7 @@ long tell_file(FileHandle handle)
 
 size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
-	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
+	return fwrite(buffer, 1, byteCount, (::FILE*)handle);
 }
 
 size_t get_file_last_modified_time(const char* _fileName)
@@ -140,7 +140,7 @@ void set_current_dir(const char* path)
 	chdir(path);
 }
 
-void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
 {
 	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	DIR* pDir = opendir(dir);
@@ -159,6 +159,52 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 			filesOut.push_back(path + entry->d_name);
 		}
 	}
+	
+	closedir(pDir);
+}
+
+void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
+{
+	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	DIR* pDir = opendir(dir);
+	if(!pDir)
+	{
+		LOGWARNINGF("Could not open directory: %s", dir);
+		return;
+	}
+	
+	// recursively search the directory for files with given extension
+	dirent* entry = NULL;
+	while((entry = readdir(pDir)) != NULL)
+	{
+		if(entry->d_type & DT_DIR)
+		{
+			if(entry->d_name[0] != '.')
+			{
+				tinystl::string subDirectory = path + entry->d_name;
+				subDirectoriesOut.push_back(subDirectory);
+			}
+		}
+	}
+	
+	closedir(pDir);
+}
+
+bool absolute_path(const char* fileFullPath)
+{
+	return (([NSString stringWithUTF8String:fileFullPath].absolutePath == YES) ? true : false);
+}
+
+bool copy_file(const char* src, const char* dst)
+{
+	NSError* error = nil;
+	if (NO == [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithUTF8String:src] toPath:[NSString stringWithUTF8String:dst] error:&error])
+	{
+		LOGINFOF("Failed to copy file with error : %s", [[error localizedDescription] UTF8String]);
+		return false;
+	}
+	
+	return true;
 }
 
 #endif // __APPLE__

@@ -1,9 +1,10 @@
-﻿/*
+/*
 ---------------------------------------------------------------------------
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2017, assimp team
+Copyright (c) 2006-2018, assimp team
+
 
 
 All rights reserved.
@@ -48,12 +49,53 @@ corresponding preprocessor flag to selectively disable formats.
 */
 
 #include <vector>
-#include "BaseImporter.h"
+#include <assimp/BaseImporter.h>
 
 // ------------------------------------------------------------------------------------------------
 // Importers
 // (include_new_importers_here)
 // ------------------------------------------------------------------------------------------------
+#define ASSIMP_BUILD_NO_X_IMPORTER
+#define ASSIMP_BUILD_NO_AMF_IMPORTER
+#define ASSIMP_BUILD_NO_3DS_IMPORTER
+#define ASSIMP_BUILD_NO_MDL_IMPORTER
+#define ASSIMP_BUILD_NO_MD2_IMPORTER
+#define ASSIMP_BUILD_NO_MD3_IMPORTER
+#define ASSIMP_BUILD_NO_PLY_IMPORTER
+#define ASSIMP_BUILD_NO_ASE_IMPORTER
+#define ASSIMP_BUILD_NO_HMP_IMPORTER
+#define ASSIMP_BUILD_NO_SMD_IMPORTER
+#define ASSIMP_BUILD_NO_MDC_IMPORTER
+#define ASSIMP_BUILD_NO_MD5_IMPORTER
+#define ASSIMP_BUILD_NO_LWO_IMPORTER
+#define ASSIMP_BUILD_NO_DXF_IMPORTER
+#define ASSIMP_BUILD_NO_NFF_IMPORTER
+#define ASSIMP_BUILD_NO_SIB_IMPORTER
+#define ASSIMP_BUILD_NO_OFF_IMPORTER
+#define ASSIMP_BUILD_NO_AC_IMPORTER
+#define ASSIMP_BUILD_NO_BVH_IMPORTER
+#define ASSIMP_BUILD_NO_Q3D_IMPORTER
+#define ASSIMP_BUILD_NO_B3D_IMPORTER
+#define ASSIMP_BUILD_NO_TERRAGEN_IMPORTER
+#define ASSIMP_BUILD_NO_CSM_IMPORTER
+#define ASSIMP_BUILD_NO_3D_IMPORTER
+#define ASSIMP_BUILD_NO_LWS_IMPORTER
+#define ASSIMP_BUILD_NO_OGRE_IMPORTER
+#define ASSIMP_BUILD_NO_OPENGEX_IMPORTER
+#define ASSIMP_BUILD_NO_MS3D_IMPORTER
+#define ASSIMP_BUILD_NO_COB_IMPORTER
+#define ASSIMP_BUILD_NO_Q3BSP_IMPORTER
+#define ASSIMP_BUILD_NO_NDO_IMPORTER
+#define ASSIMP_BUILD_NO_IFC_IMPORTER
+#define ASSIMP_BUILD_NO_XGL_IMPORTER
+#define ASSIMP_BUILD_NO_ASSBIN_IMPORTER
+#define ASSIMP_BUILD_NO_3MF_IMPORTER
+#define ASSIMP_BUILD_NO_X3D_IMPORTER
+#define ASSIMP_BUILD_NO_MMD_IMPORTER
+#define ASSIMP_BUILD_NO_STEPFILE_IMPORTER
+#define ASSIMP_BUILD_NO_BLEND_IMPORTER
+#define ASSIMP_BUILD_NO_C4D_IMPORTER
+
 #ifndef ASSIMP_BUILD_NO_X_IMPORTER
 #   include "XFileImporter.h"
 #endif
@@ -169,7 +211,7 @@ corresponding preprocessor flag to selectively disable formats.
 #   include "NDOLoader.h"
 #endif
 #ifndef ASSIMP_BUILD_NO_IFC_IMPORTER
-#   include "IFCLoader.h"
+#   include "Importer/IFC/IFCLoader.h"
 #endif
 #ifndef ASSIMP_BUILD_NO_XGL_IMPORTER
 #   include "XGLLoader.h"
@@ -195,6 +237,9 @@ corresponding preprocessor flag to selectively disable formats.
 #endif
 #ifndef ASSIMP_BUILD_NO_MMD_IMPORTER
 #   include "MMDImporter.h"
+#endif
+#ifndef ASSIMP_BUILD_NO_STEPFILE_IMPORTER
+#   include "Importer/StepFile/StepFileImporter.h"
 #endif
 
 namespace Assimp {
@@ -350,6 +395,9 @@ void GetImporterInstanceList(std::vector< BaseImporter* >& out)
 #endif
 #ifndef ASSIMP_BUILD_NO_MMD_IMPORTER
     out.push_back( new MMDImporter() );
+#endif
+#ifndef ASSIMP_BUILD_NO_STEPFILE_IMPORTER
+    out.push_back(new StepFile::StepFileImporter());
 #endif
 }
 

@@ -905,7 +905,7 @@
 				A50BAF8594294D2D8821B293 /* MinSizeRel */,
 				B2A1C3ACAA6A4BC494F5F7CB /* RelWithDebInfo */,
 			);
-			compatibilityVersion = "Xcode 3.2";
+			compatibilityVersion = "Xcode 10";
 			hasScannedForEncodings = 0;
 			mainGroup = 1455D4BB9BB44028B9413571;
 			projectDirPath = ../;

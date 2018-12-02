@@ -55,15 +55,14 @@ bool Clip::LoadClip(const char* fileName)
 	ozz::io::File file(fileName, "rb");
 	if (!file.opened())
 	{
-		ozz::log::Err() << "Cannot open file " << fileName << "." << std::endl;
+		ErrorMsg("Cannot open file ");
 		return false;
 	}
 
 	ozz::io::IArchive archive(&file);
 	if (!archive.TestTag<ozz::animation::Animation>())
 	{
-		ozz::log::Err() << "Archive doesn't contain the expected object type." <<
-			std::endl;
+		ErrorMsg("Archive doesn't contain the expected object type.");
 		return false;
 	}
 

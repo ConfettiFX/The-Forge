@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Workspace Name="Assimp" Version="10.0.0">
+  <Project Name="Assimp" Path="Assimp.project" Active="No"/>
+  <Project Name="zlibstatic" Path="contrib/zlib/zlib.project" Active="No"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="NoConfig" Selected="yes">
+      <Project Name="Assimp" ConfigName="NoConfig"/>
+      <Project Name="zlibstatic" ConfigName="NoConfig"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

@@ -150,11 +150,12 @@ void Track<_ValueType>::Load(ozz::io::IArchive& _archive, uint32_t _version) {
 
 // Explicitly instantiate supported tracks.
 template class Track<float>;
-template class Track<math::Float2>;
-template class Track<math::Float3>;
-template class Track<math::Float4>;
-template class Track<math::Quaternion>;
-
+//CONFFX_BEGIN
+template class Track<Vector2>;
+template class Track<Vector3>;
+template class Track<Vector4>;
+template class Track<Quat>;
+//CONFFX_END
 }  // namespace internal
 }  // namespace animation
 }  // namespace ozz

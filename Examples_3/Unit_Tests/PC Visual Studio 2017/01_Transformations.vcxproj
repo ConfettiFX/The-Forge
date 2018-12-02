@@ -30,7 +30,7 @@
     <ClCompile Include="..\src\01_Transformations\01_Transformations.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.frag">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -69,7 +69,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.vert">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -108,7 +108,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\skybox.frag">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -147,7 +147,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\skybox.vert">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
@@ -315,8 +315,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -357,8 +356,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -443,8 +441,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -489,8 +486,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

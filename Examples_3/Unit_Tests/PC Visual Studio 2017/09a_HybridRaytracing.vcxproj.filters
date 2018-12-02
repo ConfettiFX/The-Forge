@@ -36,25 +36,25 @@
     <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\raytracedShadowsPass.comp">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\lightingPass.comp">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\lightingPass.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\raytracedShadowsPass.comp">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\raytracedShadowsPass.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\compositePass.comp">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\compositePass.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\display.frag">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\display.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\display.vert">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\display.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\gbufferPass.frag">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\gbufferPass.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCVulkan\gbufferPass.vert">
+    <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\gbufferPass.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

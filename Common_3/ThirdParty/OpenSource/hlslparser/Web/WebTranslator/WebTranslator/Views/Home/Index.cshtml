@@ -7,54 +7,72 @@
 <div class="row no-gutters d-flex flex-fill">
     <div class="col-lg-2 order-first d-flex flex-column" style="overflow:hidden">
 
-        <div class="card border-primary mb-3" style="max-width: 20rem;">
-            <div class="card-header">Input</div>
-            <div class="card-body">
-                <div class="form-group">
+        <div class="container">
+            <div class="card border-primary mb-0" style="max-width: 30rem; min-height: 12.5rem;">
+                <div class="card-header"> Input</div>
+                <div class="card-body">
                     <div class="form-group">
-                        <input type="text" class="form-control" placeholder="Entry function (default : main)" id="Entry">
-                    </div>
-                    <div class="custom-file">
-                        <input type="file" class="custom-file-input" id="File1">
-                        <label class="custom-file-label" for="File1" id="File1Label">Open a shader file</label>
+                        <div class="form-group">
+                            <input type="text" class="form-control" placeholder="Entry function (default : main)" id="Entry">
+                        </div>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="File1">
+                            <label class="custom-file-label" for="File1" id="File1Label">Open a shader file</label>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card border-primary mb-3" style="max-width: 20rem;">
-            <div class="card-header">Shader</div>
-            <div class="card-body">
-                <div class="form-group">
-                    <select class="form-control" id="selectShader" data-submit="selectShader">
-                        <!--
-                        <option value="VertexShader" id="VertexShader" selected>Vertex</option>
-                        <option value="FragmentShader" id="FragmentShader">Fragment</option>
-                        <option value="HullShader" id="HullShader">Hull</option>
-                        <option value="DomainShader" id="DomainShader">Domain</option>
-                        <option value="GeometryShader" id="GeometryShader">Geometry</option>
-                        <option value="ComputeShader" id="ComputeShader">Compute</option>
-                            -->
-                    </select>
+            <div class="card border-primary mb-0" style="max-width: 30rem; min-height: 13em;">
+                <div class="card-header">Include Files</div>
+                <div class="card-body">
+                    <div class="form-group">
+
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="IncludeFile1">
+                            <label class="custom-file-label" for="IncludeFile1" id="IncludeFile1Label">Load Include file</label>
+                        </div>
+
+                        <div class="form-group" style="margin-top : 15px">
+                            <select class="form-control" id="IncludeHeader" data-submit="IncludeHeader"></select>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card border-primary mb-3" style="max-width: 20rem;">
-            <div class="card-header">Translation</div>
-            <div class="card-body">
-                <div class="form-group">
-                    <div class="d-flex flex-fill">
-                        <button class="btn-lg btn-primary btn-block" id="ToHLSL">To HLSL 6.2 (PC)</button>
+            <div class="card border-primary mb-0" style="max-width: 30rem; min-height: 8.5rem;">
+                <div class="card-header">Shader</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <select class="form-control" id="selectShader" data-submit="selectShader"></select>
                     </div>
-                    <div class="d-flex flex-fill">
-                        <button class="btn-lg btn-primary btn-block" id="ToGLSL">To GLSL 4.5</button>
+                </div>
+            </div>
+
+            <div class="card border-primary mb-0" style="max-width: 30rem; min-height: 14rem;">
+                <div class="card-header">Translate to</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <div class="d-flex flex-fill">
+                            <button class="btn-lg btn-primary btn-block" id="ToHLSL">HLSL 6.2 (PC)</button>
+                        </div>
+                        <div class="d-flex flex-fill">
+                            <button class="btn-lg btn-primary btn-block" id="ToGLSL">GLSL 4.5</button>
+                        </div>
+                        <div class="d-flex flex-fill">
+                            <button class="btn-lg btn-primary btn-block" id="ToMSL">MSL 2.1</button>
+                        </div>
                     </div>
-                    <div class="d-flex flex-fill">
-                        <button class="btn-lg btn-primary btn-block" id="ToMSL">To MSL  2.1</button>
-                    </div>
-                    <div class="d-flex flex-fill">
-                        <button class="btn-lg btn-secondary btn-block" id="DownloadShader">Download Result</button>
+                </div>
+            </div>
+
+            <div class="card border-primary mb-0" style="max-width: 30rem; min-height: 9rem;">
+                <div class="card-header">Download Result</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <div class="d-flex flex-fill">
+                            <button class="btn-lg btn-secondary btn-block" id="DownloadShader">Download</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -62,26 +80,17 @@
     </div>
 
     <div class="col-lg-5 d-flex flex-column" style="overflow:hidden">
-        
         <div id="code-editor-container0">
             <textarea class="form-control" id="TextArea"></textarea>
         </div>
-       
-        <div id="code-editor-container1"  class="d-flex flex-fill" style="margin-top:16px">
+        <div id="code-editor-container1" class="d-flex flex-fill" style="margin-top:16px">
             <textarea class="form-control" id="TextArea1"></textarea>
         </div>
     </div>
 
     <div class="col-lg-5 order-last d-flex flex-column" style="overflow:hidden">
-        
         <div id="code-editor-container2" class="d-flex flex-fill">
             <textarea class="form-control" id="TextArea2"></textarea>
-        </div>
-
-        <div id="output-loading" class="position-absolute w-25 d-none">
-            <div class="progress align-middle">
-                <div class="progress-bar progress-bar-striped progress-bar-animated bg-secondary w-100" role="progressbar"></div>
-            </div>
         </div>
     </div>
 </div>

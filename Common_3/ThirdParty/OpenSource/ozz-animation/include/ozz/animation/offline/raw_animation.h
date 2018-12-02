@@ -28,11 +28,13 @@
 #ifndef OZZ_OZZ_ANIMATION_OFFLINE_RAW_ANIMATION_H_
 #define OZZ_OZZ_ANIMATION_OFFLINE_RAW_ANIMATION_H_
 
+//CONFFX_BEGIN
+#include "../../../../../../../OS/Math/MathTypes.h"
+
 #include "ozz/base/containers/string.h"
 #include "ozz/base/containers/vector.h"
 #include "ozz/base/io/archive_traits.h"
-#include "ozz/base/maths/quaternion.h"
-#include "ozz/base/maths/vec_float.h"
+//CONFFX_END
 
 namespace ozz {
 namespace animation {
@@ -75,11 +77,11 @@ struct RawAnimation {
     float time;
 
     // Key frame value.
-    typedef math::Float3 Value;
+    typedef Vector3 Value; //CONFFX_BEGIN
     Value value;
 
     // Provides identity transformation for a translation key.
-    static math::Float3 identity() { return math::Float3::zero(); }
+    static Vector3 identity() { return Vector3(0.f, 0.f, 0.f); }  //CONFFX_BEGIN
   };
 
   // Defines a raw rotation key frame.
@@ -88,11 +90,11 @@ struct RawAnimation {
     float time;
 
     // Key frame value.
-    typedef math::Quaternion Value;
-    math::Quaternion value;
+    typedef Quat Value; //CONFFX_BEGIN
+    Quat value;
 
     // Provides identity transformation for a rotation key.
-    static math::Quaternion identity() { return math::Quaternion::identity(); }
+    static Quat identity() { return Quat::identity(); } //CONFFX_BEGIN
   };
 
   // Defines a raw scaling key frame.
@@ -101,11 +103,12 @@ struct RawAnimation {
     float time;
 
     // Key frame value.
-    typedef math::Float3 Value;
-    math::Float3 value;
+    typedef Vector3 Value;  // CONFFX_BEGIN
+    Vector3 value;
 
     // Provides identity transformation for a scale key.
-    static math::Float3 identity() { return math::Float3::one(); }
+    static Vector3 identity() { return Vector3(1.f, 1.f, 1.f);
+    }  // CONFFX_BEGIN
   };
 
   // Defines a track of key frames for a bone, including translation, rotation

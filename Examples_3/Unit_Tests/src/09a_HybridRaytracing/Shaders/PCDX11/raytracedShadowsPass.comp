@@ -23,7 +23,11 @@
 */ 
 
 #define BACKFACE_CULLING 0
-#include"raytracingCommon.h"
+#include "raytracingCommon.h"
+
+#define THREADX 8
+#define THREADY 8
+#define THREADGROUPSIZE (THREADX*THREADY)
 
 cbuffer cbPerPass : register(b0)
 {
@@ -37,7 +41,6 @@ cbuffer cbPerPass : register(b0)
 Texture2D<float>			depthBuffer : register(t1);
 Texture2D<float4>			normalBuffer : register(t2);
 Buffer<float4>				BVHTree : register(t3);
-
 RWTexture2D<float>			outputRT : register(u4);
 
 #define THREADX 8

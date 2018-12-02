@@ -12,8 +12,7 @@
     <environment exclude="Development">
         <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
 
-    </environment>
-  
+    </environment>   
 </head>
 <body>
     <div class="d-flex flex-column h-100">
@@ -33,41 +32,46 @@
         </nav>
 
         @RenderBody()
-        <hr />
-        <nav class="navbar navbar-dark bg-dark justify-content-between flex-shrink-0">
-            <div class="navbar-nav mr-auto">
-            </div>
-            <div class="navbar-nav">
-                <label style="vertical-align : middle;"> <font size="3">Developed by <a href="http://www.confettispecialfx.com/">Confetti Interactive Inc.</a>, Based on the UI codes from <a href="http://shader-playground.timjones.io/">Shader Playground</a> </font> </label>
-            </div>
-        </nav>
-    </div>
-    <script src="~/lib/codemirror/codemirror.js" asp-append-version="true"></script>
-    <script src="~/lib/codemirror/addon/edit/matchbrackets.js" asp-append-version="true"></script>
-    <script src="~/lib/codemirror/addon/selection/active-line.js" asp-append-version="true"></script>
-    <script src="~/lib/codemirror/mode/clike/clike.js" asp-append-version="true"></script>
-    <script src="~/js/codemirror-mode-hlsl.js" asp-append-version="true"></script>
+        <!-- <hr />-->
 
-    <environment include="Development">
-        <script src="~/lib/jquery/dist/jquery.js"></script>
-        <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
-        <script src="~/js/site.js" asp-append-version="true"></script>
-    </environment>
-    <environment exclude="Development">
-        <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.2.0.min.js"
-                asp-fallback-src="~/lib/jquery/dist/jquery.min.js"
-                asp-fallback-test="window.jQuery"
-                crossorigin="anonymous"
-                integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk">
-        </script>
-        <script src="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/bootstrap.min.js"
-                asp-fallback-src="~/lib/bootstrap/dist/js/bootstrap.min.js"
-                asp-fallback-test="window.jQuery && window.jQuery.fn && window.jQuery.fn.modal"
-                crossorigin="anonymous"
-                integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa">
-        </script>
-        <script src="~/js/site.min.js" asp-append-version="true"></script>
-    </environment>
-    @RenderSection("Scripts", required: false)
-</body>
-</html>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+            </div>
+
+            <nav class="navbar navbar-dark bg-dark justify-content-between flex-shrink-0">
+                <div class="navbar-nav mr-auto">
+                </div>
+                <div class="navbar-nav">
+                    <label style="vertical-align : middle;"> <font size="3">Developed by <a href="http://www.confettispecialfx.com/">Confetti Interactive Inc.</a>, Based on the UI codes from <a href="http://shader-playground.timjones.io/">Shader Playground</a> </font> </label>
+                </div>
+            </nav>
+        </div>
+        <script src="~/lib/codemirror/codemirror.js" asp-append-version="true"></script>
+        <script src="~/lib/codemirror/addon/edit/matchbrackets.js" asp-append-version="true"></script>
+        <script src="~/lib/codemirror/addon/selection/active-line.js" asp-append-version="true"></script>
+        <script src="~/lib/codemirror/mode/clike/clike.js" asp-append-version="true"></script>
+        <script src="~/js/codemirror-mode-hlsl.js" asp-append-version="true"></script>
+
+        <environment include="Development">
+            <script src="~/lib/jquery/dist/jquery.js"></script>
+            <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+            <script src="~/js/site.js" asp-append-version="true"></script>
+        </environment>
+        <environment exclude="Development">
+            <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.2.0.min.js"
+                    asp-fallback-src="~/lib/jquery/dist/jquery.min.js"
+                    asp-fallback-test="window.jQuery"
+                    crossorigin="anonymous"
+                    integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk">
+            </script>
+            <script src="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/bootstrap.min.js"
+                    asp-fallback-src="~/lib/bootstrap/dist/js/bootstrap.min.js"
+                    asp-fallback-test="window.jQuery && window.jQuery.fn && window.jQuery.fn.modal"
+                    crossorigin="anonymous"
+                    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa">
+            </script>
+            <script src="~/js/site.min.js" asp-append-version="true"></script>
+        </environment>
+        @RenderSection("Scripts", required: false)
+    </body>
+    </html>

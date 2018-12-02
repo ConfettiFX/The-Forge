@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -110,9 +110,6 @@
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
 		5C55831421413D690019960B /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEA920EAD160001BB8C4 /* libgainputstatic.a */; };
-		650E6C2221667E2D00F511AB /* assimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 650E6C1F21667E2C00F511AB /* assimp.a */; };
-		650E6C2321667E2D00F511AB /* zlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 650E6C2021667E2D00F511AB /* zlibstatic.a */; };
-		650E6C2421667E2D00F511AB /* IrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 650E6C2121667E2D00F511AB /* IrrXML.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -244,9 +241,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				650E6C2221667E2D00F511AB /* assimp.a in Frameworks */,
-				650E6C2321667E2D00F511AB /* zlibstatic.a in Frameworks */,
-				650E6C2421667E2D00F511AB /* IrrXML.a in Frameworks */,
 				5C172FC021414BE60074EE71 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C172F22214145450074EE71 /* MetalKit.framework in Frameworks */,
 				5C172F20214145410074EE71 /* Metal.framework in Frameworks */,
@@ -606,7 +600,7 @@
 				};
 			};
 			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "The-Forge" */;
-			compatibilityVersion = "Xcode 9.3";
+			compatibilityVersion = "Xcode 10";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -784,7 +778,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -811,7 +805,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -838,7 +832,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -858,7 +852,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = METAL;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -914,8 +908,8 @@
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				"HEADER_SEARCH_PATHS[arch=*]" = "../../Common_3/ThirdParty/OpenSource/gainput/lib/include/**";
-				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -965,8 +959,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 			};

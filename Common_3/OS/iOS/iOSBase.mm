@@ -241,7 +241,7 @@ UIViewController* pMainViewController;
 }
 
 /*A notification named NSApplicationWillTerminateNotification.*/
-- (void)handleAppTerminate:(UIApplication *)app
+- (void)applicationWillTerminate:(UIApplication *)app
 {
 	[_application shutdown];
 }

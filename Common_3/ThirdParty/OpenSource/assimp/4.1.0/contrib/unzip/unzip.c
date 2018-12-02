@@ -41,6 +41,10 @@ woven in by Terry Thorsen 1/2003.
 #include "zlib.h"
 #include "unzip.h"
 
+#if ZLIB_VERNUM < 0x1270
+typedef unsigned long z_crc_t;
+#endif
+
 #ifdef STDC
 #  include <stddef.h>
 #  include <string.h>
@@ -1547,7 +1551,7 @@ extern int ZEXPORT unzGetGlobalComment (file, szComment, uSizeBuf)
     char *szComment;
     uLong uSizeBuf;
 {
-    int err=UNZ_OK;
+    //int err=UNZ_OK;
     unz_s* s;
     uLong uReadThis ;
     if (file==NULL)

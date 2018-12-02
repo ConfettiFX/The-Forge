@@ -166,8 +166,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\CommonRaytracing_3\ThirdParty\DXR\FallbackLayer\Debug\;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;FallbackLayer.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -212,8 +212,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\CommonRaytracing_3\ThirdParty\DXR\FallbackLayer\Release\;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;FallbackLayer.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

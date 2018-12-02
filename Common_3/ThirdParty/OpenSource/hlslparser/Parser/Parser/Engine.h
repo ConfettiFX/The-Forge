@@ -8,6 +8,7 @@
 #include <stdarg.h> // va_list, vsnprintf
 #include <stdlib.h> // malloc
 #include <new> // for placement new
+#include <ctype.h>
 
 #ifndef NULL
 #define NULL    0
@@ -52,6 +53,9 @@ bool String_EqualNoCase(const char * a, const char * b);
 double String_ToDouble(const char * str, char ** end);
 int String_ToInteger(const char * str, char ** end);
 unsigned int String_ToUInteger(char * str, char ** end);
+
+char* stristr(const char* str1, const char* str2);
+
 
 // Engine/Log.h
 

@@ -13,6 +13,12 @@ HLSLTree::HLSLTree(Allocator* allocator) :
     m_currentPageOffset = 0;
 
     m_root              = AddNode<HLSLRoot>(NULL, 1);
+
+
+	for (int i = 0; i < MAX_GLOBAL_EXTENSION; i++)
+	{
+		gExtension[i] = false;
+	}
 }
 
 HLSLTree::~HLSLTree()
@@ -188,22 +194,23 @@ const char* HLSLTree::FindGlobalStructMember(const char *memberName)
 	return NULL;
 }
 
-const char* HLSLTree::FindConstantBuffertMember(const char *memberName)
+
+const char* HLSLTree::FindBuffertMember(const char *memberName)
 {
 	HLSLStatement * statement = m_root->statement;
 	while (statement != NULL)
 	{
-		if (statement->nodeType == HLSLNodeType_ConstantBuffer)
+		if (statement->nodeType == HLSLNodeType_Buffer)
 		{
-			HLSLConstantBuffer * declaration = (HLSLConstantBuffer *)statement;
+			HLSLBuffer * buffer = (HLSLBuffer *)statement;
 
-			HLSLDeclaration* field = declaration->field;
+			HLSLDeclaration* field = buffer->field;
 			
 			while (field != NULL)
 			{
 				if (String_Equal(memberName, field->name))
 				{
-					return declaration->name;
+					return buffer->name;
 				}
 
 				field = (HLSLDeclaration*)field->nextStatement;
@@ -215,6 +222,7 @@ const char* HLSLTree::FindConstantBuffertMember(const char *memberName)
 
 	return NULL;
 }
+
 
 HLSLTechnique * HLSLTree::FindTechnique(const char * name)
 {
@@ -296,6 +304,28 @@ HLSLBuffer * HLSLTree::FindBuffer(const char * name)
 
     return NULL;
 }
+
+HLSLTextureStateExpression * HLSLTree::FindTextureStateExpression(const char * name)
+{
+	HLSLStatement * statement = m_root->statement;
+	while (statement != NULL)
+	{
+		if (statement->nodeType == HLSLNodeType_TextureStateExpression)
+		{
+			HLSLTextureStateExpression * textureExpression = (HLSLTextureStateExpression *)statement;
+			if (String_Equal(name, textureExpression->name))
+			{
+				return textureExpression;
+			}
+		}
+
+		statement = statement->nextStatement;
+	}
+
+	return NULL;
+}
+
+
 
 
 
@@ -1569,6 +1599,4 @@ bool EmulateAlphaTest(HLSLTree* tree, const char* entryName, float alphaRef/*=0.
 
     return true;
 }
-
-
 

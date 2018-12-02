@@ -62,10 +62,10 @@
     <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\basic.vert" />
     <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\skybox.frag" />
     <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\skybox.vert" />
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\basic.frag" />
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\basic.vert" />
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\skybox.frag" />
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\skybox.vert" />
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\basic.frag" />
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\basic.vert" />
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\skybox.frag" />
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\skybox.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\OS\Core\Compiler.h" />
@@ -199,8 +199,7 @@
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;</AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -246,8 +245,7 @@
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;</AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -295,8 +293,7 @@
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;</AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -342,8 +339,7 @@
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;</AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

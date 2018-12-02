@@ -55,7 +55,7 @@ public:
 private:
 
     void OutputExpressionList(HLSLExpression* expression);
-    void OutputExpression(HLSLExpression* expression);
+    void OutputExpression(HLSLExpression* expression, bool needsEndParen);
     void OutputArguments(HLSLArgument* argument);
     void OutputAttributes(int indent, HLSLAttribute* attribute);
     void OutputStatements(int indent, HLSLStatement* statement);

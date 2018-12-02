@@ -31,8 +31,9 @@
 #include "ozz/base/io/archive_traits.h"
 #include "ozz/base/platform.h"
 
-#include "ozz/base/maths/quaternion.h"
-#include "ozz/base/maths/vec_float.h"
+//CONFFX_BEGIN
+#include "../../../../../../../../Common_3/OS/Math/MathTypes.h"
+//CONFFX_END
 
 namespace ozz {
 namespace animation {
@@ -106,32 +107,35 @@ template <typename _ValueType>
 struct TrackPolicy {
   inline static _ValueType Lerp(const _ValueType& _a, const _ValueType& _b,
                                 float _alpha) {
-    return math::Lerp(_a, _b, _alpha);
+    return lerp(_alpha, _a, _b);  // CONFFX_BEGIN
   }
   inline static _ValueType identity() { return _ValueType(0.f); }
 };
 // Specialization for quaternions policy.
+//CONFFX_BEGIN
 template <>
-inline math::Quaternion TrackPolicy<math::Quaternion>::Lerp(
-    const math::Quaternion& _a, const math::Quaternion& _b, float _alpha) {
+inline Quat TrackPolicy<Quat>::Lerp(
+    const Quat& _a, const Quat& _b, float _alpha) {
   // Uses NLerp to favor speed. This same function is used when optimizing the
   // curve (key frame reduction), so "constant speed" interpolation can still be
   // approximated with a lower tolerance value if it matters.
-  return math::NLerp(_a, _b, _alpha);
+  return normalize(lerp(_alpha, _a, _b));
 }
 template <>
-inline math::Quaternion TrackPolicy<math::Quaternion>::identity() {
-  return math::Quaternion::identity();
+inline Quat TrackPolicy<Quat>::identity() {
+  return Quat::identity();
 }
+//CONFFX_END
 }  // namespace internal
 
 // Runtime track data structure instantiation.
 class FloatTrack : public internal::Track<float> {};
-class Float2Track : public internal::Track<math::Float2> {};
-class Float3Track : public internal::Track<math::Float3> {};
-class Float4Track : public internal::Track<math::Float4> {};
-class QuaternionTrack : public internal::Track<math::Quaternion> {};
-
+//CONFFX_BEGIN
+class Float2Track : public internal::Track<Vector2> {};
+class Float3Track : public internal::Track<Vector3> {};
+class Float4Track : public internal::Track<Vector4> {};
+class QuaternionTrack : public internal::Track<Quat> {};
+//CONFFX_END
 }  // namespace animation
 namespace io {
 OZZ_IO_TYPE_VERSION(1, animation::FloatTrack)

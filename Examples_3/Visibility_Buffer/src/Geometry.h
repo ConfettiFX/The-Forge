@@ -36,7 +36,7 @@
 #include "Shaders/PCDX12/shader_defs.h"
 #elif defined(VULKAN)
 #define NO_GLSL_DEFINITIONS
-#include "Shaders/PCVulkan/shader_defs.h"
+#include "Shaders/Vulkan/shader_defs.h"
 #endif
 
 #define MAX_PATH 260

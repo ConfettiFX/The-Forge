@@ -78,26 +78,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include\;</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include\;</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include\;</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include\;</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath);</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -106,11 +106,9 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,10 +119,12 @@
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;IrrXML.lib;zlibstatic.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
@@ -134,11 +134,9 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -149,10 +147,12 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;IrrXML.lib;zlibstatic.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -164,11 +164,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -181,10 +179,12 @@
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;IrrXML.lib;zlibstatic.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
@@ -196,11 +196,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -213,10 +211,12 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;IrrXML.lib;zlibstatic.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\assimp.dll" "$(TargetDir)assimp.dll"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

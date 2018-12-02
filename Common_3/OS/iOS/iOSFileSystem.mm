@@ -127,7 +127,7 @@ void flush_file(FileHandle handle)
 
 size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {// TODO: use NSBundle
-	return fread(buffer, byteCount, 1, (::FILE*)handle);
+	return fread(buffer, 1, byteCount, (::FILE*)handle);
 }
 
 bool seek_file(FileHandle handle, long offset, int origin)
@@ -142,7 +142,7 @@ long tell_file(FileHandle handle)
 
 size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {// TODO: use NSBundle
-	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
+	return fwrite(buffer, 1, byteCount, (::FILE*)handle);
 }
 
 tinystl::string get_current_dir()
@@ -233,10 +233,27 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	}
 }
 
-bool file_exist(const char* fileFullPath)
+bool file_exists(const char* fileFullPath)
 {
 	NSFileManager *fileMan = [NSFileManager defaultManager];
 	BOOL isDir = NO;
 	BOOL fileExists = [fileMan fileExistsAtPath:[NSString stringWithUTF8String:fileFullPath] isDirectory:&isDir];
 	return fileExists ? true : false;
+}
+
+bool absolute_path(const char* fileFullPath)
+{
+	return (([NSString stringWithUTF8String:fileFullPath].absolutePath == YES) ? true : false);
+}
+
+bool copy_file(const char* src, const char* dst)
+{
+	NSError* error = nil;
+	if (NO == [[NSFileManager defaultManager] copyItemAtPath:[NSString stringWithUTF8String:src] toPath:[NSString stringWithUTF8String:dst] error:&error])
+	{
+		LOGINFOF("Failed to copy file with error : %s", [[error localizedDescription] UTF8String]);
+		return false;
+	}
+	
+	return true;
 }

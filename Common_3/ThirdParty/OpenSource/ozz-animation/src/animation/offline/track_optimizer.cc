@@ -51,6 +51,31 @@ bool Compare(float _left, float _right, float _tolerance) {
   return fabs(_left - _right) <= _tolerance;
 }
 
+//CONFFX_BEGIN
+// Returns true if the angle between _a and _b is less than _tolerance.
+bool Compare(const Quat& _a, const Quat& _b, float _tolerance) {
+  // Computes w component of a-1 * b.
+  const float diff_w = _a.getX() * _b.getX() + _a.getY() * _b.getY() + _a.getZ() * _b.getZ() + _a.getW() * _b.getW();
+  // Converts w back to an angle.
+  const float angle = 2.f * acos(min(std::abs(diff_w), 1.f));
+  return std::abs(angle) <= _tolerance;
+}
+
+// Returns true if the distance between _a and _b is less than _tolerance.
+bool Compare(const Vector4& _a, const Vector4& _b, float _tolerance) {
+  const Vector4 diff = _a - _b;
+  return dot(diff, diff) <= _tolerance * _tolerance;
+}
+bool Compare(const Vector3& _a, const Vector3& _b, float _tolerance) {
+  const Vector3 diff = _a - _b;
+  return (dot(diff, diff) <= _tolerance * _tolerance);
+}
+bool Compare(const Vector2& _a, const Vector2& _b, float _tolerance) {
+  const Vector2 diff = _a - _b;
+  return dot(diff, diff) <= _tolerance * _tolerance;
+}
+//CONFFX_END
+
 // Copy _src keys to _dest but except the ones that can be interpolated.
 template <typename _Keyframes>
 void Filter(const _Keyframes& _src, float _tolerance, _Keyframes* _dest) {

@@ -69,8 +69,8 @@ private:
 class CollapsingHeaderWidget : public IWidget
 {
 public:
-	CollapsingHeaderWidget(const tinystl::string& _label) :
-		IWidget(_label) {}
+	CollapsingHeaderWidget(const tinystl::string& _label, bool defaultOpen = false, bool collapsed = true) :
+		IWidget(_label), mCollapsed(collapsed), mDefaultOpen(defaultOpen), mPreviousCollapsed(!collapsed) {}
 
 	~CollapsingHeaderWidget() { RemoveAllSubWidgets(); }
 
@@ -104,8 +104,30 @@ public:
 		}
 	}
 
+	void SetCollapsed(bool collapsed)
+	{
+		mCollapsed = collapsed;
+		mPreviousCollapsed = !mCollapsed;
+	}
+
+	uint32_t GetSubWidgetCount()
+	{
+		return (uint32_t)mGroupedWidgets.size();
+	}
+
+	IWidget* GetSubWidget(uint32_t index)
+	{
+		if(index < (uint32_t)mGroupedWidgets.size())
+			return mGroupedWidgets[index];
+
+		return NULL;
+	}
+
 private:
 	tinystl::vector<IWidget*> mGroupedWidgets;
+	bool mCollapsed;
+	bool mPreviousCollapsed;
+	bool mDefaultOpen;
 };
 
 class LabelWidget : public IWidget
@@ -435,13 +457,15 @@ enum GuiComponentFlags
 class GuiComponent
 {
 public:
-	IWidget* AddWidget(const IWidget& widget);
-
+	IWidget* AddWidget(const IWidget& widget, bool clone = true);
 	void RemoveWidget(IWidget* pWidget);
+	void RemoveAllWidgets();
 
 	class GUIDriver*					pDriver;
 	tinystl::vector<IWidget*>			mWidgets;
+	tinystl::vector<bool>				mWidgetsClone;
 	float4								mInitialWindowRect;
+	float4								mCurrentWindowRect;
 	tinystl::string						mTitle;
 	bool								mActive;
 	// UI Component settings that can be modified at runtime by the client.
@@ -505,18 +529,12 @@ public:
 	virtual void unload() = 0;
 
 	virtual void* getContext() = 0;
+	
+	virtual bool update(float deltaTime, GuiComponent** pGuiComponents, uint32_t componentCount, bool showDemoWindow) = 0;
 
-	virtual void draw(Cmd* q, float deltaTime,
-		const char* pTitle,
-		bool* const pCloseButtonActiveValue,
-		int32_t const guiComponentFlags,
-		float x, float y, float z, float w,
-		IWidget** pWidgets, uint32_t numWidgets,
-		tinystl::vector<tinystl::string>& contextualMenuLabels,
-		tinystl::vector<WidgetCallback>& contextualMenuCallbacks,
-		bool const showDemoWindow) = 0;
+	virtual void draw(Cmd* q) = 0;
 
-	virtual bool onInput(const struct ButtonData* data) = 0;
+	virtual bool onInput(const struct ButtonData* data, const float4& windowRect) = 0;
 	virtual int needsTextInput() const = 0;
 };
 /************************************************************************/
@@ -539,8 +557,7 @@ public:
 	void			Draw(Cmd* cmd);
 
 	uint			LoadFont(const char* pFontPath, uint root);
-
-	GuiComponent*   AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
+	GuiComponent*	AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void			RemoveGuiComponent(GuiComponent* pComponent);
 
 	void			Gui(GuiComponent* pGui);
@@ -566,11 +583,13 @@ public:
 	/************************************************************************/
 	// Data
 	/************************************************************************/
-	struct UIAppImpl*   pImpl;
+	class GUIDriver*	pDriver;
+	struct UIAppImpl*	pImpl;
+	bool				mHovering;
 
 	// Following var is useful for seeing UI capabilities and tweaking style settings.
 	// Will only take effect if at least one GUI Component is active.
-	bool mShowDemoUiWindow;
+	bool				mShowDemoUiWindow;
 };
 
 class VirtualJoystickUI

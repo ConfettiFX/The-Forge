@@ -1,0 +1,486 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\code\BlenderTessellator.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\BlenderScene.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\BlenderModifier.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\BlenderLoader.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\BlenderCustomData.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\BlenderDNA.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\BlenderBMesh.cpp">
+      <Filter>Blender</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\code\Assimp.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\BaseImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\BaseProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\PostStepRegistry.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ImporterRegistry.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\DefaultIOStream.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\DefaultIOSystem.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\CInterfaceIOWrapper.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SGSpatialSort.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\VertexTriangleAdjacency.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SpatialSort.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SceneCombiner.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ScenePreprocessor.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SkeletonMeshBuilder.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SplitByBoneCountProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\StandardShapes.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\TargetAnimation.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\RemoveComments.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Subdivision.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\scene.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Bitmap.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Version.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\CreateAnimMesh.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\simd.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\DefaultLogger.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Exporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\AssimpCExport.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\CalcTangentsProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ComputeUVMappingProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ConvertToLHProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\EmbedTexturesProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FindDegenerates.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FindInstancesProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FindInvalidDataProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FixNormalsStep.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\DropFaceNormalsProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\GenFaceNormalsProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\GenVertexNormalsProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\PretransformVertices.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ImproveCacheLocality.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\JoinVerticesProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\LimitBoneWeightsProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\RemoveRedundantMaterials.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\RemoveVCProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SortByPTypeProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\SplitLargeMeshes.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\TextureTransform.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\TriangulateProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ValidateDataStructure.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OptimizeGraph.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OptimizeMeshes.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\DeboneProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ProcessHelper.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\MakeVerboseFormat.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ScaleProcess.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\MaterialSystem.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileGen1.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileGen2.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\Importer\StepFile\StepFileGen3.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\StepExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ColladaLoader.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ColladaParser.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ColladaExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\IRRMeshLoader.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\IRRShared.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\IRRLoader.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjFileImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjFileMtlImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjFileParser.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\ObjExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreStructs.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreBinarySerializer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreXmlSerializer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\OgreMaterial.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXParser.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXTokenizer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXConverter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXUtil.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXDocument.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXProperties.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXMeshGeometry.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXMaterial.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXModel.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXAnimation.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXNodeAttribute.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXDeformer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXBinaryTokenizer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXDocumentUtil.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXExportNode.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\FBXExportProperty.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\RawLoader.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\STLLoader.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\STLExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\UnrealLoader.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\glTFImporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\glTFExporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\glTF2Importer.cpp" />
+    <ClCompile Include="$(ProjectDir)..\code\glTF2Exporter.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\unzip\ioapi.c" />
+    <ClCompile Include="$(ProjectDir)..\contrib\unzip\unzip.c" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\common\shapes.cc" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\advancing_front.cc" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\cdt.cc" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep.cc" />
+    <ClCompile Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep_context.cc" />
+    <ClCompile Include="$(ProjectDir)..\contrib\clipper\clipper.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLParser.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\DDLNode.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLCommon.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLExport.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\Value.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\openddlparser\code\OpenDDLStream.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcArithmeticCodec.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTools.cpp" />
+    <ClCompile Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleFans.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\code\BlenderTessellator.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderSceneGen.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderScene.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderModifier.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderLoader.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderIntermediate.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderDNA.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderCustomData.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\code\BlenderBMesh.h">
+      <Filter>Blender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\Xbox\CommonXBOXOne_3\OS\pch.h" />
+    <ClInclude Include="$(ProjectDir)..\code\BaseProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\Importer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ScenePrivate.h" />
+    <ClInclude Include="$(ProjectDir)..\code\DefaultProgressHandler.h" />
+    <ClInclude Include="$(ProjectDir)..\code\CInterfaceIOWrapper.h" />
+    <ClInclude Include="$(ProjectDir)..\code\IFF.h" />
+    <ClInclude Include="$(ProjectDir)..\code\VertexTriangleAdjacency.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ScenePreprocessor.h" />
+    <ClInclude Include="$(ProjectDir)..\code\SplitByBoneCountProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\TargetAnimation.h" />
+    <ClInclude Include="$(ProjectDir)..\code\simd.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\LogStream.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Logger.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="$(ProjectDir)..\code\Win32DebugLogStream.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FileLogStream.h" />
+    <ClInclude Include="$(ProjectDir)..\code\StdOStreamLogStream.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\BlobIOSystem.h" />
+    <ClInclude Include="$(ProjectDir)..\code\CalcTangentsProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ComputeUVMappingProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ConvertToLHProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\EmbedTexturesProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FindDegenerates.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FindInstancesProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FindInvalidDataProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FixNormalsStep.h" />
+    <ClInclude Include="$(ProjectDir)..\code\DropFaceNormalsProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\GenFaceNormalsProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\GenVertexNormalsProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\PretransformVertices.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ImproveCacheLocality.h" />
+    <ClInclude Include="$(ProjectDir)..\code\JoinVerticesProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\LimitBoneWeightsProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\RemoveRedundantMaterials.h" />
+    <ClInclude Include="$(ProjectDir)..\code\RemoveVCProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\SortByPTypeProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\SplitLargeMeshes.h" />
+    <ClInclude Include="$(ProjectDir)..\code\TextureTransform.h" />
+    <ClInclude Include="$(ProjectDir)..\code\TriangulateProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ValidateDataStructure.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OptimizeGraph.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OptimizeMeshes.h" />
+    <ClInclude Include="$(ProjectDir)..\code\DeboneProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ProcessHelper.h" />
+    <ClInclude Include="$(ProjectDir)..\code\PolyTools.h" />
+    <ClInclude Include="$(ProjectDir)..\code\MakeVerboseFormat.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ScaleProcess.h" />
+    <ClInclude Include="$(ProjectDir)..\code\MaterialSystem.h" />
+    <ClInclude Include="$(ProjectDir)..\code\STEPFile.h" />
+    <ClInclude Include="$(ProjectDir)..\code\Importer\StepFile\StepFileImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\Importer\StepFile\StepReaderGen.h" />
+    <ClInclude Include="$(ProjectDir)..\code\StepExporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaHelper.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaParser.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ColladaExporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\IRRMeshLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\IRRShared.h" />
+    <ClInclude Include="$(ProjectDir)..\code\IRRLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileData.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileMtlImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjFileParser.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjTools.h" />
+    <ClInclude Include="$(ProjectDir)..\code\ObjExporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreStructs.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreParsingUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreBinarySerializer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\OgreXmlSerializer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXCompileConfig.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXParser.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXTokenizer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXImportSettings.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXConverter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXUtil.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXDocument.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXProperties.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXMeshGeometry.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXExporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXExportNode.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXExportProperty.h" />
+    <ClInclude Include="$(ProjectDir)..\code\FBXCommon.h" />
+    <ClInclude Include="$(ProjectDir)..\code\RawLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\STLLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\STLExporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\UnrealLoader.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAsset.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAsset.inl" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAssetWriter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFAssetWriter.inl" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTFExporter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Asset.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Asset.inl" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2AssetWriter.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2AssetWriter.inl" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Importer.h" />
+    <ClInclude Include="$(ProjectDir)..\code\glTF2Exporter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\irrXMLWrapper.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\unzip\crypt.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\unzip\ioapi.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\unzip\unzip.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\common\shapes.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\common\utils.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\advancing_front.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\cdt.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\poly2tri\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\clipper\clipper.hpp" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLParser.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLParserUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLCommon.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLExport.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\OpenDDLStream.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\DDLNode.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\openddlparser\include\openddlparser\Value.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcAdjacencyInfo.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcArithmeticCodec.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcBinaryStream.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcCommon.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDVEncodeParams.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcDynamicVector.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcFIFO.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcIndexedFaceSet.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcIndexedFaceSet.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCDecoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCDecoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCEncodeParams.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCEncoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcSC3DMCEncoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTimer.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleFans.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListDecoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListDecoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListEncoder.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcTriangleListEncoder.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcVector.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\Open3DGC\o3dgcVector.inl" />
+    <ClInclude Include="$(ProjectDir)..\contrib\zip\src\miniz.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\anim.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ai_assert.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\camera.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\color4.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\color4.inl" />
+    <ClInclude Include="$(ProjectDir)..\Xbox\include\assimp\config.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\defs.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Defines.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\cfileio.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\light.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\material.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\material.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix3x3.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix3x3.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix4x4.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\matrix4x4.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\mesh.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\postprocess.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\quaternion.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\quaternion.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\scene.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\metadata.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\texture.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\types.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector2.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector2.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector3.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\vector3.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\version.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\cimport.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\importerdesc.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Importer.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\IOStream.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\cexport.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Exporter.hpp" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\fast_atof.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\qnan.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\BaseImporter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Hash.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StreamReader.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StreamWriter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StringComparison.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StringUtils.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\GenericProperty.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SpatialSort.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\SmoothingGroups.inl" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\StandardShapes.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\RemoveComments.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Subdivision.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Vertex.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\LineSplitter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Profiler.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\LogAux.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Bitmap.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\XMLTools.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\MathFunctions.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Macros.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Exceptional.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Compiler\poppack1.h" />
+    <ClInclude Include="$(ProjectDir)..\include\assimp\Compiler\pstdint.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="3D">
+      <UniqueIdentifier>{15D77775-5838-3459-B036-3D90EC3CF480}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="COLLADA">
+      <UniqueIdentifier>{42124375-B2AE-3723-A688-8E85E23BC58F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Clipper">
+      <UniqueIdentifier>{3F49407D-7329-3CD2-8992-9F825B43A66B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{EECF4BB4-E1AB-385E-A5A2-2835892BDD1C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compiler">
+      <UniqueIdentifier>{739CCA00-1130-3F47-9200-56BA30479336}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Exporter">
+      <UniqueIdentifier>{156CFBE0-AB76-3B55-B2E4-2B203AC13C4F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FBX">
+      <UniqueIdentifier>{38B5E89B-0AE8-3FB6-84F4-91F84B254E4D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GLTF">
+      <UniqueIdentifier>{1F3B4334-466C-3E0C-A22A-0285E947E670}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{E9CAC017-E266-3084-AD71-1FA364DF4DA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IRR">
+      <UniqueIdentifier>{BB56EB91-74BC-3DB4-BDD4-2BFCDC467DED}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IRRMESH">
+      <UniqueIdentifier>{40104A30-8CC0-3343-974C-C04280D157B8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IrrXML">
+      <UniqueIdentifier>{CCA563F5-98B3-354A-818B-F9FA353D7BDE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{840036E2-1F64-310F-96F9-4DAB65BF723F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MaterialSystem">
+      <UniqueIdentifier>{5965A285-FDE8-3CDF-A411-3D9C2B7ADDA4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OBJ">
+      <UniqueIdentifier>{0C8A61FF-389E-34C2-BEE9-5559FB5D27E4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OGRE">
+      <UniqueIdentifier>{6AF128E3-2C5B-388A-B012-6BE02F8DE4C7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Poly2Tri">
+      <UniqueIdentifier>{A0BC4670-16D0-3F23-80E9-5B689AB9629C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PostProcessing">
+      <UniqueIdentifier>{65FDD383-16CA-3A13-BA88-B92825CAAC66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RAW">
+      <UniqueIdentifier>{4F645236-A753-31FE-BD71-B75DE93BCF94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="STL">
+      <UniqueIdentifier>{F56FFAA2-6FD9-3700-BCDE-44FCC65A0934}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{D506ADC9-A7F5-342A-9DF1-69CB204ADF4B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Step">
+      <UniqueIdentifier>{D075E66F-BCC4-384F-A576-8736E61AB443}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="open3dgc">
+      <UniqueIdentifier>{73B58A23-DECB-30A3-B1F1-D45F2FCFC7F7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="openddl_parser">
+      <UniqueIdentifier>{741C5864-F09C-3D6C-B1BC-BEBFBE91CB05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="unzip">
+      <UniqueIdentifier>{CED7DF2A-EBF3-3DBE-B49A-430119653E79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ziplib">
+      <UniqueIdentifier>{0BDD0FBD-D8D0-38BE-87D3-06AAEB079208}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Blender">
+      <UniqueIdentifier>{6e3d979b-33af-48bd-b144-0343d7fd8334}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\code\BlenderDNA.inl">
+      <Filter>Blender</Filter>
+    </None>
+  </ItemGroup>
+</Project>

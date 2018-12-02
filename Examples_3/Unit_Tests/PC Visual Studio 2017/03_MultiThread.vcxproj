@@ -28,7 +28,7 @@
     <None Include="..\src\03_MultiThread\Shaders\PCDX12\Particle.vert" />
     <None Include="..\src\03_MultiThread\Shaders\PCDX12\Skybox.frag" />
     <None Include="..\src\03_MultiThread\Shaders\PCDX12\Skybox.vert" />
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\PCVulkan\Graph.frag">
+    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -42,7 +42,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
     </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\PCVulkan\Graph.vert">
+    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -56,7 +56,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
     </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\PCVulkan\Particle.frag">
+    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Particle.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -70,7 +70,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
     </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\PCVulkan\Particle.vert">
+    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Particle.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -84,7 +84,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
     </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\PCVulkan\Skybox.frag">
+    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Skybox.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -98,7 +98,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
 "$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
     </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\PCVulkan\Skybox.vert">
+    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Skybox.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
@@ -201,8 +201,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -238,8 +237,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -277,8 +275,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -318,8 +315,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

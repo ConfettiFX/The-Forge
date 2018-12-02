@@ -43,7 +43,7 @@ void AnimatedObject::Destroy()
 
 bool AnimatedObject::Update(float dt)
 {
-	// sample the current animation to get mCurrLocalTrans
+	// sample the current animation to get mLocalTrans
 	if (!mAnimation->Sample(dt, mLocalTrans))
 		return false;
 

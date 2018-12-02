@@ -200,16 +200,16 @@
     <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\basic.frag">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\basic.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\basic.vert">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\basic.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\skybox.frag">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\PCVulkan\skybox.vert">
+    <None Include="..\src\12_RendererRuntimeSwitch\Shaders\Vulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

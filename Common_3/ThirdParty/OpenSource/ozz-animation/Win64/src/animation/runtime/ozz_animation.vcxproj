@@ -59,15 +59,23 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(g3d)\G3D10\build\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(g3d)\G3D10\build\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(g3d)\G3D10\build\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(g3d)\G3D10\build\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <ClCompile>
@@ -81,7 +89,11 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies>ozz_base.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -91,7 +103,11 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies>ozz_base.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <ClCompile>
@@ -99,7 +115,11 @@
       <DebugInformationFormat>None</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies>ozz_base.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <ClCompile>
@@ -107,7 +127,11 @@
       <DebugInformationFormat>None</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
+    <Lib>
+      <AdditionalDependencies>ozz_base.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\animation.h" />

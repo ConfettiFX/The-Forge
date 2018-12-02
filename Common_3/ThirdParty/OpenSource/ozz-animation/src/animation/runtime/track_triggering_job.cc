@@ -101,7 +101,7 @@ inline bool DetectEdge(ptrdiff_t _i0, ptrdiff_t _i1, bool _forward,
         // Remaps to keyframes actual times.
         const float tk0 = ratios[_i0];
         const float tk1 = ratios[_i1];
-        _edge->ratio = math::Lerp(tk0, tk1, alpha);
+        _edge->ratio = lerp(tk0, tk1, alpha); //CONFFX_BEGIN
       }
     }
   }

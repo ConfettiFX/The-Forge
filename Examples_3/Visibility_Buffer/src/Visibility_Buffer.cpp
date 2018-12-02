@@ -680,6 +680,7 @@ Buffer*						 pVertexBufferCube = nullptr;
 Buffer*						 pIndexBufferCube = nullptr;
 Buffer*						 pLightClustersCount[gImageCount] = { nullptr };
 Buffer*						 pLightClusters[gImageCount] = { nullptr };
+Buffer*						pUniformBufferSun[gImageCount] = { nullptr };
 uint64_t						gFrameCount = 0;
 Scene*						  pScene = nullptr;
 UIApp						   gAppUI;
@@ -2368,7 +2369,6 @@ public:
 		}
 
 		
-
 		gAppUI.Update(deltaTime);
 
 		updateDynamicUIElements();
@@ -2419,10 +2419,6 @@ public:
 					waitForFences(pGraphicsQueue, 1, &pRenderFence, false);
 			}
 		}
-
-
-		
-
 
 		updateUniformData(gPresentFrameIdx);
 
@@ -2572,6 +2568,10 @@ public:
 #endif
 			if (gAppSettings.mEnableGodray)
 			{
+				// Update uniform buffers
+				BufferUpdateDesc update = { pUniformBufferSun[gPresentFrameIdx], &gUniformDataSunMatrices };
+				updateResource(&update);
+
 				drawGodray(graphicsCmd, gPresentFrameIdx);
 				drawColorconversion(graphicsCmd);
 			}
@@ -3054,6 +3054,7 @@ public:
 		removeShader(pRenderer, pGodRayPass);
 
 		removeShader(pRenderer, pShaderSkybox);
+		removeShader(pRenderer, pShaderCurveConversion);
 		removeShader(pRenderer, pShaderPresentPass);
 		
 	}
@@ -3477,6 +3478,19 @@ public:
 			lightClustersDataBufferDesc.ppBuffer = &pLightClusters[frameIdx];
 			addResource(&lightClustersDataBufferDesc);
 		}
+		
+		BufferLoadDesc sunDataBufferDesc = {};
+		sunDataBufferDesc.mDesc.mSize = sizeof(UniformDataSunMatrices);
+		sunDataBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		sunDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		sunDataBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		sunDataBufferDesc.pData = nullptr;
+		sunDataBufferDesc.mDesc.pDebugName = L"Sun matrices Data Buffer Desc";
+		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
+		{
+			sunDataBufferDesc.ppBuffer = &pUniformBufferSun[frameIdx];
+			addResource(&sunDataBufferDesc);
+		}
 		/************************************************************************/
 		/************************************************************************/
 	}
@@ -3585,6 +3599,7 @@ public:
 		{
 			removeResource(pLightClustersCount[frameIdx]);
 			removeResource(pLightClusters[frameIdx]);
+			removeResource(pUniformBufferSun[frameIdx]);
 		}
 		/************************************************************************/
 		/************************************************************************/
@@ -5453,8 +5468,8 @@ public:
 
 		cmdBindPipeline(cmd, pPipelineSunPass);
 		DescriptorData sunParams[1] = {};
-		sunParams[0].pName = "RootConstantSunMatrices";
-		sunParams[0].pRootConstant = &gUniformDataSunMatrices;
+		sunParams[0].pName = "UniformBufferSunMatrices";
+		sunParams[0].ppBuffers = &pUniformBufferSun[gPresentFrameIdx];
 
 		cmdBindDescriptors(cmd, pRootSigSunPass, 1, sunParams);
 		cmdBindVertexBuffer(cmd, 1, &pSunVertexBuffer, NULL);

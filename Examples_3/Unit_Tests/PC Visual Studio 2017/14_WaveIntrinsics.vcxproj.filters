@@ -32,16 +32,16 @@
     <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\magnify.frag">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\magnify.vert">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\wave.frag">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\wave.vert">
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

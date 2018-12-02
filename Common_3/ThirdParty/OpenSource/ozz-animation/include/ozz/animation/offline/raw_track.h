@@ -28,13 +28,14 @@
 #ifndef OZZ_OZZ_ANIMATION_OFFLINE_RAW_TRACK_H_
 #define OZZ_OZZ_ANIMATION_OFFLINE_RAW_TRACK_H_
 
+// CONFFX_BEGIN
+#include "../../../../../../../OS/Math/MathTypes.h"
+
 #include "ozz/base/containers/string.h"
 #include "ozz/base/containers/vector.h"
 
 #include "ozz/base/io/archive_traits.h"
-
-#include "ozz/base/maths/quaternion.h"
-#include "ozz/base/maths/vec_float.h"
+//CONFFX_END
 
 namespace ozz {
 namespace animation {
@@ -115,11 +116,13 @@ struct RawTrack {
 }  // namespace internal
 
 // Offline user-channel animation track type instantiation.
+//CONFFX_BEGIN
 struct RawFloatTrack : public internal::RawTrack<float> {};
-struct RawFloat2Track : public internal::RawTrack<math::Float2> {};
-struct RawFloat3Track : public internal::RawTrack<math::Float3> {};
-struct RawFloat4Track : public internal::RawTrack<math::Float4> {};
-struct RawQuaternionTrack : public internal::RawTrack<math::Quaternion> {};
+struct RawFloat2Track : public internal::RawTrack<Vector2> {};
+struct RawFloat3Track : public internal::RawTrack<Vector3> {};
+struct RawFloat4Track : public internal::RawTrack<Vector4> {};
+struct RawQuaternionTrack : public internal::RawTrack<Quat> {};
+//CONFFX_END
 }  // namespace offline
 }  // namespace animation
 

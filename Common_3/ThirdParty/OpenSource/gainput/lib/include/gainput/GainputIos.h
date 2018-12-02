@@ -7,6 +7,7 @@
 namespace gainput
 {
     class InputManager;
+	struct GestureConfig;
 }
 
 
@@ -34,6 +35,10 @@ namespace gainput
 @property (nullable, nonatomic, strong) KeyboardView * pKeyboardView;
 - (id _Nonnull)initWithFrame:(CGRect)frame inputManager:(gainput::InputManager&)inputManager;
 - (BOOL)setVirtualKeyboard:(int)inputType;
+-(void) addGestureMapping:
+(unsigned)gestureType
+forId:(unsigned)gestureId
+withConfig:(gainput::GestureConfig&)gestureConfig;
 @end
 
 #endif

@@ -17,10 +17,22 @@ namespace Parser
             FilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + extension);
         }
 
-        private ParserHelper(string extension, string filePath)
+        private ParserHelper(string fileName, string extension)
         {
-            FilePath = Path.Combine(filePath + extension);
+            FilePath = Path.Combine(Path.GetTempPath(), fileName + extension);
         }
+
+
+        public static ParserHelper CreateInlcudeFile(string contents, string includeFileName, string extension)
+        {
+            var result = new ParserHelper(includeFileName, extension);
+
+            File.WriteAllText(result.FilePath, contents);
+
+            return result;
+        }
+
+
 
         public static ParserHelper FromShaderCode(string contents)
         {
@@ -31,15 +43,7 @@ namespace Parser
             return result;
         }
 
-        public static ParserHelper FromShaderCode(string contents, string filePath)
-        {
-            var result = new ParserHelper(GetFileExtension(), filePath);
-
-            File.WriteAllText(result.FilePath, contents);
-
-            return result;
-        }
-
+       
 
         private static string GetFileExtension()
         {
@@ -59,6 +63,13 @@ namespace Parser
         [return: MarshalAs(UnmanagedType.LPStr)]
          public static extern string PARSER([MarshalAs(UnmanagedType.LPStr)]string fileName, [MarshalAs(UnmanagedType.LPStr)]string buffer, int bufferSize, [MarshalAs(UnmanagedType.LPStr)]string entryName, [MarshalAs(UnmanagedType.LPStr)]string shader, [MarshalAs(UnmanagedType.LPStr)]string _language);
         */
+
+        public static void CreateInlcudeFile(string buffer, string fileName, string extension)
+        {
+            ParserHelper.CreateInlcudeFile(buffer, fileName, extension);
+        }
+
+
         public static string PARSER(string fileName, string buffer, int bufferSize, string entryName, string shader, string _language)
         {
             using (var tempFileIn = ParserHelper.FromShaderCode(buffer))
@@ -244,6 +255,11 @@ namespace Parser
             SetLanguage(languageParam);
             Translate(bufferParam);
 
+            return GetResult(languageParam);
+        }
+
+        public static string GetStoredResult(string languageParam)
+        {
             return GetResult(languageParam);
         }
 

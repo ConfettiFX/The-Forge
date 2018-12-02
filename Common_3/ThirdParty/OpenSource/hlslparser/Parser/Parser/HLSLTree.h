@@ -8,20 +8,13 @@
 
 enum HLSLNodeType
 {
+	HLSLNodeType_Unknown,
     HLSLNodeType_Root,
     HLSLNodeType_Declaration,
     HLSLNodeType_Struct,
     HLSLNodeType_StructField,
     HLSLNodeType_Buffer,
     HLSLNodeType_BufferField,
-	HLSLNodeType_ConstantBuffer,
-	HLSLNodeType_ConstantBufferField,
-	HLSLNodeType_StructuredBuffer,
-	HLSLNodeType_StructuredField,
-	HLSLNodeType_RWBuffer,
-	HLSLNodeType_RWBufferField,
-	HLSLNodeType_RWStructuredBuffer,
-	HLSLNodeType_RWStructuredField,
     HLSLNodeType_Function,
     HLSLNodeType_Argument,
     HLSLNodeType_ExpressionStatement,
@@ -33,6 +26,7 @@ enum HLSLNodeType
     HLSLNodeType_IfStatement,
     HLSLNodeType_ForStatement,
 	HLSLNodeType_WhileStatement,
+	HLSLNodeType_SwitchStatement,
     HLSLNodeType_BlockStatement,
     HLSLNodeType_UnaryExpression,
     HLSLNodeType_BinaryExpression,
@@ -57,8 +51,6 @@ enum HLSLNodeType
 	HLSLNodeType_PreprocessorExpression,
 	HLSLNodeType_TextureState,
 	HLSLNodeType_TextureStateExpression,
-	HLSLNodeType_RWTextureState,
-	HLSLNodeType_RWTextureStateExpression,
 	HLSLNodeType_PatchControlPoint,
 };
 
@@ -218,6 +210,12 @@ enum HLSLBaseType
 	HLSLBaseType_TextureCube,
 	HLSLBaseType_TextureCubeArray,
 
+	HLSLBaseType_RasterizerOrderedTexture1D,
+	HLSLBaseType_RasterizerOrderedTexture1DArray,
+	HLSLBaseType_RasterizerOrderedTexture2D,
+	HLSLBaseType_RasterizerOrderedTexture2DArray,
+	HLSLBaseType_RasterizerOrderedTexture3D,
+
 	HLSLBaseType_RWTexture1D,
 	HLSLBaseType_RWTexture1DArray,
 	HLSLBaseType_RWTexture2D,
@@ -231,6 +229,7 @@ enum HLSLBaseType
     HLSLBaseType_Sampler2DShadow,
     HLSLBaseType_Sampler2DMS,
     HLSLBaseType_Sampler2DArray,
+
     HLSLBaseType_UserDefined,       // struct
 	HLSLBaseType_SamplerState,
 	HLSLBaseType_TextureState,
@@ -268,6 +267,25 @@ enum HLSLBaseType
 	HLSLBaseType_PreProcessorInclude,
 	HLSLBaseType_PreProcessorLine,
 	HLSLBaseType_PreProcessorPragma,
+
+
+	HLSLBaseType_CBuffer,
+	HLSLBaseType_TBuffer,
+	HLSLBaseType_ConstantBuffer,
+	HLSLBaseType_StructuredBuffer,
+	HLSLBaseType_PureBuffer,
+	HLSLBaseType_RWBuffer,
+	HLSLBaseType_RWStructuredBuffer,
+	HLSLBaseType_ByteAddressBuffer,
+	HLSLBaseType_RWByteAddressBuffer,
+
+	HLSLBaseType_RasterizerOrderedBuffer,
+	HLSLBaseType_RasterizerOrderedStructuredBuffer,
+	HLSLBaseType_RasterizerOrderedByteAddressBuffer,
+
+
+	HLSLBaseType_UserMacro,
+	HLSLBaseType_Empty,
 	
     
     HLSLBaseType_Count,
@@ -276,15 +294,7 @@ enum HLSLBaseType
 
 inline bool IsTextureType(HLSLBaseType baseType)
 {
-	return baseType == HLSLBaseType_Texture1D ||
-		baseType == HLSLBaseType_Texture1DArray ||
-		baseType == HLSLBaseType_Texture2D ||
-		baseType == HLSLBaseType_Texture2DArray ||
-		baseType == HLSLBaseType_Texture3D ||
-		baseType == HLSLBaseType_Texture2DMS ||
-		baseType == HLSLBaseType_Texture2DMSArray ||
-		baseType == HLSLBaseType_TextureCube ||
-		baseType == HLSLBaseType_TextureCubeArray;
+	return baseType >= HLSLBaseType_Texture1D && baseType <= HLSLBaseType_RWTexture3D;
 }
 
 inline bool IsSamplerType(HLSLBaseType baseType)
@@ -407,6 +417,12 @@ enum HLSLBinaryOp
     HLSLBinaryOp_SubAssign,
     HLSLBinaryOp_MulAssign,
     HLSLBinaryOp_DivAssign,
+
+	HLSLBinaryOp_BitAndAssign,
+	HLSLBinaryOp_BitOrAssign,
+	HLSLBinaryOp_BitXorAssign,
+
+
 };
 
 inline bool isCompareOp( HLSLBinaryOp op )
@@ -489,7 +505,11 @@ enum HLSLAttributeType
 	HLSLAttributeType_OutputControlPoints,
 	HLSLAttributeType_PatchConstantFunc,
 	HLSLAttributeType_MaxtessFactor,
+
+	HLSLAttributeType_EarlyDepthStencil,
+	
 };
+
 
 enum HLSLAddressSpace
 {
@@ -500,6 +520,23 @@ enum HLSLAddressSpace
     HLSLAddressSpace_Shared,
 };
 
+#define MAX_GLOBAL_EXTENSION 128
+
+enum GlobalExtension
+{
+	USE_SAMPLESS,
+	USE_ATOMIC,
+	USE_INCLUDE,
+	USE_3X3_CONVERSION,
+	USE_NonUniformResourceIndex,
+	USE_Subgroup_Basic,
+	USE_Subgroup_Arithmetic,
+	USE_Subgroup_Ballot,
+	USE_Subgroup_Quad,
+	USE_WaveGetLaneIndex,
+	USE_WaveGetLaneCount,
+
+};
 
 struct HLSLNode;
 struct HLSLRoot;
@@ -524,6 +561,7 @@ struct HLSLStateAssignment;
 struct HLSLSamplerStateExpression;
 struct HLSLpreprocessor;
 struct HLSLPreprocessorExpression;
+struct HLSLMemberAccess;
 
 struct HLSLType
 {
@@ -545,9 +583,21 @@ struct HLSLType
 		OutputPatchName[0] = NULL;
 
 		sampleCount = 0;
+
+		//typeIdentifierName = NULL;
+
+		elementType = HLSLBaseType_Unknown;
+
+		textureTypeName = NULL;
     }
     HLSLBaseType        baseType;
+	HLSLBaseType        elementType;
+	
+
     const char*         typeName;       // For user defined types.
+
+	//const char*			typeIdentifierName;
+
     bool                array;
     HLSLExpression*     arraySize;
 	int					arrayCount;
@@ -556,6 +606,10 @@ struct HLSLType
 
 	//bool                bStruct;
 	const char*			structuredTypeName;
+
+
+	
+
 	char				InputPatchName[128];
 	char				OutputPatchName[128];
 	int					maxPoints; // for hull shader
@@ -586,6 +640,16 @@ struct HLSLNode
     HLSLNodeType        nodeType;
     const char*         fileName;
     int                 line;
+
+	const char*			preprocessor;
+
+	HLSLNode()
+	{
+		nodeType = HLSLNodeType_Unknown;
+		fileName = NULL;
+
+		preprocessor = NULL;
+	}
 };
 
 struct HLSLRoot : public HLSLNode
@@ -602,10 +666,43 @@ struct HLSLStatement : public HLSLNode
         nextStatement   = NULL; 
         attributes      = NULL;
         hidden          = false;
+
+		name = NULL;
+		registerName = NULL;
+		registerSpaceName = NULL;
+
+		arrayIdentifier[0][0] = 0;
+		arrayIdentifier[1][0] = 0;
+		arrayIdentifier[2][0] = 0;
+
+		arrayIndex[0] = 0;
+		arrayIndex[1] = 0;
+		arrayIndex[2] = 0;
+
+		arrayDimension = 0;
+
+		bArray = false;		
     }
+
     HLSLStatement*      nextStatement;      // Next statement in the block.
     HLSLAttribute*      attributes;
     mutable bool        hidden;
+
+	const char*         name;
+	const char*         registerName;
+	const char*			registerSpaceName;
+
+	bool				bArray;
+	
+	// assuming that it can be multidimension up to 3-D
+	char				arrayIdentifier[3][64];
+	unsigned int		arrayIndex[3];
+	unsigned int		arrayDimension;
+
+
+	
+	HLSLType			type;
+
 };
 
 struct HLSLAttribute : public HLSLNode
@@ -629,6 +726,8 @@ struct HLSLAttribute : public HLSLNode
 
 		unrollCount = 0;
 
+		unrollIdentifier = NULL;
+
 		domain[0] = NULL;
 		partitioning[0] = NULL;
 		outputtopology[0] = NULL;
@@ -638,6 +737,8 @@ struct HLSLAttribute : public HLSLNode
 		patchconstantfunc[0] = NULL;
 
 		maxTessellationFactor = 0.0;
+
+		earlyDepthStencil = false;
 
 	}
     HLSLAttributeType   attributeType;
@@ -655,6 +756,7 @@ struct HLSLAttribute : public HLSLNode
 	unsigned int		maxVertexCount;
 
 	unsigned int		unrollCount;
+	const char*			unrollIdentifier;
 
 	char				domain[16];
 	char				partitioning[16];
@@ -668,6 +770,8 @@ struct HLSLAttribute : public HLSLNode
 
 	char				patchIdentifier[128];
 
+	bool				earlyDepthStencil;
+
 };
 
 struct HLSLDeclaration : public HLSLStatement
@@ -675,16 +779,16 @@ struct HLSLDeclaration : public HLSLStatement
     static const HLSLNodeType s_type = HLSLNodeType_Declaration;
     HLSLDeclaration()
     {
-        name            = NULL;
-        registerName    = NULL;
+        //name            = NULL;
+        //registerName    = NULL;
         semantic        = NULL;
         nextDeclaration = NULL;
         assignment      = NULL;
         buffer          = NULL;
     }
-    const char*         name;
+    //const char*         name;
     HLSLType            type;
-    const char*         registerName;       // @@ Store register index?
+    //const char*         registerName;       // @@ Store register index?
     const char*         semantic;
     HLSLDeclaration*    nextDeclaration;    // If multiple variables declared on a line.
     HLSLExpression*     assignment;
@@ -747,21 +851,20 @@ struct HLSLSamplerState : public HLSLStatement
 	static const HLSLNodeType s_type = HLSLNodeType_SamplerState;
 	HLSLSamplerState()
 	{
-		name = NULL;
+		
 		expression = NULL;
 		numStateAssignments = 0;
 		stateAssignments = NULL;
-		registerName = NULL;
-		registerSpaceName = NULL;
+	
 		bStructured = false;
+		IsComparisionState = false;
 	}
-	const char*         name;
-	const char*         registerName;
-	const char*			registerSpaceName;
-	HLSLSamplerStateExpression*    expression;              // First field in the sampler state
-	int                     numStateAssignments;
-	HLSLStateAssignment*    stateAssignments;
-	bool				bStructured;
+	
+	HLSLSamplerStateExpression*		expression;              // First field in the sampler state
+	int								numStateAssignments;
+	HLSLStateAssignment*			stateAssignments;
+	bool							bStructured;
+	bool							IsComparisionState;
 };
 
 struct HLSLTextureState : public HLSLStatement
@@ -769,108 +872,69 @@ struct HLSLTextureState : public HLSLStatement
 	static const HLSLNodeType s_type = HLSLNodeType_TextureState;
 	HLSLTextureState()
 	{
-		name = NULL;		
-		registerName = NULL;
-		registerSpaceName = NULL;
-
-		arrayIdentifier[0][0] = 0;
-		arrayIdentifier[1][0] = 0;
-		arrayIdentifier[2][0] = 0;
-		
-		arrayIndex[0] = 0;
-		arrayIndex[1] = 0;
-		arrayIndex[2] = 0;
-
-		arrayDimension = 0;
-
-		bArray = false;
 
 		sampleCount = 0;
-
 		sampleIdentifier = NULL;
 	}
-	const char*         name;
-	const char*         registerName;	
-	const char*			registerSpaceName;
-	HLSLBaseType        baseType;
-	HLSLBaseType        dataType;
 	
-
-	//assuming that texture can be multidimension up to 3-D
-	bool				bArray;
-	char				arrayIdentifier[3][64];
-	unsigned int		arrayIndex[3];
-	unsigned int		arrayDimension;
+	//HLSLBaseType        baseType;
+	//HLSLBaseType        dataType;	
+	
 	unsigned int		sampleCount;
 	const char*			sampleIdentifier;
 
 	
 };
 
-struct HLSLRWTextureState : public HLSLStatement
+/*
+struct HLSLRWTextureState : public HLSLTextureState
 {
 	static const HLSLNodeType s_type = HLSLNodeType_RWTextureState;
 	HLSLRWTextureState()
 	{
-		name = NULL;
-		registerName = NULL;
-		registerSpaceName = NULL;
-
-		arrayIdentifier[0][0] = 0;
-		arrayIdentifier[1][0] = 0;
-		arrayIdentifier[2][0] = 0;
-
-		arrayIndex[0] = 0;
-		arrayIndex[1] = 0;
-		arrayIndex[2] = 0;
-
-		arrayDimension = 0;
-
-		bArray = false;
+		HLSLTextureState();
 	}
-	const char*         name;
-	const char*         registerName;
-	const char*			registerSpaceName;
-	HLSLBaseType        baseType;
-	HLSLBaseType        dataType;
-
-	//assuming that texture can be multidimension up to 3-D
-	bool				bArray;
-	char				arrayIdentifier[3][64];
-	unsigned int		arrayIndex[3];
-	unsigned int		arrayDimension;
 };
-
+*/
 
 struct HLSLBuffer : public HLSLStatement
 {
     static const HLSLNodeType s_type = HLSLNodeType_Buffer;
     HLSLBuffer()
-    {
-        name            = NULL;
-        registerName    = NULL;
+    {       
         field           = NULL;	
-		registerSpaceName = NULL;
+		//elementType		= NULL;
+		//dataType		= HLSLBaseType_Unknown;
+
+		bAtomic			= false;
+		bPushConstant = false;
+
+		userDefinedElementTypeStr = NULL;
     }
-    const char*         name;
-    const char*         registerName;
-	const char*			registerSpaceName;
+  
     HLSLDeclaration*    field;
-	HLSLBaseType        dataType;
+	//HLSLBaseType        dataType;
+
+	bool				bAtomic;
+	bool				bPushConstant;
+
+	const char*			userDefinedElementTypeStr;
+
+	//const char* elementType;
 };
 
+/*
 struct HLSLConstantBuffer : public HLSLBuffer
 {
 	static const HLSLNodeType s_type = HLSLNodeType_ConstantBuffer;
 	HLSLConstantBuffer()
 	{
 		HLSLBuffer();
-		bPush_Constant = false;
-		elementType = NULL;
+		bPush_Constant = false;		
 	}
 
 	bool				bPush_Constant;
-	const char* elementType;
+	
 };
 
 struct HLSLStructuredBuffer : public HLSLBuffer
@@ -879,10 +943,16 @@ struct HLSLStructuredBuffer : public HLSLBuffer
 	HLSLStructuredBuffer()
 	{
 		HLSLBuffer();
-		elementType = NULL;
 	}
+};
 
-	const char* elementType;
+struct HLSLByteAddressBuffer : public HLSLBuffer
+{
+	static const HLSLNodeType s_type = HLSLNodeType_ByteAddressBuffer;
+	HLSLByteAddressBuffer()
+	{
+		HLSLBuffer();		
+	}
 };
 
 
@@ -892,12 +962,9 @@ struct HLSLRWBuffer : public HLSLBuffer
 	HLSLRWBuffer()
 	{
 		HLSLBuffer();
-		elementType = NULL;
 		bAtomic = false;
 	}	
 	
-	const char*			elementType;
-	HLSLBaseType        dataType;
 	bool				bAtomic;
 };
 
@@ -906,15 +973,15 @@ struct HLSLRWStructuredBuffer : public HLSLBuffer
 	static const HLSLNodeType s_type = HLSLNodeType_RWStructuredBuffer;
 	HLSLRWStructuredBuffer()
 	{				
-		elementType = NULL;
-		dataType = HLSLBaseType_Unknown;
+		elementType = NULL;	
 		bAtomic = false;
 	}
 
 	const char*			elementType;
-	HLSLBaseType        dataType;
+	
 	bool				bAtomic;
 };
+*/
 
 
 /** Function declaration */
@@ -931,6 +998,7 @@ struct HLSLFunction : public HLSLStatement
         numArguments    = 0;
         forward         = NULL;
 		bPatchconstantfunc = false;
+		macroFunctionBody = NULL;
     }
     const char*         name;
     HLSLType            returnType;
@@ -942,6 +1010,8 @@ struct HLSLFunction : public HLSLStatement
     HLSLFunction*       forward; // Which HLSLFunction this one forward-declares
 
 	bool				bPatchconstantfunc;
+	const char*			macroFunctionBody;
+
 };
 
 /** Declaration of an argument to a function. */
@@ -959,6 +1029,7 @@ struct HLSLArgument : public HLSLNode
         hidden          = false;
 
 		dataTypeName	= NULL;
+		preprocessor = NULL;
     }
     const char*             name;
     HLSLArgumentModifier    modifier;
@@ -967,6 +1038,7 @@ struct HLSLArgument : public HLSLNode
     const char*             sv_semantic;
     HLSLExpression*         defaultValue;
     HLSLArgument*           nextArgument;
+	HLSLStatement*			preprocessor;
     bool                    hidden;
 
 	const char*             dataTypeName;
@@ -1017,6 +1089,14 @@ struct HLSLIfStatement : public HLSLStatement
         condition     = NULL;
         statement     = NULL;
         elseStatement = NULL;
+
+		for (int i = 0; i < 128; i++)
+		{
+			elseifStatement[i] = NULL;
+		}
+
+		
+
 		elseifStatementCounter = 0;
     }
     HLSLExpression*     condition;
@@ -1025,6 +1105,38 @@ struct HLSLIfStatement : public HLSLStatement
 	HLSLIfStatement*      elseifStatement[128];
 	int					elseifStatementCounter;
 };
+
+struct HLSLSwitchStatement : public HLSLStatement
+{
+	static const HLSLNodeType s_type = HLSLNodeType_SwitchStatement;
+	HLSLSwitchStatement()
+	{		
+		condition = NULL;
+		
+		for (int i = 0; i < 128; i++)
+		{
+			caseNumber[i] = NULL;
+			caseStatement[i] = NULL;
+		}
+		
+		caseDefault = NULL;
+
+
+
+
+		caseCounter = 0;
+	}
+	
+	HLSLExpression*     condition;
+	
+	HLSLExpression*     caseNumber[128];
+	HLSLStatement*      caseStatement[128];
+	HLSLStatement*		caseDefault;
+
+
+	int					caseCounter;
+};
+
 
 struct HLSLForStatement : public HLSLStatement
 {
@@ -1079,10 +1191,14 @@ struct HLSLExpression : public HLSLNode
     {
         nextExpression = NULL;
 		childExpression = NULL;
+		functionExpression = NULL;
     }
     HLSLType            expressionType;
 	HLSLExpression*     childExpression;
     HLSLExpression*     nextExpression; // Used when the expression is part of a list, like in a function call.
+
+	HLSLExpression*		functionExpression; // this is for function call from texture / buffer type with '.'
+
 };
 
 struct HLSLUnaryExpression : public HLSLExpression
@@ -1144,21 +1260,29 @@ struct HLSLpreprocessor : public HLSLStatement
 	{
 		name = NULL;
 		identifier[0] = 0;
-		contents[0] = 0;
+		//contents[0] = 0;
+		contents = NULL;
 		preprocessorType = 0;
 		expression = NULL;
+		macroFunction = NULL;
+
+		userMacroExpression = NULL;
 	}
 
 	HLSLBaseType    type;   // Note, not all types can be literals.
 
 	const char*     name;
 	char			identifier[64];
-	char			contents[1024];
+	//char			contents[1024];
+	const char*		contents;
+	
 	unsigned int	preprocessorType;
 
 	HLSLExpression* expression;
 
-	
+	HLSLFunction* macroFunction;
+
+	HLSLExpression* userMacroExpression;
 };
 
 struct HLSLPreprocessorExpression : public HLSLExpression
@@ -1171,12 +1295,14 @@ struct HLSLPreprocessorExpression : public HLSLExpression
 		name[0] = 0;
 
 
-		contents[0] = 0;
+		//contents[0] = 0;
+		contents = NULL;
 		preprocessorType = 0;
 	}
 
 	char         name[128];
-	char			contents[1024];
+	//char			contents[1024];
+	const char*		contents;
 	unsigned int	preprocessorType;
 };
 
@@ -1189,7 +1315,7 @@ struct HLSLTextureStateExpression : public HLSLExpression
 	HLSLTextureStateExpression()
 	{
 		name[0] = 0;
-		fuctionExpression = NULL;
+		//fuctionExpression = NULL;
 
 		arrayIdentifier[0][0] = 0;
 		arrayIdentifier[1][0] = 0;
@@ -1203,10 +1329,14 @@ struct HLSLTextureStateExpression : public HLSLExpression
 
 		bArray = false;
 		arrayExpression = NULL;
+
+		indexExpression = NULL;
+
+		memberAccessExpression = NULL;
 	}
 	char         name[128];
 
-	HLSLExpression* fuctionExpression;
+	//HLSLExpression* fuctionExpression;
 
 	//assuming that texture can be multidimension up to 3-D
 	bool				bArray;
@@ -1215,8 +1345,13 @@ struct HLSLTextureStateExpression : public HLSLExpression
 	unsigned int		arrayDimension;
 
 	HLSLExpression*		arrayExpression;
+
+	HLSLExpression*		indexExpression;
+
+	HLSLMemberAccess*	memberAccessExpression;
 };
 
+/*
 struct HLSLRWTextureStateExpression : public HLSLExpression
 {
 	static const HLSLNodeType s_type = HLSLNodeType_RWTextureStateExpression;
@@ -1252,6 +1387,7 @@ struct HLSLRWTextureStateExpression : public HLSLExpression
 
 	HLSLExpression*		arrayExpression;
 };
+*/
 
 /** Float, integer, boolean, etc. literal constant. */
 struct HLSLLiteralExpression : public HLSLExpression
@@ -1275,10 +1411,39 @@ struct HLSLIdentifierExpression : public HLSLExpression
     {
         name     = NULL;
         global  = false;
+
+		fuctionExpression = NULL;
+
+		arrayIdentifier[0][0] = 0;
+		arrayIdentifier[1][0] = 0;
+		arrayIdentifier[2][0] = 0;
+
+		arrayIndex[0] = 0;
+		arrayIndex[1] = 0;
+		arrayIndex[2] = 0;
+
+		arrayDimension = 0;
+
+		bArray = false;
+		arrayExpression = NULL;
     }
     const char*         name;
     bool                global; // This is a global variable.
+
+
+	HLSLExpression* fuctionExpression;
+
+	//assuming that texture can be multidimension up to 3-D
+	bool				bArray;
+	char				arrayIdentifier[3][64];
+	unsigned int		arrayIndex[3];
+	unsigned int		arrayDimension;
+
+	HLSLExpression*		arrayExpression;
 };
+
+
+
 
 /** float2(1, 2) */
 struct HLSLConstructorExpression : public HLSLExpression
@@ -1319,9 +1484,13 @@ struct HLSLArrayAccess : public HLSLExpression
 	{
 		array = NULL;
 		index = NULL;
+
+		identifier = NULL;
 	}
     HLSLExpression*     array;
     HLSLExpression*     index;
+
+	const char*         identifier;
 };
 
 struct HLSLFunctionCall : public HLSLExpression
@@ -1337,10 +1506,13 @@ struct HLSLFunctionCall : public HLSLExpression
 		//bTextureFunction = false;
 
 		pTextureState = NULL;
-		pRWTextureState = NULL;
+		//pRWTextureState = NULL;
 
 		pTextureStateExpression = NULL;
-		pRWTextureStateExpression = NULL;
+		//pRWTextureStateExpression = NULL;
+
+		//pStructuredBuffer = NULL;
+		pBuffer = NULL;
 
 	}
     const HLSLFunction* function;
@@ -1352,10 +1524,13 @@ struct HLSLFunctionCall : public HLSLExpression
 	//HLSLBaseType		textureType;
 
 	const HLSLTextureState* pTextureState;
-	const HLSLRWTextureState* pRWTextureState;
+	//const HLSLRWTextureState* pRWTextureState;
 
 	const HLSLTextureStateExpression* pTextureStateExpression;
-	const HLSLRWTextureStateExpression* pRWTextureStateExpression;
+	//const HLSLRWTextureStateExpression* pRWTextureStateExpression;
+
+	//const HLSLExpression* pStructuredBuffer;
+	const HLSLBuffer* pBuffer;
 };
 
 struct HLSLStateAssignment : public HLSLNode
@@ -1388,14 +1563,15 @@ struct HLSLSamplerStateExpression : public HLSLExpression
 		nextExpression = NULL;
 		hidden = false;
 	}
-	char			name[128];
-	HLSLType            type;
-	HLSLBaseType		baseType;
-	HLSLSamplerStateExpression*    nextExpression;      // Next field in the structure.
-	bool                hidden;
+	char							name[128];
+	HLSLType						type;
+	HLSLBaseType					baseType;
+	HLSLSamplerStateExpression*		nextExpression;      // Next field in the structure.
+	//HLSLArrayAccess*				arrayAcess;
+	bool							hidden;
 
-	char			lvalue[128];
-	char			rvalue[128];
+	char							lvalue[128];
+	char							rvalue[128];
 };
 
 
@@ -1479,6 +1655,9 @@ struct HLSLStage : public HLSLStatement
 };
 
 
+
+
+
 /**
  * Abstract syntax tree for parsed HLSL code.
  */
@@ -1516,17 +1695,26 @@ public:
     HLSLDeclaration * FindGlobalDeclaration(const char * name, HLSLBuffer ** buffer_out = NULL);
     HLSLStruct * FindGlobalStruct(const char * name);
 	const char* FindGlobalStructMember(const char *memberName);
-	const char* FindConstantBuffertMember(const char *memberName);
+	const char* FindBuffertMember(const char *memberName);
     HLSLTechnique * FindTechnique(const char * name);
     HLSLPipeline * FindFirstPipeline();
     HLSLPipeline * FindNextPipeline(HLSLPipeline * current);
     HLSLPipeline * FindPipeline(const char * name);
     HLSLBuffer * FindBuffer(const char * name);
+	HLSLTextureStateExpression * FindTextureStateExpression(const char * name);
 
     bool GetExpressionValue(HLSLExpression * expression, int & value);
     int GetExpressionValue(HLSLExpression * expression, float values[4]);
 
     bool NeedsFunction(const char * name);
+
+
+	bool NeedsExtension(GlobalExtension ext)
+	{
+		return gExtension[ext];
+	}
+
+	bool gExtension[MAX_GLOBAL_EXTENSION];
 
 private:
 
@@ -1555,8 +1743,6 @@ private:
     size_t          m_currentPageOffset;
 
 };
-
-
 
 class HLSLTreeVisitor
 {
@@ -1613,5 +1799,554 @@ extern void SortTree(HLSLTree* tree);
 extern void GroupParameters(HLSLTree* tree);
 extern void HideUnusedArguments(HLSLFunction * function);
 extern bool EmulateAlphaTest(HLSLTree* tree, const char* entryName, float alphaRef = 0.5f);
+
+static const char* getElementTypeAsStr(HLSLType type)
+{
+	HLSLBaseType compareType;
+
+	if (type.elementType != HLSLBaseType_Unknown)
+		compareType = type.elementType;
+	else
+		compareType = type.baseType;
+
+	switch (compareType)
+	{
+	case HLSLBaseType_Bool:
+		return "bool";
+	case HLSLBaseType_Bool1x2:
+		return "bool1x2";
+	case HLSLBaseType_Bool1x3:
+		return "bool1x3";
+	case HLSLBaseType_Bool1x4:
+		return "bool1x4";
+
+	case HLSLBaseType_Bool2:
+		return "bool2";
+	case HLSLBaseType_Bool2x2:
+		return "bool2x2";
+	case HLSLBaseType_Bool2x3:
+		return "bool2x3";
+	case HLSLBaseType_Bool2x4:
+		return "bool2x4";
+
+	case HLSLBaseType_Bool3:
+		return "bool3";
+	case HLSLBaseType_Bool3x2:
+		return "bool3x2";
+	case HLSLBaseType_Bool3x3:
+		return "bool3x3";
+	case HLSLBaseType_Bool3x4:
+		return "bool3x4";
+
+	case HLSLBaseType_Bool4:
+		return "bool4";
+	case HLSLBaseType_Bool4x2:
+		return "bool4x2";
+	case HLSLBaseType_Bool4x3:
+		return "bool4x3";
+	case HLSLBaseType_Bool4x4:
+		return "bool4x4";
+
+	case HLSLBaseType_Float:
+		return "float";
+	case HLSLBaseType_Float1x2:
+		return "float1x2";
+	case HLSLBaseType_Float1x3:
+		return "float1x3";
+	case HLSLBaseType_Float1x4:
+		return "float1x4";
+
+	case HLSLBaseType_Float2:
+		return "float2";
+	case HLSLBaseType_Float2x2:
+		return "float2x2";
+	case HLSLBaseType_Float2x3:
+		return "float2x3";
+	case HLSLBaseType_Float2x4:
+		return "float2x4";
+
+	case HLSLBaseType_Float3:
+		return "float3";
+	case HLSLBaseType_Float3x2:
+		return "float3x2";
+	case HLSLBaseType_Float3x3:
+		return "float3x3";
+	case HLSLBaseType_Float3x4:
+		return "float3x4";
+
+	case HLSLBaseType_Float4:
+		return "float4";
+	case HLSLBaseType_Float4x2:
+		return "float4x2";
+	case HLSLBaseType_Float4x3:
+		return "float4x3";
+	case HLSLBaseType_Float4x4:
+		return "float4x4";
+
+	case HLSLBaseType_Half:
+		return "half";
+	case HLSLBaseType_Half1x2:
+		return "half1x2";
+	case HLSLBaseType_Half1x3:
+		return "half1x3";
+	case HLSLBaseType_Half1x4:
+		return "half1x4";
+
+	case HLSLBaseType_Half2:
+		return "half2";
+	case HLSLBaseType_Half2x2:
+		return "half2x2";
+	case HLSLBaseType_Half2x3:
+		return "half2x3";
+	case HLSLBaseType_Half2x4:
+		return "half2x4";
+
+	case HLSLBaseType_Half3:
+		return "half3";
+	case HLSLBaseType_Half3x2:
+		return "half3x2";
+	case HLSLBaseType_Half3x3:
+		return "half3x3";
+	case HLSLBaseType_Half3x4:
+		return "half3x4";
+
+	case HLSLBaseType_Half4:
+		return "half4";
+	case HLSLBaseType_Half4x2:
+		return "half4x2";
+	case HLSLBaseType_Half4x3:
+		return "half4x3";
+	case HLSLBaseType_Half4x4:
+		return "half4x4";
+
+
+
+	case HLSLBaseType_Min16Float:
+		return "min16float";
+	case HLSLBaseType_Min16Float1x2:
+		return "min16float1x2";
+	case HLSLBaseType_Min16Float1x3:
+		return "min16float1x3";
+	case HLSLBaseType_Min16Float1x4:
+		return "min16float1x4";
+
+	case HLSLBaseType_Min16Float2:
+		return "min16float2";
+	case HLSLBaseType_Min16Float2x2:
+		return "min16float2x2";
+	case HLSLBaseType_Min16Float2x3:
+		return "min16float2x3";
+	case HLSLBaseType_Min16Float2x4:
+		return "min16float2x4";
+
+	case HLSLBaseType_Min16Float3:
+		return "min16float3";
+	case HLSLBaseType_Min16Float3x2:
+		return "min16float3x2";
+	case HLSLBaseType_Min16Float3x3:
+		return "min16float3x3";
+	case HLSLBaseType_Min16Float3x4:
+		return "min16float3x4";
+
+	case HLSLBaseType_Min16Float4:
+		return "min16float4";
+	case HLSLBaseType_Min16Float4x2:
+		return "min16float4x2";
+	case HLSLBaseType_Min16Float4x3:
+		return "min16float4x3";
+	case HLSLBaseType_Min16Float4x4:
+		return "min16float4x4";
+
+
+	case HLSLBaseType_Min10Float:
+		return "min10float";
+	case HLSLBaseType_Min10Float1x2:
+		return "min10float1x2";
+	case HLSLBaseType_Min10Float1x3:
+		return "min10float1x3";
+	case HLSLBaseType_Min10Float1x4:
+		return "min10float1x4";
+
+	case HLSLBaseType_Min10Float2:
+		return "min10float2";
+	case HLSLBaseType_Min10Float2x2:
+		return "min10float2x2";
+	case HLSLBaseType_Min10Float2x3:
+		return "min10float2x3";
+	case HLSLBaseType_Min10Float2x4:
+		return "min10float2x4";
+
+	case HLSLBaseType_Min10Float3:
+		return "min10float3";
+	case HLSLBaseType_Min10Float3x2:
+		return "min10float3x2";
+	case HLSLBaseType_Min10Float3x3:
+		return "min10float3x3";
+	case HLSLBaseType_Min10Float3x4:
+		return "min10float3x4";
+
+	case HLSLBaseType_Min10Float4:
+		return "min10float4";
+	case HLSLBaseType_Min10Float4x2:
+		return "min10float4x2";
+	case HLSLBaseType_Min10Float4x3:
+		return "min10float4x3";
+	case HLSLBaseType_Min10Float4x4:
+		return "min10float4x4";
+
+
+	case HLSLBaseType_Int:
+		return "int";
+	case HLSLBaseType_Int1x2:
+		return "int1x2";
+	case HLSLBaseType_Int1x3:
+		return "int1x3";
+	case HLSLBaseType_Int1x4:
+		return "int1x4";
+
+	case HLSLBaseType_Int2:
+		return "int2";
+	case HLSLBaseType_Int2x2:
+		return "int2x2";
+	case HLSLBaseType_Int2x3:
+		return "int2x3";
+	case HLSLBaseType_Int2x4:
+		return "int2x4";
+
+	case HLSLBaseType_Int3:
+		return "int3";
+	case HLSLBaseType_Int3x2:
+		return "int3x2";
+	case HLSLBaseType_Int3x3:
+		return "int3x3";
+	case HLSLBaseType_Int3x4:
+		return "int3x4";
+
+	case HLSLBaseType_Int4:
+		return "int4";
+	case HLSLBaseType_Int4x2:
+		return "int4x2";
+	case HLSLBaseType_Int4x3:
+		return "int4x3";
+	case HLSLBaseType_Int4x4:
+		return "int4x4";
+
+	case HLSLBaseType_Uint:
+		return "uint";
+	case HLSLBaseType_Uint1x2:
+		return "uint1x2";
+	case HLSLBaseType_Uint1x3:
+		return "uint1x3";
+	case HLSLBaseType_Uint1x4:
+		return "uint1x4";
+
+	case HLSLBaseType_Uint2:
+		return "uint2";
+	case HLSLBaseType_Uint2x2:
+		return "uint2x2";
+	case HLSLBaseType_Uint2x3:
+		return "uint2x3";
+	case HLSLBaseType_Uint2x4:
+		return "uint2x4";
+
+	case HLSLBaseType_Uint3:
+		return "uint3";
+	case HLSLBaseType_Uint3x2:
+		return "uint3x2";
+	case HLSLBaseType_Uint3x3:
+		return "uint3x3";
+	case HLSLBaseType_Uint3x4:
+		return "uint3x4";
+
+	case HLSLBaseType_Uint4:
+		return "uint4";
+	case HLSLBaseType_Uint4x2:
+		return "uint4x2";
+	case HLSLBaseType_Uint4x3:
+		return "uint4x3";
+	case HLSLBaseType_Uint4x4:
+		return "uint4x4";
+	case HLSLBaseType_UserDefined:
+		return type.typeName;
+	default:
+		return "UnknownElementType";
+	}
+}
+
+
+static const char* getElementTypeAsStrGLSL(HLSLType type)
+{
+	HLSLBaseType compareType;
+
+	if (type.elementType != HLSLBaseType_Unknown)
+		compareType = type.elementType;
+	else
+		compareType = type.baseType;
+
+	switch (compareType)
+	{
+	case HLSLBaseType_Bool:
+		return "bool";
+	case HLSLBaseType_Bool1x2:
+		return "bool1x2";
+	case HLSLBaseType_Bool1x3:
+		return "bool1x3";
+	case HLSLBaseType_Bool1x4:
+		return "bool1x4";
+
+	case HLSLBaseType_Bool2:
+		return "bvec2";
+	case HLSLBaseType_Bool2x2:
+		return "bool2x2";
+	case HLSLBaseType_Bool2x3:
+		return "bool2x3";
+	case HLSLBaseType_Bool2x4:
+		return "bool2x4";
+
+	case HLSLBaseType_Bool3:
+		return "bvec3";
+	case HLSLBaseType_Bool3x2:
+		return "bool3x2";
+	case HLSLBaseType_Bool3x3:
+		return "bool3x3";
+	case HLSLBaseType_Bool3x4:
+		return "bool3x4";
+
+	case HLSLBaseType_Bool4:
+		return "bvec4";
+	case HLSLBaseType_Bool4x2:
+		return "bool4x2";
+	case HLSLBaseType_Bool4x3:
+		return "bool4x3";
+	case HLSLBaseType_Bool4x4:
+		return "bool4x4";
+
+	case HLSLBaseType_Float:
+		return "float";
+	case HLSLBaseType_Float1x2:
+		return "mat1x2";
+	case HLSLBaseType_Float1x3:
+		return "mat1x3";
+	case HLSLBaseType_Float1x4:
+		return "mat1x4";
+
+	case HLSLBaseType_Float2:
+		return "vec2";
+	case HLSLBaseType_Float2x2:
+		return "mat2";
+	case HLSLBaseType_Float2x3:
+		return "mat2x3";
+	case HLSLBaseType_Float2x4:
+		return "mat2x4";
+
+	case HLSLBaseType_Float3:
+		return "vec3";
+	case HLSLBaseType_Float3x2:
+		return "mat3x2";
+	case HLSLBaseType_Float3x3:
+		return "mat3";
+	case HLSLBaseType_Float3x4:
+		return "mat3x4";
+
+	case HLSLBaseType_Float4:
+		return "vec4";
+	case HLSLBaseType_Float4x2:
+		return "mat4x2";
+	case HLSLBaseType_Float4x3:
+		return "mat4x3";
+	case HLSLBaseType_Float4x4:
+		return "mat4";
+
+	case HLSLBaseType_Half:
+		return "float";
+	case HLSLBaseType_Half1x2:
+		return "mat1x2";
+	case HLSLBaseType_Half1x3:
+		return "mat1x3";
+	case HLSLBaseType_Half1x4:
+		return "mat1x4";
+
+	case HLSLBaseType_Half2:
+		return "vec2";
+	case HLSLBaseType_Half2x2:
+		return "mat2x2";
+	case HLSLBaseType_Half2x3:
+		return "mat2x3";
+	case HLSLBaseType_Half2x4:
+		return "mat2x4";
+
+	case HLSLBaseType_Half3:
+		return "vec3";
+	case HLSLBaseType_Half3x2:
+		return "mat3x2";
+	case HLSLBaseType_Half3x3:
+		return "mat3x3";
+	case HLSLBaseType_Half3x4:
+		return "mat3x4";
+
+	case HLSLBaseType_Half4:
+		return "vec4";
+	case HLSLBaseType_Half4x2:
+		return "mat4x2";
+	case HLSLBaseType_Half4x3:
+		return "mat4x3";
+	case HLSLBaseType_Half4x4:
+		return "mat4x4";
+
+
+
+	case HLSLBaseType_Min16Float:
+		return "float";
+	case HLSLBaseType_Min16Float1x2:
+		return "mat1x2";
+	case HLSLBaseType_Min16Float1x3:
+		return "mat1x3";
+	case HLSLBaseType_Min16Float1x4:
+		return "mat1x4";
+
+	case HLSLBaseType_Min16Float2:
+		return "vec2";
+	case HLSLBaseType_Min16Float2x2:
+		return "mat2";
+	case HLSLBaseType_Min16Float2x3:
+		return "mat2x3";
+	case HLSLBaseType_Min16Float2x4:
+		return "mat2x4";
+
+	case HLSLBaseType_Min16Float3:
+		return "vec3";
+	case HLSLBaseType_Min16Float3x2:
+		return "mat3x2";
+	case HLSLBaseType_Min16Float3x3:
+		return "mat3";
+	case HLSLBaseType_Min16Float3x4:
+		return "mat3x4";
+
+	case HLSLBaseType_Min16Float4:
+		return "vec4";
+	case HLSLBaseType_Min16Float4x2:
+		return "mat4x2";
+	case HLSLBaseType_Min16Float4x3:
+		return "mat4x3";
+	case HLSLBaseType_Min16Float4x4:
+		return "mat4";
+
+
+	case HLSLBaseType_Min10Float:
+		return "float";
+	case HLSLBaseType_Min10Float1x2:
+		return "mat1x2";
+	case HLSLBaseType_Min10Float1x3:
+		return "mat1x3";
+	case HLSLBaseType_Min10Float1x4:
+		return "mat1x4";
+
+	case HLSLBaseType_Min10Float2:
+		return "vec2";
+	case HLSLBaseType_Min10Float2x2:
+		return "mat2";
+	case HLSLBaseType_Min10Float2x3:
+		return "mat2x3";
+	case HLSLBaseType_Min10Float2x4:
+		return "mat2x4";
+
+	case HLSLBaseType_Min10Float3:
+		return "vec3";
+	case HLSLBaseType_Min10Float3x2:
+		return "mat3x2";
+	case HLSLBaseType_Min10Float3x3:
+		return "mat3";
+	case HLSLBaseType_Min10Float3x4:
+		return "mat3x4";
+
+	case HLSLBaseType_Min10Float4:
+		return "vec4";
+	case HLSLBaseType_Min10Float4x2:
+		return "mat4x2";
+	case HLSLBaseType_Min10Float4x3:
+		return "mat4x3";
+	case HLSLBaseType_Min10Float4x4:
+		return "mat4";
+
+
+	case HLSLBaseType_Int:
+		return "int";
+	case HLSLBaseType_Int1x2:
+		return "int1x2";
+	case HLSLBaseType_Int1x3:
+		return "int1x3";
+	case HLSLBaseType_Int1x4:
+		return "int1x4";
+
+	case HLSLBaseType_Int2:
+		return "ivec2";
+	case HLSLBaseType_Int2x2:
+		return "int2x2";
+	case HLSLBaseType_Int2x3:
+		return "int2x3";
+	case HLSLBaseType_Int2x4:
+		return "int2x4";
+
+	case HLSLBaseType_Int3:
+		return "ivec3";
+	case HLSLBaseType_Int3x2:
+		return "int3x2";
+	case HLSLBaseType_Int3x3:
+		return "int3x3";
+	case HLSLBaseType_Int3x4:
+		return "int3x4";
+
+	case HLSLBaseType_Int4:
+		return "ivec4";
+	case HLSLBaseType_Int4x2:
+		return "int4x2";
+	case HLSLBaseType_Int4x3:
+		return "int4x3";
+	case HLSLBaseType_Int4x4:
+		return "int4x4";
+
+	case HLSLBaseType_Uint:
+		return "uint";
+	case HLSLBaseType_Uint1x2:
+		return "uint1x2";
+	case HLSLBaseType_Uint1x3:
+		return "uint1x3";
+	case HLSLBaseType_Uint1x4:
+		return "uint1x4";
+
+	case HLSLBaseType_Uint2:
+		return "uvec2";
+	case HLSLBaseType_Uint2x2:
+		return "uint2x2";
+	case HLSLBaseType_Uint2x3:
+		return "uint2x3";
+	case HLSLBaseType_Uint2x4:
+		return "uint2x4";
+
+	case HLSLBaseType_Uint3:
+		return "uvec3";
+	case HLSLBaseType_Uint3x2:
+		return "uint3x2";
+	case HLSLBaseType_Uint3x3:
+		return "uint3x3";
+	case HLSLBaseType_Uint3x4:
+		return "uint3x4";
+
+	case HLSLBaseType_Uint4:
+		return "uvec4";
+	case HLSLBaseType_Uint4x2:
+		return "uint4x2";
+	case HLSLBaseType_Uint4x3:
+		return "uint4x3";
+	case HLSLBaseType_Uint4x4:
+		return "uint4x4";
+	case HLSLBaseType_UserDefined:
+		return type.typeName;
+	default:
+		return "UnknownElementType";
+	}
+}
+
+
 
 #endif

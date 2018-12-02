@@ -50,8 +50,8 @@ struct Compute_Shader
     };
     constant Uniforms_RootConstant & RootConstant;
 
-    texturecube<float> srcTexture;
-    texture2d_array<float, access::read_write> dstTexture;
+    //texturecube<float> srcTexture;
+    //texture2d_array<float, access::read_write> dstTexture;
     sampler skyboxSampler;
 
     float RadicalInverse_VdC(uint bits)
@@ -104,7 +104,7 @@ struct Compute_Shader
         return normalize(sampleVec);
     };
 
-    void main(uint3 DTid)
+	void main(uint3 DTid,  texturecube<float> srcTexture, texture2d_array<float, access::read_write> dstTexture)
     {
         uint3 threadPos = DTid;
 
@@ -188,11 +188,7 @@ struct Compute_Shader
     };
 
     Compute_Shader(constant Uniforms_RootConstant & RootConstant,
-        texturecube<float> srcTexture,
-        texture2d_array<float, access::read_write> dstTexture,
     sampler skyboxSampler) : RootConstant(RootConstant),
-    srcTexture(srcTexture),
-    dstTexture(dstTexture),
     skyboxSampler(skyboxSampler) {}
 };
 
@@ -204,6 +200,6 @@ constant     Compute_Shader::Uniforms_RootConstant & RootConstant [[buffer(1)]],
     sampler skyboxSampler [[sampler(4)]]) {
     uint3 DTid0;
     DTid0 = DTid;
-    Compute_Shader main(RootConstant, srcTexture, dstTexture, skyboxSampler);
-        return main.main(DTid0);
+    Compute_Shader main(RootConstant, skyboxSampler);
+        return main.main(DTid0, srcTexture, dstTexture);
 }

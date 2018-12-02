@@ -202,6 +202,34 @@
                ReferencedContainer = "container:09_MultiThread/09_MultiThread.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "10_Skinning.app"
+               BlueprintName = "10_Skinning"
+               ReferencedContainer = "container:10_Skinning/10_Skinning.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "10_Skinning_iOS.app"
+               BlueprintName = "10_Skinning_iOS"
+               ReferencedContainer = "container:10_Skinning/10_Skinning.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

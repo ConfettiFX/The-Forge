@@ -80,12 +80,25 @@ namespace WebTranslator.Controllers
             return View();
         }
 
+        public void CreateIncludeFile(DataPackage package)
+        {
+            if (package.FileName != null)
+            {
+                ParserCS.CreateInlcudeFile(package.FileContents, Path.GetFileNameWithoutExtension(package.FileName), Path.GetExtension(package.FileName));
+            }
+            else
+            {
+                return;
+            }
+            
+        }
+
         [HttpPost]
         public IActionResult Parse([FromBody] DataPackage package)
         {
             if (package.FileName != null)
             {
-                var result = ParserCS.Parsing(package.FileName, package.FileContents, package.EntryName == null ? "main" : package.EntryName, package.Shader, package.Language);
+                var result =  ParserCS.Parsing(package.FileName, package.FileContents, package.EntryName == null ? "main" : package.EntryName, package.Shader, package.Language);
 
                 var data = new DataPackage() { Result = result };
 
@@ -113,15 +126,23 @@ namespace WebTranslator.Controllers
             }
         }
 
+
+        public DataPackage GetStoredResult(DataPackage package)
+        {
+            var result = ParserCS.GetStoredResult(package.Language);
+
+            var data = new DataPackage() { Result = result };
+
+            return data;
+        }
+
+
+        
+
+
         public void SaveFeedbackFromClient(DataPackage dataPackage)
         {
             var webRoot = _env.WebRootPath;
-
-            //DateTime time = DateTime.Now;
-            //var timeInfo = time.ToString("hh_mm_ss");
-            //var file = System.IO.Path.Combine(webRoot+"\\FailedShaders\\", time.Year.ToString() + "_"+ time.Month.ToString("d2") + "_" + time.Day.ToString("d2") + "_" + timeInfo + ".txt");
-            //System.IO.File.WriteAllText(file, dataPackage.FileContents);
-
 
             var fromAddress = "confetti.shader.translator@gmail.com";
             var toAddress = "confetti.shader.translator@gmail.com";

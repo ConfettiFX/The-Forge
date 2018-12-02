@@ -239,6 +239,7 @@ class UserInterfaceUnitTest : public IApp
 public:
 	bool Init()
 	{
+		InputSystem::SetHideMouseCursorWhileCaptured(false);
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };

@@ -21,10 +21,9 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=c++11;-Wall;-Wno-unknown-pragmas; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-std=c++11;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
@@ -33,7 +32,6 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
@@ -76,10 +74,9 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-O2;-std=c++11;-Wall;-Wno-unknown-pragmas; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-O2;-std=c++11;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
@@ -88,7 +85,6 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>

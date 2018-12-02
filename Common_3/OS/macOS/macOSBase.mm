@@ -73,14 +73,17 @@ namespace PlatformEvents
 
 }
 
-static bool captureMouse(bool shouldCapture)
+static bool captureMouse(bool shouldCapture, bool shouldHide)
 {
 	if (shouldCapture != isCaptured)
 	{
 		if (shouldCapture)
 		{
-			CGDisplayHideCursor(kCGDirectMainDisplay);
-			CGAssociateMouseAndMouseCursorPosition(false);
+			if (shouldHide)
+			{
+				CGDisplayHideCursor(kCGDirectMainDisplay);
+				CGAssociateMouseAndMouseCursorPosition(false);
+			}
 			isCaptured = true;
 		}
 		else
@@ -91,7 +94,7 @@ static bool captureMouse(bool shouldCapture)
 		}
 	}
 
-	InputSystem::SetMouseCapture(isCaptured);
+	InputSystem::SetMouseCapture(isCaptured && shouldHide);
 	return true;
 }
 
@@ -505,7 +508,7 @@ uint32_t testingMaxFrameCount = 120;
 		}
 		else
 		{
-			captureMouse(false);
+			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
 		}
 	}
 
@@ -514,7 +517,7 @@ uint32_t testingMaxFrameCount = 120;
 	{
 		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
 		{
-			captureMouse(true);
+			captureMouse(true, InputSystem::GetHideMouseCursorWhileCaptured());
 		}
 	}
 

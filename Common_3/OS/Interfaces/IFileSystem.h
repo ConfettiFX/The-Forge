@@ -57,7 +57,10 @@ tinystl::string get_exe_path();
 tinystl::string get_app_prefs_dir(const char* org, const char* app);
 tinystl::string get_user_documents_dir();
 void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut);
+void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut);
 bool file_exists(const char* fileFullPath);
+bool absolute_path(const char* fileFullPath);
+bool copy_file(const char* src, const char* dst);
 
 void set_current_dir(const char* path);
 
@@ -289,6 +292,7 @@ public:
 	static tinystl::string  GetUserDocumentsDir() { return AddTrailingSlash(get_user_documents_dir()); }
 	static tinystl::string  GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app) { return AddTrailingSlash(get_app_prefs_dir(org, app)); }
 	static void GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files) { get_files_with_extensions(dir.c_str(), ext.c_str(), files); }
+	static void GetSubDirectories(const tinystl::string& dir, tinystl::vector<tinystl::string>& subDirectories) { get_sub_directories(dir.c_str(), subDirectories); }
 
 	static void	 SetCurrentDir(const tinystl::string& path) { set_current_dir(path.c_str()); }
 
@@ -304,6 +308,7 @@ public:
 	static tinystl::string  GetInternalPath(const tinystl::string& pathName);
 	static tinystl::string  GetNativePath(const tinystl::string& pathName);
 
+	static bool CopyFile(const tinystl::string& src, const tinystl::string& dst, bool bFailIfExists);
 	static bool	 DirExists(const tinystl::string& pathName);
 	static bool	 CreateDir(const tinystl::string& pathName);
 	static int	  SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOut = "");

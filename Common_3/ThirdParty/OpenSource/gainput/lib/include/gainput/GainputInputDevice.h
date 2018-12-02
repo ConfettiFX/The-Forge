@@ -11,6 +11,7 @@ enum ButtonType
 {
 	BT_BOOL,	///< A boolean value button, either down (true) or up (false).
 	BT_FLOAT,	///< A floating-point value button, between -1.0f and 1.0f or 0.0f and 1.0f.
+	BT_GESTURE,
 	BT_COUNT	///< The number of different button types.
 };
 

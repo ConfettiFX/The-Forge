@@ -29,7 +29,6 @@
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-std=c++11; " C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
@@ -70,7 +69,6 @@
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-std=c++11; " C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>

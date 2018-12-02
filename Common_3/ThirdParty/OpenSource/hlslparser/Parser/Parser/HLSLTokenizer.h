@@ -1,6 +1,10 @@
 #ifndef HLSL_TOKENIZER_H
 #define HLSL_TOKENIZER_H
 
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
 /** In addition to the values in this enum, all of the ASCII characters are
 valid tokens. */
 enum HLSLToken
@@ -146,6 +150,7 @@ enum HLSLToken
     HLSLToken_Texture,	//336
 
 	HLSLToken_Texture1D,
+	HLSLToken_First_Texture_Type = HLSLToken_Texture1D,
 	HLSLToken_Texture1DArray,
 	HLSLToken_Texture2D,
 	HLSLToken_Texture2DArray,
@@ -155,11 +160,18 @@ enum HLSLToken
 	HLSLToken_TextureCube,
 	HLSLToken_TextureCubeArray,
 
+	HLSLToken_RasterizerOrderedTexture1D,
+	HLSLToken_RasterizerOrderedTexture1DArray,
+	HLSLToken_RasterizerOrderedTexture2D,
+	HLSLToken_RasterizerOrderedTexture2DArray,
+	HLSLToken_RasterizerOrderedTexture3D,
+
 	HLSLToken_RWTexture1D,
 	HLSLToken_RWTexture1DArray,
 	HLSLToken_RWTexture2D,
 	HLSLToken_RWTexture2DArray,
 	HLSLToken_RWTexture3D,
+	HLSLToken_Last_Texture_Type = HLSLToken_RWTexture3D,
 
 	HLSLToken_SamplerState,
     HLSLToken_Sampler,
@@ -170,23 +182,41 @@ enum HLSLToken
     HLSLToken_Sampler2DMS,
     HLSLToken_Sampler2DArray,
 
+	HLSLToken_SamplerComparisonState,
+
     // Reserved words.
     HLSLToken_If,
 	HLSLToken_ElseIf,
     HLSLToken_Else,
     HLSLToken_For,
     HLSLToken_While,
+	HLSLToken_Switch,
+	HLSLToken_Case,
+	HLSLToken_Default,
     HLSLToken_Break,
     HLSLToken_True,
     HLSLToken_False,
     HLSLToken_Void,				
     HLSLToken_Struct,
+
     HLSLToken_CBuffer,
+	HLSLToken_First_Buffer_Type = HLSLToken_CBuffer,
     HLSLToken_TBuffer,
 	HLSLToken_ConstantBuffer,
 	HLSLToken_StructuredBuffer,
+	HLSLToken_PureBuffer,
 	HLSLToken_RWBuffer,
 	HLSLToken_RWStructuredBuffer,
+	HLSLToken_ByteAddressBuffer,
+	HLSLToken_RWByteAddressBuffer,
+
+	HLSLToken_RasterizerOrderedBuffer,
+	HLSLToken_RasterizerOrderedStructuredBuffer,
+	HLSLToken_RasterizerOrderedByteAddressBuffer,
+		
+
+	HLSLToken_Last_Buffer_Type = HLSLToken_RasterizerOrderedByteAddressBuffer,
+
     HLSLToken_Register,
     HLSLToken_Return,
     HLSLToken_Continue,
@@ -293,6 +323,8 @@ enum HLSLToken
     HLSLToken_Technique,
     HLSLToken_Pass,
 
+	HLSLToken_Sizeof,
+
     // Multi-character symbols.
     HLSLToken_LessEqual,
     HLSLToken_GreaterEqual,
@@ -310,12 +342,20 @@ enum HLSLToken
 	HLSLToken_RightShift,   // >>
 	HLSLToken_Modular,		// % 
 
+	HLSLToken_AndEqual,		// &=
+	HLSLToken_BarEqual,		// |=
+	HLSLToken_XorEqual,		// ^=
+
+
+
     // Other token types.
     HLSLToken_FloatLiteral,
 	HLSLToken_HalfLiteral,
     HLSLToken_IntLiteral,
 	HLSLToken_UintLiteral,
     HLSLToken_Identifier,
+
+	HLSLToken_USERMACRO,
 
     HLSLToken_EndOfStream,
 };
@@ -463,6 +503,12 @@ static const char* _reservedWords[] =
 	"TextureCube",
 	"TextureCubeArray",
 
+	"RasterizerOrderedTexture1D",
+	"RasterizerOrderedTexture1DArray",
+	"RasterizerOrderedTexture2D",
+	"RasterizerOrderedTexture2DArray",
+	"RasterizerOrderedTexture3D",
+
 	"RWTexture1D",
 	"RWTexture1DArray",
 	"RWTexture2D",
@@ -478,12 +524,17 @@ static const char* _reservedWords[] =
 	"sampler2DMS",
 	"sampler2DArray",
 
+	"SamplerComparisonState",
+
 	// Reserved words.
 	"if",
 	"else if",
 	"else",
 	"for",
 	"while",
+	"switch",
+	"case",
+	"default",
 	"break",
 	"true",
 	"false",
@@ -493,8 +544,17 @@ static const char* _reservedWords[] =
 	"tbuffer",
 	"ConstantBuffer",
 	"StructuredBuffer",
+	"Buffer",
 	"RWBuffer",
 	"RWStructuredBuffer",
+	"ByteAddressBuffer",
+	"RWByteAddressBuffer",
+
+	
+	"RasterizerOrderedBuffer",
+	"RasterizerOrderedStructuredBuffer",	
+	"RasterizerOrderedByteAddressBuffer",
+
 	"register",
 	"return",
 	"continue",
@@ -600,6 +660,9 @@ static const char* _reservedWords[] =
 	// Effect keywords.	
 	"technique",
 	"pass",
+
+
+	"sizeof",
 };
 
 struct PreprocessorPackage
@@ -656,6 +719,7 @@ public:
     static void GetTokenName(int token, char buffer[s_maxIdentifier]);
 
 	bool GetRestofWholeline(char* strBuffer);
+	bool GetRestofWholelineWOSpace(char* strBuffer);
 
 	//PreprocessorPackage	preprocessorPackage[128];
 
@@ -664,7 +728,9 @@ public:
 
 	void Undo();
 
-	char		errorBuffer[1024];
+	char errorBuffer[1024];
+
+	int	m_historyCounter;
 
 private:
 
@@ -676,6 +742,8 @@ private:
     bool ScanLineDirective();
 
 	bool StorePreprocessor();
+
+	
 
 private:
 
@@ -698,7 +766,7 @@ private:
 	char				m_identifierHistory[s_maxHistoryIdentifier][s_maxIdentifier];
 	const char*			m_identifierHistoryAddress[s_maxHistoryIdentifier];
 	
-	int					m_historyCounter;
+	
     char                m_lineDirectiveFileName[s_maxIdentifier];
     int                 m_tokenLineNumber;
 

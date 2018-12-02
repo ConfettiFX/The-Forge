@@ -31,7 +31,9 @@
 #include "ozz/base/containers/string.h"
 #include "ozz/base/containers/vector.h"
 #include "ozz/base/io/archive_traits.h"
-#include "ozz/base/maths/transform.h"
+//CONFFX_BEGIN
+#include "../../../../../../../OS/Math/MathTypes.h"
+//CONFFX_END
 
 namespace ozz {
 namespace animation {
@@ -66,7 +68,7 @@ struct RawSkeleton {
     ozz::String::Std name;
 
     // Joint bind pose transformation in local space.
-    math::Transform transform;
+    AffineTransform transform; //CONFFX_BEGIN
   };
 
   // Tests for *this validity.
