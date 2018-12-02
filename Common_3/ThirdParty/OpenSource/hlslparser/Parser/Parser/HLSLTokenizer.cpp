@@ -78,7 +78,7 @@ void HLSLTokenizer::Next()
 
     m_tokenLineNumber = m_lineNumber;
 
-    if (m_buffer >= m_bufferEnd || *m_buffer == '\0')
+	if (m_buffer >= m_bufferEnd || *m_buffer == '\0')
     {
         m_token = HLSLToken_EndOfStream;
         return;
@@ -86,8 +86,15 @@ void HLSLTokenizer::Next()
 
     const char* start = m_buffer;
 
+	if (strncmp(m_buffer, "// USERMACRO", 12) == 0)
+	{
+		m_token = HLSLToken_USERMACRO;
+		m_buffer += 12;
+		return;
+	}
+
     // +=, -=, *=, /=, ==, <=, >=, <<, >>
-    if (m_buffer[0] == '+' && m_buffer[1] == '=')
+    else if (m_buffer[0] == '+' && m_buffer[1] == '=')
     {
         m_token = HLSLToken_PlusEqual;
         m_buffer += 2;
@@ -117,6 +124,28 @@ void HLSLTokenizer::Next()
         m_buffer += 2;
         return;
     }
+
+	else if (m_buffer[0] == '&' && m_buffer[1] == '=')
+	{
+		m_token = HLSLToken_AndEqual;
+		m_buffer += 2;
+		return;
+	}
+	else if (m_buffer[0] == '|' && m_buffer[1] == '=')
+	{
+		m_token = HLSLToken_BarEqual;
+		m_buffer += 2;
+		return;
+	}
+	else if (m_buffer[0] == '^' && m_buffer[1] == '=')
+	{
+		m_token = HLSLToken_XorEqual;
+		m_buffer += 2;
+		return;
+	}
+
+	
+
     else if (m_buffer[0] == '!' && m_buffer[1] == '=')
     {
         m_token = HLSLToken_NotEqual;
@@ -270,6 +299,35 @@ bool HLSLTokenizer::GetRestofWholeline(char* strBuffer)
 	return result;
 }
 
+bool HLSLTokenizer::GetRestofWholelineWOSpace(char* strBuffer)
+{
+	bool result = false;
+	int counter = 0;
+	while (m_buffer < m_bufferEnd)
+	{
+		result = true;
+
+		if (m_buffer[0] == ' ' || m_buffer[0] == '\t')
+		{
+			//skip
+			counter--;
+		}
+		else
+			strBuffer[counter] = m_buffer[0];
+
+		if (m_buffer[0] == '\n')
+		{
+			strBuffer[counter] = 0;
+			++m_lineNumber;
+			++m_buffer;
+			break;
+		}
+		++m_buffer;
+		counter++;
+	}
+	return result;
+}
+
 
 bool HLSLTokenizer::SkipWhitespace()
 {
@@ -291,7 +349,7 @@ bool HLSLTokenizer::SkipComment()
     bool result = false;
     if (m_buffer[0] == '/')
     {
-        if (m_buffer[1] == '/')
+        if (m_buffer[1] == '/' && strncmp(m_buffer + 2, " USERMACRO", 10) != 0 )
         {
             // Single line comment.
             result = true;
@@ -422,7 +480,11 @@ bool HLSLTokenizer::ScanNumber()
 		{
 			if (!((uint[i] >= '0' &&  uint[i] <= '9') || (uint[i] >= 'A' &&  uint[i] <= 'F') || (uint[i] >= 'a' &&  uint[i] <= 'f')) )
 			{
-				if(uint[i] == 'u' || uint[i] == 'U')
+				if(uint[i] == 'u')
+					endCounter++;
+				else if(uint[i] == 'U' && uint[i + 1] == 'L')
+					endCounter += 2;
+				else if(uint[i] == 'U')
 					endCounter++;
 
 				uint[i] = 0;
@@ -523,6 +585,14 @@ bool HLSLTokenizer::ScanNumber()
     
 
 	if ((iEnd[0] == 'u' || fEnd[0] == 'i') && iEnd < m_bufferEnd)
+	{
+		++iEnd;
+	}
+	else if ((iEnd[0] == 'U' && iEnd[1] == 'L') && iEnd < m_bufferEnd)
+	{
+		iEnd += 2;
+	}
+	else if (iEnd[0] == 'U' && iEnd < m_bufferEnd)
 	{
 		++iEnd;
 	}
@@ -727,12 +797,17 @@ void HLSLTokenizer::Error(const char* format, ...)
 
 	char it[64];
 
-	//strcpy(errorBuffer, m_fileName);
-	strcpy(errorBuffer, "error) Line(");
-	strcat(errorBuffer, _itoa(m_lineNumber, it, 10));
-	strcat(errorBuffer, ") : ");
+	strcpy(errorBuffer, "error) FileName \t: ");
+	strcat(errorBuffer, m_fileName);
+	strcat(errorBuffer, "\n");
 
+	strcat(errorBuffer, "error) Line (");
+	strcat(errorBuffer, _itoa(m_lineNumber, it, 10));
+	strcat(errorBuffer, ")\t: ");
 	strcat(errorBuffer, buffer);
+	strcat(errorBuffer, "\n");
+
+	std::cout << errorBuffer << std::endl;
 
     Log_Error("%s\n", buffer);
 
@@ -797,6 +872,17 @@ void HLSLTokenizer::GetTokenName(int token, char buffer[s_maxIdentifier])
         case HLSLToken_DivideEqual:
             strcpy(buffer, "/=");
             break;
+
+		case HLSLToken_AndEqual:
+			strcpy(buffer, "&=");
+			break;
+		case HLSLToken_BarEqual:
+			strcpy(buffer, "|=");
+			break;
+		case HLSLToken_XorEqual:
+			strcpy(buffer, "^=");
+			break;
+
 		case HLSLToken_HalfLiteral:
 			strcpy( buffer, "half" );
 			break;

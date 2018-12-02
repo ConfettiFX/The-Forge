@@ -68,6 +68,26 @@ void ReflectBoundResources(
 			  resource.type = SPIRV_TYPE_STORAGE_TEXEL_BUFFERS;
 	  }
 
+	  // Set the texture dimensions
+	  switch (type.image.dim)
+	  {
+	  case spv::Dim1D:
+		  resource.dim = type.image.arrayed ? SPIRV_TEXTURE_DIM_1D_ARRAY : SPIRV_TEXTURE_DIM_1D;
+		  break;
+	  case spv::Dim2D:
+		  resource.dim = type.image.arrayed ? SPIRV_TEXTURE_DIM_2D_ARRAY : SPIRV_TEXTURE_DIM_2D;
+		  break;
+	  case spv::Dim3D:
+		  resource.dim = SPIRV_TEXTURE_DIM_3D;
+		  break;
+	  case spv::DimCube:
+		  resource.dim = SPIRV_TEXTURE_DIM_CUBE;
+		  break;
+	  default: 
+		  resource.dim = SPIRV_TEXTURE_DIM_UNDEFINED;
+		  break;
+	  }
+
 	  //if(spriv_type != SPIRV_TYPE_UNIFORM_BUFFERS)
 	  {
 		 if(type.array.size())

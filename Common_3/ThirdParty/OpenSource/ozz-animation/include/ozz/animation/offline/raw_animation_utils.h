@@ -29,24 +29,24 @@
 #define OZZ_OZZ_ANIMATION_OFFLINE_RAW_ANIMATION_UTILS_H_
 
 #include "ozz/animation/offline/raw_animation.h"
-
-#include "ozz/base/maths/transform.h"
+//CONFFX_BEGIN
 
 namespace ozz {
 namespace animation {
 namespace offline {
 
 // Translation interpolation method.
-math::Float3 LerpTranslation(const math::Float3& _a, const math::Float3& _b,
+Vector3 LerpTranslation(const Vector3& _a, const Vector3& _b,
                              float _alpha);
 
 // Rotation interpolation method.
-math::Quaternion LerpRotation(const math::Quaternion& _a,
-                              const math::Quaternion& _b, float _alpha);
+Quat LerpRotation(const Quat& _a,
+                              const Quat& _b, float _alpha);
 
 // Scale interpolation method.
-math::Float3 LerpScale(const math::Float3& _a, const math::Float3& _b,
+Vector3 LerpScale(const Vector3& _a, const Vector3& _b,
                        float _alpha);
+//CONFFX_END
 }  // namespace offline
 }  // namespace animation
 }  // namespace ozz

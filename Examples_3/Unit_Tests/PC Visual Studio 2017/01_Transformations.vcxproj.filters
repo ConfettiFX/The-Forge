@@ -20,16 +20,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.frag">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\basic.vert">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\skybox.frag">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\PCVulkan\skybox.vert">
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
   </ItemGroup>

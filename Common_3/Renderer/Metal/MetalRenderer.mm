@@ -41,7 +41,7 @@
 
 #define MAX_BUFFER_BINDINGS 31
 
-extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
+extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, tinystl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection);
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 namespace RENDERER_CPP_NAMESPACE {
@@ -1675,6 +1675,8 @@ namespace RENDERER_CPP_NAMESPACE {
 
 		Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
 		pShaderProgram->mStages = pDesc->mStages;
+		
+		tinystl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
 
 		uint32_t shaderReflectionCounter = 0;
 		ShaderReflection stageReflections[SHADER_STAGE_COUNT];
@@ -1764,7 +1766,7 @@ namespace RENDERER_CPP_NAMESPACE {
 					*compiled_code = function;
 				}
 
-				mtl_createShaderReflection(pRenderer, pShaderProgram, (const uint8_t*)source.c_str(), (uint32_t)source.size(), stage_mask, &stageReflections[shaderReflectionCounter++]);
+				mtl_createShaderReflection(pRenderer, pShaderProgram, (const uint8_t*)source.c_str(), (uint32_t)source.size(), stage_mask, &vertexAttributeFormats, &stageReflections[shaderReflectionCounter++]);
 			}
 		}
 
@@ -1783,6 +1785,8 @@ namespace RENDERER_CPP_NAMESPACE {
 		ASSERT(pShaderProgram);
 
 		pShaderProgram->mStages = pDesc->mStages;
+		
+		tinystl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
 
 		uint32_t reflectionCount = 0;
 		for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
@@ -1819,7 +1823,7 @@ namespace RENDERER_CPP_NAMESPACE {
 				id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
 				*compiled_code = function;
 
-				mtl_createShaderReflection(pRenderer, pShaderProgram, (const uint8_t*)pStage->mSource.c_str(), (uint32_t)pStage->mSource.size(), stage_mask, &pShaderProgram->mReflection.mStageReflections[reflectionCount++]);
+				mtl_createShaderReflection(pRenderer, pShaderProgram, (const uint8_t*)pStage->mSource.c_str(), (uint32_t)pStage->mSource.size(), stage_mask, &vertexAttributeFormats, &pShaderProgram->mReflection.mStageReflections[reflectionCount++]);
 			}
 		}
 
@@ -3531,7 +3535,9 @@ namespace RENDERER_CPP_NAMESPACE {
 #endif
 
 		pTexture->mIsCompressed = util_is_mtl_compressed_pixel_format(pTexture->mtlPixelFormat);
-		pTexture->mTextureSize = Image::GetMipMappedSize(pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, 1, 0, pTexture->mDesc.mMipLevels, pTexture->mDesc.mFormat);
+		Image img;
+		img.RedefineDimensions(pTexture->mDesc.mFormat, pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth, pTexture->mDesc.mMipLevels);
+		pTexture->mTextureSize = img.GetMipMappedSize(0, pTexture->mDesc.mMipLevels);
 		if (pTexture->mDesc.mHostVisible) {
 			internal_log(LOG_TYPE_WARN, "Host visible textures are not supported, memory of resulting texture will not be mapped for CPU visibility", "addTexture");
 		}

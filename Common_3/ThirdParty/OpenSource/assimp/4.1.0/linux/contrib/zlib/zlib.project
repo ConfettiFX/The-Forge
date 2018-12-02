@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="zlibstatic" InternalType="" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0008NoConfig000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="src">
+    <VirtualDirectory Name="contrib">
+      <VirtualDirectory Name="zlib">
+        <File Name="../../../contrib/zlib/adler32.c"/>
+        <File Name="../../../contrib/zlib/compress.c"/>
+        <File Name="../../../contrib/zlib/crc32.c"/>
+        <File Name="../../../contrib/zlib/deflate.c"/>
+        <File Name="../../../contrib/zlib/gzclose.c"/>
+        <File Name="../../../contrib/zlib/gzlib.c"/>
+        <File Name="../../../contrib/zlib/gzread.c"/>
+        <File Name="../../../contrib/zlib/gzwrite.c"/>
+        <File Name="../../../contrib/zlib/infback.c"/>
+        <File Name="../../../contrib/zlib/inffast.c"/>
+        <File Name="../../../contrib/zlib/inflate.c"/>
+        <File Name="../../../contrib/zlib/inftrees.c"/>
+        <File Name="../../../contrib/zlib/trees.c"/>
+        <File Name="../../../contrib/zlib/uncompr.c"/>
+        <File Name="../../../contrib/zlib/zutil.c"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <VirtualDirectory Name="include">
+    <VirtualDirectory Name="contrib">
+      <VirtualDirectory Name="zlib">
+        <File Name="../../../contrib/zlib/crc32.h"/>
+        <File Name="../../../contrib/zlib/deflate.h"/>
+        <File Name="../../../contrib/zlib/gzguts.h"/>
+        <File Name="../../../contrib/zlib/inffast.h"/>
+        <File Name="../../../contrib/zlib/inffixed.h"/>
+        <File Name="../../../contrib/zlib/inflate.h"/>
+        <File Name="../../../contrib/zlib/inftrees.h"/>
+        <File Name="../../../contrib/zlib/trees.h"/>
+        <VirtualDirectory Name="win32">
+          <File Name="../../../contrib/zlib/win32/zlib1.rc"/>
+        </VirtualDirectory>
+        <File Name="../../../contrib/zlib/zlib.h"/>
+        <File Name="../../../contrib/zlib/zutil.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <File Name="zconf.h"/>
+  </VirtualDirectory>
+  <Dependencies Name="NoConfig"/>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="NoConfig" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g -O3" C_Options="-g -O3" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(ProjectPath)/../../Bin/lib$(ProjectName).a" IntermediateDirectory="$(ProjectPath)/Temp/$(ProjectName)" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand>/usr/bin/make -j 16 clean &amp;&amp; /usr/bin/make -j 16</RebuildCommand>
+        <CleanCommand>/usr/bin/make -j 16 clean</CleanCommand>
+        <BuildCommand>/usr/bin/make -j 16</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand>/usr/bin/make -f$(ProjectPath)/Makefile $(CurrentFileName).cpp.o</SingleFileCommand>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

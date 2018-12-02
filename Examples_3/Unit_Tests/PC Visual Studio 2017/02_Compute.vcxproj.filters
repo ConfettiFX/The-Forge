@@ -20,13 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\02_Compute\Shaders\PCVulkan\compute.comp">
+    <None Include="..\src\02_Compute\Shaders\Vulkan\display.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\02_Compute\Shaders\PCVulkan\display.frag">
-      <Filter>Shaders\PCVulkan</Filter>
-    </None>
-    <None Include="..\src\02_Compute\Shaders\PCVulkan\display.vert">
+    <None Include="..\src\02_Compute\Shaders\Vulkan\display.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
     <None Include="..\src\02_Compute\Shaders\PCDX12\compute.comp">
@@ -38,5 +35,8 @@
     <None Include="..\src\02_Compute\Shaders\PCDX12\display.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\02_Compute\Shaders\Vulkan\compute.comp" />
   </ItemGroup>
 </Project>

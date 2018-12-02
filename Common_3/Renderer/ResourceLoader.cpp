@@ -736,6 +736,8 @@ void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, boo
 {
 	uint32_t numCores = Thread::GetNumCPUCores();
 
+	gFinishLoading = false;
+
 	gUseThreads = useThreads && numCores > 1;
 	// Threaded loading will wreak havoc w/ DX11 so disable it
 
@@ -1127,6 +1129,15 @@ void vk_compileShader(Renderer* pRenderer, ShaderTarget target, const tinystl::s
 		commandLine += " --target-env vulkan1.1 ";
 	//commandLine += " \"-D" + tinystl::string("VULKAN") + "=" + "1" + "\"";
 
+	// Add platform macro
+#ifdef _WINDOWS
+	commandLine += " \"-D WINDOWS\"";
+#elif defined(__ANDROID__)
+	commandLine += " \"-D ANDROID\"";
+#elif defined(__linux__)
+	commandLine += " \"-D LINUX\"";
+#endif
+
 	// Add user defined macros to the command line
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
@@ -1135,7 +1146,10 @@ void vk_compileShader(Renderer* pRenderer, ShaderTarget target, const tinystl::s
 	args.push_back(commandLine);
 
 	tinystl::string glslangValidator = getenv("VULKAN_SDK");
-	glslangValidator += "/bin/glslangValidator";
+	if (glslangValidator.size())
+		glslangValidator += "/bin/glslangValidator";
+	else
+		glslangValidator = "/usr/bin/glslangValidator";
 	if (FileSystem::SystemRun(glslangValidator, args, outFile + "_compile.log") == 0)
 	{
 		File file = {};
@@ -1419,11 +1433,7 @@ bool load_shader_stage_byte_code(Renderer* pRenderer, ShaderTarget target, Shade
 		rendererApi = "PCDX12";
 		break;
 	case RENDERER_API_VULKAN:
-#if defined(_WIN32)
-		rendererApi = "PCVulkan";
-#elif defined(__linux__)
-		rendererApi = "LINUXVulkan";
-#endif
+		rendererApi = "Vulkan";
 		break;
 	case RENDERER_API_METAL:
 		rendererApi = "OSXMetal";

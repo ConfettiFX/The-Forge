@@ -331,7 +331,7 @@ void addShaderResource(ShaderResource* pResources, uint32_t idx, DescriptorType 
 	*ppCurrentName += pResources[idx].name_size + 1;
 }
 
-void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
+void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, tinystl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection)
 {
 	if(pOutReflection == NULL)
 	{
@@ -417,21 +417,23 @@ void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8
 		// the reflection information.
 		MTLVertexDescriptor* vertexDesc = [[MTLVertexDescriptor alloc] init];
 
-		// read line by line and find vertex attribute definitions
-		tinystl::unordered_map<uint32_t, MTLVertexFormat> detectedVertexFormats;
-		char *p, *temp;
-		p = strtok_r((char*)shaderCode, "\n", &temp);
-		do {
-			const char* pattern = "attribute(";
-			const char* start = strstr(p,pattern);
-			if (start!=nil)
-			{
-				// vertex attribute definitino found: create a vertex descriptor for this
-				int attrNumber = atoi(start+strlen(pattern));
-				MTLVertexFormat vf = (strstr((const char*)p,"uint") ? MTLVertexFormatUInt : MTLVertexFormatFloat);
-				detectedVertexFormats[attrNumber] = vf;
-			}
-		} while ((p = strtok_r(NULL, "\n", &temp)) != NULL);
+		if(shaderStage == SHADER_STAGE_VERT)
+		{
+			// read line by line and find vertex attribute definitions
+			char *p, *temp;
+			p = strtok_r((char*)shaderCode, "\n", &temp);
+			do {
+				const char* pattern = "attribute(";
+				const char* start = strstr(p,pattern);
+				if (start!=nil)
+				{
+					// vertex attribute definitino found: create a vertex descriptor for this
+					int attrNumber = atoi(start+strlen(pattern));
+					MTLVertexFormat vf = (strstr((const char*)p,"uint") ? MTLVertexFormatUInt : MTLVertexFormatFloat);
+					(*vertexAttributeFormats)[attrNumber] = vf;
+				}
+			} while ((p = strtok_r(NULL, "\n", &temp)) != NULL);
+		}
 
 		for (uint32_t i=0; i<MAX_VERTEX_ATTRIBS; i++)
 		{
@@ -440,7 +442,7 @@ void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8
 
 			MTLVertexFormat vf = MTLVertexFormatFloat;
 
-			tinystl::unordered_map<uint32_t, MTLVertexFormat>::iterator it = detectedVertexFormats.find(i);
+			tinystl::unordered_map<uint32_t, MTLVertexFormat>::iterator it = vertexAttributeFormats->find(i);
 			if (it.node!=nil)
 				vf = it.node->second;
 

@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(ProjectDir)..\contrib\irrXML\irrXML.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\Xbox\CommonXBOXOne_3\OS\pch.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\irrXML\CXMLReaderImpl.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\irrXML\heapsort.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\irrXML\irrArray.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\irrXML\irrString.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\irrXML\irrTypes.h" />
+    <ClInclude Include="$(ProjectDir)..\contrib\irrXML\irrXML.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{E9CAC017-E266-3084-AD71-1FA364DF4DA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{D506ADC9-A7F5-342A-9DF1-69CB204ADF4B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

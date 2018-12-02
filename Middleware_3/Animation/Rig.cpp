@@ -120,11 +120,11 @@ void Rig::Pose(const Matrix4& rootTransform)
 
 			// Sets the scale of the joint equivilant to the boneLen between it and its parent joint
 			// Separete from world so outside objects can use a joint's world mat w/o its scale
-			mJointScales[childIndex] = vec3(boneLen);
+			mJointScales[childIndex] = vec3(boneLen / 2.0f);
 		}
 
 		// Set the root joints scale based on the saved min value
-		mJointScales[mRootIndex] = vec3(minBoneLen);
+		mJointScales[mRootIndex] = vec3(minBoneLen / 2.0f);
 	}
 }
 

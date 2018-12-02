@@ -12,9 +12,12 @@
   <Project Name="04_PartialBlending" Path="04_PartialBlending/04_PartialBlending.project" Active="No"/>
   <Project Name="05_AdditiveBlending" Path="05_AdditiveBlending/05_AdditiveBlending.project" Active="No"/>
   <Project Name="07_BakedPhysics" Path="07_BakedPhysics/07_BakedPhysics.project" Active="No"/>
-  <Project Name="09_MultiThread" Path="09_MultiThread/09_MultiThread.project" Active="Yes"/>
+  <Project Name="09_MultiThread" Path="09_MultiThread/09_MultiThread.project" Active="No"/>
+  <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
+  <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
+  <Project Name="10_Skinning" Path="10_Skinning/10_Skinning.project" Active="Yes"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -29,8 +32,11 @@
       <Project Name="05_AdditiveBlending" ConfigName="Debug"/>
       <Project Name="07_BakedPhysics" ConfigName="Debug"/>
       <Project Name="09_MultiThread" ConfigName="Debug"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="zlibstatic" ConfigName="NoConfig"/>
+      <Project Name="10_Skinning" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
@@ -45,6 +51,9 @@
       <Project Name="09_MultiThread" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="zlibstatic" ConfigName="NoConfig"/>
+      <Project Name="10_Skinning" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

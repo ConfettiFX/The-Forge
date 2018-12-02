@@ -99,9 +99,9 @@ JointSpec Iter(const Skeleton& _skeleton, uint16_t _joint,
 
       // Accumulated each child specs to this joint.
       hierarchical_joint_spec.length =
-          math::Max(hierarchical_joint_spec.length, child_spec.length);
+          max(hierarchical_joint_spec.length, child_spec.length); //CONFFX_BEGIN
       hierarchical_joint_spec.scale =
-          math::Max(hierarchical_joint_spec.scale, child_spec.scale);
+          max(hierarchical_joint_spec.scale, child_spec.scale); //CONFFX_BEGIN
     }
   }
 
@@ -133,16 +133,18 @@ void BuildHierarchicalSpecs(const RawAnimation& _animation,
     float max_length = 0.f;
     for (size_t j = 0; j < track.translations.size(); ++j) {
       max_length =
-          math::Max(max_length, LengthSqr(track.translations[j].value));
+          max(max_length, (float)lengthSqr(track.translations[j].value)); //CONFFX_BEGIN
     }
     local_joint_specs[i].length = std::sqrt(max_length);
 
     float max_scale = 0.f;
     if (track.scales.size() != 0) {
       for (size_t j = 0; j < track.scales.size(); ++j) {
-        max_scale = math::Max(max_scale, track.scales[j].value.x);
-        max_scale = math::Max(max_scale, track.scales[j].value.y);
-        max_scale = math::Max(max_scale, track.scales[j].value.z);
+		//CONFFX_BEGIN
+        max_scale = max(max_scale, (float)track.scales[j].value.getX());
+        max_scale = max(max_scale, (float)track.scales[j].value.getY());
+        max_scale = max(max_scale, (float)track.scales[j].value.getZ());
+		//CONFFX_END
       }
     } else {
       max_scale = 1.f;
@@ -205,8 +207,15 @@ void Filter(const _RawTrack& _src, const _Comparator& _comparator,
   assert(_dest->size() <= _src.size());
 }
 
+// CONFFX_BEGIN
+bool Compare(const Vector3& _a, const Vector3& _b, float _tolerance) {
+
+  const Vector3 diff = _a - _b;
+  return (dot(diff, diff) <= _tolerance * _tolerance);
+
+}
 // Translation filtering comparator.
-bool CompareTranslation(const math::Float3& _a, const math::Float3& _b,
+bool CompareTranslation(const Vector3& _a, const Vector3& _b,
                         float _tolerance, float _hierarchical_tolerance,
                         float _hierarchy_scale) {
   if (!Compare(_a, _b, _tolerance)) {
@@ -214,18 +223,18 @@ bool CompareTranslation(const math::Float3& _a, const math::Float3& _b,
   }
 
   // Compute the position of the end of the hierarchy.
-  const math::Float3 s(_hierarchy_scale);
-  return Compare(_a * s, _b * s, _hierarchical_tolerance);
+  const Vector3 s(_hierarchy_scale);
+  return Compare(mulPerElem(_a, s), mulPerElem(_b, s), _hierarchical_tolerance);
 }
 
 // Rotation filtering comparator.
-bool CompareRotation(const math::Quaternion& _a, const math::Quaternion& _b,
+bool CompareRotation(const Quat& _a, const Quat& _b,
                      float _tolerance, float _hierarchical_tolerance,
                      float _hierarchy_length) {
   // Compute the shortest unsigned angle between the 2 quaternions.
   // diff_w is w component of a-1 * b.
-  const float diff_w = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
-  const float angle = 2.f * std::acos(math::Min(std::abs(diff_w), 1.f));
+  const float diff_w = _a.getX() * _b.getX() + _a.getY() * _b.getY() + _a.getZ() * _b.getZ() + _a.getW() * _b.getW();
+  const float angle = 2.f * acos(min(std::abs(diff_w), 1.f));
   if (std::abs(angle) > _tolerance) {
     return false;
   }
@@ -236,16 +245,17 @@ bool CompareRotation(const math::Quaternion& _a, const math::Quaternion& _b,
 }
 
 // Scale filtering comparator.
-bool CompareScale(const math::Float3& _a, const math::Float3& _b,
+bool CompareScale(const Vector3& _a, const Vector3& _b,
                   float _tolerance, float _hierarchical_tolerance,
                   float _hierarchy_length) {
   if (!Compare(_a, _b, _tolerance)) {
     return false;
   }
   // Compute the position of the end of the hierarchy, in both cases _a and _b.
-  const math::Float3 l(_hierarchy_length);
-  return Compare(_a * l, _b * l, _hierarchical_tolerance);
+  const Vector3 l(_hierarchy_length);
+  return Compare(mulPerElem(_a, l), mulPerElem(_b, l), _hierarchical_tolerance);
 }
+//CONFFX_END
 }  // namespace
 
 bool AnimationOptimizer::operator()(const RawAnimation& _input,

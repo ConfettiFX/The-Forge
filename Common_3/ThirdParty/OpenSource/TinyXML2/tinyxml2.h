@@ -1020,15 +1020,6 @@ public:
 	*/	
 	int LoadFile( const char* filename, unsigned rootPath, File* filesys);
 
-	/**
-	Load an XML file from disk.
-	Returns XML_NO_ERROR (0) on success, or
-	an errorID.The function is using filesystem
-	to do read and write. If filesys is NULL,
-	default filesystem will be used.
-	*/
-	int LoadFile(const char* filename, File* filesys);
-
     /**
 		Load an XML file from data in, specify size
 		Returns XML_NO_ERROR (0) on success, or

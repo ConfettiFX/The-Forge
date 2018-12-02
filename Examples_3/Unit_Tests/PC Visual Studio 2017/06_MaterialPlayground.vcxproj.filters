@@ -47,28 +47,28 @@
     <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\BRDFIntegration.comp">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\BRDFIntegration.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\computeIrradianceMap.comp">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\computeIrradianceMap.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\computeSpecularMap.comp">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\computeSpecularMap.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\panoToCube.comp">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\panoToCube.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\renderSceneBRDF.frag">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\renderSceneBRDF.vert">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\skybox.frag">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCVulkan\skybox.vert">
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\BRDFIntegration.comp">

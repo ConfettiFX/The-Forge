@@ -3,7 +3,6 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="No"/>
   <Project Name="02_Compute" Path="02_Compute/02_Compute.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
@@ -11,14 +10,17 @@
   <Project Name="05_FontRendering" Path="05_FontRendering/05_FontRendering.project" Active="No"/>
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
-  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
+  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="Yes"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
-  <Project Name="16_SphereTracing" Path="16_SphereTracing/16_SphereTracing.project" Active="Yes"/>
+  <Project Name="16_SphereTracing" Path="16_SphereTracing/16_SphereTracing.project" Active="No"/>
+  <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
+  <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
+  <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -42,6 +44,9 @@
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
       <Project Name="16_SphereTracing" ConfigName="Debug"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="zlibstatic" ConfigName="NoConfig"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
@@ -65,6 +70,9 @@
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="15_Transparency" ConfigName="Release"/>
       <Project Name="16_SphereTracing" ConfigName="Release"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="zlibstatic" ConfigName="NoConfig"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

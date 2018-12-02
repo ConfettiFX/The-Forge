@@ -80,6 +80,9 @@ private:
 
     void OutputExpressionList(HLSLExpression* expression, HLSLArgument* argument = NULL);
     void OutputExpression(HLSLExpression* expression, const HLSLType* dstType = NULL);
+
+	void OutputExpressionForBufferArray(HLSLExpression* expression, const HLSLType* dstType = NULL);
+
     void OutputIdentifier(const char* name);
     void OutputArguments(HLSLArgument* argument);
     
@@ -114,7 +117,7 @@ private:
     void OutputBuffer(int indent, HLSLBuffer* buffer);
 
 	void OutPushConstantIdentifierTextureStateExpression(int size, int counter, const HLSLTextureStateExpression* pTextureStateExpression, bool* bWritten);
-	void OutPushConstantIdentifierRWTextureStateExpression(int size, int counter, const HLSLRWTextureStateExpression* prwTextureStateExpression, bool* bWritten);
+	//void OutPushConstantIdentifierRWTextureStateExpression(int size, int counter, const HLSLRWTextureStateExpression* prwTextureStateExpression, bool* bWritten);
 
     HLSLFunction* FindFunction(HLSLRoot* root, const char* name);
     HLSLStruct* FindStruct(HLSLRoot* root, const char* name);
@@ -137,6 +140,123 @@ private:
 	int GetLayoutSetNumbering(const char* registerSpaceName);
 
 	void PrintPreprocessors(int currentLine);
+
+
+	bool HandleTextureStateBinaryExpression(HLSLExpression* bie, HLSLTextureStateExpression* tse)
+	{
+		HLSLBinaryExpression* binaryExpression = static_cast<HLSLBinaryExpression*>(bie);
+
+		bool result = false;
+
+		//recursive
+		if (binaryExpression->expression1->nodeType == HLSLNodeType_BinaryExpression)
+		{
+			result = HandleTextureStateBinaryExpression(binaryExpression->expression1, tse);
+		}
+
+		if (result)
+			return result;
+
+		if (binaryExpression->expression2->nodeType == HLSLNodeType_BinaryExpression)
+		{
+			result = HandleTextureStateBinaryExpression(binaryExpression->expression2, tse);
+		}
+
+		if (result)
+			return result;
+
+
+		if (binaryExpression->expression1->nodeType == HLSLNodeType_FunctionCall)
+		{
+			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(binaryExpression->expression1);
+			fc->pTextureStateExpression = tse;
+
+			OutputExpression(binaryExpression->expression1);
+		}
+		else if (binaryExpression->expression1->nodeType == HLSLNodeType_MemberAccess)
+		{
+			HLSLMemberAccess* ma = static_cast<HLSLMemberAccess*>(binaryExpression->expression1);
+			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(ma->object);
+			fc->pTextureStateExpression = tse;
+
+			OutputExpression(binaryExpression->expression1);
+		}
+		else if (binaryExpression->expression2->nodeType == HLSLNodeType_FunctionCall)
+		{
+			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(binaryExpression->expression2);
+			fc->pTextureStateExpression = tse;
+
+			OutputExpression(binaryExpression->expression2);
+		}
+		else if (binaryExpression->expression2->nodeType == HLSLNodeType_MemberAccess)
+		{
+			HLSLMemberAccess* ma = static_cast<HLSLMemberAccess*>(binaryExpression->expression2);
+			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(ma->object);
+			fc->pTextureStateExpression = tse;
+
+			OutputExpression(binaryExpression->expression2);
+		}
+		else
+		{
+			//error
+			return false;
+		}
+
+		return true;
+	}
+
+
+	bool IsRWTexture(HLSLBaseType type)
+	{
+		switch (type)
+		{
+			case HLSLBaseType_RWTexture1D:
+			case HLSLBaseType_RWTexture1DArray:
+			case HLSLBaseType_RWTexture2D:
+			case HLSLBaseType_RWTexture2DArray:
+			case HLSLBaseType_RWTexture3D:
+				return true;
+			default:
+				return false;
+		}			
+	}
+
+	bool IsRasterizerOrderedTexture(HLSLBaseType type)
+	{
+		switch (type)
+		{
+		case HLSLBaseType_RasterizerOrderedTexture1D:
+		case HLSLBaseType_RasterizerOrderedTexture1DArray:
+		case HLSLBaseType_RasterizerOrderedTexture2D:
+		case HLSLBaseType_RasterizerOrderedTexture2DArray:
+		case HLSLBaseType_RasterizerOrderedTexture3D:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	bool IsTexture(HLSLBaseType type)
+	{
+		switch (type)
+		{
+		case HLSLBaseType_Texture1D:
+		case HLSLBaseType_Texture1DArray:
+		case HLSLBaseType_Texture2D:
+		case HLSLBaseType_Texture2DArray:
+		case HLSLBaseType_Texture3D:
+		case HLSLBaseType_Texture2DMS:
+		case HLSLBaseType_Texture2DMSArray:
+		case HLSLBaseType_TextureCube:
+		case HLSLBaseType_TextureCubeArray:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	
+
 
 private:
 
@@ -175,6 +295,8 @@ private:
     char                m_scalarSwizzle4Function[64];
     char                m_sinCosFunction[64];
 	char                m_bvecTernary[ 64 ];
+	char				m_f16tof32Function[64];
+	char				m_f32tof16Function[64];
 
     bool                m_error;
 
@@ -184,7 +306,7 @@ private:
 	char				m_StructuredBufferNames[128][64];
 	int					m_StructuredBufferCounter;
 
-	HLSLConstantBuffer*  m_PushConstantBuffers[64];
+	HLSLBuffer*			m_PushConstantBuffers[64];
 	int					m_PushConstantBufferCounter;
 
 	GLSLPreprocessorPackage m_preprocessorPackage[128];

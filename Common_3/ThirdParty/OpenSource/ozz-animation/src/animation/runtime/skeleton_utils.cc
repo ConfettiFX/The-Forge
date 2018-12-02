@@ -36,8 +36,9 @@
 namespace ozz {
 namespace animation {
 
+//CONFFX_BEGIN
 // Unpacks skeleton bind pose stored in soa format by the skeleton.
-ozz::math::Transform GetJointLocalBindPose(const Skeleton& _skeleton,
+	AffineTransform GetJointLocalBindPose(const Skeleton& _skeleton,
                                            int _joint) {
   assert(_joint >= 0 && _joint < _skeleton.num_joints() &&
          "Joint index out of range.");
@@ -54,14 +55,15 @@ ozz::math::Transform GetJointLocalBindPose(const Skeleton& _skeleton,
   transpose3x4(&soa_transform.scale.x, scales);
 
   // Stores to the Transform object.
-  math::Transform bind_pose;
+  AffineTransform bind_pose;
   const int offset = _joint % 4;
-  store3PtrU(translations[offset], &bind_pose.translation.x);
-  storePtrU(rotations[offset], &bind_pose.rotation.x);
-  store3PtrU(scales[offset], &bind_pose.scale.x);
+  translations[offset] = Vector4(bind_pose.translation, 0.f);
+  rotations[offset] = Vector4(bind_pose.rotation);
+  scales[offset] = Vector4(bind_pose.scale, 0.f);
 
   return bind_pose;
 }
+//CONFFX_END
 
 // Helper macro used to detect if a joint has a brother.
 #define _HAS_SIBLING(_i, _num_joints, _properties) \

@@ -3544,14 +3544,14 @@ namespace d3d12 {
 				uint32_t len = (uint32_t)pMacros[j].definition.size();
 				mbstowcs(pCurrent, pMacros[j].definition.c_str(), len);
 				pCurrent[len] = L'\0';
-				pCurrent += (len + 1);
 				macros[j + 1].Name = pCurrent;
+				pCurrent += (len + 1);
 
 				len = (uint32_t)pMacros[j].value.size();
 				mbstowcs(pCurrent, pMacros[j].value.c_str(), len);
 				pCurrent[len] = L'\0';
-				pCurrent += (len + 1);
 				macros[j + 1].Value = pCurrent;
+				pCurrent += (len + 1);
 			}
 			/************************************************************************/
 			// Compiler args
@@ -5560,7 +5560,7 @@ namespace d3d12 {
 				|| (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER))
 			{
 				//if (!(pBuffer->mCurrentState & pTransBarrier->mNewState) && pBuffer->mCurrentState != pTransBarrier->mNewState)
-				if (pBuffer->mCurrentState != pTransBarrier->mNewState && pBuffer->mCurrentState != pTransBarrier->mNewState)
+				if (pBuffer->mCurrentState != pTransBarrier->mNewState)
 				{
 					if (pTransBarrier->mSplit)
 					{
@@ -5609,7 +5609,7 @@ namespace d3d12 {
 			D3D12_RESOURCE_BARRIER* pBarrier = &barriers[transitionCount];
 			Texture* pTexture = pTransBarrier->pTexture;
 			{
-				if (!(pTexture->mCurrentState & pTransBarrier->mNewState) && pTexture->mCurrentState != pTransBarrier->mNewState)
+				if (pTexture->mCurrentState != pTransBarrier->mNewState)
 				{
 					if (pTransBarrier->mSplit)
 					{

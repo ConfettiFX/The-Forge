@@ -33,6 +33,7 @@
 #include <cmath>
 #include <xmmintrin.h>
 #include <emmintrin.h>
+#include <smmintrin.h>
 
 #ifdef VECTORMATH_DEBUG
     #include <cstdio>
@@ -76,6 +77,7 @@ class Matrix4;
 class Transform3;
 //========================================= #ConfettiMathExtensionsBegin ================================================
 //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+class AffineTransform; //CONFFX_TEST_BEGIN
 
 // ========================================================
 // A 4-D int vector in array-of-structures format
@@ -870,6 +872,11 @@ inline void transpose3x4(const Vector4 in[3], Vector4 out[4]);
 
 // Transposes the 4 Vector4 of in into the 4 Vector4 of out.
 inline void transpose4x4(const Vector4 in[4], Vector4 out[4]);
+
+//CONFFX_TEST_BEGIN
+// Transposes the 4 Vector4 of in into the 3 Vector4 of out.
+inline void transpose4x3(const Vector4 in[4], Vector4 out[4]);
+//CONFFX_TEST_END
 
 // Transposes the 16 Vector4 of in into the 16 Vector4 of out.
 inline void transpose16x16(const Vector4 in[16], Vector4 out[16]);
@@ -2416,6 +2423,51 @@ inline void print(const Transform3 & tfrm, const char * name);
 //========================================= #ConfettiMathExtensionsBegin ================================================
 //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
 
+//CONFFX_TEST_BEGIN
+// ========================================================
+// Stores an affine transformation with separate translation, 
+// rotation and scale attributes.
+// ========================================================
+
+
+VECTORMATH_ALIGNED_TYPE_PRE class AffineTransform
+{
+
+public:
+
+	// Translation affine transformation component.
+	Vector3 translation;
+
+	// Rotation affine transformation component.
+	Quat rotation;
+
+	// Scale affine transformation component.
+	Vector3 scale;
+
+	// Builds an identity transform
+	//
+	static inline const AffineTransform identity();
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a transform
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const AffineTransform & tfrm);
+
+// Print a transform and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const AffineTransform & tfrm, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+//CONFFX_TEST_END
+
 // ========================================================
 // A 4-D int vector in array-of-structures format
 // (used for math and bitwise operations)
@@ -2829,6 +2881,761 @@ inline Vector4Int CmpGt(const Vector4Int _a, const Vector4Int _b);
 inline Vector4Int CmpGe(const Vector4Int _a, const Vector4Int _b);
 
 //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+// ========================================================
+// A 3-D vector in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class IVector3
+{
+	__m128i mVec128;
+
+public:
+
+	// Default constructor; does no initialization
+	//
+	inline IVector3() {}
+
+	// Construct a 3-D vector from x, y, and z elements
+	//
+	inline IVector3(int x, int y, int z);
+
+	// Set all elements of a 3-D vector to the same scalar value
+	//
+	explicit inline IVector3(int scalar);
+
+	// Set vector int data in a 3-D vector
+	//
+	explicit inline IVector3(__m128i vi4);
+
+	// Get vector int data from a 3-D vector
+	//
+	inline __m128i get128() const;
+
+	// Assign one 3-D vector to another
+	//
+	inline IVector3 & operator = (const IVector3 & vec);
+
+	// Set the x element of a 3-D vector
+	//
+	inline IVector3 & setX(int x);
+
+	// Set the y element of a 3-D vector
+	//
+	inline IVector3 & setY(int y);
+
+	// Set the z element of a 3-D vector
+	//
+	inline IVector3 & setZ(int z);
+
+	// Set the w element of a padded 3-D vector
+	// NOTE:
+	// You are free to use the additional w component - if never set, it's value is undefined.
+	//
+	inline IVector3 & setW(int w);
+
+	// Get the x element of a 3-D vector
+	//
+	inline const int getX() const;
+
+	// Get the y element of a 3-D vector
+	//
+	inline const int getY() const;
+
+	// Get the z element of a 3-D vector
+	//
+	inline const int getZ() const;
+
+	// Get the w element of a padded 3-D vector
+	// NOTE:
+	// You are free to use the additional w component - if never set, it's value is undefined.
+	//
+	inline const int getW() const;
+
+	// Set an x, y, or z element of a 3-D vector by index
+	//
+	inline IVector3 & setElem(int idx, int value);
+
+	// Get an x, y, or z element of a 3-D vector by index
+	//
+	inline const int getElem(int idx) const;
+
+	// Subscripting operator to set or get an element
+	//
+	inline IVecIdx operator[](int idx);
+
+	// Subscripting operator to get an element
+	//
+	inline const int operator[](int idx) const;
+
+	// Add two 3-D vectors
+	//
+	inline const IVector3 operator + (const IVector3 & vec) const;
+
+	// Subtract a 3-D vector from another 3-D vector
+	//
+	inline const IVector3 operator - (const IVector3 & vec) const;
+
+	// Multiply a 3-D vector by a scalar
+	//
+	inline const IVector3 operator * (int scalar) const;
+
+	// Divide a 3-D vector by a scalar
+	//
+	inline const IVector3 operator / (int scalar) const;
+
+	// Perform compound assignment and addition with a 3-D vector
+	//
+	inline IVector3 & operator += (const IVector3 & vec);
+
+	// Perform compound assignment and subtraction by a 3-D vector
+	//
+	inline IVector3 & operator -= (const IVector3 & vec);
+
+	// Perform compound assignment and multiplication by a scalar
+	//
+	inline IVector3 & operator *= (int scalar);
+
+	// Perform compound assignment and division by a scalar
+	//
+	inline IVector3 & operator /= (int scalar);
+
+	// Negate all elements of a 3-D vector
+	//
+	inline const IVector3 operator - () const;
+
+	// Construct x axis
+	//
+	static inline const IVector3 xAxis();
+
+	// Construct y axis
+	//
+	static inline const IVector3 yAxis();
+
+	// Construct z axis
+	//
+	static inline const IVector3 zAxis();
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 3-D vector by a scalar
+//
+inline const IVector3 operator * (int scalar, const IVector3 & vec);
+
+// Multiply two 3-D vectors per element
+//
+inline const IVector3 mulPerElem(const IVector3 & vec0, const IVector3 & vec1);
+
+// Divide two 3-D vectors per element
+//
+inline const IVector3 divPerElem(const IVector3 & vec0, const IVector3 & vec1);
+
+// Compute the absolute value of a 3-D vector per element
+//
+inline const IVector3 absPerElem(const IVector3 & vec);
+
+// Copy sign from one 3-D vector to another, per element
+//
+inline const IVector3 copySignPerElem(const IVector3 & vec0, const IVector3 & vec1);
+
+// Maximum of two 3-D vectors per element
+//
+inline const IVector3 maxPerElem(const IVector3 & vec0, const IVector3 & vec1);
+
+// Minimum of two 3-D vectors per element
+//
+inline const IVector3 minPerElem(const IVector3 & vec0, const IVector3 & vec1);
+
+// Maximum element of a 3-D vector
+//
+inline const int maxElem(const IVector3 & vec);
+
+// Minimum element of a 3-D vector
+//
+inline const int minElem(const IVector3 & vec);
+
+// Compute the sum of all elements of a 3-D vector
+//
+inline const int sum(const IVector3 & vec);
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a 3-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const IVector3 & vec);
+
+// Print a 3-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const IVector3 & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+typedef unsigned int uint;
+// ========================================================
+// A 3-D vector in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class UVector3
+{
+	__m128i mVec128;
+
+public:
+
+	// Default constructor; does no initialization
+	//
+	inline UVector3() {}
+
+	// Construct a 3-D vector from x, y, and z elements
+	//
+	inline UVector3(uint x, uint y, uint z);
+
+	// Set all elements of a 3-D vector to the same scalar value
+	//
+	explicit inline UVector3(uint scalar);
+
+	// Set vector uint data in a 3-D vector
+	//
+	explicit inline UVector3(__m128i vu4);
+
+	// Get vector uint data from a 3-D vector
+	//
+	inline __m128i get128() const;
+
+	// Assign one 3-D vector to another
+	//
+	inline UVector3 & operator = (const UVector3 & vec);
+
+	// Set the x element of a 3-D vector
+	//
+	inline UVector3 & setX(uint x);
+
+	// Set the y element of a 3-D vector
+	//
+	inline UVector3 & setY(uint y);
+
+	// Set the z element of a 3-D vector
+	//
+	inline UVector3 & setZ(uint z);
+
+	// Set the w element of a padded 3-D vector
+	// NOTE:
+	// You are free to use the additional w component - if never set, it's value is undefined.
+	//
+	inline UVector3 & setW(uint w);
+
+	// Get the x element of a 3-D vector
+	//
+	inline const uint getX() const;
+
+	// Get the y element of a 3-D vector
+	//
+	inline const uint getY() const;
+
+	// Get the z element of a 3-D vector
+	//
+	inline const uint getZ() const;
+
+	// Get the w element of a padded 3-D vector
+	// NOTE:
+	// You are free to use the additional w component - if never set, it's value is undefined.
+	//
+	inline const uint getW() const;
+
+	// Set an x, y, or z element of a 3-D vector by index
+	//
+	inline UVector3 & setElem(uint idx, uint value);
+
+	// Get an x, y, or z element of a 3-D vector by index
+	//
+	inline const uint getElem(uint idx) const;
+
+	// Subscripting operator to set or get an element
+	//
+	inline IVecIdx operator[](uint idx);
+
+	// Subscripting operator to get an element
+	//
+	inline const uint operator[](uint idx) const;
+
+	// Add two 3-D vectors
+	//
+	inline const UVector3 operator + (const UVector3 & vec) const;
+
+	// Subtract a 3-D vector from another 3-D vector
+	//
+	inline const UVector3 operator - (const UVector3 & vec) const;
+
+	// Multiply a 3-D vector by a scalar
+	//
+	inline const UVector3 operator * (uint scalar) const;
+
+	// Divide a 3-D vector by a scalar
+	//
+	inline const UVector3 operator / (uint scalar) const;
+
+	// Perform compound assignment and addition with a 3-D vector
+	//
+	inline UVector3 & operator += (const UVector3 & vec);
+
+	// Perform compound assignment and subtraction by a 3-D vector
+	//
+	inline UVector3 & operator -= (const UVector3 & vec);
+
+	// Perform compound assignment and multiplication by a scalar
+	//
+	inline UVector3 & operator *= (uint scalar);
+
+	// Perform compound assignment and division by a scalar
+	//
+	inline UVector3 & operator /= (uint scalar);
+
+	// Negate all elements of a 3-D vector
+	//
+	inline const UVector3 operator - () const;
+
+	// Construct x axis
+	//
+	static inline const UVector3 xAxis();
+
+	// Construct y axis
+	//
+	static inline const UVector3 yAxis();
+
+	// Construct z axis
+	//
+	static inline const UVector3 zAxis();
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 3-D vector by a scalar
+//
+inline const UVector3 operator * (uint scalar, const UVector3 & vec);
+
+// Multiply two 3-D vectors per element
+//
+inline const UVector3 mulPerElem(const UVector3 & vec0, const UVector3 & vec1);
+
+// Divide two 3-D vectors per element
+//
+inline const UVector3 divPerElem(const UVector3 & vec0, const UVector3 & vec1);
+
+// Maximum of two 3-D vectors per element
+//
+inline const UVector3 maxPerElem(const UVector3 & vec0, const UVector3 & vec1);
+
+// Minimum of two 3-D vectors per element
+//
+inline const UVector3 minPerElem(const UVector3 & vec0, const UVector3 & vec1);
+
+// Maximum element of a 3-D vector
+//
+inline const uint maxElem(const UVector3 & vec);
+
+// Minimum element of a 3-D vector
+//
+inline const uint minElem(const UVector3 & vec);
+
+// Compute the sum of all elements of a 3-D vector
+//
+inline const uint sum(const UVector3 & vec);
+
+#ifdef VECTORMATH_DEBUG
+
+// Pruint a 3-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const UVector3 & vec);
+
+// Pruint a 3-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const UVector3 & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+
+// ========================================================
+// A 4-D vector in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class IVector4
+{
+	__m128i mVec128;
+
+public:
+
+	// Default constructor; does no initialization
+	//
+	inline IVector4() {}
+
+	// Construct a 4-D vector from x, y, z and w elements
+	//
+	inline IVector4(int x, int y, int z, int w);
+
+	// Set all elements of a 4-D vector to the same scalar value
+	//
+	explicit inline IVector4(int scalar);
+
+	// Set vector int data in a 4-D vector
+	//
+	explicit inline IVector4(__m128i vi4);
+
+	// Get vector int data from a 4-D vector
+	//
+	inline __m128i get128() const;
+
+	// Assign one 4-D vector to another
+	//
+	inline IVector4 & operator = (const IVector4 & vec);
+
+	// Set the x element of a 4-D vector
+	//
+	inline IVector4 & setX(int x);
+
+	// Set the y element of a 4-D vector
+	//
+	inline IVector4 & setY(int y);
+
+	// Set the z element of a 4-D vector
+	//
+	inline IVector4 & setZ(int z);
+
+	// Set the w element of a padded 4-D vector
+	//
+	inline IVector4 & setW(int w);
+
+	// Get the x element of a 4-D vector
+	//
+	inline const int getX() const;
+
+	// Get the y element of a 4-D vector
+	//
+	inline const int getY() const;
+
+	// Get the z element of a 4-D vector
+	//
+	inline const int getZ() const;
+
+	// Get the w element of a padded 4-D vector
+	//
+	inline const int getW() const;
+
+	// Set an x, y, or z element of a 4-D vector by index
+	//
+	inline IVector4 & setElem(int idx, int value);
+
+	// Get an x, y, or z element of a 4-D vector by index
+	//
+	inline const int getElem(int idx) const;
+
+	// Subscripting operator to set or get an element
+	//
+	inline IVecIdx operator[](int idx);
+
+	// Subscripting operator to get an element
+	//
+	inline const int operator[](int idx) const;
+
+	// Add two 4-D vectors
+	//
+	inline const IVector4 operator + (const IVector4 & vec) const;
+
+	// Subtract a 4-D vector from another 4-D vector
+	//
+	inline const IVector4 operator - (const IVector4 & vec) const;
+
+	// Multiply a 4-D vector by a scalar
+	//
+	inline const IVector4 operator * (int scalar) const;
+
+	// Divide a 4-D vector by a scalar
+	//
+	inline const IVector4 operator / (int scalar) const;
+
+	// Perform compound assignment and addition with a 4-D vector
+	//
+	inline IVector4 & operator += (const IVector4 & vec);
+
+	// Perform compound assignment and subtraction by a 4-D vector
+	//
+	inline IVector4 & operator -= (const IVector4 & vec);
+
+	// Perform compound assignment and multiplication by a scalar
+	//
+	inline IVector4 & operator *= (int scalar);
+
+	// Perform compound assignment and division by a scalar
+	//
+	inline IVector4 & operator /= (int scalar);
+
+	// Negate all elements of a 4-D vector
+	//
+	inline const IVector4 operator - () const;
+
+	// Construct x axis
+	//
+	static inline const IVector4 xAxis();
+
+	// Construct y axis
+	//
+	static inline const IVector4 yAxis();
+
+	// Construct z axis
+	//
+	static inline const IVector4 zAxis();
+
+	// Construct w axis
+	//
+	static inline const IVector4 wAxis();
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 4-D vector by a scalar
+//
+inline const IVector4 operator * (int scalar, const IVector4 & vec);
+
+// Multiply two 4-D vectors per element
+//
+inline const IVector4 mulPerElem(const IVector4 & vec0, const IVector4 & vec1);
+
+// Divide two 4-D vectors per element
+//
+inline const IVector4 divPerElem(const IVector4 & vec0, const IVector4 & vec1);
+
+// Compute the absolute value of a 4-D vector per element
+//
+inline const IVector4 absPerElem(const IVector4 & vec);
+
+// Copy sign from one 4-D vector to another, per element
+//
+inline const IVector4 copySignPerElem(const IVector4 & vec0, const IVector4 & vec1);
+
+// Maximum of two 4-D vectors per element
+//
+inline const IVector4 maxPerElem(const IVector4 & vec0, const IVector4 & vec1);
+
+// Minimum of two 4-D vectors per element
+//
+inline const IVector4 minPerElem(const IVector4 & vec0, const IVector4 & vec1);
+
+// Maximum element of a 4-D vector
+//
+inline const int maxElem(const IVector4 & vec);
+
+// Minimum element of a 4-D vector
+//
+inline const int minElem(const IVector4 & vec);
+
+// Compute the sum of all elements of a 4-D vector
+//
+inline const int sum(const IVector4 & vec);
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a 4-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const IVector4 & vec);
+
+// Print a 4-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const IVector4 & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+
+// ========================================================
+// A 4-D vector in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class UVector4
+{
+	__m128i mVec128;
+
+public:
+
+	// Default constructor; does no initialization
+	//
+	inline UVector4() {}
+
+	// Construct a 4-D vector from x, y, z and welements
+	//
+	inline UVector4(uint x, uint y, uint z, uint w);
+
+	// Set all elements of a 4-D vector to the same scalar value
+	//
+	explicit inline UVector4(uint scalar);
+
+	// Set vector uint data in a 4-D vector
+	//
+	explicit inline UVector4(__m128i vu4);
+
+	// Get vector uint data from a 4-D vector
+	//
+	inline __m128i get128() const;
+
+	// Assign one 4-D vector to another
+	//
+	inline UVector4 & operator = (const UVector4 & vec);
+
+	// Set the x element of a 4-D vector
+	//
+	inline UVector4 & setX(uint x);
+
+	// Set the y element of a 4-D vector
+	//
+	inline UVector4 & setY(uint y);
+
+	// Set the z element of a 4-D vector
+	//
+	inline UVector4 & setZ(uint z);
+
+	// Set the w element of a padded 4-D vector
+	//
+	inline UVector4 & setW(uint w);
+
+	// Get the x element of a 4-D vector
+	//
+	inline const uint getX() const;
+
+	// Get the y element of a 4-D vector
+	//
+	inline const uint getY() const;
+
+	// Get the z element of a 4-D vector
+	//
+	inline const uint getZ() const;
+
+	// Get the w element of a padded 4-D vector
+	//
+	inline const uint getW() const;
+
+	// Set an x, y, or z element of a 4-D vector by index
+	//
+	inline UVector4 & setElem(uint idx, uint value);
+
+	// Get an x, y, or z element of a 4-D vector by index
+	//
+	inline const uint getElem(uint idx) const;
+
+	// Subscripting operator to set or get an element
+	//
+	inline IVecIdx operator[](uint idx);
+
+	// Subscripting operator to get an element
+	//
+	inline const uint operator[](uint idx) const;
+
+	// Add two 4-D vectors
+	//
+	inline const UVector4 operator + (const UVector4 & vec) const;
+
+	// Subtract a 4-D vector from another 4-D vector
+	//
+	inline const UVector4 operator - (const UVector4 & vec) const;
+
+	// Multiply a 4-D vector by a scalar
+	//
+	inline const UVector4 operator * (uint scalar) const;
+
+	// Divide a 4-D vector by a scalar
+	//
+	inline const UVector4 operator / (uint scalar) const;
+
+	// Perform compound assignment and addition with a 4-D vector
+	//
+	inline UVector4 & operator += (const UVector4 & vec);
+
+	// Perform compound assignment and subtraction by a 4-D vector
+	//
+	inline UVector4 & operator -= (const UVector4 & vec);
+
+	// Perform compound assignment and multiplication by a scalar
+	//
+	inline UVector4 & operator *= (uint scalar);
+
+	// Perform compound assignment and division by a scalar
+	//
+	inline UVector4 & operator /= (uint scalar);
+
+	// Negate all elements of a 4-D vector
+	//
+	inline const UVector4 operator - () const;
+
+	// Construct x axis
+	//
+	static inline const UVector4 xAxis();
+
+	// Construct y axis
+	//
+	static inline const UVector4 yAxis();
+
+	// Construct z axis
+	//
+	static inline const UVector4 zAxis();
+
+	// Construct w axis
+	//
+	static inline const UVector4 wAxis();
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 4-D vector by a scalar
+//
+inline const UVector4 operator * (uint scalar, const UVector4 & vec);
+
+// Multiply two 4-D vectors per element
+//
+inline const UVector4 mulPerElem(const UVector4 & vec0, const UVector4 & vec1);
+
+// Divide two 4-D vectors per element
+//
+inline const UVector4 divPerElem(const UVector4 & vec0, const UVector4 & vec1);
+
+// Maximum of two 4-D vectors per element
+//
+inline const UVector4 maxPerElem(const UVector4 & vec0, const UVector4 & vec1);
+
+// Minimum of two 4-D vectors per element
+//
+inline const UVector4 minPerElem(const UVector4 & vec0, const UVector4 & vec1);
+
+// Maximum element of a 4-D vector
+//
+inline const uint maxElem(const UVector4 & vec);
+
+// Minimum element of a 4-D vector
+//
+inline const uint minElem(const UVector4 & vec);
+
+// Compute the sum of all elements of a 4-D vector
+//
+inline const uint sum(const UVector4 & vec);
+
+#ifdef VECTORMATH_DEBUG
+
+// Pruint a 4-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const UVector4 & vec);
+
+// Pruint a 4-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const UVector4 & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
 //========================================= #ConfettiMathExtensionsEnd ================================================
 
 } // namespace SSE

@@ -1,0 +1,102 @@
+#version 450 core
+#if !defined(WINDOWS) && !defined(ANDROID) && !defined(LINUX)
+#define WINDOWS 	// Assume windows if no platform define has been added to the shader
+#endif
+
+
+/*
+ * Copyright (c) 2018 Confetti Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "shader_defs.h"
+
+layout(std430, set = 0, binding = 0) restrict buffer indirectDrawArgsBufferAlphaBlock
+{
+	uint data[];
+} indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
+
+layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS) restrict buffer indirectDrawArgsBufferNoAlphaBlock
+{
+	uint data[];
+} indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
+
+layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2) restrict readonly buffer uncompactedDrawArgsBlock
+{
+	UncompactedDrawArguments data[];
+} uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
+
+layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2 + 1) restrict writeonly buffer indirectMaterialBuffer
+{
+	uint IndirectMaterialBufferData[];
+};
+
+layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2 + 2) restrict readonly buffer materialProps
+{
+	uint materialPropsData[];
+};
+
+layout(local_size_x = CLEAR_THREAD_COUNT) in;
+void main()
+{
+	if (gl_GlobalInvocationID.x >= MAX_DRAWS_INDIRECT - 1)
+		return;
+
+	uint numIndices[NUM_CULLING_VIEWPORTS];
+	uint sum = 0;
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		numIndices[i] = uncompactedDrawArgs[i].data[gl_GlobalInvocationID.x].numIndices;
+		sum += numIndices[i];
+	}
+
+	if (sum == 0)
+		return;
+
+	uint slot = 0;
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		if (numIndices[i] > 0)
+		{
+			uint matID = uncompactedDrawArgs[i].data[gl_GlobalInvocationID.x].materialID;
+			bool hasAlpha = (materialPropsData[matID] == 1);
+			uint baseMatSlot = BaseMaterialBuffer(hasAlpha, i);
+
+			if (hasAlpha)
+			{
+				slot = atomicAdd(indirectDrawArgsBufferAlpha[i].data[DRAW_COUNTER_SLOT_POS], 1);
+				indirectDrawArgsBufferAlpha[i].data[slot * 8 + 0] = numIndices[i];
+				indirectDrawArgsBufferAlpha[i].data[slot * 8 + 2] = uncompactedDrawArgs[i].data[gl_GlobalInvocationID.x].startIndex;
+			}
+			else
+			{
+				slot = atomicAdd(indirectDrawArgsBufferNoAlpha[i].data[DRAW_COUNTER_SLOT_POS], 1);
+				indirectDrawArgsBufferNoAlpha[i].data[slot * 8 + 0] = numIndices[i];
+				indirectDrawArgsBufferNoAlpha[i].data[slot * 8 + 2] = uncompactedDrawArgs[i].data[gl_GlobalInvocationID.x].startIndex;
+			}
+			IndirectMaterialBufferData[baseMatSlot + slot] = matID;
+		}
+	}
+}

@@ -98,10 +98,10 @@ xcopy "$(SolutionDir)\..\..\..\CommonRaytracing_3\ThirdParty\DXR\FallbackLayer\D
 </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>WinPixEventRuntime.lib;FallbackLayer.lib</AdditionalDependencies>
+      <AdditionalDependencies>WinPixEventRuntime.lib;</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;$(SolutionDir)\..\..\..\CommonRaytracing_3\ThirdParty\DXR\FallbackLayer\Debug\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;</AdditionalLibraryDirectories>
     </Lib>
     <CustomBuildStep>
       <Command>"$(ToolsDir)PostbuildCopy.bat" "$(TargetDir)\" "$(ToolsDir)"</Command>
@@ -144,10 +144,10 @@ xcopy "$(SolutionDir)\..\..\..\CommonRaytracing_3\ThirdParty\DXR\FallbackLayer\R
 </Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>WinPixEventRuntime.lib;FallbackLayer.lib</AdditionalDependencies>
+      <AdditionalDependencies>WinPixEventRuntime.lib;</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;$(SolutionDir)\..\..\..\CommonRaytracing_3\ThirdParty\DXR\FallbackLayer\Release\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;</AdditionalLibraryDirectories>
     </Lib>
     <CustomBuildStep>
       <Command>"$(ToolsDir)PostbuildCopy.bat" "$(TargetDir)\" "$(ToolsDir)"</Command>

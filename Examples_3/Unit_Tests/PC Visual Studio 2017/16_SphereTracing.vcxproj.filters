@@ -18,10 +18,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\16_SphereTracing\Shaders\PCVulkan\rt.frag">
+    <CustomBuild Include="..\src\16_SphereTracing\Shaders\Vulkan\rt.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\16_SphereTracing\Shaders\PCVulkan\fstri.vert">
+    <CustomBuild Include="..\src\16_SphereTracing\Shaders\Vulkan\fstri.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </CustomBuild>
   </ItemGroup>

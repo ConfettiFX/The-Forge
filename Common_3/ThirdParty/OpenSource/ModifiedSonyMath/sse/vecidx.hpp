@@ -76,6 +76,43 @@ public:
 
 } VECTORMATH_ALIGNED_TYPE_POST;
 
+
+//========================================= #ConfettiMathExtensionsStart ================================================
+
+// ========================================================
+// IVecIdx
+// ========================================================
+
+// Used in setting elements of IVector3, IVector4
+// with the subscripting operator [].
+VECTORMATH_ALIGNED_TYPE_PRE class IVecIdx
+{
+	__m128i & ref;
+	int i;
+
+public:
+
+	inline IVecIdx(__m128i & vec, int idx) : ref(vec), i(idx) {}
+
+	//
+	// implicitly casts to int unless VECTORMATH_NO_SCALAR_CAST defined
+	//
+#ifdef VECTORMATH_NO_SCALAR_CAST
+	inline int getAsInt() const;
+#else // !VECTORMATH_NO_SCALAR_CAST
+	inline operator int() const;
+#endif // VECTORMATH_NO_SCALAR_CAST
+
+	inline int operator = (int scalar);
+	inline int operator =  (const IVecIdx & scalar);
+	inline int operator *= (int scalar);
+	inline int operator /= (int scalar);
+	inline int operator += (int scalar);
+	inline int operator -= (int scalar);
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+//========================================= #ConfettiMathExtensionsEnd ================================================
+
 } // namespace SSE
 } // namespace Vectormath
 

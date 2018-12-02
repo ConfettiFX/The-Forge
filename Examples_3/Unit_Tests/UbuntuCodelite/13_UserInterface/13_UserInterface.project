@@ -2,17 +2,13 @@
 <CodeLite_Project Name="13_UserInterface" Version="10.0.0" InternalType="Console">
   <Plugins>
     <Plugin Name="qmake">
-      <![CDATA[00010001N0005Debug000000000000]]>
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="../../src/13_UserInterface/13_UserInterface.cpp"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="AssimpImporter">
-    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
-    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="SpirVTools"/>
@@ -38,30 +34,23 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-   <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=c++11;-Wall;-Wno-unknown-pragmas; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-O0;-std=c++11;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
-     <Linker Options="-ldl;-pthread;" Required="yes">
+      <Linker Options="-ldl;-pthread;" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libassimp.a"/>
-        <Library Value="libIrrXML.a"/>
-        <Library Value="libzlibstatic.a"/>
         <Library Value="libgainput.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -101,11 +90,9 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-O2;-std=c++11;-Wall;-Wno-unknown-pragmas; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-O2;-std=c++11;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
@@ -114,16 +101,11 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libassimp.a"/>
-        <Library Value="libIrrXML.a"/>
-        <Library Value="libzlibstatic.a"/>
         <Library Value="libgainput.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

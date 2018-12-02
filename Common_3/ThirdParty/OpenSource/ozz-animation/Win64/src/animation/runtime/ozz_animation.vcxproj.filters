@@ -65,9 +65,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\..\src\animation\runtime\CMakeLists.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="Header Files">
       <UniqueIdentifier>{257657D7-5241-3B31-87B7-F9B912B22DDB}</UniqueIdentifier>
     </Filter>

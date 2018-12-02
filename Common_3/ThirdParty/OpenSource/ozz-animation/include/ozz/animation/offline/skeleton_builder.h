@@ -31,7 +31,9 @@
 #include "ozz/base/containers/string.h"
 #include "ozz/base/containers/vector.h"
 
-#include "ozz/base/maths/transform.h"
+//CONFFX_BEGIN
+#include "../../../../../../../OS/Math/MathTypes.h"
+//CONFFX_END
 
 namespace ozz {
 namespace animation {
@@ -52,7 +54,8 @@ class SkeletonBuilder {
   // the default allocator Delete() function.
   // Returns NULL on failure. See RawSkeleton::Validate() for more details about
   // failure reasons.
-  Skeleton* operator()(const RawSkeleton& _raw_skeleton) const;
+  //Skeleton* operator()(const RawSkeleton& _raw_skeleton) const;	// Deleted because it causes problems with the memory allocator
+	 static bool Build(const RawSkeleton& _raw_skeleton, Skeleton* skeleton);
 };
 }  // namespace offline
 }  // namespace animation

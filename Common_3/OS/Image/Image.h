@@ -97,7 +97,6 @@ public:
 
   uint GetArrayCount() const { return mArrayCount; }
   uint GetMipMappedSize(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
-  static uint GetMipMappedSize(uint width, uint height, uint depth, uint startMip, uint numLevels, ImageFormat::Enum format);
 
   ImageFormat::Enum getFormat() const { return mFormat; }
 

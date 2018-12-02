@@ -80,6 +80,27 @@ public:
 		}
 	};
 
+	// Gets the world matrix without any scale data of the joint at index (returns identity if index is invalid)
+	inline Matrix4 GetJointWorldMatNoScale(unsigned int index)
+	{
+		if ((0 <= index) && (index < mNumJoints))
+		{
+			mat4 withScale = mJointWorldMats[index];
+
+			// Normalize the first three collumns
+			vec4 col0 = vec4(normalize(withScale.getCol0().getXYZ()), withScale.getCol0().getW());
+			vec4 col1 = vec4(normalize(withScale.getCol1().getXYZ()), withScale.getCol1().getW());
+			vec4 col2 = vec4(normalize(withScale.getCol2().getXYZ()), withScale.getCol2().getW());
+
+			mat4 withoutScale = mat4(col0, col1, col2, withScale.getCol3());
+			return withoutScale;
+		}
+		else
+		{
+			return Matrix4::identity();
+		}
+	};
+
 	// Gets the world matrix of the bone with child joint at index (returns identity if index is invalid)
 	inline Matrix4 GetBoneWorldMat(unsigned int index)
 	{

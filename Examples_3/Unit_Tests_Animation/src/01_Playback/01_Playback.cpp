@@ -37,6 +37,7 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
 
 // Rendering
 #include "../../../../Common_3/OS/Core/DebugRenderer.h"
@@ -200,7 +201,7 @@ struct UIData
 
 	struct GeneralSettingsData
 	{
-		bool		mShowBindPose = false;
+		bool		mShowBindPose = true; //false;
 		bool		mDrawPlane = true;
 	};
 	GeneralSettingsData mGeneralSettings;
@@ -421,8 +422,8 @@ public:
 		// SETUP THE MAIN CAMERA
 		//
 		CameraMotionParameters cmp{ 50.0f, 75.0f, 150.0f };
-		vec3 camPos{ 0.0f, 2.0f, 3.0f };
-		vec3 lookAt{ 0.0f, 0.0f, -1.5f };
+		vec3 camPos{ 0.0f, 10.0f, -30.0f };
+		vec3 lookAt{ 0.0f, 0.0f, 1.5f };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
@@ -715,7 +716,7 @@ public:
 		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		mat4 projViewMat = projMat * viewMat;
 
-		vec3 lightPos = vec3(0.0f, 10.0f, 2.0f);
+		vec3 lightPos = vec3(0.0f, 1000.0f, 0.0f);
 		vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
 
 		/************************************************************************/

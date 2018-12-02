@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:10_Skinning/10_Skinning.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "container:01_Playback/01_Playback.xcodeproj">
    </FileRef>
    <FileRef

@@ -83,7 +83,8 @@ namespace HLSLParser
             inputWindow.Show();
 
            
-            inputWindow.fileName = textBox1.Text = fileName;
+
+            //inputWindow.fileName[inputWindow.fileName.Length - 1] = textBox1.Text = fileName;
 
             switch (language)
             {
@@ -93,8 +94,29 @@ namespace HLSLParser
                 default: break;
             }
 
+
+
+            textBox1.Text = fileName;
+
+            string dirPath = Path.GetDirectoryName(fileName);
+
+
+            TraverseIncludefiles(fileName, dirPath, includeFileName, includeFileBuffer);
+
+
+
             StreamReader sr = new StreamReader(textBox1.Text);
             string inputData = sr.ReadToEnd();
+
+
+            includeFileName.Add(fileName);
+            //includeFileBuffer.Add(inputData);
+
+            inputWindow.fileNames = includeFileName;
+            inputWindow.includeBuffers = includeFileBuffer;
+
+            //StreamReader sr = new StreamReader(textBox1.Text);
+            //string inputData = sr.ReadToEnd();
 
             inputWindow.richTextBox2.Text = inputData;
 
@@ -137,7 +159,12 @@ namespace HLSLParser
 
 
         public string entryName = "main";
+
+        public List<string> includeFileName = new List<string>();
+        public List<string> includeFileBuffer = new List<string>();
+
         public string fileName;
+
         public string shader = "-vs";
         public string language = "-glsl";
         public string shaderString = "Vertex shader";
@@ -288,12 +315,53 @@ namespace HLSLParser
         private void textBox3_TextChanged(object sender, EventArgs e)
         {
            
-        }        
+        }
+
+        private bool TraverseIncludefiles(string path, string dirPath, List<string> includefiles, List<string> includeFileBuffer)
+        {
+            StreamReader sr = new StreamReader(path);
+            string inputData = sr.ReadToEnd();// ReadLine();
+
+
+            //extract includefiles' name
+            char[] splitters0 = { '\"', '<', '>' };
+            int index = inputData.LastIndexOf("#include");
+            while (index >= 0)
+            {
+
+                string[] temp = inputData.Substring(index).Split(splitters0);
+
+                //recursive
+                string newfilePath = dirPath + "\\" + temp[1];
+
+                TraverseIncludefiles(newfilePath, dirPath, includefiles, includeFileBuffer);
+
+              
+
+                index = inputData.LastIndexOf("#include", index);
+
+            }
+
+            includefiles.Add(path);
+            includeFileBuffer.Add(inputData.Replace("\r", ""));
+
+
+
+            return true;
+
+        }
 
         private void button1_Click(object sender, EventArgs e)
         {
             if (ofd.ShowDialog() == DialogResult.OK)
             {
+                if(includeFileName != null)
+                    includeFileName.Clear();
+                if (includeFileBuffer != null)
+                    includeFileBuffer.Clear();
+                
+
+
                 if (inputWindow.IsDisposed)
                 {
                     inputWindow = new Input(this);
@@ -319,14 +387,36 @@ namespace HLSLParser
                     outputWindow.SetInputWindow(inputWindow);
                 }
 
-                
+
 
                 inputWindow.Location = new Point(this.Location.X + 100, this.Location.Y);
                 inputWindow.Show();
+                
 
-                inputWindow.fileName = textBox1.Text = fileName = ofd.FileName;
+                if (inputWindow.fileNames != null)
+                    inputWindow.fileNames.Clear();
+                if (inputWindow.includeBuffers != null)
+                    inputWindow.includeBuffers.Clear();
+
+
+                textBox1.Text = fileName = ofd.FileName;
+
+                string dirPath = Path.GetDirectoryName(fileName);
+
+
+                TraverseIncludefiles(fileName, dirPath, includeFileName, includeFileBuffer);
+
+               
+
                 StreamReader sr = new StreamReader(textBox1.Text);
-                string inputData = sr.ReadToEnd();// ReadLine();
+                string inputData = sr.ReadToEnd();
+
+
+                //includeFileName.Add(fileName);
+                //includeFileBuffer.Add(inputData);
+
+                inputWindow.fileNames = includeFileName;
+                inputWindow.includeBuffers = includeFileBuffer;
 
                 inputWindow.richTextBox2.Text = inputData;
 

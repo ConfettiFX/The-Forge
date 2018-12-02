@@ -1609,6 +1609,38 @@ inline void print(const Transform3 & tfrm, const char * name)
 
 #endif // VECTORMATH_DEBUG
 
+//CONFFX_TEST_BEGIN
+//========================================= #ConfettiMathExtensionsBegin ================================================
+
+// ========================================================
+// AffineTransform
+// ========================================================
+
+inline const AffineTransform AffineTransform::identity()
+{
+	const AffineTransform ret = { Vector3(0.f), Quat::identity(), Vector3(1.f) };
+	return ret;
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const AffineTransform & tfrm)
+{
+	print(tfrm.translation);
+	print(tfrm.rotation);
+	print(tfrm.scale);
+}
+
+inline void print(const AffineTransform & tfrm, const char * name)
+{
+	std::printf("%s:\n", name);
+	print(tfrm);
+}
+
+#endif // VECTORMATH_DEBUG
+//========================================= #ConfettiMathExtensionsEnd ================================================
+//CONFFX_TEST_END
+
 // ========================================================
 // Quat
 // ========================================================

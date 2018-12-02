@@ -93,6 +93,18 @@ enum SPIRV_Resource_Type
    SPIRV_TYPE_COUNT
 };
 
+enum SPIRV_Texture_Dim
+{
+	SPIRV_TEXTURE_DIM_UNDEFINED = 0,
+	SPIRV_TEXTURE_DIM_1D,
+	SPIRV_TEXTURE_DIM_2D,
+	SPIRV_TEXTURE_DIM_3D,
+	SPIRV_TEXTURE_DIM_1D_ARRAY,
+	SPIRV_TEXTURE_DIM_2D_ARRAY,
+	SPIRV_TEXTURE_DIM_CUBE,
+	SPIRV_TEXTURE_DIM_COUNT
+};
+
 struct SPIRV_Resource
 {
    // Spirv data type
@@ -100,6 +112,9 @@ struct SPIRV_Resource
 
    // resource Type
    SPIRV_Resource_Type type;
+
+   // Texture dimension. Undefined if not a texture.
+   SPIRV_Texture_Dim dim;
 
    // If the resouce was used in the shader
    bool is_used;

@@ -35,13 +35,17 @@ public:
     struct Options
     {
         unsigned int flags;
-        unsigned int bufferRegisterOffset;
+        
+		unsigned int textureRegisterOffset;
+		unsigned int bufferRegisterOffset;
+
         int (*attributeCallback)(const char* name, unsigned int index);
 
         Options()
         {
             flags = 0;
-            bufferRegisterOffset = 1;
+            bufferRegisterOffset = 0;
+			textureRegisterOffset = 0;
             attributeCallback = NULL;
         }
     };
@@ -85,8 +89,9 @@ private:
         HLSLType type;
         //const char* typeName;     // @@ Do we need more than the type name?
         const char* registerName;
-		bool bStructuredBuffer;
-		//HLSLBaseType baseType;
+		bool bStructuredBuffer;	
+
+		const char* preprocessorContents;
 
         ClassArgument * nextArg;
         
@@ -94,7 +99,15 @@ private:
             name(name), type(type), registerName(registerName), bStructuredBuffer(bStructuredBuffer)
 		{
 			nextArg = NULL;
+			preprocessorContents = NULL;
 		}
+
+		ClassArgument(const char* name, const char* preprocessorContents, HLSLType type, const char * registerName = NULL, bool bStructuredBuffer = false) :
+			name(name), preprocessorContents(preprocessorContents), type(type), registerName(registerName), bStructuredBuffer(bStructuredBuffer)
+		{
+			nextArg = NULL;
+		}
+
 
 		/*
 		ClassArgument(const char* name, HLSLBaseType baseType, const char * registerName) :
@@ -121,7 +134,7 @@ private:
     void OutputStruct(int indent, HLSLStruct* structure);
     void OutputBuffer(int indent, HLSLBuffer* buffer);
     void OutputFunction(int indent, const HLSLFunction* function);
-    void OutputExpression(HLSLExpression* expression, const HLSLType* dstType, HLSLExpression* parentExpression, const HLSLFunction* function);
+    void OutputExpression(HLSLExpression* expression, const HLSLType* dstType, HLSLExpression* parentExpression, const HLSLFunction* function, bool needsEndParen);
     void OutputCast(const HLSLType& type);
     
     void OutputArguments(HLSLArgument* argument, const HLSLFunction* function);
@@ -138,7 +151,7 @@ private:
     void Error(const char* format, ...);
 
 	void OutPushConstantIdentifierTextureStateExpression(int size, int counter, const HLSLTextureStateExpression* pTextureStateExpression, bool* bWritten);
-	void OutPushConstantIdentifierRWTextureStateExpression(int size, int counter, const HLSLRWTextureStateExpression* pRWTextureStateExpression, bool* bWritten);
+	//void OutPushConstantIdentifierRWTextureStateExpression(int size, int counter, const HLSLRWTextureStateExpression* pRWTextureStateExpression, bool* bWritten);
 
 	bool matchFunctionArgumentsIdentifiers(HLSLArgument* argument, const char* name);
 
@@ -166,13 +179,13 @@ private:
 	unsigned int	attributeCounter;
 
 
-	HLSLRWBuffer*  m_RWBuffers[64];
+	HLSLBuffer*  m_RWBuffers[64];
 	int			   m_RWBufferCounter;
 
-	HLSLRWStructuredBuffer*  m_RWStructuredBuffers[64];
+	HLSLBuffer*  m_RWStructuredBuffers[64];
 	int					m_RWStructuredBufferCounter;
 
-	HLSLConstantBuffer*  m_PushConstantBuffers[64];
+	HLSLBuffer*  m_PushConstantBuffers[64];
 	int					m_PushConstantBufferCounter;
 
 	HLSLStruct* m_StructBuffers[64];

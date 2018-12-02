@@ -72,6 +72,18 @@ union SSEFloat
     float f[4];
 };
 
+union SSEInt
+{
+	__m128i m128;
+	int i[4];
+};
+
+union SSEUint
+{
+	__m128i m128;
+	unsigned u[4];
+};
+
 // These have to be macros because _MM_SHUFFLE() requires compile-time constants.
 #define sseRor(vec, i)       (((i) % 4) ? (_mm_shuffle_ps(vec, vec, _MM_SHUFFLE((unsigned char)(i + 3) % 4, (unsigned char)(i + 2) % 4, (unsigned char)(i + 1) % 4, (unsigned char)(i + 0) % 4))) : (vec))
 #define sseSplat(x, e)       _mm_shuffle_ps(x, x, _MM_SHUFFLE(e, e, e, e))
@@ -249,6 +261,17 @@ static inline __m128 sseSinf(SSEFloat4V x)
     // Use the cosine when the offset is odd and the sin
     // when the offset is even
     //
+#ifdef _DURANGO
+
+	// _mm_cmpeq_ps returns inacurate results on XBOX. Casting to __m128i and then using _mm_cmpeq_epi32 fixes the problem.
+	res = sseSelect(cx, sx, _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offset, sseUintToM128(0x1))), _mm_setzero_si128())));
+
+	// Flip the sign of the result when (offset mod 4) = 1 or 2
+	//
+	return sseSelect(_mm_xor_ps(sseUintToM128(0x80000000U), res),	// Negative
+		res,														// Positive
+		_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offset, sseUintToM128(0x2))), _mm_setzero_si128())));
+#else
     res = sseSelect(cx, sx, _mm_cmpeq_ps(_mm_and_ps(offset, sseUintToM128(0x1)), _mm_setzero_ps()));
 
     // Flip the sign of the result when (offset mod 4) = 1 or 2
@@ -256,6 +279,7 @@ static inline __m128 sseSinf(SSEFloat4V x)
     return sseSelect(_mm_xor_ps(sseUintToM128(0x80000000U), res), // Negative
                      res,                                         // Positive
                      _mm_cmpeq_ps(_mm_and_ps(offset, sseUintToM128(0x2)), _mm_setzero_ps()));
+#endif
 }
 
 static inline void sseSinfCosf(SSEFloat4V x, SSEFloat4V * s, SSEFloat4V * c)
@@ -308,16 +332,28 @@ static inline void sseSinfCosf(SSEFloat4V x, SSEFloat4V * s, SSEFloat4V * c)
     // Use the cosine when the offset is odd and the sin
     // when the offset is even
     //
+#ifdef _DURANGO
+	// _mm_cmpeq_ps returns inacurate results on XBOX. Casting to __m128i and then using _mm_cmpeq_epi32 fixes the problem.
+	__m128 x1 = sseUintToM128(0x1);
+	SSEUint4V sinMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetSin, x1)), _mm_setzero_si128()));
+	SSEUint4V cosMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetCos, x1)), _mm_setzero_si128()));
+#else
     SSEUint4V sinMask = (SSEUint4V)_mm_cmpeq_ps(_mm_and_ps(offsetSin, sseUintToM128(0x1)), _mm_setzero_ps());
     SSEUint4V cosMask = (SSEUint4V)_mm_cmpeq_ps(_mm_and_ps(offsetCos, sseUintToM128(0x1)), _mm_setzero_ps());
+#endif
     *s = sseSelect(cx, sx, sinMask);
     *c = sseSelect(cx, sx, cosMask);
 
     // Flip the sign of the result when (offset mod 4) = 1 or 2
     //
+#ifdef _DURANGO
+	__m128 x2 = sseUintToM128(0x2);
+	sinMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetSin, x2)), _mm_setzero_si128()));
+	cosMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetCos, x2)), _mm_setzero_si128()));
+#else
     sinMask = _mm_cmpeq_ps(_mm_and_ps(offsetSin, sseUintToM128(0x2)), _mm_setzero_ps());
     cosMask = _mm_cmpeq_ps(_mm_and_ps(offsetCos, sseUintToM128(0x2)), _mm_setzero_ps());
-
+#endif
     *s = sseSelect((SSEFloat4V)_mm_xor_ps(sseUintToM128(0x80000000), (SSEUint4V)*s), *s, sinMask);
     *c = sseSelect((SSEFloat4V)_mm_xor_ps(sseUintToM128(0x80000000), (SSEUint4V)*c), *c, cosMask);
 }

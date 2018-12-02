@@ -397,13 +397,6 @@ Shader*					 pPPR_ProjectionShader = NULL;
 RootSignature*			  pPPR_ProjectionRootSignature = NULL;
 Pipeline*				   pPPR_ProjectionPipeline = NULL;
 
-#ifdef METAL
-//used to clear compute shader buffer
-Shader*				  pClearBufferShader = NULL;
-RootSignature*			pClearBufferRootSignature = NULL;
-Pipeline*				  pClearBufferPipeline = NULL;
-#endif
-
 Shader*					 pPPR_ReflectionShader = NULL;
 RootSignature*			  pPPR_ReflectionRootSignature = NULL;
 Pipeline*				   pPPR_ReflectionPipeline = NULL;
@@ -1107,16 +1100,6 @@ public:
 		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
 		addRootSignature(pRenderer, &PPR_PRootDesc, &pPPR_ProjectionRootSignature);
 
-#ifdef METAL
-		//temporary fix on AMD
-		//PPR_Projection
-		ShaderLoadDesc ClearBufferShaderDesc = {};
-		ClearBufferShaderDesc.mStages[0] = { "ClearBuffer.comp", NULL, 0, FSR_SrcShaders };
-		addShader(pRenderer, &ClearBufferShaderDesc, &pClearBufferShader);
-
-		RootSignatureDesc PClearBufferRootDesc = { &pClearBufferShader, 1 };
-		addRootSignature(pRenderer, &PClearBufferRootDesc, &pClearBufferRootSignature);
-#endif
 		//PPR_Reflection
 		ShaderLoadDesc PPR_ReflectionShaderDesc = {};
 		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0, FSR_SrcShaders };
@@ -1271,7 +1254,6 @@ public:
 			addResource(&ubCamDesc);
 		}
 
-		//temporary fix Needed on AMD for memory type otherwise we have issues.
 		// Uniform buffer for extended camera data
 		BufferLoadDesc ubECamDesc = {};
 		ubECamDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1535,10 +1517,6 @@ public:
 
 		gAppUI.Exit();
 
-#ifdef METAL
-		//Temporary fix
-		removeShader(pRenderer, pClearBufferShader);
-#endif
 		removeShader(pRenderer, pPPR_HolePatchingShader);
 		removeShader(pRenderer, pPPR_ReflectionShader);
 		removeShader(pRenderer, pPPR_ProjectionShader);
@@ -1550,10 +1528,7 @@ public:
 		removeRasterizerState(pRasterstateDefault);
 		removeSampler(pRenderer, pSamplerBilinear);
 		removeSampler(pRenderer, pSamplerNearest);
-#ifdef METAL
-		//Temporary fix
-		removeRootSignature(pRenderer, pClearBufferRootSignature);
-#endif
+
 		removeRootSignature(pRenderer, pPPR_HolePatchingRootSignature);
 		removeRootSignature(pRenderer, pPPR_ReflectionRootSignature);
 		removeRootSignature(pRenderer, pPPR_ProjectionRootSignature);
@@ -1761,15 +1736,6 @@ public:
 		pipelineSettings.pRasterizerState = pRasterstateDefault;
 		addPipeline(pRenderer, &pipelineSettings, &pPPR_ReflectionPipeline);
 
-#ifdef METAL
-		//temporary fix
-		//clear compute buffers pipeline
-		ComputePipelineDesc mClearBufferpipelineSettings = { 0 };
-		mClearBufferpipelineSettings.pShaderProgram = pClearBufferShader;
-		mClearBufferpipelineSettings.pRootSignature = pClearBufferRootSignature;
-		addComputePipeline(pRenderer, &mClearBufferpipelineSettings, &pClearBufferPipeline);
-#endif
-
 		//PPR_HolePatching -> Present
 		pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -1811,10 +1777,7 @@ public:
 		removePipeline(pRenderer, pPPR_ReflectionPipeline);
 		removePipeline(pRenderer, pPPR_HolePatchingPipeline);
 		removePipeline(pRenderer, pPipelineGbuffers);
-#ifdef METAL
-		//temporary fix
-		removePipeline(pRenderer, pClearBufferPipeline);
-#endif
+
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeRenderTarget(pRenderer, pSceneBuffer);
 		removeRenderTarget(pRenderer, pReflectionBuffer);
@@ -2218,25 +2181,6 @@ public:
 		cmd = pPPR_ProjectionCmds[gFrameIndex];
 		beginCmd(cmd);
 
-#ifdef METAL
-		//temporary fix
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Clear Compute Buffer", false);
-		cmdBindPipeline(cmd, pClearBufferPipeline);
-		DescriptorData ClearBufferParams[1] = {};
-
-		ClearBufferParams[0].pName = "IntermediateBuffer";
-		ClearBufferParams[0].ppBuffers = &pIntermediateBuffer;
-
-		cmdBindDescriptors(cmd, pClearBufferRootSignature, 1, ClearBufferParams);
-
-
-		const uint32_t* pThreadGroupSize_Clear = cmd->pShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-		cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight/ pThreadGroupSize_Clear[0]) + 1, 1, 1);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-#endif
-
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Pixel-Projected Reflections", false);
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "ProjectionPass", true);
@@ -2516,6 +2460,10 @@ public:
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
+		//fixes flickering issues related to depth buffer being recycled.
+#ifdef METAL
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
@@ -2529,10 +2477,11 @@ public:
 		IntermediateBufferDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
 		IntermediateBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 		IntermediateBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		
 #ifdef METAL
-		//temporary fix
-		IntermediateBufferDesc.mDesc.mFlags =BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		IntermediateBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 #endif
+		
 		IntermediateBufferDesc.mDesc.mSize = IntermediateBufferDesc.mDesc.mStructStride * IntermediateBufferDesc.mDesc.mElementCount;
 
 		gInitializeVal.clear();

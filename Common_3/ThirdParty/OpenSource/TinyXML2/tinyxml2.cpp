@@ -1395,7 +1395,7 @@ int XMLDocument::LoadFile(const char* filename, uint32_t rootPath, File* filesys
     int length = (int)filesys->GetSize();
 
     data = (char*)conf_calloc(length, sizeof(char));
-    bytesRead = (unsigned int)filesys->Read( data, length);
+    bytesRead = (unsigned int)filesys->Read(data, length);
     filesys->Close();
 
 
@@ -1411,51 +1411,6 @@ int XMLDocument::LoadFile(const char* filename, uint32_t rootPath, File* filesys
         LoadFileData( data, bytesRead );
 		conf_free(data);
     }
-
-	return errorID;
-}
-
-int XMLDocument::LoadFile(const char* filename, File* filesys)
-{
-	DeleteChildren();
-	InitDocument();
-
-#if defined(_MSC_VER)
-#pragma warning ( push )
-#pragma warning ( disable : 4996 )		// Fail to see a compelling reason why this should be deprecated.
-#endif
-
-	//
-	//   FILE* fp = NULL;
-	unsigned int bytesRead = 0;
-	char *data = NULL;
-
-	bool fp = filesys->Open(filename, FileMode::FM_Read, FSR_Absolute);
-	if (!fp)
-	{
-		SetError(XML_ERROR_FILE_NOT_FOUND, filename, 0);
-		return errorID;
-	}
-	int length = (int)filesys->GetSize();
-
-	data = (char*)conf_calloc(length, sizeof(char));
-	bytesRead = (unsigned int)filesys->Read(data, length);
-	filesys->Close();
-
-
-#if defined(_MSC_VER)
-#pragma warning ( pop )
-#endif
-	if (data == NULL) {
-		SetError(XML_ERROR_FILE_NOT_FOUND, filename, 0);
-		conf_free(data);
-		return errorID;
-	}
-	else
-	{
-		LoadFileData(data, bytesRead);
-		conf_free(data);
-	}
 
 	return errorID;
 }

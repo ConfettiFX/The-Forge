@@ -140,4 +140,10 @@ void _setCurrentDir(const char* path)
 	chdir(path);
 }
 
+bool copy_file(const char* src, const char* dst)
+{
+	LOGERROR("Not supported in Android!");
+	return false;
+}
+
 #endif

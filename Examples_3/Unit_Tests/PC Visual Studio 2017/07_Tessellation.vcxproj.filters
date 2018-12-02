@@ -35,19 +35,19 @@
     <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\compute.comp">
+    <None Include="..\src\07_Tessellation\Shaders\Vulkan\compute.comp">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.frag">
+    <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.tesc">
+    <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tesc">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.tese">
+    <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tese">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCVulkan\grass.vert">
+    <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
   </ItemGroup>

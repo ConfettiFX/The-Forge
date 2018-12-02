@@ -38,6 +38,7 @@
 
 #ifdef TARGET_IOS
 #include <UIKit/UIView.h>
+#include "../../Common_3/ThirdParty/OpenSource/gainput/lib/source/gainput/touch/GainputInputDeviceTouchIos.h"
 #else
 #import <Cocoa/Cocoa.h>
 #endif
@@ -66,11 +67,13 @@ gainput::ListenerId InputSystem::mDeviceInputListnerID =-1; //max uint instead o
 
 //system vars
 bool InputSystem::mIsMouseCaptured = false;
+bool InputSystem::mHideMouseCursorWhileCaptured = true;
 bool InputSystem::mVirtualKeyboardActive = false;
 
 // we should have more than one map
 tinystl::vector<gainput::InputMap*> InputSystem::pInputMap;
 tinystl::unordered_map<uint32_t, tinystl::vector<KeyMappingDescription>> InputSystem::mKeyMappings;
+tinystl::unordered_map<uint32_t, tinystl::vector<GestureMappingDescription>> InputSystem::mGestureMappings;
 tinystl::unordered_map<uint32_t, tinystl::vector<InputSystem::UserToDeviceMap>> InputSystem::mDeviceToUserMappings;
 
 tinystl::vector<InputSystem::InputEventHandler> InputSystem::mInputCallbacks;
@@ -483,6 +486,40 @@ void InputSystem::AddMappings(KeyMappingDescription* mappings, uint32_t mappingC
 	}
 }
 
+void InputSystem::AddGestureMappings(GestureMappingDescription* mappings, uint32_t mappingCount, bool overrideMappings)
+{
+    if (!mappings || mappingCount <= 0)
+    {
+        LOGWARNING("No mappings were added. Provided Mapping was empty or null.");
+        return;
+    }
+    
+    //clear mappings data structures if required
+    if (overrideMappings)
+    {
+        mGestureMappings.clear();
+    }
+    
+    for (uint32_t i = 0; i < mappingCount; i++)
+    {
+        GestureMappingDescription * mapping = &mappings[i];
+        
+        //create empty key mapping object if hasn't been found
+        if (mGestureMappings.find(mapping->mUserId) == mGestureMappings.end())
+        {
+            mGestureMappings[mapping->mUserId] = {};
+        }
+        
+        //add key mapping to user mapping
+        mGestureMappings[mapping->mUserId].push_back(*mapping);
+        
+#if defined(TARGET_IOS)
+        GainputView* view = (__bridge GainputView*)pGainputView;
+        [view addGestureMapping:mapping->mType forId:mapping->mUserId withConfig:mapping->mConfig];
+#endif
+    }
+}
+
 void InputSystem::SetDefaultKeyMapping()
 {
 	mKeyMappings.clear();
@@ -513,6 +550,16 @@ void InputSystem::SetMouseCapture(bool mouseCapture)
 void InputSystem::UpdateSize(const uint32_t& width, const uint32_t& height)
 {
 	pInputManager->SetDisplaySize(width, height);
+}
+
+uint32_t InputSystem::GetDisplayWidth()
+{
+    return (uint32_t)pInputManager->GetDisplayWidth();
+}
+
+uint32_t InputSystem::GetDisplayHeight()
+{
+    return (uint32_t)pInputManager->GetDisplayHeight();
 }
 
 
@@ -548,6 +595,35 @@ bool InputSystem::DeviceInputEventListener::OnDeviceButtonBool(gainput::DeviceId
 bool InputSystem::DeviceInputEventListener::OnDeviceButtonFloat(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
 {
 	return GatherInputEventButton(deviceId, deviceButton, oldValue, newValue);
+}
+
+bool InputSystem::DeviceInputEventListener::OnDeviceButtonGesture(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, const gainput::GestureChange& gesture)
+{
+#if defined(TARGET_IOS)
+    ButtonData buttonData = {};
+    buttonData.mActiveDevicesMask = GAINPUT_TOUCH;
+    buttonData.mUserId = deviceButton;
+    if (gesture.type == gainput::GesturePan)
+    {
+        buttonData.mValue[INPUT_X_AXIS] = gesture.translation[0];
+        buttonData.mValue[INPUT_Y_AXIS] = gesture.translation[1];
+    }
+    else if (gesture.type == gainput::GesturePinch)
+    {
+        buttonData.mValue[INPUT_X_AXIS] = gesture.velocity;
+        buttonData.mValue[INPUT_Y_AXIS] = gesture.scale;
+        buttonData.mDeltaValue[INPUT_X_AXIS] = gesture.distance[0];
+        buttonData.mDeltaValue[INPUT_Y_AXIS] = gesture.distance[1];
+    }
+    else if (gesture.type == gainput::GestureTap)
+    {
+        buttonData.mValue[INPUT_X_AXIS] = gesture.position[0];
+        buttonData.mValue[INPUT_Y_AXIS] = gesture.position[1];
+    }
+    
+    OnInputEvent(buttonData);
+#endif
+    return true;
 }
 
 

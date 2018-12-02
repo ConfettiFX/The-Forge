@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="assimp" InternalType="" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0008NoConfig000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="src">
+    <VirtualDirectory Name="code">
+      <File Name="../code/Assimp.cpp"/>
+      <File Name="../code/AssimpCExport.cpp"/>
+      <File Name="../code/BaseImporter.cpp"/>
+      <File Name="../code/BaseProcess.cpp"/>
+      <File Name="../code/Bitmap.cpp"/>
+      <File Name="../code/CInterfaceIOWrapper.cpp"/>
+      <File Name="../code/CalcTangentsProcess.cpp"/>
+      <File Name="../code/ColladaExporter.cpp"/>
+      <File Name="../code/ColladaLoader.cpp"/>
+      <File Name="../code/ColladaParser.cpp"/>
+      <File Name="../code/ComputeUVMappingProcess.cpp"/>
+      <File Name="../code/ConvertToLHProcess.cpp"/>
+      <File Name="../code/CreateAnimMesh.cpp"/>
+      <File Name="../code/DeboneProcess.cpp"/>
+      <File Name="../code/DefaultIOStream.cpp"/>
+      <File Name="../code/DefaultIOSystem.cpp"/>
+      <File Name="../code/DefaultLogger.cpp"/>
+      <File Name="../code/DropFaceNormalsProcess.cpp"/>
+      <File Name="../code/EmbedTexturesProcess.cpp"/>
+      <File Name="../code/Exporter.cpp"/>
+      <File Name="../code/FBXAnimation.cpp"/>
+      <File Name="../code/FBXBinaryTokenizer.cpp"/>
+      <File Name="../code/FBXConverter.cpp"/>
+      <File Name="../code/FBXDeformer.cpp"/>
+      <File Name="../code/FBXDocument.cpp"/>
+      <File Name="../code/FBXDocumentUtil.cpp"/>
+      <File Name="../code/FBXExportNode.cpp"/>
+      <File Name="../code/FBXExportProperty.cpp"/>
+      <File Name="../code/FBXExporter.cpp"/>
+      <File Name="../code/FBXImporter.cpp"/>
+      <File Name="../code/FBXMaterial.cpp"/>
+      <File Name="../code/FBXMeshGeometry.cpp"/>
+      <File Name="../code/FBXModel.cpp"/>
+      <File Name="../code/FBXNodeAttribute.cpp"/>
+      <File Name="../code/FBXParser.cpp"/>
+      <File Name="../code/FBXProperties.cpp"/>
+      <File Name="../code/FBXTokenizer.cpp"/>
+      <File Name="../code/FBXUtil.cpp"/>
+      <File Name="../code/FindDegenerates.cpp"/>
+      <File Name="../code/FindInstancesProcess.cpp"/>
+      <File Name="../code/FindInvalidDataProcess.cpp"/>
+      <File Name="../code/FixNormalsStep.cpp"/>
+      <File Name="../code/GenFaceNormalsProcess.cpp"/>
+      <File Name="../code/GenVertexNormalsProcess.cpp"/>
+      <File Name="../code/IRRLoader.cpp"/>
+      <File Name="../code/IRRMeshLoader.cpp"/>
+      <File Name="../code/IRRShared.cpp"/>
+      <File Name="../code/Importer.cpp"/>
+      <VirtualDirectory Name="Importer">
+        <VirtualDirectory Name="StepFile">
+          <File Name="../code/Importer/StepFile/StepFileGen1.cpp"/>
+          <File Name="../code/Importer/StepFile/StepFileGen2.cpp"/>
+          <File Name="../code/Importer/StepFile/StepFileGen3.cpp"/>
+          <File Name="../code/Importer/StepFile/StepFileImporter.cpp"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <File Name="../code/ImporterRegistry.cpp"/>
+      <File Name="../code/ImproveCacheLocality.cpp"/>
+      <File Name="../code/JoinVerticesProcess.cpp"/>
+      <File Name="../code/LimitBoneWeightsProcess.cpp"/>
+      <File Name="../code/MakeVerboseFormat.cpp"/>
+      <File Name="../code/MaterialSystem.cpp"/>
+      <File Name="../code/ObjExporter.cpp"/>
+      <File Name="../code/ObjFileImporter.cpp"/>
+      <File Name="../code/ObjFileMtlImporter.cpp"/>
+      <File Name="../code/ObjFileParser.cpp"/>
+      <File Name="../code/OgreBinarySerializer.cpp"/>
+      <File Name="../code/OgreImporter.cpp"/>
+      <File Name="../code/OgreMaterial.cpp"/>
+      <File Name="../code/OgreStructs.cpp"/>
+      <File Name="../code/OgreXmlSerializer.cpp"/>
+      <File Name="../code/OptimizeGraph.cpp"/>
+      <File Name="../code/OptimizeMeshes.cpp"/>
+      <File Name="../code/PostStepRegistry.cpp"/>
+      <File Name="../code/PretransformVertices.cpp"/>
+      <File Name="../code/ProcessHelper.cpp"/>
+      <File Name="../code/RawLoader.cpp"/>
+      <File Name="../code/RemoveComments.cpp"/>
+      <File Name="../code/RemoveRedundantMaterials.cpp"/>
+      <File Name="../code/RemoveVCProcess.cpp"/>
+      <File Name="../code/SGSpatialSort.cpp"/>
+      <File Name="../code/STLExporter.cpp"/>
+      <File Name="../code/STLLoader.cpp"/>
+      <File Name="../code/ScaleProcess.cpp"/>
+      <File Name="../code/SceneCombiner.cpp"/>
+      <File Name="../code/ScenePreprocessor.cpp"/>
+      <File Name="../code/SkeletonMeshBuilder.cpp"/>
+      <File Name="../code/SortByPTypeProcess.cpp"/>
+      <File Name="../code/SpatialSort.cpp"/>
+      <File Name="../code/SplitByBoneCountProcess.cpp"/>
+      <File Name="../code/SplitLargeMeshes.cpp"/>
+      <File Name="../code/StandardShapes.cpp"/>
+      <File Name="../code/StepExporter.cpp"/>
+      <File Name="../code/Subdivision.cpp"/>
+      <File Name="../code/TargetAnimation.cpp"/>
+      <File Name="../code/TextureTransform.cpp"/>
+      <File Name="../code/TriangulateProcess.cpp"/>
+      <File Name="../code/UnrealLoader.cpp"/>
+      <File Name="../code/ValidateDataStructure.cpp"/>
+      <File Name="../code/Version.cpp"/>
+      <File Name="../code/VertexTriangleAdjacency.cpp"/>
+      <File Name="../code/glTF2Exporter.cpp"/>
+      <File Name="../code/glTF2Importer.cpp"/>
+      <File Name="../code/glTFExporter.cpp"/>
+      <File Name="../code/glTFImporter.cpp"/>
+      <File Name="../code/scene.cpp"/>
+      <File Name="../code/simd.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="contrib">
+      <VirtualDirectory Name="Open3DGC">
+        <File Name="../contrib/Open3DGC/o3dgcArithmeticCodec.cpp"/>
+        <File Name="../contrib/Open3DGC/o3dgcDynamicVectorDecoder.cpp"/>
+        <File Name="../contrib/Open3DGC/o3dgcDynamicVectorEncoder.cpp"/>
+        <File Name="../contrib/Open3DGC/o3dgcTools.cpp"/>
+        <File Name="../contrib/Open3DGC/o3dgcTriangleFans.cpp"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="clipper">
+        <File Name="../contrib/clipper/clipper.cpp"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="irrXML">
+        <File Name="../contrib/irrXML/irrXML.cpp"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="openddlparser">
+        <VirtualDirectory Name="code">
+          <File Name="../contrib/openddlparser/code/DDLNode.cpp"/>
+          <File Name="../contrib/openddlparser/code/OpenDDLCommon.cpp"/>
+          <File Name="../contrib/openddlparser/code/OpenDDLExport.cpp"/>
+          <File Name="../contrib/openddlparser/code/OpenDDLParser.cpp"/>
+          <File Name="../contrib/openddlparser/code/OpenDDLStream.cpp"/>
+          <File Name="../contrib/openddlparser/code/Value.cpp"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="poly2tri">
+        <VirtualDirectory Name="poly2tri">
+          <VirtualDirectory Name="common">
+            <File Name="../contrib/poly2tri/poly2tri/common/shapes.cc"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="sweep">
+            <File Name="../contrib/poly2tri/poly2tri/sweep/advancing_front.cc"/>
+            <File Name="../contrib/poly2tri/poly2tri/sweep/cdt.cc"/>
+            <File Name="../contrib/poly2tri/poly2tri/sweep/sweep.cc"/>
+            <File Name="../contrib/poly2tri/poly2tri/sweep/sweep_context.cc"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="unzip">
+        <File Name="../contrib/unzip/ioapi.c"/>
+        <File Name="../contrib/unzip/unzip.c"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="zlib">
+        <File Name="../contrib/zlib/adler32.c"/>
+        <File Name="../contrib/zlib/compress.c"/>
+        <File Name="../contrib/zlib/crc32.c"/>
+        <File Name="../contrib/zlib/deflate.c"/>
+        <File Name="../contrib/zlib/gzclose.c"/>
+        <File Name="../contrib/zlib/gzlib.c"/>
+        <File Name="../contrib/zlib/gzread.c"/>
+        <File Name="../contrib/zlib/gzwrite.c"/>
+        <File Name="../contrib/zlib/infback.c"/>
+        <File Name="../contrib/zlib/inffast.c"/>
+        <File Name="../contrib/zlib/inflate.c"/>
+        <File Name="../contrib/zlib/inftrees.c"/>
+        <File Name="../contrib/zlib/trees.c"/>
+        <File Name="../contrib/zlib/uncompr.c"/>
+        <File Name="../contrib/zlib/zutil.c"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <VirtualDirectory Name="include">
+    <VirtualDirectory Name="code">
+      <File Name="../code/BaseProcess.h"/>
+      <File Name="../code/CInterfaceIOWrapper.h"/>
+      <File Name="../code/CalcTangentsProcess.h"/>
+      <File Name="../code/ColladaExporter.h"/>
+      <File Name="../code/ColladaHelper.h"/>
+      <File Name="../code/ColladaLoader.h"/>
+      <File Name="../code/ColladaParser.h"/>
+      <File Name="../code/ComputeUVMappingProcess.h"/>
+      <File Name="../code/ConvertToLHProcess.h"/>
+      <File Name="../code/DeboneProcess.h"/>
+      <File Name="../code/DefaultProgressHandler.h"/>
+      <File Name="../code/DropFaceNormalsProcess.h"/>
+      <File Name="../code/EmbedTexturesProcess.h"/>
+      <File Name="../code/FBXCommon.h"/>
+      <File Name="../code/FBXCompileConfig.h"/>
+      <File Name="../code/FBXConverter.h"/>
+      <File Name="../code/FBXDocument.h"/>
+      <File Name="../code/FBXDocumentUtil.h"/>
+      <File Name="../code/FBXExportNode.h"/>
+      <File Name="../code/FBXExportProperty.h"/>
+      <File Name="../code/FBXExporter.h"/>
+      <File Name="../code/FBXImportSettings.h"/>
+      <File Name="../code/FBXImporter.h"/>
+      <File Name="../code/FBXMeshGeometry.h"/>
+      <File Name="../code/FBXParser.h"/>
+      <File Name="../code/FBXProperties.h"/>
+      <File Name="../code/FBXTokenizer.h"/>
+      <File Name="../code/FBXUtil.h"/>
+      <File Name="../code/FileLogStream.h"/>
+      <File Name="../code/FindDegenerates.h"/>
+      <File Name="../code/FindInstancesProcess.h"/>
+      <File Name="../code/FindInvalidDataProcess.h"/>
+      <File Name="../code/FixNormalsStep.h"/>
+      <File Name="../code/GenFaceNormalsProcess.h"/>
+      <File Name="../code/GenVertexNormalsProcess.h"/>
+      <File Name="../code/IFF.h"/>
+      <File Name="../code/IRRLoader.h"/>
+      <File Name="../code/IRRMeshLoader.h"/>
+      <File Name="../code/IRRShared.h"/>
+      <File Name="../code/Importer.h"/>
+      <VirtualDirectory Name="Importer">
+        <VirtualDirectory Name="StepFile">
+          <File Name="../code/Importer/StepFile/StepFileImporter.h"/>
+          <File Name="../code/Importer/StepFile/StepReaderGen.h"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <File Name="../code/ImproveCacheLocality.h"/>
+      <File Name="../code/JoinVerticesProcess.h"/>
+      <File Name="../code/LimitBoneWeightsProcess.h"/>
+      <File Name="../code/MakeVerboseFormat.h"/>
+      <File Name="../code/MaterialSystem.h"/>
+      <File Name="../code/ObjExporter.h"/>
+      <File Name="../code/ObjFileData.h"/>
+      <File Name="../code/ObjFileImporter.h"/>
+      <File Name="../code/ObjFileMtlImporter.h"/>
+      <File Name="../code/ObjFileParser.h"/>
+      <File Name="../code/ObjTools.h"/>
+      <File Name="../code/OgreBinarySerializer.h"/>
+      <File Name="../code/OgreImporter.h"/>
+      <File Name="../code/OgreParsingUtils.h"/>
+      <File Name="../code/OgreStructs.h"/>
+      <File Name="../code/OgreXmlSerializer.h"/>
+      <File Name="../code/OptimizeGraph.h"/>
+      <File Name="../code/OptimizeMeshes.h"/>
+      <File Name="../code/PolyTools.h"/>
+      <File Name="../code/PretransformVertices.h"/>
+      <File Name="../code/ProcessHelper.h"/>
+      <File Name="../code/RawLoader.h"/>
+      <File Name="../code/RemoveRedundantMaterials.h"/>
+      <File Name="../code/RemoveVCProcess.h"/>
+      <File Name="../code/STEPFile.h"/>
+      <File Name="../code/STLExporter.h"/>
+      <File Name="../code/STLLoader.h"/>
+      <File Name="../code/ScaleProcess.h"/>
+      <File Name="../code/ScenePreprocessor.h"/>
+      <File Name="../code/ScenePrivate.h"/>
+      <File Name="../code/SortByPTypeProcess.h"/>
+      <File Name="../code/SplitByBoneCountProcess.h"/>
+      <File Name="../code/SplitLargeMeshes.h"/>
+      <File Name="../code/StdOStreamLogStream.h"/>
+      <File Name="../code/StepExporter.h"/>
+      <File Name="../code/TargetAnimation.h"/>
+      <File Name="../code/TextureTransform.h"/>
+      <File Name="../code/TriangulateProcess.h"/>
+      <File Name="../code/UnrealLoader.h"/>
+      <File Name="../code/ValidateDataStructure.h"/>
+      <File Name="../code/VertexTriangleAdjacency.h"/>
+      <File Name="../code/Win32DebugLogStream.h"/>
+      <File Name="../code/glTF2Asset.h"/>
+      <File Name="../code/glTF2Asset.inl"/>
+      <File Name="../code/glTF2AssetWriter.h"/>
+      <File Name="../code/glTF2AssetWriter.inl"/>
+      <File Name="../code/glTF2Exporter.h"/>
+      <File Name="../code/glTF2Importer.h"/>
+      <File Name="../code/glTFAsset.h"/>
+      <File Name="../code/glTFAsset.inl"/>
+      <File Name="../code/glTFAssetWriter.h"/>
+      <File Name="../code/glTFAssetWriter.inl"/>
+      <File Name="../code/glTFExporter.h"/>
+      <File Name="../code/glTFImporter.h"/>
+      <File Name="../code/simd.h"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="contrib">
+      <VirtualDirectory Name="Open3DGC">
+        <File Name="../contrib/Open3DGC/o3dgcAdjacencyInfo.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcArithmeticCodec.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcBinaryStream.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcCommon.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcDVEncodeParams.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcDynamicVector.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcDynamicVectorDecoder.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcDynamicVectorEncoder.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcFIFO.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcIndexedFaceSet.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcIndexedFaceSet.inl"/>
+        <File Name="../contrib/Open3DGC/o3dgcSC3DMCDecoder.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcSC3DMCDecoder.inl"/>
+        <File Name="../contrib/Open3DGC/o3dgcSC3DMCEncodeParams.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcSC3DMCEncoder.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcSC3DMCEncoder.inl"/>
+        <File Name="../contrib/Open3DGC/o3dgcTimer.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcTriangleFans.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcTriangleListDecoder.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcTriangleListDecoder.inl"/>
+        <File Name="../contrib/Open3DGC/o3dgcTriangleListEncoder.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcTriangleListEncoder.inl"/>
+        <File Name="../contrib/Open3DGC/o3dgcVector.h"/>
+        <File Name="../contrib/Open3DGC/o3dgcVector.inl"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="clipper">
+        <File Name="../contrib/clipper/clipper.hpp"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="irrXML">
+        <File Name="../contrib/irrXML/CXMLReaderImpl.h"/>
+        <File Name="../contrib/irrXML/heapsort.h"/>
+        <File Name="../contrib/irrXML/irrArray.h"/>
+        <File Name="../contrib/irrXML/irrString.h"/>
+        <File Name="../contrib/irrXML/irrTypes.h"/>
+        <File Name="../contrib/irrXML/irrXML.h"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="openddlparser">
+        <VirtualDirectory Name="include">
+          <VirtualDirectory Name="openddlparser">
+            <File Name="../contrib/openddlparser/include/openddlparser/DDLNode.h"/>
+            <File Name="../contrib/openddlparser/include/openddlparser/OpenDDLCommon.h"/>
+            <File Name="../contrib/openddlparser/include/openddlparser/OpenDDLExport.h"/>
+            <File Name="../contrib/openddlparser/include/openddlparser/OpenDDLParser.h"/>
+            <File Name="../contrib/openddlparser/include/openddlparser/OpenDDLParserUtils.h"/>
+            <File Name="../contrib/openddlparser/include/openddlparser/OpenDDLStream.h"/>
+            <File Name="../contrib/openddlparser/include/openddlparser/Value.h"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="poly2tri">
+        <VirtualDirectory Name="poly2tri">
+          <VirtualDirectory Name="common">
+            <File Name="../contrib/poly2tri/poly2tri/common/shapes.h"/>
+            <File Name="../contrib/poly2tri/poly2tri/common/utils.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="sweep">
+            <File Name="../contrib/poly2tri/poly2tri/sweep/advancing_front.h"/>
+            <File Name="../contrib/poly2tri/poly2tri/sweep/cdt.h"/>
+            <File Name="../contrib/poly2tri/poly2tri/sweep/sweep.h"/>
+            <File Name="../contrib/poly2tri/poly2tri/sweep/sweep_context.h"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="unzip">
+        <File Name="../contrib/unzip/crypt.h"/>
+        <File Name="../contrib/unzip/ioapi.h"/>
+        <File Name="../contrib/unzip/unzip.h"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="zip">
+        <VirtualDirectory Name="src">
+          <File Name="../contrib/zip/src/miniz.h"/>
+          <File Name="../contrib/zip/src/zip.h"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="zlib">
+        <File Name="../contrib/zlib/crc32.h"/>
+        <File Name="../contrib/zlib/deflate.h"/>
+        <File Name="../contrib/zlib/gzguts.h"/>
+        <File Name="../contrib/zlib/inffast.h"/>
+        <File Name="../contrib/zlib/inffixed.h"/>
+        <File Name="../contrib/zlib/inflate.h"/>
+        <File Name="../contrib/zlib/inftrees.h"/>
+        <File Name="../contrib/zlib/trees.h"/>
+        <VirtualDirectory Name="win32">
+          <File Name="../contrib/zlib/win32/zlib1.rc"/>
+        </VirtualDirectory>
+        <File Name="../contrib/zlib/zlib.h"/>
+        <File Name="../contrib/zlib/zutil.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <VirtualDirectory Name="include">
+      <VirtualDirectory Name="assimp">
+        <File Name="../include/assimp/BaseImporter.h"/>
+        <File Name="../include/assimp/Bitmap.h"/>
+        <File Name="../include/assimp/BlobIOSystem.h"/>
+        <File Name="../include/assimp/ByteSwapper.h"/>
+        <VirtualDirectory Name="Compiler">
+          <File Name="../include/assimp/Compiler/poppack1.h"/>
+          <File Name="../include/assimp/Compiler/pstdint.h"/>
+          <File Name="../include/assimp/Compiler/pushpack1.h"/>
+        </VirtualDirectory>
+        <File Name="../include/assimp/CreateAnimMesh.h"/>
+        <File Name="../include/assimp/DefaultIOStream.h"/>
+        <File Name="../include/assimp/DefaultIOSystem.h"/>
+        <File Name="../include/assimp/DefaultLogger.hpp"/>
+        <File Name="../include/assimp/Defines.h"/>
+        <File Name="../include/assimp/Exceptional.h"/>
+        <File Name="../include/assimp/Exporter.hpp"/>
+        <File Name="../include/assimp/GenericProperty.h"/>
+        <File Name="../include/assimp/Hash.h"/>
+        <File Name="../include/assimp/IOStream.hpp"/>
+        <File Name="../include/assimp/IOStreamBuffer.h"/>
+        <File Name="../include/assimp/IOSystem.hpp"/>
+        <File Name="../include/assimp/Importer.hpp"/>
+        <File Name="../include/assimp/LineSplitter.h"/>
+        <File Name="../include/assimp/LogAux.h"/>
+        <File Name="../include/assimp/LogStream.hpp"/>
+        <File Name="../include/assimp/Logger.hpp"/>
+        <File Name="../include/assimp/Macros.h"/>
+        <File Name="../include/assimp/MathFunctions.h"/>
+        <File Name="../include/assimp/MemoryIOWrapper.h"/>
+        <File Name="../include/assimp/NullLogger.hpp"/>
+        <File Name="../include/assimp/ParsingUtils.h"/>
+        <File Name="../include/assimp/Profiler.h"/>
+        <File Name="../include/assimp/ProgressHandler.hpp"/>
+        <File Name="../include/assimp/RemoveComments.h"/>
+        <File Name="../include/assimp/SGSpatialSort.h"/>
+        <File Name="../include/assimp/SceneCombiner.h"/>
+        <File Name="../include/assimp/SkeletonMeshBuilder.h"/>
+        <File Name="../include/assimp/SmoothingGroups.h"/>
+        <File Name="../include/assimp/SmoothingGroups.inl"/>
+        <File Name="../include/assimp/SpatialSort.h"/>
+        <File Name="../include/assimp/StandardShapes.h"/>
+        <File Name="../include/assimp/StreamReader.h"/>
+        <File Name="../include/assimp/StreamWriter.h"/>
+        <File Name="../include/assimp/StringComparison.h"/>
+        <File Name="../include/assimp/StringUtils.h"/>
+        <File Name="../include/assimp/Subdivision.h"/>
+        <File Name="../include/assimp/TinyFormatter.h"/>
+        <File Name="../include/assimp/Vertex.h"/>
+        <File Name="../include/assimp/XMLTools.h"/>
+        <File Name="../include/assimp/ai_assert.h"/>
+        <File Name="../include/assimp/anim.h"/>
+        <File Name="../include/assimp/camera.h"/>
+        <File Name="../include/assimp/cexport.h"/>
+        <File Name="../include/assimp/cfileio.h"/>
+        <File Name="../include/assimp/cimport.h"/>
+        <File Name="../include/assimp/color4.h"/>
+        <File Name="../include/assimp/color4.inl"/>
+        <File Name="../include/assimp/defs.h"/>
+        <File Name="../include/assimp/fast_atof.h"/>
+        <File Name="../include/assimp/importerdesc.h"/>
+        <File Name="../include/assimp/irrXMLWrapper.h"/>
+        <File Name="../include/assimp/light.h"/>
+        <File Name="../include/assimp/material.h"/>
+        <File Name="../include/assimp/material.inl"/>
+        <File Name="../include/assimp/matrix3x3.h"/>
+        <File Name="../include/assimp/matrix3x3.inl"/>
+        <File Name="../include/assimp/matrix4x4.h"/>
+        <File Name="../include/assimp/matrix4x4.inl"/>
+        <File Name="../include/assimp/mesh.h"/>
+        <File Name="../include/assimp/metadata.h"/>
+        <File Name="../include/assimp/pbrmaterial.h"/>
+        <File Name="../include/assimp/postprocess.h"/>
+        <File Name="../include/assimp/qnan.h"/>
+        <File Name="../include/assimp/quaternion.h"/>
+        <File Name="../include/assimp/quaternion.inl"/>
+        <File Name="../include/assimp/scene.h"/>
+        <File Name="../include/assimp/texture.h"/>
+        <File Name="../include/assimp/types.h"/>
+        <File Name="../include/assimp/vector2.h"/>
+        <File Name="../include/assimp/vector2.inl"/>
+        <File Name="../include/assimp/vector3.h"/>
+        <File Name="../include/assimp/vector3.inl"/>
+        <File Name="../include/assimp/version.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <VirtualDirectory Name="contrib">
+      <VirtualDirectory Name="zlib">
+        <File Name="contrib/zlib/zconf.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <VirtualDirectory Name="include">
+      <VirtualDirectory Name="assimp">
+        <File Name="include/assimp/config.h"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="NoConfig" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g -O3" C_Options="-g -O3" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../"/>
+        <IncludePath Value="$(ProjectPath)/../code/"/>
+        <IncludePath Value="$(ProjectPath)/../include"/>
+        <IncludePath Value="$(ProjectPath)/../contrib/"/>
+        <IncludePath Value="$(ProjectPath)/../contrib/zlib"/>
+        <IncludePath Value="$(ProjectPath)/../contrib/rapidjson/include"/>
+        <IncludePath Value="$(ProjectPath)/../contrib/openddlparser/include"/>
+        <IncludePath Value="$(ProjectPath)/../contrib/unzip"/>
+        <IncludePath Value="$(ProjectPath)/../contrib/irrXML"/>
+      </Compiler>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(ProjectPath)/Bin/lib$(ProjectName).a" IntermediateDirectory="$(ProjectPath)/Temp/$(ProjectName)" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand>/usr/bin/make -j 16 clean &amp;&amp; /usr/bin/make -j 16</RebuildCommand>
+        <CleanCommand>/usr/bin/make -j 16 clean</CleanCommand>
+        <BuildCommand>/usr/bin/make -j 16</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand>/usr/bin/make -f$(ProjectPath)/Makefile $(CurrentFileName).cpp.o</SingleFileCommand>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+  <Dependencies Name="NoConfig">
+    <Project Name="zlibstatic"/>
+  </Dependencies>
+</CodeLite_Project>

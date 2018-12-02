@@ -1,0 +1,336 @@
+#version 450 core
+#if !defined(WINDOWS) && !defined(ANDROID) && !defined(LINUX)
+#define WINDOWS 	// Assume windows if no platform define has been added to the shader
+#endif
+
+
+/*
+ * Copyright (c) 2018 Confetti Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+
+//
+// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+// Confetti changes
+// Culling triangles that intersect the near plane
+// Small primitive culling now supports MSAA
+// Multi-viewport culling
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "shader_defs.h"
+
+struct VertexPos
+{
+	float x, y, z;
+};
+
+layout(std430, set = 0, binding = 0) restrict readonly buffer vertexDataBuffer
+{
+	VertexPos VertexDataBufferData[];
+};
+
+layout(std430, set = 0, binding = 1) restrict readonly buffer indexDataBuffer
+{
+	uint IndexDataBufferData[];
+};
+
+layout(std430, set = 0, binding = 2) restrict readonly buffer meshConstantsBuffer
+{
+	MeshConstants MeshConstantsBufferData[];
+};
+
+layout(set = 0, binding = 3) uniform batchData
+{
+	SmallBatchData SmallBatchDataBufferData[BATCH_COUNT];
+};
+
+layout(set = 0, binding = 4) uniform uniforms
+{
+	PerFrameConstants uniformsData;
+};
+
+layout(std430, set = 0, binding = 5) restrict writeonly buffer filteredIndicesBufferBlock
+{
+	uint data[];
+} filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
+
+layout(std430, set = 0, binding = 5 + NUM_CULLING_VIEWPORTS) restrict buffer uncompactedDrawArgsBlock
+{
+	UncompactedDrawArguments data[];
+} uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
+
+shared uint workGroupOutputSlot[NUM_CULLING_VIEWPORTS];
+shared uint workGroupIndexCount[NUM_CULLING_VIEWPORTS];
+
+#define ENABLE_CULL_INDEX				1
+#define ENABLE_CULL_BACKFACE			1
+#define ENABLE_CULL_FRUSTUM				1
+#define ENABLE_CULL_SMALL_PRIMITIVES	1
+#define ENABLE_GUARD_BAND				0
+
+// Performs all the culling tests given 3 vertices
+bool FilterTriangle(uint indices[3], vec4 vertices[3], bool cullBackFace, vec2 windowSize, uint samples)
+{
+#if ENABLE_CULL_INDEX
+	if (indices[0] == indices[1]
+		|| indices[1] == indices[2]
+		|| indices[0] == indices[2])
+	{
+		return true;
+	}
+#endif
+#if ENABLE_CULL_BACKFACE
+	if (cullBackFace)
+	{
+		// Culling in homogeneus coordinates.
+		// Read: "Triangle Scan Conversion using 2D Homogeneus Coordinates"
+		//       by Marc Olano, Trey Greer
+		mat3 m = mat3(vertices[0].xyw, vertices[1].xyw, vertices[2].xyw);
+		if (determinant(m) > 0.0f)
+			return true;
+	}
+#endif
+
+#if ENABLE_CULL_FRUSTUM || ENABLE_CULL_SMALL_PRIMITIVES
+	int verticesInFrontOfNearPlane = 0;
+	
+	for (uint i = 0U; i < 3U; i++)
+	{
+		if (vertices[i].w < 0.0f)
+		{
+			++verticesInFrontOfNearPlane;
+
+			// Flip the w so that any triangle that straddles the plane won't be projected onto
+			// two sides of the screen
+			vertices[i].w *= (-1.0f);
+		}
+		// Transform vertices[i].xy into the normalized 0..1 screen space
+		// this is for the following stages ...
+		vertices[i].xy /= vertices[i].w * 2.0f;
+		vertices[i].xy += vec2(0.5f, 0.5f);
+	}
+#endif
+
+#if ENABLE_CULL_FRUSTUM
+	if (verticesInFrontOfNearPlane == 3)
+		return true;
+
+	float minx = min(min(vertices[0].x, vertices[1].x), vertices[2].x);
+	float miny = min(min(vertices[0].y, vertices[1].y), vertices[2].y);
+	float maxx = max(max(vertices[0].x, vertices[1].x), vertices[2].x);
+	float maxy = max(max(vertices[0].y, vertices[1].y), vertices[2].y);
+
+	if ((maxx < 0.0f) || (maxy < 0.0f) || (minx > 1.0f) || (miny > 1.0f))
+		return true;
+#endif
+
+	// not precise enough to handle more than 4 msaa samples
+#if ENABLE_CULL_SMALL_PRIMITIVES
+	if (verticesInFrontOfNearPlane == 0)
+	{
+		const uint SUBPIXEL_BITS = 8U;
+		const uint SUBPIXEL_MASK = 0xFFU;
+		const uint SUBPIXEL_SAMPLES = 1U << SUBPIXEL_BITS;
+
+		/*
+		Computing this in float-point is not precise enough.
+		We switch to a 23.8 representation here which shold match the
+		HW subpixel resolution.
+		We use a 8-bit wide guard-band to avoid clipping. If
+		a triangle is outside the guard-band, it will be ignored.
+		That is, the actual viewport supported here is 31 bit, one bit is
+		unused, and the guard band is 1 << 23 bit large (8388608 pixels)
+		*/
+
+		ivec2 minBB = ivec2(1 << 30, 1 << 30);
+		ivec2 maxBB = -minBB;
+#if ENABLE_GUARD_BAND			
+		bool insideGuardBand = true;
+#endif
+		for (uint i = 0; i<3; i++)
+		{
+			vec2 screenSpacePositionFP = vertices[i].xy * windowSize;
+#if ENABLE_GUARD_BAND			
+			// Check if we should overflow after conversion
+			if (screenSpacePositionFP.x < -(1 << 23) ||
+				screenSpacePositionFP.x >(1 << 23) ||
+				screenSpacePositionFP.y < -(1 << 23) ||
+				screenSpacePositionFP.y >(1 << 23))
+			{
+				insideGuardBand = false;
+			}
+#endif			
+			// Scale based on distance from center to msaa sample point
+			ivec2 screenSpacePosition = ivec2(screenSpacePositionFP * (SUBPIXEL_SAMPLES * samples));
+			minBB = min(screenSpacePosition, minBB);
+			maxBB = max(screenSpacePosition, maxBB);
+		}
+#if ENABLE_GUARD_BAND			
+		if (insideGuardBand)
+#endif		
+		{
+			const int SUBPIXEL_SAMPLE_CENTER = int(SUBPIXEL_SAMPLES / 2);
+			const int SUBPIXEL_SAMPLE_SIZE = int(SUBPIXEL_SAMPLES - 1);
+			/* Test is:
+			Is the minimum of the bounding box right or above the sample
+			point and is the width less than the pixel width in samples in
+			one direction.
+
+			This will also cull very long triagles which fall between
+			multiple samples.
+			*/
+
+			if ((((minBB.x & SUBPIXEL_MASK) > SUBPIXEL_SAMPLE_CENTER) &&
+				((maxBB.x - ((minBB.x & ~SUBPIXEL_MASK) + SUBPIXEL_SAMPLE_CENTER)) < (SUBPIXEL_SAMPLE_SIZE))) ||
+				(((minBB.y & SUBPIXEL_MASK) > SUBPIXEL_SAMPLE_CENTER) &&
+				((maxBB.y - ((minBB.y & ~SUBPIXEL_MASK) + SUBPIXEL_SAMPLE_CENTER)) < (SUBPIXEL_SAMPLE_SIZE))))
+			{
+				return true;
+			}
+		}
+	}
+#endif
+
+	return false;
+}
+
+vec4 LoadVertex(uint index)
+{
+	return vec4(VertexDataBufferData[index].x, VertexDataBufferData[index].y, VertexDataBufferData[index].z, 1);
+}
+
+layout(local_size_x = CLUSTER_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	uvec3 inGroupId = gl_LocalInvocationID;
+	uvec3 groupId = gl_WorkGroupID;
+	if (inGroupId.x == 0)
+	{
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+			workGroupIndexCount[i] = 0;
+	}
+
+	groupMemoryBarrier();
+	barrier();
+
+	bool cull[NUM_CULLING_VIEWPORTS];
+	uint threadOutputSlot[NUM_CULLING_VIEWPORTS];
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		threadOutputSlot[i] = 0;
+		cull[i] = true;
+	}
+
+	uint batchMeshIndex = SmallBatchDataBufferData[groupId.x].meshIndex;
+	uint batchInputIndexOffset = (MeshConstantsBufferData[batchMeshIndex].indexOffset + SmallBatchDataBufferData[groupId.x].indexOffset);
+	bool twoSided = (MeshConstantsBufferData[batchMeshIndex].twoSided == 1);
+
+	uint indices[3] = { 0, 0, 0 };
+	if (inGroupId.x < SmallBatchDataBufferData[groupId.x].faceCount)
+	{
+		indices[0] = IndexDataBufferData[inGroupId.x * 3 + 0 + batchInputIndexOffset];
+		indices[1] = IndexDataBufferData[inGroupId.x * 3 + 1 + batchInputIndexOffset];
+		indices[2] = IndexDataBufferData[inGroupId.x * 3 + 2 + batchInputIndexOffset];
+
+		vec4 vert[3] =
+		{
+			LoadVertex(indices[0]),
+			LoadVertex(indices[1]),
+			LoadVertex(indices[2])
+		};
+
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			mat4 worldViewProjection = uniformsData.transform[i].mvp;
+			vec4 vertices[3] =
+			{
+				worldViewProjection * vert[0],
+				worldViewProjection * vert[1],
+				worldViewProjection * vert[2]
+			};
+
+			CullingViewPort viewport = uniformsData.cullingViewports[i];
+			cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.windowSize, viewport.sampleCount);
+			if (!cull[i])
+				threadOutputSlot[i] = atomicAdd(workGroupIndexCount[i], 3);
+		}
+
+		groupMemoryBarrier();
+		barrier();
+
+		uint accumBatchDrawIndex = SmallBatchDataBufferData[groupId.x].accumDrawIndex;
+
+		if (inGroupId.x == 0)
+		{
+			for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+			{
+				workGroupOutputSlot[i] = atomicAdd(uncompactedDrawArgs[i].data[accumBatchDrawIndex].numIndices, workGroupIndexCount[i]); //TODO: check if there's something to add to avoid entering the lock?
+			}
+		}
+
+		groupMemoryBarrier();
+		memoryBarrier();
+		barrier();
+
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			if (!cull[i])
+			{
+				filteredIndicesBuffer[i].data[workGroupOutputSlot[i] + SmallBatchDataBufferData[groupId.x].outputIndexOffset + threadOutputSlot[i] + 0] = indices[0];
+				filteredIndicesBuffer[i].data[workGroupOutputSlot[i] + SmallBatchDataBufferData[groupId.x].outputIndexOffset + threadOutputSlot[i] + 1] = indices[1];
+				filteredIndicesBuffer[i].data[workGroupOutputSlot[i] + SmallBatchDataBufferData[groupId.x].outputIndexOffset + threadOutputSlot[i] + 2] = indices[2];
+			}
+		}
+
+		if (inGroupId.x == 0 && groupId.x == SmallBatchDataBufferData[groupId.x].drawBatchStart)
+		{
+			uint outIndexOffset = SmallBatchDataBufferData[groupId.x].outputIndexOffset;
+
+			for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+			{
+				uncompactedDrawArgs[i].data[accumBatchDrawIndex].startIndex = outIndexOffset;
+				uncompactedDrawArgs[i].data[accumBatchDrawIndex].materialID = MeshConstantsBufferData[batchMeshIndex].materialID;
+			}
+		}
+	}
+}

@@ -76,7 +76,7 @@ namespace PlatformEvents
 }
 
 static LPPOINT lastCursorPoint = &POINT();
-static bool captureMouse(bool shouldCapture)
+static bool captureMouse(bool shouldCapture, bool shouldHide)
 {
 	if (shouldCapture != isCaptured)
 	{
@@ -107,8 +107,9 @@ static bool captureMouse(bool shouldCapture)
 				ptClientLR.x, ptClientLR.y);
 			ClipCursor(&clientRect);
 
+			if (shouldHide)
+				ShowCursor(FALSE);
 
-			ShowCursor(FALSE);
 			isCaptured = true;
 		}
 		else
@@ -116,7 +117,9 @@ static bool captureMouse(bool shouldCapture)
 			ShowCursor(TRUE);
 			ReleaseCapture();
 			isCaptured = false;
-			SetCursorPos(lastCursorPoint->x, lastCursorPoint->y);
+
+			if (shouldHide)
+				SetCursorPos(lastCursorPoint->x, lastCursorPoint->y);
 		}
 	}
 #ifndef NO_GAINPUT
@@ -140,7 +143,7 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 		{
-			captureMouse(false);
+			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
 		}
 		break;
 
@@ -485,7 +488,7 @@ void handleMessages()
 		}
 		else
 		{
-			captureMouse(false);
+			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
 			ClipCursor(NULL);
 		}
 	}
@@ -498,7 +501,7 @@ void handleMessages()
 			if (gHWNDMap.size() == 0)
 				return;
 
-			captureMouse(true);
+			captureMouse(true, InputSystem::GetHideMouseCursorWhileCaptured());
 		}
 	}
 

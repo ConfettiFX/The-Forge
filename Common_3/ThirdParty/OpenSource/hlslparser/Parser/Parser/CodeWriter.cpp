@@ -69,7 +69,7 @@ void CodeWriter::BeginLine(int indent, const char* fileName, int lineNumber)
 			}
 			*/
 
-			m_buffer += "\n";
+			//m_buffer += "\n";
 
 			m_previousLine = lineNumber;
 		}

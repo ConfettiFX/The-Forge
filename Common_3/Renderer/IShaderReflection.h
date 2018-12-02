@@ -68,6 +68,9 @@ struct ShaderResource
 #if defined(DIRECT3D11)
 	uint32_t constant_size;
 #endif
+#if defined(VULKAN)
+	TextureDimension textureDim;
+#endif
 };
 
 struct ShaderVariable

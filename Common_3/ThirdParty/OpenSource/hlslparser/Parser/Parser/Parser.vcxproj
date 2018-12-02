@@ -51,8 +51,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)..\UI\HLSLParser\HLSLParser\bin\x64\Debug\$(TargetName).exe
-</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)..\UI\HLSLParser\HLSLParser\bin\x64\Debug\$(TargetName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -69,8 +68,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)..\UI\HLSLParser\HLSLParser\bin\x64\Release\$(TargetName).exe
-copy $(TargetPath) $(SolutionDir)..\Web\WebTranslator\WebTranslator\wwwroot\app\$(TargetName).exe</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)..\Web\WebTranslator\WebTranslator\wwwroot\app\$(TargetName).exe
+copy $(TargetPath) $(SolutionDir)..\UI\HLSLParser\HLSLParser\bin\x64\Release\$(TargetName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

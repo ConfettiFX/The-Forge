@@ -289,6 +289,18 @@ typedef enum DescriptorType
 } DescriptorType;
 MAKE_ENUM_FLAG(uint32_t, DescriptorType)
 
+typedef enum TextureDimension
+{
+	TEXTURE_DIM_UNDEFINED = 0,
+	TEXTURE_DIM_1D,
+	TEXTURE_DIM_2D,
+	TEXTURE_DIM_3D,
+	TEXTURE_DIM_1D_ARRAY,
+	TEXTURE_DIM_2D_ARRAY,
+	TEXTURE_DIM_CUBE,
+} TextureDimension;
+MAKE_ENUM_FLAG(uint32_t, TextureDimension)
+
 typedef enum SampleCount {
 	SAMPLE_COUNT_1 = 1,
 	SAMPLE_COUNT_2 = 2,
@@ -1717,8 +1729,18 @@ typedef struct Renderer {
 	uint32_t							mVkUsedQueueCount[MAX_GPUS][16];
 	uint32_t							mVkLinkedNodeCount;
 
-	Texture*							pDefaultTexture;
-	Buffer*							 pDefaultBuffer;
+	Texture*							pDefaultTexture1DSRV;
+	Texture*							pDefaultTexture1DUAV;
+	Texture*							pDefaultTexture1DArraySRV;
+	Texture*							pDefaultTexture1DArrayUAV;
+	Texture*							pDefaultTexture2DSRV;
+	Texture*							pDefaultTexture2DUAV;
+	Texture*							pDefaultTexture2DArraySRV;
+	Texture*							pDefaultTexture2DArrayUAV;
+	Texture*							pDefaultTexture3DSRV;
+	Texture*							pDefaultTexture3DUAV;
+	Texture*							pDefaultTextureCubeSRV;
+	Buffer*								pDefaultBuffer;
 	Sampler*							pDefaultSampler;
 
 	struct VmaAllocator_T*			  pVmaAllocator;

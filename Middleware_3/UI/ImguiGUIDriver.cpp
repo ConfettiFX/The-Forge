@@ -96,25 +96,18 @@ public:
 
 	void* getContext();
 
-	void draw(Cmd* q, float deltaTime,
-		const char* pTitle,
-		bool* const pCloseButtonActiveValue,
-		int32_t const guiComponentFlags,
-		float x, float y, float z, float w,
-		IWidget** pProps, uint32_t propCount,
-		tinystl::vector<tinystl::string>& contextualMenuLabels,
-		tinystl::vector<WidgetCallback>& contextualMenuCallbacks,
-		bool const showDemoWindow);
+	bool update(float deltaTime, GuiComponent** pGuiComponents, uint32_t componentCount, bool showDemoWindow);
+	void draw(Cmd* q);
 
-	bool onInput(const ButtonData* data);
+	bool onInput(const ButtonData* data, const float4& windowRect);
 	int needsTextInput() const;
 
 
 protected:
 	ImGuiContext* context;
-	float4 mCurrentWindowRect;
 	Texture* pFontTexture;
 	float2 dpiScale;
+	uint32_t windowIdCounter;
 
 	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
 
@@ -130,6 +123,9 @@ protected:
 	RasterizerState*			pRasterizerState;
 	Sampler*					pDefaultSampler;
 	VertexLayout				mVertexLayoutTextured = {};
+	
+private:
+	bool startedFrame;
 };
 
 void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver)
@@ -187,11 +183,22 @@ void IWidget::ProcessCallbacks()
 
 void CollapsingHeaderWidget::Draw()
 {
-	if (ImGui::CollapsingHeader(mLabel.c_str()))
+	if (mPreviousCollapsed != mCollapsed)
+	{
+		ImGui::SetNextTreeNodeOpen(!mCollapsed);
+		mPreviousCollapsed = mCollapsed;
+	}
+
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_CollapsingHeader;
+	if (mDefaultOpen)
+		flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+	if (ImGui::CollapsingHeader(mLabel.c_str(), flags))
 	{
 		for (IWidget* widget : mGroupedWidgets)
 			widget->Draw();
 	}
+
 	ProcessCallbacks();
 }
 
@@ -407,6 +414,7 @@ static void SetDefaultStyle()
 bool ImguiGUIDriver::init(Renderer* renderer)
 {
 	pRenderer = renderer;
+	startedFrame = false;
 	/************************************************************************/
 	// Rendering resources
 	/************************************************************************/
@@ -601,6 +609,14 @@ bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorT
 
 void ImguiGUIDriver::unload()
 {
+	//if we started ImGUI frame without ending it then end it manually
+	//this means we called update twice in a row.
+	//End frame befor releeasing resources.
+	if(startedFrame)
+	{
+		ImGui::EndFrame();
+		startedFrame = false;
+	}
 	removeResource(pFontTexture);
 	ImGui::DestroyContext(context);
 }
@@ -610,7 +626,7 @@ void* ImguiGUIDriver::getContext()
 	return context;
 }
 
-bool ImguiGUIDriver::onInput(const ButtonData* data)
+bool ImguiGUIDriver::onInput(const ButtonData* data, const float4& windowRect)
 {
 	ImGui::SetCurrentContext(context);
 	ImGuiIO& io = ImGui::GetIO();
@@ -629,9 +645,9 @@ bool ImguiGUIDriver::onInput(const ButtonData* data)
 		io.MousePos.y *= (float)io.DisplaySize.y;
 #endif
 		return ImGui::IsMouseHoveringAnyWindow() || ImGui::IsMouseHoveringRect(
-			ImVec2(mCurrentWindowRect.x, mCurrentWindowRect.y),
-			ImVec2(mCurrentWindowRect.x + mCurrentWindowRect.z,
-				mCurrentWindowRect.y + mCurrentWindowRect.w), false);
+			ImVec2(windowRect.x, windowRect.y),
+			ImVec2(windowRect.x + windowRect.z,
+				windowRect.y + windowRect.w), false);
 	}
 	else if (data->mUserId == KEY_CONFIRM ||
 			data->mUserId == KEY_RIGHT_BUMPER ||
@@ -647,9 +663,9 @@ bool ImguiGUIDriver::onInput(const ButtonData* data)
 		io.MousePos.y *= (float)io.DisplaySize.y;
 #endif
 		return ImGui::IsMouseHoveringAnyWindow() || ImGui::IsMouseHoveringRect(
-			ImVec2(mCurrentWindowRect.x, mCurrentWindowRect.y),
-			ImVec2(mCurrentWindowRect.x + mCurrentWindowRect.z,
-				mCurrentWindowRect.y + mCurrentWindowRect.w), false);
+			ImVec2(windowRect.x, windowRect.y),
+			ImVec2(windowRect.x + windowRect.z,
+				windowRect.y + windowRect.w), false);
 	}
 	else if (KEY_CHAR == data->mUserId)
 	{
@@ -692,23 +708,26 @@ bool ImguiGUIDriver::onInput(const ButtonData* data)
 	return false;
 }
 
-void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
-	const char* pTitle,
-	bool* const pCloseButtonActiveValue,
-	int32_t const guiComponentFlags,
-	float x, float y, float w, float h,
-	class IWidget** pProps, uint32_t propCount,
-	tinystl::vector<tinystl::string>& contextualMenuLabels,
-	tinystl::vector<WidgetCallback>& contextualMenuCallbacks,
-	bool const showDemoWindow)
+bool ImguiGUIDriver::update(float deltaTime
+							, GuiComponent **pGuiComponents
+							, uint32_t componentCount
+							, bool showDemoWindow)
 {
+	//if we started ImGUI frame without ending it then end it manually
+	//this means we called update twice in a row.
+	if(startedFrame)
+	{
+		ImGui::EndFrame();
+	}
+	startedFrame = true;
+	
 	ImGui::SetCurrentContext(context);
 	// #TODO: Use window size as render-target size cannot be trusted to be the same as window size
 	ImGuiIO& io = ImGui::GetIO();
-	io.DisplaySize.x = (float)pCmd->mBoundWidth;
-	io.DisplaySize.y = (float)pCmd->mBoundHeight;
+	io.DisplaySize.x = (float)InputSystem::GetDisplayWidth();
+	io.DisplaySize.y = (float)InputSystem::GetDisplayHeight();
 	io.DeltaTime = deltaTime;
-
+	
 	io.NavInputs[ImGuiNavInput_Activate] = InputSystem::GetButtonData(KEY_CONFIRM).mIsPressed ? 1.0f : 0.0f;
 	io.NavInputs[ImGuiNavInput_Cancel] = InputSystem::GetButtonData(KEY_CANCEL).mIsPressed ? 1.0f : 0.0f;
 	io.NavInputs[ImGuiNavInput_Menu] = InputSystem::GetButtonData(KEY_BUTTON_X).mIsPressed ? 1.0f : 0.0f;
@@ -721,101 +740,132 @@ void ImguiGUIDriver::draw(Cmd* pCmd, float deltaTime,
 	io.NavInputs[ImGuiNavInput_FocusPrev] = InputSystem::GetButtonData(KEY_LEFT_BUMPER).mIsPressed ? 1.0f : 0.0f;
 	io.NavInputs[ImGuiNavInput_TweakFast] = InputSystem::GetButtonData(KEY_RIGHT_BUMPER).mIsPressed ? 1.0f : 0.0f;
 	io.NavInputs[ImGuiNavInput_TweakSlow] = InputSystem::GetButtonData(KEY_LEFT_BUMPER).mIsPressed ? 1.0f : 0.0f;
-
+	
 	ImGui::NewFrame();
-	/************************************************************************/
-	// Draw window
-	/************************************************************************/
+	
 	if (showDemoWindow)
 		ImGui::ShowDemoWindow();
-
-	if (pTitle)
+	
+	uint32_t windowIdCounter = 0;
+	
+	bool ret = false;
+	
+	for (uint32_t compIndex = 0; compIndex < componentCount; ++compIndex)
 	{
-		// Setup the ImGuiWindowFlags
-		ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
-			guiWinFlags |= ImGuiWindowFlags_NoTitleBar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE)
-			guiWinFlags |= ImGuiWindowFlags_NoResize;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
-			guiWinFlags |= ImGuiWindowFlags_NoMove;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_NoScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_COLLAPSE)
-			guiWinFlags |= ImGuiWindowFlags_NoCollapse;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysAutoResize;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_INPUTS)
-			guiWinFlags |= ImGuiWindowFlags_NoInputs;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_MEMU_BAR)
-			guiWinFlags |= ImGuiWindowFlags_MenuBar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_HORIZONTAL_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_HorizontalScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING)
-			guiWinFlags |= ImGuiWindowFlags_NoFocusOnAppearing;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS)
-			guiWinFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
-			guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
-			guiWinFlags |= ImGuiWindowFlags_NoNavFocus;
-
-		bool result = ImGui::Begin(pTitle, pCloseButtonActiveValue, guiWinFlags);
-
-		// Setup the contextual menus
-		if (!contextualMenuLabels.empty() && ImGui::BeginPopupContextItem()) // <-- This is using IsItemHovered()
+		GuiComponent* pComponent = pGuiComponents[compIndex];
+		tinystl::string title = pComponent->mTitle;
+		int32_t guiComponentFlags = pComponent->mFlags;
+		bool* pCloseButtonActiveValue = pComponent->mHasCloseButton ? &pComponent->mHasCloseButton : NULL;
+		const tinystl::vector<tinystl::string>& contextualMenuLabels = pComponent->mContextualMenuLabels;
+		const tinystl::vector<WidgetCallback>& contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
+		const float4& windowRect = pComponent->mInitialWindowRect;
+		float4& currentWindowRect = pComponent->mCurrentWindowRect;
+		IWidget** pProps = pComponent->mWidgets.data();
+		uint32_t propCount = (uint32_t)pComponent->mWidgets.size();
+		
+		if (title == "")
+			title = tinystl::string::format("##%u", (windowIdCounter++));
 		{
-			for (size_t i = 0; i < contextualMenuLabels.size(); i++)
+			// Setup the ImGuiWindowFlags
+			ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
+				guiWinFlags |= ImGuiWindowFlags_NoTitleBar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE)
+				guiWinFlags |= ImGuiWindowFlags_NoResize;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+				guiWinFlags |= ImGuiWindowFlags_NoMove;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_NoScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_COLLAPSE)
+				guiWinFlags |= ImGuiWindowFlags_NoCollapse;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysAutoResize;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_INPUTS)
+				guiWinFlags |= ImGuiWindowFlags_NoInputs;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_MEMU_BAR)
+				guiWinFlags |= ImGuiWindowFlags_MenuBar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_HORIZONTAL_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_HorizontalScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING)
+				guiWinFlags |= ImGuiWindowFlags_NoFocusOnAppearing;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS)
+				guiWinFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
+				guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
+				guiWinFlags |= ImGuiWindowFlags_NoNavFocus;
+			
+
+			bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
+			// Setup the contextual menus
+			if (!contextualMenuLabels.empty() && ImGui::BeginPopupContextItem()) // <-- This is using IsItemHovered()
 			{
-				if (ImGui::MenuItem(contextualMenuLabels[i].c_str()))
+				for (size_t i = 0; i < contextualMenuLabels.size(); i++)
 				{
-					if (i < contextualMenuCallbacks.size())
-						contextualMenuCallbacks[i]();
+					if (ImGui::MenuItem(contextualMenuLabels[i].c_str()))
+					{
+						if (i < contextualMenuCallbacks.size())
+							contextualMenuCallbacks[i]();
+					}
 				}
+				ImGui::EndPopup();
 			}
-			ImGui::EndPopup();
+			
+			bool overrideSize = false;
+			bool overridePos = false;
+			
+			if ((guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) &&
+				!(guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
+				overrideSize = true;
+			
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+				overridePos = true;
+			
+			ImGui::SetWindowSize(ImVec2(windowRect.z * dpiScale.x, windowRect.w * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
+			ImGui::SetWindowPos(ImVec2(windowRect.x * dpiScale.x, windowRect.y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
+			
+			ImVec2 min = ImGui::GetWindowPos();
+			ImVec2 max = ImGui::GetWindowSize();
+			currentWindowRect.x = min.x;
+			currentWindowRect.y = min.y;
+			currentWindowRect.z = max.x;
+			currentWindowRect.w = max.y;
+			
+			if (result)
+			{
+				for (uint32_t i = 0; i < propCount; ++i)
+					if (pProps[i])
+						pProps[i]->Draw();
+			}
+			
+			if (!ret)
+				ret = ImGui::GetIO().WantCaptureMouse;
+			
+			ImGui::End();
 		}
+	}
+	
+	return ret;
+}
 
-		bool overrideSize = false;
-		bool overridePos = false;
-
-		if ((guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) &&
-			!(guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
-			overrideSize = true;
-
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
-			overridePos = true;
-
-		ImGui::SetWindowSize(ImVec2(w * dpiScale.x, h * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
-		ImGui::SetWindowPos(ImVec2(x * dpiScale.x, y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
-
-		ImVec2 min = ImGui::GetWindowPos();
-		ImVec2 max = ImGui::GetWindowSize();
-		mCurrentWindowRect.x = min.x;
-		mCurrentWindowRect.y = min.y;
-		mCurrentWindowRect.z = max.x;
-		mCurrentWindowRect.w = max.y;
-
-		if (result)
-		{
-			for (uint32_t i = 0; i < propCount; ++i)
-				if (pProps[i])
-					pProps[i]->Draw();
-		}
-
-		ImGui::End();
+void ImguiGUIDriver::draw(Cmd* pCmd)
+{
+	if(!startedFrame)
+	{
+		return;
 	}
 	/************************************************************************/
 	/************************************************************************/
-	ImGui::EndFrame();
 	ImGui::Render();
-
+	//Mark frame as ended.
+	startedFrame = false;
+	
 	ImDrawData* draw_data = ImGui::GetDrawData();
 
 	Pipeline* pPipeline = NULL;

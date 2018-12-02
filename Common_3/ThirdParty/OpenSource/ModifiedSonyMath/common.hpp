@@ -491,6 +491,331 @@ inline Vector3 f3Tov3(const float3& f3) { return Vector3(f3.x, f3.y, f3.z); }
 inline Vector4 f4Tov4(const float4& f4) { return Vector4(f4.x, f4.y, f4.z, f4.w); }
 #endif
 
+#define DEFINE_INT_X
+#ifdef DEFINE_INT_X
+//----------------------------------------------------------------------------
+// int2
+//----------------------------------------------------------------------------
+// A simple structure containing 2 integer values.
+// int2 is always guaranteed to be 2 ints in size. Only use when a very
+// specific size is required (like defining structures that need to be the
+// same across platforms, or the same on CPU and GPU (like constant and
+// structured buffers) In all other cases you should opt to use IVector2, since
+// it uses SIMD optimizations whenever possible. int2 does not.
+//----------------------------------------------------------------------------
+struct int2
+{
+	int2() = default;
+	int2(int x, int y) : x(x), y(y) {}
+	int2(int x) : x(x), y(x) {}
+	int2(const int2& f) : x(f.x), y(f.y) {}
+	int2(const int(&fv)[2]) : x(fv[0]), y(fv[1]) {}
+
+	int& operator[](int i) { return (&x)[i]; }
+	int operator[](int i) const { return (&x)[i]; }
+
+	int getX() const { return x; }
+	int getY() const { return y; }
+
+	void setX(int x_) { x = x_; }
+	void setY(int y_) { y = y_; }
+
+	int x, y;
+};
+
+inline int2 operator+(const int2& a, const int2& b) { return int2(a.x + b.x, a.y + b.y); }
+inline int2 operator-(const int2& a, const int2& b) { return int2(a.x - b.x, a.y - b.y); }
+inline int2 operator-(const int2& a) { return int2(-a.x, -a.y); }
+inline int2 operator*(const int2& a, int b) { return int2(a.x * b, a.y * b); }
+inline int2 operator*(int a, const int2& b) { return b * a; }
+inline int2 operator*(const int2& a, const int2& b) { return int2(a.x * b.x, a.y * b.y); }
+inline int2 operator/(const int2& a, int b) { return int2(a.x / b, a.y / b); }
+inline int2 operator/(int a, const int2& b) { return b / a; }
+inline int2 operator/(const int2& a, const int2& b) { return int2(a.x / b.x, a.y / b.y); }
+
+inline const int2& operator+=(int2& a, const int2& b) { return a = a + b; }
+inline const int2& operator-=(int2& a, const int2& b) { return a = a - b; }
+inline const int2& operator*=(int2&a, int b) { return a = a * b; }
+inline const int2& operator*=(int2&a, int2& b) { return a = a * b; }
+inline const int2& operator/=(int2& a, int b) { return a = a / b; }
+inline const int2& operator/=(int2&a, const int2& b) { return a = a / b; }
+
+
+//----------------------------------------------------------------------------
+// int3
+//----------------------------------------------------------------------------
+// A simple structure containing 3 integer values.
+// int3 is always guaranteed to be 3 ints in size. Only use when a very
+// specific size is required (like defining structures that need to be the
+// same across platforms, or the same on CPU and GPU (like constant and
+// structured buffers) In all other cases you should opt to use IVector3, since
+// it uses SIMD optimizations whenever possible. int3 does not.
+//----------------------------------------------------------------------------
+struct int3
+{
+	int3() = default;
+	int3(int x, int y, int z) : x(x), y(y), z(z) {}
+	int3(int x) : x(x), y(x), z(x) {}
+	int3(const int3& f) : x(f.x), y(f.y), z(f.z) {}
+	int3(const int(&fv)[3]) : x(fv[0]), y(fv[1]), z(fv[2]) {}
+
+	int& operator[](int i) { return (&x)[i]; }
+	int operator[](int i) const { return (&x)[i]; }
+
+	int getX() const { return x; }
+	int getY() const { return y; }
+	int getZ() const { return z; }
+	int2 getXY() const { return int2(x, y); }
+
+	void setX(int x_) { x = x_; }
+	void setY(int y_) { y = y_; }
+	void setZ(int z_) { z = z_; }
+
+	int x, y, z;
+};
+
+inline int3 operator+(const int3& a, const int3& b) { return int3(a.x + b.x, a.y + b.y, a.z + b.z); }
+inline int3 operator-(const int3& a, const int3& b) { return int3(a.x - b.x, a.y - b.y, a.z - b.z); }
+inline int3 operator-(const int3& a) { return int3(-a.x, -a.y, -a.z); }
+inline int3 operator*(const int3& a, int b) { return int3(a.x * b, a.y * b, a.z * b); }
+inline int3 operator*(int a, const int3& b) { return b * a; }
+inline int3 operator*(const int3& a, const int3& b) { return int3(a.x * b.x, a.y * b.y, a.z * b.z); }
+inline int3 operator/(const int3& a, int b) { return int3(a.x / b, a.y / b, a.z / b); }
+inline int3 operator/(int a, const int3& b) { return b / a; }
+inline int3 operator/(const int3& a, const int3& b) { return int3(a.x / b.x, a.y / b.y, a.z / b.z); }
+
+inline const int3& operator+=(int3& a, const int3& b) { return a = a + b; }
+inline const int3& operator-=(int3& a, const int3& b) { return a = a - b; }
+inline const int3& operator*=(int3&a, int b) { return a = a * b; }
+inline const int3& operator*=(int3&a, int3& b) { return a = a * b; }
+inline const int3& operator/=(int3& a, int b) { return a = a / b; }
+inline const int3& operator/=(int3&a, const int3& b) { return a = a / b; }
+
+//----------------------------------------------------------------------------
+// int4
+//----------------------------------------------------------------------------
+struct int4
+{
+	int4() = default;
+	int4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
+	int4(int x) : x(x), y(x), z(x), w(x) {}
+	int4(const int3& f, int w) : x(f.x), y(f.y), z(f.z), w(w) {}
+	int4(const int4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
+	int4(const int(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
+
+	int& operator[](int i) { return (&x)[i]; }
+	int operator[](int i) const { return (&x)[i]; }
+
+	int getX() const { return x; }
+	int getY() const { return y; }
+	int getZ() const { return z; }
+	int getW() const { return w; }
+	int2 getXY() const { return int2(x, y); }
+	int3 getXYZ() const { return int3(x, y, z); }
+
+	void setX(int x_) { x = x_; }
+	void setY(int y_) { y = y_; }
+	void setZ(int z_) { z = z_; }
+	void setW(int w_) { w = w_; }
+
+	int x, y, z, w;
+};
+
+inline int4 operator+(const int4& a, const int4& b) { return int4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
+inline int4 operator-(const int4& a, const int4& b) { return int4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w); }
+inline int4 operator-(const int4& a) { return int4(-a.x, -a.y, -a.z, -a.w); }
+inline int4 operator*(const int4& a, int b) { return int4(a.x * b, a.y * b, a.z * b, a.w * b); }
+inline int4 operator*(int a, const int4& b) { return b * a; }
+inline int4 operator*(const int4& a, const int4& b) { return int4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w); }
+inline int4 operator/(const int4& a, int b) { return int4(a.x / b, a.y / b, a.z / b, a.w / b); }
+inline int4 operator/(int a, const int4& b) { return b / a; }
+inline int4 operator/(const int4& a, const int4& b) { return int4(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w); }
+
+inline const int4& operator+=(int4& a, const int4& b) { return a = a + b; }
+inline const int4& operator-=(int4& a, const int4& b) { return a = a - b; }
+inline const int4& operator*=(int4&a, int b) { return a = a * b; }
+inline const int4& operator*=(int4&a, int4& b) { return a = a * b; }
+inline const int4& operator/=(int4&a, const int4& b) { return a = a / b; }
+inline const int4& operator/=(int4& a, int b) { return a = a / b; }
+
+//----------------------------------------------------------------------------
+// int* to vec* conversions
+//----------------------------------------------------------------------------
+inline int2 iv2ToI2(const IVector2& v2) { return int2(v2.getX(), v2.getY()); }
+inline int3 iv3ToI3(const IVector3& v3) { return int3(v3.getX(), v3.getY(), v3.getZ()); }
+inline int4 iv4ToI4(const IVector4& v4) { return int4(v4.getX(), v4.getY(), v4.getZ(), v4.getW()); }
+
+//----------------------------------------------------------------------------
+// vec* to int* conversions
+//----------------------------------------------------------------------------
+inline IVector2 i2Toiv2(const int2& i2) { return IVector2(i2.x, i2.y); }
+inline IVector3 i3Toiv3(const int3& i3) { return IVector3(i3.x, i3.y, i3.z); }
+inline IVector4 i4Toiv4(const int4& i4) { return IVector4(i4.x, i4.y, i4.z, i4.w); }
+
+#endif
+
+#define DEFINE_UNSIGNED_INT_X
+#ifdef DEFINE_UNSIGNED_INT_X
+//----------------------------------------------------------------------------
+// uint2
+//----------------------------------------------------------------------------
+// A simple structure containing 2 unsigned integer values.
+// uint2 is always guaranteed to be 2 unsigned ints in size. Only use when a very
+// specific size is required (like defining structures that need to be the
+// same across platforms, or the same on CPU and GPU (like constant and
+// structured buffers) In all other cases you should opt to use UVector2, since
+// it uses SIMD optimizations whenever possible. uint2 does not.
+//----------------------------------------------------------------------------
+typedef unsigned uint;
+
+struct uint2
+{
+	uint2() = default;
+	uint2(uint x, uint y) : x(x), y(y) {}
+	uint2(uint x) : x(x), y(x) {}
+	uint2(const uint2& f) : x(f.x), y(f.y) {}
+	uint2(const uint(&fv)[2]) : x(fv[0]), y(fv[1]) {}
+
+	uint& operator[](uint i) { return (&x)[i]; }
+	uint operator[](uint i) const { return (&x)[i]; }
+
+	uint getX() const { return x; }
+	uint getY() const { return y; }
+
+	void setX(uint x_) { x = x_; }
+	void setY(uint y_) { y = y_; }
+
+	uint x, y;
+};
+
+inline uint2 operator+(const uint2& a, const uint2& b) { return uint2(a.x + b.x, a.y + b.y); }
+inline uint2 operator-(const uint2& a, const uint2& b) { return uint2(a.x - b.x, a.y - b.y); }
+inline uint2 operator*(const uint2& a, uint b) { return uint2(a.x * b, a.y * b); }
+inline uint2 operator*(uint a, const uint2& b) { return b * a; }
+inline uint2 operator*(const uint2& a, const uint2& b) { return uint2(a.x * b.x, a.y * b.y); }
+inline uint2 operator/(const uint2& a, uint b) { return uint2(a.x / b, a.y / b); }
+inline uint2 operator/(uint a, const uint2& b) { return b / a; }
+inline uint2 operator/(const uint2& a, const uint2& b) { return uint2(a.x / b.x, a.y / b.y); }
+
+inline const uint2& operator+=(uint2& a, const uint2& b) { return a = a + b; }
+inline const uint2& operator-=(uint2& a, const uint2& b) { return a = a - b; }
+inline const uint2& operator*=(uint2&a, uint b) { return a = a * b; }
+inline const uint2& operator*=(uint2&a, uint2& b) { return a = a * b; }
+inline const uint2& operator/=(uint2& a, uint b) { return a = a / b; }
+inline const uint2& operator/=(uint2&a, const uint2& b) { return a = a / b; }
+
+
+//----------------------------------------------------------------------------
+// uint3
+//----------------------------------------------------------------------------
+// A simple structure containing 3 unsigned integer values.
+// uint3 is always guaranteed to be 3 unsigned ints in size. Only use when a very
+// specific size is required (like defining structures that need to be the
+// same across platforms, or the same on CPU and GPU (like constant and
+// structured buffers) In all other cases you should opt to use UVector3, since
+// it uses SIMD optimizations whenever possible. uint3 does not.
+//----------------------------------------------------------------------------
+struct uint3
+{
+	uint3() = default;
+	uint3(uint x, uint y, uint z) : x(x), y(y), z(z) {}
+	uint3(uint x) : x(x), y(x), z(x) {}
+	uint3(const uint3& f) : x(f.x), y(f.y), z(f.z) {}
+	uint3(const uint(&fv)[3]) : x(fv[0]), y(fv[1]), z(fv[2]) {}
+
+	uint& operator[](uint i) { return (&x)[i]; }
+	uint operator[](uint i) const { return (&x)[i]; }
+
+	uint getX() const { return x; }
+	uint getY() const { return y; }
+	uint getZ() const { return z; }
+	uint2 getXY() const { return uint2(x, y); }
+
+	void setX(uint x_) { x = x_; }
+	void setY(uint y_) { y = y_; }
+	void setZ(uint z_) { z = z_; }
+
+	uint x, y, z;
+};
+
+inline uint3 operator+(const uint3& a, const uint3& b) { return uint3(a.x + b.x, a.y + b.y, a.z + b.z); }
+inline uint3 operator-(const uint3& a, const uint3& b) { return uint3(a.x - b.x, a.y - b.y, a.z - b.z); }
+inline uint3 operator*(const uint3& a, uint b) { return uint3(a.x * b, a.y * b, a.z * b); }
+inline uint3 operator*(uint a, const uint3& b) { return b * a; }
+inline uint3 operator*(const uint3& a, const uint3& b) { return uint3(a.x * b.x, a.y * b.y, a.z * b.z); }
+inline uint3 operator/(const uint3& a, uint b) { return uint3(a.x / b, a.y / b, a.z / b); }
+inline uint3 operator/(uint a, const uint3& b) { return b / a; }
+inline uint3 operator/(const uint3& a, const uint3& b) { return uint3(a.x / b.x, a.y / b.y, a.z / b.z); }
+
+inline const uint3& operator+=(uint3& a, const uint3& b) { return a = a + b; }
+inline const uint3& operator-=(uint3& a, const uint3& b) { return a = a - b; }
+inline const uint3& operator*=(uint3&a, uint b) { return a = a * b; }
+inline const uint3& operator*=(uint3&a, uint3& b) { return a = a * b; }
+inline const uint3& operator/=(uint3& a, uint b) { return a = a / b; }
+inline const uint3& operator/=(uint3&a, const uint3& b) { return a = a / b; }
+
+//----------------------------------------------------------------------------
+// uint4
+//----------------------------------------------------------------------------
+struct uint4
+{
+	uint4() = default;
+	uint4(uint x, uint y, uint z, uint w) : x(x), y(y), z(z), w(w) {}
+	uint4(uint x) : x(x), y(x), z(x), w(x) {}
+	uint4(const uint3& f, uint w) : x(f.x), y(f.y), z(f.z), w(w) {}
+	uint4(const uint4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
+	uint4(const uint(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
+
+	uint& operator[](uint i) { return (&x)[i]; }
+	uint operator[](uint i) const { return (&x)[i]; }
+
+	uint getX() const { return x; }
+	uint getY() const { return y; }
+	uint getZ() const { return z; }
+	uint getW() const { return w; }
+	uint2 getXY() const { return uint2(x, y); }
+	uint3 getXYZ() const { return uint3(x, y, z); }
+
+	void setX(uint x_) { x = x_; }
+	void setY(uint y_) { y = y_; }
+	void setZ(uint z_) { z = z_; }
+	void setW(uint w_) { w = w_; }
+
+	uint x, y, z, w;
+};
+
+inline uint4 operator+(const uint4& a, const uint4& b) { return uint4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
+inline uint4 operator-(const uint4& a, const uint4& b) { return uint4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w); }
+inline uint4 operator*(const uint4& a, uint b) { return uint4(a.x * b, a.y * b, a.z * b, a.w * b); }
+inline uint4 operator*(uint a, const uint4& b) { return b * a; }
+inline uint4 operator*(const uint4& a, const uint4& b) { return uint4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w); }
+inline uint4 operator/(const uint4& a, uint b) { return uint4(a.x / b, a.y / b, a.z / b, a.w / b); }
+inline uint4 operator/(uint a, const uint4& b) { return b / a; }
+inline uint4 operator/(const uint4& a, const uint4& b) { return uint4(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w); }
+
+inline const uint4& operator+=(uint4& a, const uint4& b) { return a = a + b; }
+inline const uint4& operator-=(uint4& a, const uint4& b) { return a = a - b; }
+inline const uint4& operator*=(uint4&a, uint b) { return a = a * b; }
+inline const uint4& operator*=(uint4&a, uint4& b) { return a = a * b; }
+inline const uint4& operator/=(uint4&a, const uint4& b) { return a = a / b; }
+inline const uint4& operator/=(uint4& a, uint b) { return a = a / b; }
+
+//----------------------------------------------------------------------------
+// uint* to vec* conversions
+//----------------------------------------------------------------------------
+inline uint2 uv2ToU2(const UVector2& v2) { return uint2(v2.getX(), v2.getY()); }
+inline uint3 uv3ToU3(const UVector3& v3) { return uint3(v3.getX(), v3.getY(), v3.getZ()); }
+inline uint4 uv4ToU4(const UVector4& v4) { return uint4(v4.getX(), v4.getY(), v4.getZ(), v4.getW()); }
+
+//----------------------------------------------------------------------------
+// vec* to uint* conversions
+//----------------------------------------------------------------------------
+inline UVector2 u2Touv2(const uint2& u2) { return UVector2(u2.x, u2.y); }
+inline UVector3 u3Touv3(const uint3& u3) { return UVector3(u3.x, u3.y, u3.z); }
+inline UVector4 u4Touv4(const uint4& u4) { return UVector4(u4.x, u4.y, u4.z, u4.w); }
+
+#endif
+
 //----------------------------------------------------------------------------
 // Float operations.
 //----------------------------------------------------------------------------
@@ -957,10 +1282,10 @@ inline void generateBonePoints(float **ppPoints, int *pNumberOfPoints, float wid
 	uint32_t vertexCounter = 0;
 
 	Vector3 origin		= Vector3{ 0.f, 0.f, 0.f };
-	Vector3 topWidth	= Vector3{ widthRatio, .1f, .1f };
-	Vector3 botWidth	= Vector3{ widthRatio, -.1f, -.1f };
-	Vector3 frontWidth	= Vector3{ widthRatio, -.1f, .1f };
-	Vector3 backWidth	= Vector3{ widthRatio, .1f, -.1f };
+	Vector3 topWidth	= Vector3{ widthRatio, .05f, .05f };
+	Vector3 botWidth	= Vector3{ widthRatio, -.05f, -.05f };
+	Vector3 frontWidth	= Vector3{ widthRatio, -.05f, .05f };
+	Vector3 backWidth	= Vector3{ widthRatio, .05f, -.05f };
 	Vector3 boneLength	= Vector3{ 1.f, 0.f, 0.f };
 
 	Vector3 frontTopLeftFaceNormal = normalize(cross(frontWidth - origin, topWidth - origin));

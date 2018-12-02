@@ -58,20 +58,22 @@ void MakeDelta(const _RawTrack& _src, const _MakeDelta& _make_delta,
   }
 }
 
-math::Float3 MakeDeltaTranslation(const math::Float3& _reference,
-                                  const math::Float3& _value) {
+//CONFFX_BEGIN
+Vector3 MakeDeltaTranslation(const Vector3& _reference,
+                                  const Vector3& _value) {
   return _value - _reference;
 }
 
-math::Quaternion MakeDeltaRotation(const math::Quaternion& _reference,
-                                   const math::Quaternion& _value) {
-  return _value * Conjugate(_reference);
+Quat MakeDeltaRotation(const Quat& _reference,
+                                   const Quat& _value) {
+  return _value * conj(_reference);
 }
 
-math::Float3 MakeDeltaScale(const math::Float3& _reference,
-                            const math::Float3& _value) {
-  return _value / _reference;
+Vector3 MakeDeltaScale(const Vector3& _reference,
+                            const Vector3& _value) {
+  return divPerElem(_value, _reference);
 }
+//CONFFX_END
 }  // namespace
 
 // Setup default values (favoring quality).

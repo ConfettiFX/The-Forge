@@ -34,6 +34,17 @@ InputDeltaState::AddChange(DeviceId device, DeviceButtonId deviceButton, float o
 	change.newValue.f = newValue;
 	changes_.push_back(change);
 }
+	
+void
+InputDeltaState::AddChange(DeviceId device, DeviceButtonId deviceButton, const GestureChange& value)
+{
+	Change change;
+	change.device = device;
+	change.deviceButton = deviceButton;
+	change.type = BT_GESTURE;
+	change.g = value;
+	changes_.push_back(change);
+}
 
 void
 InputDeltaState::Clear()
@@ -63,6 +74,13 @@ InputDeltaState::NotifyListeners(Array<InputListener*>& listeners) const
 			else if (change.type == BT_FLOAT)
 			{
 				if(!(*it2)->OnDeviceButtonFloat(change.device, change.deviceButton, change.oldValue.f, change.newValue.f))
+				{
+					break;
+				}
+			}
+			else if (change.type == BT_GESTURE)
+			{
+				if(!(*it2)->OnDeviceButtonGesture(change.device, change.deviceButton, change.g))
 				{
 					break;
 				}

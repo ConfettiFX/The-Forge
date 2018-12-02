@@ -123,12 +123,12 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 				mUniformDataBones.mColor[instanceCount] = mRigs[rigIndex]->GetBoneColor();
 
 				// add joint data to the uniform while scaling the joints by their determined chlid bone length
-				mUniformDataJoints.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetJointWorldMat(jointIndex) * mat4::scale(mRigs[rigIndex]->GetJointScale(jointIndex));
+				mUniformDataJoints.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex) * mat4::scale(mRigs[rigIndex]->GetJointScale(jointIndex));
 			}
 			else
 			{
 				// add joint data to the uniform without scaling
-				mUniformDataJoints.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetJointWorldMat(jointIndex);
+				mUniformDataJoints.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex);
 			}
 			mUniformDataJoints.mColor[instanceCount] = mRigs[rigIndex]->GetJointColor();
 

@@ -30,14 +30,9 @@ echo Unzipping Art Assets...
 "Tools/7z" x %filename% -y > NUL
 
 echo Finishing up...
-:: robocopy "Art/PBR/" "./Examples_3/Unit_Tests/UnitTestResources/Textures/PBR/" /MOVE /E > NUL
-
 del %filename%
 
 exit /b 0
-
-
-
 
 :: Goes through non-admin Extension directory of all visual studio versions 
 :: which live in %LOCALAPPDATA% - admin ones live in %ProgramFiles% - and 
@@ -78,3 +73,5 @@ if %NumFilesFound% EQU 0 (
 )
 
 exit /b 0
+
+EXIT /B %RETURN_CODE%

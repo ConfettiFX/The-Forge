@@ -621,6 +621,37 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 					pEntries[i].offset = offset;
 					pEntries[i].stride = sizeof(DescriptorUpdateData);
 
+					Texture* srvTexture = NULL;
+					Texture* uavTexture = NULL;
+					switch (pDesc->mDesc.textureDim)
+					{
+					case TEXTURE_DIM_1D:
+						srvTexture = pRenderer->pDefaultTexture1DSRV;
+						uavTexture = pRenderer->pDefaultTexture1DUAV;
+						break;
+					case TEXTURE_DIM_2D:
+						srvTexture = pRenderer->pDefaultTexture2DSRV;
+						uavTexture = pRenderer->pDefaultTexture2DUAV;
+						break;
+					case TEXTURE_DIM_3D:
+						srvTexture = pRenderer->pDefaultTexture3DSRV;
+						uavTexture = pRenderer->pDefaultTexture3DUAV;
+						break;
+					case TEXTURE_DIM_1D_ARRAY:
+						srvTexture = pRenderer->pDefaultTexture1DArraySRV;
+						uavTexture = pRenderer->pDefaultTexture1DArrayUAV;
+						break;
+					case TEXTURE_DIM_2D_ARRAY:
+						srvTexture = pRenderer->pDefaultTexture2DArraySRV;
+						uavTexture = pRenderer->pDefaultTexture2DArrayUAV;
+						break;
+					case TEXTURE_DIM_CUBE:
+						srvTexture = pRenderer->pDefaultTextureCubeSRV;
+						break;
+					default:
+						break;
+					}
+
 					if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 					{
 						for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
@@ -632,7 +663,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 							pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo =
 						{
 							VK_NULL_HANDLE,
-							pRenderer->pDefaultTexture->pVkSRVDescriptor,
+							srvTexture->pVkSRVDescriptor,
 							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 						};
 					}
@@ -642,7 +673,7 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 							pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo =
 						{
 							VK_NULL_HANDLE,
-							pRenderer->pDefaultTexture->pVkUAVDescriptors[0],
+							uavTexture->pVkUAVDescriptors[0],
 							VK_IMAGE_LAYOUT_GENERAL
 						};
 					}
@@ -1140,17 +1171,60 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 	/************************************************************************/
 	static void create_default_resources(Renderer* pRenderer)
 	{
+		// 1D texture
 		TextureDesc textureDesc = {};
 		textureDesc.mArraySize = 1;
 		textureDesc.mDepth = 1;
 		textureDesc.mFormat = ImageFormat::R8;
-		textureDesc.mHeight = 2;
+		textureDesc.mHeight = 1;
 		textureDesc.mMipLevels = 1;
 		textureDesc.mSampleCount = SAMPLE_COUNT_1;
 		textureDesc.mStartState = RESOURCE_STATE_COMMON;
-		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		textureDesc.mWidth = 1;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture1DSRV);
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture1DUAV);
+
+		// 1D texture array
+		textureDesc.mArraySize = 2;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture1DArraySRV);
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture1DArrayUAV);
+
+		// 2D texture
 		textureDesc.mWidth = 2;
-		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture);
+		textureDesc.mHeight = 2;
+		textureDesc.mArraySize = 1;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture2DSRV);
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture2DUAV);
+
+		// 2D texture array
+		textureDesc.mArraySize = 2;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture2DArraySRV);
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture2DArrayUAV);
+
+		// 3D texture
+		textureDesc.mDepth = 2;
+		textureDesc.mArraySize = 1;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture3DSRV);
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTexture3DUAV);
+
+		// Cube texture
+		textureDesc.mWidth = 2;
+		textureDesc.mHeight = 2;
+		textureDesc.mDepth = 1;
+		textureDesc.mArraySize = 6;
+		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE;
+		addTexture(pRenderer, &textureDesc, &pRenderer->pDefaultTextureCubeSRV);
+
 
 		BufferDesc bufferDesc = {};
 		bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1191,11 +1265,73 @@ extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pText
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_BACK;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRenderer->pDefaultRasterizerState);
+
+		// Create command buffer to transition resources to the correct state
+		Queue* graphicsQueue = NULL;
+		CmdPool* cmdPool = NULL;
+		Cmd* cmd = NULL;
+		Fence* fence = NULL;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = CMD_POOL_DIRECT;
+		addQueue(pRenderer, &queueDesc, &graphicsQueue);
+
+		addCmdPool(pRenderer, graphicsQueue, false, &cmdPool);
+		addCmd(cmdPool, false, &cmd);
+		addFence(pRenderer, &fence);
+
+		// Transition resources
+		beginCmd(cmd);
+		BufferBarrier bufferBarriers[] =
+		{
+			{pRenderer->pDefaultBuffer, RESOURCE_STATE_SHADER_RESOURCE, false},
+		};
+		uint bufferBarrierCount = sizeof(bufferBarriers) / sizeof(bufferBarriers[0]);
+
+		TextureBarrier textureBarriers[] =
+		{
+			{pRenderer->pDefaultTexture1DSRV, RESOURCE_STATE_SHADER_RESOURCE, false},
+			{pRenderer->pDefaultTexture1DUAV, RESOURCE_STATE_UNORDERED_ACCESS, false},
+			{pRenderer->pDefaultTexture1DArraySRV, RESOURCE_STATE_SHADER_RESOURCE, false},
+			{pRenderer->pDefaultTexture1DArrayUAV, RESOURCE_STATE_UNORDERED_ACCESS, false},
+			{pRenderer->pDefaultTexture2DSRV, RESOURCE_STATE_SHADER_RESOURCE, false},
+			{pRenderer->pDefaultTexture2DUAV, RESOURCE_STATE_UNORDERED_ACCESS, false},
+			{pRenderer->pDefaultTexture2DArraySRV, RESOURCE_STATE_SHADER_RESOURCE, false},
+			{pRenderer->pDefaultTexture2DArrayUAV, RESOURCE_STATE_UNORDERED_ACCESS, false},
+			{pRenderer->pDefaultTexture3DSRV, RESOURCE_STATE_SHADER_RESOURCE, false},
+			{pRenderer->pDefaultTexture3DUAV, RESOURCE_STATE_UNORDERED_ACCESS, false},
+			{pRenderer->pDefaultTextureCubeSRV, RESOURCE_STATE_SHADER_RESOURCE, false},
+		};
+		uint textureBarrierCount = sizeof(textureBarriers) / sizeof(textureBarriers[0]);
+		cmdResourceBarrier(cmd, bufferBarrierCount, bufferBarriers, textureBarrierCount, textureBarriers, false);
+		endCmd(cmd);
+
+		queueSubmit(graphicsQueue, 1, &cmd, fence, 0, NULL, 0, NULL);
+		FenceStatus fenceStatus = {};
+		getFenceStatus(pRenderer, fence, &fenceStatus);
+		if (fenceStatus != FENCE_STATUS_COMPLETE)
+			waitForFences(graphicsQueue, 1, &fence, false);
+
+		// Delete command buffer
+		removeFence(pRenderer, fence);
+		removeCmd(cmdPool, cmd);
+		removeCmdPool(pRenderer, cmdPool);
+		removeQueue(graphicsQueue);
 	}
 
 	static void destroy_default_resources(Renderer* pRenderer)
 	{
-		removeTexture(pRenderer, pRenderer->pDefaultTexture);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture1DSRV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture1DUAV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture1DArraySRV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture1DArrayUAV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture2DSRV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture2DUAV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture2DArraySRV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture2DArrayUAV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture3DSRV);
+		removeTexture(pRenderer, pRenderer->pDefaultTexture3DUAV);
+		removeTexture(pRenderer, pRenderer->pDefaultTextureCubeSRV);
 		removeBuffer(pRenderer, pRenderer->pDefaultBuffer);
 		removeSampler(pRenderer, pRenderer->pDefaultSampler);
 
@@ -3922,6 +4058,7 @@ namespace vk {
 			pDesc->mDesc.used_stages = pRes->used_stages;
 			pDesc->mDesc.name_size = pRes->name_size;
 			pDesc->mDesc.name = (const char*)conf_calloc(pDesc->mDesc.name_size + 1, sizeof(char));
+			pDesc->mDesc.textureDim = pRes->textureDim;
 			memcpy((char*)pDesc->mDesc.name, pRes->name, pRes->name_size);
 
 			// If descriptor is not a root constant create a new layout binding for this descriptor and add it to the binding array

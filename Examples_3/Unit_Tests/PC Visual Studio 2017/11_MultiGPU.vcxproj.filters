@@ -44,22 +44,22 @@
     <None Include="..\src\11_MultiGPU\Shaders\PCDX12\skybox.vert">
       <Filter>Shaders\PCDX12</Filter>
     </None>
-    <None Include="..\src\11_MultiGPU\Shaders\PCVulkan\basic.frag">
+    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\basic.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\11_MultiGPU\Shaders\PCVulkan\basic.vert">
+    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\basic.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\11_MultiGPU\Shaders\PCVulkan\skybox.frag">
+    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\skybox.frag">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\src\11_MultiGPU\Shaders\PCVulkan\skybox.vert">
+    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\skybox.vert">
       <Filter>Shaders\PCVulkan</Filter>
     </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.frag">
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag">
       <Filter>Panini\PCVulkan</Filter>
     </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCVulkan\panini_projection.vert">
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert">
       <Filter>Panini\PCVulkan</Filter>
     </None>
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag">

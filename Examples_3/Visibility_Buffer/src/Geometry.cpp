@@ -206,31 +206,13 @@ void setTextures(Scene *pScene, int index, const char* albedo, const char* specu
 	strcpy(pScene->normalMaps[index], normal);
 }
 
-
-static void SetMaterials2(Scene *pScene)
-{
-	for (uint32_t i = 0; i < pScene->numMaterials; i++)
-	{
-		Material& m = pScene->materials[i];
-		m.twoSided = true;
-		m.alphaTested = true;
-
-		// default textures
-		pScene->textures[i] = (char*)conf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
-		strcpy(pScene->textures[i], DEFAULT_ALBEDO);
-
-		pScene->normalMaps[i] = (char*)conf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
-		strcpy(pScene->normalMaps[i], DEFAULT_NORMAL);
-
-		pScene->specularMaps[i] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
-		strcpy(pScene->specularMaps[i], DEFAULT_SPEC);
-	}
-}
-
 static void SetMaterials(Scene *pScene)
 {
 	int index = 0;
 	
+	// 0	flags
+	//setTextures(pScene, index++, "SponzaFlagsNoAlpha.dds", "SponzaFlags_SPEC.dds", "SponzaFlags_NRM.dds", false, true);
+
 	// 0	arc034
 	setTextures(pScene, index++, "arco_frente.dds", "arco_frente_SPEC.dds", "arco_frente_NRM.dds", false, false);
 

@@ -37,18 +37,18 @@
     <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.vert" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.frag" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\BRDFIntegration.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\computeIrradianceMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\computeSpecularMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\fillGbuffers.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\fillGbuffers.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\panoToCube.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Holepatching.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Holepatching.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Projection.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Reflection.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\PPR_Reflection.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\renderSceneBRDF.frag">
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\BRDFIntegration.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\computeIrradianceMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\computeSpecularMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\fillGbuffers.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\fillGbuffers.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\panoToCube.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\PPR_Holepatching.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\PPR_Holepatching.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\PPR_Projection.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\PPR_Reflection.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\PPR_Reflection.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\renderSceneBRDF.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
       </ExcludedFromBuild>
       <FileType>Document</FileType>
@@ -63,9 +63,9 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
     </None>
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\renderSceneBRDF.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\skybox.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCVulkan\skybox.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\renderSceneBRDF.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\skybox.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>
@@ -121,28 +121,28 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64</LibraryPath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64</LibraryPath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(VULKAN_SDK)\Lib;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64</LibraryPath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
@@ -155,8 +155,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -164,7 +163,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;assimp.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;assimp.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -192,8 +191,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -201,7 +199,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -231,8 +229,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -242,7 +239,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
     </Link>
     <FxCompile>
       <EntryPointName />
@@ -275,8 +272,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -286,7 +282,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);assimp.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

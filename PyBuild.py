@@ -597,7 +597,7 @@ def BuildLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -608,9 +608,6 @@ def BuildLinuxProjects():
 				if sucess != 0:
 					errorOccured = True
 				
-				command = ["make", "clean"]
-				sucess = ExecuteCommand(command, sys.stdout)
-
 				command = ["make", "-s"]
 				sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
 				
@@ -639,7 +636,7 @@ def TestLinuxProjects():
 		currDir = os.getcwd()
 		#change dir to workspace location
 		os.chdir(rootPath)
-		configurations = ["Debug", "Release"]
+		configurations = ["Release"]
 		for conf in configurations:					
 			#create command for xcodebuild
 			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
@@ -652,7 +649,7 @@ def TestLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -779,22 +776,19 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
 		sys.exit(-1)
 
-	projects = GetFilesPathByExtension("./Examples_3/","sln",False)
-	xboxProjects = []
-	if xboxDefined:
-		xboxProjects = GetFilesPathByExtension("./Xbox/Examples_3","sln",False)
+	projects = GetFilesPathByExtension("./Jenkins/","buildproj",False)
 
 	fileList = []
 
 	if not xboxOnly:
 		for proj in projects:
 			#we don't want to build Xbox one solutions when building PC
-				if "PC Visual Studio 2017" in proj:
-					fileList.append(proj)
+			if "Xbox" not in proj:
+				fileList.append(proj)
 
 	if xboxDefined:
-		for proj in xboxProjects:
-			if "XBOXOne" in proj:
+		for proj in projects:
+			if "Xbox" in proj:
 				fileList.append(proj)
 		
 				
@@ -813,26 +807,26 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		#change working directory to sln file
 		os.chdir(rootPath)
 		
-		configurations = pcConfigurations
-		platform = pcPlatform
+		#configurations = pcConfigurations
 		
 		filename = proj.split(os.sep)[-1]
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
-			configurations = ["DebugDx", "ReleaseDx"]
-		elif filename == "VisibilityBuffer.sln" or filename == 'Unit_Tests_Animation.sln':
-			configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
+		#if filename == "Aura.buildproj" or filename == 'Unit_Tests_Raytracing.buildproj':
+		#	configurations = ["DebugDx", "ReleaseDx"]
+		#elif filename == "VisibilityBuffer.buildproj" or filename == 'Unit_Tests_Animation.buildproj':
+		#	configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
 			
-		if "XBOXOne" in proj:
-			configurations = xboxConfigurations
+		if "Xbox" in proj:
 			platform = xboxPlatform
+		else:
+			platform = pcPlatform
 				
-		for conf in configurations:
-			command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Rebuild"]
-			retCode = ExecuteBuild(command, filename,conf, platform)
-			
-			if retCode != 0:
-				errorOccured = True
+		#for conf in configurations:
+		command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;WarningsOnly;Summary","/verbosity:minimal","/t:Build"]
+		retCode = ExecuteBuild(command, filename,"All Configurations", platform)
+		
+		if retCode != 0:
+			errorOccured = True
 				
 		os.chdir(currDir)
 
@@ -937,13 +931,14 @@ def MainLogic():
 		#Clean before Building removing everything but the art folder
 		if arguments.clean == True:
 			print("Cleaning the repo")
-			ExecuteCommand(["git", "clean" , "-fdfx", "--exclude=Art"],sys.stdout)
+			ExecuteCommand(["git", "clean" , "--exclude=Art","--exclude=/**/OpenSource/*", "-fdx"],sys.stdout)
+			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git", "clean" , "-fdfx"],sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
 			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning)
 		elif systemOS == "Windows":
 			if arguments.android:
-				returnCode = BuildAndroidProjects();
+				returnCode = BuildAndroidProjects()
 			else:
 				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":

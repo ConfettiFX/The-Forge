@@ -2258,7 +2258,10 @@ extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 				pTexture->pDxResource = pTex1D;
 			}
 
-			pTexture->mTextureSize = pDesc->mArraySize * Image::GetMipMappedSize(pDesc->mWidth, pDesc->mHeight, pDesc->mDepth, 0, pDesc->mMipLevels, pDesc->mFormat);
+			Image img;
+			img.RedefineDimensions(pTexture->mDesc.mFormat, pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth, pTexture->mDesc.mMipLevels);
+			pTexture->mTextureSize = pDesc->mArraySize * img.GetMipMappedSize(0, pTexture->mDesc.mMipLevels);
+
 			pTexture->mCurrentState = pDesc->mStartState;
 		}
 		else

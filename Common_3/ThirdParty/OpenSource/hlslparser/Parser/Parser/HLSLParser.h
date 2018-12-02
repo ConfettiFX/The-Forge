@@ -49,7 +49,6 @@ struct PrepropStackData
 	//now three languagues
 	bool passed[6];
 
-
 	PrepropStackData()
 	{
 		branchProp = false;
@@ -60,8 +59,6 @@ struct PrepropStackData
 		passed[4] = false;
 		passed[5] = false;
 	}
-
-
 };
 
 class HLSLParser
@@ -69,7 +66,7 @@ class HLSLParser
 
 public:
 
-    HLSLParser(Allocator* allocator, const char* fileName, const char* buffer, size_t length, const char* entryName, Target target, Language language, const char* bufferForInlcuded[], int includedCounter);
+    HLSLParser(Allocator* allocator, const char* fileName[], const char* buffer, size_t length, const char* entryName, Target target, Language language, const char* bufferForInlcuded[], int includedCounter);
 
 	~HLSLParser()
 	{
@@ -100,6 +97,7 @@ private:
     bool Expect(const char* token);
 
     bool AcceptIdentifier(const char*& identifier);
+	int AcceptMacroIdentifier(const char*& identifier);
     bool ExpectIdentifier(const char*& identifier);
 	bool ExpectIdentifierForDefine(const char*& identifier);
     bool AcceptFloat(float& value);
@@ -123,7 +121,8 @@ private:
 
     bool ParseTopLevel(HLSLStatement*& statement);
     bool ParseBlock(HLSLStatement*& firstStatement, const HLSLType& returnType);
-    bool ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLSLType& returnType);
+	bool ParseSwitchBlocks(HLSLStatement*& firstStatement, const HLSLType& returnType);
+    bool ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLSLType& returnType, bool bSwitchStatement);
     bool ParseStatement(HLSLStatement*& statement, const HLSLType& returnType);
     bool ParseDeclaration(HLSLDeclaration*& declaration);
     bool ParseFieldDeclaration(HLSLStructField*& field);
@@ -132,9 +131,10 @@ private:
 	bool ParseSamplerStateExpression(HLSLSamplerStateExpression*& expression);
     bool ParseExpression(HLSLExpression*& expression);
     bool ParseBinaryExpression(int priority, HLSLExpression*& expression);
-    bool ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen);
+    bool ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen, bool bPreprocessor);
     bool ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpression*& firstExpression, int& numExpressions);
     bool ParseArgumentList(HLSLArgument*& firstArgument, int& numArguments);
+	bool ParseMacroFunctionArgumentList(HLSLArgument*& firstArgument, int& numArguments, HLSLBaseType &baseType);
     bool ParseDeclarationAssignment(HLSLDeclaration* declaration);
     bool ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseType type, const char* typeName);
 
@@ -153,19 +153,40 @@ private:
 
     bool CheckForUnexpectedEndOfStream(int endToken);
 
+	bool AcceptBufferType(HLSLBuffer* pBuffer);
 
-	HLSLConstantBuffer* FindCBufferDefinedType(const char* name) const;
+	bool GetBufferElementType(HLSLBuffer* pBuffer, bool bAllowVoid, int* pTypeFlag, bool optional);
+	bool GetRegisterAssignment(HLSLBuffer* pBuffer, const char* errorMsg_bufferType);
+	bool GetBufferBody(HLSLBuffer* pBuffer);
+	void GetBufferArray(HLSLBuffer* pBuffer);
+	
+	bool GetRegisterAssignment(HLSLTextureState* pTextureState, const char* errorMsg_bufferType);
+	void GetTextureArray(HLSLTextureState* pTextureState);		
+	bool GetTextureElementType(HLSLTextureState* pTextureState, bool bAllowVoid, int* pTypeFlag, bool optional);
+	bool AcceptTextureType(HLSLTextureState* pTextureState);
+
+	
     HLSLStruct* FindUserDefinedType(const char* name) const;
+
+
+
+	
 
 	const HLSLpreprocessor* FindPreprocessorDefinedType(const char* name) const;
 	const HLSLTextureState* FindTextureStateDefinedType(const char* name) const;
 	const HLSLTextureState* FindTextureStateDefinedTypeWithAddress(const char* name) const;
 
-	const HLSLRWTextureState* FindRWTextureStateDefinedType(const char* name) const;
+	//const HLSLRWTextureState* FindRWTextureStateDefinedType(const char* name) const;
 	const HLSLSamplerState* FindSamplerStateDefinedType(const char* name) const;
 
-	HLSLRWBuffer* FindRWBuffer(const char* name) const;
-	HLSLRWStructuredBuffer* FindRWStructuredBuffer(const char* name) const;
+	HLSLBuffer* FindBuffer(const char* name) const;
+
+	HLSLBuffer* FindConstantBuffer(const char* name) const;
+
+	//HLSLConstantBuffer* FindCBufferDefinedType(const char* name) const;
+	//HLSLRWBuffer* FindRWBuffer(const char* name) const;
+	//HLSLRWStructuredBuffer* FindRWStructuredBuffer(const char* name) const;
+	//HLSLStructuredBuffer* FindStructuredBuffer(const char* name) const;
 
 	//void FindClosestTextureIdentifier(const HLSLTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName);
 	//void FindClosestTextureIdentifier(const HLSLRWTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName);
@@ -187,7 +208,7 @@ private:
     const HLSLFunction* MatchFunctionCall(const HLSLFunctionCall* functionCall, const char* name);
 
     /** Gets the type of the named field on the specified object type (fieldName can also specify a swizzle. ) */
-    bool GetMemberType(const HLSLType& objectType, HLSLMemberAccess * memberAccess);
+    bool GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAccess);
 
     bool CheckTypeCast(const HLSLType& srcType, const HLSLType& dstType);
 
@@ -195,7 +216,13 @@ private:
     int GetLineNumber() const;
 
 	
+	bool GenerateMacroFunctions(HLSLFunction* originalFunction, HLSLBaseType baseType);
+	bool IsEmptyDefineIdentifier(HLSLStatement* &statement);
 
+
+	HLSLpreprocessor* HandleBranchPreprofessor(const char* fileName, int line, bool *doesNotExpectSemicolon, bool *pValid);
+
+	HLSLBaseType GetBaseTypeFromElement(const char* element);
 
 
     struct Variable
@@ -207,20 +234,23 @@ private:
     
     Array<HLSLStruct*>      m_userTypes;
 
+	Array<HLSLBuffer*>		m_Buffers;
+
+	/*
 	Array<HLSLConstantBuffer*>    m_cBuffers;
+	Array<HLSLRWBuffer*>			  m_rwBuffer;
+	Array<HLSLRWStructuredBuffer*>    m_rwStructuredBuffer;
+	Array<HLSLStructuredBuffer*>	  m_structuredBuffer;
+	*/
 
 	Array<HLSLSamplerState*>      m_samplerStates;
 	
 	Array<HLSLTextureState*>      m_textureStates;
-	Array<HLSLRWTextureState*>    m_rwtextureStates;
-
-
-
-	Array<HLSLRWBuffer*>			  m_rwBuffer;
-	Array<HLSLRWStructuredBuffer*>    m_rwStructuredBuffer;
+	//Array<HLSLRWTextureState*>    m_rwtextureStates;
+	
 
 	Array<HLSLTextureStateExpression*>      m_textureStateExpressions;
-	Array<HLSLRWTextureStateExpression*>      m_rwtextureStateExpressions;
+	//Array<HLSLRWTextureStateExpression*>      m_rwtextureStateExpressions;
 
 	Array<HLSLpreprocessor*>    m_preProcessors;
     Array<Variable>         m_variables;
@@ -242,6 +272,8 @@ private:
 	int						m_BranchCurrentStack;
 	int						m_BranchValidStack;
 	bool					m_bEmbrace;
+
+	const HLSLpreprocessor*	currentPreprocessor;
 
 };
 

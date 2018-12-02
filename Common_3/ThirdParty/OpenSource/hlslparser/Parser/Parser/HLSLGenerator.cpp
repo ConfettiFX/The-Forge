@@ -174,7 +174,9 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Sampler2DShadow:  return "sampler2DShadow";
     case HLSLBaseType_Sampler2DMS:  return "sampler2DMS";
     case HLSLBaseType_Sampler2DArray:    return "sampler2DArray";
-    case HLSLBaseType_UserDefined:  return type.typeName;
+	case HLSLBaseType_SamplerState:  return "SamplerState";
+    case HLSLBaseType_UserDefined:  return type.typeName;	
+
     default: return "<unknown type>";
     }
 }
@@ -436,7 +438,7 @@ bool HLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
 
 	ChooseUniqueName("Sample",						m_Sample,					sizeof(m_Sample));
 	ChooseUniqueName("SampleLevel",					m_SampleLevel,				sizeof(m_SampleLevel));
-	ChooseUniqueName("SampleBias",					m_SampleLevel,				sizeof(m_SampleLevel));
+	ChooseUniqueName("SampleBias",					m_SampleBias,				sizeof(m_SampleBias));
 
 	
 
@@ -634,13 +636,13 @@ void HLSLGenerator::OutputExpressionList(HLSLExpression* expression)
         {
             m_writer.Write(", ");
         }
-        OutputExpression(expression);
+        OutputExpression(expression, true);
         expression = expression->nextExpression;
         ++numExpressions;
     }
 }
 
-void HLSLGenerator::OutputExpression(HLSLExpression* expression)
+void HLSLGenerator::OutputExpression(HLSLExpression* expression, bool needsEndParen)
 {
 	if (expression->childExpression)
 	{
@@ -676,7 +678,58 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
             {
                 m_writer.Write("%s", name);
             }
-        }
+        }		
+		else if (expression->functionExpression)
+		{
+			// if it is buffer type and has function expression
+		
+			HLSLBuffer* buffer = m_tree->FindBuffer(name);
+			HLSLTextureStateExpression* tse = m_tree->FindTextureStateExpression(name);
+			if (buffer)
+			{
+				m_writer.Write("%s", buffer->name);
+
+				if (buffer->bArray)
+				{
+					for (int i = 0; i < (int)buffer->arrayDimension; i++)
+					{
+						if (!String_Equal(buffer->arrayIdentifier[i], ""))
+							m_writer.Write("[%s]", buffer->arrayIdentifier);
+						else if (buffer->arrayIndex[i] > 0)
+							m_writer.Write("[%u]", buffer->arrayIndex[i]);
+						else
+							m_writer.Write("[]");
+					}
+				}
+			}
+			/*
+			else if (tse)
+			{
+				m_writer.Write("%s", tse->name);
+
+				if (tse->bArray)
+				{
+					for (int i = 0; i < (int)tse->arrayDimension; i++)
+					{
+						if (!String_Equal(tse->arrayIdentifier[i], ""))
+							m_writer.Write("[%s]", tse->arrayIdentifier);
+						else if (tse->arrayIndex[i] > 0)
+							m_writer.Write("[%u]", tse->arrayIndex[i]);
+						else
+							m_writer.Write("[]");
+					}
+				}
+			}
+			*/
+			else
+			{
+				m_writer.Write("%s", name);
+			}
+
+			
+
+			OutputExpression(expression->functionExpression, needsEndParen);
+		}
         else
         {
             m_writer.Write("%s", name);
@@ -688,7 +741,7 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
         m_writer.Write("(");
         OutputDeclaration(castingExpression->type, "");
         m_writer.Write(")");
-        OutputExpression(castingExpression->expression);
+        OutputExpression(castingExpression->expression, false);
     }
     else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
     {
@@ -740,24 +793,28 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
         case HLSLUnaryOp_PostDecrement: op = "--"; pre = false; break;
         case HLSLUnaryOp_BitNot:        op = "~";  break;
         }
-        m_writer.Write("(");
+        //m_writer.Write("(");
         if (pre)
         {
             m_writer.Write("%s", op);
-            OutputExpression(unaryExpression->expression);
+            OutputExpression(unaryExpression->expression, needsEndParen);
         }
         else
         {
-            OutputExpression(unaryExpression->expression);
+            OutputExpression(unaryExpression->expression, needsEndParen);
             m_writer.Write("%s", op);
         }
-        m_writer.Write(")");
+       // m_writer.Write(")");
     }
     else if (expression->nodeType == HLSLNodeType_BinaryExpression)
     {
         HLSLBinaryExpression* binaryExpression = static_cast<HLSLBinaryExpression*>(expression);
-        m_writer.Write("(");
-        OutputExpression(binaryExpression->expression1);
+       
+
+		if (needsEndParen)
+			m_writer.Write("(");
+
+        OutputExpression(binaryExpression->expression1, needsEndParen);
         const char* op = "?";
         switch (binaryExpression->binaryOp)
         {
@@ -781,61 +838,59 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
 		case HLSLBinaryOp_BitAnd:       op = " & "; break;
         case HLSLBinaryOp_BitOr:        op = " | "; break;
         case HLSLBinaryOp_BitXor:       op = " ^ "; break;
-		case HLSLBinaryOp_LeftShift:        op = " << "; break;
-		case HLSLBinaryOp_RightShift:       op = " >> "; break;
-		case HLSLBinaryOp_Modular:       op = " % "; break;
+		case HLSLBinaryOp_LeftShift:    op = " << "; break;
+		case HLSLBinaryOp_RightShift:   op = " >> "; break;
+		case HLSLBinaryOp_Modular:      op = " % "; break;
+		case HLSLBinaryOp_BitAndAssign: op = " &= "; break;
+		case HLSLBinaryOp_BitOrAssign:  op = " |= "; break;
+		case HLSLBinaryOp_BitXorAssign: op = " ^= "; break;
         default:
             ASSERT(0);
         }
         m_writer.Write("%s", op);
-        OutputExpression(binaryExpression->expression2);
-        m_writer.Write(")");
+        OutputExpression(binaryExpression->expression2, true);
+       
+		if (needsEndParen)
+			m_writer.Write(")");
+
     }
     else if (expression->nodeType == HLSLNodeType_ConditionalExpression)
     {
         HLSLConditionalExpression* conditionalExpression = static_cast<HLSLConditionalExpression*>(expression);
         m_writer.Write("((");
-        OutputExpression(conditionalExpression->condition);
+        OutputExpression(conditionalExpression->condition, needsEndParen);
         m_writer.Write(")?(");
-        OutputExpression(conditionalExpression->trueExpression);
+        OutputExpression(conditionalExpression->trueExpression, needsEndParen);
         m_writer.Write("):(");
-        OutputExpression(conditionalExpression->falseExpression);
+        OutputExpression(conditionalExpression->falseExpression, needsEndParen);
         m_writer.Write("))");
     }
     else if (expression->nodeType == HLSLNodeType_MemberAccess)
     {
         HLSLMemberAccess* memberAccess = static_cast<HLSLMemberAccess*>(expression);
-        m_writer.Write("(");
-        OutputExpression(memberAccess->object);
-		m_writer.Write(").%s", memberAccess->field);
-
+        //m_writer.Write("(");
+        
+		OutputExpression(memberAccess->object, true);
+		
+		//m_writer.Write(").%s", memberAccess->field);
+		
+		m_writer.Write(".%s", memberAccess->field);
 		
 		if ((memberAccess->object->expressionType.baseType == HLSLBaseType_PointStream) ||
 			(memberAccess->object->expressionType.baseType == HLSLBaseType_LineStream) ||
 			(memberAccess->object->expressionType.baseType == HLSLBaseType_TriangleStream))
 		{
 			m_writer.Write("(");
-			OutputExpression(memberAccess->functionExpression);
+			OutputExpression(memberAccess->functionExpression, needsEndParen);
 			m_writer.Write(")");
-
-			/*
-			if (String_Equal(memberAccess->fileName, "Append"))
-			{
-				
-			}
-			else if (String_Equal(memberAccess->fileName, "RestartStrip"))
-			{
-				m_writer.Write("(");
-			}
-			*/
 		}
     }
     else if (expression->nodeType == HLSLNodeType_ArrayAccess)
     {
         HLSLArrayAccess* arrayAccess = static_cast<HLSLArrayAccess*>(expression);
-        OutputExpression(arrayAccess->array);
+        OutputExpression(arrayAccess->array, needsEndParen);
         m_writer.Write("[");
-        OutputExpression(arrayAccess->index);
+        OutputExpression(arrayAccess->index, needsEndParen);
         m_writer.Write("]");
     }
     else if (expression->nodeType == HLSLNodeType_FunctionCall)
@@ -922,46 +977,26 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
             }	
         }
 		
-		if (String_Equal(name, "Sample") || String_Equal(name, "SampleLevel") || String_Equal(name, "SampleBias"))
-		{			
+		if (String_Equal(name, "Sample") || String_Equal(name, "SampleLevel") || String_Equal(name, "SampleCmp") || String_Equal(name, "SampleCmpLevelZero") || String_Equal(name, "SampleBias") || String_Equal(name, "SampleGrad") || String_Equal(name, "GatherRed"))
+		{		
+
 			if (functionCall->pTextureStateExpression)
 			{
-				const HLSLTextureStateExpression* pTextureStateExpression = functionCall->pTextureStateExpression;
-				
-				m_writer.Write(" %s", pTextureStateExpression->name);
+				const HLSLTextureStateExpression* pTextureStateExpression = functionCall->pTextureStateExpression;				
 
-				if (pTextureStateExpression->bArray)
-				{
-					for (int i = 0; i < (int)pTextureStateExpression->arrayDimension; i++)
-					{
-						//if (!String_Equal(pTextureStateExpression->arrayIdentifier[i], ""))
-						//	m_writer.Write("[%s]", pTextureStateExpression->arrayIdentifier);
-
-						if (pTextureStateExpression->arrayExpression)
-						{
-							m_writer.Write("[");
-							OutputExpressionList(pTextureStateExpression->arrayExpression);
-							m_writer.Write("]");
-						}
-						else if (pTextureStateExpression->arrayIndex[i] > 0)
-							m_writer.Write("[%u]", pTextureStateExpression->arrayIndex[i]);
-						else
-							m_writer.Write("[]");
-					}
-				}
 			}
 
 			m_writer.Write(".%s(", name);
 			OutputExpressionList(functionCall->argument);
 			m_writer.Write(")");
 		}
-		else if(String_Equal(name, "Load"))
+		else if(String_Equal(name, "Load") || String_Equal(name, "Store") || String_Equal(name, "GetDimensions"))
 		{
 			if (functionCall->pTextureStateExpression)
 			{
 				const HLSLTextureStateExpression* pTextureStateExpression = functionCall->pTextureStateExpression;
 
-				m_writer.Write(" %s", pTextureStateExpression->name);
+				//m_writer.Write(" %s", pTextureStateExpression->name);
 
 				if (pTextureStateExpression->bArray)
 				{
@@ -981,32 +1016,16 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
 							m_writer.Write("[]");
 					}
 				}
-			}
-			else if (functionCall->pRWTextureStateExpression)
-			{
-				const HLSLRWTextureStateExpression* pRWTextureStateExpression = functionCall->pRWTextureStateExpression;
 
-				m_writer.Write(" %s", pRWTextureStateExpression->name);
-
-				if (pRWTextureStateExpression->bArray)
+				if (pTextureStateExpression->indexExpression)
 				{
-					for (int i = 0; i < (int)pRWTextureStateExpression->arrayDimension; i++)
-					{
-						//if (!String_Equal(pRWTextureStateExpression->arrayIdentifier[i], ""))
-						//	m_writer.Write("[%s]", pRWTextureStateExpression->arrayIdentifier);
-						if (pRWTextureStateExpression->arrayExpression)
-						{
-							m_writer.Write("[");
-							OutputExpressionList(pRWTextureStateExpression->arrayExpression);
-							m_writer.Write("]");
-						}
-						else if (pRWTextureStateExpression->arrayIndex[i] > 0)
-							m_writer.Write("[%u]", pRWTextureStateExpression->arrayIndex[i]);
-						else
-							m_writer.Write("[]");
-					}
+					m_writer.Write("[");
+					OutputExpressionList(pTextureStateExpression->indexExpression);
+					m_writer.Write("]");
 				}
 			}
+
+			
 
 			m_writer.Write(".%s(", name);
 			OutputExpressionList(functionCall->argument);
@@ -1028,25 +1047,25 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
 		switch (preprecessorExpression->type)
 		{
 		case HLSLBaseType_PreProcessorIf: 
-			m_writer.Write("#if %s", preprecessorExpression->contents);
+			m_writer.WriteLine(0, "#if %s", preprecessorExpression->contents);
 			break;
 		case HLSLBaseType_PreProcessorElif:
-			m_writer.Write("#elif %s", preprecessorExpression->contents);
+			m_writer.WriteLine(0, "#elif %s", preprecessorExpression->contents);
 			break;
 		case HLSLBaseType_PreProcessorElse:
-			m_writer.Write("#else");
+			m_writer.WriteLine(0, "#else");
 			break;
 		case HLSLBaseType_PreProcessorEndif:
 			m_writer.WriteLine(0, "#endif");
 			break;
 		case HLSLBaseType_PreProcessorIfDef:
-			m_writer.Write("#ifdef %s", preprecessorExpression->contents);
+			m_writer.WriteLine(0, "#ifdef %s", preprecessorExpression->contents);
 			break;
 		case HLSLBaseType_PreProcessorIfnDef:
-			m_writer.Write("#ifndef %s", preprecessorExpression->contents);
+			m_writer.WriteLine(0, "#ifndef %s", preprecessorExpression->contents);
 			break;
 		case HLSLBaseType_PreProcessorUndef:
-			m_writer.Write("#undef %s", preprecessorExpression->contents);
+			m_writer.WriteLine(0, "#undef %s", preprecessorExpression->contents);
 			break;
 		case HLSLBaseType_PreProcessorInclude:
 			m_writer.WriteLine(0, "#include %s", preprecessorExpression->contents);
@@ -1061,71 +1080,53 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
 			break;
 		}
 
-		m_writer.Write("%s", preprecessorExpression->name);		
+		m_writer.Write(0, "%s", preprecessorExpression->name);		
 	}
 	else if (expression->nodeType == HLSLNodeType_SamplerStateExpression)
 	{
 		HLSLSamplerStateExpression* samplerStateExpression = static_cast<HLSLSamplerStateExpression*>(expression);
 
 		m_writer.Write("%s", samplerStateExpression->name);
+
 	}
 	else if (expression->nodeType == HLSLNodeType_TextureStateExpression)
 	{
 		HLSLTextureStateExpression* textureStateExpression = static_cast<HLSLTextureStateExpression*>(expression);		
+				
 
-		if (textureStateExpression->fuctionExpression)
+		m_writer.Write("%s", textureStateExpression->name);
+
+		if (textureStateExpression->bArray)
 		{
-			OutputExpression(textureStateExpression->fuctionExpression);
-
-			//HLSLFunctionCall* FuncCaller = static_cast<HLSLFunctionCall*>(textureStateExpression->fuctionExpression);
-			//FuncCaller->pTextureStateExpression = textureStateExpression;
-
-			/*
-			
-			*/
-
-		}
-		else
-		{
-			m_writer.Write("%s", textureStateExpression->name);
-
-			if (textureStateExpression->bArray)
+			for (int i = 0; i < (int)textureStateExpression->arrayDimension; i++)
 			{
-				for (int i = 0; i < (int)textureStateExpression->arrayDimension; i++)
+				if (textureStateExpression->arrayExpression)
 				{
-					if (!String_Equal(textureStateExpression->arrayIdentifier[i], ""))
-						m_writer.Write("[%s]", textureStateExpression->arrayIdentifier);
-					else if (textureStateExpression->arrayIndex[i] > 0)
-						m_writer.Write("[%u]", textureStateExpression->arrayIndex[i]);
-					else
-						m_writer.Write("[]");
+					m_writer.Write("[");
+					OutputExpressionList(textureStateExpression->arrayExpression);
+					m_writer.Write("]");
 				}
+				else if (!String_Equal(textureStateExpression->arrayIdentifier[i], ""))
+					m_writer.Write("[%s]", textureStateExpression->arrayIdentifier);
+				else if (textureStateExpression->arrayIndex[i] > 0)
+					m_writer.Write("[%u]", textureStateExpression->arrayIndex[i]);
+				else
+					m_writer.Write("[]");
 			}
 		}
-	}
-	else if (expression->nodeType == HLSLNodeType_RWTextureStateExpression)
-	{
-		HLSLRWTextureStateExpression* rwtextureStateExpression = static_cast<HLSLRWTextureStateExpression*>(expression);
 
-		if (rwtextureStateExpression->fuctionExpression)
-			OutputExpression(rwtextureStateExpression->fuctionExpression);
-		else
-		{		
-			m_writer.Write("%s", rwtextureStateExpression->name);
-
-			if (rwtextureStateExpression->bArray)
-			{
-				for (int i = 0; i < (int)rwtextureStateExpression->arrayDimension; i++)
-				{
-					if (!String_Equal(rwtextureStateExpression->arrayIdentifier[i], ""))
-						m_writer.Write("[%s]", rwtextureStateExpression->arrayIdentifier);
-					else if (rwtextureStateExpression->arrayIndex[i] > 0)
-						m_writer.Write("[%u]", rwtextureStateExpression->arrayIndex[i]);
-					else
-						m_writer.Write("[]");
-				}
-			}
+		if (textureStateExpression->indexExpression)
+		{
+			m_writer.Write("[");
+			OutputExpressionList(textureStateExpression->indexExpression);
+			m_writer.Write("]");
 		}
+		
+		if (textureStateExpression->functionExpression)
+		{
+			OutputExpression(textureStateExpression->functionExpression, false);
+		}
+				
 	}
     else
     {
@@ -1136,12 +1137,53 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
 void HLSLGenerator::OutputArguments(HLSLArgument* argument)
 {
     int numArgs = 0;
+
+	bool bcount = true;
+
+	HLSLArgument* prevArg = NULL;
+
     while (argument != NULL)
     {
-        if (numArgs > 0)
-        {
-            m_writer.Write(", ");
-        }
+		if (prevArg == NULL)
+		{
+
+		}
+		else if (prevArg->preprocessor == NULL && numArgs > 0)
+		{
+			m_writer.Write(", ");
+		}
+
+		if (argument->preprocessor)
+		{
+			
+			HLSLpreprocessor* pre = (HLSLpreprocessor*)argument->preprocessor;
+			m_writer.Write("\n");
+			if (pre->type == HLSLBaseType_PreProcessorIf)
+			{
+				OutputStatements(0, argument->preprocessor);
+				bcount = true;
+			}
+			else if (pre->type == HLSLBaseType_PreProcessorIfDef)
+			{
+				OutputStatements(0, argument->preprocessor);
+				bcount = true;
+			}
+			else if (pre->type == HLSLBaseType_PreProcessorElse)
+			{
+				OutputStatements(0, argument->preprocessor);
+				bcount = false;
+			}
+			else if (pre->type == HLSLBaseType_PreProcessorEndif)
+			{
+				OutputStatements(0, argument->preprocessor);
+				bcount = true;
+			}
+			else
+			{
+				bcount = false;
+			}
+
+		}
 
         switch (argument->modifier)
         {
@@ -1177,9 +1219,21 @@ void HLSLGenerator::OutputArguments(HLSLArgument* argument)
 
         const char * semantic = argument->sv_semantic ? argument->sv_semantic : argument->semantic;
 
-        OutputDeclaration(argument->type, argument->name, semantic, /*registerName=*/NULL, argument->defaultValue);
-        argument = argument->nextArgument;
-        ++numArgs;
+		if (argument->preprocessor)
+		{
+
+		}
+		else
+		{
+			OutputDeclaration(argument->type, argument->name, semantic, /*registerName=*/NULL, argument->defaultValue);
+
+			if(bcount)
+			++numArgs;
+		}
+
+		prevArg = argument;
+		argument = argument->nextArgument;
+		
     }
 }
 
@@ -1189,6 +1243,7 @@ static const char * GetAttributeName(HLSLAttributeType attributeType)
     if (attributeType == HLSLAttributeType_Branch) return "branch";
     if (attributeType == HLSLAttributeType_Flatten) return "flatten";
 	if (attributeType == HLSLAttributeType_NumThreads) return "numthreads";
+	
 
 	if (attributeType == HLSLAttributeType_MaxVertexCount) return "maxvertexcount";
 
@@ -1198,6 +1253,8 @@ static const char * GetAttributeName(HLSLAttributeType attributeType)
 	if (attributeType == HLSLAttributeType_OutputControlPoints) return "outputcontrolpoints";
 	if (attributeType == HLSLAttributeType_PatchConstantFunc) return "patchconstantfunc";
 	if (attributeType == HLSLAttributeType_MaxtessFactor) return "maxtessfactor";
+
+	if (attributeType == HLSLAttributeType_EarlyDepthStencil) return "earlydepthstencil";
 
     return NULL;
 }
@@ -1231,6 +1288,7 @@ void HLSLGenerator::OutputAttributes(int indent, HLSLAttribute* attribute)
 					m_writer.Write("%s", attribute->numGroupZstr);
 
 				m_writer.Write(")]");
+				m_writer.WriteLine(indent, "");
 
 			}
 			else if (String_Equal(attributeName, "maxvertexcount"))
@@ -1239,7 +1297,15 @@ void HLSLGenerator::OutputAttributes(int indent, HLSLAttribute* attribute)
 			}
 			else if (String_Equal(attributeName, "unroll"))
 			{
-				m_writer.WriteLineTagged(indent, attribute->fileName, attribute->line, "[%s(%d)]", attributeName, attribute->unrollCount);
+				if (attribute->unrollIdentifier)
+					m_writer.WriteLineTagged(indent, attribute->fileName, attribute->line, "[%s(%s)]", attributeName, attribute->unrollIdentifier);
+				else
+				{
+					if(attribute->unrollCount == 0)
+						m_writer.WriteLineTagged(indent, attribute->fileName, attribute->line, "[%s]", attributeName);
+					else
+						m_writer.WriteLineTagged(indent, attribute->fileName, attribute->line, "[%s(%d)]", attributeName, attribute->unrollCount);
+				}
 			}
 			else if (String_Equal(attributeName, "domain"))
 			{
@@ -1269,6 +1335,8 @@ void HLSLGenerator::OutputAttributes(int indent, HLSLAttribute* attribute)
 				m_writer.WriteLineTagged(indent, attribute->fileName, attribute->line, "[%s]", attributeName);
         }
 
+		
+
         attribute = attribute->nextAttribute;
     }
 }
@@ -1291,29 +1359,52 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
 			switch (preprocessor->type)
 			{
+			case HLSLBaseType_Empty:
+				m_writer.WriteLine(0, "%s", preprocessor->name);
+				break;
+			case HLSLBaseType_UserMacro:
+				{
+					m_writer.Write(0, "// USERMACRO: %s ", preprocessor->name);
+					HLSLExpression* hlslExp = preprocessor->userMacroExpression;
+					m_writer.Write(0, "[");
+
+					while (hlslExp)
+					{
+						if (hlslExp != preprocessor->userMacroExpression)
+						{
+							m_writer.Write(0, ",");
+						}
+
+						OutputExpression(hlslExp, false);
+						hlslExp = hlslExp->nextExpression;
+					}
+
+					m_writer.WriteLine(0, "]");		
+				}
+				break;
 			case HLSLBaseType_PreProcessorDefine:				
-				m_writer.Write(0, "#define %s", preprocessor->name);
+				m_writer.WriteLine(0, "#define %s", preprocessor->name);
 				break;
 			case HLSLBaseType_PreProcessorIf:
-				m_writer.Write(0, "#if %s", preprocessor->contents);
+				m_writer.WriteLine(0, "#if %s", preprocessor->contents);
 				break;
 			case HLSLBaseType_PreProcessorElif:
-				m_writer.Write(0, "#elif %s", preprocessor->contents);
+				m_writer.WriteLine(0, "#elif %s", preprocessor->contents);
 				break;
 			case HLSLBaseType_PreProcessorElse:
-				m_writer.Write(0, "#else");
+				m_writer.WriteLine(0, "#else");
 				break;
 			case HLSLBaseType_PreProcessorEndif:
 				m_writer.WriteLine(0, "#endif");
 				break;
 			case HLSLBaseType_PreProcessorIfDef:
-				m_writer.Write(0, "#ifdef %s", preprocessor->contents);
+				m_writer.WriteLine(0, "#ifdef %s", preprocessor->contents);
 				break;
 			case HLSLBaseType_PreProcessorIfnDef:
-				m_writer.Write(0, "#ifndef %s", preprocessor->contents);
+				m_writer.WriteLine(0, "#ifndef %s", preprocessor->contents);
 				break;
 			case HLSLBaseType_PreProcessorUndef: 
-				m_writer.Write(0, "#undef %s", preprocessor->contents);
+				m_writer.WriteLine(0, "#undef %s", preprocessor->contents);
 				break;
 			case HLSLBaseType_PreProcessorInclude: 
 				m_writer.WriteLine(0, "#include %s", preprocessor->contents);
@@ -1331,7 +1422,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
 					while (expression)
 					{
-						OutputExpression(expression);
+						OutputExpression(expression, true);
 						expression = expression->nextExpression;
 					}
 				}
@@ -1356,7 +1447,8 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
         else if (statement->nodeType == HLSLNodeType_Struct)
         {
             HLSLStruct* structure = static_cast<HLSLStruct*>(statement);
-            m_writer.WriteLineTagged(indent, structure->fileName, structure->line, "struct %s {", structure->name);
+            m_writer.WriteLineTagged(indent, structure->fileName, structure->line, "struct %s", structure->name);
+			m_writer.WriteLine(indent, "{");
             HLSLStructField* field = structure->field;
             while (field != NULL)
             {
@@ -1365,34 +1457,34 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 					if (field->preProcessor)
 					{
 						if(field->preProcessor->expression)
-							OutputExpression(field->preProcessor->expression);
+							OutputExpression(field->preProcessor->expression, true);
 						else
 						{
 							switch (field->preProcessor->type)
 							{
 							case HLSLBaseType_PreProcessorIf: 
-								m_writer.Write(0, "#if %s", field->preProcessor->contents);
+								m_writer.WriteLine(0, "#if %s", field->preProcessor->contents);
 								break;
 							case HLSLBaseType_PreProcessorElif:
-								m_writer.Write(0, "#elif %s", field->preProcessor->contents);
+								m_writer.WriteLine(0, "#elif %s", field->preProcessor->contents);
 								break;
 							case HLSLBaseType_PreProcessorElse:
-								m_writer.Write(0, "#else");
+								m_writer.WriteLine(0, "#else");
 								break;
 							case HLSLBaseType_PreProcessorEndif:
 								m_writer.WriteLine(0, "#endif");
 								break;
 							case HLSLBaseType_PreProcessorIfDef:
-								m_writer.Write(0, "#ifdef %s", field->preProcessor->contents);
+								m_writer.WriteLine(0, "#ifdef %s", field->preProcessor->contents);
 								break;
 							case HLSLBaseType_PreProcessorIfnDef:
-								m_writer.Write(0, "#ifndef %s", field->preProcessor->contents);
+								m_writer.WriteLine(0, "#ifndef %s", field->preProcessor->contents);
 								break;
 							case HLSLBaseType_PreProcessorUndef:
-								m_writer.Write(0, "#undef %s", field->preProcessor->contents);
+								m_writer.WriteLine(0, "#undef %s", field->preProcessor->contents);
 								break;
 							case HLSLBaseType_PreProcessorInclude:
-								m_writer.Write(0, "#include %s", field->preProcessor->contents);
+								m_writer.WriteLine(0, "#include %s", field->preProcessor->contents);
 								break;
 							case HLSLBaseType_PreProcessorLine:
 								
@@ -1425,7 +1517,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 			//PrintPreprocessors(textureState->line);
 			m_writer.BeginLine(indent, textureState->fileName, textureState->line);
 
-			switch (textureState->baseType)
+			switch (textureState->type.baseType)
 			{
 				case HLSLBaseType_Texture1D :
 					m_writer.Write("Texture1D");
@@ -1454,37 +1546,65 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 				case HLSLBaseType_TextureCubeArray:
 					m_writer.Write("TextureCubeArray");
 					break;
+				case HLSLBaseType_RWTexture1D:
+					m_writer.Write("RWTexture1D");
+					break;
+				case HLSLBaseType_RWTexture1DArray:
+					m_writer.Write("RWTexture1DArray");
+					break;
+				case HLSLBaseType_RWTexture2D:
+					m_writer.Write("RWTexture2D");
+					break;
+				case HLSLBaseType_RWTexture2DArray:
+					m_writer.Write("RWTexture2DArray");
+					break;
+				case HLSLBaseType_RWTexture3D:
+					m_writer.Write("RWTexture3D");
+					break;
+				case HLSLBaseType_RasterizerOrderedTexture1D:
+					m_writer.Write("RasterizerOrderedTexture1D");
+					break;
+				case HLSLBaseType_RasterizerOrderedTexture1DArray:
+					m_writer.Write("RasterizerOrderedTexture1DArray");
+					break;
+				case HLSLBaseType_RasterizerOrderedTexture2D:
+					m_writer.Write("RasterizerOrderedTexture2D");
+					break;
+				case HLSLBaseType_RasterizerOrderedTexture2DArray:
+					m_writer.Write("RasterizerOrderedTexture2DArray");
+					break;
+				case HLSLBaseType_RasterizerOrderedTexture3D:
+					m_writer.Write("RasterizerOrderedTexture3D");
+					break;
 				default:
 					break;
 			}
-
-			switch (textureState->dataType)
+			
+			if (textureState->type.elementType != HLSLBaseType_Unknown)
 			{
-			case HLSLBaseType_Float:
-				m_writer.Write("<float");
-				break;
-			case HLSLBaseType_Float2:
-				m_writer.Write("<float2");
-				break;
-			case HLSLBaseType_Float3:
-				m_writer.Write("<float3");
-				break;
-			case HLSLBaseType_Float4:
-				m_writer.Write("<float4");
-				break;
-			default:
-				break;
+				m_writer.Write("<");
+				m_writer.Write("%s", getElementTypeAsStr(textureState->type));
 			}
 
-			if (textureState->baseType == HLSLBaseType_Texture2DMS || textureState->baseType == HLSLBaseType_Texture2DMSArray)
+
+			
+			if (textureState->type.baseType == HLSLBaseType_Texture2DMS || textureState->type.baseType == HLSLBaseType_Texture2DMSArray)
 			{
 				if(textureState->sampleIdentifier)
 					m_writer.Write(", %s", textureState->sampleIdentifier);
 				else
-					m_writer.Write(", %d", textureState->sampleCount);
+					m_writer.Write(", %d", textureState->sampleCount);				
+			}
 
+
+			if (textureState->type.elementType != HLSLBaseType_Unknown || 			
+				textureState->type.baseType == HLSLBaseType_Texture2DMS ||
+				textureState->type.baseType == HLSLBaseType_Texture2DMSArray
+				)
+			{
 				m_writer.Write(">");
 			}
+			
 
 			
 
@@ -1521,87 +1641,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 			}
 
 			m_writer.EndLine(";");
-		}
-		else if (statement->nodeType == HLSLNodeType_RWTextureState)
-		{
-			HLSLRWTextureState* textureState = static_cast<HLSLRWTextureState*>(statement);
-
-			//PrintPreprocessors(textureState->line);
-			m_writer.BeginLine(indent, textureState->fileName, textureState->line);
-
-			switch (textureState->baseType)
-			{
-			case HLSLBaseType_RWTexture1D:
-				m_writer.Write("RWTexture1D");
-				break;
-			case HLSLBaseType_RWTexture1DArray:
-				m_writer.Write("RWTexture1DArray");
-				break;
-			case HLSLBaseType_RWTexture2D:
-				m_writer.Write("RWTexture2D");
-				break;
-			case HLSLBaseType_RWTexture2DArray:
-				m_writer.Write("RWTexture2DArray");
-				break;
-			case HLSLBaseType_RWTexture3D:
-				m_writer.Write("RWTexture3D");
-				break;			
-			default:
-				break;
-			}
-
-			switch (textureState->dataType)
-			{
-			case HLSLBaseType_Float:
-				m_writer.Write("<float>");
-				break;
-			case HLSLBaseType_Float2:
-				m_writer.Write("<float2>");
-				break;
-			case HLSLBaseType_Float3:
-				m_writer.Write("<float3>");
-				break;
-			case HLSLBaseType_Float4:
-				m_writer.Write("<float4>");
-				break;
-			default:
-				break;
-			}
-
-			m_writer.Write(" %s", textureState->name);
-
-			if (textureState->bArray)
-			{
-				for (int i = 0; i < (int)textureState->arrayDimension; i++)
-				{
-					if (!String_Equal(textureState->arrayIdentifier[i], ""))
-					{
-						m_writer.Write("[%s]", textureState->arrayIdentifier);
-					}
-					else if (textureState->arrayIndex[i] > 0)
-					{
-						m_writer.Write("[%u]", textureState->arrayIndex[i]);
-					}
-					else
-					{
-						m_writer.Write("[]");
-					}
-				}
-			}
-
-			if (textureState->registerName != NULL)
-			{
-				if (textureState->registerSpaceName != NULL)
-				{
-					m_writer.Write(" : register(%s", textureState->registerName);
-					m_writer.Write(", %s)", textureState->registerSpaceName);
-				}
-				else
-					m_writer.Write(" : register(%s)", textureState->registerName);
-			}
-
-			m_writer.EndLine(";");
-		}
+		}	
 		else if (statement->nodeType == HLSLNodeType_GroupShared)
 		{
 			HLSLGroupShared* pGroupShared = static_cast<HLSLGroupShared*>(statement);
@@ -1619,7 +1659,15 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
 			if (samplerState->bStructured)
 			{
-				m_writer.WriteLineTagged(indent, samplerState->fileName, samplerState->line, "SamplerState %s {", samplerState->name);
+				if (samplerState->IsComparisionState)
+				{
+					m_writer.WriteLineTagged(indent, samplerState->fileName, samplerState->line, "SamplerComparisonState %s {", samplerState->name);
+				}
+				else
+				{
+					m_writer.WriteLineTagged(indent, samplerState->fileName, samplerState->line, "SamplerState %s {", samplerState->name);
+				}
+				
 				HLSLSamplerStateExpression* expression = samplerState->expression;
 				
 				while (expression != NULL)
@@ -1638,7 +1686,23 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 			}
 			else
 			{
-				m_writer.Write("SamplerState %s", samplerState->name);
+				if (samplerState->IsComparisionState)
+				{
+					m_writer.Write("SamplerComparisonState %s", samplerState->name);
+				}
+				else
+				{
+					m_writer.Write("SamplerState %s", samplerState->name);
+				}
+
+			
+
+				if (samplerState->type.array)
+				{
+					m_writer.Write("[");
+					OutputExpression(samplerState->type.arraySize, false);
+					m_writer.Write("]");
+				}
 
 				if (samplerState->registerName != NULL)
 				{
@@ -1655,146 +1719,52 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 				m_writer.EndLine(";");
 			}
 		}
-		else if (statement->nodeType == HLSLNodeType_RWBuffer)
+		else if (statement->nodeType == HLSLNodeType_Buffer)
 		{
-			HLSLRWBuffer* buffer = static_cast<HLSLRWBuffer*>(statement);
-			HLSLDeclaration* field = buffer->field;
 
-			//PrintPreprocessors(buffer->line);			
+			HLSLBuffer* buffer = static_cast<HLSLBuffer*>(statement);
+			HLSLDeclaration* field = buffer->field;
+			
 			m_writer.BeginLine(indent, buffer->fileName, buffer->line);
-			m_writer.Write("RWBuffer<%s> %s", buffer->elementType, buffer->name);
-
-			if (buffer->registerName != NULL)
+			
+			switch (buffer->type.baseType)
 			{
-				if (buffer->registerSpaceName != NULL)
-				{
-					m_writer.Write(" : register(%s", buffer->registerName);
-					m_writer.Write(", %s)", buffer->registerSpaceName);
-				}
-				else
-					m_writer.Write(" : register(%s)", buffer->registerName);
-			}
-			
-			m_writer.EndLine(";");
-						
-		}
-		else if (statement->nodeType == HLSLNodeType_RWStructuredBuffer)
-		{
-			HLSLRWStructuredBuffer* buffer = static_cast<HLSLRWStructuredBuffer*>(statement);
-			HLSLDeclaration* field = buffer->field;
-
-			//PrintPreprocessors(buffer->line);
-
-			
-				m_writer.BeginLine(indent, buffer->fileName, buffer->line);
-
-				if (buffer->elementType)
-					m_writer.Write("RWStructuredBuffer<%s> %s", buffer->elementType, buffer->name);
-				else
-				{
+				case HLSLBaseType_CBuffer:
+					m_writer.Write("cbuffer");
+					break;
+				case HLSLBaseType_TBuffer:
+					m_writer.Write("tbuffer");
+					break;
+				case HLSLBaseType_ConstantBuffer:									
+					m_writer.Write("ConstantBuffer");
+					break;
+				case HLSLBaseType_StructuredBuffer:
+					m_writer.Write("StructuredBuffer");
+					break;
+				case HLSLBaseType_PureBuffer:
+					m_writer.Write("Buffer");
+					break;
+				case HLSLBaseType_RWBuffer:
+					m_writer.Write("RWBuffer");
+					break;
+				case HLSLBaseType_RWStructuredBuffer:
 					m_writer.Write("RWStructuredBuffer");
-
-					switch (buffer->dataType)
-					{
-					case HLSLBaseType_Float:
-						m_writer.Write("<float>");
-						break;
-					case HLSLBaseType_Float2:
-						m_writer.Write("<float2>");
-						break;
-					case HLSLBaseType_Float3:
-						m_writer.Write("<float3>");
-						break;
-					case HLSLBaseType_Float4:
-						m_writer.Write("<float4>");
-						break;
-					case HLSLBaseType_Bool:
-						m_writer.Write("<bool>");
-						break;
-					case HLSLBaseType_Bool2:
-						m_writer.Write("<bool2>");
-						break;
-					case HLSLBaseType_Bool3:
-						m_writer.Write("<bool3>");
-						break;
-					case HLSLBaseType_Bool4:
-						m_writer.Write("<bool4>");
-						break;
-					case HLSLBaseType_Int:
-						m_writer.Write("<int>");
-						break;
-					case HLSLBaseType_Int2:
-						m_writer.Write("<int2>");
-						break;
-					case HLSLBaseType_Int3:
-						m_writer.Write("<int3>");
-						break;
-					case HLSLBaseType_Int4:
-						m_writer.Write("<int4>");
-						break;
-					case HLSLBaseType_Uint:
-						m_writer.Write("<uint>");
-						break;
-					case HLSLBaseType_Uint2:
-						m_writer.Write("<uint2>");
-						break;
-					case HLSLBaseType_Uint3:
-						m_writer.Write("<uint3>");
-						break;
-					case HLSLBaseType_Uint4:
-						m_writer.Write("<uint4>");
-						break;
-					default:
-						break;
-					}
-
-					m_writer.Write(" %s", buffer->name);
-				}
-				
-
-				if (buffer->registerName != NULL)
-				{
-					if (buffer->registerSpaceName != NULL)
-					{
-						m_writer.Write(" : register(%s", buffer->registerName);
-						m_writer.Write(", %s)", buffer->registerSpaceName);
-					}
-					else
-						m_writer.Write(" : register(%s)", buffer->registerName);
-				}
-
-				m_writer.EndLine(";");
-						
-		}
-		else if (statement->nodeType == HLSLNodeType_ConstantBuffer)
-		{
-			HLSLConstantBuffer* buffer = static_cast<HLSLConstantBuffer*>(statement);
-			HLSLDeclaration* field = buffer->field;
-
-			//PrintPreprocessors(buffer->line);
-
-			m_writer.BeginLine(indent, buffer->fileName, buffer->line);
-
-			if (buffer->elementType)
-			{
-				m_writer.Write("ConstantBuffer<%s> %s", buffer->elementType, buffer->name);
-
-				if (buffer->registerName != NULL)
-				{
-					if (buffer->registerSpaceName != NULL)
-					{
-						m_writer.Write(" : register(%s", buffer->registerName);
-						m_writer.Write(", %s)", buffer->registerSpaceName);
-					}
-					else
-						m_writer.Write(" : register(%s)", buffer->registerName);
-				}
-				
-				m_writer.WriteLine(indent, ";");
+					break;
+				case HLSLBaseType_ByteAddressBuffer:
+					m_writer.Write("ByteAddressBuffer");
+					break;
+				case HLSLBaseType_RWByteAddressBuffer:
+					m_writer.Write("RWByteAddressBuffer");
+					break;
+				default:
+					break;
 			}
-			else
+
+
+			//handle cbuffer
+			if (buffer->type.baseType == HLSLBaseType_CBuffer)
 			{
-				m_writer.Write("cbuffer %s", buffer->name);
+				m_writer.Write(" %s", buffer->name);
 
 				if (buffer->registerName != NULL)
 				{
@@ -1810,7 +1780,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 				m_writer.EndLine("");
 				m_writer.EndLine("{");
 
-				m_isInsideBuffer = true;				
+				m_isInsideBuffer = true;
 
 				while (field != NULL)
 				{
@@ -1829,33 +1799,40 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 				m_writer.WriteLine(indent, "};");
 				m_writer.EndLine("");
 			}
-		}
-		else if (statement->nodeType == HLSLNodeType_StructuredBuffer)
-		{
-			HLSLStructuredBuffer* buffer = static_cast<HLSLStructuredBuffer*>(statement);
-			HLSLDeclaration* field = buffer->field;
-
-			//PrintPreprocessors(buffer->line);
-
-			m_writer.BeginLine(indent, buffer->fileName, buffer->line);
-
-			m_writer.Write("StructuredBuffer<%s> %s", buffer->elementType, buffer->name);
-			
-
-			if (buffer->registerName != NULL)
+			else
 			{
-				if (buffer->registerSpaceName != NULL)
+				if(buffer->type.elementType != HLSLBaseType_Unknown)
+				m_writer.Write("<%s>", getElementTypeAsStr(buffer->type));
+
+				m_writer.Write(" %s", buffer->name);
+
+				if (buffer->bArray)
 				{
-					m_writer.Write(" : register(%s", buffer->registerName);
-					m_writer.Write(", %s)", buffer->registerSpaceName);
+					for (int i = 0; i < (int)buffer->arrayDimension; i++)
+					{
+						if (!String_Equal(buffer->arrayIdentifier[i], ""))
+							m_writer.Write("[%s]", buffer->arrayIdentifier);
+						else if (buffer->arrayIndex[i] > 0)
+							m_writer.Write("[%u]", buffer->arrayIndex[i]);
+						else
+							m_writer.Write("[]");
+					}
 				}
-				else
-					m_writer.Write(" : register(%s)", buffer->registerName);
-			}
 
-			m_writer.EndLine(";");	
+				if (buffer->registerName != NULL)
+				{
+					if (buffer->registerSpaceName != NULL)
+					{
+						m_writer.Write(" : register(%s", buffer->registerName);
+						m_writer.Write(", %s)", buffer->registerSpaceName);
+					}
+					else
+						m_writer.Write(" : register(%s)", buffer->registerName);
+				}
 
-		}
+				m_writer.EndLine(";");
+			}		
+		}			
         else if (statement->nodeType == HLSLNodeType_Function)
         {
             HLSLFunction* function = static_cast<HLSLFunction*>(statement);
@@ -1896,7 +1873,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
 			//PrintPreprocessors(statement->line);
             m_writer.BeginLine(indent, statement->fileName, statement->line);
-            OutputExpression(expressionStatement->expression);
+            OutputExpression(expressionStatement->expression, true);
             m_writer.EndLine(";");
         }
         else if (statement->nodeType == HLSLNodeType_ReturnStatement)
@@ -1908,7 +1885,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
             {				
                 m_writer.BeginLine(indent, returnStatement->fileName, returnStatement->line);
                 m_writer.Write("return ");
-                OutputExpression(returnStatement->expression);
+                OutputExpression(returnStatement->expression, true);
                 m_writer.EndLine(";");
             }
             else
@@ -1940,17 +1917,41 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
             m_writer.BeginLine(indent, ifStatement->fileName, ifStatement->line);
             m_writer.Write("if (");
-            OutputExpression(ifStatement->condition);
+            OutputExpression(ifStatement->condition, true);
             m_writer.Write(")");
             m_writer.EndLine();
-			m_writer.WriteLine(indent, "{");
-            OutputStatements(indent + 1, ifStatement->statement);
-            m_writer.WriteLine(indent, "}");
+
+
+			if (ifStatement->statement != NULL)
+			{
+				//if there are contents in brace 
+
+				if (ifStatement->statement->nodeType == HLSLNodeType_Preprocessor)
+				{
+					OutputStatements(indent + 1, ifStatement->statement);
+				}
+				else
+				{
+					m_writer.WriteLine(indent, "{");
+					OutputStatements(indent + 1, ifStatement->statement);
+					m_writer.WriteLine(indent, "}");
+				}
+
+			}
+			else
+			{
+				m_writer.WriteLine(indent, "{}");
+			}
+
+
+			
+
+			
 
 			for (int i = 0; i< ifStatement->elseifStatementCounter; i++)
 			{
 				m_writer.Write(indent, "else if (");
-				OutputExpression(ifStatement->elseifStatement[i]->condition);
+				OutputExpression(ifStatement->elseifStatement[i]->condition, true);
 				m_writer.Write(")");
 				m_writer.EndLine();
 				m_writer.WriteLine(indent, "{");
@@ -1966,30 +1967,64 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
                 m_writer.WriteLine(indent, "}");
             }
         }
+		else if (statement->nodeType == HLSLNodeType_SwitchStatement)
+		{
+			HLSLSwitchStatement* switchStatement = static_cast<HLSLSwitchStatement*>(statement);
+
+			m_writer.Write(indent, "switch (");
+			OutputExpression(switchStatement->condition, false);
+			m_writer.Write(")\n");
+
+			m_writer.WriteLine(indent, "{");
+
+			//print cases
+			for (int i = 0; i< switchStatement->caseCounter; i++)
+			{
+				m_writer.Write(indent + 1, "case ");
+
+
+				OutputExpression(switchStatement->caseNumber[i], false);
+
+				m_writer.Write(":\n");
+
+				m_writer.WriteLine(indent + 1, "{");
+				OutputStatements(indent + 2, switchStatement->caseStatement[i]);
+				m_writer.WriteLine(indent + 1, "}");
+			}
+
+			//print default
+
+			m_writer.Write(indent + 1, "default:\n");
+			m_writer.WriteLine(indent + 1, "{");
+			OutputStatements(indent + 2, switchStatement->caseDefault);
+			m_writer.WriteLine(indent + 1, "}");
+
+			m_writer.WriteLine(indent, "}");
+		}
         else if (statement->nodeType == HLSLNodeType_ForStatement)
         {
             HLSLForStatement* forStatement = static_cast<HLSLForStatement*>(statement);
 
 			//PrintPreprocessors(forStatement->line);
-            m_writer.BeginLine(indent, forStatement->fileName, forStatement->line);
-            m_writer.Write("for (");
+            //m_writer.BeginLine(indent, forStatement->fileName, forStatement->line);
+            m_writer.Write(indent, "for (");
 
 			if(forStatement->initialization)
 				OutputDeclaration(forStatement->initialization);
 			else if(forStatement->initializationWithoutDeclaration)
-				OutputExpression(forStatement->initializationWithoutDeclaration);			
+				OutputExpression(forStatement->initializationWithoutDeclaration, true);
 
             m_writer.Write("; ");
-            OutputExpression(forStatement->condition);
+            OutputExpression(forStatement->condition, true);
             m_writer.Write("; ");
-            OutputExpression(forStatement->increment);
+            OutputExpression(forStatement->increment, true);
             m_writer.Write(")");
             m_writer.EndLine();
 
 			m_writer.WriteLine(indent, "{");
             OutputStatements(indent + 1, forStatement->statement);
             m_writer.WriteLine(indent, "}");
-        }
+        }		
 		else if (statement->nodeType == HLSLNodeType_WhileStatement)
 		{
 			HLSLWhileStatement* whileStatement = static_cast<HLSLWhileStatement*>(statement);
@@ -1998,7 +2033,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 			m_writer.BeginLine(indent, whileStatement->fileName, whileStatement->line);
 			m_writer.Write("while (");
 			
-			OutputExpression(whileStatement->condition);
+			OutputExpression(whileStatement->condition, true);
 			m_writer.Write(") {");
 			m_writer.EndLine();
 			OutputStatements(indent + 1, whileStatement->statement);
@@ -2169,15 +2204,24 @@ void HLSLGenerator::OutputDeclarationType(const HLSLType& type)
         m_writer.Write("sample ");
     }
 
-    m_writer.Write("%s ", typeName);
+	if (type.textureTypeName)
+	{
+		if (type.typeName)
+		{
+			m_writer.Write("%s<%s, %s> ", typeName, type.textureTypeName, type.typeName);
+		}
+		else
+		{
+			m_writer.Write("%s<%s> ", typeName, type.textureTypeName);
+		}
+	}
+	else
+		m_writer.Write("%s ", typeName);
 }
 
 void HLSLGenerator::OutputDeclarationBody(const HLSLType& type, const char* name, const char* semantic/*=NULL*/, const char* registerName/*=NULL*/, HLSLExpression * assignment/*=NULL*/)
 {
     m_writer.Write("%s", name);
-
-
-	
 
     if (type.array)
     {
@@ -2191,7 +2235,7 @@ void HLSLGenerator::OutputDeclarationBody(const HLSLType& type, const char* name
         m_writer.Write("[");
         if (type.arraySize != NULL)
         {
-            OutputExpression(type.arraySize);
+            OutputExpression(type.arraySize, true);
         }
         m_writer.Write("]");
     }
@@ -2222,9 +2266,15 @@ void HLSLGenerator::OutputDeclarationBody(const HLSLType& type, const char* name
             OutputExpressionList(assignment);
             m_writer.Write(" }");
         }
-        else
+		else if(assignment->nextExpression)
+		{
+			m_writer.Write("{ ");
+			OutputExpressionList(assignment);
+			m_writer.Write(" }");
+		}
+        else 
         {
-            OutputExpression(assignment);
+            OutputExpression(assignment, true);
         }
     }
 }

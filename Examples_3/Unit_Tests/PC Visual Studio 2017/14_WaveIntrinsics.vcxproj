@@ -26,10 +26,10 @@
     <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\magnify.vert" />
     <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.frag" />
     <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.vert" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\magnify.frag" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\magnify.vert" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\wave.frag" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCVulkan\wave.vert" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.frag" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.vert" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.frag" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A0DFEBA1-D274-4421-AE87-ABB303CD2516}</ProjectGuid>
@@ -120,8 +120,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -162,8 +161,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -206,8 +204,7 @@ xcopy "$(WDKBinRoot_x64)\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -252,8 +249,7 @@ xcopy "$(WDKBinRoot_x64)\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

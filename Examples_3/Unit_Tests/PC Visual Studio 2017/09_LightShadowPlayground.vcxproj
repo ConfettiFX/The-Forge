@@ -42,18 +42,18 @@
     <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\shadowMapPass.vert" />
     <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\skybox.frag" />
     <None Include="..\src\09_LightShadowPlayground\Shaders\PCDX12\skybox.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\blurESM.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\blurESM.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\finalPass.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\finalPass.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\gbuffer.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\gbuffer.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\sdfSimple.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\sdfSimple.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\shadowMapPass.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\shadowMapPass.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\skybox.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\PCVulkan\skybox.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\finalPass.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\finalPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\gbuffer.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\gbuffer.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSimple.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSimple.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shadowMapPass.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shadowMapPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{57CC1131-660E-458B-A41F-29D60F3ECE41}</ProjectGuid>
@@ -177,8 +177,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -219,8 +218,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -305,8 +303,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -351,8 +348,7 @@
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

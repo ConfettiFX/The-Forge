@@ -87,8 +87,30 @@ struct Intrinsic
 		argument[3].type.baseType       = arg4;
 		argument[3].type.flags          = HLSLTypeFlag_Const;
 	}
+
+	explicit Intrinsic(const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4, HLSLBaseType arg5)
+	{
+		function.name = name;
+		function.returnType.baseType = returnType;
+		function.argument = argument + 0;
+		function.numArguments = 5;
+		argument[0].type.baseType = arg1;
+		argument[0].type.flags = HLSLTypeFlag_Const;
+		argument[0].nextArgument = argument + 1;
+		argument[1].type.baseType = arg2;
+		argument[1].type.flags = HLSLTypeFlag_Const;
+		argument[1].nextArgument = argument + 2;
+		argument[2].type.baseType = arg3;
+		argument[2].type.flags = HLSLTypeFlag_Const;
+		argument[2].nextArgument = argument + 3;
+		argument[3].type.baseType = arg4;
+		argument[3].type.flags = HLSLTypeFlag_Const;
+		argument[4].type.baseType = arg5;
+		argument[4].type.flags = HLSLTypeFlag_Const;
+	}
+
 	HLSLFunction    function;
-	HLSLArgument    argument[4];
+	HLSLArgument    argument[5];
 };
 
 enum NumericType
@@ -483,6 +505,9 @@ const Intrinsic _intrinsic[] =
 		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Uint4 ),
 
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float1x2),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float1x3),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float1x4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float2),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float3),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4),
@@ -492,6 +517,9 @@ const Intrinsic _intrinsic[] =
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4x3),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4x2),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half1x2),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half1x3),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half1x4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half2),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half3),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half4),
@@ -500,20 +528,39 @@ const Intrinsic _intrinsic[] =
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half4x4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half4x2),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool1x2),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool1x3),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool1x4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int1x2),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int1x3),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int1x4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int2),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int3),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint1x2),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint1x3),
+		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint1x4),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint2),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint3),
 		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint4),
+
+		/*
+		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Float),
+		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Half),
+		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Bool),
+		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Int),
+		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Unknown),
+		*/
 
 		INTRINSIC_FLOAT1_FUNCTION( "asin" ),
 		INTRINSIC_FLOAT1_FUNCTION( "atan" ),
 		INTRINSIC_FLOAT2_FUNCTION( "atan2" ),
 		INTRINSIC_FLOAT3_FUNCTION( "clamp" ),
 		INTRINSIC_FLOAT1_FUNCTION( "cos" ),
+		INTRINSIC_FLOAT1_FUNCTION( "tan" ),
 
 		INTRINSIC_FLOAT3_FUNCTION( "lerp" ),
 		INTRINSIC_FLOAT3_FUNCTION( "smoothstep" ),
@@ -543,9 +590,29 @@ const Intrinsic _intrinsic[] =
 		Intrinsic( "dot", HLSLBaseType_Half,   HLSLBaseType_Half3,   HLSLBaseType_Half3  ),
 		Intrinsic( "dot", HLSLBaseType_Half,   HLSLBaseType_Half4,   HLSLBaseType_Half4  ),
 
+		Intrinsic( "distance", HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float2),
 		Intrinsic( "distance", HLSLBaseType_Float,   HLSLBaseType_Float3,   HLSLBaseType_Float3),
 
+		Intrinsic( "determinant", HLSLBaseType_Float, HLSLBaseType_Float2x2),
+		Intrinsic( "determinant", HLSLBaseType_Float, HLSLBaseType_Float3x3),
+		Intrinsic( "determinant", HLSLBaseType_Float, HLSLBaseType_Float4x4),
+
 		Intrinsic( "cross", HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float3 ),
+
+
+
+		Intrinsic("f16tof32", HLSLBaseType_Float, HLSLBaseType_Uint),
+		Intrinsic("f16tof32", HLSLBaseType_Float2, HLSLBaseType_Uint2),
+		Intrinsic("f16tof32", HLSLBaseType_Float3, HLSLBaseType_Uint3),
+		Intrinsic("f16tof32", HLSLBaseType_Float4, HLSLBaseType_Uint4),
+
+		Intrinsic("f32tof16", HLSLBaseType_Uint, HLSLBaseType_Float),
+		Intrinsic("f32tof16", HLSLBaseType_Uint2, HLSLBaseType_Float2),
+		Intrinsic("f32tof16", HLSLBaseType_Uint3, HLSLBaseType_Float3),
+		Intrinsic("f32tof16", HLSLBaseType_Uint4, HLSLBaseType_Float4),
+
+		Intrinsic("NonUniformResourceIndex", HLSLBaseType_Uint, HLSLBaseType_Uint),
+			
 
 
 		INTRINSIC_VOID_FUNCTION("GroupMemoryBarrierWithGroupSync"),
@@ -682,6 +749,54 @@ const Intrinsic _intrinsic[] =
 		Intrinsic("Load", HLSLBaseType_Int4, HLSLBaseType_Int4),
 
 
+
+		//Buffer.Store (RWByteAddressBuffer)		
+
+		Intrinsic("Store", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),	
+		Intrinsic("Store", HLSLBaseType_Void,  HLSLBaseType_Int, HLSLBaseType_Int),
+
+
+		//Texture1D
+		//UINT MipLevel, UINT Width, UINT NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		//UINT Width
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint),
+		//UINT MipLevel, float Width, float NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float),
+		//float Width
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float),
+		
+		//Texture1DArray
+		//UINT MipLevel, UINT Width, UINT Elements, UINT NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		//UINT Width, UINT Elements
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		//UINT MipLevel, float Width, float Elements, float NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
+		//float Width, float Elements
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float),
+
+		//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
+
+		//Texture2DArray
+		//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		//UINT Width, UINT Height, UINT Elements
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		//UINT MipLevel, float Width, float Height, float Elements, float NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
+		//float Width, float Height, float Elements
+		//float Width, float Height, float Depth
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
+
+
+		//TextureCube
+		//UINT MipLevel, float Width, float Height, UINT NumberOfLevels
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
+
+		//Texture2DMSArray
+		//float Width, float Height, float Elements, float Samples
+		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
 
 
 		INTRINSIC_FLOAT2_FUNCTION( "max" ),
@@ -831,6 +946,95 @@ const Intrinsic _intrinsic[] =
 		INTRINSIC_FLOAT1_FUNCTION("isnan"),
 		INTRINSIC_FLOAT1_FUNCTION("isinf"),
 
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float2x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float3x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half2x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half3x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half4x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half4x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x4),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint2),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint3),
+		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint4),
+
+
+
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float2x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float3x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half2x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half3x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half4x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half4x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x4),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint2),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint3),
+		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint4),
+		
+			
+		Intrinsic("countbits", HLSLBaseType_Uint, HLSLBaseType_Uint),
+
 		Intrinsic("asuint",    HLSLBaseType_Uint, HLSLBaseType_Float),
 		Intrinsic("tex2D",     HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2),
 		Intrinsic("tex2Dproj", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4),
@@ -903,6 +1107,54 @@ const Intrinsic _intrinsic[] =
 		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3),
 		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3),
 
+		//Texture1D
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
+
+		//Texture1DArray
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int),
+			
+		//Texture2D
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2),
+
+		//Texture2DArray
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2),
+
+		//TextureCube
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3),
+
+		//TextureCubeArray
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
+		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3),
+
+		//Texture1D
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
+
+		//Texture1DArray
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int),
+			
+		//Texture2D
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2),
+
+		//Texture2DArray
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2),
+
+		//TextureCube
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3),
+
+		//TextureCubeArray
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
+		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3),
+
 
 		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
 		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int),
@@ -912,6 +1164,30 @@ const Intrinsic _intrinsic[] =
 		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int),
 		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
 		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int),
+			
+		//Texture1D
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
+
+		//Texture1DArray
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
+
+		//Texture2D
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2),
+
+		//Texture2DArray
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2),
+
+		//Texture3D //TextureCube
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3),
+		
+
+		//TextureCubeArray
+		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3),
 
 
 		Intrinsic("GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2),
@@ -1003,6 +1279,403 @@ const Intrinsic _intrinsic[] =
 		Intrinsic( "mad", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2 ),
 		Intrinsic( "mad", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3 ),
 		Intrinsic( "mad", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4 ),
+
+		Intrinsic("refract", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("refract", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float),
+		Intrinsic("refract", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float),
+
+		Intrinsic("refract", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half),
+		Intrinsic("refract", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half),
+		Intrinsic("refract", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half),
+
+		//Shader Model 6.0
+		Intrinsic("WaveGetLaneCount", HLSLBaseType_Uint),
+		Intrinsic("WaveGetLaneIndex", HLSLBaseType_Uint),
+		Intrinsic("WaveIsHelperLane", HLSLBaseType_Bool),
+
+		Intrinsic("WaveActiveAnyTrue", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveAllTrue", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveBallot", HLSLBaseType_Uint4, HLSLBaseType_Bool),
+		Intrinsic("WaveBallot", HLSLBaseType_Uint4, HLSLBaseType_Bool),
+
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool, HLSLBaseType_Bool, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool2, HLSLBaseType_Bool2, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool3, HLSLBaseType_Bool3, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool4, HLSLBaseType_Bool4, HLSLBaseType_Uint),
+
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Uint),
+
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Uint),
+
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint),
+
+		Intrinsic("WaveReadLaneAt", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined, HLSLBaseType_Uint),
+
+
+
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float4, HLSLBaseType_Float4),
+
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveReadLaneFirst", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+
+
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool2),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool3),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool4),
+
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float2),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float3),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float4),
+
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint2),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint3),
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_UserDefined),
+
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool2),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool3),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool4),
+
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float2),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float3),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float4),
+
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint2),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint3),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_UserDefined),
+
+
+		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		//WaveActiveCountBits 
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
+
+		/*
+		Intrinsic("WaveActiveMax", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("WaveActiveMax", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("WaveActiveMax", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveMax", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WaveActiveMax", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveActiveMax", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("WaveActiveMin", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("WaveActiveMin", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("WaveActiveMin", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveMin", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WaveActiveMin", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveActiveMin", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveActiveProduct", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("WaveActiveSum", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("WaveActiveSum", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("WaveActiveSum", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WaveActiveSum", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WaveActiveSum", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WaveActiveSum", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+
+		Intrinsic("WaveGetLaneIndex", HLSLBaseType_Uint, HLSLBaseType_Bool),
+
+		/*
+		Intrinsic("WavePrefixSum", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("WavePrefixSum", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("WavePrefixSum", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WavePrefixSum", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WavePrefixSum", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WavePrefixSum", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("WavePrefixProduct", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		Intrinsic("WaveIsHelperLane", HLSLBaseType_Bool),
+		Intrinsic("WaveIsFirstLane", HLSLBaseType_Bool),
+					
+		/*
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool, HLSLBaseType_Bool, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool2, HLSLBaseType_Bool2, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool3, HLSLBaseType_Bool3, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool4, HLSLBaseType_Bool4, HLSLBaseType_Uint),
+		*/
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Uint),
+		
+
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Uint),
+
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint),
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint),
+
+		Intrinsic("QuadReadLaneAt", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined, HLSLBaseType_Uint),
+
+		/*
+		Intrinsic("QuadSwapX", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("QuadSwapX", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("QuadSwapX", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("QuadSwapX", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("QuadSwapX", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("QuadSwapX", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("QuadSwapX", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("QuadSwapX", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("QuadSwapX", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("QuadSwapX", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("QuadSwapX", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("QuadSwapX", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("QuadSwapX", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("QuadSwapX", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("QuadSwapX", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("QuadSwapX", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("QuadSwapX", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("QuadSwapY", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("QuadSwapY", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("QuadSwapY", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("QuadSwapY", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("QuadSwapY", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("QuadSwapY", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("QuadSwapY", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("QuadSwapY", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("QuadSwapY", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("QuadSwapY", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("QuadSwapY", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("QuadSwapY", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("QuadSwapY", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("QuadSwapY", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("QuadSwapY", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("QuadSwapY", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("QuadSwapY", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("QuadReadAcrossX", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
+		/*
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool, HLSLBaseType_Bool),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
+		*/
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float, HLSLBaseType_Float),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float2, HLSLBaseType_Float2),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float3, HLSLBaseType_Float3),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float4, HLSLBaseType_Float4),
+		
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int, HLSLBaseType_Int),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int2, HLSLBaseType_Int2),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int3, HLSLBaseType_Int3),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int4, HLSLBaseType_Int4),
+
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint, HLSLBaseType_Uint),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
+
+		Intrinsic("QuadReadAcrossY", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
+
 	};
 
 const int _numIntrinsics = sizeof(_intrinsic) / sizeof(Intrinsic);
@@ -1158,6 +1831,19 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
 		{ "uint4x3",            NumericType_Uint,	   1, 2, 3,  2 },      // HLSLBaseType_Uint1x3
 		{ "uint4x4",            NumericType_Uint,	   1, 2, 4,  2 },      // HLSLBaseType_Uint1x4
 
+
+		{ "inputPatch",         NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_InputPatch
+		{ "outputPatch",        NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_OutputPatch
+
+		{ "pointStream",		NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_PointStream
+		{ "lineStream",         NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_LineStream
+		{ "triangleStream",     NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_TriangleStream
+
+		{ "point",				NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Point
+		{ "line",				NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Line
+		{ "triangle",			NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Triangle
+		{ "lineadj",			NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Lineadj
+		{ "triangleadj",		NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Triangleadj		
 
 		{ "texture",            NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture
 		{ "Texture1D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture1D
@@ -4129,12 +4815,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		},
 		{   // int
 			HLSLBaseType_Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Half, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -4854,13 +5540,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 
 
 		{   // uUint2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -5298,6 +5984,20 @@ static const char* GetTypeName(const HLSLType& type)
 	{
 		return type.typeName;
 	}
+	else if (type.baseType == HLSLBaseType_ConstantBuffer ||
+			 type.baseType == HLSLBaseType_StructuredBuffer ||
+			 type.baseType == HLSLBaseType_PureBuffer ||
+			 type.baseType == HLSLBaseType_RWStructuredBuffer)
+	{
+		if (type.elementType == HLSLBaseType_UserDefined)
+		{
+			return type.typeName;
+		}
+		else
+		{
+			return _baseTypeDescriptions[type.elementType].typeName;
+		}
+	}
 	else
 	{
 		return _baseTypeDescriptions[type.baseType].typeName;
@@ -5328,9 +6028,14 @@ static const char* GetBinaryOpName(HLSLBinaryOp binaryOp)
 	case HLSLBinaryOp_SubAssign:    return "-=";
 	case HLSLBinaryOp_MulAssign:    return "*=";
 	case HLSLBinaryOp_DivAssign:    return "/=";
+
 	case HLSLBinaryOp_LeftShift:    return "<<";
 	case HLSLBinaryOp_RightShift:   return ">>";
 	case HLSLBinaryOp_Modular:		return "%";
+
+	case HLSLBinaryOp_BitAndAssign: return "&=";
+	case HLSLBinaryOp_BitOrAssign:  return "|=";
+	case HLSLBinaryOp_BitXorAssign: return "^=";
 
 	default:
 		ASSERT(0);
@@ -5353,12 +6058,15 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 	{
 		return -1;
 	}*/
-
+	
+	/*
 	if (srcType.array != dstType.array)
 	{
 		return -1;
 	}
+	*/
 
+	/*
 	if (srcType.array == true)
 	{
 		ASSERT(dstType.array == true);
@@ -5372,19 +6080,60 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 			return -1;
 		}
 	}
+	*/
 
-	if (srcType.baseType == HLSLBaseType_UserDefined && dstType.baseType == HLSLBaseType_UserDefined)
+	HLSLBaseType comparingType = HLSLBaseType_Unknown;
+	HLSLBaseType comparedType = HLSLBaseType_Unknown;
+
+	bool IsOriginalComparingTypeTexture = false;
+	bool IsOriginalComparedTypeTexture = false;
+
+	if (srcType.baseType >= HLSLBaseType_Texture1D && srcType.baseType <= HLSLBaseType_RWTexture3D)
+	{
+		//no swizzled 
+		comparingType = HLSLBaseType_Float4;
+		IsOriginalComparingTypeTexture = true;
+	}
+	else if (srcType.elementType != HLSLBaseType_Unknown)
+		comparingType = srcType.elementType;
+	else
+		comparingType = srcType.baseType;
+
+	
+
+
+	
+	if (dstType.baseType >= HLSLBaseType_Texture1D && dstType.baseType <= HLSLBaseType_RWTexture3D)
+	{
+		comparedType = HLSLBaseType_Float4;
+		IsOriginalComparedTypeTexture = true;
+	}
+	else if (dstType.elementType != HLSLBaseType_Unknown)
+		comparedType = dstType.elementType;
+	else
+		comparedType = dstType.baseType;
+
+	if (comparingType == HLSLBaseType_UserDefined && comparedType == HLSLBaseType_UserDefined)
 	{
 		return strcmp(srcType.typeName, dstType.typeName) == 0 ? 0 : -1;
 	}
 
-	if (srcType.baseType == dstType.baseType)
+	if ((comparingType == HLSLBaseType_UserDefined && comparedType != HLSLBaseType_UserDefined) ||
+		(comparingType != HLSLBaseType_UserDefined && comparedType == HLSLBaseType_UserDefined))
+	{
+		// actually, need to compare between the first struct element and another, but just skip
+		return 0;
+	}
+
+
+
+	if (comparingType == comparedType || ((srcType.typeName != NULL && dstType.typeName != NULL) && String_Equal(srcType.typeName , dstType.typeName))  )
 	{
 		return 0;
 	}
 
-	const BaseTypeDescription& srcDesc = _baseTypeDescriptions[srcType.baseType];
-	const BaseTypeDescription& dstDesc = _baseTypeDescriptions[dstType.baseType];
+	const BaseTypeDescription& srcDesc = _baseTypeDescriptions[comparingType];
+	const BaseTypeDescription& dstDesc = _baseTypeDescriptions[comparedType];
 	if (srcDesc.numericType == NumericType_NaN || dstDesc.numericType == NumericType_NaN)
 	{
 		return -1;
@@ -5398,19 +6147,26 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		// Scalar dimension promotion
 		result |= (1 << 0);
 	}
+	else if (srcDesc.numDimensions != dstDesc.numDimensions ||
+		srcDesc.numComponents != dstDesc.numComponents ||
+		srcDesc.height != dstDesc.height)
+	{
+		
+
+		if (IsOriginalComparingTypeTexture || IsOriginalComparedTypeTexture)
+		{
+			return 0;
+		}
+		else// Can't convert
+			return -1;
+	}
 	else if ((srcDesc.numDimensions == dstDesc.numDimensions && (srcDesc.numComponents > dstDesc.numComponents || srcDesc.height > dstDesc.height)) ||
 			 (srcDesc.numDimensions > 0 && dstDesc.numDimensions == 0))
 	{
 		// Truncation
 		result |= (1 << 4);
 	}
-	else if (srcDesc.numDimensions != dstDesc.numDimensions ||
-			 srcDesc.numComponents != dstDesc.numComponents ||
-			 srcDesc.height != dstDesc.height)
-	{
-		// Can't convert
-		return -1;
-	}
+	
 	
 	return result;
 	
@@ -5419,17 +6175,37 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* call, const HLSLFunction* function, int* rankBuffer)
 {
 
-	if (function == NULL || function->numArguments < call->numArguments)
+	//if (function == NULL || function->numArguments < call->numArguments)
+	if (function == NULL || function->numArguments != call->numArguments)
 	{
 		// Function not viable
 		return false;
 	}
 
-	const HLSLExpression* expression = call->argument;
+	HLSLExpression* expression = call->argument;
+
+	/*
+	//if elementType exists only
+	if (		expression->expressionType.elementType != HLSLBaseType_Unknown)
+	{
+		expression->expressionType.baseType = expression->expressionType.elementType;
+		expression->expressionType.elementType = HLSLBaseType_Unknown;		
+	}
+	*/
+
+
 	const HLSLArgument* argument = function->argument;
    
 	for (int i = 0; i < call->numArguments; ++i)
 	{
+		//handle preprossesor branch
+		if (argument->type.baseType == HLSLBaseType_Unknown)
+		{
+			argument = argument->nextArgument;
+			i--;
+			continue;
+		}
+
 		int rank = GetTypeCastRank(tree, expression->expressionType, argument->type);
 		if (rank == -1)
 		{
@@ -5551,34 +6327,36 @@ static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, 
 
 }
 
-HLSLParser::HLSLParser(Allocator* allocator, const char* fileName, const char* buffer, size_t length, const char* entryName, Target target, Language language, const char* bufferForInlcuded[], int includedCounter) :
+HLSLParser::HLSLParser(Allocator* allocator, const char* fileName[], const char* buffer, size_t length, const char* entryName, Target target, Language language, const char* bufferForInlcuded[], int includedCounter) :
 	//m_tokenizer(fileName, buffer, length),
 	m_userTypes(allocator),
-	m_cBuffers(allocator),
+	m_Buffers(allocator),
 	m_samplerStates(allocator),
 	m_preProcessors(allocator),
 	m_textureStates(allocator),
-	m_rwtextureStates(allocator),
-	m_rwBuffer(allocator),
-	m_rwStructuredBuffer(allocator),
+	//m_rwtextureStates(allocator),
+	//m_structuredBuffer(allocator),
+	//m_rwBuffer(allocator),
+	//m_rwStructuredBuffer(allocator),
 	m_textureStateExpressions(allocator),
-	m_rwtextureStateExpressions(allocator),
+	//m_rwtextureStateExpressions(allocator),
 	m_variables(allocator),
 	m_functions(allocator),
 	m_target(target),
 	m_language(language),
 	m_PrepropStack(allocator)
 {
-	mainTokenizer = new HLSLTokenizer(fileName, buffer, length);
-	currentTokenizer = mainTokenizer;
+	
 
 	pTokenizerForIncludedCount = includedCounter;
 
 	for (int i = 0; i < pTokenizerForIncludedCount; i++)
 	{
-		pTokenizerForIncluded[i] = new HLSLTokenizer(fileName, bufferForInlcuded[i], strlen(bufferForInlcuded[i]) );
+		pTokenizerForIncluded[i] = new HLSLTokenizer(fileName[i], bufferForInlcuded[i], strlen(bufferForInlcuded[i]) );
 	}
 	
+
+	mainTokenizer = new HLSLTokenizer(fileName[pTokenizerForIncludedCount], buffer, length);
 
 	m_numGlobals = 0;
 	m_tree = NULL;
@@ -5659,21 +6437,47 @@ bool HLSLParser::AcceptIdentifier(const char*& identifier)
 	return false;
 }
 
+int HLSLParser::AcceptMacroIdentifier(const char*& identifier)
+{
+	if (currentTokenizer->GetToken() == HLSLToken_Identifier)
+	{
+		identifier = m_tree->AddString(currentTokenizer->GetIdentifier());
+		
+		const char* buffer = currentTokenizer->GetBufferAddress();
+
+		//if it is space
+		if (buffer[0] == ' ' || buffer[0] == '\t')
+		{
+			currentTokenizer->Next();
+			return 1;
+		}		
+		else if (buffer[0] == '\n')
+		{
+			currentTokenizer->Next();
+			return 2;
+		}
+		else
+		{
+			
+
+			currentTokenizer->Next();
+			return 0;
+		}		
+	}
+	return -1;
+}
+
 bool HLSLParser::ExpectIdentifier(const char*& identifier)
 {
 	if (!AcceptIdentifier(identifier))
 	{
-		/*
+		
 		char near[HLSLTokenizer::s_maxIdentifier];
 		currentTokenizer->GetTokenName(near);
 		currentTokenizer->Error("Syntax error: expected identifier near '%s'", near);
-		identifier = "";
-		*/
-
-		//hide error messages for Define Indentifier
-
 		return false;
 	}
+
 	return true;
 }
 
@@ -5730,6 +6534,54 @@ bool HLSLParser::AcceptUint(unsigned int& value)
 	return false;
 }
 
+bool HLSLParser::GenerateMacroFunctions(HLSLFunction* originalFunction, HLSLBaseType baseType)
+{
+
+	HLSLFunction* function = m_tree->AddNode<HLSLFunction>(currentTokenizer->GetFileName(), currentTokenizer->GetLineNumber());
+	function->name = originalFunction->name;
+	function->returnType.baseType = baseType;
+	function->returnType.typeName = "";
+
+	BeginScope();
+
+	HLSLArgument* currentArgument = originalFunction->argument;
+	
+	HLSLArgument* currentDestArgumentPointer = NULL;
+	
+
+	while (currentArgument)
+	{
+
+		HLSLArgument* currentDestArgument = m_tree->AddNode<HLSLArgument>(currentTokenizer->GetFileName(), currentTokenizer->GetLineNumber());		
+
+		if (function->argument == NULL)
+		{
+			function->argument = currentDestArgument;
+			currentDestArgumentPointer = function->argument;
+		}
+		else
+		{
+			currentDestArgumentPointer->nextArgument = currentDestArgument;
+			currentDestArgumentPointer = currentDestArgumentPointer->nextArgument;
+		}
+
+		
+		currentDestArgument->type.baseType = function->returnType.baseType;
+		currentDestArgument->modifier = currentArgument->modifier;
+
+		currentArgument = currentArgument->nextArgument;
+	}
+
+	function->numArguments = originalFunction->numArguments;
+
+	m_functions.PushBack(function);
+
+	return true;
+}
+
+
+
+
 bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 {
 	HLSLAttribute * attributes = NULL;
@@ -5738,28 +6590,79 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 	int line             = GetLineNumber();
 	const char* fileName = GetFileName();
 	
-	if (line == 223)
+#ifdef _DEBUG
+	if (line == 125)
 	{
 		int debug = 345;
 	}
+#endif
 
 	HLSLBaseType type;
 	const char*  typeName = NULL;
 	int          typeFlags = false;
 
 	bool doesNotExpectSemicolon = false;
+	bool ValidPreprocessor = false;
 
-	if (Accept(HLSLToken_P_Define))
+
+	if (Check(HLSLToken_USERMACRO))
 	{
-		//Define preprocessor
-		//Doesn't support Macro function yet
-		const char* defineIndentifier = NULL;
+		//Confetti's rule
+		//Handle UserMacro Comment
 
-		if (!AcceptIdentifier(defineIndentifier))
+		currentTokenizer->Next();
+
+		if (!Accept(':'))
 		{
 			return false;
 		}
 
+		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(fileName, line);
+		preProcessor->type = HLSLBaseType_UserMacro;
+		
+		if (!AcceptIdentifier(preProcessor->name))
+			return false;
+
+
+		if (Accept('['))
+		{
+			HLSLExpression* exp = NULL;
+
+			while (!Accept(']'))
+			{
+				if (preProcessor->userMacroExpression == NULL)
+				{
+					ParseExpression(preProcessor->userMacroExpression);
+					exp = preProcessor->userMacroExpression;
+				}
+				else
+				{
+					ParseExpression(exp->nextExpression);
+					exp = exp->nextExpression;
+				}
+
+				 Accept(',');
+			}			
+		}
+
+		m_preProcessors.PushBack(preProcessor);
+		doesNotExpectSemicolon = true;
+
+		statement = preProcessor;
+	}
+	else if (Accept(HLSLToken_P_Define))
+	{		
+		
+		//Define preprocessor
+		//Doesn't support Macro function yet
+		const char* defineIndentifier = NULL;
+
+		int result = AcceptMacroIdentifier(defineIndentifier);
+
+		if (result == -1)
+		{			
+			return false;
+		}
 		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(defineIndentifier, line);
 		preProcessor->type = HLSLBaseType_PreProcessorDefine;
 		preProcessor->preprocessorType = HLSLToken_P_Define;
@@ -5768,659 +6671,409 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		strcpy(preProcessor->identifier, currentTokenizer->GetIdentifier());
 
 		bool needEndParen;
-		if (!ParseTerminalExpression(preProcessor->expression, needEndParen))
+				
+		//Macro Function
+		if (result == 0)
 		{
-			//return false;
+			if (Accept('('))
+			{
+				//make functions for every basic type
 
-			//if there is no specific value for Identifier, assumes it is 1
-			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);
-			literalExpression->type = HLSLBaseType_Int;
-			literalExpression->iValue = 1;
-			literalExpression->expressionType.baseType = literalExpression->type;
-			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
-			preProcessor->expression = literalExpression;	
+				HLSLFunction* function = m_tree->AddNode<HLSLFunction>(fileName, line);
+				function->name = preProcessor->name;
+				function->returnType.baseType = HLSLBaseType_Int;
+				function->returnType.typeName = "";
 
-			//currentTokenizer->Next();
+				BeginScope();
+
+				if (!ParseMacroFunctionArgumentList(function->argument, function->numArguments, function->returnType.baseType))
+				{
+					return false;
+				}
+
+
+				m_functions.PushBack(function);
+
+				char macroFunctionBody[1024];
+				currentTokenizer->GetRestofWholeline(macroFunctionBody);
+				function->macroFunctionBody = m_tree->AddString(macroFunctionBody);
+
+				EndScope();
+
+				currentTokenizer->Next();
+
+				preProcessor->macroFunction = function;
+
+
+				//GenerateMacroFunctions(function, HLSLBaseType_Half);
+				GenerateMacroFunctions(function, HLSLBaseType_Int);
+				GenerateMacroFunctions(function, HLSLBaseType_Uint);
+
+			}
+			else
+			{
+				return false;
+			}
+
+			
 		}
+		else if (result == 2)
+		{
+			//if define macro is empty
+			preProcessor->preprocessorType = HLSLBaseType_Empty;
 
-		preProcessor->type = preProcessor->expression->expressionType.baseType;
+			HLSLType temp;
+			temp.array = false;
+			temp.baseType = preProcessor->type;
 
-		HLSLType temp;
-		temp.array = false;
-		temp.baseType = preProcessor->type;
+			DeclareVariable(preProcessor->name, temp);
+		}
+		else
+		{			
+			if (!ParseTerminalExpression(preProcessor->expression, needEndParen, true))
+			{
+				return false;
+			}		
 
-		DeclareVariable(preProcessor->name, temp);
+			preProcessor->type = preProcessor->expression->expressionType.baseType;
+
+			HLSLType temp;
+			temp.array = false;
+			temp.baseType = preProcessor->type;
+
+			DeclareVariable(preProcessor->name, temp);
+		}
+		
 
 		m_preProcessors.PushBack(preProcessor);
 		doesNotExpectSemicolon = true;
 
 		statement = preProcessor;
 	}
-	else if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Error >= currentTokenizer->GetToken())
+	else if (statement = HandleBranchPreprofessor(fileName, line, &doesNotExpectSemicolon, &ValidPreprocessor))
 	{
-		const char* defineIndentifier = "IftoElif";
-
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(defineIndentifier, line);
-
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_P_If: preProcessor->type = HLSLBaseType_PreProcessorIf;
-			break;
-		case HLSLToken_P_Elif: preProcessor->type = HLSLBaseType_PreProcessorElif;
-			break;
-		case HLSLToken_P_IfDef: preProcessor->type = HLSLBaseType_PreProcessorIfDef;
-			break;
-		case HLSLToken_P_IfnDef: preProcessor->type = HLSLBaseType_PreProcessorIfnDef;
-			break;
-		case HLSLToken_P_Undef: preProcessor->type = HLSLBaseType_PreProcessorUndef;
-			break;
-		case HLSLToken_P_Include: preProcessor->type = HLSLBaseType_PreProcessorInclude;
-			break;
-		case HLSLToken_P_Line: preProcessor->type = HLSLBaseType_PreProcessorLine;
-			break;
-		case HLSLToken_P_Pragma: preProcessor->type = HLSLBaseType_PreProcessorPragma;
-			break;
-		default:
-			break;
-		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
+		if (!ValidPreprocessor)
+			return false;
+		else
+		{			
+			currentPreprocessor = (HLSLpreprocessor*)statement;
 
 
-		char preprocessorContents[1024];
-		currentTokenizer->GetRestofWholeline(preprocessorContents);
-
-		strcpy(preProcessor->contents, preprocessorContents);
-
-
-		currentTokenizer->Next();
-
-
-		//Handle branch preprocessors
-		if (preProcessor->type == HLSLBaseType_PreProcessorIf ||
-			preProcessor->type == HLSLBaseType_PreProcessorIfDef ||
-			preProcessor->type == HLSLBaseType_PreProcessorIfnDef)
-		{
-			PrepropStackData* pStack = new PrepropStackData;
-
-			m_PrepropStack.PushBack(pStack);
-			m_CurrentPrePropStack++;
-
-			if (String_Equal(preProcessor->contents, " HLSL") || String_Equal(preProcessor->contents, " GLSL") || String_Equal(preProcessor->contents, " MSL") || String_Equal(preProcessor->contents, " ORBIS") || String_Equal(preProcessor->contents, " SWITCH"))
+			if (currentPreprocessor->preprocessorType == HLSLToken_P_Endif)
 			{
-				pStack->branchProp = true;
-
-				
-
-				if (String_Equal(preProcessor->contents, " HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{						
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{						
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-						
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
+				currentPreprocessor = NULL;
 			}
+
+			return true;
 		}
-		else if (preProcessor->type == HLSLBaseType_PreProcessorElif)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-
-				if (String_Equal(preProcessor->contents, " HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{						
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
-			}
-		}
-
-		doesNotExpectSemicolon = true;
-
-		statement = preProcessor;
-	}
-	else if (HLSLToken_P_Else <= currentTokenizer->GetToken() && HLSLToken_P_Endif >= currentTokenizer->GetToken())
-	{
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(currentTokenizer->GetToken() == HLSLToken_P_Else ? "Else" : "Endif", line);
-
-		switch (currentTokenizer->GetToken())
-		{		
-		case HLSLToken_P_Else: preProcessor->type = HLSLBaseType_PreProcessorElse;
-			break;
-		case HLSLToken_P_Endif: preProcessor->type = HLSLBaseType_PreProcessorEndif;
-			break;
-		default:
-			break;
-		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-		currentTokenizer->Next();
-
-
-		if (preProcessor->type == HLSLBaseType_PreProcessorEndif)
-		{
-			PrepropStackData* pStack = m_PrepropStack.PopBack();
-			m_CurrentPrePropStack--;
-
-			if (pStack->branchProp)
-			{
-				m_bEmbrace = true;
-				return true;
-			}
-		}
-		else if (preProcessor->type = HLSLBaseType_PreProcessorElse)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-				if (pStack->passed[m_language] == false)
-				{
-					pStack->passed[m_language] = true;
-					m_bEmbrace = true;
-				}
-				else
-					m_bEmbrace = false;
-
-				return true;
-			}
-		}
-
-		doesNotExpectSemicolon = true;
-
-		statement = preProcessor;
-	}
+	}	
 	else if (Accept(HLSLToken_Struct))
 	{
-		// Struct declaration.
+		// Struct declaration
 
+		// 00. add new Struct to the main tree
+		HLSLStruct* structure = m_tree->AddNode<HLSLStruct>(fileName, line);
+
+		m_userTypes.PushBack(structure);
+
+		// 01. get Identifier
 		const char* structName = NULL;
 		if (!ExpectIdentifier(structName))
-		{
 			return false;
-		}
-
-		
-		bool bNeedsHide = false;
-
+		else
+			structure->name = structName;
+				
+		// If it is a Hull shader for MSL, hide it to avoid to print same duplicated one
 		if (FindUserDefinedType(structName) != NULL)
 		{
 			if (m_target == Target_HullShader && m_language == Language_MSL)
-			{
-				//hidden
-				bNeedsHide = true;
-			}		   
+				structure->hidden = true;
 		}
 
-		if (!Expect('{'))
+		// 02. Body
+		if (Expect('{'))
 		{
-			return false;
-		}
+			HLSLStructField* lastField = NULL;
 
-		HLSLStruct* structure = m_tree->AddNode<HLSLStruct>(fileName, line);
-		structure->name = structName;
-
-		if (bNeedsHide)
-			structure->hidden = true;
-
-		m_userTypes.PushBack(structure);
- 
-		HLSLStructField* lastField = NULL;
-
-		// Add the struct to our list of user defined types.
-		while (!Accept('}'))
-		{
-			if (CheckForUnexpectedEndOfStream('}'))
-			{
-				return false;
-			}
-			HLSLStructField* field = NULL;
-
-			if (!ParseFieldDeclaration(field))
-			{
-				return false;
-			}
-			ASSERT(field != NULL);
-			if (lastField == NULL)
-			{
-				structure->field = field;
-			}
-			else
-			{
-				lastField->nextField = field;
-			}
-			lastField = field;
-		}
-
-		if (!Check(';'))
-			doesNotExpectSemicolon = true;
-
-		statement = structure;
-	}
-	else if(Accept(HLSLToken_RWBuffer))
-	{
-		HLSLRWBuffer* buffer = m_tree->AddNode<HLSLRWBuffer>(fileName, line);
-		
-		if (Accept('<'))
-		{
-			if (HLSLToken_First_Numeric_Type <= currentTokenizer->GetToken() && currentTokenizer->GetToken() <= HLSLToken_Last_Numeric_Type)
-			{
-				buffer->elementType = _reservedWords[currentTokenizer->GetToken() - HLSLToken_First_Numeric_Type];
-				AcceptType(false, type, typeName, &typeFlags);	
-				buffer->dataType = type;
-			}
-		}
-
-		if (!Expect('>'))
-			return false;
-
-		AcceptIdentifier(buffer->name);
-
-		// Optional register assignment.
-		if (Accept(':'))
-		{
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(buffer->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(buffer->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				buffer->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-		}
-
-		HLSLType temp;
-		temp.array = true;
-		temp.baseType = type;
-
-		DeclareVariable(buffer->name, temp);
-
-		m_rwBuffer.PushBack(buffer);
-
-		statement = buffer;
-	}	
-	else if (Accept(HLSLToken_RWStructuredBuffer))
-	{
-		HLSLRWStructuredBuffer* buffer = m_tree->AddNode<HLSLRWStructuredBuffer>(fileName, line);
-
-		if (Accept('<'))
-		{
-			if (!AcceptIdentifier(buffer->elementType))
-			{
-				AcceptType(false, type, typeName, &typeFlags);
-				buffer->dataType = type;
-			}
-		}
-
-		if (!Expect('>'))
-			return false;
-
-		AcceptIdentifier(buffer->name);		
-
-		// Optional register assignment.
-		if (Accept(':'))
-		{
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(buffer->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(buffer->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				buffer->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-		}
-
-		HLSLType temp;
-		temp.array = true;
-		
-		if (buffer->elementType)
-		{
-			temp.baseType = HLSLBaseType_UserDefined;
-			temp.typeName = buffer->elementType;
-			buffer->dataType = HLSLBaseType_UserDefined;
-		}
-		else
-		{
-			temp.baseType = type;
-			buffer->dataType = type;
-		}		
-
-		DeclareVariable(buffer->name, temp);
-
-		m_rwStructuredBuffer.PushBack(buffer);
-
-		statement = buffer;
-	}
-	else if (Accept(HLSLToken_StructuredBuffer))
-	{
-		HLSLStructuredBuffer* buffer = m_tree->AddNode<HLSLStructuredBuffer>(fileName, line);
-
-		if (Accept('<'))
-		{
-			if (!AcceptIdentifier(buffer->elementType))
-				AcceptType(false, type, typeName, &typeFlags);
-		}
-
-		if (!Expect('>'))
-			return false;
-
-		AcceptIdentifier(buffer->name);
-
-		/*
-		if (strstr(buffer->name, "RootConstant") || strstr(buffer->name, "rootConstant") || strstr(buffer->name, "rootconstant"))
-		{
-			buffer->bPush_Constant = true;
-		}
-		*/
-
-		// Optional register assignment.
-		if (Accept(':'))
-		{
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(buffer->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(buffer->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				buffer->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-		}
-
-		HLSLType temp;
-		temp.array = true;
-
-		if (buffer->elementType)
-		{
-			temp.baseType = HLSLBaseType_UserDefined;
-			temp.typeName = buffer->elementType;
-		}
-		else
-		{
-			temp.baseType = type;
-			buffer->dataType = type;
-		}
-
-		DeclareVariable(buffer->name, temp);
-
-		statement = buffer;
-	}
-	else if (Accept(HLSLToken_CBuffer) || Accept(HLSLToken_ConstantBuffer) || Accept(HLSLToken_TBuffer))
-	{
-		// cbuffer/tbuffer declaration.
-		HLSLConstantBuffer* buffer = m_tree->AddNode<HLSLConstantBuffer>(fileName, line);
-
-		if (Accept('<'))
-		{
-			if (!AcceptIdentifier(buffer->elementType))
-				AcceptType(false, type, typeName, &typeFlags);
-
-			if (!Expect('>'))
-				return false;
-		}
-
-		
-
-		const char* bufferName = NULL;
-		if (!ExpectIdentifier(bufferName))
-		{
-			return false;
-		}
-
-		bool bNeedsHide = false;
-
-		if (FindCBufferDefinedType(bufferName) != NULL)
-		{
-			if (m_target == Target_HullShader && m_language == Language_MSL)
-			{
-				//hidden
-				bNeedsHide = true;
-			}
-		}
-
-
-		
-		buffer->name = bufferName;
-
-		//AcceptIdentifier(buffer->name);
-
-		if (bNeedsHide)
-			buffer->hidden = true;
-
-
-		m_cBuffers.PushBack(buffer);
-
-		if (strstr(buffer->name, "RootConstant") || strstr(buffer->name, "rootConstant") || strstr(buffer->name, "rootconstant"))
-		{
-			buffer->bPush_Constant = true;
-		}
-
-		// Optional register assignment.
-		if (Accept(':'))
-		{
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(buffer->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(buffer->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				buffer->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-		}
-		else
-		{
-			currentTokenizer->Error("Missed ConstantBuffer's register");
-			return false;
-		}
-
-		// Fields.
-		if (Accept('{'))
-		{
-			HLSLDeclaration* lastField = NULL;
+			// Add the struct to our list of user defined types.
 			while (!Accept('}'))
 			{
 				if (CheckForUnexpectedEndOfStream('}'))
 				{
 					return false;
 				}
-				HLSLDeclaration* field = NULL;
-				if (!ParseDeclaration(field))
-				{
-					currentTokenizer->Error("Expected variable declaration");
-					return false;
-				}
-				DeclareVariable(field->name, field->type);
 
-				field->buffer = buffer;
-				if (buffer->field == NULL)
+				HLSLStructField* field = NULL;
+				
+				if (!ParseFieldDeclaration(field))
 				{
-					buffer->field = field;
+					return false;
+				}			
+
+				if (m_bEmbrace == false)
+				{
+					if (field)
+						field->hidden = true;
+				}
+
+				if (lastField == NULL)
+				{
+					structure->field = field;
 				}
 				else
 				{
-					lastField->nextStatement = field;
+					lastField->nextField = field;
 				}
+
 				lastField = field;
-
-
-				if (!Expect(';')) {
-					return false;
-				}
 			}
 		}
+		else 
+			return false; 
 		
-
-		if(!Check(';'))
+		// free to use semicolon
+		if (!Check(';'))
 			doesNotExpectSemicolon = true;
 
+		statement = structure;
+	}
+	else if(HLSLToken_First_Buffer_Type <= currentTokenizer->GetToken() && HLSLToken_Last_Buffer_Type >= currentTokenizer->GetToken())
+	{
+		// Buffer declaration
+
+		// 00. add new buffer to the main tree
+		HLSLBuffer* buffer = m_tree->AddNode<HLSLBuffer>(fileName, line);
+
+		//get buffer's baseType
+		AcceptBufferType(buffer);
+
+		// Constant Buffer
+		if (buffer->type.baseType == HLSLBaseType_CBuffer ||
+			buffer->type.baseType == HLSLBaseType_ConstantBuffer ||
+			buffer->type.baseType == HLSLBaseType_TBuffer)
+		{
+			// Constant Buffer declaration  
+			// 01. get element type (optional)
+			if (!GetBufferElementType(buffer, false, &typeFlags, true))
+				return false;
+
+			if (buffer->type.baseType == HLSLBaseType_ConstantBuffer)
+			{
+				buffer->userDefinedElementTypeStr = buffer->type.typeName;
+			}
+
+
+			// 02. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// If it is a Hull shader for MSL, hide it to avoid to print same duplicated one
+			if (FindBuffer(buffer->name) != NULL)
+			{
+				if (m_target == Target_HullShader && m_language == Language_MSL)
+					buffer->hidden = true;
+			}			
+
+			// Confetti's Rule : if buffer name includes "rootconstant", it is constant buffer			
+			if(stristr(buffer->name, "rootconstant"))
+				buffer->bPushConstant = true;
+
+			// 03. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "Constant Buffer (register b)");
+			
+			// 04. get Body (optional)
+			GetBufferBody(buffer);
+
+			// 05. add it as a Global variable
+			if (buffer->bArray)
+				buffer->type.array = true;
+			else
+				buffer->type.array = false;
+
+			DeclareVariable(buffer->name, buffer->type);
+
+			// free to use semicolon
+			if (!Check(';'))
+				doesNotExpectSemicolon = true;
+		}
+		else if (buffer->type.baseType == HLSLBaseType_RWBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedBuffer)
+		{
+			// 01. get element type (necessary) and base type
+			if (!GetBufferElementType(buffer, false, &typeFlags, false))
+				return false;					
+
+			// 02. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// 03. get array (optional)
+			GetBufferArray(buffer);
+
+
+			// 04. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "RWBuffer (register u)");
+
+			
+			// 05. add it as a Global variable
+			if (buffer->bArray)
+				buffer->type.array = true;
+			else
+				buffer->type.array = false;
+
+			DeclareVariable(buffer->name, buffer->type);
+
+			//m_rwBuffer.PushBack(buffer);
+		}
+		else if (buffer->type.baseType == HLSLBaseType_StructuredBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedStructuredBuffer)
+		{
+			// 01. get element type (necessary) and base type
+			if (!GetBufferElementType(buffer, false, &typeFlags, false))
+				return false;
+
+			// 02. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// 03. get array (optional)
+			GetBufferArray(buffer);
+
+			// 04. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "Structure Buffer (register t)");
+
+			// 05. add it as a Global variable
+			if (buffer->bArray)
+				buffer->type.array = true;
+			else
+				buffer->type.array = false;
+
+			DeclareVariable(buffer->name, buffer->type);
+		}
+		else if (buffer->type.baseType == HLSLBaseType_PureBuffer)
+		{
+			// 01. get element type (necessary) and base type
+			if (!GetBufferElementType(buffer, false, &typeFlags, false))
+				return false;
+
+			// 02. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// 03. get array (optional)
+			GetBufferArray(buffer);
+
+			// 04. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "Buffer (register t)");
+
+			// 05. add it as a Global variable
+			if (buffer->bArray)
+				buffer->type.array = true;
+			else
+				buffer->type.array = false;
+
+			DeclareVariable(buffer->name, buffer->type);
+		}
+		else if (buffer->type.baseType == HLSLBaseType_RWStructuredBuffer)
+		{
+			// 01. get element type (necessary) and base type
+			if (!GetBufferElementType(buffer, false, &typeFlags, false))
+				return false;
+
+			// 02. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// 03. get array (optional)
+			GetBufferArray(buffer);
+
+			// 04. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "RWStructure Buffer (register u)");
+
+			// 05. add it as a Global variable			
+
+			if (buffer->bArray)
+				buffer->type.array = true;
+			else
+				buffer->type.array = false;
+			
+			DeclareVariable(buffer->name, buffer->type);
+
+			//m_rwStructuredBuffer.PushBack(buffer);
+		}
+		else if (buffer->type.baseType == HLSLBaseType_ByteAddressBuffer)
+		{
+			// 01. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// 02. get array (optional)
+			GetBufferArray(buffer);
+
+			// 03. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)");
+			
+			buffer->type.array = true;
+
+			//assume that ByteAddressBuffer is using for Int
+			buffer->type.elementType = HLSLBaseType_Int;
+
+
+			DeclareVariable(buffer->name, buffer->type);
+		}
+		else if (buffer->type.baseType == HLSLBaseType_RWByteAddressBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedByteAddressBuffer)
+		{
+			// 01. get Identifier			
+			if (!ExpectIdentifier(buffer->name))
+				return false;
+
+			// 02. get array (optional)
+			GetBufferArray(buffer);
+
+			// 03. get assigned register (necessary)
+			GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)");
+
+			buffer->type.array = true;
+
+			//assume that ByteAddressBuffer is using for Int
+			buffer->type.elementType = HLSLBaseType_Int;
+
+			DeclareVariable(buffer->name, buffer->type);
+		}
+				
+
+		//buffer->userDefinedElementTypeStr = typeName;
+
 		statement = buffer;
+		m_Buffers.PushBack(buffer);
 	}	
-	else if (Accept(HLSLToken_Groupshared))
+	else if (HLSLToken_First_Texture_Type <= currentTokenizer->GetToken() && HLSLToken_Last_Texture_Type >= currentTokenizer->GetToken())
 	{
 
+		// 00. add new texture to the main tree
+		HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
+		
+		// 01. get texture type
+		AcceptTextureType(texturestate);
+
+		// 02. get Element type (optional)
+		GetTextureElementType(texturestate, false, &typeFlags, true);
+
+		// 03. get Identifier
+		if (!ExpectIdentifier(texturestate->name))
+			return false;
+
+		// 04. get array (optional)
+		GetTextureArray(texturestate);
+
+		// 05. get register (necessary)
+		GetRegisterAssignment(texturestate, "Texture (register t for Read only, register u for R/W)");
+
+		m_textureStates.PushBack(texturestate);
+
+		statement = texturestate;
+
+	}
+	else if (Accept(HLSLToken_Groupshared))
+	{
 		HLSLGroupShared* pGroupshared = m_tree->AddNode<HLSLGroupShared>(fileName, line);
 		pGroupshared->declaration = m_tree->AddNode<HLSLDeclaration>(fileName, GetLineNumber());
 
@@ -6430,9 +7083,16 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		statement = pGroupshared;
 
 	}
-	else if (Accept(HLSLToken_SamplerState) || Accept(HLSLToken_Sampler))
+	else if (Accept(HLSLToken_SamplerState) || Accept(HLSLToken_Sampler) || Check(HLSLToken_SamplerComparisonState))
 	{
 		//SamplerState can be declared or be passed from outside
+		HLSLSamplerState* samplerstate = m_tree->AddNode<HLSLSamplerState>(fileName, line);
+
+		if (currentTokenizer->GetToken() == HLSLToken_SamplerComparisonState)
+		{
+			samplerstate->IsComparisionState = true;
+			currentTokenizer->Next();
+		}
 
 		// SamplerState declaration.
 		const char* samplerStateName = NULL;
@@ -6441,8 +7101,25 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			return false;
 		}
 
-		HLSLSamplerState* samplerstate = m_tree->AddNode<HLSLSamplerState>(fileName, line);
+		
 		samplerstate->name = samplerStateName;
+
+
+		
+	
+
+		// Handle array syntax.
+		if (Accept('['))
+		{
+			if (!Accept(']'))
+			{
+				if (!ParseExpression(samplerstate->type.arraySize) || !Expect(']'))
+				{
+					return false;
+				}
+			}
+			samplerstate->type.array = true;
+		}
 
 		m_samplerStates.PushBack(samplerstate);
 
@@ -6511,251 +7188,6 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			currentTokenizer->Error("Missed SamplerState's register");
 			return false;
 		}
-	}	
-	else if (HLSLToken_Texture1D <= currentTokenizer->GetToken() && HLSLToken_TextureCubeArray >= currentTokenizer->GetToken())
-	{
-		HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
-
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_Texture1D:
-			texturestate->baseType = HLSLBaseType_Texture1D; break;	
-		case HLSLToken_Texture1DArray:
-			texturestate->baseType = HLSLBaseType_Texture1DArray; break;
-		case HLSLToken_Texture2D:
-			texturestate->baseType = HLSLBaseType_Texture2D; break;
-		case HLSLToken_Texture2DArray:
-			texturestate->baseType = HLSLBaseType_Texture2DArray; break;
-		case HLSLToken_Texture3D:
-			texturestate->baseType = HLSLBaseType_Texture3D; break;
-		case HLSLToken_Texture2DMS:
-			texturestate->baseType = HLSLBaseType_Texture2DMS; break;
-		case HLSLToken_Texture2DMSArray:
-			texturestate->baseType = HLSLBaseType_Texture2DMSArray;	break;
-		case HLSLToken_TextureCube:
-			texturestate->baseType = HLSLBaseType_TextureCube; break;
-		case HLSLToken_TextureCubeArray:
-			texturestate->baseType = HLSLBaseType_TextureCubeArray;	break;
-		default:
-			return false;
-			break;
-		}
-				
-		//Texture
-		currentTokenizer->Next();
-
-		//Handle elementType
-		if (Accept('<'))
-		{
-			AcceptType(false, type, typeName, &typeFlags);
-			texturestate->dataType = type;
-
-			//multi sampling
-			if (texturestate->baseType == HLSLBaseType_Texture2DMS || texturestate->baseType == HLSLBaseType_Texture2DMSArray)
-			{
-				if (!Expect(','))
-					return false;
-
-				const char* temp;
-				int iValue;
-				if (AcceptIdentifier(temp))
-				{
-					texturestate->sampleIdentifier = temp;
-				}
-				else if (AcceptInt(iValue))
-				{
-					texturestate->sampleCount = iValue;
-				}
-				else
-				{
-					return false;
-				}
-
-				
-
-			}
-
-			if (!Expect('>'))
-				return false;
-		}
-
-		const char* textureName = NULL;
-		if (!ExpectIdentifier(textureName))
-		{
-			return false;
-		}
-
-		// Handle array syntax.
-		while (Accept('['))
-		{
-			texturestate->bArray = true;
-			
-
-			if (Check(']')) //unboundedSize
-			{
-				texturestate->arrayIdentifier[texturestate->arrayDimension][0] = NULL;
-				currentTokenizer->Next();
-			}
-			else if (!Accept(']'))
-			{				
-				if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
-				{
-					strcpy(texturestate->arrayIdentifier[texturestate->arrayDimension], currentTokenizer->GetIdentifier());
-					currentTokenizer->Next();
-					Expect(']');
-				}
-				else
-				{
-					texturestate->arrayIndex[texturestate->arrayDimension] = currentTokenizer->GetuInt();
-					currentTokenizer->Next();
-					Expect(']');
-				}
-			}
-
-			texturestate->arrayDimension++;
-		}
-
-		texturestate->name = textureName;
-		
-
-		if (Accept(':'))// Handle optional register.
-		{
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(texturestate->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(texturestate->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				texturestate->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-
-			statement = texturestate;
-
-			m_textureStates.PushBack(texturestate);
-		}
-		else
-		{
-			currentTokenizer->Error("error) Missed texture's register!");
-			return false;
-		}
-	}
-	else if (HLSLToken_RWTexture1D <= currentTokenizer->GetToken() && HLSLToken_RWTexture3D >= currentTokenizer->GetToken())
-	{
-		HLSLRWTextureState* rwtexturestate = m_tree->AddNode<HLSLRWTextureState>(fileName, line);
-
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_RWTexture1D:
-			rwtexturestate->baseType = HLSLBaseType_RWTexture1D; break;
-		case HLSLToken_RWTexture1DArray:
-			rwtexturestate->baseType = HLSLBaseType_RWTexture1DArray; break;
-		case HLSLToken_RWTexture2D:
-			rwtexturestate->baseType = HLSLBaseType_RWTexture2D; break;
-		case HLSLToken_RWTexture2DArray:
-			rwtexturestate->baseType = HLSLBaseType_RWTexture2DArray; break;
-		case HLSLToken_RWTexture3D:
-			rwtexturestate->baseType = HLSLBaseType_RWTexture3D; break;
-		default:
-			return false;
-			break;
-		}
-
-		currentTokenizer->Next();
-
-		//elementType
-		if (Accept('<'))
-		{
-			AcceptType(false, type, typeName, &typeFlags);
-			rwtexturestate->dataType = type;
-
-			if (!Expect('>'))
-				return false;
-		}	
-
-
-		// SamplerState declaration.
-		const char* textureName = NULL;
-		if (!ExpectIdentifier(textureName))
-		{
-			return false;
-		}
-
-		rwtexturestate->name = textureName;
-
-		// Handle array syntax.
-		while (Accept('['))
-		{
-			rwtexturestate->bArray = true;
-
-
-			if (Check(']')) //unboundedSize
-			{
-				rwtexturestate->arrayIdentifier[rwtexturestate->arrayDimension][0] = NULL;
-				currentTokenizer->Next();
-			}
-			else if (!Accept(']'))
-			{
-				if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
-				{
-					strcpy(rwtexturestate->arrayIdentifier[rwtexturestate->arrayDimension], currentTokenizer->GetIdentifier());
-					currentTokenizer->Next();
-				}
-				else
-				{
-					rwtexturestate->arrayIndex[rwtexturestate->arrayDimension] = currentTokenizer->GetuInt();
-					currentTokenizer->Next();
-				}
-			}
-
-			rwtexturestate->arrayDimension++;
-		}
-
-
-		if (Accept(':'))// Handle optional register.
-		{
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(rwtexturestate->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(rwtexturestate->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				rwtexturestate->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-
-			statement = rwtexturestate;
-
-			m_rwtextureStates.PushBack(rwtexturestate);
-		}
-		else
-			return false;
 	}	
 	else if (AcceptType(true, type, typeName, &typeFlags))
 	{
@@ -6876,6 +7308,10 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			statement = declaration;
 		}
 	}
+	else if(IsEmptyDefineIdentifier(statement))
+	{
+		doesNotExpectSemicolon = true;			
+	}
 	else if (ParseTechnique(statement)) {
 		doesNotExpectSemicolon = true;
 	}
@@ -6893,7 +7329,32 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 	return doesNotExpectSemicolon || Expect(';');
 }
 
-bool HLSLParser::ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLSLType& returnType)
+bool HLSLParser::IsEmptyDefineIdentifier(HLSLStatement* &statement)
+{
+	const HLSLpreprocessor* preprocessorExp = FindPreprocessorDefinedType(currentTokenizer->GetIdentifier());
+	if (preprocessorExp != NULL)
+	{
+		if (preprocessorExp->preprocessorType == HLSLBaseType_Empty)
+		{
+			if (String_Equal(preprocessorExp->name, "CONF_EARLY_DEPTH_STENCIL"))
+			{
+				statement = m_tree->AddNode<HLSLpreprocessor>(GetFileName(), GetLineNumber());
+
+				HLSLpreprocessor* pPreprocessor = (HLSLpreprocessor*)statement;
+				pPreprocessor->type = HLSLBaseType_Empty;
+				pPreprocessor->name = preprocessorExp->name;
+			}
+
+			currentTokenizer->Next();
+			return true; //just skip
+		}
+	}
+
+	return false;
+}
+
+
+bool HLSLParser::ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLSLType& returnType, bool bSwitchStatement)
 {
 	if (Accept('{'))
 	{
@@ -6907,8 +7368,63 @@ bool HLSLParser::ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLS
 	}
 	else
 	{
-		return ParseStatement(firstStatement, returnType);
+		if (bSwitchStatement)
+		{
+			return ParseSwitchBlocks(firstStatement, returnType);
+		}
+		else
+		{
+			return ParseStatement(firstStatement, returnType);
+		}
+
+		
 	}
+}
+
+bool HLSLParser::ParseSwitchBlocks(HLSLStatement*& firstStatement, const HLSLType& returnType)
+{
+	HLSLStatement* lastStatement = NULL;
+	HLSLStatement* curStatement = NULL;
+	//until it reaches to break;	
+	do
+	{
+		if (CheckForUnexpectedEndOfStream('}'))
+		{
+			return false;
+		}
+
+		
+		if (!ParseStatement(curStatement, returnType))
+		{
+			return false;
+		}
+
+		if (currentPreprocessor && curStatement)
+		{
+			curStatement->preprocessor = currentPreprocessor->contents;
+		}
+
+		if (m_bEmbrace == false)
+		{
+			if (curStatement)
+				curStatement->hidden = true;
+		}
+
+		if (curStatement != NULL)
+		{
+			if (firstStatement == NULL)
+			{
+				firstStatement = curStatement;
+			}
+			else
+			{
+				lastStatement->nextStatement = curStatement;
+			}
+			lastStatement = curStatement;
+		}
+	} while (curStatement->nodeType != HLSLNodeType_BreakStatement);
+
+	return true;
 }
 
 bool HLSLParser::ParseBlock(HLSLStatement*& firstStatement, const HLSLType& returnType)
@@ -6924,6 +7440,11 @@ bool HLSLParser::ParseBlock(HLSLStatement*& firstStatement, const HLSLType& retu
 		if (!ParseStatement(statement, returnType))
 		{
 			return false;
+		}
+
+		if (currentPreprocessor && statement)
+		{
+			statement->preprocessor = currentPreprocessor->contents;
 		}
 
 		if (m_bEmbrace == false)
@@ -6959,10 +7480,17 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		return true;
 	}
 
-	if (line == 240)
+#ifdef _DEBUG
+	if (line == 413)
 	{
 		int debug = 345;
 	}
+#endif // DEBUG
+
+	
+
+	bool doesNotExpectSemicolon = false;
+	bool ValidPreprocessor = false;
 
 	HLSLAttribute * attributes = NULL;
 	ParseAttributeBlock(attributes);    // @@ Leak if not assigned to node? 
@@ -6978,7 +7506,8 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 			return false;
 		}
 		statement = ifStatement;
-		if (!ParseStatementOrBlock(ifStatement->statement, returnType))
+
+		if (!ParseStatementOrBlock(ifStatement->statement, returnType, false))
 		{
 			return false;
 		}
@@ -6998,7 +7527,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 				ifStatement->elseifStatementCounter++;
 				ifStatement->elseifStatement[i] = elseifStatement;
 
-				bool result = ParseStatementOrBlock(ifStatement->elseifStatement[i]->statement, returnType);
+				bool result = ParseStatementOrBlock(ifStatement->elseifStatement[i]->statement, returnType, false);
 
 				if (!result)
 					return false;
@@ -7008,12 +7537,63 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		}
 		
 
-		if (Accept(HLSLToken_Else))
+ 		if (Accept(HLSLToken_Else))
 		{
-			return ParseStatementOrBlock(ifStatement->elseStatement, returnType);
+			return ParseStatementOrBlock(ifStatement->elseStatement, returnType, false);
 		}
 		return true;        
 	}
+
+	// Switch statement
+	if (Accept(HLSLToken_Switch))
+	{
+		HLSLSwitchStatement* switchStatement = m_tree->AddNode<HLSLSwitchStatement>(fileName, line);
+		switchStatement->attributes = attributes;
+
+		if (!Expect('(') || !ParseExpression(switchStatement->condition) || !Expect(')'))
+		{
+			return false;
+		}
+
+		statement = switchStatement;
+				
+		if (!Expect('{'))
+			return false;
+
+		while (Accept(HLSLToken_Case))
+		{
+			//get case numbering
+			ParseExpression(switchStatement->caseNumber[switchStatement->caseCounter]);			
+
+			if (!Expect(':'))
+				return false;
+
+			if (!ParseStatementOrBlock(switchStatement->caseStatement[switchStatement->caseCounter], returnType, true))
+			{
+				return false;
+			}
+
+			switchStatement->caseCounter++;
+		}
+
+		if (Accept(HLSLToken_Default))
+		{
+			if (!Expect(':'))
+				return false;
+
+			if (!ParseStatementOrBlock(switchStatement->caseDefault, returnType, false))
+			{
+				return false;
+			}
+		}
+
+		if (!Expect('}'))
+			return false;
+
+		return true;
+		
+	}
+
 	// For statement.
 	if (Accept(HLSLToken_For))
 	{
@@ -7046,7 +7626,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 			return false;
 		}
 		statement = forStatement;
-		if (!ParseStatementOrBlock(forStatement->statement, returnType))
+		if (!ParseStatementOrBlock(forStatement->statement, returnType, false))
 		{
 			return false;
 		}
@@ -7088,252 +7668,31 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		}
 
 		statement = whileStatement;
-		if (!ParseStatementOrBlock(whileStatement->statement, returnType))
+		if (!ParseStatementOrBlock(whileStatement->statement, returnType, false))
 		{
 			return false;
 		}
 		
 		return true;
 	}
-	else if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Error >= currentTokenizer->GetToken())
+	
+	if (statement = HandleBranchPreprofessor(fileName, line, &doesNotExpectSemicolon, &ValidPreprocessor))
 	{
-		const char* defineIndentifier = "IftoElif";
-
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(defineIndentifier, line);
-
-		switch (currentTokenizer->GetToken())
+		if (!ValidPreprocessor)
+			return false;
+		else
 		{
-		case HLSLToken_P_If: preProcessor->type = HLSLBaseType_PreProcessorIf;
-			break;
-		case HLSLToken_P_Elif: preProcessor->type = HLSLBaseType_PreProcessorElif;
-			break;
-		case HLSLToken_P_IfDef: preProcessor->type = HLSLBaseType_PreProcessorIfDef;
-			break;
-		case HLSLToken_P_IfnDef: preProcessor->type = HLSLBaseType_PreProcessorIfnDef;
-			break;
-		case HLSLToken_P_Undef: preProcessor->type = HLSLBaseType_PreProcessorUndef;
-			break;
-		case HLSLToken_P_Include: preProcessor->type = HLSLBaseType_PreProcessorInclude;
-			break;
-		case HLSLToken_P_Line: preProcessor->type = HLSLBaseType_PreProcessorLine;
-			break;
-		case HLSLToken_P_Pragma: preProcessor->type = HLSLBaseType_PreProcessorPragma;
-			break;
-		default:
-			break;
-		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-
-		char preprocessorContents[1024];
-		currentTokenizer->GetRestofWholeline(preprocessorContents);
-
-		strcpy(preProcessor->contents, preprocessorContents);
-		currentTokenizer->Next();
+			currentPreprocessor = (HLSLpreprocessor*)statement;
 
 
-		//Handle branch preprocessors
-		if (preProcessor->type == HLSLBaseType_PreProcessorIf ||
-			preProcessor->type == HLSLBaseType_PreProcessorIfDef)
-		{
-			PrepropStackData* pStack = new PrepropStackData;
-
-			m_PrepropStack.PushBack(pStack);
-			m_CurrentPrePropStack++;
-
-			if (String_Equal(preProcessor->contents, " HLSL") || String_Equal(preProcessor->contents, " GLSL") || String_Equal(preProcessor->contents, " MSL") || String_Equal(preProcessor->contents, " ORBIS") || String_Equal(preProcessor->contents, " SWITCH"))
+			if (currentPreprocessor->preprocessorType == HLSLToken_P_Endif)
 			{
-				pStack->branchProp = true;
-
-
-
-				if (String_Equal(preProcessor->contents, " HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
+				currentPreprocessor = NULL;
 			}
+
+			return true;
 		}
-		else if (preProcessor->type = HLSLBaseType_PreProcessorElif)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-
-				if (String_Equal(preProcessor->contents, " HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
-			}
-		}
-
-
-
-		statement = preProcessor;
-
-		return true;
-	}
-	else if (HLSLToken_P_Else <= currentTokenizer->GetToken() && HLSLToken_P_Endif >= currentTokenizer->GetToken())
-	{
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(currentTokenizer->GetToken() == HLSLToken_P_Else ? "Else" : "Endif", line);
-
-		switch (currentTokenizer->GetToken())
-		{		
-		case HLSLToken_P_Else: preProcessor->type = HLSLBaseType_PreProcessorElse;
-			break;
-		case HLSLToken_P_Endif: preProcessor->type = HLSLBaseType_PreProcessorEndif;
-			break;
-		default:
-			break;
-		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-		currentTokenizer->Next();
-
-		if (preProcessor->type == HLSLBaseType_PreProcessorEndif)
-		{
-			PrepropStackData* pStack = m_PrepropStack.PopBack();
-			m_CurrentPrePropStack--;
-
-			if (pStack->branchProp)
-			{
-				m_bEmbrace = true;
-				return true;
-			}
-		}
-		else if (preProcessor->type = HLSLBaseType_PreProcessorElse)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-				if (pStack->passed[m_language] == false)
-				{
-					pStack->passed[m_language] = true;
-					m_bEmbrace = true;
-				}
-				else
-					m_bEmbrace = false;
-
-				return true;
-			}
-		}
-
-		statement = preProcessor;
-
-		return true;
-	}
+	}	
 
 	if (attributes != NULL)
 	{
@@ -7402,6 +7761,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 	HLSLDeclaration* declaration = NULL;
 	HLSLExpression*  expression  = NULL;
 
+
 	if (ParseDeclaration(declaration))
 	{
 		statement = declaration;
@@ -7424,6 +7784,13 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 {
 	const char* fileName    = GetFileName();
 	int         line        = GetLineNumber();
+
+#ifdef _DEBUG
+	if (line == 200)
+	{
+		int debug = 345;
+	}
+#endif
 
 	HLSLType type;
 	if (!AcceptType(/*allowVoid=*/false, type.baseType, type.typeName, &type.flags))
@@ -7493,6 +7860,16 @@ bool HLSLParser::ParseDeclarationAssignment(HLSLDeclaration* declaration)
 				return false;
 			}
 		}
+		else if (Accept('{'))
+		{
+			// matrix's element initialization syntax.
+
+			int numValues = 0;
+			if (!ParseExpressionList('}', true, declaration->assignment, numValues))
+			{
+				return false;
+			}
+		}
 		else if (IsTextureType(declaration->type.baseType))
 		{
 			///!!!!!!!!!!!!!!!!!!
@@ -7520,250 +7897,24 @@ bool HLSLParser::ParseFieldDeclaration(HLSLStructField*& field)
 {
 	field = m_tree->AddNode<HLSLStructField>( GetFileName(), GetLineNumber() );
 
-	if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Pragma >= currentTokenizer->GetToken())
+
+	bool doesNotExpectSemicolon = false;
+	bool ValidPreprocessor = false;
+
+	field->preProcessor = HandleBranchPreprofessor(GetFileName(), GetLineNumber(), &doesNotExpectSemicolon, &ValidPreprocessor);
+
+	if (ValidPreprocessor)
 	{
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(GetFileName(), GetLineNumber());
+		currentPreprocessor = (HLSLpreprocessor*)field->preProcessor;
 
-		switch (currentTokenizer->GetToken())
+
+		if (currentPreprocessor->preprocessorType == HLSLToken_P_Endif)
 		{
-		case HLSLToken_P_If: preProcessor->type = HLSLBaseType_PreProcessorIf;
-			break;
-		case HLSLToken_P_Elif: preProcessor->type = HLSLBaseType_PreProcessorElif;
-			break;
-		case HLSLToken_P_IfDef: preProcessor->type = HLSLBaseType_PreProcessorIfDef;
-			break;
-		case HLSLToken_P_IfnDef: preProcessor->type = HLSLBaseType_PreProcessorIfnDef;
-			break;
-		case HLSLToken_P_Undef: preProcessor->type = HLSLBaseType_PreProcessorUndef;
-			break;
-		case HLSLToken_P_Include: preProcessor->type = HLSLBaseType_PreProcessorInclude;
-			break;
-		case HLSLToken_P_Line: preProcessor->type = HLSLBaseType_PreProcessorLine;
-			break;
-		case HLSLToken_P_Pragma: preProcessor->type = HLSLBaseType_PreProcessorPragma;
-			break;
-		default:
-			break;
+			currentPreprocessor = NULL;
 		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-
-		char preprocessorContents[1024];
-		currentTokenizer->GetRestofWholeline(preprocessorContents);
-
-		strcpy(preProcessor->contents, preprocessorContents);
-		currentTokenizer->Next();
-
-
-		//Handle branch preprocessors
-		if (preProcessor->type == HLSLBaseType_PreProcessorIf ||
-			preProcessor->type == HLSLBaseType_PreProcessorIfDef)
-		{
-			PrepropStackData* pStack = new PrepropStackData;
-
-			m_PrepropStack.PushBack(pStack);
-			m_CurrentPrePropStack++;
-
-			if (String_Equal(preProcessor->contents, " HLSL") || String_Equal(preProcessor->contents, " GLSL") || String_Equal(preProcessor->contents, " MSL") || String_Equal(preProcessor->contents, " ORBIS") || String_Equal(preProcessor->contents, " SWITCH"))
-			{
-				pStack->branchProp = true;
-
-
-
-				if (String_Equal(preProcessor->contents, " HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
-			}
-		}
-		else if (preProcessor->type = HLSLBaseType_PreProcessorElif)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-
-				if (String_Equal(preProcessor->contents, " HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, " SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
-			}
-		}
-
-		field->preProcessor = preProcessor;
-
 		return true;
 	}
-	else if (HLSLToken_P_Else <= currentTokenizer->GetToken() && HLSLToken_P_Endif >= currentTokenizer->GetToken())
-	{
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(GetFileName(), GetLineNumber());
-		
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_P_Else: preProcessor->type = HLSLBaseType_PreProcessorElse;
-			break;
-		case HLSLToken_P_Endif: preProcessor->type = HLSLBaseType_PreProcessorEndif;
-			break;
-		default:
-			break;
-		}
 
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-
-		/*
-		char preprocessorContents[1024];
-		currentTokenizer->GetRestofWholeline(preprocessorContents);
-		strcpy(preProcessorExpression->contents, preprocessorContents);
-		*/
-
-		currentTokenizer->Next();
-
-
-		if (preProcessor->type == HLSLBaseType_PreProcessorEndif)
-		{
-			PrepropStackData* pStack = m_PrepropStack.PopBack();
-			m_CurrentPrePropStack--;
-
-			if (pStack->branchProp)
-			{
-				m_bEmbrace = true;
-				return true;
-			}
-		}
-		else if (preProcessor->type = HLSLBaseType_PreProcessorElse)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-				if (pStack->passed[m_language] == false)
-				{
-					pStack->passed[m_language] = true;
-					m_bEmbrace = true;
-				}
-				else
-					m_bEmbrace = false;
-
-				return true;
-			}
-		}
-
-
-		field->preProcessor = preProcessor;
-
-		return true;
-	}
 	if (!ExpectDeclaration(false, field->type, field->name))
 	{
 		return false;
@@ -7779,45 +7930,15 @@ bool HLSLParser::ParseFieldDeclaration(HLSLStructField*& field)
 	return Expect(';');
 }
 
-/*
-bool HLSLParser::ParseSamplerStateFieldDeclaration(HLSLSamplerStateField*& field)
-{
-	field = m_tree->AddNode<HLSLSamplerStateField>(GetFileName(), GetLineNumber());
-	if (!ExpectDeclaration(false, field->type, field->name))
-	{
-		return false;
-	}
-
-	return Expect(';');
-}
-*/
-// @@ Add support for packoffset to general declarations.
-/*bool HLSLParser::ParseBufferFieldDeclaration(HLSLBufferField*& field)
-{
-	field = m_tree->AddNode<HLSLBufferField>( GetFileName(), GetLineNumber() );
-	if (AcceptDeclaration(false, field->type, field->name))
-	{
-		// Handle optional packoffset.
-		if (Accept(':'))
-		{
-			if (!Expect("packoffset"))
-			{
-				return false;
-			}
-			const char* constantName = NULL;
-			const char* swizzleMask  = NULL;
-			if (!Expect('(') || !ExpectIdentifier(constantName) || !Expect('.') || !ExpectIdentifier(swizzleMask) || !Expect(')'))
-			{
-				return false;
-			}
-		}
-		return Expect(';');
-	}
-	return false;
-}*/
-
 bool HLSLParser::CheckTypeCast(const HLSLType& srcType, const HLSLType& dstType)
 {
+#ifdef _DEBUG
+	if (currentTokenizer->GetLineNumber() == 243)
+	{
+		int debug = 354;
+	}
+#endif
+
 	if (GetTypeCastRank(m_tree, srcType, dstType) == -1)
 	{
 		const char* srcTypeName = GetTypeName(srcType);
@@ -7892,6 +8013,17 @@ bool HLSLParser::ParseSamplerStateExpression(HLSLSamplerStateExpression*& expres
 
 bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 {
+	bool doesNotExpectSemicolon = false;
+	bool ValidPreprocessor = false;
+
+	/*
+	if (HandleBranchPreprofessor( GetFileName(), GetLineNumber(), &doesNotExpectSemicolon, &ValidPreprocessor, expression))
+	{
+		fileName, line, &doesNotExpectSemicolon, &ValidPreprocessor, statement
+	}
+	*/
+
+	
 	if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Error >= currentTokenizer->GetToken())
 	{
 		HLSLPreprocessorExpression * preProcessorExpression = m_tree->AddNode<HLSLPreprocessorExpression>(GetFileName(), GetLineNumber());
@@ -7921,9 +8053,19 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 		preProcessorExpression->preprocessorType = currentTokenizer->GetToken();
 
 		char preprocessorContents[1024];
-		currentTokenizer->GetRestofWholeline(preprocessorContents);
+		currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
 
-		strcpy(preProcessorExpression->contents, preprocessorContents);
+		const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
+
+		if (pre)
+		{
+			preProcessorExpression->contents = pre->contents;
+		}
+		else
+		{
+			preProcessorExpression->contents = m_tree->AddString(preprocessorContents);
+		}
+
 		currentTokenizer->Next();
 
 
@@ -7936,13 +8078,18 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 			m_PrepropStack.PushBack(pStack);
 			m_CurrentPrePropStack++;
 
-			if (String_Equal(preProcessorExpression->contents, " HLSL") || String_Equal(preProcessorExpression->contents, " GLSL") || String_Equal(preProcessorExpression->contents, " MSL") || String_Equal(preProcessorExpression->contents, " ORBIS") || String_Equal(preProcessorExpression->contents, " SWITCH"))
+			//!!!!!!!!! need to hide
+
+			if (String_Equal(preProcessorExpression->contents, "HLSL") ||
+				String_Equal(preProcessorExpression->contents, "GLSL") ||
+				String_Equal(preProcessorExpression->contents, "MSL") ||
+				String_Equal(preProcessorExpression->contents, "ORBIS") ||
+				String_Equal(preProcessorExpression->contents, "SWITCH") ||
+				String_Equal(preProcessorExpression->contents, "NO_HLSL_DEFINITIONS"))
 			{
 				pStack->branchProp = true;
-
-
-
-				if (String_Equal(preProcessorExpression->contents, " HLSL"))
+				
+				if (String_Equal(preProcessorExpression->contents, "HLSL"))
 				{
 					pStack->passed[Language::Language_HLSL] = true;
 
@@ -7953,7 +8100,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " GLSL"))
+				else if (String_Equal(preProcessorExpression->contents, "GLSL"))
 				{
 					pStack->passed[Language::Language_GLSL] = true;
 
@@ -7964,7 +8111,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " MSL"))
+				else if (String_Equal(preProcessorExpression->contents, "MSL"))
 				{
 					pStack->passed[Language::Language_MSL] = true;
 
@@ -7976,7 +8123,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " ORBIS"))
+				else if (String_Equal(preProcessorExpression->contents, "ORBIS"))
 				{
 					pStack->passed[Language::Language_ORBIS] = true;
 
@@ -7988,13 +8135,24 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " SWITCH"))
+				else if (String_Equal(preProcessorExpression->contents, "SWITCH"))
 				{
 					pStack->passed[Language::Language_SWITCH] = true;
 
 					if (m_language == Language::Language_SWITCH)
 					{
 
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessorExpression->contents, "NO_HLSL_DEFINITIONS"))
+				{
+					pStack->passed[m_language] = true;
+
+					if (m_language != Language::Language_HLSL)
+					{
 						m_bEmbrace = true;
 					}
 					else
@@ -8011,7 +8169,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 			if (pStack->branchProp)
 			{
 
-				if (String_Equal(preProcessorExpression->contents, " HLSL"))
+				if (String_Equal(preProcessorExpression->contents, "HLSL"))
 				{
 					pStack->passed[Language::Language_HLSL] = true;
 
@@ -8022,7 +8180,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " GLSL"))
+				else if (String_Equal(preProcessorExpression->contents, "GLSL"))
 				{
 					pStack->passed[Language::Language_GLSL] = true;
 
@@ -8033,7 +8191,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " MSL"))
+				else if (String_Equal(preProcessorExpression->contents, "MSL"))
 				{
 					pStack->passed[Language::Language_MSL] = true;
 
@@ -8044,7 +8202,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " ORBIS"))
+				else if (String_Equal(preProcessorExpression->contents, "ORBIS"))
 				{
 					pStack->passed[Language::Language_ORBIS] = true;
 
@@ -8056,13 +8214,24 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 					else
 						m_bEmbrace = false;
 				}
-				else if (String_Equal(preProcessorExpression->contents, " SWITCH"))
+				else if (String_Equal(preProcessorExpression->contents, "SWITCH"))
 				{
 					pStack->passed[Language::Language_SWITCH] = true;
 
 					if (m_language == Language::Language_SWITCH)
 					{
 
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessorExpression->contents, "NO_HLSL_DEFINITIONS"))
+				{
+					pStack->passed[m_language] = true;
+
+					if (m_language != Language::Language_HLSL)
+					{
 						m_bEmbrace = true;
 					}
 					else
@@ -8128,7 +8297,7 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 		expression = preProcessorExpression;
 		return true;
 	}
-
+	
 
 	if (!ParseBinaryExpression(0, expression))
 	{
@@ -8209,6 +8378,7 @@ bool HLSLParser::AcceptBinaryOperator(int priority, HLSLBinaryOp& binaryOp)
 	case HLSLToken_LeftShift:		binaryOp = HLSLBinaryOp_LeftShift;    break;
 	case HLSLToken_RightShift:		binaryOp = HLSLBinaryOp_RightShift;   break;
 	case HLSLToken_Modular:			binaryOp = HLSLBinaryOp_Modular;	  break;
+
 	default:
 		return false;
 	}
@@ -8245,7 +8415,7 @@ bool HLSLParser::AcceptUnaryOperator(bool pre, HLSLUnaryOp& unaryOp)
 	}
 	else if (pre && token == '~')
 	{
-		unaryOp = HLSLUnaryOp_Not;
+		unaryOp = HLSLUnaryOp_BitNot;
 	}
 	else
 	{
@@ -8276,7 +8446,20 @@ bool HLSLParser::AcceptAssign(HLSLBinaryOp& binaryOp)
 	else if (Accept(HLSLToken_DivideEqual))
 	{
 		binaryOp = HLSLBinaryOp_DivAssign;
-	}     
+	}   	
+	else if (Accept(HLSLToken_AndEqual))
+	{
+		binaryOp = HLSLBinaryOp_BitAndAssign;
+	}
+	else if (Accept(HLSLToken_BarEqual))
+	{
+		binaryOp = HLSLBinaryOp_BitOrAssign;
+	}
+	else if (Accept(HLSLToken_XorEqual))
+	{
+		binaryOp = HLSLBinaryOp_BitXorAssign;
+	}	
+
 	else
 	{
 		return false;
@@ -8289,9 +8472,17 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
+#if _DEBUG
+	if (line == 162)
+	{
+		int x = 3;
+	}
+
+#endif
+
 	bool needsEndParen;
 
-	if (!ParseTerminalExpression(expression, needsEndParen))
+	if (!ParseTerminalExpression(expression, needsEndParen, false))
 	{
 		return false;
 	}
@@ -8317,8 +8508,48 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			binaryExpression->expression1 = expression;
 			binaryExpression->expression2 = expression2;
 
+
+			HLSLType exp1Type = expression->expressionType;
+			HLSLType exp2Type = expression2->expressionType;
+
+
+			if (expression->functionExpression)
+			{
+				exp1Type = expression->functionExpression->expressionType;
+			}
+			else if (expression->expressionType.elementType != HLSLBaseType_Unknown)
+			{
+				exp1Type.baseType = expression->expressionType.elementType;
+			}
+			else if (expression->expressionType.baseType >= HLSLBaseType_Texture1D && expression->expressionType.baseType <= HLSLBaseType_RWTexture3D)
+			{
+				exp1Type.baseType = HLSLBaseType_Float4;
+			}
+			else if (expression->expressionType.baseType == HLSLBaseType_UserMacro)
+			{
+				exp1Type.baseType = HLSLBaseType_Uint;
+			}
+
+			if (expression2->functionExpression)
+			{
+				exp2Type = expression2->functionExpression->expressionType;
+			}
+			else if (expression2->expressionType.elementType != HLSLBaseType_Unknown)
+			{
+				exp2Type.baseType = expression2->expressionType.elementType;
+			}
+			else if (expression2->expressionType.baseType >= HLSLBaseType_Texture1D && expression2->expressionType.baseType <= HLSLBaseType_RWTexture3D)
+			{
+				exp2Type.baseType = HLSLBaseType_Float4;
+			}
+			else if (expression2->expressionType.baseType == HLSLBaseType_UserMacro)
+			{
+				exp2Type.baseType = HLSLBaseType_Uint;
+			}
+			
+
 			//it can be from #define
-			if (expression->expressionType.baseType == HLSLBaseType_UserDefined && expression2->expressionType.baseType == HLSLBaseType_UserDefined)
+			if (exp1Type.baseType == HLSLBaseType_UserDefined && exp2Type.baseType == HLSLBaseType_UserDefined)
 			{
 				HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression);
 				HLSLPreprocessorExpression* preprecessorExpression2 = static_cast<HLSLPreprocessorExpression*>(expression2);
@@ -8364,7 +8595,7 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 					}
 				}
 			}
-			else if (expression->expressionType.baseType == HLSLBaseType_UserDefined)
+			else if (exp1Type.baseType == HLSLBaseType_UserDefined)
 			{
 				HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression);
 
@@ -8391,7 +8622,7 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 					}
 				}
 			}
-			else if (expression2->expressionType.baseType == HLSLBaseType_UserDefined)
+			else if (exp2Type.baseType == HLSLBaseType_UserDefined)
 			{
 				HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression2);
 
@@ -8418,7 +8649,7 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 					}
 				}
 			}
-			else if (!GetBinaryOpResultType( binaryOp, expression->expressionType, expression2->expressionType, binaryExpression->expressionType ))
+			else if (!GetBinaryOpResultType( binaryOp, exp1Type, exp2Type, binaryExpression->expressionType ))
 			{
 				const char* typeName1 = GetTypeName( binaryExpression->expression1->expressionType );
 				const char* typeName2 = GetTypeName( binaryExpression->expression2->expressionType );
@@ -8493,19 +8724,73 @@ bool HLSLParser::ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseTy
 	return true;
 }
 
-bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen)
+bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen, bool bPreprocessor)
 {
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
+#ifdef _DEBUG
+	if (line == 125)
+	{
+		int debug = 345;
+	}
+#endif
+
 	needsEndParen = false;
+
+	if(currentTokenizer->GetToken() == HLSLToken_Sizeof)
+	{
+		//accept
+		currentTokenizer->Next();
+
+		if (Accept('('))
+		{
+			HLSLType type;
+			AcceptType(false, type.baseType, type.typeName, &type.flags);
+
+			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);
+			literalExpression->type = HLSLBaseType_Uint;
+
+			if (type.baseType == HLSLBaseType_Float)
+			{
+				literalExpression->uiValue = sizeof(double);
+			}
+			else if (type.baseType == HLSLBaseType_Half)
+			{
+				literalExpression->uiValue = sizeof(float);
+			}
+			else if (type.baseType == HLSLBaseType_Int)
+			{
+				literalExpression->uiValue = sizeof(int);
+			}
+			else if (type.baseType == HLSLBaseType_Uint)
+			{
+				
+				literalExpression->uiValue = sizeof(unsigned int);
+			}
+
+			literalExpression->expressionType.baseType = literalExpression->type;
+			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
+			expression = literalExpression;
+
+			if (!Accept(')'))
+			{
+				return false;
+			}
+
+			return true;
+		}
+		else
+			return false;
+	}
+
 
 	HLSLUnaryOp unaryOp;
 	if (AcceptUnaryOperator(true, unaryOp))
 	{
 		HLSLUnaryExpression* unaryExpression = m_tree->AddNode<HLSLUnaryExpression>(fileName, line);
 		unaryExpression->unaryOp = unaryOp;
-		if (!ParseTerminalExpression(unaryExpression->expression, needsEndParen))
+		if (!ParseTerminalExpression(unaryExpression->expression, needsEndParen, false))
 		{
 			return false;
 		}
@@ -8614,8 +8899,6 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			expression = literalExpression;
 			return true;
 		}
-		
-
 		else if (Accept(HLSLToken_True))
 		{
 			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);
@@ -8637,7 +8920,6 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			return true;
 		}
 		
-		
 		if (currentTokenizer->GetToken() == HLSLToken_Identifier)
 		{
 			//if it is preprocessor's m_identifier
@@ -8645,6 +8927,25 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			{				
 				if (String_Equal(currentTokenizer->GetIdentifier(), m_preProcessors[i]->name ))
 				{
+					if (m_preProcessors[i]->macroFunction)
+					{
+						HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
+
+						identifierExpression->name = m_preProcessors[i]->name;
+						
+						if (!GetIsFunction(identifierExpression->name))
+						{
+							currentTokenizer->Error("Undeclared identifier '%s'", identifierExpression->name);
+							return false;
+						}
+						
+						// Functions are always global scope.
+						identifierExpression->global = true;
+						
+						expression = identifierExpression;
+						break;
+					}
+
 					HLSLPreprocessorExpression* preprocessorExpression = m_tree->AddNode<HLSLPreprocessorExpression>(fileName, line);
 
 					preprocessorExpression->expressionType.baseType = m_preProcessors[i]->type;
@@ -8662,39 +8963,37 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 		// Type constructor.
 		HLSLBaseType    type;
 		const char*     typeName = NULL;
-		if (AcceptType(/*allowVoid=*/false, type, typeName, NULL))
+		if (AcceptType(/*allowVoid=*/false, type, typeName, NULL) && expression == NULL)
 		{
 			Expect('(');
 			if (!ParsePartialConstructor(expression, type, typeName))
 			{
 				return false;
 			}
-		}
-		else if ( FindTextureStateDefinedType(currentTokenizer->GetIdentifier()) != NULL)
+		}	
+		else if (const HLSLTextureState* pTS = FindTextureStateDefinedType(currentTokenizer->GetIdentifier()) )
 		{
 			//if it is texture's m_identifier
-			for (int i = 0; i < m_textureStates.GetSize(); ++i)
-			{
-				if (String_Equal(currentTokenizer->GetIdentifier(), m_textureStates[i]->name))
+			//for (int i = 0; i < m_textureStates.GetSize(); ++i)
+			//{
+				if (String_Equal(currentTokenizer->GetIdentifier(), pTS->name))
 				{
 					HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
 					//textureStateExpression->type = HLSLBaseType_TextureState;
 
-					strcpy(textureStateExpression->name, m_textureStates[i]->name);
+					strcpy(textureStateExpression->name, pTS->name);
 
-					textureStateExpression->expressionType.baseType = HLSLBaseType_TextureState;
-					textureStateExpression->expressionType.flags = HLSLTypeFlag_Const;
-					//expression = textureStateExpression;
+					textureStateExpression->expressionType = pTS->type;
 
 
 					m_textureStateExpressions.PushBack(textureStateExpression);
 
 					currentTokenizer->Next();
 
-					textureStateExpression->arrayDimension = m_textureStates[i]->arrayDimension;
+					textureStateExpression->arrayDimension = pTS->arrayDimension;
 
 					//handle Array
-					for (int index = 0; index < (int)m_textureStates[i]->arrayDimension ; index++)
+					for (int index = 0; index < (int)pTS->arrayDimension ; index++)
 					{
 						textureStateExpression->bArray = true;
 
@@ -8708,10 +9007,77 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 							}
 						}
 					}
+
+					//handle [] operator
+					if(textureStateExpression->expressionType.baseType >= HLSLBaseType_Texture1D &&
+						textureStateExpression->expressionType.baseType <= HLSLBaseType_RWTexture3D &&
+						Accept('[')
+						)
+					{
+						if (!ParseExpression(textureStateExpression->indexExpression))
+							return false;
+
+						if (!Accept(']'))
+							return false;
+
+						m_tree->gExtension[USE_SAMPLESS] = true;
+					}
+						
+
 					
 					if (Accept('.'))
 					{
-						ParseExpression(expression);						
+						if (String_Equal(currentTokenizer->GetIdentifier(), "Sample") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "SampleLevel") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "SampleGrad") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "SampleCmp") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "Load") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "Store") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "SampleBias") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "GatherRed") ||
+							String_Equal(currentTokenizer->GetIdentifier(), "GetDimensions")							
+							)
+						{
+							ParseExpression(textureStateExpression->functionExpression);
+
+							if (textureStateExpression->functionExpression)
+							{
+								//HLSLFunctionCall* pF = static_cast<HLSLFunctionCall*>(textureStateExpression->functionExpression);
+								//pF->pTextureStateExpression = textureStateExpression;
+								expression = textureStateExpression;
+							}
+						}
+						else
+						{
+							// if it is failed, it's swizzling
+
+							HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
+
+							memberAccess->object = textureStateExpression;
+							textureStateExpression->memberAccessExpression = memberAccess;
+
+							if (!ExpectIdentifier(memberAccess->field))
+							{
+								return false;
+							}
+
+							HLSLType type;
+							type.typeName = textureStateExpression->expressionType.typeName; //  currentElementType;
+							type.baseType = HLSLBaseType_Float4; //  HLSLBaseType_UserDefined;
+
+							if (!GetMemberType(type, memberAccess))
+							{
+								currentTokenizer->Error("Couldn't access '%s'", memberAccess->field);
+								return false;
+							}
+
+							//textureStateExpression->nextExpression = memberAccess;
+							//textureStateExpression = textureStateExpression->nextExpression;
+
+							expression = memberAccess;
+						}
+
 						return true;
 					}
 					else
@@ -8719,99 +9085,15 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 						// not it can be just argument
 						//return false;
 
-						textureStateExpression->expressionType.baseType = m_textureStates[i]->baseType;
+						//textureStateExpression->expressionType.baseType = m_textureStates[i]->baseType;
+						textureStateExpression->expressionType.baseType = pTS->type.baseType;
 
 						expression = textureStateExpression;
 						return true;
 					}
-					break;
+					//break;
 				}
-			}
-		}
-		else if (FindRWTextureStateDefinedType(currentTokenizer->GetIdentifier()) != NULL)
-		{
-			//if it is rwtexture's m_identifier
-			for (int i = 0; i < m_rwtextureStates.GetSize(); ++i)
-			{
-				if (String_Equal(currentTokenizer->GetIdentifier(), m_rwtextureStates[i]->name))
-				{
-					HLSLRWTextureStateExpression* rwtextureStateExpression = m_tree->AddNode<HLSLRWTextureStateExpression>(fileName, line);
-					//textureStateExpression->type = HLSLBaseType_TextureState;
-
-					strcpy(rwtextureStateExpression->name, m_rwtextureStates[i]->name);
-
-					rwtextureStateExpression->expressionType.baseType = HLSLBaseType_RWTextureState;
-					rwtextureStateExpression->expressionType.flags = HLSLTypeFlag_Const;
-					rwtextureStateExpression->type = m_rwtextureStates[i]->baseType;
-					//expression = rwtextureStateExpression;
-
-					m_rwtextureStateExpressions.PushBack(rwtextureStateExpression);
-
-					currentTokenizer->Next();
-
-					rwtextureStateExpression->arrayDimension = m_rwtextureStates[i]->arrayDimension;
-
-					//handle Array
-					for (int index = 0; index < (int)m_rwtextureStates[i]->arrayDimension; index++)
-					{
-						rwtextureStateExpression->bArray = true;
-
-						if (Accept('['))
-						{
-							int innerIndex = 0;
-							while (!Accept(']'))
-							{
-								if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
-								{
-									strcpy(rwtextureStateExpression->arrayIdentifier[innerIndex++], currentTokenizer->GetIdentifier());
-									currentTokenizer->Next();
-								}
-								else
-								{
-									rwtextureStateExpression->arrayIndex[innerIndex++] = currentTokenizer->GetuInt();
-									currentTokenizer->Next();
-								}
-							}
-						}
-					}
-
-					//handle [] operator (read / write)
-					if (Accept('['))
-					{
-						HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
-						arrayAccess->array = rwtextureStateExpression;
-						if (!ParseExpression(arrayAccess->index) || !Expect(']'))
-						{
-							return false;
-						}
-
-						if (rwtextureStateExpression->expressionType.array)
-						{
-							arrayAccess->expressionType = rwtextureStateExpression->expressionType;
-							arrayAccess->expressionType.array = false;
-							arrayAccess->expressionType.arraySize = NULL;
-						}
-
-						//arrayAccess->nodeType = HLSLNodeType_RWTextureStateExpression;
-						arrayAccess->expressionType.baseType = m_rwtextureStates[i]->dataType;
-						expression = arrayAccess;
-						
-
-						return true;
-					}
-					else if (Accept('.')) //Load()
-					{
-						ParseExpression(expression);
-						//ParseExpression(rwtextureStateExpression->fuctionExpression);
-						return true;
-					}
-					else
-						return false;
-					
-
-					break;
-				}
-			}
+			//}
 		}
 		else if (FindSamplerStateDefinedType(currentTokenizer->GetIdentifier()) != NULL)
 		{
@@ -8830,26 +9112,57 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					expression = samplerStateExpression;
 					
 					currentTokenizer->Next();
+
+					if (m_samplerStates[i]->type.array)
+					{
+						if (Accept('['))
+						{
+							HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
+							arrayAccess->array = samplerStateExpression;
+							if (!ParseExpression(arrayAccess->index) || !Expect(']'))
+							{
+								return false;
+							}
+							
+							samplerStateExpression->expressionType.array = true;
+
+							arrayAccess->expressionType.baseType = HLSLBaseType_SamplerState;
+							arrayAccess->expressionType.flags = HLSLTypeFlag_Const;
+
+							expression = arrayAccess;
+							//samplerStateExpression->arrayAcess = arrayAccess;						
+						}
+
+					}
+
+
 					//break;
 					return true;
 				}
 			}
 		}
-		else if (FindCBufferDefinedType(currentTokenizer->GetIdentifier()) != NULL)
+		else if (FindConstantBuffer(currentTokenizer->GetIdentifier()) != NULL)
 		{
-			HLSLConstantBuffer* pCBuffer = FindCBufferDefinedType(currentTokenizer->GetIdentifier());
+			//HLSLConstantBuffer* pCBuffer = FindCBufferDefinedType(currentTokenizer->GetIdentifier());
+
+			const HLSLBuffer* pBuffer = FindBuffer(currentTokenizer->GetIdentifier());
 
 			//if it is push_constant
-			if (pCBuffer->bPush_Constant || pCBuffer->elementType)
+			if (pBuffer->bPushConstant || pBuffer->type.elementType != HLSLBaseType_Unknown)
 			{
 				currentTokenizer->Next();
 
 				HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
 				identifierExpression->nodeType = HLSLNodeType_IdentifierExpression;
-				identifierExpression->name = pCBuffer->name;
+				identifierExpression->name = pBuffer->name;
 
-				identifierExpression->expressionType.typeName = pCBuffer->elementType;
-				identifierExpression->expressionType.baseType = HLSLBaseType_UserDefined;
+				//identifierExpression->expressionType.typeName = pBuffer->elementType;
+				identifierExpression->expressionType.typeName = GetTypeName(pBuffer->type);
+
+				identifierExpression->expressionType.baseType = pBuffer->type.elementType;
+				//identifierExpression->expressionType.baseType = HLSLBaseType_UserDefined;
+				
+				
 
 				HLSLExpression* currentExpression = identifierExpression;
 				//const char* currentElementType = pCBuffer->elementType;
@@ -8921,7 +9234,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			else
 				return false;
 		}
-		else
+		else if(expression == NULL)
 		{
 			HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
 
@@ -8937,6 +9250,9 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			{
 				return false;
 			}
+
+			
+
 
 			const HLSLType* identifierType = FindVariable(identifierExpression->name, identifierExpression->global);
 			if (identifierType != NULL)
@@ -8958,6 +9274,9 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 		}
 	}
 
+	if (bPreprocessor)
+		return true;
+
 	bool done = false;
 	while (!done)
 	{
@@ -8977,22 +9296,75 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 		
 		// Member access operator.
+		// or it can be for function calling
 		while (Accept('.'))
 		{
-			HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
-			memberAccess->object = expression;
-			if (!ExpectIdentifier(memberAccess->field))
+			
+			//if it is special function for buffer or texture, skip it
+			if (String_Equal("Load", currentTokenizer->GetIdentifier()) || 
+				String_Equal(currentTokenizer->GetIdentifier(), "Store") ||
+				String_Equal("Sample", currentTokenizer->GetIdentifier()) ||
+				String_Equal("SampleBias", currentTokenizer->GetIdentifier()) ||
+				String_Equal("SampleLevel", currentTokenizer->GetIdentifier()) ||
+				String_Equal(currentTokenizer->GetIdentifier(), "SampleCmp") ||
+				String_Equal(currentTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
+				String_Equal("SampleGrad", currentTokenizer->GetIdentifier()) ||
+				String_Equal("GatherRed", currentTokenizer->GetIdentifier()) ||
+				String_Equal(currentTokenizer->GetIdentifier(), "GetDimensions")
+				)
 			{
-				return false;
+				bool bBreak = false;
+
+
+				HLSLIdentifierExpression* identifierExpression = (HLSLIdentifierExpression*)expression;
+
+				//back to front
+				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
+				{
+					const HLSLBuffer* pSBuffer = FindBuffer(currentTokenizer->GetPrevIdentifier(i));
+
+					if (pSBuffer)
+					{
+						bBreak = true;
+						break;
+					}
+
+					const HLSLTextureState* pTexture = FindTextureStateDefinedType(currentTokenizer->GetPrevIdentifier(i));
+
+					if (pTexture)
+					{
+						bBreak = true;
+						break;
+					}
+				}
+
+				if (bBreak)
+				{
+					ParseTerminalExpression(expression->functionExpression, needsEndParen, false);
+					break;
+				}
+			}
+			else
+			{
+				HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
+				memberAccess->object = expression;
+				if (!ExpectIdentifier(memberAccess->field))
+				{
+					return false;
+				}
+
+				if (!GetMemberType(expression->expressionType, memberAccess))
+				{
+					currentTokenizer->Error("Couldn't access '%s'", memberAccess->field);
+					return false;
+				}
+				expression = memberAccess;
+				
 			}
 
-			if (!GetMemberType( expression->expressionType, memberAccess))
-			{
-				currentTokenizer->Error("Couldn't access '%s'", memberAccess->field);
-				return false;
-			}
-			expression = memberAccess;
 			done = false;
+
+			
 		}
 
 		// Handle array access.
@@ -9007,63 +9379,166 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 			if (expression->expressionType.array)
 			{
+				if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+				{
+					HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
+
+					//if it is buffer
+					const HLSLBuffer* buffer = FindBuffer(identifierExpression->name);
+
+					if (buffer != NULL && buffer->arrayDimension > 0)
+					{
+						arrayAccess->identifier = identifierExpression->name;
+					}	
+				}
+					
+
 				arrayAccess->expressionType = expression->expressionType;
-				arrayAccess->expressionType.array     = false;
+				arrayAccess->expressionType.array = false;
 				arrayAccess->expressionType.arraySize = NULL;
+
+				
 			}
 			else
 			{
 				switch (expression->expressionType.baseType)
 				{
+				case HLSLBaseType_Float:
 				case HLSLBaseType_Float2:
 				case HLSLBaseType_Float3:
 				case HLSLBaseType_Float4:
 					arrayAccess->expressionType.baseType = HLSLBaseType_Float;
 					break;
 				case HLSLBaseType_Float2x2:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Float2;
-					break;
-				case HLSLBaseType_Float3x3:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Float3;
-					break;
-				case HLSLBaseType_Float4x4:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Float4;
-					break;
-				case HLSLBaseType_Float4x3:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Float3;
-					break;
+				case HLSLBaseType_Float3x2:
 				case HLSLBaseType_Float4x2:
 					arrayAccess->expressionType.baseType = HLSLBaseType_Float2;
 					break;
+				case HLSLBaseType_Float2x3:
+				case HLSLBaseType_Float3x3:
+				case HLSLBaseType_Float4x3:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Float3;
+					break;
+				case HLSLBaseType_Float2x4:
+				case HLSLBaseType_Float3x4:
+				case HLSLBaseType_Float4x4:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Float4;
+					break;
+
+				case HLSLBaseType_Half:
 				case HLSLBaseType_Half2:
 				case HLSLBaseType_Half3:
 				case HLSLBaseType_Half4:
 					arrayAccess->expressionType.baseType = HLSLBaseType_Half;
 					break;
 				case HLSLBaseType_Half2x2:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Half2;
-					break;
-				case HLSLBaseType_Half3x3:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Half3;
-					break;
-				case HLSLBaseType_Half4x4:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Half4;
-					break;
-				case HLSLBaseType_Half4x3:
-					arrayAccess->expressionType.baseType = HLSLBaseType_Half3;
-					break;
+				case HLSLBaseType_Half3x2:
 				case HLSLBaseType_Half4x2:
 					arrayAccess->expressionType.baseType = HLSLBaseType_Half2;
 					break;
+				case HLSLBaseType_Half2x3:
+				case HLSLBaseType_Half3x3:
+				case HLSLBaseType_Half4x3:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Half3;
+					break;
+				case HLSLBaseType_Half2x4:
+				case HLSLBaseType_Half3x4:
+				case HLSLBaseType_Half4x4:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Half4;
+					break;
+
+				case HLSLBaseType_Int:
 				case HLSLBaseType_Int2:
 				case HLSLBaseType_Int3:
 				case HLSLBaseType_Int4:
 					arrayAccess->expressionType.baseType = HLSLBaseType_Int;
 					break;
+
+				case HLSLBaseType_Uint:
 				case HLSLBaseType_Uint2:
 				case HLSLBaseType_Uint3:
 				case HLSLBaseType_Uint4:
 					arrayAccess->expressionType.baseType = HLSLBaseType_Uint;
+					break;
+				case HLSLBaseType_UserDefined:
+					arrayAccess->expressionType.baseType = HLSLBaseType_UserDefined;
+					arrayAccess->expressionType.typeName = expression->expressionType.typeName;
+					break;
+
+				case HLSLBaseType_ConstantBuffer:
+				case HLSLBaseType_StructuredBuffer:
+				case HLSLBaseType_PureBuffer:
+				case HLSLBaseType_RWBuffer:
+				case HLSLBaseType_RWStructuredBuffer:
+
+					//need to clean up here
+					switch (expression->expressionType.elementType)
+					{
+						case HLSLBaseType_Float:
+						case HLSLBaseType_Float2:
+						case HLSLBaseType_Float3:
+						case HLSLBaseType_Float4:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Float;
+							break;
+						case HLSLBaseType_Float2x2:
+						case HLSLBaseType_Float3x2:
+						case HLSLBaseType_Float4x2:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Float2;
+							break;
+						case HLSLBaseType_Float2x3:
+						case HLSLBaseType_Float3x3:
+						case HLSLBaseType_Float4x3:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Float3;
+							break;
+						case HLSLBaseType_Float2x4:
+						case HLSLBaseType_Float3x4:
+						case HLSLBaseType_Float4x4:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Float4;
+							break;
+
+						case HLSLBaseType_Half:
+						case HLSLBaseType_Half2:
+						case HLSLBaseType_Half3:
+						case HLSLBaseType_Half4:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Half;
+							break;
+						case HLSLBaseType_Half2x2:
+						case HLSLBaseType_Half3x2:
+						case HLSLBaseType_Half4x2:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Half2;
+							break;
+						case HLSLBaseType_Half2x3:
+						case HLSLBaseType_Half3x3:
+						case HLSLBaseType_Half4x3:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Half3;
+							break;
+						case HLSLBaseType_Half2x4:
+						case HLSLBaseType_Half3x4:
+						case HLSLBaseType_Half4x4:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Half4;
+							break;
+
+						case HLSLBaseType_Int:
+						case HLSLBaseType_Int2:
+						case HLSLBaseType_Int3:
+						case HLSLBaseType_Int4:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Int;
+							break;
+
+						case HLSLBaseType_Uint:
+						case HLSLBaseType_Uint2:
+						case HLSLBaseType_Uint3:
+						case HLSLBaseType_Uint4:
+							arrayAccess->expressionType.elementType = HLSLBaseType_Uint;
+							break;
+						case HLSLBaseType_UserDefined:
+							arrayAccess->expressionType.elementType = HLSLBaseType_UserDefined;
+							arrayAccess->expressionType.typeName = expression->expressionType.typeName;
+							break;
+						default:
+							currentTokenizer->Error("array, matrix, vector, or indexable object type expected in index expression");
+							return false;
+					}
 					break;
 				default:
 					currentTokenizer->Error("array, matrix, vector, or indexable object type expected in index expression");
@@ -9082,6 +9557,14 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 		{
 			HLSLFunctionCall* functionCall = m_tree->AddNode<HLSLFunctionCall>(fileName, line);
 			done = false;
+
+#ifdef _DEBUG
+			if (line == 413)
+			{
+				int debug = 345;
+			}
+#endif
+
 			if (!ParseExpressionList(')', false, functionCall->argument, functionCall->numArguments))
 			{
 				return false;
@@ -9102,87 +9585,57 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 			functionCall->function = function;
 
-			//this is only for Read only textures
+			// if it is special function for texture / buffer
 			if (String_Equal("Sample", identifierExpression->name) ||
 				String_Equal("SampleBias", identifierExpression->name) ||
-				String_Equal("SampleLevel", identifierExpression->name))
+				String_Equal("SampleLevel", identifierExpression->name) ||
+				String_Equal(identifierExpression->name, "SampleCmp") ||
+				String_Equal(identifierExpression->name, "SampleCmpLevelZero") ||
+				String_Equal("SampleGrad", identifierExpression->name) ||
+				String_Equal("GatherRed", identifierExpression->name))
 			{
-				//find closest Texture's identifier from identifier History
-				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
-				{
-					const HLSLTextureState* pTextureState = FindTextureStateDefinedType(currentTokenizer->GetPrevIdentifier(i));
-
-					if (pTextureState)
-					{
-						HLSLTextureStateExpression* pTextureStateExpression = m_textureStateExpressions.PopBack();
-						pTextureStateExpression->type = pTextureState->baseType;
-						functionCall->pTextureStateExpression = pTextureStateExpression;
-							
-						break;
-					}
-				}
+				functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.GetSize()-1];
+				
 			}
-			else if (String_Equal("GatherRed", identifierExpression->name))
+			else if (String_Equal("Load", identifierExpression->name) ||
+					String_Equal(identifierExpression->name, "Store") ||
+					String_Equal(identifierExpression->name, "GetDimensions"))
 			{
-				//find closest Texture's identifier from identifier History
-				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
+				for (int i = currentTokenizer->m_historyCounter - 1; i >= 0; i--)
 				{
-					const HLSLTextureState* pTextureState = FindTextureStateDefinedType(currentTokenizer->GetPrevIdentifier(i));
+					const char* prevIdentifier = currentTokenizer->GetPrevIdentifier(i);
 
-					if (pTextureState)
+					if (FindTextureStateDefinedType(prevIdentifier))
 					{
-						HLSLTextureStateExpression* pTextureStateExpression = m_textureStateExpressions.PopBack();
-						pTextureStateExpression->type = pTextureState->baseType;
-						functionCall->pTextureStateExpression = pTextureStateExpression;
-
+						functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.GetSize() - 1];
+						m_tree->gExtension[USE_SAMPLESS] = true;
 						break;
 					}
-				}
-
-				//is it also using for RWTextures?
-			}
-			else if (String_Equal("Load", identifierExpression->name))
-			{
-				//find closest Texture's identifier from identifier History
-				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
-				{
-					const HLSLTextureState* pTextureState = FindTextureStateDefinedType(currentTokenizer->GetPrevIdentifier(i));
-
-					if (pTextureState)
+					else if (FindBuffer(prevIdentifier))
 					{
-						HLSLTextureStateExpression* pTextureStateExpression = m_textureStateExpressions.PopBack();
-						pTextureStateExpression->type = pTextureState->baseType;
-						functionCall->pTextureStateExpression = pTextureStateExpression;
-
-						break;
-					}
-
-					const HLSLRWTextureState* pRWTextureState = FindRWTextureStateDefinedType(currentTokenizer->GetPrevIdentifier(i));
-
-					if (pRWTextureState)
-					{
-						HLSLRWTextureStateExpression* prwTextureStateExpression = m_rwtextureStateExpressions.PopBack();
-						prwTextureStateExpression->type = pRWTextureState->baseType;
-						functionCall->pRWTextureStateExpression = prwTextureStateExpression;
-
+						//does buffer need to handle?
+						//int sefsef = 345;
+						functionCall->pBuffer = FindBuffer(prevIdentifier);
 						break;
 					}
 				}
 			}
 			//marking for MSL
-			else if(String_Equal("InterlockedAdd", identifierExpression->name)				||
-					String_Equal("InterlockedCompareExchange", identifierExpression->name)	||
-					String_Equal("InterlockedCompareStore", identifierExpression->name)		||
-					String_Equal("InterlockedExchange", identifierExpression->name)			||
-					String_Equal("InterlockedMax", identifierExpression->name)				||
-					String_Equal("InterlockedMin", identifierExpression->name)				||
-					String_Equal("InterlockedOr", identifierExpression->name)				||
-					String_Equal("InterlockedXor", identifierExpression->name))
+			else if (String_Equal("InterlockedAdd", identifierExpression->name) ||
+				String_Equal("InterlockedCompareExchange", identifierExpression->name) ||
+				String_Equal("InterlockedCompareStore", identifierExpression->name) ||
+				String_Equal("InterlockedExchange", identifierExpression->name) ||
+				String_Equal("InterlockedMax", identifierExpression->name) ||
+				String_Equal("InterlockedMin", identifierExpression->name) ||
+				String_Equal("InterlockedOr", identifierExpression->name) ||
+				String_Equal("InterlockedXor", identifierExpression->name))
 			{
+				m_tree->gExtension[USE_ATOMIC] = true;
+
 				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
 				{
 					const char* prevIndentifier = currentTokenizer->GetPrevIdentifier(i);
-					
+
 					for (int index = 0; index < m_userTypes.GetSize(); ++index)
 					{
 						HLSLStructField* field = m_userTypes[index]->field;
@@ -9198,27 +9651,20 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 						}
 					}
 
-					HLSLRWBuffer* pRWBuffer = FindRWBuffer(prevIndentifier);
+					HLSLBuffer* pBuffer = FindBuffer(prevIndentifier);
 
-					if (pRWBuffer)
+					if (pBuffer)
 					{
-						pRWBuffer->bAtomic = true;
+						pBuffer->bAtomic = true;
 						break;
 					}
-
-					HLSLRWStructuredBuffer* pRWSturcturedBuffer = FindRWStructuredBuffer(prevIndentifier);
-
-					if (pRWSturcturedBuffer)
-					{
-						pRWSturcturedBuffer->bAtomic = true;
-						break;
-					}
-
 				}
 			}
 
+	
 			functionCall->expressionType = function->returnType;
 			expression = functionCall;
+			
 		}
 
 	}
@@ -9294,11 +9740,11 @@ bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpre
 	return true;
 }
 
-bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArguments)
+bool HLSLParser::ParseMacroFunctionArgumentList(HLSLArgument*& firstArgument, int& numArguments, HLSLBaseType &baseType)
 {
 	const char* fileName = GetFileName();
-	int         line     = GetLineNumber();
-		
+	int         line = GetLineNumber();
+
 	HLSLArgument* lastArgument = NULL;
 	numArguments = 0;
 
@@ -9315,58 +9761,13 @@ bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArgumen
 
 		HLSLArgument* argument = m_tree->AddNode<HLSLArgument>(fileName, line);
 
+		argument->dataTypeName = NULL;
+		argument->type.baseType = baseType;
+		argument->modifier = HLSLArgumentModifier_In;
 
-		//handle preprocessors in function's argument list --> no shader should be changed
-		
-
-
-		if (Accept(HLSLToken_Uniform))     { argument->modifier = HLSLArgumentModifier_Uniform; }
-		else if (Accept(HLSLToken_In))     { argument->modifier = HLSLArgumentModifier_In;      }
-		else if (Accept(HLSLToken_Out))    { argument->modifier = HLSLArgumentModifier_Out;     }
-		else if (Accept(HLSLToken_InOut))  { argument->modifier = HLSLArgumentModifier_Inout;   }
-		else if (Accept(HLSLToken_Const))  { argument->modifier = HLSLArgumentModifier_Const;   }
-
-		else if (Accept(HLSLToken_Point)) { argument->modifier = HLSLArgumentModifier_Point; }
-		else if (Accept(HLSLToken_Line)) { argument->modifier = HLSLArgumentModifier_Line; }
-		else if (Accept(HLSLToken_Triangle)) { argument->modifier = HLSLArgumentModifier_Triangle; }
-		else if (Accept(HLSLToken_Lineadj)) { argument->modifier = HLSLArgumentModifier_Lineadj; }
-		else if (Accept(HLSLToken_Triangleadj)) { argument->modifier = HLSLArgumentModifier_Triangleadj; }
-
-		if (!ExpectDeclaration(/*allowUnsizedArray=*/true, argument->type, argument->name))
+		if (!ExpectIdentifier(argument->name))
 		{
-			return false;
-		}
-
-		DeclareVariable( argument->name, argument->type );
-
-		if (argument->type.baseType >= HLSLBaseType_Texture1D && argument->type.baseType <= HLSLBaseType_TextureCubeArray)
-		{
-			HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
-			texturestate->baseType = argument->type.baseType;
-
-			texturestate->name = argument->name;
-
-			m_textureStates.PushBack(texturestate);
-		}
-		else if (argument->type.baseType >= HLSLBaseType_RWTexture1D && argument->type.baseType <= HLSLBaseType_RWTexture3D)
-		{
-			HLSLRWTextureState* rwtexturestate = m_tree->AddNode<HLSLRWTextureState>(fileName, line);
-			rwtexturestate->baseType = argument->type.baseType;
-
-			rwtexturestate->name = argument->name;
-
-			m_rwtextureStates.PushBack(rwtexturestate);
-		}
-
-		// Optional semantic.
-		if (Accept(':') && !ExpectIdentifier(argument->semantic))
-		{
-			return false;
-		}
-
-		if (Accept('=') && !ParseExpression(argument->defaultValue))
-		{
-			// @@ Print error!
+			// TODO: false means we didn't accept a declaration and we had an error!
 			return false;
 		}
 
@@ -9381,6 +9782,140 @@ bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArgumen
 		lastArgument = argument;
 
 		++numArguments;
+	}
+	return true;
+}
+
+bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArguments)
+{
+	const char* fileName = GetFileName();
+	int         line     = GetLineNumber();
+		
+	HLSLArgument* lastArgument = NULL;
+	numArguments = 0;
+
+	bool valid = false;
+
+	HLSLpreprocessor* prePre = NULL;
+
+	while (!Accept(')'))
+	{
+		if (CheckForUnexpectedEndOfStream(')'))
+		{
+			return false;
+		}
+		if (!valid && numArguments > 0 && !Expect(','))
+		{
+			return false;
+		}
+
+		valid = false;
+
+		HLSLArgument* argument = m_tree->AddNode<HLSLArgument>(fileName, line);
+
+
+		//handle preprocessors in function's argument list --> no shader should be changed
+		
+		bool semi;
+		
+
+		HLSLpreprocessor* pre = HandleBranchPreprofessor(fileName, line, &semi, &valid);
+		
+		if (pre)
+		{
+			argument->preprocessor = pre;
+		}
+		else
+		{
+			if (Accept(HLSLToken_Uniform)) { argument->modifier = HLSLArgumentModifier_Uniform; }
+			else if (Accept(HLSLToken_In)) { argument->modifier = HLSLArgumentModifier_In; }
+			else if (Accept(HLSLToken_Out)) { argument->modifier = HLSLArgumentModifier_Out; }
+			else if (Accept(HLSLToken_InOut)) { argument->modifier = HLSLArgumentModifier_Inout; }
+			else if (Accept(HLSLToken_Const)) { argument->modifier = HLSLArgumentModifier_Const; }
+
+			else if (Accept(HLSLToken_Point)) { argument->modifier = HLSLArgumentModifier_Point; }
+			else if (Accept(HLSLToken_Line)) { argument->modifier = HLSLArgumentModifier_Line; }
+			else if (Accept(HLSLToken_Triangle)) { argument->modifier = HLSLArgumentModifier_Triangle; }
+			else if (Accept(HLSLToken_Lineadj)) { argument->modifier = HLSLArgumentModifier_Lineadj; }
+			else if (Accept(HLSLToken_Triangleadj)) { argument->modifier = HLSLArgumentModifier_Triangleadj; }
+
+			if (!ExpectDeclaration(/*allowUnsizedArray=*/true, argument->type, argument->name))
+			{
+				return false;
+			}
+
+			DeclareVariable(argument->name, argument->type);
+
+			if (argument->type.baseType >= HLSLBaseType_Texture1D && argument->type.baseType <= HLSLBaseType_RWTexture3D)
+			{
+				HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
+				texturestate->type.baseType = argument->type.baseType;
+
+				texturestate->name = argument->name;
+
+				if(prePre)
+					texturestate->preprocessor = prePre->contents;
+
+				m_textureStates.PushBack(texturestate);
+
+
+				//argument->
+
+				
+				HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
+
+				strcpy(textureStateExpression->name, texturestate->name);
+				textureStateExpression->expressionType = texturestate->type;
+
+				m_textureStateExpressions.PushBack(textureStateExpression);
+			}
+
+
+			// Optional semantic.
+			if (Accept(':') && !ExpectIdentifier(argument->semantic))
+			{
+				return false;
+			}
+
+			if (Accept('=') && !ParseExpression(argument->defaultValue))
+			{
+				// @@ Print error!
+				return false;
+			}
+		}
+
+
+		if (lastArgument != NULL)
+		{
+			lastArgument->nextArgument = argument;
+		}
+		else
+		{
+			firstArgument = argument;
+		}
+		lastArgument = argument;
+
+		if (valid)
+		{
+			prePre = pre;
+
+			if (prePre->type == HLSLBaseType_PreProcessorEndif)
+			{
+				prePre = NULL;
+			}
+		}
+		else
+		{
+			if (prePre)
+			{
+				if (prePre->type == HLSLBaseType_PreProcessorIf || prePre->type == HLSLBaseType_PreProcessorIfDef)
+				{
+					++numArguments;
+				}
+			}
+			else
+				++numArguments;
+		}
 	}
 	return true;
 }
@@ -9861,14 +10396,39 @@ bool HLSLParser::ParseAttributeList(HLSLAttribute*& firstAttribute)
 		{
 			attribute->attributeType = HLSLAttributeType_Unroll;
 
-			if (!Expect('('))
-				return false;
+			//optional
+			if (Accept('('))
+			{
+				unsigned int iValue;
+				const char* id;
 
-			attribute->unrollCount = currentTokenizer->GetuInt();
-			currentTokenizer->Next();
 
-			if (!Expect(')'))
-				return false;
+				if (AcceptUint(iValue))
+				{
+					attribute->unrollCount = iValue;
+					currentTokenizer->Next();
+				}
+				else if (AcceptIdentifier(id))
+				{
+					attribute->unrollIdentifier = m_tree->AddString(id);
+				}
+				else
+				{
+					currentTokenizer->Error("error) unroll");
+					return false;
+				}
+
+				if (!Expect(')'))
+					return false;
+			}
+
+
+			//if (!Expect('('))
+			//	return false;
+
+
+
+			
 
 		}
 		else if (strcmp(identifier, "flatten") == 0) attribute->attributeType = HLSLAttributeType_Flatten;
@@ -10018,7 +10578,16 @@ bool HLSLParser::ParseAttributeList(HLSLAttribute*& firstAttribute)
 			if (!Expect(')'))
 				return false;
 		}
+		else if (strcmp(identifier, "earlydepthstencil") == 0)
+		{
+			attribute->attributeType = HLSLAttributeType_EarlyDepthStencil;		
 
+			attribute->earlyDepthStencil = true;
+
+		}
+
+
+		
 		
 
 		// @@ parse arguments, () not required if attribute constructor has no arguments.
@@ -10118,17 +10687,27 @@ bool HLSLParser::Parse(HLSLTree* tree)
 	HLSLRoot* root = m_tree->GetRoot();
 	HLSLStatement* lastStatement = NULL;
 
+	
+
 	for (int i = 0; i < pTokenizerForIncludedCount; i++)
 	{
 		currentTokenizer = pTokenizerForIncluded[i];
-
+		
 		while (!Accept(HLSLToken_EndOfStream))
 		{
 			HLSLStatement* statement = NULL;
 			if (!ParseTopLevel(statement))
 			{
+				
 				return false;
 			}
+
+			if (currentPreprocessor)
+			{
+				statement->preprocessor = currentPreprocessor->contents;
+			}
+
+		
 
 			//statements in include files are all hidden
 			if (statement)
@@ -10149,6 +10728,8 @@ bool HLSLParser::Parse(HLSLTree* tree)
 		}
 	}
 
+	
+
 	currentTokenizer = mainTokenizer;
 
 	while (!Accept(HLSLToken_EndOfStream))
@@ -10157,6 +10738,11 @@ bool HLSLParser::Parse(HLSLTree* tree)
 		if (!ParseTopLevel(statement))
 		{
 			return false;
+		}
+
+		if (currentPreprocessor && statement)
+		{
+			statement->preprocessor = currentPreprocessor->contents;
 		}
 
 		if (m_bEmbrace == false)
@@ -10261,7 +10847,7 @@ bool HLSLParser::AcceptInterpolationModifier(int& flags)
 }
 
 
-bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typeName, int* typeFlags)
+bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typeName, int* typeFlags)
 {
 	if (typeFlags != NULL) {
 		*typeFlags = 0;
@@ -10311,7 +10897,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Bool4x4; break;
 
 	case HLSLToken_Float:
-		type = HLSLBaseType_Float; break;
+		type = HLSLBaseType_Float; typeName = m_tree->AddString("float"); break;
 	case HLSLToken_Float1x2:
 		type = HLSLBaseType_Float1x2; break;
 	case HLSLToken_Float1x3:
@@ -10320,7 +10906,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Float1x4; break;
 
 	case HLSLToken_Float2:      
-		type = HLSLBaseType_Float2; break;
+		type = HLSLBaseType_Float2; typeName = m_tree->AddString("float2"); break;
 	case HLSLToken_Float2x2:
 		type = HLSLBaseType_Float2x2; break;
 	case HLSLToken_Float2x3:
@@ -10329,16 +10915,16 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Float2x4; break;
 
 	case HLSLToken_Float3:
-		type = HLSLBaseType_Float3; break;
+		type = HLSLBaseType_Float3; typeName = m_tree->AddString("float3"); break;
 	case HLSLToken_Float3x2:
 		type = HLSLBaseType_Float3x2; break;
 	case HLSLToken_Float3x3:
-		type = HLSLBaseType_Float3x3; break;
+		type = HLSLBaseType_Float3x3; m_tree->gExtension[USE_3X3_CONVERSION] = true; break;
 	case HLSLToken_Float3x4:
 		type = HLSLBaseType_Float3x4; break;
 
 	case HLSLToken_Float4:
-		type = HLSLBaseType_Float4; break;
+		type = HLSLBaseType_Float4; typeName = m_tree->AddString("float4"); break;
 	case HLSLToken_Float4x2:
 		type = HLSLBaseType_Float4x2; break;
 	case HLSLToken_Float4x3:
@@ -10460,7 +11046,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 
 
 	case HLSLToken_Int:
-		type = HLSLBaseType_Int; break;
+		type = HLSLBaseType_Int; typeName = m_tree->AddString("int"); break;
 	case HLSLToken_Int1x2:
 		type = HLSLBaseType_Int1x2; break;
 	case HLSLToken_Int1x3:
@@ -10469,7 +11055,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Int1x4; break;
 
 	case HLSLToken_Int2:
-		type = HLSLBaseType_Int2; break;
+		type = HLSLBaseType_Int2; typeName = m_tree->AddString("int2"); break;
 	case HLSLToken_Int2x2:
 		type = HLSLBaseType_Int2x2; break;
 	case HLSLToken_Int2x3:
@@ -10478,7 +11064,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Int2x4; break;
 		
 	case HLSLToken_Int3:
-		type = HLSLBaseType_Int3; break;
+		type = HLSLBaseType_Int3; typeName = m_tree->AddString("int3"); break;
 	case HLSLToken_Int3x2:
 		type = HLSLBaseType_Int3x2; break;
 	case HLSLToken_Int3x3:
@@ -10487,7 +11073,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Int3x4; break;
 		
 	case HLSLToken_Int4:
-		type = HLSLBaseType_Int4; break;
+		type = HLSLBaseType_Int4;  typeName = m_tree->AddString("int4"); break;
 	case HLSLToken_Int4x2:
 		type = HLSLBaseType_Int4x2; break;
 	case HLSLToken_Int4x3:
@@ -10496,7 +11082,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Int4x4; break;
 
 	case HLSLToken_Uint:
-		type = HLSLBaseType_Uint; break;
+		type = HLSLBaseType_Uint; typeName = m_tree->AddString("uint");  break;
 	case HLSLToken_Uint1x2:
 		type = HLSLBaseType_Uint1x2; break;
 	case HLSLToken_Uint1x3:
@@ -10505,7 +11091,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Uint1x4; break;
 
 	case HLSLToken_Uint2:
-		type = HLSLBaseType_Uint2; break;
+		type = HLSLBaseType_Uint2;  typeName = m_tree->AddString("uint2"); break;
 	case HLSLToken_Uint2x2:
 		type = HLSLBaseType_Uint2x2; break;
 	case HLSLToken_Uint2x3:
@@ -10514,7 +11100,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Uint2x4; break;
 
 	case HLSLToken_Uint3:
-		type = HLSLBaseType_Uint3; break;
+		type = HLSLBaseType_Uint3;  typeName = m_tree->AddString("uint3"); break;
 	case HLSLToken_Uint3x2:
 		type = HLSLBaseType_Uint3x2; break;
 	case HLSLToken_Uint3x3:
@@ -10523,7 +11109,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 		type = HLSLBaseType_Uint3x4; break;
 
 	case HLSLToken_Uint4:
-		type = HLSLBaseType_Uint4; break;
+		type = HLSLBaseType_Uint4;  typeName = m_tree->AddString("uint4"); break;
 	case HLSLToken_Uint4x2:
 		type = HLSLBaseType_Uint4x2; break;
 	case HLSLToken_Uint4x3:
@@ -10698,11 +11284,22 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
 
 	if (token == HLSLToken_Identifier)
 	{
+		//Confetti's rule
+		if (String_Equal(currentTokenizer->GetIdentifier(), "mat4"))
+		{
+			type = HLSLBaseType_Float4x4;
+			currentTokenizer->Next();
+			return true;
+		}
 
 		//Define preprocessor		
 		const char* preprocessorIdentifier = m_tree->AddDefineString(currentTokenizer->GetIdentifier());
-		if (FindPreprocessorDefinedType(preprocessorIdentifier) != NULL)
+		const HLSLpreprocessor* preprocessorExp = FindPreprocessorDefinedType(preprocessorIdentifier);
+		if (preprocessorExp != NULL)
 		{
+			if (preprocessorExp->preprocessorType == HLSLBaseType_Empty)
+				return false; //just skip
+
 			currentTokenizer->Next();
 			type = HLSLBaseType_UserDefined;
 			typeName = preprocessorIdentifier;
@@ -10896,86 +11493,78 @@ const HLSLSamplerState* HLSLParser::FindSamplerStateDefinedType(const char* name
 
 const HLSLTextureState* HLSLParser::FindTextureStateDefinedType(const char* name) const
 {	
+
+	HLSLTextureState* Array[256];
+	int counter = 0;
+
 	for (int i = 0; i < m_textureStates.GetSize(); ++i)
-	{
-		
+	{		
 		if (String_Equal(m_textureStates[i]->name, name))
 		{
-			return m_textureStates[i];
-		}
-		
-	}
-	return NULL;
-}
+			Array[counter++] = m_textureStates[i];
+			//return m_textureStates[i];
+		}	
 
-HLSLRWBuffer* HLSLParser::FindRWBuffer(const char* name) const
-{
-	for (int i = 0; i < m_rwBuffer.GetSize(); ++i)
+	}
+
+
+	if (counter > 1)
 	{
-
-		if (String_Equal(m_rwBuffer[i]->name, name))
+		//compare preprocessor
+		for (int j = 0; j < counter; j++)
 		{
-			return m_rwBuffer[i];
+			if (currentPreprocessor)
+			{
+				if (Array[j]->preprocessor == currentPreprocessor->contents)
+				{
+					return Array[j];
+				}
+			}
+			else
+				return Array[j];
 		}
 
+		//Choose first
+		return Array[0];
 	}
-	return NULL;
-}
-
-HLSLRWStructuredBuffer* HLSLParser::FindRWStructuredBuffer(const char* name) const
-{
-	for (int i = 0; i < m_rwStructuredBuffer.GetSize(); ++i)
+	else if (counter == 1)
 	{
-
-		if (String_Equal(m_rwStructuredBuffer[i]->name, name))
-		{
-			return m_rwStructuredBuffer[i];
-		}
-
+		return Array[0];
 	}
+	else
+	{
+		return NULL;
+	}
+
 	return NULL;
 }
+
+
 
 const HLSLTextureState* HLSLParser::FindTextureStateDefinedTypeWithAddress(const char* name) const
 {
-	//name is unTokenized
-	/*
-	for (int i = 0; i < m_textureStates.GetSize(); ++i)
-	{
-		const char* debug = m_textureStates[i]->startAddress;
-
-		if (m_textureStates[i]->startAddress == name)
-		{
-			return m_textureStates[i];
-		}
-	}
-	return NULL;
-	*/
-
 	return NULL;
 }
 
-const HLSLRWTextureState* HLSLParser::FindRWTextureStateDefinedType(const char* name) const
+HLSLBuffer* HLSLParser::FindBuffer(const char* name) const
 {
-	for (int i = 0; i < m_rwtextureStates.GetSize(); ++i)
+	for (int i = 0; i < m_Buffers.GetSize(); ++i)
 	{
-		if (String_Equal(m_rwtextureStates[i]->name, name))
+		if (String_Equal(m_Buffers[i]->name, name))
 		{
-			return m_rwtextureStates[i];
+			return m_Buffers[i];
 		}
 	}
 	return NULL;
 }
 
-HLSLConstantBuffer* HLSLParser::FindCBufferDefinedType(const char* name) const
+HLSLBuffer* HLSLParser::FindConstantBuffer(const char* name) const
 {
-	// Pointer comparison is sufficient for strings since they exist in the
-	// string pool.
-	for (int i = 0; i < m_cBuffers.GetSize(); ++i)
+	for (int i = 0; i < m_Buffers.GetSize(); ++i)
 	{
-		if (String_Equal(m_cBuffers[i]->name, name))
+		if (String_Equal(m_Buffers[i]->name, name) && m_Buffers[i]->type.baseType == HLSLBaseType_ConstantBuffer)
 		{
-			return m_cBuffers[i];
+			return m_Buffers[i];
 		}
 	}
 	return NULL;
@@ -11128,6 +11717,62 @@ bool HLSLParser::GetIsFunction(const char* name) const
 		// constants, so we need full string compare).
 		if (String_Equal(name, _intrinsic[i].function.name))
 		{
+			if (String_Equal(name, "NonUniformResourceIndex"))
+			{
+				m_tree->gExtension[USE_NonUniformResourceIndex] = true;
+			}
+			else if (String_Equal(name, "QuadReadAcrossDiagonal") ||
+				String_Equal(name, "QuadReadLaneAt") ||
+				String_Equal(name, "QuadReadAcrossX") ||
+				String_Equal(name, "QuadReadAcrossY") ||
+				String_Equal(name, "WaveActiveAllEqual") ||
+				String_Equal(name, "WaveActiveBitAnd") ||
+				String_Equal(name, "WaveActiveBitOr") ||
+				String_Equal(name, "WaveActiveBitXor") ||
+				String_Equal(name, "WaveActiveCountBits") ||
+				String_Equal(name, "WaveActiveMax") ||
+				String_Equal(name, "WaveActiveMin") ||
+				String_Equal(name, "WaveActiveProduct") ||
+				String_Equal(name, "WaveActiveSum") ||
+				String_Equal(name, "WaveActiveAllTrue") ||
+				String_Equal(name, "WaveActiveAnyTrue") ||
+				String_Equal(name, "WaveActiveBallot") ||
+				String_Equal(name, "WaveGetLaneCount") ||
+				String_Equal(name, "WaveGetLaneIndex") ||
+				String_Equal(name, "WaveIsFirstLane") ||
+				String_Equal(name, "WavePrefixCountBits") ||
+				String_Equal(name, "WavePrefixProduct") ||				
+				String_Equal(name, "WavePrefixSum") ||
+				String_Equal(name, "WaveReadLaneFirst") ||
+				String_Equal(name, "WaveReadLaneAt"))
+			{
+				m_tree->gExtension[USE_Subgroup_Basic] = true;
+
+				if (String_Equal(name, "QuadReadAcrossDiagonal") ||
+					String_Equal(name, "QuadReadLaneAt") ||
+					String_Equal(name, "QuadReadAcrossX") ||
+					String_Equal(name, "QuadReadAcrossY"))
+				{
+					m_tree->gExtension[USE_Subgroup_Quad] = true;
+				}
+				else if (String_Equal(name, "WaveActiveBallot"))
+				{
+					m_tree->gExtension[USE_Subgroup_Ballot] = true;
+				}
+				else if(String_Equal(name, "WaveGetLaneIndex"))
+				{
+					m_tree->gExtension[USE_WaveGetLaneIndex] = true;
+				}
+				else if (String_Equal(name, "WaveGetLaneCount"))
+				{
+					m_tree->gExtension[USE_WaveGetLaneCount] = true;
+				}
+				else
+				{
+					m_tree->gExtension[USE_Subgroup_Arithmetic] = true;
+				}	
+			}
+		
 			return true;
 		}
 	}
@@ -11208,14 +11853,33 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 	return matchedFunction;
 }
 
-bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * memberAccess)
+bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAccess)
 {
 	const char* fieldName = memberAccess->field;
 
-	if (objectType.baseType == HLSLBaseType_UserDefined)
+	HLSLBaseType comparingType = HLSLBaseType_Unknown;
+
+
+	if (objectType.elementType != HLSLBaseType_Unknown)
+		comparingType = objectType.elementType;
+	else
+		comparingType = objectType.baseType;
+
+	/*
+	if (objectType.baseType == HLSLBaseType_Unknown &&
+		objectType.elementType != HLSLBaseType_Unknown)
+	{
+		//!!!!!!!!!!!!!!!!!!!
+		objectType.baseType = objectType.elementType;
+	}
+	*/
+
+	if (comparingType == HLSLBaseType_UserDefined)
 	{
 		const HLSLStruct* structure = FindUserDefinedType( objectType.typeName );
-		ASSERT(structure != NULL);
+		
+		if (structure == NULL)
+			return false;
 
 		const HLSLStructField* field = structure->field;
 		while (field != NULL)
@@ -11231,10 +11895,12 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 		return false;
 	}
 	//hull
-	else if (objectType.baseType == HLSLBaseType_InputPatch || objectType.baseType == HLSLBaseType_OutputPatch)
+	else if (comparingType == HLSLBaseType_InputPatch || comparingType == HLSLBaseType_OutputPatch)
 	{
 		const HLSLStruct* structure = FindUserDefinedType(objectType.typeName);
-		ASSERT(structure != NULL);
+
+		if (structure == NULL)
+			return false;
 
 		const HLSLStructField* field = structure->field;
 		while (field != NULL)
@@ -11250,14 +11916,14 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 		return false;
 	}
 	//geometry
-	else if ((objectType.baseType == HLSLBaseType_PointStream) || (objectType.baseType == HLSLBaseType_LineStream) || (objectType.baseType == HLSLBaseType_TriangleStream))
+	else if ((comparingType == HLSLBaseType_PointStream) || (comparingType == HLSLBaseType_LineStream) || (comparingType == HLSLBaseType_TriangleStream))
 	{
 		if (String_Equal(fieldName, "Append"))
 		{
 			memberAccess->function = true;
 
 			bool needsEndParen;
-			if (!ParseTerminalExpression(memberAccess->functionExpression, needsEndParen))
+			if (!ParseTerminalExpression(memberAccess->functionExpression, needsEndParen, false))
 				return false;
 
 			return true;
@@ -11267,14 +11933,14 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 			memberAccess->function = true;
 
 			bool needsEndParen;
-			if (!ParseTerminalExpression(memberAccess->functionExpression, needsEndParen))
+			if (!ParseTerminalExpression(memberAccess->functionExpression, needsEndParen, false))
 				return false;
 
 			return true;
 		}
 	}
 
-	if (_baseTypeDescriptions[objectType.baseType].numericType == NumericType_NaN)
+	if (_baseTypeDescriptions[comparingType].numericType == NumericType_NaN)
 	{
 		// Currently we don't have an non-numeric types that allow member access.
 		return false;
@@ -11282,7 +11948,7 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 
 	int swizzleLength = 0;
 
-	if (_baseTypeDescriptions[objectType.baseType].numDimensions <= 1)
+	if (_baseTypeDescriptions[comparingType].numDimensions <= 1)
 	{
 		// Check for a swizzle on the scalar/vector types.
 		for (int i = 0; fieldName[i] != 0; ++i)
@@ -11319,8 +11985,8 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 
 			int r = (n[0] - '0') - base;
 			int c = (n[1] - '0') - base;
-			if (r >= _baseTypeDescriptions[objectType.baseType].height ||
-				c >= _baseTypeDescriptions[objectType.baseType].numComponents)
+			if (r >= _baseTypeDescriptions[comparingType].height ||
+				c >= _baseTypeDescriptions[comparingType].numComponents)
 			{
 				return false;
 			}
@@ -11348,7 +12014,7 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 	static const HLSLBaseType uintType[]  = { HLSLBaseType_Uint,  HLSLBaseType_Uint2,  HLSLBaseType_Uint3,  HLSLBaseType_Uint4  };
 	static const HLSLBaseType boolType[]  = { HLSLBaseType_Bool,  HLSLBaseType_Bool2,  HLSLBaseType_Bool3,  HLSLBaseType_Bool4  };
 	
-	switch (_baseTypeDescriptions[objectType.baseType].numericType)
+	switch (_baseTypeDescriptions[comparingType].numericType)
 	{
 	case NumericType_Float:
 		memberAccess->expressionType.baseType = floatType[swizzleLength - 1];
@@ -11373,6 +12039,35 @@ bool HLSLParser::GetMemberType(const HLSLType& objectType, HLSLMemberAccess * me
 	
 	return true;
 }
+
+HLSLBaseType HLSLParser::GetBaseTypeFromElement(const char* element)
+{
+	if (String_Equal(element, "float"))
+	{
+		return HLSLBaseType_Float;
+	}
+	else if (String_Equal(element, "half"))
+	{
+		return HLSLBaseType_Half;
+	}
+	else if (String_Equal(element, "uint"))
+	{
+		return HLSLBaseType_Uint;
+	}
+	else if (String_Equal(element, "int"))
+	{
+		return HLSLBaseType_Int;
+	}
+	else if (String_Equal(element, "bool"))
+	{
+		return HLSLBaseType_Bool;
+	}
+	else
+	{
+		return HLSLBaseType_UserDefined;
+	}
+}
+
 
 /*
 void HLSLParser::FindClosestTextureIdentifier(const HLSLTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName)
@@ -11494,3 +12189,696 @@ void HLSLParser::FindClosestTextureIdentifier(const HLSLRWTextureState* pTexture
 }
 */
 
+
+bool HLSLParser::GetBufferElementType(HLSLBuffer* pBuffer, bool bAllowVoid, int* pTypeFlag, bool optional)
+{
+	if (Accept('<'))
+	{
+		//if (!AcceptIdentifier(pBuffer->elementType))
+		if(!AcceptType(false, pBuffer->type.elementType, pBuffer->type.typeName, pTypeFlag))
+		{
+			//AcceptType(false, baseType, typeName, pTypeFlag);
+			//pBuffer->dataType = baseType;
+			return false;
+		}
+
+		if (pBuffer->type.typeName != NULL)
+			pBuffer->userDefinedElementTypeStr = pBuffer->type.typeName;
+
+		if (!Expect('>'))
+			return false;
+		else
+			return true;
+	}
+	else
+		return optional;
+}
+
+bool HLSLParser::GetRegisterAssignment(HLSLBuffer* pBuffer, const char* errorMsg_bufferType)
+{
+	if (Accept(':'))
+	{
+		if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(pBuffer->registerName))
+		{
+			return false;
+		}
+
+		// if there is space
+		if (Check(','))
+		{
+			currentTokenizer->Next();
+			//get space name
+			ExpectIdentifier(pBuffer->registerSpaceName);
+		}
+		else
+		{
+			//default Sapce Name
+			pBuffer->registerSpaceName = "space0";
+		}
+
+		if (!Expect(')'))
+		{
+			return false;
+		}
+
+		return true;
+	}
+	else
+	{
+		currentTokenizer->Error("Missed %s's register", errorMsg_bufferType);
+		return false;
+	}
+
+}
+
+
+bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
+{
+	if (Accept('{'))
+	{
+		HLSLDeclaration* lastField = NULL;
+		while (!Accept('}'))
+		{
+			if (CheckForUnexpectedEndOfStream('}'))
+			{
+				return false;
+			}
+			HLSLDeclaration* field = NULL;
+			if (!ParseDeclaration(field))
+			{
+				currentTokenizer->Error("Expected variable declaration");
+				return false;
+			}
+			DeclareVariable(field->name, field->type);
+
+			field->buffer = pBuffer;
+			if (pBuffer->field == NULL)
+			{
+				pBuffer->field = field;
+			}
+			else
+			{
+				lastField->nextStatement = field;
+			}
+			lastField = field;
+
+
+			if (!Expect(';'))
+				return false;
+			
+		}
+
+		// need to check
+		return true;
+	}
+	else
+		return false;
+}
+
+
+void HLSLParser::GetBufferArray(HLSLBuffer* pBuffer)
+{
+	// Handle array syntax.
+	while (Accept('['))
+	{
+		pBuffer->bArray = true;
+
+
+		if (Check(']')) //unboundedSize
+		{
+			pBuffer->arrayIdentifier[pBuffer->arrayDimension][0] = NULL;
+			currentTokenizer->Next();
+		}
+		else if (!Accept(']'))
+		{
+			if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
+			{
+				strcpy(pBuffer->arrayIdentifier[pBuffer->arrayDimension], currentTokenizer->GetIdentifier());
+				currentTokenizer->Next();
+				Expect(']');
+			}
+			else
+			{
+				pBuffer->arrayIndex[pBuffer->arrayDimension] = currentTokenizer->GetuInt();
+				currentTokenizer->Next();
+				Expect(']');
+			}
+		}
+
+		pBuffer->arrayDimension++;
+	}
+}
+
+bool HLSLParser::GetRegisterAssignment(HLSLTextureState* pTextureState, const char* errorMsg_bufferType)
+{
+	if (Accept(':'))// Handle register.
+	{
+		if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(pTextureState->registerName))
+		{
+			return false;
+		}
+
+		// if there is space
+		if (Check(','))
+		{
+			currentTokenizer->Next();
+			//get space name
+			ExpectIdentifier(pTextureState->registerSpaceName);
+		}
+		else
+		{
+			//default Sapce Name
+			pTextureState->registerSpaceName = "space0";
+		}
+
+		if (!Expect(')'))
+			return false;
+		else
+			return true;
+	}
+	else
+	{
+		currentTokenizer->Error("error) Missed %s's register!", errorMsg_bufferType);
+		return false;
+	}
+}
+
+void HLSLParser::GetTextureArray(HLSLTextureState* pTextureState)
+{
+	// Handle array syntax.
+	while (Accept('['))
+	{
+		pTextureState->bArray = true;
+
+
+		if (Check(']')) //unboundedSize
+		{
+			pTextureState->arrayIdentifier[pTextureState->arrayDimension][0] = NULL;
+			currentTokenizer->Next();
+		}
+		else if (!Accept(']'))
+		{
+			if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
+			{
+				strcpy(pTextureState->arrayIdentifier[pTextureState->arrayDimension], currentTokenizer->GetIdentifier());
+				currentTokenizer->Next();
+				Expect(']');
+			}
+			else
+			{
+				pTextureState->arrayIndex[pTextureState->arrayDimension] = currentTokenizer->GetuInt();
+				currentTokenizer->Next();
+				Expect(']');
+			}
+		}
+
+		pTextureState->arrayDimension++;
+	}
+}
+
+
+bool HLSLParser::GetTextureElementType(HLSLTextureState* pTextureState, bool bAllowVoid, int* pTypeFlag, bool optional)
+{
+	//Handle elementType
+	if (Accept('<'))
+	{
+		if (!AcceptType(false, pTextureState->type.elementType, pTextureState->type.typeName, pTypeFlag))
+			return false;
+
+		//multi sampling
+		if (pTextureState->type.baseType == HLSLBaseType_Texture2DMS || pTextureState->type.baseType == HLSLBaseType_Texture2DMSArray)
+		{
+			//if (!Expect(','))
+			if (Accept(','))
+			{
+				const char* temp;
+				int iValue;
+				if (AcceptIdentifier(temp))
+					pTextureState->sampleIdentifier = temp;
+				else if (AcceptInt(iValue))
+					pTextureState->sampleCount = iValue;
+				else
+					return false;
+			}
+		}
+
+		if (!Expect('>'))
+			return false;
+		else
+			return true;
+	}
+	else
+		return optional;
+}
+
+bool HLSLParser::AcceptBufferType(HLSLBuffer* pBuffer)
+{
+	if (pBuffer)
+	{
+		switch (currentTokenizer->GetToken())
+		{
+		case HLSLToken_CBuffer:
+			pBuffer->type.baseType = HLSLBaseType_CBuffer; break;
+		case HLSLToken_TBuffer:
+			pBuffer->type.baseType = HLSLBaseType_TBuffer; break;
+		case HLSLToken_ConstantBuffer:
+			pBuffer->type.baseType = HLSLBaseType_ConstantBuffer; break;
+		case HLSLToken_StructuredBuffer:
+			pBuffer->type.baseType = HLSLBaseType_StructuredBuffer; break;
+		case HLSLToken_PureBuffer:
+			pBuffer->type.baseType = HLSLBaseType_PureBuffer; break;
+		case HLSLToken_RWBuffer:
+			pBuffer->type.baseType = HLSLBaseType_RWBuffer; break;
+		case HLSLToken_RWStructuredBuffer:
+			pBuffer->type.baseType = HLSLBaseType_RWStructuredBuffer; break;
+		case HLSLToken_ByteAddressBuffer:
+			pBuffer->type.baseType = HLSLBaseType_ByteAddressBuffer; break;
+		case HLSLToken_RWByteAddressBuffer:
+			pBuffer->type.baseType = HLSLBaseType_RWByteAddressBuffer; break;
+
+		default:
+			return false;
+			break;
+		}
+	}
+
+	currentTokenizer->Next();
+
+	return true;
+}
+
+bool HLSLParser::AcceptTextureType(HLSLTextureState* pTextureState)
+{
+	if (pTextureState)
+	{
+		switch (currentTokenizer->GetToken())
+		{
+		case HLSLToken_Texture1D:
+			pTextureState->type.baseType = HLSLBaseType_Texture1D; break;
+		case HLSLToken_Texture1DArray:
+			pTextureState->type.baseType = HLSLBaseType_Texture1DArray; break;
+		case HLSLToken_Texture2D:
+			pTextureState->type.baseType = HLSLBaseType_Texture2D; break;
+		case HLSLToken_Texture2DArray:
+			pTextureState->type.baseType = HLSLBaseType_Texture2DArray; break;
+		case HLSLToken_Texture3D:
+			pTextureState->type.baseType = HLSLBaseType_Texture3D; break;
+		case HLSLToken_Texture2DMS:
+			pTextureState->type.baseType = HLSLBaseType_Texture2DMS; break;
+		case HLSLToken_Texture2DMSArray:
+			pTextureState->type.baseType = HLSLBaseType_Texture2DMSArray; break;
+		case HLSLToken_TextureCube:
+			pTextureState->type.baseType = HLSLBaseType_TextureCube; break;
+		case HLSLToken_TextureCubeArray:
+			pTextureState->type.baseType = HLSLBaseType_TextureCubeArray; break;
+		case HLSLToken_RWTexture1D:
+			pTextureState->type.baseType = HLSLBaseType_RWTexture1D; break;
+		case HLSLToken_RWTexture1DArray:
+			pTextureState->type.baseType = HLSLBaseType_RWTexture1DArray; break;
+		case HLSLToken_RWTexture2D:
+			pTextureState->type.baseType = HLSLBaseType_RWTexture2D; break;
+		case HLSLToken_RWTexture2DArray:
+			pTextureState->type.baseType = HLSLBaseType_RWTexture2DArray; break;
+		case HLSLToken_RWTexture3D:
+			pTextureState->type.baseType = HLSLBaseType_RWTexture3D; break;
+		case HLSLToken_RasterizerOrderedTexture1D:
+			pTextureState->type.baseType = HLSLBaseType_RasterizerOrderedTexture1D; break;
+		case HLSLToken_RasterizerOrderedTexture1DArray:
+			pTextureState->type.baseType = HLSLBaseType_RasterizerOrderedTexture1DArray; break;
+		case HLSLToken_RasterizerOrderedTexture2D:
+			pTextureState->type.baseType = HLSLBaseType_RasterizerOrderedTexture2D; break;
+		case HLSLToken_RasterizerOrderedTexture2DArray:
+			pTextureState->type.baseType = HLSLBaseType_RasterizerOrderedTexture2DArray; break;
+		case HLSLToken_RasterizerOrderedTexture3D:
+			pTextureState->type.baseType = HLSLBaseType_RasterizerOrderedTexture3D; break;
+		default:
+			return false;
+			break;
+		}
+	}
+
+	currentTokenizer->Next();
+
+	return true;
+}
+
+
+HLSLpreprocessor* HLSLParser::HandleBranchPreprofessor(const char* fileName, int line, bool *doesNotExpectSemicolon, bool *pValid)
+{
+#ifdef _DEBUG
+	if (line == 126)
+	{
+		int debug = 345;
+	}
+#endif
+
+	if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Error >= currentTokenizer->GetToken())
+	{
+		const char* defineIndentifier = "IftoElif";
+
+		HLSLpreprocessor* preProcessor = m_tree->AddNode<HLSLpreprocessor>(fileName, line);
+
+		switch (currentTokenizer->GetToken())
+		{
+		case HLSLToken_P_If: preProcessor->type = HLSLBaseType_PreProcessorIf;
+			break;
+		case HLSLToken_P_Elif: preProcessor->type = HLSLBaseType_PreProcessorElif;
+			break;
+		case HLSLToken_P_IfDef: preProcessor->type = HLSLBaseType_PreProcessorIfDef;
+			break;
+		case HLSLToken_P_IfnDef: preProcessor->type = HLSLBaseType_PreProcessorIfnDef;
+			break;
+		case HLSLToken_P_Undef: preProcessor->type = HLSLBaseType_PreProcessorUndef;
+			break;
+		case HLSLToken_P_Include: preProcessor->type = HLSLBaseType_PreProcessorInclude;
+			m_tree->gExtension[USE_INCLUDE] = true;
+			break;
+		case HLSLToken_P_Line: preProcessor->type = HLSLBaseType_PreProcessorLine;
+			break;
+		case HLSLToken_P_Pragma: preProcessor->type = HLSLBaseType_PreProcessorPragma;
+			break;
+		default:
+			break;
+		}
+
+		preProcessor->preprocessorType = currentTokenizer->GetToken();
+
+		//Handle branch preprocessors
+		if (preProcessor->type == HLSLBaseType_PreProcessorInclude)
+		{
+			char preprocessorContents[1024];
+			currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
+
+			const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
+
+			if (pre)
+			{
+				preProcessor->contents = pre->contents;
+			}
+			else
+			{
+				preProcessor->contents = m_tree->AddString(preprocessorContents);
+				m_preProcessors.PushBack(preProcessor);
+			}
+
+			currentTokenizer->Next();
+
+		}
+		else if (preProcessor->type == HLSLBaseType_PreProcessorIf ||
+			preProcessor->type == HLSLBaseType_PreProcessorIfDef ||
+			preProcessor->type == HLSLBaseType_PreProcessorIfnDef)
+		{
+
+			char preprocessorContents[1024];
+			currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
+
+
+			const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
+
+			if (pre)
+			{
+				if (pre->contents)
+					preProcessor->contents = pre->contents;
+				else if (pre->name)
+					preProcessor->contents = pre->name;
+			}
+			else
+			{
+				preProcessor->contents = m_tree->AddString(preprocessorContents);
+				m_preProcessors.PushBack(preProcessor);
+			}
+
+			currentTokenizer->Next();
+
+			PrepropStackData* pStack = new PrepropStackData;
+
+			m_PrepropStack.PushBack(pStack);
+			m_CurrentPrePropStack++;
+
+			if (String_Equal(preProcessor->contents, "HLSL") ||
+				String_Equal(preProcessor->contents, "GLSL") ||
+				String_Equal(preProcessor->contents, "MSL") ||
+				String_Equal(preProcessor->contents, "ORBIS") ||
+				String_Equal(preProcessor->contents, "SWITCH") ||
+				String_Equal(preProcessor->contents, "NO_HLSL_DEFINITIONS"))
+			{
+				pStack->branchProp = true;
+
+				preProcessor->hidden = true;
+
+				if (String_Equal(preProcessor->contents, "HLSL"))
+				{
+					pStack->passed[Language::Language_HLSL] = true;
+
+					if (m_language == Language::Language_HLSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "GLSL"))
+				{
+					pStack->passed[Language::Language_GLSL] = true;
+
+					if (m_language == Language::Language_GLSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "MSL"))
+				{
+					pStack->passed[Language::Language_MSL] = true;
+
+					if (m_language == Language::Language_MSL)
+					{
+
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "ORBIS"))
+				{
+					pStack->passed[Language::Language_ORBIS] = true;
+
+					if (m_language == Language::Language_ORBIS)
+					{
+
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "SWITCH"))
+				{
+					pStack->passed[Language::Language_SWITCH] = true;
+
+					if (m_language == Language::Language_SWITCH)
+					{
+
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "NO_HLSL_DEFINITIONS"))
+				{
+					pStack->passed[m_language] = true;
+
+					if (m_language != Language::Language_HLSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+			}
+		}
+		else if (preProcessor->type == HLSLBaseType_PreProcessorElif)
+		{
+			char preprocessorContents[1024];
+			currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
+
+			const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
+
+			if (pre)
+			{
+				preProcessor->contents = pre->contents;
+			}
+			else
+			{
+				preProcessor->contents = m_tree->AddString(preprocessorContents);
+				m_preProcessors.PushBack(preProcessor);
+			}
+
+			currentTokenizer->Next();
+
+			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
+
+			if (pStack->branchProp)
+			{
+				preProcessor->hidden = true;
+
+				if (String_Equal(preProcessor->contents, "HLSL"))
+				{
+					pStack->passed[Language::Language_HLSL] = true;
+
+					if (m_language == Language::Language_HLSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "GLSL"))
+				{
+					pStack->passed[Language::Language_GLSL] = true;
+
+					if (m_language == Language::Language_GLSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "MSL"))
+				{
+					pStack->passed[Language::Language_MSL] = true;
+
+					if (m_language == Language::Language_MSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "ORBIS"))
+				{
+					pStack->passed[Language::Language_ORBIS] = true;
+
+					if (m_language == Language::Language_ORBIS)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "SWITCH"))
+				{
+					pStack->passed[Language::Language_SWITCH] = true;
+
+					if (m_language == Language::Language_SWITCH)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+				else if (String_Equal(preProcessor->contents, "NO_HLSL_DEFINITIONS"))
+				{
+					pStack->passed[m_language] = true;
+
+					if (m_language != Language::Language_HLSL)
+					{
+						m_bEmbrace = true;
+					}
+					else
+						m_bEmbrace = false;
+				}
+			}
+		}
+
+		*doesNotExpectSemicolon = true;
+
+		//statement = preProcessor;
+
+
+
+		*pValid = true;
+		return preProcessor;
+	}
+	else if (HLSLToken_P_Else <= currentTokenizer->GetToken() && HLSLToken_P_Endif >= currentTokenizer->GetToken())
+	{
+		//HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(currentTokenizer->GetToken() == HLSLToken_P_Else ? "Else" : "Endif", line);
+
+		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(currentTokenizer->GetToken() == HLSLToken_P_Else ? "Else" : "Endif", line);
+
+		switch (currentTokenizer->GetToken())
+		{
+		case HLSLToken_P_Else: preProcessor->type = HLSLBaseType_PreProcessorElse;
+			break;
+		case HLSLToken_P_Endif: preProcessor->type = HLSLBaseType_PreProcessorEndif;
+			break;
+		default:
+			break;
+		}
+
+		preProcessor->preprocessorType = currentTokenizer->GetToken();
+		currentTokenizer->Next();
+
+
+		if (preProcessor->type == HLSLBaseType_PreProcessorEndif)
+		{
+			PrepropStackData* pStack = m_PrepropStack.PopBack();
+			m_CurrentPrePropStack--;
+
+			if (m_CurrentPrePropStack < -1)
+			{
+				currentTokenizer->Error("Wrong preprocessor branch hierachy!");
+
+
+				*pValid = false;
+				return preProcessor;
+			}
+
+
+			if (pStack->branchProp)
+			{
+				m_bEmbrace = true;
+
+				preProcessor->hidden = true;
+
+				*pValid = true;
+				return preProcessor;
+			}
+		}
+		else if (preProcessor->type = HLSLBaseType_PreProcessorElse)
+		{
+			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
+
+			if (pStack->branchProp)
+			{
+				if (pStack->passed[m_language] == false)
+				{
+					pStack->passed[m_language] = true;
+					m_bEmbrace = true;
+				}
+				else
+					m_bEmbrace = false;
+
+				*pValid = true;
+				return preProcessor;
+			}
+		}
+
+		*doesNotExpectSemicolon = true;
+
+		//statement = preProcessor;
+
+		m_preProcessors.PushBack(preProcessor);
+
+
+		*pValid = true;
+		return preProcessor;
+	}
+	else
+	{
+		*pValid = false;
+		return NULL;
+
+	}
+
+}

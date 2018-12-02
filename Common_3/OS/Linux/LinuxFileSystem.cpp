@@ -31,12 +31,15 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <fcntl.h> //for open and O_* enums
 #include <linux/limits.h> //PATH_MAX declaration
+#include <dirent.h>
 #define MAX_PATH PATH_MAX
 
-#define RESOURCE_DIR "Shaders/LINUXVulkan"
+#define RESOURCE_DIR "Shaders/Vulkan"
 
 const char* pszRoots[FSR_Count] =
 {
@@ -87,7 +90,7 @@ long tell_file(FileHandle handle)
 
 size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
-	return fwrite(buffer, byteCount, 1, (::FILE*)handle);
+	return fwrite(buffer, 1, byteCount, (::FILE*)handle);
 }
 
 size_t get_file_last_modified_time(const char* _fileName)
@@ -151,5 +154,75 @@ void set_current_dir(const char* path)
 	// http://man7.org/linux/man-pages/man2/chdir.2.html
 	chdir(path);
 }
+
+void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+{
+	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	
+	DIR* directory = opendir(path.c_str());
+	if(!directory)
+		return;
+		
+	tinystl::string extension(ext);
+	struct dirent* entry;
+	do
+	{
+		entry = readdir(directory);
+		if(!entry)
+			break;
+			
+		tinystl::string file = entry->d_name;
+		if(file.find(extension, 0, false) != tinystl::string::npos)
+		{
+			file = path + file;
+			filesOut.push_back(file);
+		}
+			
+	}while(entry != NULL);
+	
+	closedir(directory);
+}
+
+void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
+{
+	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	
+	DIR* directory = opendir(path.c_str());
+	if(!directory)
+		return;
+		
+	struct dirent* entry;
+	do
+	{
+		entry = readdir(directory);
+		if(!entry)
+			break;
+			
+		if(entry->d_type & DT_DIR)
+		{
+			if(entry->d_name[0] != '.')
+			{
+				tinystl::string subDirectory = path + entry->d_name;
+				subDirectoriesOut.push_back(subDirectory);
+			}
+		}
+			
+	}while(entry != NULL);
+	
+	closedir(directory);
+}
+
+bool copy_file(const char* src, const char* dst)
+{
+	int source = open(src, O_RDONLY, 0);
+	int dest = open(dst, O_WRONLY);
+	struct stat stat_source;
+	fstat(source, &stat_source);
+	bool ret = sendfile64(dest, source, 0, stat_source.st_size) != -1;
+	close(source);
+	close(dest);
+	return ret;
+}
+
 
 #endif

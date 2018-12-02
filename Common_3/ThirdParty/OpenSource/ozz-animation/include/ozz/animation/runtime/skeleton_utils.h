@@ -30,14 +30,11 @@
 
 #include "skeleton.h"
 
-#include "../../base/maths/transform.h"
-
 namespace ozz {
 namespace animation {
 
 // Get bind-pose of a skeleton joint.
-ozz::math::Transform GetJointLocalBindPose(const Skeleton& _skeleton,
-                                           int _joint);
+AffineTransform GetJointLocalBindPose(const Skeleton& _skeleton, int _joint); //CONFFX_BEGIN
 
 // Defines the iterator structure used by IterateJointsDF to traverse joint
 // hierarchy.

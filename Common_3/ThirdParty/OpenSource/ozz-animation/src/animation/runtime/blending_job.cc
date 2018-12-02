@@ -33,7 +33,7 @@
 
 #include "../../../include/ozz/animation/runtime/skeleton.h"
 
-#include "../../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../../../OS/Math/MathTypes.h"
 #include "../../../include/ozz/base/maths/math_ex.h"
 //CONFFX_END
 
