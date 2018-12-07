@@ -762,12 +762,17 @@ def BuildAndroidProjects():
 		return -1
 	return 0
 	
-def BuildWindowsProjects(xboxDefined, xboxOnly):
+def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
 	pcConfigurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk", "DebugDx11", "ReleaseDx11"]
 	pcPlatform = "x64"
+	
+	if skipDebug:
+		pcConfigurations.remove("DebugDx")
+		pcConfigurations.remove("DebugVk")
+		pcConfigurations.remove("DebugDx11")
 
 	xboxConfigurations = ["Debug","Release"]
 	xboxPlatform = "Durango"
@@ -818,9 +823,13 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
 		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
-			configurations = ["DebugDx", "ReleaseDx"]
+			if "DebugVk" in configurations : configurations.remove("DebugVk")
+			if "ReleaseVk" in configurations : configurations.remove("ReleaseVk")
+			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
+			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
 		elif filename == "VisibilityBuffer.sln" or filename == 'Unit_Tests_Animation.sln':
-			configurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk"]
+			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
+			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
 			
 		
 		if "Xbox" in proj or "XBOXOne" in proj:
@@ -831,7 +840,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly):
 		#for conf in configurations:
 		if ".sln" in filename:
 			for conf in configurations:
-				command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Rebuild"]
+				command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Build"]
 				retCode = ExecuteBuild(command, filename,conf, platform)
 		else:
 			command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;WarningsOnly;Summary","/verbosity:minimal","/t:Build"]
@@ -885,7 +894,7 @@ def MainLogic():
 	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
 	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
 	parser.add_argument('--timeout',type=int, default="45", help='Specify timeout, in seconds, before app is killed when testing. Default value is 45 seconds.')
-
+	parser.add_argument('--skipwindowsdebugbuild', action="store_true", help='If enabled, will skip Debug builds on Windows.')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
 	
@@ -952,7 +961,7 @@ def MainLogic():
 			if arguments.android:
 				returnCode = BuildAndroidProjects()
 			else:
-				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly)
+				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipwindowsdebugbuild)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 
