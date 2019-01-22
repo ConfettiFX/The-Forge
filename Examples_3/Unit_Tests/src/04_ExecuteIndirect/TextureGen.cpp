@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,7 +50,8 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 
 	uint32_t* seeds = (uint32_t*)alloca(texture_count * sizeof(uint32_t));
 	{
-		for (uint32_t i = 0; i < texture_count; ++i) seeds[i] = rand();
+		for (uint32_t i = 0; i < texture_count; ++i)
+			seeds[i] = rand();
 	}
 
 	Image* image = out_texture;
@@ -74,14 +75,14 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 
 			NoiseOctaves<4> textureNoise(persistence);
 
-			uint mipLevel = 0;
-			uint slice = t * array_count + a;
+			uint      mipLevel = 0;
+			uint      slice = t * array_count + a;
 			uint32_t* scanline = (uint32_t*)image->GetPixels(mipLevel, slice);
 			for (size_t y = 0; y < textureDim; ++y)
 			{
 				for (size_t x = 0; x < textureDim; ++x)
 				{
-					float c = textureNoise((float)x*noiseScale, (float)y*noiseScale, seed);
+					float c = textureNoise((float)x * noiseScale, (float)y * noiseScale, seed);
 					c = max(0.0f, min(1.0f, (c - 0.5f) * strength + 0.5f));
 
 					int32_t cr = (int32_t)(c * 255.0f);

@@ -27,33 +27,60 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.cpp" />
     <ClCompile Include="..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\BRDFIntegration.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\computeIrradianceMap.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\computeSpecularMap.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\panoToCube.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\renderSceneBRDF.frag" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\renderSceneBRDF.vert" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\skybox.frag" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\skybox.vert" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\BRDFIntegration.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\computeIrradianceMap.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\computeSpecularMap.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\panoToCube.comp" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\renderSceneBRDF.frag" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\renderSceneBRDF.vert" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\06_MaterialPlayground\loadGroundTextures.lua" />
+    <None Include="..\src\06_MaterialPlayground\loadModels.lua" />
+    <None Include="..\src\06_MaterialPlayground\loadTextures.lua" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\BRDFIntegration.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\computeIrradianceMap.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\computeSpecularMap.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\panoToCube.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneBRDF.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneBRDF.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\skybox.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\skybox.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\BRDFIntegration.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\computeIrradianceMap.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\computeSpecularMap.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\fullscreen.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\hair.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\hair.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\hair.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\panoToCube.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneBRDF.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneBRDF.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\showCapsules.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\showCapsules.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skeleton.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skeleton.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skybox.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\BRDFIntegration.comp" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\computeIrradianceMap.comp" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\computeSpecularMap.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\fullscreen.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\hair.comp" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\hair.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\hair.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\panoToCube.comp" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.vert" />
+    <None Include="..\src\06_MaterialPlayground\updateCamera.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.h" />
+    <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.h" />
+    <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{611831C0-6301-4DB2-A61E-2596129C9239}</ProjectGuid>
@@ -127,42 +154,42 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(VULKAN_SDK)\Lib;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -184,7 +211,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;ozz_base.lib;ozz_animation.lib;LuaManager.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -220,7 +247,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;ozz_base.lib;ozz_animation.lib;LuaManager.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -257,7 +284,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;ozz_base.lib;ozz_animation.lib;LuaManager.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -297,7 +324,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;ozz_base.lib;ozz_animation.lib;LuaManager.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <FxCompile>
       <EntryPointName />
@@ -340,7 +367,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;ozz_base.lib;ozz_animation.lib;LuaManager.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -381,7 +408,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;ozz_base.lib;ozz_animation.lib;LuaManager.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

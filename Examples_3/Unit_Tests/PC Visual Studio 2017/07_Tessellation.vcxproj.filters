@@ -4,13 +4,13 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{87dbc550-7b01-4f1b-b305-78146b1addd8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{c3c74ab2-99a9-43b1-92e0-87c2e3d1d845}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{5e838495-aee3-4a66-b992-5c7d70f99961}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{63e5c419-9703-4c8d-8e1f-868ae7b4ed9f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -20,35 +20,35 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\compute.comp">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\compute.comp">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.tesc">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.tesc">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.tese">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.tese">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\07_Tessellation\Shaders\Vulkan\compute.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tesc">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tese">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
   </ItemGroup>
 </Project>

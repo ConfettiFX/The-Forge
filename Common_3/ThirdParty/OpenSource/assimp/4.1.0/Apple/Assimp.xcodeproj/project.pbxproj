@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 51;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -1748,6 +1748,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				OBJROOT = "$(PROJECT_DIR)/Apple/Build/";
 				ONLY_ACTIVE_ARCH = YES;
+				SCAN_ALL_SOURCE_FILES_FOR_INCLUDES = YES;
 				SDKROOT = macosx;
 				SYMROOT = "$(PROJECT_DIR)/Apple/Bin/";
 				WARNING_CFLAGS = "";
@@ -1803,6 +1804,7 @@
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = assimp;
+				SCAN_ALL_SOURCE_FILES_FOR_INCLUDES = YES;
 				SECTORDER_FLAGS = "";
 				SYMROOT = "$(PROJECT_DIR)/Apple/Bin/";
 				USE_HEADERMAP = NO;
@@ -1861,6 +1863,7 @@
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = assimp;
+				SCAN_ALL_SOURCE_FILES_FOR_INCLUDES = YES;
 				SECTORDER_FLAGS = "";
 				SYMROOT = "$(PROJECT_DIR)/Apple/Bin/";
 				USE_HEADERMAP = NO;
@@ -1885,6 +1888,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				OBJROOT = "$(PROJECT_DIR)/Apple/Build/";
 				ONLY_ACTIVE_ARCH = YES;
+				SCAN_ALL_SOURCE_FILES_FOR_INCLUDES = YES;
 				SDKROOT = macosx;
 				SYMROOT = "$(PROJECT_DIR)/Apple/Bin/";
 				WARNING_CFLAGS = "";

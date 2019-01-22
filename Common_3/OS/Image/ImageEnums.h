@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,23 +28,22 @@
 // Indicates the result of a GNF load operation
 enum GnfError
 {
-  kGnfErrorNone = 0, // Operation was successful; no error
-  kGnfErrorInvalidPointer = -1, // Caller passed an invalid/NULL pointer to a GNF loader function
-  kGnfErrorNotGnfFile = -2, // Attempted to load a file that isn't a GNF file (bad magic number in header)
-  kGnfErrorCorruptHeader = -3, // Attempted to load a GNF file with corrupt header data
-  kGnfErrorFileIsTooShort = -4, // Attempted to load a GNF file whose size is smaller than the size reported in its header
-  kGnfErrorVersionMismatch = -5, // Attempted to load a GNF file created by a different version of the GNF code
-  kGnfErrorAlignmentOutOfRange = -6, // Attempted to load a GNF file with corrupt header data (surface alignment > 2^31 bytes)
-  kGnfErrorContentsSizeMismatch = -7, // Attempted to load a GNF file with corrupt header data (wrong size in GNF header contents)
-  kGnfErrorCouldNotOpenFile = -8, // Unable to open a file for reading
-  kGnfErrorOutOfMemory = -9, // Internal memory allocation failed
+	kGnfErrorNone = 0,                     // Operation was successful; no error
+	kGnfErrorInvalidPointer = -1,          // Caller passed an invalid/NULL pointer to a GNF loader function
+	kGnfErrorNotGnfFile = -2,              // Attempted to load a file that isn't a GNF file (bad magic number in header)
+	kGnfErrorCorruptHeader = -3,           // Attempted to load a GNF file with corrupt header data
+	kGnfErrorFileIsTooShort = -4,          // Attempted to load a GNF file whose size is smaller than the size reported in its header
+	kGnfErrorVersionMismatch = -5,         // Attempted to load a GNF file created by a different version of the GNF code
+	kGnfErrorAlignmentOutOfRange = -6,     // Attempted to load a GNF file with corrupt header data (surface alignment > 2^31 bytes)
+	kGnfErrorContentsSizeMismatch = -7,    // Attempted to load a GNF file with corrupt header data (wrong size in GNF header contents)
+	kGnfErrorCouldNotOpenFile = -8,        // Unable to open a file for reading
+	kGnfErrorOutOfMemory = -9,             // Internal memory allocation failed
 };
 #endif
 
-namespace ImageFormat
+namespace ImageFormat {
+enum Enum
 {
-  enum Enum
-  {
 	NONE = 0,
 
 	// Unsigned formats
@@ -130,7 +129,7 @@ namespace ImageFormat
 	PVR_4BPPA = 59,
 
 	//http://aras-p.info/texts/D3D9GPUHacks.html
-	INTZ = 60,  //  NVidia hack. Supported on all DX10+ HW
+	INTZ = 60,    //  NVidia hack. Supported on all DX10+ HW
 
 	//  XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
 	LE_XRGB8 = 61,
@@ -139,15 +138,15 @@ namespace ImageFormat
 	LE_A2RGB10 = 64,
 
 	// compressed mobile forms
-	ETC1 = 65,  //  RGB
-	ATC = 66,   //  RGB
-	ATCA = 67,  //  RGBA, explicit alpha
-	ATCI = 68,  //  RGBA, interpolated alpha
+	ETC1 = 65,    //  RGB
+	ATC = 66,     //  RGB
+	ATCA = 67,    //  RGBA, explicit alpha
+	ATCI = 68,    //  RGBA, interpolated alpha
 
 	//http://aras-p.info/texts/D3D9GPUHacks.html
-	RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
-	DF16 = 70, //depth only, Intel/AMD
-	STENCILONLY = 71, // stencil ony usage
+	RAWZ = 69,           //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
+	DF16 = 70,           //depth only, Intel/AMD
+	STENCILONLY = 71,    // stencil ony usage
 
 	// BC1 == DXT1
 	// BC2 == DXT2
@@ -166,7 +165,6 @@ namespace ImageFormat
 	// Reveser Form
 	BGRA8 = 79,
 
-
 	// Extend for DXGI
 	X8D24PAX32 = 80,
 	S8 = 81,
@@ -184,6 +182,6 @@ namespace ImageFormat
 	IA16F = RG16F,
 	I32F = R32F,
 	IA32F = RG32F
-  };
+};
 
-} // namespace ImageFormat
+}    // namespace ImageFormat

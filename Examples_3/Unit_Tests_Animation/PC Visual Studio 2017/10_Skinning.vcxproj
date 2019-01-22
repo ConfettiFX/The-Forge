@@ -51,25 +51,25 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -94,7 +94,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;AssimpImporter.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
@@ -107,7 +108,7 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)../../../Common_3/Tools/AssetPipeline/Win64/build/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
+      <Command>"$(OutDir)/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
@@ -127,7 +128,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;AssimpImporter.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
@@ -140,7 +142,7 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)../../../Common_3/Tools/AssetPipeline/Win64/build/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
+      <Command>"$(OutDir)/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
@@ -159,7 +161,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;AssimpImporter.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -169,7 +172,7 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)../../../Common_3/Tools/AssetPipeline/Win64/build/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
+      <Command>"$(OutDir)/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -189,7 +192,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;AssimpImporter.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -199,19 +203,19 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)../../../Common_3/Tools/AssetPipeline/Win64/build/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
+      <Command>"$(OutDir)/AssetPipelineCmd.exe" processanimations "$(SolutionDir)../UnitTestResources/Animation/fbx" "$(SolutionDir)../UnitTestResources/Animation"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\10_Skinning\10_Skinning.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\10_Skinning\Shaders\PCDX12\basic.frag" />
-    <None Include="..\src\10_Skinning\Shaders\PCDX12\basic.vert" />
-    <None Include="..\src\10_Skinning\Shaders\PCDX12\plane.frag" />
-    <None Include="..\src\10_Skinning\Shaders\PCDX12\plane.vert" />
-    <None Include="..\src\10_Skinning\Shaders\PCDX12\skinning.frag" />
-    <None Include="..\src\10_Skinning\Shaders\PCDX12\skinning.vert" />
+    <None Include="..\src\10_Skinning\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\10_Skinning\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\10_Skinning\Shaders\D3D12\plane.frag" />
+    <None Include="..\src\10_Skinning\Shaders\D3D12\plane.vert" />
+    <None Include="..\src\10_Skinning\Shaders\D3D12\skinning.frag" />
+    <None Include="..\src\10_Skinning\Shaders\D3D12\skinning.vert" />
     <None Include="..\src\10_Skinning\Shaders\Vulkan\basic.frag" />
     <None Include="..\src\10_Skinning\Shaders\Vulkan\basic.vert" />
     <None Include="..\src\10_Skinning\Shaders\Vulkan\plane.frag" />

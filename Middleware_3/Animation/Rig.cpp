@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,7 +28,7 @@ void Rig::Initialize(const char* skeletonFile)
 {
 	// Reading skeleton.
 	if (!LoadSkeleton(skeletonFile))
-		return;	//need error catching
+		return;    //need error catching
 
 	mNumSoaJoints = mSkeleton.num_soa_joints();
 	mNumJoints = mSkeleton.num_joints();
@@ -36,8 +36,10 @@ void Rig::Initialize(const char* skeletonFile)
 	// Find the root index
 	for (unsigned int i = 0; i < mNumJoints; i++)
 	{
-		if (mSkeleton.joint_properties()[i].parent == ozz::animation::Skeleton::kNoParentIndex) {
-			mRootIndex = i; break;
+		if (mSkeleton.joint_properties()[i].parent == ozz::animation::Skeleton::kNoParentIndex)
+		{
+			mRootIndex = i;
+			break;
 		}
 	}
 
@@ -60,7 +62,6 @@ void Rig::Destroy()
 
 void Rig::Pose(const Matrix4& rootTransform)
 {
-
 	// Set the world matrix of each joint
 	for (unsigned int jointIndex = 0; jointIndex < mNumJoints; jointIndex++)
 	{
@@ -71,13 +72,13 @@ void Rig::Pose(const Matrix4& rootTransform)
 	// based on the distance between each joint
 	if (mUpdateBones)
 	{
-		// Traverses through the skeleton's joint hierarchy, placing bones between 
+		// Traverses through the skeleton's joint hierarchy, placing bones between
 		// joints and altering the size of joints and bones to reflect distances
 		// between joints
 
 		// Store smallest bone lenth to be reused for root joint scale
 		float minBoneLen = 0.f;
-		bool minBoneLenSet = false;
+		bool  minBoneLenSet = false;
 
 		// For each joint
 		for (unsigned int childIndex = 0; childIndex < mNumJoints; childIndex++)
@@ -97,7 +98,7 @@ void Rig::Pose(const Matrix4& rootTransform)
 			const mat4 parentMat = mJointModelMats[parentIndex];
 			const mat4 childMat = mJointModelMats[childIndex];
 
-			vec3 boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
+			vec3  boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
 			float boneLen = length(boneDir);
 
 			// Save smallest boneLen for the root joints scale size
@@ -110,7 +111,7 @@ void Rig::Pose(const Matrix4& rootTransform)
 			// matrix which will place it between the two joints
 			// Using Gramm Schmidt process'
 			float dotProd = dot(parentMat.getCol2().getXYZ(), boneDir);
-			vec3 binormal = abs(dotProd) < 0.01f ? parentMat.getCol2().getXYZ() : parentMat.getCol1().getXYZ();
+			vec3  binormal = abs(dotProd) < 0.01f ? parentMat.getCol2().getXYZ() : parentMat.getCol1().getXYZ();
 
 			vec4 col0 = vec4(boneDir, 0.0f);
 			vec4 col1 = vec4(boneLen * normalize(cross(binormal, boneDir)), 0.0f);
@@ -129,17 +130,16 @@ void Rig::Pose(const Matrix4& rootTransform)
 }
 
 bool Rig::LoadSkeleton(const char* fileName)
-{	
-
+{
 	ozz::io::File file(fileName, "rb");
-	if (!file.opened()) 
+	if (!file.opened())
 	{
 		ErrorMsg("Cannot open skeleton file");
 		return false;
 	}
 
 	ozz::io::IArchive archive(&file);
-	if (!archive.TestTag<ozz::animation::Skeleton>()) 
+	if (!archive.TestTag<ozz::animation::Skeleton>())
 	{
 		ErrorMsg("Skeleton Archive doesn't contain the expected object type");
 		return false;
@@ -148,7 +148,6 @@ bool Rig::LoadSkeleton(const char* fileName)
 	archive >> mSkeleton;
 
 	return true;
-	
 }
 
 int Rig::FindJoint(const char* jointName)

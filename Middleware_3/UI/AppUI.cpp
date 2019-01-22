@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,8 +24,6 @@
 
 #include "AppUI.h"
 
-#include "UIShaders.h"
-
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Image/Image.h"
@@ -34,7 +32,6 @@
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/GpuProfiler.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
-
 
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
@@ -48,13 +45,13 @@
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-namespace PlatformEvents
-{
-	extern bool skipMouseCapture;
+namespace PlatformEvents {
+extern bool skipMouseCapture;
 }
 
-static tinystl::vector<GuiComponent*> gInstances;
-static Mutex gMutex;
+FSRoot                         FSR_MIDDLEWARE_UI = FSR_Middleware1;
+static tinystl::vector<UIApp*> gInstances;
+static Mutex                   gMutex;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
@@ -74,8 +71,8 @@ static void CloneCallbacks(IWidget* pSrc, IWidget* pDst)
 
 IWidget* CollapsingHeaderWidget::Clone() const
 {
-	CollapsingHeaderWidget* pWidget = conf_placement_new<CollapsingHeaderWidget>(
-		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mDefaultOpen, this->mCollapsed);
+	CollapsingHeaderWidget* pWidget =
+		conf_placement_new<CollapsingHeaderWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mDefaultOpen, this->mCollapsed);
 
 	// Need to read the subwidgets as the destructor will remove them all
 	for (size_t i = 0; i < mGroupedWidgets.size(); ++i)
@@ -89,8 +86,7 @@ IWidget* CollapsingHeaderWidget::Clone() const
 
 IWidget* LabelWidget::Clone() const
 {
-	LabelWidget* pWidget = conf_placement_new<LabelWidget>(
-		conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+	LabelWidget* pWidget = conf_placement_new<LabelWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -100,8 +96,7 @@ IWidget* LabelWidget::Clone() const
 
 IWidget* ButtonWidget::Clone() const
 {
-	ButtonWidget* pWidget = conf_placement_new<ButtonWidget>(
-		conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+	ButtonWidget* pWidget = conf_placement_new<ButtonWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -111,8 +106,7 @@ IWidget* ButtonWidget::Clone() const
 
 IWidget* SeparatorWidget::Clone() const
 {
-	SeparatorWidget* pWidget = conf_placement_new<SeparatorWidget>(
-		conf_calloc(1, sizeof(*pWidget)));
+	SeparatorWidget* pWidget = conf_placement_new<SeparatorWidget>(conf_calloc(1, sizeof(*pWidget)));
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -123,8 +117,7 @@ IWidget* SeparatorWidget::Clone() const
 IWidget* SliderFloatWidget::Clone() const
 {
 	SliderFloatWidget* pWidget = conf_placement_new<SliderFloatWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -135,8 +128,7 @@ IWidget* SliderFloatWidget::Clone() const
 IWidget* SliderFloat2Widget::Clone() const
 {
 	SliderFloat2Widget* pWidget = conf_placement_new<SliderFloat2Widget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -147,8 +139,7 @@ IWidget* SliderFloat2Widget::Clone() const
 IWidget* SliderFloat3Widget::Clone() const
 {
 	SliderFloat3Widget* pWidget = conf_placement_new<SliderFloat3Widget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -159,8 +150,7 @@ IWidget* SliderFloat3Widget::Clone() const
 IWidget* SliderFloat4Widget::Clone() const
 {
 	SliderFloat4Widget* pWidget = conf_placement_new<SliderFloat4Widget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -171,12 +161,10 @@ IWidget* SliderFloat4Widget::Clone() const
 IWidget* SliderIntWidget::Clone() const
 {
 	SliderIntWidget* pWidget = conf_placement_new<SliderIntWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
-
 
 	return pWidget;
 }
@@ -184,8 +172,7 @@ IWidget* SliderIntWidget::Clone() const
 IWidget* SliderUintWidget::Clone() const
 {
 	SliderUintWidget* pWidget = conf_placement_new<SliderUintWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -195,9 +182,8 @@ IWidget* SliderUintWidget::Clone() const
 
 IWidget* RadioButtonWidget::Clone() const
 {
-	RadioButtonWidget* pWidget = conf_placement_new<RadioButtonWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mRadioId);
+	RadioButtonWidget* pWidget =
+		conf_placement_new<RadioButtonWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mRadioId);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -211,8 +197,7 @@ IWidget* DropdownWidget::Clone() const
 	for (uint32_t i = 0; i < (uint32_t)mValues.size(); ++i)
 		ppNames[i] = mNames[i].c_str();
 	DropdownWidget* pWidget = conf_placement_new<DropdownWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, ppNames, this->mValues.data(), (uint32_t)this->mValues.size());
+		conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, ppNames, this->mValues.data(), (uint32_t)this->mValues.size());
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -222,9 +207,8 @@ IWidget* DropdownWidget::Clone() const
 
 IWidget* ProgressBarWidget::Clone() const
 {
-	ProgressBarWidget* pWidget = conf_placement_new<ProgressBarWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, mMaxProgress);
+	ProgressBarWidget* pWidget =
+		conf_placement_new<ProgressBarWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, mMaxProgress);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -234,9 +218,7 @@ IWidget* ProgressBarWidget::Clone() const
 
 IWidget* ColorSliderWidget::Clone() const
 {
-	ColorSliderWidget* pWidget = conf_placement_new<ColorSliderWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData);
+	ColorSliderWidget* pWidget = conf_placement_new<ColorSliderWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -246,9 +228,7 @@ IWidget* ColorSliderWidget::Clone() const
 
 IWidget* ColorPickerWidget::Clone() const
 {
-	ColorPickerWidget* pWidget = conf_placement_new<ColorPickerWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData);
+	ColorPickerWidget* pWidget = conf_placement_new<ColorPickerWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -258,9 +238,8 @@ IWidget* ColorPickerWidget::Clone() const
 
 IWidget* TextboxWidget::Clone() const
 {
-	TextboxWidget* pWidget = conf_placement_new<TextboxWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData, this->mLength, this->mAutoSelectAll);
+	TextboxWidget* pWidget =
+		conf_placement_new<TextboxWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mLength, this->mAutoSelectAll);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -270,9 +249,7 @@ IWidget* TextboxWidget::Clone() const
 
 IWidget* CheckboxWidget::Clone() const
 {
-	CheckboxWidget* pWidget = conf_placement_new<CheckboxWidget>(
-		conf_calloc(1, sizeof(*pWidget)),
-		this->mLabel, this->pData);
+	CheckboxWidget* pWidget = conf_placement_new<CheckboxWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -284,14 +261,13 @@ IWidget* CheckboxWidget::Clone() const
 /************************************************************************/
 struct UIAppImpl
 {
-	Renderer*						pRenderer;
-	Fontstash*						pFontStash;
-	uint32_t						mWidth;
-	uint32_t						mHeight;
+	Renderer*  pRenderer;
+	Fontstash* pFontStash;
 
-	tinystl::vector<GuiComponent*>	mComponents;
+	tinystl::vector<GuiComponent*> mComponents;
 
-	tinystl::vector<GuiComponent*>	mComponentsToUpdate;
+	tinystl::vector<GuiComponent*> mComponentsToUpdate;
+	bool                           mUpdated;
 };
 
 bool UIApp::Init(Renderer* renderer)
@@ -312,46 +288,49 @@ bool UIApp::Init(Renderer* renderer)
 	const int TextureAtlasDimension = 512;
 #elif defined(DURANGO)
 	const int TextureAtlasDimension = 1024;
-#else // PC / LINUX / MAC
+#else    // PC / LINUX / MAC
 	const int TextureAtlasDimension = 2048;
 #endif
-	pImpl->pFontStash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, TextureAtlasDimension, TextureAtlasDimension);
+	pImpl->pFontStash =
+		conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, TextureAtlasDimension, TextureAtlasDimension);
+	initGUIDriver(pImpl->pRenderer, &pDriver);
+
+	MutexLock lock(gMutex);
+	gInstances.emplace_back(this);
+
+	if (gInstances.size() == 1)
+	{
+		InputSystem::RegisterInputEvent(uiInputEvent, UINT_MAX);
+	}
 
 	return pImpl->pFontStash != NULL;
 }
 
 void UIApp::Exit()
 {
-	// Make copy of vector since RemoveGuiComponent will modify the original vector
-	tinystl::vector<GuiComponent*> components = pImpl->mComponents;
-	for (uint32_t i = 0; i < (uint32_t)components.size(); ++i)
-		RemoveGuiComponent(components[i]);
+	UIApp** it = gInstances.find(this);
+	ASSERT(it != gInstances.end());
+	if (it != gInstances.end())
+	{
+		gInstances.erase(it);
+	}
+
+	RemoveAllGuiComponents();
 
 	pImpl->pFontStash->destroy();
 	conf_free(pImpl->pFontStash);
-	
-	if (pDriver)
-	{
-		pDriver->unload();
-		removeGUIDriver(pDriver);
-		pDriver = NULL;
-	}
+
+	pDriver->unload();
+	removeGUIDriver(pDriver);
+	pDriver = NULL;
 
 	pImpl->~UIAppImpl();
 	conf_free(pImpl);
 }
 
-bool UIApp::Load(RenderTarget** rts)
-{
-	pImpl->mWidth = rts[0]->mDesc.mWidth;
-	pImpl->mHeight = rts[0]->mDesc.mHeight;
+bool UIApp::Load(RenderTarget** rts) { return true; }
 
-	return true;
-}
-
-void UIApp::Unload()
-{
-}
+void UIApp::Unload() {}
 
 uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
 {
@@ -361,27 +340,27 @@ uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
 	return fontID;
 }
 
-float2 UIApp::MeasureText(const char* pText, const TextDrawDesc& drawDesc ) const
+float2 UIApp::MeasureText(const char* pText, const TextDrawDesc& drawDesc) const
 {
 	float textBounds[4] = {};
-	pImpl->pFontStash->measureText(textBounds, pText, 0, 0, drawDesc.mFontID, drawDesc.mFontColor, drawDesc.mFontSize, drawDesc.mFontSpacing, drawDesc.mFontBlur);
+	pImpl->pFontStash->measureText(
+		textBounds, pText, 0, 0, drawDesc.mFontID, drawDesc.mFontColor, drawDesc.mFontSize, drawDesc.mFontSpacing, drawDesc.mFontBlur);
 	return float2(textBounds[2] - textBounds[0], textBounds[3] - textBounds[1]);
 }
 
 void UIApp::DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc& drawDesc) const
 {
 	const TextDrawDesc* pDesc = &drawDesc;
-	pImpl->pFontStash->drawText(cmd, pText, screenCoordsInPx.getX(), screenCoordsInPx.getY(),
-		pDesc->mFontID, pDesc->mFontColor,
-		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
+	pImpl->pFontStash->drawText(
+		cmd, pText, screenCoordsInPx.getX(), screenCoordsInPx.getY(), pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize,
+		pDesc->mFontSpacing, pDesc->mFontBlur);
 }
 
 void UIApp::DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const TextDrawDesc& drawDesc, const mat4& matWorld, const mat4& matProjView)
 {
 	const TextDrawDesc* pDesc = &drawDesc;
-	pImpl->pFontStash->drawText(pCmd, pText, matProjView, matWorld,
-		pDesc->mFontID, pDesc->mFontColor,
-		pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
+	pImpl->pFontStash->drawText(
+		pCmd, pText, matProjView, matWorld, pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
 }
 
 GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
@@ -390,31 +369,14 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 	pComponent->mHasCloseButton = false;
 	pComponent->mFlags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
 
-	if (!pDriver)
-	{
-		initGUIDriver(pImpl->pRenderer, &pDriver);
-		pDriver->load(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
-	}
+	pDriver->load(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
 
-	pComponent->mInitialWindowRect =
-	{
-		pDesc->mStartPosition.getX(),
-		pDesc->mStartPosition.getY(),
-		pDesc->mStartSize.getX(),
-		pDesc->mStartSize.getY()
-	};
+	pComponent->mInitialWindowRect = { pDesc->mStartPosition.getX(), pDesc->mStartPosition.getY(), pDesc->mStartSize.getX(),
+									   pDesc->mStartSize.getY() };
 
 	pComponent->mActive = true;
 	pComponent->mTitle = pTitle;
 	pComponent->pDriver = pDriver;
-
-	MutexLock lock(gMutex);
-	gInstances.emplace_back(pComponent);
-
-	if (gInstances.size() == 1)
-	{
-		InputSystem::RegisterInputEvent(uiInputEvent);
-	}
 
 	pImpl->mComponents.emplace_back(pComponent);
 
@@ -426,30 +388,43 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 	ASSERT(pComponent);
 
 	pComponent->RemoveAllWidgets();
-	pImpl->mComponents.erase(pImpl->mComponents.find(pComponent));
-
-	pComponent->mWidgets.clear();
-
-	MutexLock lock(gMutex);
-	gInstances.erase(gInstances.find(pComponent));
+	GuiComponent** it = pImpl->mComponents.find(pComponent);
+	if (it != pImpl->mComponents.end())
+	{
+		(*it)->RemoveAllWidgets();
+		pImpl->mComponents.erase(it);
+		pComponent->mWidgets.clear();
+	}
 
 	pComponent->~GuiComponent();
 	conf_free(pComponent);
 }
 
+void UIApp::RemoveAllGuiComponents()
+{
+	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponents.size(); ++i)
+	{
+		pImpl->mComponents[i]->RemoveAllWidgets();
+		pImpl->mComponents[i]->~GuiComponent();
+		conf_free(pImpl->mComponents[i]);
+	}
+
+	pImpl->mComponents.clear();
+	pImpl->mComponentsToUpdate.clear();
+}
+
 void UIApp::Update(float deltaTime)
 {
-	if (!pDriver)
-		return;
+	pImpl->mUpdated = true;
 
 	tinystl::vector<GuiComponent*> activeComponents(pImpl->mComponentsToUpdate.size());
-	uint32_t activeComponentCount = 0;
+	uint32_t                       activeComponentCount = 0;
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 		if (pImpl->mComponentsToUpdate[i]->mActive)
 			activeComponents[activeComponentCount++] = pImpl->mComponentsToUpdate[i];
-	
+
 	mHovering = pDriver->update(deltaTime, activeComponents.data(), activeComponentCount, mShowDemoUiWindow);
-		
+
 	// Only on iOS as this only applies to virtual keyboard.
 	// TODO: add Durango at a later stage
 #ifdef TARGET_IOS
@@ -457,17 +432,17 @@ void UIApp::Update(float deltaTime)
 	//any gui component
 	//if any component requires textInput then this is true.
 	int wantsTextInput = 0;
-	
+
 	//check if current component requires textInput
 	//only support one type of text
 	//check for bigger that way we enable keyboard with all characters
 	//if there's one widget that requires digits only and one that requires all text
-	if(pDriver->needsTextInput() > wantsTextInput)
+	if (pDriver->needsTextInput() > wantsTextInput)
 		wantsTextInput = pDriver->needsTextInput();
-	
+
 	//if current Virtual keyboard state is not equal to
 	//text input status then toggle the appropriate behavior (hide, show)
-	if(InputSystem::IsVirtualKeyboardActive() != (wantsTextInput > 0))
+	if (InputSystem::IsVirtualKeyboardActive() != (wantsTextInput > 0))
 	{
 		InputSystem::ToggleVirtualTouchKeyboard(wantsTextInput);
 	}
@@ -478,16 +453,14 @@ void UIApp::Update(float deltaTime)
 
 void UIApp::Draw(Cmd* pCmd)
 {
-	if (!pDriver)
-		return;
-
-	pDriver->draw(pCmd);
+	if (pImpl->mUpdated)
+	{
+		pImpl->mUpdated = false;
+		pDriver->draw(pCmd);
+	}
 }
 
-void UIApp::Gui(GuiComponent* pGui)
-{
-	pImpl->mComponentsToUpdate.emplace_back(pGui);
-}
+void UIApp::Gui(GuiComponent* pGui) { pImpl->mComponentsToUpdate.emplace_back(pGui); }
 
 IWidget* GuiComponent::AddWidget(const IWidget& widget, bool clone /* = true*/)
 {
@@ -506,8 +479,8 @@ void GuiComponent::RemoveWidget(IWidget* pWidget)
 		{
 			pWidget->~IWidget();
 			conf_free(pWidget);
-			mWidgetsClone.erase(mWidgetsClone.begin() + (it - mWidgets.begin()));
 		}
+		mWidgetsClone.erase(mWidgetsClone.begin() + (it - mWidgets.begin()));
 		mWidgets.erase(it);
 	}
 }
@@ -547,11 +520,12 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	/************************************************************************/
 	// States
 	/************************************************************************/
-	SamplerDesc samplerDesc =
-	{
-		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-		ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
-	};
+	SamplerDesc samplerDesc = { FILTER_LINEAR,
+								FILTER_LINEAR,
+								MIPMAP_MODE_NEAREST,
+								ADDRESS_MODE_CLAMP_TO_EDGE,
+								ADDRESS_MODE_CLAMP_TO_EDGE,
+								ADDRESS_MODE_CLAMP_TO_EDGE };
 	addSampler(pRenderer, &samplerDesc, &pSampler);
 
 	BlendStateDesc blendStateDesc = {};
@@ -576,39 +550,17 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	/************************************************************************/
 	// Shader
 	/************************************************************************/
-#if defined(METAL)
-	tinystl::string texturedShaderFile = "builtin_plain";
-	tinystl::string texturedShader = mtl_builtin_textured;
-	ShaderDesc texturedShaderDesc = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG, { texturedShaderFile, texturedShader, "VSMain" }, { texturedShaderFile, texturedShader, "PSMain" } };
+	ShaderLoadDesc texturedShaderDesc = {};
+	texturedShaderDesc.mStages[0] = { "textured_mesh.vert", NULL, 0, FSR_MIDDLEWARE_UI };
+	texturedShaderDesc.mStages[1] = { "textured_mesh.frag", NULL, 0, FSR_MIDDLEWARE_UI };
 	addShader(pRenderer, &texturedShaderDesc, &pShader);
-#elif defined(DIRECT3D12) || defined(VULKAN)
-	char* pTexturedVert = NULL; uint texturedVertSize = 0;
-	char* pTexturedFrag = NULL; uint texturedFragSize = 0;
 
-	if (pRenderer->mSettings.mApi == RENDERER_API_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12)
-	{
-		pTexturedVert = (char*)d3d12_builtin_textured_vert; texturedVertSize = sizeof(d3d12_builtin_textured_vert);
-		pTexturedFrag = (char*)d3d12_builtin_textured_frag; texturedFragSize = sizeof(d3d12_builtin_textured_frag);
-	}
-	else if (pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
-	{
-		pTexturedVert = (char*)vk_builtin_textured_vert; texturedVertSize = sizeof(vk_builtin_textured_vert);
-		pTexturedFrag = (char*)vk_builtin_textured_frag; texturedFragSize = sizeof(vk_builtin_textured_frag);
-	}
-
-	BinaryShaderDesc texturedShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG,
-		{ (char*)pTexturedVert, texturedVertSize },{ (char*)pTexturedFrag, texturedFragSize } };
-	addShaderBinary(pRenderer, &texturedShader, &pShader);
-#endif
-
-
-	const char* pStaticSamplerNames[] = { "uSampler" };
+	const char*       pStaticSamplerNames[] = { "uSampler" };
 	RootSignatureDesc textureRootDesc = { &pShader, 1 };
 	textureRootDesc.mStaticSamplerCount = 1;
 	textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 	textureRootDesc.ppStaticSamplers = &pSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
-
 	/************************************************************************/
 	// Resources
 	/************************************************************************/
@@ -622,11 +574,15 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	/************************************************************************/
 	/************************************************************************/
 
+	mInitialized = true;
 	return true;
 }
 
 void VirtualJoystickUI::Exit()
 {
+	if (!mInitialized)
+		return;
+
 	removeMeshRingBuffer(pMeshRingBuffer);
 	removeRasterizerState(pRasterizerState);
 	removeBlendState(pBlendAlpha);
@@ -636,8 +592,11 @@ void VirtualJoystickUI::Exit()
 	removeResource(pTexture);
 }
 
-bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat )
+bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat)
 {
+	if (!mInitialized)
+		return false;
+
 	VertexLayout vertexLayout = {};
 	vertexLayout.mAttribCount = 2;
 	vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -668,17 +627,145 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat )
 	pipelineDesc.pVertexLayout = &vertexLayout;
 	addPipeline(pRenderer, &pipelineDesc, &pPipeline);
 
+	mRenderSize[0] = (float)pScreenRT->mDesc.mWidth;
+	mRenderSize[1] = (float)pScreenRT->mDesc.mHeight;
 	return true;
 }
 
 void VirtualJoystickUI::Unload()
 {
+	if (!mInitialized)
+		return;
 	removePipeline(pRenderer, pPipeline);
 }
 
-void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraController, const float4& color)
+void VirtualJoystickUI::InitLRSticks(float insideRad, float outsideRad, float deadzone)
 {
-#if defined(TARGET_IOS) || defined(__ANDROID__)
+	mInsideRadius = insideRad;
+	mOutsideRadius = outsideRad;
+	mDeadzone = deadzone;
+	mSticks[0].mTouchIndex = mSticks[1].mTouchIndex = -1;
+	mActive = mInitialized;
+}
+
+vec2 VirtualJoystickUI::GetLeftStickDir() { return mSticks[0].mIsPressed ? mSticks[0].mDir : vec2(0.f, 0.f); }
+
+vec2 VirtualJoystickUI::GetRightStickDir() { return mSticks[1].mIsPressed ? mSticks[1].mDir : vec2(0.f, 0.f); }
+
+vec2 VirtualJoystickUI::GetStickRadius() { return vec2(mOutsideRadius, mInsideRadius); }
+
+void VirtualJoystickUI::Update(float dt)
+{
+	if (!mActive)
+		return;
+
+	const float halfRad = mOutsideRadius * 0.5f;
+	for (uint i = 0; i < 2; i++)
+	{
+		if (mSticks[i].mIsPressed)
+		{
+			vec2  joystickDir = (mSticks[i].mCurrPos - mSticks[i].mStartPos);
+			float dirLength = length(joystickDir);
+			// Update velocity vector
+			if (dirLength > mDeadzone)
+			{
+				vec2 normalizedJoystickDir = (joystickDir) / halfRad;
+				if (dirLength > halfRad)
+					normalizedJoystickDir = normalize(joystickDir) * (halfRad);
+
+				mSticks[i].mDir = normalizedJoystickDir;
+			}
+			else
+			{
+				mSticks[i].mDir = vec2(0, 0);
+				mSticks[i].mCurrPos = mSticks[i].mStartPos;
+			}
+		}
+	}
+}
+
+bool VirtualJoystickUI::IsActive(bool left) { return mActive && (left ? mSticks[0].mIsPressed : mSticks[1].mIsPressed); }
+
+bool VirtualJoystickUI::IsAnyActive() { return mActive && (mSticks[0].mIsPressed || mSticks[1].mIsPressed); }
+
+void VirtualJoystickUI::SetActive(bool state)
+{
+	if (mInitialized)
+		mActive = state;
+}
+
+bool VirtualJoystickUI::OnInputEvent(const ButtonData* pData)
+{
+	if (pData->mEventConsumed || !mActive)
+		return false;
+
+	if (pData->mActiveDevicesMask & GAINPUT_TOUCH && (pData->mUserId == KEY_LEFT_STICK || pData->mUserId == KEY_RIGHT_STICK))
+	{
+		// Get normalized touch pos
+		vec2 touchPos = vec2(pData->mValue[0], pData->mValue[1]);
+
+		// if true then finger is at left half of screen
+		// otherwise right half
+		int stickIndex = touchPos.getX() > mRenderSize[0] / 2.f ? 1 : 0;
+
+		if (mSticks[0].mTouchIndex != -1 || mSticks[1].mTouchIndex != -1)
+		{
+			if (mSticks[0].mTouchIndex == pData->mTouchIndex && mSticks[0].mIsPressed)
+			{
+				stickIndex = 0;
+			}
+			else if (mSticks[1].mTouchIndex == pData->mTouchIndex && mSticks[1].mIsPressed)
+				stickIndex = 1;
+		}
+
+		if (mSticks[stickIndex].mTouchIndex != pData->mTouchIndex && mSticks[stickIndex].mIsPressed)
+			return false;
+
+		bool firstTouch = false;
+
+		// If jostick is being triggered for first first
+		// we need to place it there.
+		if (pData->mIsReleased || !pData->mIsPressed)
+		{
+			mSticks[stickIndex].mIsPressed = false;
+			mSticks[stickIndex].mTouchIndex = -1;
+			return false;
+		}
+		else if (pData->mIsPressed)
+		{
+			if (!mSticks[stickIndex].mIsPressed)
+				firstTouch = true;
+		}
+
+		// Spawn joystick at desired position
+		if (firstTouch)
+		{
+			mSticks[stickIndex].mIsPressed = true;
+			mSticks[stickIndex].mStartPos = touchPos;
+			mSticks[stickIndex].mCurrPos = touchPos;
+			mSticks[stickIndex].mTouchIndex = pData->mTouchIndex;
+		}
+
+		// Calculate the new joystick positions.
+		vec2 normalizedDelta(
+			pData->mValue[0] - mSticks[stickIndex].mStartPos.getX(), pData->mValue[1] - mSticks[stickIndex].mStartPos.getY());
+
+		vec2  newPos(pData->mValue[0], pData->mValue[1]);
+		float halfRad = mOutsideRadius / 2.f - mDeadzone;
+		if (length(normalizedDelta) > halfRad)
+			newPos = mSticks[stickIndex].mStartPos + normalize(normalizedDelta) * halfRad;
+
+		mSticks[stickIndex].mCurrPos = newPos;
+	}
+
+	return true;
+}
+
+void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
+{
+	if (!mActive)
+		return;
+
 	struct RootConstants
 	{
 		float4 color;
@@ -695,80 +782,59 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, class ICameraController* pCameraControll
 	params[1].ppTextures = &pTexture;
 	cmdBindDescriptors(pCmd, pRootSignature, 2, params);
 
+	if (mRenderSize[0] != (float)pCmd->mBoundWidth)
+		mRenderSize[0] = (float)pCmd->mBoundWidth;
+	if (mRenderSize[1] != (float)pCmd->mBoundHeight)
+		mRenderSize[1] = (float)pCmd->mBoundHeight;
+
 	// Draw the camera controller's virtual joysticks.
-	float extSide = min(pCmd->mBoundHeight, pCmd->mBoundWidth) * pCameraController->getVirtualJoystickExternalRadius();
-	float intSide = min(pCmd->mBoundHeight, pCmd->mBoundWidth) * pCameraController->getVirtualJoystickInternalRadius();
+	float extSide = mOutsideRadius;
+	float intSide = mInsideRadius;
 
+	for (uint i = 0; i < 2; i++)
 	{
-		float2 joystickSize = float2(extSide);
-		vec2 joystickCenter = pCameraController->getVirtualLeftJoystickCenter();
-		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+		if (mSticks[i].mIsPressed)
+		{
+			float2 joystickSize = float2(extSide);
+			vec2   joystickCenter = mSticks[i].mStartPos;
+			float2 joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
-		// the last variable can be used to create a border
-		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
-			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
-		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
-		updateResource(&updateDesc);
-		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
-		cmdDraw(pCmd, 4, 0);
-	}
-	{
-		vec2 joystickCenter = pCameraController->getVirtualRightJoystickCenter();
-		float2 joystickSize = float2(extSide);
-		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+			// the last variable can be used to create a border
+			TexVertex        vertices[] = { MAKETEXQUAD(
+                joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+			RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
+			BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			updateResource(&updateDesc);
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 4, 0);
 
-		// the last variable can be used to create a border
-		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
-			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
-		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
-		updateResource(&updateDesc);
-		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
-		cmdDraw(pCmd, 4, 0);
-	}
-	{
-		float2 joystickSize = float2(intSide);
-		vec2 joystickCenter = pCameraController->getVirtualLeftJoystickPos();
-		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
+			joystickSize = float2(intSide);
+			joystickCenter = mSticks[i].mCurrPos;
+			joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
-		// the last variable can be used to create a border
-		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
-			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
-		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
-		updateResource(&updateDesc);
-		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
-		cmdDraw(pCmd, 4, 0);
+			// the last variable can be used to create a border
+			TexVertex verticesInner[] = { MAKETEXQUAD(
+				joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+			buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(verticesInner));
+			updateDesc = { buffer.pBuffer, verticesInner, 0, buffer.mOffset, sizeof(verticesInner) };
+			updateResource(&updateDesc);
+			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdDraw(pCmd, 4, 0);
+		}
 	}
-	{
-		float2 joystickSize = float2(intSide);
-		vec2 joystickCenter = pCameraController->getVirtualRightJoystickPos();
-		float2 joystickPos = float2(joystickCenter.getX() * pCmd->mBoundWidth, joystickCenter.getY() * pCmd->mBoundHeight) - 0.5f * joystickSize;
-
-		// the last variable can be used to create a border
-		TexVertex vertices[] = { MAKETEXQUAD(joystickPos.x, joystickPos.y,
-			joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-		RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
-		BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
-		updateResource(&updateDesc);
-		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
-		cmdDraw(pCmd, 4, 0);
-	}
-#endif
 }
 /************************************************************************/
 // Event Handlers
 /************************************************************************/
-	// returns: 0: no input handled, 1: input handled
-bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver, const float4& currentWindowRect)
+// returns: 0: no input handled, 1: input handled
+void OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
 {
+	ButtonData toSend = *pData;
 	// Handle the mouse click events:
 	// We want to send ButtonData with click position to the UI system
 	//
-	if (pData->mUserId == KEY_CONFIRM	 // left  click
-		|| pData->mUserId == KEY_RIGHT_BUMPER // right click
-		|| pData->mUserId == KEY_MOUSE_WHEEL)
+	if (pData->mUserId == KEY_CONFIRM    // left  click
+		|| pData->mUserId == KEY_RIGHT_BUMPER)
 	{
 		// Query the latest UI_MOVE event since the current event
 		// which is a click event, doesn't contain the mouse position.
@@ -776,38 +842,61 @@ bool OnInput(const struct ButtonData* pData, GUIDriver* pDriver, const float4& c
 		// position (from the latest Move event) and click info from the
 		// current event.
 		ButtonData latestUIMoveEventData = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
-		ButtonData toSend = *pData;
 		toSend.mValue[0] = latestUIMoveEventData.mValue[0];
 		toSend.mValue[1] = latestUIMoveEventData.mValue[1];
-
-		PlatformEvents::skipMouseCapture = pDriver->onInput(&toSend, currentWindowRect);
-		return PlatformEvents::skipMouseCapture;
 	}
 
 	// just relay the rest of the events to the UI and let the UI system process the events
-	return pDriver->onInput(pData, currentWindowRect);
+	pDriver->onInput(&toSend);
 }
 
-static bool uiInputEvent(const ButtonData * pData)
+static bool uiInputEvent(const ButtonData* pData)
 {
-	for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+	// if cursor is hidden on capture, and mosue is captured then we can't use the UI. so we shouldn't parse input events.
+	// Otherwise UI receives input events when fps camera is active.
+	// another approach would be to change input events priorities when fps camera is active.
+	if (InputSystem::GetHideMouseCursorWhileCaptured() && InputSystem::IsMouseCaptured() && !pData->mIsReleased)
+		return false;
+
+	// if input event was consumed and it's a press/triggered event
+	// then we ignore it.
+	// We want to use the input event if it was a release so we can correctly
+	// release internally set values.
+	if (pData->mEventConsumed && !pData->mIsReleased)
+		return false;
+
+	if (gInstances.size())
 	{
-		if (gInstances[i]->mActive && OnInput(pData, gInstances[i]->pDriver, gInstances[i]->mCurrentWindowRect))
+		for (uint32_t app = 0; app < (uint32_t)gInstances.size(); ++app)
 		{
-			return true;
+			UIApp* pApp = gInstances[app];
+			OnInput(pData, pApp->pDriver);
+			for (uint32_t i = 0; i < (uint32_t)pApp->pImpl->mComponents.size(); ++i)
+			{
+				GuiComponent* pGui = pApp->pImpl->mComponents[i];
+				// consume the input event
+				// if UI requires text input
+				// Or if any element is hovered and active.
+				if ((pGui->mActive && pApp->pDriver->isHovering(pGui->mCurrentWindowRect)) || pApp->pDriver->needsTextInput())
+				{
+					PlatformEvents::skipMouseCapture = true;
+					return true;
+				}
+			}
 		}
 	}
-
 	// KEY_LEFT_STICK_BUTTON <-> F1 Key : See InputMapphings.h for details
 	// F1: Toggle Displaying UI
 	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
 	{
-		for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-			gInstances[i]->mActive = (!gInstances[i]->mActive);
+		for (uint32_t app = 0; app < (uint32_t)gInstances.size(); ++app)
+			for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
+				gInstances[app]->pImpl->mComponents[i]->mActive = (!gInstances[app]->pImpl->mComponents[i]->mActive);
 
 		PlatformEvents::skipMouseCapture = false;
 	}
 
+	PlatformEvents::skipMouseCapture = false;
 	return false;
 }
 /************************************************************************/

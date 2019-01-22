@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,41 +37,54 @@
 // NOTE: Make sure this is the last include in a .cpp file!
 //--------------------------------------------------------------------------------------------
 
-
 #include <new>
 #ifdef USE_MEMORY_TRACKING
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.h"
 
-#define conf_malloc(size)	   m_allocator	 (__FILE__,__LINE__,__FUNCTION__,m_alloc_malloc,(size))
-#define conf_calloc(count,size) m_allocator	 (__FILE__,__LINE__,__FUNCTION__,m_alloc_calloc,((size)*(count)))
-#define conf_realloc(ptr,size)  m_reallocator   (__FILE__,__LINE__,__FUNCTION__,m_alloc_realloc,(size),(ptr))
-#define conf_free(ptr)		  m_deallocator   (__FILE__,__LINE__,__FUNCTION__,m_alloc_free,(ptr))
+#define conf_malloc(size) m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_malloc, (size))
+#define conf_calloc(count, size) m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_calloc, ((size) * (count)))
+#define conf_realloc(ptr, size) m_reallocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_realloc, (size), (ptr))
+#define conf_free(ptr) m_deallocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_free, (ptr))
 #else
 void* m_allocator(size_t size);
 void* m_allocator(size_t count, size_t size);
 void* m_reallocator(void* ptr, size_t size);
-void m_deallocator(void* ptr);
+void  m_deallocator(void* ptr);
 
-#define conf_malloc(size)	   m_allocator(size)
-#define conf_calloc(count,size) m_allocator(count,size)
-#define conf_realloc(ptr,size)  m_reallocator(ptr,size)
-#define conf_free(ptr)		  m_deallocator(ptr)
+#define conf_malloc(size) m_allocator(size)
+#define conf_calloc(count, size) m_allocator(count, size)
+#define conf_realloc(ptr, size) m_reallocator(ptr, size)
+#define conf_free(ptr) m_deallocator(ptr)
 #endif
 
-#define malloc(size)		static_assert(false, "Please use conf_malloc");
-#define calloc(count,size)  static_assert(false, "Please use conf_calloc");
-#define realloc(ptr,size)   static_assert(false, "Please use conf_realloc");
-#define free(ptr)		   static_assert(false, "Please use conf_free");
-#define new				 static_assert(false, "Please use conf_placement_new");
-#define delete			  static_assert(false, "Please use conf_free with explicit destructor call");
+#define malloc(size) static_assert(false, "Please use conf_malloc");
+#define calloc(count, size) static_assert(false, "Please use conf_calloc");
+#define realloc(ptr, size) static_assert(false, "Please use conf_realloc");
+#define free(ptr) static_assert(false, "Please use conf_free");
+#define new static_assert(false, "Please use conf_placement_new");
+#define delete static_assert(false, "Please use conf_free with explicit destructor call");
 
 #pragma push_macro("new")
 #undef new
 
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 static T* conf_placement_new(void* ptr, Args... args)
 {
-	return new(ptr) T(args...);
+	return new (ptr) T(args...);
+}
+
+template <typename T, typename... Args>
+static T* conf_new(Args... args)
+{
+	T* ptr = (T*)conf_malloc(sizeof(T));
+	return new (ptr) T(args...);
+}
+
+template <typename T>
+static void conf_delete(T* ptr)
+{
+	ptr->~T();
+	conf_free(ptr);
 }
 
 #pragma pop_macro("new")

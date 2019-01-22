@@ -105,7 +105,7 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
 #include "../../../OS/Core/Compiler.h"
 
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -1846,6 +1846,69 @@ inline void initNoise()
 #undef Noise_NM
 #undef setup
 
+//----------------------------------------------------------------------------
+// Matrix helpers
+//----------------------------------------------------------------------------
+inline const Vector3 eulerAngles(const Matrix3& rotationMatrix)
+{
+	float r11, r12, r13, r21, r22, r23, r31, r32, r33;
+	r11 = rotationMatrix.getCol0().getX();
+	r21 = rotationMatrix.getCol1().getX();
+	r31 = rotationMatrix.getCol2().getX();
+
+	r12 = rotationMatrix.getCol0().getY();
+	r22 = rotationMatrix.getCol1().getY();
+	r32 = rotationMatrix.getCol2().getY();
+
+	r13 = rotationMatrix.getCol0().getZ();
+	r23 = rotationMatrix.getCol1().getZ();
+	r33 = rotationMatrix.getCol2().getZ();
+
+	float angleX = atan2f(r23, r33);
+	float angleY = atan2f(-r13, sqrtf(r23 * r23 + r33 * r33));
+	float angleZ = atan2f(r12, r11);
+
+	return Vector3(angleX, angleY, angleZ);
+}
+
+inline const Vector4 calculateFrustumPlane(const Matrix4& invMvp,
+	const Vector3& csPlaneNormal, const Vector3& csPlaneTangent, const float csPlaneDistance)
+{
+	const Vector3 csPlaneBitangent = normalize(cross(csPlaneTangent, csPlaneNormal));
+	const Vector3 csNormalOffset = csPlaneNormal * csPlaneDistance;
+	//
+	Vector4 pointA = (invMvp * Vector4(csNormalOffset + csPlaneTangent, 1.0f));
+	Vector4 pointB = (invMvp * Vector4(csNormalOffset, 1.f));
+	Vector4 pointC = (invMvp * Vector4(csNormalOffset + csPlaneBitangent, 1.0f));
+	pointA /= pointA.getW();
+	pointB /= pointB.getW();
+	pointC /= pointC.getW();
+	//
+	Vector3 dir = normalize(cross(pointB.getXYZ() - pointA.getXYZ(), pointB.getXYZ() - pointC.getXYZ()));
+	const float distance = dot(dir, pointB.getXYZ());
+	const Vector4 plane = Vector4(dir, -distance);
+	return plane;
+}
+
+inline const Frustum calculateFrustumPlanesFromRect(Matrix4 const& mvp,
+	const float xMin, const float xMax,
+	const float yMin, const float yMax,
+	const float totalWidth, const float totalHeight)
+{
+	const Matrix4 invMvp = inverse(mvp);
+	Frustum f;
+	float fxMin = (((float)xMin / (float)totalWidth) * 2.0f) - 1.0f;
+	float fxMax = (((float)xMax / (float)totalWidth) * 2.0f) - 1.0f;
+	float fyMin = (((float)(totalHeight - yMax) / (float)totalHeight) * 2.0f) - 1.0f;
+	float fyMax = (((float)(totalHeight - yMin) / (float)totalHeight) * 2.0f) - 1.0f;
+	//
+	f.rightPlane = calculateFrustumPlane(invMvp, Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f), fxMax);
+	f.leftPlane = calculateFrustumPlane(invMvp, Vector3(-1.0f, 0.0f, 0.0f), Vector3(0.f, 0.f, 1.0f), -fxMin);
+	f.topPlane = calculateFrustumPlane(invMvp, Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), fyMax);
+	f.bottomPlane = calculateFrustumPlane(invMvp, Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, 0.0f, -1.0f), -fyMin);
+
+	return f;
+}
 } // namespace Vectormath
 //========================================= #ConfettiMathExtensionsEnd ================================================
 

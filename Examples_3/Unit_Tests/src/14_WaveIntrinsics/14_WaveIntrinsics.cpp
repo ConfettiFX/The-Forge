@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -48,58 +48,58 @@
 /// Demo structures
 struct SceneConstantBuffer
 {
-	mat4 orthProjMatrix;
+	mat4   orthProjMatrix;
 	float2 mousePosition;
 	float2 resolution;
-	float time;
-	uint renderMode;
-	uint laneSize;
-	uint padding;
+	float  time;
+	uint   renderMode;
+	uint   laneSize;
+	uint   padding;
 };
 
-const uint32_t	  gImageCount = 3;
+const uint32_t gImageCount = 3;
 
-Renderer*		   pRenderer = NULL;
+Renderer* pRenderer = NULL;
 
-Queue*			  pGraphicsQueue = NULL;
-CmdPool*			pCmdPool = NULL;
-Cmd**			   ppCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-SwapChain*		  pSwapChain = NULL;
-Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*		  pImageAcquiredSemaphore = NULL;
-Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain* pSwapChain = NULL;
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-RenderTarget*	   pRenderTargetIntermediate = NULL;
+RenderTarget* pRenderTargetIntermediate = NULL;
 
-Shader*			 pShaderWave = NULL;
-Pipeline*		   pPipelineWave = NULL;
-RootSignature*	  pRootSignatureWave = NULL;
-Shader*			 pShaderMagnify = NULL;
-Pipeline*		   pPipelineMagnify = NULL;
-RootSignature*	  pRootSignatureMagnify = NULL;
+Shader*        pShaderWave = NULL;
+Pipeline*      pPipelineWave = NULL;
+RootSignature* pRootSignatureWave = NULL;
+Shader*        pShaderMagnify = NULL;
+Pipeline*      pPipelineMagnify = NULL;
+RootSignature* pRootSignatureMagnify = NULL;
 
-Sampler*			pSamplerPointWrap = NULL;
+Sampler* pSamplerPointWrap = NULL;
 #ifdef TARGET_IOS
-VirtualJoystickUI   gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
-DepthState*		 pDepthNone = NULL;
-RasterizerState*	pRasterizerCullNone = NULL;
+DepthState*      pDepthNone = NULL;
+RasterizerState* pRasterizerCullNone = NULL;
 
-Buffer*			 pUniformBuffer[gImageCount] = { NULL };
-Buffer*			 pVertexBufferTriangle = NULL;
-Buffer*			 pVertexBufferQuad = NULL;
+Buffer* pUniformBuffer[gImageCount] = { NULL };
+Buffer* pVertexBufferTriangle = NULL;
+Buffer* pVertexBufferQuad = NULL;
 
-uint32_t			gFrameIndex = 0;
+uint32_t gFrameIndex = 0;
 
 SceneConstantBuffer gSceneData;
 
 /// UI
-UIApp			   gAppUI;
-GuiComponent*	   pGui = NULL;
+UIApp         gAppUI;
+GuiComponent* pGui = NULL;
 
-FileSystem		  gFileSystem;
-LogManager		  gLogManager;
+FileSystem gFileSystem;
+LogManager gLogManager;
 
 enum RenderMode
 {
@@ -116,30 +116,30 @@ enum RenderMode
 };
 int32_t gRenderModeToggles = 0;
 
-const char* pszBases[] =
-{
-	"../../../src/14_WaveIntrinsics/",										// FSR_BinShaders
-	"../../../src/14_WaveIntrinsics/",									// FSR_SrcShaders
-	"",																		// FSR_BinShaders_Common
-	"",																		// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",											// FSR_Textures
-	"../../../UnitTestResources/",											// FSR_Meshes
-	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
-	"../../../src/14_WaveIntrinsics/",										// FSR_GpuConfig
-	"",																		// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/14_WaveIntrinsics/",      // FSR_BinShaders
+	"../../../src/14_WaveIntrinsics/",      // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/14_WaveIntrinsics/",      // FSR_GpuConfig
+	"",                                     // FSR_Animation
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
-class WaveIntrinsics : public IApp
+class WaveIntrinsics: public IApp
 {
-public:
+	public:
 	WaveIntrinsics()
 	{
 		mSettings.mWidth = 1920;
-		mSettings.mHeight =1080;
+		mSettings.mHeight = 1080;
 	}
-	
+
 	bool Init()
 	{
 		// window and renderer setup
@@ -149,10 +149,11 @@ public:
 		//check for init success
 		if (!pRenderer)
 			return false;
-		
+
 #ifdef METAL
 		//Instead of setting the gpu to Office and disabling the Unit test on more platforms, we do it here as the issue is only specific to Metal.
-		if(stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId,"0x1002") == 0 && stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId, "0x67df") == 0)
+		if (stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId, "0x1002") == 0 &&
+			stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId, "0x67df") == 0)
 		{
 			LOGERROR("This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
 			//exit instead of returning not to trigger failure in Jenkins
@@ -192,13 +193,11 @@ public:
 		addShader(pRenderer, &waveShader, &pShaderWave);
 		addShader(pRenderer, &magnifyShader, &pShaderMagnify);
 
-		SamplerDesc samplerDesc = {
-			FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_CLAMP_TO_BORDER
-		};
+		SamplerDesc samplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_CLAMP_TO_BORDER };
 		addSampler(pRenderer, &samplerDesc, &pSamplerPointWrap);
 
-		const char* pStaticSamplers[] = { "g_sampler" };
+		const char*       pStaticSamplers[] = { "g_sampler" };
 		RootSignatureDesc rootDesc = {};
 		rootDesc.mStaticSamplerCount = 1;
 		rootDesc.ppStaticSamplerNames = pStaticSamplers;
@@ -230,12 +229,9 @@ public:
 		};
 
 		// Define the geometry for a triangle.
-		Vertex triangleVertices[] =
-		{
-			{ { 0.0f, 0.5f , 0.0f },{ 0.8f, 0.8f, 0.0f, 1.0f } },
-			{ { 0.5f, -0.5f , 0.0f },{ 0.0f, 0.8f, 0.8f, 1.0f } },
-			{ { -0.5f, -0.5f , 0.0f },{ 0.8f, 0.0f, 0.8f, 1.0f } }
-		};
+		Vertex triangleVertices[] = { { { 0.0f, 0.5f, 0.0f }, { 0.8f, 0.8f, 0.0f, 1.0f } },
+									  { { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.8f, 0.8f, 1.0f } },
+									  { { -0.5f, -0.5f, 0.0f }, { 0.8f, 0.0f, 0.8f, 1.0f } } };
 
 		BufferLoadDesc triangleColorDesc = {};
 		triangleColorDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -247,16 +243,11 @@ public:
 		addResource(&triangleColorDesc);
 
 		// Define the geometry for a rectangle.
-		Vertex2 quadVertices[] =
-		{
-			{ { -1.0f, -1.0f , 0.0f },{ 0.0f, 1.0f } },
-			{ { -1.0f, 1.0f , 0.0f },{ 0.0f, 0.0f } },
-			{ { 1.0f, 1.0f , 0.0f },{ 1.0f, 0.0f } },
+		Vertex2 quadVertices[] = { { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { -1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+								   { { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
 
-			{ { -1.0f, -1.0f , 0.0f },{ 0.0f, 1.0f } },
-			{ { 1.0f, 1.0f , 0.0f },{ 1.0f, 0.0f } },
-			{ { 1.0f, -1.0f , 0.0f },{ 1.0f, 1.0f } }
-		};
+								   { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+								   { { 1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f } } };
 
 		BufferLoadDesc quadUVDesc = {};
 		quadUVDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -462,7 +453,7 @@ public:
 		/************************************************************************/
 		/************************************************************************/
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
+		Fence*      pNextFence = pRenderCompleteFences[gFrameIndex];
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
@@ -472,7 +463,7 @@ public:
 		RenderTarget* pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -531,7 +522,7 @@ public:
 		gTimer.GetUSec(true);
 
 #ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -549,10 +540,7 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "14_WaveIntrinsics";
-	}
+	tinystl::string GetName() { return "14_WaveIntrinsics"; }
 
 	bool addSwapChain()
 	{
@@ -594,11 +582,11 @@ public:
 		{
 			if (pData->mUserId == KEY_UI_MOVE)
 			{
-				if(InputSystem::IsButtonPressed(KEY_CONFIRM))
+				if (InputSystem::IsButtonPressed(KEY_CONFIRM))
 				{
 					gSceneData.mousePosition.x = pData->mValue[0];
 					gSceneData.mousePosition.y = pData->mValue[1];
-					
+
 					return true;
 				}
 			}

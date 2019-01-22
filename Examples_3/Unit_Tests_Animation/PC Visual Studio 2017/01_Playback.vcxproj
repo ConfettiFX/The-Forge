@@ -198,14 +198,14 @@
     <ClCompile Include="..\src\01_Playback\01_Playback.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\01_Playback\Shaders\PCDX12\basic.frag" />
-    <None Include="..\src\01_Playback\Shaders\PCDX12\basic.vert" />
-    <None Include="..\src\01_Playback\Shaders\PCDX12\plane.frag" />
-    <None Include="..\src\01_Playback\Shaders\PCDX12\plane.vert" />
-    <None Include="..\src\01_Playback\Shaders\PCVulkan\basic.frag" />
-    <None Include="..\src\01_Playback\Shaders\PCVulkan\basic.vert" />
-    <None Include="..\src\01_Playback\Shaders\PCVulkan\plane.frag" />
-    <None Include="..\src\01_Playback\Shaders\PCVulkan\plane.vert" />
+    <None Include="..\src\01_Playback\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\01_Playback\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\01_Playback\Shaders\D3D12\plane.frag" />
+    <None Include="..\src\01_Playback\Shaders\D3D12\plane.vert" />
+    <None Include="..\src\01_Playback\Shaders\Vulkan\basic.frag" />
+    <None Include="..\src\01_Playback\Shaders\Vulkan\basic.vert" />
+    <None Include="..\src\01_Playback\Shaders\Vulkan\plane.frag" />
+    <None Include="..\src\01_Playback\Shaders\Vulkan\plane.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

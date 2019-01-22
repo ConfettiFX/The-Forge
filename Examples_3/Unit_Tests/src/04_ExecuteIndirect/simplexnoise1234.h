@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -81,7 +81,8 @@ THE SOFTWARE.
 /** 1D, 2D, 3D and 4D float Perlin simplex noise
 */
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 	float snoise1(float x);

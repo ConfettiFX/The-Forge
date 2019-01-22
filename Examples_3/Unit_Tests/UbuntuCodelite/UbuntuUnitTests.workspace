@@ -18,13 +18,18 @@
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <Project Name="16_SphereTracing" Path="16_SphereTracing/16_SphereTracing.project" Active="No"/>
+  <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
+  <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
+  <Project Name="ozz_base" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
+  <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
+      <Project Name="LuaManager" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
@@ -44,17 +49,21 @@
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
       <Project Name="16_SphereTracing" ConfigName="Debug"/>
+      <Project Name="17_EntityComponentSystem" ConfigName="Debug"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="ozz_base" ConfigName="Debug"/>
+      <Project Name="ozz_animation" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="01_Transformation" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="LuaManager" ConfigName="Release"/>
       <Project Name="02_Compute" ConfigName="Release"/>
       <Project Name="03_MultiThread" ConfigName="Release"/>
       <Project Name="04_ExecuteIndirect" ConfigName="Release"/>
@@ -70,9 +79,12 @@
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="15_Transparency" ConfigName="Release"/>
       <Project Name="16_SphereTracing" ConfigName="Release"/>
+      <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="ozz_base" ConfigName="Release"/>
+      <Project Name="ozz_animation" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

@@ -1,7 +1,7 @@
 #version 450 core
 
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -69,7 +69,7 @@ layout (std140, set=2, binding=0) uniform cbLights {
 	Light lights[16];
 };
 
-//Noise Generator, refer to "Implicit Procedural Planet Generation Report" 
+//Noise Generator, refer to "Implicitï¿½Proceduralï¿½Planetï¿½Generation Report" 
 float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
 
 float hash(float n)

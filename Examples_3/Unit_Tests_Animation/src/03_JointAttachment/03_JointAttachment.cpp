@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,8 +21,6 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-
-
 
 /********************************************************************************************************
 *
@@ -68,70 +66,68 @@
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-const char* pszBases[] =
-{
-	"../../../src/03_JointAttachment/",										// FSR_BinShaders
-	"../../../src/03_JointAttachment/",									// FSR_SrcShaders
-	"",																		// FSR_BinShaders_Common
-	"",																		// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",											// FSR_Textures
-	"../../../UnitTestResources/",											// FSR_Meshes
-	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
-	"../../../src/03_JointAttachment/",										// FSR_GpuConfig
-	"../../../UnitTestResources/",											// FSR_Animtion
-	"",																		// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/03_JointAttachment/",     // FSR_BinShaders
+	"../../../src/03_JointAttachment/",     // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/03_JointAttachment/",     // FSR_GpuConfig
+	"../../../UnitTestResources/",          // FSR_Animtion
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
-#define MAX_INSTANCES 815 // For allocating space in uniform block. Must match with shader.
+#define MAX_INSTANCES 815    // For allocating space in uniform block. Must match with shader.
 
-const uint32_t		gImageCount = 3;
-uint32_t			gFrameIndex = 0;
-Renderer*			pRenderer = NULL;
+const uint32_t gImageCount = 3;
+uint32_t       gFrameIndex = 0;
+Renderer*      pRenderer = NULL;
 
-Queue*				pGraphicsQueue = NULL;
-CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-SwapChain*			pSwapChain = NULL;
-RenderTarget*		pDepthBuffer = NULL;
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*    pSwapChain = NULL;
+RenderTarget* pDepthBuffer = NULL;
+Fence*        pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*    pImageAcquiredSemaphore = NULL;
+Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 #ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
-DepthState*			pDepth = NULL;
+DepthState* pDepth = NULL;
 
+RasterizerState* pPlaneRast = NULL;
+RasterizerState* pSkeletonRast = NULL;
 
-RasterizerState*	pPlaneRast = NULL;
-RasterizerState*	pSkeletonRast = NULL;
+Shader*   pSkeletonShader = NULL;
+Buffer*   pJointVertexBuffer = NULL;
+Buffer*   pBoneVertexBuffer = NULL;
+Buffer*   pCuboidVertexBuffer = NULL;
+Pipeline* pSkeletonPipeline = NULL;
+int       gNumberOfJointPoints;
+int       gNumberOfBonePoints;
+int       gNumberOfCuboidPoints;
 
-Shader*				pSkeletonShader = NULL;
-Buffer*				pJointVertexBuffer = NULL;
-Buffer*				pBoneVertexBuffer = NULL;
-Buffer*				pCuboidVertexBuffer = NULL;
-Pipeline*			pSkeletonPipeline = NULL;
-int					gNumberOfJointPoints;
-int					gNumberOfBonePoints;
-int					gNumberOfCuboidPoints;
-
-Shader*				pPlaneDrawShader = NULL;
-Buffer*				pPlaneVertexBuffer = NULL;
-Pipeline*			pPlaneDrawPipeline = NULL;
-RootSignature*		pRootSignature = NULL;
+Shader*        pPlaneDrawShader = NULL;
+Buffer*        pPlaneVertexBuffer = NULL;
+Pipeline*      pPlaneDrawPipeline = NULL;
+RootSignature* pRootSignature = NULL;
 
 struct UniformBlockPlane
 {
 	mat4 mProjectView;
 	mat4 mToWorldMat;
 };
-UniformBlockPlane		gUniformDataPlane;
+UniformBlockPlane gUniformDataPlane;
 
-Buffer*				pPlaneUniformBuffer[gImageCount] = { NULL };
+Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 
 struct UniformBlock
 {
@@ -141,130 +137,124 @@ struct UniformBlock
 	vec3 mLightPosition;
 	vec3 mLightColor;
 };
-UniformBlock		gUniformDataCuboid;
+UniformBlock gUniformDataCuboid;
 
-Buffer*				pCuboidUniformBuffer[gImageCount] = { NULL };
+Buffer* pCuboidUniformBuffer[gImageCount] = { NULL };
 
 //--------------------------------------------------------------------------------------------
 // CAMERA CONTROLLER & SYSTEMS (File/Log/UI)
 //--------------------------------------------------------------------------------------------
 
-ICameraController*	pCameraController = NULL;
-FileSystem			gFileSystem;
-LogManager			gLogManager;
+ICameraController* pCameraController = NULL;
+FileSystem         gFileSystem;
+LogManager         gLogManager;
 
-UIApp				gAppUI;
-GuiComponent*		pStandaloneControlsGUIWindow = NULL;
+UIApp         gAppUI;
+GuiComponent* pStandaloneControlsGUIWindow = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-GpuProfiler*		pGpuProfiler = NULL;
-
+GpuProfiler* pGpuProfiler = NULL;
 
 //--------------------------------------------------------------------------------------------
 // ANIMATION DATA
 //--------------------------------------------------------------------------------------------
 
 // AnimatedObjects
-AnimatedObject		gStickFigureAnimObject;
+AnimatedObject gStickFigureAnimObject;
 
 // Animations
-Animation			gWalkAnimation;
+Animation gWalkAnimation;
 
 // ClipControllers
-ClipController		gWalkClipController;
+ClipController gWalkClipController;
 
 // Clips
-Clip				gWalkClip;
+Clip gWalkClip;
 
 // Rigs
-Rig					gStickFigureRig;
+Rig gStickFigureRig;
 
 // SkeletonBatcher
-SkeletonBatcher		gSkeletonBatcher;
+SkeletonBatcher gSkeletonBatcher;
 
 // Filenames
-const char*			gStickFigureName = "stickFigure/skeleton.ozz";
-const char*			gWalkClipName = "stickFigure/animations/walk.ozz";
-const char*			pPlaneImageFileName = "Skybox_right1.png";
+const char* gStickFigureName = "stickFigure/skeleton.ozz";
+const char* gWalkClipName = "stickFigure/animations/walk.ozz";
+const char* pPlaneImageFileName = "Skybox_right1.png";
 
-const int			gSphereResolution = 30; // Increase for higher resolution joint spheres
-const float			gBoneWidthRatio = 0.2f; // Determines how far along the bone to put the max width [0,1]
-const float			gJointRadius = gBoneWidthRatio * 0.5f; // set to replicate Ozz skeleton
+const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
+const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
+const float gJointRadius = gBoneWidthRatio * 0.5f;    // set to replicate Ozz skeleton
 
 // Timer to get animationsystem update time
-static HiresTimer	gAnimationUpdateTimer;
+static HiresTimer gAnimationUpdateTimer;
 
 // Attached Cuboid Object
-mat4				gCuboidTransformMat = mat4::identity(); //Will get updated as the animated object updates
-const mat4			gCuboidScaleMat = mat4::scale(vec3(0.05f, 0.05f, 0.4f));
-const vec4			gCuboidColor = vec4(1.f, 0.f, 0.f, 1.f);
+mat4       gCuboidTransformMat = mat4::identity();    //Will get updated as the animated object updates
+const mat4 gCuboidScaleMat = mat4::scale(vec3(0.05f, 0.05f, 0.4f));
+const vec4 gCuboidColor = vec4(1.f, 0.f, 0.f, 1.f);
 
 //--------------------------------------------------------------------------------------------
 // UI DATA
 //--------------------------------------------------------------------------------------------
 
-const unsigned int  kLeftHandMiddleJointIndex = 18; // index of the left hand's middle joint in this specific skeleton
+const unsigned int kLeftHandMiddleJointIndex = 18;    // index of the left hand's middle joint in this specific skeleton
 
 struct UIData
 {
 	struct BlendParamsData
 	{
-		bool*		mAutoSetBlendParams;
-		float*		mWalkClipWeight;
-		float*		mThreshold;
+		bool*  mAutoSetBlendParams;
+		float* mWalkClipWeight;
+		float* mThreshold;
 	};
 	BlendParamsData mBlendParams;
 
 	struct AttachedObjectData
 	{
 		unsigned int mJointIndex = kLeftHandMiddleJointIndex;
-		float		 mXOffset = -0.001f; // Values that will place it naturally in the hand
-		float		 mYOffset = 0.041f;
-		float		 mZOffset = -0.141f;
+		float        mXOffset = -0.001f;    // Values that will place it naturally in the hand
+		float        mYOffset = 0.041f;
+		float        mZOffset = -0.141f;
 	};
 
 	AttachedObjectData mAttachedObject;
 
 	struct ClipData
 	{
-		bool*		mPlay;
-		bool*		mLoop;
-		float		mAnimationTime; // will get set by clip controller
-		float*		mPlaybackSpeed;
+		bool*  mPlay;
+		bool*  mLoop;
+		float  mAnimationTime;    // will get set by clip controller
+		float* mPlaybackSpeed;
 	};
 	ClipData mWalkClip;
 
 	struct GeneralSettingsData
 	{
-		bool		mShowBindPose = false;
-		bool		mDrawAttachedObject = true;
-		bool		mDrawPlane = true;
+		bool mShowBindPose = false;
+		bool mDrawAttachedObject = true;
+		bool mDrawPlane = true;
 	};
 	GeneralSettingsData mGeneralSettings;
 };
 UIData gUIData;
 
 // Hard set the controller's time ratio via callback when it is set in the UI
-void WalkClipTimeChangeCallback()
-{
-	gWalkClipController.SetTimeRatioHard(gUIData.mWalkClip.mAnimationTime);
-}
-
+void WalkClipTimeChangeCallback() { gWalkClipController.SetTimeRatioHard(gUIData.mWalkClip.mAnimationTime); }
 
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
-class JointAttachment : public IApp
+class JointAttachment: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
-
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer) //check for init success
+		if (!pRenderer)    //check for init success
 			return false;
 
 		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
@@ -306,7 +296,7 @@ public:
 		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
 		addShader(pRenderer, &basicShader, &pSkeletonShader);
 
-		Shader* shaders[] = { pSkeletonShader, pPlaneDrawShader };
+		Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
 		RootSignatureDesc rootDesc = {};
 		rootDesc.mShaderCount = 2;
 		rootDesc.ppShaders = shaders;
@@ -333,7 +323,7 @@ public:
 		float* pJointPoints;
 		generateSpherePoints(&pJointPoints, &gNumberOfJointPoints, gSphereResolution, gJointRadius);
 
-		uint64_t jointDataSize = gNumberOfJointPoints * sizeof(float);
+		uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
 		BufferLoadDesc jointVbDesc = {};
 		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -350,7 +340,7 @@ public:
 		float* pBonePoints;
 		generateBonePoints(&pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio);
 
-		uint64_t boneDataSize = gNumberOfBonePoints * sizeof(float);
+		uint64_t       boneDataSize = gNumberOfBonePoints * sizeof(float);
 		BufferLoadDesc boneVbDesc = {};
 		boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -367,7 +357,7 @@ public:
 		float* pCuboidPoints;
 		generateCuboidPoints(&pCuboidPoints, &gNumberOfCuboidPoints);
 
-		uint64_t cuboidDataSize = gNumberOfCuboidPoints * sizeof(float);
+		uint64_t       cuboidDataSize = gNumberOfCuboidPoints * sizeof(float);
 		BufferLoadDesc cuboidVbDesc = {};
 		cuboidVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		cuboidVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -381,16 +371,11 @@ public:
 		conf_free(pCuboidPoints);
 
 		//Generate plane vertex buffer
-		float planePoints[] = {
-			-10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f,
-			-10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 0.0f,
-			 10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f,
-			 10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f,
-			 10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 1.0f,
-			-10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f
-		};
+		float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
+								10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f, 10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f,
+								10.0f,  0.0f, -10.0f, 1.0f, 0.0f, 1.0f, -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f };
 
-		uint64_t planeDataSize = 6 * 6 * sizeof(float);
+		uint64_t       planeDataSize = 6 * 6 * sizeof(float);
 		BufferLoadDesc planeVbDesc = {};
 		planeVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		planeVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -462,7 +447,7 @@ public:
 		// CLIP CONTROLLERS
 		//
 
-		// Initialize with the length of the animation they are controlling and an 
+		// Initialize with the length of the animation they are controlling and an
 		// optional external time to set based on their updating
 		gWalkClipController.Initialize(gWalkClip.GetDuration(), &gUIData.mWalkClip.mAnimationTime);
 
@@ -487,11 +472,15 @@ public:
 		// SETUP THE MAIN CAMERA
 		//
 		CameraMotionParameters cmp{ 50.0f, 75.0f, 150.0f };
-		vec3 camPos{ -1.3f, 1.8f, 3.8f };
-		vec3 lookAt{ 1.2f, 0.0f, 0.4f };
+		vec3                   camPos{ -1.3f, 1.8f, 3.8f };
+		vec3                   lookAt{ 1.2f, 0.0f, 0.4f };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		gVirtualJoystick.InitLRSticks();
+		pCameraController->setVirtualJoystick(&gVirtualJoystick);
+#endif
 
 		requestMouseCapture(true);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
@@ -503,11 +492,11 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
-		// Add the GUI Panels/Windows 
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0,  0xffff00ff, 16 };
+		// Add the GUI Panels/Windows
+		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
 
-		vec2 UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
-		vec2 UIPanelSize = { 650, 1000 };
+		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
+		vec2    UIPanelSize = { 650, 1000 };
 		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
 		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Walk Animation", &guiDesc);
 
@@ -542,7 +531,8 @@ public:
 			float sliderStepSize = 0.01f;
 
 			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingBlendParamsWidgets.AddSubWidget(SliderFloatWidget("Clip Weight [Walk]", gUIData.mBlendParams.mWalkClipWeight, fValMin, fValMax, sliderStepSize));
+			CollapsingBlendParamsWidgets.AddSubWidget(
+				SliderFloatWidget("Clip Weight [Walk]", gUIData.mBlendParams.mWalkClipWeight, fValMin, fValMax, sliderStepSize));
 
 			// Threshold - Slider
 			fValMin = 0.01f;
@@ -550,7 +540,8 @@ public:
 			sliderStepSize = 0.01f;
 
 			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingBlendParamsWidgets.AddSubWidget(SliderFloatWidget("Threshold", gUIData.mBlendParams.mThreshold, fValMin, fValMax, sliderStepSize));
+			CollapsingBlendParamsWidgets.AddSubWidget(
+				SliderFloatWidget("Threshold", gUIData.mBlendParams.mThreshold, fValMin, fValMax, sliderStepSize));
 			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
 
 			// ATTACHED OBJECT
@@ -563,7 +554,8 @@ public:
 			unsigned sliderStepSizeUint = 1;
 
 			CollapsingAttachedObjectWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingAttachedObjectWidgets.AddSubWidget(SliderUintWidget("Joint Index", &gUIData.mAttachedObject.mJointIndex, uintValMin, uintValMax, sliderStepSizeUint));
+			CollapsingAttachedObjectWidgets.AddSubWidget(
+				SliderUintWidget("Joint Index", &gUIData.mAttachedObject.mJointIndex, uintValMin, uintValMax, sliderStepSizeUint));
 
 			// XOffset - Slider
 			fValMin = -1.0f;
@@ -571,7 +563,8 @@ public:
 			sliderStepSize = 0.001f;
 
 			CollapsingAttachedObjectWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingAttachedObjectWidgets.AddSubWidget(SliderFloatWidget("X Offset", &gUIData.mAttachedObject.mXOffset, fValMin, fValMax, sliderStepSize));
+			CollapsingAttachedObjectWidgets.AddSubWidget(
+				SliderFloatWidget("X Offset", &gUIData.mAttachedObject.mXOffset, fValMin, fValMax, sliderStepSize));
 
 			// YOffset - Slider
 			fValMin = -1.0f;
@@ -579,7 +572,8 @@ public:
 			sliderStepSize = 0.001f;
 
 			CollapsingAttachedObjectWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingAttachedObjectWidgets.AddSubWidget(SliderFloatWidget("Y Offset", &gUIData.mAttachedObject.mYOffset, fValMin, fValMax, sliderStepSize));
+			CollapsingAttachedObjectWidgets.AddSubWidget(
+				SliderFloatWidget("Y Offset", &gUIData.mAttachedObject.mYOffset, fValMin, fValMax, sliderStepSize));
 
 			// ZOffset - Slider
 			fValMin = -1.0f;
@@ -587,7 +581,8 @@ public:
 			sliderStepSize = 0.001f;
 
 			CollapsingAttachedObjectWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingAttachedObjectWidgets.AddSubWidget(SliderFloatWidget("Z Offset", &gUIData.mAttachedObject.mZOffset, fValMin, fValMax, sliderStepSize));
+			CollapsingAttachedObjectWidgets.AddSubWidget(
+				SliderFloatWidget("Z Offset", &gUIData.mAttachedObject.mZOffset, fValMin, fValMax, sliderStepSize));
 			CollapsingAttachedObjectWidgets.AddSubWidget(SeparatorWidget());
 
 			// WALK CLIP
@@ -618,9 +613,9 @@ public:
 			sliderStepSize = 0.1f;
 
 			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingWalkClipWidgets.AddSubWidget(SliderFloatWidget("Playback Speed", gUIData.mWalkClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
+			CollapsingWalkClipWidgets.AddSubWidget(
+				SliderFloatWidget("Playback Speed", gUIData.mWalkClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
 			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-
 
 			// GENERAL SETTINGS
 			//
@@ -632,13 +627,13 @@ public:
 
 			// DrawAttachedObject - Checkbox
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Attached Object", &gUIData.mGeneralSettings.mDrawAttachedObject));
+			CollapsingGeneralSettingsWidgets.AddSubWidget(
+				CheckboxWidget("Draw Attached Object", &gUIData.mGeneralSettings.mDrawAttachedObject));
 
 			// DrawPlane - Checkbox
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
 			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Plane", &gUIData.mGeneralSettings.mDrawPlane));
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-
 
 			// Add all widgets to the window
 			pStandaloneControlsGUIWindow->AddWidget(CollapsingBlendParamsWidgets);
@@ -712,7 +707,7 @@ public:
 	bool Load()
 	{
 		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
-		// 
+		//
 		if (!addSwapChain())
 			return false;
 		if (!addDepthBuffer())
@@ -801,7 +796,6 @@ public:
 
 	void Update(float deltaTime)
 	{
-
 		/************************************************************************/
 		// Input
 		/************************************************************************/
@@ -816,13 +810,13 @@ public:
 		// Scene Update
 		/************************************************************************/
 
-		// update camera with time 
+		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-		mat4 projViewMat = projMat * viewMat;
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		mat4        projViewMat = projMat * viewMat;
 
 		vec3 lightPos = vec3(0.0f, 10.0f, 2.0f);
 		vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
@@ -860,12 +854,13 @@ public:
 		gUniformDataCuboid.mLightPosition = lightPos;
 		gUniformDataCuboid.mLightColor = lightColor;
 
-		// Set the transform of the attached object based on the updated world matrix of 
+		// Set the transform of the attached object based on the updated world matrix of
 		// the joint in the rig specified by the UI
 		gCuboidTransformMat = gStickFigureRig.GetJointWorldMat(gUIData.mAttachedObject.mJointIndex);
 
 		// Compute the offset translation based on the UI values
-		mat4 offset = mat4::translation(vec3(gUIData.mAttachedObject.mXOffset, gUIData.mAttachedObject.mYOffset, gUIData.mAttachedObject.mZOffset));
+		mat4 offset =
+			mat4::translation(vec3(gUIData.mAttachedObject.mXOffset, gUIData.mAttachedObject.mYOffset, gUIData.mAttachedObject.mZOffset));
 
 		gUniformDataCuboid.mToWorldMat[0] = gCuboidTransformMat * offset * gCuboidScaleMat;
 		gUniformDataCuboid.mColor[0] = gCuboidColor;
@@ -904,7 +899,7 @@ public:
 		// FRAME SYNC & ACQUIRE SWAPCHAIN RENDER TARGET
 		//
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
+		Fence*      pNextFence = pRenderCompleteFences[gFrameIndex];
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
@@ -912,23 +907,23 @@ public:
 
 		// Acquire the main render target from the swapchain
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-		Cmd* cmd = ppCmds[gFrameIndex];
-		beginCmd(cmd);  // start recording commands
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Cmd*          cmd = ppCmds[gFrameIndex];
+		beginCmd(cmd);    // start recording commands
 
 		// start gpu frame profiler
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		TextureBarrier barriers[] =		// wait for resource transition
-		{
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
-		};
+		TextureBarrier barriers[] =    // wait for resource transition
+			{
+				{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+			};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
 		// bind and clear the render target
-		LoadActionsDesc loadActions = {};	// render target clean command
+		LoadActionsDesc loadActions = {};    // render target clean command
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = { 0.39f, 0.41f, 0.37f, 1.0f };
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
@@ -975,13 +970,15 @@ public:
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		gTimer.GetUSec(true);
 #ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.Gui(pStandaloneControlsGUIWindow); // adds the gui element to AppUI::ComponentsToUpdate list
+		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		drawDebugText(cmd, 8, 65, tinystl::string::format("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-#ifndef METAL // Metal doesn't support GPU profilers
+		drawDebugText(
+			cmd, 8, 65, tinystl::string::format("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f),
+			&gFrameTimeDraw);
+#ifndef METAL    // Metal doesn't support GPU profilers
 		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 		gAppUI.Draw(cmd);
@@ -1000,10 +997,7 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "03_JointAttachment";
-	}
+	tinystl::string GetName() { return "03_JointAttachment"; }
 
 	bool addSwapChain()
 	{
@@ -1060,7 +1054,6 @@ public:
 		pCameraController->onInputEvent(data);
 		return true;
 	}
-
 };
 
 DEFINE_APPLICATION_MAIN(JointAttachment)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -51,14 +51,12 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-namespace
-{
-	bool isCaptured = false;
+namespace {
+bool isCaptured = false;
 }
 
-static bool gAppRunning;
 static WindowsDesc gCurrentWindow;
-static float2 gRetinaScale = { 1.0f, 1.0f };
+static float2      gRetinaScale = { 1.0f, 1.0f };
 
 // TODO: Add multiple window/monitor handling functionality to macOS.
 //static tinystl::vector <MonitorDesc> gMonitors;
@@ -66,10 +64,9 @@ static float2 gRetinaScale = { 1.0f, 1.0f };
 
 void adjustWindow(WindowsDesc* winDesc);
 
-namespace PlatformEvents
-{
-	extern bool wantsMouseCapture;
-	extern bool skipMouseCapture;
+namespace PlatformEvents {
+extern bool wantsMouseCapture;
+extern bool skipMouseCapture;
 
 }
 
@@ -112,32 +109,15 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 }
 #endif
 
-bool isRunning()
-{
-	return gAppRunning;
-}
+void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, 1920, 1080 }; }
 
-void getRecommendedResolution(RectDesc* rect)
-{
-	*rect = RectDesc{ 0, 0, 1920, 1080 };
-}
-
-void requestShutDown()
-{
-	gAppRunning = false;
-}
+void requestShutdown() { [[NSApplication sharedApplication] terminate:[NSApplication sharedApplication]]; }
 
 // TODO: Add multiple window handling functionality.
 
-void openWindow(const char* app_name, WindowsDesc* winDesc)
-{
+void openWindow(const char* app_name, WindowsDesc* winDesc) {}
 
-}
-
-void closeWindow(const WindowsDesc* winDesc)
-{
-
-}
+void closeWindow(const WindowsDesc* winDesc) {}
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 {
@@ -154,15 +134,12 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	[view.window setFrame:winRect display:true];
 }
 
-void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
-{
-	setWindowRect(winDesc, { 0, 0, (int)width, (int)height });
-}
+void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setWindowRect(winDesc, { 0, 0, (int)width, (int)height }); }
 
 void toggleFullscreen(WindowsDesc* winDesc)
 {
 	MTKView* view = (MTKView*)CFBridgingRelease(winDesc->handle);
-	if(!view)
+	if (!view)
 		return;
 
 	bool isFullscreen = ((view.window.styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen);
@@ -212,15 +189,9 @@ float2 getMousePosition()
 	return float2((float)mouseLoc.x, (float)mouseLoc.y);
 }
 
-bool getKeyDown(int key)
-{
-	return InputSystem::IsButtonPressed(key);
-}
+bool getKeyDown(int key) { return InputSystem::IsButtonPressed(key); }
 
-bool getKeyUp(int key)
-{
-	return InputSystem::IsButtonReleased(key);
-}
+bool getKeyUp(int key) { return InputSystem::IsButtonReleased(key); }
 
 bool getJoystickButtonDown(int button)
 {
@@ -240,14 +211,14 @@ bool getJoystickButtonUp(int button)
 
 unsigned getSystemTime()
 {
-	long			ms; // Milliseconds
-	time_t		s;  // Seconds
+	long            ms;    // Milliseconds
+	time_t          s;     // Seconds
 	struct timespec spec;
 
 	clock_gettime(CLOCK_REALTIME, &spec);
 
-	s  = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+	s = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
 
 	ms += s * 1000;
 
@@ -263,15 +234,9 @@ long long getUSec()
 	return us;
 }
 
-unsigned getTimeSinceStart()
-{
-	return (unsigned)time(NULL);
-}
+unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
-float2 getDpiScale()
-{
-	return gRetinaScale;
-}
+float2 getDpiScale() { return gRetinaScale; }
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -290,11 +255,11 @@ int macOSMain(int argc, const char** argv, IApp* app)
 @end
 
 // Interface that controls the main updating/rendering loop on Metal appplications.
-@interface MetalKitApplication : NSObject
+@interface MetalKitApplication: NSObject
 
--(nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-				 renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-									  view:(nonnull MTKView*)view;
+- (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
+				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
+									   view:(nonnull MTKView*)view;
 
 - (void)drawRectResized:(CGSize)size;
 - (void)updateInput;
@@ -307,7 +272,7 @@ int macOSMain(int argc, const char** argv, IApp* app)
 // per-frame update and drawable resize callbacks.  Also implements the RenderDestinationProvider
 // protocol, which allows our renderer object to get and set drawable properties such as pixel
 // format and sample count
-@interface GameViewController : NSViewController<MTKViewDelegate, RenderDestinationProvider>
+@interface GameViewController: NSViewController<MTKViewDelegate, RenderDestinationProvider>
 
 @end
 
@@ -317,18 +282,18 @@ int macOSMain(int argc, const char** argv, IApp* app)
 
 @implementation GameViewController
 {
-	MTKView *_view;
-	id<MTLDevice> _device;
-	MetalKitApplication *_application;
+	MTKView*             _view;
+	id<MTLDevice>        _device;
+	MetalKitApplication* _application;
 }
 
-- (void) viewDidLoad
+- (void)viewDidLoad
 {
 	[super viewDidLoad];
 
 	// Set the view to use the default device
 	_device = MTLCreateSystemDefaultDevice();
-	_view = (MTKView *)self.view;
+	_view = (MTKView*)self.view;
 	_view.delegate = self;
 	_view.device = _device;
 	_view.paused = NO;
@@ -339,7 +304,8 @@ int macOSMain(int argc, const char** argv, IApp* app)
 	isCaptured = false;
 
 	// Adjust window size to match retina scaling.
-	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width), (float)(_view.drawableSize.height / _view.frame.size.height) };
+	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width),
+					 (float)(_view.drawableSize.height / _view.frame.size.height) };
 	NSSize windowSize = CGSizeMake(_view.frame.size.width / gRetinaScale.x, _view.frame.size.height / gRetinaScale.y);
 	[_view.window setContentSize:windowSize];
 	[_view.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
@@ -347,22 +313,22 @@ int macOSMain(int argc, const char** argv, IApp* app)
 	// Kick-off the MetalKitApplication.
 	_application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
 
-	if(!_device)
+	if (!_device)
 	{
 		NSLog(@"Metal is not supported on this device");
 		self.view = [[NSView alloc] initWithFrame:self.view.frame];
 	}
-	
+
 	//register terminate callback
-	NSApplication *app = [NSApplication sharedApplication];
-	[[NSNotificationCenter defaultCenter]
-	 addObserver:self
-	 selector:@selector(applicationWillTerminate:)
-	 name: NSApplicationWillTerminateNotification object:app];
+	NSApplication* app = [NSApplication sharedApplication];
+	[[NSNotificationCenter defaultCenter] addObserver:self
+											 selector:@selector(applicationWillTerminate:)
+												 name:NSApplicationWillTerminateNotification
+											   object:app];
 }
 
 /*A notification named NSApplicationWillTerminateNotification.*/
-- (void)applicationWillTerminate:(NSNotification *)notification
+- (void)applicationWillTerminate:(NSNotification*)notification
 {
 	[_application shutdown];
 }
@@ -378,23 +344,23 @@ int macOSMain(int argc, const char** argv, IApp* app)
 }
 
 // Called whenever view changes orientation or layout is changed
-- (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
+- (void)mtkView:(nonnull MTKView*)view drawableSizeWillChange:(CGSize)size
 {
 	view.window.contentView = _view;
 	[_application drawRectResized:view.bounds.size];
 }
 
 // Called whenever the view needs to render
-- (void)drawInMTKView:(nonnull MTKView *)view
+- (void)drawInMTKView:(nonnull MTKView*)view
 {
-   @autoreleasepool
+	@autoreleasepool
 	{
 		[_application update];
 		[_application updateInput];
 		InputSystem::Update();
 		//this is needed for NON Vsync mode.
 		//This enables to force update the display
-		if(_view.enableSetNeedsDisplay == YES)
+		if (_view.enableSetNeedsDisplay == YES)
 			[_view setNeedsDisplay:YES];
 	}
 }
@@ -406,7 +372,7 @@ int macOSMain(int argc, const char** argv, IApp* app)
 /************************************************************************/
 
 // Timer used in the update function.
-Timer deltaTimer;
+Timer           deltaTimer;
 IApp::Settings* pSettings;
 #ifdef AUTOMATED_TESTING
 uint32_t testingCurrentFrameCount;
@@ -414,8 +380,10 @@ uint32_t testingMaxFrameCount = 120;
 #endif
 
 // Metal application implementation.
-@implementation MetalKitApplication{}
--(nonnull instancetype) initWithMetalDevice:(nonnull id<MTLDevice>)device
+@implementation MetalKitApplication
+{
+}
+- (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
 									   view:(nonnull MTKView*)view
 {
@@ -451,28 +419,33 @@ uint32_t testingMaxFrameCount = 120;
 		gCurrentWindow.handle = (void*)CFBridgingRetain(view);
 		openWindow(pApp->GetName(), &gCurrentWindow);
 
-		pSettings->mWidth = gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);
-		pSettings->mHeight = gCurrentWindow.fullScreen ? getRectHeight(gCurrentWindow.fullscreenRect) : getRectHeight(gCurrentWindow.windowedRect);
+		pSettings->mWidth =
+			gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);
+		pSettings->mHeight =
+			gCurrentWindow.fullScreen ? getRectHeight(gCurrentWindow.fullscreenRect) : getRectHeight(gCurrentWindow.windowedRect);
 		pApp->pWindow = &gCurrentWindow;
-		
+
 		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
 		InputSystem::InitSubView((__bridge void*)(view));
-		
-		@autoreleasepool {
+
+		@autoreleasepool
+		{
 			//if init fails then exit the app
-			if(!pApp->Init())
+			if (!pApp->Init())
 			{
-				for (NSWindow *window in [NSApplication sharedApplication].windows) {
+				for (NSWindow* window in [NSApplication sharedApplication].windows)
+				{
 					[window close];
 				}
-				
+
 				exit(1);
 			}
 
 			//if load fails then exit the app
-			if(!pApp->Load())
+			if (!pApp->Load())
 			{
-				for (NSWindow *window in [NSApplication sharedApplication].windows) {
+				for (NSWindow* window in [NSApplication sharedApplication].windows)
+				{
 					[window close];
 				}
 
@@ -484,21 +457,23 @@ uint32_t testingMaxFrameCount = 120;
 	return self;
 }
 
--(void)drawRectResized:(CGSize)size
+- (void)drawRectResized:(CGSize)size
 {
 	float newWidth = size.width * gRetinaScale.x;
 	float newHeight = size.height * gRetinaScale.y;
 
-	if(newWidth != pApp->mSettings.mWidth || newHeight != pApp->mSettings.mHeight)
+	if (newWidth != pApp->mSettings.mWidth || newHeight != pApp->mSettings.mHeight)
 	{
 		pApp->mSettings.mWidth = newWidth;
 		pApp->mSettings.mHeight = newHeight;
 		pApp->Unload();
 		pApp->Load();
 	}
+	// Used to notify input backend of new display size
+	InputSystem::UpdateSize(newWidth, newHeight);
 }
 
--(void)updateInput
+- (void)updateInput
 {
 	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CANCEL))
 	{
@@ -512,7 +487,6 @@ uint32_t testingMaxFrameCount = 120;
 		}
 	}
 
-
 	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CONFIRM))
 	{
 		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
@@ -522,19 +496,16 @@ uint32_t testingMaxFrameCount = 120;
 	}
 
 	//if alt (left or right) is pressed and Enter is triggered then toggle fullscreen
-	if ((InputSystem::IsButtonPressed(UserInputKeys::KEY_LEFT_ALT) || InputSystem::IsButtonPressed(UserInputKeys::KEY_RIGHT_ALT))
-		&&
+	if ((InputSystem::IsButtonPressed(UserInputKeys::KEY_LEFT_ALT) || InputSystem::IsButtonPressed(UserInputKeys::KEY_RIGHT_ALT)) &&
 		InputSystem::IsButtonReleased(UserInputKeys::KEY_MENU))
 	{
 		//get first window available.
 		//TODO:Fix this once we have multiple window handles
 		toggleFullscreen(&gCurrentWindow);
-
 	}
-
 }
 
--(void)update
+- (void)update
 {
 	float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
 	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
@@ -545,19 +516,20 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Draw();
 
 #ifdef AUTOMATED_TESTING
-		testingCurrentFrameCount++;
-		if(testingCurrentFrameCount >= testingMaxFrameCount)
+	testingCurrentFrameCount++;
+	if (testingCurrentFrameCount >= testingMaxFrameCount)
+	{
+		for (NSWindow* window in [NSApplication sharedApplication].windows)
 		{
-			for (NSWindow *window in [NSApplication sharedApplication].windows) {
-				[window close];
-			}
-
-			[NSApp terminate:nil];
+			[window close];
 		}
+
+		[NSApp terminate:nil];
+	}
 #endif
 }
 
--(void)shutdown
+- (void)shutdown
 {
 	InputSystem::Shutdown();
 	pApp->Unload();

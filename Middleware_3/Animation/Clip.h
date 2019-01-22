@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -35,13 +35,11 @@
 
 #include "Rig.h"
 
-//Responsible for loading and storing a clip. Only need one per clip file 
+//Responsible for loading and storing a clip. Only need one per clip file
 //all rigs can sample the same clip object
-class Clip 
+class Clip
 {
-
-public:
-
+	public:
 	// Set up a clip associated with a rig and read from an ozz animation file path
 	void Initialize(const char* animationFile, Rig* rig);
 
@@ -54,8 +52,7 @@ public:
 	// Get the length of the clip
 	inline float GetDuration() { return mAnimation.duration(); };
 
-private:
-
+	private:
 	// Load a clip from an ozz animation file
 	bool LoadClip(const char* animationFile);
 

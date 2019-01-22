@@ -272,14 +272,14 @@ namespace ShaderTranslator
 
 
 
-                        if (tokkens[tokkens.Length - 1] == "PCDX12")
+                        if (tokkens[tokkens.Length - 1] == "D3D12")
                         {
                             outFile = "";
 
                             for (int i = 0; i < tokkens.Length - 1; i++)
                                 outFile += (tokkens[i] + "\\");
 
-                            outFile += "OSXMetal\\" + FileTokkens[FileTokkens.Length - 1] + ".metal";
+                            outFile += "Metal\\" + FileTokkens[FileTokkens.Length - 1] + ".metal";
                         }
                         else
                         {

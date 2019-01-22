@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,21 +28,20 @@
 #if defined(_APPLE_)
 typedef struct tagRECT
 {
-	long	left;
-	long	top;
-	long	right;
-	long	bottom;
+	long left;
+	long top;
+	long right;
+	long bottom;
 } RECT, *PRECT;
 #endif
 
 typedef struct WindowResizeEventData
 {
-	RectDesc rect;
+	RectDesc            rect;
 	struct WindowsDesc* pWindow;
 } WindowResizeEventData;
 
-
-typedef void(*WindowResizeEventHandler)(const WindowResizeEventData* data);
+typedef void (*WindowResizeEventHandler)(const WindowResizeEventData* data);
 void registerWindowResizeEvent(WindowResizeEventHandler callback);
 void unregisterWindowResizeEvent(WindowResizeEventHandler callback);
 

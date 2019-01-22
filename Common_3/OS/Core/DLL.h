@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,7 +23,7 @@
 */
 
 #ifdef DLL_EXPORT
-	#define CONFETTI_DLLAPI __declspec(dllexport)
+#define CONFETTI_DLLAPI __declspec(dllexport)
 #else
-	#define CONFETTI_DLLAPI
+#define CONFETTI_DLLAPI
 #endif

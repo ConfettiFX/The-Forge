@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+struct Data
+{
+	uint mip;
+	uint maxSize;
+};
+
+cbuffer RootConstant : register(b0)
+{
+	Data RootConstantData;
+}
+Texture2D<float4> srcTexture : register(t1);
+
+RWTexture2DArray<float4> dstTexture : register(u2);
+SamplerState skyboxSampler : register(s3);
+
+[numthreads(16, 16, 1)]
+void main(uint3 DTid : SV_DispatchThreadID)
+{
+	float2 invAtan = float2(0.1591f, 0.3183f);
+
+	float3 threadPos = DTid;
+
+	uint mip = RootConstantData.mip;
+
+	{
+		uint mipSize = RootConstantData.maxSize >> mip;
+		if (threadPos.x >= mipSize || threadPos.y >= mipSize) return;
+
+		float2 texcoords = float2(float(threadPos.x + 0.5) / mipSize, 1.0f - float(threadPos.y + 0.5) / mipSize);
+		float3 sphereDir;
+		if (threadPos.z <= 0)
+			sphereDir = normalize(float3(0.5, -(texcoords.y - 0.5), -(texcoords.x - 0.5)));
+		else if (threadPos.z <= 1)
+			sphereDir = normalize(float3(-0.5, -(texcoords.y - 0.5), texcoords.x - 0.5));
+		else if (threadPos.z <= 2)
+			sphereDir = normalize(float3(texcoords.x - 0.5, -0.5, -(texcoords.y - 0.5)));
+		else if (threadPos.z <= 3)
+			sphereDir = normalize(float3(texcoords.x - 0.5, 0.5, texcoords.y - 0.5));
+		else if (threadPos.z <= 4)
+			sphereDir = normalize(float3(texcoords.x - 0.5, -(texcoords.y - 0.5), 0.5));
+		else if (threadPos.z <= 5)
+			sphereDir = normalize(float3(-(texcoords.x - 0.5), -(texcoords.y - 0.5), -0.5));
+
+		float2 panoUVs = float2(atan2(sphereDir.z, sphereDir.x), asin(sphereDir.y));
+		panoUVs *= invAtan;
+		panoUVs += 0.5f;
+
+		// We need to use SampleLevel, since compute shaders do not support regular sampling 
+		dstTexture[uint3(threadPos.x, threadPos.y, threadPos.z)] = srcTexture.SampleLevel(skyboxSampler, panoUVs, mip);
+	}
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,15 +30,18 @@
 
 @implementation AppDelegate
 
-- (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
+- (void)applicationDidFinishLaunching:(NSNotification*)aNotification
+{
 	// Insert code here to initialize your application
 }
 
-- (void)applicationWillTerminate:(NSNotification *)aNotification {
+- (void)applicationWillTerminate:(NSNotification*)aNotification
+{
 	// Insert code here to tear down your application
 }
 
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
+{
 	return YES;
 }
 

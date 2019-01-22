@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,27 +32,27 @@
 #define USE_LOGGING 1
 #endif
 
-void _ErrorMsg(int line, const char*, const char *string, ...);
-void _WarningMsg(int line, const char*, const char *string, ...);
-void _InfoMsg(int line, const char*, const char *string, ...);
-void _FailedAssert(const char *file, int line, const char *statement);
-void _OutputDebugString(const char *str, ...);
+void _ErrorMsg(int line, const char*, const char* string, ...);
+void _WarningMsg(int line, const char*, const char* string, ...);
+void _InfoMsg(int line, const char*, const char* string, ...);
+void _FailedAssert(const char* file, int line, const char* statement);
+void _OutputDebugString(const char* str, ...);
 
 void _PrintUnicode(const tinystl::string& str, bool error = false);
 void _PrintUnicodeLine(const tinystl::string& str, bool error = false);
 
-#define ErrorMsg(str,...) _ErrorMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
-#define WarningMsg(str,...) _WarningMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
-#define InfoMsg(str,...) _InfoMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
+#define ErrorMsg(str, ...) _ErrorMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
+#define WarningMsg(str, ...) _WarningMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
+#define InfoMsg(str, ...) _InfoMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
 
 #if _MSC_VER >= 1400
 // To make MSVC 2005 happy
-#pragma warning (disable: 4996)
-#  define assume(x) __assume(x)
-#  define no_alias __declspec(noalias)
+#pragma warning(disable : 4996)
+#define assume(x) __assume(x)
+#define no_alias __declspec(noalias)
 #else
-#  define assume(x)
-#  define no_alias
+#define assume(x)
+#define no_alias
 #endif
 
 #ifdef _DEBUG
@@ -64,7 +64,10 @@ void _PrintUnicodeLine(const tinystl::string& str, bool error = false);
 // there is a large amount of stuff included via header files ...
 #define ASSERT(cond) SCE_GNM_ASSERT(cond)
 #else
-#define ASSERT(b) if (b) {} else _FailedAssert(__FILE__, __LINE__, #b)
+#define ASSERT(b) \
+	if (b) {}     \
+	else          \
+		_FailedAssert(__FILE__, __LINE__, #b)
 #endif
 #else
 #define ASSERT(b) assume(b)
@@ -73,7 +76,7 @@ void _PrintUnicodeLine(const tinystl::string& str, bool error = false);
 #else
 #define IFASSERT(x)
 #endif
-#endif // DEBUG
+#endif    // DEBUG
 #ifdef USE_LOGGING
 #define LOGDEBUG(message) LogManager::Write(LogLevel::LL_Debug, ToString(__FUNCTION__, message, ""))
 #define LOGINFO(message) LogManager::Write(LogLevel::LL_Info, ToString(__FUNCTION__, message, ""))

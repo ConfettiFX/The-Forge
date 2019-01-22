@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,13 +30,10 @@
 
 #include "Rig.h"
 
-
 // Allows for masking the influence of a clip on a Rig
-class ClipMask 
+class ClipMask
 {
-
-public:
-
+	public:
 	// Set up a mask associated with a rig so that it can modify any clips for that rig
 	void Initialize(Rig* rig);
 
@@ -56,14 +53,12 @@ public:
 	// Get the joint weights
 	inline ozz::Range<Vector4> GetJointWeights() { return mJointWeights; };
 
-private:
-
+	private:
 	// Pointer to the rig that this clip mask corresponds to
-	Rig * mRig;
+	Rig* mRig;
 
 	// Per-joint weights used to define the partial animation mask. Allows to
 	// select which joints are considered during blending, and their individual
 	// weight_setting.
 	ozz::Range<Vector4> mJointWeights;
-
 };

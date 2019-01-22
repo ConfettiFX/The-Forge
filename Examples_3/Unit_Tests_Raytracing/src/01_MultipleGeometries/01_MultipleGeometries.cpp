@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,30 +47,31 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 // Shader
-#include "PCDX12/Compiled/RayGen.h"
-#include "PCDX12/Compiled/ClosestHit.h"
-#include "PCDX12/Compiled/ClosestHitPlane.h"
-#include "PCDX12/Compiled/ClosestHitShadow.h"
-#include "PCDX12/Compiled/Miss.h"
-#include "PCDX12/Compiled/MissShadow.h"
+#include "D3D12/Compiled/RayGen.h"
+#include "D3D12/Compiled/ClosestHit.h"
+#include "D3D12/Compiled/ClosestHitPlane.h"
+#include "D3D12/Compiled/ClosestHitShadow.h"
+#include "D3D12/Compiled/Miss.h"
+#include "D3D12/Compiled/MissShadow.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-const char* pszBases[] =
-{
-	"",									// FSR_BinShaders
-	"",									// FSR_SrcShaders
-	"",									// FSR_BinShaders_Common
-	"",									// FSR_SrcShaders_Common
-	"",									// FSR_Textures
-	"",									// FSR_Meshes
-	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
-	"",									// FSR_GpuConfig
+const char* pszBases[FSR_Count] = {
+	"",                                     // FSR_BinShaders
+	"",                                     // FSR_SrcShaders
+	"",                                     // FSR_Textures
+	"",                                     // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"",                                     // FSR_GpuConfig
+	"",                                     // FSR_Animation
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
-class UnitTest_MultipleGeometries : public IApp
+class UnitTest_MultipleGeometries: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
 		/************************************************************************/
@@ -105,10 +106,9 @@ public:
 		// 02 Creation Acceleration Structure
 		/************************************************************************/
 		// Create Vertex Buffer
-		const float3 vertices[] =
-		{
-			float3(0.0f,	1.0f,  0.0f),
-			float3(0.866f,  -0.5f, 0.0f),
+		const float3 vertices[] = {
+			float3(0.0f, 1.0f, 0.0f),
+			float3(0.866f, -0.5f, 0.0f),
 			float3(-0.866f, -0.5f, 0.0f),
 		};
 		BufferLoadDesc vbDesc = {};
@@ -120,15 +120,10 @@ public:
 		vbDesc.ppBuffer = &pVertexBufferTriangle;
 		addResource(&vbDesc);
 
-		const float3 planeVertices[] =
-		{
-			float3(-100, -1,  -2),
-			float3(100, -1,  100),
-			float3(-100, -1,  100),
+		const float3 planeVertices[] = {
+			float3(-100, -1, -2), float3(100, -1, 100), float3(-100, -1, 100),
 
-			float3(-100, -1,  -2),
-			float3(100, -1,  -2),
-			float3(100, -1,  100),
+			float3(-100, -1, -2), float3(100, -1, -2),  float3(100, -1, 100),
 		};
 		vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -169,7 +164,7 @@ public:
 		// Specify Instance Used in Raytracing Structure
 		// The transformation matrices for the instances
 		mat4 transformation[3];
-		transformation[0] = mat4::identity(); // Identity
+		transformation[0] = mat4::identity();    // Identity
 		transformation[1] = transpose(mat4::translation(vec3(-2, 0, 0)));
 		transformation[2] = transpose(mat4::translation(vec3(2, 0, 0)));
 		AccelerationStructureInstanceDesc instanceDescs[3] = {};
@@ -191,7 +186,7 @@ public:
 			instanceDescs[i].pAccelerationStructure = pBottomLevelASTriangle;
 		}
 
-		uint32_t topASScratchBufferSize = 0;
+		uint32_t                  topASScratchBufferSize = 0;
 		AccelerationStructureDesc topASDesc = {};
 		topASDesc.mDescCount = 3;
 		topASDesc.mFlags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -199,7 +194,7 @@ public:
 		topASDesc.pInstanceDescs = instanceDescs;
 		addAccelerationStructure(pRaytracing, &topASDesc, &topASScratchBufferSize, &pTopLevelAS);
 
-		Buffer* pScratchBuffer = NULL;
+		Buffer*        pScratchBuffer = NULL;
 		BufferLoadDesc scratchBufferDesc = {};
 		scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		scratchBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -258,7 +253,7 @@ public:
 		hitGroups[2].pClosestHitShader = pShaderHitShadow;
 		hitGroups[2].pHitGroupName = "hitGroupShadow";
 
-		RaytracingShader* pMissShaders[] = { pShaderMiss, pShaderMissShadow };
+		RaytracingShader*      pMissShaders[] = { pShaderMiss, pShaderMissShadow };
 		RaytracingPipelineDesc pipelineDesc = {};
 		pipelineDesc.mAttributeSize = sizeof(float2);
 		pipelineDesc.mMaxTraceRecursionDepth = 2;
@@ -276,10 +271,10 @@ public:
 		RaytracingShaderTableRecordDesc rayGenRecord = { "rayGen" };
 		RaytracingShaderTableRecordDesc missRecords[2] = { { "miss" }, { "missShadow" } };
 		RaytracingShaderTableRecordDesc hitRecords[] = {
-			{ "hitGroup" },		 // Triangle 0
-			{ "hitGroup" },		 // Triangles 1 2
-			{ "hitGroupPlane" },	// Plane
-			{ "hitGroupShadow" },   // Shadow
+			{ "hitGroup" },          // Triangle 0
+			{ "hitGroup" },          // Triangles 1 2
+			{ "hitGroupPlane" },     // Plane
+			{ "hitGroupShadow" },    // Shadow
 		};
 
 		RaytracingShaderTableDesc shaderTableDesc = {};
@@ -395,10 +390,7 @@ public:
 		removeResource(pComputeOutput);
 	}
 
-	void Update(float deltaTime)
-	{
-		mAppUI.Update(deltaTime);
-	}
+	void Update(float deltaTime) { mAppUI.Update(deltaTime); }
 
 	void Draw()
 	{
@@ -409,7 +401,7 @@ public:
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pQueue, 1, &pRenderCompleteFences[mFrameIdx], false);
 
-		Cmd* pCmd = ppCmds[mFrameIdx];
+		Cmd*          pCmd = ppCmds[mFrameIdx];
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[mFrameIdx];
 		beginCmd(pCmd);
 		cmdBeginGpuFrameProfile(pCmd, pGpuProfiler, true);
@@ -468,52 +460,50 @@ public:
 
 		cmdEndGpuFrameProfile(pCmd, pGpuProfiler);
 		endCmd(pCmd);
-		queueSubmit(pQueue, 1, &pCmd, pRenderCompleteFences[mFrameIdx], 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphores[mFrameIdx]);
+		queueSubmit(
+			pQueue, 1, &pCmd, pRenderCompleteFences[mFrameIdx], 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphores[mFrameIdx]);
 		queuePresent(pQueue, pSwapChain, mFrameIdx, 1, &pRenderCompleteSemaphores[mFrameIdx]);
 		/************************************************************************/
 		/************************************************************************/
 	}
 
-	tinystl::string GetName()
-	{
-		return "Raytrace Triangle";
-	}
+	tinystl::string GetName() { return "Raytrace Triangle"; }
 	/************************************************************************/
 	// Data
 	/************************************************************************/
-private:
-	static const uint32_t   gImageCount = 3;
+	private:
+	static const uint32_t gImageCount = 3;
 
-	Renderer*			   pRenderer;
-	Raytracing*			 pRaytracing;
-	Queue*				  pQueue;
-	CmdPool*				pCmdPool;
-	Cmd**				   ppCmds;
-	Fence*				  pRenderCompleteFences[gImageCount];
-	Buffer*				 pVertexBufferTriangle;
-	Buffer*				 pVertexBufferPlane;
-	AccelerationStructure*  pBottomLevelASTriangle;
-	AccelerationStructure*  pBottomLevelASTrianglePlane;
-	AccelerationStructure*  pTopLevelAS;
-	RaytracingShader*	   pShaderRayGen;
-	RaytracingShader*	   pShaderHit;
-	RaytracingShader*	   pShaderHitPlane;
-	RaytracingShader*	   pShaderHitShadow;
-	RaytracingShader*	   pShaderMiss;
-	RaytracingShader*	   pShaderMissShadow;
-	RootSignature*		  pRootSignature;
-	RaytracingPipeline*	 pPipeline;
-	RaytracingShaderTable*  pShaderTable;
-	SwapChain*			  pSwapChain;
-	Texture*				pComputeOutput;
-	Semaphore*			  pRenderCompleteSemaphores[gImageCount];
-	Semaphore*			  pImageAcquiredSemaphore;
-	GpuProfiler*			pGpuProfiler;
-	UIApp				   mAppUI;
-	uint32_t				mFrameIdx = 0;
+	Renderer*              pRenderer;
+	Raytracing*            pRaytracing;
+	Queue*                 pQueue;
+	CmdPool*               pCmdPool;
+	Cmd**                  ppCmds;
+	Fence*                 pRenderCompleteFences[gImageCount];
+	Buffer*                pVertexBufferTriangle;
+	Buffer*                pVertexBufferPlane;
+	AccelerationStructure* pBottomLevelASTriangle;
+	AccelerationStructure* pBottomLevelASTrianglePlane;
+	AccelerationStructure* pTopLevelAS;
+	RaytracingShader*      pShaderRayGen;
+	RaytracingShader*      pShaderHit;
+	RaytracingShader*      pShaderHitPlane;
+	RaytracingShader*      pShaderHitShadow;
+	RaytracingShader*      pShaderMiss;
+	RaytracingShader*      pShaderMissShadow;
+	RootSignature*         pRootSignature;
+	RaytracingPipeline*    pPipeline;
+	RaytracingShaderTable* pShaderTable;
+	SwapChain*             pSwapChain;
+	Texture*               pComputeOutput;
+	Semaphore*             pRenderCompleteSemaphores[gImageCount];
+	Semaphore*             pImageAcquiredSemaphore;
+	GpuProfiler*           pGpuProfiler;
+	UIApp                  mAppUI;
+	uint32_t               mFrameIdx = 0;
 
-	GuiComponent*		   pGuiWindow;
-	float3				  mLightDirection = float3(0.5f, 0.5f, -0.5f);
+	GuiComponent* pGuiWindow;
+	float3        mLightDirection = float3(0.5f, 0.5f, -0.5f);
 };
 
 DEFINE_APPLICATION_MAIN(UnitTest_MultipleGeometries)

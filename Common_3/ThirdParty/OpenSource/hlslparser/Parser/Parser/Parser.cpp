@@ -168,6 +168,3 @@
 
 		return RESULT;
 	}
-
-
-

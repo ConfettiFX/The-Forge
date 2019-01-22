@@ -45,6 +45,7 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
@@ -102,6 +103,7 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>

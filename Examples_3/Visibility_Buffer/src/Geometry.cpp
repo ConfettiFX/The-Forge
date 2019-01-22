@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -39,7 +39,7 @@
 #ifdef ORBIS
 #define DEFAULT_ALBEDO "default.gnf"
 #define DEFAULT_NORMAL "default_nrm.gnf"
-#define DEFAULT_SPEC   "default_spec.gnf"
+#define DEFAULT_SPEC "default_spec.gnf"
 #else
 #define DEFAULT_ALBEDO "Default.dds"
 #define DEFAULT_NORMAL "Default_NRM.dds"
@@ -172,7 +172,7 @@ static void SetTwoSidedMaterials(tinystl::unordered_set<tinystl::string>& mats)
 	mats.insert("Tela_Mesa_D");
 }
 
-void setDefaultTextures(Scene *pScene, int index)
+void setDefaultTextures(Scene* pScene, int index)
 {
 	Material& m = pScene->materials[index];
 	m.twoSided = false;
@@ -189,7 +189,7 @@ void setDefaultTextures(Scene *pScene, int index)
 	strcpy(pScene->specularMaps[index], DEFAULT_SPEC);
 }
 
-void setTextures(Scene *pScene, int index, const char* albedo, const char* specular, const char* normal, bool twoSided, bool alpha)
+void setTextures(Scene* pScene, int index, const char* albedo, const char* specular, const char* normal, bool twoSided, bool alpha)
 {
 	Material& m = pScene->materials[index];
 	m.twoSided = twoSided;
@@ -206,10 +206,10 @@ void setTextures(Scene *pScene, int index, const char* albedo, const char* specu
 	strcpy(pScene->normalMaps[index], normal);
 }
 
-static void SetMaterials(Scene *pScene)
+static void SetMaterials(Scene* pScene)
 {
 	int index = 0;
-	
+
 	// 0	flags
 	//setTextures(pScene, index++, "SponzaFlagsNoAlpha.dds", "SponzaFlags_SPEC.dds", "SponzaFlags_NRM.dds", false, true);
 
@@ -406,7 +406,8 @@ static void SetMaterials(Scene *pScene)
 	setTextures(pScene, index++, "rust_a1.dds", "rust_a1_SPEC.dds", "rust_a1_NRM.dds", false, false);
 
 	//64	arc_floor00
-	setTextures(pScene, index++, "arcos_lisos_3_color_1.dds", "arcos_lisos_3_color_1_SPEC.dds", "arcos_lisos_3_color_1_NRM.dds", false, false);
+	setTextures(
+		pScene, index++, "arcos_lisos_3_color_1.dds", "arcos_lisos_3_color_1_SPEC.dds", "arcos_lisos_3_color_1_NRM.dds", false, false);
 
 	//65	hugeWallLeft
 	setTextures(pScene, index++, "muros_n.dds", DEFAULT_SPEC, DEFAULT_NORMAL, false, false);
@@ -479,8 +480,6 @@ static void SetMaterials(Scene *pScene)
 
 	//89	foundtain02
 	setTextures(pScene, index++, "techo_01.dds", "techo_SPEC.dds", "techo_NRM.dds", false, false);
-
-
 
 	//91	foundtain01
 	setTextures(pScene, index++, "techo_01.dds", "techo_SPEC.dds", "techo_NRM.dds", false, false);
@@ -743,7 +742,6 @@ static void SetMaterials(Scene *pScene)
 	//176	sideStair00
 	setTextures(pScene, index++, "muros_f.dds", DEFAULT_SPEC, DEFAULT_NORMAL, false, false);
 
-
 	//177	TreeBasket
 	setTextures(pScene, index++, "techo_01.dds", "techo_SPEC.dds", "techo_NRM.dds", false, false);
 
@@ -817,7 +815,8 @@ static void SetMaterials(Scene *pScene)
 	setTextures(pScene, index++, "HP11stm.dds", "HP11stm.dds", "HP11stm_NRM.dds", false, false);
 
 	//195	ceilEdgeMid
-	setTextures(pScene, index++, "postes_barandal_color.dds", "postes_barandal_color_SPEC.dds", "postes_barandal_color_NRM.dds", false, false);
+	setTextures(
+		pScene, index++, "postes_barandal_color.dds", "postes_barandal_color_SPEC.dds", "postes_barandal_color_NRM.dds", false, false);
 
 	//196	flower0340
 	setTextures(pScene, index++, "FL13pet1.dds", DEFAULT_SPEC, DEFAULT_NORMAL, true, true);
@@ -849,8 +848,6 @@ static void SetMaterials(Scene *pScene)
 	//208	dirt
 	setTextures(pScene, index++, "052terresable.dds", "052terresable_SPEC.dds", "052terresable_NRM.dds", false, false);
 
-
-
 	//204	woodTable
 	setTextures(pScene, index++, "Vigas_B.dds", "Vigas_B_SPEC.dds", "Vigas_B_NRM.dds", false, false);
 
@@ -858,7 +855,9 @@ static void SetMaterials(Scene *pScene)
 	setTextures(pScene, index++, "WOOD08.dds", "WOOD08_SPEC.dds", "WOOD08_NRM.dds", false, false);
 
 	//90	seat00
-	setTextures(pScene, index++, "Finishes.Flooring.Carpet.Loop.5.dds", "Finishes.Flooring.Carpet.Loop.5_SPEC.dds", "Finishes.Flooring.Carpet.Loop.5_NRM.dds", false, false);
+	setTextures(
+		pScene, index++, "Finishes.Flooring.Carpet.Loop.5.dds", "Finishes.Flooring.Carpet.Loop.5_SPEC.dds",
+		"Finishes.Flooring.Carpet.Loop.5_NRM.dds", false, false);
 
 	//206	fountainFloor
 	setTextures(pScene, index++, "piso_rustico.dds", "piso_rustico_SPEC.dds", "piso_rustico_NRM.dds", false, false);
@@ -872,7 +871,6 @@ static void SetMaterials(Scene *pScene)
 	//133	outsideWall
 	setTextures(pScene, index++, "newWall.dds", DEFAULT_SPEC, "newWall_NRM.dds", false, false);
 
-
 	//101	arc00
 	setTextures(pScene, index++, "techo.dds", "techo_SPEC.dds", "techo_NRM.dds", false, false);
 
@@ -881,7 +879,6 @@ static void SetMaterials(Scene *pScene)
 
 	//101	wall04
 	setTextures(pScene, index++, "techo.dds", "techo_SPEC.dds", "techo_NRM.dds", false, false);
-	
 
 	for (uint32_t i = index; i < pScene->numMaterials; i++)
 	{
@@ -902,36 +899,17 @@ static void SetMaterials(Scene *pScene)
 }
 
 #if !defined(METAL)
-static inline float2 abs(const float2& v)
-{
-	return float2(fabsf(v.getX()), fabsf(v.getY()));
-}
-static inline float2 subtract(const float2& v, const float2& w)
-{
-	return float2(v.getX() - w.getX(), v.getY() - w.getY());
-}
+static inline float2 abs(const float2& v) { return float2(fabsf(v.getX()), fabsf(v.getY())); }
+static inline float2 subtract(const float2& v, const float2& w) { return float2(v.getX() - w.getX(), v.getY() - w.getY()); }
 static inline float2 step(const float2& y, const float2& x)
 {
-	return float2(x.getX() >= y.getX() ? 1.f : 0.f,
-		x.getY() >= y.getY() ? 1.f : 0.f);
+	return float2(x.getX() >= y.getX() ? 1.f : 0.f, x.getY() >= y.getY() ? 1.f : 0.f);
 }
-static inline float2 mulPerElem(const float2 &v, float f)
-{
-	return float2(v.getX()*f, v.getY()*f);
-}
-static inline float2 mulPerElem(const float2 &v, const float2& w)
-{
-	return float2(v.getX()*w.getX(), v.getY()*w.getY());
-}
-static inline float2 sumPerElem(const float2 &v, const float2& w)
-{
-	return float2(v.getX() + w.getX(), v.getY() + w.getY());
-}
-static inline float2 sign_not_zero(const float2& v)
-{
-	return subtract(mulPerElem(step(float2(0, 0), v), 2.0), float2(1, 1));
-}
-static inline uint packSnorm2x16(const float2& v)
+static inline float2 mulPerElem(const float2& v, float f) { return float2(v.getX() * f, v.getY() * f); }
+static inline float2 mulPerElem(const float2& v, const float2& w) { return float2(v.getX() * w.getX(), v.getY() * w.getY()); }
+static inline float2 sumPerElem(const float2& v, const float2& w) { return float2(v.getX() + w.getX(), v.getY() + w.getY()); }
+static inline float2 sign_not_zero(const float2& v) { return subtract(mulPerElem(step(float2(0, 0), v), 2.0), float2(1, 1)); }
+static inline uint   packSnorm2x16(const float2& v)
 {
 	uint x = (uint)round(clamp(v.getX(), -1, 1) * 32767.0f);
 	uint y = (uint)round(clamp(v.getY(), -1, 1) * 32767.0f);
@@ -953,7 +931,7 @@ static inline uint packUnorm2x16(const float2& v)
 
 static inline unsigned short F32toF16(float val)
 {
-	uint f32 = (*(uint *)&val);
+	uint           f32 = (*(uint*)&val);
 	unsigned short f16 = 0;
 	/* Decode IEEE 754 little-endian 32-bit floating-point value */
 	int sign = (f32 >> 16) & 0x8000;
@@ -963,8 +941,8 @@ static inline unsigned short F32toF16(float val)
 	if (exponent == 128)
 	{ /* Infinity or NaN */
 		f16 = (unsigned short)(sign | F16_MAX_EXPONENT);
-		if (mantissa) f16 |= (mantissa & F16_MANTISSA_BITS);
-
+		if (mantissa)
+			f16 |= (mantissa & F16_MANTISSA_BITS);
 	}
 	else if (exponent > 15)
 	{ /* Overflow - flush to Infinity */
@@ -982,26 +960,20 @@ static inline unsigned short F32toF16(float val)
 	}
 	return f16;
 }
-static inline uint pack2Floats(float2 f)
-{
-	return (F32toF16(f.getX()) & 0x0000FFFF) | ((F32toF16(f.getY()) << 16) & 0xFFFF0000);
-}
+static inline uint pack2Floats(float2 f) { return (F32toF16(f.getX()) & 0x0000FFFF) | ((F32toF16(f.getY()) << 16) & 0xFFFF0000); }
 
-static inline float2 normalize(const float2 & vec)
+static inline float2 normalize(const float2& vec)
 {
-	float lenSqr = vec.getX()*vec.getX() + vec.getY()*vec.getY();
+	float lenSqr = vec.getX() * vec.getX() + vec.getY() * vec.getY();
 	float lenInv = (1.0f / sqrtf(lenSqr));
 	return float2(vec.getX() * lenInv, vec.getY() * lenInv);
 }
 
-static inline float OctWrap(float v, float w)
-{
-	return (1.0f - abs(w)) * (v >= 0.0f ? 1.0f : -1.0f);
-}
+static inline float OctWrap(float v, float w) { return (1.0f - abs(w)) * (v >= 0.0f ? 1.0f : -1.0f); }
 
 static inline uint encodeDir(const float3& n)
 {
-	float absLength = (abs(n.getX()) + abs(n.getY()) + abs(n.getZ()));
+	float  absLength = (abs(n.getX()) + abs(n.getY()) + abs(n.getZ()));
 	float3 enc;
 	enc.setX(n.getX() / absLength);
 	enc.setY(n.getY() / absLength);
@@ -1024,27 +996,27 @@ static inline uint encodeDir(const float3& n)
 Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ)
 {
 #if TARGET_IOS
-	NSString *fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : fileName] ofType : @""];
+	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:fileName] ofType:@""];
 	fileName = [fileUrl fileSystemRepresentation];
 #endif
 
 #if 1
 
-	AssimpImporter importer;
-	Model model;
+	AssimpImporter        importer;
+	AssimpImporter::Model model;
 	importer.ImportModel(fileName, &model);
 
 	tinystl::vector<SceneVertexPos> positions;
-	tinystl::vector<float2> texcoords;
-	tinystl::vector<float3> normals;
-	tinystl::vector<float3> tangents;
-	tinystl::vector<uint32_t> indices;
+	tinystl::vector<float2>         texcoords;
+	tinystl::vector<float3>         normals;
+	tinystl::vector<float3>         tangents;
+	tinystl::vector<uint32_t>       indices;
 
 	uint32_t accIndex_ = 0;
 
 	for (int i = 0; i < model.mMeshArray.size(); i++)
 	{
-		Mesh mesh = model.mMeshArray[i];
+		AssimpImporter::Mesh mesh = model.mMeshArray[i];
 
 		for (int j = 0; j < mesh.mPositions.size(); j++)
 		{
@@ -1104,7 +1076,6 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	scene->totalVertices = (uint32_t)positions.size();
 	scene->totalTriangles = (uint32_t)indices.size() / 3;
 
-
 	scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
 
 	scene->indices = indices;
@@ -1144,7 +1115,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	{
 		MeshIn& batch = scene->meshes[i];
 
-		Mesh mesh = model.mMeshArray[i];
+		AssimpImporter::Mesh mesh = model.mMeshArray[i];
 		batch.materialId = (uint32_t)i;
 		batch.vertexCount = (uint32_t)mesh.mPositions.size();
 
@@ -1157,8 +1128,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		batch.indexCount = (uint32_t)mesh.mIndices.size();
 		accIndex += batch.indexCount;
 #endif
-		
-		
+
 		LOGINFOF("%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
 	}
 
@@ -1193,7 +1163,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	{
 		scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
 
-		uint32_t idxCount = originalScene.meshes[i].vertexCount; // Index count is stored in the vertex count member when reading the mesh on Metal.
+		uint32_t idxCount =
+			originalScene.meshes[i].vertexCount;    // Index count is stored in the vertex count member when reading the mesh on Metal.
 		for (uint32_t j = 0; j < idxCount; j++)
 		{
 			uint32_t idx = originalScene.indices[originalIdx++];
@@ -1212,11 +1183,14 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 #else
 
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
-	File assimpScene = {};
+	File   assimpScene = {};
 	assimpScene.Open(fileName, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
 	if (!assimpScene.IsOpen())
 	{
-		ErrorMsg("Could not open scene %s.\nPlease make sure you have downloaded the art assets by using the PRE_BUILD command in the root directory", fileName);
+		ErrorMsg(
+			"Could not open scene %s.\nPlease make sure you have downloaded the art assets by using the PRE_BUILD command in the root "
+			"directory",
+			fileName);
 		return NULL;
 	}
 	ASSERT(assimpScene.IsOpen());
@@ -1298,7 +1272,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 #ifdef ORBIS
 #define DEFAULT_ALBEDO "default.gnf"
 #define DEFAULT_NORMAL "default_nrm.gnf"
-#define DEFAULT_SPEC   "default_spec.gnf"
+#define DEFAULT_SPEC "default_spec.gnf"
 #else
 
 #define DEFAULT_ALBEDO "Default.dds"
@@ -1319,19 +1293,16 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		tinystl::vector<char> matName(matNameLength);
 		assimpScene.Read(matName.data(), sizeof(char) * matNameLength);
 
-
-
 		uint32_t albedoNameLength = 0;
 		assimpScene.Read(&albedoNameLength, sizeof(uint32_t));
 
 		tinystl::vector<char> albedoName(albedoNameLength);
-		assimpScene.Read(albedoName.data(), sizeof(char)*albedoNameLength);
-
+		assimpScene.Read(albedoName.data(), sizeof(char) * albedoNameLength);
 
 		if (albedoName[0] != '\0')
 		{
 			tinystl::string path(albedoName.data());
-			uint dotPos = 0;
+			uint            dotPos = 0;
 #ifdef ORBIS
 			// try to load the GNF version instead: change extension to GNF
 			path.rfind('.', -1, &dotPos);
@@ -1341,7 +1312,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 #endif
 			tinystl::string albedoMap(path);
 
-			tinystl::vector<tinystl::string>columnas;
+			tinystl::vector<tinystl::string> columnas;
 
 			tinystl::string columnaA3("columna_a_color_3");
 			tinystl::string columnaA2("columna_a_color_2");
@@ -1350,13 +1321,11 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			tinystl::string columnaB3("columna_b_color_3");
 			tinystl::string columnaB2("columna_b_color_2");
 
-
 			columnas.push_back(columnaA3);
 			columnas.push_back(columnaA2);
 			columnas.push_back(columnaB3);
 			columnas.push_back(columnaB2);
 			columnas.push_back(columnaA1);
-
 
 			tinystl::string columnaB1("columna_b_color");
 
@@ -1371,15 +1340,13 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				}
 			}
 
-
-			tinystl::vector<tinystl::string>macetas;
+			tinystl::vector<tinystl::string> macetas;
 
 			tinystl::string macetasA2("Maceta_A2_Color");
 			tinystl::string macetasC("Maceta_C_Color");
 			tinystl::string macetasC2("Maceta_C2_Color");
 			tinystl::string macetasB("Maceta_B_Color");
 			tinystl::string macetasD2("Maceta_D2_Color_0");
-
 
 			macetas.push_back(macetasA2);
 			macetas.push_back(macetasC);
@@ -1421,14 +1388,13 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				path.replace(muros_n, muros_q_patio2);
 			}
 
-
 			if (!FileSystem::FileExists(path, FSR_Textures))
 			{
 				tinystl::string base_filename2 = FileSystem::GetFileName(path);
 				tinystl::string pTemp(".dds");
 				base_filename2.append(pTemp.begin(), pTemp.end());
 
-				// try load the associated normal map 
+				// try load the associated normal map
 				albedoMap.resize(0);
 				albedoMap.reserve(base_filename2.size());
 				albedoMap.append(base_filename2.begin(), base_filename2.end());
@@ -1442,7 +1408,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			scene->textures[i] = (char*)conf_calloc(albedoMap.size() + 1, sizeof(char));
 			strcpy(scene->textures[i], albedoMap.c_str());
 
-			// try load the associated normal map 
+			// try load the associated normal map
 			tinystl::string normalMap(path);
 			normalMap.rfind('.', -1, &dotPos);
 			normalMap.insert(dotPos, "_NRM", 4);
@@ -1453,7 +1419,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				tinystl::string pTemp(".dds");
 				base_filename2.append(pTemp.begin(), pTemp.end());
 
-				// try load the associated normal map 
+				// try load the associated normal map
 				normalMap.resize(0);
 				normalMap.reserve(base_filename2.size());
 				normalMap.append(base_filename2.begin(), base_filename2.end());
@@ -1470,7 +1436,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			scene->normalMaps[i] = (char*)conf_calloc(normalMap.size() + 1, sizeof(char));
 			strcpy(scene->normalMaps[i], normalMap.c_str());
 
-			// try load the associated spec map 
+			// try load the associated spec map
 			tinystl::string specMap(path);
 			dotPos = 0;
 			specMap.rfind('.', -1, &dotPos);
@@ -1482,7 +1448,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				tinystl::string pTemp(".dds");
 				base_filename2.append(pTemp.begin(), pTemp.end());
 
-				// try load the associated specular map 
+				// try load the associated specular map
 				specMap.resize(0);
 				specMap.reserve(base_filename2.size());
 				specMap.append(base_filename2.begin(), base_filename2.end());
@@ -1493,9 +1459,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				if (!FileSystem::FileExists(specMap, FSR_Textures))
 				{
 					//Transparent
-					if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 ||
-						i == 80 || i == 87 || i == 109 || i == 110 || i == 119 || i == 147 ||
-						i == 160 || i == 197 || i == 215)
+					if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 || i == 80 || i == 87 || i == 109 || i == 110 ||
+						i == 119 || i == 147 || i == 160 || i == 197 || i == 215)
 					{
 						specMap = DEFAULT_SPEC_TRANSPARENT;
 					}
@@ -1522,9 +1487,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			scene->specularMaps[i] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
 
 			//Transparent
-			if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 ||
-				i == 80 || i == 87 || i == 109 || i == 110 || i == 119 || i == 147 ||
-				i == 160 || i == 197 || i == 215)
+			if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 || i == 80 || i == 87 || i == 109 || i == 110 || i == 119 ||
+				i == 147 || i == 160 || i == 197 || i == 215)
 			{
 				strcpy(scene->specularMaps[i], DEFAULT_SPEC_TRANSPARENT);
 			}
@@ -1533,10 +1497,10 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		}
 
 		float ns = 0.0f;
-		assimpScene.Read(&ns, sizeof(float));  // load shininess
+		assimpScene.Read(&ns, sizeof(float));    // load shininess
 
 		int twoSided = 0;
-		assimpScene.Read(&twoSided, sizeof(float));  // load two sided
+		assimpScene.Read(&twoSided, sizeof(float));    // load two sided
 		m.twoSided = (twoSided != 0);
 
 		tinystl::string tinyMatName(matName.data());
@@ -1564,7 +1528,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	{
 		scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
 
-		uint32_t idxCount = originalScene.meshes[i].vertexCount; // Index count is stored in the vertex count member when reading the mesh on Metal.
+		uint32_t idxCount =
+			originalScene.meshes[i].vertexCount;    // Index count is stored in the vertex count member when reading the mesh on Metal.
 		for (uint32_t j = 0; j < idxCount; j++)
 		{
 			uint32_t idx = originalScene.indices[originalIdx++];
@@ -1623,10 +1588,7 @@ void removeScene(Scene* scene)
 	conf_free(scene);
 }
 
-vec3 makeVec3(const SceneVertexPos& v)
-{
-	return vec3(v.x, v.y, v.z);
-}
+vec3 makeVec3(const SceneVertexPos& v) { return vec3(v.x, v.y, v.z); }
 
 void CreateAABB(const Scene* pScene, MeshIn* mesh)
 {
@@ -1642,8 +1604,6 @@ void CreateAABB(const Scene* pScene, MeshIn* mesh)
 	{
 		vec4 currentVertex;
 
-
-
 		uint32_t currentIndex = pScene->indices[mesh->startIndex + t];
 
 		currentVertex = vec4(makeVec3(pScene->positions[currentIndex]), 1.0);
@@ -1652,18 +1612,14 @@ void CreateAABB(const Scene* pScene, MeshIn* mesh)
 		aabbMax = maxPerElem(aabbMax, currentVertex);
 	}
 #else
-	uint32_t triangleCount = mesh->vertexCount / 3;
-	
-	uint32_t totalSize = (uint32_t)pScene->indices.size();
-	
 	for (uint t = 0; t < mesh->vertexCount; ++t)
 	{
 		vec4 currentVertex;
-		
+
 		uint32_t currentIndex = pScene->indices[mesh->startVertex + t];
-		
+
 		currentVertex = vec4(makeVec3(pScene->positions[currentIndex]), 1.0);
-		
+
 		aabbMin = minPerElem(aabbMin, currentVertex);
 		aabbMax = maxPerElem(aabbMax, currentVertex);
 	}
@@ -1673,10 +1629,10 @@ void CreateAABB(const Scene* pScene, MeshIn* mesh)
 	mesh->AABB.minPt = float4(aabbMin.getX(), aabbMin.getY(), aabbMin.getZ(), aabbMin.getW());
 	mesh->AABB.Center = (mesh->AABB.maxPt + mesh->AABB.minPt) / 2.0f;
 
-	mesh->AABB.Extents = (float4(fabsf(mesh->AABB.maxPt.x - mesh->AABB.minPt.x),
-		fabsf(mesh->AABB.maxPt.y - mesh->AABB.minPt.y),
-		fabsf(mesh->AABB.maxPt.z - mesh->AABB.minPt.z),
-		fabsf(mesh->AABB.maxPt.w - mesh->AABB.minPt.w))) * 0.5f;
+	mesh->AABB.Extents = (float4(
+							 fabsf(mesh->AABB.maxPt.x - mesh->AABB.minPt.x), fabsf(mesh->AABB.maxPt.y - mesh->AABB.minPt.y),
+							 fabsf(mesh->AABB.maxPt.z - mesh->AABB.minPt.z), fabsf(mesh->AABB.maxPt.w - mesh->AABB.minPt.w))) *
+						 0.5f;
 
 	mesh->AABB.corners[0] = mesh->AABB.Center - mesh->AABB.Extents;
 	mesh->AABB.corners[0].w = 1.0f;
@@ -1695,28 +1651,27 @@ void CreateAABB(const Scene* pScene, MeshIn* mesh)
 	mesh->AABB.corners[6].w = 1.0f;
 	mesh->AABB.corners[7] = mesh->AABB.Center + mesh->AABB.Extents;
 	mesh->AABB.corners[7].w = 1.0f;
-
 }
 
-
-void loadModel(const tinystl::string &FileName, Buffer* &pVertexBuffer, uint &vertexCount, Buffer* &pIndexBuffer, uint &indexCount)
+void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& pIndexBuffer, uint& indexCount)
 {
-	Model model;
+	AssimpImporter::Model model;
 
 #ifdef TARGET_IOS
 	//TODO: need to unify this using filsystem interface
 	//iOS requires path using bundle identifier
-	NSString * fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gModelName] ofType : @""];
+	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:gModelName] ofType:@""];
 	sceneFullPath = [fileUrl fileSystemRepresentation];
 #endif
-	AssimpImporter::ImportModel(FileName.c_str(), &model);
-	Mesh mesh = model.mMeshArray[0];
+	AssimpImporter importer;
+	importer.ImportModel(FileName.c_str(), &model);
+	AssimpImporter::Mesh mesh = model.mMeshArray[0];
 
-	size_t size = mesh.mIndices.size();
+	size_t                  size = mesh.mIndices.size();
 	tinystl::vector<Vertex> meshVertices;
-	tinystl::vector<uint> meshIndices;
-	int index = 0;
-	for (int i = 0; i < size;i++)
+	tinystl::vector<uint>   meshIndices;
+	int                     index = 0;
+	for (int i = 0; i < size; i++)
 	{
 		index = mesh.mIndices[i];
 		Vertex toAdd = { mesh.mPositions[index], mesh.mNormals[index], mesh.mUvs[index] };
@@ -1771,11 +1726,12 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 	mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
 	memset(mesh->clusters, 0, mesh->clusterCount * sizeof(Cluster));
 
-	const uint32_t triangleStart = mesh->startVertex / 3;  // Assumes that we have no indices and every 3 vertices are a triangle (due to Metal limitation).
+	const uint32_t triangleStart =
+		mesh->startVertex / 3;    // Assumes that we have no indices and every 3 vertices are a triangle (due to Metal limitation).
 
 	for (uint32_t i = 0; i < mesh->clusterCount; ++i)
 	{
-		const int clusterStart = i * CLUSTER_SIZE;
+		const int      clusterStart = i * CLUSTER_SIZE;
 		const uint32_t clusterEnd = min<uint32_t>(clusterStart + CLUSTER_SIZE, mesh->triangleCount);
 
 		const int clusterTriangleCount = clusterEnd - clusterStart;
@@ -1802,8 +1758,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 				aabbMax = maxPerElem(aabbMax, triangle.vtx[j]);
 			}
 
-			vec3 triangleNormal = cross(triangle.vtx[1] - triangle.vtx[0],
-				triangle.vtx[2] - triangle.vtx[0]);
+			vec3 triangleNormal = cross(triangle.vtx[1] - triangle.vtx[0], triangle.vtx[2] - triangle.vtx[0]);
 			//if(!(triangleNormal == vec3(0,0,0)))
 			if (lengthSqr(triangleNormal) > 0.01f)
 				triangleNormal = normalize(triangleNormal);
@@ -1836,11 +1791,11 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 				const Triangle& triangle = triangleCache[triangleIndex];
 				// Compute the triangle plane from the three vertices
 
-				const vec3 triangleNormal = normalize(cross(triangle.vtx[1] - triangle.vtx[0],
-					triangle.vtx[2] - triangle.vtx[0]));
+				const vec3 triangleNormal = normalize(cross(triangle.vtx[1] - triangle.vtx[0], triangle.vtx[2] - triangle.vtx[0]));
 
 				//Check Nan
-				if ((triangleNormal.getX() != triangleNormal.getX()) || (triangleNormal.getY() != triangleNormal.getY()) || (triangleNormal.getZ() != triangleNormal.getZ()))
+				if ((triangleNormal.getX() != triangleNormal.getX()) || (triangleNormal.getY() != triangleNormal.getY()) ||
+					(triangleNormal.getZ() != triangleNormal.getZ()))
 				{
 					validCluster = false;
 					break;
@@ -1848,7 +1803,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 
 				const float directionalPart = dot(coneAxis, -triangleNormal);
 
-				if (directionalPart <= 0.0f)   //AMD BUG?: changed to <= 0 because directionalPart is used to divide a quantity
+				if (directionalPart <= 0.0f)    //AMD BUG?: changed to <= 0 because directionalPart is used to divide a quantity
 				{
 					// No solution for this cluster - at least two triangles are facing each other
 					validCluster = false;
@@ -1916,9 +1871,12 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 		// Load all triangles into our local cache
 		for (int triangleIndex = clusterStart; triangleIndex < clusterEnd; ++triangleIndex)
 		{
-			triangleCache[triangleIndex - clusterStart].vtx[0] = makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3]]);
-			triangleCache[triangleIndex - clusterStart].vtx[1] = makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3 + 1]]);
-			triangleCache[triangleIndex - clusterStart].vtx[2] = makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3 + 2]]);
+			triangleCache[triangleIndex - clusterStart].vtx[0] =
+				makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3]]);
+			triangleCache[triangleIndex - clusterStart].vtx[1] =
+				makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3 + 1]]);
+			triangleCache[triangleIndex - clusterStart].vtx[2] =
+				makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3 + 2]]);
 		}
 
 		vec3 aabbMin = vec3(INFINITY, INFINITY, INFINITY);
@@ -1935,9 +1893,7 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 				aabbMax = maxPerElem(aabbMax, triangle.vtx[j]);
 			}
 
-			vec3 triangleNormal = cross(
-				triangle.vtx[1] - triangle.vtx[0],
-				triangle.vtx[2] - triangle.vtx[0]);
+			vec3 triangleNormal = cross(triangle.vtx[1] - triangle.vtx[0], triangle.vtx[2] - triangle.vtx[0]);
 
 			if (!(triangleNormal == vec3(0, 0, 0)))
 				triangleNormal = normalize(triangleNormal);
@@ -1971,14 +1927,11 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 				const Triangle& triangle = triangleCache[triangleIndex];
 				// Compute the triangle plane from the three vertices
 
-				const vec3 triangleNormal = normalize(
-					cross(
-						triangle.vtx[1] - triangle.vtx[0],
-						triangle.vtx[2] - triangle.vtx[0]));
+				const vec3 triangleNormal = normalize(cross(triangle.vtx[1] - triangle.vtx[0], triangle.vtx[2] - triangle.vtx[0]));
 
 				const float directionalPart = dot(coneAxis, -triangleNormal);
 
-				if (directionalPart <= 0)   //AMD BUG?: changed to <= 0 because directionalPart is used to divide a quantity
+				if (directionalPart <= 0)    //AMD BUG?: changed to <= 0 because directionalPart is used to divide a quantity
 				{
 					// No solution for this cluster - at least two triangles are facing each other
 					validCluster = false;
@@ -2020,17 +1973,20 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 }
 
 #if defined(METAL)
-void addClusterToBatchChunk(const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk)
+void addClusterToBatchChunk(
+	const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk)
 {
 	FilterBatchData* batchData = &batchChunk->batches[batchChunk->currentBatchCount++];
 
 	batchData->triangleCount = cluster->triangleCount;
-	batchData->triangleOffset = cluster->clusterStart + mesh->startVertex / 3; // each 3 vertices form a triangle
+	batchData->triangleOffset = cluster->clusterStart + mesh->startVertex / 3;    // each 3 vertices form a triangle
 	batchData->meshIdx = meshIdx;
 	batchData->twoSided = (isTwoSided ? 1 : 0);
 }
 #else
-void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk)
+void addClusterToBatchChunk(
+	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
+	FilterBatchChunk* batchChunk)
 {
 	const int filteredIndexBufferStartOffset = accumNumTriangles * 3;
 
@@ -2053,14 +2009,7 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	UNREF_PARAM(cmdPool);
 	// Create vertex buffer
 	float vertexData[] = {
-		-1, -1, -1, 1,
-		1, -1, -1, 1,
-		1, 1, -1, 1,
-		-1, 1, -1, 1,
-		-1, -1, 1, 1,
-		1, -1, 1, 1,
-		1, 1, 1, 1,
-		-1, 1, 1, 1,
+		-1, -1, -1, 1, 1, -1, -1, 1, 1, 1, -1, 1, -1, 1, -1, 1, -1, -1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1,
 	};
 
 	BufferLoadDesc vbDesc = {};
@@ -2074,14 +2023,8 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	addResource(&vbDesc);
 
 	// Create index buffer
-	uint16_t indices[6 * 6] =
-	{
-		0, 1, 3, 3, 1, 2,
-		1, 5, 2, 2, 5, 6,
-		5, 4, 6, 6, 4, 7,
-		4, 0, 7, 7, 0, 3,
-		3, 2, 7, 7, 2, 6,
-		4, 5, 0, 0, 5, 1
+	uint16_t indices[6 * 6] = {
+		0, 1, 3, 3, 1, 2, 1, 5, 2, 2, 5, 6, 5, 4, 6, 6, 4, 7, 4, 0, 7, 7, 0, 3, 3, 2, 7, 7, 2, 6, 4, 5, 0, 0, 5, 1
 	};
 
 	BufferLoadDesc ibDesc = {};

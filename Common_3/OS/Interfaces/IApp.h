@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,16 +22,10 @@
  * under the License.
 */
 
-
-
-
-
-
 //
 // To design an application interface, think about what the user can do to the application
 // change resolution, change device by switching from hardware to Warp, change MSAA, hot-swap an input device
 //
-
 
 /*
 
@@ -76,7 +70,6 @@ void drawFrame(float deltaTime);
 // then load() needs to be called to load all the device dependent things from scratch again ...
 // It needs to make sure that only the bare minimum of tasks is done here, so no memory allocation and deallocation apart from the necessary
 
-
 // hot-swap the input device
 // the user decides to switch from keyboard to controller input
 // we are going to call exitInput() and then initInput()
@@ -87,7 +80,7 @@ void drawFrame(float deltaTime);
 
 class IApp
 {
-public:
+	public:
 	virtual bool Init() = 0;
 	virtual void Exit() = 0;
 
@@ -106,74 +99,74 @@ public:
 		/// Window height
 		int32_t mHeight = -1;
 		/// Set to true if fullscreen mode has been requested
-		bool	mFullScreen = false;
+		bool mFullScreen = false;
 		/// Set to true if app wants to use an external window
-		bool	mExternalWindow = false;
+		bool mExternalWindow = false;
 #if defined(TARGET_IOS)
-		bool	mShowStatusBar = false;
+		bool mShowStatusBar = false;
 #endif
 	} mSettings;
 
-	WindowsDesc* pWindow;
+	WindowsDesc*    pWindow;
 	tinystl::string mCommandLine;
 };
 
 #if defined(_DURANGO)
-#define DEFINE_APPLICATION_MAIN(appClass)					   \
-extern int DurangoMain(int argc, char** argv, IApp* app);	   \
-																\
-int main(int argc, char** argv)								 \
-{															   \
-	appClass app;											   \
-	return DurangoMain(argc, argv, &app);					   \
-}
+#define DEFINE_APPLICATION_MAIN(appClass)                     \
+	extern int DurangoMain(int argc, char** argv, IApp* app); \
+                                                              \
+	int main(int argc, char** argv)                           \
+	{                                                         \
+		appClass app;                                         \
+		return DurangoMain(argc, argv, &app);                 \
+	}
 #elif defined(_WIN32)
-#define DEFINE_APPLICATION_MAIN(appClass)					   \
-extern int WindowsMain(int argc, char** argv, IApp* app);	   \
-																\
-int main(int argc, char** argv)								 \
-{															   \
-	appClass app;											   \
-	return WindowsMain(argc, argv, &app);					   \
-}
+#define DEFINE_APPLICATION_MAIN(appClass)                     \
+	extern int WindowsMain(int argc, char** argv, IApp* app); \
+                                                              \
+	int main(int argc, char** argv)                           \
+	{                                                         \
+		appClass app;                                         \
+		return WindowsMain(argc, argv, &app);                 \
+	}
 #elif defined(TARGET_IOS)
-#define DEFINE_APPLICATION_MAIN(appClass)					   \
-extern int iOSMain(int argc, char** argv, IApp* app);		   \
-																\
-int main(int argc, char** argv)								 \
-{															   \
-	appClass app;											   \
-	return iOSMain(argc, argv, &app);						   \
-}
+#define DEFINE_APPLICATION_MAIN(appClass)                 \
+	extern int iOSMain(int argc, char** argv, IApp* app); \
+                                                          \
+	int main(int argc, char** argv)                       \
+	{                                                     \
+		appClass app;                                     \
+		return iOSMain(argc, argv, &app);                 \
+	}
 #elif defined(__APPLE__)
-#define DEFINE_APPLICATION_MAIN(appClass)					   \
-extern int macOSMain(int argc, const char** argv, IApp* app);   \
-																\
-int main(int argc, const char* argv[])						\
-{															   \
-	appClass app;											   \
-	return macOSMain(argc, argv, &app);						 \
-}
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	extern int macOSMain(int argc, const char** argv, IApp* app); \
+                                                                  \
+	int main(int argc, const char* argv[])                        \
+	{                                                             \
+		appClass app;                                             \
+		return macOSMain(argc, argv, &app);                       \
+	}
 #elif defined(__ANDROID__)
-#define DEFINE_APPLICATION_MAIN(appClass)					   \
-extern int AndroidMain(void* param, IApp* app);				 \
-																\
-void android_main(struct android_app* param)					\
-{															   \
-	appClass app;											   \
-	AndroidMain(param, &app);								   \
-}
+#define DEFINE_APPLICATION_MAIN(appClass)           \
+	extern int AndroidMain(void* param, IApp* app); \
+                                                    \
+	void android_main(struct android_app* param)    \
+	{                                               \
+		appClass app;                               \
+		AndroidMain(param, &app);                   \
+	}
 
 #elif defined(__linux__)
-#define DEFINE_APPLICATION_MAIN(appClass)					   \
-extern int LinuxMain(int argc, char** argv, IApp* app);		 \
-																\
-int main(int argc, char** argv)								 \
-{															   \
-	appClass app;											   \
-	return LinuxMain(argc, argv, &app);						 \
-}
+#define DEFINE_APPLICATION_MAIN(appClass)                   \
+	extern int LinuxMain(int argc, char** argv, IApp* app); \
+                                                            \
+	int main(int argc, char** argv)                         \
+	{                                                       \
+		appClass app;                                       \
+		return LinuxMain(argc, argv, &app);                 \
+	}
 #else
 #endif
 
-#endif // _IAPP_H_
+#endif    // _IAPP_H_

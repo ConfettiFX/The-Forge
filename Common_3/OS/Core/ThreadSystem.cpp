@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,16 +28,9 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
 
-MutexLock::MutexLock(Mutex& rhs) :
-	mMutex(rhs)
-{
-	rhs.Acquire();
-}
+MutexLock::MutexLock(Mutex& rhs): mMutex(rhs) { rhs.Acquire(); }
 
-MutexLock::~MutexLock()
-{
-	mMutex.Release();
-}
+MutexLock::~MutexLock() { mMutex.Release(); }
 
 Thread::Thread(ThreadPool* pThreadSystem)
 {
@@ -58,14 +51,7 @@ Thread::~Thread()
 	}
 }
 
-ThreadPool::ThreadPool() :
-	mShutDown(false),
-	mPausing(false),
-	mPaused(false),
-	mCompleting(false)
-{
-	Thread::SetMainThread();
-}
+ThreadPool::ThreadPool(): mShutDown(false), mPausing(false), mPaused(false), mCompleting(false) { Thread::SetMainThread(); }
 
 ThreadPool::~ThreadPool()
 {
@@ -154,10 +140,10 @@ bool ThreadPool::RemoveWorkItem(WorkItem*& item)
 	return false;
 }
 
-unsigned ThreadPool::RemoveWorkItems(const tinystl::vector <WorkItem*>& items)
+unsigned ThreadPool::RemoveWorkItems(const tinystl::vector<WorkItem*>& items)
 {
 	MutexLock lock(mQueueMutex);
-	unsigned removed = 0;
+	unsigned  removed = 0;
 
 	for (WorkItem* const& i : items)
 	{
@@ -199,7 +185,6 @@ void ThreadPool::Resume()
 	}
 }
 
-
 void ThreadPool::Complete(unsigned priority)
 {
 	mCompleting = true;
@@ -227,9 +212,7 @@ void ThreadPool::Complete(unsigned priority)
 		}
 
 		// Wait for threads to complete work
-		while (!IsCompleted(priority))
-		{
-		}
+		while (!IsCompleted(priority)) {}
 
 		// Pause worker threads
 		if (mWorkQueue.empty())

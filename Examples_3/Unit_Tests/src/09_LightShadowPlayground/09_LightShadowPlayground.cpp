@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,14 +22,13 @@
 * under the License.
 */
 
-
-#define SPHERE_EACH_ROW 5 //MUST MATCH with the same macro in all shaders
-#define SPHERE_EACH_COL 5 //MUST MATCH with the same macro in all shaders
-#define SPHERE_NUM (SPHERE_EACH_ROW*SPHERE_EACH_COL + 1) // Must match with same macro in all shader.... +1 for plane
-#define MAX_GAUSSIAN_WIDTH 31//MUST MATCH with shade
-#define MAX_GAUSSIAN_WEIGHTS_SIZE 64//MUST MATCH with shader = 32*2+1
+#define SPHERE_EACH_ROW 5                                     //MUST MATCH with the same macro in all shaders
+#define SPHERE_EACH_COL 5                                     //MUST MATCH with the same macro in all shaders
+#define SPHERE_NUM (SPHERE_EACH_ROW * SPHERE_EACH_COL + 1)    // Must match with same macro in all shader.... +1 for plane
+#define MAX_GAUSSIAN_WIDTH 31                                 //MUST MATCH with shade
+#define MAX_GAUSSIAN_WEIGHTS_SIZE 64                          //MUST MATCH with shader = 32*2+1
 #define MAX_SAMPLE_POINTS_NUM 16
-#define DEBUG_OUTPUT 0//exclusively used for texture data visulization, such as rendering depth, shadow map etc.
+#define DEBUG_OUTPUT 0    //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -59,60 +58,42 @@
 
 //Generate sky box vertex buffer
 const float gSkyboxPointArray[] = {
-	10.0f,  -10.0f, -10.0f,6.0f, // -z
-	-10.0f, -10.0f, -10.0f,6.0f,
-	-10.0f, 10.0f, -10.0f,6.0f,
-	-10.0f, 10.0f, -10.0f,6.0f,
-	10.0f,  10.0f, -10.0f,6.0f,
-	10.0f,  -10.0f, -10.0f,6.0f,
+	10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+	-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+	-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
 
-	-10.0f, -10.0f,  10.0f,2.0f,  //-x
-	-10.0f, -10.0f, -10.0f,2.0f,
-	-10.0f,  10.0f, -10.0f,2.0f,
-	-10.0f,  10.0f, -10.0f,2.0f,
-	-10.0f,  10.0f,  10.0f,2.0f,
-	-10.0f, -10.0f,  10.0f,2.0f,
+	-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+	-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+	-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
 
-	10.0f, -10.0f, -10.0f,1.0f, //+x
-	10.0f, -10.0f,  10.0f,1.0f,
-	10.0f,  10.0f,  10.0f,1.0f,
-	10.0f,  10.0f,  10.0f,1.0f,
-	10.0f,  10.0f, -10.0f,1.0f,
-	10.0f, -10.0f, -10.0f,1.0f,
+	10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+	10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+	10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
 
-	-10.0f, -10.0f,  10.0f,5.0f,  // +z
-	-10.0f,  10.0f,  10.0f,5.0f,
-	10.0f,  10.0f,  10.0f,5.0f,
-	10.0f,  10.0f,  10.0f,5.0f,
-	10.0f, -10.0f,  10.0f,5.0f,
-	-10.0f, -10.0f,  10.0f,5.0f,
+	-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+	-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+	10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
 
-	-10.0f,  10.0f, -10.0f, 3.0f,  //+y
-	10.0f,  10.0f, -10.0f,3.0f,
-	10.0f,  10.0f,  10.0f,3.0f,
-	10.0f,  10.0f,  10.0f,3.0f,
-	-10.0f,  10.0f,  10.0f,3.0f,
-	-10.0f,  10.0f, -10.0f,3.0f,
+	-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+	10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+	10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
 
-	10.0f,  -10.0f, 10.0f, 4.0f,  //-y
-	10.0f,  -10.0f, -10.0f,4.0f,
-	-10.0f,  -10.0f,  -10.0f,4.0f,
-	-10.0f,  -10.0f,  -10.0f,4.0f,
-	-10.0f,  -10.0f,  10.0f,4.0f,
-	10.0f,  -10.0f, 10.0f,4.0f,
+	10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+	10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+	-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
 };
 
 enum RenderOutput
 {
-	RENDER_OUTPUT_SCENE,//render all scenes normally
+	RENDER_OUTPUT_SCENE,    //render all scenes normally
 
 	///@note all enum below will only be used when DEBUG_OUTPUT is enabled.
-	RENDER_OUTPUT_SDF_MAP,//render sdf shadows
-	RENDER_OUTPUT_ALBEDO,//render color only
-	RENDER_OUTPUT_NORMAL,//render normals in range[0,1]
-	RENDER_OUTPUT_POSITION,//render world position in RGBA32F
-	RENDER_OUTPUT_DEPTH,//render camera depth in range[0,1]
-	RENDER_OUTPUT_ESM_MAP,//render ESM shadow map, from light pov
+	RENDER_OUTPUT_SDF_MAP,     //render sdf shadows
+	RENDER_OUTPUT_ALBEDO,      //render color only
+	RENDER_OUTPUT_NORMAL,      //render normals in range[0,1]
+	RENDER_OUTPUT_POSITION,    //render world position in RGBA32F
+	RENDER_OUTPUT_DEPTH,       //render camera depth in range[0,1]
+	RENDER_OUTPUT_ESM_MAP,     //render ESM shadow map, from light pov
 
 	RENDER_OUTPUT_COUNT
 };
@@ -120,23 +101,23 @@ enum RenderOutput
 enum ShadowType
 {
 	SHADOW_TYPE_NONE,
-	SHADOW_TYPE_ESM,//Exponential Shadow Map
-	SHADOW_TYPE_SDF,//Ray-Traced Signed Distance Fields Shadow
+	SHADOW_TYPE_ESM,    //Exponential Shadow Map
+	SHADOW_TYPE_SDF,    //Ray-Traced Signed Distance Fields Shadow
 
 	SHADOW_TYPE_COUNT
 };
 typedef struct RenderSettingsUniformData
 {
-	vec4 mWindowDimension = {1, 1, 0, 0};//only first two are used to represents window width and height, z and w are paddings
-	uint32_t mRenderOutput = RENDER_OUTPUT_SCENE;//Scene output, can change using GUI editor
+	vec4     mWindowDimension = { 1, 1, 0, 0 };      //only first two are used to represents window width and height, z and w are paddings
+	uint32_t mRenderOutput = RENDER_OUTPUT_SCENE;    //Scene output, can change using GUI editor
 
 #ifndef TARGET_IOS
-	uint32_t mShadowType = SHADOW_TYPE_ESM;//if not iOS, we start with ESM and can switch using GUI dropdown menu
+	uint32_t mShadowType = SHADOW_TYPE_ESM;    //if not iOS, we start with ESM and can switch using GUI dropdown menu
 #else
-	uint32_t mShadowType = SHADOW_TYPE_SDF;//if iOS, we only output SDF since GUI editor will not be aviable for iOS
+	uint32_t mShadowType = SHADOW_TYPE_SDF;    //if iOS, we only output SDF since GUI editor will not be aviable for iOS
 #endif
 
-}RenderSettingsUniformData;
+} RenderSettingsUniformData;
 
 typedef struct ObjectInfoStruct
 {
@@ -144,59 +125,57 @@ typedef struct ObjectInfoStruct
 	vec3 mTranslation;
 	mat4 mTranslationMat;
 	mat4 mScaleMat;
-}ObjectInfoStruct;
+} ObjectInfoStruct;
 
 typedef struct ObjectInfoUniformBlock
 {
 	mat4 mViewProject;
 	mat4 mToWorldMat[SPHERE_NUM];
-}ObjectInfoUniformBlock;
+} ObjectInfoUniformBlock;
 
 typedef struct SkyboxUniformBlock
 {
 	mat4 mViewProject;
-}SkyboxUniformBlock;
+} SkyboxUniformBlock;
 
 typedef struct GaussianWeightsUniformBlock
 {
 	//use float4 for data alignment, but only x component is used
-	float4 mWeights[MAX_GAUSSIAN_WEIGHTS_SIZE] = {{0, 0, 0, 0}};
-}GaussianWeightsUniformBlock;
+	float4 mWeights[MAX_GAUSSIAN_WEIGHTS_SIZE] = { { 0, 0, 0, 0 } };
+} GaussianWeightsUniformBlock;
 
 typedef struct LightUniformBlock
 {
 	mat4 mLightViewProj;
-	vec4 mLightDirection = {-1, -1, -1, 0};
-	vec4 mLightColor = {1, 0, 0, 1};
-}LightUniformBlock;
+	vec4 mLightDirection = { -1, -1, -1, 0 };
+	vec4 mLightColor = { 1, 0, 0, 1 };
+} LightUniformBlock;
 
 typedef struct CameraUniform
 {
 	vec4 mPosition;
-}CameraUniform;
-
+} CameraUniform;
 
 typedef struct ESMInputConstants
 {
-	float2 mWindowDimension = {0, 0};
-	float2 mNearFarDist = {1.f, 180.0f};
-	float mExponent = 240.0f;
-	uint mBlurWidth = 1U;
-	int mIfHorizontalBlur = 1; //as boolean
-	int padding = 0;
-}ESMInputConstants;
-
+	float2 mWindowDimension = { 0, 0 };
+	float2 mNearFarDist = { 1.f, 180.0f };
+	float  mExponent = 240.0f;
+	uint   mBlurWidth = 1U;
+	int    mIfHorizontalBlur = 1;    //as boolean
+	int    padding = 0;
+} ESMInputConstants;
 
 typedef struct SdfInputConstants
 {
-	mat4 mViewInverse;
-	vec4 mCameraPosition = {0,0,0,0};
-	float mShadowHardness = 6.0f;
+	mat4     mViewInverse;
+	vec4     mCameraPosition = { 0, 0, 0, 0 };
+	float    mShadowHardness = 6.0f;
 	uint32_t mMaxIteration = 64U;
-	float2 mWindowDimension = { 0, 0 };
-	float mSphereRadius;
-	float mRadsRot;
-}SdfInputUniformBlock;
+	float2   mWindowDimension = { 0, 0 };
+	float    mSphereRadius;
+	float    mRadsRot;
+} SdfInputUniformBlock;
 
 enum
 {
@@ -214,9 +193,9 @@ const uint32_t gImageCount = 3;
 /************************************************************************/
 RenderTarget* pRenderTargetScreen;
 RenderTarget* pRenderTargetDepth = NULL;
-RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = {NULL};
+RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { NULL };
 RenderTarget* pRenderTargetShadowMap;
-RenderTarget* pRenderTargetESMBlur[2]; //2: horizontal + vertical blur
+RenderTarget* pRenderTargetESMBlur[2];    //2: horizontal + vertical blur
 RenderTarget* pRenderTargetSkybox;
 RenderTarget* pRenderTargetSdfSimple;
 
@@ -225,37 +204,37 @@ Buffer* pBufferSphereVertex = NULL;
 /************************************************************************/
 // Deferred Pass Shader pack
 /************************************************************************/
-Shader* pShaderDeferredPass = NULL;
-Pipeline* pPipelineDeferredPass = NULL;
-RootSignature* pRootSignatureDeferredPass = NULL;
+Shader*           pShaderDeferredPass = NULL;
+Pipeline*         pPipelineDeferredPass = NULL;
+RootSignature*    pRootSignatureDeferredPass = NULL;
 CommandSignature* pCmdSignatureDeferredPass = NULL;
 /************************************************************************/
 // Deferred Shade Shader pack
 /************************************************************************/
-Shader* pShaderDeferredShade = NULL;
-Pipeline* pPipelineDeferredShadeSrgb = NULL;
+Shader*        pShaderDeferredShade = NULL;
+Pipeline*      pPipelineDeferredShadeSrgb = NULL;
 RootSignature* pRootSignatureDeferredShade = NULL;
 /************************************************************************/
 // SDF Shader pack
 /************************************************************************/
-Shader* pShaderSdfSimple = NULL;
-Pipeline* pPipelineSdfSimple = NULL;
+Shader*        pShaderSdfSimple = NULL;
+Pipeline*      pPipelineSdfSimple = NULL;
 RootSignature* pRootSignatureSdfSimple = NULL;
 /************************************************************************/
 // Skybox Shader Pack
 /************************************************************************/
-Shader* pShaderSkybox = NULL;
-Pipeline* pPipelineSkybox = NULL;
+Shader*        pShaderSkybox = NULL;
+Pipeline*      pPipelineSkybox = NULL;
 RootSignature* pRootSignatureSkybox = NULL;
 /************************************************************************/
 // Shadow pass shader
 /************************************************************************/
-Shader* pShaderShadowPass = NULL;
-Pipeline* pPipelineShadowPass = NULL;
+Shader*        pShaderShadowPass = NULL;
+Pipeline*      pPipelineShadowPass = NULL;
 RootSignature* pRootSignatureShadowPass = NULL;
 //----------------- ESM Blur Shader------------------
-Shader* pShaderESMBlur = NULL;
-Pipeline* pPipelineESMBlur = NULL;
+Shader*        pShaderESMBlur = NULL;
+Pipeline*      pPipelineESMBlur = NULL;
 RootSignature* pRootSignatureESMBlur = NULL;
 /************************************************************************/
 // Samplers
@@ -297,8 +276,8 @@ DepthState* pDepthStateDisable = NULL;
 /************************************************************************/
 // Textures
 /************************************************************************/
-Texture*			pTextureSkybox[6];
-Texture*			pTextureScene[2];
+Texture* pTextureSkybox[6];
+Texture* pTextureScene[2];
 /************************************************************************/
 // Render control variables
 /************************************************************************/
@@ -307,95 +286,87 @@ struct
 	uint32 mFilterWidth = 24U;
 } gEsmCpuSettings;
 
-
 struct
 {
-	float3 mLightPosition = { -5, 30, -5 };//light position, will be changed by GUI editor if not iOS
+	float3 mLightPosition = { -5, 30, -5 };    //light position, will be changed by GUI editor if not iOS
 } gLightCpuSettings;
 
 /************************************************************************/
 
 #ifdef TARGET_IOS
-VirtualJoystickUI   gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
 
 // Constants
-uint32_t gFrameIndex = 0;
-GpuProfiler* pGpuProfiler = NULL;
+uint32_t                  gFrameIndex = 0;
+GpuProfiler*              pGpuProfiler = NULL;
 RenderSettingsUniformData gRenderSettings;
 
-int gNumberOfSpherePoints;
-ObjectInfoUniformBlock gObjectInfoUniformData;
-SkyboxUniformBlock gSkyboxUniformData;
-LightUniformBlock gLightUniformData;
-SdfInputUniformBlock gSdfUniformData;
-CameraUniform gCameraUniformData;
-ESMInputConstants gESMBlurUniformDataH_Primary;
-ESMInputConstants gESMBlurUniformDataV;
+int                         gNumberOfSpherePoints;
+ObjectInfoUniformBlock      gObjectInfoUniformData;
+SkyboxUniformBlock          gSkyboxUniformData;
+LightUniformBlock           gLightUniformData;
+SdfInputUniformBlock        gSdfUniformData;
+CameraUniform               gCameraUniformData;
+ESMInputConstants           gESMBlurUniformDataH_Primary;
+ESMInputConstants           gESMBlurUniformDataV;
 GaussianWeightsUniformBlock gESMBlurGaussianWeights;
 
-
 ObjectInfoStruct gObjectInfoData[SPHERE_NUM];
-vec3 gObjectsCenter = {0, 0, 0};
+vec3             gObjectsCenter = { 0, 0, 0 };
 
 ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 
 /// UI
-UIApp						   gAppUI;
-GuiComponent*				   pGuiWindow = NULL;
-TextDrawDesc				gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+UIApp         gAppUI;
+GuiComponent* pGuiWindow = NULL;
+TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 FileSystem gFileSystem;
 LogManager gLogManager;
 
-const int gSphereResolution = 120; // Increase for higher resolution spheres
+const int   gSphereResolution = 120;    // Increase for higher resolution spheres
 const float gSphereRadius = 1.33f;
 
 Renderer* pRenderer = NULL;
 
-Queue* pGraphicsQueue = NULL;
+Queue*   pGraphicsQueue = NULL;
 CmdPool* pCmdPool = NULL;
-Cmd** ppCmds = NULL;
+Cmd**    ppCmds = NULL;
 
 SwapChain* pSwapChain = NULL;
-Fence* pRenderCompleteFences[gImageCount] = {NULL};
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore* pImageAcquiredSemaphore = NULL;
-Semaphore* pRenderCompleteSemaphores[gImageCount] = {NULL};
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-const char* pSkyboxImageFileNames[] =
-{
-	"skybox/hw_sahara/sahara_rt.tga",
-	"skybox/hw_sahara/sahara_lf.tga",
-	"skybox/hw_sahara/sahara_up.tga",
-	"skybox/hw_sahara/sahara_dn.tga",
-	"skybox/hw_sahara/sahara_ft.tga",
-	"skybox/hw_sahara/sahara_bk.tga",
+const char* pSkyboxImageFileNames[] = {
+	"skybox/hw_sahara/sahara_rt.tga", "skybox/hw_sahara/sahara_lf.tga", "skybox/hw_sahara/sahara_up.tga",
+	"skybox/hw_sahara/sahara_dn.tga", "skybox/hw_sahara/sahara_ft.tga", "skybox/hw_sahara/sahara_bk.tga",
 };
-const char* pSceneFileNames[] =
-{
+const char* pSceneFileNames[] = {
 	"Warehouse-with-lights.tga",
 	"rect.tga",
 };
 
-const char* pszBases[] =
-{
-	"../../../src/09_LightShadowPlayground/",									// FSR_BinShaders
-	"../../../src/09_LightShadowPlayground/",									// FSR_SrcShaders
-	"",																// FSR_BinShaders_Common
-	"",																// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",									// FSR_Textures
-	"../../../UnitTestResources/",									// FSR_Meshes
-	"../../../UnitTestResources/",									// FSR_Builtin_Fonts
-	"../../../src/09_LightShadowPlayground/",									// FSR_GpuConfig
-	"",																// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/09_LightShadowPlayground/",    // FSR_BinShaders
+	"../../../src/09_LightShadowPlayground/",    // FSR_SrcShaders
+	"../../../UnitTestResources/",               // FSR_Textures
+	"../../../UnitTestResources/",               // FSR_Meshes
+	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
+	"../../../src/09_LightShadowPlayground/",    // FSR_GpuConfig
+	"",                                          // FSR_Animation
+	"",                                          // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
 };
 
 static void calcGaussianWeights(GaussianWeightsUniformBlock* block, int gaussianWidth)
 {
 	for (int i = 0; i < MAX_GAUSSIAN_WEIGHTS_SIZE; i++)
 	{
-		block->mWeights[i] = {0, 0, 0, 0};
+		block->mWeights[i] = { 0, 0, 0, 0 };
 	}
 	gaussianWidth = clamp(gaussianWidth, 0, MAX_GAUSSIAN_WIDTH);
 	const int width = gaussianWidth;
@@ -403,7 +374,7 @@ static void calcGaussianWeights(GaussianWeightsUniformBlock* block, int gaussian
 	const int width2p1 = 2 * width + 1;
 	block->mWeights[width] = 1;
 	const float s = (float)(width) / 3.0f;
-	float totalWeight = block->mWeights[width].getX();
+	float       totalWeight = block->mWeights[width].getX();
 	//establish weights
 	for (int i = 0; i < width; ++i)
 	{
@@ -419,22 +390,21 @@ static void calcGaussianWeights(GaussianWeightsUniformBlock* block, int gaussian
 	}
 }
 
-
 /*!************************************************************************
  * @REMARK: Changing object transform here does NOT change SDF shadow since the latter is ray-marched.
  * One will also need to change the world setup in sdfSimple.frag
  *************************************************************************/
- ///@TODO: bake 3d texture of the world for sdf to use instead of a seperate setup
+///@TODO: bake 3d texture of the world for sdf to use instead of a seperate setup
 static void createScene()
 {
 	/************************************************************************/
 	// Initialize Objects
 	/************************************************************************/
 	const float sphereRadius = gSphereRadius;
-	const float sphereDist = 3.0f*sphereRadius;
-	int sphereIndex = 0;
+	const float sphereDist = 3.0f * sphereRadius;
+	int         sphereIndex = 0;
 
-	vec3 curTrans = { -sphereDist*(SPHERE_EACH_ROW - 1)/2.f, sphereRadius * 2.3f, -sphereDist*(SPHERE_EACH_COL - 1)/2.f };
+	vec3 curTrans = { -sphereDist * (SPHERE_EACH_ROW - 1) / 2.f, sphereRadius * 2.3f, -sphereDist * (SPHERE_EACH_COL - 1) / 2.f };
 
 	for (int i = 0; i < SPHERE_EACH_ROW; ++i)
 	{
@@ -456,17 +426,13 @@ static void createScene()
 	gObjectsCenter = vec3(0, 0, 0);
 
 	gObjectInfoData[SPHERE_NUM - 1].mTranslation = { 0.f, 0.f, 0.f };
-	gObjectInfoData[SPHERE_NUM - 1].mScaleMat = mat4::scale(
-		vec3(
-			sphereDist * SPHERE_EACH_ROW / 0.9f,
-			1.f,
-			sphereDist * SPHERE_EACH_COL / 0.9f));
+	gObjectInfoData[SPHERE_NUM - 1].mScaleMat =
+		mat4::scale(vec3(sphereDist * SPHERE_EACH_ROW / 0.9f, 1.f, sphereDist * SPHERE_EACH_COL / 0.9f));
 	gObjectInfoData[SPHERE_NUM - 1].mColor = vec4(1, 1, 1, 1);
 
 	for (int i = 0; i < SPHERE_NUM; i++)
 	{
-		gObjectInfoData[i].mTranslationMat = gObjectInfoData[i].mTranslationMat.translation(
-			gObjectInfoData[i].mTranslation);
+		gObjectInfoData[i].mTranslationMat = gObjectInfoData[i].mTranslationMat.translation(gObjectInfoData[i].mTranslation);
 		gObjectInfoUniformData.mToWorldMat[i] = gObjectInfoData[i].mTranslationMat * gObjectInfoData[i].mScaleMat;
 	}
 }
@@ -482,17 +448,17 @@ struct GuiController
 
 	static ShadowType currentlyShadowType;
 };
-ShadowType GuiController::currentlyShadowType;
+ShadowType        GuiController::currentlyShadowType;
 DynamicUIControls GuiController::esmDynamicWidgets;
 DynamicUIControls GuiController::sdfDynamicWidgets;
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-class LightShadowPlayground : public IApp
+class LightShadowPlayground: public IApp
 {
-public:
+	public:
 	bool Init() override
 	{
-		RendererDesc settings = {NULL};
+		RendererDesc settings = { NULL };
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		QueueDesc queueDesc = {};
@@ -508,7 +474,7 @@ public:
 
 		DepthStateDesc depthStateDisabledDesc = {};
 		depthStateDisabledDesc.mDepthWrite = false;
-		depthStateDisabledDesc.mDepthTest  = false;
+		depthStateDisabledDesc.mDepthTest = false;
 
 		addDepthState(pRenderer, &depthStateEnabledDesc, &pDepthStateEnable);
 		addDepthState(pRenderer, &depthStateDisabledDesc, &pDepthStateDisable);
@@ -519,7 +485,6 @@ public:
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
@@ -549,7 +514,7 @@ public:
 		float* pSpherePoints;
 		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereRadius);
 
-		uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
+		uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
 		BufferLoadDesc sphereVbDesc = {};
 		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -561,7 +526,7 @@ public:
 		// Need to free memory;
 		conf_free(pSpherePoints);
 		//------------------------Skybox--------------------------
-		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -710,7 +675,6 @@ public:
 		addShader(pRenderer, &esmBlurShaderDesc, &pShaderESMBlur);
 		addShader(pRenderer, &sdfShaderDesc, &pShaderSdfSimple);
 
-
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
@@ -719,7 +683,7 @@ public:
 		/************************************************************************/
 		// Add samplers
 		/************************************************************************/
-		SamplerDesc samplerPointDesc= {};
+		SamplerDesc samplerPointDesc = {};
 		addSampler(pRenderer, &samplerPointDesc, &pSamplerPoint);
 
 		SamplerDesc samplerPointClampDesc = {};
@@ -787,13 +751,14 @@ public:
 		const char* deferredPassSamplersNames[] = { "textureSampler" };
 		deferredPassRootDesc.ppStaticSamplerNames = deferredPassSamplersNames;
 
-
 		RootSignatureDesc esmBlurShaderRootDesc = {};
 		esmBlurShaderRootDesc.ppShaders = &pShaderESMBlur;
 		esmBlurShaderRootDesc.mShaderCount = 1;
 		esmBlurShaderRootDesc.ppStaticSamplers = &pSamplerShadow;
 		esmBlurShaderRootDesc.mStaticSamplerCount = 1;
-		const char* esmblurShaderRootSamplerNames[] = { "blurSampler", };
+		const char* esmblurShaderRootSamplerNames[] = {
+			"blurSampler",
+		};
 		esmBlurShaderRootDesc.ppStaticSamplerNames = esmblurShaderRootSamplerNames;
 
 		RootSignatureDesc deferredShadeRootDesc = {};
@@ -805,7 +770,6 @@ public:
 		const char* deferredShadeSamplerNames[] = { "depthSampler", "textureSampler" };
 		deferredShadeRootDesc.ppStaticSamplerNames = deferredShadeSamplerNames;
 
-
 		RootSignatureDesc skyboxRootDesc = {};
 		skyboxRootDesc.ppShaders = &pShaderSkybox;
 		skyboxRootDesc.mShaderCount = 1;
@@ -813,7 +777,6 @@ public:
 		skyboxRootDesc.mStaticSamplerCount = 1;
 		const char* skyboxSamplersNames[] = { "skySampler" };
 		skyboxRootDesc.ppStaticSamplerNames = skyboxSamplersNames;
-
 
 		RootSignatureDesc sdfSimpleRootDesc = {};
 		sdfSimpleRootDesc.ppShaders = &pShaderSdfSimple;
@@ -838,7 +801,6 @@ public:
 
 		rasterStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullNone);
-
 
 		/************************************************************************/
 		finishResourceLoading();
@@ -877,18 +839,24 @@ public:
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(5, 200.0f);
-		guiDesc.mStartSize = vec2(450, 600);
+		float   dpiScale = getDpiScale().x;
+		guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
+		;
+		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		GuiController::addGui();
 
-
-		CameraMotionParameters cmp{16.0f, 60.0f, 20.0f};
-		vec3 camPos{12, 13, -15};
-		vec3 lookAt{0};
+		CameraMotionParameters cmp{ 16.0f, 60.0f, 20.0f };
+		vec3                   camPos{ 12, 13, -15 };
+		vec3                   lookAt{ 0 };
 
 		pLightView = createGuiCameraController(camPos, lookAt);
 		pCameraController = createFpsCameraController(camPos, lookAt);
+
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		gVirtualJoystick.InitLRSticks();
+		pCameraController->setVirtualJoystick(&gVirtualJoystick);
+#endif
 		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
@@ -956,14 +924,12 @@ public:
 		removeShader(pRenderer, pShaderSkybox);
 		removeShader(pRenderer, pShaderSdfSimple);
 
-
 		removeRootSignature(pRenderer, pRootSignatureDeferredPass);
 		removeRootSignature(pRenderer, pRootSignatureDeferredShade);
 		removeRootSignature(pRenderer, pRootSignatureESMBlur);
 		removeRootSignature(pRenderer, pRootSignatureShadowPass);
 		removeRootSignature(pRenderer, pRootSignatureSkybox);
 		removeRootSignature(pRenderer, pRootSignatureSdfSimple);
-
 
 		removeDepthState(pDepthStateEnable);
 		removeDepthState(pDepthStateDisable);
@@ -975,10 +941,8 @@ public:
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pTextureSkybox[i]);
 
-
 		for (uint i = 0; i < 2; ++i)
 			removeResource(pTextureScene[i]);
-
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -993,8 +957,6 @@ public:
 		removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
-
-
 	}
 
 	bool Load() override
@@ -1011,7 +973,7 @@ public:
 		// Setup the resources needed for the Deferred Pass Pipeline
 		/************************************************************************/
 		ImageFormat::Enum deferredFormats[DEFERRED_RT_COUNT] = {};
-		bool deferredSrgb[DEFERRED_RT_COUNT] = {};
+		bool              deferredSrgb[DEFERRED_RT_COUNT] = {};
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
 			deferredFormats[i] = pRenderTargetDeferredPass[i]->mDesc.mFormat;
@@ -1168,7 +1130,6 @@ public:
 
 	void Update(float deltaTime) override
 	{
-
 		/************************************************************************/
 		// Input
 		/************************************************************************/
@@ -1194,10 +1155,10 @@ public:
 		currentTime += deltaTime * 1000.0f;
 
 		// update camera with time
-		mat4 viewMat = pCameraController->getViewMatrix();
+		mat4        viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 1.0f, 4000.0f);//view matrix
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 1.0f, 4000.0f);    //view matrix
 
 		gObjectInfoUniformData.mViewProject = projMat * viewMat;
 		/************************************************************************/
@@ -1207,7 +1168,7 @@ public:
 		/************************************************************************/
 		// Update Skybox
 		/************************************************************************/
-		viewMat.setTranslation(vec3(0,0,0));
+		viewMat.setTranslation(vec3(0, 0, 0));
 		gSkyboxUniformData.mViewProject = projMat * viewMat;
 		/************************************************************************/
 		// Light Matrix Update - for shadow map
@@ -1218,7 +1179,8 @@ public:
 
 		mat4 lightViewMat = pLightView->getViewMatrix();
 		//perspective as spotlight, for future use
-		mat4 lightProjMat = mat4::perspective(PI / 1.2f, aspectInverse, gESMBlurUniformDataH_Primary.mNearFarDist.x, gESMBlurUniformDataH_Primary.mNearFarDist.y);
+		mat4 lightProjMat = mat4::perspective(
+			PI / 1.2f, aspectInverse, gESMBlurUniformDataH_Primary.mNearFarDist.x, gESMBlurUniformDataH_Primary.mNearFarDist.y);
 		gLightUniformData.mLightDirection = vec4(gObjectsCenter - lightPos, 0);
 		gLightUniformData.mLightViewProj = lightProjMat * lightViewMat;
 		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
@@ -1241,7 +1203,7 @@ public:
 
 		float const rads = 0.0001f * currentTime;
 		gSdfUniformData.mCameraPosition = gCameraUniformData.mPosition;
-		gSdfUniformData.mViewInverse = transpose(pCameraController->getViewMatrix());//transpose to invert
+		gSdfUniformData.mViewInverse = transpose(pCameraController->getViewMatrix());    //transpose to invert
 		gSdfUniformData.mWindowDimension.x = (float)(mSettings.mWidth);
 		gSdfUniformData.mWindowDimension.y = (float)(mSettings.mHeight);
 		gSdfUniformData.mSphereRadius = gSphereRadius;
@@ -1250,7 +1212,8 @@ public:
 		// Rotate spheres
 		for (int i = 0; i < SPHERE_NUM; i++)
 		{
-			gObjectInfoUniformData.mToWorldMat[i] = mat4::rotationY(rads) * gObjectInfoData[i].mTranslationMat * gObjectInfoData[i].mScaleMat;
+			gObjectInfoUniformData.mToWorldMat[i] =
+				mat4::rotationY(rads) * gObjectInfoData[i].mTranslationMat * gObjectInfoData[i].mScaleMat;
 		}
 		/************************************************************************/
 		gAppUI.Update(deltaTime);
@@ -1270,10 +1233,10 @@ public:
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth,
-					   (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth,
-					  pRenderTargetDeferredPass[0]->mDesc.mHeight);
+		cmdSetViewport(
+			cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0]->mDesc.mWidth, (float)pRenderTargetDeferredPass[0]->mDesc.mHeight, 0.0f,
+			1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0]->mDesc.mWidth, pRenderTargetDeferredPass[0]->mDesc.mHeight);
 
 		// Draw the skybox.
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw GBuffers");
@@ -1307,8 +1270,8 @@ public:
 		loadActions.mClearColorValues[0] = pRenderTargetScreen->mDesc.mClearValue;
 
 		cmdBindRenderTargets(cmd, 1, &pDestinationRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth,
-					   (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			cmd, 0.0f, 0.0f, (float)pDestinationRenderTarget->mDesc.mWidth, (float)pDestinationRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pDestinationRenderTarget->mDesc.mWidth, pDestinationRenderTarget->mDesc.mHeight);
 
 		// Draw the skybox.
@@ -1351,14 +1314,13 @@ public:
 	}
 	void drawSdfShadow(Cmd* cmd)
 	{
-
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = pRenderTargetSdfSimple->mDesc.mClearValue;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetSdfSimple, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetSdfSimple->mDesc.mWidth,
-			(float)pRenderTargetSdfSimple->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			cmd, 0.0f, 0.0f, (float)pRenderTargetSdfSimple->mDesc.mWidth, (float)pRenderTargetSdfSimple->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetSdfSimple->mDesc.mWidth, pRenderTargetSdfSimple->mDesc.mHeight);
 
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw SDF Shadow");
@@ -1418,8 +1380,8 @@ public:
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw ESM Shadow Map");
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetShadowMap, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mDesc.mWidth,
-					   (float)pRenderTargetShadowMap->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mDesc.mWidth, (float)pRenderTargetShadowMap->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mDesc.mWidth, pRenderTargetShadowMap->mDesc.mHeight);
 
 		cmdBindVertexBuffer(cmd, 1, &pBufferSphereVertex, NULL);
@@ -1478,7 +1440,6 @@ public:
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndDebugMarker(cmd);
-
 	}
 
 	static void renderTargetBarriers(Cmd* cmd)
@@ -1501,7 +1462,7 @@ public:
 		//SDF
 		else if (gRenderSettings.mShadowType == SHADOW_TYPE_SDF)
 		{
-			rtBarrier.push_back({ pRenderTargetSdfSimple->pTexture, RESOURCE_STATE_RENDER_TARGET  });
+			rtBarrier.push_back({ pRenderTargetSdfSimple->pTexture, RESOURCE_STATE_RENDER_TARGET });
 		}
 		cmdResourceBarrier(cmd, 0, NULL, (uint32_t)rtBarrier.size(), &rtBarrier.front(), true);
 	}
@@ -1511,7 +1472,7 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -1559,8 +1520,8 @@ public:
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 		renderTargetBarriers(cmd);
 		TextureBarrier barriers1[] = {
-			{pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET},
-			{pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE},
+			{ pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers1, false);
 
@@ -1570,7 +1531,7 @@ public:
 		//  Draw Skybox
 		drawSkybox(cmd);
 		TextureBarrier barriersSky[] = {
-			{pRenderTargetSkybox->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
+			{ pRenderTargetSkybox->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriersSky, true);
 		cmdFlushBarriers(cmd);
@@ -1581,9 +1542,7 @@ public:
 		{
 			drawEsmShadowMap(cmd);
 
-			TextureBarrier drawShadowMapBarrier[] = {
-				{pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE}
-			};
+			TextureBarrier drawShadowMapBarrier[] = { { pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE } };
 			cmdResourceBarrier(cmd, 0, NULL, 1, drawShadowMapBarrier, false);
 			cmdFlushBarriers(cmd);
 			////////////////////////////////////////////////////////
@@ -1591,7 +1550,7 @@ public:
 			for (int i = 0; i < 2; i++)
 			{
 				blurEsmMap(cmd, i);
-				TextureBarrier blurEsmBarrier = { pRenderTargetESMBlur[i]->pTexture, RESOURCE_STATE_SHADER_RESOURCE};
+				TextureBarrier blurEsmBarrier = { pRenderTargetESMBlur[i]->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
 				cmdResourceBarrier(cmd, 0, NULL, 1, &blurEsmBarrier, false);
 				cmdFlushBarriers(cmd);
 			}
@@ -1605,25 +1564,20 @@ public:
 		///// Fill GBuffer
 		drawDeferredPass(cmd);
 
-		TextureBarrier barriers2[] = {
-			{pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-			{pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-			{pRenderTargetDeferredPass[DEFERRED_RT_POSITION]->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-			{pRenderTargetDepth->pTexture, RESOURCE_STATE_SHADER_RESOURCE},
-			{pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE}
-		};
+		TextureBarrier barriers2[] = { { pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+									   { pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+									   { pRenderTargetDeferredPass[DEFERRED_RT_POSITION]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+									   { pRenderTargetDepth->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+									   { pRenderTargetShadowMap->pTexture, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(cmd, 0, NULL, DEFERRED_RT_COUNT + 2, barriers2, true);
 		cmdFlushBarriers(cmd);
 
 		////////////////////////////////////////////////////////
 		///// Last Step: Combine Everything
-		TextureBarrier drawSdfBarrier[] = {
-			{ pRenderTargetSdfSimple->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
-		};
+		TextureBarrier drawSdfBarrier[] = { { pRenderTargetSdfSimple->pTexture, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(cmd, 0, NULL, 1, drawSdfBarrier, false);
 		drawDeferredShade(cmd);
 		////////////////////////////////////////////////////////
-
 
 		////////////////////////////////////////////////////////
 		//  Draw UIs
@@ -1640,40 +1594,33 @@ public:
 
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #else
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-#ifndef TARGET_IOS
 		gAppUI.Gui(pGuiWindow);
-#endif
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		cmdEndDebugMarker(cmd);
 		////////////////////////////////////////////////////////
 
-		barriers1[0] = {pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT};
+		barriers1[0] = { pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers1, true);
 
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
-
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
-					&pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName() override
-	{
-		return "09_LightShadowPlayground";
-	}
+	tinystl::string GetName() override { return "09_LightShadowPlayground"; }
 
 	bool addSwapChain() const
 	{
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
-		SwapChainDesc swapChainDesc = {};
+		SwapChainDesc  swapChainDesc = {};
 		swapChainDesc.pWindow = pWindow;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
@@ -1695,9 +1642,9 @@ public:
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
 
-		const ClearValue depthClear = {1.0f, 0};
-		const ClearValue colorClearBlack = {0.0f, 0.0f, 0.0f, 0.0f};
-		const ClearValue colorClearWhite = {1.0f, 1.0f, 1.0f, 1.0f};
+		const ClearValue depthClear = { 1.0f, 0 };
+		const ClearValue colorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
+		const ClearValue colorClearWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		/************************************************************************/
 		// Main depth buffer
@@ -1711,7 +1658,7 @@ public:
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-				depthRT.pDebugName = L"Depth RT";
+		depthRT.pDebugName = L"Depth RT";
 		addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
 		/************************************************************************/
 		// Shadow Map Render Target
@@ -1720,12 +1667,12 @@ public:
 		shadowRTDesc.mArraySize = 1;
 		shadowRTDesc.mClearValue = colorClearWhite;
 		shadowRTDesc.mDepth = 1;
-		shadowRTDesc.mFormat = ImageFormat::R32F;//ESM needs full width
+		shadowRTDesc.mFormat = ImageFormat::R32F;    //ESM needs full width
 		shadowRTDesc.mWidth = width;
 		shadowRTDesc.mHeight = height;
 		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowRTDesc.mSampleQuality = 0;
-				shadowRTDesc.pDebugName = L"Shadow Map RT";
+		shadowRTDesc.pDebugName = L"Shadow Map RT";
 
 		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
 		/************************************************************************/
@@ -1740,11 +1687,11 @@ public:
 		deferredRTDesc.mHeight = height;
 		deferredRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		deferredRTDesc.mSampleQuality = 0;
-				deferredRTDesc.pDebugName = L"G-Buffer RTs";
+		deferredRTDesc.pDebugName = L"G-Buffer RTs";
 		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO]);
 		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_NORMAL]);
 
-		deferredRTDesc.mFormat = ImageFormat::RGBA32F; // use 32-bit float for world scale position
+		deferredRTDesc.mFormat = ImageFormat::RGBA32F;    // use 32-bit float for world scale position
 		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[DEFERRED_RT_POSITION]);
 
 		/************************************************************************/
@@ -1759,7 +1706,7 @@ public:
 		skyboxRTDesc.mHeight = height;
 		skyboxRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		skyboxRTDesc.mSampleQuality = 0;
-				skyboxRTDesc.pDebugName = L"Skybox RT";
+		skyboxRTDesc.pDebugName = L"Skybox RT";
 		addRenderTarget(pRenderer, &skyboxRTDesc, &pRenderTargetSkybox);
 
 		/************************************************************************/
@@ -1769,12 +1716,12 @@ public:
 		sdfSimpleRTDesc.mArraySize = 1;
 		sdfSimpleRTDesc.mClearValue = colorClearBlack;
 		sdfSimpleRTDesc.mDepth = 1;
-		sdfSimpleRTDesc.mFormat = ImageFormat::RGBA8;//TODO: use R8 for as shadow factor
+		sdfSimpleRTDesc.mFormat = ImageFormat::RGBA8;    //TODO: use R8 for as shadow factor
 		sdfSimpleRTDesc.mWidth = width;
 		sdfSimpleRTDesc.mHeight = height;
 		sdfSimpleRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		sdfSimpleRTDesc.mSampleQuality = 0;
-				sdfSimpleRTDesc.pDebugName = L"Sdf RT";
+		sdfSimpleRTDesc.pDebugName = L"Sdf RT";
 		addRenderTarget(pRenderer, &sdfSimpleRTDesc, &pRenderTargetSdfSimple);
 
 		/************************************************************************/
@@ -1789,7 +1736,7 @@ public:
 		esmBlurRTDesc.mHeight = height;
 		esmBlurRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		esmBlurRTDesc.mSampleQuality = 0;
-				esmBlurRTDesc.pDebugName = L"ESM Blur RT H";
+		esmBlurRTDesc.pDebugName = L"ESM Blur RT H";
 		addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[0]);
 		esmBlurRTDesc.pDebugName = L"ESM Blur RT V";
 		addRenderTarget(pRenderer, &esmBlurRTDesc, &pRenderTargetESMBlur[1]);
@@ -1846,14 +1793,8 @@ void GuiController::addGui()
 {
 #if DEBUG_OUTPUT
 	static const char* renderModeNames[] = {
-		"Scene",
-		"SDF Soft Shadow",
-		"Albedo",
-		"World Normal [0,1]",
-		"World Position",
-		"Camera Depth",
-		"ESM Map",
-		NULL//needed for unix
+		"Scene", "SDF Soft Shadow", "Albedo", "World Normal [0,1]", "World Position", "Camera Depth", "ESM Map",
+		NULL    //needed for unix
 	};
 	static const uint32_t renderModeValues[] = {
 		RENDER_OUTPUT_SCENE,
@@ -1863,28 +1804,23 @@ void GuiController::addGui()
 		RENDER_OUTPUT_POSITION,
 		RENDER_OUTPUT_DEPTH,
 		RENDER_OUTPUT_ESM_MAP,
-		0//needed for unix
+		0    //needed for unix
 	};
 
 	pGuiWindow->AddWidget(DropdownWidget("Render Output", &gRenderSettings.mRenderOutput, renderModeNames, renderModeValues, 7));
 #endif
 	const float lightPosBound = 10.0f;
-	pGuiWindow->AddWidget(SliderFloat3Widget("Light Position", &gLightCpuSettings.mLightPosition,
-		float3(-lightPosBound, 5.0f, -lightPosBound),
-		float3(lightPosBound, 30.0f, lightPosBound),
-		float3(0.1f, 0.1f, 0.1f)));
+	pGuiWindow->AddWidget(SliderFloat3Widget(
+		"Light Position", &gLightCpuSettings.mLightPosition, float3(-lightPosBound, 5.0f, -lightPosBound),
+		float3(lightPosBound, 30.0f, lightPosBound), float3(0.1f, 0.1f, 0.1f)));
 
 	static const char* shadowTypeNames[] = {
-		"No Shadow",
-		"(ESM) Exponential Shadow Mapping",
-		"(SDF) Ray-Traced Soft Shadow",
-		NULL//needed for unix
+		"No Shadow", "(ESM) Exponential Shadow Mapping", "(SDF) Ray-Traced Soft Shadow",
+		NULL    //needed for unix
 	};
 	static const uint32_t shadowTypeValues[] = {
-		SHADOW_TYPE_NONE,
-		SHADOW_TYPE_ESM,
-		SHADOW_TYPE_SDF,
-		0//needed for unix
+		SHADOW_TYPE_NONE, SHADOW_TYPE_ESM, SHADOW_TYPE_SDF,
+		0    //needed for unix
 	};
 
 	pGuiWindow->AddWidget(DropdownWidget("Shadow Type", &gRenderSettings.mShadowType, shadowTypeNames, shadowTypeValues, 3));
@@ -1919,6 +1855,5 @@ void GuiController::addGui()
 	else
 		GuiController::currentlyShadowType = SHADOW_TYPE_NONE;
 }
-
 
 DEFINE_APPLICATION_MAIN(LightShadowPlayground)

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,11 +22,14 @@
 * under the License.
 */
 
-#ifndef  NULL
+#ifndef NULL
 #define NULL 0
-#endif // ! NULL
+#endif    // ! NULL
 
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
+#include "../../Common_3/OS/Interfaces/IFileSystem.h"
+
+extern FSRoot FSR_MIDDLEWARE_PANINI;
 
 // forward decls
 struct Texture;
@@ -95,9 +98,9 @@ struct PaniniParameters
 /************************************************************************/
 /*					   INTERFACE
 *************************************************************************/
-class Panini : public IMiddleware
+class Panini: public IMiddleware
 {
-public:
+	public:
 	// our init function should only be called once
 	// the middleware has to keep these pointers
 	bool Init(Renderer* renderer);
@@ -119,22 +122,22 @@ public:
 	// Sets the parameters to be sent to the panini projection shader
 	void SetParams(const PaniniParameters& params) { mParams = params; }
 
-private:
-	Renderer*		   pRenderer;
-	Texture*			pSourceTexture = NULL;
+	private:
+	Renderer* pRenderer;
+	Texture*  pSourceTexture = NULL;
 
-	Shader*			 pShaderPanini = NULL;
-	RootSignature*	  pRootSignaturePaniniPostProcess = NULL;
-	Sampler*			pSamplerPointWrap = NULL;
-	DepthState*		 pDepthStateDisable = NULL;
-	RasterizerState*	pRasterizerStateCullNone = NULL;
-	Pipeline*		   pPipelinePaniniPostProcess = NULL;
+	Shader*          pShaderPanini = NULL;
+	RootSignature*   pRootSignaturePaniniPostProcess = NULL;
+	Sampler*         pSamplerPointWrap = NULL;
+	DepthState*      pDepthStateDisable = NULL;
+	RasterizerState* pRasterizerStateCullNone = NULL;
+	Pipeline*        pPipelinePaniniPostProcess = NULL;
 
-	Buffer*			 pVertexBufferTessellatedQuad = NULL;
-	Buffer*			 pIndexBufferTessellatedQuad = NULL;
+	Buffer* pVertexBufferTessellatedQuad = NULL;
+	Buffer* pIndexBufferTessellatedQuad = NULL;
 
-	PaniniParameters	mParams;
+	PaniniParameters mParams;
 
 	// Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
-	const unsigned	  mPaniniDistortionTessellation[2] = { 64, 32 };
+	const unsigned mPaniniDistortionTessellation[2] = { 64, 32 };
 };

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,17 +47,17 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-const char* pszBases[] =
-{
-	"../../../src/08_Procedural/",									// FSR_BinShaders
-	"../../../src/08_Procedural/",									// FSR_SrcShaders
-	"",																// FSR_BinShaders_Common
-	"",																// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",									// FSR_Textures
-	"../../../UnitTestResources/",									// FSR_Meshes
-	"../../../UnitTestResources/",									// FSR_Builtin_Fonts
-	"../../../src/08_Procedural/",									// FSR_GpuConfig
-	"",																// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/08_Procedural/",          // FSR_BinShaders
+	"../../../src/08_Procedural/",          // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/08_Procedural/",          // FSR_GpuConfig
+	"",                                     // FSR_Animation
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
 LogManager gLogManager;
@@ -65,8 +65,8 @@ LogManager gLogManager;
 // Have a uniform for camera data
 struct UniformCamData
 {
-	mat4 mProjectView;
-	vec3 mCamPos;
+	mat4  mProjectView;
+	vec3  mCamPos;
 	float pad0;
 };
 
@@ -83,7 +83,7 @@ struct UniformObjData
 	vec4 mSnowColor;
 	vec4 mPolarCapsColor;
 	vec4 mAtmosphereColor;
-	vec4 mHeightsInfo; // x : Ocean, y : Shore, z : Snow, w : Polar
+	vec4 mHeightsInfo;    // x : Ocean, y : Shore, z : Snow, w : Polar
 	vec4 mTimeInfo;
 };
 
@@ -94,8 +94,8 @@ struct ScreenSize
 
 struct Light
 {
-	vec4 mPos;
-	vec4 mCol;
+	vec4  mPos;
+	vec4  mCol;
 	float mRadius;
 	float mIntensity;
 };
@@ -103,109 +103,105 @@ struct Light
 struct UniformLightData
 {
 	// Used to tell our shaders how many lights are currently present
-	int mCurrAmountOfLights = 0;
-	int pad0;
-	int pad1;
-	int pad2;
-	Light mLights[16]; // array of lights seem to be broken so just a single light for now
+	int   mCurrAmountOfLights = 0;
+	int   pad0;
+	int   pad1;
+	int   pad2;
+	Light mLights[16];    // array of lights seem to be broken so just a single light for now
 };
 
-const uint32_t			  gImageCount = 3;
-bool						gToggleVSync = false;
-Texture*					pEnvTex = NULL;
-Sampler*					pSamplerEnv = NULL;
+const uint32_t gImageCount = 3;
+bool           gToggleVSync = false;
+Texture*       pEnvTex = NULL;
+Sampler*       pSamplerEnv = NULL;
 
 #ifdef TARGET_IOS
-VirtualJoystickUI		   gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
 
-Renderer*				   pRenderer = NULL;
+Renderer* pRenderer = NULL;
 
-UIApp					   gAppUI;
-GuiComponent*			   pGui;
+UIApp         gAppUI;
+GuiComponent* pGui;
 
-Queue*					  pGraphicsQueue = NULL;
-CmdPool*					pCmdPool = NULL;
-Cmd**					   ppCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-CmdPool*					pUICmdPool = NULL;
-Cmd**					   ppUICmds = NULL;
+CmdPool* pUICmdPool = NULL;
+Cmd**    ppUICmds = NULL;
 
-SwapChain*				  pSwapChain = NULL;
+SwapChain* pSwapChain = NULL;
 
-RenderTarget*			   pDepthBuffer = NULL;
-Fence*					  pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*				  pImageAcquiredSemaphore = NULL;
-Semaphore*				  pRenderCompleteSemaphores[gImageCount] = { NULL };
+RenderTarget* pDepthBuffer = NULL;
+Fence*        pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*    pImageAcquiredSemaphore = NULL;
+Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*					 pShaderBRDF = NULL;
-Pipeline*				   pPipelineBRDF = NULL;
-RootSignature*			  pRootSigBRDF = NULL;
+Shader*        pShaderBRDF = NULL;
+Pipeline*      pPipelineBRDF = NULL;
+RootSignature* pRootSigBRDF = NULL;
 
-Shader*					 pShaderBG = NULL;
-Pipeline*				   pPipelineBG = NULL;
-RootSignature*			  pRootSigBG = NULL;
+Shader*        pShaderBG = NULL;
+Pipeline*      pPipelineBG = NULL;
+RootSignature* pRootSigBG = NULL;
 
-UniformObjData			  gUniformDataMVP;
-ScreenSize				  gScreenSizeData;
+UniformObjData gUniformDataMVP;
+ScreenSize     gScreenSizeData;
 
+Buffer*        pBufferUniformCamera[gImageCount];
+UniformCamData gUniformDataCamera;
 
-Buffer*					 pBufferUniformCamera[gImageCount];
-UniformCamData			  gUniformDataCamera;
+Buffer*          pBufferUniformLights[gImageCount];
+UniformLightData gUniformDataLights;
 
-Buffer*					 pBufferUniformLights[gImageCount];
-UniformLightData			gUniformDataLights;
+Shader*   pShaderPostProc = NULL;
+Pipeline* pPipelinePostProc = NULL;
 
-Shader*					 pShaderPostProc = NULL;
-Pipeline*				   pPipelinePostProc = NULL;
-
-DepthState*				 pDepth = NULL;
-RasterizerState*			pRasterstateDefault = NULL;
+DepthState*      pDepth = NULL;
+RasterizerState* pRasterstateDefault = NULL;
 
 // Vertex buffers
-Buffer*					 pSphereVertexBuffer = NULL;
-Buffer*					 pBGVertexBuffer = NULL;
+Buffer* pSphereVertexBuffer = NULL;
+Buffer* pBGVertexBuffer = NULL;
 
-uint32_t					gFrameIndex = 0;
+uint32_t gFrameIndex = 0;
 
-GpuProfiler*				pGpuProfiler = NULL;
-ICameraController*		  pCameraController = NULL;
+GpuProfiler*       pGpuProfiler = NULL;
+ICameraController* pCameraController = NULL;
 
 #ifndef TARGET_IOS
-const int				   gSphereResolution = 1024; // Increase for higher resolution spheres
+const int gSphereResolution = 1024;    // Increase for higher resolution spheres
 #else
-const int				   gSphereResolution = 512; // Halve the resolution of the planet on iOS.
+const int gSphereResolution = 512;    // Halve the resolution of the planet on iOS.
 #endif
-const char*				 pEnvImageFileNames[] =
-{
-	"environment_sky.png"
-};
+const char* pEnvImageFileNames[] = { "environment_sky.png" };
 
-int						 gNumOfSpherePoints;
+int gNumOfSpherePoints;
 
-static float				gEplasedTime = 0.0f;
+static float gEplasedTime = 0.0f;
 
-static float3			   gSunDir = float3(-1.0f, 1.0f, 1.0f);
+static float3 gSunDir = float3(-1.0f, 1.0f, 1.0f);
 
-static float				gOceanHeight = 1.0f;
-static float				gShoreHeight = 0.02f;
-static float				gSnowHeight = 1.1f;
-static float				gPolarCapsAttitude = 1.1f;
-static float				gTerrainExp = 0.35f;
-static float				gTerrainSeed = 0.0f;
+static float gOceanHeight = 1.0f;
+static float gShoreHeight = 0.02f;
+static float gSnowHeight = 1.1f;
+static float gPolarCapsAttitude = 1.1f;
+static float gTerrainExp = 0.35f;
+static float gTerrainSeed = 0.0f;
 
-float					   gBgVertex[256];
+float gBgVertex[256];
 
-tinystl::vector<Buffer*>	gSphereBuffers[gImageCount];
-Buffer*					 pScreenSizeBuffer;
+tinystl::vector<Buffer*> gSphereBuffers[gImageCount];
+Buffer*                  pScreenSizeBuffer;
 
-float				   gCameraYRotateScale;   // decide how fast camera rotate
+float gCameraYRotateScale;    // decide how fast camera rotate
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
-class Procedural : public IApp
+class Procedural: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
 		RendererDesc settings = { 0 };
@@ -255,16 +251,14 @@ public:
 		bgStars.mStages[0] = { "backGround.vert", NULL, 0, FSR_SrcShaders };
 		bgStars.mStages[1] = { "backGround.frag", NULL, 0, FSR_SrcShaders };
 
-		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
-			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
-		};
+		SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
+									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &samplerDesc, &pSamplerEnv);
 
 		addShader(pRenderer, &bgStars, &pShaderBG);
 		addShader(pRenderer, &proceduralPlanet, &pShaderBRDF);
 
-		const char* pStaticSamplerName[] = { "uSampler0" };
+		const char*       pStaticSamplerName[] = { "uSampler0" };
 		RootSignatureDesc bgRootDesc = { &pShaderBG, 1 };
 		RootSignatureDesc brdfRootDesc = { &pShaderBRDF, 1 };
 		brdfRootDesc.mStaticSamplerCount = 1;
@@ -294,7 +288,7 @@ public:
 		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sphereVbDesc.mDesc.mSize = sphereDataSize;
-		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6; // 3 for vertex, 3 for normal
+		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;    // 3 for vertex, 3 for normal
 		sphereVbDesc.pData = pSPherePoints;
 		sphereVbDesc.ppBuffer = &pSphereVertexBuffer;
 		addResource(&sphereVbDesc);
@@ -307,7 +301,7 @@ public:
 		bgVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		bgVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bgVbDesc.mDesc.mSize = bgDataSize;
-		bgVbDesc.mDesc.mVertexStride = sizeof(float) * 6; // 3 for vertex, 3 for normal
+		bgVbDesc.mDesc.mVertexStride = sizeof(float) * 6;    // 3 for vertex, 3 for normal
 		bgVbDesc.pData = gBgVertex;
 		bgVbDesc.ppBuffer = &pBGVertexBuffer;
 		addResource(&bgVbDesc);
@@ -403,8 +397,9 @@ public:
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
-		guiDesc.mStartSize = vec2(300.0f, 360.0f);
-		guiDesc.mStartPosition = vec2(300.0f, guiDesc.mStartSize.getY());
+		float   dpiScale = getDpiScale().x;
+		guiDesc.mStartSize = vec2(200.0f, 360.0f) / dpiScale;
+		guiDesc.mStartPosition = vec2(5.f, 50.f) / dpiScale;
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
@@ -421,10 +416,15 @@ public:
 		pGui->AddWidget(SliderFloatWidget("Terrain Seed : ", &gTerrainSeed, 0.0f, 100.0f, 1.0f));
 
 		CameraMotionParameters camParameters{ 10.0f, 600.0f, 200.0f };
-		vec3 camPos{ 0.0f, 0.0f, 10.0f };
-		vec3 lookat{ 0 };
+		vec3                   camPos{ 0.0f, 0.0f, 10.0f };
+		vec3                   lookAt{ 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookat);
+		pCameraController = createFpsCameraController(camPos, lookAt);
+
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		gVirtualJoystick.InitLRSticks();
+		pCameraController->setVirtualJoystick(&gVirtualJoystick);
+#endif
 		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(camParameters);
@@ -529,7 +529,7 @@ public:
 		vertexLayoutSphere.mAttribs[1].mFormat = ImageFormat::RGB32F;
 		vertexLayoutSphere.mAttribs[1].mBinding = 0;
 		vertexLayoutSphere.mAttribs[1].mLocation = 1;
-		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
+		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
 
 		GraphicsPipelineDesc pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -560,7 +560,7 @@ public:
 		vertexLayoutBG.mAttribs[1].mFormat = ImageFormat::RGB32F;
 		vertexLayoutBG.mAttribs[1].mBinding = 0;
 		vertexLayoutBG.mAttribs[1].mLocation = 1;
-		vertexLayoutBG.mAttribs[1].mOffset = 3 * sizeof(float); // first attribute contains 3 floats
+		vertexLayoutBG.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
 
 		GraphicsPipelineDesc pipelineSettingsBG = { 0 };
 		pipelineSettingsBG.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -625,7 +625,7 @@ public:
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		gUniformDataCamera.mProjectView = projMat * viewMat * mat4::identity();
 		gUniformDataCamera.mCamPos = pCameraController->getViewPosition();
 
@@ -635,13 +635,13 @@ public:
 
 		// Update object buffer
 		float rotSpeed = 0.01f;
-		gUniformDataMVP.mWorldMat = mat4::rotationY(gEplasedTime *rotSpeed);
+		gUniformDataMVP.mWorldMat = mat4::rotationY(gEplasedTime * rotSpeed);
 		gUniformDataMVP.mInvWorldMat = mat4::rotationY(-gEplasedTime * rotSpeed);
 		gUniformDataMVP.mHeightsInfo = vec4(gOceanHeight, gShoreHeight, gSnowHeight, gPolarCapsAttitude);
 		gUniformDataMVP.mTimeInfo = vec4(gEplasedTime * 60.0f, 0.0f, gTerrainExp, gTerrainSeed * 39.0f);
 
 		// Update light buffer
-		gUniformDataLights.mLights[0].mPos = vec4(normalize(vec3(gSunDir.x, gSunDir.y, gSunDir.z))* 1000.0f, 0.0);
+		gUniformDataLights.mLights[0].mPos = vec4(normalize(vec3(gSunDir.x, gSunDir.y, gSunDir.z)) * 1000.0f, 0.0);
 
 		gAppUI.Update(deltaTime);
 	}
@@ -652,8 +652,8 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -666,7 +666,7 @@ public:
 		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &gUniformDataCamera };
 		updateResource(&camBuffUpdateDesc);
 
-		BufferUpdateDesc bgBuffUpdateDesc = { pScreenSizeBuffer , &gScreenSizeData };
+		BufferUpdateDesc bgBuffUpdateDesc = { pScreenSizeBuffer, &gScreenSizeData };
 		updateResource(&bgBuffUpdateDesc);
 
 		BufferUpdateDesc objBuffUpdateDesc = { gSphereBuffers[gFrameIndex][0], &gUniformDataMVP };
@@ -679,7 +679,7 @@ public:
 		/************************************************************************/
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = { 0.2109f, 0.6470f, 0.8470f, 1.0f }; // Light blue cclear
+		loadActions.mClearColorValues[0] = { 0.2109f, 0.6470f, 0.8470f, 1.0f };    // Light blue cclear
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { 1.0f, 0.0f };
 
@@ -687,7 +687,7 @@ public:
 		// Record commmand buffers
 		/************************************************************************/
 		tinystl::vector<Cmd*> allCmds;
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd*                  cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 #ifndef METAL
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
@@ -773,7 +773,7 @@ public:
 		gTimer.GetUSec(true);
 
 #ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -783,10 +783,7 @@ public:
 		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
 #endif
 
-#ifndef TARGET_IOS
 		gAppUI.Gui(pGui);
-#endif
-
 		gAppUI.Draw(cmd);
 
 		// Transition our texture to present state
@@ -796,14 +793,13 @@ public:
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
-		queueSubmit(pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(
+			pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
+			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "08_Procedural";
-	}
+	tinystl::string GetName() { return "08_Procedural"; }
 
 	bool addSwapChain()
 	{
@@ -838,7 +834,6 @@ public:
 
 		return pDepthBuffer != NULL;
 	}
-
 
 #if defined(VULKAN)
 	void transitionRenderTargets()

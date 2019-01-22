@@ -7237,11 +7237,14 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 
 			if (declaration)
 			{
+				//allow duplicated function
+				/*
 				if (declaration->forward || declaration->statement)
 				{
 					currentTokenizer->Error("Duplicate function definition");
 					return false;
 				}
+				*/
 
 				const_cast<HLSLFunction*>(declaration)->forward = function;
 			}

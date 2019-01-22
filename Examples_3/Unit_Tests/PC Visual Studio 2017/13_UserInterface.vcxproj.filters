@@ -2,10 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -15,10 +15,10 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{8a6117a7-f1f9-42ac-9d96-a706e38dd7df}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{72ea36bd-7e20-461c-b0ac-f8418cbcea96}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{52e40b20-3b87-4a5c-99a9-bd1d84ec7eda}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

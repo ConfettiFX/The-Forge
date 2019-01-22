@@ -110,10 +110,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX11\fstri.vert" />
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX11\rt.frag" />
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX12\rt.frag" />
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX12\fstri.vert" />
+    <None Include="..\src\16_SphereTracing\Shaders\D3D11\fstri.vert" />
+    <None Include="..\src\16_SphereTracing\Shaders\D3D11\rt.frag" />
+    <None Include="..\src\16_SphereTracing\Shaders\D3D12\rt.frag" />
+    <None Include="..\src\16_SphereTracing\Shaders\D3D12\fstri.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{64C46B08-2B2C-4CCE-A785-CC0D375857E7}</ProjectGuid>

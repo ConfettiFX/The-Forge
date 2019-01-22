@@ -138,18 +138,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		288F63232035CE2D00B758DE /* visibilityBuffer_shade.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_shade.frag.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_shade.frag.metal; sourceTree = "<group>"; };
-		288F63242035CE2D00B758DE /* HDAO.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = HDAO.frag.metal; path = ../src/Shaders/OSXMetal/HDAO.frag.metal; sourceTree = "<group>"; };
-		288F63252035CE2D00B758DE /* shadow_pass_alpha.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.frag.metal; path = ../src/Shaders/OSXMetal/shadow_pass_alpha.frag.metal; sourceTree = "<group>"; };
-		288F63262035CE2E00B758DE /* deferred_shade.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade.frag.metal; path = ../src/Shaders/OSXMetal/deferred_shade.frag.metal; sourceTree = "<group>"; };
-		288F63272035CE2E00B758DE /* deferred_pass_alpha.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_pass_alpha.frag.metal; path = ../src/Shaders/OSXMetal/deferred_pass_alpha.frag.metal; sourceTree = "<group>"; };
-		288F63282035CE2E00B758DE /* deferred_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_pass.frag.metal; path = ../src/Shaders/OSXMetal/deferred_pass.frag.metal; sourceTree = "<group>"; };
-		288F63292035CE2E00B758DE /* deferred_shade_pointlight.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade_pointlight.frag.metal; path = ../src/Shaders/OSXMetal/deferred_shade_pointlight.frag.metal; sourceTree = "<group>"; };
-		288F632A2035CE2E00B758DE /* resolve.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = resolve.frag.metal; path = ../src/Shaders/OSXMetal/resolve.frag.metal; sourceTree = "<group>"; };
-		288F632B2035CE2E00B758DE /* visibilityBuffer_pass_alpha.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.frag.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_pass_alpha.frag.metal; sourceTree = "<group>"; };
-		288F632C2035CE2E00B758DE /* visibilityBuffer_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.vert.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_pass_alpha.vert.metal; sourceTree = "<group>"; };
-		288F632D2035CE2E00B758DE /* shadow_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.vert.metal; path = ../src/Shaders/OSXMetal/shadow_pass_alpha.vert.metal; sourceTree = "<group>"; };
-		288F632E2035CE2E00B758DE /* visibilityBuffer_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.frag.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_pass.frag.metal; sourceTree = "<group>"; };
+		288F63232035CE2D00B758DE /* visibilityBuffer_shade.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_shade.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_shade.frag.metal; sourceTree = "<group>"; };
+		288F63242035CE2D00B758DE /* HDAO.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = HDAO.frag.metal; path = ../src/Shaders/Metal/HDAO.frag.metal; sourceTree = "<group>"; };
+		288F63252035CE2D00B758DE /* shadow_pass_alpha.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.frag.metal; path = ../src/Shaders/Metal/shadow_pass_alpha.frag.metal; sourceTree = "<group>"; };
+		288F63262035CE2E00B758DE /* deferred_shade.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade.frag.metal; path = ../src/Shaders/Metal/deferred_shade.frag.metal; sourceTree = "<group>"; };
+		288F63272035CE2E00B758DE /* deferred_pass_alpha.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_pass_alpha.frag.metal; path = ../src/Shaders/Metal/deferred_pass_alpha.frag.metal; sourceTree = "<group>"; };
+		288F63282035CE2E00B758DE /* deferred_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_pass.frag.metal; path = ../src/Shaders/Metal/deferred_pass.frag.metal; sourceTree = "<group>"; };
+		288F63292035CE2E00B758DE /* deferred_shade_pointlight.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade_pointlight.frag.metal; path = ../src/Shaders/Metal/deferred_shade_pointlight.frag.metal; sourceTree = "<group>"; };
+		288F632A2035CE2E00B758DE /* resolve.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = resolve.frag.metal; path = ../src/Shaders/Metal/resolve.frag.metal; sourceTree = "<group>"; };
+		288F632B2035CE2E00B758DE /* visibilityBuffer_pass_alpha.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass_alpha.frag.metal; sourceTree = "<group>"; };
+		288F632C2035CE2E00B758DE /* visibilityBuffer_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.vert.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass_alpha.vert.metal; sourceTree = "<group>"; };
+		288F632D2035CE2E00B758DE /* shadow_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.vert.metal; path = ../src/Shaders/Metal/shadow_pass_alpha.vert.metal; sourceTree = "<group>"; };
+		288F632E2035CE2E00B758DE /* visibilityBuffer_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass.frag.metal; sourceTree = "<group>"; };
 		5C85A3812029FDFC00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
 		5CA4AFD62088FB22005BB7C6 /* DebugRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebugRenderer.h; sourceTree = "<group>"; };
 		5CA4AFD72088FB22005BB7C6 /* DebugRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DebugRenderer.cpp; sourceTree = "<group>"; };
@@ -176,34 +176,34 @@
 		B2B6F7D920F414AC0059F2B0 /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B2B6F7DA20F414AC0059F2B0 /* TextShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TextShaders.h; path = ../../Middleware_3/Text/TextShaders.h; sourceTree = "<group>"; };
 		B2B6F7DB20F414AC0059F2B0 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
-		B2EFFDBE2196471C009A9637 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.frag.metal; path = ../src/Shaders/OSXMetal/skybox.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC02196471C009A9637 /* sun.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.vert.metal; path = ../src/Shaders/OSXMetal/sun.vert.metal; sourceTree = "<group>"; };
-		B2EFFDC12196471C009A9637 /* godray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = godray.frag.metal; path = ../src/Shaders/OSXMetal/godray.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC22196471C009A9637 /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.vert.metal; path = ../src/Shaders/OSXMetal/skybox.vert.metal; sourceTree = "<group>"; };
-		B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panoToCube.comp.metal; path = ../src/Shaders/OSXMetal/panoToCube.comp.metal; sourceTree = "<group>"; };
-		B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = CurveConversion.frag.metal; path = ../src/Shaders/OSXMetal/CurveConversion.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC52196471C009A9637 /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../src/Shaders/OSXMetal/display.vert.metal; sourceTree = "<group>"; };
-		B2EFFDC62196471C009A9637 /* sun.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.frag.metal; path = ../src/Shaders/OSXMetal/sun.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC72196471C009A9637 /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../src/Shaders/OSXMetal/display.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = resolveGodray.frag.metal; path = ../src/Shaders/OSXMetal/resolveGodray.frag.metal; sourceTree = "<group>"; };
-		C94FF50D2008AA50006A07B0 /* resolve.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = resolve.vert.metal; path = ../src/Shaders/OSXMetal/resolve.vert.metal; sourceTree = "<group>"; };
+		B2EFFDBE2196471C009A9637 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.frag.metal; path = ../src/Shaders/Metal/skybox.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC02196471C009A9637 /* sun.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.vert.metal; path = ../src/Shaders/Metal/sun.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC12196471C009A9637 /* godray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = godray.frag.metal; path = ../src/Shaders/Metal/godray.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC22196471C009A9637 /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.vert.metal; path = ../src/Shaders/Metal/skybox.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panoToCube.comp.metal; path = ../src/Shaders/Metal/panoToCube.comp.metal; sourceTree = "<group>"; };
+		B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = CurveConversion.frag.metal; path = ../src/Shaders/Metal/CurveConversion.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC52196471C009A9637 /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../src/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC62196471C009A9637 /* sun.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.frag.metal; path = ../src/Shaders/Metal/sun.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC72196471C009A9637 /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../src/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = resolveGodray.frag.metal; path = ../src/Shaders/Metal/resolveGodray.frag.metal; sourceTree = "<group>"; };
+		C94FF50D2008AA50006A07B0 /* resolve.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = resolve.vert.metal; path = ../src/Shaders/Metal/resolve.vert.metal; sourceTree = "<group>"; };
 		C96E13302007C1CD004363F0 /* macOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSFileSystem.mm; path = ../../../Common_3/OS/macOS/macOSFileSystem.mm; sourceTree = SOURCE_ROOT; };
-		C96E13342007C7FE004363F0 /* HDAO.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = HDAO.vert.metal; path = ../src/Shaders/OSXMetal/HDAO.vert.metal; sourceTree = "<group>"; };
+		C96E13342007C7FE004363F0 /* HDAO.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = HDAO.vert.metal; path = ../src/Shaders/Metal/HDAO.vert.metal; sourceTree = "<group>"; };
 		C97EC02E2010BED00044D188 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/ModelIO.framework; sourceTree = DEVELOPER_DIR; };
 		C97EC0302010BED90044D188 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		C97EC0322010BEE80044D188 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		C9DCF6351FEAA769008BFA67 /* deferred_pass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_pass.vert.metal; path = ../src/Shaders/OSXMetal/deferred_pass.vert.metal; sourceTree = "<group>"; };
-		C9DCF6361FEAA769008BFA67 /* clear_buffers.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = clear_buffers.comp.metal; path = ../src/Shaders/OSXMetal/clear_buffers.comp.metal; sourceTree = "<group>"; };
-		C9DCF6371FEAA769008BFA67 /* clear_light_clusters.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = clear_light_clusters.comp.metal; path = ../src/Shaders/OSXMetal/clear_light_clusters.comp.metal; sourceTree = "<group>"; };
-		C9DCF6381FEAA76A008BFA67 /* deferred_shade_pointlight.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade_pointlight.vert.metal; path = ../src/Shaders/OSXMetal/deferred_shade_pointlight.vert.metal; sourceTree = "<group>"; };
-		C9DCF6391FEAA76A008BFA67 /* shader_defs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shader_defs.h; path = ../src/Shaders/OSXMetal/shader_defs.h; sourceTree = "<group>"; };
-		C9DCF63A1FEAA76A008BFA67 /* shading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shading.h; path = ../src/Shaders/OSXMetal/shading.h; sourceTree = "<group>"; };
-		C9DCF63B1FEAA76A008BFA67 /* visibilityBuffer_shade.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_shade.vert.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_shade.vert.metal; sourceTree = "<group>"; };
-		C9DCF63C1FEAA76A008BFA67 /* shadow_pass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass.vert.metal; path = ../src/Shaders/OSXMetal/shadow_pass.vert.metal; sourceTree = "<group>"; };
-		C9DCF63D1FEAA76A008BFA67 /* visibilityBuffer_pass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.vert.metal; path = ../src/Shaders/OSXMetal/visibilityBuffer_pass.vert.metal; sourceTree = "<group>"; };
-		C9DCF63E1FEAA76A008BFA67 /* deferred_shade.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade.vert.metal; path = ../src/Shaders/OSXMetal/deferred_shade.vert.metal; sourceTree = "<group>"; };
-		C9DCF6401FEAA76A008BFA67 /* triangle_filtering.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = triangle_filtering.comp.metal; path = ../src/Shaders/OSXMetal/triangle_filtering.comp.metal; sourceTree = "<group>"; };
-		C9DCF6411FEAA76B008BFA67 /* cluster_lights.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = cluster_lights.comp.metal; path = ../src/Shaders/OSXMetal/cluster_lights.comp.metal; sourceTree = "<group>"; };
+		C9DCF6351FEAA769008BFA67 /* deferred_pass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_pass.vert.metal; path = ../src/Shaders/Metal/deferred_pass.vert.metal; sourceTree = "<group>"; };
+		C9DCF6361FEAA769008BFA67 /* clear_buffers.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = clear_buffers.comp.metal; path = ../src/Shaders/Metal/clear_buffers.comp.metal; sourceTree = "<group>"; };
+		C9DCF6371FEAA769008BFA67 /* clear_light_clusters.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = clear_light_clusters.comp.metal; path = ../src/Shaders/Metal/clear_light_clusters.comp.metal; sourceTree = "<group>"; };
+		C9DCF6381FEAA76A008BFA67 /* deferred_shade_pointlight.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade_pointlight.vert.metal; path = ../src/Shaders/Metal/deferred_shade_pointlight.vert.metal; sourceTree = "<group>"; };
+		C9DCF6391FEAA76A008BFA67 /* shader_defs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shader_defs.h; path = ../src/Shaders/Metal/shader_defs.h; sourceTree = "<group>"; };
+		C9DCF63A1FEAA76A008BFA67 /* shading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shading.h; path = ../src/Shaders/Metal/shading.h; sourceTree = "<group>"; };
+		C9DCF63B1FEAA76A008BFA67 /* visibilityBuffer_shade.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_shade.vert.metal; path = ../src/Shaders/Metal/visibilityBuffer_shade.vert.metal; sourceTree = "<group>"; };
+		C9DCF63C1FEAA76A008BFA67 /* shadow_pass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass.vert.metal; path = ../src/Shaders/Metal/shadow_pass.vert.metal; sourceTree = "<group>"; };
+		C9DCF63D1FEAA76A008BFA67 /* visibilityBuffer_pass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.vert.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass.vert.metal; sourceTree = "<group>"; };
+		C9DCF63E1FEAA76A008BFA67 /* deferred_shade.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = deferred_shade.vert.metal; path = ../src/Shaders/Metal/deferred_shade.vert.metal; sourceTree = "<group>"; };
+		C9DCF6401FEAA76A008BFA67 /* triangle_filtering.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = triangle_filtering.comp.metal; path = ../src/Shaders/Metal/triangle_filtering.comp.metal; sourceTree = "<group>"; };
+		C9DCF6411FEAA76B008BFA67 /* cluster_lights.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = cluster_lights.comp.metal; path = ../src/Shaders/Metal/cluster_lights.comp.metal; sourceTree = "<group>"; };
 		C9DCF64E1FEAA827008BFA67 /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = ../../../Common_3/OS/iOS/iOSFileSystem.mm; sourceTree = SOURCE_ROOT; };
 		C9DCF6501FEAA827008BFA67 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = SOURCE_ROOT; };
 		C9DCF6511FEAA827008BFA67 /* iOSBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSBase.cpp; path = ../../../Common_3/OS/iOS/iOSBase.cpp; sourceTree = SOURCE_ROOT; };
@@ -683,7 +683,7 @@
 				};
 			};
 			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "Visibility_Buffer" */;
-			compatibilityVersion = "Xcode 10";
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -986,7 +986,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
@@ -996,6 +996,7 @@
 					../../,
 					../,
 					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/",
+					"$(PROJECT_DIR)/../../../",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Visibility_Buffer/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1014,13 +1015,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/$(PROJECT_NAME)";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				GCC_PREPROCESSOR_DEFINITIONS = METAL;
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
 					../,
 					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/",
+					"$(PROJECT_DIR)/../../../",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Visibility_Buffer/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (

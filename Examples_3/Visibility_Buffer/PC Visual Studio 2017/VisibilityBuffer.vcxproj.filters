@@ -1,0 +1,253 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\Geometry.cpp" />
+    <ClCompile Include="..\src\Visibility_Buffer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\Geometry.h" />
+    <ClInclude Include="..\src\Shaders\Vulkan\non_uniform_resource_index.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\Vulkan\packing.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\D3D12\packing.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\Vulkan\shading.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\D3D12\shading.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\Vulkan\shader_defs.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\D3D12\shader_defs.h">
+      <Filter>D3D12</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\Shaders\Vulkan\batch_compaction.comp">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\clear_buffers.comp">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\clear_light_clusters.comp">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\cluster_lights.comp">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_pass.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_pass.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_pass_alpha.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\HDAO.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\HDAO.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\resolve.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\resolve.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass_alpha.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass_alpha.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\triangle_filtering.comp">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.frag">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.vert">
+      <Filter>Vulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\Shaders\D3D12\batch_compaction.comp">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\clear_buffers.comp">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\CurveConversion.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\godray.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\display.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\display.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\clear_light_clusters.comp">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\cluster_lights.comp">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\CurveConversion.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_pass.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_pass.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_pass_alpha.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_shade.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_shade.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\display.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\display.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\godray.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\HDAO.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\HDAO.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\sun.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\sun.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\sun.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\sun.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\shadow_pass.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\skybox.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\skybox.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\skybox.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\skybox.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\panoToCube.comp">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\panoToCube.comp">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\resolve.vert">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\resolve.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\resolveGodray.frag">
+      <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\resolveGodray.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\D3D12\triangle_filtering.comp">
+      <Filter>D3D12</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="D3D12">
+      <UniqueIdentifier>{20357e3d-fb9f-4641-93ac-07eba8305e22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Vulkan">
+      <UniqueIdentifier>{7f019b0f-28d0-4456-b91b-85ac20c6dc44}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

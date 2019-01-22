@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="AssetPipelineCmd" Version="10.0.0" InternalType="Console">
-  <VirtualDirectory Name="src">
-    <File Name="../AssetPipelineCmd.cpp"/>
-  </VirtualDirectory>
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
+  <VirtualDirectory Name="src">
+    <File Name="../AssetPipelineCmd.cpp"/>
+  </VirtualDirectory>
   <Description/>
   <Dependencies/>
   <Dependencies Name="Debug">
@@ -16,6 +16,7 @@
     <Project Name="OS"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
+    <Project Name="zlibstatic"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="AssetPipeline"/>
@@ -23,6 +24,7 @@
     <Project Name="OS"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
+    <Project Name="zlibstatic"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -40,7 +42,7 @@
       </Compiler>
       <Linker Options="-pthread" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests_Animation/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
         <LibraryPath Value="../../../ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>
@@ -94,7 +96,7 @@
       </Compiler>
       <Linker Options="-pthread" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests_Animation/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
         <LibraryPath Value="../../../ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>

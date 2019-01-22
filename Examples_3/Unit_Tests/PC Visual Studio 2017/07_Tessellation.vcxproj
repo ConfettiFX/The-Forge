@@ -179,11 +179,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\compute.comp" />
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.frag" />
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.tesc" />
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.tese" />
-    <None Include="..\src\07_Tessellation\Shaders\PCDX12\grass.vert" />
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\compute.comp" />
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.frag" />
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.tesc" />
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.tese" />
+    <None Include="..\src\07_Tessellation\Shaders\D3D12\grass.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{95AEBEE2-4980-4C6D-A4A9-B78B9A469E67}</ProjectGuid>

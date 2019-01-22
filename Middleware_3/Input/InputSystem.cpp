@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,7 +46,7 @@
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
- /**
+/**
 //List of TODO:
 //Change HandleButtonBool to mirror HandleButtonFloat and unify GetButtonData + HandleButton common logic for detecting which buttons need to be queried.
 //Add potential callback for KeyMappingDescription to make it easier to map custom input to a joystick button/axis.  (Touch -> Mouse -> Joystick need to all be the same on all client code + camera code).
@@ -58,12 +58,12 @@
 **/
 
 //all the input devices we need
-gainput::DeviceId InputSystem::mMouseDeviceID = gainput::InvalidDeviceId;
-gainput::DeviceId InputSystem::mRawMouseDeviceID = gainput::InvalidDeviceId;
-gainput::DeviceId InputSystem::mKeyboardDeviceID = gainput::InvalidDeviceId;
-gainput::DeviceId InputSystem::mGamepadDeviceID = gainput::InvalidDeviceId;
-gainput::DeviceId InputSystem::mTouchDeviceID = gainput::InvalidDeviceId;
-gainput::ListenerId InputSystem::mDeviceInputListnerID =-1; //max uint instead of including headers for UINT_MAX on linux.
+gainput::DeviceId   InputSystem::mMouseDeviceID = gainput::InvalidDeviceId;
+gainput::DeviceId   InputSystem::mRawMouseDeviceID = gainput::InvalidDeviceId;
+gainput::DeviceId   InputSystem::mKeyboardDeviceID = gainput::InvalidDeviceId;
+gainput::DeviceId   InputSystem::mGamepadDeviceID = gainput::InvalidDeviceId;
+gainput::DeviceId   InputSystem::mTouchDeviceID = gainput::InvalidDeviceId;
+gainput::ListenerId InputSystem::mDeviceInputListnerID = -1;    //max uint instead of including headers for UINT_MAX on linux.
 
 //system vars
 bool InputSystem::mIsMouseCaptured = false;
@@ -71,13 +71,14 @@ bool InputSystem::mHideMouseCursorWhileCaptured = true;
 bool InputSystem::mVirtualKeyboardActive = false;
 
 // we should have more than one map
-tinystl::vector<gainput::InputMap*> InputSystem::pInputMap;
-tinystl::unordered_map<uint32_t, tinystl::vector<KeyMappingDescription>> InputSystem::mKeyMappings;
-tinystl::unordered_map<uint32_t, tinystl::vector<GestureMappingDescription>> InputSystem::mGestureMappings;
+tinystl::vector<gainput::InputMap*>                                             InputSystem::pInputMap;
+tinystl::unordered_map<uint32_t, tinystl::vector<KeyMappingDescription>>        InputSystem::mKeyMappings;
+tinystl::unordered_map<uint32_t, tinystl::vector<GestureMappingDescription>>    InputSystem::mGestureMappings;
 tinystl::unordered_map<uint32_t, tinystl::vector<InputSystem::UserToDeviceMap>> InputSystem::mDeviceToUserMappings;
 
 tinystl::vector<InputSystem::InputEventHandler> InputSystem::mInputCallbacks;
-uint32_t InputSystem::mActiveInputMap = 0;
+tinystl::vector<uint32_t>                       InputSystem::mInputPriorities;
+uint32_t                                        InputSystem::mActiveInputMap = 0;
 
 // gainput systems
 gainput::InputManager* InputSystem::pInputManager = NULL;
@@ -87,11 +88,9 @@ gainput::DeviceButtonSpec InputSystem::mButtonsDown[32];
 
 InputSystem::DeviceInputEventListener InputSystem::mDeviceInputListener(0);
 
-
 #ifdef METAL
 void* InputSystem::pGainputView = NULL;
 #endif
-
 
 void InputSystem::Shutdown()
 {
@@ -113,7 +112,7 @@ void InputSystem::Shutdown()
 #ifdef METAL
 	//automatic reference counting
 	//it will get deallocated.
-	if(pGainputView)
+	if (pGainputView)
 		pGainputView = NULL;
 #endif
 
@@ -129,7 +128,6 @@ void InputSystem::Shutdown()
 	mKeyMappings.clear();
 	mInputCallbacks.clear();
 }
-
 
 void InputSystem::Init(const uint32_t& width, const uint32_t& height)
 {
@@ -164,8 +162,11 @@ void InputSystem::Init(const uint32_t& width, const uint32_t& height)
 	mTouchDeviceID = pInputManager->CreateDevice<gainput::InputDeviceTouch>();
 	mDeviceInputListnerID = pInputManager->AddListener(&mDeviceInputListener);
 
+#ifndef METAL
+	// On Metal (macOS/iOS) we defer SetDefaultKeyMapping until we initialize the gainput view
+	// For gesture support as they need to be registered in the view itself
 	SetDefaultKeyMapping();
-
+#endif
 }
 
 void InputSystem::ClearInputStates(GainputDeviceType deviceType)
@@ -178,73 +179,113 @@ void InputSystem::ClearInputStates(GainputDeviceType deviceType)
 void InputSystem::Update(float dt)
 {
 	// update gainput manager
-	if(pInputManager)
+	if (pInputManager)
 		pInputManager->Update();
 }
 
-void InputSystem::RegisterInputEvent(InputEventHandler callback)
+void InputSystem::RegisterInputEvent(InputEventHandler callback, uint32_t priority)
 {
-	mInputCallbacks.push_back(callback);
+	uint32_t index = 0;
+	for (uint32_t i = 0; i < (uint32_t)mInputPriorities.size(); ++i)
+	{
+		if (priority > mInputPriorities[i])
+		{
+			index = i;
+			break;
+		}
+		else
+		{
+			++index;
+		}
+	}
+
+	mInputPriorities.insert(mInputPriorities.begin() + index, priority);
+	mInputCallbacks.insert(mInputCallbacks.begin() + index, callback);
 }
 
 void InputSystem::UnregisterInputEvent(InputEventHandler callback)
 {
-	mInputCallbacks.erase(mInputCallbacks.find(callback));
+	InputEventHandler* it = mInputCallbacks.find(callback);
+	if (it != mInputCallbacks.end())
+	{
+		uint64_t index = it - mInputCallbacks.begin();
+		mInputCallbacks.erase(it);
+		mInputPriorities.erase(mInputPriorities.begin() + index);
+	}
 }
 
-void InputSystem::OnInputEvent(const ButtonData& buttonData)
+void InputSystem::OnInputEvent(ButtonData& buttonData)
 {
 	for (InputEventHandler& callback : mInputCallbacks)
-		callback(&buttonData);
+	{
+		// Check if event was consumed
+		if (callback(&buttonData))
+		{
+			// If it was consumed then
+			// Update buttonData to reflect consumed event for
+			// callbacks with lesser priority
+			buttonData.mEventConsumed = true;
+		}
+	}
 }
 
 #ifdef METAL
-void InputSystem::ShutdownSubView(void *view)
+void InputSystem::ShutdownSubView(void* view)
 {
-	if(!view)
+	if (!view)
 		return;
 	//automatic reference counting
 	//it will get deallocated.
-	if(pGainputView)
+	if (pGainputView)
 	{
 #ifndef TARGET_IOS
-		GainputMacInputView * view = (GainputMacInputView *)CFBridgingRelease(pGainputView);
+		GainputMacInputView* view = (GainputMacInputView*)CFBridgingRelease(pGainputView);
 #else
-		GainputView * view = (GainputView *)CFBridgingRelease(pGainputView);
+		GainputView* view = (GainputView*)CFBridgingRelease(pGainputView);
 #endif
 		[view removeFromSuperview];
 		pGainputView = NULL;
 		view = NULL;
 	}
-
 }
 
 void InputSystem::InitSubView(void* view)
 {
-	if(!view)
+	if (!view)
 		return;
 	ShutdownSubView(view);
 #ifdef TARGET_IOS
-	UIView * mainView = (UIView*)CFBridgingRelease(view);
-	GainputView * newView = [[GainputView alloc] initWithFrame:mainView.bounds inputManager:*pInputManager];
+	UIView*      mainView = (UIView*)CFBridgingRelease(view);
+	GainputView* newView = [[GainputView alloc] initWithFrame:mainView.bounds inputManager:*pInputManager];
 	//we want everything to resize with main view.
-	[newView setAutoresizingMask:(UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin)];
+	[newView setAutoresizingMask:(UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin |
+								  UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
+								  UIViewAutoresizingFlexibleBottomMargin)];
 #else
-	MTKView * mainView = (MTKView*)CFBridgingRelease(view);
+	MTKView* mainView = (MTKView*)CFBridgingRelease(view);
 	float retinScale = mainView.drawableSize.width / mainView.frame.size.width;
-	GainputMacInputView * newView = [[GainputMacInputView alloc] initWithFrame:mainView.bounds window:mainView.window retinaScale:retinScale inputManager:*pInputManager];
+	GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.bounds
+																	   window:mainView.window
+																  retinaScale:retinScale
+																 inputManager:*pInputManager];
 	newView.nextKeyView = mainView;
-	[newView setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
+	[newView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 #endif
 
-	[mainView addSubview: newView];
+	[mainView addSubview:newView];
 	pGainputView = (__bridge void*)newView;
+
+#ifdef METAL
+	// On Metal (macOS/iOS) we defer SetDefaultKeyMapping until we initialize the gainput view
+	// For gesture support as they need to be registered in the view itself
+	SetDefaultKeyMapping();
+#endif
 }
 #endif
 
 void InputSystem::MapKey(const uint32_t& sourceKey, const uint32_t& userKey, GainputDeviceType inputDevice)
 {
-	gainput::DeviceId currDeviceId = GetDeviceID(inputDevice);
+	gainput::DeviceId           currDeviceId = GetDeviceID(inputDevice);
 	const gainput::InputDevice* device = pInputManager->GetDevice(currDeviceId);
 
 	if (device == NULL)
@@ -273,7 +314,7 @@ void InputSystem::MapKey(const uint32_t& sourceKey, const uint32_t& userKey, Gai
 
 bool InputSystem::IsButtonMapped(const uint32_t& userKey)
 {
-	if ( userKey > UserInputKeys::KEY_COUNT)
+	if (userKey > UserInputKeys::KEY_COUNT)
 		return false;
 
 	if (mKeyMappings.find(userKey) == mKeyMappings.end())
@@ -336,7 +377,6 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 		return button;
 	}
 
-
 	//here it means one user key maps to multiple device button
 	//such as left stick with w-a-s-d
 	tinystl::vector<KeyMappingDescription> keyMappings = mKeyMappings[buttonId];
@@ -347,7 +387,7 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 		return button;
 	}
 
-	tinystl::vector<KeyMappingDescription *> descs;
+	tinystl::vector<KeyMappingDescription*> descs;
 
 	//Gather all combinations of device buttons that could affect
 	//this user key
@@ -385,7 +425,7 @@ ButtonData InputSystem::GetButtonData(const uint32_t& buttonId, const GainputDev
 		//get current descriptor
 		//defines which buttons from which device
 		//defines how buttons affect an axis for joysticks and in which direction
-		KeyMappingDescription * desc = descs[map];
+		KeyMappingDescription* desc = descs[map];
 
 		//This is the core function that gathers the actual input data for that specified user key
 		FillButtonDataFromDesc(desc, button);
@@ -398,27 +438,14 @@ uint32_t InputSystem::GetDeviceID(GainputDeviceType deviceType)
 {
 	switch (deviceType)
 	{
-	case GAINPUT_MOUSE:
-		return mMouseDeviceID;
-		break;
-	case GAINPUT_RAW_MOUSE:
-		return mRawMouseDeviceID;
-		break;
-	case GAINPUT_KEYBOARD:
-		return mKeyboardDeviceID;
-		break;
-	case GAINPUT_GAMEPAD:
-		return mGamepadDeviceID;
-		break;
-	case GAINPUT_TOUCH:
-		return mTouchDeviceID;
-		break;
-	case GAINPUT_DEFAULT:
-	case DEVICE_COUNT:
-		return gainput::InvalidDeviceButtonId;
-		break;
-	default:
-		break;
+		case GAINPUT_MOUSE: return mMouseDeviceID; break;
+		case GAINPUT_RAW_MOUSE: return mRawMouseDeviceID; break;
+		case GAINPUT_KEYBOARD: return mKeyboardDeviceID; break;
+		case GAINPUT_GAMEPAD: return mGamepadDeviceID; break;
+		case GAINPUT_TOUCH: return mTouchDeviceID; break;
+		case GAINPUT_DEFAULT:
+		case DEVICE_COUNT: return gainput::InvalidDeviceButtonId; break;
+		default: break;
 	}
 	return gainput::InvalidDeviceButtonId;
 }
@@ -436,7 +463,7 @@ void InputSystem::SetActiveInputMap(const uint32_t& index)
 {
 	while (index >= pInputMap.size())
 	{
-		gainput::InputMap * toAdd = conf_placement_new<gainput::InputMap>(conf_calloc(1, sizeof(gainput::InputMap)), (pInputManager));
+		gainput::InputMap* toAdd = conf_placement_new<gainput::InputMap>(conf_calloc(1, sizeof(gainput::InputMap)), (pInputManager));
 		pInputMap.push_back(toAdd);
 	}
 
@@ -464,10 +491,10 @@ void InputSystem::AddMappings(KeyMappingDescription* mappings, uint32_t mappingC
 
 	for (uint32_t i = 0; i < mappingCount; i++)
 	{
-		KeyMappingDescription * mapping = &mappings[i];
+		KeyMappingDescription* mapping = &mappings[i];
 
 		//skip uninitialized devices.
-		if(GetDeviceID(mapping->mDeviceType) == gainput::InvalidDeviceId)
+		if (GetDeviceID(mapping->mDeviceType) == gainput::InvalidDeviceId)
 			continue;
 
 		//create empty key mapping object if hasn't been found
@@ -482,42 +509,41 @@ void InputSystem::AddMappings(KeyMappingDescription* mappings, uint32_t mappingC
 		//map every key + axis
 		for (uint32_t map = 0; map < mapping->mAxisCount; map++)
 			MapKey(mapping->mMappings[map].mDeviceButtonId, mapping->mUserId, mapping->mDeviceType);
-
 	}
 }
 
 void InputSystem::AddGestureMappings(GestureMappingDescription* mappings, uint32_t mappingCount, bool overrideMappings)
 {
-    if (!mappings || mappingCount <= 0)
-    {
-        LOGWARNING("No mappings were added. Provided Mapping was empty or null.");
-        return;
-    }
-    
-    //clear mappings data structures if required
-    if (overrideMappings)
-    {
-        mGestureMappings.clear();
-    }
-    
-    for (uint32_t i = 0; i < mappingCount; i++)
-    {
-        GestureMappingDescription * mapping = &mappings[i];
-        
-        //create empty key mapping object if hasn't been found
-        if (mGestureMappings.find(mapping->mUserId) == mGestureMappings.end())
-        {
-            mGestureMappings[mapping->mUserId] = {};
-        }
-        
-        //add key mapping to user mapping
-        mGestureMappings[mapping->mUserId].push_back(*mapping);
-        
+	if (!mappings || mappingCount <= 0)
+	{
+		LOGWARNING("No mappings were added. Provided Mapping was empty or null.");
+		return;
+	}
+
+	//clear mappings data structures if required
+	if (overrideMappings)
+	{
+		mGestureMappings.clear();
+	}
+
+	for (uint32_t i = 0; i < mappingCount; i++)
+	{
+		GestureMappingDescription* mapping = &mappings[i];
+
+		//create empty key mapping object if hasn't been found
+		if (mGestureMappings.find(mapping->mUserId) == mGestureMappings.end())
+		{
+			mGestureMappings[mapping->mUserId] = {};
+		}
+
+		//add key mapping to user mapping
+		mGestureMappings[mapping->mUserId].push_back(*mapping);
+
 #if defined(TARGET_IOS)
-        GainputView* view = (__bridge GainputView*)pGainputView;
-        [view addGestureMapping:mapping->mType forId:mapping->mUserId withConfig:mapping->mConfig];
+		GainputView* view = (__bridge GainputView*)pGainputView;
+		[view addGestureMapping:mapping->mType forId:mapping->mUserId withConfig:mapping->mConfig];
 #endif
-    }
+	}
 }
 
 void InputSystem::SetDefaultKeyMapping()
@@ -530,107 +556,101 @@ void InputSystem::SetDefaultKeyMapping()
 #else
 	uint32_t entryCount = sizeof(gUserKeys) / sizeof(KeyMappingDescription);
 	uint32_t controllerEntryCount = sizeof(gXboxMappings) / sizeof(KeyMappingDescription);
+	uint32_t gesturesEntryCount = sizeof(gGestureMappings) / sizeof(GestureMappingDescription);
 	AddMappings(gUserKeys, entryCount);
 	AddMappings(gXboxMappings, controllerEntryCount);
+	AddGestureMappings(gGestureMappings, gesturesEntryCount);
 #endif
-
-
 }
 
 void InputSystem::SetMouseCapture(bool mouseCapture)
 {
 	mIsMouseCaptured = mouseCapture;
 #if defined(METAL) && !defined(TARGET_IOS)
-    GainputMacInputView * view = (__bridge GainputMacInputView *)(pGainputView);
-    [view SetMouseCapture:mouseCapture];
-    view = NULL;
+	GainputMacInputView* view = (__bridge GainputMacInputView*)(pGainputView);
+	[view SetMouseCapture:(mouseCapture && mHideMouseCursorWhileCaptured)];
+	view = NULL;
 #endif
 }
 
-void InputSystem::UpdateSize(const uint32_t& width, const uint32_t& height)
-{
-	pInputManager->SetDisplaySize(width, height);
-}
+void InputSystem::UpdateSize(const uint32_t& width, const uint32_t& height) { pInputManager->SetDisplaySize(width, height); }
 
-uint32_t InputSystem::GetDisplayWidth()
-{
-    return (uint32_t)pInputManager->GetDisplayWidth();
-}
+uint32_t InputSystem::GetDisplayWidth() { return (uint32_t)pInputManager->GetDisplayWidth(); }
 
-uint32_t InputSystem::GetDisplayHeight()
-{
-    return (uint32_t)pInputManager->GetDisplayHeight();
-}
-
+uint32_t InputSystem::GetDisplayHeight() { return (uint32_t)pInputManager->GetDisplayHeight(); }
 
 GainputDeviceType InputSystem::GetDeviceType(uint32_t deviceId)
 {
-	if (deviceId == mRawMouseDeviceID) {
+	if (deviceId == mRawMouseDeviceID)
+	{
 		return GainputDeviceType::GAINPUT_RAW_MOUSE;
 	}
-	else if (deviceId == mMouseDeviceID) {
+	else if (deviceId == mMouseDeviceID)
+	{
 		return GainputDeviceType::GAINPUT_MOUSE;
 	}
-	else if (deviceId == mKeyboardDeviceID) {
+	else if (deviceId == mKeyboardDeviceID)
+	{
 		return GainputDeviceType::GAINPUT_KEYBOARD;
 	}
-	else if (deviceId == mTouchDeviceID) {
+	else if (deviceId == mTouchDeviceID)
+	{
 		return GainputDeviceType::GAINPUT_TOUCH;
 	}
-	else if (deviceId == mGamepadDeviceID) {
+	else if (deviceId == mGamepadDeviceID)
+	{
 		return GainputDeviceType::GAINPUT_GAMEPAD;
 	}
 
 	return GainputDeviceType::GAINPUT_DEFAULT;
 }
 
-
-bool InputSystem::DeviceInputEventListener::OnDeviceButtonBool(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, bool oldValue, bool newValue)
+bool InputSystem::DeviceInputEventListener::OnDeviceButtonBool(
+	gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, bool oldValue, bool newValue)
 {
-	return GatherInputEventButton(deviceId, deviceButton, oldValue ? 1.0f: 0.0f, newValue ? 1.0f: 0.0f);
+	return GatherInputEventButton(deviceId, deviceButton, oldValue ? 1.0f : 0.0f, newValue ? 1.0f : 0.0f);
 }
 
-
-
-bool InputSystem::DeviceInputEventListener::OnDeviceButtonFloat(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
+bool InputSystem::DeviceInputEventListener::OnDeviceButtonFloat(
+	gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
 {
 	return GatherInputEventButton(deviceId, deviceButton, oldValue, newValue);
 }
 
-bool InputSystem::DeviceInputEventListener::OnDeviceButtonGesture(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, const gainput::GestureChange& gesture)
+bool InputSystem::DeviceInputEventListener::OnDeviceButtonGesture(
+	gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, const gainput::GestureChange& gesture)
 {
 #if defined(TARGET_IOS)
-    ButtonData buttonData = {};
-    buttonData.mActiveDevicesMask = GAINPUT_TOUCH;
-    buttonData.mUserId = deviceButton;
-    if (gesture.type == gainput::GesturePan)
-    {
-        buttonData.mValue[INPUT_X_AXIS] = gesture.translation[0];
-        buttonData.mValue[INPUT_Y_AXIS] = gesture.translation[1];
-    }
-    else if (gesture.type == gainput::GesturePinch)
-    {
-        buttonData.mValue[INPUT_X_AXIS] = gesture.velocity;
-        buttonData.mValue[INPUT_Y_AXIS] = gesture.scale;
-        buttonData.mDeltaValue[INPUT_X_AXIS] = gesture.distance[0];
-        buttonData.mDeltaValue[INPUT_Y_AXIS] = gesture.distance[1];
-    }
-    else if (gesture.type == gainput::GestureTap)
-    {
-        buttonData.mValue[INPUT_X_AXIS] = gesture.position[0];
-        buttonData.mValue[INPUT_Y_AXIS] = gesture.position[1];
-    }
-    
-    OnInputEvent(buttonData);
-#endif
-    return true;
-}
+	ButtonData buttonData = {};
+	buttonData.mActiveDevicesMask = GAINPUT_TOUCH;
+	buttonData.mUserId = deviceButton;
+	if (gesture.type == gainput::GesturePan)
+	{
+		buttonData.mValue[INPUT_X_AXIS] = gesture.translation[0];
+		buttonData.mValue[INPUT_Y_AXIS] = gesture.translation[1];
+	}
+	else if (gesture.type == gainput::GesturePinch)
+	{
+		buttonData.mValue[INPUT_X_AXIS] = gesture.velocity;
+		buttonData.mValue[INPUT_Y_AXIS] = gesture.scale;
+		buttonData.mDeltaValue[INPUT_X_AXIS] = gesture.distance[0];
+		buttonData.mDeltaValue[INPUT_Y_AXIS] = gesture.distance[1];
+	}
+	else if (gesture.type == gainput::GestureTap)
+	{
+		buttonData.mValue[INPUT_X_AXIS] = gesture.position[0];
+		buttonData.mValue[INPUT_Y_AXIS] = gesture.position[1];
+	}
 
+	OnInputEvent(buttonData);
+#endif
+	return true;
+}
 
 void InputSystem::WarpMouse(const float& x, const float& y)
 {
-	gainput::InputDevice * device = pInputManager->GetDevice(mRawMouseDeviceID);
-	device->WarpMouse(x,y);
+	gainput::InputDevice* device = pInputManager->GetDevice(mRawMouseDeviceID);
+	device->WarpMouse(x, y);
 }
 
 bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
@@ -638,7 +658,7 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
 	tinystl::vector<UserToDeviceMap> userButtons = mDeviceToUserMappings[deviceButton];
 
 	GainputDeviceType deviceType = GetDeviceType(deviceId);
-	bool isMapped = false;
+	bool              isMapped = false;
 
 	for (uint32_t i = 0; i < userButtons.size(); i++)
 	{
@@ -665,7 +685,7 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
 			continue;
 		}
 
-		KeyMappingDescription * desc = NULL;
+		KeyMappingDescription* desc = NULL;
 
 		//for every user key mapping
 		for (uint32_t i = 0; i < keyMappings.size(); i++)
@@ -699,7 +719,8 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
 		button.mValue[0] = button.mValue[1] = 0;
 		button.mPrevValue[0] = button.mPrevValue[1] = 0;
 		button.mDeltaValue[0] = button.mDeltaValue[1] = 0;
-
+		button.mCharacter = L'\0';
+		button.mTouchIndex = -1;
 		//This is the core function that gathers the actual input data for that specified user key
 		FillButtonDataFromDesc(desc, button, oldValue, newValue, deviceId, deviceButton);
 
@@ -715,20 +736,22 @@ bool InputSystem::GatherInputEventButton(gainput::DeviceId deviceId, gainput::De
  * The function can be used to fill the data from a gainput event and whenever GetButtonData is called.
  * When an event uses this function the last 4 parameters are used other default values are used.
  */
-void InputSystem::FillButtonDataFromDesc(const KeyMappingDescription * keyMapping, ButtonData& button, float oldValue, float newValue, gainput::DeviceId eventDeviceId, gainput::DeviceButtonId eventDeviceButton)
+void InputSystem::FillButtonDataFromDesc(
+	const KeyMappingDescription* keyMapping, ButtonData& button, float oldValue, float newValue, gainput::DeviceId eventDeviceId,
+	gainput::DeviceButtonId eventDeviceButton)
 {
 	ASSERT(keyMapping != NULL);
 
 	//get device associated with the input mapping descriptor.
-	uint32_t descDeviceId = GetDeviceID(keyMapping->mDeviceType);
-	gainput::InputDevice * device = pInputManager->GetDevice(descDeviceId);
+	uint32_t              descDeviceId = GetDeviceID(keyMapping->mDeviceType);
+	gainput::InputDevice* device = pInputManager->GetDevice(descDeviceId);
 	//this determines how many device buttons affects the current user defined key.
 	//for example
 	//Pads have 4 axes (one key for each direction)
 	//Joysticks and mouse wheel have 2 axes
 	//Single keyboard buttons or mouse button have a single axis.
 	uint32_t deviceMappingcount = keyMapping->mAxisCount;
-	bool currentDeviceActive = false;
+	bool     currentDeviceActive = false;
 	//For every device button that is used for this mapping descriptor
 	for (uint32_t i = 0; i < deviceMappingcount; i++)
 	{
@@ -792,7 +815,6 @@ void InputSystem::FillButtonDataFromDesc(const KeyMappingDescription * keyMappin
 			}
 			else
 			{
-
 				float currValue = device->GetBool(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
 				float prevValue = device->GetBoolPrevious(mapping.mDeviceButtonId) ? 1.0f : 0.0f;
 
@@ -813,25 +835,27 @@ void InputSystem::FillButtonDataFromDesc(const KeyMappingDescription * keyMappin
 	button.mDeltaValue[1] = button.mValue[1] - button.mPrevValue[1];
 
 	float prevFrameDelta = (abs(button.mPrevValue[0]) + abs(button.mPrevValue[1]));
-	bool isPressed = (abs(button.mValue[0]) + abs(button.mValue[1])) > 0.0f;
+	bool  isPressed = (abs(button.mValue[0]) + abs(button.mValue[1])) > 0.0f;
 
 	//for Touch we use Touch0Down(1,2,3 based on touch index)
 	//instead of input value for isPressed.
-	if(button.mActiveDevicesMask & GAINPUT_TOUCH)
+	if (button.mActiveDevicesMask & GAINPUT_TOUCH)
 	{
 		//Get a valid device button
 		//if not from event try from mapping
 		//if at this stage that means that a device button had a state change
 		gainput::DeviceButtonId devButton = eventDeviceButton;
-		if(devButton!=gainput::InvalidDeviceButtonId)
+		if (devButton != gainput::InvalidDeviceButtonId)
 			devButton = keyMapping->mMappings[0].mDeviceButtonId;
-		if(devButton != gainput::InvalidDeviceButtonId && devButton < gainput::TouchCount_)
+		if (devButton != gainput::InvalidDeviceButtonId && devButton < gainput::TouchCount_)
 		{
 			//4 fingers max, harccoded for now.
 			//get touch index
-			uint touchIndex = (eventDeviceButton - gainput::TouchButton::Touch0Down ) / 4;
+			uint touchIndex = (eventDeviceButton - gainput::TouchButton::Touch0Down) / 4;
 			//get the correct TouchXDown enum based on touch index
 			isPressed = device->GetBool(gainput::TouchButton::Touch0Down + touchIndex * 4);
+			// Cache the touch index
+			button.mTouchIndex = touchIndex;
 		}
 	}
 
@@ -839,34 +863,34 @@ void InputSystem::FillButtonDataFromDesc(const KeyMappingDescription * keyMappin
 	button.mIsReleased = prevFrameDelta > 0.f && !button.mIsPressed ? true : false;
 	button.mIsTriggered = prevFrameDelta == 0.0f && button.mIsPressed ? true : false;
 
-	if (keyMapping->mUserId == KEY_CHAR && mKeyboardDeviceID != gainput::InvalidDeviceId)
-		button.mCharacter = (wchar_t)((gainput::InputDeviceKeyboard*)pInputManager->GetDevice(mKeyboardDeviceID))->GetNextCharacter(eventDeviceButton);
+	if (keyMapping->mUserId == KEY_CHAR && mKeyboardDeviceID != gainput::InvalidDeviceId && !button.mIsReleased && button.mIsTriggered)
+		button.mCharacter =
+			(wchar_t)((gainput::InputDeviceKeyboard*)pInputManager->GetDevice(mKeyboardDeviceID))->GetNextCharacter(eventDeviceButton);
 }
 
 void InputSystem::ToggleVirtualTouchKeyboard(int keyboardType)
 {
 #ifdef TARGET_IOS
-	if(!pGainputView)
+	if (!pGainputView)
 		return;
 
-	if((keyboardType > 0) != mVirtualKeyboardActive)
-		mVirtualKeyboardActive = (keyboardType > 0) ;
+	if ((keyboardType > 0) != mVirtualKeyboardActive)
+		mVirtualKeyboardActive = (keyboardType > 0);
 	else
 		return;
 
-	GainputView * view = (__bridge GainputView *)(pGainputView);
+	GainputView* view = (__bridge GainputView*)(pGainputView);
 	[view setVirtualKeyboard:keyboardType];
 #endif
 }
 
-
-void InputSystem::GetVirtualKeyboardTextInput(char * inputBuffer, uint32_t inputBufferSize)
+void InputSystem::GetVirtualKeyboardTextInput(char* inputBuffer, uint32_t inputBufferSize)
 {
-	if(!inputBuffer)
+	if (!inputBuffer)
 		return;
 #ifdef TARGET_IOS
 	gainput::InputDeviceTouch* touchDevice = ((gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID));
-	if(touchDevice)
+	if (touchDevice)
 		touchDevice->GetVirtualKeyboardInput(&inputBuffer[0], inputBufferSize);
 #endif
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,11 +30,6 @@
 //This file contains shader reflection code that is the same for all platforms.
 //We know it's the same for all platforms since it only interacts with the
 // platform abstractions we created.
-
-
-
-
-
 
 #define RESOURCE_NAME_CHECK
 static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
@@ -75,12 +70,10 @@ static bool ShaderVariableCmp(ShaderVariable* a, ShaderVariable* b)
 	return isSame;
 }
 
-
 void destroyShaderReflection(ShaderReflection* pReflection)
 {
 	if (pReflection == NULL)
 		return;
-
 
 	conf_free(pReflection->pNamePool);
 	conf_free(pReflection->pVertexInputs);
@@ -88,13 +81,11 @@ void destroyShaderReflection(ShaderReflection* pReflection)
 	conf_free(pReflection->pVariables);
 }
 
-
 void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection)
 {
 	//Parameter checks
 	if (pReflection == NULL)
 	{
-
 		LOGERROR("Parameter 'pReflection' is NULL.");
 		return;
 	}
@@ -108,8 +99,6 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 		LOGERROR("Parameter 'pOutShaderReflection' is NULL.");
 		return;
 	}
-
-
 
 	// Sanity check to make sure we don't have repeated stages.
 	ShaderStage combinedShaderStages = (ShaderStage)0;
@@ -126,20 +115,20 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 	// Combine all shaders
 	// this will have a large amount of looping
 	// 1. count number of resources
-	uint32_t vertexStageIndex = ~0u;
-	uint32_t hullStageIndex = ~0u;
-	uint32_t domainStageIndex = ~0u;
-	uint32_t geometryStageIndex = ~0u;
-	uint32_t pixelStageIndex = ~0u;
+	uint32_t        vertexStageIndex = ~0u;
+	uint32_t        hullStageIndex = ~0u;
+	uint32_t        domainStageIndex = ~0u;
+	uint32_t        geometryStageIndex = ~0u;
+	uint32_t        pixelStageIndex = ~0u;
 	ShaderResource* pResources = NULL;
-	uint32_t resourceCount = 0;
+	uint32_t        resourceCount = 0;
 	ShaderVariable* pVariables = NULL;
-	uint32_t variableCount = 0;
+	uint32_t        variableCount = 0;
 
 	//Should we be using dynamic arrays for these? Perhaps we can add std::vector
 	// like functionality?
 	ShaderResource* uniqueResources[512];
-	ShaderStage  shaderUsage[512];
+	ShaderStage     shaderUsage[512];
 	ShaderVariable* uniqueVariable[512];
 	ShaderResource* uniqueVariableParent[512];
 	for (uint32_t i = 0; i < stageCount; ++i)
@@ -287,4 +276,3 @@ void destroyPipelineReflection(PipelineReflection* pReflection)
 	conf_free(pReflection->pShaderResources);
 	conf_free(pReflection->pVariables);
 }
-

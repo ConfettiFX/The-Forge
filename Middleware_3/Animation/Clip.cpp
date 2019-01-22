@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,15 +24,9 @@
 
 #include "Clip.h"
 
-void Clip::Initialize(const char* animationFile, Rig* rig)
-{
-	LoadClip(animationFile); 
-}
+void Clip::Initialize(const char* animationFile, Rig* rig) { LoadClip(animationFile); }
 
-void Clip::Destroy()
-{
-	mAnimation.Deallocate();
-}
+void Clip::Destroy() { mAnimation.Deallocate(); }
 
 bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTransform>& localTransOutput, float timeRatio)
 {

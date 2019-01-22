@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,75 +26,44 @@
 #include "../Interfaces/ICameraController.h"
 #include "../../../Middleware_3/Input/InputSystem.h"
 #include "../../../Middleware_3/Input/InputMappings.h"
+#include "../../../Middleware_3/UI/AppUI.h"
 
 // Include this file as last include in all cpp files allocating memory
 #include "../Interfaces/IMemoryManager.h"
-
 
 static const float k_mouseTranslationScale = 0.05f;
 static const float k_rotationSpeed = 0.003f;
 static const float k_xRotLimit = (float)(M_PI_2 - 0.1);
 
-#if defined(TARGET_IOS) || defined(_DURANGO) || defined(__ANDROID__)
-static const float k_vJoystickIntRadius = 0.25f;
-static const float k_vJoystickExtRadius = 0.33f;
-static const float k_vJoystickRange = k_vJoystickExtRadius - k_vJoystickIntRadius;
-static const float k_vJoystickRecovery = k_vJoystickRange * 8.0f;
-#endif
-
 static const vec2 k_vLeftJoystickCenter = vec2(0.175f, 0.75f);
 static const vec2 k_vRightJoystickCenter = vec2(0.80f, 0.75f);
 
-class GuiCameraController : public ICameraController
+class GuiCameraController: public ICameraController
 {
-public:
-	GuiCameraController() :
-			viewRotation { 0 },
-			viewPosition { 0 },
-			velocity { 0 },
-			maxSpeed { 1.0f }
-#ifdef TARGET_IOS
-		, virtualLeftJoystickPos { k_vLeftJoystickCenter },
-		virtualLeftJoysticPressed { false },
-		virtualRightJoystickPos { k_vRightJoystickCenter },
-		virtualRightJoysticPressed { false }
-#endif
-	{
-	}
+	public:
+	GuiCameraController(): viewRotation{ 0 }, viewPosition{ 0 }, velocity{ 0 }, maxSpeed{ 1.0f }, pVirtualJoystickUI{ NULL } {}
 	void setMotionParameters(const CameraMotionParameters&) override;
+	void setVirtualJoystick(VirtualJoystickUI* virtualJoystick = NULL) override;
 
 	mat4 getViewMatrix() const override;
 	vec3 getViewPosition() const override;
 	vec2 getRotationXY() const override { return viewRotation; }
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-	float getVirtualJoystickInternalRadius() const override {return k_vJoystickIntRadius;}
-	float getVirtualJoystickExternalRadius() const override {return k_vJoystickExtRadius;}
-	vec2 getVirtualLeftJoystickCenter() const override { return k_vLeftJoystickCenter; }
-	vec2 getVirtualLeftJoystickPos() const override;
-	vec2 getVirtualRightJoystickCenter() const override { return k_vRightJoystickCenter; }
-	vec2 getVirtualRightJoystickPos() const override;
-#endif
-
 	void moveTo(const vec3& location) override;
 	void lookAt(const vec3& lookAt) override;
 
-private:
-	void onInputEvent(const ButtonData* pData) override;
+	private:
+	bool onInputEvent(const ButtonData* pData) override;
 
 	void update(float deltaTime) override;
 
-private:
-	vec2 viewRotation;//We put viewRotation at first becuase viewPosition is 16 bytes aligned. We have vtable pointer 8 bytes + vec2(8 bytes). This avoids unnecessary padding.
-	vec3 viewPosition;
-	vec3 velocity;
-	float maxSpeed;
-#ifdef TARGET_IOS
-	vec2 virtualLeftJoystickPos;
-	bool virtualLeftJoysticPressed;
-	vec2 virtualRightJoystickPos;
-	bool virtualRightJoysticPressed;
-#endif
+	private:
+	vec2
+					   viewRotation;    //We put viewRotation at first becuase viewPosition is 16 bytes aligned. We have vtable pointer 8 bytes + vec2(8 bytes). This avoids unnecessary padding.
+	vec3               viewPosition;
+	vec3               velocity;
+	float              maxSpeed;
+	VirtualJoystickUI* pVirtualJoystickUI;
 };
 
 ICameraController* createGuiCameraController(vec3 startPosition, vec3 startLookAt)
@@ -111,12 +80,11 @@ void destroyGuiCameraController(ICameraController* pCamera)
 	conf_free(pCamera);
 }
 
-void GuiCameraController::setMotionParameters(const CameraMotionParameters& cmp)
-{
-	maxSpeed = cmp.maxSpeed;
-}
+void GuiCameraController::setVirtualJoystick(VirtualJoystickUI* virtualJoystick) {}
 
-void GuiCameraController::onInputEvent(const ButtonData* pData)
+void GuiCameraController::setMotionParameters(const CameraMotionParameters& cmp) { maxSpeed = cmp.maxSpeed; }
+
+bool GuiCameraController::onInputEvent(const ButtonData* pData)
 {
 	if (InputSystem::IsButtonPressed(KEY_CONFIRM) && InputSystem::IsButtonPressed(KEY_RIGHT_BUMPER))
 	{
@@ -140,6 +108,8 @@ void GuiCameraController::onInputEvent(const ButtonData* pData)
 		viewRotation.setX(k_xRotLimit);
 	else if (viewRotation.getX() < -k_xRotLimit)
 		viewRotation.setX(-k_xRotLimit);
+
+	return false;
 }
 #if 0
 void GuiCameraController::onTouch(const TouchEventData *pData)
@@ -175,116 +145,69 @@ void GuiCameraController::onTouch(const TouchEventData *pData)
 
 void GuiCameraController::onTouchMove(const TouchEventData *pData)
 {
-	// Find the closest touches to the left and right virtual joysticks.
-	float minDistLeft = 1.0f;
-	int closestTouchLeft = -1;
-	float minDistRight = 1.0f;
-	int closestTouchRight = -1;
-	for (uint32_t i = 0; i < pData->touchesRecorded; i++)
-	{
-		vec2 touchPos = vec2(pData->touchData[i].screenX, pData->touchData[i].screenY);
-
-		float distToLeft = length(touchPos - virtualLeftJoystickPos);
-		if(distToLeft < minDistLeft && distToLeft <= (k_vJoystickIntRadius * 0.33f)) { minDistLeft = distToLeft; closestTouchLeft = i; }
-		float distToRight = length(touchPos - virtualRightJoystickPos);
-		if(distToRight < minDistRight && distToRight <= (k_vJoystickIntRadius * 0.33f)) { minDistRight = distToRight; closestTouchRight = i; }
-	}
-
-	// Calculate the new joystick positions.
-	if(closestTouchLeft >= 0)
-	{
-		TouchData touch = pData->touchData[closestTouchLeft];
-		vec2 newPos = virtualLeftJoystickPos - vec2(touch.screenDeltaX, touch.screenDeltaY);
-
-		// Clamp the joystick's position to the max range.
-		vec2 tiltDir = newPos - k_vLeftJoystickCenter;
-		if(length(tiltDir) > k_vJoystickRange) newPos = k_vLeftJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
-
-		virtualLeftJoystickPos = newPos;
-		virtualLeftJoysticPressed = true;
-	}
-	else virtualLeftJoysticPressed = false;
-
-	if(closestTouchRight >= 0)
-	{
-		TouchData touch = pData->touchData[closestTouchRight];
-		vec2 newPos = virtualRightJoystickPos - vec2(touch.screenDeltaX, touch.screenDeltaY);
-
-		// Clamp the joystick's position to the max range.
-		vec2 tiltDir = newPos - k_vRightJoystickCenter;
-		if(length(tiltDir) > k_vJoystickRange) newPos = k_vRightJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
-
-		virtualRightJoystickPos = newPos;
-		virtualRightJoysticPressed = true;
-	}
-	else virtualRightJoysticPressed = false;
+//	// Find the closest touches to the left and right virtual joysticks.
+//	float minDistLeft = 1.0f;
+//	int closestTouchLeft = -1;
+//	float minDistRight = 1.0f;
+//	int closestTouchRight = -1;
+//	for (uint32_t i = 0; i < pData->touchesRecorded; i++)
+//	{
+//		vec2 touchPos = vec2(pData->touchData[i].screenX, pData->touchData[i].screenY);
+//
+//		float distToLeft = length(touchPos - virtualLeftJoystickPos);
+//		if(distToLeft < minDistLeft && distToLeft <= (k_vJoystickIntRadius * 0.33f)) { minDistLeft = distToLeft; closestTouchLeft = i; }
+//		float distToRight = length(touchPos - virtualRightJoystickPos);
+//		if(distToRight < minDistRight && distToRight <= (k_vJoystickIntRadius * 0.33f)) { minDistRight = distToRight; closestTouchRight = i; }
+//	}
+//
+//	// Calculate the new joystick positions.
+//	if(closestTouchLeft >= 0)
+//	{
+//		TouchData touch = pData->touchData[closestTouchLeft];
+//		vec2 newPos = virtualLeftJoystickPos - vec2(touch.screenDeltaX, touch.screenDeltaY);
+//
+//		// Clamp the joystick's position to the max range.
+//		vec2 tiltDir = newPos - k_vLeftJoystickCenter;
+//		if(length(tiltDir) > k_vJoystickRange) newPos = k_vLeftJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
+//
+//		virtualLeftJoystickPos = newPos;
+//		virtualLeftJoysticPressed = true;
+//	}
+//	else virtualLeftJoysticPressed = false;
+//
+//	if(closestTouchRight >= 0)
+//	{
+//		TouchData touch = pData->touchData[closestTouchRight];
+//		vec2 newPos = virtualRightJoystickPos - vec2(touch.screenDeltaX, touch.screenDeltaY);
+//
+//		// Clamp the joystick's position to the max range.
+//		vec2 tiltDir = newPos - k_vRightJoystickCenter;
+//		if(length(tiltDir) > k_vJoystickRange) newPos = k_vRightJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
+//
+//		virtualRightJoystickPos = newPos;
+//		virtualRightJoysticPressed = true;
+//	}
+//	else virtualRightJoysticPressed = false;
 }
 #endif
 
 void GuiCameraController::update(float deltaTime)
 {
-	// TODO: Implement GUI controller behaviour iOS/Durango.
-#ifdef TARGET_IOS
-	{
-		vec2 leftJoystickDir = virtualLeftJoystickPos - k_vLeftJoystickCenter;
-		if(virtualLeftJoysticPressed)
-		{
-
-		}
-		else if (length(leftJoystickDir) > 0)
-		{
-			vec2 recoveryVector = normalize(leftJoystickDir) * k_vJoystickRecovery * deltaTime;
-			if(length(recoveryVector) >= length(leftJoystickDir)) virtualLeftJoystickPos = k_vLeftJoystickCenter;
-			else virtualLeftJoystickPos -= recoveryVector;
-		}
-
-		vec2 rightJoystickDir = virtualRightJoystickPos - k_vRightJoystickCenter;
-		if(virtualRightJoysticPressed)
-		{
-
-		}
-		else if (length(rightJoystickDir) > 0)
-		{
-			vec2 recoveryVector = normalize(rightJoystickDir) * k_vJoystickRecovery * deltaTime;
-			if(length(recoveryVector) >= length(rightJoystickDir)) virtualRightJoystickPos = k_vRightJoystickCenter;
-			else virtualRightJoystickPos -= recoveryVector;
-		}
-	}
-#endif
-
 	viewPosition += velocity * deltaTime;
 	velocity = vec3{ 0 };
 }
 
 mat4 GuiCameraController::getViewMatrix() const
 {
-	mat4 r { mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY()) };
+	mat4 r{ mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY()) };
 	vec4 t = r * vec4(-viewPosition, 1.0f);
 	r.setTranslation(t.getXYZ());
 	return r;
 }
 
-vec3 GuiCameraController::getViewPosition() const
-{
-	return viewPosition;
-}
+vec3 GuiCameraController::getViewPosition() const { return viewPosition; }
 
-#ifdef TARGET_IOS
-vec2 GuiCameraController::getVirtualLeftJoystickPos() const
-{
-	return virtualLeftJoystickPos;
-}
-
-vec2 GuiCameraController::getVirtualRightJoystickPos() const
-{
-	return virtualRightJoystickPos;
-}
-#endif
-
-void GuiCameraController::moveTo(const vec3& location)
-{
-	viewPosition = location;
-}
+void GuiCameraController::moveTo(const vec3& location) { viewPosition = location; }
 
 void GuiCameraController::lookAt(const vec3& lookAt)
 {
@@ -295,7 +218,7 @@ void GuiCameraController::lookAt(const vec3& lookAt)
 
 	float x = lookDir.getX();
 	float z = lookDir.getZ();
-	float n = sqrtf((x*x) + (z*z));
+	float n = sqrtf((x * x) + (z * z));
 	if (n > 0.01f)
 	{
 		// don't change the Y rotation if we're too close to vertical

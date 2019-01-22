@@ -24,9 +24,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry.h" />
-    <ClInclude Include="..\src\Shaders\PCDX12\packing.h" />
-    <ClInclude Include="..\src\Shaders\PCDX12\shader_defs.h" />
-    <ClInclude Include="..\src\Shaders\PCDX12\shading.h" />
+    <ClInclude Include="..\src\Shaders\D3D12\packing.h" />
+    <ClInclude Include="..\src\Shaders\D3D12\shader_defs.h" />
+    <ClInclude Include="..\src\Shaders\D3D12\shading.h" />
     <ClInclude Include="..\src\Shaders\Vulkan\non_uniform_resource_index.h" />
     <ClInclude Include="..\src\Shaders\Vulkan\packing.h" />
     <ClInclude Include="..\src\Shaders\Vulkan\shader_defs.h" />
@@ -958,41 +958,41 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\Shaders\PCDX12\batch_compaction.comp" />
-    <None Include="..\src\Shaders\PCDX12\clear_buffers.comp" />
-    <None Include="..\src\Shaders\PCDX12\clear_light_clusters.comp" />
-    <None Include="..\src\Shaders\PCDX12\cluster_lights.comp" />
-    <None Include="..\src\Shaders\PCDX12\CurveConversion.frag" />
-    <None Include="..\src\Shaders\PCDX12\deferred_pass.frag" />
-    <None Include="..\src\Shaders\PCDX12\deferred_pass.vert" />
-    <None Include="..\src\Shaders\PCDX12\deferred_pass_alpha.frag" />
-    <None Include="..\src\Shaders\PCDX12\deferred_shade.frag" />
-    <None Include="..\src\Shaders\PCDX12\deferred_shade.vert" />
-    <None Include="..\src\Shaders\PCDX12\deferred_shade_pointlight.frag" />
-    <None Include="..\src\Shaders\PCDX12\deferred_shade_pointlight.vert" />
-    <None Include="..\src\Shaders\PCDX12\display.frag" />
-    <None Include="..\src\Shaders\PCDX12\display.vert" />
-    <None Include="..\src\Shaders\PCDX12\godray.frag" />
-    <None Include="..\src\Shaders\PCDX12\HDAO.frag" />
-    <None Include="..\src\Shaders\PCDX12\HDAO.vert" />
-    <None Include="..\src\Shaders\PCDX12\panoToCube.comp" />
-    <None Include="..\src\Shaders\PCDX12\resolve.frag" />
-    <None Include="..\src\Shaders\PCDX12\resolve.vert" />
-    <None Include="..\src\Shaders\PCDX12\resolveGodray.frag" />
-    <None Include="..\src\Shaders\PCDX12\shadow_pass.vert" />
-    <None Include="..\src\Shaders\PCDX12\shadow_pass_alpha.frag" />
-    <None Include="..\src\Shaders\PCDX12\shadow_pass_alpha.vert" />
-    <None Include="..\src\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\Shaders\PCDX12\skybox.vert" />
-    <None Include="..\src\Shaders\PCDX12\sun.frag" />
-    <None Include="..\src\Shaders\PCDX12\sun.vert" />
-    <None Include="..\src\Shaders\PCDX12\triangle_filtering.comp" />
-    <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass.frag" />
-    <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass.vert" />
-    <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass_alpha.frag" />
-    <None Include="..\src\Shaders\PCDX12\visibilityBuffer_pass_alpha.vert" />
-    <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.frag" />
-    <None Include="..\src\Shaders\PCDX12\visibilityBuffer_shade.vert" />
+    <None Include="..\src\Shaders\D3D12\batch_compaction.comp" />
+    <None Include="..\src\Shaders\D3D12\clear_buffers.comp" />
+    <None Include="..\src\Shaders\D3D12\clear_light_clusters.comp" />
+    <None Include="..\src\Shaders\D3D12\cluster_lights.comp" />
+    <None Include="..\src\Shaders\D3D12\CurveConversion.frag" />
+    <None Include="..\src\Shaders\D3D12\deferred_pass.frag" />
+    <None Include="..\src\Shaders\D3D12\deferred_pass.vert" />
+    <None Include="..\src\Shaders\D3D12\deferred_pass_alpha.frag" />
+    <None Include="..\src\Shaders\D3D12\deferred_shade.frag" />
+    <None Include="..\src\Shaders\D3D12\deferred_shade.vert" />
+    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.frag" />
+    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.vert" />
+    <None Include="..\src\Shaders\D3D12\display.frag" />
+    <None Include="..\src\Shaders\D3D12\display.vert" />
+    <None Include="..\src\Shaders\D3D12\godray.frag" />
+    <None Include="..\src\Shaders\D3D12\HDAO.frag" />
+    <None Include="..\src\Shaders\D3D12\HDAO.vert" />
+    <None Include="..\src\Shaders\D3D12\panoToCube.comp" />
+    <None Include="..\src\Shaders\D3D12\resolve.frag" />
+    <None Include="..\src\Shaders\D3D12\resolve.vert" />
+    <None Include="..\src\Shaders\D3D12\resolveGodray.frag" />
+    <None Include="..\src\Shaders\D3D12\shadow_pass.vert" />
+    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.frag" />
+    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.vert" />
+    <None Include="..\src\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\Shaders\D3D12\skybox.vert" />
+    <None Include="..\src\Shaders\D3D12\sun.frag" />
+    <None Include="..\src\Shaders\D3D12\sun.vert" />
+    <None Include="..\src\Shaders\D3D12\triangle_filtering.comp" />
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.frag" />
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.vert" />
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.frag" />
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.vert" />
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.frag" />
+    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.vert" />
     <None Include="..\src\Shaders\Vulkan\CurveConversion.frag" />
     <None Include="..\src\Shaders\Vulkan\display.frag" />
     <None Include="..\src\Shaders\Vulkan\display.vert" />
@@ -1057,25 +1057,25 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,37 +25,33 @@
 #pragma once
 
 #include "../../Common_3/OS/Math/MathTypes.h"
-#include "../../Common_3/OS/Interfaces/IOperatingSystem.h"
+#include "../../Common_3/OS/Interfaces/IFileSystem.h"
 
 struct Renderer;
 
+extern FSRoot FSR_MIDDLEWARE_TEXT;
+
 typedef struct TextDrawDesc
 {
-	TextDrawDesc
-	(
-		  uint font = 0
-		, uint32_t color = 0xffffffff
-		, float size = 15.0f
-		, float spacing = 0.0f
-		, float blur = 0.0f
-	) 
-		: mFontID(font)
-		, mFontColor(color)
-		, mFontSize(size)
-		, mFontSpacing(spacing)
-		, mFontBlur(blur) 
-	{}
+	TextDrawDesc(uint font = 0, uint32_t color = 0xffffffff, float size = 15.0f, float spacing = 0.0f, float blur = 0.0f):
+		mFontID(font),
+		mFontColor(color),
+		mFontSize(size),
+		mFontSpacing(spacing),
+		mFontBlur(blur)
+	{
+	}
 
 	uint32_t mFontID;
 	uint32_t mFontColor;
-	float mFontSize;
-	float mFontSpacing;
-	float mFontBlur;
+	float    mFontSize;
+	float    mFontSpacing;
+	float    mFontBlur;
 } TextDrawDesc;
 
 class Fontstash
 {
-public:
+	public:
 	Fontstash(Renderer* renderer, int width, int height);
 	void destroy();
 
@@ -69,19 +65,25 @@ public:
 	int getFontID(const char* identification);
 
 	const char* getFontName(const char* identification);
-	void* getFontBuffer(const char* identification);
-	uint32_t getFontBufferSize(const char* identification);
+	void*       getFontBuffer(const char* identification);
+	uint32_t    getFontBufferSize(const char* identification);
 
 	//! Draw text.
-	void drawText(struct Cmd* pCmd, const char* message, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
+	void drawText(
+		struct Cmd* pCmd, const char* message, float x, float y, int fontID, unsigned int color = 0xffffffff, float size = 16.0f,
+		float spacing = 0.0f, float blur = 0.0f);
 
 	//! Draw text in worldSpace.
-	void drawText(struct Cmd* pCmd, const char* message,const mat4& projView,const mat4& worldMat, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
+	void drawText(
+		struct Cmd* pCmd, const char* message, const mat4& projView, const mat4& worldMat, int fontID, unsigned int color = 0xffffffff,
+		float size = 16.0f, float spacing = 0.0f, float blur = 0.0f);
 
 	//! Measure text boundaries. Results will be written to out_bounds (x,y,x2,y2).
-	float measureText(float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color=0xffffffff, float size=16.0f, float spacing=0.0f, float blur=0.0f);
-	
-protected:
-	float m_fFontMaxSize;
+	float measureText(
+		float* out_bounds, const char* message, float x, float y, int fontID, unsigned int color = 0xffffffff, float size = 16.0f,
+		float spacing = 0.0f, float blur = 0.0f);
+
+	protected:
+	float                  m_fFontMaxSize;
 	class _Impl_FontStash* impl;
 };

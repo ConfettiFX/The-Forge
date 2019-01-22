@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -35,7 +35,6 @@
 		B28C6EEF21B209DA00FBA1BF /* additive_animation_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC821B2099C00FBA1BF /* additive_animation_builder.cc */; };
 		B28C6EF021B209DA00FBA1BF /* animation_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC921B2099C00FBA1BF /* animation_builder.cc */; };
 		B28C6EF121B209DA00FBA1BF /* animation_optimizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECB21B2099C00FBA1BF /* animation_optimizer.cc */; };
-		B28C6EF221B209DA00FBA1BF /* CMakeLists.txt in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ED121B2099C00FBA1BF /* CMakeLists.txt */; };
 		B28C6EF421B209DA00FBA1BF /* raw_animation_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECA21B2099C00FBA1BF /* raw_animation_archive.cc */; };
 		B28C6EF521B209DA00FBA1BF /* raw_animation_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC321B2099C00FBA1BF /* raw_animation_utils.cc */; };
 		B28C6EF621B209DA00FBA1BF /* raw_animation.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECC21B2099C00FBA1BF /* raw_animation.cc */; };
@@ -175,7 +174,6 @@
 		B28C6ECE21B2099C00FBA1BF /* track_optimizer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = track_optimizer.cc; path = src/animation/offline/track_optimizer.cc; sourceTree = "<group>"; };
 		B28C6ECF21B2099C00FBA1BF /* raw_skeleton_archive.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = raw_skeleton_archive.cc; path = src/animation/offline/raw_skeleton_archive.cc; sourceTree = "<group>"; };
 		B28C6ED021B2099C00FBA1BF /* fbx */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fbx; path = src/animation/offline/fbx; sourceTree = "<group>"; };
-		B28C6ED121B2099C00FBA1BF /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CMakeLists.txt; path = src/animation/offline/CMakeLists.txt; sourceTree = "<group>"; };
 		B28C6EEE21B209AA00FBA1BF /* ozz_animation offline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "ozz_animation offline.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B4196D8BCBE2413D8AE40DFA /* deque.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = deque.h; path = include/ozz/base/containers/deque.h; sourceTree = SOURCE_ROOT; };
 		B44448DFAAED4B1697211D87 /* track.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = track.cc; path = src/animation/runtime/track.cc; sourceTree = SOURCE_ROOT; };
@@ -322,7 +320,6 @@
 				B28C6EC821B2099C00FBA1BF /* additive_animation_builder.cc */,
 				B28C6EC921B2099C00FBA1BF /* animation_builder.cc */,
 				B28C6ECB21B2099C00FBA1BF /* animation_optimizer.cc */,
-				B28C6ED121B2099C00FBA1BF /* CMakeLists.txt */,
 				B28C6ED021B2099C00FBA1BF /* fbx */,
 				B28C6ECA21B2099C00FBA1BF /* raw_animation_archive.cc */,
 				B28C6EC321B2099C00FBA1BF /* raw_animation_utils.cc */,
@@ -570,7 +567,6 @@
 				B28C6EEF21B209DA00FBA1BF /* additive_animation_builder.cc in Sources */,
 				B28C6EF021B209DA00FBA1BF /* animation_builder.cc in Sources */,
 				B28C6EF121B209DA00FBA1BF /* animation_optimizer.cc in Sources */,
-				B28C6EF221B209DA00FBA1BF /* CMakeLists.txt in Sources */,
 				B28C6EF421B209DA00FBA1BF /* raw_animation_archive.cc in Sources */,
 				B28C6EF521B209DA00FBA1BF /* raw_animation_utils.cc in Sources */,
 				B28C6EF621B209DA00FBA1BF /* raw_animation.cc in Sources */,

@@ -23,14 +23,14 @@
     <ClCompile Include="..\src\11_MultiGPU\11_MultiGPU.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag" />
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.frag" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.vert" />
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag" />
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert" />
-    <None Include="..\src\11_MultiGPU\Shaders\PCDX12\basic.frag" />
-    <None Include="..\src\11_MultiGPU\Shaders\PCDX12\basic.vert" />
-    <None Include="..\src\11_MultiGPU\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\11_MultiGPU\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\11_MultiGPU\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\11_MultiGPU\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\11_MultiGPU\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\11_MultiGPU\Shaders\D3D12\skybox.vert" />
     <None Include="..\src\11_MultiGPU\Shaders\Vulkan\basic.frag" />
     <None Include="..\src\11_MultiGPU\Shaders\Vulkan\basic.vert" />
     <None Include="..\src\11_MultiGPU\Shaders\Vulkan\skybox.frag" />

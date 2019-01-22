@@ -273,7 +273,7 @@ namespace ShaderTranslator
 
 
 
-                        if (tokkens[tokkens.Length - 1] == "PCDX12")
+                        if (tokkens[tokkens.Length - 1] == "D3D12")
                         {
                             outFile = "";
 

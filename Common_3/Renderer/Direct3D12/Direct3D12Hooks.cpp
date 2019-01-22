@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,20 +29,14 @@
 
 static void enable_debug_layer_hook(Renderer* pRenderer)
 {
-#if defined(_DEBUG) || defined ( PROFILE )
+#if defined(_DEBUG) || defined(PROFILE)
 	pRenderer->pDXDebug->EnableDebugLayer();
 #endif
 }
 
-static ImageFormat::Enum get_recommended_swapchain_format(bool hintHDR)
-{
-  return ImageFormat::BGRA8;
-}
+static ImageFormat::Enum get_recommended_swapchain_format(bool hintHDR) { return ImageFormat::BGRA8; }
 
-static uint32_t get_swap_chain_image_index(SwapChain* pSwapChain)
-{
-	return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex();
-}
+static uint32_t get_swap_chain_image_index(SwapChain* pSwapChain) { return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex(); }
 
 void initHooks()
 {
@@ -51,4 +45,3 @@ void initHooks()
 	fnHookGetSwapChainImageIndex = get_swap_chain_image_index;
 }
 #endif
-

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,11 +31,10 @@
 // and "play" state.
 // Internally time is stored as a ratio in unit interval [0,1], as expected by
 // ozz runtime animation jobs.
-class ClipController 
+class ClipController
 
 {
-public:
-
+	public:
 	// Initialization
 	void Initialize(float duration, float* externallyUsedTime = nullptr);
 
@@ -100,15 +99,14 @@ public:
 	inline bool* GetLoopPtr() { return &mLoop; };
 
 	// Gets the address of mPlaybackSpeed so it can be edited externally
-	inline float *GetPlaybackSpeedPtr() { return &mPlaybackSpeed; };
+	inline float* GetPlaybackSpeedPtr() { return &mPlaybackSpeed; };
 
 	// Gets the address of mWeight so it can be edited externally
-	inline float *GetWeightPtr() { return &mWeight; };
+	inline float* GetWeightPtr() { return &mWeight; };
 
-private:
-
+	private:
 	// Blending weight [0-1] for the clip this is managing.
-	// Initialize to max of 1.0f so clip will have full influence 
+	// Initialize to max of 1.0f so clip will have full influence
 	float mWeight = 1.0f;
 
 	// Indicates if the clip is additive or not.
@@ -135,5 +133,4 @@ private:
 
 	// Gets updated each time we set the time, will get used externally (UI)
 	float* gExternallyUsedTime;
-
 };

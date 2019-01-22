@@ -1801,7 +1801,9 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 			}
 			else
 			{
-				if(buffer->type.elementType != HLSLBaseType_Unknown)
+				if(buffer->type.elementType != HLSLBaseType_Unknown && 
+					buffer->type.baseType != HLSLBaseType_ByteAddressBuffer &&
+					buffer->type.baseType != HLSLBaseType_RWByteAddressBuffer)
 				m_writer.Write("<%s>", getElementTypeAsStr(buffer->type));
 
 				m_writer.Write(" %s", buffer->name);

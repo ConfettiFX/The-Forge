@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
   <VirtualDirectory Name="Middleware_3">
+    <VirtualDirectory Name="Animation">
+      <File Name="../../../../Middleware_3/Animation/SkeletonBatcher.h"/>
+      <File Name="../../../../Middleware_3/Animation/SkeletonBatcher.cpp"/>
+      <File Name="../../../../Middleware_3/Animation/Rig.h"/>
+      <File Name="../../../../Middleware_3/Animation/Rig.cpp"/>
+      <File Name="../../../../Middleware_3/Animation/ClipMask.h"/>
+      <File Name="../../../../Middleware_3/Animation/ClipMask.cpp"/>
+      <File Name="../../../../Middleware_3/Animation/ClipController.h"/>
+      <File Name="../../../../Middleware_3/Animation/ClipController.cpp"/>
+      <File Name="../../../../Middleware_3/Animation/Clip.h"/>
+      <File Name="../../../../Middleware_3/Animation/Clip.cpp"/>
+      <File Name="../../../../Middleware_3/Animation/Animation.h"/>
+      <File Name="../../../../Middleware_3/Animation/Animation.cpp"/>
+      <File Name="../../../../Middleware_3/Animation/AnimatedObject.h"/>
+      <File Name="../../../../Middleware_3/Animation/AnimatedObject.cpp"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="Input">
       <File Name="../../../../Middleware_3/Input/InputSystem.h"/>
       <File Name="../../../../Middleware_3/Input/InputSystem.cpp"/>
@@ -14,7 +30,7 @@
       <File Name="../../../../Middleware_3/UI/AppUI.h"/>
       <File Name="../../../../Middleware_3/UI/ImguiGUIDriver.cpp"/>
       <File Name="../../../../Middleware_3/UI/UIShaders.h"/>
-	  <VirtualDirectory Name="imgui">
+      <VirtualDirectory Name="imgui">
         <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui.cpp"/>
         <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_demo.cpp"/>
         <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_draw.cpp"/>

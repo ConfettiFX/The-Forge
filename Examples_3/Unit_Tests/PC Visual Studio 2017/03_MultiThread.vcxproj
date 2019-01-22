@@ -22,12 +22,12 @@
     <ClCompile Include="..\src\03_MultiThread\03_MultiThread.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Graph.frag" />
-    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Graph.vert" />
-    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Particle.frag" />
-    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Particle.vert" />
-    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Skybox.frag" />
-    <None Include="..\src\03_MultiThread\Shaders\PCDX12\Skybox.vert" />
+    <None Include="..\src\03_MultiThread\Shaders\D3D12\Graph.frag" />
+    <None Include="..\src\03_MultiThread\Shaders\D3D12\Graph.vert" />
+    <None Include="..\src\03_MultiThread\Shaders\D3D12\Particle.frag" />
+    <None Include="..\src\03_MultiThread\Shaders\D3D12\Particle.vert" />
+    <None Include="..\src\03_MultiThread\Shaders\D3D12\Skybox.frag" />
+    <None Include="..\src\03_MultiThread\Shaders\D3D12\Skybox.vert" />
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,12 +29,12 @@
 /// Low res OS timer
 class Timer
 {
-public:
+	public:
 	Timer();
 	unsigned GetMSec(bool reset);
-	void Reset();
+	void     Reset();
 
-private:
+	private:
 	unsigned mStartTime;
 };
 
@@ -43,26 +43,26 @@ class HiresTimer
 {
 	friend class TimeManager;
 
-public:
+	public:
 	HiresTimer();
 
 	int64_t GetUSec(bool reset);
 	int64_t GetUSecAverage();
-	float GetSeconds(bool reset);
-	float GetSecondsAverage();
-	void Reset();
+	float   GetSeconds(bool reset);
+	float   GetSecondsAverage();
+	void    Reset();
 
-private:
+	private:
 	int64_t mStartTime;
 
 	static const uint32_t LENGTH_OF_HISTORY = 60;
-	int64_t mHistory[LENGTH_OF_HISTORY];
-	uint32_t mHistoryIndex;
+	int64_t               mHistory[LENGTH_OF_HISTORY];
+	uint32_t              mHistoryIndex;
 };
 
 class TimeManager
 {
-public:
+	public:
 	static unsigned GetSystemTime();
 	static unsigned GetTimeSinceStart();
 };

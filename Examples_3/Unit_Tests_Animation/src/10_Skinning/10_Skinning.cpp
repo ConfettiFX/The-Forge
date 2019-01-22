@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -65,66 +65,68 @@
 // Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
+#ifdef __APPLE__
+#include "../../../../Common_3/Tools/AssetPipeline/AssetPipeline.h"
+#endif
+
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-const char* pszBases[] =
-{
-	"../../../src/10_Skinning/",		// FSR_BinShaders
-	"../../../src/10_Skinning/",		// FSR_SrcShaders
-	"",									// FSR_BinShaders_Common
-	"",									// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",		// FSR_Textures
-	"../../../UnitTestResources/",		// FSR_Meshes
-	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
-	"../../../src/10_Skinning/",		// FSR_GpuConfig
-	"../../../UnitTestResources/",		// FSR_Animtion
-	"",									// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/10_Skinning/",            // FSR_BinShaders
+	"../../../src/10_Skinning/",            // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/10_Skinning/",            // FSR_GpuConfig
+	"../../../UnitTestResources/",          // FSR_Animtion
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
-const uint32_t		gImageCount = 3;
-uint32_t			gFrameIndex = 0;
-Renderer*			pRenderer = NULL;
+const uint32_t gImageCount = 3;
+uint32_t       gFrameIndex = 0;
+Renderer*      pRenderer = NULL;
 
-Queue*				pGraphicsQueue = NULL;
-CmdPool*			pCmdPool = NULL;
-Cmd**				ppCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-SwapChain*			pSwapChain = NULL;
-RenderTarget*		pDepthBuffer = NULL;
-Fence*				pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			pImageAcquiredSemaphore = NULL;
-Semaphore*			pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*    pSwapChain = NULL;
+RenderTarget* pDepthBuffer = NULL;
+Fence*        pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*    pImageAcquiredSemaphore = NULL;
+Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 #ifdef TARGET_IOS
-VirtualJoystickUI	gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
-DepthState*			pDepth = NULL;
+DepthState* pDepth = NULL;
 
+RasterizerState* pPlaneRast = NULL;
+RasterizerState* pSkeletonRast = NULL;
 
-RasterizerState*	pPlaneRast = NULL;
-RasterizerState*	pSkeletonRast = NULL;
+Sampler* pDefaultSampler = NULL;
 
-Sampler*			pDefaultSampler = NULL;
+Shader*   pSkeletonShader = NULL;
+Buffer*   pJointVertexBuffer = NULL;
+Buffer*   pBoneVertexBuffer = NULL;
+Pipeline* pSkeletonPipeline = NULL;
+int       gNumberOfJointPoints;
+int       gNumberOfBonePoints;
 
-Shader*				pSkeletonShader = NULL;
-Buffer*				pJointVertexBuffer = NULL;
-Buffer*				pBoneVertexBuffer = NULL;
-Pipeline*			pSkeletonPipeline = NULL;
-int					gNumberOfJointPoints;
-int					gNumberOfBonePoints;
+Shader*        pPlaneDrawShader = NULL;
+Buffer*        pPlaneVertexBuffer = NULL;
+Pipeline*      pPlaneDrawPipeline = NULL;
+RootSignature* pRootSignature = NULL;
 
-Shader*				pPlaneDrawShader = NULL;
-Buffer*				pPlaneVertexBuffer = NULL;
-Pipeline*			pPlaneDrawPipeline = NULL;
-RootSignature*		pRootSignature = NULL;
-
-Shader*				pShaderSkinning = NULL;
-RootSignature*		pRootSignatureSkinning = NULL;
-Pipeline*			pPipelineSkinning = NULL;
+Shader*        pShaderSkinning = NULL;
+RootSignature* pRootSignatureSkinning = NULL;
+Pipeline*      pPipelineSkinning = NULL;
 
 struct Vertex
 {
@@ -132,7 +134,7 @@ struct Vertex
 	float3 mNormal;
 	float2 mUV;
 	float4 mBoneWeights;
-	uint4 mBoneIndices;
+	uint4  mBoneIndices;
 };
 
 struct UniformDataBones
@@ -140,71 +142,70 @@ struct UniformDataBones
 	mat4 mBoneMatrix[MAX_NUM_BONES];
 };
 
-Buffer*				pVertexBuffer = NULL;
-Buffer*				pIndexBuffer = NULL;
-uint				gIndexCount = 0;
-Buffer*				pBoneOffsetBuffer = NULL;
-Buffer*				pUniformBufferBones[gImageCount] = { NULL };
-UniformDataBones	gUniformDataBones;
-Texture*			pTextureDiffuse = NULL;
+Buffer*          pVertexBuffer = NULL;
+Buffer*          pIndexBuffer = NULL;
+uint             gIndexCount = 0;
+Buffer*          pBoneOffsetBuffer = NULL;
+Buffer*          pUniformBufferBones[gImageCount] = { NULL };
+UniformDataBones gUniformDataBones;
+Texture*         pTextureDiffuse = NULL;
 
 struct UniformBlockPlane
 {
 	mat4 mProjectView;
 	mat4 mToWorldMat;
 };
-UniformBlockPlane		gUniformDataPlane;
+UniformBlockPlane gUniformDataPlane;
 
-Buffer*				pPlaneUniformBuffer[gImageCount] = { NULL };
+Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 
 //--------------------------------------------------------------------------------------------
 // CAMERA CONTROLLER & SYSTEMS (File/Log/UI)
 //--------------------------------------------------------------------------------------------
 
-ICameraController*	pCameraController = NULL;
-FileSystem			gFileSystem;
-LogManager			gLogManager;
+ICameraController* pCameraController = NULL;
+FileSystem         gFileSystem;
+LogManager         gLogManager;
 
-UIApp				gAppUI;
-GuiComponent*		pStandaloneControlsGUIWindow = NULL;
+UIApp         gAppUI;
+GuiComponent* pStandaloneControlsGUIWindow = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-GpuProfiler*		pGpuProfiler = NULL;
-
+GpuProfiler* pGpuProfiler = NULL;
 
 //--------------------------------------------------------------------------------------------
 // ANIMATION DATA
 //--------------------------------------------------------------------------------------------
 
 // AnimatedObjects
-AnimatedObject		gStickFigureAnimObject;
+AnimatedObject gStickFigureAnimObject;
 
 // Animations
-Animation			gAnimation;
+Animation gAnimation;
 
 // ClipControllers
-ClipController		gClipController;
+ClipController gClipController;
 
 // Clips
-Clip				gClip;
+Clip gClip;
 
 // Rigs
-Rig					gStickFigureRig;
+Rig gStickFigureRig;
 
 // SkeletonBatcher
-SkeletonBatcher		gSkeletonBatcher;
+SkeletonBatcher gSkeletonBatcher;
 
 // Filenames
-const char*			gStickFigureName = "stormtrooper/skeleton.ozz";
-const char*			gClipName = "stormtrooper/animations/dance.ozz";
-const char*			gDiffuseTexture = "Stormtrooper_D.png";
+const char* gStickFigureName = "stormtrooper/skeleton.ozz";
+const char* gClipName = "stormtrooper/animations/dance.ozz";
+const char* gDiffuseTexture = "Stormtrooper_D.png";
 
-const int			gSphereResolution = 30; // Increase for higher resolution joint spheres
-const float			gBoneWidthRatio = 0.2f; // Determines how far along the bone to put the max width [0,1]
-const float			gJointRadius = gBoneWidthRatio * 0.5f; // set to replicate Ozz skeleton
+const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
+const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
+const float gJointRadius = gBoneWidthRatio * 0.5f;    // set to replicate Ozz skeleton
 
 // Timer to get animationsystem update time
-static HiresTimer	gAnimationUpdateTimer;
+static HiresTimer gAnimationUpdateTimer;
 
 //--------------------------------------------------------------------------------------------
 // UI DATA
@@ -213,45 +214,47 @@ struct UIData
 {
 	struct ClipData
 	{
-		bool*		mPlay;
-		bool*		mLoop;
-		float		mAnimationTime; // will get set by clip controller
-		float*		mPlaybackSpeed;
+		bool*  mPlay;
+		bool*  mLoop;
+		float  mAnimationTime;    // will get set by clip controller
+		float* mPlaybackSpeed;
 	};
 	ClipData mClip;
 
 	struct GeneralSettingsData
 	{
-		bool		mShowBindPose = false;
-		bool		mDrawBones = false;
-		bool		mDrawPlane = true;
+		bool mShowBindPose = false;
+		bool mDrawBones = false;
+		bool mDrawPlane = true;
 	};
 	GeneralSettingsData mGeneralSettings;
 };
 UIData gUIData;
 
 // Hard set the controller's time ratio via callback when it is set in the UI
-void ClipTimeChangeCallback()
-{
-	gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime);
-}
-
-
+void ClipTimeChangeCallback() { gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime); }
 
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
-class Skinning : public IApp
+class Skinning: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
-
+#if defined(__APPLE__) && !defined(TARGET_IOS)
+		ProcessAssetsSettings animationSettings = {};
+		animationSettings.quiet = false;
+		animationSettings.force = false;
+		animationSettings.minLastModifiedTime = 0;
+		AssetPipeline::ProcessAnimations(
+			FileSystem::FixPath("fbx", FSR_Animation), FileSystem::FixPath("", FSR_Animation), &animationSettings);
+#endif
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer) //check for init success
+		if (!pRenderer)    //check for init success
 			return false;
 
 		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
@@ -303,7 +306,7 @@ public:
 
 		// CLIP CONTROLLERS
 		//
-		// Initialize with the length of the clip they are controlling and an 
+		// Initialize with the length of the clip they are controlling and an
 		// optional external time to set based on their updating
 		gClipController.Initialize(gClip.GetDuration(), &gUIData.mClip.mAnimationTime);
 
@@ -341,7 +344,7 @@ public:
 		basicShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
 		basicShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
 
-		ShaderMacro maxNumBonesMacro = { "MAX_NUM_BONES", tinystl::string::format("%i", gStickFigureRig.GetNumJoints()) };
+		ShaderMacro    maxNumBonesMacro = { "MAX_NUM_BONES", tinystl::string::format("%i", gStickFigureRig.GetNumJoints()) };
 		ShaderLoadDesc skinningShader = {};
 		skinningShader.mStages[0] = { "skinning.vert", &maxNumBonesMacro, 1, FSR_SrcShaders };
 		skinningShader.mStages[1] = { "skinning.frag", &maxNumBonesMacro, 1, FSR_SrcShaders };
@@ -350,7 +353,7 @@ public:
 		addShader(pRenderer, &basicShader, &pSkeletonShader);
 		addShader(pRenderer, &skinningShader, &pShaderSkinning);
 
-		Shader* shaders[] = { pSkeletonShader, pPlaneDrawShader };
+		Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
 		RootSignatureDesc rootDesc = {};
 		rootDesc.mShaderCount = 2;
 		rootDesc.ppShaders = shaders;
@@ -387,7 +390,7 @@ public:
 		float* pJointPoints;
 		generateSpherePoints(&pJointPoints, &gNumberOfJointPoints, gSphereResolution, gJointRadius);
 
-		uint64_t jointDataSize = gNumberOfJointPoints * sizeof(float);
+		uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
 		BufferLoadDesc jointVbDesc = {};
 		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -404,7 +407,7 @@ public:
 		float* pBonePoints;
 		generateBonePoints(&pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio);
 
-		uint64_t boneDataSize = gNumberOfBonePoints * sizeof(float);
+		uint64_t       boneDataSize = gNumberOfBonePoints * sizeof(float);
 		BufferLoadDesc boneVbDesc = {};
 		boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -418,16 +421,11 @@ public:
 		conf_free(pBonePoints);
 
 		//Generate plane vertex buffer
-		float planePoints[] = {
-			-10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f,
-			-10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 0.0f,
-			 10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f,
-			 10.0f, 0.0f,  10.0f, 1.0f, 1.0f, 1.0f,
-			 10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 1.0f,
-			-10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f
-		};
+		float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
+								10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f, 10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f,
+								10.0f,  0.0f, -10.0f, 1.0f, 0.0f, 1.0f, -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f };
 
-		uint64_t planeDataSize = 6 * 6 * sizeof(float);
+		uint64_t       planeDataSize = 6 * 6 * sizeof(float);
 		BufferLoadDesc planeVbDesc = {};
 		planeVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		planeVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -454,18 +452,19 @@ public:
 		/************************************************************************/
 		fullPath = FileSystem::FixPath("fbx/stormtrooper/riggedMesh.fbx", FSR_Animation);
 
-		Model model = {};
-		if (!AssimpImporter::ImportModel(fullPath.c_str(), &model))
+		AssimpImporter        importer;
+		AssimpImporter::Model model = {};
+		if (!importer.ImportModel(fullPath.c_str(), &model))
 			return false;
 
 		tinystl::vector<Vertex> vertices;
-		tinystl::vector<uint> indices;
-		tinystl::vector<mat4> boneOffsetMatrices(gStickFigureRig.GetNumJoints(), mat4::identity());
+		tinystl::vector<uint>   indices;
+		tinystl::vector<mat4>   boneOffsetMatrices(gStickFigureRig.GetNumJoints(), mat4::identity());
 		for (uint i = 0; i < (uint)model.mMeshArray.size(); ++i)
 		{
-			Mesh* mesh = &model.mMeshArray[i];
-			uint startVertices = (uint)vertices.size();
-			uint vertexCount = (uint)mesh->mPositions.size();
+			AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
+			uint                  startVertices = (uint)vertices.size();
+			uint                  vertexCount = (uint)mesh->mPositions.size();
 
 			vertices.resize(startVertices + vertexCount);
 			for (uint j = 0; j < vertexCount; ++j)
@@ -493,7 +492,7 @@ public:
 				for (size_t j = 0; j < mesh->mBones.size(); ++j)
 				{
 					int jointIndex = gStickFigureRig.FindJoint(mesh->mBones[j].mName.c_str());
-					if(jointIndex >= 0)
+					if (jointIndex >= 0)
 						boneOffsetMatrices[jointIndex] = mesh->mBones[j].mOffsetMatrix;
 				}
 			}
@@ -575,11 +574,15 @@ public:
 		// SETUP THE MAIN CAMERA
 		//
 		CameraMotionParameters cmp{ 50.0f, 75.0f, 150.0f };
-		vec3 camPos{ 3.0f, 3.0f, -5.0f };
-		vec3 lookAt{ 0.0f, 1.0f, 0.0f };
+		vec3                   camPos{ 3.0f, 3.0f, -5.0f };
+		vec3                   lookAt{ 0.0f, 1.0f, 0.0f };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		gVirtualJoystick.InitLRSticks();
+		pCameraController->setVirtualJoystick(&gVirtualJoystick);
+#endif
 
 		requestMouseCapture(true);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
@@ -591,11 +594,11 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
-		// Add the GUI Panels/Windows 
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0,  0xffff00ff, 16 };
+		// Add the GUI Panels/Windows
+		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
 
-		vec2 UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
-		vec2 UIPanelSize = { 650, 1000 };
+		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
+		vec2    UIPanelSize = { 650, 1000 };
 		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
 		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Animation", &guiDesc);
 
@@ -623,9 +626,9 @@ public:
 			CollapsingClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mClip.mLoop));
 
 			// Animation Time - Slider
-			float fValMin = 0.0f;
-			float fValMax = gClipController.GetDuration();
-			float sliderStepSize = 0.01f;
+			float             fValMin = 0.0f;
+			float             fValMax = gClipController.GetDuration();
+			float             sliderStepSize = 0.01f;
 			SliderFloatWidget SliderAnimationTime("Animation Time", &gUIData.mClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
 			SliderAnimationTime.pOnActive = ClipTimeChangeCallback;
 
@@ -638,9 +641,9 @@ public:
 			sliderStepSize = 0.1f;
 
 			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingClipWidgets.AddSubWidget(SliderFloatWidget("Playback Speed", gUIData.mClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
+			CollapsingClipWidgets.AddSubWidget(
+				SliderFloatWidget("Playback Speed", gUIData.mClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
 			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-
 
 			// GENERAL SETTINGS
 			//
@@ -648,7 +651,7 @@ public:
 
 			// ShowBindPose - Checkbox
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Show Bind Pose",& gUIData.mGeneralSettings.mShowBindPose));
+			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Show Bind Pose", &gUIData.mGeneralSettings.mShowBindPose));
 
 			// DrawBones - Checkbox
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
@@ -658,7 +661,6 @@ public:
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
 			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Plane", &gUIData.mGeneralSettings.mDrawPlane));
 			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-
 
 			// Add all widgets to the window
 			pStandaloneControlsGUIWindow->AddWidget(CollapsingClipWidgets);
@@ -699,7 +701,7 @@ public:
 
 		removeResource(pVertexBuffer);
 		removeResource(pIndexBuffer);
-		for(int i = 0; i < gImageCount; ++i)
+		for (int i = 0; i < gImageCount; ++i)
 			removeResource(pUniformBufferBones[i]);
 		removeResource(pBoneOffsetBuffer);
 		removeResource(pTextureDiffuse);
@@ -739,7 +741,7 @@ public:
 	bool Load()
 	{
 		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
-		// 
+		//
 		if (!addSwapChain())
 			return false;
 		if (!addDepthBuffer())
@@ -873,7 +875,6 @@ public:
 
 	void Update(float deltaTime)
 	{
-
 		/************************************************************************/
 		// Input
 		/************************************************************************/
@@ -888,13 +889,13 @@ public:
 		// Scene Update
 		/************************************************************************/
 
-		// update camera with time 
+		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-		mat4 projViewMat = projMat * viewMat;
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		mat4        projViewMat = projMat * viewMat;
 
 		vec3 lightPos = vec3(0.0f, 1000.0f, 0.0f);
 		vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
@@ -950,7 +951,7 @@ public:
 		// FRAME SYNC & ACQUIRE SWAPCHAIN RENDER TARGET
 		//
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-		Fence* pNextFence = pRenderCompleteFences[gFrameIndex];
+		Fence*      pNextFence = pRenderCompleteFences[gFrameIndex];
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
@@ -970,23 +971,23 @@ public:
 
 		// Acquire the main render target from the swapchain
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-		Cmd* cmd = ppCmds[gFrameIndex];
-		beginCmd(cmd);  // start recording commands
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Cmd*          cmd = ppCmds[gFrameIndex];
+		beginCmd(cmd);    // start recording commands
 
 		// start gpu frame profiler
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		TextureBarrier barriers[] =		// wait for resource transition
-		{
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
-		};
+		TextureBarrier barriers[] =    // wait for resource transition
+			{
+				{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+			};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
 		// bind and clear the render target
-		LoadActionsDesc loadActions = {};	// render target clean command
+		LoadActionsDesc loadActions = {};    // render target clean command
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = { 0.39f, 0.41f, 0.37f, 1.0f };
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
@@ -1043,17 +1044,19 @@ public:
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		gTimer.GetUSec(true);
 #ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.Gui(pStandaloneControlsGUIWindow); // adds the gui element to AppUI::ComponentsToUpdate list
+		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		drawDebugText(cmd, 8, 65, tinystl::string::format("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-#ifndef METAL // Metal doesn't support GPU profilers
+		drawDebugText(
+			cmd, 8, 65, tinystl::string::format("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f),
+			&gFrameTimeDraw);
+#ifndef METAL    // Metal doesn't support GPU profilers
 		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 		gAppUI.Draw(cmd);
-		
+
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
@@ -1068,10 +1071,7 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "10_Skinning";
-	}
+	tinystl::string GetName() { return "10_Skinning"; }
 
 	bool addSwapChain()
 	{
@@ -1128,7 +1128,6 @@ public:
 		pCameraController->onInputEvent(data);
 		return true;
 	}
-
 };
 
 DEFINE_APPLICATION_MAIN(Skinning)

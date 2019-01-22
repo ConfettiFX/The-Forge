@@ -1,4 +1,3 @@
-#pragma once
 #include "AssetPipeline.h"
 #include "../../ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../OS/Interfaces/ILogManager.h"
@@ -6,22 +5,20 @@
 #include <cstdio>
 #include <sys/stat.h>
 
-const char* pszBases[] =
-{
-	"",		// FSR_BinShaders
-	"",		// FSR_SrcShaders
-	"",		// FSR_BinShaders_Common
-	"",		// FSR_SrcShaders_Common
-	"",		// FSR_Textures
-	"",		// FSR_Meshes
-	"",		// FSR_Builtin_Fonts
-	"",		// FSR_GpuConfig
-	"",		// FSR_Animtion
-	"",		// FSR_OtherFiles
+const char* pszBases[] = {
+	"",    // FSR_BinShaders
+	"",    // FSR_SrcShaders
+	"",    // FSR_BinShaders_Common
+	"",    // FSR_SrcShaders_Common
+	"",    // FSR_Textures
+	"",    // FSR_Meshes
+	"",    // FSR_Builtin_Fonts
+	"",    // FSR_GpuConfig
+	"",    // FSR_Animtion
+	"",    // FSR_OtherFiles
 };
 
 const char* gApplicationName = NULL;
-LogManager gLogManager;
 
 void PrintHelp()
 {
@@ -48,7 +45,7 @@ size_t GetFileLastModifiedTime(const char* _fileName)
 	}
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 	uint appLastModified = 0;
 	if (argc > 0)

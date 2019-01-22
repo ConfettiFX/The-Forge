@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -42,7 +42,11 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IThread.h"
+#include "../Interfaces/IApp.h"
+#include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IMemoryManager.h"
+
+static IApp* pApp = NULL;
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -53,30 +57,27 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-namespace
-{
-	bool isCaptured = false;
+namespace {
+bool isCaptured = false;
 }
 
-static bool		 gWindowClassInitialized = false;
-static WNDCLASSW	gWindowClass;
-static bool		 gAppRunning = false;
+static bool      gWindowClassInitialized = false;
+static WNDCLASSW gWindowClass;
 
-static tinystl::vector <MonitorDesc> gMonitors;
+static tinystl::vector<MonitorDesc>                gMonitors;
 static tinystl::unordered_map<void*, WindowsDesc*> gHWNDMap;
 
 void adjustWindow(WindowsDesc* winDesc);
 
-namespace PlatformEvents
-{
-	extern bool wantsMouseCapture;
-	extern bool skipMouseCapture;
+namespace PlatformEvents {
+extern bool wantsMouseCapture;
+extern bool skipMouseCapture;
 
-	extern void onWindowResize(const WindowResizeEventData* pData);
-}
+extern void onWindowResize(const WindowResizeEventData* pData);
+}    // namespace PlatformEvents
 
 static LPPOINT lastCursorPoint = &POINT();
-static bool captureMouse(bool shouldCapture, bool shouldHide)
+static bool    captureMouse(bool shouldCapture, bool shouldHide)
 {
 	if (shouldCapture != isCaptured)
 	{
@@ -103,8 +104,7 @@ static bool captureMouse(bool shouldCapture, bool shouldHide)
 			// to the rcClient structure. Confine the mouse cursor
 			// to the client area by passing the rcClient structure
 			// to the ClipCursor function.
-			SetRect(&clientRect, ptClientUL.x, ptClientUL.y,
-				ptClientLR.x, ptClientLR.y);
+			SetRect(&clientRect, ptClientUL.x, ptClientUL.y, ptClientLR.x, ptClientLR.y);
 			ClipCursor(&clientRect);
 
 			if (shouldHide)
@@ -131,7 +131,7 @@ static bool captureMouse(bool shouldCapture, bool shouldHide)
 // Window event handler - Use as less as possible
 LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 {
-	WindowsDesc* gCurrentWindow = NULL;
+	WindowsDesc*                                       gCurrentWindow = NULL;
 	tinystl::unordered_hash_node<void*, WindowsDesc*>* pNode = gHWNDMap.find(_hwnd).node;
 	if (pNode)
 		gCurrentWindow = pNode->second;
@@ -140,69 +140,64 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 
 	switch (_id)
 	{
-	case WM_ACTIVATE:
-		if (LOWORD(wParam) == WA_INACTIVE)
+		case WM_ACTIVATE:
+			if (LOWORD(wParam) == WA_INACTIVE)
+			{
+				captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
+			}
+			break;
+
+		case WM_DISPLAYCHANGE:
 		{
-			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
+			if (gCurrentWindow)
+			{
+				if (gCurrentWindow->fullScreen)
+				{
+					adjustWindow(gCurrentWindow);
+				}
+				else
+				{
+					adjustWindow(gCurrentWindow);
+				}
+			}
+			break;
 		}
-		break;
 
-	case WM_DISPLAYCHANGE:
-	{
-		if (gCurrentWindow)
-		{
-			if (gCurrentWindow->fullScreen)
+		case WM_SIZE:
+			if (gCurrentWindow)
 			{
-				adjustWindow(gCurrentWindow);
-			}
-			else
-			{
-				adjustWindow(gCurrentWindow);
-			}
-		}
-		break;
-	}
+				if (wParam == SIZE_MINIMIZED)
+				{
+					gCurrentWindow->minimized = true;
+				}
+				else
+				{
+					gCurrentWindow->minimized = false;
+				}
+				RectDesc rect = { 0 };
+				if (gCurrentWindow->fullScreen)
+				{
+					gCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+					rect = gCurrentWindow->fullscreenRect;
+				}
+				else
+				{
+					if (IsIconic(_hwnd))
+						return 0;
 
-	case WM_SIZE:
-		if (gCurrentWindow)
-		{
-			if (wParam == SIZE_MINIMIZED)
-			{
-				gCurrentWindow->minimized = true;
-			}
-			else
-			{
-				gCurrentWindow->minimized = false;
-			}
-			RectDesc rect = { 0 };
-			if (gCurrentWindow->fullScreen)
-			{
-				gCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-				rect = gCurrentWindow->fullscreenRect;
-			}
-			else
-			{
-				if (IsIconic(_hwnd))
-					return 0;
+					RECT windowRect;
+					GetClientRect(_hwnd, &windowRect);
+					rect = { (int)windowRect.left, (int)windowRect.top, (int)windowRect.right, (int)windowRect.bottom };
+					gCurrentWindow->windowedRect = rect;
+				}
 
-				RECT windowRect;
-				GetClientRect(_hwnd, &windowRect);
-				rect = { (int)windowRect.left, (int)windowRect.top, (int)windowRect.right, (int)windowRect.bottom };
-				gCurrentWindow->windowedRect = rect;
+				WindowResizeEventData eventData = { rect, gCurrentWindow };
+				PlatformEvents::onWindowResize(&eventData);
 			}
-
-			WindowResizeEventData eventData = { rect, gCurrentWindow };
-			PlatformEvents::onWindowResize(&eventData);
-		}
-		break;
-
-	case WM_CLOSE:
-	case WM_QUIT:
-		gAppRunning = false;
-		break;
-	default:
-		return DefWindowProcW(_hwnd, _id, wParam, lParam);
-		break;
+			break;
+		case WM_DESTROY:
+		case WM_CLOSE: PostQuitMessage(0); break;
+		default: return DefWindowProcW(_hwnd, _id, wParam, lParam); break;
 	}
 	return 0;
 }
@@ -214,7 +209,8 @@ static BOOL CALLBACK monitorCallback(HMONITOR pMonitor, HDC pDeviceContext, LPRE
 	GetMonitorInfo(pMonitor, &info);
 	unsigned index = (unsigned)pParam;
 
-	gMonitors[index].monitorRect = { (int)info.rcMonitor.left, (int)info.rcMonitor.top, (int)info.rcMonitor.right, (int)info.rcMonitor.bottom };
+	gMonitors[index].monitorRect = { (int)info.rcMonitor.left, (int)info.rcMonitor.top, (int)info.rcMonitor.right,
+									 (int)info.rcMonitor.bottom };
 	gMonitors[index].workRect = { (int)info.rcWork.left, (int)info.rcWork.top, (int)info.rcWork.right, (int)info.rcWork.bottom };
 
 	return TRUE;
@@ -236,10 +232,10 @@ static void collectMonitorInfo()
 		if (!(adapter.StateFlags & DISPLAY_DEVICE_ACTIVE))
 			continue;
 
-		for (int displayIndex = 0; ; displayIndex++)
+		for (int displayIndex = 0;; displayIndex++)
 		{
 			DISPLAY_DEVICEW display;
-			HDC dc;
+			HDC             dc;
 
 			display.cb = sizeof(display);
 
@@ -275,7 +271,7 @@ static void collectMonitorInfo()
 	for (uint32_t monitor = 0; monitor < (uint32_t)gMonitors.size(); ++monitor)
 	{
 		MonitorDesc* pMonitor = &gMonitors[monitor];
-		DEVMODEW devMode = {};
+		DEVMODEW     devMode = {};
 		devMode.dmSize = sizeof(DEVMODEW);
 		devMode.dmFields = DM_PELSHEIGHT | DM_PELSWIDTH;
 
@@ -284,7 +280,7 @@ static void collectMonitorInfo()
 		pMonitor->defaultResolution.mWidth = devMode.dmPelsWidth;
 
 		tinystl::vector<Resolution> displays;
-		DWORD current = 0;
+		DWORD                       current = 0;
 		while (EnumDisplaySettingsW(pMonitor->adapterName, current++, &devMode))
 		{
 			bool duplicate = false;
@@ -330,24 +326,16 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 	ChangeDisplaySettingsW(&devMode, CDS_FULLSCREEN);
 }
 
-bool isRunning()
-{
-	return gAppRunning;
-}
-
 void getRecommendedResolution(RectDesc* rect)
 {
 	*rect = { 0, 0, min(1920, GetSystemMetrics(SM_CXSCREEN)), min(1080, GetSystemMetrics(SM_CYSCREEN)) };
 }
 
-void requestShutDown()
-{
-	gAppRunning = false;
-}
+void requestShutdown() { PostQuitMessage(0); }
 
 class StaticWindowManager
 {
-public:
+	public:
 	StaticWindowManager()
 	{
 		if (!gWindowClassInitialized)
@@ -361,26 +349,26 @@ public:
 			gWindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 			gWindowClass.lpszClassName = CONFETTI_WINDOW_CLASS;
 
-			gAppRunning = RegisterClassW(&gWindowClass) != 0;
+			bool success = RegisterClassW(&gWindowClass) != 0;
 
-			if (!gAppRunning)
+			if (!success)
 			{
 				//Get the error message, if any.
 				DWORD errorMessageID = ::GetLastError();
 
 				if (errorMessageID != ERROR_CLASS_ALREADY_EXISTS)
 				{
-					LPSTR messageBuffer = NULL;
-					size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-						NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+					LPSTR  messageBuffer = NULL;
+					size_t size = FormatMessageA(
+						FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID,
+						MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 					tinystl::string message(messageBuffer, size);
 					ErrorMsg(message.c_str());
 					return;
 				}
 				else
 				{
-					gAppRunning = true;
-					gWindowClassInitialized = gAppRunning;
+					gWindowClassInitialized = success;
 				}
 			}
 		}
@@ -404,28 +392,20 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		getRecommendedResolution(&winDesc->windowedRect);
 	}
 
-	RECT clientRect = { (LONG)winDesc->windowedRect.left, (LONG)winDesc->windowedRect.top, (LONG)winDesc->windowedRect.right, (LONG)winDesc->windowedRect.bottom };
+	RECT clientRect = { (LONG)winDesc->windowedRect.left, (LONG)winDesc->windowedRect.top, (LONG)winDesc->windowedRect.right,
+						(LONG)winDesc->windowedRect.bottom };
 	AdjustWindowRect(&clientRect, WS_OVERLAPPEDWINDOW, FALSE);
 	winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
 	RectDesc& rect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 
-	WCHAR app[MAX_PATH];
+	WCHAR  app[MAX_PATH];
 	size_t charConverted = 0;
 	mbstowcs_s(&charConverted, app, app_name, MAX_PATH);
 
-	HWND hwnd = CreateWindowW(CONFETTI_WINDOW_CLASS,
-		app,
-		WS_OVERLAPPEDWINDOW | ((winDesc->visible) ? WS_VISIBLE : 0),
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		rect.right - rect.left,
-		rect.bottom - rect.top,
-		NULL,
-		NULL,
-		(HINSTANCE)GetModuleHandle(NULL),
-		0
-	);
+	HWND hwnd = CreateWindowW(
+		CONFETTI_WINDOW_CLASS, app, WS_OVERLAPPEDWINDOW | ((winDesc->visible) ? WS_VISIBLE : 0), CW_USEDEFAULT, CW_USEDEFAULT,
+		rect.right - rect.left, rect.bottom - rect.top, NULL, NULL, (HINSTANCE)GetModuleHandle(NULL), 0);
 
 	if (hwnd)
 	{
@@ -459,19 +439,20 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	}
 }
 
-void closeWindow(const WindowsDesc* winDesc)
-{
-	DestroyWindow((HWND)winDesc->handle);
-}
+void closeWindow(const WindowsDesc* winDesc) { DestroyWindow((HWND)winDesc->handle); }
 
-void handleMessages()
+bool handleMessages()
 {
 	MSG msg;
 	msg.message = NULL;
+	bool quit = false;
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+
+		if (WM_CLOSE == msg.message || WM_QUIT == msg.message)
+			quit = true;
 
 #ifndef NO_GAINPUT
 		// Forward any input messages to Gainput
@@ -484,7 +465,7 @@ void handleMessages()
 	{
 		if (!isCaptured)
 		{
-			gAppRunning = false;
+			quit = true;
 		}
 		else
 		{
@@ -493,13 +474,12 @@ void handleMessages()
 		}
 	}
 
-
 	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CONFIRM))
 	{
 		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
 		{
 			if (gHWNDMap.size() == 0)
-				return;
+				return quit;
 
 			captureMouse(true, InputSystem::GetHideMouseCursorWhileCaptured());
 		}
@@ -509,7 +489,7 @@ void handleMessages()
 		(InputSystem::IsButtonPressed(UserInputKeys::KEY_LEFT_ALT) || InputSystem::IsButtonPressed(UserInputKeys::KEY_RIGHT_ALT)))
 	{
 		if (gHWNDMap.size() == 0)
-			return;
+			return quit;
 
 		//TODO:Fix this once we have multiple window handles
 		WindowsDesc* currentWind = gHWNDMap.begin().node->second;
@@ -518,20 +498,19 @@ void handleMessages()
 			toggleFullscreen(currentWind);
 	}
 #endif
+
+	return quit;
 }
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 {
-	HWND hwnd = (HWND)winDesc->handle;
+	HWND      hwnd = (HWND)winDesc->handle;
 	RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 	currentRect = rect;
 	MoveWindow(hwnd, rect.left, rect.top, getRectWidth(rect), getRectHeight(rect), TRUE);
 }
 
-void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
-{
-	setWindowRect(winDesc, { 0, 0, (int)width, (int)height });
-}
+void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setWindowRect(winDesc, { 0, 0, (int)width, (int)height }); }
 
 void adjustWindow(WindowsDesc* winDesc)
 {
@@ -554,13 +533,8 @@ void adjustWindow(WindowsDesc* winDesc)
 		EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devMode);
 
 		SetWindowPos(
-			hwnd,
-			HWND_TOPMOST,
-			devMode.dmPosition.x,
-			devMode.dmPosition.y,
-			devMode.dmPosition.x + devMode.dmPelsWidth,
-			devMode.dmPosition.y + devMode.dmPelsHeight,
-			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+			hwnd, HWND_TOPMOST, devMode.dmPosition.x, devMode.dmPosition.y, devMode.dmPosition.x + devMode.dmPelsWidth,
+			devMode.dmPosition.y + devMode.dmPelsHeight, SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 		ShowWindow(hwnd, SW_MAXIMIZE);
 	}
@@ -570,12 +544,8 @@ void adjustWindow(WindowsDesc* winDesc)
 		SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 
 		SetWindowPos(
-			hwnd,
-			HWND_NOTOPMOST,
-			winDesc->windowedRect.left,
-			winDesc->windowedRect.top,
-			winDesc->windowedRect.right - winDesc->windowedRect.left,
-			winDesc->windowedRect.bottom - winDesc->windowedRect.top,
+			hwnd, HWND_NOTOPMOST, winDesc->windowedRect.left, winDesc->windowedRect.top,
+			winDesc->windowedRect.right - winDesc->windowedRect.left, winDesc->windowedRect.bottom - winDesc->windowedRect.top,
 			SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 		if (winDesc->maximized)
@@ -634,8 +604,8 @@ MonitorDesc* getMonitor(uint32_t index)
 
 float2 getDpiScale()
 {
-	HDC hdc = ::GetDC(nullptr);
-	float2 ret = {};
+	HDC         hdc = ::GetDC(nullptr);
+	float2      ret = {};
 	const float dpi = 96.0f;
 	if (hdc)
 	{
@@ -663,10 +633,7 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 	return false;
 }
 
-float2 getMousePosition()
-{
-	return float2(0, 0);
-}
+float2 getMousePosition() { return float2(0, 0); }
 
 bool getKeyDown(int key)
 {
@@ -701,20 +668,11 @@ bool getJoystickButtonUp(int button)
 /************************************************************************/
 // Time Related Functions
 /************************************************************************/
-unsigned getSystemTime()
-{
-	return (unsigned)timeGetTime();
-}
+unsigned getSystemTime() { return (unsigned)timeGetTime(); }
 
-unsigned getTimeSinceStart()
-{
-	return (unsigned)time(NULL);
-}
+unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
-void sleep(unsigned mSec)
-{
-	::Sleep((DWORD)mSec);
-}
+void sleep(unsigned mSec) { ::Sleep((DWORD)mSec); }
 
 static int64_t highResTimerFrequency = 0;
 
@@ -732,7 +690,10 @@ void initTime()
 }
 
 // Make sure timer frequency is initialized before anyone tries to use it
-struct StaticTime { StaticTime() { initTime(); } }staticTimeInst;
+struct StaticTime
+{
+	StaticTime() { initTime(); }
+} staticTimeInst;
 
 int64_t getUSec()
 {
@@ -751,14 +712,9 @@ int64_t getTimerFrequency()
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/IFileSystem.h"
-
-static IApp* pApp = NULL;
-
 static void onResize(const WindowResizeEventData* pData)
 {
-	if (!isRunning())
+	if (!pApp)
 		return;
 
 	pApp->mSettings.mWidth = getRectWidth(pData->rect);
@@ -779,15 +735,15 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
-	uint32_t testingFrameCount = 0;
+	uint32_t       testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
 
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	IApp::Settings* pSettings = &pApp->mSettings;
-	WindowsDesc window = {};
-	Timer deltaTimer;
+	WindowsDesc     window = {};
+	Timer           deltaTimer;
 
 	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 	{
@@ -822,9 +778,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		return EXIT_FAILURE;
 
 	registerWindowResizeEvent(onResize);
-	while (isRunning())
-	{
 
+	bool quit = false;
+
+	while (!quit)
+	{
 		float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
@@ -835,8 +793,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		InputSystem::Update();
 #endif
 
-		handleMessages();
-
+		quit = handleMessages();
 
 		// If window is minimized let other processes take over
 		if (window.minimized)
@@ -852,7 +809,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		//used in automated tests only.
 		testingFrameCount++;
 		if (testingFrameCount >= testingDesiredFrameCount)
-			requestShutDown();
+			quit = true;
 #endif
 	}
 

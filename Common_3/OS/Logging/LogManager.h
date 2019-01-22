@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -44,13 +44,13 @@ class File;
 /// Logging subsystem.
 class LogManager
 {
-public:
+	public:
 	LogManager(
 		LogLevel level =
 #ifdef _DEBUG
-		LogLevel::LL_Debug
+			LogLevel::LL_Debug
 #else
-		LogLevel::LL_Info
+			LogLevel::LL_Info
 #endif
 	);
 	~LogManager();
@@ -62,25 +62,25 @@ public:
 	void SetTimeStamp(bool enable);
 	void SetQuiet(bool quiet);
 
-	LogLevel GetLevel() const { return mLogLevel; }
-	bool GetTimeStamp() const { return mRecordTimestamp; }
+	LogLevel        GetLevel() const { return mLogLevel; }
+	bool            GetTimeStamp() const { return mRecordTimestamp; }
 	tinystl::string GetLastMessage() const { return mLastMessage; }
-	bool IsQuiet() const { return mQuietMode; }
+	bool            IsQuiet() const { return mQuietMode; }
 
 	virtual void OutputLog(int level, const tinystl::string& message);
 
 	static void Write(int level, const tinystl::string& message);
 	static void WriteRaw(const tinystl::string& message, bool error = false);
 
-private:
+	private:
 	/// Mutex for threaded operation.
-	Mutex mLogMutex;
-	File* pLogFile;
+	Mutex           mLogMutex;
+	File*           pLogFile;
 	tinystl::string mLastMessage;
-	LogLevel mLogLevel;
-	bool mRecordTimestamp;
-	bool mInWrite;
-	bool mQuietMode;
+	LogLevel        mLogLevel;
+	bool            mRecordTimestamp;
+	bool            mInWrite;
+	bool            mQuietMode;
 };
 
 tinystl::string ToString(const char* formatString, const char* function, ...);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -53,53 +53,33 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-static bool		 gAppRunning = false;
-
-static tinystl::vector <MonitorDesc> gMonitors;
+static tinystl::vector<MonitorDesc>                gMonitors;
 static tinystl::unordered_map<void*, WindowsDesc*> gHWNDMap;
-static WindowsDesc gWindow;
+static WindowsDesc                                 gWindow;
 
 void adjustWindow(WindowsDesc* winDesc);
 
-namespace PlatformEvents
-{
-	extern void onWindowResize(const WindowResizeEventData* pData);
+namespace PlatformEvents {
+extern void onWindowResize(const WindowResizeEventData* pData);
 }
 
-bool isRunning()
-{
-	return gAppRunning;
-}
+void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
 
-void getRecommendedResolution(RectDesc* rect)
-{
-	*rect = { 0, 0, 1920, 1080 };
-}
+void requestShutdown() { LOGERROR("Cannot manually shutdown on Android"); }
 
-void requestShutDown()
-{
-	gAppRunning = false;
-}
+bool getKeyDown(int key) { return false; }
 
-bool getKeyDown(int key)
-{
-	return false;
-}
-
-bool getKeyUp(int key)
-{
-	return false;
-}
+bool getKeyUp(int key) { return false; }
 
 bool getJoystickButtonDown(int button)
 {
-	ASSERT(0); // We don't support joystick
+	ASSERT(0);    // We don't support joystick
 	return false;
 }
 
 bool getJoystickButtonUp(int button)
 {
-	ASSERT(0); // We don't support joystick
+	ASSERT(0);    // We don't support joystick
 	return false;
 }
 
@@ -109,20 +89,19 @@ bool getJoystickButtonUp(int button)
 
 unsigned getSystemTime()
 {
-	long			ms; // Milliseconds
-	time_t		s;  // Seconds
+	long            ms;    // Milliseconds
+	time_t          s;     // Seconds
 	struct timespec spec;
 
 	clock_gettime(CLOCK_REALTIME, &spec);
 
-	s  = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+	s = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
 
 	ms += s * 1000;
 
 	return (unsigned int)ms;
 }
-
 
 int64_t getUSec()
 {
@@ -133,10 +112,7 @@ int64_t getUSec()
 	return us;
 }
 
-unsigned getTimeSinceStart()
-{
-	return (unsigned)time(NULL);
-}
+unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
 int64_t getTimerFrequency()
 {
@@ -169,23 +145,14 @@ float2 getDpiScale()
 	return ret;
 }
 
-void openWindow(const char* app_name, WindowsDesc* winDesc)
-{
+void openWindow(const char* app_name, WindowsDesc* winDesc) {}
 
-}
+void handleMessages(WindowsDesc* winDesc) { return; }
 
-void handleMessages(WindowsDesc* winDesc)
-{
-	return;
-}
+void onStart(ANativeActivity* activity) { printf("start\b"); }
 
-void onStart(ANativeActivity* activity)
-{
-	printf("start\b");
-}
-
-static bool windowReady = false;
-static bool isActive = false;
+static bool    windowReady = false;
+static bool    isActive = false;
 static int32_t handle_input(struct android_app* app, AInputEvent* event)
 {
 	// Forward input events to Gainput
@@ -194,75 +161,75 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event)
 }
 
 // Process the next main command.
-void handle_cmd(android_app* app, int32_t cmd) {
-	switch (cmd) {
-	case APP_CMD_INIT_WINDOW:
+void handle_cmd(android_app* app, int32_t cmd)
+{
+	switch (cmd)
 	{
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app" ,"init window");
+		case APP_CMD_INIT_WINDOW:
+		{
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "init window");
 
-		IApp::Settings* pSettings = &pApp->mSettings;
-		gWindow.windowedRect = { 0, 0, ANativeWindow_getWidth(app->window),  ANativeWindow_getHeight(app->window) };
-		gWindow.fullScreen = pSettings->mFullScreen;
-		gWindow.maximized = false;
-		openWindow(pApp->GetName(), &gWindow);
+			IApp::Settings* pSettings = &pApp->mSettings;
+			gWindow.windowedRect = { 0, 0, ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window) };
+			gWindow.fullScreen = pSettings->mFullScreen;
+			gWindow.maximized = false;
+			openWindow(pApp->GetName(), &gWindow);
 
-		gWindow.handle = reinterpret_cast<WindowHandle>(app->window);
+			gWindow.handle = reinterpret_cast<WindowHandle>(app->window);
 
-		pSettings->mWidth = ANativeWindow_getWidth(app->window);
-		pSettings->mHeight =  ANativeWindow_getHeight(app->window);
-		pApp->pWindow = &gWindow;
+			pSettings->mWidth = ANativeWindow_getWidth(app->window);
+			pSettings->mHeight = ANativeWindow_getHeight(app->window);
+			pApp->pWindow = &gWindow;
 
-		// The window is being shown, mark it as ready.
-		if(!windowReady)
-			pApp->Load();
-		windowReady = true;
+			// The window is being shown, mark it as ready.
+			if (!windowReady)
+				pApp->Load();
+			windowReady = true;
 
-		InputSystem::UpdateSize(pSettings->mWidth, pSettings->mHeight);
-		break;
-	}
-	case APP_CMD_TERM_WINDOW:
-	{
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app" ,"term window");
+			InputSystem::UpdateSize(pSettings->mWidth, pSettings->mHeight);
+			break;
+		}
+		case APP_CMD_TERM_WINDOW:
+		{
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "term window");
 
-		// losing window, remove swapchain
-		if(windowReady)
-			pApp->Unload();
-		windowReady = false;
-		// The window is being hidden or closed, clean it up.
-		break;
-	}
-	case APP_CMD_START:
-	{
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app" ,"start app");
-		break;
-	}
-	case APP_CMD_GAINED_FOCUS:
-	{
-		isActive = true;
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app");
-		break;
-	}
-	case APP_CMD_LOST_FOCUS:
-	{
-		isActive = false;
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app" ,"pause app");
-		break;
-	}
-	case APP_CMD_STOP:
-	{
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app" ,"stop app");
-		break;
-	}
-	case APP_CMD_DESTROY:
-	{
-		// Activity is destroyed and waiting app to clean up. Request app to shut down.
-		__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app" ,"shutting down app");
-		requestShutDown();
-	}
-	default:
-	{
-
-	}
+			// losing window, remove swapchain
+			if (windowReady)
+				pApp->Unload();
+			windowReady = false;
+			// The window is being hidden or closed, clean it up.
+			break;
+		}
+		case APP_CMD_START:
+		{
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "start app");
+			break;
+		}
+		case APP_CMD_GAINED_FOCUS:
+		{
+			isActive = true;
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app");
+			break;
+		}
+		case APP_CMD_LOST_FOCUS:
+		{
+			isActive = false;
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app");
+			break;
+		}
+		case APP_CMD_STOP:
+		{
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "stop app");
+			break;
+		}
+		case APP_CMD_DESTROY:
+		{
+			// Activity is destroyed and waiting app to clean up. Request app to shut down.
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "shutting down app");
+		}
+		default:
+		{
+		}
 	}
 }
 
@@ -277,7 +244,7 @@ int AndroidMain(void* param, IApp* app)
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
-	uint32_t testingFrameCount = 0;
+	uint32_t       testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
 
@@ -306,22 +273,23 @@ int AndroidMain(void* param, IApp* app)
 		pSettings->mHeight = getRectHeight(rect);
 	}
 
-	// Mark the app as running
-	gAppRunning = true;
-
 	registerWindowResizeEvent(onResize);
 
-	while (isRunning())
+	bool quit = false;
+
+	while (!quit)
 	{
 		// Used to poll the events in the main loop
-		int events;
+		int                  events;
 		android_poll_source* source;
 
-		if (ALooper_pollAll(windowReady ? 1 : 0, nullptr,
-			&events, (void**)&source) >= 0) {
-			if (source != NULL) source->process(android_app, source);
+		if (ALooper_pollAll(windowReady ? 1 : 0, nullptr, &events, (void**)&source) >= 0)
+		{
+			if (source != NULL)
+				source->process(android_app, source);
 		}
-		if (!windowReady || !isActive) {
+		if (!windowReady || !isActive)
+		{
 			usleep(1);
 			continue;
 		}
@@ -338,12 +306,14 @@ int AndroidMain(void* param, IApp* app)
 
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
-			testingFrameCount++;
-			if (testingFrameCount >= testingDesiredFrameCount)
-				gAppRunning = false;
+		testingFrameCount++;
+		if (testingFrameCount >= testingDesiredFrameCount)
+			quit = true;
 #endif
+		if (android_app->destroy_requested)
+			quit = true;
 	}
-	if(windowReady)
+	if (windowReady)
 		pApp->Unload();
 	windowReady = false;
 	pApp->Exit();

@@ -64,13 +64,13 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="PropertySheets">
@@ -80,26 +80,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(OutDir);$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(OutDir);$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(OutDir);$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(OutDir);$(SolutionDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -136,7 +136,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
@@ -148,7 +148,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_animation_offline.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;</AdditionalDependencies>
@@ -200,7 +200,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
@@ -214,7 +214,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_animation_offline.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;</AdditionalDependencies>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,35 +28,23 @@
 
 #ifdef USE_MEMORY_TRACKING
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/nommgr.h"
-#define malloc(sz)  m_allocator  (__FILE__,__LINE__,__FUNCTION__,m_alloc_malloc,sz)
-#define calloc(count,size) m_allocator  (__FILE__,__LINE__,__FUNCTION__,m_alloc_calloc,((size)*(count)))
-#define	realloc(ptr, sz)	m_reallocator  (__FILE__,__LINE__,__FUNCTION__,m_alloc_realloc,sz, ptr)
-#define free(ptr)   m_deallocator(__FILE__,__LINE__,__FUNCTION__,m_alloc_free,ptr)
+#define malloc(sz) m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_malloc, sz)
+#define calloc(count, size) m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_calloc, ((size) * (count)))
+#define realloc(ptr, sz) m_reallocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_realloc, sz, ptr)
+#define free(ptr) m_deallocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_free, ptr)
 
 #undef conf_malloc
 #undef conf_calloc
 #undef conf_realloc
 #undef conf_free
 
-void* conf_malloc(size_t size)
-{
-	return malloc(size);
-}
+void* conf_malloc(size_t size) { return malloc(size); }
 
-void* conf_calloc(size_t count, size_t size)
-{
-	return calloc(count, size);
-}
+void* conf_calloc(size_t count, size_t size) { return calloc(count, size); }
 
-void* conf_realloc(void* ptr, size_t size)
-{
-	return realloc(ptr, size);
-}
+void* conf_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
 
-void conf_free(void* ptr)
-{
-	free(ptr);
-}
+void conf_free(void* ptr) { free(ptr); }
 
 // Just include the cpp here so we don't have to add it to the all projects
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.cpp"
@@ -67,48 +55,24 @@ void conf_free(void* ptr)
 #undef free
 #include <cstdlib>
 
-void* m_allocator(size_t size)
-{
-	return malloc(size);
-}
+void* m_allocator(size_t size) { return malloc(size); }
 
-void* m_allocator(size_t count, size_t size)
-{
-	return calloc(count, size);
-}
+void* m_allocator(size_t count, size_t size) { return calloc(count, size); }
 
-void* m_reallocator(void* ptr, size_t size)
-{
-	return realloc(ptr, size);
-}
+void* m_reallocator(void* ptr, size_t size) { return realloc(ptr, size); }
 
-void m_deallocator(void* ptr)
-{
-	free(ptr);
-}
+void m_deallocator(void* ptr) { free(ptr); }
 
 #undef conf_malloc
 #undef conf_calloc
 #undef conf_realloc
 #undef conf_free
 
-void* conf_malloc(size_t size)
-{
-	return malloc(size);
-}
+void* conf_malloc(size_t size) { return malloc(size); }
 
-void* conf_calloc(size_t count, size_t size)
-{
-	return calloc(count, size);
-}
+void* conf_calloc(size_t count, size_t size) { return calloc(count, size); }
 
-void* conf_realloc(void* ptr, size_t size)
-{
-	return realloc(ptr, size);
-}
+void* conf_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
 
-void conf_free(void* ptr)
-{
-	free(ptr);
-}
+void conf_free(void* ptr) { free(ptr); }
 #endif

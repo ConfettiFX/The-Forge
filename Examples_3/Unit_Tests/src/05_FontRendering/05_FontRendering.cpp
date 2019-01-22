@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,7 +30,6 @@
 * different text sizes and different fonts. It also contains sample code for simple layout operations.
 *********************************************************************************************************/
 
-
 // tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -54,28 +53,27 @@
 #include "../../../../Middleware_3/Input/InputMappings.h"
 
 // Memory
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h" // NOTE: should be the last include in a .cpp!
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // NOTE: should be the last include in a .cpp!
 
 // Define App directories
-const char* pszBases[] =
-{
-	"../../../src/05_FontRendering/",	// FSR_BinShaders
-	"../../../src/05_FontRendering/",	// FSR_SrcShaders
-	"",									// FSR_BinShaders_Common
-	"",									// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",		// FSR_Textures
-	"../../../UnitTestResources/",		// FSR_Meshes
-	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
-	"../../../src/05_FontRendering/",	// FSR_GpuConfig
-	"",									// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/05_FontRendering/",       // FSR_BinShaders
+	"../../../src/05_FontRendering/",       // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/05_FontRendering/",       // FSR_GpuConfig
+	"",                                     // FSR_Animation
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
-
 
 /************************************************************************/
 /* SCENE VARIABLES
 *************************************************************************/
 struct Fonts
-{   // src: https://fontlibrary.org
+{    // src: https://fontlibrary.org
 	int titilliumBold;
 	int comicRelief;
 	int crimsonSerif;
@@ -86,69 +84,72 @@ struct Fonts
 struct ScreenText
 {
 	tinystl::string mText;
-	TextDrawDesc	mDrawDesc;
-	
+	TextDrawDesc    mDrawDesc;
+
 	// screen space position:
 	// [0, 0] = top left
 	// [1, 1] = bottom right
-	float2			mScreenPosition;
+	float2 mScreenPosition;
 };
 
 struct SceneData
 {
-	size_t sceneTextArrayIndex = 0;
+	size_t                                       sceneTextArrayIndex = 0;
 	tinystl::vector<tinystl::vector<ScreenText>> sceneTextArray;
-	
-	uint32_t theme = 1; // enable dark theme (its better <3) | spacebar to change theme
-	bool bFitToScreen = false; // scales all the text down if any scene text is off screen
+
+	uint32_t theme = 1;              // enable dark theme (its better <3) | spacebar to change theme
+	bool     bFitToScreen = true;    // scales all the text down if any scene text is off screen
 };
 
 // todo: rename this enum
-enum PropertiesWithSkinColor { PROP_TEXT, PROP_HEADER };
+enum PropertiesWithSkinColor
+{
+	PROP_TEXT,
+	PROP_HEADER
+};
 static const uint32_t gLightSkinTextColor = 0xff333333;
 static const uint32_t gLightSkinHeaderColor = 0xff000000;
 
-static const uint32_t gDarkSkinTextColor  = 0xffb0b0b0;
+static const uint32_t gDarkSkinTextColor = 0xffb0b0b0;
 static const uint32_t gDarkSkinHeaderColor = 0xffffffff;
-
 
 uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, bool bDarkSkin)
 {
 	switch (EProp)
 	{
-	case PROP_TEXT:   return bDarkSkin ? gDarkSkinTextColor : gLightSkinTextColor; break;
-	case PROP_HEADER: return bDarkSkin ? gDarkSkinHeaderColor : gLightSkinHeaderColor; break;
-	default: return gLightSkinHeaderColor; break;
+		case PROP_TEXT: return bDarkSkin ? gDarkSkinTextColor : gLightSkinTextColor; break;
+		case PROP_HEADER: return bDarkSkin ? gDarkSkinHeaderColor : gLightSkinHeaderColor; break;
+		default: return gLightSkinHeaderColor; break;
 	}
 }
 uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, uint32_t theme) { return GetSkinColorOfProperty(EProp, (bool)theme); }
 
-const uint32_t    gImageCount = 3;
-				  
-Renderer*         pRenderer = NULL;
-Queue*            pGraphicsQueue = NULL;
-CmdPool*          pCmdPool = NULL;
-Cmd**             ppCmds = NULL;
-GpuProfiler*      pGpuProfiler = NULL;
-HiresTimer        gTimer;
+const uint32_t gImageCount = 3;
 
-SwapChain*        pSwapChain = NULL;
-Fence*            pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*        pImageAcquiredSemaphore = NULL;
-Semaphore*        pRenderCompleteSemaphores[gImageCount] = { NULL };
+Renderer*    pRenderer = NULL;
+Queue*       pGraphicsQueue = NULL;
+CmdPool*     pCmdPool = NULL;
+Cmd**        ppCmds = NULL;
+GpuProfiler* pGpuProfiler = NULL;
+HiresTimer   gTimer;
 
-uint32_t          gFrameIndex = 0;
+SwapChain* pSwapChain = NULL;
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-LogManager        gLogManager;
-SceneData         gSceneData;
-Fonts             gFonts;
+uint32_t gFrameIndex = 0;
+
+LogManager gLogManager;
+SceneData  gSceneData;
+Fonts      gFonts;
 
 /************************************************************************/
 /* APP UI VARIABLES
 *************************************************************************/
-UIApp             gAppUI;
-GuiComponent*     pUIWindow = NULL;
-bool              gbShowSceneControlsUIWindow = true; // toggle this w/ F1
+UIApp         gAppUI;
+GuiComponent* pUIWindow = NULL;
+bool          gbShowSceneControlsUIWindow = true;    // toggle this w/ F1
 
 enum ColorTheme : uint32_t
 {
@@ -157,24 +158,16 @@ enum ColorTheme : uint32_t
 
 	NUM_COLOR_THEMES
 };
-static const char* pThemeLabels[] =
-{
-	"Light",
-	"Dark",
+static const char*      pThemeLabels[] = { "Light", "Dark",
 
-	NULL
-};
-static const ColorTheme ColorThemes[] =
-{
-	COLOR_THEME_LIGHT,
-	COLOR_THEME_DARK,
+                                      NULL };
+static const ColorTheme ColorThemes[] = { COLOR_THEME_LIGHT, COLOR_THEME_DARK,
 
-	NUM_COLOR_THEMES
-};
+										  NUM_COLOR_THEMES };
 
 // state variable to keep track of drop down value change (we should ideally hook up event callbacks instead of this)
 static uint32_t gPreviousTheme = 0;
-static bool gPreviousFitToScreen = false;
+static bool     gPreviousFitToScreen = false;
 
 /************************************************************************/
 /* TEXT & LAYOUT FUNCTIONS
@@ -184,7 +177,9 @@ static bool gPreviousFitToScreen = false;
 //
 // use this for avoiding overlapping of text in the horizontal direction.
 //
-float GetNextTextPosition(const float normalizedXCoordOfPreviousText, const char* pTextPrevious, const TextDrawDesc& drawDescPrevious, const IApp::Settings& mSettings)
+float GetNextTextPosition(
+	const float normalizedXCoordOfPreviousText, const char* pTextPrevious, const TextDrawDesc& drawDescPrevious,
+	const IApp::Settings& mSettings)
 {
 	// TextA = @pTextPrevious
 	// TextB = CurrentText to be drawn
@@ -198,9 +193,9 @@ float GetNextTextPosition(const float normalizedXCoordOfPreviousText, const char
 	//   |
 	//   +--------------- previousTextSizeInPx [0, screenSize]
 	//
-	const float spacingBetweenTexts = 0.01f; // normalized to screen size(width)
+	const float  spacingBetweenTexts = 0.01f;    // normalized to screen size(width)
 	const float2 previousTextSizeInPx = gAppUI.MeasureText(pTextPrevious, drawDescPrevious);
-	const float offsetFromPreviousText = previousTextSizeInPx.getX() / mSettings.mWidth + spacingBetweenTexts;
+	const float  offsetFromPreviousText = previousTextSizeInPx.getX() / mSettings.mWidth + spacingBetweenTexts;
 	return normalizedXCoordOfPreviousText + offsetFromPreviousText;
 };
 
@@ -230,17 +225,16 @@ float GetLongestStringLengthInPx(const char* const* ppTexts, int numTexts, const
 	return longestTextSz;
 }
 
-
 // returns the screen coordinates (x,y) for drawing the given text in the middle of the screen.
 //
 inline float GetScreenCenteredPosition(const float normalizedTextLength) { return (1.0f - normalizedTextLength) * 0.5f; }
-float2 GetCenteredTextPosition(const char* pText, const TextDrawDesc& drawDesc, const IApp::Settings& mSettings)
+float2       GetCenteredTextPosition(const char* pText, const TextDrawDesc& drawDesc, const IApp::Settings& mSettings)
 {
 	const float2 normalizedTextSize = gAppUI.MeasureText(pText, drawDesc) / float2(mSettings.mWidth, mSettings.mHeight);
-	const float2 normalizedScreenCoords(GetScreenCenteredPosition(normalizedTextSize.getX()), GetScreenCenteredPosition(normalizedTextSize.getY()));
+	const float2 normalizedScreenCoords(
+		GetScreenCenteredPosition(normalizedTextSize.getX()), GetScreenCenteredPosition(normalizedTextSize.getY()));
 	return normalizedScreenCoords;
 }
-
 
 //static float gBiasX = 0.0f;
 //static float gBiasY = 0.0f;
@@ -249,9 +243,9 @@ static float2 gBias(0.0f, 0.0f);
 /************************************************************************/
 /* APP IMPLEMENTATION
 *************************************************************************/
-class FontRendering : public IApp
+class FontRendering: public IApp
 {
-public:
+	public:
 	FontRendering()
 	{
 #ifndef METAL
@@ -260,7 +254,7 @@ public:
 		mSettings.mHeight = 1080;
 #endif
 	}
-	
+
 	bool Init()
 	{
 		// window and renderer setup
@@ -285,7 +279,7 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 		initDebugRendererInterface(pRenderer, NULL, FSRoot(-1));
-		
+
 		// this is for debug rendering: cpu/gpu profilers, debug msgs etc. (drawDebugText())
 		// the App fonts are initialized/added through the UIApp object.   (gAppUI.DrawText())
 		addDebugFont("TitilliumText/TitilliumText-Bold.otf", FSRoot::FSR_Builtin_Fonts);
@@ -295,25 +289,26 @@ public:
 
 		// initialize UI middleware
 		if (!gAppUI.Init(pRenderer))
-			return false; // report?
-		
+			return false;    // report?
+
 		// load the fonts
 		const FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
 		gFonts.titilliumBold = gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", fontRoot);
-		gFonts.comicRelief   = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf", fontRoot);
-		gFonts.crimsonSerif  = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf", fontRoot);
-		gFonts.monoSpace     = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC.otf", fontRoot);
+		gFonts.comicRelief = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf", fontRoot);
+		gFonts.crimsonSerif = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf", fontRoot);
+		gFonts.monoSpace = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC.otf", fontRoot);
 		gFonts.monoSpaceBold = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC-Bold.otf", fontRoot);
 
 		// setup the UI window
-		vec2 UIWndSize = { 400, 300 };
-		vec2 UIWndPosition = { mSettings.mWidth * 0.02f, mSettings.mHeight * 0.7f };
-		GuiDesc guiDesc(UIWndPosition, UIWndSize, TextDrawDesc());
+		const float dpiScl = getDpiScale().x;
+		vec2        UIWndSize = vec2{ 250, 300 } / dpiScl;
+		vec2        UIWndPosition = vec2{ mSettings.mWidth * 0.02f, mSettings.mHeight * 0.8f } / dpiScl;
+		GuiDesc     guiDesc(UIWndPosition, UIWndSize, TextDrawDesc());
 		pUIWindow = gAppUI.AddGuiComponent("Controls", &guiDesc);
 
 		CheckboxWidget fitScreenCheckbox("Fit to Screen", &gSceneData.bFitToScreen);
 
-		const size_t NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1; // -1 for the NULL element 
+		const size_t   NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1;    // -1 for the NULL element
 		DropdownWidget ThemeDropdown("Theme", &gSceneData.theme, pThemeLabels, (uint32_t*)ColorThemes, NUM_THEMES);
 
 		pUIWindow->AddWidget(ThemeDropdown);
@@ -363,7 +358,7 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		if (!pSwapChain)
 			return false;
-		
+
 		InitializeSceneText();
 		return true;
 	}
@@ -380,12 +375,12 @@ public:
 		//-------------------------------------------------------------------------------------
 
 		// Toggle Theme
-		const int offset = ( getKeyDown(KEY_LEFT_SHIFT) || getKeyDown(KEY_RIGHT_SHIFT)) ? -1 : +1;
-		if (getKeyUp(KEY_LEFT_TRIGGER)) // KEY_LEFT_TRIGGER = spacebar
+		const int offset = (getKeyDown(KEY_LEFT_SHIFT) || getKeyDown(KEY_RIGHT_SHIFT)) ? -1 : +1;
+		if (getKeyUp(KEY_LEFT_TRIGGER))    // KEY_LEFT_TRIGGER = spacebar
 		{
-			gSceneData.theme = !gSceneData.theme; // dark/light theme
-			// no need to call InitializeSceneText() here, 
-			// change of value event will be handled further down this function.
+			gSceneData.theme = !gSceneData.theme;    // dark/light theme
+													 // no need to call InitializeSceneText() here,
+													 // change of value event will be handled further down this function.
 		}
 
 		// --------------------------------------------------------------------
@@ -394,14 +389,13 @@ public:
 		// --------------------------------------------------------------------
 
 		// Toggle Displaying UI Window
-		if (getKeyUp(KEY_LEFT_STICK_BUTTON)) // F1 key
+		if (getKeyUp(KEY_LEFT_STICK_BUTTON))    // F1 key
 		{
 			gbShowSceneControlsUIWindow = !gbShowSceneControlsUIWindow;
 		}
 
-
 		gAppUI.Update(deltaTime);
-		
+
 		// detect dropdown value change
 		if (gPreviousTheme != gSceneData.theme)
 		{
@@ -424,8 +418,8 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -438,7 +432,8 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		const float darkBackgroundColor = 0.05f;
-		if(gSceneData.theme) loadActions.mClearColorValues[0] = { darkBackgroundColor, darkBackgroundColor, darkBackgroundColor, 1.0f };
+		if (gSceneData.theme)
+			loadActions.mClearColorValues[0] = { darkBackgroundColor, darkBackgroundColor, darkBackgroundColor, 1.0f };
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
@@ -466,7 +461,7 @@ public:
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		// draw profiler timings text (uses debugText)
-		TextDrawDesc uiTextDesc;	// default
+		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = gSceneData.theme ? 0xff21D8DE : 0xff444444;
 		uiTextDesc.mFontSize = 18;
 		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
@@ -488,51 +483,36 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "05_FontRendering";
-	}
-
+	tinystl::string GetName() { return "05_FontRendering"; }
 
 	void InitializeSceneText()
 	{
 		gSceneData.sceneTextArray.clear();
 		tinystl::vector<ScreenText> sceneTexts;
-		TextDrawDesc drawDescriptor;
-		const char* txt = "";
+		TextDrawDesc                drawDescriptor;
+		const char*                 txt = "";
 
 		const float SCREEN_WIDTH = (float)mSettings.mWidth;
 		const float SCREEN_HEIGHT = (float)mSettings.mHeight;
 
-
 		float2 dpiScaling = getDpiScale();
-
 
 		// [0]: screen space distance from top of the window to the title
 		// [1]: screen space distance between areas of title and ROW 1
 		// [2]: screen space distance between areas of title and ROW 2
 		// ...
-		const float screenSizeDistanceFromPreviousRow[] =
-		{
-			0.050f,
-			0.070f,
-			0.105f,
-			0.085f,
-			0.085f
-		};
+		const float screenSizeDistanceFromPreviousRow[] = { 0.050f, 0.070f, 0.105f, 0.085f, 0.085f };
 
 		// ROW 0 ===================================================================
 		// TITLE: FONTSTASH FONT RENDERING
 		//
-		drawDescriptor.mFontColor = GetSkinColorOfProperty(PROP_HEADER, gSceneData.theme); // color : (ABGR) 
+		drawDescriptor.mFontColor = GetSkinColorOfProperty(PROP_HEADER, gSceneData.theme);    // color : (ABGR)
 		drawDescriptor.mFontID = gFonts.monoSpaceBold;
 		drawDescriptor.mFontSize = 50.0f;
 		txt = "Fontstash Font Rendering";
 		const float2 centeredCoords = GetCenteredTextPosition(txt, drawDescriptor, mSettings);
-		sceneTexts.push_back({ txt, drawDescriptor, { centeredCoords.getX(),  screenSizeDistanceFromPreviousRow[0]} });
+		sceneTexts.push_back({ txt, drawDescriptor, { centeredCoords.getX(), screenSizeDistanceFromPreviousRow[0] } });
 		// ROW 0 ===================================================================
-
-
 
 		// some pre-calculations here to center the text for any resolution:
 		//
@@ -540,14 +520,14 @@ public:
 		// for ROW 1 we show 3 columns of text. We want to center the 2nd column
 		// add offset 1st and 3rd column.
 		//
-		// a few things to remember here: 
+		// a few things to remember here:
 		//
-		// - since font spacing has different length for each line of text, we use 
+		// - since font spacing has different length for each line of text, we use
 		//   the last one with spacing=4 to calculate the position for the entire column.
 		//
 		// - we use the MeasureText() to get the size of the text to be drawn with a given
 		//   font in pixels, and use that to calculated a normalized position := [0.0f, 1.0f]
-		//   where (0.0f, 0.0f) is top left corner, and (1.0f, 1.0f) is bottom right corner of 
+		//   where (0.0f, 0.0f) is top left corner, and (1.0f, 1.0f) is bottom right corner of
 		//   the screen.
 		//
 		// here's how we calculate the normalized positions of each text block (spacing, blur, color):
@@ -557,28 +537,25 @@ public:
 		// color   = blur + blurTextNormalizedLength + normalizedLengthBetweenEachColumn
 		//
 		// CALCULATING HEIGHT:
-		// add the total row height of the previous row to the previous rows first element's position 
+		// add the total row height of the previous row to the previous rows first element's position
 		// as we go
 		//
 
 		// CALCULATING HEIGHT:
 		const float2 TITLE_SIZE_PX = gAppUI.MeasureText(txt, drawDescriptor);
-		const float blurPositionY
-			= screenSizeDistanceFromPreviousRow[0]
-			+ TITLE_SIZE_PX.getY() / SCREEN_HEIGHT
-			+ screenSizeDistanceFromPreviousRow[1];
-
+		const float  blurPositionY =
+			screenSizeDistanceFromPreviousRow[0] + TITLE_SIZE_PX.getY() / SCREEN_HEIGHT + screenSizeDistanceFromPreviousRow[1];
 
 		// CALCULATING WIDTH:
 		const float normalizedLengthBetweenEachColumn = 0.050f;
 
-		drawDescriptor.mFontSpacing = 4.0f; // set these upfront for input for MeasureText() function
+		drawDescriptor.mFontSpacing = 4.0f;    // set these upfront for input for MeasureText() function
 		drawDescriptor.mFontSize = 20.0f;
 		drawDescriptor.mFontID = gFonts.monoSpace;
 		txt = "Font Spacing = 4.0f";
 		const float longestSpacingFontTextNormalizedLength = gAppUI.MeasureText(txt, drawDescriptor).getX() / SCREEN_WIDTH;
 
-		drawDescriptor.mFontSpacing = 0.0f; // set these upfront for input for MeasureText() function
+		drawDescriptor.mFontSpacing = 0.0f;    // set these upfront for input for MeasureText() function
 		drawDescriptor.mFontBlur = 0.0f;
 		txt = "Blur = 0.0f";
 		const float blurTextNormalizedLength = gAppUI.MeasureText(txt, drawDescriptor).getX() / SCREEN_WIDTH;
@@ -587,67 +564,55 @@ public:
 		const float spacingPosition = blurPosition - (longestSpacingFontTextNormalizedLength + normalizedLengthBetweenEachColumn);
 		const float colorPosition = blurPosition + blurTextNormalizedLength + normalizedLengthBetweenEachColumn;
 
-
 		// ROW 1 ===================================================================
 		// FONT PROPERTIES: SPACING, BLUR AND COLOR
 		//
-		union FontPropertyValue { float f; int i; };
+		union FontPropertyValue
+		{
+			float f;
+			int   i;
+		};
 		drawDescriptor.mFontID = gFonts.monoSpace;
 		drawDescriptor.mFontSize = 20.0f;
 
-		const int numSubColumns = 3; // we display 3 font properties: spacing, blur and color
-		const int numSubRows = 4; // we display 4 values for each of the font properties
-		const int numElements = numSubRows * numSubColumns;
-		FontPropertyValue fontPropertyValues[numElements] =
-		{
-			0.0f,
-			1.0f,
-			2.0f,
-			4.0f,
+		const int         numSubColumns = 3;    // we display 3 font properties: spacing, blur and color
+		const int         numSubRows = 4;       // we display 4 values for each of the font properties
+		const int         numElements = numSubRows * numSubColumns;
+		FontPropertyValue fontPropertyValues[numElements] = {
+			0.0f, 1.0f, 2.0f, 4.0f,
 
-			0.0f,
-			1.0f,
-			2.0f,
-			4.0f,
+			0.0f, 1.0f, 2.0f, 4.0f,
 
 			// note:
 			// cannot initialize the union's int variable like this
 			// need to explicitly assign the int variable outisde the
 			// initializer list. initilize to 0.0f for now.
 			//
-			0.0f, // ((int)0xff0000dd),
-			0.0f, // ((int)0xff00dd00),
-			0.0f, // ((int)0xffdd5050),
-			0.0f, // ((int)0xff888888)
+			0.0f,    // ((int)0xff0000dd),
+			0.0f,    // ((int)0xff00dd00),
+			0.0f,    // ((int)0xffdd5050),
+			0.0f,    // ((int)0xff888888)
 		};
 		fontPropertyValues[8].i = 0xff0000dd;
 		fontPropertyValues[9].i = 0xff00dd00;
 		fontPropertyValues[10].i = 0xffdd5050;
 		fontPropertyValues[11].i = 0xff888888;
 
-		const char* pSubRowTexts[numElements] =
-		{
-			"Font Spacing = 0.0f",
-			"Font Spacing = 1.0f",
-			"Font Spacing = 2.0f",
-			"Font Spacing = 4.0f",
+		const char*  pSubRowTexts[numElements] = { "Font Spacing = 0.0f",
+                                                  "Font Spacing = 1.0f",
+                                                  "Font Spacing = 2.0f",
+                                                  "Font Spacing = 4.0f",
 
-			"Blur = 0.0f",
-			"Blur = 1.0f",
-			"Blur = 2.0f",
-			"Blur = 4.0f",
+                                                  "Blur = 0.0f",
+                                                  "Blur = 1.0f",
+                                                  "Blur = 2.0f",
+                                                  "Blur = 4.0f",
 
-			"Font Color: Red   | 0xff0000dd",
-			"Font Color: Green | 0xff00dd00",
-			"Font Color: Blue  | 0xffdd5050",
-			"Font Color: Gray  | 0xff888888"
-		};
-		const float* pFontPropertyXPositions[numSubColumns] =
-		{
-			&spacingPosition,
-			&blurPosition,
-			&colorPosition
-		};
+                                                  "Font Color: Red   | 0xff0000dd",
+                                                  "Font Color: Green | 0xff00dd00",
+                                                  "Font Color: Blue  | 0xffdd5050",
+                                                  "Font Color: Gray  | 0xff888888" };
+		const float* pFontPropertyXPositions[numSubColumns] = { &spacingPosition, &blurPosition, &colorPosition };
 
 		float rowHeightPerElem = 0.0f;
 		for (int subColumn = 0; subColumn < numSubColumns; ++subColumn)
@@ -666,35 +631,34 @@ public:
 				// set font properties and text data, and save it in scene data
 				switch (subColumn)
 				{
-				case 0: drawDescriptor.mFontSpacing = fontPropertyValues[text_index].f; break;
-				case 1: drawDescriptor.mFontBlur = fontPropertyValues[text_index].f; break;
-				case 2: drawDescriptor.mFontColor = (unsigned)fontPropertyValues[text_index].i; break;
+					case 0: drawDescriptor.mFontSpacing = fontPropertyValues[text_index].f; break;
+					case 1: drawDescriptor.mFontBlur = fontPropertyValues[text_index].f; break;
+					case 2: drawDescriptor.mFontColor = (unsigned)fontPropertyValues[text_index].i; break;
 				}
 				txt = pSubRowTexts[text_index];
-				sceneTexts.push_back({ txt, drawDescriptor,{ *(pFontPropertyXPositions[subColumn]), subRowPositionY } });
+				sceneTexts.push_back({ txt, drawDescriptor, { *(pFontPropertyXPositions[subColumn]), subRowPositionY } });
 
-				if (text_index == 0) // measure the height of sub-row once
+				if (text_index == 0)    // measure the height of sub-row once
 				{
 					rowHeightPerElem = gAppUI.MeasureText(txt, drawDescriptor).getY() / SCREEN_HEIGHT;
 				}
 
 				// iterate Y position, move on to the next row
-				subRowPositionY += rowHeightPerElem; // + offset?
+				subRowPositionY += rowHeightPerElem;    // + offset?
 			}
 		}
 		// ROW 1 ===================================================================
 
-
 		// ROW 2 ===================================================================
 		// ALPHABET WITH DIFFERENT FONTS
 		//
-		const int numFonts = 4;
+		const int   numFonts = 4;
 		const float alphabetFontSize = 30.0f;
 		const char* alphabetText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789";
 		const char* fontNames[numFonts] = { "TitilliumText-Bold", "Crimson-Serif", "Comic Relief", "Inconsolata-Mono" };
 		const int   fontIDs[numFonts] = { gFonts.titilliumBold, gFonts.crimsonSerif, gFonts.comicRelief, gFonts.monoSpace };
-		float2 textLengthsForEachFont[numFonts] = {};
-		float textHeightsForEachFont[numFonts] = {};
+		float2      textLengthsForEachFont[numFonts] = {};
+		float       textHeightsForEachFont[numFonts] = {};
 
 		// set font properties for each different font
 		TextDrawDesc drawDescs[numFonts] = {};
@@ -711,21 +675,19 @@ public:
 		for (int i = 0; i < numFonts; ++i)
 		{
 			const float2 alphabetMeasure = gAppUI.MeasureText(alphabetText, drawDescs[i]);
-			textLengthsForEachFont[i] = float2
-			(
-				gAppUI.MeasureText(fontNames[i], drawDescs[i]).getX() / SCREEN_WIDTH,
-				alphabetMeasure.getX() / SCREEN_WIDTH
-			);
+			textLengthsForEachFont[i] =
+				float2(gAppUI.MeasureText(fontNames[i], drawDescs[i]).getX() / SCREEN_WIDTH, alphabetMeasure.getX() / SCREEN_WIDTH);
 			textHeightsForEachFont[i] = alphabetMeasure.getY();
 		}
 
 		// calculate the position to center the alphabet on screen using the longest text line
-		float alphabetLineLengths[numFonts] = {};
+		float       alphabetLineLengths[numFonts] = {};
 		const float normalizedLengthBetweenAlphabetAndLabel = 0.025f;
 		for (int i = 0; i < numFonts; ++i)
-			alphabetLineLengths[i] = textLengthsForEachFont[i].getX() + normalizedLengthBetweenAlphabetAndLabel + textLengthsForEachFont[i].getY();
+			alphabetLineLengths[i] =
+				textLengthsForEachFont[i].getX() + normalizedLengthBetweenAlphabetAndLabel + textLengthsForEachFont[i].getY();
 
-		float maxalphabetLineLength = 0.0f; // normalized
+		float maxalphabetLineLength = 0.0f;    // normalized
 		float totalOfAlphabetHeights = 0.0f;
 		for (int i = 0; i < numFonts; ++i)
 		{
@@ -735,22 +697,19 @@ public:
 
 		const float centeredAlphabetTextNormalizedPositionX = GetScreenCenteredPosition(maxalphabetLineLength);
 
-
 		// CALCULATING HEIGHT:
 		// use previous row's first elements position + height of the entire previous row + margin offset
-		const float centeredAlphabetTextNormalizedPositionY
-			= blurPositionY
-			+ (gAppUI.MeasureText(fontNames[0], drawDescs[0]).getY() / SCREEN_HEIGHT) * numSubRows
-			+ screenSizeDistanceFromPreviousRow[2];
+		const float centeredAlphabetTextNormalizedPositionY =
+			blurPositionY + (gAppUI.MeasureText(fontNames[0], drawDescs[0]).getY() / SCREEN_HEIGHT) * numSubRows +
+			screenSizeDistanceFromPreviousRow[2];
 
 		// set row positions and label-alphabet offsets
-		float2 labelPos = float2(centeredAlphabetTextNormalizedPositionX, centeredAlphabetTextNormalizedPositionY);
+		float2      labelPos = float2(centeredAlphabetTextNormalizedPositionX, centeredAlphabetTextNormalizedPositionY);
 		const float longestFontNameInPixels = GetLongestStringLengthInPx(fontNames, numFonts, drawDescs);
-		const float fontLabelToAlphabetTextDistance = 0.01f; // [0, 1]
+		const float fontLabelToAlphabetTextDistance = 0.01f;    // [0, 1]
 		const float labelPositionNormalizedOffset = longestFontNameInPixels / mSettings.mWidth + fontLabelToAlphabetTextDistance;
 
 		float2 alphabetPos = labelPos + float2(labelPositionNormalizedOffset, 0.0f);
-
 
 		float alphabetHeights[numFonts] = {};
 		float largestAlphabetHeight = 0.0f;
@@ -777,40 +736,38 @@ public:
 		}
 		// ROW 2 ===================================================================
 
-
-
-
 		// ROW 3 ===================================================================
 		// WALL OF TEXT (UTF-8)
 		//
 		drawDescriptor.mFontColor = GetSkinColorOfProperty(PROP_TEXT, gSceneData.theme);
-		const int numParagraphLines = 11;
-		static const char *const string1[numParagraphLines] =
-		{
-			u8"Your name is Gus Graves, and you\u2019re a firefighter in the small town of Timber Valley, where the largest employer is the",
+		const int                numParagraphLines = 11;
+		static const char* const string1[numParagraphLines] = {
+			u8"Your name is Gus Graves, and you\u2019re a firefighter in the small town of Timber Valley, where the largest employer is "
+			u8"the",
 			u8"mysterious research division of the MGL Corporation, a powerful and notoriously secretive player in the military-industrial",
-			u8"complex. It\u2019s sunset on Halloween, and just as you\u2019re getting ready for a stream of trick-or-treaters at home, your",
-			u8"chief calls you into the station. There\u2019s a massive blaze at the MGL building on the edge of town. You jump off the fire",
+			u8"complex. It\u2019s sunset on Halloween, and just as you\u2019re getting ready for a stream of trick-or-treaters at home, "
+			u8"your",
+			u8"chief calls you into the station. There\u2019s a massive blaze at the MGL building on the edge of town. You jump off the "
+			u8"fire",
 			u8"engine as it rolls up to the inferno and gasp not only at the incredible size of the fire but at the strange beams of light",
 			u8"brilliantly flashing through holes in the building\u2019s crumbling walls. As you approach the structure for a closer look,",
 			u8"the wall and floor of the building collapse to expose a vast underground chamber where all kinds of debris are being pulled",
 			u8"into a blinding light at the center of a giant metallic ring. The ground begins to fall beneath your feet, and you try to",
 			u8"scurry up the steepening slope to escape, but it\u2019s too late. You\u2019re pulled into the device alongside some mangled",
-			u8"equipment and the bodies of lab technicians who didn\u2019t survive the accident. You see your fire engine gravitating toward",
+			u8"equipment and the bodies of lab technicians who didn\u2019t survive the accident. You see your fire engine gravitating "
+			u8"toward",
 			u8"you as you accelerate into a tunnel of light."
 		};
 
-		const float paragraphPositionY
-			= centeredAlphabetTextNormalizedPositionY
-			+ totalOfAlphabetHeights / SCREEN_HEIGHT
-			+ screenSizeDistanceFromPreviousRow[3];
+		const float paragraphPositionY =
+			centeredAlphabetTextNormalizedPositionY + totalOfAlphabetHeights / SCREEN_HEIGHT + screenSizeDistanceFromPreviousRow[3];
 
 		drawDescriptor.mFontSize = 30.5f;
 		drawDescriptor.mFontID = gFonts.crimsonSerif;
 		const float longestLineLengthInPixels = GetLongestStringLengthInPx(string1, numParagraphLines, drawDescriptor);
 		const float longestNormalizedLength = longestLineLengthInPixels / mSettings.mWidth;
 		const float centeredParagraphPosition = GetScreenCenteredPosition(longestNormalizedLength);
-		float normalizedYPosition = paragraphPositionY;
+		float       normalizedYPosition = paragraphPositionY;
 		for (int i = 0; i < numParagraphLines; i++)
 		{
 			sceneTexts.push_back({ string1[i], drawDescriptor, float2(centeredParagraphPosition, normalizedYPosition) });
@@ -823,20 +780,11 @@ public:
 		// C PROGRAM - HELLO WORLD
 		//
 		drawDescriptor.mFontColor = GetSkinColorOfProperty(PROP_TEXT, gSceneData.theme);
-		static const char *const string2[] =
-		{
-			"#include<stdio.h>",
-			"int main(){",
-			"    printf(\"Hello World!\\n\");",
-			"    return 0;",
-			"}"
-		};
-		const int numCodeLines = sizeof(string2) / sizeof(const char*);
+		static const char* const string2[] = { "#include<stdio.h>", "int main(){", "    printf(\"Hello World!\\n\");", "    return 0;",
+											   "}" };
+		const int                numCodeLines = sizeof(string2) / sizeof(const char*);
 
-		const float codePositionY
-			= paragraphPositionY
-			+ paragraphLineHeight * numParagraphLines
-			+ screenSizeDistanceFromPreviousRow[4];
+		const float codePositionY = paragraphPositionY + paragraphLineHeight * numParagraphLines + screenSizeDistanceFromPreviousRow[4];
 
 		drawDescriptor.mFontSize = 30.5f;
 		drawDescriptor.mFontID = gFonts.monoSpace;
@@ -868,7 +816,7 @@ public:
 		bool bOffScreenRight = false;
 		bool bOffScreenTop = false;
 		bool bOffScreenBottom = false;
-		
+
 		// we currently have only one set of text, hence we'll not use the loop
 		// and directly work on the 1st element.
 		// this code section needs to be extended for fitting text to screen
@@ -876,7 +824,7 @@ public:
 		//
 		//for(int textSet = 0; textSet < gSceneData.sceneTextArray.size(); ++ textSet)
 		tinystl::vector<ScreenText>& AllSceneText = gSceneData.sceneTextArray.back();
-		
+
 		float offScreenExtentLeft = 0.0f;
 		float offScreenExtentRight = 0.0f;
 		float offScreenExtentTop = 0.0f;
@@ -884,22 +832,22 @@ public:
 		for (const ScreenText& screenText : AllSceneText)
 		{
 			const float2 textMeasure = gAppUI.MeasureText(screenText.mText, screenText.mDrawDesc) / float2(SCREEN_WIDTH, SCREEN_HEIGHT);
-			const float textExtentLeft = screenText.mScreenPosition.getX();
-			const float textExtentRight = textExtentLeft + textMeasure.getX();
-			const float textExtentTop = screenText.mScreenPosition.getY();
-			const float textExtentBottom = textExtentTop + textMeasure.getY();
-			
+			const float  textExtentLeft = screenText.mScreenPosition.getX();
+			const float  textExtentRight = textExtentLeft + textMeasure.getX();
+			const float  textExtentTop = screenText.mScreenPosition.getY();
+			const float  textExtentBottom = textExtentTop + textMeasure.getY();
+
 			bOffScreenLeft |= textExtentLeft < 0.0f;
 			bOffScreenRight |= textExtentRight > 1.0f;
 			bOffScreenTop |= textExtentTop < 0.0f;
 			bOffScreenBottom |= textExtentBottom > 1.0f;
-			
-			offScreenExtentLeft  = min(offScreenExtentLeft, textExtentLeft);
+
+			offScreenExtentLeft = min(offScreenExtentLeft, textExtentLeft);
 			offScreenExtentRight = max(offScreenExtentRight, textExtentRight - 1.0f);
 			offScreenExtentTop = min(offScreenExtentTop, textExtentTop);
 			offScreenExtentBottom = max(offScreenExtentBottom, textExtentBottom - 1.0f);
 		}
-		
+
 		const bool bOffscreenText = bOffScreenLeft || bOffScreenRight || bOffScreenTop || bOffScreenBottom;
 		if (bOffscreenText)
 		{
@@ -917,20 +865,19 @@ public:
 			//
 			const float contentMarginFromLeftAndRight = 0.02f;
 			const float scalingFactorX = bOffScreenLeft || bOffScreenRight
-				? 1.0f / (1.0f + offScreenExtentRight + (-offScreenExtentLeft) + contentMarginFromLeftAndRight)
-				: 1.0f;
-			
-			
+											 ? 1.0f / (1.0f + offScreenExtentRight + (-offScreenExtentLeft) + contentMarginFromLeftAndRight)
+											 : 1.0f;
+
 			const float contentMarginFromTopAndBottom = 0.02f;
 			const float scalingFactorY = bOffScreenTop || bOffScreenBottom
-				? 1.0f / (1.0f + offScreenExtentBottom + (-offScreenExtentTop) + contentMarginFromTopAndBottom)
-				: 1.0f;
-			
+											 ? 1.0f / (1.0f + offScreenExtentBottom + (-offScreenExtentTop) + contentMarginFromTopAndBottom)
+											 : 1.0f;
+
 			float scalingFactor = min(scalingFactorX, scalingFactorY);
 
 			// only center the screen, do not offset from top after fitting
-			float2 bias = float2((1.0f-scalingFactor)*0.5f, 0.0f);
-			
+			float2 bias = float2((1.0f - scalingFactor) * 0.5f, 0.0f);
+
 			// adjust screen text to fit to screen
 			for (ScreenText& screenText : AllSceneText)
 			{

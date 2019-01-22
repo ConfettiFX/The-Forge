@@ -7,19 +7,19 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{cc7bda9a-3399-4904-804d-4a00ca4eb772}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{e2ca4192-66b6-432f-9010-b3c88789beba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{2e78201c-7434-45a8-996a-46fb1d57d926}</UniqueIdentifier>
     </Filter>
     <Filter Include="Panini">
       <UniqueIdentifier>{d7dfe476-7d4a-40e2-9dfe-d28735883c82}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Panini\PCDX12">
+    <Filter Include="Panini\D3D12">
       <UniqueIdentifier>{585b7702-ad30-47e5-9b84-af0cd824dba3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Panini\PCVulkan">
+    <Filter Include="Panini\Vulkan">
       <UniqueIdentifier>{4233eb5d-f951-40b6-9ed2-27067835eebc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -62,60 +62,60 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\ComputeUpdate.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\ExecuteIndirect.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\ExecuteIndirect.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\04_ExecuteIndirect\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag">
-      <Filter>Panini\PCDX12</Filter>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.frag">
+      <Filter>Panini\D3D12</Filter>
     </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert">
-      <Filter>Panini\PCDX12</Filter>
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.vert">
+      <Filter>Panini\D3D12</Filter>
     </None>
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag">
-      <Filter>Panini\PCVulkan</Filter>
+      <Filter>Panini\Vulkan</Filter>
     </None>
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert">
-      <Filter>Panini\PCVulkan</Filter>
+      <Filter>Panini\Vulkan</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ComputeUpdate.comp">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\ComputeUpdate.comp">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\ExecuteIndirect.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\ExecuteIndirect.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\skybox.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\skybox.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
   </ItemGroup>
 </Project>

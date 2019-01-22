@@ -22,21 +22,21 @@
     <ClCompile Include="..\src\10_PixelProjectedReflections\10_PixelProjectedReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\BRDFIntegration.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\computeIrradianceMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\computeSpecularMap.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\fillGbuffers.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\fillGbuffers.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\panoToCube.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Holepatching.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Holepatching.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Projection.comp" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Reflection.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\PPR_Reflection.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\renderSceneBRDF.vert" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\10_PixelProjectedReflections\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\BRDFIntegration.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\computeIrradianceMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\computeSpecularMap.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\fillGbuffers.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\fillGbuffers.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\panoToCube.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\PPR_Holepatching.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\PPR_Holepatching.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\PPR_Projection.comp" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\PPR_Reflection.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\PPR_Reflection.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\renderSceneBRDF.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\renderSceneBRDF.vert" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\skybox.vert" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\BRDFIntegration.comp" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\computeIrradianceMap.comp" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\computeSpecularMap.comp" />
@@ -120,28 +120,28 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(VULKAN_SDK)\Lib;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>

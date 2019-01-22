@@ -16,10 +16,12 @@
   <Dependencies Name="Debug">
     <Project Name="OS"/>
     <Project Name="ozz_base"/>
+    <Project Name="ozz_animation_offline"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="OS"/>
     <Project Name="ozz_base"/>
+    <Project Name="ozz_animation_offline"/>
   </Dependencies>
   <Settings Type="Static Library">
     <GlobalSettings>

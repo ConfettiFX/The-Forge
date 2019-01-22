@@ -225,17 +225,17 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.frag" />
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\PCDX12\panini_projection.vert" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.frag" />
+    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.vert" />
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag" />
     <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.frag" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\basic.vert" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ComputeUpdate.comp" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.frag" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\ExecuteIndirect.vert" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\04_ExecuteIndirect\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\ComputeUpdate.comp" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\ExecuteIndirect.frag" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\ExecuteIndirect.vert" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\04_ExecuteIndirect\Shaders\D3D12\skybox.vert" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Libraries\OS\OS.vcxproj">

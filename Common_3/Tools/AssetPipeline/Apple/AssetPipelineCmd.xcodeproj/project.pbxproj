@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		654D958621CDC09F00113964 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D957E21CDC09F00113964 /* AppKit.framework */; };
 		B28C6E5321B2051300FBA1BF /* AssetPipelineCmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28C6E5221B2051300FBA1BF /* AssetPipelineCmd.cpp */; };
 		B28C6E7B21B206BB00FBA1BF /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6E6F21B2069900FBA1BF /* libThe-Forge.a */; };
 		B28C6F3021B20E4800FBA1BF /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F1921B20E1C00FBA1BF /* libassimp.a */; };
@@ -195,6 +196,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		654D957E21CDC09F00113964 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		B28C6E3821B2047A00FBA1BF /* AssetPipelineCmd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AssetPipelineCmd; sourceTree = BUILT_PRODUCTS_DIR; };
 		B28C6E5221B2051300FBA1BF /* AssetPipelineCmd.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AssetPipelineCmd.cpp; path = ../AssetPipelineCmd.cpp; sourceTree = "<group>"; };
 		B28C6E5D21B2053200FBA1BF /* libAssetPipeline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libAssetPipeline.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -213,6 +215,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				654D958621CDC09F00113964 /* AppKit.framework in Frameworks */,
 				B28C6F5C21B222D500FBA1BF /* libAssetPipeline.a in Frameworks */,
 				B28C6F3521B20E5300FBA1BF /* ozz_animation.a in Frameworks */,
 				B28C6F3621B20E5300FBA1BF /* ozz_base.a in Frameworks */,
@@ -251,6 +254,7 @@
 		B28C6E5C21B2053200FBA1BF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				654D957E21CDC09F00113964 /* AppKit.framework */,
 				B28C6F0B21B20DD000FBA1BF /* libIrrXML.a */,
 				B28C6F0921B20DCA00FBA1BF /* libIrrXML_iOS.a */,
 				B28C6F0521B20AD100FBA1BF /* libassimp.a */,
@@ -556,7 +560,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_COMMA = NO;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -615,7 +619,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_COMMA = NO;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;

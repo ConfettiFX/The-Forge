@@ -19,13 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\compositePass.comp" />
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\display.frag" />
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\display.vert" />
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\gbufferPass.frag" />
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\gbufferPass.vert" />
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\lightingPass.comp" />
-    <None Include="..\src\09a_HybridRaytracing\Shaders\PCDX12\raytracedShadowsPass.comp" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\compositePass.comp" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\display.frag" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\display.vert" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\gbufferPass.frag" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\gbufferPass.vert" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\lightingPass.comp" />
+    <None Include="..\src\09a_HybridRaytracing\Shaders\D3D12\raytracedShadowsPass.comp" />
     <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\compositePass.comp" />
     <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\display.frag" />
     <None Include="..\src\09a_HybridRaytracing\Shaders\Vulkan\display.vert" />
@@ -90,28 +90,28 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(LibraryPath);</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -273,4 +273,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

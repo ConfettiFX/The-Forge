@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,44 +38,50 @@
 
 typedef struct BufferLoadDesc
 {
-	Buffer**	ppBuffer;
+	Buffer**    ppBuffer;
 	const void* pData;
 	BufferDesc  mDesc;
 	/// Force Reset buffer to NULL
-	bool		mForceReset;
+	bool mForceReset;
 } BufferLoadDesc;
 
 typedef struct TextureLoadDesc
 {
-	Texture**			   ppTexture;
+	Texture** ppTexture;
 	/// Load texture from image
-	Image*				  pImage;
+	Image* pImage;
 	/// Load empty texture
-	TextureDesc*			pDesc;
+	TextureDesc* pDesc;
 	/// Load texture from disk
-	const char*			 pFilename;
-	FSRoot				  mRoot;
-	uint32_t				mNodeIndex;
-	bool					mUseMipmaps;
-	bool					mSrgb;
+	const char* pFilename;
+	FSRoot      mRoot;
+	uint32_t    mNodeIndex;
+	bool        mUseMipmaps;
+	bool        mSrgb;
 } TextureLoadDesc;
 
 typedef struct BufferUpdateDesc
 {
-	BufferUpdateDesc(Buffer* buf = NULL, const void* data = NULL, uint64_t srcOff = 0, uint64_t dstOff = 0, uint64_t size = 0) :
-		pBuffer(buf), pData(data), mSrcOffset(srcOff), mDstOffset(dstOff), mSize(size) {}
+	BufferUpdateDesc(Buffer* buf = NULL, const void* data = NULL, uint64_t srcOff = 0, uint64_t dstOff = 0, uint64_t size = 0):
+		pBuffer(buf),
+		pData(data),
+		mSrcOffset(srcOff),
+		mDstOffset(dstOff),
+		mSize(size)
+	{
+	}
 
-	Buffer* pBuffer;
+	Buffer*     pBuffer;
 	const void* pData;
-	uint64_t mSrcOffset;
-	uint64_t mDstOffset;
-	uint64_t mSize; // If 0, uses size of pBuffer
+	uint64_t    mSrcOffset;
+	uint64_t    mDstOffset;
+	uint64_t    mSize;    // If 0, uses size of pBuffer
 } BufferUpdateDesc;
 
 typedef struct TextureUpdateDesc
 {
-	Texture*	pTexture;
-	Image*	  pImage;
+	Texture* pTexture;
+	Image*   pImage;
 } TextureUpdateDesc;
 
 typedef enum ResourceType
@@ -86,42 +92,42 @@ typedef enum ResourceType
 
 typedef struct ResourceLoadDesc
 {
-	ResourceLoadDesc(BufferLoadDesc& buffer) : mType(RESOURCE_TYPE_BUFFER), buf(buffer) {}
-	ResourceLoadDesc(TextureLoadDesc& texture) : mType(RESOURCE_TYPE_TEXTURE), tex(texture) {}
+	ResourceLoadDesc(BufferLoadDesc& buffer): mType(RESOURCE_TYPE_BUFFER), buf(buffer) {}
+	ResourceLoadDesc(TextureLoadDesc& texture): mType(RESOURCE_TYPE_TEXTURE), tex(texture) {}
 
 	ResourceType mType;
 	union
 	{
-		BufferLoadDesc buf;
+		BufferLoadDesc  buf;
 		TextureLoadDesc tex;
 	};
 } ResourceLoadDesc;
 
 typedef struct ResourceUpdateDesc
 {
-	ResourceUpdateDesc(BufferUpdateDesc& buffer) : mType(RESOURCE_TYPE_BUFFER), buf(buffer) {}
-	ResourceUpdateDesc(TextureUpdateDesc& texture) : mType(RESOURCE_TYPE_TEXTURE), tex(texture) {}
+	ResourceUpdateDesc(BufferUpdateDesc& buffer): mType(RESOURCE_TYPE_BUFFER), buf(buffer) {}
+	ResourceUpdateDesc(TextureUpdateDesc& texture): mType(RESOURCE_TYPE_TEXTURE), tex(texture) {}
 
 	ResourceType mType;
 	union
 	{
-		BufferUpdateDesc buf;
+		BufferUpdateDesc  buf;
 		TextureUpdateDesc tex;
 	};
 } ResourceUpdateDesc;
 
 typedef struct ShaderStageLoadDesc
 {
-	tinystl::string		 mFileName;
-	ShaderMacro*	pMacros;
-	uint32_t		mMacroCount;
-	FSRoot		  mRoot;
+	tinystl::string mFileName;
+	ShaderMacro*    pMacros;
+	uint32_t        mMacroCount;
+	FSRoot          mRoot;
 } ShaderStageLoadDesc;
 
 typedef struct ShaderLoadDesc
 {
 	ShaderStageLoadDesc mStages[SHADER_STAGE_COUNT];
-	ShaderTarget mTarget;
+	ShaderTarget        mTarget;
 } ShaderLoadDesc;
 
 void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget = DEFAULT_MEMORY_BUDGET, bool useThreads = false);

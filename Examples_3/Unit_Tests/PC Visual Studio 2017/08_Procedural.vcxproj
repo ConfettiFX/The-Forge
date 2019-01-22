@@ -190,10 +190,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\08_Procedural\Shaders\PCDX12\background.frag" />
-    <None Include="..\src\08_Procedural\Shaders\PCDX12\background.vert" />
-    <None Include="..\src\08_Procedural\Shaders\PCDX12\proceduralPlanet.frag" />
-    <None Include="..\src\08_Procedural\Shaders\PCDX12\proceduralPlanet.vert" />
+    <None Include="..\src\08_Procedural\Shaders\D3D12\background.frag" />
+    <None Include="..\src\08_Procedural\Shaders\D3D12\background.vert" />
+    <None Include="..\src\08_Procedural\Shaders\D3D12\proceduralPlanet.frag" />
+    <None Include="..\src\08_Procedural\Shaders\D3D12\proceduralPlanet.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{23493642-8398-4E1E-9D71-D69447C72A3D}</ProjectGuid>

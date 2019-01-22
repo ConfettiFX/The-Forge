@@ -2,7 +2,7 @@
 <CodeLite_Project Name="10_PixelProjectedReflections" Version="10.0.0" InternalType="Console">
   <Plugins>
     <Plugin Name="qmake">
-      <![CDATA[00010001N0005Debug000000000000]]>
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
   <Description/>
@@ -14,6 +14,24 @@
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
   </VirtualDirectory>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="assimp"/>
+  </Dependencies>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="assimp"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -29,6 +47,7 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
@@ -88,6 +107,7 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
@@ -96,7 +116,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
@@ -141,22 +161,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
-    <Project Name="gainput"/>
-    <Project Name="zlibstatic"/>
-    <Project Name="assimp"/>
-  </Dependencies>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
-    <Project Name="gainput"/>
-    <Project Name="zlibstatic"/>
-    <Project Name="assimp"/>
-  </Dependencies>
 </CodeLite_Project>

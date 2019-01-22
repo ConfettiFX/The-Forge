@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
- *
- * This file is part of The-Forge
- * (see https://github.com/ConfettiFX/The-Forge).
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
 */
 
 #pragma once
@@ -30,7 +30,6 @@
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_set.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../../OS/Math/MathTypes.h"
-
 #include "../../OS/Interfaces/IOperatingSystem.h"
 
 struct BoundingBox
@@ -48,8 +47,6 @@ enum TextureMapType
 	*  *not* related to textures.
 	*/
 	TEXTURE_MAP_NONE = 0x0,
-
-
 
 	/** The texture is combined with the result of the diffuse
 	*  lighting equation.
@@ -125,9 +122,10 @@ enum TextureMapType
 	*/
 	TEXTURE_MAP_REFLECTION = 0xB,
 
-	/** glTF metallic roughness texture
+	/** GLTF metallic roughness texture
 	*
-	* Contains the metalness (Green) and the roughness (Blue) factors.
+	* Contains the metallic (B) and roughness (G) textures
+	* for GLTF materials.
 	*/
 	TEXTURE_MAP_GLTF_METALLIC_ROUGHNESS = 0xC,
 
@@ -141,85 +139,192 @@ enum TextureMapType
 	TEXTURE_MAP_COUNT = TEXTURE_MAP_UNKNOWN,
 };
 
-#define MATKEY_NAME "?mat.name"
-#define MATKEY_TWOSIDED "$mat.twosided"
-#define MATKEY_SHADING_MODEL "$mat.shadingm"
-#define MATKEY_ENABLE_WIREFRAME "$mat.wireframe"
-#define MATKEY_BLEND_FUNC "$mat.blend"
-#define MATKEY_OPACITY "$mat.opacity"
-#define MATKEY_BUMPSCALING "$mat.bumpscaling"
-#define MATKEY_SHININESS "$mat.shininess"
-#define MATKEY_REFLECTIVITY "$mat.reflectivity"
-#define MATKEY_SHININESS_STRENGTH "$mat.shinpercent"
-#define MATKEY_REFRACTI "$mat.refracti"
-#define MATKEY_COLOR_DIFFUSE "$clr.diffuse"
-#define MATKEY_COLOR_AMBIENT "$clr.ambient"
-#define MATKEY_COLOR_SPECULAR "$clr.specular"
-#define MATKEY_COLOR_EMISSIVE "$clr.emissive"
-#define MATKEY_COLOR_TRANSPARENT "$clr.transparent"
-#define MATKEY_COLOR_REFLECTIVE "$clr.reflective"
-#define MATKEY_GLOBAL_BACKGROUND_IMAGE "?bg.global"
-#define MATKEY_GLTF_METALLIC "$mat.gltf.pbrMetallicRoughness.metallicFactor"
-#define MATKEY_GLTF_ROUGHNESS "$mat.gltf.pbrMetallicRoughness.roughnessFactor"
+enum TextureFilterMode
+{
+	TEXTURE_FILTERING_MODE_POINT,
+	TEXTURE_FILTERING_MODE_BILINEAR,
+	TEXTURE_FILTERING_MODE_TRILINEAR,
+	TEXTURE_FILTERING_MODE_ANISOTROPIC,
+	TEXTURE_FILTERING_MODE_COUNT
+};
+
+enum TextureTilingMode
+{
+	TEXTURE_TILING_MODE_WRAP,
+	TEXTURE_TILING_MODE_CLAMP,
+	TEXTURE_TILING_MODE_BORDER,
+	TEXTURE_TILING_MODE_MIRROR,
+	TEXTURE_TILING_MODE_COUNT
+};
 
 #define MAX_ELEMENTS_PER_PROPERTY 4U
 
-struct MaterialProperty
+class IModelImporter
 {
-	uint32_t	mDataSize;
-	union
+	public:
+	enum ModelSourceType
 	{
-		int		mIntVal;
-		float	mFloatVal[MAX_ELEMENTS_PER_PROPERTY];
+		MODEL_SOURCE_TYPE_UNKNOWN,
+		MODEL_SOURCE_TYPE_OBJ,
+		MODEL_SOURCE_TYPE_FBX,
+		MODEL_SOURCE_TYPE_GLTF,
+		MODEL_SOURCE_TYPE_COUNT
 	};
+
+	enum MaterialSourceType
+	{
+		MATERIAL_SOURCE_TYPE_UNKNOWN,
+		MATERIAL_SOURCE_TYPE_OBJ,
+		MATERIAL_SOURCE_TYPE_FBX,
+		MATERIAL_SOURCE_TYPE_GLTF_METAL_ROUGH,
+		MATERIAL_SOURCE_TYPE_GLTF_SPEC_GLOSS,
+		MATERIAL_SOURCE_TYPE_COUNT
+	};
+
+	struct TextureMap
+	{
+		tinystl::string   mName;
+		TextureFilterMode mFilterMode;
+		TextureTilingMode mTilingModeU;
+		TextureTilingMode mTilingModeV;
+		float             mScale;
+	};
+
+	struct MaterialProperty
+	{
+		uint32_t mDataSize;
+		union
+		{
+			int           mIntVal[MAX_ELEMENTS_PER_PROPERTY];
+			float         mFloatVal[MAX_ELEMENTS_PER_PROPERTY];
+			char          mStringVal[MAX_ELEMENTS_PER_PROPERTY * 4];
+			unsigned char mBufferVal[MAX_ELEMENTS_PER_PROPERTY * 4];
+		};
+	};
+
+	struct MaterialData
+	{
+		tinystl::string                                           mName;
+		tinystl::vector<TextureMap>                               mTextureMaps[TEXTURE_MAP_COUNT];
+		tinystl::unordered_map<tinystl::string, MaterialProperty> mProperties;
+		MaterialSourceType                                        mSourceType;
+	};
+
+	struct EmbeddedTextureData
+	{
+		tinystl::string                mName;
+		tinystl::string                mFormat;
+		tinystl::vector<unsigned char> mData;
+		uint32_t                       mWidth;
+		uint32_t                       mHeight;
+	};
+
+	struct BoneNames
+	{
+		tinystl::string mNames[4];
+	};
+
+	struct Bone
+	{
+		tinystl::string mName;
+		mat4            mOffsetMatrix;
+	};
+
+	struct Mesh
+	{
+		tinystl::vector<float3>    mPositions;
+		tinystl::vector<float3>    mNormals;
+		tinystl::vector<float3>    mTangents;
+		tinystl::vector<float3>    mBitangents;
+		tinystl::vector<float2>    mUvs;
+		tinystl::vector<float4>    mBoneWeights;
+		tinystl::vector<BoneNames> mBoneNames;
+		tinystl::vector<Bone>      mBones;
+		tinystl::vector<uint32_t>  mIndices;
+		BoundingBox                mBounds;
+		uint32_t                   mMaterialId;
+	};
+
+	struct Node
+	{
+		tinystl::string           mName;
+		Node*                     pParent;
+		tinystl::vector<Node>     mChildren;
+		tinystl::vector<uint32_t> mMeshIndices;
+		mat4                      mTransform;
+	};
+
+	struct Model
+	{
+		/// Short name of scene
+		tinystl::string       mSceneName;
+		tinystl::vector<Mesh> mMeshArray;
+		/// This is a look up table to map the assimp mesh ID to a geometry component
+		tinystl::vector<tinystl::string> mGeometryNameList;
+		/// Load all the mateiral in the scene
+		tinystl::vector<MaterialData> mMaterialList;
+		/// Load all the embedded textures in the scene
+		tinystl::vector<EmbeddedTextureData> mEmbeddedTextureList;
+		/// Scene graph
+		Node mRootNode;
+		/// The type of the file the model was loaded from
+		ModelSourceType mSourceType;
+	};
+
+	virtual bool ImportModel(const char* filename, Model* outModel) = 0;
+
+	virtual tinystl::string MATKEY_NAME() = 0;
+	virtual tinystl::string MATKEY_TWOSIDED() = 0;
+	virtual tinystl::string MATKEY_SHADING_MODEL() = 0;
+	virtual tinystl::string MATKEY_ENABLE_WIREFRAME() = 0;
+	virtual tinystl::string MATKEY_BLEND_FUNC() = 0;
+	virtual tinystl::string MATKEY_OPACITY() = 0;
+	virtual tinystl::string MATKEY_BUMPSCALING() = 0;
+	virtual tinystl::string MATKEY_SHININESS() = 0;
+	virtual tinystl::string MATKEY_REFLECTIVITY() = 0;
+	virtual tinystl::string MATKEY_SHININESS_STRENGTH() = 0;
+	virtual tinystl::string MATKEY_REFRACTI() = 0;
+	virtual tinystl::string MATKEY_COLOR_DIFFUSE() = 0;
+	virtual tinystl::string MATKEY_COLOR_AMBIENT() = 0;
+	virtual tinystl::string MATKEY_COLOR_SPECULAR() = 0;
+	virtual tinystl::string MATKEY_COLOR_EMISSIVE() = 0;
+	virtual tinystl::string MATKEY_COLOR_TRANSPARENT() = 0;
+	virtual tinystl::string MATKEY_COLOR_REFLECTIVE() = 0;
+	virtual tinystl::string MATKEY_GLOBAL_BACKGROUND_IMAGE() = 0;
+
+	// GLTF specific keys
+	virtual tinystl::string MATKEY_GLTF_BASE_COLOR() = 0;
+	virtual tinystl::string MATKEY_GLTF_METALLIC_FACTOR() = 0;
+	virtual tinystl::string MATKEY_GLTF_ROUGHNESS_FACTOR() = 0;
 };
 
-struct MaterialData
+class AssimpImporter: public IModelImporter
 {
-	tinystl::string	mName;
-	tinystl::string	mTextureMaps[TEXTURE_MAP_COUNT];
-	tinystl::unordered_map<tinystl::string, MaterialProperty> mProperties;
-};
+	public:
+	~AssimpImporter() {}
+	bool ImportModel(const char* filename, Model* outModel);
 
-struct BoneNames
-{
-	tinystl::string mNames[4];
-};
+	tinystl::string MATKEY_NAME() { return "?mat.name"; }
+	tinystl::string MATKEY_TWOSIDED() { return "$mat.twosided"; }
+	tinystl::string MATKEY_SHADING_MODEL() { return "$mat.shadingm"; }
+	tinystl::string MATKEY_ENABLE_WIREFRAME() { return "$mat.wireframe"; }
+	tinystl::string MATKEY_BLEND_FUNC() { return "$mat.blend"; }
+	tinystl::string MATKEY_OPACITY() { return "$mat.opacity"; }
+	tinystl::string MATKEY_BUMPSCALING() { return "$mat.bumpscaling"; }
+	tinystl::string MATKEY_SHININESS() { return "$mat.shininess"; }
+	tinystl::string MATKEY_REFLECTIVITY() { return "$mat.reflectivity"; }
+	tinystl::string MATKEY_SHININESS_STRENGTH() { return "$mat.shinpercent"; }
+	tinystl::string MATKEY_REFRACTI() { return "$mat.refracti"; }
+	tinystl::string MATKEY_COLOR_DIFFUSE() { return "$clr.diffuse"; }
+	tinystl::string MATKEY_COLOR_AMBIENT() { return "$clr.ambient"; }
+	tinystl::string MATKEY_COLOR_SPECULAR() { return "$clr.specular"; }
+	tinystl::string MATKEY_COLOR_EMISSIVE() { return "$clr.emissive"; }
+	tinystl::string MATKEY_COLOR_TRANSPARENT() { return "$clr.transparent"; }
+	tinystl::string MATKEY_COLOR_REFLECTIVE() { return "$clr.reflective"; }
+	tinystl::string MATKEY_GLOBAL_BACKGROUND_IMAGE() { return "?bg.global"; }
 
-struct Bone
-{
-	tinystl::string mName;
-	mat4 mOffsetMatrix;
-};
-
-struct Mesh
-{
-	tinystl::vector <float3>	mPositions;
-	tinystl::vector <float3>	mNormals;
-	tinystl::vector <float3>	mTangents;
-	tinystl::vector <float3>	mBitangents;
-	tinystl::vector <float2>	mUvs;
-	tinystl::vector <float4>	mBoneWeights;
-	tinystl::vector <BoneNames> mBoneNames;
-	tinystl::vector <Bone>		mBones;
-	tinystl::vector <uint32_t>	mIndices;
-	BoundingBox					mBounds;
-	uint32_t					mMaterialId;
-};
-
-struct Model
-{
-	/// Short name of scene
-	tinystl::string							mSceneName;
-	tinystl::vector <Mesh>			mMeshArray;
-	/// This is a look up table to map the assimp mesh ID to a geometry component
-	tinystl::vector<tinystl::string>			mGeometryNameList;
-	/// Load all the mateiral in the scene
-	tinystl::vector<MaterialData>	mMaterialList;
-};
-
-class AssimpImporter
-{
-public:
-	static bool ImportModel(const char* filename, Model* outModel);
+	// GLTF specific keys
+	tinystl::string MATKEY_GLTF_BASE_COLOR() { return "$mat.gltf.pbrMetallicRoughness.baseColorFactor"; }
+	tinystl::string MATKEY_GLTF_METALLIC_FACTOR() { return "$mat.gltf.pbrMetallicRoughness.metallicFactor"; }
+	tinystl::string MATKEY_GLTF_ROUGHNESS_FACTOR() { return "$mat.gltf.pbrMetallicRoughness.roughnessFactor"; }
 };

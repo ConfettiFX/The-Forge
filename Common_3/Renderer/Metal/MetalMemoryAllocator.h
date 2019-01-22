@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,15 +32,15 @@ typedef struct ResourceAllocator MemoryAllocator;
 
 typedef struct BufferCreateInfo
 {
-	const uint64_t	  mSize;
+	const uint64_t mSize;
 	//const uint64_t	mAlignment;
 } BufferCreateInfo;
 
 typedef struct TextureCreateInfo
 {
-	MTLTextureDescriptor*	   pDesc;
-	const bool				  mIsRT;
-	const bool				  mIsMS;
+	MTLTextureDescriptor* pDesc;
+	const bool            mIsRT;
+	const bool            mIsMS;
 } TextureCreateInfo;
 
 // -------------------------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ typedef struct TextureCreateInfo
 // Normal assert to check for programmer's errors, especially in Debug configuration.
 #ifndef ASSERT
 #ifdef _DEBUG
-#define ASSERT(expr)		 ASSERT(expr)
+#define ASSERT(expr) ASSERT(expr)
 #else
 #define ASSERT(expr)
 #endif
@@ -63,7 +63,7 @@ typedef struct TextureCreateInfo
 // Making it non-empty can make program slow.
 #ifndef RESOURCE_HEAVY_ASSERT
 #ifdef _DEBUG
-#define RESOURCE_HEAVY_ASSERT(expr)   //ASSERT(expr)
+#define RESOURCE_HEAVY_ASSERT(expr)    //ASSERT(expr)
 #else
 #define RESOURCE_HEAVY_ASSERT(expr)
 #endif
@@ -71,15 +71,15 @@ typedef struct TextureCreateInfo
 
 #ifndef RESOURCE_NULL
 // Value used as null pointer. Define it to e.g.: nullptr, NULL, 0, (void*)0.
-#define RESOURCE_NULL   nil
+#define RESOURCE_NULL nil
 #endif
 
 #ifndef RESOURCE_SYSTEM_ALIGNED_MALLOC
-#define RESOURCE_SYSTEM_ALIGNED_MALLOC(size)   (conf_malloc((size)))
+#define RESOURCE_SYSTEM_ALIGNED_MALLOC(size) (conf_malloc((size)))
 #endif
 
 #ifndef RESOURCE_SYSTEM_FREE
-#define RESOURCE_SYSTEM_FREE(ptr)   conf_free(ptr)
+#define RESOURCE_SYSTEM_FREE(ptr) conf_free(ptr)
 #endif
 
 template <typename T>
@@ -90,19 +90,19 @@ static inline void swap(T& a, T& b)
 	b = c;
 }
 
-#define min(x,y) x<y?x:y
-#define max(x,y) x>y?x:y
+#define min(x, y) x < y ? x : y
+#define max(x, y) x > y ? x : y
 
 #ifndef RESOURCE_MIN
-#define RESOURCE_MIN(v1, v2)	(min((v1), (v2)))
+#define RESOURCE_MIN(v1, v2) (min((v1), (v2)))
 #endif
 
 #ifndef RESOURCE_MAX
-#define RESOURCE_MAX(v1, v2)	(max((v1), (v2)))
+#define RESOURCE_MAX(v1, v2) (max((v1), (v2)))
 #endif
 
 #ifndef RESOURCE_SWAP
-#define RESOURCE_SWAP(v1, v2)   swap((v1), (v2))
+#define RESOURCE_SWAP(v1, v2) swap((v1), (v2))
 #endif
 
 #ifdef DEBUG_LOG_MEMORY
@@ -110,7 +110,7 @@ static inline void swap(T& a, T& b)
 #define RESOURCE_DEBUG_LOG LOGDEBUGF
 #endif
 #else
-#define RESOURCE_DEBUG_LOG(format,...)((void)0)
+#define RESOURCE_DEBUG_LOG(format, ...) ((void)0)
 #endif
 
 // Define this macro to 1 to enable functions: resourceAllocBuildStatsString, resourceAllocFreeStatsString.
@@ -118,66 +118,70 @@ static inline void swap(T& a, T& b)
 #if RESOURCE_STATS_STRING_ENABLED
 static inline void AllocatorUint32ToStr(char* outStr, size_t strLen, uint32_t num)
 {
-	char *p;				/* pointer to traverse string */
-	char *firstdig;	  /* pointer to first digit */
-	char temp;			/* temp char */
-	uint32_t val = num;  /* full value */
-	uint32_t digval;		/* value of digit */
+	char*    p;         /* pointer to traverse string */
+	char*    firstdig;  /* pointer to first digit */
+	char     temp;      /* temp char */
+	uint32_t val = num; /* full value */
+	uint32_t digval;    /* value of digit */
 
 	p = outStr;
-	firstdig = p;		  /* save pointer to first digit */
-	do {
-		digval = (uint32_t) (num % 10UL);
-		num /= 10UL;	   /* get next digit */
+	firstdig = p; /* save pointer to first digit */
+	do
+	{
+		digval = (uint32_t)(num % 10UL);
+		num /= 10UL; /* get next digit */
 
 		/* convert to ascii and store */
 		if (digval > 9)
-			*p++ = (char) (digval - 10 + 'a');  /* a letter */
+			*p++ = (char)(digval - 10 + 'a'); /* a letter */
 		else
-			*p++ = (char) (digval + '0');	  /* a digit */
+			*p++ = (char)(digval + '0'); /* a digit */
 	} while (val > 0);
 
 	/* We now have the digit of the number in the buffer, but in reverse
 	 order.  Thus we reverse them now. */
-	*p-- = '\0';			/* terminate string; p points to last digit */
-	do {
+	*p-- = '\0'; /* terminate string; p points to last digit */
+	do
+	{
 		temp = *p;
 		*p = *firstdig;
-		*firstdig = temp;   /* swap *p and *firstdig */
+		*firstdig = temp; /* swap *p and *firstdig */
 		--p;
-		++firstdig;	  /* advance to next two digits */
+		++firstdig;         /* advance to next two digits */
 	} while (firstdig < p); /* repeat until halfway */
 }
 static inline void AllocatorUint64ToStr(char* outStr, size_t strLen, uint64_t num)
 {
-	char *p;					/* pointer to traverse string */
-	char *firstdig;		  /* pointer to first digit */
-	char temp;				/* temp char */
-	uint64_t val = num;	  /* full value */
-	unsigned long long digval;  /* value of digit */
+	char*              p;         /* pointer to traverse string */
+	char*              firstdig;  /* pointer to first digit */
+	char               temp;      /* temp char */
+	uint64_t           val = num; /* full value */
+	unsigned long long digval;    /* value of digit */
 
 	p = outStr;
-	firstdig = p;		  /* save pointer to first digit */
-	do {
-		digval = (uint64_t) (val % 10ULL);
-		val /= 10ULL;	  /* get next digit */
+	firstdig = p; /* save pointer to first digit */
+	do
+	{
+		digval = (uint64_t)(val % 10ULL);
+		val /= 10ULL; /* get next digit */
 
 		/* convert to ascii and store */
 		if (digval > 9)
-			*p++ = (char) (digval - 10 + 'a');  /* a letter */
+			*p++ = (char)(digval - 10 + 'a'); /* a letter */
 		else
-			*p++ = (char) (digval + '0');	  /* a digit */
+			*p++ = (char)(digval + '0'); /* a digit */
 	} while (val > 0);
 
 	/* We now have the digit of the number in the buffer, but in reverse
 	 order.  Thus we reverse them now. */
-	*p-- = '\0';			/* terminate string; p points to last digit */
-	do {
+	*p-- = '\0'; /* terminate string; p points to last digit */
+	do
+	{
 		temp = *p;
 		*p = *firstdig;
-		*firstdig = temp;   /* swap *p and *firstdig */
+		*firstdig = temp; /* swap *p and *firstdig */
 		--p;
-		++firstdig;	  /* advance to next two digits */
+		++firstdig;         /* advance to next two digits */
 	} while (firstdig < p); /* repeat until halfway */
 }
 #endif
@@ -207,7 +211,8 @@ static inline void AllocatorUint64ToStr(char* outStr, size_t strLen, uint64_t nu
  Every object will have its own allocation.
  Define to 1 for debugging purposes only.
  */
-#define RESOURCE_DEBUG_ALWAYS_OWN_MEMORY (0) // NOTE: Set this to 1 on Intel GPUs. It seems like suballocating buffers from heaps can give us problems on Intel hardware.
+#define RESOURCE_DEBUG_ALWAYS_OWN_MEMORY \
+	(0)    // NOTE: Set this to 1 on Intel GPUs. It seems like suballocating buffers from heaps can give us problems on Intel hardware.
 #endif
 
 #ifndef RESOURCE_DEBUG_ALIGNMENT
@@ -249,12 +254,12 @@ static inline void AllocatorUint64ToStr(char* outStr, size_t strLen, uint64_t nu
 
 #ifndef RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE
 /// Default size of a block allocated as single VkDeviceMemory from a "large" heap.
-#define RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE (64 * 1024 * 1024) // 64 MB
+#define RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE (64 * 1024 * 1024)    // 64 MB
 #endif
 
 #ifndef RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE
 /// Default size of a block allocated as single VkDeviceMemory from a "small" heap.
-#define RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE (16 * 1024 * 1024) // 16 MB
+#define RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE (16 * 1024 * 1024)    // 16 MB
 #endif
 
 // -------------------------------------------------------------------------------------------------
@@ -301,14 +306,13 @@ typedef enum AllocatorSuballocationType
 // Size and properties for the MTLResourceHeaps allocated for each resource type.
 typedef struct AllocatorHeapProperties
 {
-	uint64_t mBlockSize;
-	MTLStorageMode mStorageMode;
+	uint64_t        mBlockSize;
+	MTLStorageMode  mStorageMode;
 	MTLCPUCacheMode mCPUCacheMode;
-	const char* pName;
+	const char*     pName;
 } AllocatorHeapProperties;
 
-static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TYPES] =
-{
+static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TYPES] = {
 	/// Default Buffer
 	{
 		RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
@@ -417,17 +421,19 @@ static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TY
 };
 
 // Info needed for each Metal allocation.
-typedef struct AllocationInfo{
+typedef struct AllocationInfo
+{
 	MTLSizeAndAlign mSizeAlign;
-	bool			mIsRT;
-	bool			mIsMS;
+	bool            mIsRT;
+	bool            mIsMS;
 } AllocationInfo;
 
 // Minimum size of a free suballocation to register it in the free suballocation collection.
 static const uint64_t RESOURCE_MIN_FREE_SUBALLOCATION_SIZE_TO_REGISTER = 16;
 
 /// Flags for created Allocator.
-typedef enum AllocatorFlagBits {
+typedef enum AllocatorFlagBits
+{
 	/** Allocator and all objects created from it will not be synchronized internally, so you must guarantee they are used from only one thread at a time or synchronized externally by you.
 	 Using this flag may increase performance because internal mutexes are not used.*/
 	RESOURCE_ALLOCATOR_EXTERNALLY_SYNCHRONIZED_BIT = 0x00000001,
@@ -473,7 +479,8 @@ struct AllocatorStats
 
 /// Flags to be passed as AllocatorMemoryRequirements::flags.
 // TODO: Review this enum.
-typedef enum AllocatorMemoryRequirementFlagBits {
+typedef enum AllocatorMemoryRequirementFlagBits
+{
 	/** Set this flag if the allocation should have its own memory block.
 
 	 Use it for special, big resources, like fullscreen images used as attachments.
@@ -512,12 +519,13 @@ typedef uint32_t AllocatorMemoryRequirementFlags;
 typedef struct AllocatorMemoryRequirements
 {
 	AllocatorMemoryRequirementFlags flags;
-	ResourceMemoryUsage usage;
-	void* pUserData;
+	ResourceMemoryUsage             usage;
+	void*                           pUserData;
 } AllocatorMemoryRequirements;
 
 /** Parameters of AllocatorAllocation objects, that can be retrieved using function resourceAllocGetAllocationInfo().*/
-typedef struct ResourceAllocationInfo {
+typedef struct ResourceAllocationInfo
+{
 	/** \brief Memory type index that this allocation was allocated from.
 
 	 It never changes.
@@ -581,10 +589,11 @@ inline T AllocatorRoundDiv(T x, T y)
 
 #ifndef RESOURCE_SORT
 
-template<typename Iterator, typename Compare>
+template <typename Iterator, typename Compare>
 Iterator AllocatorQuickSortPartition(Iterator beg, Iterator end, Compare cmp)
 {
-	Iterator centerValue = end; --centerValue;
+	Iterator centerValue = end;
+	--centerValue;
 	Iterator insertIndex = beg;
 	for (Iterator i = beg; i < centerValue; ++i)
 	{
@@ -604,7 +613,7 @@ Iterator AllocatorQuickSortPartition(Iterator beg, Iterator end, Compare cmp)
 	return insertIndex;
 }
 
-template<typename Iterator, typename Compare>
+template <typename Iterator, typename Compare>
 void AllocatorQuickSort(Iterator beg, Iterator end, Compare cmp)
 {
 	if (beg < end)
@@ -617,7 +626,7 @@ void AllocatorQuickSort(Iterator beg, Iterator end, Compare cmp)
 
 #define RESOURCE_SORT(beg, end, cmp) AllocatorQuickSort(beg, end, cmp)
 
-#endif // #ifndef RESOURCE_SORT
+#endif    // #ifndef RESOURCE_SORT
 
 /*
  Returns true if two memory blocks occupy overlapping pages.
@@ -643,7 +652,8 @@ static inline bool AllocatorBlocksOnSamePage(uint64_t resourceAOffset, uint64_t 
  conservatively.
  */
 // TODO: Review this function.
-static inline bool AllocatorIsBufferImageGranularityConflict(AllocatorSuballocationType suballocType1, AllocatorSuballocationType suballocType2)
+static inline bool
+	AllocatorIsBufferImageGranularityConflict(AllocatorSuballocationType suballocType1, AllocatorSuballocationType suballocType2)
 {
 	if (suballocType1 > suballocType2)
 	{
@@ -652,36 +662,24 @@ static inline bool AllocatorIsBufferImageGranularityConflict(AllocatorSuballocat
 
 	switch (suballocType1)
 	{
-		case RESOURCE_SUBALLOCATION_TYPE_FREE:
-			return false;
-		case RESOURCE_SUBALLOCATION_TYPE_UNKNOWN:
-			return true;
+		case RESOURCE_SUBALLOCATION_TYPE_FREE: return false;
+		case RESOURCE_SUBALLOCATION_TYPE_UNKNOWN: return true;
 		case RESOURCE_SUBALLOCATION_TYPE_BUFFER:
-			return
-			suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_UNKNOWN ||
-			suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
+			return suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_UNKNOWN || suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
 		case RESOURCE_SUBALLOCATION_TYPE_IMAGE_UNKNOWN:
-			return
-			suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_UNKNOWN ||
-			suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_LINEAR ||
-			suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
-		case RESOURCE_SUBALLOCATION_TYPE_IMAGE_LINEAR:
-			return
-			suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
-		case RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL:
-			return false;
-		default:
-			ASSERT(0);
-			return true;
+			return suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_UNKNOWN ||
+				   suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_LINEAR || suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
+		case RESOURCE_SUBALLOCATION_TYPE_IMAGE_LINEAR: return suballocType2 == RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
+		case RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL: return false;
+		default: ASSERT(0); return true;
 	}
 }
 
 // Helper RAII class to lock a mutex in constructor and unlock it in destructor (at the end of scope).
 struct AllocatorMutexLock
 {
-public:
-	AllocatorMutexLock(RESOURCE_MUTEX& mutex, bool useMutex) :
-	m_pMutex(useMutex ? &mutex : RESOURCE_NULL)
+	public:
+	AllocatorMutexLock(RESOURCE_MUTEX& mutex, bool useMutex): m_pMutex(useMutex ? &mutex : RESOURCE_NULL)
 	{
 		if (m_pMutex)
 		{
@@ -697,7 +695,7 @@ public:
 		}
 	}
 
-private:
+	private:
 	RESOURCE_MUTEX* m_pMutex;
 };
 
@@ -718,7 +716,7 @@ static RESOURCE_MUTEX gDebugGlobalMutex;
  new element with value (key) should be inserted.
  */
 template <typename IterT, typename KeyT, typename CmpT>
-static IterT AllocatorBinaryFindFirstNotLess(IterT beg, IterT end, const KeyT &key, CmpT cmp)
+static IterT AllocatorBinaryFindFirstNotLess(IterT beg, IterT end, const KeyT& key, CmpT cmp)
 {
 	size_t down = 0, up = (end - beg);
 	while (down < up)
@@ -740,41 +738,35 @@ static IterT AllocatorBinaryFindFirstNotLess(IterT beg, IterT end, const KeyT &k
 // Memory allocation functions.
 // -------------------------------------------------------------------------------------------------
 
-static void* AllocatorMalloc(size_t size)
-{
-	return RESOURCE_SYSTEM_ALIGNED_MALLOC(size);
-}
+static void* AllocatorMalloc(size_t size) { return RESOURCE_SYSTEM_ALIGNED_MALLOC(size); }
 
-static void AllocatorFree(void* ptr)
-{
-	RESOURCE_SYSTEM_FREE(ptr);
-}
+static void AllocatorFree(void* ptr) { RESOURCE_SYSTEM_FREE(ptr); }
 
-template<typename T>
+template <typename T>
 static T* AllocatorAllocate()
 {
 	return (T*)AllocatorMalloc(sizeof(T));
 }
 
-template<typename T>
+template <typename T>
 static T* AllocatorAllocateArray(size_t count)
 {
 	return (T*)AllocatorMalloc(sizeof(T) * count);
 }
 
-template<typename T>
+template <typename T>
 static void resourceAlloc_delete(T* ptr)
 {
 	ptr->~T();
 	AllocatorFree(ptr);
 }
 
-template<typename T>
+template <typename T>
 static void resourceAlloc_delete_array(T* ptr, size_t count)
 {
 	if (ptr != RESOURCE_NULL)
 	{
-		for (size_t i = count; i--; )
+		for (size_t i = count; i--;)
 		{
 			ptr[i].~T();
 		}
@@ -784,20 +776,20 @@ static void resourceAlloc_delete_array(T* ptr, size_t count)
 
 #define AllocatorVector tinystl::vector
 
-template<typename T>
+template <typename T>
 static void VectorInsert(AllocatorVector<T>& vec, size_t index, const T& item)
 {
 	vec.insert(vec.begin() + index, item);
 }
 
-template<typename T>
+template <typename T>
 static void VectorRemove(AllocatorVector<T>& vec, size_t index)
 {
 	vec.erase(vec.begin() + index);
 }
 
 #define AllocatorPair tinystl::pair
-#define RESOURCE_MAP_TYPE(KeyT, ValueT) tinystl::unordered_map< KeyT, ValueT >
+#define RESOURCE_MAP_TYPE(KeyT, ValueT) tinystl::unordered_map<KeyT, ValueT>
 
 // -------------------------------------------------------------------------------------------------
 // Allocator pool class.
@@ -808,63 +800,62 @@ static void VectorRemove(AllocatorVector<T>& vec, size_t index)
  allocation. Number of elements that can be allocated is not bounded because
  allocator can create multiple blocks.
  */
-template<typename T>
+template <typename T>
 class AllocatorPoolAllocator
 {
-public:
+	public:
 	AllocatorPoolAllocator(size_t itemsPerBlock);
 	~AllocatorPoolAllocator();
 	void Clear();
-	T* Alloc();
+	T*   Alloc();
 	void Free(T* ptr);
 
-private:
+	private:
 	union Item
 	{
-		Item() {};
-		~Item() {};
+		Item(){};
+		~Item(){};
 
 		uint32_t NextFreeIndex;
-		T Value;
+		T        Value;
 	};
 
 	struct ItemBlock
 	{
-		Item* pItems;
+		Item*    pItems;
 		uint32_t FirstFreeIndex;
 	};
 
-	size_t m_ItemsPerBlock;
-	AllocatorVector< ItemBlock > m_ItemBlocks;
+	size_t                     m_ItemsPerBlock;
+	AllocatorVector<ItemBlock> m_ItemBlocks;
 
 	ItemBlock& CreateNewBlock();
 };
 
-template<typename T>
-AllocatorPoolAllocator<T>::AllocatorPoolAllocator(size_t itemsPerBlock) :
-m_ItemsPerBlock(itemsPerBlock)
+template <typename T>
+AllocatorPoolAllocator<T>::AllocatorPoolAllocator(size_t itemsPerBlock): m_ItemsPerBlock(itemsPerBlock)
 {
 	ASSERT(itemsPerBlock > 0);
 }
 
-template<typename T>
+template <typename T>
 AllocatorPoolAllocator<T>::~AllocatorPoolAllocator()
 {
 	Clear();
 }
 
-template<typename T>
+template <typename T>
 void AllocatorPoolAllocator<T>::Clear()
 {
-	for (size_t i = m_ItemBlocks.size(); i--; )
+	for (size_t i = m_ItemBlocks.size(); i--;)
 		resourceAlloc_delete_array(m_ItemBlocks[i].pItems, m_ItemsPerBlock);
 	m_ItemBlocks.clear();
 }
 
-template<typename T>
+template <typename T>
 T* AllocatorPoolAllocator<T>::Alloc()
 {
-	for (size_t i = m_ItemBlocks.size(); i--; )
+	for (size_t i = m_ItemBlocks.size(); i--;)
 	{
 		ItemBlock& block = m_ItemBlocks[i];
 		// This block has some free items: Use first one.
@@ -877,13 +868,13 @@ T* AllocatorPoolAllocator<T>::Alloc()
 	}
 
 	// No block has free item: Create new one and use it.
-	ItemBlock& newBlock = CreateNewBlock();
+	ItemBlock&  newBlock = CreateNewBlock();
 	Item* const pItem = &newBlock.pItems[0];
 	newBlock.FirstFreeIndex = pItem->NextFreeIndex;
 	return &pItem->Value;
 }
 
-template<typename T>
+template <typename T>
 void AllocatorPoolAllocator<T>::Free(T* ptr)
 {
 	// Search all memory blocks to find ptr.
@@ -907,10 +898,10 @@ void AllocatorPoolAllocator<T>::Free(T* ptr)
 	ASSERT(0 && "Pointer doesn't belong to this memory pool.");
 }
 
-template<typename T>
+template <typename T>
 typename AllocatorPoolAllocator<T>::ItemBlock& AllocatorPoolAllocator<T>::CreateNewBlock()
 {
-	ItemBlock newBlock = {conf_placement_new<Item>(AllocatorAllocateArray<Item>((m_ItemsPerBlock))), 0 };
+	ItemBlock newBlock = { conf_placement_new<Item>(AllocatorAllocateArray<Item>((m_ItemsPerBlock))), 0 };
 
 	m_ItemBlocks.push_back(newBlock);
 
@@ -925,19 +916,19 @@ typename AllocatorPoolAllocator<T>::ItemBlock& AllocatorPoolAllocator<T>::Create
 // AllocatorRawList and AllocatorList classes.
 // -------------------------------------------------------------------------------------------------
 
-template<typename T>
+template <typename T>
 struct AllocatorListItem
 {
 	AllocatorListItem* pPrev;
 	AllocatorListItem* pNext;
-	T Value;
+	T                  Value;
 };
 
 // Doubly linked list.
-template<typename T>
+template <typename T>
 class AllocatorRawList
 {
-public:
+	public:
 	typedef AllocatorListItem<T> ItemType;
 
 	AllocatorRawList();
@@ -945,19 +936,19 @@ public:
 	void Clear();
 
 	size_t GetCount() const { return m_Count; }
-	bool IsEmpty() const { return m_Count == 0; }
+	bool   IsEmpty() const { return m_Count == 0; }
 
-	ItemType* Front() { return m_pFront; }
+	ItemType*       Front() { return m_pFront; }
 	const ItemType* Front() const { return m_pFront; }
-	ItemType* Back() { return m_pBack; }
+	ItemType*       Back() { return m_pBack; }
 	const ItemType* Back() const { return m_pBack; }
 
 	ItemType* PushBack();
 	ItemType* PushFront();
 	ItemType* PushBack(const T& value);
 	ItemType* PushFront(const T& value);
-	void PopBack();
-	void PopFront();
+	void      PopBack();
+	void      PopFront();
 
 	// Item can be null - it means PushBack.
 	ItemType* InsertBefore(ItemType* pItem);
@@ -969,34 +960,30 @@ public:
 
 	void Remove(ItemType* pItem);
 
-private:
+	private:
 	AllocatorPoolAllocator<ItemType> m_ItemAllocator;
-	ItemType* m_pFront;
-	ItemType* m_pBack;
-	size_t m_Count;
+	ItemType*                        m_pFront;
+	ItemType*                        m_pBack;
+	size_t                           m_Count;
 
 	// Declared not defined, to block copy constructor and assignment operator.
 	AllocatorRawList(const AllocatorRawList<T>& src);
 	AllocatorRawList<T>& operator=(const AllocatorRawList<T>& rhs);
 };
 
-template<typename T>
-AllocatorRawList<T>::AllocatorRawList() :
-m_ItemAllocator(128),
-m_pFront(RESOURCE_NULL),
-m_pBack(RESOURCE_NULL),
-m_Count(0)
+template <typename T>
+AllocatorRawList<T>::AllocatorRawList(): m_ItemAllocator(128), m_pFront(RESOURCE_NULL), m_pBack(RESOURCE_NULL), m_Count(0)
 {
 }
 
-template<typename T>
+template <typename T>
 AllocatorRawList<T>::~AllocatorRawList()
 {
 	// Intentionally not calling Clear, because that would be unnecessary
 	// computations to return all items to m_ItemAllocator as free.
 }
 
-template<typename T>
+template <typename T>
 void AllocatorRawList<T>::Clear()
 {
 	if (IsEmpty() == false)
@@ -1014,7 +1001,7 @@ void AllocatorRawList<T>::Clear()
 	}
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::PushBack()
 {
 	ItemType* const pNewItem = m_ItemAllocator.Alloc();
@@ -1036,7 +1023,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::PushBack()
 	return pNewItem;
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::PushFront()
 {
 	ItemType* const pNewItem = m_ItemAllocator.Alloc();
@@ -1058,7 +1045,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::PushFront()
 	return pNewItem;
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::PushBack(const T& value)
 {
 	ItemType* const pNewItem = PushBack();
@@ -1066,7 +1053,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::PushBack(const T& value)
 	return pNewItem;
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::PushFront(const T& value)
 {
 	ItemType* const pNewItem = PushFront();
@@ -1074,7 +1061,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::PushFront(const T& value)
 	return pNewItem;
 }
 
-template<typename T>
+template <typename T>
 void AllocatorRawList<T>::PopBack()
 {
 	RESOURCE_HEAVY_ASSERT(m_Count > 0);
@@ -1089,7 +1076,7 @@ void AllocatorRawList<T>::PopBack()
 	--m_Count;
 }
 
-template<typename T>
+template <typename T>
 void AllocatorRawList<T>::PopFront()
 {
 	RESOURCE_HEAVY_ASSERT(m_Count > 0);
@@ -1104,7 +1091,7 @@ void AllocatorRawList<T>::PopFront()
 	--m_Count;
 }
 
-template<typename T>
+template <typename T>
 void AllocatorRawList<T>::Remove(ItemType* pItem)
 {
 	RESOURCE_HEAVY_ASSERT(pItem != RESOURCE_NULL);
@@ -1134,7 +1121,7 @@ void AllocatorRawList<T>::Remove(ItemType* pItem)
 	--m_Count;
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::InsertBefore(ItemType* pItem)
 {
 	if (pItem != RESOURCE_NULL)
@@ -1160,7 +1147,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::InsertBefore(ItemType* pItem)
 		return PushBack();
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::InsertAfter(ItemType* pItem)
 {
 	if (pItem != RESOURCE_NULL)
@@ -1186,7 +1173,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::InsertAfter(ItemType* pItem)
 		return PushFront();
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::InsertBefore(ItemType* pItem, const T& value)
 {
 	ItemType* const newItem = InsertBefore(pItem);
@@ -1194,7 +1181,7 @@ AllocatorListItem<T>* AllocatorRawList<T>::InsertBefore(ItemType* pItem, const T
 	return newItem;
 }
 
-template<typename T>
+template <typename T>
 AllocatorListItem<T>* AllocatorRawList<T>::InsertAfter(ItemType* pItem, const T& value)
 {
 	ItemType* const newItem = InsertAfter(pItem);
@@ -1202,22 +1189,18 @@ AllocatorListItem<T>* AllocatorRawList<T>::InsertAfter(ItemType* pItem, const T&
 	return newItem;
 }
 
-template<typename T>
+template <typename T>
 class AllocatorList
 {
-public:
+	public:
 	// Forward declarations.
 	class iterator;
 	class const_iterator;
 
 	class iterator
 	{
-	public:
-		iterator() :
-		m_pList(RESOURCE_NULL),
-		m_pItem(RESOURCE_NULL)
-		{
-		}
+		public:
+		iterator(): m_pList(RESOURCE_NULL), m_pItem(RESOURCE_NULL) {}
 
 		T& operator*() const
 		{
@@ -1274,15 +1257,11 @@ public:
 			return m_pItem != rhs.m_pItem;
 		}
 
-	private:
-		AllocatorRawList<T>* m_pList;
+		private:
+		AllocatorRawList<T>*  m_pList;
 		AllocatorListItem<T>* m_pItem;
 
-		iterator(AllocatorRawList<T>* pList, AllocatorListItem<T>* pItem) :
-		m_pList(pList),
-		m_pItem(pItem)
-		{
-		}
+		iterator(AllocatorRawList<T>* pList, AllocatorListItem<T>* pItem): m_pList(pList), m_pItem(pItem) {}
 
 		friend class AllocatorList<T>;
 		friend class AllocatorList<T>::const_iterator;
@@ -1290,18 +1269,10 @@ public:
 
 	class const_iterator
 	{
-	public:
-		const_iterator() :
-		m_pList(RESOURCE_NULL),
-		m_pItem(RESOURCE_NULL)
-		{
-		}
+		public:
+		const_iterator(): m_pList(RESOURCE_NULL), m_pItem(RESOURCE_NULL) {}
 
-		const_iterator(const iterator& src) :
-		m_pList(src.m_pList),
-		m_pItem(src.m_pItem)
-		{
-		}
+		const_iterator(const iterator& src): m_pList(src.m_pList), m_pItem(src.m_pItem) {}
 
 		const T& operator*() const
 		{
@@ -1358,22 +1329,18 @@ public:
 			return m_pItem != rhs.m_pItem;
 		}
 
-	private:
-		const_iterator(const AllocatorRawList<T>* pList, const AllocatorListItem<T>* pItem) :
-		m_pList(pList),
-		m_pItem(pItem)
-		{
-		}
+		private:
+		const_iterator(const AllocatorRawList<T>* pList, const AllocatorListItem<T>* pItem): m_pList(pList), m_pItem(pItem) {}
 
-		const AllocatorRawList<T>* m_pList;
+		const AllocatorRawList<T>*  m_pList;
 		const AllocatorListItem<T>* m_pItem;
 
 		friend class AllocatorList<T>;
 	};
 
-	AllocatorList() : m_RawList() { }
+	AllocatorList(): m_RawList() {}
 
-	bool empty() const { return m_RawList.IsEmpty(); }
+	bool   empty() const { return m_RawList.IsEmpty(); }
 	size_t size() const { return m_RawList.GetCount(); }
 
 	iterator begin() { return iterator(&m_RawList, m_RawList.Front()); }
@@ -1382,12 +1349,12 @@ public:
 	const_iterator cbegin() const { return const_iterator(&m_RawList, m_RawList.Front()); }
 	const_iterator cend() const { return const_iterator(&m_RawList, RESOURCE_NULL); }
 
-	void clear() { m_RawList.Clear(); }
-	void push_back(const T& value) { m_RawList.PushBack(value); }
-	void erase(iterator it) { m_RawList.Remove(it.m_pItem); }
+	void     clear() { m_RawList.Clear(); }
+	void     push_back(const T& value) { m_RawList.PushBack(value); }
+	void     erase(iterator it) { m_RawList.Remove(it.m_pItem); }
 	iterator insert(iterator it, const T& value) { return iterator(&m_RawList, m_RawList.InsertBefore(it.m_pItem, value)); }
 
-private:
+	private:
 	AllocatorRawList<T> m_RawList;
 };
 
@@ -1406,29 +1373,28 @@ enum RESOURCE_BLOCK_VECTOR_TYPE
 
 static RESOURCE_BLOCK_VECTOR_TYPE AllocatorMemoryRequirementFlagsToBlockVectorType(AllocatorMemoryRequirementFlags flags)
 {
-	return (flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0 ?
-	RESOURCE_BLOCK_VECTOR_TYPE_MAPPED :
-	RESOURCE_BLOCK_VECTOR_TYPE_UNMAPPED;
+	return (flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0 ? RESOURCE_BLOCK_VECTOR_TYPE_MAPPED
+																		 : RESOURCE_BLOCK_VECTOR_TYPE_UNMAPPED;
 }
 
 struct OwnAllocation
 {
-	id<MTLBuffer> m_Buffer;
+	id<MTLBuffer>  m_Buffer;
 	id<MTLTexture> m_Texture;
-	uint32_t m_MemoryTypeIndex;
-	bool m_PersistentMap;
-	void* m_pMappedData;
+	uint32_t       m_MemoryTypeIndex;
+	bool           m_PersistentMap;
+	void*          m_pMappedData;
 };
 
 struct BlockAllocation
 {
 	AllocatorBlock* m_Block;
-	uint64_t m_Offset;
+	uint64_t        m_Offset;
 };
 
 struct ResourceAllocation
 {
-public:
+	public:
 	enum ALLOCATION_TYPE
 	{
 		ALLOCATION_TYPE_NONE,
@@ -1436,13 +1402,12 @@ public:
 		ALLOCATION_TYPE_OWN,
 	};
 
-	ResourceAllocation()
-	{
-		memset(this, 0, sizeof(ResourceAllocation));
-	}
-	~ResourceAllocation() {};
+	ResourceAllocation() { memset(this, 0, sizeof(ResourceAllocation)); }
+	~ResourceAllocation(){};
 
-	void InitBlockAllocation(AllocatorBlock* block, uint64_t offset, uint64_t alignment, uint64_t size, AllocatorSuballocationType suballocationType, void* pUserData)
+	void InitBlockAllocation(
+		AllocatorBlock* block, uint64_t offset, uint64_t alignment, uint64_t size, AllocatorSuballocationType suballocationType,
+		void* pUserData)
 	{
 		ASSERT(m_Type == ALLOCATION_TYPE_NONE);
 		ASSERT(block != RESOURCE_NULL);
@@ -1463,7 +1428,9 @@ public:
 		m_BlockAllocation.m_Offset = offset;
 	}
 
-	void InitOwnAllocation(uint32_t memoryTypeIndex, AllocatorSuballocationType suballocationType, bool persistentMap, void* pMappedData, uint64_t size, void* pUserData)
+	void InitOwnAllocation(
+		uint32_t memoryTypeIndex, AllocatorSuballocationType suballocationType, bool persistentMap, void* pMappedData, uint64_t size,
+		void* pUserData)
 	{
 		ASSERT(m_Type == ALLOCATION_TYPE_NONE);
 		m_Type = ALLOCATION_TYPE_OWN;
@@ -1476,11 +1443,11 @@ public:
 		m_OwnAllocation.m_pMappedData = pMappedData;
 	}
 
-	ALLOCATION_TYPE GetType() const { return m_Type; }
-	uint64_t GetAlignment() const { return m_Alignment; }
-	uint64_t GetSize() const { return m_Size; }
-	void* GetUserData() const { return m_pUserData; }
-	void SetUserData(void* pUserData) { m_pUserData = pUserData; }
+	ALLOCATION_TYPE            GetType() const { return m_Type; }
+	uint64_t                   GetAlignment() const { return m_Alignment; }
+	uint64_t                   GetSize() const { return m_Size; }
+	void*                      GetUserData() const { return m_pUserData; }
+	void                       SetUserData(void* pUserData) { m_pUserData = pUserData; }
 	AllocatorSuballocationType GetSuballocationType() const { return m_SuballocationType; }
 
 	AllocatorBlock* GetBlock() const
@@ -1488,16 +1455,13 @@ public:
 		ASSERT(m_Type == ALLOCATION_TYPE_BLOCK);
 		return m_BlockAllocation.m_Block;
 	}
-	uint64_t GetOffset() const
-	{
-		return (m_Type == ALLOCATION_TYPE_BLOCK) ? m_BlockAllocation.m_Offset : 0;
-	}
-	id<MTLHeap> GetMemory() const;
-	id<MTLBuffer> GetResource() const;
-	uint32_t GetMemoryTypeIndex() const;
+	uint64_t                   GetOffset() const { return (m_Type == ALLOCATION_TYPE_BLOCK) ? m_BlockAllocation.m_Offset : 0; }
+	id<MTLHeap>                GetMemory() const;
+	id<MTLBuffer>              GetResource() const;
+	uint32_t                   GetMemoryTypeIndex() const;
 	RESOURCE_BLOCK_VECTOR_TYPE GetBlockVectorType() const;
-	void* GetMappedData() const;
-	OwnAllocation* GetOwnAllocation() { return &m_OwnAllocation; }
+	void*                      GetMappedData() const;
+	OwnAllocation*             GetOwnAllocation() { return &m_OwnAllocation; }
 
 	bool OwnAllocMapPersistentlyMappedMemory()
 	{
@@ -1518,11 +1482,11 @@ public:
 		}
 	}
 
-private:
-	uint64_t m_Alignment;
-	uint64_t m_Size;
-	void* m_pUserData;
-	ALLOCATION_TYPE m_Type;
+	private:
+	uint64_t                   m_Alignment;
+	uint64_t                   m_Size;
+	void*                      m_pUserData;
+	ALLOCATION_TYPE            m_Type;
 	AllocatorSuballocationType m_SuballocationType;
 
 	union
@@ -1543,19 +1507,19 @@ struct AllocatorSuballocation
 {
 	//id<MTLBuffer> bufferResource;
 	//id<MTLTexture> textureResource;
-	void* mappedData;
-	uint64_t offset;
-	uint64_t size;
+	void*                      mappedData;
+	uint64_t                   offset;
+	uint64_t                   size;
 	AllocatorSuballocationType type;
 };
 
-typedef AllocatorList< AllocatorSuballocation > AllocatorSuballocationList;
+typedef AllocatorList<AllocatorSuballocation> AllocatorSuballocationList;
 
 // Parameters of an allocation.
 struct AllocatorAllocationRequest
 {
 	AllocatorSuballocationList::iterator freeSuballocationItem;
-	uint64_t offset;
+	uint64_t                             offset;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -1565,33 +1529,36 @@ struct AllocatorAllocationRequest
 /* Single block of memory with all the data about its regions assigned or free. */
 class AllocatorBlock
 {
-public:
-	uint32_t m_MemoryTypeIndex;
+	public:
+	uint32_t                   m_MemoryTypeIndex;
 	RESOURCE_BLOCK_VECTOR_TYPE m_BlockVectorType;
-	id<MTLHeap> m_hMemory;
-	id<MTLBuffer> m_Buffer;
-	id<MTLTexture> m_Texture;
-	uint64_t m_Size;
-	bool m_PersistentMap;
-	void* m_pMappedData;
-	uint32_t m_FreeCount;
-	uint64_t m_SumFreeSize;
+	id<MTLHeap>                m_hMemory;
+	id<MTLBuffer>              m_Buffer;
+	id<MTLTexture>             m_Texture;
+	uint64_t                   m_Size;
+	bool                       m_PersistentMap;
+	void*                      m_pMappedData;
+	uint32_t                   m_FreeCount;
+	uint64_t                   m_SumFreeSize;
 	AllocatorSuballocationList m_Suballocations;
 	// Suballocations that are free and have size greater than certain threshold.
 	// Sorted by size, ascending.
-	AllocatorVector< AllocatorSuballocationList::iterator > m_FreeSuballocationsBySize;
+	AllocatorVector<AllocatorSuballocationList::iterator> m_FreeSuballocationsBySize;
 
 	AllocatorBlock(ResourceAllocator* hAllocator);
 
-	~AllocatorBlock()
-	{
-		ASSERT(m_hMemory == NULL);
-	}
+	~AllocatorBlock() { ASSERT(m_hMemory == NULL); }
 
 	// Always call after construction.
-	void Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLHeap> newMemory, uint64_t newSize, bool persistentMap, void* pMappedData);
-	void Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLBuffer> newMemory, uint64_t newSize, bool persistentMap, void* pMappedData);
-	void Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLTexture> newMemory, uint64_t newSize, bool persistentMap, void* pMappedData);
+	void Init(
+		uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLHeap> newMemory, uint64_t newSize,
+		bool persistentMap, void* pMappedData);
+	void Init(
+		uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLBuffer> newMemory, uint64_t newSize,
+		bool persistentMap, void* pMappedData);
+	void Init(
+		uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLTexture> newMemory, uint64_t newSize,
+		bool persistentMap, void* pMappedData);
 	// Always call before destruction.
 	void Destroy(ResourceAllocator* allocator);
 
@@ -1601,11 +1568,15 @@ public:
 	// Tries to find a place for suballocation with given parameters inside this allocation.
 	// If succeeded, fills pAllocationRequest and returns true.
 	// If failed, returns false.
-	bool CreateAllocationRequest(uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType, AllocatorAllocationRequest* pAllocationRequest);
+	bool CreateAllocationRequest(
+		uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType,
+		AllocatorAllocationRequest* pAllocationRequest);
 
 	// Checks if requested suballocation with given parameters can be placed in given pFreeSuballocItem.
 	// If yes, fills pOffset and returns true. If no, returns false.
-	bool CheckAllocation(uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType, AllocatorSuballocationList::const_iterator freeSuballocItem, uint64_t* pOffset) const;
+	bool CheckAllocation(
+		uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType,
+		AllocatorSuballocationList::const_iterator freeSuballocItem, uint64_t* pOffset) const;
 
 	// Returns true if this allocation is empty - contains only single free suballocation.
 	bool IsEmpty() const;
@@ -1621,7 +1592,7 @@ public:
 	void PrintDetailedMap(class AllocatorStringBuilder& sb) const;
 #endif
 
-private:
+	private:
 	// Given free suballocation, it merges it with following one, which must also be free.
 	void MergeFreeWithNext(AllocatorSuballocationList::iterator item);
 	// Releases given suballocation, making it free. Merges it with adjacent free
@@ -1644,7 +1615,7 @@ private:
 struct AllocatorBlockVector
 {
 	// Incrementally sorted by sumFreeSize, ascending.
-	AllocatorVector< AllocatorBlock* > m_Blocks;
+	AllocatorVector<AllocatorBlock*> m_Blocks;
 
 	AllocatorBlockVector(ResourceAllocator* hAllocator);
 	~AllocatorBlockVector();
@@ -1668,7 +1639,7 @@ struct AllocatorBlockVector
 	void UnmapPersistentlyMappedMemory();
 	bool MapPersistentlyMappedMemory();
 
-private:
+	private:
 	ResourceAllocator* m_hAllocator;
 };
 
@@ -1679,11 +1650,11 @@ private:
 // Main allocator object.
 struct ResourceAllocator
 {
-	bool m_UseMutex;
+	bool          m_UseMutex;
 	id<MTLDevice> m_Device;
-	bool m_AllocationCallbacksSpecified;
-	uint64_t m_PreferredLargeHeapBlockSize;
-	uint64_t m_PreferredSmallHeapBlockSize;
+	bool          m_AllocationCallbacksSpecified;
+	uint64_t      m_PreferredLargeHeapBlockSize;
+	uint64_t      m_PreferredSmallHeapBlockSize;
 	// Non-zero when we are inside UnmapPersistentlyMappedMemory...MapPersistentlyMappedMemory.
 	// Counter to allow nested calls to these functions.
 	uint32_t m_UnmapPersistentlyMappedMemoryCounter;
@@ -1692,13 +1663,13 @@ struct ResourceAllocator
 	/* There can be at most one allocation that is completely empty - a
 	 hysteresis to avoid pessimistic case of alternating creation and destruction
 	 of a VkDeviceMemory. */
-	bool m_HasEmptyBlock[RESOURCE_MEMORY_TYPE_NUM_TYPES];
+	bool           m_HasEmptyBlock[RESOURCE_MEMORY_TYPE_NUM_TYPES];
 	RESOURCE_MUTEX m_BlocksMutex[RESOURCE_MEMORY_TYPE_NUM_TYPES];
 
 	// Each vector is sorted by memory (handle value).
-	typedef AllocatorVector< ResourceAllocation* > AllocationVectorType;
-	AllocationVectorType* m_pOwnAllocations[RESOURCE_MEMORY_TYPE_NUM_TYPES][RESOURCE_BLOCK_VECTOR_TYPE_COUNT];
-	RESOURCE_MUTEX m_OwnAllocationsMutex[RESOURCE_MEMORY_TYPE_NUM_TYPES];
+	typedef AllocatorVector<ResourceAllocation*> AllocationVectorType;
+	AllocationVectorType*                        m_pOwnAllocations[RESOURCE_MEMORY_TYPE_NUM_TYPES][RESOURCE_BLOCK_VECTOR_TYPE_COUNT];
+	RESOURCE_MUTEX                               m_OwnAllocationsMutex[RESOURCE_MEMORY_TYPE_NUM_TYPES];
 
 	ResourceAllocator(const AllocatorCreateInfo* pCreateInfo);
 	~ResourceAllocator();
@@ -1714,7 +1685,9 @@ struct ResourceAllocator
 	uint32_t GetMemoryTypeCount() const { return RESOURCE_MEMORY_TYPE_NUM_TYPES; }
 
 	// Main allocation function.
-	bool AllocateMemory(const AllocationInfo& info, const AllocatorMemoryRequirements& resourceAllocMemReq, AllocatorSuballocationType suballocType, ResourceAllocation** pAllocation);
+	bool AllocateMemory(
+		const AllocationInfo& info, const AllocatorMemoryRequirements& resourceAllocMemReq, AllocatorSuballocationType suballocType,
+		ResourceAllocation** pAllocation);
 
 	// Main deallocation function.
 	void FreeMemory(ResourceAllocation* allocation);
@@ -1730,11 +1703,15 @@ struct ResourceAllocator
 
 	static void GetAllocationInfo(ResourceAllocation* hAllocation, ResourceAllocationInfo* pAllocationInfo);
 
-private:
-	bool AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, const AllocatorMemoryRequirements& resourceAllocMemReq, uint32_t memTypeIndex, AllocatorSuballocationType suballocType, ResourceAllocation** pAllocation);
+	private:
+	bool AllocateMemoryOfType(
+		const MTLSizeAndAlign& mtlMemReq, const AllocatorMemoryRequirements& resourceAllocMemReq, uint32_t memTypeIndex,
+		AllocatorSuballocationType suballocType, ResourceAllocation** pAllocation);
 
 	// Allocates and registers new VkDeviceMemory specifically for single allocation.
-	bool AllocateOwnMemory(uint64_t size, AllocatorSuballocationType suballocType, uint32_t memTypeIndex, bool map, void* pUserData, ResourceAllocation** pAllocation);
+	bool AllocateOwnMemory(
+		uint64_t size, AllocatorSuballocationType suballocType, uint32_t memTypeIndex, bool map, void* pUserData,
+		ResourceAllocation** pAllocation);
 
 	// Tries to free pMemory as Own Memory. Returns true if found and freed.
 	void FreeOwnMemory(ResourceAllocation* allocation);
@@ -1748,9 +1725,9 @@ private:
 
 class AllocatorStringBuilder
 {
-public:
-	AllocatorStringBuilder(ResourceAllocator* alloc) { }
-	size_t GetLength() const { return m_Data.size(); }
+	public:
+	AllocatorStringBuilder(ResourceAllocator* alloc) {}
+	size_t      GetLength() const { return m_Data.size(); }
 	const char* GetData() const { return m_Data.data(); }
 
 	void Add(char ch) { m_Data.push_back(ch); }
@@ -1762,8 +1739,8 @@ public:
 	void AddNull() { Add("null"); }
 	void AddString(const char* pStr);
 
-private:
-	AllocatorVector< char > m_Data;
+	private:
+	AllocatorVector<char> m_Data;
 };
 
 void AllocatorStringBuilder::Add(const char* pStr)
@@ -1810,35 +1787,21 @@ void AllocatorStringBuilder::AddString(const char* pStr)
 		{
 			Add(ch);
 		}
-		else switch (ch)
-		{
-			case '\n':
-				Add("\\n");
-				break;
-			case '\r':
-				Add("\\r");
-				break;
-			case '\t':
-				Add("\\t");
-				break;
-			default:
-				ASSERT(0 && "Character not currently supported.");
-				break;
-		}
+		else
+			switch (ch)
+			{
+				case '\n': Add("\\n"); break;
+				case '\r': Add("\\r"); break;
+				case '\t': Add("\\t"); break;
+				default: ASSERT(0 && "Character not currently supported."); break;
+			}
 	}
 	Add('"');
 }
 
 // Correspond to values of enum AllocatorSuballocationType.
 static const char* RESOURCE_SUBALLOCATION_TYPE_NAMES[] = {
-	"FREE",
-	"UNKNOWN",
-	"BUFFER",
-	"IMAGE_UNKNOWN",
-	"IMAGE_LINEAR",
-	"IMAGE_OPTIMAL",
-	"IMAGE_RTV_DSV",
-	"UAV",
+	"FREE", "UNKNOWN", "BUFFER", "IMAGE_UNKNOWN", "IMAGE_LINEAR", "IMAGE_OPTIMAL", "IMAGE_RTV_DSV", "UAV",
 };
 
 static void AllocatorPrintStatInfo(AllocatorStringBuilder& sb, const AllocatorStatInfo& stat)
@@ -1868,7 +1831,7 @@ static void AllocatorPrintStatInfo(AllocatorStringBuilder& sb, const AllocatorSt
 	sb.Add(" } }");
 }
 
-#endif // #if RESOURCE_STATS_STRING_ENABLED
+#endif    // #if RESOURCE_STATS_STRING_ENABLED
 
 static void InitStatInfo(AllocatorStatInfo& outInfo)
 {
@@ -1894,8 +1857,7 @@ static void CalcAllocationStatInfo(AllocatorStatInfo& outInfo, const AllocatorBl
 	outInfo.UnusedRangeSizeMax = 0;
 
 	for (AllocatorSuballocationList::const_iterator suballocItem = alloc.m_Suballocations.cbegin();
-		 suballocItem != alloc.m_Suballocations.cend();
-		 ++suballocItem)
+		 suballocItem != alloc.m_Suballocations.cend(); ++suballocItem)
 	{
 		const AllocatorSuballocation& suballoc = *suballocItem;
 		if (suballoc.type != RESOURCE_SUBALLOCATION_TYPE_FREE)
@@ -1927,20 +1889,17 @@ static void AllocatorAddStatInfo(AllocatorStatInfo& inoutInfo, const AllocatorSt
 
 static void AllocatorPostprocessCalcStatInfo(AllocatorStatInfo& inoutInfo)
 {
-	inoutInfo.SuballocationSizeAvg = (inoutInfo.SuballocationCount > 0) ?
-	AllocatorRoundDiv<uint64_t>(inoutInfo.UsedBytes, inoutInfo.SuballocationCount) : 0;
-	inoutInfo.UnusedRangeSizeAvg = (inoutInfo.UnusedRangeCount > 0) ?
-	AllocatorRoundDiv<uint64_t>(inoutInfo.UnusedBytes, inoutInfo.UnusedRangeCount) : 0;
+	inoutInfo.SuballocationSizeAvg =
+		(inoutInfo.SuballocationCount > 0) ? AllocatorRoundDiv<uint64_t>(inoutInfo.UsedBytes, inoutInfo.SuballocationCount) : 0;
+	inoutInfo.UnusedRangeSizeAvg =
+		(inoutInfo.UnusedRangeCount > 0) ? AllocatorRoundDiv<uint64_t>(inoutInfo.UnusedBytes, inoutInfo.UnusedRangeCount) : 0;
 }
 
 // -------------------------------------------------------------------------------------------------
 // ResourceAllocation functionality implementation.
 // -------------------------------------------------------------------------------------------------
 
-id<MTLHeap> ResourceAllocation::GetMemory() const
-{
-	return (m_Type == ALLOCATION_TYPE_BLOCK) ? m_BlockAllocation.m_Block->m_hMemory : nil;
-}
+id<MTLHeap> ResourceAllocation::GetMemory() const { return (m_Type == ALLOCATION_TYPE_BLOCK) ? m_BlockAllocation.m_Block->m_hMemory : nil; }
 
 id<MTLBuffer> ResourceAllocation::GetResource() const
 {
@@ -1948,7 +1907,7 @@ id<MTLBuffer> ResourceAllocation::GetResource() const
 	{
 		return NULL;
 	}
-	return(m_SuballocationType == RESOURCE_SUBALLOCATION_TYPE_BUFFER) ? m_BlockAllocation.m_Block->m_Buffer : nil;
+	return (m_SuballocationType == RESOURCE_SUBALLOCATION_TYPE_BUFFER) ? m_BlockAllocation.m_Block->m_Buffer : nil;
 }
 
 uint32_t ResourceAllocation::GetMemoryTypeIndex() const
@@ -1958,8 +1917,9 @@ uint32_t ResourceAllocation::GetMemoryTypeIndex() const
 
 RESOURCE_BLOCK_VECTOR_TYPE ResourceAllocation::GetBlockVectorType() const
 {
-	return (m_Type == ALLOCATION_TYPE_BLOCK) ? m_BlockAllocation.m_Block->m_BlockVectorType :
-	(m_OwnAllocation.m_PersistentMap ? RESOURCE_BLOCK_VECTOR_TYPE_MAPPED : RESOURCE_BLOCK_VECTOR_TYPE_UNMAPPED);
+	return (m_Type == ALLOCATION_TYPE_BLOCK)
+			   ? m_BlockAllocation.m_Block->m_BlockVectorType
+			   : (m_OwnAllocation.m_PersistentMap ? RESOURCE_BLOCK_VECTOR_TYPE_MAPPED : RESOURCE_BLOCK_VECTOR_TYPE_UNMAPPED);
 }
 
 void* ResourceAllocation::GetMappedData() const
@@ -1976,11 +1936,8 @@ void* ResourceAllocation::GetMappedData() const
 				return RESOURCE_NULL;
 			}
 			break;
-		case ALLOCATION_TYPE_OWN:
-			return m_OwnAllocation.m_pMappedData;
-		default:
-			ASSERT(0);
-			return RESOURCE_NULL;
+		case ALLOCATION_TYPE_OWN: return m_OwnAllocation.m_pMappedData;
+		default: ASSERT(0); return RESOURCE_NULL;
 	}
 }
 
@@ -1995,25 +1952,24 @@ struct AllocatorSuballocationItemSizeLess
 	{
 		return lhs->size < rhs->size;
 	}
-	bool operator()(const AllocatorSuballocationList::iterator lhs, uint64_t rhsSize) const
-	{
-		return lhs->size < rhsSize;
-	}
+	bool operator()(const AllocatorSuballocationList::iterator lhs, uint64_t rhsSize) const { return lhs->size < rhsSize; }
 };
 
-AllocatorBlock::AllocatorBlock(ResourceAllocator* hAllocator) :
-m_MemoryTypeIndex(UINT32_MAX),
-m_BlockVectorType(RESOURCE_BLOCK_VECTOR_TYPE_COUNT),
-m_hMemory(NULL),
-m_Size(0),
-m_PersistentMap(false),
-m_pMappedData(RESOURCE_NULL),
-m_FreeCount(0),
-m_SumFreeSize(0)
+AllocatorBlock::AllocatorBlock(ResourceAllocator* hAllocator):
+	m_MemoryTypeIndex(UINT32_MAX),
+	m_BlockVectorType(RESOURCE_BLOCK_VECTOR_TYPE_COUNT),
+	m_hMemory(NULL),
+	m_Size(0),
+	m_PersistentMap(false),
+	m_pMappedData(RESOURCE_NULL),
+	m_FreeCount(0),
+	m_SumFreeSize(0)
 {
 }
 
-void AllocatorBlock::Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLHeap> newMemory, uint64_t newSize, bool persistentMap, void* pMappedData)
+void AllocatorBlock::Init(
+	uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLHeap> newMemory, uint64_t newSize, bool persistentMap,
+	void* pMappedData)
 {
 	ASSERT(m_hMemory == nil);
 
@@ -2040,7 +1996,9 @@ void AllocatorBlock::Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYP
 	m_FreeSuballocationsBySize.push_back(suballocItem);
 }
 
-void AllocatorBlock::Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLBuffer> newMemory, uint64_t newSize, bool persistentMap, void* pMappedData)
+void AllocatorBlock::Init(
+	uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLBuffer> newMemory, uint64_t newSize,
+	bool persistentMap, void* pMappedData)
 {
 	ASSERT(m_hMemory == nil);
 
@@ -2067,7 +2025,9 @@ void AllocatorBlock::Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYP
 	m_FreeSuballocationsBySize.push_back(suballocItem);
 }
 
-void AllocatorBlock::Init(uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLTexture> newMemory, uint64_t newSize, bool persistentMap, void* pMappedData)
+void AllocatorBlock::Init(
+	uint32_t newMemoryTypeIndex, RESOURCE_BLOCK_VECTOR_TYPE newBlockVectorType, id<MTLTexture> newMemory, uint64_t newSize,
+	bool persistentMap, void* pMappedData)
 {
 	ASSERT(m_hMemory == nil);
 
@@ -2104,7 +2064,7 @@ void AllocatorBlock::Destroy(ResourceAllocator* allocator)
 
 	if (m_hMemory)
 		m_hMemory = nil;
-	else if(m_Buffer)
+	else if (m_Buffer)
 		m_Buffer = nil;
 	else
 		m_Texture = nil;
@@ -2113,9 +2073,7 @@ void AllocatorBlock::Destroy(ResourceAllocator* allocator)
 
 bool AllocatorBlock::Validate() const
 {
-	if ((m_hMemory == nil) ||
-		(m_Size == 0) ||
-		m_Suballocations.empty())
+	if ((m_hMemory == nil) || (m_Size == 0) || m_Suballocations.empty())
 	{
 		return false;
 	}
@@ -2132,8 +2090,7 @@ bool AllocatorBlock::Validate() const
 	// True if previous visisted suballocation was free.
 	bool prevFree = false;
 
-	for (AllocatorSuballocationList::const_iterator suballocItem = m_Suballocations.cbegin();
-		 suballocItem != m_Suballocations.cend();
+	for (AllocatorSuballocationList::const_iterator suballocItem = m_Suballocations.cbegin(); suballocItem != m_Suballocations.cend();
 		 ++suballocItem)
 	{
 		const AllocatorSuballocation& subAlloc = *suballocItem;
@@ -2192,13 +2149,12 @@ bool AllocatorBlock::Validate() const
 	}
 
 	// Check if totals match calculacted values.
-	return
-	(calculatedOffset == m_Size) &&
-	(calculatedSumFreeSize == m_SumFreeSize) &&
-	(calculatedFreeCount == m_FreeCount);
+	return (calculatedOffset == m_Size) && (calculatedSumFreeSize == m_SumFreeSize) && (calculatedFreeCount == m_FreeCount);
 }
 
-bool AllocatorBlock::CreateAllocationRequest(uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType, AllocatorAllocationRequest* pAllocationRequest)
+bool AllocatorBlock::CreateAllocationRequest(
+	uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType,
+	AllocatorAllocationRequest* pAllocationRequest)
 {
 	ASSERT(allocSize > 0);
 	ASSERT(allocType != RESOURCE_SUBALLOCATION_TYPE_FREE);
@@ -2218,11 +2174,13 @@ bool AllocatorBlock::CreateAllocationRequest(uint64_t bufferImageGranularity, ui
 		if (RESOURCE_BEST_FIT)
 		{
 			// Find first free suballocation with size not less than allocSize.
-			AllocatorSuballocationList::iterator* const it = AllocatorBinaryFindFirstNotLess( m_FreeSuballocationsBySize.data(), m_FreeSuballocationsBySize.data() + freeSuballocCount, allocSize, AllocatorSuballocationItemSizeLess());
+			AllocatorSuballocationList::iterator* const it = AllocatorBinaryFindFirstNotLess(
+				m_FreeSuballocationsBySize.data(), m_FreeSuballocationsBySize.data() + freeSuballocCount, allocSize,
+				AllocatorSuballocationItemSizeLess());
 			size_t index = it - m_FreeSuballocationsBySize.data();
 			for (; index < freeSuballocCount; ++index)
 			{
-				uint64_t offset = 0;
+				uint64_t                                   offset = 0;
 				const AllocatorSuballocationList::iterator suballocItem = m_FreeSuballocationsBySize[index];
 				if (CheckAllocation(bufferImageGranularity, allocSize, allocAlignment, allocType, suballocItem, &offset))
 				{
@@ -2235,9 +2193,9 @@ bool AllocatorBlock::CreateAllocationRequest(uint64_t bufferImageGranularity, ui
 		else
 		{
 			// Search staring from biggest suballocations.
-			for (size_t index = freeSuballocCount; index--; )
+			for (size_t index = freeSuballocCount; index--;)
 			{
-				uint64_t offset = 0;
+				uint64_t                                   offset = 0;
 				const AllocatorSuballocationList::iterator suballocItem = m_FreeSuballocationsBySize[index];
 				if (CheckAllocation(bufferImageGranularity, allocSize, allocAlignment, allocType, suballocItem, &offset))
 				{
@@ -2251,7 +2209,9 @@ bool AllocatorBlock::CreateAllocationRequest(uint64_t bufferImageGranularity, ui
 	return false;
 }
 
-bool AllocatorBlock::CheckAllocation(uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType, AllocatorSuballocationList::const_iterator freeSuballocItem, uint64_t* pOffset) const
+bool AllocatorBlock::CheckAllocation(
+	uint64_t bufferImageGranularity, uint64_t allocSize, uint64_t allocAlignment, AllocatorSuballocationType allocType,
+	AllocatorSuballocationList::const_iterator freeSuballocItem, uint64_t* pOffset) const
 {
 	ASSERT(allocSize > 0);
 	ASSERT(allocType != RESOURCE_SUBALLOCATION_TYPE_FREE);
@@ -2262,7 +2222,7 @@ bool AllocatorBlock::CheckAllocation(uint64_t bufferImageGranularity, uint64_t a
 	ASSERT(suballoc.type == RESOURCE_SUBALLOCATION_TYPE_FREE);
 
 	// Size of this suballocation is too small for this request: Early return.
-	if([m_hMemory maxAvailableSizeWithAlignment:allocAlignment] < allocSize)
+	if ([m_hMemory maxAvailableSizeWithAlignment:allocAlignment] < allocSize)
 	{
 		return false;
 	}
@@ -2284,7 +2244,7 @@ bool AllocatorBlock::CheckAllocation(uint64_t bufferImageGranularity, uint64_t a
 	// Make bigger alignment if necessary.
 	if (bufferImageGranularity > 1)
 	{
-		bool bufferImageGranularityConflict = false;
+		bool                                       bufferImageGranularityConflict = false;
 		AllocatorSuballocationList::const_iterator prevSuballocItem = freeSuballocItem;
 		while (prevSuballocItem != m_Suballocations.cbegin())
 		{
@@ -2351,10 +2311,7 @@ bool AllocatorBlock::CheckAllocation(uint64_t bufferImageGranularity, uint64_t a
 	return true;
 }
 
-bool AllocatorBlock::IsEmpty() const
-{
-	return (m_Suballocations.size() == 1) && (m_FreeCount == 1);
-}
+bool AllocatorBlock::IsEmpty() const { return (m_Suballocations.size() == 1) && (m_FreeCount == 1); }
 
 void AllocatorBlock::Alloc(const AllocatorAllocationRequest& request, AllocatorSuballocationType type, uint64_t allocSize)
 {
@@ -2385,8 +2342,7 @@ void AllocatorBlock::Alloc(const AllocatorAllocationRequest& request, AllocatorS
 		paddingSuballoc.type = RESOURCE_SUBALLOCATION_TYPE_FREE;
 		AllocatorSuballocationList::iterator next = request.freeSuballocationItem;
 		++next;
-		const AllocatorSuballocationList::iterator paddingEndItem =
-		m_Suballocations.insert(next, paddingSuballoc);
+		const AllocatorSuballocationList::iterator paddingEndItem = m_Suballocations.insert(next, paddingSuballoc);
 		RegisterFreeSuballocation(paddingEndItem);
 	}
 
@@ -2398,7 +2354,7 @@ void AllocatorBlock::Alloc(const AllocatorAllocationRequest& request, AllocatorS
 		paddingSuballoc.size = paddingBegin;
 		paddingSuballoc.type = RESOURCE_SUBALLOCATION_TYPE_FREE;
 		const AllocatorSuballocationList::iterator paddingBeginItem =
-		m_Suballocations.insert(request.freeSuballocationItem, paddingSuballoc);
+			m_Suballocations.insert(request.freeSuballocationItem, paddingSuballoc);
 		RegisterFreeSuballocation(paddingBeginItem);
 	}
 
@@ -2465,8 +2421,7 @@ void AllocatorBlock::FreeSuballocation(AllocatorSuballocationList::iterator suba
 void AllocatorBlock::Free(const ResourceAllocation* allocation)
 {
 	const uint64_t allocationOffset = allocation->GetOffset();
-	for (AllocatorSuballocationList::iterator suballocItem = m_Suballocations.begin();
-		 suballocItem != m_Suballocations.end();
+	for (AllocatorSuballocationList::iterator suballocItem = m_Suballocations.begin(); suballocItem != m_Suballocations.end();
 		 ++suballocItem)
 	{
 		AllocatorSuballocation& suballoc = *suballocItem;
@@ -2495,8 +2450,7 @@ void AllocatorBlock::PrintDetailedMap(class AllocatorStringBuilder& sb) const
 	sb.Add(",\n\t\t\t\"SuballocationList\": [");
 
 	size_t i = 0;
-	for (AllocatorSuballocationList::const_iterator suballocItem = m_Suballocations.cbegin();
-		 suballocItem != m_Suballocations.cend();
+	for (AllocatorSuballocationList::const_iterator suballocItem = m_Suballocations.cbegin(); suballocItem != m_Suballocations.cend();
 		 ++suballocItem, ++i)
 	{
 		if (i > 0)
@@ -2518,7 +2472,7 @@ void AllocatorBlock::PrintDetailedMap(class AllocatorStringBuilder& sb) const
 	sb.Add("\n\t\t\t]\n\t\t}");
 }
 
-#endif // #if RESOURCE_STATS_STRING_ENABLED
+#endif    // #if RESOURCE_STATS_STRING_ENABLED
 
 void AllocatorBlock::MergeFreeWithNext(AllocatorSuballocationList::iterator item)
 {
@@ -2548,7 +2502,9 @@ void AllocatorBlock::RegisterFreeSuballocation(AllocatorSuballocationList::itera
 		}
 		else
 		{
-			AllocatorSuballocationList::iterator* const it = AllocatorBinaryFindFirstNotLess(m_FreeSuballocationsBySize.data(), m_FreeSuballocationsBySize.data() + m_FreeSuballocationsBySize.size(), item, AllocatorSuballocationItemSizeLess());
+			AllocatorSuballocationList::iterator* const it = AllocatorBinaryFindFirstNotLess(
+				m_FreeSuballocationsBySize.data(), m_FreeSuballocationsBySize.data() + m_FreeSuballocationsBySize.size(), item,
+				AllocatorSuballocationItemSizeLess());
 			size_t index = it - m_FreeSuballocationsBySize.data();
 			VectorInsert(m_FreeSuballocationsBySize, index, item);
 		}
@@ -2562,10 +2518,10 @@ void AllocatorBlock::UnregisterFreeSuballocation(AllocatorSuballocationList::ite
 
 	if (item->size >= RESOURCE_MIN_FREE_SUBALLOCATION_SIZE_TO_REGISTER)
 	{
-		AllocatorSuballocationList::iterator* const it = AllocatorBinaryFindFirstNotLess(m_FreeSuballocationsBySize.data(), m_FreeSuballocationsBySize.data() + m_FreeSuballocationsBySize.size(), item, AllocatorSuballocationItemSizeLess());
-		for (size_t index = it - m_FreeSuballocationsBySize.data();
-			 index < m_FreeSuballocationsBySize.size();
-			 ++index)
+		AllocatorSuballocationList::iterator* const it = AllocatorBinaryFindFirstNotLess(
+			m_FreeSuballocationsBySize.data(), m_FreeSuballocationsBySize.data() + m_FreeSuballocationsBySize.size(), item,
+			AllocatorSuballocationItemSizeLess());
+		for (size_t index = it - m_FreeSuballocationsBySize.data(); index < m_FreeSuballocationsBySize.size(); ++index)
 		{
 			if (m_FreeSuballocationsBySize[index] == item)
 			{
@@ -2582,14 +2538,11 @@ void AllocatorBlock::UnregisterFreeSuballocation(AllocatorSuballocationList::ite
 // AllocatorBlockVector functionality implementation.
 // -------------------------------------------------------------------------------------------------
 
-AllocatorBlockVector::AllocatorBlockVector(ResourceAllocator* hAllocator) :
-m_hAllocator(hAllocator)
-{
-}
+AllocatorBlockVector::AllocatorBlockVector(ResourceAllocator* hAllocator): m_hAllocator(hAllocator) {}
 
 AllocatorBlockVector::~AllocatorBlockVector()
 {
-	for (size_t i = m_Blocks.size(); i--; )
+	for (size_t i = m_Blocks.size(); i--;)
 	{
 		m_Blocks[i]->Destroy(m_hAllocator);
 		resourceAlloc_delete(m_Blocks[i]);
@@ -2640,11 +2593,11 @@ void AllocatorBlockVector::PrintDetailedMap(class AllocatorStringBuilder& sb) co
 	}
 }
 
-#endif // #if RESOURCE_STATS_STRING_ENABLED
+#endif    // #if RESOURCE_STATS_STRING_ENABLED
 
 void AllocatorBlockVector::UnmapPersistentlyMappedMemory()
 {
-	for (size_t i = m_Blocks.size(); i--; )
+	for (size_t i = m_Blocks.size(); i--;)
 	{
 		AllocatorBlock* pBlock = m_Blocks[i];
 		if (pBlock->m_pMappedData != RESOURCE_NULL)
@@ -2690,13 +2643,12 @@ void AllocatorBlockVector::AddStats(AllocatorStats* pStats, uint32_t memTypeInde
 
 struct AllocatorPointerLess
 {
-	bool operator()(const void* lhs, const void* rhs) const
-	{
-		return lhs < rhs;
-	}
+	bool operator()(const void* lhs, const void* rhs) const { return lhs < rhs; }
 };
 
-bool resourceAllocFindMemoryTypeIndex(ResourceAllocator* allocator, const AllocationInfo* pAllocInfo, const AllocatorMemoryRequirements* pMemoryRequirements, const AllocatorSuballocationType pSuballocType, uint32_t* pMemoryTypeIndex)
+bool resourceAllocFindMemoryTypeIndex(
+	ResourceAllocator* allocator, const AllocationInfo* pAllocInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
+	const AllocatorSuballocationType pSuballocType, uint32_t* pMemoryTypeIndex)
 {
 	ASSERT(allocator != RESOURCE_NULL);
 	ASSERT(pMemoryRequirements != RESOURCE_NULL);
@@ -2709,7 +2661,9 @@ bool resourceAllocFindMemoryTypeIndex(ResourceAllocator* allocator, const Alloca
 		case RESOURCE_SUBALLOCATION_TYPE_BUFFER:
 			if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 				*pMemoryTypeIndex = RESOURCE_MEMORY_TYPE_DEFAULT_BUFFER;
-			else if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_ONLY || pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
+			else if (
+				pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_ONLY ||
+				pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
 				*pMemoryTypeIndex = RESOURCE_MEMORY_TYPE_UPLOAD_BUFFER;
 			else if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
 				*pMemoryTypeIndex = RESOURCE_MEMORY_TYPE_READBACK_BUFFER;
@@ -2745,24 +2699,25 @@ bool resourceAllocFindMemoryTypeIndex(ResourceAllocator* allocator, const Alloca
 		case RESOURCE_SUBALLOCATION_TYPE_BUFFER_SRV_UAV:
 			if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 				*pMemoryTypeIndex = RESOURCE_MEMORY_TYPE_DEFAULT_UAV;
-			else if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_ONLY || pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
+			else if (
+				pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_ONLY ||
+				pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
 				*pMemoryTypeIndex = RESOURCE_MEMORY_TYPE_UPLOAD_UAV;
 			else if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
 				*pMemoryTypeIndex = RESOURCE_MEMORY_TYPE_READBACK_UAV;
 			break;
-		default:
-			break;
+		default: break;
 	}
 
 	return (*pMemoryTypeIndex != UINT32_MAX) ? true : false;
 }
 
-ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo) :
-m_UseMutex((pCreateInfo->flags & RESOURCE_ALLOCATOR_EXTERNALLY_SYNCHRONIZED_BIT) == 0),
-m_Device(pCreateInfo->device),
-m_PreferredLargeHeapBlockSize(0),
-m_PreferredSmallHeapBlockSize(0),
-m_UnmapPersistentlyMappedMemoryCounter(0)
+ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo):
+	m_UseMutex((pCreateInfo->flags & RESOURCE_ALLOCATOR_EXTERNALLY_SYNCHRONIZED_BIT) == 0),
+	m_Device(pCreateInfo->device),
+	m_PreferredLargeHeapBlockSize(0),
+	m_PreferredSmallHeapBlockSize(0),
+	m_UnmapPersistentlyMappedMemoryCounter(0)
 {
 	ASSERT(pCreateInfo->device);
 
@@ -2770,10 +2725,12 @@ m_UnmapPersistentlyMappedMemoryCounter(0)
 	memset(&m_HasEmptyBlock, 0, sizeof(m_HasEmptyBlock));
 	memset(&m_pOwnAllocations, 0, sizeof(m_pOwnAllocations));
 
-	m_PreferredLargeHeapBlockSize = (pCreateInfo->preferredLargeHeapBlockSize != 0) ?
-	pCreateInfo->preferredLargeHeapBlockSize : static_cast<uint64_t>(RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE);
-	m_PreferredSmallHeapBlockSize = (pCreateInfo->preferredSmallHeapBlockSize != 0) ?
-	pCreateInfo->preferredSmallHeapBlockSize : static_cast<uint64_t>(RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE);
+	m_PreferredLargeHeapBlockSize = (pCreateInfo->preferredLargeHeapBlockSize != 0)
+										? pCreateInfo->preferredLargeHeapBlockSize
+										: static_cast<uint64_t>(RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE);
+	m_PreferredSmallHeapBlockSize = (pCreateInfo->preferredSmallHeapBlockSize != 0)
+										? pCreateInfo->preferredSmallHeapBlockSize
+										: static_cast<uint64_t>(RESOURCE_DEFAULT_SMALL_HEAP_BLOCK_SIZE);
 
 	for (size_t i = 0; i < GetMemoryTypeCount(); ++i)
 	{
@@ -2787,9 +2744,9 @@ m_UnmapPersistentlyMappedMemoryCounter(0)
 
 ResourceAllocator::~ResourceAllocator()
 {
-	for (size_t i = GetMemoryTypeCount(); i--; )
+	for (size_t i = GetMemoryTypeCount(); i--;)
 	{
-		for (size_t j = RESOURCE_BLOCK_VECTOR_TYPE_COUNT; j--; )
+		for (size_t j = RESOURCE_BLOCK_VECTOR_TYPE_COUNT; j--;)
 		{
 			resourceAlloc_delete(m_pOwnAllocations[i][j]);
 			resourceAlloc_delete(m_pBlockVectors[i][j]);
@@ -2797,7 +2754,9 @@ ResourceAllocator::~ResourceAllocator()
 	}
 }
 
-bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, const AllocatorMemoryRequirements& resourceAllocMemReq, uint32_t memTypeIndex, AllocatorSuballocationType suballocType, ResourceAllocation** pAllocation)
+bool ResourceAllocator::AllocateMemoryOfType(
+	const MTLSizeAndAlign& mtlMemReq, const AllocatorMemoryRequirements& resourceAllocMemReq, uint32_t memTypeIndex,
+	AllocatorSuballocationType suballocType, ResourceAllocation** pAllocation)
 {
 	ASSERT(pAllocation != RESOURCE_NULL);
 	RESOURCE_DEBUG_LOG("  AllocateMemory: MemoryTypeIndex=%u, Size=%llu", memTypeIndex, mtlMemReq.size);
@@ -2810,11 +2769,8 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 
 	// Heuristics: Allocate own memory if requested size if greater than half of preferred block size.
 	const bool ownMemory =
-	hostVisible ||
-	(resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT) != 0 ||
-	RESOURCE_DEBUG_ALWAYS_OWN_MEMORY ||
-	((resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_NEVER_ALLOCATE_BIT) == 0 &&
-	 mtlMemReq.size > preferredBlockSize / 2);
+		hostVisible || (resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT) != 0 || RESOURCE_DEBUG_ALWAYS_OWN_MEMORY ||
+		((resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_NEVER_ALLOCATE_BIT) == 0 && mtlMemReq.size > preferredBlockSize / 2);
 
 	if (ownMemory)
 	{
@@ -2824,14 +2780,17 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 		}
 		else
 		{
-			return AllocateOwnMemory(mtlMemReq.size, suballocType, memTypeIndex, (resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0, resourceAllocMemReq.pUserData, pAllocation);
+			return AllocateOwnMemory(
+				mtlMemReq.size, suballocType, memTypeIndex,
+				(resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0, resourceAllocMemReq.pUserData,
+				pAllocation);
 		}
 	}
 	else
 	{
 		uint32_t blockVectorType = AllocatorMemoryRequirementFlagsToBlockVectorType(resourceAllocMemReq.flags);
 
-		AllocatorMutexLock lock(m_BlocksMutex[memTypeIndex], m_UseMutex);
+		AllocatorMutexLock          lock(m_BlocksMutex[memTypeIndex], m_UseMutex);
 		AllocatorBlockVector* const blockVector = m_pBlockVectors[memTypeIndex][blockVectorType];
 		ASSERT(blockVector);
 
@@ -2853,7 +2812,9 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 				// Allocate from this pBlock.
 				pBlock->Alloc(allocRequest, suballocType, mtlMemReq.size);
 				*pAllocation = conf_placement_new<ResourceAllocation>(AllocatorAllocate<ResourceAllocation>());
-				(*pAllocation)->InitBlockAllocation(pBlock, allocRequest.offset, mtlMemReq.align, mtlMemReq.size, suballocType, resourceAllocMemReq.pUserData);
+				(*pAllocation)
+					->InitBlockAllocation(
+						pBlock, allocRequest.offset, mtlMemReq.align, mtlMemReq.size, suballocType, resourceAllocMemReq.pUserData);
 				RESOURCE_HEAVY_ASSERT(pBlock->Validate());
 				RESOURCE_DEBUG_LOG("    Returned from existing allocation #%u", (uint32_t)allocIndex);
 				return true;
@@ -2871,7 +2832,7 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 			bool res = false;
 
 			const AllocatorHeapProperties* pHeapProps = &gHeapProperties[memTypeIndex];
-			MTLHeapDescriptor* allocInfo = [[MTLHeapDescriptor alloc] init];
+			MTLHeapDescriptor*             allocInfo = [[MTLHeapDescriptor alloc] init];
 			allocInfo.size = preferredBlockSize;
 			allocInfo.cpuCacheMode = pHeapProps->mCPUCacheMode;
 			allocInfo.storageMode = pHeapProps->mStorageMode;
@@ -2903,7 +2864,10 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 			if (mem == nil)
 			{
 				// 5. Try OwnAlloc.
-				res = AllocateOwnMemory(mtlMemReq.size, suballocType, memTypeIndex, (resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0, resourceAllocMemReq.pUserData, pAllocation);
+				res = AllocateOwnMemory(
+					mtlMemReq.size, suballocType, memTypeIndex,
+					(resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT) != 0, resourceAllocMemReq.pUserData,
+					pAllocation);
 				if (res)
 				{
 					// Succeeded: AllocateOwnMemory function already filld pMemory, nothing more to do here.
@@ -2929,7 +2893,9 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 			allocRequest.offset = 0;
 			pBlock->Alloc(allocRequest, suballocType, mtlMemReq.size);
 			*pAllocation = conf_placement_new<ResourceAllocation>(AllocatorAllocate<ResourceAllocation>());
-			(*pAllocation)->InitBlockAllocation(pBlock, allocRequest.offset, mtlMemReq.align, mtlMemReq.size, suballocType, resourceAllocMemReq.pUserData);
+			(*pAllocation)
+				->InitBlockAllocation(
+					pBlock, allocRequest.offset, mtlMemReq.align, mtlMemReq.size, suballocType, resourceAllocMemReq.pUserData);
 			RESOURCE_HEAVY_ASSERT(pBlock->Validate());
 
 			RESOURCE_DEBUG_LOG("    Created new allocation Size=%llu", allocInfo.SizeInBytes);
@@ -2940,7 +2906,9 @@ bool ResourceAllocator::AllocateMemoryOfType(const MTLSizeAndAlign& mtlMemReq, c
 	return false;
 }
 
-bool ResourceAllocator::AllocateOwnMemory(uint64_t size, AllocatorSuballocationType suballocType, uint32_t memTypeIndex, bool map, void* pUserData, ResourceAllocation** pAllocation)
+bool ResourceAllocator::AllocateOwnMemory(
+	uint64_t size, AllocatorSuballocationType suballocType, uint32_t memTypeIndex, bool map, void* pUserData,
+	ResourceAllocation** pAllocation)
 {
 	ASSERT(pAllocation);
 
@@ -2949,12 +2917,15 @@ bool ResourceAllocator::AllocateOwnMemory(uint64_t size, AllocatorSuballocationT
 
 	// Register it in m_pOwnAllocations.
 	{
-		AllocatorMutexLock lock(m_OwnAllocationsMutex[memTypeIndex], m_UseMutex);
-		AllocationVectorType* pOwnAllocations = m_pOwnAllocations[memTypeIndex][map ? RESOURCE_BLOCK_VECTOR_TYPE_MAPPED : RESOURCE_BLOCK_VECTOR_TYPE_UNMAPPED];
+		AllocatorMutexLock    lock(m_OwnAllocationsMutex[memTypeIndex], m_UseMutex);
+		AllocationVectorType* pOwnAllocations =
+			m_pOwnAllocations[memTypeIndex][map ? RESOURCE_BLOCK_VECTOR_TYPE_MAPPED : RESOURCE_BLOCK_VECTOR_TYPE_UNMAPPED];
 		ASSERT(pOwnAllocations);
 		ResourceAllocation** const pOwnAllocationsBeg = pOwnAllocations->data();
 		ResourceAllocation** const pOwnAllocationsEnd = pOwnAllocationsBeg + pOwnAllocations->size();
-		const size_t indexToInsert = AllocatorBinaryFindFirstNotLess(pOwnAllocationsBeg, pOwnAllocationsEnd, *pAllocation, AllocatorPointerLess()) - pOwnAllocationsBeg;
+		const size_t               indexToInsert =
+			AllocatorBinaryFindFirstNotLess(pOwnAllocationsBeg, pOwnAllocationsEnd, *pAllocation, AllocatorPointerLess()) -
+			pOwnAllocationsBeg;
 		VectorInsert(*pOwnAllocations, indexToInsert, *pAllocation);
 	}
 
@@ -2968,18 +2939,23 @@ uint64_t ResourceAllocator::GetPreferredBlockSize(ResourceMemoryUsage memUsage, 
 	return gHeapProperties[memTypeIndex].mBlockSize;
 }
 
-bool ResourceAllocator::AllocateMemory(const AllocationInfo& info, const AllocatorMemoryRequirements& resourceAllocMemReq, AllocatorSuballocationType suballocType, ResourceAllocation** pAllocation)
+bool ResourceAllocator::AllocateMemory(
+	const AllocationInfo& info, const AllocatorMemoryRequirements& resourceAllocMemReq, AllocatorSuballocationType suballocType,
+	ResourceAllocation** pAllocation)
 {
 	if ((resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT) != 0 &&
 		(resourceAllocMemReq.flags & RESOURCE_MEMORY_REQUIREMENT_NEVER_ALLOCATE_BIT) != 0)
 	{
-		ASSERT(0 && "Specifying RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT together with RESOURCE_MEMORY_REQUIREMENT_NEVER_ALLOCATE_BIT makes no sense.");
+		ASSERT(
+			0 &&
+			"Specifying RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT together with RESOURCE_MEMORY_REQUIREMENT_NEVER_ALLOCATE_BIT makes no "
+			"sense.");
 		return false;
 	}
 
 	// Bit mask of memory Metal types acceptable for this allocation.
 	uint32_t memTypeIndex = UINT32_MAX;
-	bool res = resourceAllocFindMemoryTypeIndex(this, &info, &resourceAllocMemReq, suballocType, &memTypeIndex);
+	bool     res = resourceAllocFindMemoryTypeIndex(this, &info, &resourceAllocMemReq, suballocType, &memTypeIndex);
 	if (res)
 	{
 		res = AllocateMemoryOfType(info.mSizeAlign, resourceAllocMemReq, memTypeIndex, suballocType, pAllocation);
@@ -3007,13 +2983,13 @@ void ResourceAllocator::FreeMemory(ResourceAllocation* allocation)
 	{
 		AllocatorBlock* pBlockToDelete = RESOURCE_NULL;
 
-		const uint32_t memTypeIndex = allocation->GetMemoryTypeIndex();
+		const uint32_t                   memTypeIndex = allocation->GetMemoryTypeIndex();
 		const RESOURCE_BLOCK_VECTOR_TYPE blockVectorType = allocation->GetBlockVectorType();
 		{
 			AllocatorMutexLock lock(m_BlocksMutex[memTypeIndex], m_UseMutex);
 
 			AllocatorBlockVector* pBlockVector = m_pBlockVectors[memTypeIndex][blockVectorType];
-			AllocatorBlock* pBlock = allocation->GetBlock();
+			AllocatorBlock*       pBlock = allocation->GetBlock();
 
 			pBlock->Free(allocation);
 			RESOURCE_HEAVY_ASSERT(pBlock->Validate());
@@ -3049,7 +3025,7 @@ void ResourceAllocator::FreeMemory(ResourceAllocation* allocation)
 
 		resourceAlloc_delete(allocation);
 	}
-	else // AllocatorAllocation_T::ALLOCATION_TYPE_OWN
+	else    // AllocatorAllocation_T::ALLOCATION_TYPE_OWN
 	{
 		FreeOwnMemory(allocation);
 	}
@@ -3066,7 +3042,7 @@ void ResourceAllocator::CalculateStats(AllocatorStats* pStats)
 	for (uint32_t memTypeIndex = 0; memTypeIndex < GetMemoryTypeCount(); ++memTypeIndex)
 	{
 		AllocatorMutexLock allocationsLock(m_BlocksMutex[memTypeIndex], m_UseMutex);
-		const uint32_t heapIndex = memTypeIndex;
+		const uint32_t     heapIndex = memTypeIndex;
 		for (uint32_t blockVectorType = 0; blockVectorType < RESOURCE_BLOCK_VECTOR_TYPE_COUNT; ++blockVectorType)
 		{
 			const AllocatorBlockVector* const pBlockVector = m_pBlockVectors[memTypeIndex][blockVectorType];
@@ -3174,16 +3150,13 @@ void ResourceAllocator::FreeOwnMemory(ResourceAllocation* allocation)
 
 	const uint32_t memTypeIndex = allocation->GetMemoryTypeIndex();
 	{
-		AllocatorMutexLock lock(m_OwnAllocationsMutex[memTypeIndex], m_UseMutex);
+		AllocatorMutexLock          lock(m_OwnAllocationsMutex[memTypeIndex], m_UseMutex);
 		AllocationVectorType* const pOwnAllocations = m_pOwnAllocations[memTypeIndex][allocation->GetBlockVectorType()];
 		ASSERT(pOwnAllocations);
 		ResourceAllocation** const pOwnAllocationsBeg = pOwnAllocations->data();
 		ResourceAllocation** const pOwnAllocationsEnd = pOwnAllocationsBeg + pOwnAllocations->size();
-		ResourceAllocation** const pOwnAllocationIt = AllocatorBinaryFindFirstNotLess(
-																					  pOwnAllocationsBeg,
-																					  pOwnAllocationsEnd,
-																					  allocation,
-																					  AllocatorPointerLess());
+		ResourceAllocation** const pOwnAllocationIt =
+			AllocatorBinaryFindFirstNotLess(pOwnAllocationsBeg, pOwnAllocationsEnd, allocation, AllocatorPointerLess());
 		if (pOwnAllocationIt != pOwnAllocationsEnd)
 		{
 			const size_t ownAllocationIndex = pOwnAllocationIt - pOwnAllocationsBeg;
@@ -3294,7 +3267,7 @@ void ResourceAllocator::PrintDetailedMap(AllocatorStringBuilder& sb)
 	}
 }
 
-#endif // #if RESOURCE_STATS_STRING_ENABLED
+#endif    // #if RESOURCE_STATS_STRING_ENABLED
 
 // -------------------------------------------------------------------------------------------------
 // Public interface
@@ -3398,7 +3371,7 @@ void resourceAllocBuildStatsString(ResourceAllocator* allocator, char** ppStatsS
 	}
 
 	const size_t len = sb.GetLength();
-	char* const pChars = conf_placement_new<char>(AllocatorAllocateArray<char>((len + 1)));
+	char* const  pChars = conf_placement_new<char>(AllocatorAllocateArray<char>((len + 1)));
 	if (len > 0)
 	{
 		memcpy(pChars, sb.GetData(), len);
@@ -3417,7 +3390,7 @@ void resourceAllocFreeStatsString(ResourceAllocator* allocator, char* pStatsStri
 	}
 }
 
-#endif // #if RESOURCE_STATS_STRING_ENABLED
+#endif    // #if RESOURCE_STATS_STRING_ENABLED
 
 bool resourceAllocMapMemory(ResourceAllocator* allocator, ResourceAllocation* allocation, void** ppData)
 {
@@ -3425,7 +3398,8 @@ bool resourceAllocMapMemory(ResourceAllocator* allocator, ResourceAllocation* al
 
 	RESOURCE_DEBUG_GLOBAL_MUTEX_LOCK
 
-	if (allocation->GetResource()) *ppData = allocation->GetResource().contents;
+	if (allocation->GetResource())
+		*ppData = allocation->GetResource().contents;
 
 	return false;
 }
@@ -3460,7 +3434,7 @@ bool resourceAllocMapPersistentlyMappedMemory(ResourceAllocator* allocator)
 bool resourceAllocFindSuballocType(MTLTextureDescriptor* desc, AllocatorSuballocationType* suballocType)
 {
 	*suballocType = RESOURCE_SUBALLOCATION_TYPE_UNKNOWN;
-	if(desc.usage & MTLTextureUsageRenderTarget)
+	if (desc.usage & MTLTextureUsageRenderTarget)
 		*suballocType = RESOURCE_SUBALLOCATION_TYPE_IMAGE_RTV_DSV;
 	else
 		*suballocType = RESOURCE_SUBALLOCATION_TYPE_IMAGE_OPTIMAL;
@@ -3497,7 +3471,9 @@ void resourceAllocSetAllocationUserData(ResourceAllocator* allocator, ResourceAl
 	allocation->SetUserData(pUserData);
 }
 
-long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, Buffer* pBuffer)
+long createBuffer(
+	ResourceAllocator* allocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
+	Buffer* pBuffer)
 {
 	ASSERT(allocator && pCreateInfo && pMemoryRequirements && pBuffer);
 	RESOURCE_DEBUG_LOG("resourceAllocCreateBuffer");
@@ -3513,22 +3489,17 @@ long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateI
 
 	// Get the proper resource options for the buffer usage.
 	MTLResourceOptions mtlResourceOptions = 0;
-	switch (pMemoryRequirements->usage) {
-		case RESOURCE_MEMORY_USAGE_GPU_ONLY:
-			mtlResourceOptions = MTLResourceStorageModePrivate;
-			break;
-		case RESOURCE_MEMORY_USAGE_CPU_ONLY:
-			mtlResourceOptions = MTLResourceCPUCacheModeDefaultCache | MTLResourceStorageModeShared;
-			break;
+	switch (pMemoryRequirements->usage)
+	{
+		case RESOURCE_MEMORY_USAGE_GPU_ONLY: mtlResourceOptions = MTLResourceStorageModePrivate; break;
+		case RESOURCE_MEMORY_USAGE_CPU_ONLY: mtlResourceOptions = MTLResourceCPUCacheModeDefaultCache | MTLResourceStorageModeShared; break;
 		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU:
 			mtlResourceOptions = MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared;
 			break;
 		case RESOURCE_MEMORY_USAGE_GPU_TO_CPU:
 			mtlResourceOptions = MTLResourceCPUCacheModeDefaultCache | MTLResourceStorageModeShared;
 			break;
-		default:
-			assert(!"Unknown buffer usage type");
-			break;
+		default: assert(!"Unknown buffer usage type"); break;
 	}
 
 	// Get the proper size and alignment for the buffer's resource options.
@@ -3551,7 +3522,9 @@ long createBuffer(ResourceAllocator* allocator, const BufferCreateInfo* pCreateI
 			{
 				if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 				{
-					LOGWARNINGF("Cannot map memory not visible on CPU. Use a readback buffer instead for reading the memory to a cpu visible buffer");
+					LOGWARNINGF(
+						"Cannot map memory not visible on CPU. Use a readback buffer instead for reading the memory to a cpu visible "
+						"buffer");
 				}
 				else
 				{
@@ -3607,7 +3580,9 @@ void destroyBuffer(ResourceAllocator* allocator, Buffer* pBuffer)
 	}
 }
 
-long createTexture(ResourceAllocator* allocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements, Texture* pTexture)
+long createTexture(
+	ResourceAllocator* allocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
+	Texture* pTexture)
 {
 	ASSERT(allocator && pCreateInfo->pDesc && pMemoryRequirements && pTexture);
 
@@ -3628,7 +3603,7 @@ long createTexture(ResourceAllocator* allocator, const TextureCreateInfo* pCreat
 	bool res = allocator->AllocateMemory(info, *pMemoryRequirements, suballocType, &pTexture->pMtlAllocation);
 	if (res)
 	{
-		if (pTexture->pMtlAllocation->GetType () == ResourceAllocation::ALLOCATION_TYPE_BLOCK)
+		if (pTexture->pMtlAllocation->GetType() == ResourceAllocation::ALLOCATION_TYPE_BLOCK)
 		{
 			pTexture->mtlTexture = [pTexture->pMtlAllocation->GetMemory() newTextureWithDescriptor:pCreateInfo->pDesc];
 			assert(pTexture->mtlTexture);
@@ -3674,4 +3649,3 @@ void destroyTexture(ResourceAllocator* allocator, Texture* pTexture)
 }
 
 #endif
-

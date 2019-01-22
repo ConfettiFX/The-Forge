@@ -463,7 +463,7 @@ namespace ShaderTranslator
                             outFile += (tokkens[i] + "\\");
 
                         //prevent for writing files reading now
-                        outFile += "PCDX12\\" + FileTokkens[FileTokkens.Length - 1];
+                        outFile += "D3D12\\" + FileTokkens[FileTokkens.Length - 1];
 
 
                         outFile = ReplaceExtension(outFile, ShaderLanguage.HLSL);
@@ -531,7 +531,7 @@ namespace ShaderTranslator
                         for (int i = 0; i < tokkens.Length - 1; i++)
                             outFile += (tokkens[i] + "\\");
 
-                        outFile += "OSXMetal\\" + FileTokkens[FileTokkens.Length - 1];
+                        outFile += "Metal\\" + FileTokkens[FileTokkens.Length - 1];
 
                         outFile = ReplaceExtension(outFile, ShaderLanguage.MSL) + ".metal";
 
