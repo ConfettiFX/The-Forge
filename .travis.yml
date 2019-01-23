@@ -4,4 +4,4 @@ language: objective-c
 python:
   - 2.7
 script:
-- travis_wait python PyBuild.py --skipioscodesigning --forceprebuild
+- python PyBuild.py --skipioscodesigning --forceprebuild --skipdebugbuild

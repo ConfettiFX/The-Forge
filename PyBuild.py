@@ -508,9 +508,11 @@ def ListDirs(path):
 
 
 
-def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning):
+def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild):
 	errorOccured = False
 	buildConfigurations = ["Debug", "Release"]
+	if skipDebugBuild:
+		buildConfigurations.remove("Debug")
 
 	#since our projects for macos are all under a macos Xcode folder we can search for
 	#that specific folder name to gather source folders containing project/workspace for xcode
@@ -894,7 +896,7 @@ def MainLogic():
 	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
 	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
 	parser.add_argument('--timeout',type=int, default="45", help='Specify timeout, in seconds, before app is killed when testing. Default value is 45 seconds.')
-	parser.add_argument('--skipwindowsdebugbuild', action="store_true", help='If enabled, will skip Debug builds on Windows.')
+	parser.add_argument('--skipdebugbuild', action="store_true", help='If enabled, will skip Debug build.')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
 	
@@ -956,12 +958,12 @@ def MainLogic():
 			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git", "clean" , "-fdfx"],sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
-			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning)
+			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning, arguments.skipdebugbuild)
 		elif systemOS == "Windows":
 			if arguments.android:
 				returnCode = BuildAndroidProjects()
 			else:
-				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipwindowsdebugbuild)
+				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 
