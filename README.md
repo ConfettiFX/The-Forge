@@ -256,6 +256,10 @@ This unit test shows the current state of our font rendering library that is bas
 
 This unit test shows a range of game related materials:
 
+Hair:
+
+![Hair on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Hair_closup.gif)
+
 Metal:
 
 ![Material Playground Metal on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Metal.png)
