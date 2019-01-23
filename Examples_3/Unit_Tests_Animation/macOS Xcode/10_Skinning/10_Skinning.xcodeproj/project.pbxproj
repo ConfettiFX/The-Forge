@@ -848,7 +848,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "xcodebuild -quiet -workspace \"${PROJECT_DIR}/../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipeline.xcworkspace\" -configuration Release build -scheme AssetPipelineCmd\n\"../../../../Common_3/Tools/AssetPipeline/Apple/Release/AssetPipelineCmd\" processanimations \"../../UnitTestResources/Animation/fbx\" \"../../UnitTestResources/Animation\"\n\n";
+			shellScript = "xcodebuild -quiet -workspace \"${PROJECT_DIR}/../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipeline.xcworkspace\" -configuration Release build -scheme AssetPipelineCmd CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=\"NO\" CODE_SIGN_ENTITLEMENTS=\"\" CODE_SIGNING_ALLOWED=\"NO\"\n\"../../../../Common_3/Tools/AssetPipeline/Apple/Release/AssetPipelineCmd\" processanimations \"../../UnitTestResources/Animation/fbx\" \"../../UnitTestResources/Animation\"\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

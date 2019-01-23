@@ -512,11 +512,13 @@ def ListDirs(path):
 
 
 
-def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, printXcodeBuild):
+def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, skipReleaseBuild, printXcodeBuild):
 	errorOccured = False
 	buildConfigurations = ["Debug", "Release"]
 	if skipDebugBuild:
 		buildConfigurations.remove("Debug")
+	if skipReleaseBuild:
+		buildConfigurations.remove("Release")
 
 	#since our projects for macos are all under a macos Xcode folder we can search for
 	#that specific folder name to gather source folders containing project/workspace for xcode
@@ -768,7 +770,7 @@ def BuildAndroidProjects():
 		return -1
 	return 0
 	
-def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, printMSBuild):
+def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
@@ -779,6 +781,11 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, printMSBuild):
 		pcConfigurations.remove("DebugDx")
 		pcConfigurations.remove("DebugVk")
 		pcConfigurations.remove("DebugDx11")
+		
+	if skipRelease:
+		pcConfigurations.remove("ReleaseDx")
+		pcConfigurations.remove("ReleaseVk")
+		pcConfigurations.remove("ReleaseDx11")
 
 	xboxConfigurations = ["Debug","Release"]
 	xboxPlatform = "Durango"
@@ -907,6 +914,7 @@ def MainLogic():
 	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
 	parser.add_argument('--timeout',type=int, default="45", help='Specify timeout, in seconds, before app is killed when testing. Default value is 45 seconds.')
 	parser.add_argument('--skipdebugbuild', action="store_true", help='If enabled, will skip Debug build.')
+	parser.add_argument('--skipreleasebuild', action="store_true", help='If enabled, will skip Release build.')
 	parser.add_argument('--printbuildoutput', action="store_true", help='If enabled, will print output of project builds.')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
@@ -969,12 +977,12 @@ def MainLogic():
 			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git", "clean" , "-fdfx"],sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
-			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning, arguments.skipdebugbuild, arguments.printbuildoutput)
+			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
 		elif systemOS == "Windows":
 			if arguments.android:
 				returnCode = BuildAndroidProjects()
 			else:
-				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.printbuildoutput)
+				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 
