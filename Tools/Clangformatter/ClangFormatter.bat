@@ -18,7 +18,7 @@ set extensions=*.h *.hpp *.c *.cpp *.m *.mm
 set ClangFormatVersion=r351376
 
 :: Full path of Clang-format executable including version
-set ClangFormatExe=.\Scripts\ClangFormatter\clang-format-%ClangFormatVersion%.exe
+set ClangFormatExe=.\Tools\ClangFormatter\clang-format-%ClangFormatVersion%.exe
 
 :: Full command used to format individual files. epeccts the desired file as argument
 set ClangformatterCommand= %ClangFormatExe% -i -style=file
