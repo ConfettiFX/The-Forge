@@ -13,16 +13,29 @@ The Forge is a cross-platform rendering framework supporting
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 (in development) (only available for accredited developers on request)
 
-Particularly, The Forge supports cross-platform
+Particularly, the graphics layer of The Forge supports cross-platform
 - Descriptor management
 - Multi-threaded resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
 
+The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
+- Lua Scripting System - currently used in 06_Playground to load models and textures and animate the camera
+- Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
+- Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath)
+- Extended version of [TinySTL](https://github.com/mendsley/tinystl)
+- For loading art assets we have a modified and integrated version of [Assimp](https://github.com/assimp/assimp)
+- Consistent Memory Managament
+- Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
+- Very fast Entity Component System based on [ENTT](https://github.com/skypjack/entt)
+- UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
+- Various implementations of high-end Graphics Effects as shown in the unit tests below
+Please find a link and credits for all open-source packages used at the end of this readme.
+
+
 Future plans are
 - Unified shader generation -> check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net). This shader translator is build with the purpose of supporting a higher-level shading language, which we call super HLSL or short sHLSL
 
-The intended usage of The Forge is to enable developers to quickly build their own game engines. The Forge can provide the rendering layer for custom next-gen game engines. 
 
 <a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="Screenshots/twitter.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
@@ -33,6 +46,40 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.22 - January 22nd, 2019 - TressFX Hair | Entity Component System | Lua Scripting System
+This is the first release in 2019 and The Forge GitHub repository is today exactly one year old, with the first release on the same day last year :-) In 2018 we made 22 releases and we improved The Forge in many areas.
+If you followed us so far ... why not just join us? We are looking for more graphics programmer joining our teams. We have offices in Encinitas, CA USA (Main) / Mumbai, India / Shanghai, China / Breda, Netherlands / St. Petersburg, Russia and in Lviv, Ucraine.
+
+Now back to release notes: many years ago in 2012 / 2013, we helped AMD and Crystal Dynamics with the development of TressFX for [Tomb Raider](https://gfxspeak.com/2013/05/21/amd-and-confetti-collaborate-on-hair/). We also wrote an article about the implementation in [GPU Pro 5](http://gpupro.blogspot.com/2013/10/gpu-pro-5-table-of-contents.html ) and gave a few joint presentations on conferences like [FMX](https://www.slideshare.net/WolfgangEngel/hair-intombraider-final). At the end of last year we revisited TressFX. We took the current code in the [GitHub repository](https://github.com/GPUOpen-Effects/TressFX), changed it a bit and ported it to The Forge. It now runs on PC with DirectX 12 / Vulkan, macOS and iOS with Metal 2 and on the XBOX One. We also created a few new hair assets so that we can showcase it. Here are screenshots of our programmers art:
+
+PC Windows DirectX 12 GTX 950 Driver 416.81:
+
+![Hair on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Hair_closup.gif)
+
+iPad (Model A1803):
+
+![Hair on iOS](Screenshots/MaterialPlayground/06_MaterialPlayground_hair_iOS_ponytail.png)
+
+
+The current implementation is overall too slow to be used on some of our platforms but we are going to improve performance over time. We are also going to improve on the hair art assets.
+Apart from Hair, the Material Playground now also has improved versions of Metal and a new material category Wood:
+
+Metal:
+
+![Material Playground Metal on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Metal.png)
+
+Wood:
+
+![Material Playground Wood on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
+
+- Entity component system (ECS) for all platforms: we've chosen to integrate ENTT (https://github.com/skypjack/entt) into The Forge. The initial implementation was contributed by Amer Koleci @AmerKoleci:
+
+![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
+
+- Lua Scripting System for all platforms: the Lua scripting integration allows to register functions to lua contexts so these functions will be available via scripts. Functions can be static or lambda. In latter case you can store some state information within lambda. Scripts are executed using LuaManager::RunScript() or LuaManager::AddAsyncScript() methods. In second case scripts are still executed in synchronous way. Async execution implementation is planned. Also there is "updateable" script. It is loaded (at this point script main body is executed), then it can be "updated" - update() function from script is invoked. Script can invoke any registered function and can store state information which will be available from update to update. The script can be reloaded - can be useful for fast iterations when you just modify script and don't even need to restart application. If that script contains exit() function then it will be executed when script is reloaded or closed. Checkout unit test 06_MaterialPlayground for an example on how to use it. In this unit tests it executes three scripts to load models and textures and animate the camera.
+
+
 
 ## Release 1.21 - December 1st, 2018 - Season Greetings with new Skinning Unit Test | Unified Vulkan Shaders
 The team will soon go into winter hybernation mode ... which means many Confetti people will fly home over the holiday season to spend time with their loved ones. We will be back with more releases next year, probably in February. 
@@ -65,81 +112,6 @@ XBOX One
   - Upgraded all the XCode projects to target Xcode 10.1 (10B61) and  iOS Version 12.0.1 (16A404) 
   - Started Testing additionally on A12 Devices Phone Xs Max (Model MT5D2LL/A)
 - Numerous shader translator updates. Head over to [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) check them out :-) It is getting more and more stable.
-
-
-## Release 1.20 - November 15th, 2018 - Triangle Visibility Buffer with PBR | Ray Marching Unit Test | Font Rendering Dark Mode
-* Triangle Visibility Buffer (PC, XBOX One, macOS, Linux will be supported in the next release): 
-  * Added PBR art assets and PBR Lighting (please download the art assets again with the script see Install section below)
-  * Added swapchain3 DirectX 12 HDR support (in the future swapchain4 and Vulkan HDR will be added) and additionally made sure the PBR art assets are HDR "enabled"
-  * There is an automatic camera fly-through to make demos easier 
-  * God rays were added for additional "awesomeness"
-  * With the new PBR art assets and God rays (switchable), we still expect it to run faster than before on all target platforms
-
-PC Windows 10 DirectX12 NVIDIA GeForce 1080 Driver 416.16 with a resolution of 3840x2160 in window mode (MSAA x2)  
-![Triangle Visibility Buffer PC DirectX 12](Screenshots/Visibility_Buffer_PC_DirectX12.png)
-
-PC Windows 10 Vulkan 1.1.85 NVIDIA GeForce 1080 Driver 416.16 with a resolution of 3840x2160 in window mode (MSAA x2)
-![Triangle Visibility Buffer PC Vulkan](Screenshots/Visibility_Buffer_PC_Vulkan.png)
-
-Linux Ubuntu 18.04.1 LTS Vulkan 1.1.85 AMD RX480 resolution of 1920x1080 in window mode (MSAA x2)
-![Triangle Visibility Buffer Linux Vulkan](Screenshots/Visibility_Buffer_Linux_Vulkan.png)
-
-iMac with AMD RADEON 580 (Part No. MNED2xx/A) 2560x1440 in window mode (MSAA x1)
-![Triangle Visibility Buffer iMac](Screenshots/Visibility_Buffer_iMac.png)
-
-Xbox One resolution of 1920x1080
-![Triangle Visibility Buffer XBOX One](Screenshots/Visibility_Buffer_XBOX_One.png)
-
-
-* There is a new unit test provided by Mykhailo Parfeniuk, originally posted on ShaderToy by Inigo Quilez (https://www.shadertoy.com/view/Xds3zN and https://sopyer.github.io/b/post/vulkan-shader-sample/) that shows a ray marched scene with shadows, reflections and AO
-
-PC Windows 10 Vulkan 1.1.85 GeForce 950 Driver 416.81 with a resolution of 1920x1080 in window mode:  
-![Ray Marching example PC](Screenshots/16_RayMarching_PC.png)
-
-iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 1920x1080 in window mode:  
-![Ray Marching example iMac](Screenshots/16_RayMarching_iMac.png)
-
-Linux Vulkan 1.1.85 RADEON 480 Driver 18.30 with a resolution of 1920x1080 in window mode: 
-![Ray Marching example Linux](Screenshots/16_RayMarching_Linux.png)
-
-* The font rendering unit test was upgraded
-  * Added light and dark theme (... inspired by macOS here)
-  * Added fit-to-screen functionality for arbitrary resolutions
-  * Scene text is now docked to center
-
-![Image of the Font Rendering Unit test](Screenshots/05_FontRendering.PNG)
-
-* There were many updates for iOS / macOS and XBOX One run-times and a few for Linux
-
-
-## Release 1.19 - November 1st, 2018 - Material Playground
-* Added more materials to the Material Playground. Therefore you want to download the Art folder again just for this release (see the Install section below on how to do this).
-Here are shots of five of the supported platforms:
-
-PC Windows 10 Vulkan 1.1.82.1 GeForce 1080 Driver 399.07 with a resolution of 1920x1080 in full-screen:  
-![Material Playground on PC](Screenshots/MaterialPlayground/01-PC-Vulkan-1920x1080.png)
-
-Linux Vulkan 1.1.82.1 RADEON  480 Driver 18.30 with a resolution of 1920x1080 in full-screen: 
-![Material Playground on PC](Screenshots/MaterialPlayground/03-Linux-Vulkan-1920x1080.png)
-
-iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 5120x2880 in full-screen:  
-![Material Playground on iMac](Screenshots/MaterialPlayground/04-iMac-5120x2880.png)
-
-iPad (Model A1803) with iOS 12.0 and a resolution of 2048x1536 in full-screen:
-![Material Playground on iPad](Screenshots/MaterialPlayground/02-iPad-2048x1536.png)
-
-XBOX One:
-![Material Playground on XBOX One](Screenshots/MaterialPlayground/05-Xbox-One-1920x1080.png)
-
-* Updated Fontstash library to the latest version and added .OTF font file support
-* macOS / iOS Metal 2 we are working on applications running on those run-times, so there is a constant stream of improvmements coming in:
-  * Sampler arrays
-  * Enable some parts of GPU profiler code for debug markers, cpu timestamps on Metal runtime
-  * File system bug fixes
-  * Include headers fixes
-  * Improved error and warnings in Metal shaders
-
-
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -282,9 +254,15 @@ This unit test shows the current state of our font rendering library that is bas
 
 ## 6. Material Playground
 
-This unit test will show a wide range of game related materials in the future.
+This unit test shows a range of game related materials:
 
-![Material Playground on PC](Screenshots/MaterialPlayground/01-PC-Vulkan-1920x1080.png)
+Metal:
+
+![Material Playground Metal on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Metal.png)
+
+Wood:
+
+![Material Playground Wood on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
 
 ## 7. Hardware Tessellation
 
@@ -344,41 +322,57 @@ Ray Tracing API unit test, showing how to use DXR on Windows only.
 
 ![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
 
+## 16a. Sphere Tracing
+This unit test was originally posted on ShaderToy by Inigo Quilez (https://www.shadertoy.com/view/Xds3zN and https://sopyer.github.io/b/post/vulkan-shader-sample/). It shows how a scene is ray marched with shadows, reflections and AO
 
-## 17. Ozz Playback Animation
+![Image of the Sphere Tracing  unit test in The Forge](Screenshots/16_RayMarching_Linux.png)
+
+## 17. ENTT - Entity Component System Test
+This unit test shows how to use a high-performance entity component system in The Forge.
+
+![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
+
+
+## 18. Ozz Playback Animation
 This unit test shows how to playback a clip on a rig.
 
 ![Image of Playback Animation in The Forge](Screenshots/01_Playback.gif)
 
-## 18. Ozz Playback Blending
+## 19. Ozz Playback Blending
 This unit test shows how to blend multiple clips and play them back on a rig.
 
 ![Image of Playback Blending in The Forge](Screenshots/02_Blending.gif)
 
-## 19. Ozz Joint Attachment
+## 20. Ozz Joint Attachment
 This unit test shows how to attach an object to a rig which is being posed by an animation.
 
 ![Image of Ozz Joint Attachment in The Forge](Screenshots/03_JointAttachment.gif)
 
-## 20. Ozz Partial Blending
+## 21. Ozz Partial Blending
 This unit test shows how to blend clips having each only effect a certain portion of joints.
 
 ![Image of Ozz Partial Blending in The Forge](Screenshots/04_PartialBlending.gif)
 
-## 21. Ozz Additive Blending
+## 22. Ozz Additive Blending
 This unit test shows how to introduce an additive clip onto another clip and play the result on a rig.
 
 ![Image of Ozz Additive Blending in The Forge](Screenshots/05_Additive.gif)
 
-## 22. Ozz Baked Physics
+## 23. Ozz Baked Physics
 This unit test shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
 
 ![Image of Ozz Baked Physics in The Forge](Screenshots/07_BakedPhysics.gif)
 
-## 23. Ozz Multi Threading
+## 24. Ozz Multi Threading
 This unit test shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates.
 
 ![Image of Ozz Multi Threading in The Forge](Screenshots/09_MultiThread.gif)
+
+## 25. Ozz Skinning
+This unit test shows how to use skinning with Ozz
+
+![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
+
 
 
 
@@ -430,6 +424,9 @@ The Forge utilizes the following Open-Source libraries:
 * [gainput](https://github.com/jkuhlmann/gainput)
 * [Shader Playground](https://github.com/tgjones/shader-playground)
 * [hlslparser](https://github.com/Thekla/hlslparser)
-* [ImGui](https://github.com/ocornut/imgui)
+* [imGui](https://github.com/ocornut/imgui)
 * [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 * [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
+* [ENTT](https://github.com/skypjack/entt)
+* [Lua Scripting System](https://www.lua.org/)
+* [TressFX](https://github.com/GPUOpen-Effects/TressFX)
