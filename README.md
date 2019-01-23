@@ -49,7 +49,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 ## Release 1.22 - January 22nd, 2019 - TressFX Hair | Entity Component System | Lua Scripting System
 This is the first release in 2019 and The Forge GitHub repository is today exactly one year old, with the first release on the same day last year :-) In 2018 we made 22 releases and we improved The Forge in many areas.
-If you followed us so far ... why not just join us? We are looking for more graphics programmer joining our teams. We have offices in Encinitas, CA USA (Main) / Mumbai, India / Shanghai, China / Breda, Netherlands / St. Petersburg, Russia and in Lviv, Ukraine.
+If you followed us so far ... why not just join us? We are looking for more graphics programmers joining our teams. We have offices in Encinitas, CA USA (Main) / Mumbai, India / Shanghai, China / Breda, Netherlands / St. Petersburg, Russia and in Lviv, Ukraine.
 
 Now back to release notes: many years ago in 2012 / 2013, we helped AMD and Crystal Dynamics with the development of TressFX for [Tomb Raider](https://gfxspeak.com/2013/05/21/amd-and-confetti-collaborate-on-hair/). We also wrote an article about the implementation in [GPU Pro 5](http://gpupro.blogspot.com/2013/10/gpu-pro-5-table-of-contents.html ) and gave a few joint presentations on conferences like [FMX](https://www.slideshare.net/WolfgangEngel/hair-intombraider-final). At the end of last year we revisited TressFX. We took the current code in the [GitHub repository](https://github.com/GPUOpen-Effects/TressFX), changed it a bit and ported it to The Forge. It now runs on PC with DirectX 12 / Vulkan, Linux with Vulkan, macOS and iOS with Metal 2 and on the XBOX One. We also created a few new hair assets so that we can showcase it. Here are screenshots of our programmers art:
 
@@ -62,7 +62,7 @@ iPad (Model A1803):
 ![Hair on iOS](Screenshots/MaterialPlayground/06_MaterialPlayground_hair_iOS_ponytail.png)
 
 
-The current implementation is overall too slow to be used on some of our platforms but we are going to improve performance over time. We are also going to improve on the hair art assets.
+The current implementation is overall too slow to be used on some of our platforms but we are going to improve performance over time. We are also going to improve the hair art assets.
 Apart from Hair, the Material Playground now also has improved versions of Metal and a new material category Wood:
 
 Metal:
@@ -73,7 +73,7 @@ Wood:
 
 ![Material Playground Wood on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
 
-- Entity component system (ECS) for all platforms: we've chosen to integrate ENTT (https://github.com/skypjack/entt) into The Forge. The initial implementation was contributed by Amer Koleci @AmerKoleci:
+- New Entity component system (ECS) for all platforms: we've chosen to integrate ENTT (https://github.com/skypjack/entt) into The Forge. The initial implementation was contributed by Amer Koleci @AmerKoleci:
 
 ![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
 
