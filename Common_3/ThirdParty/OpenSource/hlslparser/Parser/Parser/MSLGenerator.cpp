@@ -2781,6 +2781,7 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
 
 const char* MSLGenerator::GetBuiltInSemantic(const char* semantic, HLSLArgumentModifier modifier, const char* argument, const char* field)
 {
+	/*
 	if (m_target == Target_VertexShader && modifier == HLSLArgumentModifier_In && (String_Equal(semantic, "SV_InstanceID") || String_Equal(semantic, "INSTANCE_ID")))
 	{
 		return "instance_id";
@@ -2789,7 +2790,9 @@ const char* MSLGenerator::GetBuiltInSemantic(const char* semantic, HLSLArgumentM
 	{
 		return "vertex_id";
 	}
-	else if (m_target == Target_FragmentShader && modifier == HLSLArgumentModifier_In && (String_Equal(semantic, "SV_POSITION") || String_Equal(semantic, "SV_Position")))
+	else
+	*/
+	if (m_target == Target_FragmentShader && modifier == HLSLArgumentModifier_In && (String_Equal(semantic, "SV_POSITION") || String_Equal(semantic, "SV_Position")))
 	{
 		const char* newArgument = m_tree->AddStringFormat("float4(%s.%s.xyz, 1.0 / %s.%s.w)", argument, field, argument, field);
 		return newArgument;

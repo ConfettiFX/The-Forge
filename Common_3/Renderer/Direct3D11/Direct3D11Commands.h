@@ -39,8 +39,8 @@ struct BindRenderTargetsCmd
 {
 	ID3D11RenderTargetView* ppRenderTargets[MAX_RENDER_TARGET_ATTACHMENTS];
 	ID3D11DepthStencilView* pDepthStencil;
-	uint32_t renderTargetCount;
-	LoadActionsDesc mLoadActions;
+	uint32_t                renderTargetCount;
+	LoadActionsDesc         mLoadActions;
 };
 
 struct SetViewportCmd
@@ -68,23 +68,23 @@ struct BindPipelineCmd
 
 struct BindDescriptorsCmd
 {
-	RootSignature* pRootSignature;
-	uint32_t numDescriptors;
+	RootSignature*  pRootSignature;
+	uint32_t        numDescriptors;
 	DescriptorData* pDescParams;
 };
 
 struct BindIndexBufferCmd
 {
-	Buffer* pBuffer;
+	Buffer*  pBuffer;
 	uint32_t offset;
 };
 
 struct BindVertexBufferCmd
 {
-	uint32_t bufferCount;
+	uint32_t       bufferCount;
 	ID3D11Buffer** ppBuffers;
-	uint32_t* pStrides;
-	uint32_t* pOffsets;
+	uint32_t*      pStrides;
+	uint32_t*      pOffsets;
 };
 
 struct DrawCmd
@@ -126,20 +126,20 @@ struct DispatchCmd
 
 struct ResourceBarrierCmd
 {
-	uint32_t numBufferBarriers;
-	BufferBarrier* pBufferBarriers;
-	uint32_t numTextureBarriers;
+	uint32_t        numBufferBarriers;
+	BufferBarrier*  pBufferBarriers;
+	uint32_t        numTextureBarriers;
 	TextureBarrier* pTextureBarriers;
-	bool batch;
+	bool            batch;
 };
 
 struct SynchronizeResourcesCmd
 {
-	uint32_t numBuffers;
-	Buffer** ppBuffers;
-	uint32_t numTextures;
+	uint32_t  numBuffers;
+	Buffer**  ppBuffers;
+	uint32_t  numTextures;
 	Texture** ppTextures;
-	bool batch;
+	bool      batch;
 };
 
 struct FlushBarriersCmd
@@ -149,38 +149,38 @@ struct FlushBarriersCmd
 struct ExecuteIndirectCmd
 {
 	CommandSignature* pCommandSignature;
-	uint maxCommandCount;
-	Buffer* pIndirectBuffer;
-	uint64_t bufferOffset;
-	Buffer* pCounterBuffer;
-	uint64_t counterBufferOffset;
+	uint              maxCommandCount;
+	Buffer*           pIndirectBuffer;
+	uint64_t          bufferOffset;
+	Buffer*           pCounterBuffer;
+	uint64_t          counterBufferOffset;
 };
 
 struct BeginQueryCmd
 {
 	QueryHeap* pQueryHeap;
-	QueryDesc mQuery;
+	QueryDesc  mQuery;
 };
 
 struct EndQueryCmd
 {
 	QueryHeap* pQueryHeap;
-	QueryDesc mQuery;
+	QueryDesc  mQuery;
 };
 
 struct ResolveQueryCmd
 {
 	QueryHeap* pQueryHeap;
-	Buffer* pReadbackBuffer;
-	uint32_t startQuery;
-	uint32_t queryCount;
+	Buffer*    pReadbackBuffer;
+	uint32_t   startQuery;
+	uint32_t   queryCount;
 };
 
 struct BeginDebugMarkerCmd
 {
-	float r;
-	float g;
-	float b;
+	float       r;
+	float       g;
+	float       b;
 	const char* pName;
 };
 
@@ -190,9 +190,9 @@ struct EndDebugMarkerCmd
 
 struct AddDebugMarkerCmd
 {
-	float r;
-	float g;
-	float b;
+	float       r;
+	float       g;
+	float       b;
 	const char* pName;
 };
 
@@ -201,51 +201,49 @@ struct UpdateBufferCmd
 	uint64_t srcOffset;
 	uint64_t dstOffset;
 	uint64_t size;
-	Buffer* pSrcBuffer;
-	Buffer* pBuffer;
+	Buffer*  pSrcBuffer;
+	Buffer*  pBuffer;
 };
 
 struct UpdateSubresourcesCmd
 {
-	uint32_t startSubresource;
-	uint32_t numSubresources;
+	uint32_t             startSubresource;
+	uint32_t             numSubresources;
 	SubresourceDataDesc* pSubresources;
-	Buffer* pIntermediate;
-	uint64_t intermediateOffset;
-	Texture* pTexture;
+	Buffer*              pIntermediate;
+	uint64_t             intermediateOffset;
+	Texture*             pTexture;
 };
 
-
-struct CachedCmd {
-	Cmd* pCmd;
+struct CachedCmd
+{
+	Cmd*    pCmd;
 	CmdType sType;
 	union
 	{
-		BindRenderTargetsCmd mBindRenderTargetsCmd;
-		SetViewportCmd mSetViewportCmd;
-		SetScissorCmd mSetScissorCmd;
-		BindPipelineCmd mBindPipelineCmd;
-		BindDescriptorsCmd mBindDescriptorsCmd;
-		BindIndexBufferCmd mBindIndexBufferCmd;
-		BindVertexBufferCmd mBindVertexBufferCmd;
-		DrawCmd mDrawCmd;
-		DrawInstancedCmd mDrawInstancedCmd;
-		DrawIndexedCmd mDrawIndexedCmd;
+		BindRenderTargetsCmd    mBindRenderTargetsCmd;
+		SetViewportCmd          mSetViewportCmd;
+		SetScissorCmd           mSetScissorCmd;
+		BindPipelineCmd         mBindPipelineCmd;
+		BindDescriptorsCmd      mBindDescriptorsCmd;
+		BindIndexBufferCmd      mBindIndexBufferCmd;
+		BindVertexBufferCmd     mBindVertexBufferCmd;
+		DrawCmd                 mDrawCmd;
+		DrawInstancedCmd        mDrawInstancedCmd;
+		DrawIndexedCmd          mDrawIndexedCmd;
 		DrawIndexedInstancedCmd mDrawIndexedInstancedCmd;
-		DispatchCmd mDispatchCmd;
-		ResourceBarrierCmd mResourceBarrierCmd;
+		DispatchCmd             mDispatchCmd;
+		ResourceBarrierCmd      mResourceBarrierCmd;
 		SynchronizeResourcesCmd mSynchronizeResourcesCmd;
-		FlushBarriersCmd mFlushBarriersCmd;
-		ExecuteIndirectCmd mExecuteIndirectCmd;
-		BeginQueryCmd mBeginQueryCmd;
-		EndQueryCmd mEndQueryCmd;
-		ResolveQueryCmd mResolveQueryCmd;
-		BeginDebugMarkerCmd mBeginDebugMarkerCmd;
-		EndDebugMarkerCmd mEndDebugMarkerCmd;
-		AddDebugMarkerCmd mAddDebugMarkerCmd;
-		UpdateBufferCmd mUpdateBufferCmd;
-		UpdateSubresourcesCmd mUpdateSubresourcesCmd;
+		FlushBarriersCmd        mFlushBarriersCmd;
+		ExecuteIndirectCmd      mExecuteIndirectCmd;
+		BeginQueryCmd           mBeginQueryCmd;
+		EndQueryCmd             mEndQueryCmd;
+		ResolveQueryCmd         mResolveQueryCmd;
+		BeginDebugMarkerCmd     mBeginDebugMarkerCmd;
+		EndDebugMarkerCmd       mEndDebugMarkerCmd;
+		AddDebugMarkerCmd       mAddDebugMarkerCmd;
+		UpdateBufferCmd         mUpdateBufferCmd;
+		UpdateSubresourcesCmd   mUpdateSubresourcesCmd;
 	};
 };
-
-

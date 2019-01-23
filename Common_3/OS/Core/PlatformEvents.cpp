@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,27 +27,20 @@
 
 static tinystl::vector<WindowResizeEventHandler> gWindowResizeCallbacks;
 
-void registerWindowResizeEvent(WindowResizeEventHandler callback)
+void registerWindowResizeEvent(WindowResizeEventHandler callback) { gWindowResizeCallbacks.push_back(callback); }
+
+void unregisterWindowResizeEvent(WindowResizeEventHandler callback) { gWindowResizeCallbacks.erase(gWindowResizeCallbacks.find(callback)); }
+
+namespace PlatformEvents {
+bool wantsMouseCapture = false;
+bool skipMouseCapture = false;
+
+void onWindowResize(const WindowResizeEventData* data)
 {
-	gWindowResizeCallbacks.push_back(callback);
+	for (WindowResizeEventHandler& callback : gWindowResizeCallbacks)
+		callback(data);
 }
-
-void unregisterWindowResizeEvent(WindowResizeEventHandler callback)
-{
-	gWindowResizeCallbacks.erase(gWindowResizeCallbacks.find(callback));
-}
-
-namespace PlatformEvents
-{
-	bool wantsMouseCapture = false;
-	bool skipMouseCapture = false;
-
-	void onWindowResize(const WindowResizeEventData* data)
-	{
-		for (WindowResizeEventHandler& callback : gWindowResizeCallbacks)
-			callback(data);
-	}
-} // namespace PlatformEvents
+}    // namespace PlatformEvents
 
 bool requestMouseCapture(bool allowCapture)
 {
@@ -55,4 +48,3 @@ bool requestMouseCapture(bool allowCapture)
 	PlatformEvents::wantsMouseCapture = allowCapture;
 	return rv;
 }
-

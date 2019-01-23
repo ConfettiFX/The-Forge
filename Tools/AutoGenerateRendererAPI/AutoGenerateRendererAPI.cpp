@@ -4,6 +4,7 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -75,17 +76,18 @@ int main(int argc, char** argv)
 			file_list.emplace_back(p.path().string());
 		}
 	}
+	// Write to stringstream instead of file
+	// To be able to compare the contents if the target file exists
+	std::stringstream header_file_ss;
+	std::stringstream source_file_ss;
 
-	std::ofstream header_file(header_file_loc);
-	std::ofstream source_file(source_file_loc);
+	header_file_ss << "#pragma once\n\n";
+	header_file_ss << message;
 
-	header_file << "#pragma once\n\n";
-	header_file << message;
-
-	source_file << (message);
-	source_file << ("#include \"IRenderer.h\"\n");
-	source_file << ("#include \"../../Common_3/OS/Interfaces/ILogManager.h\"\n");
-	source_file << ("\n");
+	source_file_ss << (message);
+	source_file_ss << ("#include \"IRenderer.h\"\n");
+	source_file_ss << ("#include \"../../Common_3/OS/Interfaces/ILogManager.h\"\n");
+	source_file_ss << ("\n");
 
 	auto function_valid = [&ignore_functions, &function_names](String functionName) {
 		return std::find(ignore_functions.begin(), ignore_functions.end(), functionName) == ignore_functions.end() &&
@@ -106,18 +108,18 @@ int main(int argc, char** argv)
 				String functionPointer = String(result[1]) + String("(*") + functionName + ")" + "(" + String(result[3]) + ");\n";
 				String functionDeclaration = String(result[1]) + " " + functionName + "(" + String(result[3]) + ");";
 				function_names.emplace_back(functionName);
-				header_file << ("extern " + functionPointer);
-				source_file << (functionPointer);
+				header_file_ss << ("extern " + functionPointer);
+				source_file_ss << (functionPointer);
 
 				for (auto& api : renderer_apis)
 				{
 					if (std::find(api.mIgnoreFunctions.begin(), api.mIgnoreFunctions.end(), functionName) == api.mIgnoreFunctions.end())
 					{
-						source_file << ("namespace " + api.mNamespace + " { extern " + functionDeclaration + " } \n");
+						source_file_ss << ("namespace " + api.mNamespace + " { extern " + functionDeclaration + " } \n");
 					}
 				}
 
-				source_file << ("\n");
+				source_file_ss << ("\n");
 			}
 		}
 	}
@@ -130,41 +132,65 @@ int main(int argc, char** argv)
 		"{\n"
 		"}\n");
 
-	header_file << ("\n");
-	header_file << ("extern " + load_function_declaration + ";\n");
-	header_file << ("extern " + unload_function_declaration + ";\n");
+	header_file_ss << ("\n");
+	header_file_ss << ("extern " + load_function_declaration + ";\n");
+	header_file_ss << ("extern " + unload_function_declaration + ";\n");
 
-	source_file << (load_function_declaration);
-	source_file << ("\n");
-	source_file << ("{\n");
+	source_file_ss << (load_function_declaration);
+	source_file_ss << ("\n");
+	source_file_ss << ("{\n");
 	for (auto& api : renderer_apis)
 	{
-		source_file << ("#if defined(" + api.mDefine + ")\n");
-		source_file << ("\tif (api == " + api.mName + ")\n");
-		source_file << ("\t{\n");
+		source_file_ss << ("#if defined(" + api.mDefine + ")\n");
+		source_file_ss << ("\tif (api == " + api.mName + ")\n");
+		source_file_ss << ("\t{\n");
 		for (auto& function : function_names)
 		{
 			if (std::find(api.mIgnoreFunctions.begin(), api.mIgnoreFunctions.end(), function) == api.mIgnoreFunctions.end())
 			{
 				String line = "\t\t" + function + " = " + api.mNamespace + "::" + function + ";\n";
-				source_file << (line);
+				source_file_ss << (line);
 			}
 		}
 
-		source_file << ("\t\treturn true;\n");
-		source_file << ("\t}\n");
-		source_file << ("#endif\n");
+		source_file_ss << ("\t\treturn true;\n");
+		source_file_ss << ("\t}\n");
+		source_file_ss << ("#endif\n");
 	}
 
-	source_file << ("\n");
-	source_file << ("\treturn false;\n");
-	source_file << ("}\n");
-	source_file << ("\n");
+	source_file_ss << ("\n");
+	source_file_ss << ("\treturn false;\n");
+	source_file_ss << ("}\n");
+	source_file_ss << ("\n");
 
-	source_file << (unload_function);
+	source_file_ss << (unload_function);
 
-	header_file.close();
-	source_file.close();
+	std::string file_locs[2] = { header_file_loc, source_file_loc };
+	std::stringstream* file_ss[2] = { &header_file_ss, &source_file_ss };
+	// Checks if file on disk exists and if it does it compares the contents with the current stringstream
+	// If they are different then the file is overwritten
+	// Otherwise it's not touched.
+	for (int i = 0; i < 2; i++)
+	{
+		bool writeToFile = true;
+		if (fs::exists(file_locs[i]))
+		{
+			std::ifstream fileStream(file_locs[i]);
+			std::string file_contents((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
+			fileStream.close();
+			if (file_contents == file_ss[i]->str())
+			{
+				writeToFile = false;
+			}
+		}
+
+		if (writeToFile)
+		{
+			std::ofstream toWrite(file_locs[i]);
+			toWrite << file_ss[i]->str();
+			toWrite.close();
+		}
+	}
 
 	return 0;
 }

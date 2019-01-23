@@ -7,36 +7,36 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{4c26721a-0e41-44aa-bf82-504ae9916ff5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{4ea6e913-8c39-4c8d-ab90-af48104ba225}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{73c7697d-0e9d-412c-8028-db7d1dc84b6e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX11">
+    <Filter Include="Shaders\D3D11">
       <UniqueIdentifier>{fb31802d-5eb5-4a05-b8a8-69683c1ec185}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\src\16_SphereTracing\Shaders\Vulkan\rt.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\16_SphereTracing\Shaders\Vulkan\fstri.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX12\rt.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\16_SphereTracing\Shaders\D3D12\rt.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX12\fstri.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\16_SphereTracing\Shaders\D3D12\fstri.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX11\fstri.vert">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\16_SphereTracing\Shaders\D3D11\fstri.vert">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\16_SphereTracing\Shaders\PCDX11\rt.frag">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\16_SphereTracing\Shaders\D3D11\rt.frag">
+      <Filter>Shaders\D3D11</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,7 +30,7 @@
 
 class AssetLoader
 {
-public:
+	public:
 	static bool LoadSkeleton(const char* skeletonFile, FSRoot root, ozz::animation::Skeleton* skeleton);
 	static bool LoadAnimation(const char* animationFile, FSRoot root, ozz::animation::Animation* animation);
 };

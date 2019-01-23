@@ -7,7 +7,8 @@
 #include "../../Renderer/IRenderer.h"
 
 #ifndef METAL
-static GPUPresetLevel getSinglePresetLevel(tinystl::string line,const tinystl::string& inVendorId, const tinystl::string& inModelId, const tinystl::string& inRevId)
+static GPUPresetLevel getSinglePresetLevel(
+	tinystl::string line, const tinystl::string& inVendorId, const tinystl::string& inModelId, const tinystl::string& inRevId)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
 	line = line.trimmed();
@@ -50,10 +51,10 @@ static GPUPresetLevel getSinglePresetLevel(tinystl::string line,const tinystl::s
 
 	//check if current vendor line is one of the selected gpu's
 	//compare both ModelId and VendorId
-	if (inVendorId == vendorId && inModelId == deviceId) {
-
+	if (inVendorId == vendorId && inModelId == deviceId)
+	{
 		//if we have a revision Id then we want to match it as well
-		if (inRevId != "0x00" && revisionId!= "0x00" && inRevId != revisionId)
+		if (inRevId != "0x00" && revisionId != "0x00" && inRevId != revisionId)
 			return GPU_PRESET_NONE;
 
 		//assign preset to gpu that's been identified.
@@ -72,13 +73,12 @@ static GPUPresetLevel getSinglePresetLevel(tinystl::string line,const tinystl::s
 	}
 
 	return GPU_PRESET_NONE;
-
 }
 #endif
 
 #ifndef __ANDROID__
 //TODO: Add name matching as well.
-static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
+static void checkForPresetLevel(tinystl::string line, Renderer* pRenderer)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
 	line = line.trimmed();
@@ -102,7 +102,7 @@ static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 	tinystl::string gpuName = "";
 	tinystl::string revisionId = "0x00";
 
-	if(parsedString.size() >= 4)
+	if (parsedString.size() >= 4)
 	{
 		gpuName = parsedString[3];
 	}
@@ -120,14 +120,17 @@ static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 	revisionId = revisionId.trimmed();
 
 	//search if any of the current gpu's match the current gpu cfg entry
-	for(uint32_t i = 0 ; i < pRenderer->mNumOfGPUs ; i++) {
+	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; i++)
+	{
 		GPUSettings* currentSettings = &pRenderer->mGpuSettings[i];
 		//check if current vendor line is one of the selected gpu's
 		//compare both ModelId and VendorId
-		if (strcmp(currentSettings->mGpuVendorPreset.mVendorId, vendorId.c_str()) == 0 && strcmp(currentSettings->mGpuVendorPreset.mModelId, deviceId.c_str()) == 0) {
-
+		if (strcmp(currentSettings->mGpuVendorPreset.mVendorId, vendorId.c_str()) == 0 &&
+			strcmp(currentSettings->mGpuVendorPreset.mModelId, deviceId.c_str()) == 0)
+		{
 			//if we have a revision Id then we want to match it as well
-			if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 && strcmp(revisionId, "0x00") != 0 && strcmp(currentSettings->mGpuVendorPreset.mRevisionId, revisionId.c_str()) == 0)
+			if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 && strcmp(revisionId, "0x00") != 0 &&
+				strcmp(currentSettings->mGpuVendorPreset.mRevisionId, revisionId.c_str()) == 0)
 				continue;
 
 			//assign preset to gpu that's been identified.
@@ -154,13 +157,13 @@ static void checkForPresetLevel(tinystl::string line, Renderer * pRenderer)
 
 #ifndef METAL
 #ifndef __ANDROID__
-static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset &pActiveGpu)
+static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset& pActiveGpu)
 {
 	//remove extra whitespace to check if line is a comment (starts with #)
 	line = line.trimmed();
 
 	//remote comment from line
-	if(line.at(0) == '#')
+	if (line.at(0) == '#')
 		return false;
 
 	tinystl::vector<tinystl::string> parsedString = line.split(';');
@@ -210,16 +213,18 @@ static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset &pActiveGpu)
 
 #ifndef __ANDROID__
 //Reads the gpu config and sets the preset level of all available gpu's
-static void setGPUPresetLevel(Renderer * pRenderer)
+static void setGPUPresetLevel(Renderer* pRenderer)
 {
 	File gpuCfgFile = {};
-	gpuCfgFile.Open("gpu.cfg",FM_Read, FSR_GpuConfig);
-	if(!gpuCfgFile.IsOpen()) {
+	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
+	if (!gpuCfgFile.IsOpen())
+	{
 		LOGWARNING("gpu.cfg could not be found, setting preset to Low as a default.");
 		return;
 	}
 
-	while (!gpuCfgFile.IsEof()) {
+	while (!gpuCfgFile.IsEof())
+	{
 		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
 		checkForPresetLevel(gpuCfgString, pRenderer);
 		// Do something with the tok
@@ -234,17 +239,19 @@ static void setGPUPresetLevel(Renderer * pRenderer)
 static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const tinystl::string modelId, const tinystl::string revId)
 {
 	File gpuCfgFile = {};
-	gpuCfgFile.Open("gpu.cfg", FM_Read, FSR_GpuConfig);
-	if (!gpuCfgFile.IsOpen()) {
+	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
+	if (!gpuCfgFile.IsOpen())
+	{
 		LOGWARNING("gpu.cfg could not be found, setting preset to Low as a default.");
 		return GPU_PRESET_LOW;
 	}
 
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
 
-	while (!gpuCfgFile.IsEof()) {
+	while (!gpuCfgFile.IsEof())
+	{
 		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
-		GPUPresetLevel level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
+		GPUPresetLevel  level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
 		// Do something with the tok
 		if (level != GPU_PRESET_NONE)
 		{
@@ -258,17 +265,19 @@ static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const ti
 }
 
 #if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
-static bool getActiveGpuConfig(GPUVendorPreset &pActiveGpu)
+static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
 	File gpuCfgFile = {};
-	gpuCfgFile.Open("activeTestingGpu.cfg", FM_Read, FSR_GpuConfig);
-	if (!gpuCfgFile.IsOpen()) {
+	gpuCfgFile.Open("activeTestingGpu.cfg", FM_ReadBinary, FSR_GpuConfig);
+	if (!gpuCfgFile.IsOpen())
+	{
 		LOGINFO("activeTestingGpu.cfg could not be found, Using default GPU.");
 		return false;
 	}
 
 	bool successFinal = false;
-	while (!gpuCfgFile.IsEof() && !successFinal) {
+	while (!gpuCfgFile.IsEof() && !successFinal)
+	{
 		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
 		successFinal = checkForActiveGPU(gpuCfgString, pActiveGpu);
 	}

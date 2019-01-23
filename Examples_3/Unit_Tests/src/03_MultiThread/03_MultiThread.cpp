@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -52,7 +52,7 @@
 #pragma comment(lib, "comsuppw.lib")
 #endif
 #elif defined(__linux__)
-#include <unistd.h> // sysconf(), _SC_NPROCESSORS_ONLN
+#include <unistd.h>    // sysconf(), _SC_NPROCESSORS_ONLN
 #else
 #include <mach/mach.h>
 #include <mach/processor_info.h>
@@ -73,20 +73,20 @@
 
 struct ParticleData
 {
-	float mPaletteFactor;
+	float    mPaletteFactor;
 	uint32_t mData;
 	uint32_t mTextureIndex;
 };
 
 struct ThreadData
 {
-	CmdPool* pCmdPool;
-	Cmd** ppCmds;
+	CmdPool*      pCmdPool;
+	Cmd**         ppCmds;
 	RenderTarget* pRenderTarget;
-	GpuProfiler* pGpuProfiler;
-	int mStartPoint;
-	int mDrawCount;
-	uint32_t mFrameIndex;
+	GpuProfiler*  pGpuProfiler;
+	int           mStartPoint;
+	int           mDrawCount;
+	uint32_t      mFrameIndex;
 };
 
 struct ObjectProperty
@@ -94,16 +94,16 @@ struct ObjectProperty
 	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
-const uint32_t  gSampleCount = 60;
-const uint32_t  gImageCount = 3;
+const uint32_t gSampleCount = 60;
+const uint32_t gImageCount = 3;
 
 struct CpuGraphData
 {
-	int mSampleIdx;
+	int   mSampleIdx;
 	float mSample[gSampleCount];
 	float mSampley[gSampleCount];
 	float mScale;
-	int mEmptyFlag;
+	int   mEmptyFlag;
 };
 
 struct ViewPortState
@@ -122,139 +122,125 @@ struct GraphVertex
 
 struct CpuGraph
 {
-	Buffer* mVertexBuffer[gImageCount]; // vetex buffer for cpu sample
-	ViewPortState mViewPort;  //view port for different core
-	GraphVertex mPoints[gSampleCount * 3];
+	Buffer*       mVertexBuffer[gImageCount];    // vetex buffer for cpu sample
+	ViewPortState mViewPort;                     //view port for different core
+	GraphVertex   mPoints[gSampleCount * 3];
 };
 
-const int			   gTotalParticleCount = 2000000;
-uint32_t				gGraphWidth = 200;
-uint32_t				gGraphHeight = 100;
+const int gTotalParticleCount = 2000000;
+uint32_t  gGraphWidth = 200;
+uint32_t  gGraphHeight = 100;
 
-Renderer*			   pRenderer = NULL;
+Renderer* pRenderer = NULL;
 
-Queue*				  pGraphicsQueue = NULL;
-CmdPool*				pCmdPool = NULL;
-Cmd**				   ppCmds = NULL;
-CmdPool*				pGraphCmdPool = NULL;
-Cmd**				   ppGraphCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
+CmdPool* pGraphCmdPool = NULL;
+Cmd**    ppGraphCmds = NULL;
 
-Fence*				  pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*			  pImageAcquiredSemaphore = NULL;
-Semaphore*			  pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-SwapChain*			  pSwapChain = NULL;
+SwapChain* pSwapChain = NULL;
 
-Shader*				 pShader = NULL;
-Shader*				 pSkyBoxDrawShader = NULL;
-Shader*				 pGraphShader = NULL;
-Buffer*				 pParticleVertexBuffer = NULL;
-Buffer*				 pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*				 pSkyboxUniformBuffer[gImageCount] = { NULL };
-Buffer*				 pSkyBoxVertexBuffer = NULL;
-Buffer*				 pBackGroundVertexBuffer[gImageCount] = { NULL };
-Pipeline*			   pPipeline = NULL;
-Pipeline*			   pSkyBoxDrawPipeline = NULL;
-Pipeline*			   pGraphLinePipeline = NULL;
-Pipeline*			   pGraphLineListPipeline = NULL;
-Pipeline*			   pGraphTrianglePipeline = NULL;
-RootSignature*		  pRootSignature = NULL;
-RootSignature*		  pGraphRootSignature = NULL;
-Texture*				pTextures[5];
-Texture*				pSkyBoxTextures[6];
+Shader*        pShader = NULL;
+Shader*        pSkyBoxDrawShader = NULL;
+Shader*        pGraphShader = NULL;
+Buffer*        pParticleVertexBuffer = NULL;
+Buffer*        pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*        pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*        pSkyBoxVertexBuffer = NULL;
+Buffer*        pBackGroundVertexBuffer[gImageCount] = { NULL };
+Pipeline*      pPipeline = NULL;
+Pipeline*      pSkyBoxDrawPipeline = NULL;
+Pipeline*      pGraphLinePipeline = NULL;
+Pipeline*      pGraphLineListPipeline = NULL;
+Pipeline*      pGraphTrianglePipeline = NULL;
+RootSignature* pRootSignature = NULL;
+RootSignature* pGraphRootSignature = NULL;
+Texture*       pTextures[5];
+Texture*       pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-VirtualJoystickUI	   gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
-Sampler*				pSampler = NULL;
-Sampler*				pSamplerSkyBox = NULL;
-uint32_t				gFrameIndex = 0;
+Sampler* pSampler = NULL;
+Sampler* pSamplerSkyBox = NULL;
+uint32_t gFrameIndex = 0;
 
 #if defined(_WIN32)
 #if defined(_DURANGO)
 #else
-IWbemServices*		  pService;
-IWbemLocator*		   pLocator;
-uint64_t*			   pOldTimeStamp;
-uint64_t*			   pOldPprocUsage;
+IWbemServices* pService;
+IWbemLocator*  pLocator;
+uint64_t*      pOldTimeStamp;
+uint64_t*      pOldPprocUsage;
 #endif
-#elif(__linux__)
-uint64_t*			   pOldTimeStamp;
-uint64_t*			   pOldPprocUsage;
+#elif (__linux__)
+uint64_t* pOldTimeStamp;
+uint64_t* pOldPprocUsage;
 #else
-NSLock*				 CPUUsageLock;
-processor_info_array_t  prevCpuInfo;
-mach_msg_type_number_t  numPrevCpuInfo;
+NSLock*                CPUUsageLock;
+processor_info_array_t prevCpuInfo;
+mach_msg_type_number_t numPrevCpuInfo;
 #endif
 
-uint					gCoresCount;
-float*				  pCoresLoadData;
+uint   gCoresCount;
+float* pCoresLoadData;
 
-BlendState*			 gParticleBlend;
-RasterizerState*		gSkyboxRast;
+BlendState*      gParticleBlend;
+RasterizerState* gSkyboxRast;
 
-const uint			  gThreadCount = 3;
+const uint gThreadCount = 3;
 
-ThreadData			  gThreadData[gThreadCount];
-mat4					gProjectView;
-mat4					gSkyboxProjectView;
-ParticleData			gParticleData;
-uint32_t				gSeed;
-float				   gPaletteFactor;
-uint					gTextureIndex;
+ThreadData   gThreadData[gThreadCount];
+mat4         gProjectView;
+mat4         gSkyboxProjectView;
+ParticleData gParticleData;
+uint32_t     gSeed;
+float        gPaletteFactor;
+uint         gTextureIndex;
 
-GpuProfiler*			pGpuProfilers[gThreadCount] = { NULL };
-UIApp				   gAppUI;
-ICameraController*	  pCameraController = NULL;
+GpuProfiler*       pGpuProfilers[gThreadCount] = { NULL };
+UIApp              gAppUI;
+ICameraController* pCameraController = NULL;
 
-FileSystem			  gFileSystem;
-ThreadPool			  gThreadSystem;
-LogManager			  gLogManager;
+FileSystem gFileSystem;
+ThreadPool gThreadSystem;
+LogManager gLogManager;
 
-GraphVertex gBackGroundPoints[gImageCount][gSampleCount];
+GraphVertex   gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
-CpuGraph*	pCpuGraph;
+CpuGraph*     pCpuGraph;
 
-const char* pImageFileNames[] =
-{
-	"Palette_Fire.png",
-	"Palette_Purple.png",
-	"Palette_Muted.png",
-	"Palette_Rainbow.png",
-	"Palette_Sky.png"
-};
-const char* pSkyBoxImageFileNames[] =
-{
-	"Skybox_right1.png",
-	"Skybox_left2.png",
-	"Skybox_top3.png",
-	"Skybox_bottom4.png",
-	"Skybox_front5.png",
-	"Skybox_back6.png"
-};
+const char* pImageFileNames[] = { "Palette_Fire.png", "Palette_Purple.png", "Palette_Muted.png", "Palette_Rainbow.png", "Palette_Sky.png" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
+										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
 
-const char* pszBases[] =
-{
-	"../../../src/03_MultiThread/", 	// FSR_BinShaders
-	"../../../src/03_MultiThread/", 	// FSR_SrcShaders
-	"",									// FSR_BinShaders_Common
-	"",									// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",		// FSR_Textures
-	"../../../UnitTestResources/",		// FSR_Meshes
-	"../../../UnitTestResources/",		// FSR_Builtin_Fonts
-	"../../../src/03_MultiThread/",		// FSR_GpuConfig
-	"",									// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/03_MultiThread/",         // FSR_BinShaders
+	"../../../src/03_MultiThread/",         // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/03_MultiThread/",         // FSR_GpuConfig
+	"",                                     // FSR_Animation
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
-class MultiThread : public IApp
+class MultiThread: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
 		InitCpuUsage();
 
-		gGraphWidth = mSettings.mWidth / 6; //200;
+		gGraphWidth = mSettings.mWidth / 6;    //200;
 		gGraphHeight = gCoresCount ? (mSettings.mHeight - 30 - gCoresCount * 10) / gCoresCount : 0;
 
 		RendererDesc settings = { 0 };
@@ -338,14 +324,14 @@ public:
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &graphShader, &pGraphShader);
 
-		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
-		};
-		SamplerDesc skyBoxSamplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
-		};
+		SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
+		SamplerDesc skyBoxSamplerDesc = { FILTER_LINEAR,
+										  FILTER_LINEAR,
+										  MIPMAP_MODE_NEAREST,
+										  ADDRESS_MODE_CLAMP_TO_EDGE,
+										  ADDRESS_MODE_CLAMP_TO_EDGE,
+										  ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSampler);
 		addSampler(pRenderer, &skyBoxSamplerDesc, &pSamplerSkyBox);
 
@@ -363,9 +349,9 @@ public:
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &gSkyboxRast);
 
-		const char* pStaticSamplerNames[] = { "uSampler0", "uSkyboxSampler" };
-		Sampler* pSamplers[] = { pSampler, pSamplerSkyBox };
-		Shader* shaders[] = { pShader, pSkyBoxDrawShader };
+		const char*       pStaticSamplerNames[] = { "uSampler0", "uSkyboxSampler" };
+		Sampler*          pSamplers[] = { pSampler, pSamplerSkyBox };
+		Shader*           shaders[] = { pShader, pSkyBoxDrawShader };
 		RootSignatureDesc skyBoxRootDesc = {};
 		skyBoxRootDesc.mStaticSamplerCount = 2;
 		skyBoxRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
@@ -389,52 +375,34 @@ public:
 		//	  gCPUCoreCount = (unsigned int)[[NSProcessInfo processInfo] processorCount];
 		//#endif
 
-				//Generate sky box vertex buffer
+		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
-			10.0f,  -10.0f, -10.0f,6.0f, // -z
-			-10.0f, -10.0f, -10.0f,6.0f,
-			-10.0f, 10.0f, -10.0f,6.0f,
-			-10.0f, 10.0f, -10.0f,6.0f,
-			10.0f,  10.0f, -10.0f,6.0f,
-			10.0f,  -10.0f, -10.0f,6.0f,
+			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
 
-			-10.0f, -10.0f,  10.0f,2.0f,  //-x
-			-10.0f, -10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f,  10.0f,2.0f,
-			-10.0f, -10.0f,  10.0f,2.0f,
+			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
 
-			10.0f, -10.0f, -10.0f,1.0f, //+x
-			10.0f, -10.0f,  10.0f,1.0f,
-			10.0f,  10.0f,  10.0f,1.0f,
-			10.0f,  10.0f,  10.0f,1.0f,
-			10.0f,  10.0f, -10.0f,1.0f,
-			10.0f, -10.0f, -10.0f,1.0f,
+			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
 
-			-10.0f, -10.0f,  10.0f,5.0f,  // +z
-			-10.0f,  10.0f,  10.0f,5.0f,
-			10.0f,  10.0f,  10.0f,5.0f,
-			10.0f,  10.0f,  10.0f,5.0f,
-			10.0f, -10.0f,  10.0f,5.0f,
-			-10.0f, -10.0f,  10.0f,5.0f,
+			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
 
-			-10.0f,  10.0f, -10.0f, 3.0f,  //+y
-			10.0f,  10.0f, -10.0f,3.0f,
-			10.0f,  10.0f,  10.0f,3.0f,
-			10.0f,  10.0f,  10.0f,3.0f,
-			-10.0f,  10.0f,  10.0f,3.0f,
-			-10.0f,  10.0f, -10.0f,3.0f,
+			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
 
-			10.0f,  -10.0f, 10.0f, 4.0f,  //-y
-			10.0f,  -10.0f, -10.0f,4.0f,
-			-10.0f,  -10.0f,  -10.0f,4.0f,
-			-10.0f,  -10.0f,  -10.0f,4.0f,
-			-10.0f,  -10.0f,  10.0f,4.0f,
-			10.0f,  -10.0f, 10.0f,4.0f,
+			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
 		};
 
-		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -462,7 +430,7 @@ public:
 		LOGINFOF("Load Time %lld", timer.GetUSec(false) / 1000);
 
 		// generate partcile data
-		unsigned int particleSeed = 23232323; //we have gseed as global declaration, pick a name that is not gseed
+		unsigned int particleSeed = 23232323;    //we have gseed as global declaration, pick a name that is not gseed
 		for (int i = 0; i < 6 * 9; ++i)
 		{
 			RND_GEN(particleSeed);
@@ -474,7 +442,7 @@ public:
 			RND_GEN(particleSeed);
 			seedArray[i] = particleSeed;
 		}
-		uint64_t parDataSize = sizeof(uint32_t)* (uint64_t)gTotalParticleCount;
+		uint64_t parDataSize = sizeof(uint32_t) * (uint64_t)gTotalParticleCount;
 		uint32_t parDataStride = sizeof(uint32_t);
 
 		BufferLoadDesc particleVbDesc = {};
@@ -488,11 +456,11 @@ public:
 
 		conf_free(seedArray);
 
-		uint32_t graphDataStride = sizeof(GraphVertex); // vec2(position) + vec4(color)
-		uint32_t graphDataSize = sizeof(GraphVertex)*gSampleCount * 3; // 2 vertex for tri, 1 vertex for line strip
+		uint32_t graphDataStride = sizeof(GraphVertex);                     // vec2(position) + vec4(color)
+		uint32_t graphDataSize = sizeof(GraphVertex) * gSampleCount * 3;    // 2 vertex for tri, 1 vertex for line strip
 
-																	   //generate vertex buffer for all cores to draw cpu graph and setting up view port for each graph
-		pCpuGraph = (CpuGraph *)conf_malloc(sizeof(CpuGraph)*gCoresCount);
+		//generate vertex buffer for all cores to draw cpu graph and setting up view port for each graph
+		pCpuGraph = (CpuGraph*)conf_malloc(sizeof(CpuGraph) * gCoresCount);
 		for (uint i = 0; i < gCoresCount; ++i)
 		{
 			pCpuGraph[i].mViewPort.mOffsetX = mSettings.mWidth - 10.0f - gGraphWidth;
@@ -513,7 +481,7 @@ public:
 				addResource(&vbDesc);
 			}
 		}
-		graphDataSize = sizeof(GraphVertex)*gSampleCount;
+		graphDataSize = sizeof(GraphVertex) * gSampleCount;
 		for (uint i = 0; i < gImageCount; ++i)
 		{
 			BufferLoadDesc vbDesc = {};
@@ -535,12 +503,16 @@ public:
 		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
 
 		CameraMotionParameters cmp{ 100.0f, 800.0f, 1000.0f };
-		vec3 camPos{ 24.0f, 24.0f, 10.0f };
-		vec3 lookAt{ 0 };
+		vec3                   camPos{ 24.0f, 24.0f, 10.0f };
+		vec3                   lookAt{ 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
-		requestMouseCapture(true);
 
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		gVirtualJoystick.InitLRSticks();
+		pCameraController->setVirtualJoystick(&gVirtualJoystick);
+#endif
+		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
@@ -693,7 +665,10 @@ public:
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = (sizeof(GraphVertex) > 24 ? ImageFormat::RGBA32F : ImageFormat::RG32F); // Handle the case when padding is added to the struct (yielding 32 bytes instead of 24) on macOS
+		vertexLayout.mAttribs[0].mFormat =
+			(sizeof(GraphVertex) > 24
+				 ? ImageFormat::RGBA32F
+				 : ImageFormat::RG32F);    // Handle the case when padding is added to the struct (yielding 32 bytes instead of 24) on macOS
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
@@ -749,7 +724,7 @@ public:
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		const float autoModeTimeoutReset = 3.0f;
+		const float  autoModeTimeoutReset = 3.0f;
 		static float autoModeTimeout = 0.0f;
 
 		if (getKeyDown(KEY_BUTTON_X))
@@ -757,7 +732,6 @@ public:
 			RecenterCameraView(85.0f);
 		}
 		pCameraController->update(deltaTime);
-
 
 		const float k_wrapAround = (float)(M_PI * 2.0);
 		if (gObjSettings.mRotX > k_wrapAround)
@@ -777,8 +751,8 @@ public:
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
-		gProjectView = projMat * viewMat*modelMat;
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
+		gProjectView = projMat * viewMat * modelMat;
 		// update particle position matrix
 
 		viewMat.setTranslation(vec3(0));
@@ -797,7 +771,7 @@ public:
 
 			//   gPaletteFactor = 1.0;
 		}
-		gParticleData.mPaletteFactor = gPaletteFactor * gPaletteFactor  * (3.0f - 2.0f * gPaletteFactor);
+		gParticleData.mPaletteFactor = gPaletteFactor * gPaletteFactor * (3.0f - 2.0f * gPaletteFactor);
 		gParticleData.mData = gSeed;
 		gParticleData.mTextureIndex = gTextureIndex;
 
@@ -824,8 +798,8 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -866,7 +840,7 @@ public:
 
 		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
-			CpuGraphcmdUpdateBuffer(&pCpuData[i], &pCpuGraph[i], cmd, frameIdx);  // update vertex buffer for each cpugraph
+			CpuGraphcmdUpdateBuffer(&pCpuData[i], &pCpuGraph[i], cmd, frameIdx);    // update vertex buffer for each cpugraph
 			CpuGraphBackGroundUpdate(cmd, frameIdx);
 		}
 
@@ -904,7 +878,7 @@ public:
 		timer.GetUSec(true);
 
 #ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -913,14 +887,16 @@ public:
 		drawDebugText(cmd, 8, 65, "Particle CPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			drawDebugText(cmd, 8, 90.0f + i * 25.0f,
+			drawDebugText(
+				cmd, 8, 90.0f + i * 25.0f,
 				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f), &gFrameTimeDraw);
 		}
 
 		drawDebugText(cmd, 8, 105 + gThreadCount * 25.0f, "Particle GPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			drawDebugText(cmd, 8, (130 + gThreadCount * 25.0f) + i * 25.0f,
+			drawDebugText(
+				cmd, 8, (130 + gThreadCount * 25.0f) + i * 25.0f,
 				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		}
 #endif
@@ -939,7 +915,9 @@ public:
 			pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
 			cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
-			cmdSetViewport(ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth, pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
+			cmdSetViewport(
+				ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth,
+				pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 			cmdBindDescriptors(ppGraphCmds[frameIdx], pGraphRootSignature, 0, NULL);
@@ -972,7 +950,7 @@ public:
 		/***************draw cpu graph*****************************/
 		/***************draw cpu graph*****************************/
 		// gather all command buffer, it is important to keep the screen clean command at the beginning
-		Cmd *allCmds[gThreadCount + 2];
+		Cmd* allCmds[gThreadCount + 2];
 		allCmds[0] = cmd;
 
 		for (int i = 0; i < gThreadCount; ++i)
@@ -982,14 +960,12 @@ public:
 		allCmds[gThreadCount + 1] = ppGraphCmds[frameIdx];
 		// submit all command buffer
 
-		queueSubmit(pGraphicsQueue, gThreadCount + 2, allCmds, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(
+			pGraphicsQueue, gThreadCount + 2, allCmds, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "03_MultiThread";
-	}
+	tinystl::string GetName() { return "03_MultiThread"; }
 
 	bool addSwapChain()
 	{
@@ -1024,43 +1000,21 @@ public:
 		pCameraController->lookAt(lookAt);
 	}
 #if defined(__linux__)
-	enum CPUStates
-	{
-		S_USER = 0,
-		S_NICE,
-		S_SYSTEM,
-		S_IDLE,
-		S_IOWAIT,
-		S_IRQ,
-		S_SOFTIRQ,
-		S_STEAL,
-		S_GUEST,
-		S_GUEST_NICE,
+	enum CPUStates{ S_USER = 0,    S_NICE, S_SYSTEM, S_IDLE, S_IOWAIT, S_IRQ, S_SOFTIRQ, S_STEAL, S_GUEST, S_GUEST_NICE,
 
-		NUM_CPU_STATES
-	};
+					NUM_CPU_STATES };
 	typedef struct CPUData
 	{
 		tinystl::string cpu;
-		size_t times[NUM_CPU_STATES];
+		size_t          times[NUM_CPU_STATES];
 	} CPUData;
 
-	size_t GetIdleTime(const CPUData & e)
-	{
-		return  e.times[S_IDLE] +
-			e.times[S_IOWAIT];
-	}
+	size_t GetIdleTime(const CPUData& e) { return e.times[S_IDLE] + e.times[S_IOWAIT]; }
 
-	size_t GetActiveTime(const CPUData & e)
+	size_t GetActiveTime(const CPUData& e)
 	{
-		return  e.times[S_USER] +
-			e.times[S_NICE] +
-			e.times[S_SYSTEM] +
-			e.times[S_IRQ] +
-			e.times[S_SOFTIRQ] +
-			e.times[S_STEAL] +
-			e.times[S_GUEST] +
-			e.times[S_GUEST_NICE];
+		return e.times[S_USER] + e.times[S_NICE] + e.times[S_SYSTEM] + e.times[S_IRQ] + e.times[S_SOFTIRQ] + e.times[S_STEAL] +
+			   e.times[S_GUEST] + e.times[S_GUEST_NICE];
 	}
 #endif
 
@@ -1069,53 +1023,59 @@ public:
 #ifdef _WIN32
 #if defined(_DURANGO)
 #else
-		HRESULT hr = NULL;
-		ULONG retVal;
-		UINT i;
+        HRESULT hr = NULL;
+        ULONG   retVal;
+        UINT    i;
 
-		IWbemClassObject *pclassObj;
-		IEnumWbemClassObject *pEnumerator;
+        IWbemClassObject*     pclassObj;
+        IEnumWbemClassObject* pEnumerator;
 
-		hr = pService->ExecQuery(bstr_t("WQL"), bstr_t("SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor"),
-			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
-		for (i = 0; i < gCoresCount; i++)
-		{
-			//Waiting for inifinite blocks resources and app.
-			//Waiting for 15 ms (arbitrary) instead works much better
-			hr = pEnumerator->Next(15, 1, &pclassObj, &retVal);
-			if (!retVal)
-			{
-				break;
-			}
+        hr = pService->ExecQuery(
+            bstr_t("WQL"),
+            bstr_t("SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor"),
+            WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
+        for (i = 0; i < gCoresCount; i++)
+        {
+            //Waiting for inifinite blocks resources and app.
+            //Waiting for 15 ms (arbitrary) instead works much better
+            hr = pEnumerator->Next(15, 1, &pclassObj, &retVal);
+            if (!retVal)
+            {
+                break;
+            }
 
-			VARIANT vtPropTime;
-			VARIANT vtPropClock;
-			VariantInit(&vtPropTime);
-			VariantInit(&vtPropClock);
+            VARIANT vtPropTime;
+            VARIANT vtPropClock;
+            VariantInit(&vtPropTime);
+            VariantInit(&vtPropClock);
 
-			hr = pclassObj->Get(L"TimeStamp_Sys100NS", 0, &vtPropTime, 0, 0);
-			UINT64 newTimeStamp = _wtoi64(vtPropTime.bstrVal);
+            hr = pclassObj->Get(L"TimeStamp_Sys100NS", 0, &vtPropTime, 0, 0);
+            UINT64 newTimeStamp = _wtoi64(vtPropTime.bstrVal);
 
-			hr = pclassObj->Get(L"PercentProcessorTime", 0, &vtPropClock, 0, 0);
-			UINT64 newPProcUsage = _wtoi64(vtPropClock.bstrVal);
+            hr = pclassObj->Get(L"PercentProcessorTime", 0, &vtPropClock, 0, 0);
+            UINT64 newPProcUsage = _wtoi64(vtPropClock.bstrVal);
 
-			pCoresLoadData[i] = (float)(1.0 - (((double)newPProcUsage - (double)pOldPprocUsage[i]) / ((double)newTimeStamp - (double)pOldTimeStamp[i]))) * 100.0f;
+            pCoresLoadData[i] =
+                (float)(1.0 - (((double)newPProcUsage - (double)pOldPprocUsage[i]) / ((double)newTimeStamp - (double)pOldTimeStamp[i]))) *
+                100.0f;
 
-			if (pCoresLoadData[i] < 0) pCoresLoadData[i] = 0.0;
-			else if (pCoresLoadData[i] > 100.0) pCoresLoadData[i] = 100.0;
+            if (pCoresLoadData[i] < 0)
+                pCoresLoadData[i] = 0.0;
+            else if (pCoresLoadData[i] > 100.0)
+                pCoresLoadData[i] = 100.0;
 
-			pOldPprocUsage[i] = newPProcUsage;
-			pOldTimeStamp[i] = newTimeStamp;
+            pOldPprocUsage[i] = newPProcUsage;
+            pOldTimeStamp[i] = newTimeStamp;
 
-			VariantClear(&vtPropTime);
-			VariantClear(&vtPropClock);
+            VariantClear(&vtPropTime);
+            VariantClear(&vtPropClock);
 
-			pclassObj->Release();
-		}
+            pclassObj->Release();
+        }
 
-		pEnumerator->Release();
-#endif //#if defined(_DURANGO)
-#elif(__linux__)
+        pEnumerator->Release();
+#endif    //#if defined(_DURANGO)
+#elif (__linux__)
 		tinystl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
 		// Open cpu stat file
@@ -1129,12 +1089,12 @@ public:
 			while (!feof(statHandle))
 			{
 				entries.emplace_back(CPUData());
-				CPUData & entry = entries.back();
-				char dummyCpuName[256]; // dummy cpu name, not used.
-				fscanf(statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0],
-					&entry.times[0], &entry.times[1], &entry.times[2], &entry.times[3],
-					&entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7],
-					&entry.times[8], &entry.times[9]);
+				CPUData& entry = entries.back();
+				char     dummyCpuName[256];    // dummy cpu name, not used.
+				fscanf(
+					statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
+					&entry.times[2], &entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7], &entry.times[8],
+					&entry.times[9]);
 			}
 			// Close the cpu stat file
 			fileStat.Close();
@@ -1145,7 +1105,7 @@ public:
 			float ACTIVE_TIME = static_cast<float>(GetActiveTime(entries[i]));
 			float IDLE_TIME = static_cast<float>(GetIdleTime(entries[i]));
 
-			pCoresLoadData[i] = (ACTIVE_TIME - pOldPprocUsage[i]) / ((float)(IDLE_TIME + ACTIVE_TIME) - pOldTimeStamp[i])* 100.0f;
+			pCoresLoadData[i] = (ACTIVE_TIME - pOldPprocUsage[i]) / ((float)(IDLE_TIME + ACTIVE_TIME) - pOldTimeStamp[i]) * 100.0f;
 
 			pOldPprocUsage[i] = ACTIVE_TIME;
 			pOldTimeStamp[i] = IDLE_TIME + ACTIVE_TIME;
@@ -1155,38 +1115,38 @@ public:
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;
 
-		natural_t numCPUsU = 0U;
+		natural_t     numCPUsU = 0U;
 		kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &numCPUsU, &cpuInfo, &numCpuInfo);
 
 		if (err == KERN_SUCCESS)
 		{
-
 			[CPUUsageLock lock];
 
 			for (uint32_t i = 0; i < gCoresCount; i++)
 			{
-
 				float inUse, total;
 
 				if (prevCpuInfo)
 				{
-					inUse = (
-						(cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_USER] - prevCpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_USER])
-						+ (cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_SYSTEM] - prevCpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_SYSTEM])
-						+ (cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_NICE] - prevCpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_NICE])
-						);
-					total = inUse + (cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_IDLE] - prevCpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_IDLE]);
+					inUse =
+						((cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_USER] - prevCpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_USER]) +
+						 (cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_SYSTEM] - prevCpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_SYSTEM]) +
+						 (cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_NICE] - prevCpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_NICE]));
+					total = inUse + (cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_IDLE] - prevCpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_IDLE]);
 				}
 				else
 				{
-					inUse = cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_USER] + cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_SYSTEM] + cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_NICE];
-					total = inUse + cpuInfo[(CPU_STATE_MAX*i) + CPU_STATE_IDLE];
+					inUse = cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_USER] + cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_SYSTEM] +
+							cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_NICE];
+					total = inUse + cpuInfo[(CPU_STATE_MAX * i) + CPU_STATE_IDLE];
 				}
 
 				pCoresLoadData[i] = (float(inUse) / float(total)) * 100;
 
-				if (pCoresLoadData[i] < 0) pCoresLoadData[i] = 0.0;
-				else if (pCoresLoadData[i] > 100.0) pCoresLoadData[i] = 100.0;
+				if (pCoresLoadData[i] < 0)
+					pCoresLoadData[i] = 0.0;
+				else if (pCoresLoadData[i] > 100.0)
+					pCoresLoadData[i] = 100.0;
 			}
 
 			[CPUUsageLock unlock];
@@ -1210,68 +1170,69 @@ public:
 #ifdef _WIN32
 #if defined(_DURANGO)
 #else
-		IWbemClassObject *pclassObj;
-		IEnumWbemClassObject *pEnumerator;
-		HRESULT hr;
-		ULONG retVal;
+        IWbemClassObject*     pclassObj;
+        IEnumWbemClassObject* pEnumerator;
+        HRESULT               hr;
+        ULONG                 retVal;
 
-		pService = NULL;
-		pLocator = NULL;
-		pOldTimeStamp = NULL;
-		pOldPprocUsage = NULL;
-		pCoresLoadData = NULL;
+        pService = NULL;
+        pLocator = NULL;
+        pOldTimeStamp = NULL;
+        pOldPprocUsage = NULL;
+        pCoresLoadData = NULL;
 
-		CoInitializeEx(0, COINIT_MULTITHREADED);
-		CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+        CoInitializeEx(0, COINIT_MULTITHREADED);
+        CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
 
-		hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLocator);
-		if (FAILED(hr))
-		{
-			return 0;
-		}
-		hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pService);
-		if (FAILED(hr))
-		{
-			return 0;
-		}
+        hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLocator);
+        if (FAILED(hr))
+        {
+            return 0;
+        }
+        hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pService);
+        if (FAILED(hr))
+        {
+            return 0;
+        }
 
-		CoSetProxyBlanket(pService, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
-			RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+        CoSetProxyBlanket(
+            pService, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
 
-		hr = pService->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Processor"),
-			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
-		hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclassObj, &retVal);
-		if (retVal)
-		{
-			VARIANT vtProp;
-			VariantInit(&vtProp);
-			hr = pclassObj->Get(L"NumberOfLogicalProcessors", 0, &vtProp, 0, 0);
-			gCoresCount = vtProp.uintVal;
-			VariantClear(&vtProp);
-		}
+        hr = pService->ExecQuery(
+            bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Processor"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL,
+            &pEnumerator);
+        hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclassObj, &retVal);
+        if (retVal)
+        {
+            VARIANT vtProp;
+            VariantInit(&vtProp);
+            hr = pclassObj->Get(L"NumberOfLogicalProcessors", 0, &vtProp, 0, 0);
+            gCoresCount = vtProp.uintVal;
+            VariantClear(&vtProp);
+        }
 
-		pclassObj->Release();
-		pEnumerator->Release();
+        pclassObj->Release();
+        pEnumerator->Release();
 
-		if (gCoresCount)
-		{
-			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
-			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
-		}
+        if (gCoresCount)
+        {
+            pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
+            pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
+        }
 #endif
 #elif defined(__linux__)
 		int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 		gCoresCount = numCPU;
 		if (gCoresCount)
 		{
-			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
-			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t)*gCoresCount);
+			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
+			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
 		}
 #elif defined(__APPLE__)
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;
 
-		natural_t numCPUsU = 0U;
+		natural_t     numCPUsU = 0U;
 		kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &numCPUsU, &cpuInfo, &numCpuInfo);
 
 		assert(err == KERN_SUCCESS);
@@ -1281,7 +1242,7 @@ public:
 		CPUUsageLock = [[NSLock alloc] init];
 #endif
 
-		pCpuData = (CpuGraphData *)conf_malloc(sizeof(CpuGraphData)*gCoresCount);
+		pCpuData = (CpuGraphData*)conf_malloc(sizeof(CpuGraphData) * gCoresCount);
 		for (uint i = 0; i < gCoresCount; ++i)
 		{
 			pCpuData[i].mSampleIdx = 0;
@@ -1295,9 +1256,9 @@ public:
 
 		if (gCoresCount)
 		{
-			pCoresLoadData = (float*)conf_malloc(sizeof(float)*gCoresCount);
+			pCoresLoadData = (float*)conf_malloc(sizeof(float) * gCoresCount);
 			float zeroFloat = 0.0;
-			memset(pCoresLoadData, *(int*)&zeroFloat, sizeof(float)*gCoresCount);
+			memset(pCoresLoadData, *(int*)&zeroFloat, sizeof(float) * gCoresCount);
 		}
 
 		CalCpuUsage();
@@ -1310,8 +1271,8 @@ public:
 #ifdef _WIN32
 #if defined(_DURANGO)
 #else
-		conf_free(pOldTimeStamp);
-		conf_free(pOldPprocUsage);
+        conf_free(pOldTimeStamp);
+        conf_free(pOldPprocUsage);
 #endif
 #endif
 		conf_free(pCoresLoadData);
@@ -1351,9 +1312,11 @@ public:
 
 		for (int i = 1; i <= 6; ++i)
 		{
-			gBackGroundPoints[frameIdx][12 + i * 2].mPosition = vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), -1.0f);
+			gBackGroundPoints[frameIdx][12 + i * 2].mPosition =
+				vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), -1.0f);
 			gBackGroundPoints[frameIdx][12 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
-			gBackGroundPoints[frameIdx][13 + i * 2].mPosition = vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), 1.0f);
+			gBackGroundPoints[frameIdx][13 + i * 2].mPosition =
+				vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), 1.0f);
 			gBackGroundPoints[frameIdx][13 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
 		}
 		// start from 24
@@ -1399,7 +1362,9 @@ public:
 				index = gSampleCount - 1;
 			graph->mPoints[i * 2].mPosition = vec2((1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f, -0.97f);
 			graph->mPoints[i * 2].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
-			graph->mPoints[i * 2 + 1].mPosition = vec2((1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f, (2.0f * ((graphData->mSample[index] + graphData->mSampley[index]) * graphData->mScale - 0.5f)) * 0.97f);
+			graph->mPoints[i * 2 + 1].mPosition = vec2(
+				(1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f,
+				(2.0f * ((graphData->mSample[index] + graphData->mSampley[index]) * graphData->mScale - 0.5f)) * 0.97f);
 			graph->mPoints[i * 2 + 1].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
 		}
 
@@ -1409,7 +1374,9 @@ public:
 		{
 			if (--index < 0)
 				index = gSampleCount - 1;
-			graph->mPoints[i + 2 * gSampleCount].mPosition = vec2((1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f, (2.0f * ((graphData->mSample[index] + graphData->mSampley[index]) * graphData->mScale - 0.5f)) * 0.97f);
+			graph->mPoints[i + 2 * gSampleCount].mPosition = vec2(
+				(1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f,
+				(2.0f * ((graphData->mSample[index] + graphData->mSampley[index]) * graphData->mScale - 0.5f)) * 0.97f);
 			graph->mPoints[i + 2 * gSampleCount].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
 		}
 
@@ -1421,7 +1388,7 @@ public:
 	static void ParticleThreadDraw(void* pData)
 	{
 		ThreadData* data = (ThreadData*)pData;
-		Cmd* cmd = data->ppCmds[data->mFrameIndex];
+		Cmd*        cmd = data->ppCmds[data->mFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, data->pGpuProfiler);
 		cmdBindRenderTargets(cmd, 1, &data->pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -34,27 +34,23 @@
 #include <sys/sendfile.h>
 #include <unistd.h>
 #include <pwd.h>
-#include <fcntl.h> //for open and O_* enums
-#include <linux/limits.h> //PATH_MAX declaration
+#include <fcntl.h>           //for open and O_* enums
+#include <linux/limits.h>    //PATH_MAX declaration
 #include <dirent.h>
 #define MAX_PATH PATH_MAX
 
 #define RESOURCE_DIR "Shaders/Vulkan"
 
-const char* pszRoots[FSR_Count] =
-{
-	RESOURCE_DIR "/Binary/",			// FSR_BinShaders
-	RESOURCE_DIR "/",					// FSR_SrcShaders
-	RESOURCE_DIR "/Binary/",			// FSR_BinShaders_Common
-	RESOURCE_DIR "/",					// FSR_SrcShaders_Common
-	"Textures/",						// FSR_Textures
-	"Meshes/",							// FSR_Meshes
-	"Fonts/",							// FSR_Builtin_Fonts
-	"GPUCfg/",							// FSR_GpuConfig
-	"Animation/",							// FSR_Animation
-	"",									// FSR_OtherFiles
+const char* pszRoots[FSR_Count] = {
+	RESOURCE_DIR "/Binary/",    // FSR_BinShaders
+	RESOURCE_DIR "/",           // FSR_SrcShaders
+	"Textures/",                // FSR_Textures
+	"Meshes/",                  // FSR_Meshes
+	"Fonts/",                   // FSR_Builtin_Fonts
+	"GPUCfg/",                  // FSR_GpuConfig
+	"Animation/",               // FSR_Animation
+	"",                         // FSR_OtherFiles
 };
-
 
 FileHandle open_file(const char* filename, const char* flags)
 {
@@ -63,35 +59,17 @@ FileHandle open_file(const char* filename, const char* flags)
 	return fp;
 }
 
-void close_file(FileHandle handle)
-{
-	fclose((::FILE*)handle);
-}
+bool close_file(FileHandle handle) { return (fclose((::FILE*)handle) == 0); }
 
-void flush_file(FileHandle handle)
-{
-	fflush((::FILE*)handle);
-}
+void flush_file(FileHandle handle) { fflush((::FILE*)handle); }
 
-size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
-{
-	return fread(buffer, 1, byteCount, (::FILE*)handle);
-}
+size_t read_file(void* buffer, size_t byteCount, FileHandle handle) { return fread(buffer, 1, byteCount, (::FILE*)handle); }
 
-bool seek_file(FileHandle handle, long offset, int origin)
-{
-	return fseek((::FILE*)handle, offset, origin) == 0;
-}
+bool seek_file(FileHandle handle, long offset, int origin) { return fseek((::FILE*)handle, offset, origin) == 0; }
 
-long tell_file(FileHandle handle)
-{
-	return ftell((::FILE*)handle);
-}
+long tell_file(FileHandle handle) { return ftell((::FILE*)handle); }
 
-size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
-{
-	return fwrite(buffer, 1, byteCount, (::FILE*)handle);
-}
+size_t write_file(const void* buffer, size_t byteCount, FileHandle handle) { return fwrite(buffer, 1, byteCount, (::FILE*)handle); }
 
 size_t get_file_last_modified_time(const char* _fileName)
 {
@@ -112,19 +90,19 @@ tinystl::string get_current_dir()
 {
 	char curDir[MAX_PATH];
 	getcwd(curDir, sizeof(curDir));
-	return tinystl::string (curDir);
+	return tinystl::string(curDir);
 }
 
 tinystl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
-	ssize_t count = readlink( "/proc/self/exe", exeName, MAX_PATH );
+	ssize_t count = readlink("/proc/self/exe", exeName, MAX_PATH);
 	exeName[count] = '\0';
 	return tinystl::string(exeName);
 }
 
-tinystl::string get_app_prefs_dir(const char *org, const char *app)
+tinystl::string get_app_prefs_dir(const char* org, const char* app)
 {
 	const char* homedir;
 
@@ -143,7 +121,7 @@ tinystl::string get_user_documents_dir()
 		homedir = getpwuid(getuid())->pw_dir;
 	}
 	tinystl::string homeString = tinystl::string(homedir);
-	const char* doc = "Documents";
+	const char*     doc = "Documents";
 	homeString.append(doc, doc + strlen(doc));
 	return homeString;
 }
@@ -155,67 +133,67 @@ void set_current_dir(const char* path)
 	chdir(path);
 }
 
-void get_files_with_extensions(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
 {
 	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
-	
+
 	DIR* directory = opendir(path.c_str());
-	if(!directory)
+	if (!directory)
 		return;
-		
+
 	tinystl::string extension(ext);
-	struct dirent* entry;
+	struct dirent*  entry;
 	do
 	{
 		entry = readdir(directory);
-		if(!entry)
+		if (!entry)
 			break;
-			
+
 		tinystl::string file = entry->d_name;
-		if(file.find(extension, 0, false) != tinystl::string::npos)
+		if (file.find(extension, 0, false) != tinystl::string::npos)
 		{
 			file = path + file;
 			filesOut.push_back(file);
 		}
-			
-	}while(entry != NULL);
-	
+
+	} while (entry != NULL);
+
 	closedir(directory);
 }
 
 void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
 {
 	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
-	
+
 	DIR* directory = opendir(path.c_str());
-	if(!directory)
+	if (!directory)
 		return;
-		
+
 	struct dirent* entry;
 	do
 	{
 		entry = readdir(directory);
-		if(!entry)
+		if (!entry)
 			break;
-			
-		if(entry->d_type & DT_DIR)
+
+		if (entry->d_type & DT_DIR)
 		{
-			if(entry->d_name[0] != '.')
+			if (entry->d_name[0] != '.')
 			{
 				tinystl::string subDirectory = path + entry->d_name;
 				subDirectoriesOut.push_back(subDirectory);
 			}
 		}
-			
-	}while(entry != NULL);
-	
+
+	} while (entry != NULL);
+
 	closedir(directory);
 }
 
 bool copy_file(const char* src, const char* dst)
 {
-	int source = open(src, O_RDONLY, 0);
-	int dest = open(dst, O_WRONLY);
+	int         source = open(src, O_RDONLY, 0);
+	int         dest = open(dst, O_WRONLY);
 	struct stat stat_source;
 	fstat(source, &stat_source);
 	bool ret = sendfile64(dest, source, 0, stat_source.st_size) != -1;
@@ -224,5 +202,18 @@ bool copy_file(const char* src, const char* dst)
 	return ret;
 }
 
+void open_file_dialog(
+	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const tinystl::vector<tinystl::string>& fileExtensions)
+{
+	LOGERROR("Not implemented");
+}
+
+void save_file_dialog(
+	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const tinystl::vector<tinystl::string>& fileExtensions)
+{
+	LOGERROR("Not implemented");
+}
 
 #endif

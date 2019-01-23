@@ -16,8 +16,11 @@
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="10_Skinning" Path="10_Skinning/10_Skinning.project" Active="Yes"/>
+  <Project Name="AssetPipeline" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipeline.project" Active="No"/>
+  <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
+  <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -35,8 +38,11 @@
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="10_Skinning" ConfigName="Debug"/>
+      <Project Name="AssetPipeline" ConfigName="Debug"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
+      <Project Name="ozz_animation_offline" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
@@ -54,6 +60,9 @@
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="10_Skinning" ConfigName="Release"/>
+      <Project Name="AssetPipeline" ConfigName="Release"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="ozz_animation_offline" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

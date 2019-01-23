@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,32 +33,33 @@
 /************************************************************************/
 typedef struct MeshRingBuffer
 {
-	Renderer*   pRenderer;
-	Buffer*	 pVertexBuffer;
-	Buffer*	 pIndexBuffer;
+	Renderer* pRenderer;
+	Buffer*   pVertexBuffer;
+	Buffer*   pIndexBuffer;
 
-	uint64_t	mMaxVertexBufferSize;
-	uint64_t	mMaxIndexBufferSize;
-	uint64_t	mCurrentVertexBufferOffset;
-	uint64_t	mCurrentIndexBufferOffset;
+	uint64_t mMaxVertexBufferSize;
+	uint64_t mMaxIndexBufferSize;
+	uint64_t mCurrentVertexBufferOffset;
+	uint64_t mCurrentIndexBufferOffset;
 } MeshRingBuffer;
 
 typedef struct UniformRingBuffer
 {
-	Renderer*   pRenderer;
-	Buffer*	 pUniformBuffer;
-	uint32_t	mUniformBufferAlignment;
-	uint32_t	mMaxUniformBufferSize;
-	uint32_t	mUniformOffset;
+	Renderer* pRenderer;
+	Buffer*   pUniformBuffer;
+	uint32_t  mUniformBufferAlignment;
+	uint32_t  mMaxUniformBufferSize;
+	uint32_t  mUniformOffset;
 } UniformRingBuffer;
 
 typedef struct RingBufferOffset
 {
-	Buffer*	 pBuffer;
-	uint64_t	mOffset;
+	Buffer*  pBuffer;
+	uint64_t mOffset;
 } RingBufferOffset;
 
-static inline void addMeshRingBuffer(Renderer* pRenderer, const BufferDesc* pVertexBufferDesc, const BufferDesc* pIndexBufferDesc, MeshRingBuffer** ppRingBuffer)
+static inline void addMeshRingBuffer(
+	Renderer* pRenderer, const BufferDesc* pVertexBufferDesc, const BufferDesc* pIndexBufferDesc, MeshRingBuffer** ppRingBuffer)
 {
 	MeshRingBuffer* pRingBuffer = (MeshRingBuffer*)conf_calloc(1, sizeof(MeshRingBuffer));
 	pRingBuffer->pRenderer = pRenderer;
@@ -160,10 +161,7 @@ static inline void removeUniformRingBuffer(UniformRingBuffer* pRingBuffer)
 	conf_free(pRingBuffer);
 }
 
-static inline void resetUniformRingBuffer(UniformRingBuffer* pRingBuffer)
-{
-	pRingBuffer->mUniformOffset = 0;
-}
+static inline void resetUniformRingBuffer(UniformRingBuffer* pRingBuffer) { pRingBuffer->mUniformOffset = 0; }
 
 static inline RingBufferOffset getUniformBufferOffset(UniformRingBuffer* pRingBuffer, uint32_t memoryRequirement, uint32_t alignment = 0)
 {

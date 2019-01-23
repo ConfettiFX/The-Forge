@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -53,7 +53,7 @@ bool AnimatedObject::Update(float dt)
 	ozz::animation::LocalToModelJob ltmJob;
 	ltmJob.skeleton = mRig->GetSkeleton();
 	ltmJob.input = mLocalTrans;
-	ltmJob.output = mRig->GetJointModelMats(); // Save results in mRig's model mat buffer
+	ltmJob.output = mRig->GetJointModelMats();    // Save results in mRig's model mat buffer
 
 	// Runs ltm job.
 	if (!ltmJob.Run())
@@ -67,8 +67,8 @@ void AnimatedObject::PoseRigInBind()
 	// Setup local-to-model conversion job.
 	ozz::animation::LocalToModelJob ltmJob;
 	ltmJob.skeleton = mRig->GetSkeleton();
-	ltmJob.input = mRig->GetSkeleton()->bind_pose(); // Use the skeleton's bind pose
-	ltmJob.output = mRig->GetJointModelMats(); // Save results in mRig's model mat buffer
+	ltmJob.input = mRig->GetSkeleton()->bind_pose();    // Use the skeleton's bind pose
+	ltmJob.output = mRig->GetJointModelMats();          // Save results in mRig's model mat buffer
 
 	// Runs ltm job.
 	if (ltmJob.Run())

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -63,7 +63,7 @@ struct MutexLock
 	/// Prevent copy construction.
 	MutexLock(const MutexLock& rhs) = delete;
 	/// Prevent assignment.
-	MutexLock& operator =(const MutexLock& rhs) = delete;
+	MutexLock& operator=(const MutexLock& rhs) = delete;
 
 	Mutex& mMutex;
 };
@@ -79,28 +79,23 @@ struct ConditionVariable
 #ifdef _WIN32
 	void* pHandle;
 #else
-	pthread_cond_t pHandle;
+	pthread_cond_t  pHandle;
 #endif
 };
 
-typedef void(*JobFunction)(void*);
+typedef void (*JobFunction)(void*);
 
 /// Work queue item.
 struct WorkItem
 {
 	// Construct
-	WorkItem()
-		: pFunc(0)
-		, pData(0)
-		, mPriority(0)
-		, mCompleted(false)
-	{}
+	WorkItem(): pFunc(0), pData(0), mPriority(0), mCompleted(false) {}
 
 	/// Work item description and thread index (Main thread => 0)
-	JobFunction	 pFunc;
-	void*		   pData;
-	unsigned		mPriority;
-	volatile bool   mCompleted;
+	JobFunction   pFunc;
+	void*         pData;
+	unsigned      mPriority;
+	volatile bool mCompleted;
 };
 
 #ifndef _WIN32
@@ -109,43 +104,43 @@ struct Thread;
 #endif
 
 /// Work queue subsystem for multithreading.
-class  ThreadPool
+class ThreadPool
 {
-public:
+	public:
 	/// Construct.
 	ThreadPool();
 	/// Destruct.
 	~ThreadPool();
 
 	/// Can only be called once during lifetime of program
-	void CreateThreads(unsigned numThreads);
-	void AddWorkItem(WorkItem* item);
-	bool RemoveWorkItem(WorkItem*& item);
+	void     CreateThreads(unsigned numThreads);
+	void     AddWorkItem(WorkItem* item);
+	bool     RemoveWorkItem(WorkItem*& item);
 	unsigned RemoveWorkItems(const tinystl::vector<WorkItem*>& items);
-	void Pause();
-	void Resume();
-	void Shutdown() { mShutDown = true; }
-	void Complete(unsigned priority);
+	void     Pause();
+	void     Resume();
+	void     Shutdown() { mShutDown = true; }
+	void     Complete(unsigned priority);
 
 	unsigned GetNumThreads() const { return (uint32_t)mThreads.size(); }
-	bool IsCompleted(unsigned priority) const;
-	bool IsCompleting() const { return mCompleting; }
+	bool     IsCompleted(unsigned priority) const;
+	bool     IsCompleting() const { return mCompleting; }
 
 	static void ProcessItems(void* pThreadSystem);
 
-private:
+	private:
 	void Cleanup(unsigned priority);
 
 	tinystl::vector<struct Thread*> mThreads;
-	tinystl::vector <WorkItem*>	 mWorkItems;
-	tinystl::vector<WorkItem*>	  mWorkQueue;
-	Mutex						   mQueueMutex;
-	ConditionVariable			   mWaitConditionVar;
-	Mutex						   mWaitMutex;
-	volatile bool				   mShutDown;
-	volatile bool				   mPausing;
-	bool							mPaused;
-	bool							mCompleting;
+	tinystl::vector<WorkItem*>      mWorkItems;
+	tinystl::vector<WorkItem*>      mWorkQueue;
+	Mutex                           mQueueMutex;
+	ConditionVariable               mWaitConditionVar;
+	Mutex                           mWaitMutex;
+	volatile bool                   mShutDown;
+	volatile bool                   mPausing;
+	bool                            mPaused;
+	bool                            mCompleting;
 };
 
 #ifdef _WIN32
@@ -155,8 +150,8 @@ typedef pthread_t ThreadHandle;
 #endif
 
 ThreadHandle create_thread(WorkItem* pItem);
-void destroy_thread(ThreadHandle handle);
-void join_thread(ThreadHandle handle);
+void         destroy_thread(ThreadHandle handle);
+void         join_thread(ThreadHandle handle);
 
 struct Thread
 {
@@ -164,14 +159,14 @@ struct Thread
 	~Thread();
 
 	ThreadHandle pHandle;
-	WorkItem* pItem;
+	WorkItem*    pItem;
 
 	static ThreadID mainThreadID;
 
-	static void SetMainThread();
-	static ThreadID GetCurrentThreadID();
-	static bool IsMainThread();
-	static void Sleep(unsigned mSec);
+	static void         SetMainThread();
+	static ThreadID     GetCurrentThreadID();
+	static bool         IsMainThread();
+	static void         Sleep(unsigned mSec);
 	static unsigned int GetNumCPUCores(void);
 };
 

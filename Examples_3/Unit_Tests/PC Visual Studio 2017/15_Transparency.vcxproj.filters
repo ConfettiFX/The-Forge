@@ -1,137 +1,137 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\skybox.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\skybox.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\skybox.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\skybox.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\forward.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\forward.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\forward.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\forward.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\forward.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\forward.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOIT.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOIT.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\fullscreen.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\fullscreen.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOITComposite.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOITComposite.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\fullscreen.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOIT.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITComposite.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOITVolition.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOITVolition.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOITVolitionComposite.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOITVolitionComposite.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITVolition.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITVolitionComposite.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AdaptiveOIT.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AdaptiveOIT.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AdaptiveOITComposite.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AdaptiveOITComposite.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AdaptiveOITClear.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AdaptiveOITClear.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\phenomenologicalTransparency.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\phenomenologicalTransparency.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\phenomenologicalTransparencyComposite.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\phenomenologicalTransparencyComposite.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\shadow.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shadow.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\copy.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\copy.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\shadow.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shadow.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\gaussianBlur.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\gaussianBlur.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\stochasticShadow.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\stochasticShadow.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\downsample.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\downsample.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\generateMips.comp">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\generateMips.comp">
+      <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\shadow.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\shadow.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\varianceShadowMapping.glsl">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\gaussianBlur.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\stochasticShadow.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\shading.glsl">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\downsample.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\copy.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\phenomenologicalTransparency.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\phenomenologicalTransparencyComposite.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\generateMips.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\varianceShadowMapping.hlsl">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\varianceShadowMapping.hlsl">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AOIT.hlsl">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AOIT.hlsl">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\shading.hlsl">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shading.hlsl">
+      <Filter>Shaders\D3D12</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -141,10 +141,10 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{79ac5505-fe40-4745-885f-ebd2f4a369ad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{3157d25d-d92f-4c21-8c4a-911a4a62ebf9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{d47c8ba6-257b-49e3-aab5-97297d7c2578}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

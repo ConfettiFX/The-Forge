@@ -5,6 +5,13 @@
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
+  <VirtualDirectory Name="TFXImporter">
+    <File Name="../../../../Common_3/Tools/TFXImporter/TressFXFileFormat.h"/>
+    <File Name="../../../../Common_3/Tools/TFXImporter/TressFXAsset.h"/>
+    <File Name="../../../../Common_3/Tools/TFXImporter/TressFXAsset.cpp"/>
+    <File Name="../../../../Common_3/Tools/TFXImporter/TFXImporter.h"/>
+    <File Name="../../../../Common_3/Tools/TFXImporter/TFXImporter.cpp"/>
+  </VirtualDirectory>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
@@ -22,15 +29,9 @@
     <Project Name="gainput"/>
     <Project Name="zlibstatic"/>
     <Project Name="assimp"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
-    <Project Name="gainput"/>
-    <Project Name="zlibstatic"/>
-    <Project Name="assimp"/>
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="LuaManager"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -47,6 +48,7 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
@@ -55,15 +57,21 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+        <LibraryPath Value="$(ProjectPath)/../ozz_base/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libassimp.a"/>
         <Library Value="libzlibstatic.a"/>
         <Library Value="libgainput.a"/>
+        <Library Value="libozz_animation.a"/>
+        <Library Value="libozz_base.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -106,6 +114,7 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
@@ -114,15 +123,21 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+        <LibraryPath Value="$(ProjectPath)/../ozz_base/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libzlibstatic.a"/>
         <Library Value="libassimp.a"/>
         <Library Value="libgainput.a"/>
+        <Library Value="libozz_animation.a"/>
+        <Library Value="libozz_base.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -159,4 +174,16 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Release">
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="assimp"/>
+    <Project Name="LuaManager"/>
+  </Dependencies>
 </CodeLite_Project>

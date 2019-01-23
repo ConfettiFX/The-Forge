@@ -1,0 +1,386 @@
+/*
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#define THREAD_GROUP_SIZE 64
+
+struct Indices
+{
+	uint globalStrandIndex;
+	uint localStrandIndex;
+	uint globalVertexIndex;
+	uint localVertexIndex;
+	uint indexSharedMem;
+	uint globalRootVertexIndex;
+};
+
+cbuffer cbSimulation : register(b0)
+{
+	uint NumStrandsPerThreadGroup;
+	uint NumFollowHairsPerGuideHair;
+	float Damping;
+	float GlobalConstraintStiffness;
+	float GlobalConstraintRange;
+	float GravityMagnitude;
+	float TimeStep;
+	float VSPStrength;
+	float VSPAccelerationThreshold;
+	float LocalStiffness;
+	uint LocalConstraintIterations;
+	uint LengthConstraintIterations;
+}
+
+cbuffer cbHair : register(b2)
+{
+	float4 Viewport;
+	uint BaseColor;
+	float Kd;
+	float Ks1;
+	float Ex1;
+	float Ks2;
+	float Ex2;
+	float FiberRadius;
+	uint NumVerticesPerStrand;
+}
+
+RWStructuredBuffer<float4> HairVertexPositions : register(u0);
+RWStructuredBuffer<float4> HairVertexPositionsPrev : register(u1);
+RWStructuredBuffer<float4> HairVertexPositionsPrevPrev : register(u2);
+RWStructuredBuffer<float4> HairVertexTangents : register(u3);
+
+StructuredBuffer<float4> HairRestPositions : register(t0);
+StructuredBuffer<float> HairRestLengths : register(t1);
+StructuredBuffer<float4> HairGlobalRotations : register(t2);
+StructuredBuffer<float4> HairRefsInLocalFrame : register(t3);
+
+float3 Transform(float4 q, float3 v)
+{
+	float3 uv, uuv;
+	float3 qvec = float3(q.x, q.y, q.z);
+	uv = cross(qvec, v);
+	uuv = cross(qvec, uv);
+	uv *= (2.0f * q.w);
+	uuv *= 2.0f;
+
+	return v + uv + uuv;
+}
+
+float4 InverseQuaternion(float4 q)
+{
+	float lengthSqr = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
+
+	if (lengthSqr < 0.001)
+		return float4(0, 0, 0, 1.0f);
+
+	q.x = -q.x / lengthSqr;
+	q.y = -q.y / lengthSqr;
+	q.z = -q.z / lengthSqr;
+	q.w = q.w / lengthSqr;
+
+	return q;
+}
+
+float4 NormalizeQuaternion(float4 q)
+{
+	float4 qq = q;
+	float n = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
+
+	if (n < 1e-10f)
+	{
+		qq.w = 1;
+		return qq;
+	}
+
+	qq *= 1.0f / sqrt(n);
+	return qq;
+}
+
+float4 MultQuaternionAndQuaternion(float4 qA, float4 qB)
+{
+	float4 q;
+
+	q.w = qA.w * qB.w - qA.x * qB.x - qA.y * qB.y - qA.z * qB.z;
+	q.x = qA.w * qB.x + qA.x * qB.w + qA.y * qB.z - qA.z * qB.y;
+	q.y = qA.w * qB.y + qA.y * qB.w + qA.z * qB.x - qA.x * qB.z;
+	q.z = qA.w * qB.z + qA.z * qB.w + qA.x * qB.y - qA.y * qB.x;
+
+	return q;
+}
+
+float4 MakeQuaternion(float angle_radian, float3 axis)
+{
+	// create quaternion using angle and rotation axis
+	float4 quaternion;
+	float halfAngle = 0.5f * angle_radian;
+	float sinHalf = sin(halfAngle);
+
+	quaternion.w = cos(halfAngle);
+	quaternion.xyz = sinHalf * axis.xyz;
+
+	return quaternion;
+}
+
+float4 QuatFromUnitVectors(float3 u, float3 v)
+{
+	float r = 1.f + dot(u, v);
+	float3 n;
+
+	// if u and v are parallel
+	if (r < 1e-7)
+	{
+		r = 0.0f;
+		n = abs(u.x) > abs(u.z) ? float3(-u.y, u.x, 0.f) : float3(0.f, -u.z, u.y);
+	}
+	else
+	{
+		n = cross(u, v);
+	}
+
+	float4 q = float4(n.x, n.y, n.z, r);
+	return NormalizeQuaternion(q);
+}
+
+
+Indices CalculateIndices(uint localID, uint groupID)
+{
+	Indices result;
+
+	result.indexSharedMem = localID;
+
+	result.localStrandIndex = localID % NumStrandsPerThreadGroup;
+	result.globalStrandIndex = groupID * NumStrandsPerThreadGroup + result.localStrandIndex;
+	result.globalStrandIndex *= (NumFollowHairsPerGuideHair + 1);
+	result.localVertexIndex = (localID - result.localStrandIndex) / NumStrandsPerThreadGroup;
+
+	result.globalVertexIndex = result.globalStrandIndex * NumVerticesPerStrand + result.localVertexIndex;
+	result.globalRootVertexIndex = result.globalStrandIndex * NumVerticesPerStrand;
+
+	return result;
+}
+
+float4 Integrate(float4 currentPosition, float4 prevPosition, float4 restPosition, float4 force, Indices indices)
+{
+	float4 result = currentPosition;
+
+	force.y += -GravityMagnitude;
+	result.xyz += (1.0f - Damping) * (currentPosition.xyz - prevPosition.xyz) + force.xyz * TimeStep * TimeStep;
+
+	return result;
+}
+
+groupshared float4 sharedPos[THREAD_GROUP_SIZE];
+groupshared float sharedLength[THREAD_GROUP_SIZE];
+
+#ifdef HAIR_INTEGRATE
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void main(uint groupIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
+{
+	Indices indices = CalculateIndices(groupIndex, groupID.x);
+
+	float4 restPosition = HairRestPositions[indices.globalVertexIndex];
+	float4 currentPosition = sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
+	float weight = currentPosition.w;
+
+	GroupMemoryBarrierWithGroupSync();
+
+	// Integrate
+	float4 prevPosition = HairVertexPositionsPrev[indices.globalVertexIndex];
+	float4 force = 0.0f;
+
+	if (weight > 0.0f)	// Is movable
+		sharedPos[indices.indexSharedMem] = Integrate(currentPosition, prevPosition, restPosition, force, indices);
+	else
+		sharedPos[indices.indexSharedMem] = restPosition;
+
+	// Global shape constraint
+	if (GlobalConstraintStiffness > 0.0f && 
+		GlobalConstraintRange > 0.0f && 
+		sharedPos[indices.indexSharedMem].w > 0.0f && 
+		(float)indices.localVertexIndex < GlobalConstraintRange * (float)NumVerticesPerStrand)
+	{
+		sharedPos[indices.indexSharedMem].xyz += GlobalConstraintStiffness * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
+	}
+
+	HairVertexPositionsPrevPrev[indices.globalVertexIndex] = HairVertexPositionsPrev[indices.globalVertexIndex];
+	HairVertexPositionsPrev[indices.globalVertexIndex] = prevPosition;
+	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+}
+#elif defined(HAIR_SHOCK_PROPAGATION)
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void main(uint groupIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
+{
+	Indices indices = CalculateIndices(groupIndex, groupID.x);
+
+	float4 rootPosPrevPrev;
+	float4 rootPosPrev[2];
+	float4 rootPos[2];
+
+	rootPosPrevPrev = HairVertexPositionsPrevPrev[indices.globalRootVertexIndex + 1];
+
+	rootPosPrev[0] = HairVertexPositionsPrev[indices.globalRootVertexIndex];
+	rootPosPrev[1] = HairVertexPositionsPrev[indices.globalRootVertexIndex + 1];
+
+	rootPos[0] = HairVertexPositions[indices.globalRootVertexIndex];
+	rootPos[1] = HairVertexPositions[indices.globalRootVertexIndex + 1];
+
+	float3 u = normalize(rootPosPrev[1].xyz - rootPosPrev[0].xyz);
+	float3 v = normalize(rootPos[1].xyz - rootPos[0].xyz);
+
+	float4 rotation = QuatFromUnitVectors(u, v);
+	float3 transformation = rootPos[0].xyz - Transform(rotation, rootPosPrev[0].xyz);
+
+	float vspStrength = VSPStrength;
+	float acceleration = length(rootPos[1] - 2.0f * rootPosPrev[1] + rootPosPrevPrev[1]);
+
+	if (acceleration > VSPAccelerationThreshold)
+		vspStrength = 1.0f;
+
+	for(uint localVertexIndex = 2; localVertexIndex < NumVerticesPerStrand; ++localVertexIndex)
+	{
+		uint globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
+
+		float4 pos = HairVertexPositions[globalVertexIndex];
+		float4 posPrev = HairVertexPositions[globalVertexIndex];
+
+		pos.xyz = (1.0f - vspStrength) * pos.xyz + vspStrength * (Transform(rotation, pos.xyz) + transformation);
+		posPrev.xyz = (1.0f - vspStrength) * posPrev.xyz + vspStrength * (Transform(rotation, posPrev.xyz) + transformation);
+
+		HairVertexPositions[globalVertexIndex] = pos;
+		HairVertexPositionsPrev[globalVertexIndex] = posPrev;
+	}
+}
+#elif defined(HAIR_LOCAL_CONSTRAINTS)
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void main(uint groupIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
+{
+	Indices indices = CalculateIndices(groupIndex, groupID.x);
+
+	float stiffness = LocalStiffness;
+	stiffness = 0.5f * min(stiffness, 0.95f);
+
+	uint globalVertexIndex = 0;
+	float4 position = HairVertexPositions[indices.globalRootVertexIndex + 1];
+	float4 nextPosition;
+	float4 globalRotation = HairGlobalRotations[indices.globalRootVertexIndex];
+
+	for (uint localVertexIndex = 1; localVertexIndex < NumVerticesPerStrand - 1; ++localVertexIndex)
+	{
+		globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
+		nextPosition = HairVertexPositions[localVertexIndex + 1];
+
+		float3 localNextPositionRest = HairRefsInLocalFrame[globalVertexIndex + 1].xyz;
+		float3 globalNextPosition = Transform(globalRotation, localNextPositionRest) + position.xyz;
+
+		float3 weighted = stiffness * (globalNextPosition - nextPosition.xyz);
+
+		if (position.w > 0.0f)
+			position.xyz -= weighted;
+
+		if (nextPosition.w > 0.0f)
+			nextPosition.xyz += weighted;
+
+		float4 invGlobalRotation = InverseQuaternion(globalRotation);
+		float3 dir = normalize(nextPosition.xyz - position.xyz);
+
+		float3 x = normalize(Transform(invGlobalRotation, dir));
+		float3 e = float3(1.0f, 0.0f, 0.0f);
+		float3 rotAxis = cross(e, x);
+
+		if (length(rotAxis) > 0.001f)
+		{
+			float angle = acos(dot(e, x));
+			rotAxis = normalize(rotAxis);
+			float4 localRotation = MakeQuaternion(angle, rotAxis);
+			globalRotation = MultQuaternionAndQuaternion(globalRotation, localRotation);
+		}
+
+		HairVertexPositions[globalVertexIndex] = position;
+		HairVertexPositions[globalVertexIndex + 1] = nextPosition;
+
+		position = nextPosition;
+	} 
+}
+#elif defined(HAIR_LENGTH_CONSTRAINTS)
+float2 ConstraintMultiplier(float4 particle0, float4 particle1)
+{
+	if (particle0.w > 0.0f)
+	{
+		if (particle1.w > 0.0f)
+			return float2(0.5, 0.5);
+		else
+			return float2(1, 0);
+	}
+	else
+	{
+		if (particle1.w > 0.0f)
+			return float2(0, 1);
+		else
+			return float2(0, 0);
+	}
+}
+
+void ApplyDistanceConstraint(inout float4 pos0, inout float4 pos1, float targetDistance, float stiffness = 1.0f)
+{
+	float3 delta = pos1.xyz - pos0.xyz;
+	float distance = max(length(delta), 1e-7);
+	float stretching = 1 - targetDistance / distance;
+	delta = stretching * delta;
+	float2 multiplier = ConstraintMultiplier(pos0, pos1);
+
+	pos0.xyz += multiplier[0] * delta * stiffness;
+	pos1.xyz -= multiplier[1] * delta * stiffness;
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void main(uint groupIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
+{
+	Indices indices = CalculateIndices(groupIndex, groupID.x);
+	sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
+	sharedLength[indices.indexSharedMem] = HairRestLengths[indices.globalVertexIndex];
+
+	GroupMemoryBarrierWithGroupSync();
+
+	uint a = floor(NumVerticesPerStrand * 0.5f);
+	uint b = floor((NumVerticesPerStrand - 1) * 0.5f);
+
+	for(int i = 0; i < LengthConstraintIterations; ++i)
+	{
+		uint sharedIndex = 2 * indices.localVertexIndex * NumStrandsPerThreadGroup + indices.localStrandIndex;
+
+		if (indices.localVertexIndex < a)
+			ApplyDistanceConstraint(sharedPos[sharedIndex], sharedPos[sharedIndex + NumStrandsPerThreadGroup], sharedLength[sharedIndex + NumStrandsPerThreadGroup]);
+
+		GroupMemoryBarrierWithGroupSync();
+
+		if (indices.localVertexIndex < b)
+			ApplyDistanceConstraint(sharedPos[sharedIndex + NumStrandsPerThreadGroup], sharedPos[sharedIndex + NumStrandsPerThreadGroup * 2], sharedLength[sharedIndex + NumStrandsPerThreadGroup]);
+
+		GroupMemoryBarrierWithGroupSync();
+	}
+
+	float3 tangent = sharedPos[indices.indexSharedMem + NumStrandsPerThreadGroup].xyz - sharedPos[indices.indexSharedMem].xyz;
+	HairVertexTangents[indices.globalVertexIndex].xyz = normalize(tangent);
+
+	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+}
+#endif

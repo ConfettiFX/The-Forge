@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,15 +29,19 @@
 
 struct ProcessAssetsSettings
 {
-	bool quiet;					// Only output warnings.
-	bool force;					// Force all assets to be processed.
-	uint minLastModifiedTime;	// Force all assets older than this to be processed.
+	bool quiet;                  // Only output warnings.
+	bool force;                  // Force all assets to be processed.
+	uint minLastModifiedTime;    // Force all assets older than this to be processed.
 };
 
 class AssetPipeline
 {
-public:
+	public:
 	static bool ProcessAnimations(const char* animationDirectory, const char* outputDirectory, ProcessAssetsSettings* settings);
-	static bool CreateRuntimeSkeleton(const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton, ProcessAssetsSettings* settings);
-	static bool CreateRuntimeAnimation(const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName, const char* animationOutput, ProcessAssetsSettings* settings);
+	static bool CreateRuntimeSkeleton(
+		const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton,
+		ProcessAssetsSettings* settings);
+	static bool CreateRuntimeAnimation(
+		const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
+		const char* animationOutput, ProcessAssetsSettings* settings);
 };

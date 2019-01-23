@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,8 +41,7 @@
 // Stores skeleton properties and posable by animations
 class Rig
 {
-public:
-
+	public:
 	// Sets up the rig by loading the skeleton from an ozz skeleton file
 	void Initialize(const char* skeletonFile);
 
@@ -54,7 +53,7 @@ public:
 
 	// Set the color of the joints
 	inline void SetJointColor(const Vector4& color) { mJointColor = color; };
-	
+
 	// Set the color of the bones
 	inline void SetBoneColor(const Vector4& color) { mBoneColor = color; };
 
@@ -112,7 +111,7 @@ public:
 		{
 			return Matrix4::identity();
 		}
-};
+	};
 
 	// Gets the joint's model matricies so they can be set by animations
 	inline ozz::Range<Matrix4> GetJointModelMats() { return mJointModelMats; };
@@ -132,11 +131,10 @@ public:
 	// Gets the color of the bones
 	inline Vector4 GetBoneColor() { return mBoneColor; };
 
-	// Finds the index of the joint with name jointName, if it cannot find it returns -1 
+	// Finds the index of the joint with name jointName, if it cannot find it returns -1
 	int FindJoint(const char* jointName);
 
-private:
-
+	private:
 	// Load a runtime skeleton from a skeleton.ozz file
 	bool LoadSkeleton(const char* fileName);
 
@@ -154,10 +152,10 @@ private:
 	unsigned int mRootIndex;
 
 	// Color of the joints
-	Vector4 mJointColor = vec4(.9f, .9f, .9f, 1.f); // white
+	Vector4 mJointColor = vec4(.9f, .9f, .9f, 1.f);    // white
 
 	// Color of the bones
-	Vector4 mBoneColor = vec4(0.9f, 0.6f, 0.1f, 1.0f); // orange
+	Vector4 mBoneColor = vec4(0.9f, 0.6f, 0.1f, 1.0f);    // orange
 
 	// Toggle on whether or not to update the bones world matricies
 	bool mUpdateBones = true;
@@ -168,10 +166,9 @@ private:
 	// Buffer of world model space matrices for bones.
 	tinystl::vector<Matrix4> mBoneWorldMats;
 
-	// Buffer of joint model space matrices set by animations 
+	// Buffer of joint model space matrices set by animations
 	ozz::Range<Matrix4> mJointModelMats;
 
 	// Scales to apply to each joint - will be proportional to length of its child's bone
 	tinystl::vector<Vector3> mJointScales;
 };
-

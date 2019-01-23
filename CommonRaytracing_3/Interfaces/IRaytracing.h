@@ -3,48 +3,36 @@
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG
 
-#define MAKE_ENUM_FLAG(TYPE,ENUM_TYPE) \
-static inline ENUM_TYPE operator|(ENUM_TYPE a, ENUM_TYPE b) \
-{ \
-	return (ENUM_TYPE)((TYPE)(a) | (TYPE)(b)); \
-} \
-static inline ENUM_TYPE operator&(ENUM_TYPE a, ENUM_TYPE b) \
-{ \
-	return (ENUM_TYPE)((TYPE)(a) & (TYPE)(b)); \
-} \
-static inline ENUM_TYPE operator|=(ENUM_TYPE& a, ENUM_TYPE b) \
-{ \
-	return a = (a | b); \
-} \
-static inline ENUM_TYPE operator&=(ENUM_TYPE& a, ENUM_TYPE b) \
-{ \
-	return a = (a & b); \
-} \
+#define MAKE_ENUM_FLAG(TYPE, ENUM_TYPE)                                                                        \
+	static inline ENUM_TYPE operator|(ENUM_TYPE a, ENUM_TYPE b) { return (ENUM_TYPE)((TYPE)(a) | (TYPE)(b)); } \
+	static inline ENUM_TYPE operator&(ENUM_TYPE a, ENUM_TYPE b) { return (ENUM_TYPE)((TYPE)(a) & (TYPE)(b)); } \
+	static inline ENUM_TYPE operator|=(ENUM_TYPE& a, ENUM_TYPE b) { return a = (a | b); }                      \
+	static inline ENUM_TYPE operator&=(ENUM_TYPE& a, ENUM_TYPE b) { return a = (a & b); }
 
 #endif
 #else
-#define MAKE_ENUM_FLAG(TYPE,ENUM_TYPE)
+#define MAKE_ENUM_FLAG(TYPE, ENUM_TYPE)
 #endif
 
 #if defined(VULKAN)
-#define ApiExport //extern "C"
+#define ApiExport    //extern "C"
 #else
 #define ApiExport
 #endif
 
-typedef struct Renderer Renderer;
-typedef struct Raytracing Raytracing;
-typedef struct RaytracingShader RaytracingShader;
-typedef struct Buffer Buffer;
-typedef struct Texture Texture;
-typedef struct Cmd Cmd;
+typedef struct Renderer              Renderer;
+typedef struct Raytracing            Raytracing;
+typedef struct RaytracingShader      RaytracingShader;
+typedef struct Buffer                Buffer;
+typedef struct Texture               Texture;
+typedef struct Cmd                   Cmd;
 typedef struct AccelerationStructure AccelerationStructure;
-typedef struct RaytracingPipeline RaytracingPipeline;
+typedef struct RaytracingPipeline    RaytracingPipeline;
 typedef struct RaytracingShaderTable RaytracingShaderTable;
-typedef struct RootSignature RootSignature;
-typedef struct RootSignatureDesc RootSignatureDesc;
-typedef struct ShaderResource ShaderResource;
-typedef struct DescriptorData DescriptorData;
+typedef struct RootSignature         RootSignature;
+typedef struct RootSignatureDesc     RootSignatureDesc;
+typedef struct ShaderResource        ShaderResource;
+typedef struct DescriptorData        DescriptorData;
 
 typedef enum AccelerationStructureBuildFlags
 {
@@ -91,22 +79,22 @@ MAKE_ENUM_FLAG(unsigned, AccelerationStructureInstanceFlags)
 typedef struct AccelerationStructureInstanceDesc
 {
 	/// Bottom Level Acceleration structure to instance (Instancing Geometry stored in this acceleration structure)
-	AccelerationStructure*  pAccelerationStructure;
+	AccelerationStructure* pAccelerationStructure;
 	/// Row major affine transform for transforming the vertices in the geometry stored in pAccelerationStructure
-	float				   mTransform[12];
+	float mTransform[12];
 	/// User defined instanced ID which can be queried in the shader
-	unsigned				mInstanceID;
-	unsigned				mInstanceMask;
-	unsigned				mInstanceContributionToHitGroupIndex;
-	AccelerationStructureInstanceFlags  mFlags;
+	unsigned                           mInstanceID;
+	unsigned                           mInstanceMask;
+	unsigned                           mInstanceContributionToHitGroupIndex;
+	AccelerationStructureInstanceFlags mFlags;
 } AccelerationStructureInstanceDesc;
 
 typedef struct AccelerationStructureGeometryDesc
 {
-	AccelerationStructureGeometryType   mType;
-	AccelerationStructureGeometryFlags  mFlags;
-	Buffer*							 pVertexBuffer;
-	Buffer*							 pIndexBuffer;
+	AccelerationStructureGeometryType  mType;
+	AccelerationStructureGeometryFlags mFlags;
+	Buffer*                            pVertexBuffer;
+	Buffer*                            pIndexBuffer;
 } AccelerationStructureGeometryDesc;
 /************************************************************************/
 // #mType - Either Top or Bottom Level
@@ -116,16 +104,16 @@ typedef struct AccelerationStructureGeometryDesc
 /************************************************************************/
 typedef struct AccelerationStructureDesc
 {
-	AccelerationStructureType			   mType;
-	AccelerationStructureBuildFlags		 mFlags;
+	AccelerationStructureType       mType;
+	AccelerationStructureBuildFlags mFlags;
 	/// Number of geometries / instances in thie acceleration structure
-	unsigned								mDescCount;
+	unsigned mDescCount;
 	union
 	{
 		/// Array of instances in the top level acceleration structure
-		AccelerationStructureInstanceDesc*  pInstanceDescs;
+		AccelerationStructureInstanceDesc* pInstanceDescs;
 		/// Array of geometries in the bottom level acceleration structure
-		AccelerationStructureGeometryDesc*  pGeometryDescs;
+		AccelerationStructureGeometryDesc* pGeometryDescs;
 	};
 } AccelerationStructureDesc;
 /************************************************************************/
@@ -141,11 +129,11 @@ typedef struct AccelerationStructureDesc
 /************************************************************************/
 typedef struct RaytracingHitGroup
 {
-	RootSignature*	  pRootSignature;
-	RaytracingShader*   pIntersectionShader;
-	RaytracingShader*   pAnyHitShader;
-	RaytracingShader*   pClosestHitShader;
-	const char*		 pHitGroupName;
+	RootSignature*    pRootSignature;
+	RaytracingShader* pIntersectionShader;
+	RaytracingShader* pAnyHitShader;
+	RaytracingShader* pClosestHitShader;
+	const char*       pHitGroupName;
 } RaytracingHitGroup;
 /************************************************************************/
 // #pGlobalRootSignature - Root Signature used by all shaders in the ppShaders array
@@ -160,59 +148,64 @@ typedef struct RaytracingHitGroup
 /************************************************************************/
 typedef struct RaytracingPipelineDesc
 {
-	RootSignature*	  pGlobalRootSignature;
+	RootSignature*      pGlobalRootSignature;
 	RaytracingShader*   pRayGenShader;
-	RootSignature*	  pRayGenRootSignature;
+	RootSignature*      pRayGenRootSignature;
 	RaytracingShader**  ppMissShaders;
-	RootSignature**	 ppMissRootSignatures;
+	RootSignature**     ppMissRootSignatures;
 	RaytracingHitGroup* pHitGroups;
-	unsigned			mMissShaderCount;
-	unsigned			mHitGroupCount;
+	unsigned            mMissShaderCount;
+	unsigned            mHitGroupCount;
 	// #TODO : Remove this after adding shader reflection for raytracing shaders
-	unsigned			mPayloadSize;
+	unsigned mPayloadSize;
 	// #TODO : Remove this after adding shader reflection for raytracing shaders
-	unsigned			mAttributeSize;
-	unsigned			mMaxTraceRecursionDepth;
+	unsigned mAttributeSize;
+	unsigned mMaxTraceRecursionDepth;
 } RaytracingPipelineDesc;
 
 typedef struct RaytracingShaderTableRecordDesc
 {
-	const char*	 pName;
+	const char*     pName;
 	RootSignature*  pRootSignature;
 	DescriptorData* pRootData;
-	unsigned		mRootDataCount;
+	unsigned        mRootDataCount;
 } RaytracingShaderTableRecordDesc;
 
 typedef struct RaytracingShaderTableDesc
 {
-	RaytracingPipeline*				 pPipeline;
-	RaytracingShaderTableRecordDesc*	pRayGenShader;
-	RaytracingShaderTableRecordDesc*	pMissShaders;
-	RaytracingShaderTableRecordDesc*	pHitGroups;
-	unsigned							mMissShaderCount;
-	unsigned							mHitGroupCount;
+	RaytracingPipeline*              pPipeline;
+	RaytracingShaderTableRecordDesc* pRayGenShader;
+	RaytracingShaderTableRecordDesc* pMissShaders;
+	RaytracingShaderTableRecordDesc* pHitGroups;
+	unsigned                         mMissShaderCount;
+	unsigned                         mHitGroupCount;
 } RaytracingShaderTableDesc;
 
 typedef struct RaytracingDispatchDesc
 {
-	uint32_t				mWidth;
-	uint32_t				mHeight;
-	AccelerationStructure*  pTopLevelAccelerationStructure;
+	uint32_t               mWidth;
+	uint32_t               mHeight;
+	AccelerationStructure* pTopLevelAccelerationStructure;
 	// #TODO: Provide a way to provide offsets into the shader table
-	RaytracingShaderTable*  pShaderTable;
+	RaytracingShaderTable* pShaderTable;
 } RaytracingDispatchDesc;
 
 ApiExport void initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
 ApiExport void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
-ApiExport void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc, uint32_t* pScratchBufferSize, AccelerationStructure** ppAccelerationStructure);
+ApiExport void addAccelerationStructure(
+	Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc, uint32_t* pScratchBufferSize,
+	AccelerationStructure** ppAccelerationStructure);
 ApiExport void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 
-ApiExport void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char* pName, RaytracingShader** ppShader);
+ApiExport void addRaytracingShader(
+	Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char* pName, RaytracingShader** ppShader);
 ApiExport void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader);
 
-ApiExport void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
+ApiExport void addRaytracingRootSignature(
+	Raytracing* pRaytracing, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature,
+	const RootSignatureDesc* pRootDesc = NULL);
 // #NOTE : Use the regular removeRootSignature function for cleaning up
 
 ApiExport void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc* pDesc, RaytracingPipeline** ppPipeline);
@@ -221,7 +214,8 @@ ApiExport void removeRaytracingPipeline(Raytracing* pRaytracing, RaytracingPipel
 ApiExport void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable);
 ApiExport void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable);
 
-ApiExport void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Buffer* pScratchBuffer, AccelerationStructure* pAccelerationStructure);
+ApiExport void cmdBuildAccelerationStructure(
+	Cmd* pCmd, Raytracing* pRaytracing, Buffer* pScratchBuffer, AccelerationStructure* pAccelerationStructure);
 ApiExport void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc);
 
 // #NOTE : Should this go in IRenderer

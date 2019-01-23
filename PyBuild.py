@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (c) 2018 Confetti Interactive Inc.
+# Copyright (c) 2018-2019 Confetti Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -597,7 +597,7 @@ def BuildLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib" and child.attrib["Name"] != "LuaManager" and child.attrib["Name"] != "AssetPipeline" and child.attrib["Name"] != "AssetPipelineCmd" and child.attrib["Name"] != "ozz_animation_offline":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -649,7 +649,7 @@ def TestLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib" and child.attrib["Name"] != "LuaManager" and child.attrib["Name"] != "AssetPipeline" and child.attrib["Name"] != "AssetPipelineCmd" and child.attrib["Name"] != "ozz_animation_offline":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -738,7 +738,7 @@ def BuildAndroidProjects():
 		#get name 
 		projname = projectPath.split(os.sep)[-1].split(os.extsep)[0]
 		if projname == "app":
-			continue;
+			continue
 		#change dir to workspace location
 		os.chdir(rootPath)
 		print "chdir to the root directory"
@@ -843,7 +843,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug):
 				command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;Summary","/verbosity:minimal","/t:Build"]
 				retCode = ExecuteBuild(command, filename,conf, platform)
 		else:
-			command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/p:BuildInParallel=true","/nr:false","/clp:ErrorsOnly;WarningsOnly;Summary","/verbosity:minimal","/t:Build"]
+			command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/nr:false","/clp:ErrorsOnly;WarningsOnly;Summary","/verbosity:minimal","/t:Build"]
 			retCode = ExecuteBuild(command, filename,"All Configurations", platform)
 		
 		if retCode != 0:

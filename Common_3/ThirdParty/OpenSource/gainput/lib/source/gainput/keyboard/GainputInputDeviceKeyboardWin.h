@@ -56,6 +56,19 @@ public:
 		dialect_['8'] = Key8;
 		dialect_['9'] = Key9;
 
+		dialect_[VK_DECIMAL] = KeyPeriod;
+		dialect_[VK_SUBTRACT] = KeyKpSubtract;
+		dialect_[VK_NUMPAD0] = KeyKpInsert;
+		dialect_[VK_NUMPAD1] = KeyKpEnd;
+		dialect_[VK_NUMPAD2] = KeyKpDown;
+		dialect_[VK_NUMPAD3] = KeyKpPageDown;
+		dialect_[VK_NUMPAD4] = KeyKpLeft;
+		dialect_[VK_NUMPAD5] = KeyKpBegin;
+		dialect_[VK_NUMPAD6] = KeyKpRight;
+		dialect_[VK_NUMPAD7] = KeyKpHome;
+		dialect_[VK_NUMPAD8] = KeyKpUp;
+		dialect_[VK_NUMPAD9] = KeyKpPageUp;
+
 		dialect_['A'] = KeyA;
 		dialect_['B'] = KeyB;
 		dialect_['C'] = KeyC;
@@ -282,6 +295,21 @@ public:
 		{
 			const DeviceButtonId buttonId = dialect_[winKey];
 			HandleButton(device_, nextState_, delta_, buttonId, pressed);
+
+			if (winKey >= VK_NUMPAD0 && winKey <= VK_NUMPAD9)
+			{
+				InputCharDesc inputDesc;
+				inputDesc.buttonId = dialect_[winKey];
+				inputDesc.inputChar = '0' + (winKey - VK_NUMPAD0);
+				textBuffer_.Put(inputDesc);
+			}
+			else if (winKey == VK_DECIMAL)
+			{
+				InputCharDesc inputDesc;
+				inputDesc.buttonId = dialect_[winKey];
+				inputDesc.inputChar = '.';
+				textBuffer_.Put(inputDesc);
+			}
 		}
 	}
 

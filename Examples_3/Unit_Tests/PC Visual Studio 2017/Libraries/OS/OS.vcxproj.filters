@@ -49,6 +49,9 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{0ac76a3d-2a41-45ff-beb0-7b0d162c070b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Middleware_3\Animation">
+      <UniqueIdentifier>{1f453981-a767-4c40-af2e-0f8c18732ab7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -129,6 +132,27 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
       <Filter>Middleware_3\UI\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipController.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
@@ -199,6 +223,27 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
       <Filter>Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipController.cpp">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp">
+      <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp">
+      <Filter>Middleware_3\Animation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

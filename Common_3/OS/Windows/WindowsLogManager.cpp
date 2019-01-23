@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,7 +24,7 @@
 
 #ifdef _WIN32
 
-#include <io.h> // _isatty
+#include <io.h>    // _isatty
 
 // interfaces
 #include "../Interfaces/IOperatingSystem.h"
@@ -37,12 +37,12 @@ void outputLogString(const char* pszStr)
 	OutputDebugStringA("\n");
 }
 
-void _ErrorMsg(int line, const char *file, const char *string, ...)
+void _ErrorMsg(int line, const char* file, const char* string, ...)
 {
 	ASSERT(string);
 	//Eval the string
 	const unsigned BUFFER_SIZE = 65536;
-	char buf[BUFFER_SIZE];
+	char           buf[BUFFER_SIZE];
 	// put source code file name at the begin
 	sprintf_s(buf, BUFFER_SIZE, file);
 	// put line positoin in code
@@ -57,13 +57,13 @@ void _ErrorMsg(int line, const char *file, const char *string, ...)
 	MessageBoxA(NULL, buf, "Error", MB_OK | MB_ICONERROR);
 }
 
-void _WarningMsg(int line, const char *file, const char *string, ...)
+void _WarningMsg(int line, const char* file, const char* string, ...)
 {
 	ASSERT(string);
 
 	//Eval the string
 	const unsigned BUFFER_SIZE = 65536;
-	char buf[BUFFER_SIZE];
+	char           buf[BUFFER_SIZE];
 
 	// put source code file name at the begin
 	sprintf_s(buf, BUFFER_SIZE, file);
@@ -79,14 +79,13 @@ void _WarningMsg(int line, const char *file, const char *string, ...)
 	MessageBoxA(NULL, buf, "Warning", MB_OK | MB_ICONWARNING);
 }
 
-
-void _InfoMsg(int line, const char *file, const char *string, ...)
+void _InfoMsg(int line, const char* file, const char* string, ...)
 {
 	ASSERT(string);
 
 	//Eval the string
 	const unsigned BUFFER_SIZE = 65536;
-	char buf[BUFFER_SIZE];
+	char           buf[BUFFER_SIZE];
 
 	// put source code file name at the begin
 	sprintf_s(buf, BUFFER_SIZE, file);
@@ -101,11 +100,11 @@ void _InfoMsg(int line, const char *file, const char *string, ...)
 	_OutputDebugString(buf);
 }
 
-void _OutputDebugString(const char *str, ...)
+void _OutputDebugString(const char* str, ...)
 {
 #ifdef _DEBUG
 	const unsigned BUFFER_SIZE = 4096;
-	char buf[BUFFER_SIZE];
+	char           buf[BUFFER_SIZE];
 
 	va_list arglist;
 	va_start(arglist, str);
@@ -117,12 +116,12 @@ void _OutputDebugString(const char *str, ...)
 #endif
 }
 
-
-void _FailedAssert(const char *file, int line, const char *statement)
+void _FailedAssert(const char* file, int line, const char* statement)
 {
 	static bool debug = true;
 
-	if (debug) {
+	if (debug)
+	{
 		WCHAR str[1024];
 		WCHAR message[1024];
 		WCHAR wfile[1024];
@@ -134,21 +133,24 @@ void _FailedAssert(const char *file, int line, const char *statement)
 		{
 			wcscat(str, L"Debug?");
 			int res = MessageBoxW(NULL, str, L"Assert failed", MB_YESNOCANCEL | MB_ICONERROR);
-			if (res == IDYES) {
+			if (res == IDYES)
+			{
 #if _MSC_VER >= 1400
 				__debugbreak();
 #else
 				_asm int 0x03;
 #endif
 			}
-			else if (res == IDCANCEL) {
+			else if (res == IDCANCEL)
+			{
 				debug = false;
 			}
 		}
 		else
 		{
 			wcscat(str, L"Display more asserts?");
-			if (MessageBoxW(NULL, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2) != IDYES) {
+			if (MessageBoxW(NULL, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2) != IDYES)
+			{
 				debug = false;
 			}
 		}
@@ -165,7 +167,7 @@ void _PrintUnicode(const tinystl::string& str, bool error)
 	else
 	{
 		if (error)
-			printf("%s\n", str.c_str()); // use this for now because WriteCosnoleW sometimes cause blocking
+			printf("%s\n", str.c_str());    // use this for now because WriteCosnoleW sometimes cause blocking
 		else
 			printf("%s\n", str.c_str());
 	}
@@ -173,10 +175,6 @@ void _PrintUnicode(const tinystl::string& str, bool error)
 	outputLogString(str.c_str());
 }
 
-void _PrintUnicodeLine(const tinystl::string& str, bool error)
-{
-	_PrintUnicode(str, error);
-}
+void _PrintUnicodeLine(const tinystl::string& str, bool error) { _PrintUnicode(str, error); }
 
 #endif
-

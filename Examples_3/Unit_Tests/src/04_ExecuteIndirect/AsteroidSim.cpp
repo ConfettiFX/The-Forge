@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -60,7 +60,7 @@
 #if defined(_MSC_VER)
 #define ALIGNED_(x) __declspec(align(x))
 #else
-#define ALIGNED_(x) __attribute__ ((aligned(x)))
+#define ALIGNED_(x) __attribute__((aligned(x)))
 #endif
 
 vec3 RandomPointOnSphere(MyRandom& rng)
@@ -80,25 +80,14 @@ vec3 RandomPointOnSphere(MyRandom& rng)
 
 #define NUM_COLOR_SCHEMES 6
 static int const COLOR_SCHEMES[] = {
-	156, 139, 113,  55,  49,  40,
-	156, 139, 113,  58,  38,  14,
-	156, 139, 113,  98, 101, 104,
-	156, 139, 113, 205, 197, 178,
-	153, 146, 136,  88,  88,  88,
-	189, 181, 164, 148, 108, 102,
+	156, 139, 113, 55,  49,  40,  156, 139, 113, 58, 38, 14, 156, 139, 113, 98,  101, 104,
+	156, 139, 113, 205, 197, 178, 153, 146, 136, 88, 88, 88, 189, 181, 164, 148, 108, 102,
 };
 
-float sRGBToLinear(float c)
-{
-	return (c <= 0.04045f) ? (c / 12.92f) : powf((c + 0.055f) / 1.055f, 2.4f);
-}
+float sRGBToLinear(float c) { return (c <= 0.04045f) ? (c / 12.92f) : powf((c + 0.055f) / 1.055f, 2.4f); }
 
 void AsteroidSimulation::Init(
-	uint32_t rngSeed,
-	uint32_t numAsteroids,
-	uint32_t numMeshes,
-	uint32_t vertexCountPerMesh,
-	uint32_t textureCount)
+	uint32_t rngSeed, uint32_t numAsteroids, uint32_t numMeshes, uint32_t vertexCountPerMesh, uint32_t textureCount)
 {
 	const float orbitRadius = 450;
 	const float discRadius = 120;
@@ -120,7 +109,7 @@ void AsteroidSimulation::Init(
 		float rotateSpeedDist = rng.GetUniformDistribution(-2.0f, 2.0f);
 		float scaleDist = rng.GetNormalDistribution(1.3f, 0.7f);
 		float colorSchemeDist = rng.GetNormalDistribution(0, NUM_COLOR_SCHEMES - 1);
-		int textureIndexDist = rng.GetUniformDistribution(0, textureCount - 1);
+		int   textureIndexDist = rng.GetUniformDistribution(0, textureCount - 1);
 
 		AsteroidStatic staticAsteroid;
 
@@ -128,8 +117,8 @@ void AsteroidSimulation::Init(
 
 		float orbitRadius = orbitRadiusDist;
 
-		float height = heightDist * discRadius;
-		float orbitAngle = angleDist;
+		float    height = heightDist * discRadius;
+		float    orbitAngle = angleDist;
 		uint32_t meshInstance = i / instancesPerMesh;
 
 		staticAsteroid.rotationSpeed = rotateSpeedDist / staticAsteroid.scale;
@@ -140,18 +129,17 @@ void AsteroidSimulation::Init(
 
 		staticAsteroid.textureID = unsigned(textureIndexDist);
 
-		int colorScheme = ((int)abs(colorSchemeDist)) % NUM_COLOR_SCHEMES;
+		int    colorScheme = ((int)abs(colorSchemeDist)) % NUM_COLOR_SCHEMES;
 		float* c = linearColorSchemes + 6 * colorScheme;
 		staticAsteroid.surfaceColor = float4(c[0], c[1], c[2], 1.0f);
 		staticAsteroid.deepColor = float4(c[3], c[4], c[5], 1.0f);
 
-
 		asteroidsStatic.push_back(staticAsteroid);
 
 		AsteroidDynamic dynamicAsteroid;
-		mat4 scaleMat = mat4::scale(vec3(staticAsteroid.scale));
-		mat4 translate = mat4::translation(vec3(orbitRadius, height, 0));
-		mat4 orbit = mat4::rotation(orbitAngle, vec3(0, 1, 0));
+		mat4            scaleMat = mat4::scale(vec3(staticAsteroid.scale));
+		mat4            translate = mat4::translation(vec3(orbitRadius, height, 0));
+		mat4            orbit = mat4::rotation(orbitAngle, vec3(0, 1, 0));
 		dynamicAsteroid.transform = orbit * translate * scaleMat;
 		asteroidsDynamic.push_back(dynamicAsteroid);
 	}
@@ -160,7 +148,11 @@ void AsteroidSimulation::Init(
 // From http://guihaire.com/code/?p=1135
 static inline float VeryApproxLog2f(float x)
 {
-	union { float f; uint32_t i; } ux;
+	union
+	{
+		float    f;
+		uint32_t i;
+	} ux;
 	ux.f = x;
 	return (float)ux.i * 1.1920928955078125e-7f - 126.94269504f;
 }
@@ -172,11 +164,13 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 
 	for (unsigned i = startIdx; i < endIdx; ++i)
 	{
-		AsteroidStatic& staticAsteroid = asteroidsStatic[i];
+		AsteroidStatic&  staticAsteroid = asteroidsStatic[i];
 		AsteroidDynamic& dynamicAsteroid = asteroidsDynamic[i];
 
 		ALIGNED_(16) mat4 orbit = mat4::rotation(staticAsteroid.orbitSpeed * deltaTime, vec3(0, 1, 0));
-		ALIGNED_(16) mat4 rotate = mat4::rotation(staticAsteroid.rotationSpeed * deltaTime,
+		ALIGNED_(16)
+		mat4 rotate = mat4::rotation(
+			staticAsteroid.rotationSpeed * deltaTime,
 			vec3(staticAsteroid.rotationAxis.getX(), staticAsteroid.rotationAxis.getY(), staticAsteroid.rotationAxis.getZ()));
 
 #if defined(_DURANGO) || defined(TARGET_IOS)
@@ -186,43 +180,38 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 
 		dynamicAsteroid.transform = orbit * dynamicAsteroid.transform * rotate;
 #else
-		ALIGNED_(16)float orbit0[4] = { orbit[0][0], orbit[0][1], orbit[0][2], orbit[0][3] };
-		ALIGNED_(16)float orbit1[4] = { orbit[1][0], orbit[1][1], orbit[1][2], orbit[1][3] };
-		ALIGNED_(16)float orbit2[4] = { orbit[2][0], orbit[2][1], orbit[2][2], orbit[2][3] };
-		ALIGNED_(16)float orbit3[4] = { orbit[3][0], orbit[3][1], orbit[3][2], orbit[3][3] };
+		ALIGNED_(16) float orbit0[4] = { orbit[0][0], orbit[0][1], orbit[0][2], orbit[0][3] };
+		ALIGNED_(16) float orbit1[4] = { orbit[1][0], orbit[1][1], orbit[1][2], orbit[1][3] };
+		ALIGNED_(16) float orbit2[4] = { orbit[2][0], orbit[2][1], orbit[2][2], orbit[2][3] };
+		ALIGNED_(16) float orbit3[4] = { orbit[3][0], orbit[3][1], orbit[3][2], orbit[3][3] };
 
-		ALIGNED_(16)float rotate0[4] = { rotate[0][0], rotate[0][1], rotate[0][2], rotate[0][3] };
-		ALIGNED_(16)float rotate1[4] = { rotate[1][0], rotate[1][1], rotate[1][2], rotate[1][3] };
-		ALIGNED_(16)float rotate2[4] = { rotate[2][0], rotate[2][1], rotate[2][2], rotate[2][3] };
-		ALIGNED_(16)float rotate3[4] = { rotate[3][0], rotate[3][1], rotate[3][2], rotate[3][3] };
+		ALIGNED_(16) float rotate0[4] = { rotate[0][0], rotate[0][1], rotate[0][2], rotate[0][3] };
+		ALIGNED_(16) float rotate1[4] = { rotate[1][0], rotate[1][1], rotate[1][2], rotate[1][3] };
+		ALIGNED_(16) float rotate2[4] = { rotate[2][0], rotate[2][1], rotate[2][2], rotate[2][3] };
+		ALIGNED_(16) float rotate3[4] = { rotate[3][0], rotate[3][1], rotate[3][2], rotate[3][3] };
 
-		ALIGNED_(16)float transform0[4] = { dynamicAsteroid.transform[0][0], dynamicAsteroid.transform[0][1], dynamicAsteroid.transform[0][2], dynamicAsteroid.transform[0][3] };
-		ALIGNED_(16)float transform1[4] = { dynamicAsteroid.transform[1][0], dynamicAsteroid.transform[1][1], dynamicAsteroid.transform[1][2], dynamicAsteroid.transform[1][3] };
-		ALIGNED_(16)float transform2[4] = { dynamicAsteroid.transform[2][0], dynamicAsteroid.transform[2][1], dynamicAsteroid.transform[2][2], dynamicAsteroid.transform[2][3] };
-		ALIGNED_(16)float transform3[4] = { dynamicAsteroid.transform[3][0], dynamicAsteroid.transform[3][1], dynamicAsteroid.transform[3][2], dynamicAsteroid.transform[3][3] };
+		ALIGNED_(16)
+		float transform0[4] = { dynamicAsteroid.transform[0][0], dynamicAsteroid.transform[0][1], dynamicAsteroid.transform[0][2],
+								dynamicAsteroid.transform[0][3] };
+		ALIGNED_(16)
+		float transform1[4] = { dynamicAsteroid.transform[1][0], dynamicAsteroid.transform[1][1], dynamicAsteroid.transform[1][2],
+								dynamicAsteroid.transform[1][3] };
+		ALIGNED_(16)
+		float transform2[4] = { dynamicAsteroid.transform[2][0], dynamicAsteroid.transform[2][1], dynamicAsteroid.transform[2][2],
+								dynamicAsteroid.transform[2][3] };
+		ALIGNED_(16)
+		float transform3[4] = { dynamicAsteroid.transform[3][0], dynamicAsteroid.transform[3][1], dynamicAsteroid.transform[3][2],
+								dynamicAsteroid.transform[3][3] };
 
 		// Need to guarantee that passed pointer is 16-bit aligned for _mm_load_ps
-		const __m128 orbitSSE[4] = {
-			_mm_load_ps(orbit0),
-			_mm_load_ps(orbit1),
-			_mm_load_ps(orbit2),
-			_mm_load_ps(orbit3) };
+		const __m128 orbitSSE[4] = { _mm_load_ps(orbit0), _mm_load_ps(orbit1), _mm_load_ps(orbit2), _mm_load_ps(orbit3) };
 
-		const __m128 rotateSSE[4] = {
-			_mm_load_ps(rotate0),
-			_mm_load_ps(rotate1),
-			_mm_load_ps(rotate2),
-			_mm_load_ps(rotate3) };
+		const __m128 rotateSSE[4] = { _mm_load_ps(rotate0), _mm_load_ps(rotate1), _mm_load_ps(rotate2), _mm_load_ps(rotate3) };
 
-		__m128 transformSSE[4] = {
-			_mm_loadu_ps(transform0),
-			_mm_loadu_ps(transform1),
-			_mm_loadu_ps(transform2),
-			_mm_loadu_ps(transform3)
-		};
+		__m128 transformSSE[4] = { _mm_loadu_ps(transform0), _mm_loadu_ps(transform1), _mm_loadu_ps(transform2), _mm_loadu_ps(transform3) };
 		__m128 intermediateSSE[4];
 
-		for(int i = 0; i < 4; ++i)
+		for (int i = 0; i < 4; ++i)
 		{
 			//From GLM
 			const __m128 v = transformSSE[i];
@@ -231,10 +220,7 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			const __m128 vz = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2));
 			const __m128 vw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
 			intermediateSSE[i] =
-				_mm_fmadd_ps(orbitSSE[0], vx,
-					_mm_fmadd_ps(orbitSSE[1], vy,
-						_mm_fmadd_ps(orbitSSE[2], vz,
-							_mm_mul_ps(orbitSSE[3], vw))));
+				_mm_fmadd_ps(orbitSSE[0], vx, _mm_fmadd_ps(orbitSSE[1], vy, _mm_fmadd_ps(orbitSSE[2], vz, _mm_mul_ps(orbitSSE[3], vw))));
 		}
 		for (int i = 0; i < 4; ++i)
 		{
@@ -244,11 +230,9 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			const __m128 vy = _mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1));
 			const __m128 vz = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2));
 			const __m128 vw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
-			transformSSE[i] =
-				_mm_fmadd_ps(intermediateSSE[0], vx,
-					_mm_fmadd_ps(intermediateSSE[1], vy,
-						_mm_fmadd_ps(intermediateSSE[2], vz,
-							_mm_mul_ps(intermediateSSE[3], vw))));
+			transformSSE[i] = _mm_fmadd_ps(
+				intermediateSSE[0], vx,
+				_mm_fmadd_ps(intermediateSSE[1], vy, _mm_fmadd_ps(intermediateSSE[2], vz, _mm_mul_ps(intermediateSSE[3], vw))));
 		}
 		_mm_store_ps(transform0, transformSSE[0]);
 		_mm_store_ps(transform1, transformSSE[1]);
@@ -263,10 +247,10 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			dynamicAsteroid.transform[3][i] = transform3[i];
 		}
 #endif
-		vec3 position = dynamicAsteroid.transform.getTranslation();
-		float distanceToEye = length(position - cameraPosition);
-		float relativeScreenSizeLog2 = VeryApproxLog2f(staticAsteroid.scale / distanceToEye);
-		float LODfloat = max(0.f, relativeScreenSizeLog2 - minSubdivSizeLog2);
+		vec3     position = dynamicAsteroid.transform.getTranslation();
+		float    distanceToEye = length(position - cameraPosition);
+		float    relativeScreenSizeLog2 = VeryApproxLog2f(staticAsteroid.scale / distanceToEye);
+		float    LODfloat = max(0.f, relativeScreenSizeLog2 - minSubdivSizeLog2);
 		unsigned LOD = min(numLODs - 1, unsigned(LODfloat));
 
 		dynamicAsteroid.indexStart = indexOffsets[LOD];

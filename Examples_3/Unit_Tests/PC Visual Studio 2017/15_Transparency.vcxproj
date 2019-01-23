@@ -30,27 +30,27 @@
     <ClCompile Include="..\src\15_Transparency\15_Transparency.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AdaptiveOITClear.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AdaptiveOITComposite.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\copy.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\downsample.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\forward.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\forward.vert" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\fullscreen.vert" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AdaptiveOIT.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\gaussianBlur.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\generateMips.comp" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\phenomenologicalTransparency.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\phenomenologicalTransparencyComposite.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\shadow.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\shadow.vert" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\skybox.vert" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\stochasticShadow.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOIT.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOITComposite.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOITVolition.frag" />
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\weightedBlendedOITVolitionComposite.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AdaptiveOITClear.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AdaptiveOITComposite.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\copy.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\downsample.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\forward.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\forward.vert" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\fullscreen.vert" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AdaptiveOIT.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\gaussianBlur.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\generateMips.comp" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\phenomenologicalTransparency.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\phenomenologicalTransparencyComposite.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shadow.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shadow.vert" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\skybox.vert" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\stochasticShadow.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOIT.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOITComposite.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOITVolition.frag" />
+    <None Include="..\src\15_Transparency\Shaders\D3D12\weightedBlendedOITVolitionComposite.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\copy.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\downsample.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\forward.frag" />
@@ -73,12 +73,12 @@
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITVolitionComposite.frag" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\AOIT.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\D3D12\AOIT.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\shading.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shading.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
       </ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -95,7 +95,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\PCDX12\varianceShadowMapping.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\D3D12\varianceShadowMapping.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -171,42 +171,42 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\..;$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\include;</IncludePath>
     <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>

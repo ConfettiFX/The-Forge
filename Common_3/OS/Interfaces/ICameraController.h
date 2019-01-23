@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,20 +28,21 @@
 #include "../Math/MathTypes.h"
 
 struct ButtonData;
+class VirtualJoystickUI;
 
 struct CameraMotionParameters
 {
 	float maxSpeed;
-	float acceleration; // only used with binary inputs such as keypresses
-	float braking; // also acceleration but orthogonal to the acceleration vector
+	float acceleration;    // only used with binary inputs such as keypresses
+	float braking;         // also acceleration but orthogonal to the acceleration vector
 };
 
 class ICameraController
 {
-public:
+	public:
 	virtual ~ICameraController() {}
 	virtual void setMotionParameters(const CameraMotionParameters&) = 0;
-	virtual void onInputEvent(const ButtonData* pData) = 0;
+	virtual bool onInputEvent(const ButtonData* pData) = 0;
 	virtual void update(float deltaTime) = 0;
 
 	// there are also implicit dependencies on the keyboard state.
@@ -49,16 +50,7 @@ public:
 	virtual mat4 getViewMatrix() const = 0;
 	virtual vec3 getViewPosition() const = 0;
 	virtual vec2 getRotationXY() const = 0;
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-	virtual float getVirtualJoystickInternalRadius() const = 0;
-	virtual float getVirtualJoystickExternalRadius() const = 0;
-	virtual vec2 getVirtualLeftJoystickCenter() const = 0;
-	virtual vec2 getVirtualLeftJoystickPos() const = 0;
-	virtual vec2 getVirtualRightJoystickCenter() const = 0;
-	virtual vec2 getVirtualRightJoystickPos() const = 0;
-#endif
-
+	virtual void setVirtualJoystick(VirtualJoystickUI* virtualJoystick = NULL) = 0;
 	virtual void moveTo(const vec3& location) = 0;
 	virtual void lookAt(const vec3& lookAt) = 0;
 };
@@ -72,4 +64,3 @@ ICameraController* createGuiCameraController(vec3 startPosition, vec3 startLookA
 ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookAt);
 
 void destroyCameraController(ICameraController* pCamera);
-

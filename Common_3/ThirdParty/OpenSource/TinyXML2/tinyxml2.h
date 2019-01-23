@@ -30,13 +30,8 @@ distribution.
 #include <cstring>
 #include <cstdarg>
 
-#include "Common_3/OS/Interfaces/IMemoryManager.h"
-#undef new
-#undef delete
-#undef malloc
-#undef calloc
-#undef realloc
-#undef free
+extern void* conf_calloc(size_t s, size_t c);
+extern void conf_free(void* ptr);
 
 class File;
 

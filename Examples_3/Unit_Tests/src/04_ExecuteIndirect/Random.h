@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,33 +30,22 @@
 // For producing random numbers used in the asteroids test
 class MyRandom
 {
-private:
-public:
-	MyRandom(unsigned seed = 1) {
-		SetSeed(seed);
-	}
+	private:
+	public:
+	MyRandom(unsigned seed = 1) { SetSeed(seed); }
 
-	void SetSeed(unsigned seed)
-	{
-		srand(seed);
-	}
+	void SetSeed(unsigned seed) { srand(seed); }
 
-	float GetUniformDistribution(float min, float max)
-	{
-		return min + float(rand()) / (float(RAND_MAX / (max - min)));
-	}
+	float GetUniformDistribution(float min, float max) { return min + float(rand()) / (float(RAND_MAX / (max - min))); }
 
-	int GetUniformDistribution(int min, int max)
-	{
-		return (rand() % (max - min)) + min;
-	}
+	int GetUniformDistribution(int min, int max) { return (rand() % (max - min)) + min; }
 
 	// Using polar method
 	float GetNormalDistribution(float mean, float stdDev)
 	{
-		static bool hasSpare = false; // not thread-safe
+		static bool  hasSpare = false;    // not thread-safe
 		static float spare;
-		float u, v, s;
+		float        u, v, s;
 
 		if (hasSpare)
 		{
@@ -77,6 +66,4 @@ public:
 		spare = v * s;
 		return (mean + stdDev * u * s);
 	}
-
-
 };

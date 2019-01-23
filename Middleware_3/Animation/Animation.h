@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,37 +41,34 @@ const unsigned int MAX_NUM_CLIPS = 10;
 // Descriptors for each layer/clip that will make up the blended animation
 struct LayerProperty
 {
-	Clip* mClip;
+	Clip*           mClip;
 	ClipController* mClipController;
-	ClipMask* mClipMask = nullptr;
-	bool mAdditive = false;
+	ClipMask*       mClipMask = nullptr;
+	bool            mAdditive = false;
 };
 
 // Properties that define how the clips will be blended when mAutoSetBlendParams is true
 enum BlendType
 {
-	EQUAL,					// Each animation will have equal influence
-	CROSS_DISSOLVE,			// The animations will fade into one another in the order they were added
-	CROSS_DISSOLVE_SYNC,	// The animations will fade into one another in the order they were added, syncronizing their speeds as they fade into eachother
-	MANUAL					// The user is always responsible for setting all the animations weights and playback speeds
+	EQUAL,             // Each animation will have equal influence
+	CROSS_DISSOLVE,    // The animations will fade into one another in the order they were added
+	CROSS_DISSOLVE_SYNC,    // The animations will fade into one another in the order they were added, syncronizing their speeds as they fade into eachother
+	MANUAL    // The user is always responsible for setting all the animations weights and playback speeds
 };
 
 // User will have to predefine to pass into Animation's intialize function
 struct AnimationDesc
 {
-	Rig* mRig;
-	unsigned int mNumLayers;
+	Rig*          mRig;
+	unsigned int  mNumLayers;
 	LayerProperty mLayerProperties[MAX_NUM_CLIPS];
-	BlendType mBlendType = BlendType::EQUAL;
+	BlendType     mBlendType = BlendType::EQUAL;
 };
-
 
 // Allows for blending and sampling of loaded clips
 class Animation
 {
-
-public:
-
+	public:
 	// Set up an animation for a rig based on the animation description
 	void Initialize(AnimationDesc animationDesc);
 
@@ -102,8 +99,7 @@ public:
 	// Gets the address of mThreshold so it can be edited externally
 	inline float* GetThresholdPtr() { return &mThreshold; };
 
-private:
-
+	private:
 	// Sets the various blend parameters based on the type of blend set
 	void UpdateBlendParameters();
 
@@ -141,7 +137,7 @@ private:
 	// Index in mClips that gives the longest clip
 	unsigned int mLongestClipIndex = 0;
 
-	// Current timeRatio [0,1] of the animation 
+	// Current timeRatio [0,1] of the animation
 	float mTimeRatio = 0.f;
 
 	// Length of the longest clip that makes up the animation
@@ -156,8 +152,8 @@ private:
 	// Type of blend that defines how the clips blend parameters will be managed
 	BlendType mBlendType;
 
-	// Blend ratio for CROSS_DISSOLVE and CROSS_DISSOLVE_SYNC in range [0,1] that 
-	// controls all blend parameters and synchronizes playback speeds. A value of 
+	// Blend ratio for CROSS_DISSOLVE and CROSS_DISSOLVE_SYNC in range [0,1] that
+	// controls all blend parameters and synchronizes playback speeds. A value of
 	// 0 gives full weight to the first animation, and 1 to the last.
 	// Initialized in the middle to represet the maximum amount of clips
 	float mBlendRatio = 0.5f;

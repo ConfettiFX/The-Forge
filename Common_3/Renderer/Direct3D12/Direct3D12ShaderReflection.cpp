@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,20 +36,19 @@ extern dxc::DxcDllSupport gDxcDllHelper;
 
 #include "../../OS/Interfaces/IMemoryManager.h"
 
-static DescriptorType sD3D12_TO_DESCRIPTOR[] =
-{
-	DESCRIPTOR_TYPE_UNIFORM_BUFFER,  //D3D_SIT_CBUFFER
-	DESCRIPTOR_TYPE_UNDEFINED,	 //D3D_SIT_TBUFFER
-	DESCRIPTOR_TYPE_TEXTURE,		 //D3D_SIT_TEXTURE
-	DESCRIPTOR_TYPE_SAMPLER,		 //D3D_SIT_SAMPLER
-	DESCRIPTOR_TYPE_RW_TEXTURE,   //D3D_SIT_UAV_RWTYPED
-	DESCRIPTOR_TYPE_BUFFER,	   //D3D_SIT_STRUCTURED
-	DESCRIPTOR_TYPE_RW_BUFFER,	 //D3D_SIT_RWSTRUCTURED
-	DESCRIPTOR_TYPE_BUFFER,	   //D3D_SIT_BYTEADDRESS
-	DESCRIPTOR_TYPE_RW_BUFFER,	 //D3D_SIT_UAV_RWBYTEADDRESS
-	DESCRIPTOR_TYPE_RW_BUFFER,	 //D3D_SIT_UAV_APPEND_STRUCTURED
-	DESCRIPTOR_TYPE_RW_BUFFER,	 //D3D_SIT_UAV_CONSUME_STRUCTURED
-	DESCRIPTOR_TYPE_RW_BUFFER,	 //D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
+static DescriptorType sD3D12_TO_DESCRIPTOR[] = {
+	DESCRIPTOR_TYPE_UNIFORM_BUFFER,    //D3D_SIT_CBUFFER
+	DESCRIPTOR_TYPE_UNDEFINED,         //D3D_SIT_TBUFFER
+	DESCRIPTOR_TYPE_TEXTURE,           //D3D_SIT_TEXTURE
+	DESCRIPTOR_TYPE_SAMPLER,           //D3D_SIT_SAMPLER
+	DESCRIPTOR_TYPE_RW_TEXTURE,        //D3D_SIT_UAV_RWTYPED
+	DESCRIPTOR_TYPE_BUFFER,            //D3D_SIT_STRUCTURED
+	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_RWSTRUCTURED
+	DESCRIPTOR_TYPE_BUFFER,            //D3D_SIT_BYTEADDRESS
+	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_RWBYTEADDRESS
+	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_APPEND_STRUCTURED
+	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_CONSUME_STRUCTURED
+	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
 };
 
 void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
@@ -81,13 +80,11 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		gDxcDllHelper.CreateInstance(CLSID_DxcLibrary, &pLibrary);
 		IDxcBlobEncoding* pBlob = NULL;
 		pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)shaderCode, (UINT32)shaderSize, 0, &pBlob);
-#define DXIL_FOURCC(ch0, ch1, ch2, ch3) (						   \
-  (uint32_t)(uint8_t)(ch0)	  | (uint32_t)(uint8_t)(ch1) << 8  | \
-  (uint32_t)(uint8_t)(ch2) << 16  | (uint32_t)(uint8_t)(ch3) << 24   \
-  )
+#define DXIL_FOURCC(ch0, ch1, ch2, ch3) \
+	((uint32_t)(uint8_t)(ch0) | (uint32_t)(uint8_t)(ch1) << 8 | (uint32_t)(uint8_t)(ch2) << 16 | (uint32_t)(uint8_t)(ch3) << 24)
 
 		IDxcContainerReflection* pReflection;
-		UINT32 shaderIdx;
+		UINT32                   shaderIdx;
 		gDxcDllHelper.CreateInstance(CLSID_DxcContainerReflection, &pReflection);
 		pReflection->Load(pBlob);
 		(pReflection->FindFirstPartKind(DXIL_FOURCC('D', 'X', 'I', 'L'), &shaderIdx));
@@ -100,13 +97,11 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 #endif
 
 	//Allocate our internal shader reflection structure on the stack
-	ShaderReflection reflection = { }; //initialize the struct to 0
+	ShaderReflection reflection = {};    //initialize the struct to 0
 
 	//Get a description of this shader
 	D3D12_SHADER_DESC shaderDesc;
 	d3d12reflection->GetDesc(&shaderDesc);
-
-
 
 	//Get the number of bound resources
 	reflection.mShaderResourceCount = shaderDesc.BoundResources;
@@ -118,8 +113,6 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		d3d12reflection->GetResourceBindingDesc(i, &bindDesc);
 		reflection.mNamePoolSize += (uint32_t)strlen(bindDesc.Name) + 1;
 	}
-
-
 
 	//Get the number of input parameters
 	reflection.mVertexInputsCount = 0;
@@ -139,9 +132,8 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	//Get the number of threads per group
 	else if (shaderStage == SHADER_STAGE_COMP)
 	{
-		d3d12reflection->GetThreadGroupSize(&reflection.mNumThreadsPerGroup[0],
-			&reflection.mNumThreadsPerGroup[1],
-			&reflection.mNumThreadsPerGroup[2]);
+		d3d12reflection->GetThreadGroupSize(
+			&reflection.mNumThreadsPerGroup[0], &reflection.mNumThreadsPerGroup[1], &reflection.mNumThreadsPerGroup[2]);
 	}
 	//Get the number of cnotrol point
 	else if (shaderStage == SHADER_STAGE_TESC)
@@ -149,21 +141,17 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		reflection.mNumControlPoint = shaderDesc.cControlPoints;
 	}
 
-
 	//Count the number of variables and add to the size of the string pool
 	for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
 	{
-		ID3D12ShaderReflectionConstantBuffer* buffer =
-			d3d12reflection->GetConstantBufferByIndex(i);
+		ID3D12ShaderReflectionConstantBuffer* buffer = d3d12reflection->GetConstantBufferByIndex(i);
 
 		D3D12_SHADER_BUFFER_DESC bufferDesc;
 		buffer->GetDesc(&bufferDesc);
 
-
 		//We only care about constant buffers
 		if (bufferDesc.Type != D3D_CT_CBUFFER)
 			continue;
-
 
 		for (UINT v = 0; v < bufferDesc.Variables; ++v)
 		{
@@ -181,20 +169,15 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		}
 	}
 
-
-
 	//Allocate memory for the name pool
 	if (reflection.mNamePoolSize)
 		reflection.pNamePool = (char*)conf_calloc(reflection.mNamePoolSize, 1);
 	char* pCurrentName = reflection.pNamePool;
 
-
-
 	reflection.pVertexInputs = NULL;
 	if (shaderStage == SHADER_STAGE_VERT && reflection.mVertexInputsCount > 0)
 	{
-		reflection.pVertexInputs = (VertexInput*)conf_malloc(
-			sizeof(VertexInput) * reflection.mVertexInputsCount);
+		reflection.pVertexInputs = (VertexInput*)conf_malloc(sizeof(VertexInput) * reflection.mVertexInputsCount);
 
 		for (UINT i = 0; i < shaderDesc.InputParameters; ++i)
 		{
@@ -204,24 +187,21 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			//Get the length of the semantic name
 			uint32_t len = (uint32_t)strlen(paramDesc.SemanticName);
 
-
 			reflection.pVertexInputs[i].name = pCurrentName;
 			reflection.pVertexInputs[i].name_size = len;
 			reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
 
 			//Copy over the name into the name pool
 			memcpy(pCurrentName, paramDesc.SemanticName, len);
-			pCurrentName[len] = '\0'; //add a null terminator
-			pCurrentName += len + 1; //move the name pointer through the name pool
+			pCurrentName[len] = '\0';    //add a null terminator
+			pCurrentName += len + 1;     //move the name pointer through the name pool
 		}
 	}
 
 	reflection.pShaderResources = NULL;
 	if (reflection.mShaderResourceCount > 0)
 	{
-		reflection.pShaderResources = (ShaderResource*)conf_malloc(
-			sizeof(ShaderResource) * reflection.mShaderResourceCount);
-
+		reflection.pShaderResources = (ShaderResource*)conf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
 
 		for (uint32_t i = 0; i < reflection.mShaderResourceCount; ++i)
 		{
@@ -254,23 +234,17 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			pCurrentName[len] = '\0';
 			pCurrentName += len + 1;
 		}
-
 	}
-
 
 	if (reflection.mVariableCount > 0)
 	{
-		reflection.pVariables = (ShaderVariable*)conf_malloc(
-			sizeof(ShaderVariable) * reflection.mVariableCount);
-
+		reflection.pVariables = (ShaderVariable*)conf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
 
 		UINT v = 0;
 		for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
 		{
 			//Get the constant buffer
-			ID3D12ShaderReflectionConstantBuffer* buffer =
-				d3d12reflection->GetConstantBufferByIndex(i);
-
+			ID3D12ShaderReflectionConstantBuffer* buffer = d3d12reflection->GetConstantBufferByIndex(i);
 
 			//Get the constant buffer description
 			D3D12_SHADER_BUFFER_DESC bufferDesc;
@@ -280,7 +254,6 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			if (bufferDesc.Type != D3D_CT_CBUFFER)
 				continue;
 
-
 			//Find the resource index for the constant buffer
 			uint32_t resourceIndex = ~0u;
 			for (UINT r = 0; r < shaderDesc.BoundResources; ++r)
@@ -288,16 +261,13 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 				D3D12_SHADER_INPUT_BIND_DESC inputDesc;
 				d3d12reflection->GetResourceBindingDesc(r, &inputDesc);
 
-				if (
-					inputDesc.Type == D3D_SIT_CBUFFER &&
-					strcmp(inputDesc.Name, bufferDesc.Name) == 0)
+				if (inputDesc.Type == D3D_SIT_CBUFFER && strcmp(inputDesc.Name, bufferDesc.Name) == 0)
 				{
 					resourceIndex = r;
 					break;
 				}
 			}
 			ASSERT(resourceIndex != ~0u);
-
 
 			//Go through all the variables in the constant buffer
 			for (UINT j = 0; j < bufferDesc.Variables; ++j)
@@ -338,6 +308,5 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	//Copy the shader reflection data to the output variable
 	*pOutReflection = reflection;
 }
-
 
 #endif

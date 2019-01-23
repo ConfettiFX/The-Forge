@@ -7,93 +7,176 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{483cec9b-3a9b-4031-9da9-fabf524e0ee8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{5f6e3055-af53-4e3c-8397-667edfcf312f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{fdcc7f85-3418-40ef-8fc7-589119da0fed}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX11">
+    <Filter Include="Shaders\D3D11">
       <UniqueIdentifier>{8de9eb5f-4c04-44de-9812-a0f7c11c7ad6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\TFXImporter">
+      <UniqueIdentifier>{59077220-04e7-4371-a29c-01889df0d9f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lua">
+      <UniqueIdentifier>{cf5987b6-478c-4c0d-a426-cec2f376b43f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\06_MaterialPlayground\06_MaterialPlayground.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.cpp">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\BRDFIntegration.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\computeIrradianceMap.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\computeSpecularMap.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\panoToCube.comp">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\renderSceneBRDF.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\renderSceneBRDF.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\skybox.frag">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX12\skybox.vert">
-      <Filter>Shaders\PCDX12</Filter>
-    </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\BRDFIntegration.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\computeIrradianceMap.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\computeSpecularMap.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\panoToCube.comp">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\BRDFIntegration.comp">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\BRDFIntegration.comp">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\computeIrradianceMap.comp">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\computeIrradianceMap.comp">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\computeSpecularMap.comp">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\computeSpecularMap.comp">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\panoToCube.comp">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\panoToCube.comp">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\renderSceneBRDF.frag">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneBRDF.frag">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\renderSceneBRDF.vert">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneBRDF.vert">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\skybox.frag">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\skybox.frag">
+      <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\06_MaterialPlayground\Shaders\PCDX11\skybox.vert">
-      <Filter>Shaders\PCDX11</Filter>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\skybox.vert">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\BRDFIntegration.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\computeIrradianceMap.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\computeSpecularMap.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\fullscreen.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\hair.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\hair.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\hair.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\panoToCube.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneBRDF.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneBRDF.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\showCapsules.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\showCapsules.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skeleton.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skeleton.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skybox.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skybox.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\fullscreen.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\hair.comp">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\hair.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\hair.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.h">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.h">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClInclude>
+    <None Include="..\src\06_MaterialPlayground\loadGroundTextures.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\loadModels.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\loadTextures.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\updateCamera.lua">
+      <Filter>Lua</Filter>
     </None>
   </ItemGroup>
 </Project>

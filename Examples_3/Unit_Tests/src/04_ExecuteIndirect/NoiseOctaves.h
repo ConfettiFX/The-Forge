@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,7 +38,6 @@
 // under the License.
 ///////////////////////////////////////////////////////////////////////////////
 
-
 #pragma once
 #include "simplexnoise1234.h"
 
@@ -47,11 +46,11 @@
 template <size_t N = 4>
 class NoiseOctaves
 {
-private:
+	private:
 	float mWeights[N];
 	float mWeightNorm;
 
-public:
+	public:
 	NoiseOctaves(float persistence = 0.5f)
 	{
 		float weightSum = 0.0f;
@@ -61,7 +60,7 @@ public:
 			weightSum += persistence;
 			persistence *= persistence;
 		}
-		mWeightNorm = 0.5f / weightSum; // Will normalize to [-0.5, 0.5]
+		mWeightNorm = 0.5f / weightSum;    // Will normalize to [-0.5, 0.5]
 	}
 
 	// Returns [0, 1]
@@ -71,7 +70,9 @@ public:
 		for (size_t i = 0; i < N; ++i)
 		{
 			r += mWeights[i] * snoise3(x, y, z);
-			x *= 2.0f; y *= 2.0f; z *= 2.0f;
+			x *= 2.0f;
+			y *= 2.0f;
+			z *= 2.0f;
 		}
 		return r * mWeightNorm + 0.5f;
 	}
@@ -83,7 +84,10 @@ public:
 		for (size_t i = 0; i < N; ++i)
 		{
 			r += mWeights[i] * snoise4(x, y, z, w);
-			x *= 2.0f; y *= 2.0f; z *= 2.0f; w *= 2.0f;
+			x *= 2.0f;
+			y *= 2.0f;
+			z *= 2.0f;
+			w *= 2.0f;
 		}
 		return r * mWeightNorm + 0.5f;
 	}

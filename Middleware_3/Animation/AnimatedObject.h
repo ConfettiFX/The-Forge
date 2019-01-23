@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,11 +33,9 @@
 #include "Animation.h"
 
 // Responsible for coordinating the posing of a Rig by an Animation
-class AnimatedObject 
+class AnimatedObject
 {
-
-public:
-
+	public:
 	// Set up an Animated object with the Rig it will be posing and the default animation to play when idle
 	void Initialize(Rig* rig, Animation* animation);
 
@@ -62,9 +60,8 @@ public:
 	// Get the rig of this animated object
 	inline Rig* GetRig() { return mRig; };
 
-private:
-
-	// The Rig the AnimatedObject will be posing 
+	private:
+	// The Rig the AnimatedObject will be posing
 	Rig* mRig;
 
 	// Pointer to the animation we are sampling

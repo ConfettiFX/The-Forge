@@ -188,10 +188,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\01_Transformations\Shaders\PCDX12\basic.frag" />
-    <None Include="..\src\01_Transformations\Shaders\PCDX12\basic.vert" />
-    <None Include="..\src\01_Transformations\Shaders\PCDX12\skybox.frag" />
-    <None Include="..\src\01_Transformations\Shaders\PCDX12\skybox.vert" />
+    <None Include="..\src\01_Transformations\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\01_Transformations\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>

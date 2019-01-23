@@ -19,10 +19,7 @@ namespace gainput
 		if (delta)
 		{
 			const bool oldValue = state.GetBool(buttonId);
-			if (value != oldValue)
-			{
-				delta->AddChange(device.GetDeviceId(), buttonId, oldValue, value);
-			}
+			delta->AddChange(device.GetDeviceId(), buttonId, oldValue, value);			
 		}
 		state.Set(buttonId, value);
 	}
@@ -54,10 +51,7 @@ namespace gainput
 		if (delta)
 		{
 			const float oldValue = state.GetFloat(buttonId);
-			if (value != oldValue)
-			{
-				delta->AddChange(device.GetDeviceId(), buttonId, oldValue, value);
-			}
+			delta->AddChange(device.GetDeviceId(), buttonId, oldValue, value);			
 		}
         state.Set(buttonId, value);
 		

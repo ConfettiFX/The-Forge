@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -39,7 +39,7 @@ layout(set = 0, binding = 20) uniform WBOITSettings
 {
 	float colorResistance;	// Increase if low-coverage foreground transparents are affecting background transparent color.
 	float rangeAdjustment;	// Change to avoid saturating at the clamp bounds.
-	float depthRange;		// Decrease if high-opacity surfaces seem “too transparent”, increase if distant transparents are blending together too much.
+	float depthRange;		// Decrease if high-opacity surfaces seem ï¿½too transparentï¿½, increase if distant transparents are blending together too much.
 	float orderingStrength;	// Increase if background is showing through foreground too much.
 	float underflowLimit;	// Increase to reduce underflow artifacts.
 	float overflowLimit;	// Decrease to reduce overflow artifacts.

@@ -6,6 +6,7 @@
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
     <OutputType>Exe</OutputType>
     <StartupObject />
+    <UserSecretsId>04f808ef-fa03-4e31-942b-b8b1a07a2048</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

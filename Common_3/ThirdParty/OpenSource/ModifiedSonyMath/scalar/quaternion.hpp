@@ -388,6 +388,13 @@ inline const Quat conj(const Quat & quat)
     return Quat(-quat.getX(), -quat.getY(), -quat.getZ(), quat.getW());
 }
 
+inline const Quat inverse(const Quat & quat)
+{
+	Quat con = conj(quat);
+	float d = 1.0f / dot(quat, quat);
+	return con * d;
+}
+
 inline const Quat select(const Quat & quat0, const Quat & quat1, bool select1)
 {
     return Quat((select1) ? quat1.getX() : quat0.getX(),

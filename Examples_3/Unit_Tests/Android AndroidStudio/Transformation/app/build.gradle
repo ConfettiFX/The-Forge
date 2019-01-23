@@ -43,7 +43,7 @@ task copyAssets(type: Copy) {
     into "${projectDir}/src/main/assets/"
 }
 task copyShader(type: Copy) {
-    from "${projectDir}/../../../src/01_Transformations/Shaders/PCVulkan"
+    from "${projectDir}/../../../src/01_Transformations/Shaders/Vulkan"
     into "${projectDir}/src/main/assets/Shaders"
 }
 preBuild.dependsOn copyAssets

@@ -152,14 +152,14 @@
     <ClCompile Include="..\src\09_MultiThread\09_MultiThread.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_MultiThread\Shaders\PCDX12\basic.frag" />
-    <None Include="..\src\09_MultiThread\Shaders\PCDX12\basic.vert" />
-    <None Include="..\src\09_MultiThread\Shaders\PCDX12\plane.frag" />
-    <None Include="..\src\09_MultiThread\Shaders\PCDX12\plane.vert" />
-    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\basic.frag" />
-    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\basic.vert" />
-    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\plane.frag" />
-    <None Include="..\src\09_MultiThread\Shaders\PCVulkan\plane.vert" />
+    <None Include="..\src\09_MultiThread\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\09_MultiThread\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\09_MultiThread\Shaders\D3D12\plane.frag" />
+    <None Include="..\src\09_MultiThread\Shaders\D3D12\plane.vert" />
+    <None Include="..\src\09_MultiThread\Shaders\Vulkan\basic.frag" />
+    <None Include="..\src\09_MultiThread\Shaders\Vulkan\basic.vert" />
+    <None Include="..\src\09_MultiThread\Shaders\Vulkan\plane.frag" />
+    <None Include="..\src\09_MultiThread\Shaders\Vulkan\plane.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

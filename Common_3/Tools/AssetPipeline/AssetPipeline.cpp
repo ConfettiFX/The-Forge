@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -51,23 +51,23 @@
 #include "../../OS/Interfaces/IOperatingSystem.h"
 #include "../../OS/Interfaces/IFileSystem.h"
 #include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h" //NOTE: this should be the last include in a .cpp
+#include "../../OS/Interfaces/IMemoryManager.h"    //NOTE: this should be the last include in a .cpp
 
 typedef tinystl::unordered_map<tinystl::string, tinystl::vector<tinystl::string>> AnimationAssetMap;
 
 struct NodeInfo
 {
-	tinystl::string mName;
-	int pParentNodeIndex;
+	tinystl::string      mName;
+	int                  pParentNodeIndex;
 	tinystl::vector<int> mChildNodeIndices;
-	bool mUsedInSkeleton;
-	aiNode* pNode;
+	bool                 mUsedInSkeleton;
+	aiNode*              pNode;
 };
 
 struct BoneInfo
 {
-	int mNodeIndex;
-	int mParentNodeIndex;
+	int                                          mNodeIndex;
+	int                                          mParentNodeIndex;
 	ozz::animation::offline::RawSkeleton::Joint* pParentJoint;
 };
 
@@ -82,8 +82,7 @@ bool ImportFBX(const char* fbxFile, const aiScene** pScene)
 	aiSetImportPropertyFloat(propertyStore, AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 66.0f);
 
 	unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality;
-	flags |= aiProcess_FixInfacingNormals |
-		aiProcess_ConvertToLeftHanded;
+	flags |= aiProcess_FixInfacingNormals | aiProcess_ConvertToLeftHanded;
 	flags &= ~aiProcess_SortByPType;
 	flags &= ~aiProcess_FindInstances;
 
@@ -111,10 +110,10 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 
 	// Check if output directory exists
 	tinystl::string outputDir = FileSystem::AddTrailingSlash(outputDirectory);
-	bool outputDirExists = FileSystem::DirExists(outputDir);
+	bool            outputDirExists = FileSystem::DirExists(outputDir);
 
 	// Check for assets containing animations in animationDirectory
-	AnimationAssetMap animationAssets;
+	AnimationAssetMap                animationAssets;
 	tinystl::vector<tinystl::string> subDirectories = {};
 	FileSystem::GetSubDirectories(animationDirectory, subDirectories);
 	for (const tinystl::string& subDir : subDirectories)
@@ -125,7 +124,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 
 		for (const tinystl::string& file : filesInDirectory)
 		{
-			if(FileSystem::GetFileName(file).to_lower() == "riggedmesh")
+			if (FileSystem::GetFileName(file).to_lower() == "riggedmesh")
 			{
 				// Add new animation asset named after the folder it is in
 				tinystl::string assetName = FileSystem::GetFileName(subDir);
@@ -141,7 +140,8 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 						// Add all files in animations to the animation asset
 						filesInDirectory.clear();
 						FileSystem::GetFilesWithExtension(assetSubDir, ".fbx", filesInDirectory);
-						animationAssets[assetName].insert(animationAssets[assetName].end(), filesInDirectory.begin(), filesInDirectory.end());
+						animationAssets[assetName].insert(
+							animationAssets[assetName].end(), filesInDirectory.begin(), filesInDirectory.end());
 						break;
 					}
 				}
@@ -169,7 +169,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 		return true;
 
 	// Process the found assets
-	int assetsProcessed = 0;
+	int  assetsProcessed = 0;
 	bool success = true;
 	for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
 	{
@@ -245,7 +245,8 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 		// Process animations
 		for (size_t i = 1; i < it->second.size(); ++i)
 		{
-			const tinystl::string& animationFile = it->second[i];;
+			const tinystl::string& animationFile = it->second[i];
+			;
 			tinystl::string animationName = FileSystem::GetFileName(animationFile);
 
 			// Create animation output file name
@@ -265,7 +266,8 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 			if (processAnimation)
 			{
 				// Process the animation
-				if (!CreateRuntimeAnimation(animationFile, &skeleton, it->first.c_str(), animationName.c_str(), animationOutput.c_str(), settings))
+				if (!CreateRuntimeAnimation(
+						animationFile, &skeleton, it->first.c_str(), animationName.c_str(), animationOutput.c_str(), settings))
 					continue;
 
 				++assetsProcessed;
@@ -281,7 +283,9 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 	return success;
 }
 
-bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton, ProcessAssetsSettings* settings)
+bool AssetPipeline::CreateRuntimeSkeleton(
+	const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton,
+	ProcessAssetsSettings* settings)
 {
 	// Import the FBX with the animation
 	const aiScene* scene = NULL;
@@ -305,15 +309,16 @@ bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char*
 	nodeData[0] = { scene->mRootNode->mName.C_Str(), -1, {}, false, scene->mRootNode };
 
 	const int queueSize = 128;
-	int nodeQueue[queueSize] = {};	// Simple queue because tinystl doesn't have one
-	for (int i = 0; i < queueSize; ++i) nodeQueue[i] = -1;
+	int       nodeQueue[queueSize] = {};    // Simple queue because tinystl doesn't have one
+	for (int i = 0; i < queueSize; ++i)
+		nodeQueue[i] = -1;
 	nodeQueue[0] = 0;
 	int nodeQueueStart = 0;
 	int nodeQueueEnd = 1;
 	while (nodeQueue[nodeQueueStart] != -1)
 	{
 		// Pop
-		int nodeIndex = nodeQueue[nodeQueueStart];
+		int     nodeIndex = nodeQueue[nodeQueueStart];
 		aiNode* node = nodeData[nodeIndex].pNode;
 		nodeQueue[nodeQueueStart] = -1;
 
@@ -356,7 +361,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char*
 					while (nodeIndex != -1)
 					{
 						if (nodeData[nodeIndex].mUsedInSkeleton)
-							break;	// Remaining part of the tree is already marked
+							break;    // Remaining part of the tree is already marked
 						nodeData[nodeIndex].mUsedInSkeleton = true;
 						nodeIndex = nodeData[nodeIndex].pParentNodeIndex;
 					}
@@ -376,12 +381,12 @@ bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char*
 		BoneInfo boneInfo = boneData.back();
 		boneData.pop_back();
 		NodeInfo* nodeInfo = &nodeData[boneInfo.mNodeIndex];
-		aiNode* node = nodeInfo->pNode;
+		aiNode*   node = nodeInfo->pNode;
 
 		// Get node transform
-		aiVector3D translation;
+		aiVector3D   translation;
 		aiQuaternion rotation;
-		aiVector3D scale;
+		aiVector3D   scale;
 		node->mTransformation.Decompose(scale, rotation, translation);
 
 		if (boneInfo.mParentNodeIndex == -1)
@@ -422,7 +427,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char*
 		}
 
 		// Add child nodes to the list of nodes to process
-		newParentJoint->children.reserve(requiredChildCount);	// Reserve to make sure memory isn't reallocated later.
+		newParentJoint->children.reserve(requiredChildCount);    // Reserve to make sure memory isn't reallocated later.
 		for (uint i = 0; i < (uint)nodeInfo->mChildNodeIndices.size(); ++i)
 		{
 			NodeInfo* childNodeInfo = &nodeData[nodeInfo->mChildNodeIndices[i]];
@@ -446,14 +451,14 @@ bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char*
 	}
 
 	// Build runtime skeleton from raw skeleton
-	if(!ozz::animation::offline::SkeletonBuilder::Build(rawSkeleton, skeleton))
+	if (!ozz::animation::offline::SkeletonBuilder::Build(rawSkeleton, skeleton))
 	{
 		LOGERRORF("Skeleton can not be created for %s.", skeletonName);
 		return false;
 	}
 
 	// Write skeleton to disk
-	ozz::io::File file(skeletonOutput, "wb");
+	ozz::io::File     file(skeletonOutput, "wb");
 	ozz::io::OArchive archive(&file);
 	archive << *skeleton;
 	file.Close();
@@ -461,7 +466,9 @@ bool AssetPipeline::CreateRuntimeSkeleton(const char* skeletonAsset, const char*
 	return true;
 }
 
-bool AssetPipeline::CreateRuntimeAnimation(const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName, const char* animationOutput, ProcessAssetsSettings* settings)
+bool AssetPipeline::CreateRuntimeAnimation(
+	const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
+	const char* animationOutput, ProcessAssetsSettings* settings)
 {
 	// Import the FBX with the animation
 	const aiScene* scene = NULL;
@@ -480,7 +487,8 @@ bool AssetPipeline::CreateRuntimeAnimation(const char* animationAsset, ozz::anim
 	if (scene->mNumAnimations > 1)
 	{
 		if (!settings->quiet)
-			LOGWARNINGF("Animation asset %s of skeleton %s contains more than one animation. This is not allowed.", animationName, skeletonName);
+			LOGWARNINGF(
+				"Animation asset %s of skeleton %s contains more than one animation. This is not allowed.", animationName, skeletonName);
 		return false;
 	}
 
@@ -519,19 +527,22 @@ bool AssetPipeline::CreateRuntimeAnimation(const char* animationAsset, ozz::anim
 			for (uint j = 0; j < node->mNumPositionKeys; ++j)
 			{
 				aiVectorKey key = node->mPositionKeys[j];
-				track->translations[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration), vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
+				track->translations[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration),
+										   vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
 			}
 
 			for (uint j = 0; j < node->mNumRotationKeys; ++j)
 			{
 				aiQuatKey key = node->mRotationKeys[j];
-				track->rotations[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration), Quat(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w) };
+				track->rotations[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration),
+										Quat(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w) };
 			}
 
 			for (uint j = 0; j < node->mNumScalingKeys; ++j)
 			{
 				aiVectorKey key = node->mScalingKeys[j];
-				track->scales[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration), vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
+				track->scales[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration),
+									 vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
 			}
 
 			if (!rootFound)
@@ -561,14 +572,14 @@ bool AssetPipeline::CreateRuntimeAnimation(const char* animationAsset, ozz::anim
 
 	// Build runtime animation from raw animation
 	ozz::animation::Animation animation;
-	if(!ozz::animation::offline::AnimationBuilder::Build(rawAnimation, &animation))
+	if (!ozz::animation::offline::AnimationBuilder::Build(rawAnimation, &animation))
 	{
 		LOGERRORF("Animation %s can not be created for %s.", animationName, skeletonName);
 		return false;
 	}
 
 	// Write animation to disk
-	ozz::io::File file(animationOutput, "wb");
+	ozz::io::File     file(animationOutput, "wb");
 	ozz::io::OArchive archive(&file);
 	archive << animation;
 	file.Close();

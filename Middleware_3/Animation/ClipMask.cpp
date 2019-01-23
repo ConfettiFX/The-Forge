@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -43,11 +43,11 @@ void ClipMask::Destroy()
 	allocator->Deallocate(mJointWeights);
 }
 
-
 void ClipMask::EnableAllJoints()
 {
 	// Sets all weights to 1.0f
-	for (unsigned int i = 0; i < mRig->GetNumSoaJoints(); i++) {
+	for (unsigned int i = 0; i < mRig->GetNumSoaJoints(); i++)
+	{
 		mJointWeights[i] = Vector4::one();
 	}
 }
@@ -55,7 +55,8 @@ void ClipMask::EnableAllJoints()
 void ClipMask::DisableAllJoints()
 {
 	// Sets all weights to 0.0f
-	for (unsigned int i = 0; i < mRig->GetNumSoaJoints(); i++) {
+	for (unsigned int i = 0; i < mRig->GetNumSoaJoints(); i++)
+	{
 		mJointWeights[i] = Vector4::zero();
 	}
 }
@@ -68,9 +69,10 @@ void ClipMask::SetAllChildrenOf(int jointIndex, float setValue)
 
 	// Sets the weight_setting of all the joints children to setValue. Note
 	// that weights are stored in SoA format.
-	for (int i = 0; i < it.num_joints; i++) {
+	for (int i = 0; i < it.num_joints; i++)
+	{
 		const int jointId = it.joints[i];
-		
+
 		mJointWeights[jointId / 4].setElem(jointId % 4, setValue);
 	}
 }

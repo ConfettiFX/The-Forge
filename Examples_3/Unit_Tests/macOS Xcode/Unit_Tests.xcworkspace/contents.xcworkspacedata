@@ -46,4 +46,7 @@
    <FileRef
       location = "group:16_SphereTracing/16_SphereTracing.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
+   </FileRef>
 </Workspace>

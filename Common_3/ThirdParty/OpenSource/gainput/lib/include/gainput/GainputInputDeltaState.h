@@ -80,6 +80,7 @@ private:
 	};
 
 	Array<Change> changes_;
+	Array<Change> gestureChanges_;
 };
 
 }

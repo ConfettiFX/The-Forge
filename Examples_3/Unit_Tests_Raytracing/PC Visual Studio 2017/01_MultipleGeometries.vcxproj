@@ -14,7 +14,7 @@
     <ClCompile Include="..\src\01_MultipleGeometries\01_MultipleGeometries.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_MultipleGeometries\PCDX12\ClosestHit.hlsl">
+    <CustomBuild Include="..\src\01_MultipleGeometries\D3D12\ClosestHit.hlsl">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(DXC) "%(FullPath)" -Zi -Fh "%(FullPath)\..\Compiled\%(Filename).h" -Vn gShader_%(Filename) -T lib_6_1</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(DXC) "%(FullPath)" -Zi -Fh "%(FullPath)\..\Compiled\%(Filename).h" -Vn gShader_%(Filename) -T lib_6_1</Command>
@@ -27,7 +27,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_MultipleGeometries\PCDX12\Miss.hlsl">
+    <CustomBuild Include="..\src\01_MultipleGeometries\D3D12\Miss.hlsl">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(DXC) "%(FullPath)" -Zi -Fh "%(FullPath)\..\Compiled\%(Filename).h" -Vn gShader_%(Filename) -T lib_6_1</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(DXC) "%(FullPath)" -Zi -Fh "%(FullPath)\..\Compiled\%(Filename).h" -Vn gShader_%(Filename) -T lib_6_1</Command>
@@ -42,7 +42,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_MultipleGeometries\PCDX12\RayGen.hlsl">
+    <CustomBuild Include="..\src\01_MultipleGeometries\D3D12\RayGen.hlsl">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
@@ -57,7 +57,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_MultipleGeometries\PCDX12\ClosestHitPlane.hlsl">
+    <CustomBuild Include="..\src\01_MultipleGeometries\D3D12\ClosestHitPlane.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
@@ -72,7 +72,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\01_MultipleGeometries\PCDX12\ClosestHitShadow.hlsl">
+    <CustomBuild Include="..\src\01_MultipleGeometries\D3D12\ClosestHitShadow.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
@@ -85,7 +85,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\Compiled\%(Filename).h</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\Compiled\%(Filename).h</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_MultipleGeometries\PCDX12\MissShadow.hlsl">
+    <CustomBuild Include="..\src\01_MultipleGeometries\D3D12\MissShadow.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>

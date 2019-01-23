@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,35 +28,60 @@
 
 #ifdef __APPLE__
 #include <unistd.h>
-#include <limits.h>  // for UINT_MAX
-#include <sys/stat.h>  // for mkdir
-#include <sys/errno.h> // for errno
+#include <limits.h>       // for UINT_MAX
+#include <sys/stat.h>     // for mkdir
+#include <sys/errno.h>    // for errno
 #include <dirent.h>
 #endif
 #ifdef _WIN32
-#include  <io.h>
-#include  <stdio.h>
-#include  <stdlib.h>
+#include <io.h>
+#include <stdio.h>
+#include <stdlib.h>
 #endif
 #ifdef __linux__
 #include <unistd.h>
-#include <limits.h>  // for UINT_MAX
-#include <sys/stat.h>  // for mkdir
-#include <sys/errno.h> // for errno
+#include <limits.h>       // for UINT_MAX
+#include <sys/stat.h>     // for mkdir
+#include <sys/errno.h>    // for errno
 #include <sys/wait.h>
 #include <dirent.h>
 #endif
 
-static const char* pszFileAccessFlags[] =
+void translateFileAccessFlags(FileMode modeFlags, char* fileAccesString, int strLength)
 {
-	"rb",   //!<	FM_ReadBinary	   = 0,
-	"wb",   //!<	FM_WriteBinary,
-	"w+b",  //!<	FM_ReadWriteBinary,
-	"rb",   //!<	FM_Read,
-	"w",	//!<	FM_Write,
-	"w+",   //!<	FM_ReadWrite,
-	"--",   //!<	FM_Count
-};
+	ASSERT(fileAccesString != NULL && strLength >= 4);
+	memset(fileAccesString, '\0', strLength);
+	int index = 0;
+
+	// Read + Write uses w+ then filemode (b or t)
+	if (modeFlags & FileMode::FM_Read && modeFlags & FileMode::FM_Write)
+	{
+		fileAccesString[index++] = 'w';
+		fileAccesString[index++] = '+';
+	}
+	// Read + Append uses a+ then filemode (b or t)
+	else if (modeFlags & FileMode::FM_Read && modeFlags & FileMode::FM_Append)
+	{
+		fileAccesString[index++] = 'a';
+		fileAccesString[index++] = '+';
+	}
+	else
+	{
+		if (modeFlags & FileMode::FM_Read)
+			fileAccesString[index++] = 'r';
+		if (modeFlags & FileMode::FM_Write)
+			fileAccesString[index++] = 'w';
+		if (modeFlags & FileMode::FM_Append)
+			fileAccesString[index++] = 'a';
+	}
+
+	if (modeFlags & FileMode::FM_Binary)
+		fileAccesString[index++] = 'b';
+	else
+		fileAccesString[index++] = 't';
+
+	fileAccesString[index++] = '\0';
+}
 
 //static const unsigned SKIP_BUFFER_SIZE = 1024;
 
@@ -78,26 +103,13 @@ static inline unsigned SDBMHash(unsigned hash, unsigned char c) { return c + (ha
 /************************************************************************/
 // Deserializer implementation
 /************************************************************************/
-Deserializer::Deserializer() :
-	mPosition(0),
-	mSize(0)
-{
-}
+Deserializer::Deserializer(): mPosition(0), mSize(0) {}
 
-Deserializer::Deserializer(unsigned size) :
-	mPosition(0),
-	mSize(size)
-{
-}
+Deserializer::Deserializer(unsigned size): mPosition(0), mSize(size) {}
 
-Deserializer::~Deserializer()
-{
-}
+Deserializer::~Deserializer() {}
 
-unsigned Deserializer::GetChecksum()
-{
-	return 0;
-}
+unsigned Deserializer::GetChecksum() { return 0; }
 
 int64_t Deserializer::ReadInt64()
 {
@@ -148,10 +160,7 @@ uint8_t Deserializer::ReadUByte()
 	return ret;
 }
 
-bool Deserializer::ReadBool()
-{
-	return ReadUByte() != 0;
-}
+bool Deserializer::ReadBool() { return ReadUByte() != 0; }
 
 float Deserializer::ReadFloat()
 {
@@ -183,7 +192,7 @@ float3 Deserializer::ReadVector3()
 
 float3 Deserializer::ReadPackedVector3(float maxAbsCoord)
 {
-	float invV = maxAbsCoord / 32767.0f;
+	float   invV = maxAbsCoord / 32767.0f;
 	int16_t coords[3];
 	Read(coords, sizeof coords);
 	float3 ret(coords[0] * invV, coords[1] * invV, coords[2] * invV);
@@ -265,74 +274,36 @@ static unsigned c_strlen(const char* str)
 #endif
 }
 
-Serializer::~Serializer()
-{
-}
+Serializer::~Serializer() {}
 
-bool Serializer::WriteInt64(int64_t value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteInt64(int64_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteInt(int value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteInt(int value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteShort(int16_t value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteShort(int16_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteByte(int8_t value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteByte(int8_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteUInt(unsigned value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteUInt(unsigned value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteUShort(uint16_t value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteUShort(uint16_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteUByte(uint8_t value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteUByte(uint8_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteBool(bool value)
-{
-	return WriteUByte((unsigned char)(value ? 1 : 0)) == 1;
-}
+bool Serializer::WriteBool(bool value) { return WriteUByte((unsigned char)(value ? 1 : 0)) == 1; }
 
-bool Serializer::WriteFloat(float value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteFloat(float value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteDouble(double value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteDouble(double value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteVector2(const float2& value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteVector2(const float2& value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteVector3(const float3& value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteVector3(const float3& value) { return Write(&value, sizeof value) == sizeof value; }
 
 bool Serializer::WritePackedVector3(const float3& value, float maxAbsCoord)
 {
 	int16_t coords[3];
-	float v = 32767.0f / maxAbsCoord;
+	float   v = 32767.0f / maxAbsCoord;
 
 	coords[0] = (int16_t)(clamp(value.getX(), -maxAbsCoord, maxAbsCoord) * v + 0.5f);
 	coords[1] = (int16_t)(clamp(value.getY(), -maxAbsCoord, maxAbsCoord) * v + 0.5f);
@@ -340,10 +311,7 @@ bool Serializer::WritePackedVector3(const float3& value, float maxAbsCoord)
 	return Write(&coords[0], sizeof coords) == sizeof coords;
 }
 
-bool Serializer::WriteVector4(const float4& value)
-{
-	return Write(&value, sizeof value) == sizeof value;
-}
+bool Serializer::WriteVector4(const float4& value) { return Write(&value, sizeof value) == sizeof value; }
 
 bool Serializer::WriteString(const tinystl::string& value)
 {
@@ -355,7 +323,7 @@ bool Serializer::WriteString(const tinystl::string& value)
 
 bool Serializer::WriteFileID(const tinystl::string& value)
 {
-	bool success = true;
+	bool     success = true;
 	unsigned length = (unsigned)min((int)(uint32_t)value.size(), 4);
 
 	success &= Write(value.c_str(), length) == length;
@@ -376,15 +344,7 @@ bool Serializer::WriteLine(const tinystl::string& value)
 /************************************************************************/
 // File implementation
 /************************************************************************/
-File::File() :
-	mMode(FileMode::FM_Read),
-	pHandle(0),
-	mOffset(0),
-	mChecksum(0),
-	mReadSyncNeeded(false),
-	mWriteSyncNeeded(false)
-{
-}
+File::File(): mMode(FileMode::FM_Read), pHandle(0), mOffset(0), mChecksum(0), mReadSyncNeeded(false), mWriteSyncNeeded(false) {}
 
 bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 {
@@ -398,7 +358,9 @@ bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 		return false;
 	}
 
-	pHandle = open_file(fileName, pszFileAccessFlags[mode]);
+	char fileAcessStr[8];
+	translateFileAccessFlags(mode, fileAcessStr, sizeof(fileAcessStr));
+	pHandle = open_file(fileName, fileAcessStr);
 
 	if (!pHandle)
 	{
@@ -427,17 +389,19 @@ bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 	return true;
 }
 
-void File::Close()
+bool File::Close()
 {
+	bool ret = false;
 	if (pHandle)
 	{
-		close_file(pHandle);
+		ret = close_file(pHandle);
 		pHandle = 0;
 		mPosition = 0;
 		mSize = 0;
 		mOffset = 0;
 		mChecksum = 0;
 	}
+	return ret;
 }
 
 void File::Flush()
@@ -485,23 +449,17 @@ unsigned File::Seek(unsigned position, SeekDir seekDir /* = SeekDir::SEEK_DIR_BE
 		return 0;
 	}
 
-	if (mMode == FileMode::FM_Read && position > mSize)
+	//If reading or appending don't seek past the end
+	if ((mMode & FileMode::FM_Read || mMode & FileMode::FM_Append) && position > mSize)
 		position = mSize;
 
 	int origin = -1;
 	switch (seekDir)
 	{
-	case SEEK_DIR_BEGIN:
-		origin = SEEK_SET;
-		break;
-	case SEEK_DIR_CUR:
-		origin = SEEK_CUR;
-		break;
-	case SEEK_DIR_END:
-		origin = SEEK_END;
-		break;
-	default:
-		break;
+		case SEEK_DIR_BEGIN: origin = SEEK_SET; break;
+		case SEEK_DIR_CUR: origin = SEEK_CUR; break;
+		case SEEK_DIR_END: origin = SEEK_END; break;
+		default: break;
 	}
 	seek_file(pHandle, position + mOffset, origin);
 	mPosition = position;
@@ -567,7 +525,7 @@ unsigned File::GetChecksum()
 	while (!IsEof())
 	{
 		unsigned char block[1024];
-		unsigned readBytes = Read(block, 1024);
+		unsigned      readBytes = Read(block, 1024);
 		for (unsigned i = 0; i < readBytes; ++i)
 			mChecksum = SDBMHash(mChecksum, block[i]);
 	}
@@ -591,19 +549,13 @@ tinystl::string File::ReadText()
 	return text;
 }
 
-MemoryBuffer::MemoryBuffer(const void* data, unsigned size) :
-	Deserializer(size),
-	pBuffer((unsigned char*)data),
-	mReadOnly(true)
+MemoryBuffer::MemoryBuffer(const void* data, unsigned size): Deserializer(size), pBuffer((unsigned char*)data), mReadOnly(true)
 {
 	if (!pBuffer)
 		mSize = 0;
 }
 
-MemoryBuffer::MemoryBuffer(void* data, unsigned size) :
-	Deserializer(size),
-	pBuffer((unsigned char*)data),
-	mReadOnly(false)
+MemoryBuffer::MemoryBuffer(void* data, unsigned size): Deserializer(size), pBuffer((unsigned char*)data), mReadOnly(false)
 {
 	if (!pBuffer)
 		mSize = 0;
@@ -697,10 +649,7 @@ void FileSystem::ClearModifiedRootPaths()
 		s = "";
 }
 
-unsigned FileSystem::GetLastModifiedTime(const tinystl::string& fileName)
-{
-	return (unsigned)get_file_last_modified_time(fileName);
-}
+unsigned FileSystem::GetLastModifiedTime(const tinystl::string& fileName) { return (unsigned)get_file_last_modified_time(fileName); }
 
 unsigned FileSystem::GetFileSize(FileHandle handle)
 {
@@ -726,7 +675,8 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 {
 	ASSERT(root < FSR_Count);
 	tinystl::string res;
-	if (root != FSR_Absolute && pszFileName[1U] != ':' && pszFileName[0U] != '/') //Quick hack to ignore root changes when a absolute path is given in windows or GNU
+	if (root != FSR_Absolute && pszFileName[1U] != ':' &&
+		pszFileName[0U] != '/')    //Quick hack to ignore root changes when a absolute path is given in windows or GNU
 	{
 		// was the path modified? if so use that, otherwise use static array
 		if (mModifiedRootPaths[root].size() != 0)
@@ -752,8 +702,8 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 		const tinystl::string currDir = get_current_dir();
 		if (res.find(currDir, 0) == tinystl::string::npos)
 			res = currDir + "/" + res;
-		
-		res = GetInternalPath(res); // eliminate windows separators here.
+
+		res = GetInternalPath(res);    // eliminate windows separators here.
 	}
 #endif
 
@@ -786,7 +736,17 @@ tinystl::string FileSystem::FixPath(const tinystl::string& pszFileName, FSRoot r
 	return res;
 }
 
-void FileSystem::SplitPath(const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension, bool lowercaseExtension)
+tinystl::string FileSystem::GetRootPath(FSRoot root)
+{
+	if (mModifiedRootPaths[root].size())
+		return mModifiedRootPaths[root];
+	else
+		return pszRoots[root];
+}
+
+void FileSystem::SplitPath(
+	const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension,
+	bool lowercaseExtension)
 {
 	tinystl::string fullPathCopy = GetInternalPath(fullPath);
 
@@ -898,7 +858,7 @@ bool FileSystem::CopyFile(const tinystl::string& src, const tinystl::string& dst
 {
 	if (failIfExists && FileExists(dst, FSR_Absolute))
 		return false;
-	
+
 	return copy_file(src, dst);
 }
 
@@ -936,8 +896,7 @@ bool FileSystem::CreateDir(const tinystl::string& pathName)
 	}
 
 #ifdef _WIN32
-	bool success = (CreateDirectoryA(RemoveTrailingSlash(pathName).c_str(), NULL) == TRUE) ||
-		(GetLastError() == ERROR_ALREADY_EXISTS);
+	bool success = (CreateDirectoryA(RemoveTrailingSlash(pathName).c_str(), NULL) == TRUE) || (GetLastError() == ERROR_ALREADY_EXISTS);
 #else
 	bool success = mkdir(GetNativePath(RemoveTrailingSlash(pathName)).c_str(), S_IRWXU) == 0 || errno == EEXIST;
 #endif
@@ -976,16 +935,10 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 		sa.lpSecurityDescriptor = NULL;
 		sa.bInheritHandle = TRUE;
 
-		stdOut = CreateFileA(stdOutFile,
-			GENERIC_ALL,
-			FILE_SHARE_WRITE | FILE_SHARE_READ,
-			&sa,
-			OPEN_ALWAYS,
-			FILE_ATTRIBUTE_NORMAL,
-			NULL);
+		stdOut = CreateFileA(stdOutFile, GENERIC_ALL, FILE_SHARE_WRITE | FILE_SHARE_READ, &sa, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
-	STARTUPINFOA startupInfo;
+	STARTUPINFOA        startupInfo;
 	PROCESS_INFORMATION processInfo;
 	memset(&startupInfo, 0, sizeof startupInfo);
 	memset(&processInfo, 0, sizeof processInfo);
@@ -994,7 +947,8 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 	startupInfo.hStdOutput = stdOut;
 	startupInfo.hStdError = stdOut;
 
-	if (!CreateProcessA(NULL, (LPSTR)commandLine.c_str(), NULL, NULL, stdOut ? TRUE : FALSE, CREATE_NO_WINDOW, NULL, NULL, &startupInfo, &processInfo))
+	if (!CreateProcessA(
+			NULL, (LPSTR)commandLine.c_str(), NULL, NULL, stdOut ? TRUE : FALSE, CREATE_NO_WINDOW, NULL, NULL, &startupInfo, &processInfo))
 		return -1;
 
 	WaitForSingleObject(processInfo.hProcess, INFINITE);
@@ -1012,8 +966,8 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 	return exitCode;
 #elif defined(__linux__)
 	tinystl::vector<const char*> argPtrs;
-	tinystl::string cmd(fixedFileName.c_str());
-	char space = ' ';
+	tinystl::string              cmd(fixedFileName.c_str());
+	char                         space = ' ';
 	cmd.append(&space, &space + 1);
 	for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
 	{
@@ -1033,12 +987,13 @@ int FileSystem::SystemRun(const tinystl::string& fileName, const tinystl::vector
 		argPtrs.push_back(NULL);
 
 		execvp(argPtrs[0], (char**)&argPtrs[0]);
-		return -1; // Return -1 if we could not spawn the process
+		return -1;    // Return -1 if we could not spawn the process
 	}
 	else if (pid > 0)
 	{
 		int exitCode = EINTR;
-		while (exitCode == EINTR) wait(&exitCode);
+		while (exitCode == EINTR)
+			wait(&exitCode);
 		return exitCode;
 	}
 	else

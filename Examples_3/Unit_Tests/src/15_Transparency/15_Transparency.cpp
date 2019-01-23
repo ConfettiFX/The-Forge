@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,12 +23,12 @@
 */
 
 #define MAX_NUM_OBJECTS 128
-#define MAX_NUM_PARTICLES 2048 // Per system
+#define MAX_NUM_PARTICLES 2048    // Per system
 #define CUBES_EACH_ROW 5
 #define CUBES_EACH_COL 5
-#define CUBE_NUM (CUBES_EACH_ROW*CUBES_EACH_COL + 1)
-#define DEBUG_OUTPUT 1//exclusively used for texture data visulization, such as rendering depth, shadow map etc.
-#define AOIT_NODE_COUNT 4   // 2, 4 or 8. Higher numbers give better results at the cost of performance
+#define CUBE_NUM (CUBES_EACH_ROW * CUBES_EACH_COL + 1)
+#define DEBUG_OUTPUT 1       //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
+#define AOIT_NODE_COUNT 4    // 2, 4 or 8. Higher numbers give better results at the cost of performance
 #if AOIT_NODE_COUNT == 2
 #define AOIT_RT_COUNT 1
 #else
@@ -67,7 +67,7 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-const uint32_t		  gImageCount = 3;
+const uint32_t gImageCount = 3;
 
 typedef struct Vertex
 {
@@ -80,15 +80,15 @@ typedef struct Material
 {
 	float4 mColor;
 	float4 mTransmission;
-	float mRefractionRatio;
-	float mCollimation;
+	float  mRefractionRatio;
+	float  mCollimation;
 	float2 mPadding;
-	uint mTextureFlags;
-	uint mAlbedoTexture;
-	uint mMetallicTexture;
-	uint mRoughnessTexture;
-	uint mEmissiveTexture;
-	uint mPadding2[3];
+	uint   mTextureFlags;
+	uint   mAlbedoTexture;
+	uint   mMetallicTexture;
+	uint   mRoughnessTexture;
+	uint   mEmissiveTexture;
+	uint   mPadding2[3];
 } Material;
 
 typedef enum MeshResource
@@ -105,74 +105,74 @@ typedef enum MeshResource
 typedef struct MeshData
 {
 	Buffer* pVertexBuffer = NULL;
-	uint	mVertexCount = 0;
+	uint    mVertexCount = 0;
 	Buffer* pIndexBuffer = NULL;
-	uint	mIndexCount = 0;
+	uint    mIndexCount = 0;
 } MeshData;
 
 typedef struct Object
 {
-	vec3			mPosition;
-	vec3			mScale;
-	vec3			mOrientation;
-	MeshResource	mMesh;
-	Material		mMaterial;
+	vec3         mPosition;
+	vec3         mScale;
+	vec3         mOrientation;
+	MeshResource mMesh;
+	Material     mMaterial;
 } Object;
 
 typedef struct ParticleSystem
 {
 	Buffer* pParticleBuffer;
-	Object mObject;
+	Object  mObject;
 
-	tinystl::vector<vec3> mParticlePositions;
-	tinystl::vector<vec3> mParticleVelocities;
+	tinystl::vector<vec3>  mParticlePositions;
+	tinystl::vector<vec3>  mParticleVelocities;
 	tinystl::vector<float> mParticleLifetimes;
-	size_t mLifeParticleCount;
+	size_t                 mLifeParticleCount;
 } ParticleSystem;
 
 typedef struct Scene
 {
-	tinystl::vector<Object> mObjects;
+	tinystl::vector<Object>         mObjects;
 	tinystl::vector<ParticleSystem> mParticleSystems;
 } Scene;
 
 typedef struct DrawCall
 {
-	uint			mIndex;
-	uint			mInstanceCount;
-	uint			mInstanceOffset;
-	MeshResource	mMesh;
+	uint         mIndex;
+	uint         mInstanceCount;
+	uint         mInstanceOffset;
+	MeshResource mMesh;
 } DrawCall;
 
 typedef struct ObjectInfoStruct
 {
-	mat4 mToWorldMat;
-	mat4 mNormalMat;
-	uint mMaterialIndex;
+	mat4   mToWorldMat;
+	mat4   mNormalMat;
+	uint   mMaterialIndex;
 	float3 mPadding;
-}ObjectInfoStruct;
+} ObjectInfoStruct;
 
 typedef struct MaterialUniformBlock
 {
 	Material mMaterials[MAX_NUM_OBJECTS];
-}MaterialUniformBlock;
+} MaterialUniformBlock;
 
 typedef struct ObjectInfoUniformBlock
 {
-	ObjectInfoStruct	mObjectInfo[MAX_NUM_OBJECTS];
-}ObjectInfoUniformBlock;
+	ObjectInfoStruct mObjectInfo[MAX_NUM_OBJECTS];
+} ObjectInfoUniformBlock;
 
 typedef struct SkyboxUniformBlock
 {
 	mat4 mViewProject;
-}SkyboxUniformBlock;
+} SkyboxUniformBlock;
 
 typedef struct LightUniformBlock
 {
 	mat4 mLightViewProj;
-	vec4 mLightDirection = {-1, -1, -1, 0};
-	vec4 mLightColor = {1, 0, 0, 1};
-}LightUniformBlock;
+	vec4 mLightDirection = { -1, -1, -1, 0 };
+	vec4 mLightColor = { 1, 0, 0, 1 };
+} LightUniformBlock;
 
 typedef struct CameraUniform
 {
@@ -180,7 +180,7 @@ typedef struct CameraUniform
 	mat4 mViewMat;
 	vec4 mClipInfo;
 	vec4 mPosition;
-}CameraUniform;
+} CameraUniform;
 
 typedef struct AlphaBlendSettings
 {
@@ -190,23 +190,28 @@ typedef struct AlphaBlendSettings
 
 typedef struct WBOITSettings
 {
-	float mColorResistance = 1.0f;  // Increase if low-coverage foreground transparents are affecting background transparent color.
-	float mRangeAdjustment = 0.3f;  // Change to avoid saturating at the clamp bounds.
-	float mDepthRange = 200.0f;	 // Decrease if high-opacity surfaces seem �too transparent�, increase if distant transparents are blending together too much.
-	float mOrderingStrength = 4.0f; // Increase if background is showing through foreground too much.
-	float mUnderflowLimit = 1e-2f;  // Increase to reduce underflow artifacts.
-	float mOverflowLimit = 3e3f;		// Decrease to reduce overflow artifacts.
+	float mColorResistance = 1.0f;    // Increase if low-coverage foreground transparents are affecting background transparent color.
+	float mRangeAdjustment = 0.3f;    // Change to avoid saturating at the clamp bounds.
+	float mDepthRange =
+		200.0f;    // Decrease if high-opacity surfaces seem �too transparent�, increase if distant transparents are blending together too much.
+	float mOrderingStrength = 4.0f;    // Increase if background is showing through foreground too much.
+	float mUnderflowLimit = 1e-2f;     // Increase to reduce underflow artifacts.
+	float mOverflowLimit = 3e3f;       // Decrease to reduce overflow artifacts.
 } WBOITSettings;
 
 typedef struct WBOITVolitionSettings
 {
-	float mOpacitySensitivity = 3.0f;	   // Should be greater than 1, so that we only downweight nearly transparent things. Otherwise, everything at the same depth should get equal weight. Can be artist controlled
-	float mWeightBias = 5.0f;			   // Must be greater than zero. Weight bias helps prevent distant things from getting hugely lower weight than near things, as well as preventing floating point underflow
-	float mPrecisionScalar = 10000.0f;	  // Adjusts where the weights fall in the floating point range, used to balance precision to combat both underflow and overflow
-	float mMaximumWeight = 20.0f;		   // Don't weight near things more than a certain amount to both combat overflow and reduce the "overpower" effect of very near vs. very far things
+	float mOpacitySensitivity =
+		3.0f;    // Should be greater than 1, so that we only downweight nearly transparent things. Otherwise, everything at the same depth should get equal weight. Can be artist controlled
+	float mWeightBias =
+		5.0f;    // Must be greater than zero. Weight bias helps prevent distant things from getting hugely lower weight than near things, as well as preventing floating point underflow
+	float mPrecisionScalar =
+		10000.0f;    // Adjusts where the weights fall in the floating point range, used to balance precision to combat both underflow and overflow
+	float mMaximumWeight =
+		20.0f;    // Don't weight near things more than a certain amount to both combat overflow and reduce the "overpower" effect of very near vs. very far things
 	float mMaximumColorValue = 1000.0f;
-	float mAdditiveSensitivity = 10.0f;	 // How much we amplify the emissive when deciding whether to consider this additively blended
-	float mEmissiveSensitivity = 0.5f;	  // Artist controlled value between 0.01 and 1
+	float mAdditiveSensitivity = 10.0f;    // How much we amplify the emissive when deciding whether to consider this additively blended
+	float mEmissiveSensitivity = 0.5f;     // Artist controlled value between 0.01 and 1
 } WBOITVolitionSettings;
 
 typedef enum WBOITRenderTargets
@@ -216,14 +221,11 @@ typedef enum WBOITRenderTargets
 	WBOIT_RT_COUNT
 } WBOITRenderTargets;
 
-ImageFormat::Enum gWBOITRenderTargetFormats[WBOIT_RT_COUNT] =
-{
-	ImageFormat::RGBA16F, ImageFormat::RGBA8
-};
+ImageFormat::Enum gWBOITRenderTargetFormats[WBOIT_RT_COUNT] = { ImageFormat::RGBA16F, ImageFormat::RGBA8 };
 
 typedef enum PTRenderTargets
 {
-	PT_RT_ACCUMULATION, // Shared with WBOIT
+	PT_RT_ACCUMULATION,    // Shared with WBOIT
 	PT_RT_MODULATION,
 #if PT_USE_REFRACTION != 0
 	PT_RT_REFRACTION,
@@ -231,10 +233,7 @@ typedef enum PTRenderTargets
 	PT_RT_COUNT
 } PTRenderTargets;
 
-ImageFormat::Enum gPTRenderTargetFormats[3] =
-{
-	ImageFormat::RGBA16F, ImageFormat::RGBA8, ImageFormat::RG16F
-};
+ImageFormat::Enum gPTRenderTargetFormats[3] = { ImageFormat::RGBA16F, ImageFormat::RGBA8, ImageFormat::RG16F };
 
 typedef enum TextureResource
 {
@@ -363,8 +362,8 @@ RenderTarget* pRenderTargetPTShadowFinal[2][3] = { NULL };
 /************************************************************************/
 #if defined(DIRECT3D12) && !defined(_DURANGO)
 Texture* pTextureAOITClearMask;
-Buffer* pBufferAOITDepthData;
-Buffer* pBufferAOITColorData;
+Buffer*  pBufferAOITDepthData;
+Buffer*  pBufferAOITColorData;
 #endif
 /************************************************************************/
 // Samplers
@@ -374,7 +373,7 @@ Sampler* pSamplerPointClamp = NULL;
 Sampler* pSamplerBilinear = NULL;
 Sampler* pSamplerTrilinearAniso = NULL;
 Sampler* pSamplerSkybox = NULL;
-Sampler* pSamplerShadow = NULL; // Only created when USE_SHADOWS != 0
+Sampler* pSamplerShadow = NULL;    // Only created when USE_SHADOWS != 0
 
 /************************************************************************/
 // Rasterizer states
@@ -411,9 +410,9 @@ VertexLayout* pVertexLayoutDefault = NULL;
 /************************************************************************/
 // Resources
 /************************************************************************/
-Buffer*	 pBufferSkyboxVertex = NULL;
-MeshData*   pMeshes[MESH_COUNT] = {};
-Texture*	pTextures[TEXTURE_COUNT] = {};
+Buffer*   pBufferSkyboxVertex = NULL;
+MeshData* pMeshes[MESH_COUNT] = {};
+Texture*  pTextures[TEXTURE_COUNT] = {};
 
 /************************************************************************/
 // Uniform buffers
@@ -438,100 +437,98 @@ typedef enum TransparencyType
 #endif
 } TransparencyType;
 
-
 struct
 {
-	float3 mLightPosition = { 0, 10, 10 };//light position, will be changed by GUI editor if not iOS
+	float3 mLightPosition = { 0, 10, 10 };    //light position, will be changed by GUI editor if not iOS
 } gLightCpuSettings;
 
 /************************************************************************/
 
 #ifdef TARGET_IOS
-VirtualJoystickUI   gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
 
 // Constants
-uint32_t				gFrameIndex = 0;
-GpuProfiler*			pGpuProfiler = NULL;
-float				   gCurrentTime = 0.0f;
+uint32_t     gFrameIndex = 0;
+GpuProfiler* pGpuProfiler = NULL;
+float        gCurrentTime = 0.0f;
 
-MaterialUniformBlock	gMaterialUniformData;
-ObjectInfoUniformBlock  gObjectInfoUniformData;
-ObjectInfoUniformBlock  gTransparentObjectInfoUniformData;
-SkyboxUniformBlock	  gSkyboxUniformData;
-LightUniformBlock	   gLightUniformData;
-CameraUniform		   gCameraUniformData;
-CameraUniform		   gCameraLightUniformData;
-AlphaBlendSettings	  gAlphaBlendSettings;
-WBOITSettings		   gWBOITSettingsData;
-WBOITVolitionSettings   gWBOITVolitionSettingsData;
+MaterialUniformBlock   gMaterialUniformData;
+ObjectInfoUniformBlock gObjectInfoUniformData;
+ObjectInfoUniformBlock gTransparentObjectInfoUniformData;
+SkyboxUniformBlock     gSkyboxUniformData;
+LightUniformBlock      gLightUniformData;
+CameraUniform          gCameraUniformData;
+CameraUniform          gCameraLightUniformData;
+AlphaBlendSettings     gAlphaBlendSettings;
+WBOITSettings          gWBOITSettingsData;
+WBOITVolitionSettings  gWBOITVolitionSettingsData;
 
-Scene				   gScene;
+Scene                     gScene;
 tinystl::vector<DrawCall> gOpaqueDrawCalls;
 tinystl::vector<DrawCall> gTransparentDrawCalls;
-vec3					gObjectsCenter = {0, 0, 0};
+vec3                      gObjectsCenter = { 0, 0, 0 };
 
-ICameraController*	  pCameraController = NULL;
-ICameraController*	  pLightView = NULL;
+ICameraController* pCameraController = NULL;
+ICameraController* pLightView = NULL;
 
 /// UI
-UIApp				   gAppUI;
-GuiComponent*		   pGuiWindow = NULL;
-TextDrawDesc			gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-HiresTimer			  gCpuTimer;
+UIApp         gAppUI;
+GuiComponent* pGuiWindow = NULL;
+TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+HiresTimer    gCpuTimer;
 
-FileSystem			  gFileSystem;
-LogManager			  gLogManager;
+FileSystem gFileSystem;
+LogManager gLogManager;
 
-Renderer*			   pRenderer = NULL;
+Renderer* pRenderer = NULL;
 
-Queue*				  pGraphicsQueue = NULL;
-CmdPool*				pCmdPool = NULL;
-Cmd**				   ppCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-SwapChain*			  pSwapChain = NULL;
-Fence*				  pRenderCompleteFences[gImageCount] = {NULL};
-Semaphore*			  pImageAcquiredSemaphore = NULL;
-Semaphore*			  pRenderCompleteSemaphores[gImageCount] = {NULL};
+SwapChain* pSwapChain = NULL;
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-uint32_t				gTransparencyType = TRANSPARENCY_TYPE_PHENOMENOLOGICAL;
+uint32_t gTransparencyType = TRANSPARENCY_TYPE_PHENOMENOLOGICAL;
 
-const char* pSkyboxImageFileNames[] =
-{
-	"skybox/hw_sahara/sahara_rt.tga",
-	"skybox/hw_sahara/sahara_lf.tga",
-	"skybox/hw_sahara/sahara_up.tga",
-	"skybox/hw_sahara/sahara_dn.tga",
-	"skybox/hw_sahara/sahara_ft.tga",
-	"skybox/hw_sahara/sahara_bk.tga",
+const char* pSkyboxImageFileNames[] = {
+	"skybox/hw_sahara/sahara_rt.tga", "skybox/hw_sahara/sahara_lf.tga", "skybox/hw_sahara/sahara_up.tga",
+	"skybox/hw_sahara/sahara_dn.tga", "skybox/hw_sahara/sahara_ft.tga", "skybox/hw_sahara/sahara_bk.tga",
 };
 
-const char* pszBases[] =
-{
-	"../../../src/15_Transparency/",										// FSR_BinShaders
-	"../../../src/15_Transparency/",										// FSR_SrcShaders
-	"",																		// FSR_BinShaders_Common
-	"",																		// FSR_SrcShaders_Common
-	"../../../UnitTestResources/",											// FSR_Textures
-	"../../../UnitTestResources/",											// FSR_Meshes
-	"../../../UnitTestResources/",											// FSR_Builtin_Fonts
-	"../../../src/15_Transparency/",										// FSR_GpuConfig
-	"",																		// FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/15_Transparency/",        // FSR_BinShaders
+	"../../../src/15_Transparency/",        // FSR_SrcShaders
+	"../../../UnitTestResources/",          // FSR_Textures
+	"../../../UnitTestResources/",          // FSR_Meshes
+	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
+	"../../../src/15_Transparency/",        // FSR_GpuConfig
+	"",                                     // FSR_Animation
+	"",                                     // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
-void AddObject(MeshResource mesh, vec3 position, vec4 color, vec3 translucency = vec3(0.0f), float eta = 1.0f, float collimation = 0.0f, vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
+void AddObject(
+	MeshResource mesh, vec3 position, vec4 color, vec3 translucency = vec3(0.0f), float eta = 1.0f, float collimation = 0.0f,
+	vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
 {
-	gScene.mObjects.push_back({ position, scale, orientation, mesh, {v4ToF4(color), float4(v3ToF3(translucency), 0.0f), eta, collimation} });
+	gScene.mObjects.push_back(
+		{ position, scale, orientation, mesh, { v4ToF4(color), float4(v3ToF3(translucency), 0.0f), eta, collimation } });
 }
 
 void AddObject(MeshResource mesh, vec3 position, TextureResource texture, vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
 {
-	gScene.mObjects.push_back({ position, scale, orientation, mesh, {float4(1.0f), float4(0.0f), 1.0f, 0.0f, float2(0.0f), 1, (uint)texture, 0, 0 } });
+	gScene.mObjects.push_back(
+		{ position, scale, orientation, mesh, { float4(1.0f), float4(0.0f), 1.0f, 0.0f, float2(0.0f), 1, (uint)texture, 0, 0 } });
 }
 
 void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f), vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
 {
-	Buffer* pParticleBuffer = NULL;
+	Buffer*        pParticleBuffer = NULL;
 	BufferLoadDesc particleBufferDesc = {};
 	particleBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	particleBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
@@ -541,7 +538,13 @@ void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f)
 	particleBufferDesc.ppBuffer = &pParticleBuffer;
 	addResource(&particleBufferDesc);
 
-	gScene.mParticleSystems.push_back({ pParticleBuffer, {position, scale, orientation, MESH_PARTICLE_SYSTEM, {v4ToF4(color), float4(v3ToF3(translucency), 0.0f), 1.0f, 1.0f}}, MAX_NUM_PARTICLES, MAX_NUM_PARTICLES, MAX_NUM_PARTICLES, 0 });
+	gScene.mParticleSystems.push_back(
+		{ pParticleBuffer,
+		  { position, scale, orientation, MESH_PARTICLE_SYSTEM, { v4ToF4(color), float4(v3ToF3(translucency), 0.0f), 1.0f, 1.0f } },
+		  MAX_NUM_PARTICLES,
+		  MAX_NUM_PARTICLES,
+		  MAX_NUM_PARTICLES,
+		  0 });
 }
 
 static void CreateScene()
@@ -551,7 +554,7 @@ static void CreateScene()
 
 	// Set cubes
 	const float cubeDist = 3.0f;
-	vec3 curTrans = { -cubeDist*(CUBES_EACH_ROW - 1)/2.f, 2.3f, -cubeDist*(CUBES_EACH_COL - 1)/2.f };
+	vec3        curTrans = { -cubeDist * (CUBES_EACH_ROW - 1) / 2.f, 2.3f, -cubeDist * (CUBES_EACH_COL - 1) / 2.f };
 
 	for (int i = 0; i < CUBES_EACH_ROW; ++i)
 	{
@@ -559,7 +562,10 @@ static void CreateScene()
 
 		for (int j = 0; j < CUBES_EACH_COL; j++)
 		{
-			AddObject(MESH_CUBE,  curTrans, vec4(float(i + 1) / CUBES_EACH_ROW, 1.0f - float(i + 1) / CUBES_EACH_ROW, 0.0f, float(j + 1) / CUBES_EACH_COL), vec3(0.0f), 1.0f, 1.0f, vec3(1.0f));
+			AddObject(
+				MESH_CUBE, curTrans,
+				vec4(float(i + 1) / CUBES_EACH_ROW, 1.0f - float(i + 1) / CUBES_EACH_ROW, 0.0f, float(j + 1) / CUBES_EACH_COL), vec3(0.0f),
+				1.0f, 1.0f, vec3(1.0f));
 			curTrans.setX(curTrans.getX() + cubeDist);
 		}
 
@@ -575,22 +581,29 @@ static void CreateScene()
 	AddObject(MESH_CUBE, vec3(-15.0f, 4.0f, -5.0f), vec4(0.0f, 0.0f, 1.0f, 0.5f), vec3(0.0f), 1.0f, 1.0f, vec3(4.0f, 4.0f, 0.1f));
 
 	for (int i = 0; i < 25; ++i)
-		AddObject(MESH_CUBE, vec3(i * 2.0f - 25.0f, 4.0f, 25.0f), vec4(3.0f, 3.0f, 10.0f, 0.1f), vec3(0.0f), 1.0f, 1.0f, vec3(0.1f, 4.0f, 4.0f));
+		AddObject(
+			MESH_CUBE, vec3(i * 2.0f - 25.0f, 4.0f, 25.0f), vec4(3.0f, 3.0f, 10.0f, 0.1f), vec3(0.0f), 1.0f, 1.0f, vec3(0.1f, 4.0f, 4.0f));
 
 	AddObject(MESH_CUBE, vec3(1.0f, 5.0f, -22.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(0.5f, 0.5f, 0.01f));
 	AddObject(MESH_CUBE, vec3(-1.0f, 5.0f, -35.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(1.0f, 1.0f, 0.005f));
 	AddObject(MESH_SPHERE, vec3(0.0f, 5.0f, -25.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.5f, 0.0f, vec3(4.0f));
 
 	AddObject(MESH_LION, vec3(10.0f, 0.0f, -25.0f), vec4(1.0f), vec3(0.0f), 1.0f, 0.0f, vec3(0.25f), vec3(0.0f, PI, 0.0f));
-	AddObject(MESH_CUBE, vec3(7.0f, 5.0f, -22.0f), vec4(1.0f, 0.3f, 0.3f, 0.9f), vec3(1.0f, 0.3f, 0.3f), 1.0f, 0.0f, vec3(1.5f, 4.0f, 0.005f));
-	AddObject(MESH_CUBE, vec3(10.0f, 5.0f, -22.0f), vec4(0.3f, 1.0f, 0.3f, 0.9f), vec3(0.3f, 1.0f, 0.3f), 1.0f, 0.5f, vec3(1.5f, 4.0f, 0.005f));
-	AddObject(MESH_CUBE, vec3(13.0f, 5.0f, -22.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.0f, 0.9f, vec3(1.5f, 4.0f, 0.005f));
+	AddObject(
+		MESH_CUBE, vec3(7.0f, 5.0f, -22.0f), vec4(1.0f, 0.3f, 0.3f, 0.9f), vec3(1.0f, 0.3f, 0.3f), 1.0f, 0.0f, vec3(1.5f, 4.0f, 0.005f));
+	AddObject(
+		MESH_CUBE, vec3(10.0f, 5.0f, -22.0f), vec4(0.3f, 1.0f, 0.3f, 0.9f), vec3(0.3f, 1.0f, 0.3f), 1.0f, 0.5f, vec3(1.5f, 4.0f, 0.005f));
+	AddObject(
+		MESH_CUBE, vec3(13.0f, 5.0f, -22.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.0f, 0.9f, vec3(1.5f, 4.0f, 0.005f));
 
 	AddParticleSystem(vec3(30.0f, 5.0f, 20.0f), vec4(1.0f, 0.0f, 0.0f, 0.5f));
 	AddParticleSystem(vec3(30.0f, 5.0f, 25.0f), vec4(1.0f, 1.0f, 0.0f, 0.5f));
 
-	AddObject(MESH_PLANE, vec3(-15.0f - 5.0f, 10.0f, -25.0f), TEXTURE_MEASURING_GRID, vec3(10.0f, 1.0f, 10.0f), vec3(-90.0f * (PI / 180.0f), PI, 0.0f));
-	AddObject(MESH_SPHERE, vec3(-17.5f - 5.0f, 5.0f, -20.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.001f, 1.0f, vec3(1.0f));
+	AddObject(
+		MESH_PLANE, vec3(-15.0f - 5.0f, 10.0f, -25.0f), TEXTURE_MEASURING_GRID, vec3(10.0f, 1.0f, 10.0f),
+		vec3(-90.0f * (PI / 180.0f), PI, 0.0f));
+	AddObject(
+		MESH_SPHERE, vec3(-17.5f - 5.0f, 5.0f, -20.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.001f, 1.0f, vec3(1.0f));
 	AddObject(MESH_SPHERE, vec3(-15.0f - 5.0f, 5.0f, -20.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.3f, 1.0f, vec3(1.0f));
 	AddObject(MESH_SPHERE, vec3(-12.5f - 5.0f, 5.0f, -20.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.5f, 1.0f, vec3(1.0f));
 }
@@ -599,11 +612,11 @@ int DistanceCompare(const float3& a, const float3& b)
 {
 	if (a.getX() < b.getX())
 		return -1;
-	else if(a.getX() > b.getX())
+	else if (a.getX() > b.getX())
 		return 1;
 	if (a.getY() < b.getY())
 		return -1;
-	else if(a.getY() > b.getY())
+	else if (a.getY() > b.getY())
 		return 1;
 
 	return 0;
@@ -621,8 +634,8 @@ int MeshCompare(const float2& a, const float2& b)
 
 void SwapParticles(ParticleSystem* pParticleSystem, size_t a, size_t b)
 {
-	vec3 pos = pParticleSystem->mParticlePositions[a];
-	vec3 vel = pParticleSystem->mParticleVelocities[a];
+	vec3  pos = pParticleSystem->mParticlePositions[a];
+	vec3  vel = pParticleSystem->mParticleVelocities[a];
 	float life = pParticleSystem->mParticleLifetimes[a];
 
 	pParticleSystem->mParticlePositions[a] = pParticleSystem->mParticlePositions[b];
@@ -647,18 +660,18 @@ struct GuiController
 
 	static TransparencyType currentTransparencyType;
 };
-DynamicUIControls   GuiController::alphaBlendDynamicWidgets;
-DynamicUIControls   GuiController::weightedBlendedOitDynamicWidgets;
-DynamicUIControls   GuiController::weightedBlendedOitVolitionDynamicWidgets;
-TransparencyType	GuiController::currentTransparencyType;
+DynamicUIControls GuiController::alphaBlendDynamicWidgets;
+DynamicUIControls GuiController::weightedBlendedOitDynamicWidgets;
+DynamicUIControls GuiController::weightedBlendedOitVolitionDynamicWidgets;
+TransparencyType  GuiController::currentTransparencyType;
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-class Transparency : public IApp
+class Transparency: public IApp
 {
-public:
+	public:
 	bool Init() override
 	{
-		RendererDesc settings = {NULL};
+		RendererDesc settings = { NULL };
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		QueueDesc queueDesc = {};
@@ -674,10 +687,8 @@ public:
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
 		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
-
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -706,18 +717,25 @@ public:
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(5, 200.0f);
-		guiDesc.mStartSize = vec2(450, 600);
+		float   dpiScale = getDpiScale().x;
+		guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
+		;
+		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
+		;
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		GuiController::AddGui();
 
-
-		CameraMotionParameters cmp{16.0f, 60.0f, 20.0f};
-		vec3 camPos{0, 5, -15};
-		vec3 lookAt{0, 5, 0};
+		CameraMotionParameters cmp{ 16.0f, 60.0f, 20.0f };
+		vec3                   camPos{ 0, 5, -15 };
+		vec3                   lookAt{ 0, 5, 0 };
 
 		pLightView = createGuiCameraController(camPos, lookAt);
 		pCameraController = createFpsCameraController(camPos, lookAt);
+
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		gVirtualJoystick.InitLRSticks();
+		pCameraController->setVirtualJoystick(&gVirtualJoystick);
+#endif
 		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
@@ -739,7 +757,6 @@ public:
 
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
-
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
@@ -810,7 +827,6 @@ public:
 		if (getKeyDown(KEY_BUTTON_X))
 			RecenterCameraView(170.0f);
 
-
 		// Dynamic UI elements
 		GuiController::UpdateDynamicUI();
 
@@ -820,12 +836,12 @@ public:
 		const float zNear = 1.0f;
 		const float zFar = 4000.0f;
 		pCameraController->update(deltaTime);
-		mat4 viewMat = pCameraController->getViewMatrix();
+		mat4        viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, zNear, zFar);//view matrix
-		vec3 camPos = pCameraController->getViewPosition();
-		mat4 vpMatrix = projMat * viewMat;
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, zNear, zFar);    //view matrix
+		vec3        camPos = pCameraController->getViewPosition();
+		mat4        vpMatrix = projMat * viewMat;
 
 		/************************************************************************/
 		// Light Update
@@ -860,7 +876,7 @@ public:
 		/************************************************************************/
 		// Update Skybox
 		/************************************************************************/
-		viewMat.setTranslation(vec3(0,0,0));
+		viewMat.setTranslation(vec3(0, 0, 0));
 		gSkyboxUniformData.mViewProject = projMat * viewMat;
 		/************************************************************************/
 		// Light Matrix Update
@@ -876,9 +892,9 @@ public:
 	void UpdateParticleSystems(float deltaTime, mat4 viewMat, vec3 camPos)
 	{
 		tinystl::vector<Vertex> tempVertexBuffer(6 * MAX_NUM_PARTICLES);
-		const float particleSize = 0.2f;
-		const vec3 camRight = vec3(viewMat[0][0], viewMat[1][0], viewMat[2][0]) * particleSize;
-		const vec3 camUp = vec3(viewMat[0][1], viewMat[1][1], viewMat[2][1]) * particleSize;
+		const float             particleSize = 0.2f;
+		const vec3              camRight = vec3(viewMat[0][0], viewMat[1][0], viewMat[2][0]) * particleSize;
+		const vec3              camUp = vec3(viewMat[0][1], viewMat[1][1], viewMat[2][1]) * particleSize;
 
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 		{
@@ -904,7 +920,9 @@ public:
 			for (size_t j = 0; j < newParticleCount && pParticleSystem->mLifeParticleCount < MAX_NUM_PARTICLES; ++j)
 			{
 				size_t pi = pParticleSystem->mLifeParticleCount;
-				pParticleSystem->mParticleVelocities[pi] = normalize(vec3(sin(gCurrentTime + pi) * 0.97f, cos(gCurrentTime * gCurrentTime + pi), sin(gCurrentTime * pi)) * cos(gCurrentTime + deltaTime * pi));
+				pParticleSystem->mParticleVelocities[pi] = normalize(
+					vec3(sin(gCurrentTime + pi) * 0.97f, cos(gCurrentTime * gCurrentTime + pi), sin(gCurrentTime * pi)) *
+					cos(gCurrentTime + deltaTime * pi));
 				pParticleSystem->mParticlePositions[pi] = pParticleSystem->mParticleVelocities[pi];
 				pParticleSystem->mParticleLifetimes[pi] = (sin(gCurrentTime + pi) + 1.0f) * 3.0f + 10.0f;
 				++pParticleSystem->mLifeParticleCount;
@@ -958,26 +976,29 @@ public:
 		}
 	}
 
-	void CreateDrawCalls(float* pSortedObjects, uint objectCount, uint sizeOfObject, ObjectInfoUniformBlock* pObjectUniformBlock, MaterialUniformBlock* pMaterialUniformBlock, uint* pMaterialCount, tinystl::vector<DrawCall>* pDrawCalls)
+	void CreateDrawCalls(
+		float* pSortedObjects, uint objectCount, uint sizeOfObject, ObjectInfoUniformBlock* pObjectUniformBlock,
+		MaterialUniformBlock* pMaterialUniformBlock, uint* pMaterialCount, tinystl::vector<DrawCall>* pDrawCalls)
 	{
 		const uint meshIndexOffset = sizeOfObject - 2;
 		const uint objectIndexOffset = sizeOfObject - 1;
 
-		uint instanceCount = 0;
-		uint instanceOffset = 0;
+		uint         instanceCount = 0;
+		uint         instanceOffset = 0;
 		MeshResource prevMesh = (MeshResource)0xFFFFFFFF;
 		for (uint i = 0; i < objectCount; ++i)
 		{
-			uint sortedObjectIndex = (objectCount - i - 1) * sizeOfObject;
+			uint          sortedObjectIndex = (objectCount - i - 1) * sizeOfObject;
 			const Object* pObj = NULL;
-			MeshResource mesh = (MeshResource)(int)pSortedObjects[sortedObjectIndex + meshIndexOffset];
-			int index = (int)pSortedObjects[sortedObjectIndex + objectIndexOffset];
+			MeshResource  mesh = (MeshResource)(int)pSortedObjects[sortedObjectIndex + meshIndexOffset];
+			int           index = (int)pSortedObjects[sortedObjectIndex + objectIndexOffset];
 			if (mesh < MESH_COUNT)
 				pObj = &gScene.mObjects[index];
 			else
 				pObj = &gScene.mParticleSystems[index].mObject;
 
-			pObjectUniformBlock->mObjectInfo[i].mToWorldMat = mat4::translation(pObj->mPosition) * mat4::rotationZYX(pObj->mOrientation) * mat4::scale(pObj->mScale);
+			pObjectUniformBlock->mObjectInfo[i].mToWorldMat =
+				mat4::translation(pObj->mPosition) * mat4::rotationZYX(pObj->mOrientation) * mat4::scale(pObj->mScale);
 			pObjectUniformBlock->mObjectInfo[i].mNormalMat = mat4::rotationZYX(pObj->mOrientation);
 			pObjectUniformBlock->mObjectInfo[i].mMaterialIndex = *pMaterialCount;
 			pMaterialUniformBlock->mMaterials[*pMaterialCount] = pObj->mMaterial;
@@ -1038,9 +1059,11 @@ public:
 
 			opaqueObjectCount = (int)sortedArray.size();
 			ASSERT(opaqueObjectCount < MAX_NUM_OBJECTS);
-			sortedArray.sort(MeshCompare);  // Sorts by mesh
+			sortedArray.sort(MeshCompare);    // Sorts by mesh
 
-			CreateDrawCalls((float*)sortedArray.data(), opaqueObjectCount, sizeof(sortedArray[0]) / sizeof(float), &gObjectInfoUniformData, &gMaterialUniformData, &materialCount, &gOpaqueDrawCalls);
+			CreateDrawCalls(
+				(float*)sortedArray.data(), opaqueObjectCount, sizeof(sortedArray[0]) / sizeof(float), &gObjectInfoUniformData,
+				&gMaterialUniformData, &materialCount, &gOpaqueDrawCalls);
 		}
 
 		// Create list of transparent objects
@@ -1054,20 +1077,24 @@ public:
 			{
 				const Object* pObj = &gScene.mObjects[i];
 				if (pObj->mMaterial.mColor.getW() < 1.0f)
-					sortedArray.push_back({ (float)distSqr(Point3(camPos), Point3(pObj->mPosition)) - (float)pow(maxElem(pObj->mScale), 2), (float)pObj->mMesh, (float)i });
+					sortedArray.push_back({ (float)distSqr(Point3(camPos), Point3(pObj->mPosition)) - (float)pow(maxElem(pObj->mScale), 2),
+											(float)pObj->mMesh, (float)i });
 			}
 			for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			{
 				const Object* pObj = &gScene.mParticleSystems[i].mObject;
 				if (pObj->mMaterial.mColor.getW() < 1.0f)
-					sortedArray.push_back({ (float)distSqr(Point3(camPos), Point3(pObj->mPosition)) - (float)pow(maxElem(pObj->mScale), 2), (float)pObj->mMesh, (float)i });
+					sortedArray.push_back({ (float)distSqr(Point3(camPos), Point3(pObj->mPosition)) - (float)pow(maxElem(pObj->mScale), 2),
+											(float)pObj->mMesh, (float)i });
 			}
 
 			transparentObjectCount = (int)sortedArray.size();
 			ASSERT(transparentObjectCount < MAX_NUM_OBJECTS);
-			sortedArray.sort(DistanceCompare);  // Sorts by distance first, then by mesh
+			sortedArray.sort(DistanceCompare);    // Sorts by distance first, then by mesh
 
-			CreateDrawCalls((float*)sortedArray.data(), transparentObjectCount, sizeof(sortedArray[0]) / sizeof(float), &gTransparentObjectInfoUniformData, &gMaterialUniformData, &materialCount, &gTransparentDrawCalls);
+			CreateDrawCalls(
+				(float*)sortedArray.data(), transparentObjectCount, sizeof(sortedArray[0]) / sizeof(float),
+				&gTransparentObjectInfoUniformData, &gMaterialUniformData, &materialCount, &gTransparentDrawCalls);
 		}
 		else
 		{
@@ -1088,9 +1115,11 @@ public:
 
 			transparentObjectCount = (int)sortedArray.size();
 			ASSERT(transparentObjectCount < MAX_NUM_OBJECTS);
-			sortedArray.sort(MeshCompare);  // Sorts by mesh
+			sortedArray.sort(MeshCompare);    // Sorts by mesh
 
-			CreateDrawCalls((float*)sortedArray.data(), transparentObjectCount, sizeof(sortedArray[0]) / sizeof(float), &gTransparentObjectInfoUniformData, &gMaterialUniformData, &materialCount, &gTransparentDrawCalls);
+			CreateDrawCalls(
+				(float*)sortedArray.data(), transparentObjectCount, sizeof(sortedArray[0]) / sizeof(float),
+				&gTransparentObjectInfoUniformData, &gMaterialUniformData, &materialCount, &gTransparentDrawCalls);
 		}
 	}
 
@@ -1160,7 +1189,9 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[0], pRenderTargetShadowDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetShadowVariance[0]->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetShadowVariance[0]->mDesc.mHeight,
+			0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, pRenderTargetShadowVariance[0]->mDesc.mWidth, pRenderTargetShadowVariance[0]->mDesc.mHeight);
 
 		// Draw the opaque objects.
@@ -1169,7 +1200,9 @@ public:
 
 		cmdBindPipeline(pCmd, pPipelineShadow);
 
-		DrawObjects(pCmd, &gOpaqueDrawCalls, pRootSignatureShadow, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraLightUniform[gFrameIndex], false, false);
+		DrawObjects(
+			pCmd, &gOpaqueDrawCalls, pRootSignatureShadow, pBufferOpaqueObjectTransforms[gFrameIndex],
+			pBufferCameraLightUniform[gFrameIndex], false, false);
 		cmdEndDebugMarker(pCmd);
 
 		// Blur shadow map
@@ -1192,7 +1225,7 @@ public:
 			cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 			DescriptorData params[2] = {};
-			float axis = 0.0f;
+			float          axis = 0.0f;
 			params[0].pName = "RootConstant";
 			params[0].pRootConstant = &axis;
 			params[1].pName = "Source";
@@ -1259,7 +1292,9 @@ public:
 		{
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowVariance[w], NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdBindPipeline(pCmd, pPipelinePTCopyShadowDepth);
-			cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetViewport(
+				pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth,
+				(float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mDesc.mWidth, pRenderTargetPTShadowVariance[0]->mDesc.mHeight);
 
 			DescriptorData param = {};
@@ -1271,12 +1306,13 @@ public:
 		}
 		cmdEndDebugMarker(pCmd);
 
-
 		// Start render pass and apply load actions
 		for (int i = 0; i < 3; ++i)
 			loadActions.mLoadActionsColor[i] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(pCmd, 3, pRenderTargetPTShadowVariance, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight,
+			0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mDesc.mWidth, pRenderTargetPTShadowVariance[0]->mDesc.mHeight);
 
 		// Draw the opaque objects.
@@ -1284,7 +1320,9 @@ public:
 
 		cmdBindPipeline(pCmd, pPipelinePTShadow);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignaturePTShadow, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraLightUniform[gFrameIndex], true, false);
+		DrawObjects(
+			pCmd, &gTransparentDrawCalls, pRootSignaturePTShadow, pBufferTransparentObjectTransforms[gFrameIndex],
+			pBufferCameraLightUniform[gFrameIndex], true, false);
 		cmdEndDebugMarker(pCmd);
 
 		// Downsample shadow map
@@ -1303,7 +1341,9 @@ public:
 			cmdResourceBarrier(pCmd, 0, NULL, 2, barriers, false);
 
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowFinal[0][w], NULL, &loadActions, NULL, NULL, -1, -1);
-			cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth, (float)pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetViewport(
+				pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth,
+				(float)pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth, pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight);
 
 			cmdBindPipeline(pCmd, pPipelinePTDownsample);
@@ -1339,7 +1379,7 @@ public:
 				cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 				DescriptorData params[2] = {};
-				float axis = 0.0f;
+				float          axis = 0.0f;
 				params[0].pName = "RootConstant";
 				params[0].pRootConstant = &axis;
 				params[1].pName = "Source";
@@ -1384,13 +1424,15 @@ public:
 #endif
 	}
 
-	void DrawObjects(Cmd* pCmd, tinystl::vector<DrawCall>* pDrawCalls, RootSignature* pRootSignature, Buffer* pObjectTransforms, Buffer* cameraBuffer, bool bindMaterials = true, bool bindLights = true)
+	void DrawObjects(
+		Cmd* pCmd, tinystl::vector<DrawCall>* pDrawCalls, RootSignature* pRootSignature, Buffer* pObjectTransforms, Buffer* cameraBuffer,
+		bool bindMaterials = true, bool bindLights = true)
 	{
 		static MeshResource boundMesh = (MeshResource)0xFFFFFFFF;
-		static uint vertexCount = 0;
-		static uint indexCount = 0;
+		static uint         vertexCount = 0;
+		static uint         indexCount = 0;
 
-		uint descriptorCount = 2;
+		uint           descriptorCount = 2;
 		DescriptorData params[9] = {};
 		params[0].pName = "ObjectUniformBlock";
 		params[0].ppBuffers = &pObjectTransforms;
@@ -1447,7 +1489,7 @@ public:
 				else
 				{
 					cmdBindVertexBuffer(pCmd, 1, &pMeshes[dc->mMesh]->pVertexBuffer, NULL);
-					if(pMeshes[dc->mMesh]->pIndexBuffer)
+					if (pMeshes[dc->mMesh]->pIndexBuffer)
 						cmdBindIndexBuffer(pCmd, pMeshes[dc->mMesh]->pIndexBuffer, NULL);
 					vertexCount = pMeshes[dc->mMesh]->mVertexCount;
 					indexCount = pMeshes[dc->mMesh]->mIndexCount;
@@ -1483,7 +1525,8 @@ public:
 
 		cmdBindPipeline(pCmd, pPipelineForward);
 
-		DrawObjects(pCmd, &gOpaqueDrawCalls, pRootSignatureForward, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
+		DrawObjects(
+			pCmd, &gOpaqueDrawCalls, pRootSignatureForward, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 #if PT_USE_DIFFUSION != 0
@@ -1516,8 +1559,10 @@ public:
 
 				uint groupCountX = mipSizeX / 16;
 				uint groupCountY = mipSizeY / 16;
-				if (groupCountX == 0) groupCountX = 1;
-				if (groupCountY == 0) groupCountY = 1;
+				if (groupCountX == 0)
+					groupCountX = 1;
+				if (groupCountY == 0)
+					groupCountY = 1;
 				cmdDispatch(pCmd, groupCountX, groupCountY, 1);
 			}
 
@@ -1548,7 +1593,9 @@ public:
 
 		cmdBindPipeline(pCmd, pPipelineTransparentForward);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignatureForward, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
+		DrawObjects(
+			pCmd, &gTransparentDrawCalls, pRootSignatureForward, pBufferTransparentObjectTransforms[gFrameIndex],
+			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1557,8 +1604,8 @@ public:
 
 	void WeightedBlendedOrderIndependentTransparencyPass(Cmd* pCmd, bool volition)
 	{
-		Pipeline* pShadePipeline = volition ? pPipelineWBOITVShade : pPipelineWBOITShade;
-		Pipeline* pCompositePipeline = volition ? pPipelineWBOITVComposite : pPipelineWBOITComposite;
+		Pipeline*      pShadePipeline = volition ? pPipelineWBOITVShade : pPipelineWBOITShade;
+		Pipeline*      pCompositePipeline = volition ? pPipelineWBOITVComposite : pPipelineWBOITComposite;
 		RootSignature* pShadeRootSignature = volition ? pRootSignatureWBOITVShade : pRootSignatureWBOITShade;
 		RootSignature* pCompositeRootSignature = volition ? pRootSignatureWBOITVComposite : pRootSignatureWBOITComposite;
 
@@ -1579,7 +1626,8 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, WBOIT_RT_COUNT, pRenderTargetWBOIT, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetWBOIT[0]->mDesc.mWidth, (float)pRenderTargetWBOIT[0]->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetWBOIT[0]->mDesc.mWidth, (float)pRenderTargetWBOIT[0]->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, pRenderTargetWBOIT[0]->mDesc.mWidth, pRenderTargetWBOIT[0]->mDesc.mHeight);
 
 		// Draw the transparent geometry.
@@ -1593,7 +1641,9 @@ public:
 		shadeParam.ppBuffers = &pBufferWBOITSettings[gFrameIndex];
 		cmdBindDescriptors(pCmd, pShadeRootSignature, 1, &shadeParam);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pShadeRootSignature, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
+		DrawObjects(
+			pCmd, &gTransparentDrawCalls, pShadeRootSignature, pBufferTransparentObjectTransforms[gFrameIndex],
+			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1636,7 +1686,7 @@ public:
 
 	void PhenomenologicalTransparencyPass(Cmd* pCmd)
 	{
-		TextureBarrier textureBarriers[PT_RT_COUNT + 1] = {};
+		TextureBarrier  textureBarriers[PT_RT_COUNT + 1] = {};
 		LoadActionsDesc loadActions = {};
 
 #if PT_USE_DIFFUSION != 0
@@ -1652,7 +1702,8 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTDepthCopy, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPTDepthCopy->mDesc.mWidth, (float)pRenderTargetPTDepthCopy->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetViewport(
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetPTDepthCopy->mDesc.mWidth, (float)pRenderTargetPTDepthCopy->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, pRenderTargetPTDepthCopy->mDesc.mWidth, pRenderTargetPTDepthCopy->mDesc.mHeight);
 
 		// Draw the transparent geometry.
@@ -1711,7 +1762,9 @@ public:
 		cmdBindDescriptors(pCmd, pRootSignaturePTShade, 1, &shadeParam);
 #endif
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignaturePTShade, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
+		DrawObjects(
+			pCmd, &gTransparentDrawCalls, pRootSignaturePTShade, pBufferTransparentObjectTransforms[gFrameIndex],
+			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1741,7 +1794,7 @@ public:
 
 		cmdBindPipeline(pCmd, pPipelinePTComposite);
 
-		uint compositeParamCount = 3;
+		uint           compositeParamCount = 3;
 		DescriptorData compositeParams[4] = {};
 		compositeParams[0].pName = "AccumulationTexture";
 		compositeParams[0].ppTextures = &pRenderTargetPT[PT_RT_ACCUMULATION]->pTexture;
@@ -1798,8 +1851,11 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth, (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth, pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight);
+		cmdSetViewport(
+			pCmd, 0.0f, 0.0f, (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth,
+			(float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(
+			pCmd, 0, 0, pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth, pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
@@ -1807,7 +1863,7 @@ public:
 
 		cmdBindPipeline(pCmd, pPipelineAOITShade);
 
-		int shadeParamsCount = 2;
+		int            shadeParamsCount = 2;
 		DescriptorData shadeParams[3] = {};
 		shadeParams[0].pName = "AOITClearMaskUAV";
 		shadeParams[0].ppTextures = &pTextureAOITClearMask;
@@ -1820,14 +1876,16 @@ public:
 #endif
 		cmdBindDescriptors(pCmd, pRootSignatureAOITShade, shadeParamsCount, shadeParams);
 
-		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignatureAOITShade, pBufferTransparentObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
+		DrawObjects(
+			pCmd, &gTransparentDrawCalls, pRootSignatureAOITShade, pBufferTransparentObjectTransforms[gFrameIndex],
+			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite AOIT buffers
-		int bufferBarrierCount = 1;
+		int           bufferBarrierCount = 1;
 		BufferBarrier bufferBarriers[2] = {};
 		bufferBarriers[0].pBuffer = pBufferAOITColorData;
 #if AOIT_NODE_COUNT != 2
@@ -1869,7 +1927,7 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -1885,7 +1943,8 @@ public:
 		updateResource(&materialBufferUpdateDesc);
 		BufferUpdateDesc opaqueBufferUpdateDesc = { pBufferOpaqueObjectTransforms[gFrameIndex], &gObjectInfoUniformData };
 		updateResource(&opaqueBufferUpdateDesc);
-		BufferUpdateDesc transparentBufferUpdateDesc = { pBufferTransparentObjectTransforms[gFrameIndex], &gTransparentObjectInfoUniformData };
+		BufferUpdateDesc transparentBufferUpdateDesc = { pBufferTransparentObjectTransforms[gFrameIndex],
+														 &gTransparentObjectInfoUniformData };
 		updateResource(&transparentBufferUpdateDesc);
 
 		BufferUpdateDesc cameraCbv = { pBufferCameraUniform[gFrameIndex], &gCameraUniformData };
@@ -1924,8 +1983,8 @@ public:
 		beginCmd(pCmd);
 		cmdBeginGpuFrameProfile(pCmd, pGpuProfiler);
 		TextureBarrier barriers1[] = {
-			{pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET},
-			{pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE},
+			{ pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 		};
 		cmdResourceBarrier(pCmd, 0, NULL, 2, barriers1, false);
 
@@ -1961,7 +2020,8 @@ public:
 
 #ifndef TARGET_IOS
 		drawDebugText(pCmd, 8.0f, 15.0f, tinystl::string::format("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		drawDebugText(pCmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		drawDebugText(
+			pCmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		drawDebugText(pCmd, 8.0f, 65.0f, tinystl::string::format("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 		drawDebugGpuProfile(pCmd, 8.0f, 90.0f, pGpuProfiler, NULL);
@@ -1969,30 +2029,24 @@ public:
 		gVirtualJoystick.Draw(pCmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-#ifndef TARGET_IOS
 		gAppUI.Gui(pGuiWindow);
-#endif
 		gAppUI.Draw(pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		cmdEndDebugMarker(pCmd);
 		////////////////////////////////////////////////////////
 
-		barriers1[0] = {pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT};
+		barriers1[0] = { pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, barriers1, true);
 
 		cmdEndGpuFrameProfile(pCmd, pGpuProfiler);
 		endCmd(pCmd);
 
-		queueSubmit(pGraphicsQueue, 1, &pCmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
-					&pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, 1, &pCmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName() override
-	{
-		return "15_Transparency";
-	}
+	tinystl::string GetName() override { return "15_Transparency"; }
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0)) const
 	{
@@ -2015,7 +2069,6 @@ public:
 		pCameraController->onInputEvent(data);
 		return true;
 	}
-
 
 	/************************************************************************/
 	// Init and Exit functions
@@ -2271,8 +2324,9 @@ public:
 		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", tinystl::string::format("%i", PT_USE_DIFFUSION) };
 		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", tinystl::string::format("%i", PT_USE_CAUSTICS) };
 
-		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro, useRefractionMacro, useDiffusionMacro, useCausticsMacro };
-		const uint numShaderMacros = sizeof(shaderMacros) / sizeof(shaderMacros[0]);
+		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro,
+									   useRefractionMacro, useDiffusionMacro,   useCausticsMacro };
+		const uint  numShaderMacros = sizeof(shaderMacros) / sizeof(shaderMacros[0]);
 
 		// Skybox shader
 		ShaderLoadDesc skyboxShaderDesc = {};
@@ -2341,7 +2395,8 @@ public:
 		// WBOIT Volition composite shader
 		ShaderLoadDesc wboitVolitionCompositeShaderDesc = {};
 		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros,
+														FSR_SrcShaders };
 		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
 
 		// PT shade shader
@@ -2393,7 +2448,6 @@ public:
 			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
 			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
 			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
-
 		}
 #endif
 	}
@@ -2436,9 +2490,9 @@ public:
 		const char* linearSamplerName = "LinearSampler";
 		const char* shadowSamplerName = USE_SHADOWS ? "VSMSampler" : 0;
 
-		Sampler* staticSamplers[] = { pSamplerSkybox, pSamplerPoint, pSamplerBilinear, pSamplerShadow };
+		Sampler*    staticSamplers[] = { pSamplerSkybox, pSamplerPoint, pSamplerBilinear, pSamplerShadow };
 		const char* staticSamplerNames[] = { skyboxSamplerName, pointSamplerName, linearSamplerName, shadowSamplerName };
-		const uint numStaticSamplers = sizeof(staticSamplers) / sizeof(staticSamplers[0]);
+		const uint  numStaticSamplers = sizeof(staticSamplers) / sizeof(staticSamplers[0]);
 
 		// Skybox root signature
 		RootSignatureDesc skyboxRootSignatureDesc = {};
@@ -2627,7 +2681,6 @@ public:
 			aoitClearRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
 			aoitClearRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
 			addRootSignature(pRenderer, &aoitClearRootSignatureDesc, &pRootSignatureAOITClear);
-
 		}
 #endif
 	}
@@ -2670,52 +2723,33 @@ public:
 		LoadModels();
 		LoadTextures();
 
-		const float gSkyboxPointArray[] =
-		{
-			10.0f,  -10.0f, -10.0f,6.0f, // -z
-			-10.0f, -10.0f, -10.0f,6.0f,
-			-10.0f, 10.0f, -10.0f,6.0f,
-			-10.0f, 10.0f, -10.0f,6.0f,
-			10.0f,  10.0f, -10.0f,6.0f,
-			10.0f,  -10.0f, -10.0f,6.0f,
+		const float gSkyboxPointArray[] = {
+			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
 
-			-10.0f, -10.0f,  10.0f,2.0f,  //-x
-			-10.0f, -10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f,  10.0f,2.0f,
-			-10.0f, -10.0f,  10.0f,2.0f,
+			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
 
-			10.0f, -10.0f, -10.0f,1.0f, //+x
-			10.0f, -10.0f,  10.0f,1.0f,
-			10.0f,  10.0f,  10.0f,1.0f,
-			10.0f,  10.0f,  10.0f,1.0f,
-			10.0f,  10.0f, -10.0f,1.0f,
-			10.0f, -10.0f, -10.0f,1.0f,
+			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
 
-			-10.0f, -10.0f,  10.0f,5.0f,  // +z
-			-10.0f,  10.0f,  10.0f,5.0f,
-			10.0f,  10.0f,  10.0f,5.0f,
-			10.0f,  10.0f,  10.0f,5.0f,
-			10.0f, -10.0f,  10.0f,5.0f,
-			-10.0f, -10.0f,  10.0f,5.0f,
+			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
 
-			-10.0f,  10.0f, -10.0f, 3.0f,  //+y
-			10.0f,  10.0f, -10.0f,3.0f,
-			10.0f,  10.0f,  10.0f,3.0f,
-			10.0f,  10.0f,  10.0f,3.0f,
-			-10.0f,  10.0f,  10.0f,3.0f,
-			-10.0f,  10.0f, -10.0f,3.0f,
+			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
 
-			10.0f,  -10.0f, 10.0f, 4.0f,  //-y
-			10.0f,  -10.0f, -10.0f,4.0f,
-			-10.0f,  -10.0f,  -10.0f,4.0f,
-			-10.0f,  -10.0f,  -10.0f,4.0f,
-			-10.0f,  -10.0f,  10.0f,4.0f,
-			10.0f,  -10.0f, 10.0f,4.0f,
+			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
 		};
 
-		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -2738,7 +2772,7 @@ public:
 		renderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		renderTargetDesc.mSampleQuality = 0;
 		renderTargetDesc.pDebugName = L"Shadow variance RT";
-		for(int i = 0; i < 2; ++i)
+		for (int i = 0; i < 2; ++i)
 			addRenderTarget(pRenderer, &renderTargetDesc, &pRenderTargetShadowVariance[i]);
 
 		RenderTargetDesc shadowRT = {};
@@ -2791,7 +2825,7 @@ public:
 	{
 		removeResource(pBufferSkyboxVertex);
 #if USE_SHADOWS != 0
-		for(int i = 0; i < 2; ++i)
+		for (int i = 0; i < 2; ++i)
 			removeRenderTarget(pRenderer, pRenderTargetShadowVariance[i]);
 		removeRenderTarget(pRenderer, pRenderTargetShadowDepth);
 #if PT_USE_CAUSTICS != 0
@@ -2810,22 +2844,23 @@ public:
 
 	void LoadModels()
 	{
+		AssimpImporter          importer;
 		tinystl::vector<Vertex> vertices = {};
-		tinystl::vector<uint> indices = {};
+		tinystl::vector<uint>   indices = {};
 
 		const char* modelNames[MESH_COUNT] = { "cube.obj", "sphere.obj", "plane.obj", "lion.obj" };
 
 		for (int m = 0; m < MESH_COUNT; ++m)
 		{
-			Model model;
-			if (AssimpImporter::ImportModel(FileSystem::FixPath(modelNames[m], FSR_Meshes).c_str(), &model))
+			AssimpImporter::Model model;
+			if (importer.ImportModel(FileSystem::FixPath(modelNames[m], FSR_Meshes).c_str(), &model))
 			{
 				vertices.clear();
 				indices.clear();
 
 				for (size_t i = 0; i < model.mMeshArray.size(); ++i)
 				{
-					Mesh* mesh = &model.mMeshArray[i];
+					AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
 					vertices.reserve(vertices.size() + mesh->mPositions.size());
 					indices.reserve(indices.size() + mesh->mIndices.size());
 
@@ -2880,7 +2915,7 @@ public:
 		for (int i = 0; i < MESH_COUNT; ++i)
 		{
 			removeResource(pMeshes[i]->pVertexBuffer);
-			if(pMeshes[i]->pIndexBuffer)
+			if (pMeshes[i]->pIndexBuffer)
 				removeResource(pMeshes[i]->pIndexBuffer);
 			conf_free(pMeshes[i]);
 		}
@@ -2888,8 +2923,7 @@ public:
 
 	void LoadTextures()
 	{
-		const char* textureNames[TEXTURE_COUNT] =
-		{
+		const char* textureNames[TEXTURE_COUNT] = {
 			"skybox/hw_sahara/sahara_rt.tga",
 			"skybox/hw_sahara/sahara_lf.tga",
 			"skybox/hw_sahara/sahara_up.tga",
@@ -2946,7 +2980,6 @@ public:
 			ubDesc.ppBuffer = &pBufferTransparentObjectTransforms[i];
 			addResource(&ubDesc);
 		}
-
 
 		BufferLoadDesc skyboxDesc = {};
 		skyboxDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3062,7 +3095,7 @@ public:
 		{
 			const uint32_t width = mSettings.mWidth;
 			const uint32_t height = mSettings.mHeight;
-			SwapChainDesc swapChainDesc = {};
+			SwapChainDesc  swapChainDesc = {};
 			swapChainDesc.pWindow = pWindow;
 			swapChainDesc.mPresentQueueCount = 1;
 			swapChainDesc.ppPresentQueues = &pGraphicsQueue;
@@ -3084,7 +3117,7 @@ public:
 		/************************************************************************/
 		// WBOIT render targets
 		/************************************************************************/
-		ClearValue wboitClearValues[] = { colorClearBlack, colorClearWhite };
+		ClearValue     wboitClearValues[] = { colorClearBlack, colorClearWhite };
 		const wchar_t* wboitNames[] = { L"Accumulation RT", L"Revealage RT" };
 		for (int i = 0; i < WBOIT_RT_COUNT; ++i)
 		{
@@ -3104,7 +3137,7 @@ public:
 		/************************************************************************/
 		// PT render targets
 		/************************************************************************/
-		ClearValue ptClearValues[] = { colorClearBlack, colorClearTransparentWhite, colorClearBlack };
+		ClearValue     ptClearValues[] = { colorClearBlack, colorClearTransparentWhite, colorClearBlack };
 		const wchar_t* ptNames[] = { L"Accumulation RT", L"Modulation RT", L"Refraction RT" };
 		for (int i = 0; i < PT_RT_COUNT; ++i)
 		{
@@ -3217,7 +3250,7 @@ public:
 		for (int i = 0; i < PT_RT_COUNT; ++i)
 		{
 			if (i == PT_RT_ACCUMULATION)
-				continue;   // Acculuation RT is shared with WBOIT and has already been removed
+				continue;    // Acculuation RT is shared with WBOIT and has already been removed
 			removeRenderTarget(pRenderer, pRenderTargetPT[i]);
 		}
 		removeRenderTarget(pRenderer, pRenderTargetPTBackground);
@@ -3309,7 +3342,9 @@ public:
 		addPipeline(pRenderer, &blurPipelineDesc, &pPipelineGaussianBlur);
 
 #if PT_USE_CAUSTICS != 0
-		ImageFormat::Enum stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mDesc.mFormat, pRenderTargetPTShadowVariance[1]->mDesc.mFormat, pRenderTargetPTShadowVariance[2]->mDesc.mFormat };
+		ImageFormat::Enum stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mDesc.mFormat,
+															 pRenderTargetPTShadowVariance[1]->mDesc.mFormat,
+															 pRenderTargetPTShadowVariance[2]->mDesc.mFormat };
 
 		// Stochastic shadow pipeline
 		GraphicsPipelineDesc stochasticShadowPipelineDesc = {};
@@ -3640,8 +3675,7 @@ void GuiController::UpdateDynamicUI()
 
 void GuiController::AddGui()
 {
-	static const char* transparencyTypeNames[] =
-	{
+	static const char* transparencyTypeNames[] = {
 		"Alpha blended",
 		"(WBOIT) Weighted blended order independent transparency",
 		"(WBOIT) Weighted blended order independent transparency - Volition",
@@ -3649,11 +3683,10 @@ void GuiController::AddGui()
 #if defined(DIRECT3D12) && !defined(_DURANGO)
 		"(AOIT) Adaptive order independent transparency",
 #endif
-		NULL//needed for unix
+		NULL    //needed for unix
 	};
 
-	static const uint32_t transparencyTypeValues[] =
-	{
+	static const uint32_t transparencyTypeValues[] = {
 		TRANSPARENCY_TYPE_ALPHA_BLEND,
 		TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT,
 		TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION,
@@ -3661,7 +3694,7 @@ void GuiController::AddGui()
 #if defined(DIRECT3D12) && !defined(_DURANGO)
 		TRANSPARENCY_TYPE_ADAPTIVE_OIT,
 #endif
-		0//needed for unix
+		0    //needed for unix
 	};
 
 	uint32_t dropDownCount = 4;
@@ -3670,7 +3703,8 @@ void GuiController::AddGui()
 		dropDownCount = 5;
 #endif
 
-	pGuiWindow->AddWidget(DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));
+	pGuiWindow->AddWidget(
+		DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));
 
 	// TRANSPARENCY_TYPE_ALPHA_BLEND Widgets
 	{
@@ -3746,7 +3780,6 @@ void GuiController::AddGui()
 	const float lightPosBound = 10.0f;
 	pGuiWindow->AddWidget(SliderFloat3Widget("Light Position", &gLightCpuSettings.mLightPosition, -lightPosBound, lightPosBound, 0.1f));
 
-
 	if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_ALPHA_BLEND;
@@ -3773,6 +3806,5 @@ void GuiController::AddGui()
 	}
 #endif
 }
-
 
 DEFINE_APPLICATION_MAIN(Transparency)

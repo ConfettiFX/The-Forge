@@ -8,10 +8,10 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{43cc6907-1235-4d42-a181-90df76c362f1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{598b8ef8-9a0e-499f-95c4-bcc9a8f8fb70}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{62bf14f8-0782-4c7c-9897-8878fb4f3d1f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -21,29 +21,29 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCDX12\basic.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCDX12\basic.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCDX12\plane.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\D3D12\plane.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCDX12\plane.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\D3D12\plane.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCVulkan\basic.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCVulkan\basic.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCVulkan\plane.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\Vulkan\plane.frag">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\05_AdditiveBlending\Shaders\PCVulkan\plane.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\05_AdditiveBlending\Shaders\Vulkan\plane.vert">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -162,11 +162,16 @@
 	{
 		CGPoint translation = [gesture translationInView:[gesture.view superview]];
 		CGPoint location = [gesture locationInView:[gesture.view superview]];
+		float nativeScale =[UIScreen mainScreen].nativeScale;
+		location.x *= nativeScale;
+		location.y *= nativeScale;
+		translation.x *= nativeScale;
+		translation.y *= nativeScale;
 		
 		gainput::GestureChange gestureData = {};
 		gestureData.type = gainput::GesturePan;
-		gestureData.position[0] = location.x / gesture.view.bounds.size.width;
-		gestureData.position[1] = location.y / gesture.view.bounds.size.height;
+		gestureData.position[0] = location.x;
+		gestureData.position[1] = location.y;
 		gestureData.translation[0] = translation.x;
 		gestureData.translation[1] = translation.y;
 		self.inputManager->HandleGesture(self.gestureId, gestureData);
@@ -182,19 +187,27 @@
 		float velocity = 0.0f;
 		if (!isnan(gesture.velocity))
 			velocity = gesture.velocity;
-		
+		float nativeScale =[UIScreen mainScreen].nativeScale;
 		CGPoint touch0 = [gesture locationOfTouch:0 inView:[gesture.view superview]];
+		touch0.x *= nativeScale;
+		touch0.y *= nativeScale;
+		
 		CGPoint touch1 = [gesture locationOfTouch:1 inView:[gesture.view superview]];
+		touch1.x *= nativeScale;
+		touch1.y *= nativeScale;
+		
 		CGPoint location = [gesture locationInView:[gesture.view superview]];
+		location.x *= nativeScale;
+		location.y *= nativeScale;
 		
 		gainput::GestureChange gestureData = {};
 		gestureData.type = gainput::GesturePinch;
-		gestureData.position[0] = location.x / gesture.view.bounds.size.width;
-		gestureData.position[1] = location.y / gesture.view.bounds.size.height;
+		gestureData.position[0] = location.x;
+		gestureData.position[1] = location.y;
 		gestureData.scale = gesture.scale;
 		gestureData.velocity = velocity;
-		gestureData.distance[0] = (touch1.x - touch0.x) / gesture.view.bounds.size.width;
-		gestureData.distance[1] = (touch1.y - touch0.y) / gesture.view.bounds.size.height;
+		gestureData.distance[0] = (touch1.x - touch0.x);
+		gestureData.distance[1] = (touch1.y - touch0.y);
 		self.inputManager->HandleGesture(self.gestureId, gestureData);
 	}
 	
@@ -204,22 +217,26 @@
 -(void) handleTap:(UIPinchGestureRecognizer *)gesture
 {
 	CGPoint location = [gesture locationInView:[gesture.view superview]];
+	location.x *= [UIScreen mainScreen].nativeScale;
+	location.y *= [UIScreen mainScreen].nativeScale;
 	
 	gainput::GestureChange gestureData = {};
 	gestureData.type = gainput::GestureTap;
-	gestureData.position[0] = location.x / gesture.view.bounds.size.width;
-	gestureData.position[1] = location.y / gesture.view.bounds.size.height;
+	gestureData.position[0] = location.x;
+	gestureData.position[1] = location.y;
 	self.inputManager->HandleGesture(self.gestureId, gestureData);
 }
 
 -(void) handleLongPress:(UILongPressGestureRecognizer *)gesture
 {
 	CGPoint location = [gesture locationInView:[gesture.view superview]];
+	location.x *= [UIScreen mainScreen].nativeScale;
+	location.y *= [UIScreen mainScreen].nativeScale;
 	
 	gainput::GestureChange gestureData = {};
 	gestureData.type = gainput::GestureLongPress;
-	gestureData.position[0] = location.x / gesture.view.bounds.size.width;
-	gestureData.position[1] = location.y / gesture.view.bounds.size.height;
+	gestureData.position[0] = location.x;
+	gestureData.position[1] = location.y;
 	self.inputManager->HandleGesture(self.gestureId, gestureData);
 }
 
@@ -251,7 +268,9 @@
 	
 	for (UITouch *touch in touches)
 	{
-		CGPoint point = [touch locationInView:self.gainputView];
+		CGPoint point = [touch locationInView:self.gainputView.superview];
+		point.x *= [UIScreen mainScreen].nativeScale;
+		point.y *= [UIScreen mainScreen].nativeScale;
 		
 		CGFloat force = 0.f;
 		CGFloat maxForce = 1.f;
@@ -261,8 +280,8 @@
 			force = [touch force];
 		}
 		
-		float x = point.x / self.gainputView.bounds.size.width;
-		float y = point.y / self.gainputView.bounds.size.height;
+		float x = point.x;
+		float y = point.y;
 		float z = force / maxForce;
 		
 		deviceImpl->HandleTouch(static_cast<void*>(touch), x, y, z);
@@ -279,7 +298,9 @@
 	
 	for (UITouch *touch in touches)
 	{
-		CGPoint point = [touch locationInView:self.gainputView];
+		CGPoint point = [touch locationInView:self.gainputView.superview];
+		point.x *= [UIScreen mainScreen].nativeScale;
+		point.y *= [UIScreen mainScreen].nativeScale;
 		
 		CGFloat force = 0.f;
 		CGFloat maxForce = 1.f;
@@ -289,8 +310,8 @@
 			force = [touch force];
 		}
 		
-		float x = point.x / self.gainputView.bounds.size.width;
-		float y = point.y / self.gainputView.bounds.size.height;
+		float x = point.x;
+		float y = point.y;
 		float z = force / maxForce;
 		
 		deviceImpl->HandleTouch(static_cast<void*>(touch), x, y, z);
@@ -307,7 +328,9 @@
 	
 	for (UITouch *touch in touches)
 	{
-		CGPoint point = [touch locationInView:self.gainputView];
+		CGPoint point = [touch locationInView:self.gainputView.superview];
+		point.x *= [UIScreen mainScreen].nativeScale;
+		point.y *= [UIScreen mainScreen].nativeScale;
 		
 		CGFloat force = 0.f;
 		CGFloat maxForce = 1.f;
@@ -317,8 +340,8 @@
 			force = [touch force];
 		}
 		
-		float x = point.x / self.gainputView.bounds.size.width;
-		float y = point.y / self.gainputView.bounds.size.height;
+		float x = point.x;
+		float y = point.y;
 		float z = force / maxForce;
 		
 		deviceImpl->HandleTouchEnd(static_cast<void*>(touch), x, y, z);
@@ -491,7 +514,7 @@
 	if (self)
 	{
 		inputManager_ = &inputManager;
-        
+		
 #if !defined(GAINPUT_PLATFORM_TVOS)
 		[self setMultipleTouchEnabled:YES];
 #endif

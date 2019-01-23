@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #if !defined(_DURANGO)
 #include <shlwapi.h>
-#pragma comment(lib,"shlwapi.lib")
+#pragma comment(lib, "shlwapi.lib")
 #include "shlobj.h"
 #endif
 #include <stdlib.h>
@@ -87,7 +87,6 @@ typedef uint64_t uint64;
 typedef void* IconHandle;
 typedef void* WindowHandle;
 
-
 typedef struct RectDesc
 {
 	int left;
@@ -96,36 +95,30 @@ typedef struct RectDesc
 	int bottom;
 } RectDesc;
 
-inline int getRectWidth(const RectDesc& rect)
-{
-	return rect.right - rect.left;
-}
+inline int getRectWidth(const RectDesc& rect) { return rect.right - rect.left; }
 
-inline int getRectHeight(const RectDesc& rect)
-{
-	return rect.bottom - rect.top;
-}
+inline int getRectHeight(const RectDesc& rect) { return rect.bottom - rect.top; }
 
 typedef struct WindowsDesc
 {
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	Display *display;
-	Window xlib_window;
-	Atom xlib_wm_delete_window;
+	Display* display;
+	Window   xlib_window;
+	Atom     xlib_wm_delete_window;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-	Display *display;
-	xcb_connection_t *connection;
-	xcb_screen_t *screen;
-	xcb_window_t xcb_window;
-	xcb_intern_atom_reply_t *atom_wm_delete_window;
+	Display*                 display;
+	xcb_connection_t*        connection;
+	xcb_screen_t*            screen;
+	xcb_window_t             xcb_window;
+	xcb_intern_atom_reply_t* atom_wm_delete_window;
 #else
-	WindowHandle handle = NULL; //hWnd
+	WindowHandle handle = NULL;    //hWnd
 #endif
-	RectDesc windowedRect;
-	RectDesc fullscreenRect;
-	RectDesc clientRect;
-	bool fullScreen = false;
-	unsigned windowsFlags = 0;
+	RectDesc   windowedRect;
+	RectDesc   fullscreenRect;
+	RectDesc   clientRect;
+	bool       fullScreen = false;
+	unsigned   windowsFlags = 0;
 	IconHandle bigIcon = NULL;
 	IconHandle smallIcon = NULL;
 
@@ -159,67 +152,64 @@ typedef struct MonitorDesc
 	WCHAR publicAdapterName[64];
 	WCHAR publicDisplayName[64];
 #else
-	char adapterName[32];
-	char displayName[32];
-	char publicAdapterName[64];
-	char publicDisplayName[64];
+	char                     adapterName[32];
+	char                     displayName[32];
+	char                     publicAdapterName[64];
+	char                     publicDisplayName[64];
 #endif
 	bool modesPruned;
 	bool modeChanged;
 
-	Resolution defaultResolution;
+	Resolution  defaultResolution;
 	Resolution* resolutions;
-	uint32_t resolutionCount;
+	uint32_t    resolutionCount;
 } MonitorDesc;
 
 #include <float.h>
+#include <limits.h>
 
 // Define some sized types
 typedef uint8_t uint8;
-typedef   int8_t int8;
+typedef int8_t  int8;
 
 typedef uint16_t uint16;
-typedef   int16_t  int16;
+typedef int16_t  int16;
 
 typedef uint32_t uint32;
-typedef   int32_t  int32;
+typedef int32_t  int32;
 
 #include <stddef.h>
 typedef ptrdiff_t intptr;
 
 #ifdef _WIN32
-typedef   signed __int64  int64;
+typedef signed __int64   int64;
 typedef unsigned __int64 uint64;
 #elif defined(__APPLE__)
 typedef unsigned long DWORD;
 typedef unsigned int UINT;
+typedef long long int int64;
 //typedef bool BOOL;
 #elif defined(__linux__)
 typedef unsigned long DWORD;
 typedef unsigned int UINT;
-typedef int64_t  int64;
+typedef int64_t int64;
 typedef uint64_t uint64;
 #else
-typedef   signed long long  int64;
+typedef signed long long   int64;
 typedef unsigned long long uint64;
 #endif
 
-typedef uint8 ubyte;
-typedef uint16 ushort;
+typedef uint8        ubyte;
+typedef uint16       ushort;
 typedef unsigned int uint;
-typedef const char *LPCSTR, *PCSTR;
+typedef const char * LPCSTR, *PCSTR;
 
 // API functions
-
-
-// Init Close App
-bool isRunning();
-void requestShutDown();
+void requestShutdown();
 
 // Window handling
 void openWindow(const char* app_name, WindowsDesc* winDesc);
 void closeWindow(const WindowsDesc* winDesc);
-void handleMessages();
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect);
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height);
 void toggleFullscreen(WindowsDesc* winDesc);
@@ -235,16 +225,16 @@ void getRecommendedResolution(RectDesc* rect);
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 MonitorDesc* getMonitor(uint32_t index);
-float2 getDpiScale();
+float2       getDpiScale();
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 // Input handling
 float2 getMousePosition();
-bool getKeyDown(int key);
-bool getKeyUp(int key);
-bool getJoystickButtonDown(int button);
-bool getJoystickButtonUp(int button);
+bool   getKeyDown(int key);
+bool   getKeyUp(int key);
+bool   getJoystickButtonDown(int button);
+bool   getJoystickButtonUp(int button);
 
 // Time related functions
 unsigned getSystemTime();

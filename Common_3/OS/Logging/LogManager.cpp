@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,28 +37,24 @@ tinystl::string GetTimeStamp()
 	return dateTime;
 }
 
-const char* logLevelPrefixes[] =
-{
-	"DEBUG",
-	"INFO",
-	"WARNING",
-	"ERROR",
-	0
-};
+const char* logLevelPrefixes[] = { "DEBUG", "INFO", "WARNING", "ERROR", 0 };
 
 static LogManager* pLogInstance = 0;
 //  static bool threadErrorDisplayed = false;
 
-LogManager::LogManager(LogLevel level /* = LogLevel::LL_Debug */) :
-		pLogFile(NULL),
-		mLogLevel(level),
-		mRecordTimestamp(true),
-		mInWrite(false),
-		mQuietMode(false)
+LogManager::LogManager(LogLevel level /* = LogLevel::LL_Debug */):
+	pLogFile(NULL),
+	mLogLevel(level),
+	mRecordTimestamp(true),
+	mInWrite(false),
+	mQuietMode(false)
 {
 	pLogInstance = this;
-
-	Open(FileSystem::GetCurrentDir() + "Log.log");
+	tinystl::string exeFileName = FileSystem::GetProgramFileName();
+	//Minimum Length check
+	if (exeFileName.size() < 2)
+		exeFileName = "Log";
+	Open(FileSystem::GetCurrentDir() + exeFileName + ".log");
 
 	Thread::SetMainThread();
 }
@@ -66,7 +62,7 @@ LogManager::LogManager(LogLevel level /* = LogLevel::LL_Debug */) :
 LogManager::~LogManager()
 {
 	Close();
-	pLogInstance =NULL;
+	pLogInstance = NULL;
 }
 
 void LogManager::Open(const tinystl::string& fileName)
@@ -112,15 +108,9 @@ void LogManager::SetLevel(LogLevel level)
 	mLogLevel = level;
 }
 
-void LogManager::SetTimeStamp(bool enable)
-{
-	mRecordTimestamp = enable;
-}
+void LogManager::SetTimeStamp(bool enable) { mRecordTimestamp = enable; }
 
-void LogManager::SetQuiet(bool quiet)
-{
-	mQuietMode = quiet;
-}
+void LogManager::SetQuiet(bool quiet) { mQuietMode = quiet; }
 
 void LogManager::Write(int level, const tinystl::string& message)
 {
@@ -210,7 +200,7 @@ void LogManager::OutputLog(int level, const tinystl::string& message)
 tinystl::string ToString(const char* function, const char* str, ...)
 {
 	const unsigned BUFFER_SIZE = 4096;
-	char buf[BUFFER_SIZE];
+	char           buf[BUFFER_SIZE];
 
 	va_list arglist;
 	va_start(arglist, str);

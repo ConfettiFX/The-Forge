@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,12 +28,11 @@
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/ResourceLoader.h"
 
-
 #if defined(METAL)
-#include "Shaders/OSXMetal/shader_defs.h"
+#include "Shaders/Metal/shader_defs.h"
 #elif defined(DIRECT3D12) || defined(_DURANGO)
 #define NO_HLSL_DEFINITIONS
-#include "Shaders/PCDX12/shader_defs.h"
+#include "Shaders/D3D12/shader_defs.h"
 #elif defined(VULKAN)
 #define NO_GLSL_DEFINITIONS
 #include "Shaders/Vulkan/shader_defs.h"
@@ -48,7 +47,8 @@ typedef struct SceneVertexPos
 	float x, y, z;
 } SceneVertexPos;
 
-struct Vertex {
+struct Vertex
+{
 	float3 mPos;
 	float3 mNormal;
 	float2 mUv;
@@ -57,7 +57,7 @@ struct Vertex {
 typedef struct SceneVertexTexCoord
 {
 #if defined(METAL) || defined(__linux__)
-	float u, v;      // texture coords
+	float u, v;    // texture coords
 #else
 	uint32_t texCoord;
 #endif
@@ -66,7 +66,7 @@ typedef struct SceneVertexTexCoord
 typedef struct SceneVertexNormal
 {
 #if defined(METAL) || defined(__linux__)
-	float nx, ny, nz; // normals
+	float nx, ny, nz;    // normals
 #else
 	uint32_t normal;
 #endif
@@ -75,7 +75,7 @@ typedef struct SceneVertexNormal
 typedef struct SceneVertexTangent
 {
 #if defined(METAL) || defined(__linux__)
-	float tx, ty, tz; // tangents
+	float tx, ty, tz;    // tangents
 #else
 	uint32_t tangent;
 #endif
@@ -91,15 +91,15 @@ typedef struct Cluster
 {
 	float3 aabbMin, aabbMax;
 	float3 coneCenter, coneAxis;
-	float coneAngleCosine;
-	float distanceFromCamera;
-	bool valid;
+	float  coneAngleCosine;
+	float  distanceFromCamera;
+	bool   valid;
 } Cluster;
 
 typedef struct AABoundingBox
 {
-	float4 Center;            // Center of the box.
-	float4 Extents;           // Distance from the center to each side.
+	float4 Center;     // Center of the box.
+	float4 Extents;    // Distance from the center to each side.
 
 	float4 minPt;
 	float4 maxPt;
@@ -116,12 +116,12 @@ typedef struct MeshIn
 	uint32_t startIndex;
 	uint32_t indexCount;
 #endif
-	uint32_t vertexCount;
-	float3 minBBox, maxBBox;
-	uint32_t clusterCount;
+	uint32_t        vertexCount;
+	float3          minBBox, maxBBox;
+	uint32_t        clusterCount;
 	ClusterCompact* clusterCompacts;
-	Cluster* clusters;
-	uint32_t materialId;
+	Cluster*        clusters;
+	uint32_t        materialId;
 
 	AABoundingBox AABB;
 
@@ -136,25 +136,23 @@ typedef struct Material
 	bool alphaTested;
 } Material;
 
-
-
 typedef struct Scene
 {
-	uint32_t numMeshes;
-	uint32_t numMaterials;
-	uint32_t totalTriangles;
-	uint32_t totalVertices;
-	MeshIn* meshes;
-	Material* materials;
-	tinystl::vector<SceneVertexPos> positions;
+	uint32_t                             numMeshes;
+	uint32_t                             numMaterials;
+	uint32_t                             totalTriangles;
+	uint32_t                             totalVertices;
+	MeshIn*                              meshes;
+	Material*                            materials;
+	tinystl::vector<SceneVertexPos>      positions;
 	tinystl::vector<SceneVertexTexCoord> texCoords;
-	tinystl::vector<SceneVertexNormal> normals;
-	tinystl::vector<SceneVertexTangent> tangents;
-	char** textures;
-	char** normalMaps;
-	char** specularMaps;
+	tinystl::vector<SceneVertexNormal>   normals;
+	tinystl::vector<SceneVertexTangent>  tangents;
+	char**                               textures;
+	char**                               normalMaps;
+	char**                               specularMaps;
 
-	tinystl::vector<uint32_t>			indices;
+	tinystl::vector<uint32_t> indices;
 } Scene;
 
 typedef struct FilterBatchData
@@ -165,24 +163,24 @@ typedef struct FilterBatchData
 	uint32_t meshIdx;
 	uint32_t twoSided;
 #else
-	uint meshIndex;         // Index into meshConstants
-	uint indexOffset;       // Index relative to the meshConstants[meshIndex].indexOffset
-	uint faceCount;         // Number of faces in this small batch
-	uint outputIndexOffset; // Offset into the output index buffer
-	uint drawBatchStart;    // First slot for the current draw call
-	uint accumDrawIndex;
-	uint _pad0;
-	uint _pad1;
+	uint     meshIndex;            // Index into meshConstants
+	uint     indexOffset;          // Index relative to the meshConstants[meshIndex].indexOffset
+	uint     faceCount;            // Number of faces in this small batch
+	uint     outputIndexOffset;    // Offset into the output index buffer
+	uint     drawBatchStart;       // First slot for the current draw call
+	uint     accumDrawIndex;
+	uint     _pad0;
+	uint     _pad1;
 #endif
 } FilterBatchData;
 
 typedef struct FilterBatchChunk
 {
 	FilterBatchData* batches;
-	uint32_t currentBatchCount;
-	uint32_t currentDrawCallCount;
+	uint32_t         currentBatchCount;
+	uint32_t         currentDrawCallCount;
 #if defined(METAL)
-	Buffer* batchDataBuffer; // GPU buffer containing all batch data
+	Buffer* batchDataBuffer;    // GPU buffer containing all batch data
 #else
 #endif
 } FilterBatchChunk;
@@ -190,18 +188,21 @@ typedef struct FilterBatchChunk
 // Exposed functions
 
 Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
-void removeScene(Scene* scene);
-void CreateAABB(const Scene* pScene, MeshIn* mesh);
-void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
+void   removeScene(Scene* scene);
+void   CreateAABB(const Scene* pScene, MeshIn* mesh);
+void   CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
 
-void loadModel(const tinystl::string &FileName, Buffer* &pVertexBuffer, uint &vertexCount, Buffer* &IndexBuffer, uint &indexCount);
+void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& IndexBuffer, uint& indexCount);
 
 #if defined(METAL)
-void addClusterToBatchChunk(const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
+void addClusterToBatchChunk(
+	const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
 #else
-void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, FilterBatchChunk* batchChunk);
+void addClusterToBatchChunk(
+	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
+	FilterBatchChunk* batchChunk);
 #endif
-void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer **outVertexBuffer, Buffer **outIndexBuffer);
+void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** outVertexBuffer, Buffer** outIndexBuffer);
 void destroyBuffers(Renderer* pRenderer, Buffer* outVertexBuffer, Buffer* outIndexBuffer);
 
 #endif

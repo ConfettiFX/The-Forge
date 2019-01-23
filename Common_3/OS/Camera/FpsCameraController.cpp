@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,73 +33,48 @@
 
 #include "../../../Middleware_3/Input/InputSystem.h"
 #include "../../../Middleware_3/Input/InputMappings.h"
+#include "../../../Middleware_3/UI/AppUI.h"
 
 // Include this file as last include in all cpp files allocating memory
 #include "../Interfaces/ILogManager.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
-static float k_joystickRotationSpeed = 0.06f;
+static float       k_joystickRotationSpeed = 0.06f;
 static const float k_scrollSpeed = -5.0f;
 #if !defined(METAL) && !defined(__ANDROID__)
 static const float k_xRotLimit = (float)(M_PI_2 - 0.1);
 #endif
-#if !defined(__ANDROID__) && !defined(TARGET_IOS)
 static float k_mouseRotationSpeed = 0.003f;
-#endif
 
-#if defined(TARGET_IOS) || defined(_DURANGO) || defined(__ANDROID__)
-static const float k_vJoystickIntRadius = 0.25f;
-static const float k_vJoystickExtRadius = 0.33f;
-static const float k_vJoystickRange = k_vJoystickExtRadius - k_vJoystickIntRadius;
-static const float k_vJoystickDeadzone = k_vJoystickRange / 10.0f;
-static const float k_vJoystickRecovery = k_vJoystickRange * 8.0f;
-#endif
-
-static const vec2 k_vLeftJoystickCenter = vec2(0.175f, 0.75f);
-static const vec2 k_vRightJoystickCenter = vec2(0.80f, 0.75f);
-
-class FpsCameraController : public ICameraController
+class FpsCameraController: public ICameraController
 {
-public:
-	FpsCameraController() :
-		viewRotation { 0 },
-		viewPosition { 0 },
+	public:
+	FpsCameraController():
+		viewRotation{ 0 },
+		viewPosition{ 0 },
 		currentVelocity{ 0 },
-		acceleration { 100.0f },
-		deceleration { 100.0f },
-		maxSpeed { 100.0f }
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		,virtualLeftJoystickPos { k_vLeftJoystickCenter },
-		virtualLeftJoysticPressed { false },
-		virtualRightJoystickPos { k_vRightJoystickCenter },
-		virtualRightJoysticPressed { false }
-#endif
+		acceleration{ 100.0f },
+		deceleration{ 100.0f },
+		maxSpeed{ 100.0f },
+		pVirtualJoystick{ NULL }
 	{
 	}
 	void setMotionParameters(const CameraMotionParameters&) override;
+	void setVirtualJoystick(VirtualJoystickUI* virtualJoystick = NULL) override;
 
 	mat4 getViewMatrix() const override;
 	vec3 getViewPosition() const override;
 	vec2 getRotationXY() const override { return viewRotation; }
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-	float getVirtualJoystickInternalRadius() const override {return k_vJoystickIntRadius;}
-	float getVirtualJoystickExternalRadius() const override {return k_vJoystickExtRadius;}
-	vec2 getVirtualLeftJoystickCenter() const override { return k_vLeftJoystickCenter; }
-	vec2 getVirtualLeftJoystickPos() const override;
-	vec2 getVirtualRightJoystickCenter() const override { return k_vRightJoystickCenter; }
-	vec2 getVirtualRightJoystickPos() const override;
-#endif
-
 	void moveTo(const vec3& location) override;
 	void lookAt(const vec3& lookAt) override;
 
-private:
-	void onInputEvent(const ButtonData* pData) override;
+	private:
+	bool onInputEvent(const ButtonData* pData) override;
 	void update(float deltaTime) override;
 
-private:
+	private:
 	vec2 viewRotation;
 	vec3 viewPosition;
 	vec3 currentVelocity;
@@ -108,12 +83,7 @@ private:
 	float deceleration;
 	float maxSpeed;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-	vec2 virtualLeftJoystickPos;
-	bool virtualLeftJoysticPressed;
-	vec2 virtualRightJoystickPos;
-	bool virtualRightJoysticPressed;
-#endif
+	VirtualJoystickUI* pVirtualJoystick;
 };
 
 ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookAt)
@@ -138,80 +108,29 @@ void FpsCameraController::setMotionParameters(const CameraMotionParameters& cmp)
 	maxSpeed = cmp.maxSpeed;
 }
 
-static vec3 moveVec { 0 };
-void FpsCameraController::onInputEvent(const ButtonData* pData)
+void FpsCameraController::setVirtualJoystick(VirtualJoystickUI* virtualJoystick) { pVirtualJoystick = virtualJoystick; }
+
+static vec3 moveVec{ 0 };
+bool        FpsCameraController::onInputEvent(const ButtonData* pData)
 {
-	if (!InputSystem::IsMouseCaptured())
-		return;
+	// If mouse is not captured or the input event was consumed
+	// Do nothing
+	if (!InputSystem::IsMouseCaptured() || pData->mEventConsumed)
+		return false;
+
+	// update joystick if available and consume event
+	if (pVirtualJoystick && pVirtualJoystick->OnInputEvent(pData))
+		return true;
 
 	if (pData->mUserId == KEY_MOUSE_WHEEL)
 	{
-		mat4 m{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
+		mat4        m{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
 		const vec3& v{ m.getCol2().getXYZ() };
 		viewPosition -= v * ((float)pData->mValue[0] * k_scrollSpeed);
 	}
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-	if(pData->mUserId == KEY_LEFT_STICK || pData->mUserId == KEY_RIGHT_STICK)
-	{
-		if(pData->mIsPressed == false && pData->mIsReleased == false && pData->mIsTriggered == false)
-		{
-			virtualLeftJoysticPressed = false;
-			virtualRightJoysticPressed = false;
-			return;
-		}
-		if(pData->mIsReleased)
-		{
-			virtualLeftJoysticPressed = false;
-			virtualRightJoysticPressed = false;
-			return;
-		}
 
-		// Find the closest touches to the left and right virtual joysticks.
-		float minDistLeft = 1.0f;
-		int closestTouchLeft = -1;
-		float minDistRight = 1.0f;
-		int closestTouchRight = -1;
-		{
-			vec2 touchPos = vec2(pData->mValue[0], pData->mValue[1]);
-
-			float distToLeft = length(touchPos - virtualLeftJoystickPos);
-			if(distToLeft < minDistLeft && distToLeft <= (k_vJoystickIntRadius * 0.33f)) { minDistLeft = distToLeft; closestTouchLeft = 0; }
-
-			float distToRight = length(touchPos - virtualRightJoystickPos);
-			if(distToRight < minDistRight && distToRight <= (k_vJoystickIntRadius * 0.33f)) { minDistRight = distToRight; closestTouchRight = 0; }
-		}
-
-		// Calculate the new joystick positions.
-		if(closestTouchLeft >= 0)
-		{
-			vec2 newPos = virtualLeftJoystickPos - vec2(-pData->mDeltaValue[0], -pData->mDeltaValue[1]);
-
-			// Clamp the joysticks position to the max range.
-			vec2 tiltDir = newPos - k_vLeftJoystickCenter;
-			if(length(tiltDir) > k_vJoystickRange) newPos = k_vLeftJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
-
-			virtualLeftJoystickPos = newPos;
-			virtualLeftJoysticPressed = true;
-		}
-		if(closestTouchRight >= 0)
-		{
-			vec2 newPos = virtualRightJoystickPos - vec2(-pData->mDeltaValue[0], -pData->mDeltaValue[1]);
-
-			// Clamp the joysticks position to the max range.
-			vec2 tiltDir = newPos - k_vRightJoystickCenter;
-			if(length(tiltDir) > k_vJoystickRange) newPos = k_vRightJoystickCenter + normalize(tiltDir) * k_vJoystickRange;
-
-			virtualRightJoystickPos = newPos;
-			virtualRightJoysticPressed = true;
-		}
-		// Only disable a joystick if there are more than 1 recorded touches or the other joystick is already disabled.
-		// NOTE: iOS sometimes sends touchMove messages one by one when there are multiple touches.
-		if(closestTouchLeft < 0 && (closestTouchRight < 0)) virtualLeftJoysticPressed = false;
-		if(closestTouchRight < 0 && (closestTouchLeft < 0)) virtualRightJoysticPressed = false;
-	}
-#endif
+	return true;
 }
-
 
 void FpsCameraController::update(float deltaTime)
 {
@@ -224,87 +143,70 @@ void FpsCameraController::update(float deltaTime)
 	if (!InputSystem::IsMouseCaptured())
 		return;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-	vec2 leftJoystickDir = virtualLeftJoystickPos - k_vLeftJoystickCenter;
-	if(virtualLeftJoysticPressed)
+	if (pVirtualJoystick)
 	{
-		// Update velocity vector
-		if(length(leftJoystickDir) > k_vJoystickDeadzone)
+		pVirtualJoystick->Update(deltaTime);
+
+		vec2 leftStickDir = pVirtualJoystick->GetLeftStickDir();
+		if (leftStickDir.getX() + leftStickDir.getY() != 0.0f)
 		{
-			vec2 normalizedLeftJoystickDir = normalize(leftJoystickDir);
-			float leftJoystickTilt = length(leftJoystickDir) / k_vJoystickRange;
-			moveVec += vec3(normalizedLeftJoystickDir.getX(), 0.0f, -normalizedLeftJoystickDir.getY()) * leftJoystickTilt;
+			moveVec += vec3(leftStickDir.getX(), 0, -leftStickDir.getY());
+		}
+		vec2 rightStickDir = pVirtualJoystick->GetRightStickDir();
+		if (rightStickDir.getX() + rightStickDir.getY() != 0.0f)
+		{
+			vec2 joystickValue = vec2(rightStickDir.getY(), rightStickDir.getX());
+
+			viewRotation += joystickValue * k_mouseRotationSpeed * 10.f;
 		}
 	}
-	else if (length(leftJoystickDir) > 0)
+	else
 	{
-		vec2 recoveryVector = normalize(leftJoystickDir) * k_vJoystickRecovery * deltaTime;
-		if(length(recoveryVector) >= length(leftJoystickDir)) virtualLeftJoystickPos = k_vLeftJoystickCenter;
-		else virtualLeftJoystickPos -= recoveryVector;
-	}
-
-	vec2 rightJoystickDir = virtualRightJoystickPos - k_vRightJoystickCenter;
-	if(virtualRightJoysticPressed)
-	{
-		// Update view direction
-		if(length(rightJoystickDir) > k_vJoystickDeadzone)
+		//We want to keep checking instead of on doing it on events
+		//Events get triggered on press or release (except for mouse)
+		//this is in case a button is pressed down but hasn't changed.
+		ButtonData leftStick = InputSystem::GetButtonData(KEY_LEFT_STICK);
+		if (leftStick.mIsPressed)
 		{
-			vec2 normalizedRightJoystickDir = normalize(rightJoystickDir);
-			float rightJoystickTilt = length(rightJoystickDir) / k_vJoystickRange;
-			viewRotation += vec2(normalizedRightJoystickDir.getY(), normalizedRightJoystickDir.getX()) * rightJoystickTilt * k_joystickRotationSpeed / 2.0f;
-		}
-	}
-	else if (length(rightJoystickDir) > 0)
-	{
-		vec2 recoveryVector = normalize(rightJoystickDir) * k_vJoystickRecovery * deltaTime;
-		if(length(recoveryVector) >= length(rightJoystickDir)) virtualRightJoystickPos = k_vRightJoystickCenter;
-		else virtualRightJoystickPos -= recoveryVector;
-	}
-#else
-	//We want to keep checking instead of on doing it on events
-	//Events get triggered on press or release (except for mouse)
-	//this is in case a button is pressed down but hasn't changed.
-	ButtonData leftStick = InputSystem::GetButtonData(KEY_LEFT_STICK);
-	if (leftStick.mIsPressed)
-	{
-		moveVec.setX(leftStick.mValue[0]);
-		moveVec.setY(0);
-		moveVec.setZ(leftStick.mValue[1]);
-	}
-
-	//We want to keep checking instead of on events
-	//Events get triggered on press or release(except for mouse)
-	//will need to handle iOS differently for now
-	ButtonData rightStick = InputSystem::GetButtonData(KEY_RIGHT_STICK);
-	if(rightStick.mIsPressed)
-	{
-		//Windows Fall Creators Update breaks this camera controller
-		//  So only use this controller if we are running on macOS or before Fall Creators Update
-		float rx = viewRotation.getX();
-		float ry = viewRotation.getY();
-		float interpolant = 0.75f;
-
-		float newRx = rx;
-		float newRy = ry;
-
-		//Use different values for different input devices.
-		//For mouse we want deltas.
-		//For controllers and touch we want current value.
-		if (rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_GAMEPAD)
-		{
-			newRx = rx + (rightStick.mValue[1] * k_joystickRotationSpeed) * interpolant;
-			newRy = ry + (rightStick.mValue[0] * k_joystickRotationSpeed) * interpolant;
-		}
-		else if(rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_RAW_MOUSE)
-		{
-			newRx = rx + (rightStick.mDeltaValue[1] * k_mouseRotationSpeed) * interpolant;
-			newRy = ry + (rightStick.mDeltaValue[0] * k_mouseRotationSpeed) * interpolant;
+			moveVec.setX(leftStick.mValue[0]);
+			moveVec.setY(0);
+			moveVec.setZ(leftStick.mValue[1]);
 		}
 
-		//set new target view to interpolate to
-		viewRotation = { newRx, newRy };
+		//We want to keep checking instead of on events
+		//Events get triggered on press or release(except for mouse)
+		//will need to handle iOS differently for now
+		ButtonData rightStick = InputSystem::GetButtonData(KEY_RIGHT_STICK);
+		if (rightStick.mIsPressed)
+		{
+			//Windows Fall Creators Update breaks this camera controller
+			//  So only use this controller if we are running on macOS or before Fall Creators Update
+			float rx = viewRotation.getX();
+			float ry = viewRotation.getY();
+			float interpolant = 0.75f;
+
+			float newRx = rx;
+			float newRy = ry;
+
+			//Use different values for different input devices.
+			//For mouse we want deltas.
+			//For controllers and touch we want current value.
+			if (rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_GAMEPAD)
+			{
+				newRx = rx + (rightStick.mValue[1] * k_joystickRotationSpeed) * interpolant;
+				newRy = ry + (rightStick.mValue[0] * k_joystickRotationSpeed) * interpolant;
+			}
+			else if (rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_RAW_MOUSE)
+			{
+				newRx = rx + (rightStick.mDeltaValue[1] * k_mouseRotationSpeed) * interpolant;
+				newRy = ry + (rightStick.mDeltaValue[0] * k_mouseRotationSpeed) * interpolant;
+			}
+
+			//set new target view to interpolate to
+			viewRotation = { newRx, newRy };
+		}
 	}
-#endif
+
 	//divide by length to normalize if necessary
 	float lenS = lengthSqr(moveVec);
 	//one reason the check with > 1.0 instead of 0.0 is to avoid
@@ -314,7 +216,6 @@ void FpsCameraController::update(float deltaTime)
 
 	//create rotation matrix
 	mat4 rot{ mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) };
-
 
 	vec3 accelVec = (rot * moveVec).getXYZ();
 	//divide by length to normalize if necessary
@@ -329,7 +230,7 @@ void FpsCameraController::update(float deltaTime)
 	if (currentInAccelDir < 0)
 		currentInAccelDir = 0;
 
-	vec3 braking = (accelVec * currentInAccelDir) - currentVelocity;
+	vec3  braking = (accelVec * currentInAccelDir) - currentVelocity;
 	float brakingLen = length(braking);
 	if (brakingLen > (deceleration * deltaTime))
 	{
@@ -341,7 +242,7 @@ void FpsCameraController::update(float deltaTime)
 	}
 
 	accelVec = (accelVec * acceleration) + braking;
-	vec3 newVelocity = currentVelocity + (accelVec * deltaTime);
+	vec3  newVelocity = currentVelocity + (accelVec * deltaTime);
 	float nvLen = lengthSqr(newVelocity);
 	if (nvLen > (maxSpeed * maxSpeed))
 	{
@@ -353,7 +254,7 @@ void FpsCameraController::update(float deltaTime)
 	viewPosition += moveVec;
 	currentVelocity = newVelocity;
 
-	moveVec = { 0,0,0 };
+	moveVec = { 0, 0, 0 };
 }
 
 mat4 FpsCameraController::getViewMatrix() const
@@ -364,22 +265,7 @@ mat4 FpsCameraController::getViewMatrix() const
 	return r;
 }
 
-vec3 FpsCameraController::getViewPosition() const
-{
-	return viewPosition;
-}
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-vec2 FpsCameraController::getVirtualLeftJoystickPos() const
-{
-	return virtualLeftJoystickPos;
-}
-
-vec2 FpsCameraController::getVirtualRightJoystickPos() const
-{
-	return virtualRightJoystickPos;
-}
-#endif
+vec3 FpsCameraController::getViewPosition() const { return viewPosition; }
 
 void FpsCameraController::moveTo(const vec3& location)
 {
@@ -389,14 +275,14 @@ void FpsCameraController::moveTo(const vec3& location)
 
 void FpsCameraController::lookAt(const vec3& lookAt)
 {
-	vec3 lookDir = normalize(lookAt- viewPosition);
+	vec3 lookDir = normalize(lookAt - viewPosition);
 
 	float y = lookDir.getY();
 	viewRotation.setX(-asinf(y));
 
 	float x = lookDir.getX();
 	float z = lookDir.getZ();
-	float n = sqrtf((x*x) + (z*z));
+	float n = sqrtf((x * x) + (z * z));
 	if (n > 0.01f)
 	{
 		// don't change the Y rotation if we're too close to vertical
@@ -405,4 +291,3 @@ void FpsCameraController::lookAt(const vec3& lookAt)
 		viewRotation.setY(atan2f(x, z));
 	}
 }
-

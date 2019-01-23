@@ -1,7 +1,7 @@
 #version 450 core
 
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,14 +36,24 @@ struct PointLight
 struct DirectionalLight
 {
 	vec3 direction;
+	int shadowMap;
 	vec3 color;
 	float intensity;
+	float shadowRange;
+	float _pad0;
+	float _pad1;
+	float _pad2;
 };
 
 layout(set = 0, binding = 0) uniform cbCamera 
 {
-	uniform mat4 projView;
-	uniform vec3 camPos;
+	mat4 projView;
+	mat4 invProjView;
+	vec3 camPos;
+	float _dumm;
+	int bUseEnvironmentLight;
+	float fAmbientIntensity;
+	int renderMode;
 };
 
 layout (set = 0, binding = 1) uniform cbObject 
@@ -51,6 +61,7 @@ layout (set = 0, binding = 1) uniform cbObject
 	mat4 worldMat;
 	vec3 albedo;
 	float roughness;
+	vec2 tiling;
 	float metalness;
 	int textureConfig;
 };
@@ -77,7 +88,7 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
-	return F0 + (1.0f - F0) * pow(1.0 - cosTheta, 5.0);
+	return F0 + (vec3(1.0f) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 float distributionGGX(vec3 N, vec3 H, float roughness)
@@ -142,6 +153,49 @@ bool HasMetallicTexture(int textureConfig) { return (textureConfig & (1 << 2)) !
 bool HasRoughnessTexture(int textureConfig) { return (textureConfig & (1 << 3)) != 0; }
 bool HasAOTexture(int textureConfig) { return (textureConfig & (1 << 4)) != 0; }
 
+bool IsOrenNayarDiffuse(int textureConfig) { return (textureConfig & (1 << 5)) != 0; }
+
+vec3 LambertDiffuse(vec3 albedo, vec3 kD)
+{
+	return kD * albedo / PI;
+}
+
+float OrenNayarDiffuse(vec3 L, vec3 V, vec3 N, float roughness)
+{
+	// src: https://www.gamasutra.com/view/feature/131269/implementing_modular_hlsl_with_.php?page=3
+
+	const float NdotL = max(dot(N, L), 0.0f);
+	const float NdotV = max(dot(N, V), 0.0f);
+
+	// gamma: the azimuth (circular angle) between L and V
+	//
+	const float gamma = max( 0.0f, dot(normalize(V - N * NdotV), normalize(L - N * NdotL)) );
+
+	// alpha and beta represent the polar angles in spherical coord system
+	//
+	// alpha = min(theta_L, theta_V)
+	// beta  = max(theta_L, theta_V)
+	//
+	// where theta_L is the angle between N and L
+	//   and theta_V is the angle between N and V
+	//
+	const float alpha = max(acos(NdotV), acos(NdotL));
+	const float beta  = min(acos(NdotV), acos(NdotL));
+
+	const float sigma2 = roughness * roughness;
+
+	// Oren-Nayar constants
+	const float A = 1.0f - 0.5f * sigma2 / (sigma2 + 0.33f);
+	float B = 0.45f * sigma2 / (sigma2 + 0.09f);
+	if (gamma >= 0)
+		B *= sin(alpha) * tan(beta);
+	else
+		B = 0.0f;
+
+	return (A + B);
+}
+
+
 vec3 getNormalFromMap()
 {
 	vec3 tangentNormal = texture(sampler2D(normalMap, bilinearSampler),uv).xyz * 2.0 - 1.0;
@@ -159,7 +213,7 @@ vec3 getNormalFromMap()
 	return normalize(TBN * tangentNormal);
 }
 
-vec3 CalculateLightContribution(vec3 lightDirection, vec3 worldNormal, vec3 viewDirection, vec3 halfwayVec, vec3 radiance, vec3 albedo, float roughness, float metalness, vec3 F0)
+vec3 CalculateLightContribution(vec3 lightDirection, vec3 worldNormal, vec3 viewDirection, vec3 halfwayVec, vec3 radiance, vec3 albedo, float roughness, float metalness, vec3 F0, int isOrenNayar)
 {
 	float NDF = distributionGGX(worldNormal, halfwayVec, roughness);
 	float G = GeometrySmith(worldNormal, viewDirection, lightDirection, roughness);
@@ -177,15 +231,18 @@ vec3 CalculateLightContribution(vec3 lightDirection, vec3 worldNormal, vec3 view
 
 	float NdotL = max(dot(worldNormal, lightDirection), 0.0f);
 
-	return (kD * albedo / PI + specular) * radiance * NdotL;
+	if (isOrenNayar != 0)
+		return (OrenNayarDiffuse(lightDirection, viewDirection, worldNormal, roughness) * kD * albedo / PI + specular) * radiance * NdotL;
+	else
+		return (LambertDiffuse(kD, albedo) + specular) * radiance * NdotL;
 }
 
-vec3 CalculateDirectionalLightContribution(uint lightIndex, vec3 worldNormal, vec3 viewDirection, vec3 albedo, float roughness, float metalness, vec3 F0)
+vec3 CalculateDirectionalLightContribution(uint lightIndex, vec3 worldNormal, vec3 viewDirection, vec3 albedo, float roughness, float metalness, vec3 F0, int isOrenNayar)
 {
 	const DirectionalLight light = DirectionalLights[lightIndex];
 	vec3 H = normalize(viewDirection + light.direction);
 	vec3 radiance = light.color * light.intensity;
-	return CalculateLightContribution(light.direction, worldNormal, viewDirection, H, radiance, albedo, roughness, metalness, F0);
+	return CalculateLightContribution(normalize(light.direction), worldNormal, viewDirection, H, radiance, albedo, roughness, metalness, F0, isOrenNayar);
 }
 
 vec3 CalculatePointLightContribution(uint lightIndex, vec3 worldPosition, vec3 worldNormal, vec3 viewDirection, vec3 albedo, float roughness, float metalness, vec3 F0)
@@ -200,7 +257,7 @@ vec3 CalculatePointLightContribution(uint lightIndex, vec3 worldPosition, vec3 w
 	float attenuation = clamped / (distance * distance + 1.0f);
 	vec3 radiance = light.col.rgb * attenuation * light.intensity;
 
-	return CalculateLightContribution(L, worldNormal, viewDirection, H, radiance, albedo, roughness, metalness, F0);
+	return CalculateLightContribution(L, worldNormal, viewDirection, H, radiance, albedo, roughness, metalness, F0, 0);
 }
 
 void main()
@@ -229,6 +286,7 @@ void main()
 
 	_albedo = pow(_albedo, vec3(2.2f, 2.2f, 2.2f));
 
+	const int isOrenNayar = IsOrenNayarDiffuse(textureConfig) ? 1 : 0;
 
 	const vec3 V = normalize(camPos - pos);
 	const vec3 R = reflect(-V, N);
@@ -245,32 +303,51 @@ void main()
 		Lo += CalculatePointLightContribution(i, pos.xyz, N, V, _albedo, _roughness, _metalness, F0);
 
 	for (int i = 0; i < NumDirectionalLights; ++i)
-		Lo += CalculateDirectionalLightContribution(i, N, V, _albedo, _roughness, _metalness, F0);
+		Lo += CalculateDirectionalLightContribution(i, N, V, _albedo, _roughness, _metalness, F0, isOrenNayar);
 
 	vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, _roughness);
 	vec3 kS = F;
 	vec3 kD = vec3(1.0f, 1.0f, 1.0f) - kS;
 	kD *= 1.0f - _metalness;
 
-	vec3 irradiance = texture(samplerCube(irradianceMap, bilinearSampler), N).rgb;
-	vec3 diffuse = kD * irradiance * _albedo;
+	vec3 color = Lo;
+	if (bUseEnvironmentLight != 0)
+	{
+		vec3 irradiance = texture(samplerCube(irradianceMap, bilinearSampler), N).rgb;
+		vec3 diffuse = kD * irradiance * _albedo;
 
-	vec3 specularColor = textureLod(samplerCube(specularMap, bilinearSampler), R, _roughness * 4).rgb;
+		vec3 specularColor = textureLod(samplerCube(specularMap, bilinearSampler), R, _roughness * 4).rgb;
 
-	vec2 maxNVRough = vec2(max(dot(N, V), 0.0), _roughness);
-	vec2 brdf = texture(sampler2D(brdfIntegrationMap, bilinearClampedSampler), maxNVRough).rg;
+		vec2 maxNVRough = vec2(max(dot(N, V), 0.0), _roughness);
+		vec2 brdf = texture(sampler2D(brdfIntegrationMap, bilinearClampedSampler), maxNVRough).rg;
 
-	vec3 specular = specularColor * (F * brdf.x + brdf.y);
+		vec3 specular = specularColor * (F * brdf.x + brdf.y);
 
-	vec3 ambient = vec3(diffuse + specular) * _ao;
+		vec3 ambient = vec3(diffuse + specular) * _ao;
 
-	vec3 color = Lo + ambient;
+		color += ambient;
+	}
+	else
+	{
+		vec3 ambient = _albedo * _ao * fAmbientIntensity;
+		color += ambient;
+	}
 
 	color = color / (color + vec3(1.0f, 1.0f, 1.0f));
 
 	float gammaCorr = 1.0f / 2.2f;
 	color = pow(color, vec3(gammaCorr));
 
+	switch (renderMode)
+	{
+	default:
+	case 0: break;
+	case 1: color = _albedo; break;
+	case 2: color = N; break;
+	case 3: color = vec3(_roughness); break;
+	case 4: color = vec3(_metalness); break;
+	case 5: color = vec3(_ao); break;
+	}
 	outColor = vec4(color, 1.0f);
 	
 }

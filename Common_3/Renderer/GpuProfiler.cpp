@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,7 +29,7 @@
 #include "../OS/Interfaces/ILogManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
 #if __linux__
-#include <linux/limits.h> //PATH_MAX declaration
+#include <linux/limits.h>    //PATH_MAX declaration
 #define MAX_PATH PATH_MAX
 #endif
 
@@ -57,11 +57,11 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	ASSERT(pGpuProfiler->pTimeStamp != NULL && "Time stamp readback buffer is not mapped");
 #endif
-	
+
 	if (pRoot != &pGpuProfiler->mRoot)
 	{
 		uint32_t historyIndex = pRoot->mGpuTimer.mHistoryIndex;
-		int64_t elapsedTime = 0;
+		int64_t  elapsedTime = 0;
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 		uint32_t id = pRoot->mGpuTimer.mIndex;
 		uint64_t timeStamp1 = pGpuProfiler->pTimeStamp[id * 2];
@@ -78,7 +78,7 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimerTree* p
 		pRoot->mGpuTimer.mGpuTime = elapsedTime;
 		pRoot->mGpuTimer.mGpuHistory[historyIndex] = elapsedTime;
 #endif
-		
+
 		elapsedTime = pRoot->mGpuTimer.mEndCpuTime - pRoot->mGpuTimer.mStartCpuTime;
 		if (elapsedTime < 0)
 		{
@@ -134,7 +134,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
-	QueryHeapDesc queryHeapDesc = {};
+	QueryHeapDesc  queryHeapDesc = {};
 	queryHeapDesc.mNodeIndex = nodeIndex;
 	queryHeapDesc.mQueryCount = maxTimers * 2;
 	queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
@@ -198,7 +198,7 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker, const float3& color)
 {
 	// hash name
-	char _buffer[128] = {}; //Initialize to empty
+	char _buffer[128] = {};    //Initialize to empty
 	sprintf(_buffer, "%s_%u", pName, pGpuProfiler->mCurrentTimerCount);
 	uint32_t _hash = tinystl::hash(_buffer);
 
@@ -234,7 +234,7 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	QueryDesc desc = { 2 * node->mGpuTimer.mIndex };
 	cmdBeginQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
 #endif
-	
+
 	if (addMarker)
 	{
 		cmdBeginDebugMarker(pCmd, color.getX(), color.getY(), color.getZ(), pName);
@@ -256,7 +256,7 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 	QueryDesc desc = { 2 * pGpuProfiler->pCurrentNode->mGpuTimer.mIndex + 1 };
 	cmdEndQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
 #endif
-	
+
 	if (pGpuProfiler->pCurrentNode->mDebugMarker)
 	{
 		cmdEndDebugMarker(pCmd);
@@ -272,12 +272,11 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 {
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
 	// resolve last frame
-	cmdResolveQuery(pCmd,
-		pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex],
-		pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex],
-		0, pGpuProfiler->mCurrentTimerCount * 2);
+	cmdResolveQuery(
+		pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], 0,
+		pGpuProfiler->mCurrentTimerCount * 2);
 #endif
-	
+
 	uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;
 	pGpuProfiler->mBufferIndex = nextIndex;
 
@@ -312,7 +311,7 @@ void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 	mapBuffer(pCmd->pRenderer, pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], &range);
 	pGpuProfiler->pTimeStamp = (uint64_t*)pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex]->pCpuMappedAddress;
 #endif
-	
+
 	calculateTimes(pCmd, pGpuProfiler, &pGpuProfiler->mRoot);
 
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)

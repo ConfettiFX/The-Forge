@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,18 +40,15 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-static bool gAppRunning;
-static WindowsDesc* gCurrentWindow = nullptr;
-static tinystl::vector <MonitorDesc> gMonitors;
-static int gCurrentTouchEvent = 0;
+static bool                         gAppRunning;
+static WindowsDesc*                 gCurrentWindow = nullptr;
+static tinystl::vector<MonitorDesc> gMonitors;
+static int                          gCurrentTouchEvent = 0;
 
-static tinystl::vector <MonitorDesc> monitors;
+static tinystl::vector<MonitorDesc> monitors;
 
 // Update the state of the keys based on state previous frame
-void updateTouchEvent(int numTaps)
-{
-	gCurrentTouchEvent = numTaps;
-}
+void updateTouchEvent(int numTaps) { gCurrentTouchEvent = numTaps; }
 
 int getTouchEvent()
 {
@@ -60,37 +57,22 @@ int getTouchEvent()
 	return prevTouchEvent;
 }
 
-bool isRunning()
-{
-	return gAppRunning;
-}
+bool isRunning() { return gAppRunning; }
 
-void requestShutDown()
-{
-	gAppRunning = false;
-}
+void requestShutDown() { gAppRunning = false; }
 
-void openWindow(const char* app_name, WindowsDesc* winDesc)
-{
-	gCurrentWindow = winDesc;
-}
+void openWindow(const char* app_name, WindowsDesc* winDesc) { gCurrentWindow = winDesc; }
 
 // Function needed to access the current window descriptor from the GameViewController.
-WindowsDesc* getCurrentWindow()
-{
-	return gCurrentWindow;
-}
+WindowsDesc* getCurrentWindow() { return gCurrentWindow; }
 
 void getRecommendedResolution(RectDesc* rect)
 {
 	// TODO: Get recommeneded resolution based on the device.
-	*rect = RectDesc{ 0,0,1334,750 };
+	*rect = RectDesc{ 0, 0, 1334, 750 };
 }
 
-void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
-{
-
-}
+void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes) {}
 
 /************************************************************************/
 // Time Related Functions
@@ -98,14 +80,14 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 
 unsigned getSystemTime()
 {
-	long			ms; // Milliseconds
-	time_t		s;  // Seconds
+	long            ms;    // Milliseconds
+	time_t          s;     // Seconds
 	struct timespec spec;
 
 	clock_gettime(CLOCK_REALTIME, &spec);
 
-	s  = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+	s = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
 
 	ms += s * 1000;
 
@@ -121,9 +103,6 @@ long long getUSec()
 	return us;
 }
 
-unsigned getTimeSinceStart()
-{
-	return (unsigned)time(NULL);
-}
+unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
 #endif

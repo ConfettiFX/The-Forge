@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,15 +50,9 @@ Mutex::~Mutex()
 	pHandle = 0;
 }
 
-void Mutex::Acquire()
-{
-	EnterCriticalSection((CRITICAL_SECTION*)pHandle);
-}
+void Mutex::Acquire() { EnterCriticalSection((CRITICAL_SECTION*)pHandle); }
 
-void Mutex::Release()
-{
-	LeaveCriticalSection((CRITICAL_SECTION*)pHandle);
-}
+void Mutex::Release() { LeaveCriticalSection((CRITICAL_SECTION*)pHandle); }
 
 ConditionVariable::ConditionVariable()
 {
@@ -66,37 +60,22 @@ ConditionVariable::ConditionVariable()
 	InitializeConditionVariable((PCONDITION_VARIABLE)pHandle);
 }
 
-ConditionVariable::~ConditionVariable()
-{
-	conf_free(pHandle);
-}
+ConditionVariable::~ConditionVariable() { conf_free(pHandle); }
 
 void ConditionVariable::Wait(const Mutex& mutex, unsigned ms)
 {
 	SleepConditionVariableCS((PCONDITION_VARIABLE)pHandle, (PCRITICAL_SECTION)mutex.pHandle, ms);
 }
 
-void ConditionVariable::Set()
-{
-	WakeConditionVariable((PCONDITION_VARIABLE)pHandle);
-}
+void ConditionVariable::Set() { WakeConditionVariable((PCONDITION_VARIABLE)pHandle); }
 
 ThreadID Thread::mainThreadID;
 
-void Thread::SetMainThread()
-{
-	mainThreadID = GetCurrentThreadID();
-}
+void Thread::SetMainThread() { mainThreadID = GetCurrentThreadID(); }
 
-ThreadID Thread::GetCurrentThreadID()
-{
-	return GetCurrentThreadId();
-}
+ThreadID Thread::GetCurrentThreadID() { return GetCurrentThreadId(); }
 
-bool Thread::IsMainThread()
-{
-	return GetCurrentThreadID() == mainThreadID;
-}
+bool Thread::IsMainThread() { return GetCurrentThreadID() == mainThreadID; }
 
 ThreadHandle create_thread(WorkItem* pData)
 {
@@ -113,15 +92,9 @@ void destroy_thread(ThreadHandle handle)
 	handle = 0;
 }
 
-void join_thread(ThreadHandle handle)
-{
-	WaitForSingleObject((HANDLE)handle, INFINITE);
-}
+void join_thread(ThreadHandle handle) { WaitForSingleObject((HANDLE)handle, INFINITE); }
 
-void Thread::Sleep(unsigned mSec)
-{
-	::Sleep(mSec);
-}
+void Thread::Sleep(unsigned mSec) { ::Sleep(mSec); }
 
 // threading class (Static functions)
 unsigned int Thread::GetNumCPUCores(void)

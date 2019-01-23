@@ -3814,7 +3814,12 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
 				if (buffer->bPushConstant)
 					m_writer.WriteLine(indent, "}%s;", buffer->name);
 				else
-					m_writer.WriteLine(indent, "};");
+				{
+					if (buffer->type.elementType != HLSLBaseType_Unknown)
+						m_writer.WriteLine(indent, "}%s;", buffer->name);
+					else
+						m_writer.WriteLine(indent, "};");
+				}
 				
 			}
 			else if (statement->type.baseType == HLSLBaseType_StructuredBuffer || statement->type.baseType == HLSLBaseType_PureBuffer)

@@ -8,10 +8,10 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{0f7c17de-097d-4975-9115-6acd59ae682c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCDX12">
+    <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{144cf7a6-3889-40ef-b7b7-9e22f787d84f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\PCVulkan">
+    <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{37f3928e-8d58-4486-803e-6d324993a412}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -21,29 +21,29 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCDX12\basic.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCDX12\basic.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCDX12\plane.frag">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\D3D12\plane.frag">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCDX12\plane.vert">
-      <Filter>Shaders\PCDX12</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\D3D12\plane.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCVulkan\basic.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCVulkan\basic.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCVulkan\plane.frag">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\Vulkan\plane.frag">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\07_BakedPhysics\Shaders\PCVulkan\plane.vert">
-      <Filter>Shaders\PCVulkan</Filter>
+    <None Include="..\src\07_BakedPhysics\Shaders\Vulkan\plane.vert">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
   </ItemGroup>
 </Project>

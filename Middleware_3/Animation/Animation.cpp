@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -108,7 +108,6 @@ bool Animation::Sample(float dt, ozz::Range<SoaTransform>& localTrans)
 	return Blend(localTrans);
 }
 
-
 void Animation::UpdateBlendParameters()
 {
 	// Set to Ozz's default min value to undo any external changes
@@ -127,30 +126,29 @@ void Animation::UpdateBlendParameters()
 	// Based on mBlendRatio
 	else if (mBlendType == BlendType::CROSS_DISSOLVE)
 	{
-
 		// Computes weight parameters for all samplers.
 		const float numIntervals = (float)mNumClips - 1;
 		const float interval = 1.f / numIntervals;
-		for (unsigned int i = 0; i < mNumClips; ++i) {
-			const float med = i * interval;		// unique order of animation between [0,1]
+		for (unsigned int i = 0; i < mNumClips; ++i)
+		{
+			const float med = i * interval;    // unique order of animation between [0,1]
 			const float x = mBlendRatio - med;
 			const float y = ((x < 0.f ? x : -x) + interval) * numIntervals;
 
 			mClipControllers[i]->SetWeight(max(0.f, y));
 		}
-
 	}
 
 	// The animations will fade into one another in the order they were added, syncronizing their speeds as they fade into eachother
 	// Based on mBlendRatio
 	else if (mBlendType == BlendType::CROSS_DISSOLVE_SYNC)
 	{
-
 		// Computes weight parameters for all samplers.
 		const float numIntervals = (float)mNumClips - 1;
 		const float interval = 1.f / numIntervals;
-		for (unsigned int i = 0; i < mNumClips; ++i) {
-			const float med = i * interval;		// unique order of animation between [0,1]
+		for (unsigned int i = 0; i < mNumClips; ++i)
+		{
+			const float med = i * interval;    // unique order of animation between [0,1]
 			const float x = mBlendRatio - med;
 			const float y = ((x < 0.f ? x : -x) + interval) * numIntervals;
 
@@ -162,8 +160,7 @@ void Animation::UpdateBlendParameters()
 		// interval that contains mBlendRatio.
 		// Uses a maximum value smaller that 1.f (-epsilon) to ensure that
 		// (relevantClip + 1) is always valid.
-		const unsigned int relevantClip =
-			static_cast<unsigned int>((mBlendRatio - 1e-3f) * (mNumClips - 1));
+		const unsigned int relevantClip = static_cast<unsigned int>((mBlendRatio - 1e-3f) * (mNumClips - 1));
 		assert(relevantClip + 1 < mNumClips);
 		ClipController* ClipControllerL = mClipControllers[relevantClip];
 		ClipController* ClipControllerR = mClipControllers[relevantClip + 1];
@@ -172,25 +169,24 @@ void Animation::UpdateBlendParameters()
 		// find the loop cycle duration that matches blend_ratio_.
 		const float loopDuration =
 
-			ClipControllerL->GetDuration() * ClipControllerL->GetWeight() +
-			ClipControllerR->GetDuration() * ClipControllerR->GetWeight();
+			ClipControllerL->GetDuration() * ClipControllerL->GetWeight() + ClipControllerR->GetDuration() * ClipControllerR->GetWeight();
 
 		// Finally finds the speed coefficient for all Clips.
 		const float invLoopDuration = 1.f / loopDuration;
-		for (unsigned int i = 0; i < mNumClips; ++i) {
+		for (unsigned int i = 0; i < mNumClips; ++i)
+		{
 			ClipController* ClipController = mClipControllers[i];
-			const float speed = ClipController->GetDuration() * invLoopDuration;
+			const float     speed = ClipController->GetDuration() * invLoopDuration;
 			ClipController->SetPlaybackSpeed(speed);
 		}
-
 	}
 }
 
 bool Animation::Blend(ozz::Range<SoaTransform>& localTrans)
 {
 	unsigned int additiveIndex = 0;
-	for (unsigned int i = 0; i < mNumClips; i++) {
-
+	for (unsigned int i = 0; i < mNumClips; i++)
+	{
 		if (mClipControllers[i]->IsAdditive())
 		{
 			mAdditiveLayers[additiveIndex].transform = mClipLocalTrans[i];
@@ -219,26 +215,26 @@ bool Animation::Blend(ozz::Range<SoaTransform>& localTrans)
 	ozz::animation::BlendingJob blendJob;
 	blendJob.threshold = mThreshold;
 	blendJob.layers = mLayers;
-	if (mNumAdditiveClips > 0) blendJob.additive_layers = mAdditiveLayers;
+	if (mNumAdditiveClips > 0)
+		blendJob.additive_layers = mAdditiveLayers;
 	blendJob.bind_pose = mRig->GetSkeleton()->bind_pose();
 	blendJob.output = localTrans;
 
 	// Blends.
-	if (!blendJob.Run()) {
+	if (!blendJob.Run())
+	{
 		return false;
 	}
 
 	return true;
 }
 
-
 void Animation::SetTimeRatio(float timeRatio)
 {
 	float time = timeRatio * mDuration;
 
-	for (unsigned int i = 0; i < mNumClips; i++) {
-
+	for (unsigned int i = 0; i < mNumClips; i++)
+	{
 		mClipControllers[i]->SetTimeRatio(time);
-
 	}
 }

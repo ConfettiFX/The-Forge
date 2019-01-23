@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -93,7 +93,6 @@ void SkeletonBatcher::SetSharedUniforms(const Matrix4& projViewMat, const Vector
 
 void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int numRigs)
 {
-
 	// Will keep track of the current batch we are setting the uniforms for
 	// and will indicate how many catches to draw when draw is called for this frame index
 	mBatchCounts[frameIndex] = 0;
@@ -123,7 +122,8 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 				mUniformDataBones.mColor[instanceCount] = mRigs[rigIndex]->GetBoneColor();
 
 				// add joint data to the uniform while scaling the joints by their determined chlid bone length
-				mUniformDataJoints.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex) * mat4::scale(mRigs[rigIndex]->GetJointScale(jointIndex));
+				mUniformDataJoints.mToWorldMat[instanceCount] =
+					mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex) * mat4::scale(mRigs[rigIndex]->GetJointScale(jointIndex));
 			}
 			else
 			{
@@ -170,7 +170,6 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 	}
 }
 
-
 void SkeletonBatcher::AddRig(Rig* rig)
 {
 	// Adds the rig so its data can be used and increments the rig count
@@ -204,7 +203,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 		}
 		else
 		{
-			// For the last batch use its recorded number of instances for this frameindex 
+			// For the last batch use its recorded number of instances for this frameindex
 			cmdDrawInstanced(cmd, mNumJointPoints / 6, 0, mLastBatchSize[frameIndex], 0);
 		}
 	}
@@ -229,7 +228,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 			}
 			else
 			{
-				// For the last batch use its recorded number of instances for this frameindex 
+				// For the last batch use its recorded number of instances for this frameindex
 				cmdDrawInstanced(cmd, mNumBonePoints / 6, 0, mLastBatchSize[frameIndex], 0);
 			}
 		}

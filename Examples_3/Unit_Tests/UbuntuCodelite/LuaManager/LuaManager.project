@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Project Name="LuaManager" InternalType="Library" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
+  <Description/>
+  <Dependencies/>
+  <VirtualDirectory Name="src">
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lbaselib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lbitlib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lcode.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lcorolib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lctype.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldblib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldebug.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldo.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldump.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lfunc.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lgc.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/linit.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/liolib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/llex.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lmathlib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lmem.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/loadlib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lobject.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lopcodes.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/loslib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lparser.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstate.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstring.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstrlib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltable.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltablib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltm.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lundump.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lutf8lib.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lvm.c" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lzio.c" />
+    <File Name="../../../../Middleware_3/LUA/LuaManager.cpp" />
+    <File Name="../../../../Middleware_3/LUA/LuaManagerImpl.cpp" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lcode.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lctype.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldebug.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldo.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lfunc.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lgc.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/llex.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/llimits.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lmem.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lobject.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lopcodes.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lparser.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lprefix.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstate.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstring.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltable.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltm.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lua.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lua.hpp" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/luaconf.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lualib.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lundump.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lvm.h" />
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lzio.h" />
+    <File Name="../../../../Middleware_3/LUA/LuaManager.h" />
+    <File Name="../../../../Middleware_3/LUA/LuaManagerCommon.h" />
+    <File Name="../../../../Middleware_3/LUA/LuaManagerImpl.h" />
+    <File Name="../../../../Middleware_3/LUA/LunaV.hpp" />
+  </VirtualDirectory>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-std=c++11;" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="yes">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-std=c++11;" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

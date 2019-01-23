@@ -22,10 +22,10 @@
     <ClCompile Include="..\src\14_WaveIntrinsics\14_WaveIntrinsics.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\magnify.frag" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\magnify.vert" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.frag" />
-    <None Include="..\src\14_WaveIntrinsics\Shaders\PCDX12\wave.vert" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\magnify.frag" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\magnify.vert" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\wave.frag" />
+    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\wave.vert" />
     <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.frag" />
     <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.vert" />
     <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.frag" />

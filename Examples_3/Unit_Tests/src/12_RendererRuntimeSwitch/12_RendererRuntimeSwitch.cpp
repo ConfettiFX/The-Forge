@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,7 +25,7 @@
 // Unit Test for testing transformations using a solar system.
 // Tests the basic mat4 transformations, such as scaling, rotation, and translation.
 
-#define MAX_PLANETS 20 // Does not affect test, just for allocating space in uniform block. Must match with shader.
+#define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
@@ -55,14 +55,14 @@
 /// Demo structures
 struct PlanetInfoStruct
 {
-	uint mParentIndex;
-	vec4 mColor;
-	float mYOrbitSpeed; // Rotation speed around parent
+	uint  mParentIndex;
+	vec4  mColor;
+	float mYOrbitSpeed;    // Rotation speed around parent
 	float mZOrbitSpeed;
-	float mRotationSpeed; // Rotation speed around self
-	mat4 mTranslationMat;
-	mat4 mScaleMat;
-	mat4 mSharedMat;	// Matrix to pass down to children
+	float mRotationSpeed;    // Rotation speed around self
+	mat4  mTranslationMat;
+	mat4  mScaleMat;
+	mat4  mSharedMat;    // Matrix to pass down to children
 };
 
 struct UniformBlock
@@ -76,92 +76,85 @@ struct UniformBlock
 	vec3 mLightColor;
 };
 
-const uint32_t	  gImageCount = 3;
-const int		   gSphereResolution = 30; // Increase for higher resolution spheres
-const float		 gSphereDiameter = 0.5f;
-const uint		  gNumPlanets = 11;	  // Sun, Mercury -> Neptune, Pluto, Moon
-const uint		  gTimeOffset = 600000;   // For visually better starting locations
-const float		 gRotSelfScale = 0.0004f;
-const float		 gRotOrbitYScale = 0.001f;
-const float		 gRotOrbitZScale = 0.00001f;
+const uint32_t gImageCount = 3;
+const int      gSphereResolution = 30;    // Increase for higher resolution spheres
+const float    gSphereDiameter = 0.5f;
+const uint     gNumPlanets = 11;        // Sun, Mercury -> Neptune, Pluto, Moon
+const uint     gTimeOffset = 600000;    // For visually better starting locations
+const float    gRotSelfScale = 0.0004f;
+const float    gRotOrbitYScale = 0.001f;
+const float    gRotOrbitZScale = 0.00001f;
 
-Renderer*		   pRenderer = NULL;
+Renderer* pRenderer = NULL;
 
-Queue*			  pGraphicsQueue = NULL;
-CmdPool*			pCmdPool = NULL;
-Cmd**			   ppCmds = NULL;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-SwapChain*		  pSwapChain = NULL;
-RenderTarget*	   pDepthBuffer = NULL;
-Fence*			  pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*		  pImageAcquiredSemaphore = NULL;
-Semaphore*		  pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain*    pSwapChain = NULL;
+RenderTarget* pDepthBuffer = NULL;
+Fence*        pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*    pImageAcquiredSemaphore = NULL;
+Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*			 pSphereShader = NULL;
-Buffer*			 pSphereVertexBuffer = NULL;
-Pipeline*		   pSpherePipeline = NULL;
+Shader*   pSphereShader = NULL;
+Buffer*   pSphereVertexBuffer = NULL;
+Pipeline* pSpherePipeline = NULL;
 
-Shader*			 pSkyBoxDrawShader = NULL;
-Buffer*			 pSkyBoxVertexBuffer = NULL;
-Pipeline*		   pSkyBoxDrawPipeline = NULL;
-RootSignature*	  pRootSignature = NULL;
-Sampler*			pSamplerSkyBox = NULL;
-Texture*			pSkyBoxTextures[6];
+Shader*        pSkyBoxDrawShader = NULL;
+Buffer*        pSkyBoxVertexBuffer = NULL;
+Pipeline*      pSkyBoxDrawPipeline = NULL;
+RootSignature* pRootSignature = NULL;
+Sampler*       pSamplerSkyBox = NULL;
+Texture*       pSkyBoxTextures[6];
 #ifdef TARGET_IOS
-VirtualJoystickUI   gVirtualJoystick;
+VirtualJoystickUI gVirtualJoystick;
 #endif
-DepthState*		 pDepth = NULL;
-RasterizerState*	pSkyboxRast = NULL;
+DepthState*      pDepth = NULL;
+RasterizerState* pSkyboxRast = NULL;
 
-Buffer*			 pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*			 pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer* pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer* pSkyboxUniformBuffer[gImageCount] = { NULL };
 
-uint32_t			gFrameIndex = 0;
+uint32_t gFrameIndex = 0;
 
-int				 gNumberOfSpherePoints;
-UniformBlock		gUniformData;
-UniformBlock		gUniformDataSky;
-PlanetInfoStruct	gPlanetInfoData[gNumPlanets];
+int              gNumberOfSpherePoints;
+UniformBlock     gUniformData;
+UniformBlock     gUniformDataSky;
+PlanetInfoStruct gPlanetInfoData[gNumPlanets];
 
-ICameraController*  pCameraController = NULL;
+ICameraController* pCameraController = NULL;
 
 /// UI
-UIApp			   gAppUI;
-GuiComponent*	   pGui;
+UIApp         gAppUI;
+GuiComponent* pGui;
 
-FileSystem		  gFileSystem;
-LogManager		  gLogManager;
+FileSystem gFileSystem;
+LogManager gLogManager;
 
-const char*		 pSkyBoxImageFileNames[] =
-{
-	"Skybox_right1.png",
-	"Skybox_left2.png",
-	"Skybox_top3.png",
-	"Skybox_bottom4.png",
-	"Skybox_front5.png",
-	"Skybox_back6.png"
-};
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
+										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
 
-const char* pszBases[] =
-{
-	"",                                         // FSR_BinShaders
-	"",                                         // FSR_SrcShaders
-	"",                                         // FSR_BinShaders_Common
-	"",                                         // FSR_SrcShaders_Common
-	"../../../UnitTestResources/",              // FSR_Textures
-	"../../../UnitTestResources/",              // FSR_Meshes
-	"../../../UnitTestResources/",              // FSR_Builtin_Fonts
-	"../../../src/12_RendererRuntimeSwitch/",   // FSR_GpuConfig
-	"",                                         // FSR_OtherFiles
+const char* pszBases[FSR_Count] = {
+	"../../../src/12_RendererRuntimeSwitch/",    // FSR_BinShaders
+	"../../../src/12_RendererRuntimeSwitch/",    // FSR_SrcShaders
+	"../../../UnitTestResources/",               // FSR_Textures
+	"../../../UnitTestResources/",               // FSR_Meshes
+	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
+	"../../../src/12_RendererRuntimeSwitch/",    // FSR_GpuConfig
+	"",                                          // FSR_Animation
+	"",                                          // FSR_OtherFiles
+	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
+	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
 };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 RendererApi gTargetApi = RENDERER_API_D3D12;
 
-class RendererRuntimeSwitch : public IApp
+class RendererRuntimeSwitch: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
 		loadRendererFunctions(gTargetApi);
@@ -176,11 +169,11 @@ public:
 
 		if (settings.mApi == RENDERER_API_VULKAN)
 		{
-			FileSystem::SetRootPath(FSR_SrcShaders, "../../../src/12_RendererRuntimeSwitch/Shaders/PCVulkan/");
+			FileSystem::SetRootPath(FSR_SrcShaders, "Shaders/Vulkan/");
 		}
 		else if (settings.mApi == RENDERER_API_D3D12)
 		{
-			FileSystem::SetRootPath(FSR_SrcShaders, "../../../src/12_RendererRuntimeSwitch/Shaders/PCDX12/");
+			FileSystem::SetRootPath(FSR_SrcShaders, "Shaders/D3D12/");
 		}
 
 		QueueDesc queueDesc = {};
@@ -206,7 +199,7 @@ public:
 #ifndef TARGET_IOS
 			textureDesc.mRoot = FSR_Textures;
 #else
-			textureDesc.mRoot = FSRoot::FSR_Absolute; // Resources on iOS are bundled with the application.
+			textureDesc.mRoot = FSRoot::FSR_Absolute;    // Resources on iOS are bundled with the application.
 #endif
 			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
@@ -229,14 +222,16 @@ public:
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
 
-		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_NEAREST,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
-		};
+		SamplerDesc samplerDesc = { FILTER_LINEAR,
+									FILTER_LINEAR,
+									MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
 
-		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		const char* pStaticSamplers[] = { "uSampler0" };
+		Shader*           shaders[] = { pSphereShader, pSkyBoxDrawShader };
+		const char*       pStaticSamplers[] = { "uSampler0" };
 		RootSignatureDesc rootDesc = {};
 		rootDesc.mStaticSamplerCount = 1;
 		rootDesc.ppStaticSamplerNames = pStaticSamplers;
@@ -259,7 +254,7 @@ public:
 		float* pSpherePoints;
 		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
 
-		uint64_t sphereDataSize = gNumberOfSpherePoints * sizeof(float);
+		uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
 		BufferLoadDesc sphereVbDesc = {};
 		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -274,50 +269,32 @@ public:
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
-			10.0f,  -10.0f, -10.0f,6.0f, // -z
-			-10.0f, -10.0f, -10.0f,6.0f,
-			-10.0f, 10.0f, -10.0f,6.0f,
-			-10.0f, 10.0f, -10.0f,6.0f,
-			10.0f,  10.0f, -10.0f,6.0f,
-			10.0f,  -10.0f, -10.0f,6.0f,
+			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
 
-			-10.0f, -10.0f,  10.0f,2.0f,  //-x
-			-10.0f, -10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f, -10.0f,2.0f,
-			-10.0f,  10.0f,  10.0f,2.0f,
-			-10.0f, -10.0f,  10.0f,2.0f,
+			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
 
-			10.0f, -10.0f, -10.0f,1.0f, //+x
-			10.0f, -10.0f,  10.0f,1.0f,
-			10.0f,  10.0f,  10.0f,1.0f,
-			10.0f,  10.0f,  10.0f,1.0f,
-			10.0f,  10.0f, -10.0f,1.0f,
-			10.0f, -10.0f, -10.0f,1.0f,
+			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
 
-			-10.0f, -10.0f,  10.0f,5.0f,  // +z
-			-10.0f,  10.0f,  10.0f,5.0f,
-			10.0f,  10.0f,  10.0f,5.0f,
-			10.0f,  10.0f,  10.0f,5.0f,
-			10.0f, -10.0f,  10.0f,5.0f,
-			-10.0f, -10.0f,  10.0f,5.0f,
+			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
 
-			-10.0f,  10.0f, -10.0f, 3.0f,  //+y
-			10.0f,  10.0f, -10.0f,3.0f,
-			10.0f,  10.0f,  10.0f,3.0f,
-			10.0f,  10.0f,  10.0f,3.0f,
-			-10.0f,  10.0f,  10.0f,3.0f,
-			-10.0f,  10.0f, -10.0f,3.0f,
+			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
 
-			10.0f,  -10.0f, 10.0f, 4.0f,  //-y
-			10.0f,  -10.0f, -10.0f,4.0f,
-			-10.0f,  -10.0f,  -10.0f,4.0f,
-			-10.0f,  -10.0f,  -10.0f,4.0f,
-			-10.0f,  -10.0f,  10.0f,4.0f,
-			10.0f,  -10.0f, 10.0f,4.0f,
+			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
 		};
 
-		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
 		BufferLoadDesc skyboxVbDesc = {};
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -347,9 +324,9 @@ public:
 
 		// Sun
 		gPlanetInfoData[0].mParentIndex = 0;
-		gPlanetInfoData[0].mYOrbitSpeed = 0; // Earth years for one orbit
+		gPlanetInfoData[0].mYOrbitSpeed = 0;    // Earth years for one orbit
 		gPlanetInfoData[0].mZOrbitSpeed = 0;
-		gPlanetInfoData[0].mRotationSpeed = 24.0f; // Earth days for one rotation
+		gPlanetInfoData[0].mRotationSpeed = 24.0f;    // Earth days for one rotation
 		gPlanetInfoData[0].mTranslationMat = mat4::identity();
 		gPlanetInfoData[0].mScaleMat = mat4::scale(vec3(10.0f));
 		gPlanetInfoData[0].mColor = vec4(0.9f, 0.6f, 0.1f, 0.0f);
@@ -452,22 +429,14 @@ public:
 		guiDesc.mStartSize = { guiDesc.mStartSize.getX() * 0.5f, guiDesc.mStartSize.getY() * 0.4f };
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-		static const char* enumNames[] = {
-			"D3D12",
-			"VULKAN",
-			NULL
-		};
-		static const uint32_t enumValues[] = {
-			RENDERER_API_D3D12,
-			RENDERER_API_VULKAN,
-			0
-		};
+		static const char*    enumNames[] = { "D3D12", "VULKAN", NULL };
+		static const uint32_t enumValues[] = { RENDERER_API_D3D12, RENDERER_API_VULKAN, 0 };
 
 		pGui->AddWidget(DropdownWidget("Renderer API : ", (uint32_t*)&gTargetApi, enumNames, enumValues, 2));
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
-		vec3 camPos{ 48.0f, 48.0f, 20.0f };
-		vec3 lookAt{ 0 };
+		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
+		vec3                   lookAt{ 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		requestMouseCapture(true);
@@ -627,15 +596,15 @@ public:
 		currentTime += deltaTime * 1000.0f;
 
 		// update camera with time
-		mat4 viewMat = pCameraController->getViewMatrix();
+		mat4        viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		gUniformData.mProjectView = projMat * viewMat;
 
 		// point light parameters
 		gUniformData.mLightPosition = vec3(0, 0, 0);
-		gUniformData.mLightColor = vec3(0.9f, 0.9f, 0.7f); // Pale Yellow
+		gUniformData.mLightColor = vec3(0.9f, 0.9f, 0.7f);    // Pale Yellow
 
 		// update planet transformations
 		for (int i = 0; i < gNumPlanets; i++)
@@ -655,7 +624,7 @@ public:
 			scale = gPlanetInfoData[i].mScaleMat;
 
 			gPlanetInfoData[i].mSharedMat = parentMat * rotOrbitY * trans;
-			gUniformData.mToWorldMat[i] = parentMat *  rotOrbitY * rotOrbitZ * trans * rotSelf * scale;
+			gUniformData.mToWorldMat[i] = parentMat * rotOrbitY * rotOrbitZ * trans * rotSelf * scale;
 			gUniformData.mColor[i] = gPlanetInfoData[i].mColor;
 		}
 
@@ -686,8 +655,8 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -760,7 +729,7 @@ public:
 		gTimer.GetUSec(true);
 
 #ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
@@ -777,10 +746,7 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName()
-	{
-		return "12_RendererRuntimeSwitch";
-	}
+	tinystl::string GetName() { return "12_RendererRuntimeSwitch"; }
 
 	bool addSwapChain()
 	{
@@ -837,7 +803,6 @@ public:
 		pCameraController->onInputEvent(data);
 		return true;
 	}
-
 };
 
 DEFINE_APPLICATION_MAIN(RendererRuntimeSwitch)

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,8 +30,7 @@ struct Cmd;
 
 class IMiddleware
 {
-public:
-
+	public:
 	// Our init function should only be called once
 	// The middleware has to keep these pointers
 	virtual bool Init(Renderer* renderer) = 0;

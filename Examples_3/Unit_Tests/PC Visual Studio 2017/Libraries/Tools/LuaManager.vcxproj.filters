@@ -1,0 +1,219 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\LUA">
+      <UniqueIdentifier>{6476262e-ca95-437f-a667-b7b2aba6e65d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\LUA\LuaManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\LUA\LuaManagerImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lzio.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lundump.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lutf8lib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lvm.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lapi.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lauxlib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lbaselib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lbitlib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcode.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcorolib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lctype.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldblib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldebug.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldo.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldump.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lfunc.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lgc.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\linit.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\liolib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\llex.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmathlib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmem.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\loadlib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lobject.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lopcodes.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\loslib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lparser.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstate.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstring.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstrlib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltable.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltablib.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltm.c">
+      <Filter>Source Files\LUA</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lauxlib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lctype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldebug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lfunc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lgc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\llex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\llimits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lobject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lopcodes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lparser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lprefix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lua.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lua.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\luaconf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lualib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lundump.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lvm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\The-Forge\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lzio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\LUA\LuaManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\LUA\LuaManagerCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\LUA\LuaManagerImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\LUA\LunaV.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

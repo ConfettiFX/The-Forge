@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,104 +33,97 @@
 
 void outputLogString(const char* pszStr)
 {
-  _OutputDebugString(pszStr);
-  _OutputDebugString("\n");
+	_OutputDebugString(pszStr);
+	_OutputDebugString("\n");
 }
 
-void _ErrorMsg(int line, const char *file, const char *string, ...)
+void _ErrorMsg(int line, const char* file, const char* string, ...)
 {
-  ASSERT(string);
-  //Eval the string
-  const unsigned BUFFER_SIZE = 65536;
-  char buf[BUFFER_SIZE];
-  // put source code file name at the begin
-  snprintf(buf, BUFFER_SIZE, "%s", file);
-  // put line positoin in code
-  snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
+	ASSERT(string);
+	//Eval the string
+	const unsigned BUFFER_SIZE = 65536;
+	char           buf[BUFFER_SIZE];
+	// put source code file name at the begin
+	snprintf(buf, BUFFER_SIZE, "%s", file);
+	// put line positoin in code
+	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
 
-  va_list arglist;
-  va_start(arglist, string);
-  //  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-  va_end(arglist);
+	va_list arglist;
+	va_start(arglist, string);
+	//  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+	va_end(arglist);
 
-  printf("Error: %s", buf);
+	printf("Error: %s", buf);
 }
 
-void _WarningMsg(int line, const char *file, const char *string, ...)
+void _WarningMsg(int line, const char* file, const char* string, ...)
 {
-  ASSERT(string);
+	ASSERT(string);
 
-  //Eval the string
-  const unsigned BUFFER_SIZE = 65536;
-  char buf[BUFFER_SIZE];
+	//Eval the string
+	const unsigned BUFFER_SIZE = 65536;
+	char           buf[BUFFER_SIZE];
 
-  // put source code file name at the begin
-  snprintf(buf, BUFFER_SIZE, "%s", file);
-  // put line positoin in code
-  snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
+	// put source code file name at the begin
+	snprintf(buf, BUFFER_SIZE, "%s", file);
+	// put line positoin in code
+	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
 
-  va_list arglist;
-  va_start(arglist, string);
-  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-  va_end(arglist);
+	va_list arglist;
+	va_start(arglist, string);
+	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+	va_end(arglist);
 
-  printf("Warning: %s", buf);
+	printf("Warning: %s", buf);
 }
 
-
-void _InfoMsg(int line, const char *file, const char *string, ...)
+void _InfoMsg(int line, const char* file, const char* string, ...)
 {
-  ASSERT(string);
+	ASSERT(string);
 
-  //Eval the string
-  const unsigned BUFFER_SIZE = 65536;
-  char buf[BUFFER_SIZE];
+	//Eval the string
+	const unsigned BUFFER_SIZE = 65536;
+	char           buf[BUFFER_SIZE];
 
-  // put source code file name at the begin
-  snprintf(buf, BUFFER_SIZE, "%s", file);
-  // put line positoin in code
-  snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
+	// put source code file name at the begin
+	snprintf(buf, BUFFER_SIZE, "%s", file);
+	// put line positoin in code
+	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
 
-  va_list arglist;
-  va_start(arglist, string);
-  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-  va_end(arglist);
+	va_list arglist;
+	va_start(arglist, string);
+	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+	va_end(arglist);
 
-  printf("Info: %s", buf);
+	printf("Info: %s", buf);
 }
 
-void _OutputDebugString(const char *str, ...)
+void _OutputDebugString(const char* str, ...)
 {
 #ifdef _DEBUG
-  const unsigned BUFFER_SIZE = 4096;
-  char buf[BUFFER_SIZE];
+	const unsigned BUFFER_SIZE = 4096;
+	char           buf[BUFFER_SIZE];
 
-  va_list arglist;
-  va_start(arglist, str);
-  vsprintf_s(buf, BUFFER_SIZE, str, arglist);
-  va_end(arglist);
+	va_list arglist;
+	va_start(arglist, str);
+	vsprintf_s(buf, BUFFER_SIZE, str, arglist);
+	va_end(arglist);
 
-  printf("%s\n",buf);
+	printf("%s\n", buf);
 #endif
 }
 
-
-void _FailedAssert(const char *file, int line, const char *statement)
+void _FailedAssert(const char* file, int line, const char* statement)
 {
-  static bool debug = true;
+	static bool debug = true;
 
-  if (debug) {
-	printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
-  }
+	if (debug)
+	{
+		printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
+	}
 }
 
-void _PrintUnicode(const tinystl::string& str, bool error)
-{
-	outputLogString(str.c_str());
-}
+void _PrintUnicode(const tinystl::string& str, bool error) { outputLogString(str.c_str()); }
 
-void _PrintUnicodeLine(const tinystl::string& str, bool error)
-{
-  _PrintUnicode(str, error);
-}
+void _PrintUnicodeLine(const tinystl::string& str, bool error) { _PrintUnicode(str, error); }

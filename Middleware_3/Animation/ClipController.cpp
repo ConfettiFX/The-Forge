@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,7 +36,7 @@ void ClipController::Initialize(float duration, float* externallyUsedTime)
 	gExternallyUsedTime = externallyUsedTime;
 }
 
-void ClipController::Update(float dt) 
+void ClipController::Update(float dt)
 {
 	float newTime = mTimeRatio;
 
@@ -52,14 +52,14 @@ void ClipController::Update(float dt)
 	SetTimeRatio(newTime);
 }
 
-void ClipController::SetTimeRatio(float time) 
+void ClipController::SetTimeRatio(float time)
 {
 	mPreviousTimeRatio = mTimeRatio;
 	if (mLoop)
 	{
 		// Wraps in the unit interval [0:1], even for negative values (the reason
 		// for using floorf).
-		mTimeRatio = time - floorf(time); // essentially (time / mDuration) mod 1
+		mTimeRatio = time - floorf(time);    // essentially (time / mDuration) mod 1
 	}
 	else
 	{
@@ -79,7 +79,7 @@ void ClipController::SetTimeRatioHard(float time)
 	SetTimeRatio(time / mDuration);
 }
 
-void ClipController::Reset() 
+void ClipController::Reset()
 {
 	mPreviousTimeRatio = 0.f;
 	mTimeRatio = 0.f;
