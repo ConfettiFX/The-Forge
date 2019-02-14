@@ -67,6 +67,7 @@ struct DirectionalLight
 	float _pad0;
 	float _pad1;
 	float _pad2;
+	float4x4 viewProj;
 };
 
 struct Camera
@@ -75,7 +76,14 @@ struct Camera
 	float4x4 InvVPMatrix;
 	float3 Pos;
 	float __dumm;
+	
+	float fAmbientLightIntensity;
+
 	int bUseEnvironmentLight;
+	float fEnvironmentLightIntensity;
+	float fAOIntensity;
+	int renderMode;
+	float fNormalMapIntensity;
 };
 
 cbuffer cbCamera : register(b0)
@@ -211,7 +219,10 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 	float secundarySinTRL = sqrt(1.0f - secundaryCosTRL * secundaryCosTRL);
 	float secundarySpecular = max(0.0f, secundaryCosTRL * cosTE + secundarySinTRL * sinTE);
 
-	return float3(Kd * diffuse, Ks1 * pow(primarySpecular, Ex1), Ks2 * pow(secundarySpecular, Ex2));
+
+	float3 diffuseSpecular = float3(Kd * diffuse, Ks1 * pow(primarySpecular, Ex1), Ks2 * pow(secundarySpecular, Ex2));
+	diffuseSpecular *= 0.07f;	// Reduce light intensity to account for extremely bright lights used in PBR
+	return diffuseSpecular;
 }
 
 float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor)
@@ -384,6 +395,10 @@ float4 main(VSOutputFullscreen input) : SV_TARGET
 	color.xyz /= color.w;
 	color.xyz *= alpha;
 	color.w = invAlpha;
+
+	color.rgb = color.rgb / (color.rgb + 1.0f);
+	float gammaCorr = 1.0f / 2.2f;
+	color.rgb = pow(color.rgb, gammaCorr);
 
 	return color;
 }

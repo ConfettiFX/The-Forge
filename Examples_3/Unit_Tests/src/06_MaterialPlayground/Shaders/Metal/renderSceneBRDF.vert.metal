@@ -27,17 +27,25 @@ using namespace metal;
 
 struct CameraData
 {
-    float4x4 projView;
-    float4x4 invProjView;
-    float3 camPos;
-int bUseEnvironmentLight;
+	float4x4 projView;
+	float4x4 invProjView;
+	float3 camPos;
+
+	float fAmbientLightIntensity;
+	int bUseEnvironmentLight;
+	float fEnvironmentLightIntensity;
+	float fAOIntensity;
+
+	int renderMode;
+	float fNormalMapIntensity;
 };
 
 struct ObjectData
 {
-    float4x4 worldMat;
+	float4x4 worldMat;
 	float4 albedoAndRoughness;
-    float metalness;
+	float2 tiling;
+	float metalness;
 	int textureConfig;
 };
 

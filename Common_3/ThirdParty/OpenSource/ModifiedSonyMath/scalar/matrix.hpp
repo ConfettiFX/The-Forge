@@ -996,58 +996,66 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
 #define NEGATIVE_Z 5
 //----------------------------------------------------------------------------------------
 #define USE_VERTICAL_FIELD_OF_VIEW 0	// The Forge uses perspective() with horizontal field of view, defined below
+
 #if USE_VERTICAL_FIELD_OF_VIEW
 inline const Matrix4 Matrix4::perspective(float fovyRadians, float aspect, float zNear, float zFar)
-{
-	float f, rangeInv;
-	f = std::tanf(_VECTORMATH_PI_OVER_2 - (0.5f * fovyRadians));
-
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
-	// DirectX: Z -> [0, 1]
-	rangeInv = (1.0f / (zFar - zNear));
-	return Matrix4(
-		Vector4((f / aspect), 0.0f, 0.0f, 0.0f),
-		Vector4(0.0f, f, 0.0f, 0.0f),
-		Vector4(0.0f, 0.0f, (zFar * rangeInv), 1.0f),
-		Vector4(0.0f, 0.0f, ( -(zNear * zFar) * rangeInv), 0.0f));
 #else
-	// OpenGL: Z -> [-1, +1]
-	rangeInv = (1.0f / (zNear - zFar));
-	return Matrix4(
-		Vector4((f / aspect), 0.0f, 0.0f, 0.0f),
-		Vector4(0.0f, f, 0.0f, 0.0f),
-		Vector4(0.0f, 0.0f, ((zNear + zFar) * rangeInv), -1.0f),
-		Vector4(0.0f, 0.0f, (((zNear * zFar) * rangeInv) * 2.0f), 0.0f));
-#endif
-}
-
 // perspective projection matrix using horizontal field of view as parameter instead of vertical field of view
-#else
 inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse, float zNear, float zFar)
+#endif
 {
+#if USE_VERTICAL_FIELD_OF_VIEW
+  float aspectInverse = 1.f / aspect;
+  float fovxRadians = fovyRadians * aspectInverse;
+#endif
+
 	float f, rangeInv;
 	f = tanf( (_VECTORMATH_PI_OVER_2) - (0.5f * fovxRadians) );
-	rangeInv = (1.0f / (zFar - zNear));
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
-	// DirectX: Z -> [0, 1]
-	rangeInv = (1.0f / (zFar - zNear));
-	return Matrix4(
-		Vector4(f, 0.0f, 0.0f, 0.0f),
-		Vector4(0.0f, (f / aspectInverse), 0.0f, 0.0f),
-		Vector4(0.0f, 0.0f, (zFar * rangeInv), 1.0f),
-		Vector4(0.0f, 0.0f, (-(zNear * zFar) * rangeInv), 0.0f)
-	);
-#else
+
+  // DirectX: Z -> [0, 1]
 	// OpenGL: Z -> [-1, +1]
-	rangeInv = (1.0f / (zNear - zFar));
-	return Matrix4(
-		Vector4(f, 0.0f, 0.0f, 0.0f),
-		Vector4(0.0f, (f / aspectInverse), 0.0f, 0.0f),
-		Vector4(0.0f, 0.0f, ((zNear + zFar) * rangeInv), -1.0f),
-		Vector4(0.0f, 0.0f, (((zNear * zFar) * rangeInv) * 2.0f), 0.0f));
+
+#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
+	rangeInv = (1.0f / (zFar - zNear));
+#else
+  rangeInv = (1.0f / (zNear - zFar));
 #endif
+
+  return Matrix4(
+    Vector4(f, 0.0f, 0.0f, 0.0f),
+    Vector4(0.0f, (f / aspectInverse), 0.0f, 0.0f),
+#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
+    Vector4(0.0f, 0.0f, (zFar * rangeInv), 1.0f),
+    Vector4(0.0f, 0.0f, (-(zNear * zFar) * rangeInv), 0.0f)
+#else
+    Vector4(0.0f, 0.0f, ((zNear + zFar) * rangeInv), -1.0f),
+    Vector4(0.0f, 0.0f, (((zNear * zFar) * rangeInv) * 2.0f), 0.0f));
+#endif
+  );
 }
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+// this function creates a perspective matrix based on vertical field of view. 
+inline const Matrix4 Matrix4::perspectiveReverseZ(float fovyRadians, float aspect, float zNear, float zFar)
+#else
+// this function creates a perspective matrix based on horizontal field of view.
+inline const Matrix4 Matrix4::perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar)
 #endif
+{
+  Matrix4 perspMatrix =
+#if USE_VERTICAL_FIELD_OF_VIEW
+    perspective(fovyRadians, aspect, zNear, zFar);
+#else
+    perspective(fovxRadians, aspectInverse, zNear, zFar);
+#endif
+
+  const Vector4 &col2 = perspMatrix.mCol2;
+  const Vector4 &col3 = perspMatrix.mCol3;
+  perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
+  perspMatrix.mCol3.setZ(-col3.getZ());
+
+  return perspMatrix;
+}
 
 inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom, float top, float zNear, float zFar)
 {

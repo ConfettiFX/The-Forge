@@ -58,6 +58,10 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 	uint simd_lane_id = 0;
 	uint simd_lane_count = SceneConstantBuffer.laneSize / 2;
 	
+#ifdef TARGET_IOS
+	simd_lane_count = 4;
+#endif
+	
 	//workaround to get current lane id?
 	for(uint i = 0 ; i < simd_lane_count ; i++)
 	{
@@ -66,8 +70,13 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 		//if equal then that should be our lane id
 		//seems like this returns half the size of laneSize because fragments
 		//run in quadgroups.
+#ifndef TARGET_IOS
 		float posX = simd_shuffle(input.position.x, i);
 		float posY = simd_shuffle(input.position.y, i);
+#else
+		float posX = quad_shuffle(input.position.x, i);
+		float posY = quad_shuffle(input.position.y, i);
+#endif
 		if(posX == input.position.x && posY == input.position.y)
 		{
 			simd_lane_id = i;
@@ -91,29 +100,36 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 		}
 		case 3:
 		{
+#ifndef TARGET_IOS
 			//if current lane is is the first active lane id.
 			if (simd_is_first())
 			{
 				outputColor = float4(1.0, 1.0, 1.0, 1.0);
 			}
+#endif
 			break;
 		}
 		case 4:
 		{
+#ifndef TARGET_IOS
 			//if current lane is is the first active lane id.
 			if (simd_is_first())
 			{
 				(outputColor = float4(1.0, 1.0, 1.0, 1.0));
 			}
+			
+			
 			//if current lane id is the max active lane id.
 			if(simd_lane_id == simd_max(simd_lane_id))
 			{
 				(outputColor = float4(1.0, 0.0, 0.0, 1.0));
 			}
+#endif
 			break;
 		}
 		case 5:
 		{
+#ifndef TARGET_IOS
 			simd_vote activeLaneMask = simd_ballot(true);
 			simd_vote::vote_t voteValue(activeLaneMask);
 			//when using simd_vote, vote_t is 64 bit (i.e: size_t) and does not work
@@ -126,15 +142,19 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 			
 			float activeRatio = ((float)(numActiveLanes) / float(simd_lane_count));
 			(outputColor = float4(activeRatio, activeRatio, activeRatio, 1.0));
+#endif
 			break;
 		}
 		case 6:
 		{
+#ifndef TARGET_IOS
 			(outputColor = simd_broadcast_first(outputColor));
+#endif
 			break;
 		}
 		case 7:
 		{
+#ifndef TARGET_IOS
 			simd_vote activeLaneMask = simd_ballot(true);
 			size_t voteValue(activeLaneMask);
 			//store low and high bit of 64 bit unsigned int.
@@ -145,10 +165,12 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 			
 			float4 avgColor = (simd_sum(outputColor) / (float(numActiveLanes)));
 			(outputColor = avgColor);
+#endif
 			break;
 		}
 		case 8:
 		{
+#ifndef TARGET_IOS
 			float4 basePos = simd_broadcast_first(input.position);
 			float4 prefixSumPos = simd_prefix_exclusive_sum(input.position - basePos);
 			//simd ballot works with iMac AMD
@@ -162,6 +184,7 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 			uint numActiveLanes = popcount(voteValueUnsigned.x) + popcount(voteValueUnsigned.y);
 			
 			outputColor = prefixSumPos / float(numActiveLanes);
+#endif
 			break;
 		}
 		case 9:

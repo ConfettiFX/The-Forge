@@ -24,57 +24,29 @@
 
 struct VSOutput {
     float4 Position : SV_POSITION;
-    float4 TexCoord : TEXCOORD0;
 };
 
-Texture2D RightText : register(t0);
-Texture2D LeftText : register(t1);
-Texture2D TopText : register(t2);
-Texture2D BotText : register(t3);
-Texture2D FrontText : register(t4);
-Texture2D BackText : register(t5);
+cbuffer cameraUniformBlock : register(b0, space1)
+{
+    row_major float4x4 View : packoffset(c0);
+    row_major float4x4 Project : packoffset(c4);
+    row_major float4x4 ViewProject : packoffset(c8);
+    row_major float4x4 ViewInverse : packoffset(c12);
+    row_major float4x4 ProjectInverse : packoffset(c16);
+};
 
-SamplerState skySampler : register(s0);
+cbuffer renderSettingUniformBlock : register(b0, space0)
+{
+    float4 WindowDimension : packoffset(c0);
+    int ShadowType : packoffset(c1);
+};
 
+TextureCube<float4> Skybox : register(t0, space3);
+SamplerState skySampler : register(s1, space0);
+
+[earlydepthstencil]
 float4 main(VSOutput input) : SV_TARGET
 {
-    float2 newtextcoord;
-    float side = round(input.TexCoord.w);
-
-    if (side == 1.0f)
-    {
-        newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
-        newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return RightText.Sample(skySampler, newtextcoord);
-    }
-    else if (side == 2.0f)
-    {
-        newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return LeftText.Sample(skySampler, newtextcoord);
-    }
-    if (side == 4.0f)
-    {
-        newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return BotText.Sample(skySampler, newtextcoord);
-    }
-    else if (side == 5.0f)
-    {
-        newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return FrontText.Sample(skySampler, newtextcoord);
-    }
-    else if (side == 6.0f)
-    {
-        newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
-        newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return BackText.Sample(skySampler, newtextcoord);
-    }
-    else
-    {
-        newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        return TopText.Sample(skySampler, newtextcoord);
-    }
+    float3 uvw = mul(normalize(mul(float4(((float2(input.Position.xy) * float2(2.0f, -2.0f)) / WindowDimension.xy) + float2(-1.0f, 1.0f), 1.0f, 1.0f), ProjectInverse).xyz), transpose(float3x3(View[0].xyz, View[1].xyz, View[2].xyz)));
+    return Skybox.Sample(skySampler, uvw);
 }

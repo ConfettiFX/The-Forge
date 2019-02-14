@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3812029FDFC00AB83C6 /* macOSBase.mm */; };
-		5CA4AFD82088FB22005BB7C6 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFD72088FB22005BB7C6 /* DebugRenderer.cpp */; };
+		5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3812029FDFC00AB83C6 /* macOSBase.mm */; };		
 		5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC662080FFCB008E3A2C /* AppUI.cpp */; };
 		65AC433A21ACE80300F6DE4E /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432D21ACE7BB00F6DE4E /* libassimp.a */; };
 		65AC433B21ACE80300F6DE4E /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432B21ACE7BB00F6DE4E /* libIrrXML.a */; };
@@ -150,9 +149,7 @@
 		288F632C2035CE2E00B758DE /* visibilityBuffer_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.vert.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632D2035CE2E00B758DE /* shadow_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.vert.metal; path = ../src/Shaders/Metal/shadow_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632E2035CE2E00B758DE /* visibilityBuffer_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass.frag.metal; sourceTree = "<group>"; };
-		5C85A3812029FDFC00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
-		5CA4AFD62088FB22005BB7C6 /* DebugRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebugRenderer.h; sourceTree = "<group>"; };
-		5CA4AFD72088FB22005BB7C6 /* DebugRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DebugRenderer.cpp; sourceTree = "<group>"; };
+		5C85A3812029FDFC00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };		
 		5CD2BC632080FFCA008E3A2C /* UIShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIShaders.h; path = ../../Middleware_3/UI/UIShaders.h; sourceTree = "<group>"; };
 		5CD2BC662080FFCB008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
 		5CD2BC672080FFCB008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
@@ -606,9 +603,7 @@
 		};
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
-			children = (
-				5CA4AFD72088FB22005BB7C6 /* DebugRenderer.cpp */,
-				5CA4AFD62088FB22005BB7C6 /* DebugRenderer.h */,
+			children = (				
 				EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
@@ -787,8 +782,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D24758201FA0E89A00E62C0D /* FileSystem.cpp in Sources */,
-				D2A295C11FA2096F003AB495 /* CommonShaderReflection.cpp in Sources */,
-				5CA4AFD82088FB22005BB7C6 /* DebugRenderer.cpp in Sources */,
+				D2A295C11FA2096F003AB495 /* CommonShaderReflection.cpp in Sources */,				
 				B2B6F7DC20F414AC0059F2B0 /* Fontstash.cpp in Sources */,
 				5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */,
 				C96E13312007C1CD004363F0 /* macOSFileSystem.mm in Sources */,

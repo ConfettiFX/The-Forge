@@ -126,121 +126,26 @@ struct DDSHeaderDX10
 	uint32 mArraySize;
 	uint32 mReserved;
 };
+
+#ifdef TARGET_IOS
 // Describes the header of a PVR header-texture
 typedef struct PVR_Header_Texture_TAG
 {
-	unsigned int mDWHeaderSize;      /*!< size of the structure */
-	unsigned int mDWHeight;          /*!< height of surface to be created */
-	unsigned int mDWWidth;           /*!< width of input surface */
-	unsigned int mDWMipMapCount;     /*!< number of mip-map levels requested */
-	unsigned int mDWPFFlags;         /*!< pixel format flags */
-	unsigned int mDWTextureDataSize; /*!< Total size in bytes */
-	unsigned int mDWBitCount;        /*!< number of bits per pixel  */
-	unsigned int mDWRBitMask;        /*!< mask for red bit */
-	unsigned int mDWGBitMask;        /*!< mask for green bits */
-	unsigned int mDWBBitMask;        /*!< mask for blue bits */
-	unsigned int mDWAlphaBitMask;    /*!< mask for alpha channel */
-	unsigned int mDWPVR;             /*!< magic number identifying pvr file */
-	unsigned int mDWNumSurfs;        /*!< the number of surfaces present in the pvr */
+	unsigned int 	mVersion;
+	unsigned int 	mFlags; //!< Various format flags.
+	unsigned long 	mPixelFormat; //!< The pixel format, 8cc value storing the 4 channel identifiers and their respective sizes.
+	unsigned int 	mColorSpace; //!< The Color Space of the texture, currently either linear RGB or sRGB.
+	unsigned int 	mChannelType; //!< Variable type that the channel is stored in. Supports signed/unsigned int/short/char/float.
+	unsigned int 	mHeight; //!< Height of the texture.
+	unsigned int	mWidth; //!< Width of the texture.
+	unsigned int 	mDepth; //!< Depth of the texture. (Z-slices)
+	unsigned int 	mNumSurfaces; //!< Number of members in a Texture Array.
+	unsigned int 	mNumFaces; //!< Number of faces in a Cube Map. Maybe be a value other than 6.
+	unsigned int 	mNumMipMaps; //!< Number of MIP Maps in the texture - NB: Includes top level.
+	unsigned int 	mMetaDataSize; //!< Size of the accompanying meta data.
 } PVR_Texture_Header;
 
-typedef enum iPixelType_TAG
-{
-	MGLPT_ARGB_4444 = 0x00,
-	MGLPT_ARGB_1555,
-	MGLPT_RGB_565,
-	MGLPT_RGB_555,
-	MGLPT_RGB_888,
-	MGLPT_ARGB_8888,
-	MGLPT_ARGB_8332,
-	MGLPT_I_8,
-	MGLPT_AI_88,
-	MGLPT_1_BPP,
-	MGLPT_VY1UY0,
-	MGLPT_Y1VY0U,
-	MGLPT_PVRTC2,
-	MGLPT_PVRTC4,
-	MGLPT_PVRTC2_2,
-	MGLPT_PVRTC2_4,
-
-	OGL_RGBA_4444 = 0x10,
-	OGL_RGBA_5551,
-	OGL_RGBA_8888,
-	OGL_RGB_565,
-	OGL_RGB_555,
-	OGL_RGB_888,
-	OGL_I_8,
-	OGL_AI_88,
-	OGL_PVRTC2,
-	OGL_PVRTC4,
-	OGL_PVRTC2_2,
-	OGL_PVRTC2_4,
-
-	D3D_DXT1 = 0x20,
-	D3D_DXT2,
-	D3D_DXT3,
-	D3D_DXT4,
-	D3D_DXT5,
-
-	D3D_RGB_332,
-	D3D_AI_44,
-	D3D_LVU_655,
-	D3D_XLVU_8888,
-	D3D_QWVU_8888,
-
-	//10 bits per channel
-	D3D_ABGR_2101010,
-	D3D_ARGB_2101010,
-	D3D_AWVU_2101010,
-
-	//16 bits per channel
-	D3D_GR_1616,
-	D3D_VU_1616,
-	D3D_ABGR_16161616,
-
-	//HDR formats
-	D3D_R16F,
-	D3D_GR_1616F,
-	D3D_ABGR_16161616F,
-
-	//32 bits per channel
-	D3D_R32F,
-	D3D_GR_3232F,
-	D3D_ABGR_32323232F,
-
-	// Ericsson
-	ETC_RGB_4BPP,
-	ETC_RGBA_EXPLICIT,
-	ETC_RGBA_INTERPOLATED,
-
-	MGLPT_NOTYPE = 0xff
-} iPixelType;
-
-const unsigned int gPvrtexMipmap = (1 << 8);                       // has mip map levels
-const unsigned int gPvrtexTwiddle = (1 << 9);                      // is twiddled
-#if !defined(ORBIS) && !defined(METAL) && !defined(__ANDROID__)    // generates error : unused variable
-const unsigned int gPvrtexBumpmap = (1 << 10);                     // has normals encoded for a bump map
-const unsigned int gPvrtexTiling = (1 << 11);                      // is bordered for tiled pvr
-#endif
-const unsigned int gPvrtexCubemap = (1 << 12);                     // is a cubemap/skybox
-#if !defined(ORBIS) && !defined(METAL) && !defined(__ANDROID__)    // generates error : unused variable
-const unsigned int gPvrtexFalsemipcol = (1 << 13);                 //
-const unsigned int gPvrtexVolume = (1 << 14);
-#endif
-const unsigned int gPvrtexPixeltype = 0xff;                        // pixel type is always in the last 16bits of the flags
-#if !defined(ORBIS) && !defined(METAL) && !defined(__ANDROID__)    // generates error : unused variable
-const unsigned int gPvrtexIdentifier = 0x21525650;                 // the pvr identifier is the characters 'P','V','R'
-#endif
-const unsigned int gPvrtexV1HeaderSize = 44;    // old header size was 44 for identification purposes
-const unsigned int gPvrTc2MinTexWidth = 16;
-const unsigned int gPvrTc2MinTexHeight = 8;
-#if !defined(METAL) && !defined(__ANDROID__)
-const unsigned int gPvrTc4MinTexWidth = 8;
-#endif
-const unsigned int gPvrTc4MinTexHeight = 8;
-#if !defined(ORBIS) && !defined(METAL) && !defined(__ANDROID__)    // generates error : unused variable
-const unsigned int gEtcMinTexWidth = 4;
-const unsigned int gEtcMinTexHeight = 4;
+const unsigned int gPvrtexV3HeaderVersion = 0x03525650;
 #endif
 
 #pragma pack(pop)
@@ -425,7 +330,7 @@ int ImageFormat::GetBytesPerPixel(const ImageFormat::Enum format)
 	if (format == ImageFormat::BGRA8)
 		return 4;
 
-	ASSERT(format <= ImageFormat::D32F || format == ImageFormat::BGRA8);
+	ASSERT(format <= ImageFormat::D32F || format == ImageFormat::BGRA8 || format == ImageFormat::D32S8);
 
 	return bytesPP[format];
 }
@@ -451,6 +356,10 @@ int ImageFormat::GetBytesPerBlock(const ImageFormat::Enum format)
 		case ImageFormat::PVR_4BPPA:    //  4x4
 		case ImageFormat::PVR_2BPP:     //  4x8
 		case ImageFormat::PVR_2BPPA:    //  4x8
+		case ImageFormat::PVR_4BPP_SRGB:     //  4x4
+		case ImageFormat::PVR_4BPPA_SRGB:    //  4x4
+		case ImageFormat::PVR_2BPP_SRGB:     //  4x8
+		case ImageFormat::PVR_2BPPA_SRGB:    //  4x8
 			return 8;
 
 		case ImageFormat::DXT3:       //  4x4
@@ -491,6 +400,40 @@ int ImageFormat::GetBytesPerChannel(const ImageFormat::Enum format)
 	return bytesPC[(format - 1) >> 2];
 }
 
+ImageFormat::BlockSize ImageFormat::GetBlockSize(const ImageFormat::Enum format)
+{
+	switch (format)
+	{
+		case ImageFormat::PVR_2BPP_SRGB:     //  4x8
+		case ImageFormat::PVR_2BPPA_SRGB:    //  4x8
+		case ImageFormat::PVR_2BPP:          //  4x8
+		case ImageFormat::PVR_2BPPA:         //  4x8
+			return BLOCK_SIZE_4x8;
+
+		case ImageFormat::DXT1:         //  4x4
+		case ImageFormat::ATI1N:        //  4x4
+		case ImageFormat::GNF_BC1:      //  4x4
+		case ImageFormat::ETC1:         //  4x4
+		case ImageFormat::ATC:          //  4x4
+		case ImageFormat::PVR_4BPP:     //  4x4
+		case ImageFormat::PVR_4BPPA:    //  4x4
+		case ImageFormat::DXT3:         //  4x4
+		case ImageFormat::DXT5:         //  4x4
+		case ImageFormat::GNF_BC3:      //  4x4
+		case ImageFormat::GNF_BC5:      //  4x4
+		case ImageFormat::ATI2N:        //  4x4
+		case ImageFormat::ATCA:         //  4x4
+		case ImageFormat::ATCI:         //  4x4
+#ifdef FORGE_JHABLE_EDITS_V01
+		case ImageFormat::GNF_BC6:    //  4x4
+		case ImageFormat::GNF_BC7:    //  4x4
+#endif
+			return BLOCK_SIZE_4x4;
+
+		default: return BLOCK_SIZE_1x1;
+	}
+}
+
 bool ImageFormat::IsIntegerFormat(const ImageFormat::Enum format)
 {
 	return (format >= ImageFormat::R16I && format <= ImageFormat::RGBA32UI);
@@ -500,6 +443,7 @@ bool ImageFormat::IsCompressedFormat(const ImageFormat::Enum format)
 {
 	return (
 		((format >= ImageFormat::DXT1) && (format <= ImageFormat::PVR_4BPPA)) ||
+		((format >= ImageFormat::PVR_2BPP_SRGB) && (format <= ImageFormat::PVR_4BPPA_SRGB)) ||
 		((format >= ImageFormat::ETC1) && (format <= ImageFormat::ATCI)) ||
 		((format >= ImageFormat::GNF_BC1) && (format <= ImageFormat::GNF_BC7)));
 }
@@ -516,9 +460,15 @@ bool ImageFormat::IsSignedFormat(const ImageFormat::Enum format)
 		   ((format >= ImageFormat::R16I) && (format <= ImageFormat::RGBA32I));
 }
 
-bool ImageFormat::IsStencilFormat(const ImageFormat::Enum format) { return (format == ImageFormat::D24S8); }
+bool ImageFormat::IsStencilFormat(const ImageFormat::Enum format)
+{
+  return (format == ImageFormat::D24S8) || (format >= ImageFormat::X8D24PAX32 && format <= ImageFormat::D32S8);
+}
 
-bool ImageFormat::IsDepthFormat(const ImageFormat::Enum format) { return (format >= ImageFormat::D16 && format <= ImageFormat::D32F); }
+bool ImageFormat::IsDepthFormat(const ImageFormat::Enum format)
+{
+  return (format >= ImageFormat::D16 && format <= ImageFormat::D32F) || (format == ImageFormat::X8D24PAX32) || (format == ImageFormat::D16S8) || (format == ImageFormat::D32S8);
+}
 
 bool ImageFormat::IsPackedFormat(const ImageFormat::Enum format)
 {
@@ -600,7 +550,12 @@ const ImageFormatString* getFormatStrings()
 													   { ImageFormat::X8D24PAX32, "X8D24PAX32" },
 													   { ImageFormat::S8, "S8" },
 													   { ImageFormat::D16S8, "D16S8" },
-													   { ImageFormat::D32S8, "D32S8" }
+													   { ImageFormat::D32S8, "D32S8" },
+		
+													   { ImageFormat::PVR_2BPP_SRGB, "PVR_2BPP_SRGB" },
+													   { ImageFormat::PVR_2BPPA_SRGB, "PVR_2BPPA_SRGB" },
+													   { ImageFormat::PVR_4BPP_SRGB, "PVR_4BPP_SRGB" },
+													   { ImageFormat::PVR_4BPPA_SRGB, "PVR_4BPPA_SRGB" },
 
 	};
 	return formatStrings;
@@ -650,7 +605,8 @@ int ImageFormat::GetChannelCount(const ImageFormat::Enum format)
 		3, 4, 3, 4,            //  XBox front buffer formats
 		3, 3, 4, 4,            //  ETC, ATC
 		1, 1,                  //  RAWZ, DF16
-		3, 4, 4, 1, 2, 3, 3    // GNF_BC1~GNF_BC7
+		3, 4, 4, 1, 2, 3, 3,   // GNF_BC1~GNF_BC7
+		3, 4, 3, 4,            // PVR sRGB
 	};
 
 	if (format >= sizeof(channelCount) / sizeof(int))
@@ -917,6 +873,7 @@ bool Image::Normalize()
 bool Image::Uncompress()
 {
 	if (((mFormat >= ImageFormat::PVR_2BPP) && (mFormat <= ImageFormat::PVR_4BPPA)) ||
+		((mFormat >= ImageFormat::PVR_2BPP_SRGB) && (mFormat <= ImageFormat::PVR_4BPPA_SRGB)) ||
 		((mFormat >= ImageFormat::ETC1) && (mFormat <= ImageFormat::ATCI)))
 	{
 		//  no decompression
@@ -1041,42 +998,50 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
 
 	if (srcFormat == ImageFormat::NONE)
 		srcFormat = mFormat;
-
+	
 	// PVR formats get special case
-	if ((srcFormat >= ImageFormat::PVR_2BPP) && (srcFormat <= ImageFormat::PVR_4BPPA))
+	if ( (srcFormat >= ImageFormat::PVR_2BPP && srcFormat <= ImageFormat::PVR_4BPPA) ||
+		 (srcFormat >= ImageFormat::PVR_2BPP_SRGB && srcFormat <= ImageFormat::PVR_4BPPA_SRGB) )
 	{
-		unsigned int TotalSize = 0;
-		unsigned int sizex = w;
-		unsigned int sizey = h;
-		int          level = nMipMapLevels;
-
+		uint totalSize = 0;
+		uint sizeX = w;
+		uint sizeY = h;
+		uint sizeD = d;
+		int level = nMipMapLevels;
+		
+		uint minWidth = 8;
+		uint minHeight = 8;
+		uint minDepth = 1;
+		int bpp = 4;
+		
+		if (srcFormat == ImageFormat::PVR_2BPP || srcFormat == ImageFormat::PVR_2BPPA || srcFormat == ImageFormat::PVR_2BPP_SRGB || srcFormat == ImageFormat::PVR_2BPPA_SRGB)
+		{
+			minWidth = 16;
+			minHeight = 8;
+			bpp = 2;
+		}
+		
 		while (level > 0)
 		{
-			int MipSize;
-
-			// Calculate how many bytes this MIP level occupies
-			if ((mFormat == ImageFormat::PVR_2BPP) || (mFormat == ImageFormat::PVR_2BPPA))
-			{
-				int BitCount = 2;
-				MipSize = (max(sizex, gPvrTc2MinTexWidth) * max(sizey, gPvrTc2MinTexHeight) * BitCount + 7) / 8;
-			}
-			else
-			{
-				int BitCount = 4;
-				MipSize = (max(sizex, gPvrTc4MinTexHeight) * max(sizey, gPvrTc4MinTexHeight) * BitCount + 7) / 8;
-			}
-
-			TotalSize += MipSize;
-
+			// If pixel format is compressed, the dimensions need to be padded.
+			uint paddedWidth = sizeX + ((-1 * sizeX) % minWidth);
+			uint paddedHeight = sizeY + ((-1 * sizeY) % minHeight);
+			uint paddedDepth = sizeD + ((-1 * sizeD) % minDepth);
+			
+			int mipSize = paddedWidth * paddedHeight * paddedDepth * bpp / 8;
+			
+			totalSize += mipSize;
+			
 			unsigned int MinimumSize = 1;
-			sizex = max(sizex / 2, MinimumSize);
-			sizey = max(sizey / 2, MinimumSize);
+			sizeX = max(sizeX / 2, MinimumSize);
+			sizeY = max(sizeY / 2, MinimumSize);
+			sizeD = max(sizeD / 2, MinimumSize);
 			level--;
 		}
-
-		return TotalSize;
+		
+		return totalSize;
 	}
-
+	
 	int size = 0;
 	while (nMipMapLevels)
 	{
@@ -1279,126 +1244,79 @@ bool Image::iLoadDDSFromMemory(
 
 bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
 {
+#ifndef TARGET_IOS
+	LOGERRORF("Load PVR failed: Only supported on iOS targets.");
+	return 0;
+#else
+	
 	UNREF_PARAM(useMipmaps);
 	UNREF_PARAM(pAllocator);
 	UNREF_PARAM(pUserData);
-	// TODO: Image - useMipmaps unsupported for PVR
-
+	// TODO: Image
+	// - no support for PVRTC2 at the moment since it isn't supported on iOS devices.
+	// - only new PVR header V3 is supported at the moment.  Should we add legacy for V2 and V1?
+	// - metadata is ignored for now.  Might be useful to implement it if the need for metadata arises (eg. padding, atlas coordinates, orientations, border data, etc...).
+	// - flags are also ignored for now.  Currently a flag of 0x02 means that the color have been pre-multiplied byt the alpha values.
+	
+	// Assumptions:
+	// - it's assumed that the texture is already twiddled (ie. Morton).  This should always be the case for PVRTC V3.
+	
 	PVR_Texture_Header* psPVRHeader = (PVR_Texture_Header*)memory;
-	unsigned int        u32NumSurfs;
 
-	// perform checks for old PVR psPVRHeader
-	if (psPVRHeader->mDWHeaderSize != sizeof(PVR_Texture_Header))
+	if (psPVRHeader->mVersion != gPvrtexV3HeaderVersion)
 	{
-		// Header V1
-		if (psPVRHeader->mDWHeaderSize == gPvrtexV1HeaderSize)
-		{
-			// react to old psPVRHeader: i.e. fill in numsurfs as this is missing from old header
-			printf(
-				"LoadPartialTextureFromPointer warning: this is an old pvr"
-				" - you can use PVRTexTool to update its header.");
-			if (psPVRHeader->mDWPFFlags & gPvrtexCubemap)
-				u32NumSurfs = 6;
-			else
-				u32NumSurfs = 1;
-		}
-		else
-		{
-			// not a pvr at all
-			printf("LoadPartialTextureFromPointer failed: not a valid pvr. ");
-			return 0;
-		}
+		LOGERRORF("Load PVR failed: Not a valid PVR V3 header.");
+		return 0;
 	}
-	else
-	{    // Header V2
-		if (psPVRHeader->mDWNumSurfs < 1)
-		{
-			// encoded with old version of PVRTexTool before zero numsurfs bug found.
-			if (psPVRHeader->mDWPFFlags & gPvrtexCubemap)
-				u32NumSurfs = 6;
-			else
-				u32NumSurfs = 1;
-		}
-		else
-		{
-			u32NumSurfs = psPVRHeader->mDWNumSurfs;
-		}
-	}
-
-	mWidth = psPVRHeader->mDWWidth;
-	mHeight = psPVRHeader->mDWHeight;
-	mDepth = 1;
-	mMipMapCount = (psPVRHeader->mDWPFFlags & gPvrtexMipmap) ? psPVRHeader->mDWMipMapCount + 1 : 0;
-	mArrayCount = 1;
-
-	bool IsPVRTCSupported =
-		true;    // hack until extension check is available //OpenGLESExt::IsGLExtensionSupported("GL_IMG_texture_compression_pvrtc");
-
-	//  *texName = 0;   // install warning value
-	bool IsCompressedFormatSupported = false, IsCompressedFormat = false;
-
-	/* Only accept untwiddled data UNLESS texture format is PVRTC */
-	if (((psPVRHeader->mDWPFFlags & gPvrtexTwiddle) == gPvrtexTwiddle) && ((psPVRHeader->mDWPFFlags & gPvrtexPixeltype) != OGL_PVRTC2) &&
-		((psPVRHeader->mDWPFFlags & gPvrtexPixeltype) != OGL_PVRTC4))
+	
+	if (psPVRHeader->mPixelFormat > 3)
 	{
-		// We need to load untwiddled textures -- hw will twiddle for us.
-		printf("LoadPartialTextureFromPointer failed: texture should be untwiddled. ");
+		LOGERRORF("Load PVR failed: Not a supported PVR pixel format.  Only PVRTC is supported at the moment.");
+		return 0;
+	}
+	
+	if (psPVRHeader->mNumSurfaces > 1 && psPVRHeader->mNumFaces > 1)
+	{
+		LOGERRORF("Load PVR failed: Loading arrays of cubemaps isn't supported.");
 		return 0;
 	}
 
-	switch (psPVRHeader->mDWPFFlags & gPvrtexPixeltype)
+	mArrayCount = psPVRHeader->mNumSurfaces * psPVRHeader->mNumFaces;
+	mWidth = psPVRHeader->mWidth;
+	mHeight = psPVRHeader->mHeight;
+	mDepth = psPVRHeader->mDepth;
+	mMipMapCount = psPVRHeader->mNumMipMaps;
+	
+	bool isSrgb = (psPVRHeader->mColorSpace == 1);
+	
+	switch (psPVRHeader->mPixelFormat)
 	{
-		case OGL_PVRTC2:
-			if (IsPVRTCSupported)
-			{
-				IsCompressedFormatSupported = IsCompressedFormat = true;
-
-				if (psPVRHeader->mDWAlphaBitMask == 0)
-					mFormat = ImageFormat::PVR_2BPP;
-				else
-					mFormat = ImageFormat::PVR_2BPPA;
-			}
-			else
-			{
-				IsCompressedFormatSupported = false;
-				IsCompressedFormat = true;
-
-				ASSERT(0);
-			}
+		case 0:
+			mFormat = isSrgb ? ImageFormat::PVR_2BPP_SRGB : ImageFormat::PVR_2BPP;
 			break;
-
-		case OGL_PVRTC4:
-			if (IsPVRTCSupported)
-			{
-				IsCompressedFormatSupported = IsCompressedFormat = true;
-				//textureFormat = psPVRHeader->mDWAlphaBitMask==0 ? GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG : GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG ;	// PVRTC4
-
-				if (psPVRHeader->mDWAlphaBitMask == 0)
-					mFormat = ImageFormat::PVR_4BPP;
-				else
-					mFormat = ImageFormat::PVR_4BPPA;
-			}
-			else
-			{
-				IsCompressedFormatSupported = false;
-				IsCompressedFormat = true;
-
-				ASSERT(0);
-			}
+		case 1:
+			mFormat = isSrgb ? ImageFormat::PVR_2BPPA_SRGB : ImageFormat::PVR_2BPPA;
 			break;
-
+		case 2:
+			mFormat = isSrgb ? ImageFormat::PVR_4BPP_SRGB : ImageFormat::PVR_4BPP;
+			break;
+		case 3:
+			mFormat = isSrgb ? ImageFormat::PVR_4BPPA_SRGB : ImageFormat::PVR_4BPPA;
+			break;
 		default:    // NOT SUPPORTED
-			printf("load PVR failed: pixel type not supported. ");
+			LOGERRORF("Load PVR failed: pixel type not supported. ");
 			ASSERT(0);
 			return 0;
 	}
 
 	// Extract the pixel data
-	size_t PixeldataSize = size - psPVRHeader->mDWHeaderSize;
-	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * PixeldataSize);
-	memcpy(pData, (unsigned char*)psPVRHeader + psPVRHeader->mDWHeaderSize, PixeldataSize);
+	size_t totalHeaderSizeWithMetadata = sizeof(PVR_Texture_Header) + psPVRHeader->mMetaDataSize;
+	size_t pixelDataSize = GetMipMappedSize(0, mMipMapCount, mFormat);
+	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * pixelDataSize);
+	memcpy(pData, (unsigned char*)psPVRHeader + totalHeaderSizeWithMetadata, pixelDataSize);
 
 	return true;
+#endif
 }
 
 bool Image::iLoadSTBIFromMemory(
@@ -1859,9 +1777,9 @@ struct StaticImageLoader
 		gImageLoaders.push_back({ ".pic", &Image::iLoadSTBIFromMemory });
 		gImageLoaders.push_back({ ".ppm", &Image::iLoadSTBIFromMemory });
 #endif
-#if !defined(TARGET_IOS)
+//#if !defined(TARGET_IOS)
 		gImageLoaders.push_back({ ".dds", &Image::iLoadDDSFromMemory });
-#endif
+//#endif
 		gImageLoaders.push_back({ ".pvr", &Image::iLoadPVRFromMemory });
 		// #TODO: Add KTX loader
 #ifdef _WIN32

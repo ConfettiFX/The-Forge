@@ -494,7 +494,7 @@ typedef struct DescriptorStoreHeap
 	/// DescriptorInfo Increment Size
 	uint32_t mDescriptorSize;
 	/// Bitset for finding SAFE_FREE descriptor slots
-	uint32_t* flags;
+	uint32_t* pFlags;
 	/// Lock for multi-threaded descriptor allocations
 	Mutex*   pAllocationMutex;
 	uint64_t mUsedDescriptors;
@@ -539,8 +539,7 @@ static void add_descriptor_heap(
 	pHeap->mStartGpuHandle = pHeap->pCurrentHeap->GetGPUDescriptorHandleForHeapStart();
 	pHeap->mDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(type);
 
-	const size_t sizeInBytes = pHeap->mNumDescriptors / 32 * sizeof(uint32_t);
-	pHeap->flags = (uint32_t*)conf_calloc(1, sizeInBytes);
+	pHeap->pFlags = (uint32_t*)conf_calloc(pHeap->mNumDescriptors / 32, sizeof(uint32_t));
 
 	*ppDescHeap = pHeap;
 }
@@ -550,13 +549,13 @@ static void reset_descriptor_heap(DescriptorStoreHeap* pHeap)
 {
 	pHeap->mStartCpuHandle = pHeap->pCurrentHeap->GetCPUDescriptorHandleForHeapStart();
 	pHeap->mStartGpuHandle = pHeap->pCurrentHeap->GetGPUDescriptorHandleForHeapStart();
-	memset(pHeap->flags, 0, pHeap->mNumDescriptors / 32 * sizeof(uint32_t));
+	memset(pHeap->pFlags, 0, pHeap->mNumDescriptors / 32 * sizeof(uint32_t));
 }
 
 static void remove_descriptor_heap(DescriptorStoreHeap* pHeap)
 {
 	SAFE_RELEASE(pHeap->pCurrentHeap);
-	SAFE_FREE(pHeap->flags);
+	SAFE_FREE(pHeap->pFlags);
 
 	// Need delete since object frees allocated memory in destructor
 	pHeap->pAllocationMutex->~Mutex();
@@ -575,7 +574,7 @@ add_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, uint32_t numDescriptors, 
 
 	for (uint32_t i = 0; i < pHeap->mNumDescriptors / 32; ++i)
 	{
-		const uint32_t flag = pHeap->flags[i];
+		const uint32_t flag = pHeap->pFlags[i];
 		if (flag == 0xffffffff)
 		{
 			for (D3D12_CPU_DESCRIPTOR_HANDLE& handle : handles)
@@ -583,7 +582,7 @@ add_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, uint32_t numDescriptors, 
 				uint32_t       id = (uint32_t)((handle.ptr - pHeap->mStartCpuHandle.ptr) / pHeap->mDescriptorSize);
 				const uint32_t x = id / 32;
 				const uint32_t mask = ~(1 << (id % 32));
-				pHeap->flags[x] &= mask;
+				pHeap->pFlags[x] &= mask;
 			}
 			handles.clear();
 			continue;
@@ -593,7 +592,7 @@ add_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, uint32_t numDescriptors, 
 		{
 			if ((flag & mask) == 0)
 			{
-				pHeap->flags[i] |= mask;
+				pHeap->pFlags[i] |= mask;
 				result = i * 32 + j;
 
 				ASSERT(result != -1 && "Out of descriptors");
@@ -631,7 +630,7 @@ void add_gpu_descriptor_handles(
 
 	for (uint32_t i = 0; i < pHeap->mNumDescriptors / 32; ++i)
 	{
-		const uint32_t flag = pHeap->flags[i];
+		const uint32_t flag = pHeap->pFlags[i];
 		if (flag == 0xffffffff)
 		{
 			for (tinystl::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE>& handle : handles)
@@ -639,7 +638,7 @@ void add_gpu_descriptor_handles(
 				uint32_t       id = (uint32_t)((handle.first.ptr - pHeap->mStartCpuHandle.ptr) / pHeap->mDescriptorSize);
 				const uint32_t x = id / 32;
 				const uint32_t mask = ~(1 << (id % 32));
-				pHeap->flags[x] &= mask;
+				pHeap->pFlags[x] &= mask;
 			}
 			handles.clear();
 			continue;
@@ -649,7 +648,7 @@ void add_gpu_descriptor_handles(
 		{
 			if ((flag & mask) == 0)
 			{
-				pHeap->flags[i] |= mask;
+				pHeap->pFlags[i] |= mask;
 				result = i * 32 + j;
 
 				ASSERT(result != -1 && "Out of descriptors");
@@ -687,7 +686,7 @@ void remove_gpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_GPU_DESCRIP
 
 		const uint32_t i = id / 32;
 		const uint32_t mask = ~(1 << (id % 32));
-		pHeap->flags[i] &= mask;
+		pHeap->pFlags[i] &= mask;
 	}
 	pHeap->mUsedDescriptors -= numDescriptors;
 }
@@ -703,7 +702,7 @@ void remove_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, D3D12_CPU_DESCRIP
 
 		const uint32_t i = id / 32;
 		const uint32_t mask = ~(1 << (id % 32));
-		pHeap->flags[i] &= mask;
+		pHeap->pFlags[i] &= mask;
 	}
 	pHeap->mUsedDescriptors -= numDescriptors;
 }
@@ -816,16 +815,6 @@ static void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootS
 
 	for (uint32_t frameIdx = 0; frameIdx < frameCount; ++frameIdx)
 	{
-		for (DescriptorTableMapNode table : pManager->mStaticCbvSrvUavDescriptorTableMap[frameIdx])
-		{
-			remove_gpu_descriptor_handles(
-				pRenderer->pCbvSrvUavHeap[table.second.mNodeIndex], &table.second.mBaseGpuHandle, (uint64_t)table.second.mDescriptorCount);
-		}
-		for (DescriptorTableMapNode table : pManager->mStaticSamplerDescriptorTableMap[frameIdx])
-		{
-			remove_gpu_descriptor_handles(
-				pRenderer->pSamplerHeap[table.second.mNodeIndex], &table.second.mBaseGpuHandle, (uint64_t)table.second.mDescriptorCount);
-		}
 		pManager->mStaticCbvSrvUavDescriptorTableMap[frameIdx].~DescriptorTableMap();
 		pManager->mStaticSamplerDescriptorTableMap[frameIdx].~DescriptorTableMap();
 	}
@@ -1955,6 +1944,12 @@ static void AddDevice(Renderer* pRenderer)
 	{
 		pRenderer->pDxGPUs[i] = gpuDesc[i].pGpu;
 		pRenderer->mGpuSettings[i].mUniformBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+		pRenderer->mGpuSettings[i].mUploadBufferTextureAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+#if defined(_DURANGO)
+		pRenderer->mGpuSettings[i].mUploadBufferTextureRowAlignment = D3D12XBOX_TEXTURE_DATA_PITCH_ALIGNMENT;
+#else
+		pRenderer->mGpuSettings[i].mUploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+#endif
 		pRenderer->mGpuSettings[i].mMultiDrawIndirect = true;
 		pRenderer->mGpuSettings[i].mMaxVertexInputBindings = 32U;
 #ifndef _DURANGO
@@ -3244,6 +3239,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 		{
 			uavDesc.Texture1DArray.MipSlice = i;
+			if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+					uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2, i);
 			add_uav(pRenderer, pTexture->pDxResource, NULL, &uavDesc, &pTexture->pDxUAVDescriptors[i]);
 		}
 	}
@@ -4751,8 +4748,8 @@ void addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState*
 	pDepthState->mDxDepthStencilDesc.FrontFace.StencilDepthFailOp = gDx12StencilOpTranslator[pDesc->mDepthFrontFail];
 	pDepthState->mDxDepthStencilDesc.BackFace.StencilFailOp = gDx12StencilOpTranslator[pDesc->mStencilBackFail];
 	pDepthState->mDxDepthStencilDesc.FrontFace.StencilFailOp = gDx12StencilOpTranslator[pDesc->mStencilFrontFail];
-	pDepthState->mDxDepthStencilDesc.BackFace.StencilPassOp = gDx12StencilOpTranslator[pDesc->mStencilFrontPass];
-	pDepthState->mDxDepthStencilDesc.FrontFace.StencilPassOp = gDx12StencilOpTranslator[pDesc->mStencilBackPass];
+	pDepthState->mDxDepthStencilDesc.BackFace.StencilPassOp = gDx12StencilOpTranslator[pDesc->mStencilBackPass];
+	pDepthState->mDxDepthStencilDesc.FrontFace.StencilPassOp = gDx12StencilOpTranslator[pDesc->mStencilFrontPass];
 
 	*ppDepthState = pDepthState;
 }
@@ -5187,7 +5184,7 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 				if (!pCmd->pRootConstantRingBuffer)
 				{
 					// 4KB ring buffer should be enough since size of root constant data is usually pretty small (< 32 bytes)
-					addUniformRingBuffer(pRenderer, 4000U, &pCmd->pRootConstantRingBuffer);
+					addUniformRingBuffer(pRenderer, 4000U, &pCmd->pRootConstantRingBuffer, true);
 				}
 				uint32_t         size = pDesc->mDesc.size * sizeof(uint32_t);
 				RingBufferOffset offset = getUniformBufferOffset(pCmd->pRootConstantRingBuffer, size);
@@ -5772,58 +5769,22 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 
 void cmdUpdateSubresources(
 	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t intermediateOffset, Texture* pTexture)
+	uint64_t, Texture* pTexture)
 {
-	UINT64 RequiredSize = 0;
-	UINT64 MemToAlloc = (sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(UINT) + sizeof(UINT64)) * numSubresources;
-	if (MemToAlloc > UINT64_MAX)
-	{
-		return;
-	}
-	void* pMem = alloca(MemToAlloc);
-	if (pMem == NULL)
-	{
-		return;
-	}
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT* pLayouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT*)(pMem);
-	UINT64*                             pRowSizesInBytes = (UINT64*)(pLayouts + numSubresources);
-	UINT*                               pNumRows = (UINT*)(pRowSizesInBytes + numSubresources);
-
 	D3D12_RESOURCE_DESC Desc = pTexture->pDxResource->GetDesc();
-	pCmd->pRenderer->pDxDevice->GetCopyableFootprints(
-		&Desc, startSubresource, numSubresources, intermediateOffset, pLayouts, pNumRows, pRowSizesInBytes, &RequiredSize);
-
-	for (UINT i = 0; i < numSubresources; ++i)
-	{
-		if (pRowSizesInBytes[i] > (UINT64)-1)
-			return;
-
-		D3D12_MEMCPY_DEST DestData = { (BYTE*)pIntermediate->pCpuMappedAddress + pLayouts[i].Offset, pLayouts[i].Footprint.RowPitch,
-									   pLayouts[i].Footprint.RowPitch * pNumRows[i] };
-
-		// Row-by-row memcpy
-		for (UINT z = 0; z < pLayouts[i].Footprint.Depth; ++z)
-		{
-			BYTE*       pDestSlice = (BYTE*)(DestData.pData) + DestData.SlicePitch * z;
-			const BYTE* pSrcSlice = (BYTE*)(pSubresources[i].pData) + pSubresources[i].mSlicePitch * z;
-			for (UINT y = 0; y < pNumRows[i]; ++y)
-			{
-				memcpy(pDestSlice + DestData.RowPitch * y, pSrcSlice + pSubresources[i].mRowPitch * y, pRowSizesInBytes[i]);
-			}
-		}
-	}
-
 	for (UINT i = 0; i < numSubresources; ++i)
 	{
 		D3D12_TEXTURE_COPY_LOCATION Dst = {};
 		Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		Dst.pResource = pTexture->pDxResource;
-		Dst.SubresourceIndex = i + startSubresource;
+		Dst.SubresourceIndex = pSubresources[i].mMipLevel + pSubresources[i].mArrayLayer * Desc.MipLevels;
 
 		D3D12_TEXTURE_COPY_LOCATION Src = {};
 		Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		Src.pResource = pIntermediate->pDxResource;
-		Src.PlacedFootprint = pLayouts[i];
+		Src.PlacedFootprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ pSubresources[i].mBufferOffset,
+																  { Desc.Format, pSubresources[i].mWidth, pSubresources[i].mHeight,
+																	pSubresources[i].mDepth, pSubresources[i].mRowPitch } };
 
 		pCmd->pDxCmdList->CopyTextureRegion(&Dst, 0, 0, 0, &Src, NULL);
 	}
@@ -5940,8 +5901,8 @@ void queuePresent(
 	HRESULT hr = pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, pSwapChain->mFlags);
 	if (FAILED(hr))
 	{
-		hr = pQueue->pRenderer->pDxDevice->GetDeviceRemovedReason();
-		if (FAILED(hr))
+		HRESULT removeHr = pQueue->pRenderer->pDxDevice->GetDeviceRemovedReason();
+		if (FAILED(removeHr))
 			ASSERT(false);    //TODO: let's do something with the error
 	}
 #endif

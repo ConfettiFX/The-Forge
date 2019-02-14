@@ -57,6 +57,7 @@ struct SkeletonRenderDesc
 	bool           mDrawBones;
 	Buffer*        mBoneVertexBuffer;
 	int            mNumBonePoints;
+	BufferCreationFlags mCreationFlag;
 };
 
 // Allows for efficiently instance rendering all joints and bones of all skeletons in the scene

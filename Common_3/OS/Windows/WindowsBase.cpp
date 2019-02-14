@@ -61,8 +61,8 @@ namespace {
 bool isCaptured = false;
 }
 
-static bool      gWindowClassInitialized = false;
-static WNDCLASSW gWindowClass;
+static bool		 gWindowClassInitialized = false;
+static WNDCLASSW	gWindowClass;
 
 static tinystl::vector<MonitorDesc>                gMonitors;
 static tinystl::unordered_map<void*, WindowsDesc*> gHWNDMap;
@@ -76,16 +76,18 @@ extern bool skipMouseCapture;
 extern void onWindowResize(const WindowResizeEventData* pData);
 }    // namespace PlatformEvents
 
-static LPPOINT lastCursorPoint = &POINT();
-static bool    captureMouse(bool shouldCapture, bool shouldHide)
+static bool captureMouse(bool shouldCapture, bool shouldHide)
 {
 	if (shouldCapture != isCaptured)
 	{
+		WindowsDesc* currentWind = gHWNDMap.begin().node->second;
 		if (shouldCapture)
 		{
 			//TODO:Fix this once we have multiple window handles
-			WindowsDesc* currentWind = gHWNDMap.begin().node->second;
-			GetCursorPos(lastCursorPoint);
+			POINT lastCursorPoint;
+			GetCursorPos(&lastCursorPoint);
+			currentWind->lastCursorPosX = lastCursorPoint.x;
+			currentWind->lastCursorPosY = lastCursorPoint.y;
 
 			SetCapture((HWND)currentWind->handle);
 
@@ -119,7 +121,7 @@ static bool    captureMouse(bool shouldCapture, bool shouldHide)
 			isCaptured = false;
 
 			if (shouldHide)
-				SetCursorPos(lastCursorPoint->x, lastCursorPoint->y);
+				SetCursorPos(currentWind->lastCursorPosX, currentWind->lastCursorPosY);
 		}
 	}
 #ifndef NO_GAINPUT
@@ -131,7 +133,7 @@ static bool    captureMouse(bool shouldCapture, bool shouldHide)
 // Window event handler - Use as less as possible
 LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 {
-	WindowsDesc*                                       gCurrentWindow = NULL;
+	WindowsDesc* gCurrentWindow = NULL;
 	tinystl::unordered_hash_node<void*, WindowsDesc*>* pNode = gHWNDMap.find(_hwnd).node;
 	if (pNode)
 		gCurrentWindow = pNode->second;
@@ -140,62 +142,62 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 
 	switch (_id)
 	{
-		case WM_ACTIVATE:
-			if (LOWORD(wParam) == WA_INACTIVE)
-			{
-				captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
-			}
-			break;
-
-		case WM_DISPLAYCHANGE:
+	case WM_ACTIVATE:
+		if (LOWORD(wParam) == WA_INACTIVE)
 		{
-			if (gCurrentWindow)
-			{
-				if (gCurrentWindow->fullScreen)
-				{
-					adjustWindow(gCurrentWindow);
-				}
-				else
-				{
-					adjustWindow(gCurrentWindow);
-				}
-			}
-			break;
+			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
 		}
+		break;
 
-		case WM_SIZE:
-			if (gCurrentWindow)
+	case WM_DISPLAYCHANGE:
+	{
+		if (gCurrentWindow)
+		{
+			if (gCurrentWindow->fullScreen)
 			{
-				if (wParam == SIZE_MINIMIZED)
-				{
-					gCurrentWindow->minimized = true;
-				}
-				else
-				{
-					gCurrentWindow->minimized = false;
-				}
-				RectDesc rect = { 0 };
-				if (gCurrentWindow->fullScreen)
-				{
-					gCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-					rect = gCurrentWindow->fullscreenRect;
-				}
-				else
-				{
-					if (IsIconic(_hwnd))
-						return 0;
-
-					RECT windowRect;
-					GetClientRect(_hwnd, &windowRect);
-					rect = { (int)windowRect.left, (int)windowRect.top, (int)windowRect.right, (int)windowRect.bottom };
-					gCurrentWindow->windowedRect = rect;
-				}
-
-				WindowResizeEventData eventData = { rect, gCurrentWindow };
-				PlatformEvents::onWindowResize(&eventData);
+				adjustWindow(gCurrentWindow);
 			}
-			break;
-		case WM_DESTROY:
+			else
+			{
+				adjustWindow(gCurrentWindow);
+			}
+		}
+		break;
+	}
+
+	case WM_SIZE:
+		if (gCurrentWindow)
+		{
+			if (wParam == SIZE_MINIMIZED)
+			{
+				gCurrentWindow->minimized = true;
+			}
+			else
+			{
+				gCurrentWindow->minimized = false;
+			}
+			RectDesc rect = { 0 };
+			if (gCurrentWindow->fullScreen)
+			{
+				gCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+				rect = gCurrentWindow->fullscreenRect;
+			}
+			else
+			{
+				if (IsIconic(_hwnd))
+					return 0;
+
+				RECT windowRect;
+				GetClientRect(_hwnd, &windowRect);
+				rect = { (int)windowRect.left, (int)windowRect.top, (int)windowRect.right, (int)windowRect.bottom };
+				gCurrentWindow->windowedRect = rect;
+			}
+
+			WindowResizeEventData eventData = { rect, gCurrentWindow };
+			PlatformEvents::onWindowResize(&eventData);
+		}
+		break;
+	case WM_DESTROY:
 		case WM_CLOSE: PostQuitMessage(0); break;
 		default: return DefWindowProcW(_hwnd, _id, wParam, lParam); break;
 	}
@@ -235,7 +237,7 @@ static void collectMonitorInfo()
 		for (int displayIndex = 0;; displayIndex++)
 		{
 			DISPLAY_DEVICEW display;
-			HDC             dc;
+			HDC dc;
 
 			display.cb = sizeof(display);
 
@@ -271,7 +273,7 @@ static void collectMonitorInfo()
 	for (uint32_t monitor = 0; monitor < (uint32_t)gMonitors.size(); ++monitor)
 	{
 		MonitorDesc* pMonitor = &gMonitors[monitor];
-		DEVMODEW     devMode = {};
+		DEVMODEW devMode = {};
 		devMode.dmSize = sizeof(DEVMODEW);
 		devMode.dmFields = DM_PELSHEIGHT | DM_PELSWIDTH;
 
@@ -280,7 +282,7 @@ static void collectMonitorInfo()
 		pMonitor->defaultResolution.mWidth = devMode.dmPelsWidth;
 
 		tinystl::vector<Resolution> displays;
-		DWORD                       current = 0;
+		DWORD current = 0;
 		while (EnumDisplaySettingsW(pMonitor->adapterName, current++, &devMode))
 		{
 			bool duplicate = false;
@@ -358,7 +360,7 @@ class StaticWindowManager
 
 				if (errorMessageID != ERROR_CLASS_ALREADY_EXISTS)
 				{
-					LPSTR  messageBuffer = NULL;
+					LPSTR messageBuffer = NULL;
 					size_t size = FormatMessageA(
 						FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID,
 						MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
@@ -399,7 +401,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 
 	RectDesc& rect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 
-	WCHAR  app[MAX_PATH];
+	WCHAR app[MAX_PATH];
 	size_t charConverted = 0;
 	mbstowcs_s(&charConverted, app, app_name, MAX_PATH);
 
@@ -438,8 +440,6 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		LOGERRORF("Failed to create window app %s", app_name);
 	}
 }
-
-void closeWindow(const WindowsDesc* winDesc) { DestroyWindow((HWND)winDesc->handle); }
 
 bool handleMessages()
 {
@@ -502,9 +502,15 @@ bool handleMessages()
 	return quit;
 }
 
+void closeWindow(const WindowsDesc* winDesc)
+{
+	DestroyWindow((HWND)winDesc->handle);
+	handleMessages();
+}
+
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 {
-	HWND      hwnd = (HWND)winDesc->handle;
+	HWND hwnd = (HWND)winDesc->handle;
 	RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 	currentRect = rect;
 	MoveWindow(hwnd, rect.left, rect.top, getRectWidth(rect), getRectHeight(rect), TRUE);
@@ -604,8 +610,8 @@ MonitorDesc* getMonitor(uint32_t index)
 
 float2 getDpiScale()
 {
-	HDC         hdc = ::GetDC(nullptr);
-	float2      ret = {};
+	HDC hdc = ::GetDC(nullptr);
+	float2 ret = {};
 	const float dpi = 96.0f;
 	if (hdc)
 	{
@@ -735,15 +741,15 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
-	uint32_t       testingFrameCount = 0;
+	uint32_t testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
 
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	IApp::Settings* pSettings = &pApp->mSettings;
-	WindowsDesc     window = {};
-	Timer           deltaTimer;
+	WindowsDesc window = {};
+	Timer deltaTimer;
 
 	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 	{

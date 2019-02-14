@@ -1,0 +1,152 @@
+/*
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#define PI 3.1415926535897932384626433832795
+#define PI2 (2*3.1415926535897932384626433832795)
+
+// just because local workgroup size is x=256 does not mean the shader is working along x dimension in the image.
+#define MAX_WORKGROUP_SIZE 256
+
+cbuffer ESMInputConstants : register(b0, space1)
+{
+    float Near : packoffset(c0);
+    float Far : packoffset(c0.y);
+    float FarNearDiff : packoffset(c0.z);
+    float Near_Over_FarNearDiff : packoffset(c0.w);
+    float Exponent : packoffset(c1);
+    int BlurWidth : packoffset(c1.y);
+};
+
+RWStructuredBuffer<float> IntermediateResult : register(u3, space3);
+
+cbuffer RootConstants : register(b1, space1)
+{
+    uint FirstPass : packoffset(c0);
+};
+
+Texture2DMS<float4> shadowExpMap : register(t1, space3);
+SamplerState clampMiplessSampler : register(s0, space3);
+RWTexture2D<float> blurredESM : register(u2, space3);
+
+struct CsIn
+{
+    uint3 LocalInvocationID : SV_GroupThreadID;
+    uint3 GlobalInvocationID : SV_DispatchThreadID;
+};
+
+static uint3 g_LocalInvocationID;
+
+groupshared float blurAxisValues[ESM_SHADOWMAP_RES];
+
+// 1 is a box blur, 2 is a good looking approximation to the gaussian visually, 3 is a very good numerical approximation
+#define CENTRAL_LIMIT_ITERATIONS 2
+
+#define BARRIER_AND_VISIBILITY   GroupMemoryBarrierWithGroupSync(); GroupMemoryBarrier()
+
+#define EMULATE_EXTRA_INVOCATIONS for (int virtualInvocationID=int(g_LocalInvocationID.x),emulationMacroID=0; virtualInvocationID<ESM_SHADOWMAP_RES; virtualInvocationID+=MAX_WORKGROUP_SIZE,emulationMacroID++)
+
+float exponentiateDepth(float normalizedDepth)
+{
+    return exp2(Exponent * normalizedDepth-log2(float(2*BlurWidth+1))*2.0*float(CENTRAL_LIMIT_ITERATIONS)-log2(float(ESM_MSAA_SAMPLES)));
+}
+
+float mapDepth(int2 i2uv, int ix, inout int foregroundCount)
+{
+    float nonLinearValue = shadowExpMap.Load(i2uv, ix).x;
+    float linearZ = (Far / (Near + nonLinearValue * FarNearDiff) - 1.0f) * Near_Over_FarNearDiff;
+    if (linearZ > 0.99999f)
+        return 0.0f;
+    else
+    {
+        foregroundCount++;
+        return exponentiateDepth(linearZ);
+    }
+}
+
+float resolveDepth(int2 i2uv)
+{
+    // this is not part of the original ESM algorithm, it is a workaround for the spheres being all unique vertices 
+    int foregroundCount = 0;
+    float resolvedMapped = 0.f;
+
+    for (int i = 0; i < ESM_MSAA_SAMPLES; i++)
+        resolvedMapped += mapDepth(i2uv, i, foregroundCount);
+    if (foregroundCount >= (ESM_MSAA_SAMPLES*3)/4)
+        return resolvedMapped / float(foregroundCount);
+    else
+        return resolvedMapped + (exponentiateDepth(1.0f) * float(ESM_MSAA_SAMPLES - foregroundCount));
+}
+
+void naiveBlur(inout float blurredVal[8])
+{
+    EMULATE_EXTRA_INVOCATIONS
+        blurAxisValues[virtualInvocationID] = blurredVal[emulationMacroID];
+        
+    BARRIER_AND_VISIBILITY;
+    EMULATE_EXTRA_INVOCATIONS
+    {
+        // it would be better if `BlurWidth` was a specialization constant
+        int i=virtualInvocationID-BlurWidth;
+        for (; i<virtualInvocationID; i++)
+            blurredVal[emulationMacroID] += blurAxisValues[max(i,0)];
+        i++;
+        for (; i<=virtualInvocationID+BlurWidth; i++)
+            blurredVal[emulationMacroID] += blurAxisValues[min(i,ESM_SHADOWMAP_RES-1)];
+    }
+    
+    BARRIER_AND_VISIBILITY;
+}
+
+[numthreads(MAX_WORKGROUP_SIZE, 1, 1)]
+void main(CsIn input)
+{
+    g_LocalInvocationID = input.LocalInvocationID;
+
+    float blurredVal[ESM_SHADOWMAP_RES/MAX_WORKGROUP_SIZE];
+    if (FirstPass!=0u)
+    {
+        EMULATE_EXTRA_INVOCATIONS
+            blurredVal[emulationMacroID] = IntermediateResult[virtualInvocationID+input.GlobalInvocationID.y*ESM_SHADOWMAP_RES];
+    }
+    else
+    {
+        EMULATE_EXTRA_INVOCATIONS
+            blurredVal[emulationMacroID] = resolveDepth(int2(virtualInvocationID,input.GlobalInvocationID.y));
+    }
+
+    // box-blur many times over for the repeated box-convolution to become a Gaussian by the central limit theorem
+    for (uint i=0; i<CENTRAL_LIMIT_ITERATIONS; i++)
+        naiveBlur(blurredVal);
+
+    if (FirstPass != 0u)
+    {
+        EMULATE_EXTRA_INVOCATIONS
+            blurredESM[int2(int(input.GlobalInvocationID.y), virtualInvocationID)] = float4(blurredVal[emulationMacroID] * 8.0f, 0.0f, 0.0f, 1.0f).x;
+    }
+    else
+    {
+        EMULATE_EXTRA_INVOCATIONS
+            IntermediateResult[asuint(input.GlobalInvocationID.y) + asuint(virtualInvocationID * ESM_SHADOWMAP_RES)] = blurredVal[emulationMacroID];
+    }
+}

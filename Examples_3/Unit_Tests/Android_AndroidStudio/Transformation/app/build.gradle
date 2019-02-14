@@ -1,0 +1,60 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.conffx.example.transformation"
+        minSdkVersion 28
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++11 -fexceptions"
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:28.0.0-rc02'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+}
+
+// Copy assets and shaders to the destination folder
+task copyAssets(type: Copy) {
+    from "${projectDir}/../../../UnitTestResources/"
+    into "${projectDir}/src/main/assets/"
+}
+task copyShader(type: Copy) {
+    from "${projectDir}/../../../src/01_Transformations/Shaders/Vulkan"
+    into "${projectDir}/src/main/assets/Shaders"
+}
+task copyMiddlewareText(type: Copy) {
+    from "${projectDir}/../../../../../Middleware_3/Text/Shaders/Vulkan"
+    into "${projectDir}/src/main/assets/Shaders"
+}
+task copyMiddlewareUI(type: Copy) {
+    from "${projectDir}/../../../../../Middleware_3/UI/Shaders/Vulkan"
+    into "${projectDir}/src/main/assets/Shaders"
+}
+preBuild.dependsOn copyAssets
+preBuild.dependsOn copyShader
+preBuild.dependsOn copyMiddlewareText
+preBuild.dependsOn copyMiddlewareUI

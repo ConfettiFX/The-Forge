@@ -108,9 +108,6 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIShaders.h">
       <Filter>Middleware_3\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h">
-      <Filter>OS\Core</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
@@ -152,6 +149,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h">
       <Filter>Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">
+      <Filter>OS\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -199,9 +199,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>Middleware_3\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
-      <Filter>OS\Core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp">
       <Filter>Middleware_3\Input</Filter>

@@ -209,19 +209,26 @@ namespace RENDERER_CPP_NAMESPACE {
 		MTLPixelFormatBC3_RGBA,
 		MTLPixelFormatBC4_RUnorm,
 		MTLPixelFormatBC5_RGUnorm,
+		
+		// PVR formats
+		MTLPixelFormatInvalid, // PVR_2BPP = 56,
+		MTLPixelFormatInvalid, // PVR_2BPPA = 57,
+		MTLPixelFormatInvalid, // PVR_4BPP = 58,
+		MTLPixelFormatInvalid, // PVR_4BPPA = 59,
 #else
 		MTLPixelFormatInvalid,
 		MTLPixelFormatInvalid,
 		MTLPixelFormatInvalid,
 		MTLPixelFormatInvalid,
 		MTLPixelFormatInvalid,
+		
+		// PVR formats
+		MTLPixelFormatPVRTC_RGB_2BPP, // PVR_2BPP = 56,
+		MTLPixelFormatPVRTC_RGBA_2BPP, // PVR_2BPPA = 57,
+		MTLPixelFormatPVRTC_RGB_4BPP, // PVR_4BPP = 58,
+		MTLPixelFormatPVRTC_RGBA_4BPP, // PVR_4BPPA = 59,
 #endif
 
-		// PVR formats
-		MTLPixelFormatInvalid, // PVR_2BPP = 56,
-		MTLPixelFormatInvalid, // PVR_2BPPA = 57,
-		MTLPixelFormatInvalid, // PVR_4BPP = 58,
-		MTLPixelFormatInvalid, // PVR_4BPPA = 59,
 		MTLPixelFormatInvalid, // INTZ = 60,	// Nvidia hack. Supported on all DX10+ HW
 		// XBox 360 specific fron buffer formats.
 		MTLPixelFormatInvalid, // LE_XRGB8 = 61,
@@ -250,6 +257,20 @@ namespace RENDERER_CPP_NAMESPACE {
 		MTLPixelFormatStencil8,// S8 = 81,
 		MTLPixelFormatInvalid, // D16S8 = 82,
 		MTLPixelFormatDepth32Float_Stencil8, // D32S8 = 83,
+		
+#ifndef TARGET_IOS
+		// PVR formats
+		MTLPixelFormatInvalid, // PVR_2BPP_SRGB = 84,
+		MTLPixelFormatInvalid, // PVR_2BPPA_SRGB = 85,
+		MTLPixelFormatInvalid, // PVR_4BPP_SRGB = 86,
+		MTLPixelFormatInvalid, // PVR_4BPPA_SRGB = 87,
+#else
+		// PVR formats
+		MTLPixelFormatPVRTC_RGB_2BPP_sRGB, // PVR_2BPP_SRGB = 84,
+		MTLPixelFormatPVRTC_RGBA_2BPP_sRGB, // PVR_2BPPA_SRGB = 85,
+		MTLPixelFormatPVRTC_RGB_4BPP_sRGB, // PVR_4BPP_SRGB = 86,
+		MTLPixelFormatPVRTC_RGBA_4BPP_sRGB, // PVR_4BPPA_SRGB = 87,
+#endif
 	};
 // clang-format on
 
@@ -286,7 +307,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const Des
 void util_end_current_encoders(Cmd* pCmd);
 bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType);
 
-void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT = false);
+void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT = false, const bool forceNonPrivate = false);
 
 /************************************************************************/
 // Dynamic Memory Allocator
@@ -588,6 +609,218 @@ const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 	RendererShaderDefinesDesc defineDesc = { NULL, 0 };
 	return defineDesc;
 }
+    
+    void cmdBindLocalDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
+    {
+        ASSERT(pCmd);
+        ASSERT(pRootSignature);
+        
+        Renderer* pRenderer = pCmd->pRenderer;
+        DescriptorManager* pManager = get_descriptor_manager(pRenderer, pRootSignature);
+        // Compare the currently bound root signature with the root signature of the descriptor manager
+        // If these values dont match, we must bind the root signature of the descriptor manager
+        // If the values match, no op is required
+        reset_bound_resources(pManager);
+        
+        // Loop through input params to check for new data
+        for (uint32_t paramIdx = 0; paramIdx < numDescriptors; ++paramIdx)
+        {
+            const DescriptorData* pParam = &pDescParams[paramIdx];
+            ASSERT(pParam);
+            if (!pParam->pName)
+            {
+                LOGERRORF("Name of Descriptor at index (%u) is NULL", paramIdx);
+                return;
+            }
+            
+            uint32_t hash = tinystl::hash(pParam->pName);
+            uint32_t descIndex = -1;
+            const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pParam->pName, &descIndex);
+            if (!pDesc)
+                continue;
+            
+            const uint32_t arrayCount = max(1U, pParam->mCount);
+            
+            // Replace the default DescriptorData by the new data pased into this function.
+            pManager->pDescriptorDataArray[descIndex].pName = pParam->pName;
+            pManager->pDescriptorDataArray[descIndex].mCount = arrayCount;
+            pManager->pDescriptorDataArray[descIndex].pOffsets = pParam->pOffsets;
+            switch(pDesc->mDesc.type)
+            {
+                case DESCRIPTOR_TYPE_RW_TEXTURE:
+                case DESCRIPTOR_TYPE_TEXTURE:
+                    if (!pParam->ppTextures) {
+                        LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
+                        return;
+                    }
+                    pManager->pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
+                    break;
+                case DESCRIPTOR_TYPE_SAMPLER:
+                    if (!pParam->ppSamplers) {
+                        LOGERRORF("Sampler descriptor (%s) is NULL", pParam->pName);
+                        return;
+                    }
+                    pManager->pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
+                    break;
+                case DESCRIPTOR_TYPE_ROOT_CONSTANT:
+                    if (!pParam->pRootConstant) {
+                        LOGERRORF("RootConstant array (%s) is NULL", pParam->pName);
+                        return;
+                    }
+                    pManager->pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
+                    break;
+                case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case DESCRIPTOR_TYPE_RW_BUFFER:
+                case DESCRIPTOR_TYPE_BUFFER:
+                    if (!pParam->ppBuffers) {
+                        LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
+                        return;
+                    }
+                    pManager->pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
+                    
+                    // In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
+                    if(arrayCount > 1 && pManager->mArgumentBuffers.find(hash).node) pManager->mArgumentBuffers[hash].second = true;
+                    
+                    break;
+                default: break;
+            }
+            
+            // Mark this descriptor as unbound, so it's values are updated.
+            pManager->pBoundDescriptors[descIndex] = false;
+        }
+        
+        // Bind all the unbound root signature descriptors.
+        for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
+        {
+            const DescriptorInfo* descriptorInfo = &pRootSignature->pDescriptors[i];
+            const DescriptorData* descriptorData = &pManager->pDescriptorDataArray[i];
+            
+            if(!pManager->pBoundDescriptors[i])
+            {
+                ShaderStage usedStagesMask = descriptorInfo->mDesc.used_stages;
+                switch(descriptorInfo->mDesc.type)
+                {
+                    case DESCRIPTOR_TYPE_RW_TEXTURE:
+                    {
+                        uint32_t textureCount = max(1U, descriptorData->mCount);
+                        for(uint32_t j = 0 ;j < textureCount ; j++)
+                        {
+                            if(!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
+                            {
+                                LOGERRORF("RW Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+                                return;
+                            }
+                            
+                            if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                                [pCmd->mtlRenderEncoder setVertexTexture:descriptorData->ppTextures[j]->pMtlUAVDescriptors[descriptorData->mUAVMipSlice] atIndex:descriptorInfo->mDesc.reg + j];
+                            if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                            {
+                                [pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[j]->pMtlUAVDescriptors[descriptorData->mUAVMipSlice] atIndex:descriptorInfo->mDesc.reg + j];
+                            }
+                            if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                            {
+                                [pCmd->mtlComputeEncoder setTexture:descriptorData->ppTextures[j]->pMtlUAVDescriptors[descriptorData->mUAVMipSlice] atIndex:descriptorInfo->mDesc.reg + j];
+                            }
+                        }
+                        break;
+                    }
+                    case DESCRIPTOR_TYPE_TEXTURE:
+                    {
+                        uint32_t textureCount = max(1U, descriptorData->mCount);
+                        for(uint32_t j = 0 ;j < textureCount ; j++)
+                        {
+                            if(!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
+                            {
+                                LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+                                return;
+                            }
+                            
+                            if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                                [pCmd->mtlRenderEncoder setVertexTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+                            if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                            {
+                                [pCmd->mtlRenderEncoder setFragmentTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+                            }
+                            if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                            {
+                                [pCmd->mtlComputeEncoder setTexture:descriptorData->ppTextures[j]->mtlTexture atIndex:descriptorInfo->mDesc.reg + j];
+                            }
+                        }
+                        break;
+                    }
+                    case DESCRIPTOR_TYPE_SAMPLER:
+                    {
+                        uint32_t samplerCount = max(1U, descriptorData->mCount);
+                        for(uint32_t j = 0 ;j < samplerCount ; j++)
+                        {
+                            if(!descriptorData->ppSamplers[j] || !descriptorData->ppSamplers[j]->mtlSamplerState)
+                            {
+                                LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+                                return;
+                            }
+                            
+                            if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                                [pCmd->mtlRenderEncoder setVertexSamplerState:descriptorData->ppSamplers[j]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg + j];
+                            if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                                [pCmd->mtlRenderEncoder setFragmentSamplerState:descriptorData->ppSamplers[j]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg + j];
+                            if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                                [pCmd->mtlComputeEncoder setSamplerState:descriptorData->ppSamplers[j]->mtlSamplerState atIndex:descriptorInfo->mDesc.reg + j];
+                        }
+                        break;
+                    }
+                    case DESCRIPTOR_TYPE_ROOT_CONSTANT:
+                        if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                            [pCmd->mtlRenderEncoder setVertexBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
+                        if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                            [pCmd->mtlRenderEncoder setFragmentBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
+                        if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                            [pCmd->mtlComputeEncoder setBytes:descriptorData->pRootConstant length:descriptorInfo->mDesc.size atIndex:descriptorInfo->mDesc.reg];
+                        break;
+                    case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                    case DESCRIPTOR_TYPE_RW_BUFFER:
+                    case DESCRIPTOR_TYPE_BUFFER:
+                    {
+                        // If we're trying to bind a buffer with an mCount > 1, it means we're binding many descriptors into an argument buffer.
+                        if (descriptorData->mCount > 1)
+                        {
+                            util_bind_argument_buffer(pCmd, pManager, descriptorInfo, descriptorData);
+                        }
+                        else
+                        {
+                            if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                                [pCmd->mtlRenderEncoder setVertexBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
+                            if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                                [pCmd->mtlRenderEncoder setFragmentBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
+                            if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                                [pCmd->mtlComputeEncoder setBuffer:descriptorData->ppBuffers[0]->mtlBuffer offset:(descriptorData->ppBuffers[0]->mPositionInHeap + (descriptorData->pOffsets ? descriptorData->pOffsets[0] : 0)) atIndex:descriptorInfo->mDesc.reg];
+                        }
+                        break;
+                    }
+                    default: break;
+                }
+                pManager->pBoundDescriptors[i] = true;
+            }
+        }
+        
+        // We need to bind static samplers manually since Metal API has no concept of static samplers
+        if (!pManager->mBoundStaticSamplers)
+        {
+            pManager->mBoundStaticSamplers = true;
+            
+            for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
+            {
+                ShaderStage usedStagesMask = pRootSignature->pStaticSamplerStages[i];
+                Sampler* pSampler = pRootSignature->ppStaticSamplers[i];
+                uint32_t reg = pRootSignature->pStaticSamplerSlots[i];
+                if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
+                    [pCmd->mtlRenderEncoder setVertexSamplerState:pSampler->mtlSamplerState atIndex:reg];
+                if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
+                    [pCmd->mtlRenderEncoder setFragmentSamplerState:pSampler->mtlSamplerState atIndex:reg];
+                if ((usedStagesMask & SHADER_STAGE_COMP) != 0)
+                    [pCmd->mtlComputeEncoder setSamplerState:pSampler->mtlSamplerState atIndex:reg];
+            }
+        }
+    }
 
 void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
@@ -880,6 +1113,7 @@ void create_default_resources(Renderer* pRenderer)
 	texture1DDesc.mStartState = RESOURCE_STATE_COMMON;
 	texture1DDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 	texture1DDesc.mWidth = 2;
+	texture1DDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	addTexture(pRenderer, &texture1DDesc, &pDefault1DTexture);
 
 	TextureDesc texture1DArrayDesc = texture1DDesc;
@@ -920,6 +1154,7 @@ void create_default_resources(Renderer* pRenderer)
 	bufferDesc.mFirstElement = 0;
 	bufferDesc.mElementCount = 1;
 	bufferDesc.mStructStride = sizeof(uint32_t);
+	bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	addBuffer(pRenderer, &bufferDesc, &pDefaultBuffer);
 
 	SamplerDesc samplerDesc = {};
@@ -1028,6 +1263,12 @@ void retrieveSystemProfilerInformation(tinystl::string& outVendorId)
 	bytesRead = fread(streamBuffer, sizeof(char), sizeof(streamBuffer), sys_profile);
 	// Close the stream
 	pclose(sys_profile);
+        if (bytesRead == 0)
+        {
+            LOGERROR("Couldn't read SPDisplaysData from system_profiler");
+            outVendorId = tinystl::string("0x0000");
+            return;
+        }
 	// Create a CFDataRef with the xml data
 	xmlData = CFDataCreate(kCFAllocatorDefault, (UInt8*)streamBuffer, bytesRead);
 	// CFPropertyListCreateFromXMLData reads in the XML data and will parse it into a CFArrayRef for us.
@@ -1214,9 +1455,11 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 #endif
 		// Set the default GPU settings.
 		pRenderer->mNumOfGPUs = 1;
+		pRenderer->mGpuSettings[0].mUniformBufferAlignment = 256;
+		pRenderer->mGpuSettings[0].mUploadBufferTextureAlignment = 16;
+		pRenderer->mGpuSettings[0].mUploadBufferTextureRowAlignment = 1;
 		pRenderer->mGpuSettings[0].mMaxVertexInputBindings =
 			MAX_VERTEX_BINDINGS;    // there are no special vertex buffers for input in Metal, only regular buffers
-		pRenderer->mGpuSettings[0].mUniformBufferAlignment = 256;
 		pRenderer->mGpuSettings[0].mMultiDrawIndirect =
 			false;    // multi draw indirect is not supported on Metal: only single draw indirect
 		pRenderer->mGpuSettings[0].mGpuVendorPreset = gpuVendor;
@@ -1287,6 +1530,7 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 void removeFence(Renderer* pRenderer, Fence* pFence)
 {
 	ASSERT(pFence);
+	pFence->pMtlSemaphore = nil;
 	SAFE_FREE(pFence);
 }
 
@@ -1304,6 +1548,7 @@ void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 void removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
 	ASSERT(pSemaphore);
+	pSemaphore->pMtlSemaphore = nil;
 	SAFE_FREE(pSemaphore);
 }
 
@@ -1325,6 +1570,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 void removeQueue(Queue* pQueue)
 {
 	ASSERT(pQueue);
+	pQueue->pMtlSemaphore = nil;
 	pQueue->mtlCommandQueue = nil;
 	SAFE_FREE(pQueue);
 }
@@ -1450,6 +1696,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	pSwapChain->pMTKView.preferredFramesPerSecond = 60.0;
 	pSwapChain->pMTKView.enableSetNeedsDisplay = NO;
 	pSwapChain->pMTKView.paused = NO;
+        pSwapChain->pMTKView.framebufferOnly = FALSE;
 
 #if !defined(TARGET_IOS)
 	//no need to have vsync on layers otherwise we will wait on semaphores
@@ -2191,8 +2438,7 @@ void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, P
 	pPipeline->pShader = pPipeline->mCompute.pShaderProgram;
 
 	NSError* error = nil;
-	pPipeline->mtlComputePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:pDesc->pShaderProgram->mtlComputeShader
-																						   error:nil];
+	pPipeline->mtlComputePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:pDesc->pShaderProgram->mtlComputeShader error:&error];
 	if (!pPipeline->mtlComputePipelineState)
 	{
 		LOGERRORF("Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
@@ -2748,7 +2994,7 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, ui
 
 	// When using a poss-tessellation vertex shader, the first vertex buffer bound is used as the tessellation factors buffer.
 	uint startIdx = 0;
-	if (pCmd->pShader->mtlVertexShader.patchType != MTLPatchTypeNone)
+	if (pCmd->pShader && pCmd->pShader->mtlVertexShader.patchType != MTLPatchTypeNone)
 	{
 		startIdx = 1;
 		[pCmd->mtlRenderEncoder setTessellationFactorBuffer:ppBuffers[0]->mtlBuffer offset:0 instanceStride:0];
@@ -3046,6 +3292,8 @@ void cmdUpdateSubresources(
 	uint nLayers = pTexture->mDesc.mArraySize;
 	uint nFaces = 1;
 	uint nMips = pTexture->mDesc.mMipLevels;
+	
+	bool isPvrtc = (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA) || (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP_SRGB && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA_SRGB);
 
 	uint32_t subresourceOffset = 0;
 	for (uint32_t layer = 0; layer < nLayers; ++layer)
@@ -3057,21 +3305,55 @@ void cmdUpdateSubresources(
 				SubresourceDataDesc* pRes = &pSubresources[(layer * nFaces * nMips) + (face * nMips) + mip];
 				uint32_t             mipmapWidth = max(pTexture->mDesc.mWidth >> mip, 1);
 				uint32_t             mipmapHeight = max(pTexture->mDesc.mHeight >> mip, 1);
-
-				// Copy the data for this resource to an intermediate buffer.
-				memcpy((uint8_t*)pIntermediate->pCpuMappedAddress + intermediateOffset + subresourceOffset, pRes->pData, pRes->mSlicePitch);
-
-				// Copy to the texture's final subresource.
-				[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
-										sourceOffset:intermediateOffset + subresourceOffset
-								   sourceBytesPerRow:pRes->mRowPitch
-								 sourceBytesPerImage:pRes->mSlicePitch
-										  sourceSize:MTLSizeMake(mipmapWidth, mipmapHeight, 1)
-										   toTexture:pTexture->mtlTexture
-									destinationSlice:layer * nFaces + face
-									destinationLevel:mip
-								   destinationOrigin:MTLOriginMake(0, 0, 0)];
-
+				
+				// NOTE: as of 2/4/2019, there is a bug in the Metal API when copying PVRTC textures using MTLBlitCommandEncoder
+				// See: https://forums.developer.apple.com/thread/113262
+				// Hence, for PVRTC we temporarily create a non-private texture so we can use replaceRegion.  We then copy that over to the private texture.
+				// This is the better work around as we get to both keep the final texture private while still being able to use the Metal validation layer.
+				
+				if (isPvrtc)
+				{
+					Texture* pTmpTex = NULL;
+					add_texture(pCmd->pRenderer, &pTexture->mDesc, &pTmpTex, false, true);
+					
+					[pTmpTex->mtlTexture replaceRegion:MTLRegionMake2D(0, 0, mipmapWidth, mipmapHeight)
+											mipmapLevel:mip
+												  slice:layer * nFaces + face
+											  withBytes:pRes->pData
+											bytesPerRow:0
+											bytesPerImage:0];
+					
+					[pCmd->mtlBlitEncoder copyFromTexture:pTmpTex->mtlTexture
+											  sourceSlice:layer * nFaces + face
+											  sourceLevel:mip
+											 sourceOrigin:MTLOriginMake(0, 0, 0)
+											   sourceSize:MTLSizeMake(mipmapWidth, mipmapHeight, 1)
+												toTexture:pTexture->mtlTexture
+										 destinationSlice:layer * nFaces + face
+										 destinationLevel:mip
+										destinationOrigin:MTLOriginMake(0, 0, 0)];
+					
+					[pCmd->mtlCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
+						removeTexture(pCmd->pRenderer, pTmpTex);
+					}];
+				}
+				else
+				{
+					// Copy the data for this resource to an intermediate buffer.
+					memcpy((uint8_t*)pIntermediate->pCpuMappedAddress + intermediateOffset + subresourceOffset, pRes->pData, pRes->mSlicePitch);
+					
+					// Copy to the texture's final subresource.
+					[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
+											sourceOffset:intermediateOffset + subresourceOffset
+									   sourceBytesPerRow:pRes->mRowPitch
+									 sourceBytesPerImage:pRes->mSlicePitch
+											  sourceSize:MTLSizeMake(mipmapWidth, mipmapHeight, 1)
+											   toTexture:pTexture->mtlTexture
+										destinationSlice:layer * nFaces + face
+										destinationLevel:mip
+									   destinationOrigin:MTLOriginMake(0, 0, 0)];
+				}
+				
 				// Increase the subresource offset.
 				subresourceOffset += pRes->mSlicePitch;
 			}
@@ -3206,11 +3488,6 @@ void queuePresent(
 #endif
 	}
 
-	for (uint32_t i = 0; i < waitSemaphoreCount; i++)
-	{
-		dispatch_semaphore_wait(ppWaitSemaphores[i]->pMtlSemaphore, DISPATCH_TIME_FOREVER);
-	}
-
 	[pSwapChain->presentCommandBuffer commit];
 
 	// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
@@ -3329,25 +3606,20 @@ bool isImageFormatSupported(ImageFormat::Enum format)
 		case ImageFormat::R16: result = true; break;
 		case ImageFormat::R16F: result = true; break;
 		case ImageFormat::R32UI: result = true; break;
-		case ImageFormat::R32F:
-			result = true;
-			break;
+		case ImageFormat::R32F: result = true; break;
+		case ImageFormat::D32S8: result = true;	break;
 			// 2 channel
 		case ImageFormat::RG8: result = true; break;
 		case ImageFormat::RG16: result = true; break;
 		case ImageFormat::RG16F: result = true; break;
 		case ImageFormat::RG32UI: result = true; break;
-		case ImageFormat::RG32F:
-			result = true;
-			break;
+		case ImageFormat::RG32F: result = true;	break;
 			// 3 channel
 		case ImageFormat::RGB8: result = true; break;
 		case ImageFormat::RGB16: result = true; break;
 		case ImageFormat::RGB16F: result = true; break;
 		case ImageFormat::RGB32UI: result = true; break;
-		case ImageFormat::RGB32F:
-			result = true;
-			break;
+		case ImageFormat::RGB32F: result = true; break;
 			// 4 channel
 		case ImageFormat::BGRA8: result = true; break;
 		case ImageFormat::RGBA16: result = true; break;
@@ -3421,7 +3693,15 @@ bool util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format)
 		   format == MTLPixelFormatBC5_RGSnorm || format == MTLPixelFormatBC6H_RGBFloat || format == MTLPixelFormatBC6H_RGBUfloat ||
 		   format == MTLPixelFormatBC7_RGBAUnorm || format == MTLPixelFormatBC7_RGBAUnorm_sRGB;
 #else
-	return false;    // Note: BC texture formats are not supported on iOS.
+	// Note: BC texture formats are not supported on iOS.
+	return 	format == MTLPixelFormatPVRTC_RGB_2BPP ||
+			format == MTLPixelFormatPVRTC_RGB_2BPP_sRGB ||
+			format == MTLPixelFormatPVRTC_RGB_4BPP ||
+			format == MTLPixelFormatPVRTC_RGB_4BPP_sRGB ||
+			format == MTLPixelFormatPVRTC_RGBA_2BPP ||
+			format == MTLPixelFormatPVRTC_RGBA_2BPP_sRGB ||
+			format == MTLPixelFormatPVRTC_RGBA_4BPP ||
+			format == MTLPixelFormatPVRTC_RGBA_4BPP_sRGB;
 #endif
 }
 
@@ -3642,7 +3922,7 @@ bool util_is_compatible_texture_view(const MTLTextureType& textureType, const MT
 	return false;
 }
 
-void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT)
+void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT, const bool forceNonPrivate)
 {
 	Texture* pTexture = (Texture*)conf_calloc(1, sizeof(*pTexture));
 	ASSERT(pTexture);
@@ -3696,7 +3976,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		textureDesc.mipmapLevelCount = pTexture->mDesc.mMipLevels;
 		textureDesc.sampleCount = pTexture->mDesc.mSampleCount;
 		textureDesc.arrayLength = pTexture->mDesc.mArraySize;
-		textureDesc.storageMode = MTLStorageModePrivate;
+		textureDesc.storageMode = forceNonPrivate ? MTLStorageModeShared : MTLStorageModePrivate;
 		textureDesc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
 
 		if (pDesc->mDepth > 1)
@@ -3734,6 +4014,8 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 			{
 				if (pDesc->mArraySize > 1)
 					textureDesc.textureType = MTLTextureType2DArray;
+				else if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+					textureDesc.textureType = MTLTextureType2DMultisample;
 				else
 					textureDesc.textureType = MTLTextureType2D;
 			}
@@ -3768,7 +4050,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 
 		// Allocate the texture's memory.
 		AllocatorMemoryRequirements mem_reqs = { 0 };
-		mem_reqs.usage = (ResourceMemoryUsage)RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		mem_reqs.usage = forceNonPrivate ? (ResourceMemoryUsage)RESOURCE_MEMORY_USAGE_UNKNOWN : (ResourceMemoryUsage)RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT)
 			mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_OWN_MEMORY_BIT;
 		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)

@@ -523,12 +523,13 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 
 	unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality;
 	flags |= aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_ImproveCacheLocality | aiProcess_FindDegenerates |
-			 aiProcess_FindInvalidData | aiProcess_FixInfacingNormals | aiProcess_JoinIdenticalVertices | aiProcess_LimitBoneWeights |
+			 aiProcess_FindInvalidData | aiProcess_JoinIdenticalVertices | aiProcess_LimitBoneWeights |
 			 aiProcess_ConvertToLeftHanded;
 	flags &= ~aiProcess_SortByPType;
 	flags &= ~aiProcess_FindInstances;
 
 	const aiScene* pScene = aiImportFileExWithProperties(filename, flags, nullptr, propertyStore);
+	aiReleasePropertyStore(propertyStore);
 	if (!pScene)
 	{
 		//LOGERRORF("Assimp could not import file: %s", filename);

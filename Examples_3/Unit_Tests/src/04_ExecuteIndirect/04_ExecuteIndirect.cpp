@@ -62,7 +62,6 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -296,7 +295,7 @@ float skyBoxPoints[] = {
 Panini           gPanini;
 PaniniParameters gPaniniParams;
 #endif
-DynamicUIControls gPaniniControls;
+DynamicUIWidgets gPaniniControls;
 RenderTarget*     pIntermediateRenderTarget = NULL;
 bool              gbPaniniEnabled = false;
 TextDrawDesc      gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
@@ -304,6 +303,13 @@ TextDrawDesc      gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 class ExecuteIndirect: public IApp
 {
 	public:
+	ExecuteIndirect()
+	{
+#ifdef TARGET_IOS
+		mSettings.mContentScaleFactor = 1.f;
+#endif
+	}
+	
 	bool Init()
 	{
 		RendererDesc settings = { 0 };
@@ -332,7 +338,6 @@ class ExecuteIndirect: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -633,18 +638,14 @@ class ExecuteIndirect: public IApp
 		// Panini props
 		/************************************************************************/
 #if !defined(TARGET_IOS)
-		gPaniniControls.mDynamicProperties.emplace_back(
-			SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f).Clone());
-		gPaniniControls.mDynamicProperties.emplace_back(
-			SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f).Clone());
-		gPaniniControls.mDynamicProperties.emplace_back(
-			SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f).Clone());
-		gPaniniControls.mDynamicProperties.emplace_back(
-			SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f).Clone());
+		gPaniniControls.AddWidget(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
+		gPaniniControls.AddWidget(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f));
+		gPaniniControls.AddWidget(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f));
+		gPaniniControls.AddWidget(SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
 		if (gbPaniniEnabled)
-			gPaniniControls.ShowDynamicProperties(pGui);
+			gPaniniControls.ShowWidgets(pGui);
 		else
-			gPaniniControls.HideDynamicProperties(pGui);
+			gPaniniControls.HideWidgets(pGui);
 #endif
 		/************************************************************************/
 		/************************************************************************/
@@ -682,8 +683,9 @@ class ExecuteIndirect: public IApp
 
 		destroyCameraController(pCameraController);
 
-		removeDebugRendererInterface();
-
+#ifdef TARGET_IOS
+		gVirtualJoystick.Exit();
+#endif
 		gAppUI.Exit();
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
@@ -717,9 +719,6 @@ class ExecuteIndirect: public IApp
 		for (uint32_t i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
 
-#ifdef TARGET_IOS
-		gVirtualJoystick.Exit();
-#endif
 
 		for (uint32_t i = 0; i < gNumSubsets; i++)
 		{
@@ -866,7 +865,7 @@ class ExecuteIndirect: public IApp
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
 
 #ifdef TARGET_IOS
-		gVirtualJoystick.Exit();
+		gVirtualJoystick.Unload();
 #endif
 
 		gAppUI.Unload();
@@ -916,11 +915,11 @@ class ExecuteIndirect: public IApp
 		{
 			if (gbPaniniEnabled)
 			{
-				gPaniniControls.ShowDynamicProperties(pGui);
+				gPaniniControls.ShowWidgets(pGui);
 			}
 			else
 			{
-				gPaniniControls.HideDynamicProperties(pGui);
+				gPaniniControls.HideWidgets(pGui);
 			}
 
 			paniniEnabled = gbPaniniEnabled;
@@ -1199,9 +1198,9 @@ class ExecuteIndirect: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 #ifndef METAL
-		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 #endif
 
 		char buff[256] = "";
@@ -1212,15 +1211,15 @@ class ExecuteIndirect: public IApp
 			strcpy(modeStr, "GPU update");
 
 		sprintf(buff, "SPACE - Rendering mode - %s", modeStr);
-		drawDebugText(cmd, 8, 65, buff, NULL);
+		gAppUI.DrawText(cmd, float2(8, 65), buff, NULL);
 
 #ifndef TARGET_IOS
-		drawDebugText(cmd, 8, 80, "F1 - Toggle UI", NULL);
+		gAppUI.DrawText(cmd, float2(8, 80), "F1 - Toggle UI", NULL);
 		gAppUI.Gui(pGui);
 #endif
 
 #ifndef METAL
-		drawDebugGpuProfile(cmd, 8, 110, pGpuProfiler, NULL);
+		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 110), pGpuProfiler, NULL);
 #endif
 
 		gAppUI.Draw(cmd);

@@ -189,8 +189,9 @@ typedef struct FilterBatchChunk
 
 Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
 void   removeScene(Scene* scene);
-void   CreateAABB(const Scene* pScene, MeshIn* mesh);
-void   CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
+void   createAABB(const Scene* pScene, MeshIn* mesh);
+void   createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
+void   destroyClusters(MeshIn* mesh);
 
 void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& IndexBuffer, uint& indexCount);
 

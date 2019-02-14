@@ -51,13 +51,13 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-static WindowsDesc                  gCurrentWindow;
+static WindowsDesc gCurrentWindow;
 static tinystl::vector<MonitorDesc> gMonitors;
-static int                          gCurrentTouchEvent = 0;
+static int gCurrentTouchEvent = 0;
 
 static float2 gRetinaScale = { 1.0f, 1.0f };
-static int    gDeviceWidth;
-static int    gDeviceHeight;
+static int gDeviceWidth;
+static int gDeviceHeight;
 
 static tinystl::vector<MonitorDesc> monitors;
 
@@ -83,14 +83,14 @@ bool getKeyUp(int key) { return InputSystem::IsButtonReleased(key); }
 
 unsigned getSystemTime()
 {
-	long            ms;    // Milliseconds
-	time_t          s;     // Seconds
+	long			ms; // Milliseconds
+	time_t		s;  // Seconds
 	struct timespec spec;
 
 	clock_gettime(CLOCK_REALTIME, &spec);
 
-	s = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
+	s  = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
 
 	ms += s * 1000;
 
@@ -133,8 +133,8 @@ int iOSMain(int argc, char** argv, IApp* app)
 @interface MetalKitApplication: NSObject
 
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-									   view:(nonnull MTKView*)view;
+				 renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
+									  view:(nonnull MTKView*)view;
 
 - (void)drawRectResized:(CGSize)size;
 
@@ -160,7 +160,7 @@ UIViewController* pMainViewController;
 @implementation GameViewController
 {
 	MTKView*             _view;
-	id<MTLDevice>        _device;
+	id<MTLDevice> _device;
 	MetalKitApplication* _application;
 }
 
@@ -183,16 +183,18 @@ UIViewController* pMainViewController;
 	_view.delegate = self;
 	_view.device = _device;
 
-	// Get the device's width and height.
-	gDeviceWidth = _view.drawableSize.width;
-	gDeviceHeight = _view.drawableSize.height;
-	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width),
-					 (float)(_view.drawableSize.height / _view.frame.size.height) };
-
 	// Enable multi-touch in our apps.
 	[_view setMultipleTouchEnabled:true];
 	_view.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
 	_view.autoResizeDrawable = TRUE;
+	
+	// Get the device's width and height.
+	if (pApp->mSettings.mContentScaleFactor >= 1.f)
+		[_view setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+	gDeviceWidth = _view.drawableSize.width;
+	gDeviceHeight = _view.drawableSize.height;
+	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width),
+		(float)(_view.drawableSize.height / _view.frame.size.height) };
 
 	// Kick-off the MetalKitApplication.
 	_application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
@@ -206,7 +208,7 @@ UIViewController* pMainViewController;
 	//register terminate callback
 	UIApplication* app = [UIApplication sharedApplication];
 	[[NSNotificationCenter defaultCenter] addObserver:self
-											 selector:@selector(applicationWillTerminate:)
+	 selector:@selector(applicationWillTerminate:)
 												 name:UIApplicationWillTerminateNotification
 											   object:app];
 }
@@ -225,6 +227,8 @@ UIViewController* pMainViewController;
 // Called whenever view changes orientation or layout is changed
 - (void)mtkView:(nonnull MTKView*)view drawableSizeWillChange:(CGSize)size
 {
+	if (pApp->mSettings.mContentScaleFactor >= 1.f)
+		[view setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
 	[_application drawRectResized:view.bounds.size];
 }
 
@@ -243,7 +247,7 @@ UIViewController* pMainViewController;
 /************************************************************************/
 
 // Timer used in the update function.
-Timer           deltaTimer;
+Timer deltaTimer;
 IApp::Settings* pSettings;
 #ifdef AUTOMATED_TESTING
 uint32_t testingCurrentFrameCount;
@@ -285,12 +289,12 @@ uint32_t testingMaxFrameCount = 120;
 		pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);
 		pApp->pWindow = &gCurrentWindow;
 
-		InputSystem::Init(gDeviceWidth, gDeviceHeight);
-		InputSystem::InitSubView((__bridge void*)view);
+        InputSystem::Init(gDeviceWidth, gDeviceHeight);
+        InputSystem::InitSubView((__bridge void*)view);
 		// App init may override those
 		// Mouse captured to true on iOS
 		// Set HideMouse to false so that UI can always be picked.
-		InputSystem::SetMouseCapture(true);
+        InputSystem::SetMouseCapture(true);
 		InputSystem::SetHideMouseCursorWhileCaptured(false);
 
 		@autoreleasepool
@@ -308,11 +312,25 @@ uint32_t testingMaxFrameCount = 120;
 
 - (void)drawRectResized:(CGSize)size
 {
-	pApp->mSettings.mWidth = size.width * gRetinaScale.x;
-	pApp->mSettings.mHeight = size.height * gRetinaScale.y;
+	bool needToUpdateApp = false;
+	if (pApp->mSettings.mWidth != size.width * gRetinaScale.x)
+	{
+		pApp->mSettings.mWidth = size.width * gRetinaScale.x;
+		needToUpdateApp = true;
+	}
+	if (pApp->mSettings.mHeight != size.height * gRetinaScale.y)
+	{
+		pApp->mSettings.mHeight = size.height * gRetinaScale.y;
+		needToUpdateApp = true;
+	}
+	
 	pApp->mSettings.mFullScreen = true;
-	pApp->Unload();
-	pApp->Load();
+	
+	if (needToUpdateApp)
+	{
+		pApp->Unload();
+		pApp->Load();
+	}
 }
 
 - (void)update
@@ -327,11 +345,12 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Draw();
 
 #ifdef AUTOMATED_TESTING
-	testingCurrentFrameCount++;
+		testingCurrentFrameCount++;
 	if (testingCurrentFrameCount >= testingMaxFrameCount)
-	{
-		exit(0);
-	}
+		{
+			[self shutdown];
+			exit(0);
+		}
 #endif
 }
 

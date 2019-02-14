@@ -36,7 +36,14 @@ layout(set = 0, binding = 0) uniform cbCamera
 	mat4 invProjView;
 	vec3 camPos;
 	float _dumm;
+
+	float fAmbientLightIntensity;
 	int bUseEnvironmentLight;
+	float fEnvironmentLightIntensity;
+	float fAOIntensity;
+
+	int renderMode;
+	float fNormalMapIntensity;
 };
 
 layout(set = 0, binding = 1) uniform cbObject

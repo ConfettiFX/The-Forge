@@ -58,6 +58,16 @@ extern void removeGUIDriver(GUIDriver* pDriver);
 
 static bool uiInputEvent(const ButtonData* pData);
 
+typedef struct GpuProfileDrawDesc
+{
+	float        mChildIndent = 25.0f;
+	float        mHeightOffset = 20.0f;
+	TextDrawDesc mDrawDesc = TextDrawDesc(0, 0xFF00CCAA, 15);
+} GpuProfileDrawDesc;
+
+static GpuProfileDrawDesc gDefaultGpuProfileDrawDesc = {};
+static TextDrawDesc       gDefaultTextDrawDesc = TextDrawDesc(0, 0xffffffff, 16);
+
 static void CloneCallbacks(IWidget* pSrc, IWidget* pDst)
 {
 	// Clone the callbacks
@@ -72,11 +82,22 @@ static void CloneCallbacks(IWidget* pSrc, IWidget* pDst)
 IWidget* CollapsingHeaderWidget::Clone() const
 {
 	CollapsingHeaderWidget* pWidget =
-		conf_placement_new<CollapsingHeaderWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mDefaultOpen, this->mCollapsed);
+		conf_placement_new<CollapsingHeaderWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mDefaultOpen, this->mCollapsed, this->mHeaderIsVisible);
 
 	// Need to read the subwidgets as the destructor will remove them all
 	for (size_t i = 0; i < mGroupedWidgets.size(); ++i)
 		pWidget->AddSubWidget(*mGroupedWidgets[i]);
+
+	// Clone the callbacks
+	CloneCallbacks((IWidget*)this, pWidget);
+
+	return pWidget;
+}
+
+IWidget* DebugTexturesWidget::Clone() const
+{
+	DebugTexturesWidget* pWidget = conf_placement_new<DebugTexturesWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel);
+	pWidget->SetTextures(this->mTextures, mTextureDisplaySize);
 
 	// Clone the callbacks
 	CloneCallbacks((IWidget*)this, pWidget);
@@ -270,6 +291,11 @@ struct UIAppImpl
 	bool                           mUpdated;
 };
 
+UIApp::UIApp(int32_t const fontAtlasSize)
+{
+	mFontAtlasSize = fontAtlasSize;
+}
+
 bool UIApp::Init(Renderer* renderer)
 {
 	mShowDemoUiWindow = false;
@@ -284,15 +310,11 @@ bool UIApp::Init(Renderer* renderer)
 	// To support more characters and different font configurations
 	// the app will need more memory for the fontstash atlas.
 	//
-#if defined(TARGET_IOS) || defined(ANDROID)
-	const int TextureAtlasDimension = 512;
-#elif defined(DURANGO)
-	const int TextureAtlasDimension = 1024;
-#else    // PC / LINUX / MAC
-	const int TextureAtlasDimension = 2048;
-#endif
+	if (mFontAtlasSize <= 0) // then we assume we'll only draw debug text in the UI, in which case the atlas size can be kept small
+		mFontAtlasSize = 256;
+
 	pImpl->pFontStash =
-		conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, TextureAtlasDimension, TextureAtlasDimension);
+		conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, mFontAtlasSize, mFontAtlasSize);
 	initGUIDriver(pImpl->pRenderer, &pDriver);
 
 	MutexLock lock(gMutex);
@@ -348,19 +370,70 @@ float2 UIApp::MeasureText(const char* pText, const TextDrawDesc& drawDesc) const
 	return float2(textBounds[2] - textBounds[0], textBounds[3] - textBounds[1]);
 }
 
-void UIApp::DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc& drawDesc) const
+void UIApp::DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc* pDrawDesc) const
 {
-	const TextDrawDesc* pDesc = &drawDesc;
+	const TextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
 	pImpl->pFontStash->drawText(
 		cmd, pText, screenCoordsInPx.getX(), screenCoordsInPx.getY(), pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize,
 		pDesc->mFontSpacing, pDesc->mFontBlur);
 }
 
-void UIApp::DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const TextDrawDesc& drawDesc, const mat4& matWorld, const mat4& matProjView)
+void UIApp::DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const mat4& matWorld, const mat4& matProjView, const TextDrawDesc* pDrawDesc)
 {
-	const TextDrawDesc* pDesc = &drawDesc;
+	const TextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
 	pImpl->pFontStash->drawText(
 		pCmd, pText, matProjView, matWorld, pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
+}
+
+#if defined(__linux__)
+#define sprintf_s sprintf    // On linux, we should use sprintf as sprintf_s is not part of the standard c library
+#endif
+
+
+static void draw_gpu_profile_recurse(
+	Cmd* pCmd, Fontstash* pFontStash, float2& startPos, const GpuProfileDrawDesc* pDrawDesc, struct GpuProfiler* pGpuProfiler,
+	GpuTimerTree* pRoot)
+{
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
+	if (!pRoot)
+		return;
+
+	float originalX = startPos.getX();
+
+	if (pRoot->mGpuTimer.mIndex > 0 && pRoot != &pGpuProfiler->mRoot)
+	{
+		char   buffer[128];
+		double time = getAverageGpuTime(pGpuProfiler, &pRoot->mGpuTimer);
+		sprintf_s(buffer, "%s -  %f ms", pRoot->mGpuTimer.mName.c_str(), time * 1000.0);
+
+		pFontStash->drawText(
+			pCmd, buffer, startPos.x, startPos.y, pDrawDesc->mDrawDesc.mFontID, pDrawDesc->mDrawDesc.mFontColor,
+			pDrawDesc->mDrawDesc.mFontSize, pDrawDesc->mDrawDesc.mFontSpacing, pDrawDesc->mDrawDesc.mFontBlur);
+		startPos.y += pDrawDesc->mHeightOffset;
+
+		if ((uint32_t)pRoot->mChildren.size())
+			startPos.setX(startPos.getX() + pDrawDesc->mChildIndent);
+	}
+
+	for (uint32_t i = 0; i < (uint32_t)pRoot->mChildren.size(); ++i)
+	{
+		draw_gpu_profile_recurse(pCmd, pFontStash, startPos, pDrawDesc, pGpuProfiler, pRoot->mChildren[i]);
+	}
+
+	startPos.x = originalX;
+#endif
+}
+
+void UIApp::DrawDebugGpuProfile(Cmd * pCmd, const float2& screenCoordsInPx, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc)
+{
+	const GpuProfileDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultGpuProfileDrawDesc;
+	float2                    pos = screenCoordsInPx;
+	pImpl->pFontStash->drawText(
+		pCmd, "-----GPU Times-----", pos.x, pos.y, pDesc->mDrawDesc.mFontID, pDesc->mDrawDesc.mFontColor, pDesc->mDrawDesc.mFontSize,
+		pDesc->mDrawDesc.mFontSpacing, pDesc->mDrawDesc.mFontBlur);
+	pos.y += pDesc->mHeightOffset;
+
+	draw_gpu_profile_recurse(pCmd, pImpl->pFontStash, pos, pDesc, pGpuProfiler, &pGpuProfiler->mRoot);
 }
 
 GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
@@ -510,6 +583,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	loadDesc.pFilename = pJoystickTexture;
 	loadDesc.mRoot = (FSRoot)root;
 	loadDesc.ppTexture = &pTexture;
+	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	addResource(&loadDesc);
 
 	if (!pTexture)
@@ -567,7 +641,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	BufferDesc vbDesc = {};
 	vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.mSize = 128 * 4 * sizeof(float4);
 	vbDesc.mVertexStride = sizeof(float4);
 	addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pMeshRingBuffer);
@@ -641,9 +715,13 @@ void VirtualJoystickUI::Unload()
 
 void VirtualJoystickUI::InitLRSticks(float insideRad, float outsideRad, float deadzone)
 {
-	mInsideRadius = insideRad;
-	mOutsideRadius = outsideRad;
-	mDeadzone = deadzone;
+	float contentScaleFactor = getDpiScale().getX();
+#ifdef TARGET_IOS
+	contentScaleFactor /= [UIScreen.mainScreen nativeScale];
+#endif
+	mInsideRadius = insideRad * contentScaleFactor;
+	mOutsideRadius = outsideRad * contentScaleFactor;
+	mDeadzone = deadzone * contentScaleFactor;
 	mSticks[0].mTouchIndex = mSticks[1].mTouchIndex = -1;
 	mActive = mInitialized;
 }
@@ -852,6 +930,23 @@ void OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
 
 static bool uiInputEvent(const ButtonData* pData)
 {
+	// KEY_LEFT_STICK_BUTTON <-> F1 Key : See InputMapphings.h for details
+	// F1: Toggle Displaying UI
+	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
+	{
+		for (uint32_t app = 0; app < (uint32_t)gInstances.size(); ++app)
+		{
+			UIAppImpl* pImpl = gInstances[app]->pImpl;
+			for (uint32_t i = 0; i < (uint32_t)pImpl->mComponents.size(); ++i)
+			{
+				pImpl->mComponents[i]->mActive = !pImpl->mComponents[i]->mActive;
+			}
+		}
+
+		PlatformEvents::skipMouseCapture = false;
+		return true;
+	}
+
 	// if cursor is hidden on capture, and mosue is captured then we can't use the UI. so we shouldn't parse input events.
 	// Otherwise UI receives input events when fps camera is active.
 	// another approach would be to change input events priorities when fps camera is active.
@@ -884,16 +979,6 @@ static bool uiInputEvent(const ButtonData* pData)
 				}
 			}
 		}
-	}
-	// KEY_LEFT_STICK_BUTTON <-> F1 Key : See InputMapphings.h for details
-	// F1: Toggle Displaying UI
-	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
-	{
-		for (uint32_t app = 0; app < (uint32_t)gInstances.size(); ++app)
-			for (uint32_t i = 0; i < (uint32_t)gInstances.size(); ++i)
-				gInstances[app]->pImpl->mComponents[i]->mActive = (!gInstances[app]->pImpl->mComponents[i]->mActive);
-
-		PlatformEvents::skipMouseCapture = false;
 	}
 
 	PlatformEvents::skipMouseCapture = false;

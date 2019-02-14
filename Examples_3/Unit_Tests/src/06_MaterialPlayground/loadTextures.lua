@@ -1,5 +1,8 @@
 local TEXTURE_RESOLUTION = "2K" -- default value. Application sets this.
+
 TEXTURE_RESOLUTION = loader.GetTextureResolution()
+SKIP_LOADING_TEXTURES = loader.GetSkipLoadingTexturesFlag()
+
 local textures = {
 		-- ===========================================================================
 		-- METALS
@@ -88,4 +91,90 @@ local textures = {
         --//------------------------------
 }
 
-loader.LoadTextureMaps(textures, 1)
+local empty_textures = {
+		-- ===========================================================================
+		-- METALS
+		-- ===========================================================================
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+
+		-- ===========================================================================
+		-- WOOD 
+		-- ===========================================================================
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        "PBR/Metallic_on.png",
+        --//------------------------------
+}
+
+if (SKIP_LOADING_TEXTURES == 0) then
+	loader.LoadTextureMaps(textures, 1)
+else
+	loader.LoadTextureMaps(empty_textures, 0)
+end

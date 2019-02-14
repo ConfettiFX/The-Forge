@@ -1,52 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace
    version = "1.0">
-   <FileRef
-      location = "group:01_Transformations/01_Transformations.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:02_Compute/02_Compute.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:03_MultiThread/03_MultiThread.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:05_FontRendering/05_FontRendering.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:07_Tessellation/07_Tessellation.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:08_Procedural/08_Procedural.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:13_UserInterface/13_UserInterface.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:15_Transparency/15_Transparency.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:16_SphereTracing/16_SphereTracing.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
-   </FileRef>
+   <Group
+      location = "container:"
+      name = "Examples Animation">
+      <FileRef
+         location = "group:01_Playback/01_Playback.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:02_Blending/02_Blending.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:03_JointAttachment/03_JointAttachment.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:04_PartialBlending/04_PartialBlending.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:05_AddititveBlending/05_AdditiveBlending.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:07_BakedPhysics/07_BakedPhysics.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:09_MultiThread/09_MultiThread.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:02_Blending/../10_Skinning/10_Skinning.xcodeproj">
+      </FileRef>
+   </Group>
+   <Group
+      location = "container:"
+      name = "Examples Rendering">
+      <FileRef
+         location = "group:01_Transformations/01_Transformations.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:02_Compute/02_Compute.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:03_MultiThread/03_MultiThread.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:05_FontRendering/05_FontRendering.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:07_Tessellation/07_Tessellation.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:08_Procedural/08_Procedural.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:13_UserInterface/13_UserInterface.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:15_Transparency/15_Transparency.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:16_SphereTracing/16_SphereTracing.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:18_Raytracing/18_Raytracing.xcodeproj">
+      </FileRef>
+   </Group>
 </Workspace>

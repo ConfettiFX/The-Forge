@@ -1,12 +1,12 @@
-# 🐺 volk [![Build Status](https://travis-ci.org/zeux/volk.svg?branch=master)](https://travis-ci.org/zeux/volk) [![Build status](https://ci.appveyor.com/api/projects/status/m2aulhj6fj44kxk0/branch/master?svg=true)](https://ci.appveyor.com/project/zeux/volk)
+# 🐺 volk [![Build Status](https://travis-ci.org/zeux/volk.svg?branch=master)](https://travis-ci.org/zeux/volk)
 
 ## Purpose
 
 volk is a meta-loader for Vulkan. It allows you to dynamically load entrypoints required to use Vulkan
-without linking to vulkan-1.dll or statically linking Vulkan loader. Additionally, volk enables loading
+without linking to vulkan-1.dll or statically linking Vulkan loader. Additionally, volk simplifies the use of Vulkan extensions by automatically loading all associated entrypoints. Finally, volk enables loading
 Vulkan entrypoints directly from the driver which can increase performance by skipping loader dispatch overhead.
 
-volk is written in C89 and supports Windows, Linux and Android.
+volk is written in C89 and supports Windows, Linux, Android and macOS (via MoltenVK).
 
 ## Building
 
@@ -55,11 +55,13 @@ void volkLoadDeviceTable(struct VolkDeviceTable* table, VkDevice device);
 
 The second option requires you to change the application code to store one `VolkDeviceTable` per `VkDevice` and call functions from this table instead.
 
+Device entrypoints are loaded using `vkGetDeviceProcAddr`; when no layers are present, this commonly results in most function pointers pointing directly at the driver functions, minimizing the call overhead. When layers are loaded, the entrypoints will point at the implementations in the first applicable layer, so this is compatible with any layers including validation layers.
+
 ## License
 
 This library is available to anybody free of charge, under the terms of MIT License:
 
-	Copyright (c) 2018 Arseny Kapoulkine
+	Copyright (c) 2018-2019 Arseny Kapoulkine
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal

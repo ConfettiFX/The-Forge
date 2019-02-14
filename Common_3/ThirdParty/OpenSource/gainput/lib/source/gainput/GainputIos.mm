@@ -162,11 +162,11 @@
 	{
 		CGPoint translation = [gesture translationInView:[gesture.view superview]];
 		CGPoint location = [gesture locationInView:[gesture.view superview]];
-		float nativeScale =[UIScreen mainScreen].nativeScale;
-		location.x *= nativeScale;
-		location.y *= nativeScale;
-		translation.x *= nativeScale;
-		translation.y *= nativeScale;
+		float contentScale = [gesture.view.layer contentsScale];
+		location.x *= contentScale;
+		location.y *= contentScale;
+		translation.x *= contentScale;
+		translation.y *= contentScale;
 		
 		gainput::GestureChange gestureData = {};
 		gestureData.type = gainput::GesturePan;
@@ -187,18 +187,18 @@
 		float velocity = 0.0f;
 		if (!isnan(gesture.velocity))
 			velocity = gesture.velocity;
-		float nativeScale =[UIScreen mainScreen].nativeScale;
+		float contentScale = [gesture.view.layer contentsScale];
 		CGPoint touch0 = [gesture locationOfTouch:0 inView:[gesture.view superview]];
-		touch0.x *= nativeScale;
-		touch0.y *= nativeScale;
+		touch0.x *= contentScale;
+		touch0.y *= contentScale;
 		
 		CGPoint touch1 = [gesture locationOfTouch:1 inView:[gesture.view superview]];
-		touch1.x *= nativeScale;
-		touch1.y *= nativeScale;
+		touch1.x *= contentScale;
+		touch1.y *= contentScale;
 		
 		CGPoint location = [gesture locationInView:[gesture.view superview]];
-		location.x *= nativeScale;
-		location.y *= nativeScale;
+		location.x *= contentScale;
+		location.y *= contentScale;
 		
 		gainput::GestureChange gestureData = {};
 		gestureData.type = gainput::GesturePinch;
@@ -217,8 +217,9 @@
 -(void) handleTap:(UIPinchGestureRecognizer *)gesture
 {
 	CGPoint location = [gesture locationInView:[gesture.view superview]];
-	location.x *= [UIScreen mainScreen].nativeScale;
-	location.y *= [UIScreen mainScreen].nativeScale;
+	float contentScale = [gesture.view.layer contentsScale];
+	location.x *= contentScale;
+	location.y *= contentScale;
 	
 	gainput::GestureChange gestureData = {};
 	gestureData.type = gainput::GestureTap;
@@ -230,8 +231,9 @@
 -(void) handleLongPress:(UILongPressGestureRecognizer *)gesture
 {
 	CGPoint location = [gesture locationInView:[gesture.view superview]];
-	location.x *= [UIScreen mainScreen].nativeScale;
-	location.y *= [UIScreen mainScreen].nativeScale;
+	float contentScale = [gesture.view.layer contentsScale];
+	location.x *= contentScale;
+	location.y *= contentScale;
 	
 	gainput::GestureChange gestureData = {};
 	gestureData.type = gainput::GestureLongPress;
@@ -269,8 +271,9 @@
 	for (UITouch *touch in touches)
 	{
 		CGPoint point = [touch locationInView:self.gainputView.superview];
-		point.x *= [UIScreen mainScreen].nativeScale;
-		point.y *= [UIScreen mainScreen].nativeScale;
+		float contentScale = [self.gainputView.superview.layer contentsScale];
+		point.x *= contentScale;
+		point.y *= contentScale;
 		
 		CGFloat force = 0.f;
 		CGFloat maxForce = 1.f;
@@ -299,8 +302,9 @@
 	for (UITouch *touch in touches)
 	{
 		CGPoint point = [touch locationInView:self.gainputView.superview];
-		point.x *= [UIScreen mainScreen].nativeScale;
-		point.y *= [UIScreen mainScreen].nativeScale;
+		float contentScale = [self.gainputView.superview.layer contentsScale];
+		point.x *= contentScale;
+		point.y *= contentScale;
 		
 		CGFloat force = 0.f;
 		CGFloat maxForce = 1.f;
@@ -329,8 +333,9 @@
 	for (UITouch *touch in touches)
 	{
 		CGPoint point = [touch locationInView:self.gainputView.superview];
-		point.x *= [UIScreen mainScreen].nativeScale;
-		point.y *= [UIScreen mainScreen].nativeScale;
+		float contentScale = [self.gainputView.superview.layer contentsScale];
+		point.x *= contentScale;
+		point.y *= contentScale;
 		
 		CGFloat force = 0.f;
 		CGFloat maxForce = 1.f;
@@ -506,6 +511,7 @@
 {
 	gainput::InputManager* inputManager_;
 	GainputGestureRecognizerImpl* gestureRecognizerImpl;
+	NSMutableArray<GainputGestureRecognizerDelegate*>* gestureRecognizerDelegates;
 }
 
 - (id)initWithFrame:(CGRect)frame inputManager:(gainput::InputManager&)inputManager
@@ -553,6 +559,8 @@
 			gestureRecognizerImpl = [GainputGestureRecognizerImpl alloc];
 			gestureRecognizerImpl.inputManager = deviceImpl;
 			gestureRecognizerImpl.gainputView = self;
+			
+			gestureRecognizerDelegates = [NSMutableArray<GainputGestureRecognizerDelegate*> new];
 			
 			GainputPanGestureRecognizer* uiPan = [[GainputPanGestureRecognizer alloc] initWithTarget:self action:NULL];
 			uiPan.minimumNumberOfTouches = 1;
@@ -630,6 +638,10 @@
 
 - (void)dealloc
 {
+	for (GainputGestureRecognizerDelegate* delegate in gestureRecognizerDelegates)
+	{
+		[delegate dealloc];
+	}
 	[super dealloc];
 }
 
@@ -642,15 +654,16 @@ withConfig:(gainput::GestureConfig&)gestureConfig
 	gainput::InputDeviceTouch* device = static_cast<gainput::InputDeviceTouch*>(inputManager_->GetDevice(deviceId));
 	gainput::InputDeviceTouchImplIos* deviceImpl = static_cast<gainput::InputDeviceTouchImplIos*>(device->GetPimpl());
 	
-	GainputGestureRecognizerDelegate* del = [GainputGestureRecognizerDelegate alloc];
-	del.gestureId = gestureId;
-	del.gestureConfig = gestureConfig;
-	del.inputManager = deviceImpl;
+	GainputGestureRecognizerDelegate* gestureRecognizerDelegate = [GainputGestureRecognizerDelegate alloc];
+	gestureRecognizerDelegate.gestureId = gestureId;
+	gestureRecognizerDelegate.gestureConfig = gestureConfig;
+	gestureRecognizerDelegate.inputManager = deviceImpl;
+	[gestureRecognizerDelegates addObject:gestureRecognizerDelegate];
 	
 	if (gestureType == gainput::GestureTap)
 	{
-		GainputTapGestureRecognizer* uiTap = [[GainputTapGestureRecognizer alloc] initWithTarget:del action:@selector(handleTap:)];
-		uiTap.delegate = del;
+		GainputTapGestureRecognizer* uiTap = [[GainputTapGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:@selector(handleTap:)];
+		uiTap.delegate = gestureRecognizerDelegate;
 		uiTap.inputManager = gestureRecognizerImpl;
 		if (gestureConfig.mNumberOfTapsRequired)
 			uiTap.numberOfTapsRequired = gestureConfig.mNumberOfTapsRequired;
@@ -658,26 +671,26 @@ withConfig:(gainput::GestureConfig&)gestureConfig
 	}
 	if (gestureType == gainput::GesturePan)
 	{
-		GainputPanGestureRecognizer* uiPan = [[GainputPanGestureRecognizer alloc] initWithTarget:del action:@selector(handlePan:)];
+		GainputPanGestureRecognizer* uiPan = [[GainputPanGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:@selector(handlePan:)];
 		if (gestureConfig.mMinNumberOfTouches)
 			uiPan.minimumNumberOfTouches = gestureConfig.mMinNumberOfTouches;
 		if (gestureConfig.mMaxNumberOfTouches)
 			uiPan.maximumNumberOfTouches = gestureConfig.mMaxNumberOfTouches;
-		uiPan.delegate = del;
+		uiPan.delegate = gestureRecognizerDelegate;
 		uiPan.inputManager = gestureRecognizerImpl;
 		[self addGestureRecognizer:uiPan];
 	}
 	if (gestureType == gainput::GesturePinch)
 	{
-		GainputPinchGestureRecognizer* uiPinch = [[GainputPinchGestureRecognizer alloc] initWithTarget:del action:@selector(handlePinch:)];
-		uiPinch.delegate = del;
+		GainputPinchGestureRecognizer* uiPinch = [[GainputPinchGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:@selector(handlePinch:)];
+		uiPinch.delegate = gestureRecognizerDelegate;
 		uiPinch.inputManager = gestureRecognizerImpl;
 		[self addGestureRecognizer:uiPinch];
 	}
 	if (gestureType == gainput::GestureLongPress)
 	{
-		GainputLongPressGestureRecognizer* uiLongPress = [[GainputLongPressGestureRecognizer alloc] initWithTarget:del action:@selector(handleLongPress:)];
-		uiLongPress.delegate = del;
+		GainputLongPressGestureRecognizer* uiLongPress = [[GainputLongPressGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:@selector(handleLongPress:)];
+		uiLongPress.delegate = gestureRecognizerDelegate;
 		uiLongPress.minimumPressDuration = gestureConfig.mMinimumPressDuration;
 		uiLongPress.inputManager = gestureRecognizerImpl;
 		[self addGestureRecognizer:uiLongPress];

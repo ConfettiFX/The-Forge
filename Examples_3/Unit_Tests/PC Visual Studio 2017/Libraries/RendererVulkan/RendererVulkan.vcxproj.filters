@@ -21,6 +21,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">

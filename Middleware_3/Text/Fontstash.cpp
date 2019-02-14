@@ -140,14 +140,14 @@ class _Impl_FontStash
 		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
-		addUniformRingBuffer(pRenderer, 65536, &pUniformRingBuffer);
+		addUniformRingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
 
 		BufferDesc vbDesc = {};
 		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		vbDesc.mSize = 1024 * 1024 * sizeof(float4);
 		vbDesc.mVertexStride = sizeof(float4);
-		vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 		addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pMeshRingBuffer);
 
 		mVertexLayout.mAttribCount = 2;
@@ -414,6 +414,7 @@ int _Impl_FontStash::fonsImplementationGenerateTexture(void* userPtr, int width,
 	TextureLoadDesc loadDesc = {};
 	loadDesc.ppTexture = &ctx->pCurrentTexture;
 	loadDesc.pImage = &ctx->mStagingImage;
+	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	// R8 mode
 	//addTexture2d(ctx->renderer, width, height, SampleCount::SAMPLE_COUNT_1, ctx->img.getFormat(), ctx->img.GetMipMapCount(), NULL, false, TextureUsage::TEXTURE_USAGE_SAMPLED_IMAGE, &ctx->tex);
 	addResource(&loadDesc);

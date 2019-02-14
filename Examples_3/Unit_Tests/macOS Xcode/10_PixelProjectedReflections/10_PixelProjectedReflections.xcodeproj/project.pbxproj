@@ -53,6 +53,8 @@
 		971BD0B3218A17C2007F2B2F /* sponza.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221820F701C30074529C /* sponza.obj */; };
 		B2087DFB21421A76006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF921421A76006F372D /* MetalKit.framework */; };
 		B2087DFC21421A76006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DFA21421A76006F372D /* Metal.framework */; };
+		B2129DC3221353EB00D02F2C /* IOResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2129DC1221353EB00D02F2C /* IOResourceLoader.cpp */; };
+		B2129DC4221353EB00D02F2C /* IOResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2129DC1221353EB00D02F2C /* IOResourceLoader.cpp */; };
 		B212C47E20DD6C6D00211A33 /* 10_PixelProjectedReflections.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D00A0D8120DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp */; };
 		B21F76F421420EF500DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76F121420EF500DF2297 /* UIKit.framework */; };
 		B21F76F521420EF500DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76F221420EF500DF2297 /* MetalKit.framework */; };
@@ -275,6 +277,8 @@
 		655D672621ACD4E400A5BB07 /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
 		B2087DF921421A76006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DFA21421A76006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B2129DC1221353EB00D02F2C /* IOResourceLoader.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = IOResourceLoader.cpp; path = ../../../src/10_PixelProjectedReflections/IOResourceLoader.cpp; sourceTree = "<group>"; };
+		B2129DC2221353EB00D02F2C /* IOResourceLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IOResourceLoader.h; path = ../../../src/10_PixelProjectedReflections/IOResourceLoader.h; sourceTree = "<group>"; };
 		B212C48220DD6CCA00211A33 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
 		B212C48320DD6CCA00211A33 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		B212C48420DD6CCA00211A33 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
@@ -514,6 +518,8 @@
 		EA463C941EF81E8F005AC8C7 /* 10_PixelProjectedReflections */ = {
 			isa = PBXGroup;
 			children = (
+				B2129DC1221353EB00D02F2C /* IOResourceLoader.cpp */,
+				B2129DC2221353EB00D02F2C /* IOResourceLoader.h */,
 				5C172FB221414BB80074EE71 /* AppDelegate.h */,
 				5C172FB121414BB80074EE71 /* AppDelegate.m */,
 				D00A0D8120DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp */,
@@ -709,6 +715,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2129DC4221353EB00D02F2C /* IOResourceLoader.cpp in Sources */,
 				5C172FB821414BCB0074EE71 /* AssimpImporter.cpp in Sources */,
 				B212C47E20DD6C6D00211A33 /* 10_PixelProjectedReflections.cpp in Sources */,
 				5C17306021414EC40074EE71 /* AppDelegate.m in Sources */,
@@ -719,6 +726,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2129DC3221353EB00D02F2C /* IOResourceLoader.cpp in Sources */,
 				5C172FB721414BC90074EE71 /* AssimpImporter.cpp in Sources */,
 				5C172FB321414BB80074EE71 /* AppDelegate.m in Sources */,
 				D00A0D8220DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp in Sources */,

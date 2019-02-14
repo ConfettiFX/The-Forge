@@ -1650,6 +1650,42 @@ bool ImGui::DragBehavior(ImGuiID id, ImGuiDataType data_type, void* v, float v_s
     return false;
 }
 
+#define IM_MAX_FORMAT_SIZE 128
+void ImDelimitFormatPerComponent(const char* fmt, char fmtOut[4][IM_MAX_FORMAT_SIZE])
+{
+	size_t beginPos = 0;
+	size_t endPos = 0;
+
+	size_t curComponent = 0;
+
+	size_t length = strlen(fmt);
+	IM_ASSERT(length < IM_MAX_FORMAT_SIZE);
+	
+	while (endPos < length + 1)
+	{
+		char c = fmt[endPos];
+		if (c == ';' || c == '\0')
+		{			
+			strncpy(fmtOut[curComponent], &fmt[beginPos], endPos - beginPos);
+			fmtOut[curComponent][endPos - beginPos] = '\0';
+
+			beginPos = endPos + 1;	
+
+			if (c == '\0')
+				break;
+
+			curComponent++;
+		}
+		
+		if (curComponent == 4)
+			break;
+
+		endPos++;
+	}
+
+	while (++curComponent < 4)
+		strcpy(fmtOut[curComponent], fmtOut[0]);
+}
 
 // Return value:
 //		0:  value not modified/ keyboard input is not activated
@@ -1766,10 +1802,14 @@ int ImGui::DragScalarN(const char* label, ImGuiDataType data_type, void* v, int 
     PushID(label);
     PushMultiItemsWidths(components);
     size_t type_size = GDataTypeInfo[data_type].Size;
+
+	char perComponentFormat[4][IM_MAX_FORMAT_SIZE];
+	ImDelimitFormatPerComponent(format, perComponentFormat);
+
     for (int i = 0; i < components; i++)
     {
         PushID(i);
-        int componentValue = DragScalar("##v", data_type, v, v_speed, v_min, v_max, format, power, enable_input);
+        int componentValue = DragScalar("##v", data_type, v, v_speed, v_min, v_max, perComponentFormat[i], power, enable_input);
         value_changed |= componentValue > 0;
         if (componentValue == 2)
             edit_index = i;
@@ -1945,6 +1985,7 @@ int ImGui::DragIntRange2(const char* label, int* v_current_min, int* v_current_m
 // - VSliderFloat()
 // - VSliderInt()
 //-------------------------------------------------------------------------
+
 
 template<typename TYPE, typename FLOATTYPE>
 static inline float SliderBehaviorCalcRatioFromValue(ImGuiDataType data_type, TYPE v, TYPE v_min, TYPE v_max, float power, float linear_zero_pos)
@@ -2256,10 +2297,14 @@ bool ImGui::SliderScalarN(const char* label, ImGuiDataType data_type, void* v, i
     PushID(label);
     PushMultiItemsWidths(components);
     size_t type_size = GDataTypeInfo[data_type].Size;
+
+	char perComponentFormat[4][IM_MAX_FORMAT_SIZE];
+	ImDelimitFormatPerComponent(format, perComponentFormat);
+
     for (int i = 0; i < components; i++)
     {
         PushID(i);
-        value_changed |= SliderScalar("##v", data_type, v, v_min, v_max, format, power);
+        value_changed |= SliderScalar("##v", data_type, v, v_min, v_max, perComponentFormat[i], power);
         SameLine(0, g.Style.ItemInnerSpacing.x);
         PopID();
         PopItemWidth();
@@ -2587,10 +2632,14 @@ bool ImGui::InputScalarN(const char* label, ImGuiDataType data_type, void* v, in
     PushID(label);
     PushMultiItemsWidths(components);
     size_t type_size = GDataTypeInfo[data_type].Size;
+
+	char perComponentFormat[4][IM_MAX_FORMAT_SIZE];
+	ImDelimitFormatPerComponent(format, perComponentFormat);
+
     for (int i = 0; i < components; i++)
     {
         PushID(i);
-        value_changed |= InputScalar("##v", data_type, v, step, step_fast, format, extra_flags);
+        value_changed |= InputScalar("##v", data_type, v, step, step_fast, perComponentFormat[i], extra_flags);
         SameLine(0, g.Style.ItemInnerSpacing.x);
         PopID();
         PopItemWidth();

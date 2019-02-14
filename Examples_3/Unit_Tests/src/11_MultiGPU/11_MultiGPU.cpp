@@ -42,8 +42,6 @@
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
-
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -178,7 +176,6 @@ class MultiGPU: public IApp
 			return false;
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
@@ -553,7 +550,6 @@ class MultiGPU: public IApp
 
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeDebugRendererInterface();
 		removeResourceLoaderInterface(pRenderer);
 
 		removeRenderer(pRenderer);
@@ -847,43 +843,43 @@ class MultiGPU: public IApp
 
 				gAppUI.Gui(pGui);
 
-				drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+				gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 				if (gMultiGPU)
 				{
-					drawDebugText(
-						cmd, 8, 40,
+					gAppUI.DrawText(
+						cmd, float2(8, 40),
 						tinystl::string::format(
 							"GPU %f ms", max(pGpuProfilers[0]->mCumulativeTime, pGpuProfilers[1]->mCumulativeTime) * 1000.0),
 						&gFrameTimeDraw);
 
-					drawDebugText(
-						cmd, 8, 75, tinystl::string::format("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0),
+					gAppUI.DrawText(
+						cmd, float2(8, 75), tinystl::string::format("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0),
 						&gFrameTimeDraw);
-					drawDebugGpuProfile(cmd, 8, 100, pGpuProfilers[0], NULL);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 100), pGpuProfilers[0], NULL);
 
-					drawDebugText(
-						cmd, 8, 275, tinystl::string::format("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0),
+					gAppUI.DrawText(
+						cmd, float2(8, 275), tinystl::string::format("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0),
 						&gFrameTimeDraw);
-					drawDebugGpuProfile(cmd, 8, 300, pGpuProfilers[1], NULL);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
 				}
 				else
 				{
-					drawDebugText(
-						cmd, 8, 40,
+					gAppUI.DrawText(
+						cmd, float2(8, 40),
 						tinystl::string::format(
 							"GPU %f ms", (pGpuProfilers[0]->mCumulativeTime + pGpuProfilers[1]->mCumulativeTime) * 1000.0),
 						&gFrameTimeDraw);
 
-					drawDebugText(
-						cmd, 8, 75, tinystl::string::format("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0),
+					gAppUI.DrawText(
+						cmd, float2(8, 75), tinystl::string::format("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0),
 						&gFrameTimeDraw);
-					drawDebugGpuProfile(cmd, 8, 100, pGpuProfilers[0], NULL);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 100), pGpuProfilers[0], NULL);
 
-					drawDebugText(
-						cmd, 8, 275, tinystl::string::format("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0),
+					gAppUI.DrawText(
+						cmd, float2(8, 275), tinystl::string::format("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0),
 						&gFrameTimeDraw);
-					drawDebugGpuProfile(cmd, 8, 300, pGpuProfilers[1], NULL);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
 				}
 
 				gAppUI.Draw(cmd);

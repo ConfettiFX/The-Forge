@@ -29,7 +29,6 @@
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
@@ -104,6 +103,13 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
 class SphereTracing: public IApp
 {
 	public:
+	SphereTracing()
+	{
+#ifdef TARGET_IOS
+		mSettings.mContentScaleFactor = 1.f;
+#endif
+	}
+	
 	bool Init()
 	{
 		// window and renderer setup
@@ -127,7 +133,6 @@ class SphereTracing: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -195,8 +200,6 @@ class SphereTracing: public IApp
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 		destroyCameraController(pCameraController);
-
-		removeDebugRendererInterface();
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
@@ -362,11 +365,11 @@ class SphereTracing: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if !defined(METAL) && !defined(__ANDROID__)    // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
+		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
 		gAppUI.Draw(cmd);

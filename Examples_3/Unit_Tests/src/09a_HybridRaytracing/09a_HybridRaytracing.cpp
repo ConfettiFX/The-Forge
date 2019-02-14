@@ -46,7 +46,6 @@
 
 //ui
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
 //input
 #include "../../../../Middleware_3/Input/InputSystem.h"
@@ -843,6 +842,10 @@ class HybridRaytracing: public IApp
 		mSettings.mWidth = 1920;
 		mSettings.mHeight = 1080;
 #endif
+
+#ifdef TARGET_IOS
+		mSettings.mContentScaleFactor = 1.f;
+#endif
 	}
 
 	bool Init()
@@ -890,7 +893,6 @@ class HybridRaytracing: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -1117,8 +1119,6 @@ void Exit()
 	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 	destroyCameraController(pCameraController);
-
-	removeDebugRendererInterface();
 
 	gAppUI.Exit();
 
@@ -2219,11 +2219,11 @@ void Draw()
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL    // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
+		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
 		gAppUI.Draw(cmd);

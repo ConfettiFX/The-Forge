@@ -60,14 +60,15 @@ struct PointLight
 
 struct DirectionalLight
 {
-    packed_float3 direction;
+	packed_float3 direction;
 	int shadowMap;
 	packed_float3 color;
 	float intensity;
-    float shadowRange;
+	float shadowRange;
 	float _pad0;
 	float _pad1;
-	float _pad2;
+	int shadowMapDimensions;
+	float4x4 viewProj;
 };
 
 struct CameraData
@@ -75,7 +76,13 @@ struct CameraData
 	float4x4 CamVPMatrix;
 	float4x4 CamInvVPMatrix;
 	float3 CamPos;
+	float fAmbientLightIntensity;
 	int bUseEnvironmentLight;
+	float fEnvironmentLightIntensity;
+	float fAOIntensity;
+
+	int renderMode;
+	float fNormalMapIntensity;
 };
 
 struct HairData
@@ -221,7 +228,9 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 	float secundarySinTRL = sqrt(1.0f - secundaryCosTRL * secundaryCosTRL);
 	float secundarySpecular = max(0.0f, secundaryCosTRL * cosTE + secundarySinTRL * sinTE);
 
-	return float3(hair.Kd * diffuse, hair.Ks1 * pow(primarySpecular, hair.Ex1), hair.Ks2 * pow(secundarySpecular, hair.Ex2));
+	float3 diffuseSpecular = float3(hair.Kd * diffuse, hair.Ks1 * pow(primarySpecular, hair.Ex1), hair.Ks2 * pow(secundarySpecular, hair.Ex2));
+	diffuseSpecular *= 0.07f;	// Reduce light intensity to account for extremely bright lights used in PBR
+	return diffuseSpecular;
 }
 
 float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor, constant DirectionalLightData& lights, constant DirectionalLightCameraData& shadowCameras, DIRECTIONAL_LIGHT_SHADOW_MAPS_PARAMETER, sampler pointSampler, constant HairData& hair)
@@ -420,6 +429,9 @@ fragment float4 stageMain(VSOutput input[[stage_in]],
 	float3 eyeDir = normalize(worldPos.xyz - cbCamera.CamPos);
 
 	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(input.Tangent.xyz), input.Color.rgb, cbPointLights, cbDirectionalLights, cbDirectionalLightShadowCameras, DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME, PointSampler, cbHair);
+	color.rgb = color.rgb / (color.rgb + 1.0f);
+	float gammaCorr = 1.0f / 2.2f;
+	color.rgb = pow(color.rgb, gammaCorr);
 
 	return float4(color.rgb * alpha, alpha);
 }

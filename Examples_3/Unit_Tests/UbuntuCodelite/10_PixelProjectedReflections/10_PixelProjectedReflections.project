@@ -9,6 +9,8 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="../../src/10_PixelProjectedReflections/10_PixelProjectedReflections.cpp"/>
+    <File Name="../../src/10_PixelProjectedReflections/IOResourceLoader.cpp"/>
+    <File Name="../../src/10_PixelProjectedReflections/IOResourceLoader.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="AssimpImporter">
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>

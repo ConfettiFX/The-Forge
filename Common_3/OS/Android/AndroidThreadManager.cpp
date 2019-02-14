@@ -56,6 +56,12 @@ ConditionVariable::ConditionVariable()
 
 ConditionVariable::~ConditionVariable() { pthread_cond_destroy(&pHandle); }
 
+void ConditionVariable::Wait(const Mutex& mutex)
+{
+	pthread_mutex_t* mutexHandle = (pthread_mutex_t*)&mutex.pHandle;
+	pthread_cond_wait(&pHandle, mutexHandle);
+}
+
 void ConditionVariable::Wait(const Mutex& mutex, unsigned int ms)
 {
 	timespec ts;
@@ -67,6 +73,8 @@ void ConditionVariable::Wait(const Mutex& mutex, unsigned int ms)
 }
 
 void ConditionVariable::Set() { pthread_cond_signal(&pHandle); }
+
+void ConditionVariable::SetAll() { pthread_cond_broadcast(&pHandle); }
 
 ThreadID Thread::mainThreadID;
 
@@ -90,7 +98,25 @@ void _destroyThread(ThreadHandle handle)
 	pthread_join(handle, NULL);
 }
 
-void Thread::Sleep(unsigned mSec) { usleep(mSec * 1000); }
+ThreadHandle create_thread(WorkItem* pData)
+{
+	pthread_t handle;
+	pthread_create(&handle,NULL,ThreadFunctionStatic,pData);
+	return (ThreadHandle)handle;
+}
+
+void destroy_thread(ThreadHandle handle)
+{
+	ASSERT(handle!= (long)NULL);
+	// Wait for thread to join, need to make sure thread
+	//stops running otherwise it is not properly destroyed
+	pthread_join(handle, NULL);
+}
+
+void Thread::Sleep(unsigned mSec)
+{
+	  usleep(mSec*1000);
+}
 
 // threading class (Static functions)
 unsigned int Thread::GetNumCPUCores(void)

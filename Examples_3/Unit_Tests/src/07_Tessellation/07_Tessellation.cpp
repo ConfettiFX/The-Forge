@@ -46,7 +46,6 @@
 
 //ui
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 
 //input
 #include "../../../../Middleware_3/Input/InputSystem.h"
@@ -239,6 +238,13 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 class Tessellation: public IApp
 {
 	public:
+	Tessellation()
+	{
+#ifdef TARGET_IOS
+		mSettings.mContentScaleFactor = 1.f;
+#endif
+	}
+	
 	bool Init()
 	{
 		HiresTimer startTime;
@@ -277,7 +283,6 @@ class Tessellation: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 #ifndef METAL
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
@@ -513,7 +518,6 @@ class Tessellation: public IApp
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 
 		destroyCameraController(pCameraController);
-		removeDebugRendererInterface();
 
 		gAppUI.Exit();
 
@@ -884,15 +888,15 @@ class Tessellation: public IApp
 		static HiresTimer timer;
 		timer.GetUSec(true);
 
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
 #ifndef METAL    // Metal doesn't support GPU profilers
-		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
+		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
 		gAppUI.Gui(pGui);

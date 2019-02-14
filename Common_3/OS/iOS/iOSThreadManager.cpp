@@ -61,6 +61,12 @@ ConditionVariable::ConditionVariable()
 
 ConditionVariable::~ConditionVariable() { pthread_cond_destroy(&pHandle); }
 
+void ConditionVariable::Wait(const Mutex& mutex)
+{
+	pthread_mutex_t* mutexHandle = (pthread_mutex_t*)&mutex.pHandle;
+	pthread_cond_wait(&pHandle, mutexHandle);
+}
+
 void ConditionVariable::Wait(const Mutex& mutex, unsigned int ms)
 {
 	timespec ts;
@@ -72,6 +78,7 @@ void ConditionVariable::Wait(const Mutex& mutex, unsigned int ms)
 }
 
 void ConditionVariable::Set() { pthread_cond_signal(&pHandle); }
+void ConditionVariable::SetAll() { pthread_cond_broadcast(&pHandle); }
 
 ThreadID Thread::mainThreadID;
 

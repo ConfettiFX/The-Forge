@@ -211,7 +211,6 @@ struct UpdateSubresourcesCmd
 	uint32_t             numSubresources;
 	SubresourceDataDesc* pSubresources;
 	Buffer*              pIntermediate;
-	uint64_t             intermediateOffset;
 	Texture*             pTexture;
 };
 

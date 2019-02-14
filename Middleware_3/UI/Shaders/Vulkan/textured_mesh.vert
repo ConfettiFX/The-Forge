@@ -24,7 +24,7 @@ layout(push_constant) uniform uRootConstants_Block
 
 VsOut HLSLmain(VsIn input0)
 {
-    VsOut output0 = VsOut (0);
+    VsOut output0;
     ((output0).position = vec4(((((input0).position).xy * (uRootConstants.scaleBias).xy) + vec2((-1.0), 1.0)), 0.0, 1.0));
     ((output0).texcoord = (input0).texcoord);
     return output0;

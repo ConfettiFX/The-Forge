@@ -1541,19 +1541,19 @@ typedef struct Pipeline
 
 typedef struct SubresourceDataDesc
 {
-#if defined(DIRECT3D12) || defined(METAL) || defined(DIRECT3D11)
+#if defined(METAL)
 	uint32_t mRowPitch;
 	uint32_t mSlicePitch;
 	void*    pData;
-#endif
-#if defined(VULKAN)
-	uint32_t mMipLevel;
+#else
 	uint32_t mArrayLayer;
+	uint32_t mMipLevel;
+	uint64_t mBufferOffset;
 	uint32_t mWidth;
 	uint32_t mHeight;
 	uint32_t mDepth;
-	uint32_t mArraySize;
-	uint64_t mBufferOffset;
+	uint32_t mRowPitch;
+	uint32_t mSlicePitch;
 #endif
 } SubresourceDataDesc;
 
@@ -1675,15 +1675,22 @@ typedef struct GPUVendorPreset
 	char           mGpuName[MAX_GPU_VENDOR_STRING_LENGTH];    //If GPU Name is missing then value will be empty string
 } GPUVendorPreset;
 
+typedef enum DefaultResourceAlignment
+{
+	RESOURCE_BUFFER_ALIGNMENT = 4U,
+} DefaultResourceAlignment;
+
 typedef struct GPUSettings
 {
-	uint64_t        mUniformBufferAlignment;
+	uint32_t        mUniformBufferAlignment;
+	uint32_t        mUploadBufferTextureAlignment;
+	uint32_t        mUploadBufferTextureRowAlignment;
 	uint32_t        mMaxVertexInputBindings;
-	bool            mMultiDrawIndirect;
 	uint32_t        mMaxRootSignatureDWORDS;
 	uint32_t        mWaveLaneCount;
-	bool            mROVsSupported;
 	GPUVendorPreset mGpuVendorPreset;
+	bool            mMultiDrawIndirect;
+	bool            mROVsSupported;
 } GPUSettings;
 
 typedef struct Renderer

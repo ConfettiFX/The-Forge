@@ -50,11 +50,11 @@ void _ErrorMsg(int line, const char* file, const char* string, ...)
 	// put line positoin in code
 	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
 
-	va_list arglist;
-	va_start(arglist, string);
-	//  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	va_end(arglist);
+  va_list arglist;
+  va_start(arglist, string);
+  //  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+  vsnprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+  va_end(arglist);
 
 	printf("Error: %s", buf);
 }
@@ -72,10 +72,10 @@ void _WarningMsg(int line, const char* file, const char* string, ...)
 	// put line positoin in code
 	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
 
-	va_list arglist;
-	va_start(arglist, string);
-	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	va_end(arglist);
+  va_list arglist;
+  va_start(arglist, string);
+  vsnprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
+  va_end(arglist);
 
 	printf("Warning: %s", buf);
 }
@@ -107,10 +107,10 @@ void _OutputDebugString(const char* str, ...)
 	const unsigned BUFFER_SIZE = 4096;
 	char           buf[BUFFER_SIZE];
 
-	va_list arglist;
-	va_start(arglist, str);
-	vsprintf_s(buf, BUFFER_SIZE, str, arglist);
-	va_end(arglist);
+  va_list arglist;
+  va_start(arglist, str);
+  vsnprintf_s(buf, BUFFER_SIZE, str, arglist);
+  va_end(arglist);
 
 	printf("%s\n", buf);
 #endif
