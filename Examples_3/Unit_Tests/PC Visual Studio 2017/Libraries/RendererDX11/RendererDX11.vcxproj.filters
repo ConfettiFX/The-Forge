@@ -21,6 +21,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11ShaderReflection.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Raytracing.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Commands.h">

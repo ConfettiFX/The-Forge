@@ -34,7 +34,6 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -80,9 +79,7 @@ Pipeline*      pPipelineMagnify = NULL;
 RootSignature* pRootSignatureMagnify = NULL;
 
 Sampler* pSamplerPointWrap = NULL;
-#ifdef TARGET_IOS
-VirtualJoystickUI gVirtualJoystick;
-#endif
+
 DepthState*      pDepthNone = NULL;
 RasterizerState* pRasterizerCullNone = NULL;
 
@@ -136,8 +133,10 @@ class WaveIntrinsics: public IApp
 	public:
 	WaveIntrinsics()
 	{
+#ifndef TARGET_IOS
 		mSettings.mWidth = 1920;
 		mSettings.mHeight = 1080;
+#endif
 	}
 
 	bool Init()
@@ -175,17 +174,18 @@ class WaveIntrinsics: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
-
-#ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
-			return false;
-#endif
 
 		ShaderLoadDesc waveShader = {};
 		waveShader.mStages[0] = { "wave.vert", NULL, 0, FSR_SrcShaders };
 		waveShader.mStages[1] = { "wave.frag", NULL, 0, FSR_SrcShaders };
 		waveShader.mTarget = shader_target_6_0;
+#ifdef TARGET_IOS
+		ShaderMacro iosMacro;
+		iosMacro.definition = "TARGET_IOS";
+		iosMacro.value = "1";
+		waveShader.mStages[1].mMacroCount = 1;
+		waveShader.mStages[1].pMacros = &iosMacro;
+#endif
 		ShaderLoadDesc magnifyShader = {};
 		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0, FSR_SrcShaders };
 		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0, FSR_SrcShaders };
@@ -282,6 +282,9 @@ class WaveIntrinsics: public IApp
 		const char* m_labels[RenderModeCount] = {};
 		m_labels[RenderMode1] = "1. Normal render.\n";
 		m_labels[RenderMode2] = "2. Color pixels by lane indices.\n";
+#ifdef TARGET_IOS
+		m_labels[RenderMode9] = "3. Color pixels by their quad id.\n";
+#else
 		m_labels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
 		m_labels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
 		m_labels[RenderMode5] = "5. Color pixels by active lane ratio (white = 100%; black = 0%).\n";
@@ -289,10 +292,15 @@ class WaveIntrinsics: public IApp
 		m_labels[RenderMode7] = "7. Average the color in a wave.\n";
 		m_labels[RenderMode8] = "8. Color pixels by prefix sum of distance between current and first lane.\n";
 		m_labels[RenderMode9] = "9. Color pixels by their quad id.\n";
+#endif
 
 		// Radio Buttons
 		for (uint32_t i = 0; i < RenderModeCount; ++i)
 		{
+#ifdef TARGET_IOS
+			//Subset of supported render modes on iOS
+			if(i == RenderMode1 || i == RenderMode2 || i == RenderMode9)
+#endif
 			pGui->AddWidget(RadioButtonWidget(m_labels[i], &gRenderModeToggles, i));
 		}
 
@@ -305,12 +313,6 @@ class WaveIntrinsics: public IApp
 	void Exit()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-
-		removeDebugRendererInterface();
-
-#ifdef TARGET_IOS
-		gVirtualJoystick.Exit();
-#endif
 
 		gAppUI.Exit();
 
@@ -355,11 +357,6 @@ class WaveIntrinsics: public IApp
 
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
-
-#ifdef TARGET_IOS
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
-			return false;
-#endif
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
@@ -412,10 +409,6 @@ class WaveIntrinsics: public IApp
 
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
-		gVirtualJoystick.Unload();
-#endif
-
 		removePipeline(pRenderer, pPipelineMagnify);
 		removePipeline(pRenderer, pPipelineWave);
 
@@ -446,11 +439,6 @@ class WaveIntrinsics: public IApp
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 		/************************************************************************/
-		// Scene Update
-		/************************************************************************/
-		BufferUpdateDesc viewProjCbv = { pUniformBuffer[gFrameIndex], &gSceneData };
-		updateResource(&viewProjCbv);
-		/************************************************************************/
 		/************************************************************************/
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence*      pNextFence = pRenderCompleteFences[gFrameIndex];
@@ -458,6 +446,11 @@ class WaveIntrinsics: public IApp
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+		/************************************************************************/
+		// Scene Update
+		/************************************************************************/
+		BufferUpdateDesc viewProjCbv = { pUniformBuffer[gFrameIndex], &gSceneData };
+		updateResource(&viewProjCbv);
 
 		RenderTarget* pRenderTarget = pRenderTargetIntermediate;
 		RenderTarget* pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
@@ -521,11 +514,7 @@ class WaveIntrinsics: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
-
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);

@@ -41,7 +41,6 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -316,7 +315,6 @@ class EntityComponentSystem: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -477,7 +475,6 @@ class EntityComponentSystem: public IApp
 	void Exit()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-		removeDebugRendererInterface();
 
 		gAppUI.Exit();
 
@@ -673,9 +670,9 @@ class EntityComponentSystem: public IApp
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = 0xff00cc00;
 		uiTextDesc.mFontSize = 18;
-		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
 #ifndef METAL
-		drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
 #endif
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);

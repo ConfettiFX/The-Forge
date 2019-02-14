@@ -73,8 +73,10 @@ struct ConditionVariable
 	ConditionVariable();
 	~ConditionVariable();
 
+	void Wait(const Mutex& mutex);
 	void Wait(const Mutex& mutex, unsigned md);
 	void Set();
+	void SetAll();
 
 #ifdef _WIN32
 	void* pHandle;

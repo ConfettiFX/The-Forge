@@ -35,7 +35,6 @@
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -236,6 +235,13 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 class MultiThread: public IApp
 {
 	public:
+	MultiThread()
+	{
+#ifdef TARGET_IOS
+		mSettings.mContentScaleFactor = 1.f;
+#endif
+	}
+	
 	bool Init()
 	{
 		InitCpuUsage();
@@ -280,7 +286,6 @@ class MultiThread: public IApp
 
 		HiresTimer timer;
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
@@ -531,8 +536,6 @@ class MultiThread: public IApp
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 			removeGpuProfiler(pRenderer, pGpuProfilers[i]);
-
-		removeDebugRendererInterface();
 
 		gAppUI.Exit();
 
@@ -881,22 +884,22 @@ class MultiThread: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if !defined(METAL)
-		drawDebugText(cmd, 8, 65, "Particle CPU Times", NULL);
+		gAppUI.DrawText(cmd, float2(8, 65), "Particle CPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			drawDebugText(
-				cmd, 8, 90.0f + i * 25.0f,
+			gAppUI.DrawText(
+				cmd, float2(8.f, 90.0f + i * 25.0f),
 				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f), &gFrameTimeDraw);
 		}
 
-		drawDebugText(cmd, 8, 105 + gThreadCount * 25.0f, "Particle GPU Times", NULL);
+		gAppUI.DrawText(cmd, float2(8.f, 105 + gThreadCount * 25.0f), "Particle GPU Times", NULL);
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			drawDebugText(
-				cmd, 8, (130 + gThreadCount * 25.0f) + i * 25.0f,
+			gAppUI.DrawText(
+				cmd, float2(8.f, (130 + gThreadCount * 25.0f) + i * 25.0f),
 				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		}
 #endif

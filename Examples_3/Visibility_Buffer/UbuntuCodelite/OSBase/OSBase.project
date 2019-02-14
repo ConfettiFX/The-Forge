@@ -38,9 +38,7 @@
     <File Name="../../../../Common_3/OS/Core/PlatformEvents.cpp"/>
     <File Name="../../../../Common_3/OS/Core/RingBuffer.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>
-    <File Name="../../../../Common_3/OS/Core/DebugRenderer.cpp"/>
-    <File Name="../../../../Common_3/OS/Core/DebugRenderer.h"/>
+    <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>    
   </VirtualDirectory>
   <VirtualDirectory Name="Image">
     <File Name="../../../../Common_3/OS/Image/Image.cpp"/>

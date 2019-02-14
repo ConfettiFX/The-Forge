@@ -104,6 +104,7 @@ class IApp
 		bool mExternalWindow = false;
 #if defined(TARGET_IOS)
 		bool mShowStatusBar = false;
+		float mContentScaleFactor = 0.f;
 #endif
 	} mSettings;
 

@@ -62,12 +62,19 @@ ConditionVariable::ConditionVariable()
 
 ConditionVariable::~ConditionVariable() { conf_free(pHandle); }
 
+void ConditionVariable::Wait(const Mutex& mutex)
+{
+	SleepConditionVariableCS((PCONDITION_VARIABLE)pHandle, (PCRITICAL_SECTION)mutex.pHandle, INFINITE);
+}
+
 void ConditionVariable::Wait(const Mutex& mutex, unsigned ms)
 {
 	SleepConditionVariableCS((PCONDITION_VARIABLE)pHandle, (PCRITICAL_SECTION)mutex.pHandle, ms);
 }
 
 void ConditionVariable::Set() { WakeConditionVariable((PCONDITION_VARIABLE)pHandle); }
+
+void ConditionVariable::SetAll() { WakeAllConditionVariable((PCONDITION_VARIABLE)pHandle); }
 
 ThreadID Thread::mainThreadID;
 

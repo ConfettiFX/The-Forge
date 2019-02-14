@@ -2064,6 +2064,7 @@ public:
 	// Construct a perspective projection matrix using horizontal fov
 	// 
 	static inline const Matrix4 perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
+  static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
 
 	static inline const Matrix4 rotationYX(const float radiansY, const float radiansX);
 	static inline const Matrix4 rotationXY(const float radiansX, const float radiansY);

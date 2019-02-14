@@ -20,77 +20,59 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\finalPass.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\finalPass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\gbuffer.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\gbuffer.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSimple.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSimple.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\shadowMapPass.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\shadowMapPass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\finalPass.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\forwardSphere.frag">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\gbuffer.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\forwardSphere.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\gbuffer.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\zPass.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSimple.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSimple.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shadowMapPass.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shadowMapPass.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.comp">
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.frag">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fsTriangle.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyBuffer.comp">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.vert">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfBBox.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\finalPass.frag">
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSphere.frag">
       <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyBuffer.comp">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\forwardSphere.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\forwardSphere.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fsTriangle.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfBBox.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSphere.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\zPass.vert">
+      <Filter>Shaders\D3D12</Filter>
     </None>
   </ItemGroup>
 </Project>

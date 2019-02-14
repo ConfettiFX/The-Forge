@@ -155,6 +155,24 @@
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneShadows.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneShadows.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneShadows.frag">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneShadows.vert">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h">

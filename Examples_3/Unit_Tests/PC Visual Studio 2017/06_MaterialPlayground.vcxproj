@@ -41,6 +41,8 @@
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\panoToCube.comp" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneBRDF.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneBRDF.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneShadows.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\renderSceneShadows.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\skybox.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D11\skybox.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\BRDFIntegration.comp" />
@@ -53,6 +55,8 @@
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\panoToCube.comp" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneBRDF.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneBRDF.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneShadows.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\renderSceneShadows.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\showCapsules.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\showCapsules.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\D3D12\skeleton.frag" />
@@ -69,6 +73,8 @@
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\panoToCube.comp" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.vert" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.frag" />
+    <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.frag" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.vert" />
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.frag" />

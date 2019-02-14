@@ -29,6 +29,8 @@
 
 #pragma once
 
+#include "../OS/Core/Atomics.h"
+
 // Resource Loader Interface
 #if !defined(TARGET_IOS)
 #define DEFAULT_MEMORY_BUDGET (uint64_t)8e+7
@@ -58,6 +60,9 @@ typedef struct TextureLoadDesc
 	uint32_t    mNodeIndex;
 	bool        mUseMipmaps;
 	bool        mSrgb;
+
+	// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
+	TextureCreationFlags mCreationFlag; 
 } TextureLoadDesc;
 
 typedef struct BufferUpdateDesc
@@ -82,6 +87,7 @@ typedef struct TextureUpdateDesc
 {
 	Texture* pTexture;
 	Image*   pImage;
+	bool     freeImage;
 } TextureUpdateDesc;
 
 typedef enum ResourceType
@@ -130,22 +136,32 @@ typedef struct ShaderLoadDesc
 	ShaderTarget        mTarget;
 } ShaderLoadDesc;
 
+typedef tfrg_atomic64_t SyncToken;
+
 void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget = DEFAULT_MEMORY_BUDGET, bool useThreads = false);
 void removeResourceLoaderInterface(Renderer* pRenderer);
 
-void addResource(BufferLoadDesc* pBuffer, bool threaded = false);
-void addResource(TextureLoadDesc* pTexture, bool threaded = false);
+void addResource(BufferLoadDesc* pBuffer, bool batch = false);
+void addResource(TextureLoadDesc* pTexture, bool batch = false);
+void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token);
+void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token);
 
 void updateResource(BufferUpdateDesc* pBuffer, bool batch = false);
 void updateResource(TextureUpdateDesc* pTexture, bool batch = false);
 void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources);
+void updateResource(BufferUpdateDesc* pBuffer, SyncToken* token);
+void updateResource(TextureUpdateDesc* pTexture, SyncToken* token);
+void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources, SyncToken* token);
 
-void flushResourceUpdates();
+void waitBatchCompleted();
+bool isTokenCompleted(SyncToken token);
+void waitTokenCompleted(SyncToken token);
 
 void removeResource(Buffer* pBuffer);
 void removeResource(Texture* pTexture);
 
-void finishResourceLoading();
-
 /// Either loads the cached shader bytecode or compiles the shader to create new bytecode depending on whether source is newer than binary
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader);
+
+void flushResourceUpdates();
+void finishResourceLoading();

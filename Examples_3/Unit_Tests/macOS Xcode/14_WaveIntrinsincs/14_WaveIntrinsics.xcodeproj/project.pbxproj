@@ -10,6 +10,28 @@
 		5C512C402141555200E7A798 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C3E2141555200E7A798 /* AppDelegate.m */; };
 		5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4A2141556900E7A798 /* libThe-Forge.a */; };
 		B2136E6621668CBE00FEBC97 /* 14_WaveIntrinsics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */; };
+		D062DAC32210FFED00CF2B1B /* 14_WaveIntrinsics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */; };
+		D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
+		D062DAC62210FFED00CF2B1B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
+		D062DAD12211024900CF2B1B /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4C2141556900E7A798 /* libThe-Forge_iOS.a */; };
+		D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD22211027000CF2B1B /* UIKit.framework */; };
+		D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD42211027600CF2B1B /* GameController.framework */; };
+		D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D062DAE32211033700CF2B1B /* AppDelegate.m */; };
+		D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */; };
+		D062DAE72211038200CF2B1B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D062DADC2211030400CF2B1B /* Main.storyboard */; };
+		D062DAF6221104D500CF2B1B /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = D062DAF4221104C700CF2B1B /* TitilliumText */; };
+		D062DAF8221104FC00CF2B1B /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.png */; };
+		D062DAF92211052700CF2B1B /* imgui.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0E21F0A08D00C99983 /* imgui.frag.metal */; };
+		D062DAFA2211052700CF2B1B /* imgui.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0F21F0A08D00C99983 /* imgui.vert.metal */; };
+		D062DAFB2211052700CF2B1B /* textured_mesh.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0D21F0A08D00C99983 /* textured_mesh.frag.metal */; };
+		D062DAFC2211052700CF2B1B /* textured_mesh.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0C21F0A08D00C99983 /* textured_mesh.vert.metal */; };
+		D062DAFD2211052700CF2B1B /* fontstash.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0821F0A08600C99983 /* fontstash.frag.metal */; };
+		D062DAFE2211052700CF2B1B /* fontstash2D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0721F0A08600C99983 /* fontstash2D.vert.metal */; };
+		D062DAFF2211052700CF2B1B /* fontstash3D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0621F0A08600C99983 /* fontstash3D.vert.metal */; };
+		D062DB002211052700CF2B1B /* magnify.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2136E6A21668CE100FEBC97 /* magnify.frag.metal */; };
+		D062DB012211052700CF2B1B /* magnify.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2136E6921668CE100FEBC97 /* magnify.vert.metal */; };
+		D062DB022211052700CF2B1B /* wave.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2136E6B21668CE100FEBC97 /* wave.frag.metal */; };
+		D062DB032211052700CF2B1B /* wave.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2136E6821668CE100FEBC97 /* wave.vert.metal */; };
 		D0BBDFB1214267DD0081CE0F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
@@ -38,7 +60,60 @@
 			remoteGlobalIDString = 5C5582DF21413D180019960B;
 			remoteInfo = "The-Forge";
 		};
+		D062DAEA2211043B00CF2B1B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C512C442141556900E7A798 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D062DAEC2211047F00CF2B1B /* Copy Fonts */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Fonts;
+			dstSubfolderSpec = 7;
+			files = (
+				D062DAF6221104D500CF2B1B /* TitilliumText in Copy Fonts */,
+			);
+			name = "Copy Fonts";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D062DAED2211048200CF2B1B /* Copy Shaders */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Shaders/Metal;
+			dstSubfolderSpec = 7;
+			files = (
+				D062DAF92211052700CF2B1B /* imgui.frag.metal in Copy Shaders */,
+				D062DAFA2211052700CF2B1B /* imgui.vert.metal in Copy Shaders */,
+				D062DAFB2211052700CF2B1B /* textured_mesh.frag.metal in Copy Shaders */,
+				D062DAFC2211052700CF2B1B /* textured_mesh.vert.metal in Copy Shaders */,
+				D062DAFD2211052700CF2B1B /* fontstash.frag.metal in Copy Shaders */,
+				D062DAFE2211052700CF2B1B /* fontstash2D.vert.metal in Copy Shaders */,
+				D062DAFF2211052700CF2B1B /* fontstash3D.vert.metal in Copy Shaders */,
+				D062DB002211052700CF2B1B /* magnify.frag.metal in Copy Shaders */,
+				D062DB012211052700CF2B1B /* magnify.vert.metal in Copy Shaders */,
+				D062DB022211052700CF2B1B /* wave.frag.metal in Copy Shaders */,
+				D062DB032211052700CF2B1B /* wave.vert.metal in Copy Shaders */,
+			);
+			name = "Copy Shaders";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D062DAF7221104EC00CF2B1B /* Copy Textures */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				D062DAF8221104FC00CF2B1B /* circlepad.png in Copy Textures */,
+			);
+			name = "Copy Textures";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		281FA9DF2033059C00CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
@@ -48,7 +123,6 @@
 		28A5AB7E201F3A35000E571F /* Skybox_front5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_front5.png; path = ../../UnitTestResources/Textures/Skybox_front5.png; sourceTree = "<group>"; };
 		28A5AB7F201F3A35000E571F /* Skybox_top3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_top3.png; path = ../../UnitTestResources/Textures/Skybox_top3.png; sourceTree = "<group>"; };
 		28A5AB80201F3A35000E571F /* Skybox_back6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_back6.png; path = ../../UnitTestResources/Textures/Skybox_back6.png; sourceTree = "<group>"; };
-		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = "../../../../../../forgeAnimationSystem/The-Forge/Examples_3/Unit_Tests/UnitTestResources/Fonts/TitilliumText"; sourceTree = "<group>"; };
 		5C512C3E2141555200E7A798 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C512C3F2141555200E7A798 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C512C442141556900E7A798 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
@@ -70,6 +144,16 @@
 		B22D906820E2EDCE0036B88E /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		D062DACE2210FFED00CF2B1B /* 14_WaveIntrinsics_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 14_WaveIntrinsics_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D062DAD22211027000CF2B1B /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		D062DAD42211027600CF2B1B /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		D062DAD92211030400CF2B1B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D062DADB2211030400CF2B1B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D062DADD2211030400CF2B1B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		D062DADE2211030400CF2B1B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D062DAE32211033700CF2B1B /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		D062DAE42211033700CF2B1B /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
+		D062DAF4221104C700CF2B1B /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 14_WaveIntrinsics.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 14_WaveIntrinsics.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -77,6 +161,18 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		D062DAC42210FFED00CF2B1B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */,
+				D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */,
+				D062DAD12211024900CF2B1B /* libThe-Forge_iOS.a in Frameworks */,
+				D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */,
+				D062DAC62210FFED00CF2B1B /* MetalKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -118,7 +214,7 @@
 		28A5AB88201F3A44000E571F /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
-				28A5AB89201F3A77000E571F /* TitilliumText */,
+				D062DAF4221104C700CF2B1B /* TitilliumText */,
 			);
 			name = Fonts;
 			sourceTree = "<group>";
@@ -126,7 +222,9 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D062DAD42211027600CF2B1B /* GameController.framework */,
 				B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */,
+				D062DAD22211027000CF2B1B /* UIKit.framework */,
 				B22D906220E2EDCE0036B88E /* Metal.framework */,
 				B22D906820E2EDCE0036B88E /* MetalKit.framework */,
 				B27D879920E2E88B00081DB0 /* GameController.framework */,
@@ -159,12 +257,26 @@
 			name = CommonShaders;
 			sourceTree = "<group>";
 		};
+		D062DAD82211030400CF2B1B /* 14_WaveIntrinsics_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				D062DAE42211033700CF2B1B /* AppDelegate.h */,
+				D062DAE32211033700CF2B1B /* AppDelegate.m */,
+				D062DAD92211030400CF2B1B /* Assets.xcassets */,
+				D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */,
+				D062DADC2211030400CF2B1B /* Main.storyboard */,
+				D062DADE2211030400CF2B1B /* Info.plist */,
+			);
+			path = 14_WaveIntrinsics_iOS;
+			sourceTree = "<group>";
+		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				5CA80E1B21F09FA000C99983 /* CommonShaders */,
 				5C512C442141556900E7A798 /* The-Forge.xcodeproj */,
 				EA463C941EF81E8F005AC8C7 /* 14_WaveIntrinsics */,
+				D062DAD82211030400CF2B1B /* 14_WaveIntrinsics_iOS */,
+				5CA80E1B21F09FA000C99983 /* CommonShaders */,
 				28A5AB88201F3A44000E571F /* Fonts */,
 				28A5AB7A201F399E000E571F /* Textures */,
 				28A5AB66201F377A000E571F /* Shaders */,
@@ -177,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 				EA463C8B1EF81E8F005AC8C7 /* 14_WaveIntrinsics.app */,
+				D062DACE2210FFED00CF2B1B /* 14_WaveIntrinsics_iOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -197,6 +310,27 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		D062DABE2210FFED00CF2B1B /* 14_WaveIntrinsics_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D062DACB2210FFED00CF2B1B /* Build configuration list for PBXNativeTarget "14_WaveIntrinsics_iOS" */;
+			buildPhases = (
+				D062DAC12210FFED00CF2B1B /* Sources */,
+				D062DAC42210FFED00CF2B1B /* Frameworks */,
+				D062DAC82210FFED00CF2B1B /* Resources */,
+				D062DAEC2211047F00CF2B1B /* Copy Fonts */,
+				D062DAED2211048200CF2B1B /* Copy Shaders */,
+				D062DAF7221104EC00CF2B1B /* Copy Textures */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D062DAEB2211043B00CF2B1B /* PBXTargetDependency */,
+			);
+			name = 14_WaveIntrinsics_iOS;
+			productName = 02_Texture;
+			productReference = D062DACE2210FFED00CF2B1B /* 14_WaveIntrinsics_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		EA463C8A1EF81E8F005AC8C7 /* 14_WaveIntrinsics */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "14_WaveIntrinsics" */;
@@ -251,6 +385,7 @@
 			projectRoot = "";
 			targets = (
 				EA463C8A1EF81E8F005AC8C7 /* 14_WaveIntrinsics */,
+				D062DABE2210FFED00CF2B1B /* 14_WaveIntrinsics_iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -273,6 +408,15 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
+		D062DAC82210FFED00CF2B1B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */,
+				D062DAE72211038200CF2B1B /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA463C891EF81E8F005AC8C7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -285,6 +429,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		D062DAC12210FFED00CF2B1B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */,
+				D062DAC32210FFED00CF2B1B /* 14_WaveIntrinsics.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA463C871EF81E8F005AC8C7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -302,9 +455,30 @@
 			name = "The-Forge";
 			targetProxy = 5C512C4D2141557700E7A798 /* PBXContainerItemProxy */;
 		};
+		D062DAEB2211043B00CF2B1B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge_iOS";
+			targetProxy = D062DAEA2211043B00CF2B1B /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D062DADB2211030400CF2B1B /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		D062DADC2211030400CF2B1B /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D062DADD2211030400CF2B1B /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
 		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -316,6 +490,81 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		D062DACC2210FFED00CF2B1B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_WARN_COMMA = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					_DEBUG,
+					TARGET_IOS,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/14_WaveIntrinsics_iOS/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.14-WaveIntrinsics-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D062DACD2210FFED00CF2B1B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_WARN_COMMA = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					TARGET_IOS,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/14_WaveIntrinsics_iOS/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.14-WaveIntrinsics-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -484,6 +733,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		D062DACB2210FFED00CF2B1B /* Build configuration list for PBXNativeTarget "14_WaveIntrinsics_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D062DACC2210FFED00CF2B1B /* Debug */,
+				D062DACD2210FFED00CF2B1B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "14_WaveIntrinsics" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -899,7 +899,7 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 
 void cmdUpdateSubresources(
 	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t intermediateOffset, Texture* pTexture)
+	uint64_t, Texture* pTexture)
 {
 	ASSERT(pCmd);
 	ASSERT(pSubresources);
@@ -923,14 +923,7 @@ void cmdUpdateSubresources(
 	cmd.mUpdateSubresourcesCmd.numSubresources = numSubresources;
 	cmd.mUpdateSubresourcesCmd.pSubresources = (SubresourceDataDesc*)conf_calloc(numSubresources, sizeof(SubresourceDataDesc));
 	memcpy(cmd.mUpdateSubresourcesCmd.pSubresources, pSubresources, numSubresources * sizeof(SubresourceDataDesc));
-	for (uint32_t i = 0; i < numSubresources; ++i)
-	{
-		cmd.mUpdateSubresourcesCmd.pSubresources[i].pData =
-			conf_calloc(cmd.mUpdateSubresourcesCmd.pSubresources[i].mSlicePitch, sizeof(uint8_t));
-		memcpy(cmd.mUpdateSubresourcesCmd.pSubresources[i].pData, pSubresources[i].pData, pSubresources[i].mSlicePitch);
-	}
 	cmd.mUpdateSubresourcesCmd.pIntermediate = pIntermediate;
-	cmd.mUpdateSubresourcesCmd.intermediateOffset = intermediateOffset;
 	cmd.mUpdateSubresourcesCmd.pTexture = pTexture;
 	cachedCmdsIter->second.push_back(cmd);
 }
@@ -1054,6 +1047,8 @@ static void AddDevice(Renderer* pRenderer)
 	{
 		pRenderer->pDxGPUs[i] = gpuDesc[i].pGpu;
 		pRenderer->mGpuSettings[i].mUniformBufferAlignment = 256;
+		pRenderer->mGpuSettings[0].mUploadBufferTextureAlignment = 16;
+		pRenderer->mGpuSettings[0].mUploadBufferTextureRowAlignment = 1;
 		pRenderer->mGpuSettings[i].mMultiDrawIndirect = false;    // no such thing
 		pRenderer->mGpuSettings[i].mMaxVertexInputBindings = 32U;
 
@@ -3219,6 +3214,8 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 		DescriptorData*       pDst = (DescriptorData*)pPool;
 		uint32_t              index = 0;
 		const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pSrc->pName, &index);
+    if (!pDesc)
+      continue;
 
 		if (i == 0)
 			pBegin = pDst;
@@ -3923,13 +3920,18 @@ void queueSubmit(
 				case CMD_TYPE_cmdUpdateSubresources:
 				{
 					const UpdateSubresourcesCmd& update = cmd.mUpdateSubresourcesCmd;
+					D3D11_MAPPED_SUBRESOURCE sub = {};
+					pContext->Map(update.pIntermediate->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+					TextureDesc Desc = update.pTexture->mDesc;
+					uint8_t* pData = (uint8_t*)sub.pData;
 					for (uint32_t i = 0; i < update.numSubresources; ++i)
 					{
-						const SubresourceDataDesc* pData = &update.pSubresources[i];
+						const SubresourceDataDesc* pSubresource = update.pSubresources + i;
+						UINT DstSubresource = pSubresource->mMipLevel + pSubresource->mArrayLayer * Desc.mMipLevels;
 						pContext->UpdateSubresource(
-							update.pTexture->pDxResource, i, NULL, ((uint8_t*)pData->pData), pData->mRowPitch, pData->mSlicePitch);
-						conf_free(pData->pData);
+							update.pTexture->pDxResource, i, NULL, pData+ pSubresource->mBufferOffset, pSubresource->mRowPitch, pSubresource->mSlicePitch);
 					}
+					pContext->Unmap(update.pIntermediate->pDxResource, 0);
 					conf_free(update.pSubresources);
 					break;
 				}

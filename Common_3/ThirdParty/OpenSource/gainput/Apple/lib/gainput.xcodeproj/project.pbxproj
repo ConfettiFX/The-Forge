@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 51;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -420,11 +420,12 @@
 				LastUpgradeCheck = 1000;
 			};
 			buildConfigurationList = 3E31F4D3E6EA4513B5BC126D /* Build configuration list for PBXProject "gainput" */;
-			compatibilityVersion = "Xcode 10";
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = 11F80932304443B7943C4E3F;
 			projectDirPath = ../../lib;

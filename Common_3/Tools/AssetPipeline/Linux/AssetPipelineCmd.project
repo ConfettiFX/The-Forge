@@ -42,7 +42,7 @@
       </Compiler>
       <Linker Options="-pthread" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests_Animation/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
         <LibraryPath Value="../../../ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>
@@ -96,7 +96,7 @@
       </Compiler>
       <Linker Options="-pthread" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests_Animation/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
         <LibraryPath Value="../../../ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>

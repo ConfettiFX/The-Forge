@@ -128,7 +128,7 @@ static inline RingBufferOffset getIndexBufferOffset(MeshRingBuffer* pRingBuffer,
 	return ret;
 }
 
-static inline void addUniformRingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, UniformRingBuffer** ppRingBuffer)
+static inline void addUniformRingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, UniformRingBuffer** ppRingBuffer, bool const ownMemory = false)
 {
 	UniformRingBuffer* pRingBuffer = (UniformRingBuffer*)conf_calloc(1, sizeof(UniformRingBuffer));
 	pRingBuffer->pRenderer = pRenderer;
@@ -146,6 +146,8 @@ static inline void addUniformRingBuffer(Renderer* pRenderer, uint32_t requiredUn
 	ubDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 #endif
 	ubDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+	if (ownMemory)
+		ubDesc.mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	ubDesc.mSize = maxUniformBufferSize;
 	BufferLoadDesc loadDesc = {};
 	loadDesc.mDesc = ubDesc;

@@ -39,7 +39,6 @@
 #include "../../../Common_3/OS/Interfaces/IApp.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
-#include "../../../Common_3/OS/Core/DebugRenderer.h"
 
 #include "Geometry.h"
 
@@ -272,11 +271,7 @@ typedef struct AppSettings
 	// toggle rendering of local point lights
 	bool mRenderLocalLights = false;
 
-#if MSAASAMPLECOUNT == 1
 	bool mDrawDebugTargets = false;
-#else
-	bool                       mDrawDebugTargets = false;
-#endif
 
 	float nearPlane = 10.0f;
 	float farPlane = 3000.0f;
@@ -288,7 +283,7 @@ typedef struct AppSettings
 
 	float4 mLightColor = { 1.0f, 0.8627f, 0.78f, 2.5f };
 
-	DynamicUIControls mDynamicUIControlsGR;
+	DynamicUIWidgets mDynamicUIWidgetsGR;
 	GodrayInfo        gGodrayInfo;
 	bool              mEnableGodray = true;
 	uint              gGodrayInteration = 3;
@@ -298,7 +293,7 @@ typedef struct AppSettings
 	float mRetinaScaling = 1.5f;
 
 	// HDAO data
-	DynamicUIControls mDynamicUIControlsAO;
+	DynamicUIWidgets mDynamicUIWidgetsAO;
 	bool              mEnableHDAO = true;
 
 	float mRejectRadius = 5.2f;
@@ -306,7 +301,7 @@ typedef struct AppSettings
 	float mAOIntensity = 3.0f;
 	int   mAOQuality = 2;
 
-	DynamicUIControls mSCurve;
+	DynamicUIWidgets mSCurve;
 	float             SCurveScaleFactor = 1.0f;
 	float             SCurveSMin = 0.00f;
 	float             SCurveSMid = 0.84f;
@@ -316,11 +311,11 @@ typedef struct AppSettings
 	float             SCurveTMax = 1100.0f;
 	float             SCurveSlopeFactor = 2.2f;
 
-	DynamicUIControls mLinearScale;
+	DynamicUIWidgets mLinearScale;
 	float             LinearScale = 140.0f;
 
 	// HDR10
-	DynamicUIControls mDisplaySetting;
+	DynamicUIWidgets mDisplaySetting;
 
 	DisplayColorSpace  mCurrentSwapChainColorSpace = ColorSpace_Rec2020;
 	DisplayColorRange  mDisplayColorRange = ColorRange_RGB;
@@ -666,6 +661,7 @@ uint64_t      gFrameCount = 0;
 Scene*        pScene = nullptr;
 UIApp         gAppUI;
 GuiComponent* pGuiWindow = nullptr;
+GuiComponent* pDebugTexturesWindow = nullptr;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 /************************************************************************/
 // Triangle filtering data
@@ -710,6 +706,55 @@ const uint32_t pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 // App implementation
 /************************************************************************/
+void SetupDebugTexturesWindow()
+{
+	if (!gAppSettings.mDrawDebugTargets)
+	{
+		if (pDebugTexturesWindow)
+		{
+			gAppUI.RemoveGuiComponent(pDebugTexturesWindow);
+			pDebugTexturesWindow = NULL;
+		}
+	}
+	else
+	{
+		float scale = 0.15f;
+		float2 screenSize = { (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight };
+		float2 texSize = screenSize * scale;
+
+		if (!pDebugTexturesWindow)
+		{
+			GuiDesc guiDesc = {};
+			guiDesc.mStartSize = vec2(guiDesc.mStartSize.getX(), guiDesc.mStartSize.getY());
+			guiDesc.mStartPosition.setY(screenSize.getY() - texSize.getY() - 50.f);
+			pDebugTexturesWindow = gAppUI.AddGuiComponent("DEBUG RTs", &guiDesc);
+			ASSERT(pDebugTexturesWindow);
+
+			DebugTexturesWidget widget("Debug RTs");
+			pDebugTexturesWindow->AddWidget(widget);
+		}
+
+		tinystl::vector<Texture*> pVBRTs;
+#if (MSAASAMPLECOUNT == 1)
+		if (gAppSettings.mRenderMode == RENDERMODE_VISBUFF)
+		{
+			pVBRTs.push_back(pRenderTargetVBPass->pTexture);
+		}
+		else
+		{
+			pVBRTs.push_back(pRenderTargetDeferredPass[0]->pTexture);
+			pVBRTs.push_back(pRenderTargetDeferredPass[1]->pTexture);
+			pVBRTs.push_back(pRenderTargetDeferredPass[2]->pTexture);
+			pVBRTs.push_back(pRenderTargetDeferredPass[3]->pTexture);
+		}
+#endif
+		pVBRTs.push_back(pRenderTargetAO->pTexture);			
+		pVBRTs.push_back(pRenderTargetShadow->pTexture);
+				
+		((DebugTexturesWidget*)(pDebugTexturesWindow->mWidgets[0]))->SetTextures(pVBRTs, texSize);
+	}
+}
+
 IWidget* addResolutionProperty(
 	GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, WidgetCallback onResolutionChanged)
 {
@@ -833,7 +878,6 @@ class VisibilityBuffer: public IApp
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer, gMemoryBudget);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler);
 		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler);
@@ -1037,7 +1081,7 @@ class VisibilityBuffer: public IApp
 		{
 			MeshIn*   mesh = pScene->meshes + i;
 			Material* material = pScene->materials + mesh->materialId;
-			CreateClusters(material->twoSided, pScene, mesh);
+			createClusters(material->twoSided, pScene, mesh);
 		}
 		LOGINFOF("Load clusters : %f ms", clusterTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
@@ -1241,6 +1285,10 @@ class VisibilityBuffer: public IApp
 		pGuiWindow->AddWidget(vsyncProp);
 #endif
 
+		CheckboxWidget debugTargets("Draw Debug Targets", &gAppSettings.mDrawDebugTargets);
+		debugTargets.pOnDeactivatedAfterEdit = SetupDebugTexturesWindow;
+		pGuiWindow->AddWidget(debugTargets);
+
 #if !defined(METAL)
 		static const char*      outputModeNames[] = { "SDR", "HDR10 (DirectX 12 Only)", nullptr };
 		static const OutputMode outputModeValues[] = {
@@ -1295,13 +1343,12 @@ class VisibilityBuffer: public IApp
 		CheckboxWidget toggleGR("Enable Godray", &gAppSettings.mEnableGodray);
 		pGuiWindow->AddWidget(toggleGR);
 
-		tinystl::vector<IWidget*>& dynamicPropsGR = gAppSettings.mDynamicUIControlsGR.mDynamicProperties;    // shorthand
-		dynamicPropsGR.emplace_back(SliderFloatWidget("God Ray : Sun Size", &gAppSettings.mSunSize, 1.0f, 1000.0f).Clone());
-		dynamicPropsGR.emplace_back(SliderFloatWidget("God Ray: Exposure", &gAppSettings.gGodrayInfo.exposure, 0.0f, 0.1f, 0.001f).Clone());
-		dynamicPropsGR.emplace_back(SliderUintWidget("God Ray: Quality", &gAppSettings.gGodrayInteration, 1, 4).Clone());
+		gAppSettings.mDynamicUIWidgetsGR.AddWidget(SliderFloatWidget("God Ray : Sun Size", &gAppSettings.mSunSize, 1.0f, 1000.0f));
+		gAppSettings.mDynamicUIWidgetsGR.AddWidget(SliderFloatWidget("God Ray: Exposure", &gAppSettings.gGodrayInfo.exposure, 0.0f, 0.1f, 0.001f));
+		gAppSettings.mDynamicUIWidgetsGR.AddWidget(SliderUintWidget("God Ray: Quality", &gAppSettings.gGodrayInteration, 1, 4));
 
 		if (gAppSettings.mEnableGodray)
-			gAppSettings.mDynamicUIControlsGR.ShowDynamicProperties(pGuiWindow);
+			gAppSettings.mDynamicUIWidgetsGR.ShowWidgets(pGuiWindow);
 
 		//SliderFloatWidget esm("Shadow Control", &gAppSettings.mEsmControl, 0, 200.0f);
 		//pGuiWindow->AddWidget(esm);
@@ -1340,6 +1387,7 @@ class VisibilityBuffer: public IApp
 			RENDERMODE_DEFERRED,
 		};
 		DropdownWidget renderMode("Render Mode", (uint32_t*)&gAppSettings.mRenderMode, renderModeNames, (uint32_t*)renderModeValues, 2U);
+		renderMode.pOnDeactivatedAfterEdit = SetupDebugTexturesWindow;
 		pGuiWindow->AddWidget(renderMode);
 
 		static const char* displayColorRangeNames[] = { "RGB", nullptr };
@@ -1354,19 +1402,18 @@ class VisibilityBuffer: public IApp
 
 		static const DisplayColorSpace displayColorSpaceValues[] = { ColorSpace_Rec709, ColorSpace_Rec2020, ColorSpace_P3D65 };
 
-		tinystl::vector<IWidget*>& displaySetting = gAppSettings.mDisplaySetting.mDynamicProperties;
-		displaySetting.emplace_back(DropdownWidget(
+		gAppSettings.mDisplaySetting.AddWidget(DropdownWidget(
 										"Display Color Range", (uint32_t*)&gAppSettings.mDisplayColorRange, displayColorRangeNames,
 										(uint32_t*)displayColorRangeValues, 1U)
-										.Clone());
-		displaySetting.emplace_back(DropdownWidget(
+										);
+		gAppSettings.mDisplaySetting.AddWidget(DropdownWidget(
 										"Display Signal Range", (uint32_t*)&gAppSettings.mDisplaySignalRange, displaySignalRangeNames,
 										(uint32_t*)displaySignalRangeValues, 2U)
-										.Clone());
-		displaySetting.emplace_back(DropdownWidget(
+										);
+		gAppSettings.mDisplaySetting.AddWidget(DropdownWidget(
 										"Display Color Space", (uint32_t*)&gAppSettings.mCurrentSwapChainColorSpace, displayColorSpaceNames,
 										(uint32_t*)displayColorSpaceValues, 3U)
-										.Clone());
+										);
 
 		CheckboxWidget holdProp("Hold filtered results", &gAppSettings.mHoldFilteredResults);
 		pGuiWindow->AddWidget(holdProp);
@@ -1380,23 +1427,18 @@ class VisibilityBuffer: public IApp
 		CheckboxWidget asyncCompute("Async Compute", &gAppSettings.mAsyncCompute);
 		pGuiWindow->AddWidget(asyncCompute);
 
-#if MSAASAMPLECOUNT == 1
-		CheckboxWidget debugTargets("Draw Debug Targets", &gAppSettings.mDrawDebugTargets);
-		pGuiWindow->AddWidget(debugTargets);
-#endif
 		/************************************************************************/
 		// HDAO Settings
 		/************************************************************************/
 		CheckboxWidget toggleAO("Enable HDAO", &gAppSettings.mEnableHDAO);
 		pGuiWindow->AddWidget(toggleAO);
 
-		tinystl::vector<IWidget*>& dynamicPropsAO = gAppSettings.mDynamicUIControlsAO.mDynamicProperties;    // shorthand
-		dynamicPropsAO.emplace_back(SliderFloatWidget("AO accept radius", &gAppSettings.mAcceptRadius, 0, 10).Clone());
-		dynamicPropsAO.emplace_back(SliderFloatWidget("AO reject radius", &gAppSettings.mRejectRadius, 0, 10).Clone());
-		dynamicPropsAO.emplace_back(SliderFloatWidget("AO intensity radius", &gAppSettings.mAOIntensity, 0, 10).Clone());
-		dynamicPropsAO.emplace_back(SliderIntWidget("AO Quality", &gAppSettings.mAOQuality, 1, 4).Clone());
+		gAppSettings.mDynamicUIWidgetsAO.AddWidget(SliderFloatWidget("AO accept radius", &gAppSettings.mAcceptRadius, 0, 10));
+		gAppSettings.mDynamicUIWidgetsAO.AddWidget(SliderFloatWidget("AO reject radius", &gAppSettings.mRejectRadius, 0, 10));
+		gAppSettings.mDynamicUIWidgetsAO.AddWidget(SliderFloatWidget("AO intensity radius", &gAppSettings.mAOIntensity, 0, 10));
+		gAppSettings.mDynamicUIWidgetsAO.AddWidget(SliderIntWidget("AO Quality", &gAppSettings.mAOQuality, 1, 4));
 		if (gAppSettings.mEnableHDAO)
-			gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
+			gAppSettings.mDynamicUIWidgetsAO.ShowWidgets(pGuiWindow);
 
 		static const char* curveConversionModeNames[] = { "Linear Scale", "Scurve", nullptr };
 
@@ -1407,27 +1449,25 @@ class VisibilityBuffer: public IApp
 			2U);
 		pGuiWindow->AddWidget(curveConversionMode);
 
-		tinystl::vector<IWidget*>& dynamicPropsLinearScale = gAppSettings.mLinearScale.mDynamicProperties;
-		dynamicPropsLinearScale.emplace_back(SliderFloatWidget("Linear Scale", &gAppSettings.LinearScale, 0, 300.0f).Clone());
+		gAppSettings.mLinearScale.AddWidget(SliderFloatWidget("Linear Scale", &gAppSettings.LinearScale, 0, 300.0f));
 
 		if (gAppSettings.mCurveConversionMode == CurveConversion_LinearScale)
 		{
-			gAppSettings.mLinearScale.ShowDynamicProperties(pGuiWindow);
+			gAppSettings.mLinearScale.ShowWidgets(pGuiWindow);
 		}
 
-		tinystl::vector<IWidget*>& dynamicPropsSCurve = gAppSettings.mSCurve.mDynamicProperties;    // shorthand
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: Scale Factor", &gAppSettings.SCurveScaleFactor, 0, 10.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: SMin", &gAppSettings.SCurveSMin, 0, 2.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: SMid", &gAppSettings.SCurveSMid, 0, 20.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: SMax", &gAppSettings.SCurveSMax, 0, 100.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: TMin", &gAppSettings.SCurveTMin, 0, 10.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: TMid", &gAppSettings.SCurveTMid, 0, 300.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: TMax", &gAppSettings.SCurveTMax, 0, 4000.0f).Clone());
-		dynamicPropsSCurve.emplace_back(SliderFloatWidget("SCurve: Slope Factor", &gAppSettings.SCurveSlopeFactor, 0, 3.0f).Clone());
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: Scale Factor", &gAppSettings.SCurveScaleFactor, 0, 10.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: SMin", &gAppSettings.SCurveSMin, 0, 2.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: SMid", &gAppSettings.SCurveSMid, 0, 20.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: SMax", &gAppSettings.SCurveSMax, 0, 100.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: TMin", &gAppSettings.SCurveTMin, 0, 10.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: TMid", &gAppSettings.SCurveTMid, 0, 300.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: TMax", &gAppSettings.SCurveTMax, 0, 4000.0f));
+		gAppSettings.mSCurve.AddWidget(SliderFloatWidget("SCurve: Slope Factor", &gAppSettings.SCurveSlopeFactor, 0, 3.0f));
 
 		if (gAppSettings.mOutputMode != OutputMode::OUTPUT_MODE_SDR && gAppSettings.mCurveConversionMode == CurveConversion_SCurve)
 		{
-			gAppSettings.mSCurve.ShowDynamicProperties(pGuiWindow);
+			gAppSettings.mSCurve.ShowWidgets(pGuiWindow);
 			gSCurveInfomation.UseSCurve = 1.0f;
 		}
 
@@ -1499,9 +1539,8 @@ class VisibilityBuffer: public IApp
 
 		destroyCameraController(pCameraController);
 
-		removeDebugRendererInterface();
+		gAppSettings.mDynamicUIWidgetsAO.Destroy();
 
-		gAppSettings.mDynamicUIControlsAO.Destroy();
 		gAppUI.Exit();
 
 		// Destroy geometry for light rendering
@@ -1562,8 +1601,7 @@ class VisibilityBuffer: public IApp
 		// Destroy clusters
 		for (uint32_t i = 0; i < pScene->numMeshes; ++i)
 		{
-			conf_free(pScene->meshes[i].clusters);
-			conf_free(pScene->meshes[i].clusterCompacts);
+			destroyClusters(&pScene->meshes[i]);
 		}
 		// Remove Textures
 		for (uint32_t i = 0; i < pScene->numMaterials; ++i)
@@ -2125,6 +2163,8 @@ class VisibilityBuffer: public IApp
 
 		addPipeline(pRenderer, &pipelineSettingsFinalPass, &pPipelinePresentPass);
 
+		SetupDebugTexturesWindow();
+
 		return true;
 	}
 
@@ -2182,6 +2222,12 @@ class VisibilityBuffer: public IApp
 		removePipeline(pRenderer, pSkyboxPipeline);
 
 		removeRenderTargets();
+
+		if (pDebugTexturesWindow)
+		{
+			gAppUI.RemoveGuiComponent(pDebugTexturesWindow);
+			pDebugTexturesWindow = NULL;
+		}
 	}
 
 	void Update(float deltaTime)
@@ -3693,13 +3739,19 @@ class VisibilityBuffer: public IApp
 			gAppSettings.mFilterTriangles = !gAppSettings.mFilterTriangles;
 
 		if (getKeyUp(KEY_RIGHT_TRIGGER))
+		{
 			gAppSettings.mRenderMode = (RenderMode)((gAppSettings.mRenderMode + 1) % RENDERMODE_COUNT);
+			SetupDebugTexturesWindow();
+		}
 
 		if (getKeyUp(KEY_BUTTON_X))
 			gAppSettings.mRenderLocalLights = !gAppSettings.mRenderLocalLights;
 
 		if (getKeyUp(KEY_BUTTON_Y))
+		{
 			gAppSettings.mDrawDebugTargets = !gAppSettings.mDrawDebugTargets;
+			SetupDebugTexturesWindow();
+		}
 	}
 	/************************************************************************/
 	// UI
@@ -3715,16 +3767,16 @@ class VisibilityBuffer: public IApp
 			{
 				gSCurveInfomation.UseSCurve = 0.0f;
 
-				gAppSettings.mLinearScale.ShowDynamicProperties(pGuiWindow);
-				gAppSettings.mSCurve.HideDynamicProperties(pGuiWindow);
+				gAppSettings.mLinearScale.ShowWidgets(pGuiWindow);
+				gAppSettings.mSCurve.HideWidgets(pGuiWindow);
 			}
 			else
 			{
-				gAppSettings.mLinearScale.HideDynamicProperties(pGuiWindow);
+				gAppSettings.mLinearScale.HideWidgets(pGuiWindow);
 
 				if (gAppSettings.mOutputMode != OUTPUT_MODE_SDR)
 				{
-					gAppSettings.mSCurve.ShowDynamicProperties(pGuiWindow);
+					gAppSettings.mSCurve.ShowWidgets(pGuiWindow);
 					gSCurveInfomation.UseSCurve = 1.0f;
 				}
 			}
@@ -3736,14 +3788,14 @@ class VisibilityBuffer: public IApp
 		{
 			if (gAppSettings.mOutputMode == OUTPUT_MODE_SDR)
 			{
-				gAppSettings.mSCurve.HideDynamicProperties(pGuiWindow);
+				gAppSettings.mSCurve.HideWidgets(pGuiWindow);
 				gSCurveInfomation.UseSCurve = 0.0f;
 			}
 			else
 			{
 				if (gWasHDR10 == OUTPUT_MODE_SDR && gAppSettings.mCurveConversionMode != CurveConversion_LinearScale)
 				{
-					gAppSettings.mSCurve.ShowDynamicProperties(pGuiWindow);
+					gAppSettings.mSCurve.ShowWidgets(pGuiWindow);
 					gSCurveInfomation.UseSCurve = 1.0f;
 				}
 			}
@@ -3756,11 +3808,11 @@ class VisibilityBuffer: public IApp
 		if (gWasOutputMode != gAppSettings.mOutputMode)
 		{
 			if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
-				gAppSettings.mDisplaySetting.ShowDynamicProperties(pGuiWindow);
+				gAppSettings.mDisplaySetting.ShowWidgets(pGuiWindow);
 			else
 			{
 				if (gWasOutputMode == OUTPUT_MODE_HDR10)
-					gAppSettings.mDisplaySetting.HideDynamicProperties(pGuiWindow);
+					gAppSettings.mDisplaySetting.HideWidgets(pGuiWindow);
 			}
 		}
 
@@ -3773,11 +3825,11 @@ class VisibilityBuffer: public IApp
 			gWasAOEnabled = gAppSettings.mEnableHDAO;
 			if (gWasAOEnabled)
 			{
-				gAppSettings.mDynamicUIControlsAO.ShowDynamicProperties(pGuiWindow);
+				gAppSettings.mDynamicUIWidgetsAO.ShowWidgets(pGuiWindow);
 			}
 			else
 			{
-				gAppSettings.mDynamicUIControlsAO.HideDynamicProperties(pGuiWindow);
+				gAppSettings.mDynamicUIWidgetsAO.HideWidgets(pGuiWindow);
 			}
 		}
 
@@ -3788,11 +3840,11 @@ class VisibilityBuffer: public IApp
 			gWasGREnabled = gAppSettings.mEnableGodray;
 			if (gWasGREnabled)
 			{
-				gAppSettings.mDynamicUIControlsGR.ShowDynamicProperties(pGuiWindow);
+				gAppSettings.mDynamicUIWidgetsGR.ShowWidgets(pGuiWindow);
 			}
 			else
 			{
-				gAppSettings.mDynamicUIControlsGR.HideDynamicProperties(pGuiWindow);
+				gAppSettings.mDynamicUIWidgetsGR.HideWidgets(pGuiWindow);
 			}
 		}
 
@@ -5519,7 +5571,7 @@ class VisibilityBuffer: public IApp
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
 		gTimer.GetUSec(true);
-		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #if 1
 		// NOTE: Realtime GPU Profiling is not supported on Metal.
@@ -5530,83 +5582,37 @@ class VisibilityBuffer: public IApp
 			{
 				float time =
 					max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f, (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-				drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+				gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
 
-				drawDebugText(
-					cmd, 8.0f, 65.0f, tinystl::string::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f),
+				gAppUI.DrawText(
+					cmd, float2(8.0f, 65.0f), tinystl::string::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f),
 					&gFrameTimeDraw);
-				drawDebugGpuProfile(cmd, 8.0f, 90.0f, pComputeGpuProfiler, NULL);
-				drawDebugText(
-					cmd, 8.0f, 300.0f,
+				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 90.0f), pComputeGpuProfiler, NULL);
+				gAppUI.DrawText(
+					cmd, float2(8.0f, 300.0f),
 					tinystl::string::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
 					&gFrameTimeDraw);
-				drawDebugGpuProfile(cmd, 8.0f, 325.0f, pGraphicsGpuProfiler, NULL);
+				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 325.0f), pGraphicsGpuProfiler, NULL);
 			}
 			else
 			{
 				float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
-				drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
-
-				drawDebugGpuProfile(cmd, 8.0f, 65.0f, pGraphicsGpuProfiler, NULL);
+				gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
 			}
 		}
 		else
 		{
-			drawDebugText(
-				cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
+			gAppUI.DrawText(
+				cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
 				&gFrameTimeDraw);
-			drawDebugGpuProfile(cmd, 8.0f, 65.0f, pGraphicsGpuProfiler, NULL);
+			gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
 		}
 #endif
 
-		// Draw Debug Textures
-#if (MSAASAMPLECOUNT == 1)
-		if (gAppSettings.mDrawDebugTargets)
-		{
-			float scale = 0.15f;
-
-			if (gAppSettings.mRenderMode == RENDERMODE_VISBUFF)
-			{
-				RenderTarget* pVBRTs[] = { pRenderTargetVBPass, pRenderTargetAO };
-
-				float2 screenSize = { (float)pRenderTargetVBPass->mDesc.mWidth, (float)pRenderTargetVBPass->mDesc.mHeight };
-				float2 texSize = screenSize * scale;
-				float2 texPos = screenSize + float2(0.0f, -texSize.getY());
-
-				for (uint32_t i = 0; i < sizeof(pVBRTs) / sizeof(pVBRTs[0]); ++i)
-				{
-					texPos.setX(texPos.getX() - texSize.getX());
-					drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pVBRTs[i]->pTexture, 1.0f, 1.0f, 1.0f);
-				}
-
-				screenSize = { (float)pRenderTargetVBPass->mDesc.mHeight, (float)pRenderTargetVBPass->mDesc.mHeight };
-				texSize = screenSize * scale;
-				texPos.setX(texPos.getX() - texSize.getX());
-				drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pRenderTargetShadow->pTexture, 1.0f, 1.0f, 1.0f);
-			}
-			else
-			{
-				RenderTarget* pDeferredRTs[] = { pRenderTargetDeferredPass[0], pRenderTargetDeferredPass[1], pRenderTargetDeferredPass[2],
-												 pRenderTargetAO };
-
-				float2 screenSize = { (float)pDeferredRTs[0]->mDesc.mWidth, (float)pDeferredRTs[0]->mDesc.mHeight };
-				float2 texSize = screenSize * scale;
-				float2 texPos = screenSize + float2(0.0f, -texSize.getY());
-
-				for (uint32_t i = 0; i < sizeof(pDeferredRTs) / sizeof(pDeferredRTs[0]); ++i)
-				{
-					texPos.setX(texPos.getX() - texSize.getX());
-					drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pDeferredRTs[i]->pTexture, 1.0f, 1.0f, 1.0f);
-				}
-
-				screenSize = { (float)pDeferredRTs[0]->mDesc.mHeight, (float)pDeferredRTs[0]->mDesc.mHeight };
-				texSize = screenSize * scale;
-				texPos.setX(texPos.getX() - texSize.getX());
-				drawDebugTexture(cmd, texPos.x, texPos.y, texSize.x, texSize.y, pRenderTargetShadow->pTexture, 1.0f, 1.0f, 1.0f);
-			}
-		}
-#endif
 		gAppUI.Gui(pGuiWindow);
+		if (pDebugTexturesWindow)
+			gAppUI.Gui(pDebugTexturesWindow);
 
 #endif
 

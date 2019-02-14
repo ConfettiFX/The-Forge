@@ -75,6 +75,8 @@
 		971BCEED2170133F007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AD6A201F7300000E571F /* TitilliumText */; };
 		971BCEEF2170135B007F2B2F /* cube.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B2A9284620C7606200F06BFD /* cube.obj */; };
 		971BCEF02170135B007F2B2F /* matBall.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B2A9284720C7606200F06BFD /* matBall.obj */; };
+		977AF06921FA7AE000BA2AA2 /* renderSceneShadows.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */; };
+		977AF06A21FA7AE000BA2AA2 /* renderSceneShadows.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */; };
 		97B2DD20218BA44600DDDE62 /* PBR in Copy PBR Textures */ = {isa = PBXBuildFile; fileRef = 97B2DD1F218BA44600DDDE62 /* PBR */; };
 		B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE521421A4A006F372D /* MetalKit.framework */; };
 		B2087DE821421A4A006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE621421A4A006F372D /* Metal.framework */; };
@@ -341,6 +343,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
+				977AF06921FA7AE000BA2AA2 /* renderSceneShadows.frag.metal in Copy Shaders */,
+				977AF06A21FA7AE000BA2AA2 /* renderSceneShadows.vert.metal in Copy Shaders */,
 				65DB598721F65D1500636935 /* fullscreen.vert.metal in Copy Shaders */,
 				65DB598821F65D1500636935 /* hair.comp.metal in Copy Shaders */,
 				65DB598921F65D1500636935 /* hair.frag.metal in Copy Shaders */,
@@ -448,10 +452,12 @@
 		65DB597D21F65C7500636935 /* showCapsules.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = showCapsules.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/showCapsules.frag.metal; sourceTree = "<group>"; };
 		65DB597E21F65C7500636935 /* hair.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = hair.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/hair.frag.metal; sourceTree = "<group>"; };
 		65DB599721F6A60800636935 /* Hair */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Hair; path = ../../../../Art/Hair; sourceTree = "<group>"; };
-		65F9787521E71EEB008EC741 /* loadModels.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadModels.lua; path = ../../../src/06_MaterialPlayground/loadModels.lua; sourceTree = "<group>"; };
-		65F9787621E71EEB008EC741 /* updateCamera.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = updateCamera.lua; path = ../../../src/06_MaterialPlayground/updateCamera.lua; sourceTree = "<group>"; };
-		65F9787721E71EEB008EC741 /* loadGroundTextures.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadGroundTextures.lua; path = ../../../src/06_MaterialPlayground/loadGroundTextures.lua; sourceTree = "<group>"; };
-		65F9787821E71EEB008EC741 /* loadTextures.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadTextures.lua; path = ../../../src/06_MaterialPlayground/loadTextures.lua; sourceTree = "<group>"; };
+		65F9787521E71EEB008EC741 /* loadModels.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadModels.lua; path = ../../src/06_MaterialPlayground/loadModels.lua; sourceTree = "<group>"; };
+		65F9787621E71EEB008EC741 /* updateCamera.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = updateCamera.lua; path = ../../src/06_MaterialPlayground/updateCamera.lua; sourceTree = "<group>"; };
+		65F9787721E71EEB008EC741 /* loadGroundTextures.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadGroundTextures.lua; path = ../../src/06_MaterialPlayground/loadGroundTextures.lua; sourceTree = "<group>"; };
+		65F9787821E71EEB008EC741 /* loadTextures.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadTextures.lua; path = ../../src/06_MaterialPlayground/loadTextures.lua; sourceTree = "<group>"; };
+		977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = renderSceneShadows.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneShadows.frag.metal; sourceTree = "<group>"; };
+		977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = renderSceneShadows.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneShadows.vert.metal; sourceTree = "<group>"; };
 		97B2DD1F218BA44600DDDE62 /* PBR */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PBR; path = ../../../../Art/PBR; sourceTree = "<group>"; };
 		B2087DE521421A4A006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DE621421A4A006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -545,6 +551,8 @@
 		28A5AD68201F72EB000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
+				977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */,
+				977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */,
 				65DB597B21F65C7500636935 /* fullscreen.vert.metal */,
 				65DB597821F65C7500636935 /* hair.comp.metal */,
 				65DB597E21F65C7500636935 /* hair.frag.metal */,
@@ -690,7 +698,7 @@
 				65F9787821E71EEB008EC741 /* loadTextures.lua */,
 				65F9787621E71EEB008EC741 /* updateCamera.lua */,
 			);
-			path = Scripts;
+			name = Scripts;
 			sourceTree = "<group>";
 		};
 		B2A9284520C7602C00F06BFD /* Meshes */ = {

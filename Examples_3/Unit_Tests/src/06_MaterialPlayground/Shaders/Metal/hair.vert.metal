@@ -54,9 +54,14 @@ struct CameraData
 	float4x4 CamVPMatrix;
 	float4x4 CamInvVPMatrix;
 	float3 CamPos;
+	float fAmbientLightIntensity;
 	int bUseEnvironmentLight;
-};
+	float fEnvironmentLightIntensity;
+	float fAOIntensity;
 
+	int renderMode;
+	float fNormalMapIntensity;
+};
 struct HairData
 {
 	float4x4 Transform;

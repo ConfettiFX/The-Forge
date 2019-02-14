@@ -30,30 +30,24 @@
     <ClCompile Include="..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\finalPass.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\finalPass.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\gbuffer.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\gbuffer.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSimple.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSimple.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\shadowMapPass.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\shadowMapPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyBuffer.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\forwardSphere.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\forwardSphere.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fsTriangle.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfBBox.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSphere.frag" />
     <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\finalPass.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\finalPass.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\gbuffer.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\gbuffer.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSimple.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSimple.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shadowMapPass.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shadowMapPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\zPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyBuffer.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\forwardSphere.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\forwardSphere.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fsTriangle.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfBBox.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSphere.frag" />
     <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\zPass.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{57CC1131-660E-458B-A41F-29D60F3ECE41}</ProjectGuid>
@@ -185,7 +179,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;gainputstatic.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -313,7 +307,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;gainputstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

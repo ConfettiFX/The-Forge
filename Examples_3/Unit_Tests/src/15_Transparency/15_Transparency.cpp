@@ -50,7 +50,6 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
@@ -654,15 +653,15 @@ struct GuiController
 	static void AddGui();
 	static void UpdateDynamicUI();
 
-	static DynamicUIControls alphaBlendDynamicWidgets;
-	static DynamicUIControls weightedBlendedOitDynamicWidgets;
-	static DynamicUIControls weightedBlendedOitVolitionDynamicWidgets;
+	static DynamicUIWidgets alphaBlendDynamicWidgets;
+	static DynamicUIWidgets weightedBlendedOitDynamicWidgets;
+	static DynamicUIWidgets weightedBlendedOitVolitionDynamicWidgets;
 
 	static TransparencyType currentTransparencyType;
 };
-DynamicUIControls GuiController::alphaBlendDynamicWidgets;
-DynamicUIControls GuiController::weightedBlendedOitDynamicWidgets;
-DynamicUIControls GuiController::weightedBlendedOitVolitionDynamicWidgets;
+DynamicUIWidgets GuiController::alphaBlendDynamicWidgets;
+DynamicUIWidgets GuiController::weightedBlendedOitDynamicWidgets;
+DynamicUIWidgets GuiController::weightedBlendedOitVolitionDynamicWidgets;
 TransparencyType  GuiController::currentTransparencyType;
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -688,7 +687,6 @@ class Transparency: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -753,7 +751,6 @@ class Transparency: public IApp
 		destroyCameraController(pLightView);
 
 		gAppUI.Exit();
-		removeDebugRendererInterface();
 
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
@@ -2019,12 +2016,12 @@ class Transparency: public IApp
 		gTimer.GetUSec(true);
 
 #ifndef TARGET_IOS
-		drawDebugText(pCmd, 8.0f, 15.0f, tinystl::string::format("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		drawDebugText(
-			pCmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-		drawDebugText(pCmd, 8.0f, 65.0f, tinystl::string::format("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(pCmd, float2(8.0f, 15.0f), tinystl::string::format("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			pCmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(pCmd, float2(8.0f, 65.0f), tinystl::string::format("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
-		drawDebugGpuProfile(pCmd, 8.0f, 90.0f, pGpuProfiler, NULL);
+		gAppUI.DrawDebugGpuProfile(pCmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
 #else
 		gVirtualJoystick.Draw(pCmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
@@ -2476,9 +2473,12 @@ class Transparency: public IApp
 		removeShader(pRenderer, pShaderPTGenMips);
 #endif
 #if defined(DIRECT3D12) && !defined(_DURANGO)
-		removeShader(pRenderer, pShaderAOITShade);
-		removeShader(pRenderer, pShaderAOITComposite);
-		removeShader(pRenderer, pShaderAOITClear);
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			removeShader(pRenderer, pShaderAOITShade);
+			removeShader(pRenderer, pShaderAOITComposite);
+			removeShader(pRenderer, pShaderAOITClear);
+		}
 #endif
 	}
 
@@ -3644,9 +3644,12 @@ class Transparency: public IApp
 		removePipeline(pRenderer, pPipelinePTGenMips);
 #endif
 #if defined(DIRECT3D12) && !defined(_DURANGO)
-		removePipeline(pRenderer, pPipelineAOITShade);
-		removePipeline(pRenderer, pPipelineAOITComposite);
-		removePipeline(pRenderer, pPipelineAOITClear);
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			removePipeline(pRenderer, pPipelineAOITShade);
+			removePipeline(pRenderer, pPipelineAOITComposite);
+			removePipeline(pRenderer, pPipelineAOITClear);
+		}
 #endif
 	}
 };
@@ -3656,18 +3659,18 @@ void GuiController::UpdateDynamicUI()
 	if (gTransparencyType != GuiController::currentTransparencyType)
 	{
 		if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
-			GuiController::alphaBlendDynamicWidgets.HideDynamicProperties(pGuiWindow);
+			GuiController::alphaBlendDynamicWidgets.HideWidgets(pGuiWindow);
 		else if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-			GuiController::weightedBlendedOitDynamicWidgets.HideDynamicProperties(pGuiWindow);
+			GuiController::weightedBlendedOitDynamicWidgets.HideWidgets(pGuiWindow);
 		else if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-			GuiController::weightedBlendedOitVolitionDynamicWidgets.HideDynamicProperties(pGuiWindow);
+			GuiController::weightedBlendedOitVolitionDynamicWidgets.HideWidgets(pGuiWindow);
 
 		if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
-			GuiController::alphaBlendDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+			GuiController::alphaBlendDynamicWidgets.ShowWidgets(pGuiWindow);
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-			GuiController::weightedBlendedOitDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+			GuiController::weightedBlendedOitDynamicWidgets.ShowWidgets(pGuiWindow);
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-			GuiController::weightedBlendedOitVolitionDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+			GuiController::weightedBlendedOitVolitionDynamicWidgets.ShowWidgets(pGuiWindow);
 
 		GuiController::currentTransparencyType = (TransparencyType)gTransparencyType;
 	}
@@ -3708,71 +3711,71 @@ void GuiController::AddGui()
 
 	// TRANSPARENCY_TYPE_ALPHA_BLEND Widgets
 	{
-		static LabelWidget blendSettings("Blend Settings");
-		GuiController::alphaBlendDynamicWidgets.mDynamicProperties.emplace_back(&blendSettings);
+		GuiController::alphaBlendDynamicWidgets.AddWidget(
+			LabelWidget("Blend Settings"));
 
-		static CheckboxWidget sortObjects("Sort Objects", &gAlphaBlendSettings.mSortObjects);
-		GuiController::alphaBlendDynamicWidgets.mDynamicProperties.emplace_back(&sortObjects);
+		GuiController::alphaBlendDynamicWidgets.AddWidget(
+			CheckboxWidget("Sort Objects", &gAlphaBlendSettings.mSortObjects));
 
-		static CheckboxWidget sortParticles("Sort Particles", &gAlphaBlendSettings.mSortParticles);
-		GuiController::alphaBlendDynamicWidgets.mDynamicProperties.emplace_back(&sortParticles);
+		GuiController::alphaBlendDynamicWidgets.AddWidget(
+			CheckboxWidget("Sort Particles", &gAlphaBlendSettings.mSortParticles));
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT Widgets
 	{
-		static LabelWidget blendSettings("Blend Settings");
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&blendSettings);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			LabelWidget("Blend Settings"));
 
-		static SliderFloatWidget colorResistance("Color Resistance", &gWBOITSettingsData.mColorResistance, 1.0f, 25.0f);
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&colorResistance);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			SliderFloatWidget("Color Resistance", &gWBOITSettingsData.mColorResistance, 1.0f, 25.0f));
 
-		static SliderFloatWidget rangeAdjustment("Range Adjustment", &gWBOITSettingsData.mRangeAdjustment, 0.0f, 1.0f);
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&rangeAdjustment);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			SliderFloatWidget("Range Adjustment", &gWBOITSettingsData.mRangeAdjustment, 0.0f, 1.0f));
 
-		static SliderFloatWidget depthRange("Depth Range", &gWBOITSettingsData.mDepthRange, 0.1f, 500.0f);
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&depthRange);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			SliderFloatWidget("Depth Range", &gWBOITSettingsData.mDepthRange, 0.1f, 500.0f));
 
-		static SliderFloatWidget orderingStrength("Ordering Strength", &gWBOITSettingsData.mOrderingStrength, 0.1f, 25.0f);
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&orderingStrength);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			SliderFloatWidget("Ordering Strength", &gWBOITSettingsData.mOrderingStrength, 0.1f, 25.0f));
 
-		static SliderFloatWidget underflowLimit("Underflow Limit", &gWBOITSettingsData.mUnderflowLimit, 1e-4f, 1e-1f, 1e-4f);
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&underflowLimit);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			SliderFloatWidget("Underflow Limit", &gWBOITSettingsData.mUnderflowLimit, 1e-4f, 1e-1f, 1e-4f));
 
-		static SliderFloatWidget overflowLimit("Overflow Limit", &gWBOITSettingsData.mOverflowLimit, 3e1f, 3e4f);
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&overflowLimit);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
+			SliderFloatWidget("Overflow Limit", &gWBOITSettingsData.mOverflowLimit, 3e1f, 3e4f));
 
-		static ButtonWidget resetButton("Reset");
+		ButtonWidget resetButton("Reset");
 		resetButton.pOnDeactivatedAfterEdit = ([]() { gWBOITSettingsData = WBOITSettings(); });
-		GuiController::weightedBlendedOitDynamicWidgets.mDynamicProperties.emplace_back(&resetButton);
+		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(resetButton);
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION Widgets
 	{
-		static LabelWidget blendSettings("Blend Settings");
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&blendSettings);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			LabelWidget("Blend Settings"));
 
-		static SliderFloatWidget opacitySensitivity("Opacity Sensitivity", &gWBOITVolitionSettingsData.mOpacitySensitivity, 1.0f, 25.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&opacitySensitivity);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Opacity Sensitivity", &gWBOITVolitionSettingsData.mOpacitySensitivity, 1.0f, 25.0f));
 
-		static SliderFloatWidget weightBias("Weight Bias", &gWBOITVolitionSettingsData.mWeightBias, 0.0f, 25.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&weightBias);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Weight Bias", &gWBOITVolitionSettingsData.mWeightBias, 0.0f, 25.0f));
 
-		static SliderFloatWidget precisionScalar("Precision Scalar", &gWBOITVolitionSettingsData.mPrecisionScalar, 100.0f, 100000.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&precisionScalar);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Precision Scalar", &gWBOITVolitionSettingsData.mPrecisionScalar, 100.0f, 100000.0f));
 
-		static SliderFloatWidget maximumWeight("Maximum Weight", &gWBOITVolitionSettingsData.mMaximumWeight, 0.1f, 100.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&maximumWeight);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Maximum Weight", &gWBOITVolitionSettingsData.mMaximumWeight, 0.1f, 100.0f));
 
-		static SliderFloatWidget maximumColorValue("Maximum Color Value", &gWBOITVolitionSettingsData.mMaximumColorValue, 100.0f, 10000.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&maximumColorValue);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Maximum Color Value", &gWBOITVolitionSettingsData.mMaximumColorValue, 100.0f, 10000.0f));
 
-		static SliderFloatWidget additiveSensitivity("Additive Sensitivity", &gWBOITVolitionSettingsData.mAdditiveSensitivity, 0.1f, 25.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&additiveSensitivity);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Additive Sensitivity", &gWBOITVolitionSettingsData.mAdditiveSensitivity, 0.1f, 25.0f));
 
-		static SliderFloatWidget emissiveSensitivity("Emissive Sensitivity", &gWBOITVolitionSettingsData.mEmissiveSensitivity, 0.01f, 1.0f);
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&emissiveSensitivity);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
+			SliderFloatWidget("Emissive Sensitivity", &gWBOITVolitionSettingsData.mEmissiveSensitivity, 0.01f, 1.0f));
 
-		static ButtonWidget resetButton("Reset");
+		ButtonWidget resetButton("Reset");
 		resetButton.pOnDeactivatedAfterEdit = ([]() { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.mDynamicProperties.emplace_back(&resetButton);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(resetButton);
 	}
 
 	pGuiWindow->AddWidget(LabelWidget("Light Settings"));
@@ -3783,17 +3786,17 @@ void GuiController::AddGui()
 	if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_ALPHA_BLEND;
-		GuiController::alphaBlendDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+		GuiController::alphaBlendDynamicWidgets.ShowWidgets(pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT;
-		GuiController::weightedBlendedOitDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+		GuiController::weightedBlendedOitDynamicWidgets.ShowWidgets(pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION;
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.ShowDynamicProperties(pGuiWindow);
+		GuiController::weightedBlendedOitVolitionDynamicWidgets.ShowWidgets(pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
 	{

@@ -24,67 +24,29 @@
 
 #version 450 core
 
-layout (set=0, binding=1) uniform texture2D  RightText;
-layout (set=0, binding=2) uniform texture2D  LeftText;
-layout (set=0, binding=3) uniform texture2D  TopText;
-layout (set=0, binding=4) uniform texture2D  BotText;
-layout (set=0, binding=5) uniform texture2D  FrontText;
-layout (set=0, binding=6) uniform texture2D  BackText;
-layout (set=0, binding=7) uniform sampler   skySampler;
-layout(location = 0) in INVOCATION
-{
-  vec4 texcoord;
-  int side;
-} fs_in;
+layout(early_fragment_tests) in;
+
+layout (set=0, binding=1) uniform sampler   skySampler;
+layout (set=3, binding=0) uniform textureCube  Skybox;
 
 layout(location = 0) out vec4 fs_out_color;
 
-//layout(binding = 2) uniform samplerCube g_skybox_texture;
+layout(set = 0, binding = 0) uniform renderSettingUniformBlock
+{
+    vec4 WindowDimension;
+    int ShadowType;
+};
+layout(set = 1, binding = 0) uniform cameraUniformBlock
+{
+    mat4 View;
+    mat4 Project;
+    mat4 ViewProject;
+    mat4 ViewInverse;
+    mat4 ProjectInverse;
+};
 
 void main(void)
 {
-
-  vec2 newtextcoord ;
-  float side = round(fs_in.texcoord.w);
-  if(side==1)
-  {
-  
-      newtextcoord = (fs_in.texcoord.zy)/20+vec2(0.5);
-      newtextcoord = vec2(1-newtextcoord.x,1-newtextcoord.y);
-      fs_out_color  =  texture(sampler2D(RightText, skySampler), newtextcoord);
-  }
-  else if(side==2)
-  {
-  
-      vec2 newtextcoord = (fs_in.texcoord.zy)/20+vec2(0.5);
-      newtextcoord = vec2(newtextcoord.x,1-newtextcoord.y);
-      fs_out_color  =  texture(sampler2D(LeftText, skySampler), newtextcoord);
-  }
-  else if(side==3)
-  {
-       fs_out_color  =  texture(sampler2D(TopText, skySampler), (fs_in.texcoord.xz)/20+vec2(0.5));
-  }
-  if(side == 4.0f)
-  {
-    
-       newtextcoord = (fs_in.texcoord.xz)/20+vec2(0.5);
-       newtextcoord = vec2(newtextcoord.x,1-newtextcoord.y);
-       fs_out_color  =  texture(sampler2D(BotText, skySampler), newtextcoord);
-  }
-  else if(side==5)
-  {
-     
-       newtextcoord = (fs_in.texcoord.xy)/20+vec2(0.5);
-       newtextcoord = vec2(newtextcoord.x,1-newtextcoord.y);
-       fs_out_color = texture(sampler2D(FrontText, skySampler), newtextcoord);
-       
-  }
-  else if(side==6)
-  {
-      
-       newtextcoord = (fs_in.texcoord.xy)/20+vec2(0.5);
-       newtextcoord = vec2(1-newtextcoord.x,1-newtextcoord.y);
-       fs_out_color = texture(sampler2D(BackText, skySampler), newtextcoord);
-  }
-  
+    vec3 uvw = transpose(mat3(View))*normalize((ProjectInverse*vec4(vec2(gl_FragCoord.xy)*vec2(2.0,-2.0)/WindowDimension.xy+vec2(-1.0,1.0),1.0,1.0)).xyz);
+    fs_out_color = texture(samplerCube(Skybox, skySampler), uvw);
 }

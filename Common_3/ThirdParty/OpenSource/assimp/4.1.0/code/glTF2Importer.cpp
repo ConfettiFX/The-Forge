@@ -807,8 +807,6 @@ aiNode* ImportNode(aiScene* pScene, glTF2::Asset& r, std::vector<unsigned int>& 
         if (node.skin) {
             for (int primitiveNo = 0; primitiveNo < count; ++primitiveNo) {
                 aiMesh* mesh = pScene->mMeshes[meshOffsets[mesh_idx]+primitiveNo];
-                mesh->mNumBones = node.skin->jointNames.size();
-                mesh->mBones = new aiBone*[mesh->mNumBones];
 
                 // GLTF and Assimp choose to store bone weights differently.
                 // GLTF has each vertex specify which bones influence the vertex.
@@ -819,25 +817,47 @@ aiNode* ImportNode(aiScene* pScene, glTF2::Asset& r, std::vector<unsigned int>& 
                 // both because it's somewhat slow and because, for many applications,
                 // we then need to reconvert the data back into the vertex-to-bone
                 // mapping which makes things doubly-slow.
-                std::vector<std::vector<aiVertexWeight>> weighting(mesh->mNumBones);
+                std::vector<std::vector<aiVertexWeight>> weighting(node.skin->jointNames.size());
                 BuildVertexWeightMapping(node.meshes[0]->primitives[primitiveNo], weighting);
 
+                // CONFFX_BEGIN
+                // Assimp doesn't support bones with no weight. We have to count the
+                // number of bones that affect the mesh and limit it to just those bones.
+                int numBones = 0;
                 for (size_t i = 0; i < mesh->mNumBones; ++i) {
-                    aiBone* bone = new aiBone();
-
-                    Ref<Node> joint = node.skin->jointNames[i];
-                    bone->mName = joint->name;
-                    GetNodeTransform(bone->mOffsetMatrix, *joint);
-
-                    std::vector<aiVertexWeight>& weights = weighting[i];
-
-                    bone->mNumWeights = weights.size();
-                    if (bone->mNumWeights > 0) {
-                        bone->mWeights = new aiVertexWeight[bone->mNumWeights];
-                        memcpy(bone->mWeights, weights.data(), bone->mNumWeights * sizeof(aiVertexWeight));
-                    }
-                    mesh->mBones[i] = bone;
+                    if (!weighting[i].empty())
+                        ++numBones;
                 }
+
+                mesh->mNumBones = numBones;
+                if (numBones > 0)
+                {
+                    mesh->mBones = new aiBone*[mesh->mNumBones];
+
+                    int j = 0;
+                    for (size_t i = 0; i < node.skin->jointNames.size(); ++i) {
+                        if (!weighting[i].empty())
+                        {
+                            aiBone* bone = new aiBone();
+
+                            Ref<Node> joint = node.skin->jointNames[i];
+                            bone->mName = joint->name;
+                            GetNodeTransform(bone->mOffsetMatrix, *joint);
+
+                            std::vector<aiVertexWeight>& weights = weighting[i];
+
+                            bone->mNumWeights = weights.size();
+                            if (bone->mNumWeights > 0) {
+                                bone->mWeights = new aiVertexWeight[bone->mNumWeights];
+                                memcpy(bone->mWeights, weights.data(), bone->mNumWeights * sizeof(aiVertexWeight));
+                            }
+                            mesh->mBones[j] = bone;
+                        }
+                    }
+                }
+                else
+                    mesh->mBones = nullptr;
+                // CONFFX_END
             }
         }
 

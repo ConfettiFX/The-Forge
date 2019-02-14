@@ -38,20 +38,21 @@
 
 /*************************************************************************************/
 namespace ImageFormat {
-bool              IsPlainFormat(const ImageFormat::Enum format);
-bool              IsCompressedFormat(const ImageFormat::Enum format);
-bool              IsFloatFormat(const ImageFormat::Enum format);
-bool              IsSignedFormat(const ImageFormat::Enum format);
-bool              IsStencilFormat(const ImageFormat::Enum format);
-bool              IsDepthFormat(const ImageFormat::Enum format);
-bool              IsPackedFormat(const ImageFormat::Enum format);
-bool              IsIntegerFormat(const ImageFormat::Enum format);
-int               GetChannelCount(const ImageFormat::Enum format);
-int               GetBytesPerChannel(const ImageFormat::Enum format);
-int               GetBytesPerPixel(const ImageFormat::Enum format);
-int               GetBytesPerBlock(const ImageFormat::Enum format);
-const char*       GetFormatString(const ImageFormat::Enum format);
-ImageFormat::Enum GetFormatFromString(char* string);
+bool                   IsPlainFormat(const ImageFormat::Enum format);
+bool                   IsCompressedFormat(const ImageFormat::Enum format);
+bool                   IsFloatFormat(const ImageFormat::Enum format);
+bool                   IsSignedFormat(const ImageFormat::Enum format);
+bool                   IsStencilFormat(const ImageFormat::Enum format);
+bool                   IsDepthFormat(const ImageFormat::Enum format);
+bool                   IsPackedFormat(const ImageFormat::Enum format);
+bool                   IsIntegerFormat(const ImageFormat::Enum format);
+int                    GetChannelCount(const ImageFormat::Enum format);
+int                    GetBytesPerChannel(const ImageFormat::Enum format);
+int                    GetBytesPerPixel(const ImageFormat::Enum format);
+int                    GetBytesPerBlock(const ImageFormat::Enum format);
+ImageFormat::BlockSize GetBlockSize(const ImageFormat::Enum format);
+const char*            GetFormatString(const ImageFormat::Enum format);
+ImageFormat::Enum      GetFormatFromString(char* string);
 };    // namespace ImageFormat
 
 typedef void* (*memoryAllocationFunc)(class Image* pImage, uint64_t memoryRequirement, void* pUserData);

@@ -29,7 +29,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\FpsCameraController.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\GuiCameraController.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
@@ -50,8 +49,8 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\DebugRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />

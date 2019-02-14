@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018 Confetti Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,58 +24,41 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct VSOutput 
+struct Uniforms_cameraUniformBlock
 {
-  float4 Position [[position]];
-  float4 TexCoord;
+    float4x4 View;
+    float4x4 Project;
+    float4x4 ViewProject;
+    float4x4 ViewInverse;
+    float4x4 ProjectInverse;
 };
 
-fragment float4 stageMain(VSOutput input                          [[stage_in]],
-                       sampler skySampler                         [[sampler(0)]],
-                       texture2d<float,access::sample> RightText  [[texture(0)]],
-                       texture2d<float,access::sample> LeftText   [[texture(1)]],
-                       texture2d<float,access::sample> TopText    [[texture(2)]],
-                       texture2d<float,access::sample> BotText    [[texture(3)]],
-                       texture2d<float,access::sample> FrontText  [[texture(4)]],
-                       texture2d<float,access::sample> BackText   [[texture(5)]])
+struct Uniforms_renderSettingUniformBlock
 {
-    float2 newtextcoord;
-    float side = round(input.TexCoord.w);
+    float4 WindowDimension;
+    int ShadowType;
+};
+	
+struct PsIn
+{
+    float4 Position [[position]];
+};
+struct PsOut
+{
+    float4 Color [[color(0)]];
+};
 
-    if (side == 1.0f)
-    {
-        newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
-        newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return RightText.sample(skySampler, newtextcoord);
-    }
-    else if (side == 2.0f)
-    {
-        newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return LeftText.sample(skySampler, newtextcoord);
-    }
-    if (side == 4.0f)
-    {
-        newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return BotText.sample(skySampler, newtextcoord);
-    }
-    else if (side == 5.0f)
-    {
-        newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return FrontText.sample(skySampler, newtextcoord);
-    }
-    else if (side == 6.0f)
-    {
-        newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
-        newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return BackText.sample(skySampler, newtextcoord);
-    }
-    else
-    {
-        newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
-        newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        return TopText.sample(skySampler, newtextcoord);
-    }
+
+fragment PsOut stageMain(
+    float4 Position [[position]],
+    constant Uniforms_cameraUniformBlock & cameraUniformBlock [[buffer(1)]],
+    constant Uniforms_renderSettingUniformBlock & renderSettingUniformBlock [[buffer(2)]],
+    texturecube<float> Skybox [[texture(0)]],
+    sampler skySampler [[sampler(0)]])
+{
+    //float3 uvw = ((normalize((((float4((((float2(((input).Position).xy) * float2(2.0, (-2.0))) / (renderSettingUniformBlock.WindowDimension).xy) + float2((-1.0), 1.0)), 1.0, 1.0))*(cameraUniformBlock.ProjectInverse))).xyz))*(transpose(float3x3((cameraUniformBlock.View[0]).xyz, (cameraUniformBlock.View[1]).xyz, (cameraUniformBlock.View[2]).xyz))));
+    float3 uvw = transpose(float3x3(cameraUniformBlock.View[0].xyz, cameraUniformBlock.View[1].xyz, cameraUniformBlock.View[2].xyz))*normalize((cameraUniformBlock.ProjectInverse*float4(float2(Position.xy)*float2(2.0,-2.0)/renderSettingUniformBlock.WindowDimension.xy+float2(-1.0,1.0),1.0,1.0)).xyz);
+	PsOut output;
+    output.Color = (float4)(Skybox.sample(skySampler, uvw));
+    return output;
 }

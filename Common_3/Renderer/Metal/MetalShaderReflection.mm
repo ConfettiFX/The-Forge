@@ -620,6 +620,10 @@ void mtl_createShaderReflection(
 	pOutReflection->pVariables = pVariables;
 	pOutReflection->mVariableCount = variablesCount;
 
+	pReflectionInfo->variableMembers.~vector();
+	pReflectionInfo->buffers.~vector();
+	pReflectionInfo->samplers.~vector();
+	pReflectionInfo->textures.~vector();
 	conf_free(pReflectionInfo);
 }
 #endif    // #ifdef METAL

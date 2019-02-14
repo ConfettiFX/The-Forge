@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (c) 2018-2019 Confetti Interactive Inc.
+# Copyright (c) 2018 Confetti Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -206,7 +206,38 @@ def ExecuteCommand(cmdList,outStream):
 		return -1  #error return code
 	
 	return 0 #success error code
+	
+def ExecuteCommandErrorOnly(cmdList):
+	try:
+		print("")
+		print("Executing command: " + ' '.join(cmdList))
+		print("") 
+		DEVNULL = open(os.devnull, 'w')
+		proc = subprocess.Popen(cmdList, stdout=DEVNULL, stderr=subprocess.STDOUT)
+		proc.wait()
 
+		if proc.returncode != 0:
+			return proc.returncode
+	except Exception as ex:
+		print("-------------------------------------")
+		print("Failed executing command: " + ' '.join(cmdList))
+		print(ex)
+		print("-------------------------------------")
+		return -1  #error return code
+	
+	return 0 #success error code
+	
+def ExecuteBuildAndroid(cmdList, fileName, configuration, platform):
+	returnCode = ExecuteCommand(cmdList, sys.stdout)
+	
+	if returnCode != 0:
+		print("FAILED BUILDING ", fileName, configuration)
+		failedBuilds.append({'name':fileName,'conf':configuration, 'platform':platform})
+	else:
+		successfulBuilds.append({'name':fileName,'conf':configuration, 'platform':platform})
+	
+	return returnCode
+	
 def ExecuteBuild(cmdList, fileName, configuration, platform):
 	returnCode = ExecuteCommand(cmdList, sys.stdout)
 	
@@ -281,7 +312,6 @@ projRootFolder should be one of those:
 	-Unit_Tests
 	-Aura
 	-VisibilityBuffer
-	-Unit_Tests_Raytracing
 This function will mark the first available gpu config as used (this should be called after a run)
 It returns false if there are no gpu's left to test, true otherwise
 If No GPu's are left then it will recover the file
@@ -524,8 +554,7 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 	#that specific folder name to gather source folders containing project/workspace for xcode
 	#macSourceFolders = FindFolderPathByName("Examples_3/","macOS Xcode", -1)
 	xcodeProjects = ["/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj", 
-				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace",
-				"/Examples_3/Unit_Tests_Animation/macOS Xcode/Unit_Tests_Animation.xcworkspace"]
+				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
 
 	for proj in xcodeProjects:
 		#get working directory (excluding the xcodeproj in path)
@@ -714,7 +743,7 @@ def TestWindowsProjects(useActiveGpuConfig):
 
 		parentFolder = proj.split(os.sep)[1]
 		
-		if useActiveGpuConfig == True and 'Unit_Tests_Raytracing' not in parentFolder:
+		if useActiveGpuConfig == True not in parentFolder:
 			currentGpuRun = 0
 			resultGpu = selectActiveGpuConfig(currDir, parentFolder,origFilename,currentGpuRun)
 			while resultGpu['running'] == True:
@@ -755,7 +784,7 @@ def BuildAndroidProjects():
 		confs = ["assembleDebug", "assembleRelease"]
 		for conf in confs:					
 			command = ["gradlew.bat", conf]
-			sucess = ExecuteBuild(command, projname,conf, "android")
+			sucess = ExecuteBuildAndroid(command, projname,conf, "android")
 			#sucess = os.system(command + " " + buildcmd)
 			#sucess = ExecuteCommand(command, sys.stdout)
 			if sucess != 0:
@@ -841,12 +870,12 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		filename = proj.split(os.sep)[-1]
 		
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		if filename == "Aura.sln" or filename == 'Unit_Tests_Raytracing.sln':
+		if filename == "Aura.sln":
 			if "DebugVk" in configurations : configurations.remove("DebugVk")
 			if "ReleaseVk" in configurations : configurations.remove("ReleaseVk")
 			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
 			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
-		elif filename == "VisibilityBuffer.sln" or filename == 'Unit_Tests_Animation.sln':
+		elif filename == "VisibilityBuffer.sln":
 			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
 			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
 			

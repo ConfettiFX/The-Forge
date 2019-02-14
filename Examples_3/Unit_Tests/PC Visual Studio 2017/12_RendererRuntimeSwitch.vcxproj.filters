@@ -96,9 +96,6 @@
     <ClCompile Include="..\..\..\Common_3\OS\Image\Image.cpp">
       <Filter>OS\Image</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\OS\Core\DebugRenderer.cpp">
-      <Filter>OS\Core</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\Common_3\OS\Core\FileSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
@@ -257,9 +254,6 @@
       <Filter>OS\Image</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\OS\Core\Compiler.h">
-      <Filter>OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Common_3\OS\Core\DebugRenderer.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\OS\Core\RingBuffer.h">

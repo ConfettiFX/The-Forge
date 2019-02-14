@@ -43,3 +43,17 @@ typedef volatile BASE_ALIGN(8) uint64_t tfrg_atomic64_t;
 
 #define tfrg_atomic64_load_relaxed(pVar) (*pVar)
 #define tfrg_atomic64_store_relaxed(pVar, val) ((*pVar) = (val))
+
+inline uint64_t tfrg_atomic64_load_acquire(tfrg_atomic64_t* pVar)
+{
+	uint64_t value = tfrg_atomic64_load_relaxed(pVar);
+	tfrg_memorybarrier_acquire();
+	return value;
+}
+
+inline void tfrg_atomic64_store_release(tfrg_atomic64_t* pVar, uint64_t val)
+{
+	tfrg_memorybarrier_release();
+	tfrg_atomic64_store_relaxed(pVar, val);
+}
+

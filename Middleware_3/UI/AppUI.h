@@ -31,8 +31,9 @@
 #include "../Text/Fontstash.h"
 
 typedef void (*WidgetCallback)();
-
 extern FSRoot FSR_MIDDLEWARE_UI;
+
+struct Texture;
 
 class IWidget
 {
@@ -73,14 +74,9 @@ class IWidget
 
 class CollapsingHeaderWidget: public IWidget
 {
-	public:
-	CollapsingHeaderWidget(const tinystl::string& _label, bool defaultOpen = false, bool collapsed = true):
-		IWidget(_label),
-		mCollapsed(collapsed),
-		mDefaultOpen(defaultOpen),
-		mPreviousCollapsed(!collapsed)
-	{
-	}
+public:
+	CollapsingHeaderWidget(const tinystl::string& _label, bool defaultOpen = false, bool collapsed = true, bool headerIsVisible = true) :
+		IWidget(_label), mCollapsed(collapsed), mPreviousCollapsed(!collapsed), mDefaultOpen(defaultOpen), mHeaderIsVisible(headerIsVisible) {}
 
 	~CollapsingHeaderWidget() { RemoveAllSubWidgets(); }
 
@@ -120,6 +116,16 @@ class CollapsingHeaderWidget: public IWidget
 		mPreviousCollapsed = !mCollapsed;
 	}
 
+	void SetDefaultOpen(bool defaultOpen)
+	{
+		mDefaultOpen = defaultOpen;
+	}
+
+	void SetHeaderVisible(bool visible)
+	{
+		mHeaderIsVisible = visible;
+	}
+
 	uint32_t GetSubWidgetCount() { return (uint32_t)mGroupedWidgets.size(); }
 
 	IWidget* GetSubWidget(uint32_t index)
@@ -135,6 +141,28 @@ class CollapsingHeaderWidget: public IWidget
 	bool                      mCollapsed;
 	bool                      mPreviousCollapsed;
 	bool                      mDefaultOpen;
+	bool					  mHeaderIsVisible;
+};
+
+class DebugTexturesWidget : public IWidget
+{
+public:
+	DebugTexturesWidget(const tinystl::string& _label) :
+		IWidget(_label),
+		mTextureDisplaySize(float2(512.f, 512.f)) {}
+
+	IWidget* Clone() const;
+	void     Draw();
+
+	void SetTextures(tinystl::vector<Texture*> const& textures, float2 const& displaySize)
+	{
+		mTextures = textures;
+		mTextureDisplaySize = displaySize;
+	}
+
+private:
+	tinystl::vector<Texture*> mTextures;
+	float2 mTextureDisplaySize;
 };
 
 class LabelWidget: public IWidget
@@ -512,30 +540,35 @@ class GuiComponent
 /************************************************************************/
 // Helper Class for removing and adding properties easily
 /************************************************************************/
-typedef struct DynamicUIControls
+typedef struct DynamicUIWidgets
 {
-	tinystl::vector<IWidget*> mDynamicProperties;
-	tinystl::vector<IWidget*> mDynamicPropHandles;
+	~DynamicUIWidgets()
+	{
+		Destroy();
+	}
 
-	void ShowDynamicProperties(GuiComponent* pGui)
+	IWidget* AddWidget(const IWidget& widget)
+	{
+		mDynamicProperties.emplace_back(widget.Clone());
+		return mDynamicProperties.back();
+	}
+
+	void ShowWidgets(GuiComponent* pGui)
 	{
 		for (size_t i = 0; i < mDynamicProperties.size(); ++i)
 		{
-			mDynamicPropHandles.push_back(0);
-			mDynamicPropHandles[i] = pGui->AddWidget(*mDynamicProperties[i]);
+			pGui->AddWidget(*mDynamicProperties[i], false);
 		}
 	}
 
-	void HideDynamicProperties(GuiComponent* pGui)
+	void HideWidgets(GuiComponent* pGui)
 	{
-		for (size_t i = 0; i < mDynamicPropHandles.size(); i++)
+		for (size_t i = 0; i < mDynamicProperties.size(); i++)
 		{
 			// We should not erase the widgets in this for-loop, otherwise the IDs
 			// in mDynamicPropHandles will not match once  GuiComponent::mWidgets changes size.
-			pGui->RemoveWidget(mDynamicPropHandles[i]);
+			pGui->RemoveWidget(mDynamicProperties[i]);
 		}
-
-		mDynamicPropHandles.clear();
 	}
 
 	void Destroy()
@@ -545,9 +578,13 @@ typedef struct DynamicUIControls
 			mDynamicProperties[i]->~IWidget();
 			conf_free(mDynamicProperties[i]);
 		}
+
+		mDynamicProperties.clear();
 	}
 
-} DynamicUIControls;
+private:
+	tinystl::vector<IWidget*> mDynamicProperties;
+} DynamicUIWidgets;
 /************************************************************************/
 // Abstract interface for handling GUI
 /************************************************************************/
@@ -582,9 +619,15 @@ class GUIDriver
 #ifdef DrawText
 #undef DrawText
 #endif
+
+typedef struct GpuProfiler        GpuProfiler;
+typedef struct GpuProfileDrawDesc GpuProfileDrawDesc;
+
 class UIApp: public IMiddleware
 {
 	public:
+	UIApp(int32_t const fontAtlasSize = 0);
+
 	bool Init(Renderer* renderer);
 	void Exit();
 
@@ -611,16 +654,13 @@ class UIApp: public IMiddleware
 	// @screenCoordsInPx: (0,0)                       is top left corner of the screen,
 	//                    (screenWidth, screenHeight) is bottom right corner of the screen
 	//
-	void        DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc& drawDesc) const;
-	inline void DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText) const
-	{
-		TextDrawDesc defaultDesc;
-		DrawText(cmd, screenCoordsInPx, pText, defaultDesc);
-	}
+	void DrawText(Cmd* cmd, const float2& screenCoordsInPx, const char* pText, const TextDrawDesc* pDrawDesc = NULL) const;
 
 	// draws the @pText in world space by using the linear transformation pipeline.
 	//
-	void DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const TextDrawDesc& drawDesc, const mat4& matWorld, const mat4& matProjView);
+	void DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const mat4& matWorld, const mat4& matProjView, const TextDrawDesc* pDrawDesc = NULL);
+
+	void DrawDebugGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc = NULL);
 
 	/************************************************************************/
 	// Data
@@ -632,6 +672,9 @@ class UIApp: public IMiddleware
 	// Following var is useful for seeing UI capabilities and tweaking style settings.
 	// Will only take effect if at least one GUI Component is active.
 	bool mShowDemoUiWindow;
+
+	private:
+	int32_t mFontAtlasSize = 0;
 };
 
 class VirtualJoystickUI

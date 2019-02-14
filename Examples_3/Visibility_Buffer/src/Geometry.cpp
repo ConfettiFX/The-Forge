@@ -1590,7 +1590,7 @@ void removeScene(Scene* scene)
 
 vec3 makeVec3(const SceneVertexPos& v) { return vec3(v.x, v.y, v.z); }
 
-void CreateAABB(const Scene* pScene, MeshIn* mesh)
+void createAABB(const Scene* pScene, MeshIn* mesh)
 {
 	vec4 aabbMin = vec4(INFINITY, INFINITY, INFINITY, INFINITY);
 	vec4 aabbMax = -aabbMin;
@@ -1711,7 +1711,7 @@ void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& ve
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number
 // for more efficient CPU / GPU culling. CPU culling operates per cluster, while GPU culling operates per triangle for
 // all the clusters that passed the CPU test.
-void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
+void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 {
 #if defined(METAL)
 	struct Triangle
@@ -1970,6 +1970,13 @@ void CreateClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 		mesh->clusters[i].valid = validCluster;
 	}
 #endif
+}
+
+void destroyClusters(MeshIn* pMesh)
+{
+	// Destroy clusters
+	conf_free(pMesh->clusters);
+	conf_free(pMesh->clusterCompacts);
 }
 
 #if defined(METAL)

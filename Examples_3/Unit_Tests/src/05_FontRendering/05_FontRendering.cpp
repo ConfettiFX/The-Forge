@@ -39,7 +39,6 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
@@ -147,7 +146,14 @@ Fonts      gFonts;
 /************************************************************************/
 /* APP UI VARIABLES
 *************************************************************************/
-UIApp         gAppUI;
+#if defined(TARGET_IOS) || defined(ANDROID)
+const int TextureAtlasDimension = 512;
+#elif defined(DURANGO)
+const int TextureAtlasDimension = 1024;
+#else    // PC / LINUX / MAC
+const int TextureAtlasDimension = 2048;
+#endif
+UIApp         gAppUI(TextureAtlasDimension);
 GuiComponent* pUIWindow = NULL;
 bool          gbShowSceneControlsUIWindow = true;    // toggle this w/ F1
 
@@ -278,11 +284,6 @@ class FontRendering: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer);
-		initDebugRendererInterface(pRenderer, NULL, FSRoot(-1));
-
-		// this is for debug rendering: cpu/gpu profilers, debug msgs etc. (drawDebugText())
-		// the App fonts are initialized/added through the UIApp object.   (gAppUI.DrawText())
-		addDebugFont("TitilliumText/TitilliumText-Bold.otf", FSRoot::FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		finishResourceLoading();
@@ -323,8 +324,6 @@ class FontRendering: public IApp
 	void Exit()
 	{
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-
-		removeDebugRendererInterface();
 
 		gAppUI.Exit();
 
@@ -454,7 +453,7 @@ class FontRendering: public IApp
 			for (int i = 0; i < texts.size(); ++i)
 			{
 				const float2 pxPosition = texts[i].mScreenPosition * float2(mSettings.mWidth, mSettings.mHeight);
-				gAppUI.DrawText(cmd, pxPosition, texts[i].mText, texts[i].mDrawDesc);
+				gAppUI.DrawText(cmd, pxPosition, texts[i].mText, &texts[i].mDrawDesc);
 			}
 		}
 
@@ -464,9 +463,9 @@ class FontRendering: public IApp
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = gSceneData.theme ? 0xff21D8DE : 0xff444444;
 		uiTextDesc.mFontSize = 18;
-		drawDebugText(cmd, 8.0f, 15.0f, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
 #ifndef METAL
-		drawDebugText(cmd, 8.0f, 40.0f, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
 #endif
 		if (gbShowSceneControlsUIWindow)
 			gAppUI.Gui(pUIWindow);

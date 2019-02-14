@@ -32,7 +32,6 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -202,6 +201,13 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 class Procedural: public IApp
 {
 	public:
+	Procedural()
+	{
+#ifdef TARGET_IOS
+		mSettings.mContentScaleFactor = 1.f;
+#endif
+	}
+	
 	bool Init()
 	{
 		RendererDesc settings = { 0 };
@@ -227,7 +233,6 @@ class Procedural: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -438,7 +443,6 @@ class Procedural: public IApp
 		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
 		destroyCameraController(pCameraController);
 
-		removeDebugRendererInterface();
 		removeResource(pSphereVertexBuffer);
 		removeResource(pBGVertexBuffer);
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
@@ -776,11 +780,11 @@ class Procedural: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 #ifndef METAL
-		drawDebugText(cmd, 8, 40, tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-		drawDebugGpuProfile(cmd, 8, 65, pGpuProfiler, NULL);
+		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
 		gAppUI.Gui(pGui);

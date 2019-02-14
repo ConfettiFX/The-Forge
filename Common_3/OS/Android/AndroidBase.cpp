@@ -310,7 +310,7 @@ int AndroidMain(void* param, IApp* app)
 		if (testingFrameCount >= testingDesiredFrameCount)
 			quit = true;
 #endif
-		if (android_app->destroy_requested)
+		if (android_app->destroyRequested)
 			quit = true;
 	}
 	if (windowReady)

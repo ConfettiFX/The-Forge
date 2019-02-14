@@ -10,7 +10,7 @@
   <Project Name="05_FontRendering" Path="05_FontRendering/05_FontRendering.project" Active="No"/>
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
-  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="Yes"/>
+  <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
@@ -19,12 +19,23 @@
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <Project Name="16_SphereTracing" Path="16_SphereTracing/16_SphereTracing.project" Active="No"/>
   <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
+  <Project Name="01_Playback" Path="01_Playback/01_Playback.project" Active="No"/>
+  <Project Name="02_Blending" Path="02_Blending/02_Blending.project" Active="No"/>
+  <Project Name="03_JointAttachment" Path="03_JointAttachment/03_JointAttachment.project" Active="No"/>
+  <Project Name="04_PartialBlending" Path="04_PartialBlending/04_PartialBlending.project" Active="No"/>
+  <Project Name="05_AdditiveBlending" Path="05_AdditiveBlending/05_AdditiveBlending.project" Active="No"/>
+  <Project Name="07_BakedPhysics" Path="07_BakedPhysics/07_BakedPhysics.project" Active="No"/>
+  <Project Name="09_MultiThread" Path="09_MultiThread/09_MultiThread.project" Active="No"/>
+  <Project Name="10_Skinning" Path="10_Skinning/10_Skinning.project" Active="Yes"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
   <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
+  <Project Name="AssetPipeline" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipeline.project" Active="No"/>
+  <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
   <Project Name="ozz_base" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
+  <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
@@ -50,11 +61,22 @@
       <Project Name="15_Transparency" ConfigName="Debug"/>
       <Project Name="16_SphereTracing" ConfigName="Debug"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Debug"/>
+      <Project Name="01_Playback" ConfigName="Debug"/>
+      <Project Name="02_Blending" ConfigName="Debug"/>
+      <Project Name="03_JointAttachment" ConfigName="Debug"/>
+      <Project Name="04_PartialBlending" ConfigName="Debug"/>
+      <Project Name="05_AdditiveBlending" ConfigName="Debug"/>
+      <Project Name="07_BakedPhysics" ConfigName="Debug"/>
+      <Project Name="09_MultiThread" ConfigName="Debug"/>
+      <Project Name="10_Skinning" ConfigName="Debug"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="ozz_base" ConfigName="Debug"/>
       <Project Name="ozz_animation" ConfigName="Debug"/>
+      <Project Name="ozz_animation_offline" ConfigName="Debug"/>
+      <Project Name="AssetPipeline" ConfigName="Debug"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
@@ -80,11 +102,22 @@
       <Project Name="15_Transparency" ConfigName="Release"/>
       <Project Name="16_SphereTracing" ConfigName="Release"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
+      <Project Name="01_Playback" ConfigName="Release"/>
+      <Project Name="02_Blending" ConfigName="Release"/>
+      <Project Name="03_JointAttachment" ConfigName="Release"/>
+      <Project Name="04_PartialBlending" ConfigName="Release"/>
+      <Project Name="05_AdditiveBlending" ConfigName="Release"/>
+      <Project Name="07_BakedPhysics" ConfigName="Release"/>
+      <Project Name="09_MultiThread" ConfigName="Release"/>
+      <Project Name="10_Skinning" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="ozz_base" ConfigName="Release"/>
       <Project Name="ozz_animation" ConfigName="Release"/>
+      <Project Name="ozz_animation_offline" ConfigName="Release"/>
+      <Project Name="AssetPipeline" ConfigName="Release"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

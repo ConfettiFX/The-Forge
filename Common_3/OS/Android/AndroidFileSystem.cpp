@@ -46,28 +46,34 @@ const char* pszRoots[FSR_Count] = {
 
 static AAssetManager* _mgr = nullptr;
 
-FileHandle _openFile(const char* filename, const char* flags)
+FileHandle open_file(const char* filename, const char* flags)
 {
 	// Android does not support write to file. All assets accessed through asset manager are read only.
-	if (strcmp(flags, "w") == 0)
+	if(strstr(flags, "w") != nullptr)
 	{
 		LOGERROR("Writing to asset file is not supported on android platform!");
 		return NULL;
 	}
 	AAsset* file = AAssetManager_open(_mgr, filename, AASSET_MODE_BUFFER);
 
+	if(_mgr == nullptr) return NULL;
+
 	return reinterpret_cast<void*>(file);
 }
 
-void _closeFile(FileHandle handle) { AAsset_close(reinterpret_cast<AAsset*>(handle)); }
+bool close_file(FileHandle handle)
+{
+	AAsset_close(reinterpret_cast<AAsset*>(handle));
+	return true;
+}
 
-void _flushFile(FileHandle handle)
+void flush_file(FileHandle handle)
 {
 	LOGERROR("FileSystem::Flush not supported on Android!");
 	abort();
 }
 
-size_t _readFile(void* buffer, size_t byteCount, FileHandle handle)
+size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {
 	AAsset* assetHandle = reinterpret_cast<AAsset*>(handle);
 	size_t  readSize = AAsset_read(assetHandle, buffer, byteCount);
@@ -75,13 +81,13 @@ size_t _readFile(void* buffer, size_t byteCount, FileHandle handle)
 	return readSize;
 }
 
-bool _seekFile(FileHandle handle, long offset, int origin)
+bool seek_file(FileHandle handle, long offset, int origin)
 {
 	// Seek function return -s on error.
 	return AAsset_seek(reinterpret_cast<AAsset*>(handle), offset, origin) != -1;
 }
 
-long _tellFile(FileHandle handle)
+long tell_file(FileHandle handle)
 {
 	size_t total_len = AAsset_getLength(reinterpret_cast<AAsset*>(handle));
 	size_t remain_len = AAsset_getRemainingLength(reinterpret_cast<AAsset*>(handle));
@@ -89,7 +95,7 @@ long _tellFile(FileHandle handle)
 	//AAsset_getLength(reinterpret_cast<AAsset*>(handle));
 }
 
-size_t _writeFile(const void* buffer, size_t byteCount, FileHandle handle)
+size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
 {
 	//It cannot be done.It is impossible.
 	//https://stackoverflow.com/questions/3760626/how-to-write-files-to-assets-folder-or-raw-folder-in-android
@@ -98,15 +104,18 @@ size_t _writeFile(const void* buffer, size_t byteCount, FileHandle handle)
 	return -1;
 }
 
-size_t _getFileLastModifiedTime(const char* _fileName)
+size_t get_file_last_modified_time(const char* _fileName)
 {
 	LOGERROR("FileSystem::Last Modified Time not supported in Android!");
 	return -1;
 }
 
-tinystl::string _getCurrentDir() { return tinystl::string(""); }
+tinystl::string get_current_dir()
+{
+	return tinystl::string ("");
+}
 
-tinystl::string _getExePath()
+tinystl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
@@ -114,11 +123,17 @@ tinystl::string _getExePath()
 	return tinystl::string(exeName);
 }
 
-tinystl::string _getAppPrefsDir(const char* org, const char* app) { return ""; }
+tinystl::string get_app_prefs_dir(const char *org, const char *app)
+{
+	return "";
+}
 
-tinystl::string _getUserDocumentsDir() { return ""; }
+tinystl::string get_user_documents_dir()
+{
+	return "";
+}
 
-void _setCurrentDir(const char* path)
+void set_current_dir(const char* path)
 {
 	// change working directory
 	chdir(path);

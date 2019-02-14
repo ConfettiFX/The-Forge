@@ -225,12 +225,22 @@ void CollapsingHeaderWidget::Draw()
 	if (mDefaultOpen)
 		flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-	if (ImGui::CollapsingHeader(mLabel.c_str(), flags))
+	if (!mHeaderIsVisible || ImGui::CollapsingHeader(mLabel.c_str(), flags))
 	{
 		for (IWidget* widget : mGroupedWidgets)
 			widget->Draw();
 	}
 
+	ProcessCallbacks();
+}
+
+void DebugTexturesWidget::Draw()
+{
+	for (Texture* tex : mTextures)
+	{
+		ImGui::Image(tex, mTextureDisplaySize);
+		ImGui::SameLine();
+	}
 	ProcessCallbacks();
 }
 
@@ -496,7 +506,7 @@ bool ImguiGUIDriver::init(Renderer* renderer)
 	vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	vbDesc.mVertexStride = sizeof(ImDrawVert);
 	vbDesc.mSize = 1024 * 64 * vbDesc.mVertexStride;
-	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 
 	BufferDesc ibDesc = vbDesc;
 	ibDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
@@ -505,7 +515,7 @@ bool ImguiGUIDriver::init(Renderer* renderer)
 	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
 	{
 		addMeshRingBuffer(pRenderer, &vbDesc, &ibDesc, &pPlainMeshRingBuffer[i]);
-		addUniformRingBuffer(pRenderer, 256, &pRingBuffer[i]);
+		addUniformRingBuffer(pRenderer, 256, &pRingBuffer[i], true);
 	}
 
 	mVertexLayoutTextured.mAttribCount = 3;
@@ -590,6 +600,7 @@ bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorT
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pImage = &image;
 		loadDesc.ppTexture = &pFontTexture;
+		loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		addResource(&loadDesc);
 		ImGui::GetIO().Fonts->TexID = (void*)pFontTexture;
 

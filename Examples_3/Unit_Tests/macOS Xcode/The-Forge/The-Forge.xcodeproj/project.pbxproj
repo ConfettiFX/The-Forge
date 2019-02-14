@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5C172F20214145410074EE71 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F1F214145410074EE71 /* Metal.framework */; };
-		5C172F22214145450074EE71 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F21214145440074EE71 /* MetalKit.framework */; };
 		5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* ResourceLoader.h */; };
 		5C172F4F214148840074EE71 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F45214148830074EE71 /* GpuProfiler.cpp */; };
 		5C172F50214148840074EE71 /* IRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
@@ -19,7 +17,6 @@
 		5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F4B214148840074EE71 /* MetalShaderReflection.mm */; };
 		5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F4C214148840074EE71 /* MetalMemoryAllocator.h */; };
 		5C172F57214148840074EE71 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F4D214148840074EE71 /* ResourceLoader.cpp */; };
-		5C172FC021414BE60074EE71 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
 		5C172FD221414C670074EE71 /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2875912420286FBA00D89997 /* iOSBase.mm */; };
 		5C172FD321414C670074EE71 /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C951330A2010E6B1002E584B /* iOSFileSystem.mm */; };
 		5C172FD421414C670074EE71 /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133122010E6B2002E584B /* iOSLogManager.cpp */; };
@@ -54,8 +51,6 @@
 		5C172FF621414CC60074EE71 /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
 		5C172FF721414CC60074EE71 /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
 		5C172FF821414CC60074EE71 /* LogManager.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* LogManager.h */; };
-		5C172FF921414CC60074EE71 /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFB72088F9F9005BB7C6 /* DebugRenderer.cpp */; };
-		5C172FFA21414CC60074EE71 /* DebugRenderer.h in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFB62088F9F9005BB7C6 /* DebugRenderer.h */; };
 		5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C172FFD21414CC60074EE71 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
@@ -100,12 +95,9 @@
 		5C55830A21413D550019960B /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
 		5C55830B21413D550019960B /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
 		5C55830C21413D550019960B /* LogManager.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* LogManager.h */; };
-		5C55830D21413D550019960B /* DebugRenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFB72088F9F9005BB7C6 /* DebugRenderer.cpp */; };
-		5C55830E21413D550019960B /* DebugRenderer.h in Sources */ = {isa = PBXBuildFile; fileRef = 5CA4AFB62088F9F9005BB7C6 /* DebugRenderer.h */; };
 		5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
-		5C55831421413D690019960B /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEA920EAD160001BB8C4 /* libgainputstatic.a */; };
 		654D979421E922F400113964 /* ClipController.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978621E922F300113964 /* ClipController.h */; };
 		654D979521E922F400113964 /* Rig.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978721E922F300113964 /* Rig.h */; };
 		654D979621E922F400113964 /* ClipMask.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978821E922F300113964 /* ClipMask.h */; };
@@ -127,6 +119,10 @@
 		654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D978921E922F300113964 /* ClipMask.cpp */; };
 		654D97BC21E92F9100113964 /* Rig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D978F21E922F300113964 /* Rig.cpp */; };
 		654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D978A21E922F300113964 /* SkeletonBatcher.cpp */; };
+		6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
+		65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
+		65F9793721EDFA45008EC741 /* IRay.h in Headers */ = {isa = PBXBuildFile; fileRef = 65F9793621EDFA44008EC741 /* IRay.h */; };
+		65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEA920EAD160001BB8C4 /* libgainputstatic.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -202,8 +198,6 @@
 		5C512C5E2141561E00E7A798 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imgui.h; path = ../ThirdParty/OpenSource/imgui/imgui.h; sourceTree = "<group>"; };
 		5C512C5F2141561E00E7A798 /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_widgets.cpp; path = ../ThirdParty/OpenSource/imgui/imgui_widgets.cpp; sourceTree = "<group>"; };
 		5C5582E021413D180019960B /* libThe-Forge.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libThe-Forge.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		5CA4AFB62088F9F9005BB7C6 /* DebugRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebugRenderer.h; sourceTree = "<group>"; };
-		5CA4AFB72088F9F9005BB7C6 /* DebugRenderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DebugRenderer.cpp; sourceTree = "<group>"; };
 		5CABF32C214151F500EFD76A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CD2BBE92080FED8008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
 		5CD2BBEA2080FED8008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
@@ -224,6 +218,8 @@
 		654D979121E922F300113964 /* AnimatedObject.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AnimatedObject.cpp; path = ../../../../Middleware_3/Animation/AnimatedObject.cpp; sourceTree = "<group>"; };
 		654D979221E922F300113964 /* Clip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clip.cpp; path = ../../../../Middleware_3/Animation/Clip.cpp; sourceTree = "<group>"; };
 		654D979321E922F400113964 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../../../../Middleware_3/Animation/Clip.h; sourceTree = "<group>"; };
+		65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = Metal/MetalRaytracing.mm; sourceTree = "<group>"; };
+		65F9793621EDFA44008EC741 /* IRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IRay.h; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
@@ -270,10 +266,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C172FC021414BE60074EE71 /* MetalPerformanceShaders.framework in Frameworks */,
-				5C172F22214145450074EE71 /* MetalKit.framework in Frameworks */,
-				5C172F20214145410074EE71 /* Metal.framework in Frameworks */,
-				5C55831421413D690019960B /* libgainputstatic.a in Frameworks */,
+				65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -498,6 +491,8 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				65F9793621EDFA44008EC741 /* IRay.h */,
+				65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */,
 				5C172F49214148830074EE71 /* CommonShaderReflection.cpp */,
 				5C172F45214148830074EE71 /* GpuProfiler.cpp */,
 				5C172F47214148830074EE71 /* GpuProfiler.h */,
@@ -550,9 +545,7 @@
 		};
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
-			children = (
-				5CA4AFB72088F9F9005BB7C6 /* DebugRenderer.cpp */,
-				5CA4AFB62088F9F9005BB7C6 /* DebugRenderer.h */,
+			children = (				
 				EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
@@ -584,6 +577,7 @@
 				5C172F52214148840074EE71 /* IShaderReflection.h in Headers */,
 				654D979621E922F400113964 /* ClipMask.h in Headers */,
 				5C172F51214148840074EE71 /* GpuProfiler.h in Headers */,
+				65F9793721EDFA45008EC741 /* IRay.h in Headers */,
 				654D979C21E922F400113964 /* SkeletonBatcher.h in Headers */,
 				5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */,
 				654D97A121E922F400113964 /* Clip.h in Headers */,
@@ -723,6 +717,7 @@
 				5C172FE821414CC60074EE71 /* Image.cpp in Sources */,
 				654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */,
 				5C172FE921414CC60074EE71 /* Image.h in Sources */,
+				6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */,
 				5C172FEA21414CC60074EE71 /* ImageEnums.h in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				5C172FEC21414CC60074EE71 /* GpuProfiler.cpp in Sources */,
@@ -741,9 +736,7 @@
 				5C172FF621414CC60074EE71 /* tinyexr.h in Sources */,
 				654D97B921E92F8700113964 /* Clip.cpp in Sources */,
 				5C172FF721414CC60074EE71 /* LogManager.cpp in Sources */,
-				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,
-				5C172FF921414CC60074EE71 /* DebugRenderer.cpp in Sources */,
-				5C172FFA21414CC60074EE71 /* DebugRenderer.h in Sources */,
+				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,				
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
@@ -766,7 +759,6 @@
 				5C5582EB21413D550019960B /* InputSystem.h in Sources */,
 				5C5582EC21413D550019960B /* Fontstash.cpp in Sources */,
 				5C5582ED21413D550019960B /* Fontstash.h in Sources */,
-				5C5582EE21413D550019960B /* TextShaders.h in Sources */,
 				654D979921E922F400113964 /* ClipController.cpp in Sources */,
 				5C5582EF21413D550019960B /* AppUI.cpp in Sources */,
 				5C5582F021413D550019960B /* AppUI.h in Sources */,
@@ -797,12 +789,11 @@
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
 				5C55830B21413D550019960B /* LogManager.cpp in Sources */,
-				5C55830C21413D550019960B /* LogManager.h in Sources */,
-				5C55830D21413D550019960B /* DebugRenderer.cpp in Sources */,
+				5C55830C21413D550019960B /* LogManager.h in Sources */,				
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
-				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
-				5C55830E21413D550019960B /* DebugRenderer.h in Sources */,
+				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,				
 				5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */,
+				65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */,
 				5C172F4F214148840074EE71 /* GpuProfiler.cpp in Sources */,
 				5C55831021413D550019960B /* ThreadSystem.cpp in Sources */,
 				5C512C632141561E00E7A798 /* imgui_demo.cpp in Sources */,

@@ -39,7 +39,6 @@
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 
 // Rendering
-#include "../../../../Common_3/OS/Core/DebugRenderer.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -239,7 +238,6 @@ class UserInterfaceUnitTest: public IApp
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
-		initDebugRendererInterface(pRenderer, "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
@@ -409,8 +407,6 @@ class UserInterfaceUnitTest: public IApp
 
 		destroyCameraController(pCameraController);
 
-		removeDebugRendererInterface();
-
 #ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
 #endif
@@ -564,7 +560,7 @@ class UserInterfaceUnitTest: public IApp
 #endif
 
 		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
-		drawDebugText(cmd, 8, 15, tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);

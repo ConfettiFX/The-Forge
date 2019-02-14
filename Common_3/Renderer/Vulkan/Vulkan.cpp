@@ -73,7 +73,6 @@ static const char * g_hackSemanticList[] =
 #define stricmp(a, b) strcasecmp(a, b)
 #define vsprintf_s vsnprintf
 #define strncpy_s strncpy
-#define vsnprintf_s vsnprintf
 #endif
 
 #include "../IRenderer.h"
@@ -267,13 +266,13 @@ static const VkFormat gVkFormatTranslator[] = {
 	VK_FORMAT_UNDEFINED, // GNF_BC6 = 77,
 	VK_FORMAT_UNDEFINED, // GNF_BC7 = 78,
 #endif
-	// Reveser Form
-	VK_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
-	// Extend for DXGI
-	VK_FORMAT_UNDEFINED, // X8D24PAX32 = 80,
-	VK_FORMAT_UNDEFINED, // S8 = 81,
-	VK_FORMAT_UNDEFINED, // D16S8 = 82,
-	VK_FORMAT_UNDEFINED, // D32S8 = 83,
+    // Reveser Form
+    VK_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
+    // Extend for DXGI
+    VK_FORMAT_X8_D24_UNORM_PACK32, // X8D24PAX32 = 80,
+    VK_FORMAT_S8_UINT, // S8 = 81,
+    VK_FORMAT_D16_UNORM_S8_UINT, // D16S8 = 82,
+    VK_FORMAT_D32_SFLOAT_S8_UINT, // D32S8 = 83,
 };
 
 VkAttachmentLoadOp gVkAttachmentLoadOpTranslator[LoadActionType::MAX_LOAD_ACTION] = 
@@ -1699,7 +1698,7 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage)
 	return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format)
+VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format, bool directlyForRenderTarget)
 {
 	VkImageAspectFlags result = 0;
 	switch (format)
@@ -1718,7 +1717,10 @@ VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format)
 		case VK_FORMAT_D16_UNORM_S8_UINT:
 		case VK_FORMAT_D24_UNORM_S8_UINT:
 		case VK_FORMAT_D32_SFLOAT_S8_UINT:
-			result = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			if (directlyForRenderTarget)
+				result = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			else    // @devsh : you cannot sample both aspects at once, change when The Forge will expose texture views fully
+				result = VK_IMAGE_ASPECT_DEPTH_BIT /* | VK_IMAGE_ASPECT_STENCIL_BIT*/;
 			break;
 			// Assume everything else is Color
 		default: result = VK_IMAGE_ASPECT_COLOR_BIT; break;
@@ -1890,7 +1892,7 @@ void CreateInstance(const char* app_name, Renderer* pRenderer)
 		}
 		const uint32_t wanted_extension_count = (uint32_t)wantedInstanceExtensions.size();
 		// Layer extensions
-		for (uint32_t i = -1; i < pRenderer->mInstanceLayers.size(); ++i)
+		for (uint32_t i = 0; i < pRenderer->mInstanceLayers.size(); ++i)
 		{
 			const char* layer_name = pRenderer->mInstanceLayers[i];
 			uint32_t    count = 0;
@@ -2275,7 +2277,11 @@ static void AddDevice(Renderer* pRenderer)
 			pRenderer->pVkGPUs[i], &(pRenderer->mVkQueueFamilyPropertyCount[i]), pRenderer->mVkQueueFamilyProperties[i]);
 
 		pRenderer->mGpuSettings[i].mUniformBufferAlignment =
-			pRenderer->mVkGpuProperties[i].properties.limits.minUniformBufferOffsetAlignment;
+			(uint32_t)pRenderer->mVkGpuProperties[i].properties.limits.minUniformBufferOffsetAlignment;
+		pRenderer->mGpuSettings[i].mUploadBufferTextureAlignment =
+			16;    // TODO: (uint32_t)pRenderer->mVkGpuProperties[i].properties.limits.optimalBufferCopyOffsetAlignment;
+		pRenderer->mGpuSettings[i].mUploadBufferTextureRowAlignment =
+			1;    // TODO: (uint32_t)pRenderer->mVkGpuProperties[i].properties.limits.optimalBufferCopyRowPitchAlignment;
 		pRenderer->mGpuSettings[i].mMaxVertexInputBindings = pRenderer->mVkGpuProperties[i].properties.limits.maxVertexInputBindings;
 		pRenderer->mGpuSettings[i].mMultiDrawIndirect = pRenderer->mVkGpuProperties[i].properties.limits.maxDrawIndirectCount > 1;
 		pRenderer->mGpuSettings[i].mWaveLaneCount = subgroupProperties.subgroupSize;
@@ -3587,7 +3593,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	srvDesc.components.g = VK_COMPONENT_SWIZZLE_G;
 	srvDesc.components.b = VK_COMPONENT_SWIZZLE_B;
 	srvDesc.components.a = VK_COMPONENT_SWIZZLE_A;
-	srvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(srvDesc.format);
+	srvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(srvDesc.format, false);
 	srvDesc.subresourceRange.baseMipLevel = 0;
 	srvDesc.subresourceRange.levelCount = pDesc->mMipLevels;
 	srvDesc.subresourceRange.baseArrayLayer = 0;
@@ -3733,7 +3739,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	rtvDesc.components.g = VK_COMPONENT_SWIZZLE_G;
 	rtvDesc.components.b = VK_COMPONENT_SWIZZLE_B;
 	rtvDesc.components.a = VK_COMPONENT_SWIZZLE_A;
-	rtvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(rtvDesc.format);
+	rtvDesc.subresourceRange.aspectMask = util_vk_determine_aspect_mask(rtvDesc.format, true);
 	rtvDesc.subresourceRange.baseMipLevel = 0;
 	rtvDesc.subresourceRange.levelCount = 1;
 	rtvDesc.subresourceRange.baseArrayLayer = 0;
@@ -4956,7 +4962,7 @@ void addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState*
 	depthState.Back.depthFailOp = gVkStencilOpTranslator[pDesc->mDepthBackFail];
 	depthState.Back.compareOp = gVkComparisonFuncTranslator[pDesc->mStencilBackFunc];
 	depthState.Back.compareMask = pDesc->mStencilReadMask;
-	depthState.Back.writeMask = pDesc->mStencilFrontFunc;
+	depthState.Back.writeMask = pDesc->mStencilWriteMask;    // devsh fixed
 	depthState.Back.reference = 0;
 
 	depthState.DepthBoundsTestEnable = false;
@@ -5196,7 +5202,7 @@ void cmdBindRenderTargets(
 		for (uint32_t i = 0; i < renderTargetCount; ++i)
 		{
 			ClearValue clearValue = pLoadActions->mClearColorValues[i];
-			clearValues[i].color = { clearValue.r, clearValue.g, clearValue.b, clearValue.a };
+			clearValues[i].color = {{ clearValue.r, clearValue.g, clearValue.b, clearValue.a }};
 		}
 		if (pDepthStencil)
 		{
@@ -5801,7 +5807,7 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 
 void cmdUpdateSubresources(
 	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t intermediateOffset, Texture* pTexture)
+	uint64_t, Texture* pTexture)
 {
 	VkBufferImageCopy* pCopyRegions = (VkBufferImageCopy*)alloca(numSubresources * sizeof(VkBufferImageCopy));
 	for (uint32_t i = startSubresource; i < startSubresource + numSubresources; ++i)
@@ -5815,7 +5821,7 @@ void cmdUpdateSubresources(
 		pCopy->imageSubresource.aspectMask = pTexture->mVkAspectMask;
 		pCopy->imageSubresource.mipLevel = pRes->mMipLevel;
 		pCopy->imageSubresource.baseArrayLayer = pRes->mArrayLayer;
-		pCopy->imageSubresource.layerCount = pRes->mArraySize;
+		pCopy->imageSubresource.layerCount = 1;
 		pCopy->imageOffset.x = 0;
 		pCopy->imageOffset.y = 0;
 		pCopy->imageOffset.z = 0;

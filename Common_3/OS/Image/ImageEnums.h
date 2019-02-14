@@ -170,6 +170,13 @@ enum Enum
 	S8 = 81,
 	D16S8 = 82,
 	D32S8 = 83,
+	
+	// PVR SRGB extensions
+	PVR_2BPP_SRGB = 84,
+	PVR_2BPPA_SRGB = 85,
+	PVR_4BPP_SRGB = 86,
+	PVR_4BPPA_SRGB = 87,
+	
 	// Count identifier - not actually a format.
 	COUNT,
 
@@ -184,4 +191,10 @@ enum Enum
 	IA32F = RG32F
 };
 
+enum BlockSize
+{
+	BLOCK_SIZE_1x1,
+	BLOCK_SIZE_4x4,
+	BLOCK_SIZE_4x8,
+};
 }    // namespace ImageFormat
