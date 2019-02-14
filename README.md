@@ -20,15 +20,16 @@ Particularly, the graphics layer of The Forge supports cross-platform
 - Multi-threaded command buffer generation
 
 The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
-- Lua Scripting System - currently used in 06_Playground to load models and textures and animate the camera
+- [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath)
 - Extended version of [TinySTL](https://github.com/mendsley/tinystl)
 - For loading art assets we have a modified and integrated version of [Assimp](https://github.com/assimp/assimp)
-- Consistent Memory Managament
+- Consistent Memory Managament: on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
 - Very fast Entity Component System based on [ENTT](https://github.com/skypjack/entt)
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
+- [Micro Profiler](https://github.com/zeux/microprofile)
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
 Please find a link and credits for all open-source packages used at the end of this readme.
@@ -47,6 +48,45 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.23 - February 14th, 2019 - New Cross-Platform Ray Tracing Interface 
+Happy Valentines! Here is some love from The Forge team:
+- new cross-platform Ray Tracing interface in IRay.h, currently supporting DXR (Vulkan comes next) and Metal Ray Tracing on Windows, macOS and iOS. In other words you can now write Ray Tracing code that runs on Windows, macOS and iOS. You will need a RTX GPU to run this on Windows. On macOS / iOS only latest software update is needed.
+
+PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 with resolution 3440x1440:
+![Ray Tracing on PC With DXR](Screenshots/RayTracing_PC_DX12.png)
+
+Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
+![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
+
+iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
+![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
+
+- Rewrote the Light & Shadow Playground from scratch, thanks to Mateusz Kielan:
+
+iMac with AMD RADEON 580 (Part No. MNED2xxA) with resolution of 5120x2880:
+![Light & Shadow Playground](Screenshots/09_LightShadowPlayground.png)
+
+iPhone 7 iOS 12.1.4 (16D57) with a resolution of 1334x750:
+![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_iOS.png)
+
+Linux Ubuntu 18.04.1 LTS Vulkan 1.1.92 RADEON 480 Driver 18.30 with a resolution of 1920x1080:
+![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_Linux.png)
+
+- macOS / iOS: 
+  - upgraded to 
+    - macOS Mojave 10.14.4 beta (18E174f)
+    - iOS 12.2 beta (16E5181f)
+    - Xcode 10.2 beta (10P82s)
+  - a few months ago, we submitted a bug report for wave intrinsics to Apple and with the latest firmware beta (see above), wave intrinsics are working now in unit test 15
+  - support PVR texture compression (V3 header) on iOS 
+
+- Improvements for all Platforms:
+  - 3D Texture mip maps for write
+  - Unified texture subresource updates across all APIs
+  - Memory optimizations: much less memory is used across all platforms
+- All the unit tests are now in one folder unit test and they are in one solution file
+
 
 ## Release 1.22 - January 22nd, 2019 - TressFX Hair | Entity Component System | Lua Scripting System
 This is the first release in 2019 and The Forge GitHub repository is today exactly one year old, with the first release on the same day last year :-) In 2018 we made 22 releases and we improved The Forge in many areas.
@@ -119,14 +159,15 @@ See the release notes from previous releases in the [Release section](https://gi
   
 # PC Windows Requirements:
 
-1. Windows 10 with latest update
+1. Windows 10 RS5 with latest update for DXR support
+
 
 2. Drivers
-* AMD / NVIDIA - latest drivers should work. On Vulkan, at least NVIDIA Beta Driver 389.20 are required to support Linked Multi-GPU. 
+* AMD / NVIDIA - latest drivers 
 * Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
 
 
-3. Visual Studio 2017 with Windows SDK / DirectX version 16299.91 (Fall Creators Update)
+3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 4. Vulkan [1.1.92.1](https://vulkan.lunarg.com/sdk/home)
@@ -144,9 +185,9 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 # macOS Requirements:
 
-1. macOS: 10.14 (18A389)
+1. macOS Mojave 10.14.4 beta (18E174f)
 
-2. XCode: 10.1 (10B61)
+2. Xcode 10.2 beta (10P82s)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -160,7 +201,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS: 12.0.1 (16A404)
+1. iOS 12.2 beta (16E5181f)
 
 2. XCode: see macOS
 
@@ -283,7 +324,14 @@ In the spirit of the shadertoy examples this unit test shows a procedurally gene
 ## 9. Light and Shadow Playground
 This unit test shows various shadow and lighting techniques that can be chosen from a drop down menu. There will be more in the future.
 
-![Image of the Light and Shadow Unit test](Screenshots/09_LightShadowPlayground.png)
+iMac with AMD RADEON 580 (Part No. MNED2xxA) with resolution of 5120x2880:
+![Light & Shadow Playground](Screenshots/09_LightShadowPlayground.png)
+
+iPhone 7 iOS 12.1.4 (16D57) with a resolution of 1334x750:
+![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_iOS.png)
+
+Linux Ubuntu 18.04.1 LTS Vulkan 1.1.92 RADEON 480 Driver 18.30 with a resolution of 1920x1080:
+![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_Linux.png)
 
 ## 9a. Hybrid Ray-Traced Shadows
 This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. That means the users of your game do not have to buy a NVIDIA RTX GPU to enjoy HRT shadows :-)
@@ -312,20 +360,31 @@ This unit test shows how the integration of imGui with a wide range of functiona
 
 
 ## 14. Order-Independent Transparency unit test
-This unit test compares various Order-Indpendent Transparency Methods.
-
+This unit test compares various Order-Indpendent Transparency Methods. In the moment it shows:
+- Alpha blended transparency
+- Weighted blended Order Independent Transparency (Morgan McGuire Blog Entry 2014)[http://casual-effects.blogspot.com/2014/03/weighted-blended-order-independent.html] and (Morgan McGuire Blog Entry 2015)[http://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html]
+- Weighted blended Order Independent Transparency by Volition (GDC 2018 Talk)[https://www.gdcvault.com/play/1025400/Rendering-Technology-in-Agents-of]
+- Adaptive Order Independent Transparency with Raster Order Views (paper by Intel, supports DirectX 11, 12 only)[https://software.intel.com/en-us/articles/oit-approximation-with-pixel-synchronization-update-2014], and a (Primer)[https://software.intel.com/en-us/gamedev/articles/rasterizer-order-views-101-a-primer]
+- Phenomenological Transparency - Diffusion, Refraction, Shadows by (Morgan McGuire)[https://casual-effects.com/research/McGuire2017Transparency/McGuire2017Transparency.pdf]
 ![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.png)
 
 
 ## 15. Wave Intrinsics unit test
-This unit test shows how to use the new wave intrinsics. In the moment it only supports Windows (DirectX 12 / Vulkan 1.1) and Linux with Vulkan 1.1. More platforms will be added.
+This unit test shows how to use the new wave intrinsics. Supporting Windows with DirectX 12 / Vulkan, Linux with Vulkan and macOS / iOS.
 
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
-## 16. Ray Tracing Unit Test for DXR
-Ray Tracing API unit test, showing how to use DXR on Windows only.
+## 16. Ray Tracing Unit Test
+Ray Tracing API unit test, showing how the cross-platfrom Ray Tracing Interface running on Windows, macOS and iOS
 
-![Image of the DXR Ray Tracing unit test in The Forge](Screenshots/16_RayTracing.png)
+PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 with resolution 3440x1440:
+![Ray Tracing on PC With DXR](Screenshots/RayTracing_PC_DX12.png)
+
+Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
+![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
+
+iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
+![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
 
 ## 16a. Sphere Tracing
 This unit test was originally posted on ShaderToy by Inigo Quilez (https://www.shadertoy.com/view/Xds3zN and https://sopyer.github.io/b/post/vulkan-shader-sample/). It shows how a scene is ray marched with shadows, reflections and AO
@@ -435,3 +494,4 @@ The Forge utilizes the following Open-Source libraries:
 * [ENTT](https://github.com/skypjack/entt)
 * [Lua Scripting System](https://www.lua.org/)
 * [TressFX](https://github.com/GPUOpen-Effects/TressFX)
+* [Micro Profiler](https://github.com/zeux/microprofile)
