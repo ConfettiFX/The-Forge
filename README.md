@@ -29,7 +29,6 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
 - Very fast Entity Component System based on [ENTT](https://github.com/skypjack/entt)
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
-- [Micro Profiler](https://github.com/zeux/microprofile)
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
 Please find a link and credits for all open-source packages used at the end of this readme.
@@ -209,7 +208,7 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 
 We are currently testing on 
 * iPhone 7 (Model A1778)
-* iPad (Model A1803)
+* iPad (Model A1893)
 * iPhone Xs Max (Model MT5D2LL/A)
 
 
@@ -494,4 +493,4 @@ The Forge utilizes the following Open-Source libraries:
 * [ENTT](https://github.com/skypjack/entt)
 * [Lua Scripting System](https://www.lua.org/)
 * [TressFX](https://github.com/GPUOpen-Effects/TressFX)
-* [Micro Profiler](https://github.com/zeux/microprofile)
+
