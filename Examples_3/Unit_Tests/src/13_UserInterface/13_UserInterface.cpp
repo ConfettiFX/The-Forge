@@ -403,7 +403,7 @@ class UserInterfaceUnitTest: public IApp
 	void Exit()
 	{
 		// wait for rendering to finish before freeing resources
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 
@@ -459,7 +459,7 @@ class UserInterfaceUnitTest: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -521,7 +521,7 @@ class UserInterfaceUnitTest: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+			waitForFences(pRenderer, 1, &pNextFence);
 
 		// Acquire the main render target from the swapchain
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];

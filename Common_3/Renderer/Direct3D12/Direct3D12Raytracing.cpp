@@ -1,7 +1,5 @@
-// DXR
-//#include "../ThirdParty/DXR/include/d3d12_1.h"
-//#include "../ThirdParty/DXR/include/D3D12RaytracingFallback.h"
-
+// Socket is used in microprofile this header need to be included before d3d12 headers
+#include <WinSock2.h>
 #include <d3d12.h>
 #include <d3dcompiler.h>
 
@@ -19,6 +17,9 @@
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL	((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+
+//check if WindowsSDK is used which supports raytracing
+#ifdef D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT
 
 typedef struct DescriptorStoreHeap
 {
@@ -39,8 +40,10 @@ typedef struct DescriptorStoreHeap
 	D3D12_GPU_DESCRIPTOR_HANDLE mStartGpuHandle;
 } DescriptorStoreHeap;
 
+#ifndef ENABLE_RENDERER_RUNTIME_SWITCH
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
+#endif
 
 extern void add_descriptor_heap(Renderer* pRenderer, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags, uint32_t numDescriptors, struct DescriptorStoreHeap** ppDescHeap);
 extern void reset_descriptor_heap(struct DescriptorStoreHeap* pHeap);
@@ -82,8 +85,7 @@ D3D12_RAYTRACING_INSTANCE_FLAGS util_to_dx_instance_flags(AccelerationStructureI
 /************************************************************************/
 struct RaytracingShader
 {
-	ID3DBlob*   pShaderBlob;
-	LPCWSTR	 pName;
+	Shader*		pShader;
 };
 
 struct RayConfigBlock
@@ -115,15 +117,10 @@ struct AccelerationStructure
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS mFlags;
 };
 
-struct RaytracingPipeline
-{
-	ID3D12StateObject*			 pDxrPipeline;
-};
-
 struct RaytracingShaderTable
 {
-	RaytracingPipeline*		 pPipeline;
-	Buffer*					 pBuffer;
+	Pipeline*					pPipeline;
+	Buffer*						pBuffer;
 	D3D12_GPU_DESCRIPTOR_HANDLE mViewGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	D3D12_GPU_DESCRIPTOR_HANDLE mSamplerGpuDescriptorHandle[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t					mViewDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -417,15 +414,17 @@ void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode
 	ASSERT(byteCodeSize);
 	ASSERT(pName);
 	ASSERT(ppShader);
-
+	
 	RaytracingShader* pShader = (RaytracingShader*)conf_calloc(1, sizeof(*pShader));
 	ASSERT(pShader);
 
-	D3DCreateBlob(byteCodeSize, &pShader->pShaderBlob);
-	memcpy(pShader->pShaderBlob->GetBufferPointer(), pByteCode, byteCodeSize);
+	{
+		ShaderLoadDesc desc = {};
+		desc.mStages[0] = { (char*)pByteCode, NULL, 0, FSR_SrcShaders };
+		desc.mTarget = shader_target_6_3;
 
-	pShader->pName = (WCHAR*)conf_calloc(strlen(pName) + 1, sizeof(WCHAR));
-	mbstowcs((WCHAR*)pShader->pName, pName, strlen(pName));
+		addShader(pRaytracing->pRenderer, &desc, &pShader->pShader);
+	}
 
 	*ppShader = pShader;
 }
@@ -435,8 +434,7 @@ void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader)
 	ASSERT(pRaytracing);
 	ASSERT(pShader);
 
-	pShader->pShaderBlob->Release();
-	conf_free((void*)pShader->pName);
+	removeShader(pRaytracing->pRenderer, pShader->pShader);
 	conf_free(pShader);
 }
 
@@ -533,9 +531,9 @@ uint32_t setupDescAndLayout(	const ShaderResource* pRes, DescriptorInfo* pDesc,
 	return setIndex;
 }
 
-void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
+void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, 
+								bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
 {
-	ASSERT(pRaytracing);
 	ASSERT(ppRootSignature);
 
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
@@ -802,7 +800,7 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 
 	ASSERT(pRootSignature->pDxSerializedRootSignatureString);
 
-	hr = pRaytracing->pRenderer->pDxDevice->CreateRootSignature(0,
+	hr = pRenderer->pDxDevice->CreateRootSignature(0,
 		pRootSignature->pDxSerializedRootSignatureString->GetBufferPointer(),
 		pRootSignature->pDxSerializedRootSignatureString->GetBufferSize(),
 		IID_PPV_ARGS(&pRootSignature->pDxRootSignature));
@@ -813,13 +811,15 @@ void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* p
 	*ppRootSignature = pRootSignature;
 }
 
-void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc* pDesc, RaytracingPipeline** ppPipeline)
+void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline)
 {
+	Raytracing* pRaytracing = pDesc->pRaytracing;
+
 	ASSERT(pRaytracing);
 	ASSERT(pDesc);
 	ASSERT(ppPipeline);
 
-	RaytracingPipeline* pPipeline = (RaytracingPipeline*)conf_calloc(1, sizeof(*pPipeline));
+	Pipeline* pPipeline = (Pipeline*)conf_calloc(1, sizeof(*pPipeline));
 	ASSERT(pPipeline);
 	/************************************************************************/
 	// Pipeline Creation
@@ -839,25 +839,28 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 	D3D12_EXPORT_DESC rayGenExportDesc = {};
 	rayGenExportDesc.ExportToRename = NULL;
 	rayGenExportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
-	rayGenExportDesc.Name = pDesc->pRayGenShader->pName;
+	rayGenExportDesc.Name = pDesc->pRayGenShader->pEntryNames[0];
 
-	rayGenDesc.DXILLibrary.BytecodeLength = pDesc->pRayGenShader->pShaderBlob->GetBufferSize();
-	rayGenDesc.DXILLibrary.pShaderBytecode = pDesc->pRayGenShader->pShaderBlob->GetBufferPointer();
+	rayGenDesc.DXILLibrary.BytecodeLength = pDesc->pRayGenShader->pShaderBlobs[0]->GetBufferSize();
+	rayGenDesc.DXILLibrary.pShaderBytecode = pDesc->pRayGenShader->pShaderBlobs[0]->GetBufferPointer();
 	rayGenDesc.NumExports = 1;
 	rayGenDesc.pExports = &rayGenExportDesc;
 
 	dxilLibDescs.emplace_back(rayGenDesc);
 
+	tinystl::vector<LPCWSTR> missShadersEntries(pDesc->mMissShaderCount);
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
 		D3D12_EXPORT_DESC* pMissExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pMissExportDesc));
 		pMissExportDesc->ExportToRename = NULL;
 		pMissExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
-		pMissExportDesc->Name = pDesc->ppMissShaders[i]->pName;
+
+		pMissExportDesc->Name = pDesc->ppMissShaders[i]->pEntryNames[0];
+		missShadersEntries[i] = pMissExportDesc->Name;
 
 		D3D12_DXIL_LIBRARY_DESC missDesc = {};
-		missDesc.DXILLibrary.BytecodeLength = pDesc->ppMissShaders[i]->pShaderBlob->GetBufferSize();
-		missDesc.DXILLibrary.pShaderBytecode = pDesc->ppMissShaders[i]->pShaderBlob->GetBufferPointer();
+		missDesc.DXILLibrary.BytecodeLength = pDesc->ppMissShaders[i]->pShaderBlobs[0]->GetBufferSize();
+		missDesc.DXILLibrary.pShaderBytecode = pDesc->ppMissShaders[i]->pShaderBlobs[0]->GetBufferPointer();
 		missDesc.NumExports = 1;
 		missDesc.pExports = pMissExportDesc;
 
@@ -865,6 +868,9 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 		dxilLibDescs.emplace_back(missDesc);
 	}
 
+	tinystl::vector<LPCWSTR> hitGroupsIntersectionsEntries(pDesc->mHitGroupCount);
+	tinystl::vector<LPCWSTR> hitGroupsAnyHitEntries(pDesc->mHitGroupCount);
+	tinystl::vector<LPCWSTR> hitGroupsClosestHitEntries(pDesc->mHitGroupCount);
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
 	{
 		if (pDesc->pHitGroups[i].pIntersectionShader)
@@ -872,11 +878,12 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 			D3D12_EXPORT_DESC* pIntersectionExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pIntersectionExportDesc));
 			pIntersectionExportDesc->ExportToRename = NULL;
 			pIntersectionExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
-			pIntersectionExportDesc->Name = pDesc->pHitGroups[i].pIntersectionShader->pName;
+			pIntersectionExportDesc->Name = pDesc->pHitGroups[i].pIntersectionShader->pEntryNames[0];
+			hitGroupsIntersectionsEntries[i] = pIntersectionExportDesc->Name;
 
 			D3D12_DXIL_LIBRARY_DESC intersectionDesc = {};
-			intersectionDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pIntersectionShader->pShaderBlob->GetBufferSize();
-			intersectionDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pIntersectionShader->pShaderBlob->GetBufferPointer();
+			intersectionDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pIntersectionShader->pShaderBlobs[0]->GetBufferSize();
+			intersectionDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pIntersectionShader->pShaderBlobs[0]->GetBufferPointer();
 			intersectionDesc.NumExports = 1;
 			intersectionDesc.pExports = pIntersectionExportDesc;
 
@@ -888,11 +895,12 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 			D3D12_EXPORT_DESC* pAnyHitExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pAnyHitExportDesc));
 			pAnyHitExportDesc->ExportToRename = NULL;
 			pAnyHitExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
-			pAnyHitExportDesc->Name = pDesc->pHitGroups[i].pAnyHitShader->pName;
+			pAnyHitExportDesc->Name = pDesc->pHitGroups[i].pAnyHitShader->pEntryNames[0];
+			hitGroupsAnyHitEntries[i] = pAnyHitExportDesc->Name;
 
 			D3D12_DXIL_LIBRARY_DESC anyHitDesc = {};
-			anyHitDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pAnyHitShader->pShaderBlob->GetBufferSize();
-			anyHitDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pAnyHitShader->pShaderBlob->GetBufferPointer();
+			anyHitDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pAnyHitShader->pShaderBlobs[0]->GetBufferSize();
+			anyHitDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pAnyHitShader->pShaderBlobs[0]->GetBufferPointer();
 			anyHitDesc.NumExports = 1;
 			anyHitDesc.pExports = pAnyHitExportDesc;
 
@@ -904,11 +912,12 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 			D3D12_EXPORT_DESC* pClosestHitExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pClosestHitExportDesc));
 			pClosestHitExportDesc->ExportToRename = NULL;
 			pClosestHitExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
-			pClosestHitExportDesc->Name = pDesc->pHitGroups[i].pClosestHitShader->pName;
+			pClosestHitExportDesc->Name = pDesc->pHitGroups[i].pClosestHitShader->pEntryNames[0];
+			hitGroupsClosestHitEntries[i] = pClosestHitExportDesc->Name;
 
 			D3D12_DXIL_LIBRARY_DESC closestHitDesc = {};
-			closestHitDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pClosestHitShader->pShaderBlob->GetBufferSize();
-			closestHitDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pClosestHitShader->pShaderBlob->GetBufferPointer();
+			closestHitDesc.DXILLibrary.BytecodeLength = pDesc->pHitGroups[i].pClosestHitShader->pShaderBlobs[0]->GetBufferSize();
+			closestHitDesc.DXILLibrary.pShaderBytecode = pDesc->pHitGroups[i].pClosestHitShader->pShaderBlobs[0]->GetBufferPointer();
 			closestHitDesc.NumExports = 1;
 			closestHitDesc.pExports = pClosestHitExportDesc;
 
@@ -938,10 +947,28 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 		hitGroupNames[i] = (WCHAR*)conf_calloc(strlen(pDesc->pHitGroups[i].pHitGroupName) + 1, sizeof(WCHAR));
 		mbstowcs(hitGroupNames[i], pDesc->pHitGroups[i].pHitGroupName, strlen(pDesc->pHitGroups[i].pHitGroupName));
 
-		hitGroupDescs[i].AnyHitShaderImport = pHitGroup->pAnyHitShader ? pHitGroup->pAnyHitShader->pName : NULL;
-		hitGroupDescs[i].ClosestHitShaderImport = pHitGroup->pClosestHitShader ? pHitGroup->pClosestHitShader->pName : NULL;
+		if (pHitGroup->pAnyHitShader)
+		{
+			hitGroupDescs[i].AnyHitShaderImport = hitGroupsAnyHitEntries[i];
+		}
+		else
+			hitGroupDescs[i].AnyHitShaderImport = nullptr;
+
+		if (pHitGroup->pClosestHitShader)
+		{
+			hitGroupDescs[i].ClosestHitShaderImport = hitGroupsClosestHitEntries[i];
+		}
+		else
+			hitGroupDescs[i].ClosestHitShaderImport = nullptr;
+
+		if (pHitGroup->pIntersectionShader)
+		{
+			hitGroupDescs[i].IntersectionShaderImport = hitGroupsIntersectionsEntries[i];
+		}
+		else
+			hitGroupDescs[i].IntersectionShaderImport = nullptr;
+
 		hitGroupDescs[i].HitGroupExport = hitGroupNames[i];
-		hitGroupDescs[i].IntersectionShaderImport = pHitGroup->pIntersectionShader ? pHitGroup->pIntersectionShader->pName : NULL;
 
 		hitGroupObjects[i].Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
 		hitGroupObjects[i].pDesc = &hitGroupDescs[i];
@@ -973,14 +1000,14 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 	//if (pDesc->pRayGenRootSignature)
 	{
 		rayGenRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-		rayGenRSdesc.pLocalRootSignature = pDesc->pRayGenRootSignature ? 
-											pDesc->pRayGenRootSignature->pDxRootSignature : 
-											pDesc->pEmptyRootSignature->pDxRootSignature;
+		rayGenRSdesc.pLocalRootSignature = pDesc->pRayGenRootSignature ?
+			pDesc->pRayGenRootSignature->pDxRootSignature :
+			pDesc->pEmptyRootSignature->pDxRootSignature;
 		rayGenRootSignatureObject.pDesc = &rayGenRSdesc;
 		subobjects.emplace_back(rayGenRootSignatureObject);
 
 		rayGenRootSignatureAssociation.NumExports = 1;
-		rayGenRootSignatureAssociation.pExports = &pDesc->pRayGenShader->pName;
+		rayGenRootSignatureAssociation.pExports = &rayGenExportDesc.Name;
 
 		exportAssociationsDelayed.push_back({ (uint32_t)subobjects.size() - 1, &rayGenRootSignatureAssociation });
 	}
@@ -1002,7 +1029,7 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 			subobjects.emplace_back(missRootSignatures[i]);
 
 			missRootSignaturesAssociation[i].NumExports = 1;
-			missRootSignaturesAssociation[i].pExports = &pDesc->ppMissShaders[i]->pName;
+			missRootSignaturesAssociation[i].pExports = &missShadersEntries[i];
 
 			exportAssociationsDelayed.push_back({ (uint32_t)subobjects.size() - 1, &missRootSignaturesAssociation[i] });
 		}
@@ -1084,17 +1111,6 @@ void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc
 	/************************************************************************/
 	/************************************************************************/
 	*ppPipeline = pPipeline;
-}
-
-extern void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature);
-void removeRaytracingPipeline(Raytracing* pRaytracing, RaytracingPipeline* pPipeline)
-{
-	ASSERT(pRaytracing);
-	ASSERT(pPipeline);
-
-	pPipeline->pDxrPipeline->Release();
-
-	conf_free(pPipeline);
 }
 
 static const uint32_t gLocalRootConstantSize = sizeof(UINT);
@@ -1668,14 +1684,6 @@ void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatc
 	pDxrCmd->Release();
 }
 
-void cmdCopyTexture(Cmd* pCmd, Texture* pDst, Texture* pSrc)
-{
-	ASSERT(pCmd);
-	ASSERT(pDst);
-	ASSERT(pSrc);
-
-	pCmd->pDxCmdList->CopyResource(pDst->pDxResource, pSrc->pDxResource);
-}
 /************************************************************************/
 // Utility Functions Implementation
 /************************************************************************/
@@ -1723,3 +1731,14 @@ D3D12_RAYTRACING_INSTANCE_FLAGS util_to_dx_instance_flags(AccelerationStructureI
 
 	return ret;
 }
+
+#else
+void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+}
+
+void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
+	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
+{
+}
+#endif

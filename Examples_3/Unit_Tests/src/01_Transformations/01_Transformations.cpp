@@ -426,7 +426,7 @@ class Transformations: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 
@@ -501,7 +501,9 @@ class Transformations: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
@@ -514,7 +516,7 @@ class Transformations: public IApp
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRasterizerState = pSphereRast;
-		addPipeline(pRenderer, &pipelineSettings, &pSpherePipeline);
+		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
 		//layout and pipeline for skybox draw
 		vertexLayout = {};
@@ -528,14 +530,14 @@ class Transformations: public IApp
 		pipelineSettings.pDepthState = NULL;
 		pipelineSettings.pRasterizerState = pSkyboxRast;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
 
 		return true;
 	}
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -620,7 +622,7 @@ class Transformations: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };

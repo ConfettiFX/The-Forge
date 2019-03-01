@@ -1561,7 +1561,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 
 	pQueue->pRenderer = pRenderer;
 	pQueue->mtlCommandQueue = [pRenderer->pDevice newCommandQueue];
-	pQueue->pMtlSemaphore = dispatch_semaphore_create(0);
 
 	ASSERT(pQueue->mtlCommandQueue != nil);
 
@@ -1570,7 +1569,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 void removeQueue(Queue* pQueue)
 {
 	ASSERT(pQueue);
-	pQueue->pMtlSemaphore = nil;
 	pQueue->mtlCommandQueue = nil;
 	SAFE_FREE(pQueue);
 }
@@ -1973,6 +1971,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 					shader_name = pDesc->mVert.mName.c_str();
 					shader_macros = pDesc->mVert.mMacros;
 					compiled_code = &(pShaderProgram->mtlVertexShader);
+                    pShaderProgram->mtlVertexShaderEntryPoint = pDesc->mVert.mEntryPoint;
 				}
 				break;
 				case SHADER_STAGE_FRAG:
@@ -1982,6 +1981,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 					shader_name = pDesc->mFrag.mName.c_str();
 					shader_macros = pDesc->mFrag.mMacros;
 					compiled_code = &(pShaderProgram->mtlFragmentShader);
+                    pShaderProgram->mtlFragmentShaderEntryPoint = pDesc->mFrag.mEntryPoint;
 				}
 				break;
 				case SHADER_STAGE_COMP:
@@ -1991,6 +1991,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 					shader_name = pDesc->mComp.mName.c_str();
 					shader_macros = pDesc->mComp.mMacros;
 					compiled_code = &(pShaderProgram->mtlComputeShader);
+                    pShaderProgram->mtlComputeShaderEntryPoint = pDesc->mComp.mEntryPoint;
 				}
 				break;
 				default: break;
@@ -2081,6 +2082,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 		ShaderStage                  stage_mask = (ShaderStage)(1 << i);
 		const BinaryShaderStageDesc* pStage = NULL;
 		__strong id<MTLFunction>* compiled_code = nullptr;
+        tinystl::string* entryPointName = nullptr;
 
 		if (stage_mask == (pShaderProgram->mStages & stage_mask))
 		{
@@ -2090,18 +2092,21 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				{
 					pStage = &pDesc->mVert;
 					compiled_code = &(pShaderProgram->mtlVertexShader);
+                    entryPointName = &(pShaderProgram->mtlVertexShaderEntryPoint);
 				}
 				break;
 				case SHADER_STAGE_FRAG:
 				{
 					pStage = &pDesc->mFrag;
 					compiled_code = &(pShaderProgram->mtlFragmentShader);
+                    entryPointName = &(pShaderProgram->mtlFragmentShaderEntryPoint);
 				}
 				break;
 				case SHADER_STAGE_COMP:
 				{
 					pStage = &pDesc->mComp;
 					compiled_code = &(pShaderProgram->mtlComputeShader);
+                    entryPointName = &(pShaderProgram->mtlComputeShaderEntryPoint);
 				}
 				break;
 				default: break;
@@ -2120,6 +2125,8 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 			mtl_createShaderReflection(
 				pRenderer, pShaderProgram, (const uint8_t*)pStage->mSource.c_str(), (uint32_t)pStage->mSource.size(), stage_mask,
 				&vertexAttributeFormats, &pShaderProgram->mReflection.mStageReflections[reflectionCount++]);
+            
+            *entryPointName = pStage->mEntryPoint;
 		}
 	}
 
@@ -2147,7 +2154,7 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	SAFE_FREE(pShaderProgram);
 }
 
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -2263,6 +2270,37 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 	*ppRootSignature = pRootSignature;
 }
+    
+extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
+                                       bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr);
+
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+{
+    switch (pRootSignatureDesc->mSignatureType)
+    {
+        case(ROOT_SIGNATURE_GRAPHICS_COMPUTE):
+        {
+            addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
+            break;
+        }
+        case(ROOT_SIGNATURE_RAYTRACING_LOCAL):
+        {
+            addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
+                                       true, ppRootSignature, pRootSignatureDesc);
+            break;
+        }
+        case(ROOT_SIGNATURE_RAYTRACING_GLOBAL):
+        {
+            addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
+                                       false, ppRootSignature, pRootSignatureDesc);
+            break;
+        }
+        default:
+        {
+            ASSERT(false);
+        }
+    }
+}
 
 void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
@@ -2293,7 +2331,7 @@ uint32_t util_calculate_vertex_layout_stride(const VertexLayout* pVertexLayout)
 	return result;
 }
 
-void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
+void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -2422,7 +2460,7 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 	*ppPipeline = pPipeline;
 }
 
-void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, Pipeline** ppPipeline)
+void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -2448,12 +2486,54 @@ void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, P
 
 	*ppPipeline = pPipeline;
 }
+    
+void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+    addComputePipelineImpl(pRenderer, pDesc, ppPipeline);
+}
+    
+void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+    addGraphicsPipelineImpl(pRenderer, pDesc, ppPipeline);
+}
+    
+extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
+extern void removeRaytracingPipeline(RaytracingPipeline* pPipeline);
+    
+void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+    ASSERT(pRenderer);
+    ASSERT(pRenderer->pDevice != nil);
+    
+    switch (pDesc->mType)
+    {
+        case(PIPELINE_TYPE_COMPUTE):
+        {
+            addComputePipelineImpl(pRenderer, &pDesc->mComputeDesc, ppPipeline);
+            break;
+        }
+        case(PIPELINE_TYPE_GRAPHICS):
+        {
+            addGraphicsPipelineImpl(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
+            break;
+        }
+        case(PIPELINE_TYPE_RAYTRACING):
+        {
+            addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
+            break;
+        }
+        default:
+            break;
+    }
+}
 
 void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
 	ASSERT(pPipeline);
 	pPipeline->mtlRenderPipelineState = nil;
 	pPipeline->mtlComputePipelineState = nil;
+    if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
+        removeRaytracingPipeline(pPipeline->pRaytracingPipeline);
 	SAFE_FREE(pPipeline);
 }
 
@@ -3431,7 +3511,6 @@ void queueSubmit(
 
 	// set the queue built-in semaphore to signal when all command lists finished their execution
 	__block uint32_t commandsFinished = 0;
-	__weak dispatch_semaphore_t blockSemaphore = pQueue->pMtlSemaphore;
 	__weak dispatch_semaphore_t completedFence = nil;
 	if (pFence)
 	{
@@ -3444,7 +3523,6 @@ void queueSubmit(
 			commandsFinished++;
 			if (commandsFinished == cmdCount)
 			{
-				dispatch_semaphore_signal(blockSemaphore);
 				if (completedFence)
 					dispatch_semaphore_signal(completedFence);
 			}
@@ -3495,9 +3573,9 @@ void queuePresent(
 	pSwapChain->mMTKDrawable = nil;
 }
 
-void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal)
+void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
-	ASSERT(pQueue);
+	ASSERT(pRenderer);
 	ASSERT(fenceCount);
 	ASSERT(ppFences);
 
@@ -3507,6 +3585,23 @@ void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool si
 			dispatch_semaphore_wait(ppFences[i]->pMtlSemaphore, DISPATCH_TIME_FOREVER);
 		ppFences[i]->mSubmitted = false;
 	}
+}
+
+void waitQueueIdle(Queue* pQueue)
+{
+	ASSERT(pQueue);
+	dispatch_semaphore_t queueCompletedSemaphore = dispatch_semaphore_create(0);
+	id<MTLCommandBuffer> waitCmdBuf = [pQueue->mtlCommandQueue commandBufferWithUnretainedReferences];
+
+	[waitCmdBuf addCompletedHandler: ^(id<MTLCommandBuffer> mtlCmdBuff) {
+		dispatch_semaphore_signal(queueCompletedSemaphore);
+	}];
+
+	[waitCmdBuf commit];
+
+	dispatch_semaphore_wait(queueCompletedSemaphore, DISPATCH_TIME_FOREVER);
+
+	queueCompletedSemaphore = nil;
 }
 
 void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)

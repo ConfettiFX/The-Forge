@@ -189,7 +189,9 @@ bool Panini::Load(RenderTarget** rts)
 	vertexLayoutPanini.mAttribs[0].mLocation = 0;
 	vertexLayoutPanini.mAttribs[0].mOffset = 0;
 
-	GraphicsPipelineDesc pipelineSettings = { 0 };
+	PipelineDesc graphicsPipelineDesc = {};
+	graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+	GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
 	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 	pipelineSettings.mRenderTargetCount = 1;
 	pipelineSettings.pDepthState = pDepthStateDisable;
@@ -201,7 +203,7 @@ bool Panini::Load(RenderTarget** rts)
 	pipelineSettings.pRootSignature = pRootSignaturePaniniPostProcess;
 	pipelineSettings.pShaderProgram = pShaderPanini;
 	pipelineSettings.pVertexLayout = &vertexLayoutPanini;
-	addPipeline(pRenderer, &pipelineSettings, &pPipelinePaniniPostProcess);
+	addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelinePaniniPostProcess);
 
 	return true;
 }

@@ -440,7 +440,7 @@ class Procedural: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
 
 		removeResource(pSphereVertexBuffer);
@@ -535,7 +535,9 @@ class Procedural: public IApp
 		vertexLayoutSphere.mAttribs[1].mLocation = 1;
 		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc pipelineDesc = {};
+		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
@@ -548,7 +550,7 @@ class Procedural: public IApp
 		pipelineSettings.pShaderProgram = pShaderBRDF;
 		pipelineSettings.pVertexLayout = &vertexLayoutSphere;
 		pipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineBRDF);
 
 		// Create vertex layout
 		VertexLayout vertexLayoutBG = {};
@@ -566,7 +568,9 @@ class Procedural: public IApp
 		vertexLayoutBG.mAttribs[1].mLocation = 1;
 		vertexLayoutBG.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
 
-		GraphicsPipelineDesc pipelineSettingsBG = { 0 };
+		PipelineDesc pipelineDescBG = {};
+		pipelineDescBG.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettingsBG = pipelineDescBG.mGraphicsDesc;
 		pipelineSettingsBG.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettingsBG.mRenderTargetCount = 1;
 		pipelineSettingsBG.pDepthState = pDepth;
@@ -579,7 +583,7 @@ class Procedural: public IApp
 		pipelineSettingsBG.pShaderProgram = pShaderBG;
 		pipelineSettingsBG.pVertexLayout = &vertexLayoutBG;
 		pipelineSettingsBG.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettingsBG, &pPipelineBG);
+		addPipeline(pRenderer, &pipelineDescBG, &pPipelineBG);
 
 #if defined(VULKAN)
 		transitionRenderTargets();
@@ -590,7 +594,7 @@ class Procedural: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
@@ -610,7 +614,7 @@ class Procedural: public IApp
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
@@ -663,7 +667,7 @@ class Procedural: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 		/************************************************************************/
 		// Upload uniform data to GPU
 		/************************************************************************/
@@ -852,7 +856,7 @@ class Procedural: public IApp
 		cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers, false);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
+		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 	}
 #endif
 

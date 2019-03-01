@@ -415,10 +415,12 @@ class ExecuteIndirect: public IApp
 		addSampler(pRenderer, &samplerDesc, &pBasicSampler);
 		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
 
-		ComputePipelineDesc computePipelineDesc = {};
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
 		computePipelineDesc.pShaderProgram = pComputeShader;
 		computePipelineDesc.pRootSignature = pComputeRoot;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pComputePipeline);
+		addPipeline(pRenderer, &desc, &pComputePipeline);
 
 		/* Initialize Asteroid Simulation */
 
@@ -674,7 +676,7 @@ class ExecuteIndirect: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #if !defined(TARGET_IOS)
 		gPaniniControls.Destroy();
@@ -799,7 +801,9 @@ class ExecuteIndirect: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = sizeof(vec4);
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
@@ -812,11 +816,11 @@ class ExecuteIndirect: public IApp
 		pipelineSettings.pRootSignature = pBasicRoot;
 		pipelineSettings.pShaderProgram = pBasicShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pBasicPipeline);
+		addPipeline(pRenderer, &desc, &pBasicPipeline);
 
 		pipelineSettings.pRootSignature = pIndirectRoot;
 		pipelineSettings.pShaderProgram = pIndirectShader;
-		addPipeline(pRenderer, &pipelineSettings, &pIndirectPipeline);
+		addPipeline(pRenderer, &desc, &pIndirectPipeline);
 
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
@@ -831,7 +835,7 @@ class ExecuteIndirect: public IApp
 		pipelineSettings.pRasterizerState = pSkyboxRast;
 		pipelineSettings.pRootSignature = pSkyBoxRoot;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
 
 #if defined(VULKAN)
 		transitionRenderTargets();
@@ -862,7 +866,7 @@ class ExecuteIndirect: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
@@ -890,7 +894,7 @@ class ExecuteIndirect: public IApp
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
@@ -939,7 +943,7 @@ class ExecuteIndirect: public IApp
 		// Sync all frames in flight in case there is a change in the render modes
 		if (gPreviousRenderingMode != gRenderingMode)
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, false);
+			waitForFences(pRenderer, gImageCount, pRenderCompleteFences);
 			gPreviousRenderingMode = gRenderingMode;
 		}
 
@@ -955,7 +959,7 @@ class ExecuteIndirect: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		uint32_t frameIdx = gFrameIndex;
 
@@ -1287,7 +1291,7 @@ class ExecuteIndirect: public IApp
 		cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers, false);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
+		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 	}
 	/************************************************************************/
 	// Camera

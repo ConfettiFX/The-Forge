@@ -135,11 +135,11 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 	removeQueue(pCopyEngine->pQueue);
 }
 
-static void waitCopyEngineSet(CopyEngine* pCopyEngine, size_t activeSet)
+static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet)
 {
 	ASSERT(!pCopyEngine->isRecording);
 	ResourceSet& resourceSet = pCopyEngine->resourceSets[activeSet];
-	waitForFences(pCopyEngine->pQueue, 1, &resourceSet.pFence, false);
+	waitForFences(pRenderer, 1, &resourceSet.pFence);
 }
 
 static void resetCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet)
@@ -178,9 +178,7 @@ static void streamerFlush(CopyEngine* pCopyEngine, size_t activeSet)
 static void finish(CopyEngine* pCopyEngine, size_t activeSet)
 {
 	streamerFlush(pCopyEngine, activeSet);
-	// NOTE: should be last submitted set, not previous;
-	ResourceSet& resourceSet = pCopyEngine->resourceSets[activeSet];
-	waitForFences(pCopyEngine->pQueue, 1, &resourceSet.pFence, false);
+	waitQueueIdle(pCopyEngine->pQueue);
 }
 
 /// Return memory from pre-allocated staging buffer or create a temporary buffer if the streamer ran out of memory
@@ -520,6 +518,8 @@ typedef struct ResourceLoader
 
 	Mutex mQueueMutex;
 	ConditionVariable mQueueCond;
+	Mutex mTokenMutex;
+	ConditionVariable mTokenCond;
 	tinystl::vector <StreamerRequest> mRequestQueue;
 
 	tfrg_atomic64_t mTokenCompleted;
@@ -539,7 +539,7 @@ static CopyEngine* getCopyEngine(ResourceLoader* pLoader, uint32_t nodeIndex)
 
 static void streamerThreadFunc(void* pThreadData)
 {
-#define TIME_SLICE_DURATION_MS 16
+#define TIME_SLICE_DURATION_MS 4
 
 	ResourceLoader* pLoader = (ResourceLoader*)pThreadData;
 	ASSERT(pLoader);
@@ -602,7 +602,7 @@ static void streamerThreadFunc(void* pThreadData)
 			{
 				if (pLoader->pCopyEngines[i])
 				{
-					waitCopyEngineSet(pLoader->pCopyEngines[i], activeSet);
+					waitCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
 					resetCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
 				}
 			}
@@ -610,6 +610,7 @@ static void streamerThreadFunc(void* pThreadData)
 			SyncToken prevToken = tfrg_atomic64_load_relaxed(&pLoader->mTokenCompleted);
 			// As the only writer atomicity is preserved
 			tfrg_atomic64_store_release(&pLoader->mTokenCompleted, nextToken > prevToken ? nextToken : prevToken);
+			pLoader->mTokenCond.SetAll();
 			nextTimeslot = getSystemTime() + TIME_SLICE_DURATION_MS;
 		}
 
@@ -721,6 +722,15 @@ static bool isTokenCompleted(ResourceLoader* pLoader, SyncToken token)
 	return completed;
 }
 
+static void waitTokenCompleted(ResourceLoader* pLoader, SyncToken token)
+{
+	pLoader->mTokenMutex.Acquire();
+	while (!isTokenCompleted(token))
+	{
+		pLoader->mTokenCond.Wait(pLoader->mTokenMutex);
+	}
+	pLoader->mTokenMutex.Release();
+}
 //////////////////////////////////////////////////////////////////////////
 // Resource Loader Implementation
 //////////////////////////////////////////////////////////////////////////
@@ -771,12 +781,13 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	ASSERT(pTextureDesc->ppTexture);
 
 	bool freeImage = false;
+	Image* pImage = pTextureDesc->pImage;
 	if (pTextureDesc->pFilename)
 	{
-		pTextureDesc->pImage = conf_new<Image>();
-		if (!pTextureDesc->pImage->loadImage(pTextureDesc->pFilename, pTextureDesc->mUseMipmaps, nullptr, nullptr, pTextureDesc->mRoot))
+		pImage = conf_new<Image>();
+		if (!pImage->loadImage(pTextureDesc->pFilename, pTextureDesc->mUseMipmaps, nullptr, nullptr, pTextureDesc->mRoot))
 		{
-			conf_delete(pTextureDesc->pImage);
+			conf_delete(pImage);
 			return;
 		}
 		freeImage = true;
@@ -795,18 +806,16 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 		return;
 	}
 
-	Image& img = *pTextureDesc->pImage;
-
 	TextureDesc desc = {};
 	desc.mFlags = pTextureDesc->mCreationFlag;
-	desc.mWidth = img.GetWidth();
-	desc.mHeight = img.GetHeight();
-	desc.mDepth = max(1U, img.GetDepth());
-	desc.mArraySize = img.GetArrayCount();
-	desc.mMipLevels = img.GetMipMapCount();
+	desc.mWidth = pImage->GetWidth();
+	desc.mHeight = pImage->GetHeight();
+	desc.mDepth = max(1U, pImage->GetDepth());
+	desc.mArraySize = pImage->GetArrayCount();
+	desc.mMipLevels = pImage->GetMipMapCount();
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mSampleQuality = 0;
-	desc.mFormat = img.getFormat();
+	desc.mFormat = pImage->getFormat();
 	desc.mClearValue = ClearValue();
 	desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 	desc.mStartState = RESOURCE_STATE_COPY_DEST;
@@ -815,20 +824,20 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	desc.mSrgb = pTextureDesc->mSrgb;
 	desc.mNodeIndex = pTextureDesc->mNodeIndex;
 
-	if (img.IsCube())
+	if (pImage->IsCube())
 	{
 		desc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
 		desc.mArraySize *= 6;
 	}
 
 	wchar_t         debugName[MAX_PATH] = {};
-	tinystl::string filename = FileSystem::GetFileNameAndExtension(img.GetName());
+	tinystl::string filename = FileSystem::GetFileNameAndExtension(pImage->GetName());
 	mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
 	desc.pDebugName = debugName;
 
 	addTexture(pResourceLoader->pRenderer, &desc, pTextureDesc->ppTexture);
 
-	TextureUpdateDesc updateDesc = { *pTextureDesc->ppTexture, pTextureDesc->pImage, freeImage };
+	TextureUpdateDesc updateDesc = { *pTextureDesc->ppTexture, pImage, freeImage };
 	updateResource(&updateDesc, token);
 }
 
@@ -903,9 +912,7 @@ bool isTokenCompleted(SyncToken token)
 
 void waitTokenCompleted(SyncToken token)
 {
-	// TODO: replace busy loop with wait
-	while (!isTokenCompleted(token))
-		continue;
+	waitTokenCompleted(pResourceLoader, token);
 }
 
 void waitBatchCompleted()
@@ -952,16 +959,15 @@ shaderc_shader_kind getShadercShaderType(ShaderStage type)
 //@todo add support to macros!!
 void vk_compileShader(
 	Renderer* pRenderer, ShaderStage stage, uint32_t codeSize, const char* code, const tinystl::string& outFile, uint32_t macroCount,
-	ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
+	ShaderMacro* pMacros, tinystl::vector<char>* pByteCode, const char* pEntryPoint)
 {
 	// compile into spir-V shader
 	shaderc_compiler_t           compiler = shaderc_compiler_initialize();
 	shaderc_compilation_result_t spvShader =
-		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", "main", nullptr);
+		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", pEntryPoint ? pEntryPoint : "main", nullptr);
 	if (shaderc_result_get_compilation_status(spvShader) != shaderc_compilation_status_success)
 	{
-        int errno = shaderc_result_get_compilation_status(spvShader);
-		LOGERRORF("Shader compiling failed! with status %i", errno);
+		LOGERRORF("Shader compiling failed! with status");
 		abort();
 	}
 
@@ -980,7 +986,7 @@ void vk_compileShader(
 // This code is not added to Vulkan.cpp since it calls no Vulkan specific functions
 void vk_compileShader(
 	Renderer* pRenderer, ShaderTarget target, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount,
-	ShaderMacro* pMacros, tinystl::vector<char>* pByteCode)
+	ShaderMacro* pMacros, tinystl::vector<char>* pByteCode, const char* pEntryPoint)
 {
 	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
 		FileSystem::CreateDir(FileSystem::GetPath(outFile));
@@ -1005,6 +1011,9 @@ void vk_compileShader(
 	if (target >= shader_target_6_0)
 		commandLine += " --target-env vulkan1.1 ";
 		//commandLine += " \"-D" + tinystl::string("VULKAN") + "=" + "1" + "\"";
+
+	if (pEntryPoint != nullptr)
+		commandLine += tinystl::string::format(" -e %s", pEntryPoint);
 
 		// Add platform macro
 #ifdef _WINDOWS
@@ -1060,7 +1069,7 @@ void vk_compileShader(
 // object's bytecode to disk. We instead use the xcbuild bash tool to compile the shaders.
 void mtl_compileShader(
 	Renderer* pRenderer, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros,
-	tinystl::vector<char>* pByteCode)
+	tinystl::vector<char>* pByteCode, const char* /*pEntryPoint*/)
 {
 	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
 		FileSystem::CreateDir(FileSystem::GetPath(outFile));
@@ -1136,7 +1145,7 @@ void mtl_compileShader(
 #if (defined(DIRECT3D12) || defined(DIRECT3D11)) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void compileShader(
 	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
-	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
+	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 #endif
 
 // Function to generate the timestamp of this shader source file considering all include file timestamp
@@ -1281,7 +1290,8 @@ bool save_byte_code(const tinystl::string& binaryShaderName, const tinystl::vect
 
 bool load_shader_stage_byte_code(
 	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount,
-	ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode)
+	ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode,
+	const char* pEntryPoint)
 {
 	File            shaderSource = {};
 	tinystl::string code;
@@ -1351,12 +1361,12 @@ bool load_shader_stage_byte_code(
 		{
 #if defined(VULKAN)
 #if defined(__ANDROID__)
-			vk_compileShader(pRenderer, stage, (uint32_t)code.size(), code.c_str(), binaryShaderName, macroCount, pMacros, &byteCode);
+			vk_compileShader(pRenderer, stage, (uint32_t)code.size(), code.c_str(), binaryShaderName, macroCount, pMacros, &byteCode, pEntryPoint);
 #else
-			vk_compileShader(pRenderer, target, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode);
+			vk_compileShader(pRenderer, target, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode, pEntryPoint);
 #endif
 #elif defined(METAL)
-			mtl_compileShader(pRenderer, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode);
+			mtl_compileShader(pRenderer, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode, pEntryPoint);
 #endif
 		}
 		else
@@ -1366,7 +1376,7 @@ bool load_shader_stage_byte_code(
 			uint32_t byteCodeSize = 0;
 			compileShader(
 				pRenderer, target, stage, shaderSource.GetName(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc,
-				&byteCodeSize, &pByteCode);
+				&byteCodeSize, &pByteCode, pEntryPoint);
 			byteCode.resize(byteCodeSize);
 			memcpy(byteCode.data(), pByteCode, byteCodeSize);
 			conf_free(pByteCode);
@@ -1403,7 +1413,6 @@ bool find_shader_stage(const tinystl::string& fileName, ShaderDesc* pDesc, Shade
 		*pStage = SHADER_STAGE_FRAG;
 	}
 #ifndef METAL
-#if !defined(METAL)
 	else if (ext == ".tesc")
 	{
 		*pOutStage = &pDesc->mHull;
@@ -1420,12 +1429,21 @@ bool find_shader_stage(const tinystl::string& fileName, ShaderDesc* pDesc, Shade
 		*pStage = SHADER_STAGE_GEOM;
 	}
 #endif
-#endif
 	else if (ext == ".comp")
 	{
 		*pOutStage = &pDesc->mComp;
 		*pStage = SHADER_STAGE_COMP;
 	}
+    else if ((ext == ".rgen")    ||
+             (ext == ".rmiss")    ||
+             (ext == ".rchit")    ||
+             (ext == ".rint")    ||
+             (ext == ".rahit")    ||
+             (ext == ".rcall"))
+    {
+        *pOutStage = &pDesc->mComp;
+        *pStage = SHADER_STAGE_COMP;
+    }
 	else
 	{
 		return false;
@@ -1449,7 +1467,6 @@ bool find_shader_stage(
 		*pStage = SHADER_STAGE_FRAG;
 	}
 #ifndef METAL
-#if !defined(METAL)
 	else if (ext == ".tesc")
 	{
 		*pOutStage = &pBinaryDesc->mHull;
@@ -1466,12 +1483,26 @@ bool find_shader_stage(
 		*pStage = SHADER_STAGE_GEOM;
 	}
 #endif
-#endif
 	else if (ext == ".comp")
 	{
 		*pOutStage = &pBinaryDesc->mComp;
 		*pStage = SHADER_STAGE_COMP;
 	}
+    else if ((ext == ".rgen")    ||
+             (ext == ".rmiss")    ||
+             (ext == ".rchit")    ||
+             (ext == ".rint")    ||
+             (ext == ".rahit")    ||
+             (ext == ".rcall"))
+    {
+#ifndef METAL
+        *pOutStage = &pBinaryDesc->mComp;
+        *pStage = SHADER_STAGE_LIB;
+#else
+        *pOutStage = &pBinaryDesc->mComp;
+        *pStage = SHADER_STAGE_COMP;
+#endif
+    }
 	else
 	{
 		return false;
@@ -1502,19 +1533,27 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 				if (!load_shader_stage_byte_code(
 						pRenderer, pDesc->mTarget, stage, filename, pDesc->mStages[i].mRoot, pDesc->mStages[i].mMacroCount,
 						pDesc->mStages[i].pMacros, rendererDefinesDesc.rendererShaderDefinesCnt, rendererDefinesDesc.rendererShaderDefines,
-						byteCodes[i]))
+						byteCodes[i], pDesc->mStages[i].mEntryPointName))
 					return;
 
 				binaryDesc.mStages |= stage;
 				pStage->pByteCode = byteCodes[i].data();
 				pStage->mByteCodeSize = (uint32_t)byteCodes[i].size();
 #if defined(METAL)
-				pStage->mEntryPoint = "stageMain";
+                if (pDesc->mStages[i].mEntryPointName)
+                    pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;
+                else
+                    pStage->mEntryPoint = "stageMain";
 				// In metal, we need the shader source for our reflection system.
 				File metalFile = {};
 				metalFile.Open(filename + ".metal", FM_ReadBinary, pDesc->mStages[i].mRoot);
 				pStage->mSource = metalFile.ReadText();
 				metalFile.Close();
+#else
+				if (pDesc->mStages[i].mEntryPointName)
+					pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;
+				else
+					pStage->mEntryPoint = "main";
 #endif
 			}
 		}
@@ -1545,7 +1584,10 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 				pStage->mName = pDesc->mStages[i].mFileName;
 				uint timestamp = 0;
 				process_source_file(&shaderSource, &shaderSource, timestamp, pStage->mCode);
-				pStage->mEntryPoint = "stageMain";
+                if (pDesc->mStages[i].mEntryPointName)
+                    pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;
+                else
+                    pStage->mEntryPoint = "stageMain";
 				// Apply user specified shader macros
 				for (uint32_t j = 0; j < pDesc->mStages[i].mMacroCount; j++)
 				{

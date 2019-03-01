@@ -815,8 +815,7 @@ class LightShadowPlayground: public IApp
 	}
 	void Exit() override
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
 
@@ -925,7 +924,9 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Setup the resources needed for z-prepass
 		/************************************************************************/
-		GraphicsPipelineDesc zPrepassPipelineSettings = {};
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& zPrepassPipelineSettings = desc.mGraphicsDesc;
 		zPrepassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		zPrepassPipelineSettings.mRenderTargetCount = 0;
 		zPrepassPipelineSettings.pDepthState = pDepthStateEnable;
@@ -940,11 +941,13 @@ class LightShadowPlayground: public IApp
 #else
 		zPrepassPipelineSettings.pVertexLayout = &vertexLayoutRegular;
 #endif
-		addPipeline(pRenderer, &zPrepassPipelineSettings, &pPipelineZPrepass);
+		addPipeline(pRenderer, &desc, &pPipelineZPrepass);
 		/************************************************************************/
 		// Setup the resources needed for the Forward Shade Pipeline
 		/******************************/
-		GraphicsPipelineDesc forwardShadePipelineSettings = {};
+		PipelineDesc forwardGraphicsDesc = {};
+		forwardGraphicsDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& forwardShadePipelineSettings = forwardGraphicsDesc.mGraphicsDesc;
 		forwardShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		forwardShadePipelineSettings.mRenderTargetCount = 1;
 		forwardShadePipelineSettings.pDepthState = pDepthStateTestOnly;
@@ -957,12 +960,13 @@ class LightShadowPlayground: public IApp
 		forwardShadePipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		forwardShadePipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
 		forwardShadePipelineSettings.pVertexLayout = &vertexLayoutRegular;
-		addPipeline(pRenderer, &forwardShadePipelineSettings, &pPipelineForwardShadeSrgb);
+		addPipeline(pRenderer, &forwardGraphicsDesc, &pPipelineForwardShadeSrgb);
 
 		/************************************************************************/
 		// Setup the resources needed for shadow map
 		/************************************************************************/
-		GraphicsPipelineDesc shadowMapPipelineSettings = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& shadowMapPipelineSettings = desc.mGraphicsDesc;
 		shadowMapPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		shadowMapPipelineSettings.mRenderTargetCount = 0;
 		shadowMapPipelineSettings.pDepthState = pDepthStateEnable;
@@ -977,36 +981,42 @@ class LightShadowPlayground: public IApp
 #else
 		shadowMapPipelineSettings.pVertexLayout = &vertexLayoutRegular;
 #endif
-		addPipeline(pRenderer, &shadowMapPipelineSettings, &pPipelineShadowPass);
+		addPipeline(pRenderer, &desc, &pPipelineShadowPass);
 		/*-----------------------------------------------------------*/
 		// Setup the resources needed for the ESM Blur Compute Pipeline
 		/*-----------------------------------------------------------*/
-		ComputePipelineDesc esmBlurPipelineSettings = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		desc.mComputeDesc = {};
+		ComputePipelineDesc& esmBlurPipelineSettings = desc.mComputeDesc;
 		esmBlurPipelineSettings.pRootSignature = pRootSignatureESMBlur;
 		esmBlurPipelineSettings.pShaderProgram = pShaderESMBlur;
-		addComputePipeline(pRenderer, &esmBlurPipelineSettings, &pPipelineESMBlur);
+		addPipeline(pRenderer, &desc, &pPipelineESMBlur);
 		/*-----------------------------------------------------------*/
 		// Setup the resources needed for the buffer copy pipeline
 		/*-----------------------------------------------------------*/
-		ComputePipelineDesc bufferCopyPipelineSettings = {};
+		desc.mComputeDesc = {};
+		ComputePipelineDesc& bufferCopyPipelineSettings = desc.mComputeDesc;
 		bufferCopyPipelineSettings.pRootSignature = pRootSignatureCopyBuffer;
 		bufferCopyPipelineSettings.pShaderProgram = pShaderCopyBuffer;
-		addComputePipeline(pRenderer, &bufferCopyPipelineSettings, &pPipelineCopyBuffer);
+		addPipeline(pRenderer, &desc, &pPipelineCopyBuffer);
 
 		/************************************************************************/
 		// Setup the resources needed for Skybox
 		/************************************************************************/
-		GraphicsPipelineDesc skyboxPipelineSettings = forwardShadePipelineSettings;
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		desc.mGraphicsDesc = forwardGraphicsDesc.mGraphicsDesc;
+		GraphicsPipelineDesc& skyboxPipelineSettings = desc.mGraphicsDesc;
 		skyboxPipelineSettings.pDepthState = pDepthStateTestOnly;
 		skyboxPipelineSettings.pRootSignature = pRootSignatureSkybox;
 		skyboxPipelineSettings.pShaderProgram = pShaderSkybox;
 		skyboxPipelineSettings.pVertexLayout = NULL;
-		addPipeline(pRenderer, &skyboxPipelineSettings, &pPipelineSkybox);
+		addPipeline(pRenderer, &desc, &pPipelineSkybox);
 
 		/************************************************************************/
 		// Setup the resources needed for Sdf box
 		/************************************************************************/
-		GraphicsPipelineDesc sdfSpherePipelineSettings = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& sdfSpherePipelineSettings = desc.mGraphicsDesc;
 		sdfSpherePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		sdfSpherePipelineSettings.mRenderTargetCount = 1;
 		sdfSpherePipelineSettings.pDepthState = pDepthStateStencilShadow;
@@ -1019,14 +1029,14 @@ class LightShadowPlayground: public IApp
 		sdfSpherePipelineSettings.pShaderProgram = pShaderSdfSphere;
 		sdfSpherePipelineSettings.pBlendState = pBlendStateSDF;
 		sdfSpherePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		addPipeline(pRenderer, &sdfSpherePipelineSettings, &pPipelineSdfSphere);
+		addPipeline(pRenderer, &desc, &pPipelineSdfSphere);
 
 		return true;
 	}
 
 	void Unload() override
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
@@ -1354,7 +1364,7 @@ class LightShadowPlayground: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 		/************************************************************************/
 		// Update uniform buffers
 		/************************************************************************/

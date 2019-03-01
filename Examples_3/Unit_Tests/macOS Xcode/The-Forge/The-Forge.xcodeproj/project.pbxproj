@@ -98,6 +98,7 @@
 		5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
+		650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
 		654D979421E922F400113964 /* ClipController.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978621E922F300113964 /* ClipController.h */; };
 		654D979521E922F400113964 /* Rig.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978721E922F300113964 /* Rig.h */; };
 		654D979621E922F400113964 /* ClipMask.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978821E922F300113964 /* ClipMask.h */; };
@@ -266,6 +267,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -545,7 +547,7 @@
 		};
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
-			children = (				
+			children = (
 				EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
@@ -736,7 +738,7 @@
 				5C172FF621414CC60074EE71 /* tinyexr.h in Sources */,
 				654D97B921E92F8700113964 /* Clip.cpp in Sources */,
 				5C172FF721414CC60074EE71 /* LogManager.cpp in Sources */,
-				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,				
+				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
@@ -789,9 +791,9 @@
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
 				5C55830B21413D550019960B /* LogManager.cpp in Sources */,
-				5C55830C21413D550019960B /* LogManager.h in Sources */,				
+				5C55830C21413D550019960B /* LogManager.h in Sources */,
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
-				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,				
+				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */,
 				65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */,
 				5C172F4F214148840074EE71 /* GpuProfiler.cpp in Sources */,

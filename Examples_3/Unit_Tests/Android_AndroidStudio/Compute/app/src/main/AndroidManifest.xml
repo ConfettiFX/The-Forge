@@ -6,6 +6,7 @@
     <uses-sdk />
 
     <uses-permission android:name="android.permission.SET_DEBUG_APP"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- This .apk has no Java code itself, so set hasCode to false. -->
     <application android:label="@string/app_name"

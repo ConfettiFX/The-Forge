@@ -31,6 +31,10 @@
 #define RENDERER_IMPLEMENTATION
 #define IID_ARGS IID_PPV_ARGS
 
+#ifndef MICROPROFILE_IMPL
+#define MICROPROFILE_IMPL 1
+#endif
+
 #include "../../ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
@@ -57,6 +61,7 @@
 #if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #include <Windows.h>
 
 // Prefer Higher Performance GPU on switchable GPU systems
@@ -865,7 +870,7 @@ API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, Read
 API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
 API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
-API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
+API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
 
 // clang-format on
@@ -1119,14 +1124,34 @@ static void AddDevice(Renderer* pRenderer)
 	ASSERT(SUCCEEDED(hr));
 	if (FAILED(hr))
 		LOGERROR("Failed to create D3D11 device and context.");
+
+#if ENABLE_MICRO_PROFILER
+	MicroProfileOnThreadCreate("RenderThread");
+	MicroProfileGpuInitInternal(pRenderer->pDxDevice);
+	MicroProfileSetEnableAllGroups(true);
+	MicroProfileSetForceMetaCounters(true);
+	//MicroProfileSetCurrentNodeD3D12(0);
+	MicroProfileSetForceEnable(true);
+	MicroProfileSetEnableAllGroups(true);
+	MicroProfileSetForceMetaCounters(true);
+	MicroProfileWebServerStart();
+	MicroProfileContextSwitchTraceStart();
+#endif
 }
 
 static void RemoveDevice(Renderer* pRenderer)
 {
 	SAFE_RELEASE(pRenderer->pDXGIFactory);
 
+#if ENABLE_MICRO_PROFILER
+		{
+			MicroProfileGpuShutdown();
+		}
+#endif
+
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
 	{
+
 		SAFE_RELEASE(pRenderer->pDxGPUs[i]);
 	}
 
@@ -1732,7 +1757,7 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 /************************************************************************/
 void compileShader(
 	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
-	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode)
+	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint)
 {
 	if (shaderTarget > pRenderer->mSettings.mShaderTarget)
 	{
@@ -1788,7 +1813,7 @@ void compileShader(
 	//if (fnHookShaderCompileFlags != NULL)
 	//  fnHookShaderCompileFlags(compile_flags);
 
-	tinystl::string entryPoint = "main";
+	tinystl::string entryPoint = pEntryPoint ? tinystl::string(pEntryPoint) : "main";
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
@@ -2854,6 +2879,30 @@ void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, P
 	*ppPipeline = pPipeline;
 }
 
+void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+	switch (pDesc->mType)
+	{
+	case(PIPELINE_TYPE_COMPUTE):
+	{
+		addComputePipeline(pRenderer, &pDesc->mComputeDesc, ppPipeline);
+		break;
+	}
+	case(PIPELINE_TYPE_GRAPHICS):
+	{
+		addPipeline(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
+		break;
+	}
+	case(PIPELINE_TYPE_RAYTRACING):
+	default:
+	{
+		ASSERT(false);
+		ppPipeline = nullptr;
+		break;
+	}
+	}
+}
+
 void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
 	ASSERT(pRenderer);
@@ -3904,9 +3953,34 @@ void queueSubmit(
 					}
 					break;
 				}
-				case CMD_TYPE_cmdBeginDebugMarker: break;
-				case CMD_TYPE_cmdEndDebugMarker: break;
-				case CMD_TYPE_cmdAddDebugMarker: break;
+
+				case CMD_TYPE_cmdBeginDebugMarker:
+				{
+#if ENABLE_MICRO_PROFILER
+					MicroProfileGpuSetContext(pContext);
+
+					// Convert float3 color to *rgb8.
+					uint32 scope_color = static_cast<uint32>(cmd.mBeginDebugMarkerCmd.r * 255) << 16 
+									   | static_cast<uint32>(cmd.mBeginDebugMarkerCmd.g * 255) << 8 
+									   | static_cast<uint32>(cmd.mBeginDebugMarkerCmd.b * 255);
+
+					// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
+					MICROPROFILE_DEFINE_GPU(temp, cmd.mBeginDebugMarkerCmd.pName, scope_color);
+					// Create new scope on top of the current stack and enter
+					MICROPROFILE_GPU_ENTER_TOKEN(g_mp_temp);
+#endif
+					break;
+				}
+				case CMD_TYPE_cmdEndDebugMarker:
+				{
+#if ENABLE_MICRO_PROFILER
+					// Leave the current scope and pop up the scope stack
+					MICROPROFILE_GPU_LEAVE();
+#endif
+					break;
+				}
+				case CMD_TYPE_cmdAddDebugMarker:
+					break;
 				case CMD_TYPE_cmdUpdateBuffer:
 				{
 					const UpdateBufferCmd&   update = cmd.mUpdateBufferCmd;
@@ -3945,11 +4019,17 @@ void queuePresent(
 	Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
 {
 	pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
+#if ENABLE_MICRO_PROFILER
+		// Call profile flip to indicate a new frame
+		MicroProfileFlip();
+#endif
 }
 
 void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus) { *pFenceStatus = FENCE_STATUS_COMPLETE; }
 
-void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal) {}
+void waitForFences(Renderer* pRenderer, uint32_t fence_count, Fence** pp_fences) {}
+
+void waitQueueIdle(Queue* pQueue) {}
 
 void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 {
@@ -4209,6 +4289,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	cmd.mAddDebugMarkerCmd.pName = pName;
 	cachedCmdsIter->second.push_back(cmd);
 }
+
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
@@ -4217,7 +4298,190 @@ void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName) {}
 void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName) {}
 /************************************************************************/
 /************************************************************************/
-#endif    // RENDERER_IMPLEMENTATION
+#if MICROPROFILE_GPU_TIMERS_D3D11
+#define S g_MicroProfile
+struct MicroProfileGpuTimerStateInternal
+{
+	ID3D11DeviceContext* pDeviceContext;
+	ID3D11Query* pQueries[MICROPROFILE_GPU_MAX_QUERIES];
+	ID3D11Query* pRateQuery;
+	ID3D11Query* pSyncQuery;
+
+	uint64_t nFrame;
+	std::atomic<uint32_t> nFramePut;
+	AtomicUint nFramePutAtomic;
+
+	uint32_t nSubmitted[MICROPROFILE_GPU_FRAMES];
+	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
+
+	uint32_t nRateQueryIssue;
+	uint64_t nQueryFrequency;
+};
+
+MICROPROFILE_GPU_STATE_DECL(Internal)
+
+void MicroProfileGpuInitInternal(ID3D11Device* pDevice)
+{
+	MicroProfileGpuInitStateInternal();
+
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	pDevice->GetImmediateContext(&GPU.pDeviceContext);
+
+	D3D11_QUERY_DESC Desc;
+	Desc.MiscFlags = 0;
+	Desc.Query = D3D11_QUERY_TIMESTAMP;
+	for (uint32_t i = 0; i < MICROPROFILE_GPU_MAX_QUERIES; ++i)
+	{
+		HRESULT hr = pDevice->CreateQuery(&Desc, &GPU.pQueries[i]);
+		ASSERT(hr == S_OK);
+	}
+
+	HRESULT hr = pDevice->CreateQuery(&Desc, &GPU.pSyncQuery);
+	ASSERT(hr == S_OK);
+
+	Desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+	hr = pDevice->CreateQuery(&Desc, &GPU.pRateQuery);
+	ASSERT(hr == S_OK);
+}
+
+void MicroProfileGpuShutdownInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	for (uint32_t i = 0; i < MICROPROFILE_GPU_MAX_QUERIES; ++i)
+	{
+		GPU.pQueries[i]->Release();
+		GPU.pQueries[i] = 0;
+	}
+
+	GPU.pRateQuery->Release();
+	GPU.pRateQuery = 0;
+
+	GPU.pSyncQuery->Release();
+	GPU.pSyncQuery = 0;
+
+	GPU.pDeviceContext->Release();
+	GPU.pDeviceContext = 0;
+}
+
+uint32_t MicroProfileGpuFlipInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	if (!GPU.pDeviceContext) return (uint32_t)-1;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
+
+	// Submit current frame
+	uint32_t nFrameIndex = GPU.nFrame % MICROPROFILE_GPU_FRAMES;
+	uint32_t nFramePut = MicroProfileMin(GPU.nFramePutAtomic.mAtomicInt, nFrameQueries);
+
+	GPU.nSubmitted[nFrameIndex] = nFramePut;
+	GPU.nFramePutAtomic.AtomicStore(0);
+	GPU.nFramePut.store(0);
+	GPU.nFrame++;
+
+	// Fetch frame results
+	if (GPU.nFrame >= MICROPROFILE_GPU_FRAMES)
+	{
+		uint64_t nPendingFrame = GPU.nFrame - MICROPROFILE_GPU_FRAMES;
+		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAMES;
+
+		for (uint32_t i = 0; i < GPU.nSubmitted[nPendingFrameIndex]; ++i)
+		{
+			uint32_t nQueryIndex = nPendingFrameIndex * nFrameQueries + i;
+			ASSERT(nQueryIndex < MICROPROFILE_GPU_MAX_QUERIES);
+
+			uint64_t nResult = 0;
+
+			HRESULT hr;
+			do hr = GPU.pDeviceContext->GetData(GPU.pQueries[nQueryIndex], &nResult, sizeof(nResult), 0);
+			while (hr == S_FALSE);
+
+			GPU.nResults[nQueryIndex] = (hr == S_OK) ? nResult : MICROPROFILE_INVALID_TICK;
+		}
+	}
+
+	// Update timestamp frequency
+	if (GPU.nRateQueryIssue == 0)
+	{
+		GPU.pDeviceContext->Begin(GPU.pRateQuery);
+		GPU.nRateQueryIssue = 1;
+	}
+	else if (GPU.nRateQueryIssue == 1)
+	{
+		GPU.pDeviceContext->End(GPU.pRateQuery);
+		GPU.nRateQueryIssue = 2;
+	}
+	else
+	{
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT Result;
+		if (S_OK == GPU.pDeviceContext->GetData(GPU.pRateQuery, &Result, sizeof(Result), D3D11_ASYNC_GETDATA_DONOTFLUSH))
+		{
+			GPU.nQueryFrequency = Result.Frequency;
+			GPU.nRateQueryIssue = 0;
+		}
+	}
+
+	return MicroProfileGpuInsertTimer(0);
+}
+
+uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
+
+	uint32_t nIndex = GPU.nFramePutAtomic.AtomicIncrement();
+	if (nIndex >= nFrameQueries)
+		return (uint32_t)-1;
+
+	uint32_t nQueryIndex = (GPU.nFrame % MICROPROFILE_GPU_FRAMES) * nFrameQueries + nIndex;
+
+	GPU.pDeviceContext->End(GPU.pQueries[nQueryIndex]);
+
+	return nQueryIndex;
+}
+
+uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return GPU.nResults[nIndex];
+}
+
+uint64_t MicroProfileTicksPerSecondGpuInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return GPU.nQueryFrequency ? GPU.nQueryFrequency : 1000000000ll;
+}
+
+bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	GPU.pDeviceContext->End(GPU.pSyncQuery);
+
+	uint64_t nResult = 0;
+
+	HRESULT hr;
+	do hr = GPU.pDeviceContext->GetData(GPU.pSyncQuery, &nResult, sizeof(nResult), 0);
+	while (hr == S_FALSE);
+
+	if (hr != S_OK) return false;
+
+	*pOutCpu = MP_TICK();
+	*pOutGpu = nResult;
+
+	return true;
+}
+
+MICROPROFILE_GPU_STATE_IMPL(Internal)
+#undef S
+#endif
+#endif
 #endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 }

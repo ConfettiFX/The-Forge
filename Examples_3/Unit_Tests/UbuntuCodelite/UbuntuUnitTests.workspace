@@ -17,16 +17,16 @@
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
-  <Project Name="16_SphereTracing" Path="16_SphereTracing/16_SphereTracing.project" Active="No"/>
+  <Project Name="16a_SphereTracing" Path="16a_SphereTracing/16a_SphereTracing.project" Active="No"/>
   <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
-  <Project Name="01_Playback" Path="01_Playback/01_Playback.project" Active="No"/>
-  <Project Name="02_Blending" Path="02_Blending/02_Blending.project" Active="No"/>
-  <Project Name="03_JointAttachment" Path="03_JointAttachment/03_JointAttachment.project" Active="No"/>
-  <Project Name="04_PartialBlending" Path="04_PartialBlending/04_PartialBlending.project" Active="No"/>
-  <Project Name="05_AdditiveBlending" Path="05_AdditiveBlending/05_AdditiveBlending.project" Active="No"/>
-  <Project Name="07_BakedPhysics" Path="07_BakedPhysics/07_BakedPhysics.project" Active="No"/>
-  <Project Name="09_MultiThread" Path="09_MultiThread/09_MultiThread.project" Active="No"/>
-  <Project Name="10_Skinning" Path="10_Skinning/10_Skinning.project" Active="Yes"/>
+  <Project Name="18_Playback" Path="18_Playback/18_Playback.project" Active="No"/>
+  <Project Name="19_Blending" Path="19_Blending/19_Blending.project" Active="No"/>
+  <Project Name="20_JointAttachment" Path="20_JointAttachment/20_JointAttachment.project" Active="No"/>
+  <Project Name="21_PartialBlending" Path="21_PartialBlending/21_PartialBlending.project" Active="No"/>
+  <Project Name="22_AdditiveBlending" Path="22_AdditiveBlending/22_AdditiveBlending.project" Active="No"/>
+  <Project Name="23_BakedPhysics" Path="23_BakedPhysics/23_BakedPhysics.project" Active="No"/>
+  <Project Name="24_MultiThread" Path="24_MultiThread/24_MultiThread.project" Active="No"/>
+  <Project Name="25_Skinning" Path="25_Skinning/25_Skinning.project" Active="Yes"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
@@ -59,16 +59,16 @@
       <Project Name="13_UserInterface" ConfigName="Debug"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
-      <Project Name="16_SphereTracing" ConfigName="Debug"/>
+      <Project Name="16a_SphereTracing" ConfigName="Debug"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Debug"/>
-      <Project Name="01_Playback" ConfigName="Debug"/>
-      <Project Name="02_Blending" ConfigName="Debug"/>
-      <Project Name="03_JointAttachment" ConfigName="Debug"/>
-      <Project Name="04_PartialBlending" ConfigName="Debug"/>
-      <Project Name="05_AdditiveBlending" ConfigName="Debug"/>
-      <Project Name="07_BakedPhysics" ConfigName="Debug"/>
-      <Project Name="09_MultiThread" ConfigName="Debug"/>
-      <Project Name="10_Skinning" ConfigName="Debug"/>
+      <Project Name="18_Playback" ConfigName="Debug"/>
+      <Project Name="19_Blending" ConfigName="Debug"/>
+      <Project Name="20_JointAttachment" ConfigName="Debug"/>
+      <Project Name="21_PartialBlending" ConfigName="Debug"/>
+      <Project Name="22_AdditiveBlending" ConfigName="Debug"/>
+      <Project Name="23_BakedPhysics" ConfigName="Debug"/>
+      <Project Name="24_MultiThread" ConfigName="Debug"/>
+      <Project Name="25_Skinning" ConfigName="Debug"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
@@ -100,16 +100,16 @@
       <Project Name="13_UserInterface" ConfigName="Release"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="15_Transparency" ConfigName="Release"/>
-      <Project Name="16_SphereTracing" ConfigName="Release"/>
+      <Project Name="16a_SphereTracing" ConfigName="Release"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
-      <Project Name="01_Playback" ConfigName="Release"/>
-      <Project Name="02_Blending" ConfigName="Release"/>
-      <Project Name="03_JointAttachment" ConfigName="Release"/>
-      <Project Name="04_PartialBlending" ConfigName="Release"/>
-      <Project Name="05_AdditiveBlending" ConfigName="Release"/>
-      <Project Name="07_BakedPhysics" ConfigName="Release"/>
-      <Project Name="09_MultiThread" ConfigName="Release"/>
-      <Project Name="10_Skinning" ConfigName="Release"/>
+      <Project Name="18_Playback" ConfigName="Release"/>
+      <Project Name="19_Blending" ConfigName="Release"/>
+      <Project Name="20_JointAttachment" ConfigName="Release"/>
+      <Project Name="21_PartialBlending" ConfigName="Release"/>
+      <Project Name="22_AdditiveBlending" ConfigName="Release"/>
+      <Project Name="23_BakedPhysics" ConfigName="Release"/>
+      <Project Name="24_MultiThread" ConfigName="Release"/>
+      <Project Name="25_Skinning" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>

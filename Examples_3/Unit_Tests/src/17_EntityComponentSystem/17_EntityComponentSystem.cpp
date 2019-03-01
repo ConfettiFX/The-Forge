@@ -474,7 +474,7 @@ class EntityComponentSystem: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Exit();
 
@@ -525,7 +525,9 @@ class EntityComponentSystem: public IApp
 			return false;
 
 		// VertexLayout for sprite drawing.
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepthState;
@@ -538,14 +540,14 @@ class EntityComponentSystem: public IApp
 		pipelineSettings.pShaderProgram = pSpriteShader;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		pipelineSettings.pBlendState = pBlendState;
-		addPipeline(pRenderer, &pipelineSettings, &pSpritePipeline);
+		addPipeline(pRenderer, &desc, &pSpritePipeline);
 
 		return true;
 	}
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -611,7 +613,7 @@ class EntityComponentSystem: public IApp
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 		{
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+			waitForFences(pRenderer, 1, &pNextFence);
 		}
 
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];

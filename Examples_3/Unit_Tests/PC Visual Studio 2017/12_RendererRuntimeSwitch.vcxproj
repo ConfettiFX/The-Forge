@@ -36,6 +36,7 @@
     <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12MemoryAllocator.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12ShaderReflection.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\Common_3\Renderer\Renderer.cpp" />
@@ -198,6 +199,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -312,7 +312,7 @@ class WaveIntrinsics: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Exit();
 
@@ -372,7 +372,9 @@ class WaveIntrinsics: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepthNone;
@@ -384,7 +386,7 @@ class WaveIntrinsics: public IApp
 		pipelineSettings.pShaderProgram = pShaderWave;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRasterizerState = pRasterizerCullNone;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineWave);
+		addPipeline(pRenderer, &desc, &pPipelineWave);
 
 		//layout and pipeline for skybox draw
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
@@ -395,7 +397,7 @@ class WaveIntrinsics: public IApp
 
 		pipelineSettings.pRootSignature = pRootSignatureMagnify;
 		pipelineSettings.pShaderProgram = pShaderMagnify;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineMagnify);
+		addPipeline(pRenderer, &desc, &pPipelineMagnify);
 
 		gSceneData.mousePosition.x = mSettings.mWidth * 0.5f;
 		gSceneData.mousePosition.y = mSettings.mHeight * 0.5f;
@@ -405,7 +407,7 @@ class WaveIntrinsics: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -445,7 +447,7 @@ class WaveIntrinsics: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pNextFence, false);
+			waitForFences(pRenderer, 1, &pNextFence);
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/

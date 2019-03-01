@@ -10,6 +10,7 @@
 		28EE9FF7201B30B200D42AD7 /* 15_Transparency.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28EE9FF6201B30B200D42AD7 /* 15_Transparency.cpp */; };
 		5C172FA721414B560074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172FA521414B560074EE71 /* AppDelegate.m */; };
 		5C172FB021414B730074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FAD21414B680074EE71 /* libThe-Forge.a */; };
+		650CCC792223CD6B003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC742223CD6B003533D9 /* MetalPerformanceShaders.framework */; };
 		650E6C2821667E7A00F511AB /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 650E6C2721667E7A00F511AB /* AssimpImporter.cpp */; };
 		65AC437C21ACF14900F6DE4E /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC436D21ACEFF900F6DE4E /* libassimp.a */; };
 		65AC437D21ACF14900F6DE4E /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC436B21ACEFF900F6DE4E /* libIrrXML.a */; };
@@ -129,6 +130,7 @@
 		5CA80F1D21F0A09E00C99983 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
 		5CA80F1E21F0A09E00C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
 		5CABF37B2141545300EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		650CCC742223CD6B003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650E6C2621667E7A00F511AB /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssimpImporter.h; sourceTree = "<group>"; };
 		650E6C2721667E7A00F511AB /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AssimpImporter.cpp; sourceTree = "<group>"; };
 		65AC435621ACEFD800F6DE4E /* libassimp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libassimp.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -173,6 +175,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650CCC792223CD6B003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				65AC437C21ACF14900F6DE4E /* libassimp.a in Frameworks */,
 				65AC437D21ACF14900F6DE4E /* libIrrXML.a in Frameworks */,
 				65AC437E21ACF14900F6DE4E /* libzlibstatic.a in Frameworks */,
@@ -201,6 +204,7 @@
 		28A5AE24201F7D5C000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				650CCC742223CD6B003533D9 /* MetalPerformanceShaders.framework */,
 				65AC435D21ACEFE800F6DE4E /* libassimp.a */,
 				65AC435621ACEFD800F6DE4E /* libassimp.a */,
 				65AC435821ACEFD800F6DE4E /* libIrrXML.a */,
@@ -385,7 +389,7 @@
 				};
 			};
 			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "15_Transparency" */;
-			compatibilityVersion = "Xcode 10";
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (

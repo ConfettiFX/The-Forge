@@ -24,7 +24,19 @@
 
 #pragma once
 
+
+#if __cplusplus >= 201402l
+#define RENDERER_DEPRECATED(reason) [[deprecated(reason)]]
+#elif defined(__GNUC__)
+#define RENDERER_DEPRECATED(reason) __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#define RENDERER_DEPRECATED(reason) __declspec(deprecated(reason))
+#else
+#define RENDERER_DEPRECATED(reason)
+#endif
+
 #if defined(DIRECT3D11)
+#include <WinSock2.h>
 #include <d3d11_1.h>
 #include <dxgi1_2.h>
 #endif
@@ -34,12 +46,14 @@
 #define DIRECT3D12
 #endif
 #elif defined(DIRECT3D12)
+#include <WinSock2.h>
 #include <d3d12.h>
 #include <dxgi1_5.h>
 #include <dxgidebug.h>
 #endif
 #if defined(VULKAN)
 #if defined(_WIN32)
+#include <WinSock2.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 #if defined(__ANDROID__)
@@ -69,6 +83,8 @@
 #include "../ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../OS/Interfaces/IOperatingSystem.h"
 #include "../OS/Interfaces/IThread.h"
+
+#include "../ThirdParty/OpenSource/microprofile/microprofile.h"
 
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG
@@ -136,6 +152,7 @@ typedef enum QueueFlag
 {
 	QUEUE_FLAG_NONE,
 	QUEUE_FLAG_DISABLE_GPU_TIMEOUT,
+	QUEUE_FLAG_INIT_MICROPROFILE,
 	MAX_QUEUE_FLAG
 } QueueFlag;
 
@@ -196,6 +213,8 @@ typedef enum ResourceMemoryUsage
 
 // Forward declarations
 typedef struct Renderer             Renderer;
+typedef struct RaytracingHitGroup	RaytracingHitGroup;
+typedef struct Raytracing			Raytracing;
 typedef struct Queue                Queue;
 typedef struct Pipeline             Pipeline;
 typedef struct ResidencyObject      ResidencyObject;
@@ -322,9 +341,10 @@ typedef enum ShaderStage
 	SHADER_STAGE_FRAG = 0X00000010,
 	SHADER_STAGE_COMP = 0X00000020,
 	SHADER_STAGE_ALL_GRAPHICS = 0X0000001F,
+	SHADER_STAGE_LIB  = 0X00000040,
 	SHADER_STAGE_HULL = SHADER_STAGE_TESC,
 	SHADER_STAGE_DOMN = SHADER_STAGE_TESE,
-	SHADER_STAGE_COUNT = 6,
+	SHADER_STAGE_COUNT = 7,
 } ShaderStage;
 #endif
 MAKE_ENUM_FLAG(uint32_t, ShaderStage)
@@ -479,6 +499,7 @@ typedef enum PipelineType
 	PIPELINE_TYPE_UNDEFINED = 0,
 	PIPELINE_TYPE_COMPUTE,
 	PIPELINE_TYPE_GRAPHICS,
+	PIPELINE_TYPE_RAYTRACING,
 	PIPELINE_TYPE_COUNT,
 } PipelineType;
 
@@ -791,6 +812,8 @@ typedef struct Texture
 	VkImageView pVkSRVDescriptor;
 	/// Opaque handle used by shaders for doing read/write operations on the texture
 	VkImageView* pVkUAVDescriptors;
+	/// Opaque handle used by shaders for doing read/write operations on the texture
+	VkImageView* pVkSRVStencilDescriptor;
 	/// Native handle of the underlying resource
 	VkImage pVkImage;
 	/// Device memory handle
@@ -965,6 +988,13 @@ typedef struct DescriptorInfo
 #endif
 } DescriptorInfo;
 
+typedef enum RootSignatureType
+{
+	ROOT_SIGNATURE_GRAPHICS_COMPUTE,
+	ROOT_SIGNATURE_RAYTRACING_LOCAL,
+	ROOT_SIGNATURE_RAYTRACING_GLOBAL,
+} RootSignatureType;
+
 typedef struct RootSignatureDesc
 {
 	Shader**     ppShaders;
@@ -977,6 +1007,9 @@ typedef struct RootSignatureDesc
 	const char** ppDynamicUniformBufferNames;
 	uint32_t     mDynamicUniformBufferCount;
 #endif
+	RootSignatureType mSignatureType;
+	ShaderResource* pRaytracingShaderResources;
+	uint32_t pRaytracingResourcesCount;
 } RootSignatureDesc;
 
 typedef struct RootSignature
@@ -988,7 +1021,7 @@ typedef struct RootSignature
 	/// Translates hash of descriptor name to descriptor index
 	tinystl::unordered_map<uint32_t, uint32_t> pDescriptorNameToIndexMap;
 
-	PipelineType mPipelineType;
+	PipelineType		 mPipelineType;
 #if defined(DIRECT3D12)
 	uint32_t             mDxViewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t             mDxSamplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -1049,6 +1082,7 @@ typedef struct DescriptorData
 			uint64_t* pSizes;
 		};
 		uint32_t mUAVMipSlice;
+		bool mBindStencilResource;
 	};
 	/// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one resource type array
 	union
@@ -1228,7 +1262,6 @@ typedef struct Queue
 #endif
 #if defined(METAL)
 	id<MTLCommandQueue>  mtlCommandQueue;
-	dispatch_semaphore_t pMtlSemaphore;
 #endif
 	QueueDesc mQueueDesc;
 } Queue;
@@ -1271,11 +1304,10 @@ typedef struct BinaryShaderStageDesc
 	/// Byte code array
 	char*    pByteCode;
 	uint32_t mByteCodeSize;
+	tinystl::string mEntryPoint;
 #if defined(METAL)
 	// Shader source is needed for reflection
 	tinystl::string mSource;
-	/// Entry point is needed for Metal
-	tinystl::string mEntryPoint;
 #endif
 } BinaryShaderStageDesc;
 
@@ -1296,6 +1328,7 @@ typedef struct Shader
 	PipelineReflection mReflection;
 #if defined(DIRECT3D12)
 	ID3DBlob** pShaderBlobs;
+	LPCWSTR* pEntryNames;
 #endif
 #if defined(VULKAN)
 	VkShaderModule* pShaderModules;
@@ -1304,6 +1337,9 @@ typedef struct Shader
 	id<MTLFunction> mtlVertexShader;
 	id<MTLFunction> mtlFragmentShader;
 	id<MTLFunction> mtlComputeShader;
+    tinystl::string mtlVertexShaderEntryPoint;
+    tinystl::string mtlFragmentShaderEntryPoint;
+    tinystl::string mtlComputeShaderEntryPoint;
 	uint32_t        mNumThreadsPerGroup[3];
 #endif
 #if defined(DIRECT3D11)
@@ -1482,6 +1518,38 @@ typedef struct VertexLayout
 	VertexAttrib mAttribs[MAX_VERTEX_ATTRIBS];
 } VertexLayout;
 
+/************************************************************************/
+// #pGlobalRootSignature - Root Signature used by all shaders in the ppShaders array
+// #ppShaders - Array of all shaders which can be called during the raytracing operation
+//	  This includes the ray generation shader, all miss, any hit, closest hit shaders
+// #pHitGroups - Name of the hit groups which will tell the pipeline about which combination of hit shaders to use
+// #mPayloadSize - Size of the payload struct for passing data to and from the shaders.
+//	  Example - float4 payload sent by raygen shader which will be filled by miss shader as a skybox color
+//				  or by hit shader as shaded color
+// #mAttributeSize - Size of the intersection attribute. As long as user uses the default intersection shader
+//	  this size is sizeof(float2) which represents the ZW of the barycentric co-ordinates of the intersection
+/************************************************************************/
+typedef struct RaytracingPipelineDesc
+{
+	Raytracing*			pRaytracing;
+	RootSignature*		pGlobalRootSignature;
+	Shader*             pRayGenShader;
+	RootSignature*		pRayGenRootSignature;
+	Shader**            ppMissShaders;
+	RootSignature**		ppMissRootSignatures;
+	RaytracingHitGroup* pHitGroups;
+	RootSignature*		pEmptyRootSignature;
+	unsigned			mMissShaderCount;
+	unsigned			mHitGroupCount;
+	// #TODO : Remove this after adding shader reflection for raytracing shaders
+	unsigned			mPayloadSize;
+	// #TODO : Remove this after adding shader reflection for raytracing shaders
+	unsigned			mAttributeSize;
+	unsigned			mMaxTraceRecursionDepth;
+	unsigned            mMaxRaysCount;
+} RaytracingPipelineDesc;
+
+
 typedef struct GraphicsPipelineDesc
 {
 	Shader*            pShaderProgram;
@@ -1505,6 +1573,24 @@ typedef struct ComputePipelineDesc
 	RootSignature* pRootSignature;
 } ComputePipelineDesc;
 
+typedef struct PipelineDesc
+{
+	PipelineType mType;
+	union {
+		ComputePipelineDesc		mComputeDesc;
+		GraphicsPipelineDesc	mGraphicsDesc;
+		RaytracingPipelineDesc	mRaytracingDesc;
+	};
+} PipelineDesc;
+
+//this is needed because unit tests have different WindowsSDK versions.
+//Minimum 10.0.17763.0 is required in every project to remove this typedef
+typedef struct ID3D12StateObject ID3D12StateObject;
+
+#ifdef METAL
+typedef struct RaytracingPipeline RaytracingPipeline;
+#endif
+
 typedef struct Pipeline
 {
 	union
@@ -1516,6 +1602,7 @@ typedef struct Pipeline
 #if defined(DIRECT3D12)
 	ID3D12PipelineState*   pDxPipelineState;
 	D3D_PRIMITIVE_TOPOLOGY mDxPrimitiveTopology;
+	ID3D12StateObject*	   pDxrPipeline;
 #endif
 #if defined(VULKAN)
 	VkPipeline pVkPipeline;
@@ -1525,6 +1612,7 @@ typedef struct Pipeline
 	Shader*                     pShader;
 	id<MTLRenderPipelineState>  mtlRenderPipelineState;
 	id<MTLComputePipelineState> mtlComputePipelineState;
+    RaytracingPipeline*         pRaytracingPipeline;
 	MTLCullMode                 mCullMode;
 #endif
 #if defined(DIRECT3D11)
@@ -1639,6 +1727,9 @@ typedef enum ShaderTarget
     // 5.1 is supported on all DX12 hardware
     shader_target_5_1,
     shader_target_6_0,
+	shader_target_6_1,
+	shader_target_6_2,
+	shader_target_6_3, //required for Raytracing
 #endif
 } DXShaderTarget;
 
@@ -1886,8 +1977,16 @@ API_INTERFACE void CALLTYPE removeShader(Renderer* pRenderer, Shader* p_shader_p
 // pipeline functions
 API_INTERFACE void CALLTYPE addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootDesc, RootSignature** pp_root_signature);
 API_INTERFACE void CALLTYPE removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature);
+API_INTERFACE void CALLTYPE addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline); 
+
+/////////////////////////Deprecated!
+RENDERER_DEPRECATED("Use addPipeline(Renderer* , const PipelineDesc* , Pipeline** ) instead")
 API_INTERFACE void CALLTYPE addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline);
+RENDERER_DEPRECATED("Use addPipeline(Renderer* , const PipelineDesc* , Pipeline** ) instead")
 API_INTERFACE void CALLTYPE addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* p_pipeline_settings, Pipeline** p_pipeline);
+/////////////////////////////////////
+
+
 API_INTERFACE void CALLTYPE removePipeline(Renderer* pRenderer, Pipeline* p_pipeline);
 
 /// Pipeline State Functions
@@ -1930,8 +2029,9 @@ API_INTERFACE void CALLTYPE cmdFlushBarriers(Cmd* p_cmd);
 API_INTERFACE void CALLTYPE acquireNextImage(Renderer* pRenderer, SwapChain* p_swap_chain, Semaphore* p_signal_semaphore, Fence* p_fence, uint32_t* p_image_index);
 API_INTERFACE void CALLTYPE queueSubmit(Queue* p_queue, uint32_t cmd_count, Cmd** pp_cmds, Fence* pFence, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores, uint32_t signal_semaphore_count, Semaphore** pp_signal_semaphores);
 API_INTERFACE void CALLTYPE queuePresent(Queue* p_queue, SwapChain* p_swap_chain, uint32_t swap_chain_image_index, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores);
+API_INTERFACE void CALLTYPE waitQueueIdle(Queue* p_queue);
 API_INTERFACE void CALLTYPE getFenceStatus(Renderer* pRenderer, Fence* p_fence, FenceStatus* p_fence_status);
-API_INTERFACE void CALLTYPE waitForFences(Queue* p_queue, uint32_t fence_count, Fence** pp_fences, bool signal);
+API_INTERFACE void CALLTYPE waitForFences(Renderer* pRenderer, uint32_t fence_count, Fence** pp_fences);
 API_INTERFACE void CALLTYPE toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
 
 // image related functions

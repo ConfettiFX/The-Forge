@@ -447,7 +447,7 @@ class RendererRuntimeSwitch: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 
@@ -524,7 +524,9 @@ class RendererRuntimeSwitch: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
@@ -537,7 +539,7 @@ class RendererRuntimeSwitch: public IApp
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRasterizerState = pSkyboxRast;
-		addPipeline(pRenderer, &pipelineSettings, &pSpherePipeline);
+		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
 		//layout and pipeline for skybox draw
 		vertexLayout = {};
@@ -551,7 +553,7 @@ class RendererRuntimeSwitch: public IApp
 		pipelineSettings.pDepthState = NULL;
 		pipelineSettings.pRasterizerState = pSkyboxRast;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
 
 		return true;
 	}
@@ -560,7 +562,7 @@ class RendererRuntimeSwitch: public IApp
 	{
 		gFrameIndex = 0;
 
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -659,7 +661,7 @@ class RendererRuntimeSwitch: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };

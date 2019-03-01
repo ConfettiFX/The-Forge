@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{aa69303b-b37b-4e79-af44-48cce271a694}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{75436a36-aa46-43ba-8715-ef1ff46a7705}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12">
+      <UniqueIdentifier>{1aa4d728-77a0-4eba-ac83-a8802c2b65c7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\20_JointAttachment\20_JointAttachment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\20_JointAttachment\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\D3D12\plane.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\D3D12\plane.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\Vulkan\plane.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\20_JointAttachment\Shaders\Vulkan\plane.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+  </ItemGroup>
+</Project>

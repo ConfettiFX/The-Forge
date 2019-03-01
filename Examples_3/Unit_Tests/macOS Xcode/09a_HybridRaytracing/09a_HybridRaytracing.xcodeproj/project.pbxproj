@@ -26,6 +26,8 @@
 		5CA80FA521F0A21100C99983 /* imgui.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ECA21F0A05800C99983 /* imgui.vert.metal */; };
 		5CA80FA621F0A21100C99983 /* textured_mesh.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */; };
 		5CA80FA721F0A21100C99983 /* textured_mesh.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */; };
+		650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */; };
+		650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */; };
 		654AFD1C21ACE2AE00EA7F3A /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 655D675921ACD7DC00A5BB07 /* libassimp.a */; };
 		654AFD1D21ACE2AE00EA7F3A /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 655D675721ACD7DC00A5BB07 /* libIrrXML.a */; };
 		654AFD1E21ACE2AE00EA7F3A /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 655D675B21ACD7DC00A5BB07 /* libzlibstatic.a */; };
@@ -272,6 +274,8 @@
 		5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash3D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash3D.vert.metal; sourceTree = "<group>"; };
 		5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
 		5CA80ED521F0A06000C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
+		650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
 		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DF621421A6E006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -312,6 +316,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				654AFD2521ACE2DC00EA7F3A /* libassimp_iOS.a in Frameworks */,
 				654AFD2621ACE2DC00EA7F3A /* libIrrXML_iOS.a in Frameworks */,
 				654AFD2721ACE2DC00EA7F3A /* libzlibstatic_iOS.a in Frameworks */,
@@ -327,6 +332,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				654AFD1C21ACE2AE00EA7F3A /* libassimp.a in Frameworks */,
 				654AFD1D21ACE2AE00EA7F3A /* libIrrXML.a in Frameworks */,
 				654AFD1E21ACE2AE00EA7F3A /* libzlibstatic.a in Frameworks */,
@@ -355,6 +361,8 @@
 		28A5AE24201F7D5C000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */,
+				650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */,
 				B21F76ED21420EE900DF2297 /* Metal.framework */,
 				B2087DF621421A6E006F372D /* Metal.framework */,
 				B21F76EC21420EE900DF2297 /* MetalKit.framework */,
@@ -579,7 +587,7 @@
 				};
 			};
 			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "09a_HybridRaytracing" */;
-			compatibilityVersion = "Xcode 10";
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (

@@ -14,6 +14,7 @@
   </VirtualDirectory>
   <VirtualDirectory Name="Vulkan">
     <File Name="../../../../Common_3/Renderer/Vulkan/Vulkan.cpp"/>
+    <File Name="../../../../Common_3/Renderer/Vulkan/VulkanRaytracing.cpp"/>
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanShaderReflection.cpp"/>
   </VirtualDirectory>
   <Settings Type="Static Library">

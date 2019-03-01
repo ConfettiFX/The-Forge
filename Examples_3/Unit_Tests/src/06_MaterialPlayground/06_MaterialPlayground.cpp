@@ -1008,7 +1008,7 @@ class MaterialPlayground: public IApp
 	{
 		gLuaManager.Exit();
 
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
@@ -1074,7 +1074,7 @@ class MaterialPlayground: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -1347,7 +1347,7 @@ class MaterialPlayground: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// SET CONSTANT BUFFERS
 		//
@@ -2832,19 +2832,21 @@ class MaterialPlayground: public IApp
 		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
 		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 
-		ComputePipelineDesc pipelineSettings = { 0 };
+		PipelineDesc computeDesc = {};
+		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& pipelineSettings = computeDesc.mComputeDesc;
 		pipelineSettings.pShaderProgram = pPanoToCubeShader;
 		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
-		addComputePipeline(pRenderer, &pipelineSettings, &pPanoToCubePipeline);
+		addPipeline(pRenderer, &computeDesc, &pPanoToCubePipeline);
 		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
 		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
-		addComputePipeline(pRenderer, &pipelineSettings, &pBRDFIntegrationPipeline);
+		addPipeline(pRenderer, &computeDesc, &pBRDFIntegrationPipeline);
 		pipelineSettings.pShaderProgram = pIrradianceShader;
 		pipelineSettings.pRootSignature = pIrradianceRootSignature;
-		addComputePipeline(pRenderer, &pipelineSettings, &pIrradiancePipeline);
+		addPipeline(pRenderer, &computeDesc, &pIrradiancePipeline);
 		pipelineSettings.pShaderProgram = pSpecularShader;
 		pipelineSettings.pRootSignature = pSpecularRootSignature;
-		addComputePipeline(pRenderer, &pipelineSettings, &pSpecularPipeline);
+		addPipeline(pRenderer, &computeDesc, &pSpecularPipeline);
 
 		// Since this happens on iniatilization, use the first cmd/fence pair available.
 		Cmd*   cmd = ppCmds[0];
@@ -2952,7 +2954,7 @@ class MaterialPlayground: public IApp
 
 		endCmd(cmd);
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+		waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Remove temporary resources.
 		removePipeline(pRenderer, pSpecularPipeline);
@@ -3988,7 +3990,9 @@ class MaterialPlayground: public IApp
 		skeletonVertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
 		// Create pipelines
-		GraphicsPipelineDesc pipelineSettings = {};
+		PipelineDesc graphicsPipelineDesc = {};
+		graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
 
 		// skybox
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4003,7 +4007,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderSkybox;
 		pipelineSettings.pVertexLayout = &skyboxVertexLayout;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineSkybox);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineSkybox);
 
 		// shadow pass
 		ImageFormat::Enum shadowPassRenderTargetFormat = ImageFormat::D32F;
@@ -4020,7 +4024,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram      = pShaderShadowPass;
 		pipelineSettings.pVertexLayout       = &defaultVertexLayout;
 		pipelineSettings.pRasterizerState    = pRasterizerStateCullNone;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineShadowPass);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineShadowPass);
 
 		// brdf
 		pipelineSettings = {};
@@ -4036,7 +4040,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderBRDF;
 		pipelineSettings.pVertexLayout = &defaultVertexLayout;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineBRDF);
 
 #ifndef DIRECT3D11
 		pipelineSettings = {};
@@ -4052,7 +4056,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderHairClear;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		pipelineSettings.pBlendState = NULL;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineHairClear);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairClear);
 
 		ImageFormat::Enum depthPeelingFormat = ImageFormat::R16F;
 
@@ -4069,7 +4073,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderHairDepthPeeling;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullFront;
 		pipelineSettings.pBlendState = pBlendStateDepthPeeling;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineHairDepthPeeling);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairDepthPeeling);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4083,7 +4087,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pRootSignature = pRootSignatureHairDepthResolve;
 		pipelineSettings.pShaderProgram = pShaderHairDepthResolve;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineHairDepthResolve);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairDepthResolve);
 
 		ImageFormat::Enum fillColorsFormat = ImageFormat::RGBA16F;
 
@@ -4100,7 +4104,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderHairFillColors;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullFront;
 		pipelineSettings.pBlendState = pBlendStateAdd;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineHairFillColors);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairFillColors);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4115,7 +4119,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderHairResolveColor;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		pipelineSettings.pBlendState = pBlendStateColorResolve;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineHairColorResolve);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairColorResolve);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4127,37 +4131,39 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pRootSignature = pRootSignatureHairShadow;
 		pipelineSettings.pShaderProgram = pShaderHairShadow;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineHairShadow);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairShadow);
 
-		ComputePipelineDesc computePipelineDesc = {};
+		PipelineDesc computeDesc = {};
+		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = computeDesc.mComputeDesc;
 		computePipelineDesc.pRootSignature = pRootSignatureHairIntegrate;
 		computePipelineDesc.pShaderProgram = pShaderHairIntegrate;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pPipelineHairIntegrate);
+		addPipeline(pRenderer, &computeDesc, &pPipelineHairIntegrate);
 
 		computePipelineDesc = {};
 		computePipelineDesc.pRootSignature = pRootSignatureHairShockPropagation;
 		computePipelineDesc.pShaderProgram = pShaderHairShockPropagation;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pPipelineHairShockPropagation);
+		addPipeline(pRenderer, &computeDesc, &pPipelineHairShockPropagation);
 
 		computePipelineDesc = {};
 		computePipelineDesc.pRootSignature = pRootSignatureHairLocalConstraints;
 		computePipelineDesc.pShaderProgram = pShaderHairLocalConstraints;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pPipelineHairLocalConstraints);
+		addPipeline(pRenderer, &computeDesc, &pPipelineHairLocalConstraints);
 
 		computePipelineDesc = {};
 		computePipelineDesc.pRootSignature = pRootSignatureHairLengthConstraints;
 		computePipelineDesc.pShaderProgram = pShaderHairLengthConstraints;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pPipelineHairLengthConstraints);
+		addPipeline(pRenderer, &computeDesc, &pPipelineHairLengthConstraints);
 
 		computePipelineDesc = {};
 		computePipelineDesc.pRootSignature = pRootSignatureHairUpdateFollowHairs;
 		computePipelineDesc.pShaderProgram = pShaderHairUpdateFollowHairs;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pPipelineHairUpdateFollowHairs);
+		addPipeline(pRenderer, &computeDesc, &pPipelineHairUpdateFollowHairs);
 
 		computePipelineDesc = {};
 		computePipelineDesc.pRootSignature = pRootSignatureHairPreWarm;
 		computePipelineDesc.pShaderProgram = pShaderHairPreWarm;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pPipelineHairPreWarm);
+		addPipeline(pRenderer, &computeDesc, &pPipelineHairPreWarm);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4173,7 +4179,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pVertexLayout = &defaultVertexLayout;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		pipelineSettings.pBlendState = pBlendStateAlphaBlend;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineShowCapsules);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineShowCapsules);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4189,7 +4195,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pVertexLayout = &skeletonVertexLayout;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
 		pipelineSettings.pBlendState = NULL;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineSkeleton);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineSkeleton);
 		gSkeletonBatcher.LoadPipeline(pPipelineSkeleton);
 
 		gUniformDataHairGlobal.mViewport = float4(0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight);
@@ -4410,7 +4416,7 @@ void GuiController::UpdateDynamicUI()
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 	if (pSwapChain->mDesc.mEnableVsync != gVSyncEnabled)
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 		::toggleVSync(pRenderer, &pSwapChain);
 	}
 #endif

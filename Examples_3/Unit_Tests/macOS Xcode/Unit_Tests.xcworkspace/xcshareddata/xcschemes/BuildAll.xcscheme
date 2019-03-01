@@ -379,9 +379,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "16_SphereTracing_iOS.app"
-               BlueprintName = "16_SphereTracing_iOS"
-               ReferencedContainer = "container:16_SphereTracing/16_SphereTracing.xcodeproj">
+               BuildableName = "16a_SphereTracing_iOS.app"
+               BlueprintName = "16a_SphereTracing_iOS"
+               ReferencedContainer = "container:16a_SphereTracing/16a_SphereTracing.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -393,9 +393,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "16_SphereTracing.app"
-               BlueprintName = "16_SphereTracing"
-               ReferencedContainer = "container:16_SphereTracing/16_SphereTracing.xcodeproj">
+               BuildableName = "16a_SphereTracing.app"
+               BlueprintName = "16a_SphereTracing"
+               ReferencedContainer = "container:16a_SphereTracing/16a_SphereTracing.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -435,9 +435,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "01_Playback.app"
-               BlueprintName = "01_Playback"
-               ReferencedContainer = "container:01_Playback/01_Playback.xcodeproj">
+               BuildableName = "18_Playback.app"
+               BlueprintName = "18_Playback"
+               ReferencedContainer = "container:18_Playback/18_Playback.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -449,9 +449,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "01_Playback_iOS.app"
-               BlueprintName = "01_Playback_iOS"
-               ReferencedContainer = "container:01_Playback/01_Playback.xcodeproj">
+               BuildableName = "18_Playback_iOS.app"
+               BlueprintName = "18_Playback_iOS"
+               ReferencedContainer = "container:18_Playback/18_Playback.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -463,9 +463,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "02_Blending.app"
-               BlueprintName = "02_Blending"
-               ReferencedContainer = "container:02_Blending/02_Blending.xcodeproj">
+               BuildableName = "19_Blending.app"
+               BlueprintName = "19_Blending"
+               ReferencedContainer = "container:19_Blending/19_Blending.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -477,9 +477,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "02_Blending_iOS.app"
-               BlueprintName = "02_Blending_iOS"
-               ReferencedContainer = "container:02_Blending/02_Blending.xcodeproj">
+               BuildableName = "19_Blending_iOS.app"
+               BlueprintName = "19_Blending_iOS"
+               ReferencedContainer = "container:19_Blending/19_Blending.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -491,9 +491,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "03_JointAttachment.app"
-               BlueprintName = "03_JointAttachment"
-               ReferencedContainer = "container:03_JointAttachment/03_JointAttachment.xcodeproj">
+               BuildableName = "20_JointAttachment.app"
+               BlueprintName = "20_JointAttachment"
+               ReferencedContainer = "container:20_JointAttachment/20_JointAttachment.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -505,9 +505,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "03_JointAttachment_iOS.app"
-               BlueprintName = "03_JointAttachment_iOS"
-               ReferencedContainer = "container:03_JointAttachment/03_JointAttachment.xcodeproj">
+               BuildableName = "20_JointAttachment_iOS.app"
+               BlueprintName = "20_JointAttachment_iOS"
+               ReferencedContainer = "container:20_JointAttachment/20_JointAttachment.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -519,9 +519,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "04_PartialBlending.app"
-               BlueprintName = "04_PartialBlending"
-               ReferencedContainer = "container:04_PartialBlending/04_PartialBlending.xcodeproj">
+               BuildableName = "21_PartialBlending.app"
+               BlueprintName = "21_PartialBlending"
+               ReferencedContainer = "container:21_PartialBlending/21_PartialBlending.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -533,9 +533,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "04_PartialBlending_iOS.app"
-               BlueprintName = "04_PartialBlending_iOS"
-               ReferencedContainer = "container:04_PartialBlending/04_PartialBlending.xcodeproj">
+               BuildableName = "21_PartialBlending_iOS.app"
+               BlueprintName = "21_PartialBlending_iOS"
+               ReferencedContainer = "container:21_PartialBlending/21_PartialBlending.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -547,9 +547,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "05_AdditiveBlending.app"
-               BlueprintName = "05_AdditiveBlending"
-               ReferencedContainer = "container:05_AddititveBlending/05_AdditiveBlending.xcodeproj">
+               BuildableName = "22_AdditiveBlending.app"
+               BlueprintName = "22_AdditiveBlending"
+               ReferencedContainer = "container:05_AddititveBlending/22_AdditiveBlending.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -561,9 +561,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "05_AdditiveBlending_iOS.app"
-               BlueprintName = "05_AdditiveBlending_iOS"
-               ReferencedContainer = "container:05_AddititveBlending/05_AdditiveBlending.xcodeproj">
+               BuildableName = "22_AdditiveBlending_iOS.app"
+               BlueprintName = "22_AdditiveBlending_iOS"
+               ReferencedContainer = "container:05_AddititveBlending/22_AdditiveBlending.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -575,9 +575,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "07_BakedPhysics.app"
-               BlueprintName = "07_BakedPhysics"
-               ReferencedContainer = "container:07_BakedPhysics/07_BakedPhysics.xcodeproj">
+               BuildableName = "23_BakedPhysics.app"
+               BlueprintName = "23_BakedPhysics"
+               ReferencedContainer = "container:23_BakedPhysics/23_BakedPhysics.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -589,9 +589,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "07_BakedPhysics_iOS.app"
-               BlueprintName = "07_BakedPhysics_iOS"
-               ReferencedContainer = "container:07_BakedPhysics/07_BakedPhysics.xcodeproj">
+               BuildableName = "23_BakedPhysics_iOS.app"
+               BlueprintName = "23_BakedPhysics_iOS"
+               ReferencedContainer = "container:23_BakedPhysics/23_BakedPhysics.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -603,9 +603,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "09_MultiThread.app"
-               BlueprintName = "09_MultiThread"
-               ReferencedContainer = "container:09_MultiThread/09_MultiThread.xcodeproj">
+               BuildableName = "24_MultiThread.app"
+               BlueprintName = "24_MultiThread"
+               ReferencedContainer = "container:24_MultiThread/24_MultiThread.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -617,9 +617,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "09_MultiThread_iOS.app"
-               BlueprintName = "09_MultiThread_iOS"
-               ReferencedContainer = "container:09_MultiThread/09_MultiThread.xcodeproj">
+               BuildableName = "24_MultiThread_iOS.app"
+               BlueprintName = "24_MultiThread_iOS"
+               ReferencedContainer = "container:24_MultiThread/24_MultiThread.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -631,9 +631,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "10_Skinning.app"
-               BlueprintName = "10_Skinning"
-               ReferencedContainer = "container:10_Skinning/10_Skinning.xcodeproj">
+               BuildableName = "25_Skinning.app"
+               BlueprintName = "25_Skinning"
+               ReferencedContainer = "container:25_Skinning/25_Skinning.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -645,9 +645,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "10_Skinning_iOS.app"
-               BlueprintName = "10_Skinning_iOS"
-               ReferencedContainer = "container:10_Skinning/10_Skinning.xcodeproj">
+               BuildableName = "25_Skinning_iOS.app"
+               BlueprintName = "25_Skinning_iOS"
+               ReferencedContainer = "container:25_Skinning/25_Skinning.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -659,9 +659,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "18_Raytracing.app"
-               BlueprintName = "18_Raytracing"
-               ReferencedContainer = "container:18_Raytracing/18_Raytracing.xcodeproj">
+               BuildableName = "16_Raytracing.app"
+               BlueprintName = "16_Raytracing"
+               ReferencedContainer = "container:16_Raytracing/16_Raytracing.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -673,9 +673,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "18_Raytracing_iOS.app"
-               BlueprintName = "18_Raytracing_iOS"
-               ReferencedContainer = "container:18_Raytracing/18_Raytracing.xcodeproj">
+               BuildableName = "16_Raytracing_iOS.app"
+               BlueprintName = "16_Raytracing_iOS"
+               ReferencedContainer = "container:16_Raytracing/16_Raytracing.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

@@ -59,13 +59,13 @@ struct Vertex_Shader
 
 vertex Vertex_Shader::VSOutput stageMain(
 										 Vertex_Shader::VSInput input [[stage_in]],
-										 constant Vertex_Shader::Uniforms_RootConstantSunMatrices & RootConstantSunMatrices [[buffer(1)]])
+										 constant Vertex_Shader::Uniforms_RootConstantSunMatrices & UniformBufferSunMatrices [[buffer(1)]])
 {
 	Vertex_Shader::VSInput input0;
 	input0.Position = input.Position;
 	input0.Normal = input.Normal;
 	input0.UV = input.UV;
-	Vertex_Shader main(RootConstantSunMatrices);
+	Vertex_Shader main(UniformBufferSunMatrices);
 	return main.main(input0);
 }
 

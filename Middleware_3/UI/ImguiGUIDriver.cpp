@@ -895,7 +895,9 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	ImDrawData* draw_data = ImGui::GetDrawData();
 
 	Pipeline*            pPipeline = NULL;
-	GraphicsPipelineDesc pipelineDesc = {};
+	PipelineDesc desc = {};
+	desc.mType = PIPELINE_TYPE_GRAPHICS;
+	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
 	pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
 	pipelineDesc.mRenderTargetCount = pCmd->mBoundRenderTargetCount;
 	pipelineDesc.mSampleCount = pCmd->mBoundSampleCount;
@@ -912,7 +914,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		pipelineDesc.pShaderProgram = pShaderTextured;
 		pipelineDesc.pVertexLayout = &mVertexLayoutTextured;
 		pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		addPipeline(pCmd->pRenderer, &pipelineDesc, &pPipeline);
+		addPipeline(pCmd->pRenderer, &desc, &pPipeline);
 		mPipelinesTextured.insert({ pCmd->mRenderPassHash, pPipeline });
 	}
 	else

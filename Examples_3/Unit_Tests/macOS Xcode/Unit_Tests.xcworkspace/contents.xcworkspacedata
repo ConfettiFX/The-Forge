@@ -5,28 +5,28 @@
       location = "container:"
       name = "Examples Animation">
       <FileRef
-         location = "group:01_Playback/01_Playback.xcodeproj">
+         location = "group:18_Playback/18_Playback.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:02_Blending/02_Blending.xcodeproj">
+         location = "group:19_Blending/19_Blending.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:03_JointAttachment/03_JointAttachment.xcodeproj">
+         location = "group:20_JointAttachment/20_JointAttachment.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:04_PartialBlending/04_PartialBlending.xcodeproj">
+         location = "group:21_PartialBlending/21_PartialBlending.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:05_AddititveBlending/05_AdditiveBlending.xcodeproj">
+         location = "group:05_AddititveBlending/22_AdditiveBlending.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:07_BakedPhysics/07_BakedPhysics.xcodeproj">
+         location = "group:23_BakedPhysics/23_BakedPhysics.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:09_MultiThread/09_MultiThread.xcodeproj">
+         location = "group:24_MultiThread/24_MultiThread.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:02_Blending/../10_Skinning/10_Skinning.xcodeproj">
+         location = "group:19_Blending/../25_Skinning/25_Skinning.xcodeproj">
       </FileRef>
    </Group>
    <Group
@@ -75,13 +75,13 @@
          location = "group:15_Transparency/15_Transparency.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:16_SphereTracing/16_SphereTracing.xcodeproj">
+         location = "group:16a_SphereTracing/16a_SphereTracing.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:18_Raytracing/18_Raytracing.xcodeproj">
+         location = "group:16_Raytracing/16_Raytracing.xcodeproj">
       </FileRef>
    </Group>
 </Workspace>

@@ -31,7 +31,11 @@
 #ifndef ZLIB_H
 #define ZLIB_H
 
+#if __linux__
+#include "../../linux/contrib/zlib/zconf.h"
+#else
 #include "zconf.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
