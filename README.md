@@ -51,8 +51,8 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 ## Release 1.24 - March 1st, 2019 - Asynchronous Resource Loading | Micro Profiler
 - The Forge now allows to asynchronously load resources on all platforms. There are two ways to do this:
--- use addResource/updateResource with boolean parameter called batch set to true, and later wait for completion with waitBatchCompleted (used in 01_Transformations, 03_MultiThread, 06_MaterialPlayground, 09_LightShadowPlayground, 09a_HybridRaytracing, 12_RendererRumtimeSwitch, 15_Transparency)
--- use addResource with SyncToken parameter and check for completion with isTokenCompleted or wait for completion with waitTokenCompleted (used in 10_PixelProjectedReflections)
+  - use addResource/updateResource with boolean parameter called batch set to true, and later wait for completion with waitBatchCompleted (used in 01_Transformations, 03_MultiThread, 06_MaterialPlayground, 09_LightShadowPlayground, 09a_HybridRaytracing, 12_RendererRumtimeSwitch, 15_Transparency)
+  - use addResource with SyncToken parameter and check for completion with isTokenCompleted or wait for completion with waitTokenCompleted (used in 10_PixelProjectedReflections)
 addResource/updateResource with boolean parameter set to false are the old blocking versions.
 Let us know what you think of this system.
 - We integrated zeux's [Micro Profiler](https://github.com/zeux/microprofile) into The Forge. So far it supports DirectX 11, 12 and Vulkan. We are still working on Metal and Android support.
