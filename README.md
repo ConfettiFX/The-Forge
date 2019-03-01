@@ -57,9 +57,14 @@ addResource/updateResource with boolean parameter set to false are the old block
 Let us know what you think of this system.
 - We integrated zeux's [Micro Profiler](https://github.com/zeux/microprofile) into The Forge. So far it supports DirectX 11, 12 and Vulkan. We are still working on Metal and Android support.
 
+Chrome
 ![Micro Profiler in Chrome](Screenshots/MP_VISBUF.PNG)
 
+Visibility Buffer on PC Windows 10
 ![Micro Profiler in Visibility Buffer](Screenshots/MP_INAPP_VIS.PNG)
+
+Linux Ubuntu
+![Micro Profiler Linux Ubuntu](Screenshots/Linux_Ubuntu_MicroProfiler.png)
 
 - Better integration of Ray Tracing into the renderer; still Vulkan RTX is work in progress
 - Fixed Vulkan instance extension bug: "InstanceLayers loop is wrong in CreateInstance" issue #92
