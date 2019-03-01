@@ -36,6 +36,32 @@ DWORD WINAPI ThreadFunctionStatic(void* data)
 	return 0;
 }
 
+AtomicUint::AtomicUint()
+{
+	mAtomicInt = 0;
+}
+
+AtomicUint::~AtomicUint()
+{
+
+} 
+
+void AtomicUint::AtomicStore(unsigned int i) {
+	InterlockedExchange((volatile unsigned int*)&mAtomicInt, 0);
+}
+
+unsigned int AtomicUint::AtomicIncrement()
+{
+	// -1 because InterlockedIncrement returns incremented value. To match atomic::, we want to return the value before incrementation
+	return InterlockedIncrement((volatile unsigned int*)&mAtomicInt) - 1;
+}
+
+unsigned int AtomicUint::AtomicDecrement()
+{
+	// -1 because InterlockedIncrement returns incremented value. To match atomic::, we want to return the value before decrementation
+	return InterlockedDecrement((volatile unsigned int*)&mAtomicInt) - 1;
+}
+
 Mutex::Mutex()
 {
 	pHandle = (CRITICAL_SECTION*)conf_calloc(1, sizeof(CRITICAL_SECTION));

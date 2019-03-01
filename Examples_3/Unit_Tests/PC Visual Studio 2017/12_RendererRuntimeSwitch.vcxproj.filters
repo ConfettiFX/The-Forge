@@ -183,6 +183,9 @@
     <ClCompile Include="..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp">
+      <Filter>Renderer\Direct3D12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\12_RendererRuntimeSwitch\Shaders\D3D12\basic.frag">

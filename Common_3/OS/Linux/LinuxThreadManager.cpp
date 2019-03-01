@@ -33,6 +33,33 @@
 #include <unistd.h>
 #include <sys/sysctl.h>
 
+AtomicUint::AtomicUint()
+{
+    mAtomicInt = 0;
+}
+
+AtomicUint::~AtomicUint()
+{
+
+}
+
+void AtomicUint::AtomicStore(unsigned int new_val)
+{
+    int origin_val ;
+    origin_val = mAtomicInt ;
+    do { origin_val = __sync_val_compare_and_swap ((volatile unsigned int*)&mAtomicInt, origin_val, new_val);} while(origin_val != new_val);
+}
+
+unsigned int AtomicUint::AtomicIncrement()
+{
+    return __sync_fetch_and_add((volatile unsigned int*)&mAtomicInt, 1);
+}
+
+unsigned int AtomicUint::AtomicDecrement()
+{
+    return __sync_fetch_and_add((volatile unsigned int*)&mAtomicInt, -1);
+}
+
 Mutex::Mutex()
 {
 	pHandle = PTHREAD_MUTEX_INITIALIZER;
@@ -107,7 +134,7 @@ ThreadHandle create_thread(WorkItem* pData)
 void destroy_thread(ThreadHandle handle)
 {
 	pthread_join(handle, NULL);
-	handle = NULL;
+	handle = (ThreadHandle)NULL;
 }
 
 void join_thread(ThreadHandle handle) { pthread_join(handle, NULL); }

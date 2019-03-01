@@ -50,6 +50,7 @@ target_link_libraries(os shaderc)
 add_library(renderer STATIC
             # vulkan renderer
             ${COMMON_DIR}/Renderer/Vulkan/Vulkan.cpp
+            ${COMMON_DIR}/Renderer/Vulkan/VulkanRaytracing.cpp
             ${COMMON_DIR}/Renderer/Vulkan/VulkanShaderReflection.cpp
             ${COMMON_DIR}/Renderer/CommonShaderReflection.cpp
             ${COMMON_DIR}/Renderer/GpuProfiler.cpp

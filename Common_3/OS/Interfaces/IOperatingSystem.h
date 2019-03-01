@@ -25,6 +25,7 @@
 #pragma once
 
 #if defined(_WIN32)
+#include <WinSock2.h>
 #include <sys/stat.h>
 #if !defined(_DURANGO)
 #include <shlwapi.h>
@@ -36,7 +37,6 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
 #endif
-
 #include <windows.h>
 typedef HINSTANCE HINST;
 

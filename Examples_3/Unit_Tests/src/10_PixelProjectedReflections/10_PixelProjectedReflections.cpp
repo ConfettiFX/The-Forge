@@ -517,7 +517,7 @@ void transitionRenderTargets()
 	cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers, false);
 	endCmd(ppCmds[0]);
 	queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
+	waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 }
 
 // Compute PBR maps (skybox, BRDF Integration Map, Irradiance Map and Specular Map).
@@ -667,19 +667,21 @@ void computePBRMaps()
 	addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
 	addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 
-	ComputePipelineDesc pipelineSettings = { 0 };
+	PipelineDesc desc = {};
+	desc.mType = PIPELINE_TYPE_COMPUTE;
+	ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
 	pipelineSettings.pShaderProgram = pPanoToCubeShader;
 	pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
-	addComputePipeline(pRenderer, &pipelineSettings, &pPanoToCubePipeline);
+	addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
 	pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
 	pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
-	addComputePipeline(pRenderer, &pipelineSettings, &pBRDFIntegrationPipeline);
+	addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
 	pipelineSettings.pShaderProgram = pIrradianceShader;
 	pipelineSettings.pRootSignature = pIrradianceRootSignature;
-	addComputePipeline(pRenderer, &pipelineSettings, &pIrradiancePipeline);
+	addPipeline(pRenderer, &desc, &pIrradiancePipeline);
 	pipelineSettings.pShaderProgram = pSpecularShader;
 	pipelineSettings.pRootSignature = pSpecularRootSignature;
-	addComputePipeline(pRenderer, &pipelineSettings, &pSpecularPipeline);
+	addPipeline(pRenderer, &desc, &pSpecularPipeline);
 
 	// Since this happens on iniatilization, use the first cmd/fence pair available.
 	Cmd*   cmd = ppCmds[0];
@@ -787,7 +789,7 @@ void computePBRMaps()
 
 	endCmd(cmd);
 	queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+	waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 	// Remove temporary resources.
 	removePipeline(pRenderer, pSpecularPipeline);
@@ -1288,7 +1290,7 @@ class PixelProjectedReflections: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -1607,7 +1609,9 @@ class PixelProjectedReflections: public IApp
 			deferredSrgb[i] = pRenderTargetDeferredPass[i]->mDesc.mSrgb;
 		}
 
-		GraphicsPipelineDesc deferredPassPipelineSettings = {};
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& deferredPassPipelineSettings = desc.mGraphicsDesc;
 		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		deferredPassPipelineSettings.mRenderTargetCount = DEFERRED_RT_COUNT;
 		deferredPassPipelineSettings.pDepthState = pDepth;
@@ -1623,7 +1627,7 @@ class PixelProjectedReflections: public IApp
 		deferredPassPipelineSettings.pShaderProgram = pShaderGbuffers;
 		deferredPassPipelineSettings.pVertexLayout = &vertexLayoutSphere;
 		deferredPassPipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &deferredPassPipelineSettings, &pPipelineGbuffers);
+		addPipeline(pRenderer, &desc, &pPipelineGbuffers);
 
 		//layout and pipeline for skybox draw
 		VertexLayout vertexLayoutSkybox = {};
@@ -1650,7 +1654,7 @@ class PixelProjectedReflections: public IApp
 		deferredPassPipelineSettings.pShaderProgram = pSkyboxShader;
 		deferredPassPipelineSettings.pVertexLayout = &vertexLayoutSkybox;
 		deferredPassPipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &deferredPassPipelineSettings, &pSkyboxPipeline);
+		addPipeline(pRenderer, &desc, &pSkyboxPipeline);
 
 		// BRDF
 		//Position
@@ -1670,7 +1674,8 @@ class PixelProjectedReflections: public IApp
 		vertexLayoutScreenQuad.mAttribs[1].mBinding = 0;
 		vertexLayoutScreenQuad.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = NULL;
@@ -1686,13 +1691,15 @@ class PixelProjectedReflections: public IApp
 		pipelineSettings.pShaderProgram = pShaderBRDF;
 		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
 		pipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettings, &pPipelineBRDF);
+		addPipeline(pRenderer, &desc, &pPipelineBRDF);
 
 		//PPR_Projection
-		ComputePipelineDesc cpipelineSettings = { 0 };
+		PipelineDesc computeDesc = {};
+		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
 		cpipelineSettings.pShaderProgram = pPPR_ProjectionShader;
 		cpipelineSettings.pRootSignature = pPPR_ProjectionRootSignature;
-		addComputePipeline(pRenderer, &cpipelineSettings, &pPPR_ProjectionPipeline);
+		addPipeline(pRenderer, &computeDesc, &pPPR_ProjectionPipeline);
 
 		//PPR_Reflection
 		pipelineSettings = { 0 };
@@ -1710,7 +1717,7 @@ class PixelProjectedReflections: public IApp
 		pipelineSettings.pShaderProgram = pPPR_ReflectionShader;
 		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
 		pipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettings, &pPPR_ReflectionPipeline);
+		addPipeline(pRenderer, &desc, &pPPR_ReflectionPipeline);
 
 		//PPR_HolePatching -> Present
 		pipelineSettings = { 0 };
@@ -1728,7 +1735,7 @@ class PixelProjectedReflections: public IApp
 		pipelineSettings.pShaderProgram = pPPR_HolePatchingShader;
 		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
 		pipelineSettings.pRasterizerState = pRasterstateDefault;
-		addPipeline(pRenderer, &pipelineSettings, &pPPR_HolePatchingPipeline);
+		addPipeline(pRenderer, &desc, &pPPR_HolePatchingPipeline);
 
 #if defined(VULKAN)
 		transitionRenderTargets();
@@ -1739,7 +1746,7 @@ class PixelProjectedReflections: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
 
@@ -1875,7 +1882,7 @@ class PixelProjectedReflections: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		tinystl::vector<Cmd*> allCmds;
 

@@ -23,8 +23,13 @@
 */
 
 #ifdef DIRECT3D12
+
 #define RENDERER_IMPLEMENTATION
 #define MAX_FRAMES_IN_FLIGHT 3U
+
+#ifndef MICROPROFILE_IMPL
+#define MICROPROFILE_IMPL 1
+#endif
 
 #ifdef _DURANGO
 #include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
@@ -95,8 +100,7 @@ extern "C"
 #include "Direct3D12MemoryAllocator.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
 
-extern void
-			d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
+extern void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 extern long d3d12_createBuffer(
 	MemoryAllocator* pAllocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Buffer* pBuffer);
@@ -105,6 +109,21 @@ extern long d3d12_createTexture(
 	MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Texture* pTexture);
 extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
+extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
+extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
+	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr);
+
+//stubs for durango because Direct3D12Raytracing.cpp is not used on XBOX
+#ifdef _DURANGO
+void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+}
+
+void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
+	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
+{
+}
+#endif
 
 // clang-format off
 D3D12_BLEND_OP gDx12BlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
@@ -2054,6 +2073,12 @@ static void AddDevice(Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
+#if ENABLE_MICRO_PROFILER
+	{
+		MicroProfileGpuShutdown();
+	}
+#endif
+
 	SAFE_RELEASE(pRenderer->pDXGIFactory);
 
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
@@ -2076,6 +2101,7 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->pDxDevice);
 #endif
 }
+
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 namespace d3d12 {
 #endif
@@ -2092,7 +2118,7 @@ API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, Read
 API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
 API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,uint64_t intermediateOffset, Texture* pTexture);
-API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode);
+API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
 // clang-format on
 /************************************************************************/
@@ -2352,6 +2378,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	if (pQDesc->mNodeIndex)
 	{
 		ASSERT(pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && "Node Masking can only be used with Linked Multi GPU");
+
 	}
 
 	//provided description for queue creation
@@ -2387,6 +2414,19 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	::addFence(pQueue->pRenderer, &pQueue->pQueueFence);
 
 	*ppQueue = pQueue;
+
+#if ENABLE_MICRO_PROFILER
+	if (pQDesc->mFlag == QUEUE_FLAG_INIT_MICROPROFILE)
+	{
+		MicroProfileOnThreadCreate("RenderThread");
+		MicroProfileGpuInitInternal(pRenderer->pDxDevice, pQueue->pDxQueue);
+		MicroProfileSetForceEnable(true);
+		MicroProfileSetEnableAllGroups(true);
+		MicroProfileSetForceMetaCounters(true);
+		MicroProfileWebServerStart();
+		MicroProfileContextSwitchTraceStart();
+	}
+#endif
 }
 
 void removeQueue(Queue* pQueue)
@@ -2394,15 +2434,8 @@ void removeQueue(Queue* pQueue)
 	ASSERT(pQueue != NULL);
 
 	// Make sure we finished all GPU works before we remove the queue
-	FenceStatus fenceStatus;
-	pQueue->pDxQueue->Signal(pQueue->pQueueFence->pDxFence, pQueue->pQueueFence->mFenceValue++);
-	::getFenceStatus(pQueue->pRenderer, pQueue->pQueueFence, &fenceStatus);
-	uint64_t fenceValue = pQueue->pQueueFence->mFenceValue - 1;
-	if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-	{
-		pQueue->pQueueFence->pDxFence->SetEventOnCompletion(fenceValue, pQueue->pQueueFence->pDxWaitIdleFenceEvent);
-		WaitForSingleObject(pQueue->pQueueFence->pDxWaitIdleFenceEvent, INFINITE);
-	}
+	waitQueueIdle(pQueue);
+
 	::removeFence(pQueue->pRenderer, pQueue->pQueueFence);
 
 	SAFE_RELEASE(pQueue->pDxQueue);
@@ -3459,7 +3492,8 @@ static inline tinystl::string convertBlobToString(BlobType* pBlob)
 
 void compileShader(
 	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
-	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode)
+	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode,
+	const char* pEntryPoint)
 {
 	if (shaderTarget > pRenderer->mSettings.mShaderTarget)
 	{
@@ -3495,8 +3529,26 @@ void compileShader(
 			{
 				major = 6;
 				minor = 0;
+				break;
 			}
-			break;
+			case shader_target_6_1:
+			{
+				major = 6;
+				minor = 1;
+				break;
+			}
+			case shader_target_6_2:
+			{
+				major = 6;
+				minor = 2;
+				break;
+			}
+			case shader_target_6_3:
+			{
+				major = 6;
+				minor = 3;
+				break;
+			}
 		}
 		tinystl::string target;
 		switch (stage)
@@ -3507,6 +3559,11 @@ void compileShader(
 			case SHADER_STAGE_GEOM: target = tinystl::string::format("gs_%d_%d", major, minor); break;
 			case SHADER_STAGE_FRAG: target = tinystl::string::format("ps_%d_%d", major, minor); break;
 			case SHADER_STAGE_COMP: target = tinystl::string::format("cs_%d_%d", major, minor); break;
+			case SHADER_STAGE_LIB: {
+				target = tinystl::string::format("lib_%d_%d", major, minor); 
+				ASSERT(shaderTarget >= shader_target_6_3);
+				break;
+			}
 			default: break;
 		}
 		WCHAR* wTarget = (WCHAR*)alloca((target.size() + 1) * sizeof(WCHAR));
@@ -3565,9 +3622,23 @@ void compileShader(
 		mbstowcs(filename, fileName, strlen(fileName));
 		IDxcIncludeHandler* pInclude = NULL;
 		pLibrary->CreateIncludeHandler(&pInclude);
+
+		WCHAR* entryName = L"main";
+		if (pEntryPoint != nullptr)
+		{
+			entryName = (WCHAR*)conf_calloc(strlen(pEntryPoint) + 1, sizeof(WCHAR));
+			mbstowcs(entryName, pEntryPoint, strlen(pEntryPoint));
+		}
+
 		d3d_call(pCompiler->Compile(
-			pTextBlob, filename, L"main", wTarget, compilerArgs.data(), (UINT32)compilerArgs.size(), macros, macroCount + 1, pInclude,
+			pTextBlob, filename, entryName, wTarget, compilerArgs.data(), (UINT32)compilerArgs.size(), macros, macroCount + 1, pInclude,
 			&pResult));
+
+		if (pEntryPoint != nullptr)
+		{
+			conf_free(entryName);
+			entryName = nullptr;
+		}
 
 		pInclude->Release();
 		pLibrary->Release();
@@ -3704,12 +3775,12 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
 	uint32_t                   reflectionCount = 0;
 	tinystl::vector<ID3DBlob*> blobs(SHADER_STAGE_COUNT);
+	tinystl::vector<LPCWSTR> entriesNames(SHADER_STAGE_COUNT);
 
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
 		ShaderStage                  stage_mask = (ShaderStage)(1 << i);
 		const BinaryShaderStageDesc* pStage = NULL;
-
 		if (stage_mask == (pShaderProgram->mStages & stage_mask))
 		{
 			switch (stage_mask)
@@ -3744,14 +3815,24 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					pStage = &pDesc->mComp;
 				}
 				break;
+				case SHADER_STAGE_LIB:
+				{
+					pStage = &pDesc->mComp;
+				}
+				break;
 			}
 
 			D3DCreateBlob(pStage->mByteCodeSize, &blobs[reflectionCount]);
 			memcpy(blobs[reflectionCount]->GetBufferPointer(), pStage->pByteCode, pStage->mByteCodeSize);
 
-			d3d12_createShaderReflection(
-				(uint8_t*)(blobs[reflectionCount]->GetBufferPointer()), (uint32_t)blobs[reflectionCount]->GetBufferSize(), stage_mask,
-				&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
+			if (stage_mask != SHADER_STAGE_LIB)
+				d3d12_createShaderReflection(
+					(uint8_t*)(blobs[reflectionCount]->GetBufferPointer()), (uint32_t)blobs[reflectionCount]->GetBufferSize(), stage_mask,
+					&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
+
+			WCHAR* entryPointName = (WCHAR*)conf_calloc(pStage->mEntryPoint.size() + 1, sizeof(WCHAR));
+			mbstowcs((WCHAR*)entryPointName, pStage->mEntryPoint.c_str(), pStage->mEntryPoint.size());
+			entriesNames[reflectionCount] = entryPointName;
 
 			reflectionCount++;
 		}
@@ -3764,6 +3845,9 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 		blobs[i]->Release();
 	}
 
+	pShaderProgram->pEntryNames = (LPCWSTR*)conf_calloc(reflectionCount, sizeof(LPCWSTR));
+	memcpy(pShaderProgram->pEntryNames, entriesNames.data(), reflectionCount * sizeof(LPCWSTR));
+
 	createPipelineReflection(pShaderProgram->mReflection.mStageReflections, reflectionCount, &pShaderProgram->mReflection);
 
 	*ppShaderProgram = pShaderProgram;
@@ -3775,16 +3859,20 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 
 	//remove given shader
 	for (uint32_t i = 0; i < pShaderProgram->mReflection.mStageReflectionCount; ++i)
+	{
 		SAFE_RELEASE(pShaderProgram->pShaderBlobs[i]);
+		SAFE_FREE((void*)pShaderProgram->pEntryNames[i]);
+	}
 	destroyPipelineReflection(&pShaderProgram->mReflection);
 
 	SAFE_FREE(pShaderProgram->pShaderBlobs);
+	SAFE_FREE(pShaderProgram->pEntryNames);
 	SAFE_FREE(pShaderProgram);
 }
 /************************************************************************/
 // Root Signature Functions
 /************************************************************************/
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS > 0);
 
@@ -3811,7 +3899,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	{
 		PipelineReflection const* pReflection = &pRootSignatureDesc->ppShaders[sh]->mReflection;
 
-		// KEep track of the used pipeline stages
+		// Keep track of the used pipeline stages
 		shaderStages |= pReflection->mShaderStages;
 
 		if (pReflection->mShaderStages & SHADER_STAGE_COMP)
@@ -4363,6 +4451,34 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 
 	SAFE_FREE(pRootSignature);
 }
+
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+{
+	switch (pRootSignatureDesc->mSignatureType)
+	{
+		case(ROOT_SIGNATURE_GRAPHICS_COMPUTE):
+		{
+			addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
+			break;
+		}
+		case(ROOT_SIGNATURE_RAYTRACING_LOCAL):
+		{
+			addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount, 
+										true, ppRootSignature, pRootSignatureDesc);
+			break;
+		}
+		case(ROOT_SIGNATURE_RAYTRACING_GLOBAL):
+		{
+			addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
+										false, ppRootSignature, pRootSignatureDesc);
+			break;
+		}
+		default: 
+		{
+			ASSERT(false);
+		}
+	}
+}
 /************************************************************************/
 // Pipeline State Functions
 /************************************************************************/
@@ -4647,6 +4763,34 @@ void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, P
 	ASSERT(SUCCEEDED(hres));
 
 	*ppPipeline = pPipeline;
+}
+
+void addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline)
+{
+	switch (p_pipeline_settings->mType)
+	{
+		case(PIPELINE_TYPE_COMPUTE):
+		{
+			addComputePipeline(pRenderer, &p_pipeline_settings->mComputeDesc, pp_pipeline);
+			break;
+		}
+		case(PIPELINE_TYPE_GRAPHICS):
+		{
+			addPipeline(pRenderer, &p_pipeline_settings->mGraphicsDesc, pp_pipeline);
+			break;
+		}
+		case(PIPELINE_TYPE_RAYTRACING):
+		{
+			addRaytracingPipeline(&p_pipeline_settings->mRaytracingDesc, pp_pipeline);
+			break;
+		}
+		default:
+		{
+			ASSERT(false);
+			pp_pipeline = nullptr;
+			break;
+		}
+	}
 }
 
 void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
@@ -5838,7 +5982,7 @@ void queueSubmit(
 
 	for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
 	{
-		waitForFences(pQueue, 1, &ppWaitSemaphores[i]->pFence, false);
+		waitForFences(pQueue->pRenderer, 1, &ppWaitSemaphores[i]->pFence);
 	}
 
 	pQueue->pDxQueue->ExecuteCommandLists(cmdCount, cmds);
@@ -5906,6 +6050,10 @@ void queuePresent(
 			ASSERT(false);    //TODO: let's do something with the error
 	}
 #endif
+#if ENABLE_MICRO_PROFILER
+		// Call profile flip to indicate a new frame
+		MicroProfileFlip();
+#endif
 }
 
 bool queueSignal(Queue* pQueue, Fence* fence, uint64_t value)
@@ -5918,19 +6066,13 @@ bool queueSignal(Queue* pQueue, Fence* fence, uint64_t value)
 	return SUCCEEDED(hres);
 }
 
-void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal)
+void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
 	// Wait for fence completion
 	for (uint32_t i = 0; i < fenceCount; ++i)
 	{
-		// Usecase A: If we want to wait for an already signaled fence, we shouldn't issue new signal here.
-		// Usecase B: If we want to wait for all works in the queue complete, we should signal and wait.
-		// Our current vis buffer implemnetation uses this function as Usecase A. Thus we should not signal again.
-		if (signal)
-			pQueue->pDxQueue->Signal(ppFences[i]->pDxFence, ppFences[i]->mFenceValue++);
-
 		FenceStatus fenceStatus;
-		::getFenceStatus(pQueue->pRenderer, ppFences[i], &fenceStatus);
+		::getFenceStatus(pRenderer, ppFences[i], &fenceStatus);
 		uint64_t fenceValue = ppFences[i]->mFenceValue - 1;
 		//if (completedValue < fenceValue)
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
@@ -5938,6 +6080,19 @@ void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool si
 			ppFences[i]->pDxFence->SetEventOnCompletion(fenceValue, ppFences[i]->pDxWaitIdleFenceEvent);
 			WaitForSingleObject(ppFences[i]->pDxWaitIdleFenceEvent, INFINITE);
 		}
+	}
+}
+
+void waitQueueIdle(Queue* pQueue)
+{
+	FenceStatus fenceStatus;
+	pQueue->pDxQueue->Signal(pQueue->pQueueFence->pDxFence, pQueue->pQueueFence->mFenceValue++);
+	::getFenceStatus(pQueue->pRenderer, pQueue->pQueueFence, &fenceStatus);
+	uint64_t fenceValue = pQueue->pQueueFence->mFenceValue - 1;
+	if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+	{
+		pQueue->pQueueFence->pDxFence->SetEventOnCompletion(fenceValue, pQueue->pQueueFence->pDxWaitIdleFenceEvent);
+		WaitForSingleObject(pQueue->pQueueFence->pDxWaitIdleFenceEvent, INFINITE);
 	}
 }
 
@@ -6197,6 +6352,21 @@ void freeMemoryStats(Renderer* pRenderer, char* stats) { resourceAllocFreeStatsS
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+#if ENABLE_MICRO_PROFILER
+	MicroProfileGpuSetContext(pCmd->pDxCmdList);
+	//MICROPROFILE_GPU_SET_CONTEXT(pCmd->pDxCmdList, MicroProfileGetGlobalGpuThreadLog());
+
+	// Convert float3 color to *rgb8.
+	uint32 scope_color = static_cast<uint32>(r * 255) << 16
+		| static_cast<uint32>(g * 255) << 8
+		| static_cast<uint32>(b * 255);
+
+	// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
+	MICROPROFILE_DEFINE_GPU(temp, pName, scope_color);
+	// Create new scope on top of the current stack and enter
+	MICROPROFILE_GPU_ENTER_TOKEN(g_mp_temp);
+
+#endif
 	// note: USE_PIX isn't the ideal test because we might be doing a debug build where pix
 	// is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
 #ifndef FORGE_JHABLE_EDITS_V01
@@ -6214,6 +6384,10 @@ void cmdEndDebugMarker(Cmd* pCmd)
 #if defined(USE_PIX)
 	PIXEndEvent(pCmd->pDxCmdList);
 #endif
+#endif
+#if ENABLE_MICRO_PROFILER
+	// Leave the current scope and pop up the scope stack
+	MICROPROFILE_GPU_LEAVE();
 #endif
 }
 
@@ -6264,9 +6438,235 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 	pTexture->pDxResource->SetName(wName);
 }
 /************************************************************************/
+
 /************************************************************************/
-#endif    // RENDERER_IMPLEMENTATION
+
+#if MICROPROFILE_GPU_TIMERS_D3D12
+#define S g_MicroProfile
+
+struct MicroProfileGpuTimerStateInternal
+{
+	ID3D12CommandQueue* pCommandQueue;
+	ID3D12QueryHeap* pHeap;
+	ID3D12Resource* pBuffer;
+	ID3D12GraphicsCommandList* pCommandLists[MICROPROFILE_GPU_FRAMES];
+	ID3D12CommandAllocator* pCommandAllocators[MICROPROFILE_GPU_FRAMES];
+	ID3D12Fence* pFence;
+	void* pFenceEvent;
+
+	uint64_t nFrame;
+	AtomicUint nFramePutAtomic;
+
+	uint32_t nSubmitted[MICROPROFILE_GPU_FRAMES];
+	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
+	uint64_t nQueryFrequency;
+};
+
+MICROPROFILE_GPU_STATE_DECL(Internal)
+
+void MicroProfileGpuInitInternal(ID3D12Device* pDevice, ID3D12CommandQueue* pCommandQueue)
+{
+	MicroProfileGpuInitStateInternal();
+
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	GPU.pCommandQueue = pCommandQueue;
+
+	HRESULT hr;
+
+	D3D12_QUERY_HEAP_DESC HeapDesc;
+	HeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+	HeapDesc.Count = MICROPROFILE_GPU_MAX_QUERIES;
+	HeapDesc.NodeMask = 0;
+
+	D3D12_HEAP_PROPERTIES HeapProperties;
+	HeapProperties.Type = D3D12_HEAP_TYPE_READBACK;
+	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	HeapProperties.CreationNodeMask = 1;
+	HeapProperties.VisibleNodeMask = 1;
+
+	D3D12_RESOURCE_DESC ResourceDesc;
+	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	ResourceDesc.Alignment = 0;
+	ResourceDesc.Width = MICROPROFILE_GPU_MAX_QUERIES * sizeof(uint64_t);
+	ResourceDesc.Height = 1;
+	ResourceDesc.DepthOrArraySize = 1;
+	ResourceDesc.MipLevels = 1;
+	ResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+	ResourceDesc.SampleDesc.Count = 1;
+	ResourceDesc.SampleDesc.Quality = 0;
+	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	ResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	hr = pDevice->CreateQueryHeap(&HeapDesc, IID_PPV_ARGS(&GPU.pHeap));
+	ASSERT(hr == S_OK);
+	hr = pDevice->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&GPU.pBuffer));
+	ASSERT(hr == S_OK);
+	hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&GPU.pFence));
+	ASSERT(hr == S_OK);
+	GPU.pFenceEvent = CreateEvent(nullptr, false, false, nullptr);
+	ASSERT(GPU.pFenceEvent != INVALID_HANDLE_VALUE);
+
+	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
+	{
+		hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&GPU.pCommandAllocators[i]));
+		ASSERT(hr == S_OK);
+		hr = pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, GPU.pCommandAllocators[i], nullptr, IID_PPV_ARGS(&GPU.pCommandLists[i]));
+		ASSERT(hr == S_OK);
+		hr = GPU.pCommandLists[i]->Close();
+		ASSERT(hr == S_OK);
+	}
+
+	hr = pCommandQueue->GetTimestampFrequency(&GPU.nQueryFrequency);
+	ASSERT(hr == S_OK);
+}
+
+void MicroProfileGpuShutdownInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	if (!GPU.pCommandQueue)
+		return;
+
+	if (GPU.nFrame > 0)
+	{
+		GPU.pFence->SetEventOnCompletion(GPU.nFrame, GPU.pFenceEvent);
+		WaitForSingleObject(GPU.pFenceEvent, INFINITE);
+	}
+
+	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
+	{
+		GPU.pCommandLists[i]->Release();
+		GPU.pCommandLists[i] = 0;
+
+		GPU.pCommandAllocators[i]->Release();
+		GPU.pCommandAllocators[i] = 0;
+	}
+
+	GPU.pHeap->Release();
+	GPU.pHeap = 0;
+
+	GPU.pBuffer->Release();
+	GPU.pBuffer = 0;
+
+	GPU.pFence->Release();
+	GPU.pFence = 0;
+
+	CloseHandle(GPU.pFenceEvent);
+	GPU.pFenceEvent = 0;
+
+	GPU.pCommandQueue = 0;
+}
+
+uint32_t MicroProfileGpuFlipInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
+
+	// Submit current frame
+	uint32_t nFrameIndex = GPU.nFrame % MICROPROFILE_GPU_FRAMES;
+	uint32_t nFrameStart = nFrameIndex * nFrameQueries;
+
+	ID3D12CommandAllocator* pCommandAllocator = GPU.pCommandAllocators[nFrameIndex];
+	ID3D12GraphicsCommandList* pCommandList = GPU.pCommandLists[nFrameIndex];
+
+	pCommandAllocator->Reset();
+	pCommandList->Reset(pCommandAllocator, nullptr);
+
+	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandList);
+
+	uint32_t nFramePut = MicroProfileMin(GPU.nFramePutAtomic.mAtomicInt, nFrameQueries);
+
+	if (nFramePut)
+		pCommandList->ResolveQueryData(GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nFrameStart, nFramePut, GPU.pBuffer, nFrameStart * sizeof(int64_t));
+
+	pCommandList->Close();
+
+	ID3D12CommandList* pList = pCommandList;
+	GPU.pCommandQueue->ExecuteCommandLists(1, &pList);
+	GPU.pCommandQueue->Signal(GPU.pFence, GPU.nFrame + 1);
+
+	GPU.nSubmitted[nFrameIndex] = nFramePut;
+	GPU.nFramePutAtomic.AtomicStore(0);
+	GPU.nFrame++;
+
+	// Fetch frame results
+	if (GPU.nFrame >= MICROPROFILE_GPU_FRAMES)
+	{
+		uint64_t nPendingFrame = GPU.nFrame - MICROPROFILE_GPU_FRAMES;
+		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAMES;
+
+		GPU.pFence->SetEventOnCompletion(nPendingFrame + 1, GPU.pFenceEvent);
+		WaitForSingleObject(GPU.pFenceEvent, INFINITE);
+
+		uint32_t nPendingFrameStart = nPendingFrameIndex * nFrameQueries;
+		uint32_t nPendingFrameCount = GPU.nSubmitted[nPendingFrameIndex];
+
+		if (nPendingFrameCount)
+		{
+			void* pData = 0;
+			D3D12_RANGE Range = { nPendingFrameStart * sizeof(uint64_t), (nPendingFrameStart + nPendingFrameCount) * sizeof(uint64_t) };
+
+			HRESULT hr = GPU.pBuffer->Map(0, &Range, &pData);
+			ASSERT(hr == S_OK);
+
+			memcpy(&GPU.nResults[nPendingFrameStart], (uint64_t*)pData + nPendingFrameStart, nPendingFrameCount * sizeof(uint64_t));
+
+			GPU.pBuffer->Unmap(0, 0);
+		}
+	}
+
+	return nFrameTimeStamp;
+}
+
+uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	if (!pContext) return (uint32_t)-1;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
+
+	uint32_t nIndex = GPU.nFramePutAtomic.AtomicIncrement();
+	if (nIndex >= nFrameQueries) return (uint32_t)-1;
+
+	uint32_t nQueryIndex = (GPU.nFrame % MICROPROFILE_GPU_FRAMES) * nFrameQueries + nIndex;
+
+	((ID3D12GraphicsCommandList*)pContext)->EndQuery(GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nQueryIndex);
+
+	return nQueryIndex;
+}
+
+uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return GPU.nResults[nIndex];
+}
+
+uint64_t MicroProfileTicksPerSecondGpuInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return GPU.nQueryFrequency ? GPU.nQueryFrequency : 1000000000ll;
+}
+
+bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return SUCCEEDED(GPU.pCommandQueue->GetClockCalibration((uint64_t*)pOutGpu, (uint64_t*)pOutCpu));
+}
+
+MICROPROFILE_GPU_STATE_IMPL(Internal)
+
+#undef S
+#endif
+
 #endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 }
+#endif
 #endif

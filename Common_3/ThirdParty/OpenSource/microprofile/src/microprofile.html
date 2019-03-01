@@ -1,0 +1,4815 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>MicroProfile Capture</title>
+<style>
+/* about css: http://bit.ly/1eMQ42U */
+body {margin: 0px;padding: 0px; font: 12px Courier New;background-color:#474747; color:white;overflow:hidden;}
+ul {list-style-type: none;margin: 0;padding: 0;}
+li{display: inline; float:left;border:5px; position:relative;text-align:center;}
+a {
+    float:left;
+    text-decoration:none;
+    display: inline;
+    text-align: center;
+	padding:5px;
+	padding-bottom:0px;
+	padding-top:0px;
+    color: #FFFFFF;
+    background-color: #474747;
+}
+a:hover, a:active{
+	background-color: #000000;
+}
+
+ul ul {
+    position:absolute;
+    left:0;
+    top:100%;
+    margin-left:-999em;
+}
+li:hover ul {
+    margin-left:0;
+    margin-right:0;
+}
+ul li ul{ display:block;float:none;width:100%;}
+ul li ul li{ display:block;float:none;width:100%;}
+li li a{ display:block;float:none;width:100%;text-align:left;}
+#nav li:hover div {margin-left:0;}
+.help {position:absolute;z-index:5;text-align:left;padding:2px;margin-left:-999em;background-color: #313131;width:300px;}
+.helpstart {position:absolute;z-index:5;text-align:left;padding:2px;background-color: #313131;width:300px;display:none}
+.root {z-index:1;position:absolute;top:0px;left:0px;}
+.filterinput0{position:fixed;bottom:10px;left:25px;background-color: #313131}
+.filterinput1{position:fixed;bottom:10px;left:175px;background-color: #313131}
+</style>
+</head>
+<body style="">
+<div id='filterinput'>
+<div class="filterinput0">Group<br><input type="text" id="filtergroup"></div>
+<div class="filterinput1">Timer/Thread<br><input type="text" id="filtertimer"></div>
+</div>
+<canvas id="History" height="70" style="background-color:#474747;margin:0px;padding:0px;"></canvas><canvas id="DetailedView" height="200" style="background-color:#474747;margin:0px;padding:0px;"></canvas>
+<div id="root" class="root">
+<ul id="nav">
+<li><a href="javascript:void(0)" onclick="ToggleDebugMode();">?</a>
+<div class="helpstart" id="helpwindow" style="left:20px;top:20px">
+History View:<br>
+Click + Drag: Pan View<br>
+Right Click + Drag : Zoom on region<br>
+Click Frame : Center on frame<br>
+<hr>
+Main View:<br>
+Ctrl + Mouse up/down: Zoom<br>
+Mousewheel : Zoom<br>
+Right Click + Drag: Select region<br>
+Ctrl + Shift + Drag: Select region<br>
+Space: Zoom to Selection<br>
+Ctrl + Drag: Pan<br>
+Click + Drag: Pan<br>
+alt or z: Toggle ToolTip<br>
+<hr>
+Detailed View:<br>
+Tab: Go To Worst Instance<br>
+Left/Right Arrow: Next/Prev Instance<br>
+<hr>
+Timer Views:<br>
+Tab: go to filtering<br>
+Esc: Exit &amp; Clear filter
+<hr>
+<table style="width:100%">
+<tr>
+<td width="50%" align="left"><a href='javascript:void(0)' onclick="ShowHelp(0, 0);">Close</a></td>
+<td width="50%" align="right"><a href='javascript:void(0)' onclick="ShowHelp(0, 1);">Close, Never Show</a></td>
+</tr>
+</table>
+</div>
+<div class="help" id="divFrameInfo" style="left:20px;top:300px;width:auto;">
+</div>
+</li>
+<li><a id='ModeSubMenuText'>Mode</a>
+    <ul id='ModeSubMenu'>
+		<li><a href="javascript:void(0)" onclick="SetMode('timers', 0);" id="buttonTimers">Timers</a></li>
+		<li><a href="javascript:void(0)" onclick="SetMode('timers', 1);" id="buttonGroups">Groups</a></li> 
+		<li><a href="javascript:void(0)" onclick="SetMode('timers', 2);" id="buttonThreads">Threads</a></li>
+		<li><a href="javascript:void(0)" onclick="SetMode('detailed', 0);" id="buttonDetailed">Detailed</a></li>
+		<li><a href="javascript:void(0)" onclick="SetMode('counters', 0);" id="buttonCounters">Counters</a></li>
+	</ul>
+</li>
+<li><a>Reference</a>
+    <ul id='ReferenceSubMenu'>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('5ms');">5ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('10ms');">10ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('15ms');">15ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('20ms');">20ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('33ms');">33ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('50ms');">50ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('100ms');">100ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('250ms');">250ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('500ms');">500ms</a></li>
+        <li><a href="javascript:void(0)" onclick="SetReferenceTime('1000ms');">1000ms</a></li>
+    </ul>
+</li>
+<li id="ilThreads"><a>Threads</a>
+    <ul id="ThreadSubMenu">
+        <li><a href="javascript:void(0)" onclick="ToggleThread();">All</a></li>
+        <li><a>---</a></li>
+    </ul>
+</li>
+<li id="ilGroups"><a>Groups</a>
+    <ul id="GroupSubMenu">
+        <li><a href="javascript:void(0)" onclick="ToggleGroup();">All</a></li>
+        <li><a>---</a></li>
+    </ul>
+</li>
+<li id="ilOptions"><a>Options&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
+    <ul id='OptionsMenu'>
+        <li><a href="javascript:void(0)" onclick="ToggleContextSwitch();">Context Switch</a></li>
+		<li><a href="javascript:void(0)" onclick="ToggleDisableMerge();">MergeDisable</a></li>
+		<li><a href="javascript:void(0)" onclick="ToggleDisableLod();">LodDisable</a></li>
+		<li id='GroupColors'><a href="javascript:void(0)" onclick="ToggleGroupColors();">Group Colors</a></li>
+        <li id='TimersMeta'><a href="javascript:void(0)" onclick="ToggleTimersMeta();">Meta</a></li>
+        <li id='ShowHelp'><a href="javascript:void(0)" onclick="ShowHelp(1,1);">Help</a></li>
+<!--      	<li><a href="javascript:void(0)" onclick="ToggleDebug();">DEBUG</a></li> -->
+    </ul>
+</li>
+</ul>
+</div>
+<script>
+function InvertColor(hexTripletColor) {
+	var color = hexTripletColor;
+	color = color.substring(1); // remove #
+	color = parseInt(color, 16); // convert to integer
+	var R = ((color >> 16) % 256)/255.0;
+	var G = ((color >> 8) % 256)/255.0;
+	var B = ((color >> 0) % 256)/255.0;
+	var lum = (0.2126*R + 0.7152*G + 0.0722*B);
+	if(lum < 0.7)
+	{
+		return '#ffffff';
+	}
+	else
+	{
+		return '#333333';
+	}
+}
+function InvertColorIndex(hexTripletColor) {
+	var color = hexTripletColor;
+	color = color.substring(1); // remove #
+	color = parseInt(color, 16); // convert to integer
+	var R = ((color >> 16) % 256)/255.0;
+	var G = ((color >> 8) % 256)/255.0;
+	var B = ((color >> 0) % 256)/255.0;
+	var lum = (0.2126*R + 0.7152*G + 0.0722*B);
+	if(lum < 0.7)
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+function MakeGroup(id, name, category, numtimers, isgpu, total, average, max, color)
+{
+	var group = {"id":id, "name":name, "category":category, "numtimers":numtimers, "isgpu":isgpu, "total": total, "average" : average, "max" : max, "color":color};
+	return group;
+}
+
+function MakeTimer(id, name, group, color, colordark, average, max, min, exclaverage, exclmax, callaverage, callcount, total, meta, metaagg, metamax)
+{
+	var timer = {"id":id, "name":name, "namelabel":name.startsWith("$"), "color":color, "colordark":colordark,"timercolor":color, "textcolor":InvertColor(color), "group":group, "average":average, "max":max, "min":min, "exclaverage":exclaverage, "exclmax":exclmax, "callaverage":callaverage, "callcount":callcount, "total":total, "meta":meta, "textcolorindex":InvertColorIndex(color), "metaagg":metaagg, "metamax":metamax, "worst":0, "worststart":0, "worstend":0};
+	return timer;
+}
+
+function MakeTimes(scale, ts)
+{
+	for(var i = 0; i < ts.length; ++i)
+	{
+		ts[i] *= scale;
+	}
+	return ts;
+}
+
+function MakeTimesExtra(scale, scaleextra, tt, ts)
+{
+	for(var i = 0; i < ts.length; ++i)
+	{
+		ts[i] *= (tt[i] == 4) ? scaleextra : scale;
+	}
+	return ts;
+}
+
+function MakeFrame(id, framestart, frameend, framestartgpu, frameendgpu, ts, tt, ti, tl)
+{
+	var frame = {"id":id, "framestart":framestart, "frameend":frameend, "framestartgpu":framestartgpu, "frameendgpu":frameendgpu, "ts":ts, "tt":tt, "ti":ti, "tl":tl};
+	return frame;
+}
+
+function MakeCounter(id, parent, sibling, firstchild, level, name, value, minvalue, maxvalue, formatted, limit, formattedlimit, format, counterprc, boxprc, historydata)
+{
+	var historyprcoffset = (minvalue < 0) ? -minvalue : 0;
+	var historyprcscale = 1 / (maxvalue + historyprcoffset);
+
+	var historyprc = new Array(historydata.length);
+	for(var i = 0; i < historydata.length; ++i)
+	{
+		historydata[i] += minvalue;
+		historyprc[i] = (historydata[i] + historyprcoffset) * historyprcscale;
+	}
+
+	var counter = { "id":id, "parent":parent, "sibling":sibling, "firstchild":firstchild, "level": level, "name":name, "value":value, "formatted":formatted, "limit":limit, "formattedlimit":formattedlimit, "format":format, "counterprc":counterprc, "boxprc":boxprc, "historyprc": historyprc, "historydata":historydata, "minvalue":minvalue, "maxvalue":maxvalue};
+	return counter;
+}
+
+
+____embed____
+
+var CanvasDetailedView = document.getElementById('DetailedView');
+var CanvasHistory = document.getElementById('History');
+var CanvasDetailedOffscreen = document.createElement('canvas');
+var FilterInputGroup = document.getElementById('filtergroup');
+var FilterInputTimer = document.getElementById('filtertimer');
+var FilterInputGroupString = null;
+var FilterInputTimerString = null;
+var FilterInputArray = [FilterInputGroup, FilterInputTimer];
+var FilterGroup = null;
+var FilterTimer = null;
+var g_Msg = '0';
+
+var Initialized = 0;
+var fDetailedOffset = Frames[0].framestart;
+var fDetailedRange = Frames[0].frameend - fDetailedOffset;
+var nWidth = CanvasDetailedView.width;
+var nHeight = CanvasDetailedView.height;
+var ReferenceTime = 33;
+var nHistoryHeight = 70;
+var nOffsetY = 0;
+var nOffsetBarsX = 0;
+var nOffsetBarsY = 0;
+var nOffsetCountersY = 0;
+var nBarsWidth = 80;
+var NameWidth = 200;
+var MouseButtonState = [0,0,0,0,0,0,0,0];
+var KeyShiftDown = 0;
+var MouseDragButton = 0;
+var KeyCtrlDown = 0;
+var ToolTip = 1; //0: off, 1: default, 2: flipped
+var DetailedViewMouseX = 0;
+var DetailedViewMouseY = 0;
+var HistoryViewMouseX = -1;
+var HistoryViewMouseY = -1;
+var MouseHistory = 0;
+var MouseDetailed = 0;
+var FontHeight = 10;
+var FontWidth = 1;
+var FontAscent = 3; //Set manually
+var Font = 'Bold ' + FontHeight + 'px Courier New';
+var FontFlash = 'Bold ' + 35 + 'px Courier New';
+var BoxHeight = FontHeight + 2;
+var ThreadsActive = new Object();
+var ThreadsAllActive = 1;
+var GroupsActive = new Object();
+var GroupsAllActive = 1;
+var nMinWidth = 0.01;//subpixel width
+var nMinWidthPan = 1.0;//subpixel width when panning
+var nContextSwitchEnabled = 1;
+var DisableLod = 0;
+var DisableMerge = 0;
+var GroupColors = 0;
+var nModDown = 0;
+var g_MSG = 'no';
+var nDrawCount = 0;
+var nBackColors = ['#474747', '#313131' ];
+var nBackColorOffset = '#606060';
+var CSwitchColors =["#9DD8AF","#D7B6DA","#EAAC76","#DBDA61","#8AD5E1","#8CE48B","#C4D688","#57E5C4"];//generated by http://tools.medialab.sciences-po.fr/iwanthue/index.php
+var CSwitchHeight = 5;
+var FRAME_HISTORY_COLOR_CPU = '#ff7f27';
+var FRAME_HISTORY_COLOR_GPU = '#ffffff';
+var ZOOM_TIME = 0.5;
+var AnimationActive = false;
+var nHoverCSCpu = -1;
+var nHoverCSCpuNext = -1;
+var nHoverCSToolTip = null;
+var nHoverToken = -1;
+var nHoverFrame = -1;
+var nHoverTokenIndex = -1;
+var nHoverTokenLogIndex = -1;
+var nHoverCounter = 0;
+var nHoverCounterDelta = 8;
+var nHoverTokenNext = -1;
+var nHoverTokenLogIndexNext = -1;
+var nHoverTokenIndexNext = -1;
+var nHoverCounter = -1;
+var nHoverTokenDrawn = -1;
+var nHideHelp = 0;
+var fFrameScale = 33.33;
+var SortColumn = 0;
+var SortColumnOrderFlip = 0;
+var SortColumnMouseOver = null;
+var SortColumnMouseOverNext = null;
+
+function RangeInit()
+{
+	return {"Begin":-1, "End":-1, "YBegin":-1, "YEnd":-1, "Thread": -1 , "Index": -1};
+}
+function RangeValid(Range)
+{
+	return Range.Begin < Range.End;
+}
+function RangeCopy(Dst, Src)
+{
+	Dst.Begin = Src.Begin;
+	Dst.End = Src.End;
+	Dst.YBegin = Src.YBegin;
+	Dst.YEnd = Src.YEnd;
+	Dst.Thread = Src.Thread;
+}
+var RangeCpu = RangeInit();
+var RangeGpu = RangeInit();
+var RangeSelect = RangeInit();
+
+var RangeCpuNext = RangeInit();
+var RangeGpuNext = RangeInit();
+
+var RangeCpuHistory = RangeInit();
+var RangeGpuHistory = RangeInit();
+
+var fRangeBegin = 0;
+var fRangeEnd = -1;
+var fRangeThreadId = -1;
+var fRangeThreadIdNext = -1;
+var fRangeBeginNext = 0;
+var fRangeEndNext = 0;
+var fRangeBeginGpuNext = 0;
+var fRangeEndGpuNext = 0;
+var fRangeBeginHistory = -1;
+var fRangeEndHistory = -1;
+var fRangeBeginHistoryGpu = -1;
+var fRangeEndHistoryGpu = -1;
+var fRangeBeginSelect = 0;
+var fRangeEndSelect = -1;
+var ThreadY;
+
+var ModeDetailed = 0;
+var ModeTimers = 1;
+var ModeCounters = 2;
+var Mode = ModeDetailed;
+
+var DebugDrawQuadCount = 0;
+var DebugDrawTextCount = 0;
+var ProfileMode = 0;
+var ProfileRedraw0 = 0;
+var ProfileRedraw1 = 0;
+var ProfileRedraw2 = 0;
+var ProfileFps = 0;
+var ProfileFpsAggr = 0;
+var ProfileFpsCount = 0;
+var ProfileLastTimeStamp = new Date();
+
+var CSwitchCache = {};
+var CSwitchOnlyThreads = [];
+var ProfileData = {};
+var ProfileStackTime = {};
+var ProfileStackName = {};
+var Debug = 1;
+
+var g_MaxStack = Array();
+var g_TypeArray;
+var g_TimeArray;
+var g_IndexArray;
+var g_LabelArray;
+var LodData = new Array();
+var NumLodSplits = 10;
+var SplitMin = 100;
+var SPLIT_LIMIT = 1e20;
+var DPR = 1;
+var DetailedRedrawState = {};
+var OffscreenData;
+var DetailedFrameCounter = 0;
+var Invalidate = 0;
+var GroupOrder = Array();
+var ThreadOrder = Array();
+var TimersGroups = 0;
+var TimersMeta = 1;
+var MetaLengths = Array();
+var MetaLengthsAvg = Array();
+var MetaLengthsMax = Array();
+
+var ZoomActive = 0;
+
+var StrGroup = "Group";
+var StrThread = "Thread";
+var StrTimer = "Timer";
+var StrAverage = "Average";
+var StrMax = "Max";
+var StrTotal = "Total";
+var StrMin = "Min";
+var StrCallAverage = "Call Average";
+var StrCount = "Count";
+var StrExclAverage = "Excl Average";
+var StrExclMax = "Excl Max";
+
+
+function ProfileModeClear()
+{
+	if(ProfileMode)
+	{
+		ProfileData = new Object();
+		ProfileStackTime = new Array();
+		ProfileStackName = new Array();
+	}
+}
+function ProfileEnter(Name)
+{
+	if(ProfileMode)
+	{
+		ProfileStackTime.push(new Date());
+		ProfileStackName.push(Name);
+	}
+}
+function ProfileLeave()
+{
+	if(ProfileMode)
+	{
+		var Time = new Date();
+		var Delta = Time - ProfileStackTime.pop();
+		var Name = ProfileStackName.pop();
+		var Obj = ProfileData[Name];
+		if(!Obj)
+		{
+			Obj = new Object();
+			Obj.Count = 0;
+			Obj.Name = Name;
+			Obj.Time = 0;
+			ProfileData[Name] = Obj;
+		}
+		Obj.Time += Delta;
+		Obj.Count += 1;
+	}
+}
+
+function ProfilePlot(s)
+{
+	if(ProfileMode)
+	{
+		var A = ProfileData.Plot;
+		if(!A)
+		{
+			ProfileData.Plot = Array();
+			A = ProfileData.Plot;
+		}
+		if(A.length<10)
+		{
+			A.push(s);
+		}
+	}
+}
+function ProfileModeDump()
+{
+	for(var idx in ProfileData)
+	{
+		var Timer = ProfileData[idx];
+		console.log(Timer.Name + " " + Timer.Time + "ms " + Timer.Count);
+	}
+
+}
+function ProfileModeDraw(Canvas)
+{
+	if(ProfileMode)
+	{
+		var StringArray = [];
+		for(var idx in ProfileData)
+		{
+			if(idx == "Plot")
+				continue;
+			var Timer = ProfileData[idx];
+			StringArray.push(Timer.Name);
+			StringArray.push(Timer.Time + "ms");
+			StringArray.push("#");
+			StringArray.push("" + Timer.Count);
+		}
+		StringArray.push("debug");
+		StringArray.push(Debug);
+		var Time = new Date();
+		var Delta = Time - ProfileLastTimeStamp;
+		ProfileLastTimeStamp = Time;
+		StringArray.push("Frame Delta");
+		StringArray.push(Delta + "ms");
+		if(ProfileMode == 2)
+		{
+			ProfileFpsAggr += Delta;
+			ProfileFpsCount ++ ;
+			var AggrFrames = 10;
+			if(ProfileFpsCount == AggrFrames)
+			{
+				ProfileFps = 1000 / (ProfileFpsAggr / AggrFrames);
+				ProfileFpsAggr = 0;
+				ProfileFpsCount = 0;
+			}
+			StringArray.push("FPS");
+			StringArray.push("" + ProfileFps.toFixed(2));
+		}
+		StringArray.push("ProfileRedraw0");
+		StringArray.push("" + ProfileRedraw0);
+		StringArray.push("ProfileRedraw1");
+		StringArray.push("" + ProfileRedraw1);
+		StringArray.push("ProfileRedraw2");
+		StringArray.push("" + ProfileRedraw2);
+		ProfileRedraw0 = 0;
+		ProfileRedraw1 = 0;
+		ProfileRedraw2 = 0;
+
+
+		for(var i = 0; i < ProfileData.Plot; ++i)
+		{
+			StringArray.push("");
+			StringArray.push(ProfileData.Plot[i]);
+		}
+		ProfileData.Plot = Array();
+		DrawToolTip(StringArray, Canvas, 0, 200);
+	}
+}
+
+function ToggleDebugMode()
+{
+	ProfileMode = (ProfileMode+1)%4;
+	console.log('Toggle Debug Mode ' + ProfileMode);
+}
+
+function DetailedTotal()
+{
+	var Total = 0;
+	for(var i = 0; i < Frames.length; i++)
+	{
+		var frfr = Frames[i];
+		Total += frfr.frameend - frfr.framestart;
+	}
+	return Total;
+}
+
+function InitFrameInfo()
+{
+
+	var div = document.getElementById('divFrameInfo');
+	var txt = '';
+	txt = txt + 'Timers View' + '<br>';
+	txt = txt + 'Frames:' + AggregateInfo.Frames +'<br>';
+	txt = txt + 'Time:' + AggregateInfo.Time.toFixed(2) +'ms<br>';
+	txt = txt + '<hr>';
+	txt = txt + 'Detailed View' + '<br>';
+	txt = txt + 'Frames:' + Frames.length +'<br>';
+	txt = txt + 'Time:' + DetailedTotal().toFixed(2) +'ms<br>';
+	div.innerHTML = txt;
+}
+function InitGroups()
+{
+	for(groupid in GroupInfo)
+	{
+		var TimerArray = Array();
+		for(timerid in TimerInfo)
+		{
+			if(TimerInfo[timerid].group == groupid)
+			{
+				TimerArray.push(timerid);
+			}
+		}
+		GroupInfo[groupid].TimerArray = TimerArray;
+	}
+}
+
+function InitThreadMenu()
+{
+	var ulThreadMenu = document.getElementById('ThreadSubMenu');
+	var MaxLen = 7;
+	ThreadOrder = CreateOrderArray(ThreadNames, function(a){return a;});
+	for(var idx in ThreadOrder)
+	{
+		var name = ThreadNames[ThreadOrder[idx]];
+		var li = document.createElement('li');
+		if(name.length > MaxLen)
+		{
+			MaxLen = name.length;
+		}
+		li.innerText = name;
+		var asText = li.innerHTML;
+		var html = '<a href="javascript:void(0)" onclick="ToggleThread(\'' + name + '\');">' + asText + '</a>';
+		li.innerHTML = html;
+		ulThreadMenu.appendChild(li);
+	}
+	var LenStr = (5+(1+MaxLen) * (1+FontWidth)) + 'px';
+	var Lis = ulThreadMenu.getElementsByTagName('li');
+	for(var i = 0; i < Lis.length; ++i)
+	{
+		Lis[i].style['width'] = LenStr;
+	}
+}
+
+function UpdateThreadMenu()
+{
+	var ulThreadMenu = document.getElementById('ThreadSubMenu');
+	var as = ulThreadMenu.getElementsByTagName('a');
+	for(var i = 0; i < as.length; ++i)
+	{
+		var elem = as[i];
+		var inner = elem.innerText;
+		var bActive = false;
+		if(i < 2)
+		{
+			if(inner == 'All')
+			{
+				bActive = ThreadsAllActive;
+			}
+		}
+		else
+		{
+			bActive = ThreadsActive[inner];
+		}
+		if(bActive)
+		{
+			elem.style['text-decoration'] = 'underline';
+		}
+		else
+		{
+			elem.style['text-decoration'] = 'none';
+		}
+	}
+}
+
+function ToggleThread(ThreadName)
+{
+	if(ThreadName)
+	{
+		if(ThreadsActive[ThreadName])
+		{
+			ThreadsActive[ThreadName] = false;
+		}
+		else
+		{
+			ThreadsActive[ThreadName] = true;
+		}
+	}
+	else
+	{
+		if(ThreadsAllActive)
+		{
+			ThreadsAllActive = 0;
+		}
+		else
+		{
+			ThreadsAllActive = 1;
+		}
+	}
+	Invalidate = 0;
+	UpdateThreadMenu();
+	WriteCookie();
+	Draw(1);
+
+}
+
+function CreateOrderArray(Source, NameFunc)
+{
+	var Temp = Array(Source.length);
+	for(var i = 0; i < Source.length; ++i)
+	{
+		Temp[i] = {};
+		Temp[i].index = i;
+		Temp[i].namezz = NameFunc(Source[i]).toLowerCase();
+	}
+	Temp.sort(function(l, r)
+	{ 
+		if(r.namezz<l.namezz)
+			{return 1;}
+		if(l.namezz<r.namezz)
+			{return -1;} 
+		return 0;
+	} );
+	var OrderArray = Array(Source.length);
+	for(var i = 0; i < Source.length; ++i)
+	{
+		OrderArray[i] = Temp[i].index;
+	}
+	return OrderArray;
+}
+
+
+function InitGroupMenu()
+{
+	var ulGroupMenu = document.getElementById('GroupSubMenu');
+	var MaxLen = 7;
+	var MenuArray = Array();
+	for(var i = 0; i < GroupInfo.length; ++i)
+	{
+		var x = {};
+		x.IsCategory = 0;
+		x.category = GroupInfo[i].category;
+		x.name = GroupInfo[i].name;
+		x.index = i;
+		MenuArray.push(x);
+	}
+	for(var i = 0; i < CategoryInfo.length; ++i)
+	{
+		var x = {};
+		x.IsCategory = 1;
+		x.category = i;
+		x.name = CategoryInfo[i];
+		x.index = i;
+		MenuArray.push(x);
+	}
+	var OrderFunction = function(a){ return a.category + "__" + a.name; };
+	var OrderFunctionMenu = function(a){ return a.IsCategory ? (a.category + '') : (a.category + "__" + a.name); };
+	GroupOrder = CreateOrderArray(GroupInfo, OrderFunction);
+	var MenuOrder = CreateOrderArray(MenuArray, OrderFunctionMenu);
+
+	for(var idx in MenuOrder)
+	{
+		var MenuItem = MenuArray[MenuOrder[idx]];
+		var name = MenuItem.name;
+		var li = document.createElement('li');
+		if(name.length > MaxLen)
+		{
+			MaxLen = name.length;
+		}
+		var jsfunc = '';
+		if(MenuItem.IsCategory)
+		{				
+			li.innerText = '[' + name + ']';
+			jsfunc = "ToggleCategory";
+		}
+		else
+		{
+			li.innerText = name;
+			jsfunc = "ToggleGroup";
+		}
+		var asText = li.innerHTML;
+		var html = '<a href="javascript:void(0)" onclick="' + jsfunc + '(\'' + name + '\');">' + asText + '</a>';
+		li.innerHTML = html;
+		ulGroupMenu.appendChild(li);
+	}
+	var LenStr = (5+(1+MaxLen) * FontWidth) + 'px';
+	var Lis = ulGroupMenu.getElementsByTagName('li');
+	for(var i = 0; i < Lis.length; ++i)
+	{
+		Lis[i].style['width'] = LenStr;
+	}
+	UpdateGroupMenu();
+}
+
+function UpdateGroupMenu()
+{
+	var ulThreadMenu = document.getElementById('GroupSubMenu');
+	var as = ulThreadMenu.getElementsByTagName('a');
+	for(var i = 0; i < as.length; ++i)
+	{
+		var elem = as[i];
+		var inner = elem.innerText;
+		var bActive = false;
+		if(i < 2)
+		{
+			if(inner == 'All')
+			{
+				bActive = GroupsAllActive;
+			}
+		}
+		else
+		{
+			var CategoryString = inner.length>2 ? inner.substring(1, inner.length-2) : "";
+			var CategoryIdx = CategoryIndex(CategoryString);
+			if(inner[0] == '[' && inner[inner.length-1] == ']' && CategoryIdx >= 0)
+			{
+				bActive = IsCategoryActive(CategoryIdx);
+			}
+			else
+			{
+				bActive = GroupsActive[inner];
+			}
+		}
+		if(bActive)
+		{
+			elem.style['text-decoration'] = 'underline';
+		}
+		else
+		{
+			elem.style['text-decoration'] = 'none';
+		}
+	}
+}
+function CategoryIndex(CategoryName)
+{
+	for(var i = 0; i < CategoryInfo.length; ++i)
+	{
+		if(CategoryInfo[i] == CategoryName)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+function IsCategoryActive(CategoryIdx)
+{
+	for(var i = 0; i < GroupInfo.length; ++i)
+	{
+		if(GroupInfo[i].category == CategoryIdx)
+		{
+			var Name = GroupInfo[i].name;
+			if(!GroupsActive[Name])
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+
+}
+function ToggleCategory(CategoryName)
+{
+	var CategoryIdx = CategoryIndex(CategoryName);
+	if(CategoryIdx < 0)
+		return;
+	var CategoryActive = IsCategoryActive(CategoryIdx);
+	for(var i = 0; i < GroupInfo.length; ++i)
+	{
+		if(GroupInfo[i].category == CategoryIdx)
+		{
+			var Name = GroupInfo[i].name;
+			if(CategoryActive)
+			{
+				GroupsActive[Name] = false;
+			}
+			else
+			{
+				GroupsActive[Name] = true;
+			}
+		}
+	}
+	UpdateGroupMenu();
+	WriteCookie();
+	RequestRedraw();
+}
+
+function ToggleGroup(GroupName)
+{
+	if(GroupName)
+	{
+		if(GroupsActive[GroupName])
+		{
+			GroupsActive[GroupName] = false;
+		}
+		else
+		{
+			GroupsActive[GroupName] = true;
+		}
+	}
+	else
+	{
+		if(GroupsAllActive)
+		{
+			GroupsAllActive = 0;
+		}
+		else
+		{
+			GroupsAllActive = 1;
+		}
+	}
+	UpdateGroupMenu();
+	WriteCookie();
+	RequestRedraw();
+}
+function UpdateGroupColors()
+{
+	for(var i = 0; i < TimerInfo.length; ++i)
+	{
+		if(GroupColors)
+		{
+			TimerInfo[i].color = GroupInfo[TimerInfo[i].group].color;
+		}
+		else
+		{
+			TimerInfo[i].color = TimerInfo[i].timercolor;
+		}
+		TimerInfo[i].textcolorindex = InvertColorIndex(TimerInfo[i].color);
+	}
+}
+
+function ToggleGroupColors()
+{
+	GroupColors = !GroupColors;
+	UpdateGroupColors();
+	UpdateOptionsMenu();
+	WriteCookie();
+	RequestRedraw();
+}
+
+function UpdateOptionsMenu()
+{
+	var ulTimersMeta = document.getElementById('TimersMeta');
+	ulTimersMeta.style['text-decoration'] = TimersMeta ? 'underline' : 'none';
+	var ulGroupColors = document.getElementById('GroupColors');
+	ulGroupColors.style['text-decoration'] = GroupColors ? 'underline' : 'none';
+}
+
+function ToggleTimersMeta()
+{
+	TimersMeta = TimersMeta ? 0 : 1;
+	WriteCookie();
+	UpdateOptionsMenu();
+	RequestRedraw();
+}
+
+function ShowHelp(Show, Forever)
+{
+	var HelpWindow = document.getElementById('helpwindow');
+	if(Show)
+	{
+		HelpWindow.style['display'] = 'block';
+	}
+	else
+	{
+		HelpWindow.style['display'] = 'none';
+	}
+	if(Forever)
+	{
+		nHideHelp = Show ? 0 : 1;
+		WriteCookie();
+	}
+}
+function SetMode(NewMode, Groups)
+{
+	var buttonTimers = document.getElementById('buttonTimers');
+	var buttonDetailed = document.getElementById('buttonDetailed');
+	var buttonGroups = document.getElementById('buttonGroups');
+	var buttonThreads = document.getElementById('buttonThreads');
+	var buttonCounters = document.getElementById('buttonCounters');
+	var ilThreads = document.getElementById('ilThreads');
+	var ilGroups = document.getElementById('ilGroups');
+	var ModeElement = null;
+	buttonTimers.style['text-decoration'] = 'none';
+	buttonGroups.style['text-decoration'] = 'none';
+	buttonThreads.style['text-decoration'] = 'none';
+	buttonDetailed.style['text-decoration'] = 'none';
+	buttonCounters.style['text-decoration'] = 'none';
+
+
+	if(NewMode == 'counters' || NewMode == ModeCounters)
+	{
+		buttonCounters.style['text-decoration'] = 'underline';
+		ilThreads.style['display'] = 'none';
+		ilGroups.style['display'] = 'none';
+		Mode = ModeCounters;
+		ModeElement = buttonCounters;
+
+	}
+	else if(NewMode == 'timers' || NewMode == ModeTimers)
+	{
+		TimersGroups = Groups;
+		buttonTimers.style['text-decoration'] = TimersGroups ? 'none' : 'underline';
+		buttonGroups.style['text-decoration'] = TimersGroups == 1 ? 'underline' : 'none';
+		buttonThreads.style['text-decoration'] = TimersGroups == 2 ? 'underline' : 'none';
+		buttonDetailed.style['text-decoration'] = 'none';
+		if(TimersGroups == 0)
+		{
+			ilThreads.style['display'] = 'none';
+		}
+		else
+		{
+			ilThreads.style['display'] = 'block';
+		}
+		ilGroups.style['display'] = 'block';
+		Mode = ModeTimers;
+		ModeElement = TimersGroups == 2 ? buttonThreads : TimersGroups == 1 ? buttonGroups : buttonTimers;
+
+	}
+	else if(NewMode == 'detailed' || NewMode == ModeDetailed)
+	{
+		buttonDetailed.style['text-decoration'] = 'underline';
+	
+		ilThreads.style['display'] = 'block';
+		ilGroups.style['display'] = 'none';
+		Mode = ModeDetailed;
+		ModeElement = buttonDetailed;
+	}
+	var ModeSubMenuText = document.getElementById('ModeSubMenuText');
+	ModeSubMenuText.innerText = 'Mode[' + ModeElement.innerText + ']';
+
+	if(Mode == ModeTimers)
+	{
+		SetFilterInput(FilterInputGroupString, FilterInputTimerString);
+	}
+	else
+	{
+		ShowFilterInput(0);
+	}
+
+	WriteCookie();
+	RequestRedraw();
+
+}
+
+function SetReferenceTime(TimeString)
+{
+	ReferenceTime = parseInt(TimeString);
+	var ReferenceMenu = document.getElementById('ReferenceSubMenu');
+	var Links = ReferenceMenu.getElementsByTagName('a');
+	for(var i = 0; i < Links.length; ++i)
+	{
+		if(Links[i].innerHTML.match('^' + TimeString))
+		{
+			Links[i].style['text-decoration'] = 'underline';
+		}
+		else
+		{
+			Links[i].style['text-decoration'] = 'none';
+		}
+	}
+	WriteCookie();
+	RequestRedraw();
+
+}
+
+function ToggleContextSwitch()
+{
+	SetContextSwitch(nContextSwitchEnabled ? 0 : 1);
+}
+function SetContextSwitch(Enabled)
+{
+	nContextSwitchEnabled = Enabled ? 1 : 0;
+	var ReferenceMenu = document.getElementById('OptionsMenu');
+	var Links = ReferenceMenu.getElementsByTagName('a');
+	Links[0].style['text-decoration'] = nContextSwitchEnabled ? 'underline' : 'none';
+	WriteCookie();
+	RequestRedraw();
+}
+
+function ToggleDebug()
+{
+	Debug = (Debug + 1) % 2;
+}
+
+function ToggleDisableMerge()
+{
+	DisableMerge = DisableMerge ? 0 : 1;
+	var ReferenceMenu = document.getElementById('OptionsMenu');
+	var Links = ReferenceMenu.getElementsByTagName('a');
+	if(DisableMerge)
+	{
+		Links[1].style['text-decoration'] = 'underline';
+	}
+	else
+	{
+		Links[1].style['text-decoration'] = 'none';
+	}
+
+}
+
+function ToggleDisableLod()
+{
+	DisableLod = DisableLod ? 0 : 1;
+	var ReferenceMenu = document.getElementById('OptionsMenu');
+	var Links = ReferenceMenu.getElementsByTagName('a');
+	if(DisableLod)
+	{
+		Links[2].style['text-decoration'] = 'underline';
+	}
+	else
+	{
+		Links[2].style['text-decoration'] = 'none';
+	}
+
+}
+
+function GatherHoverMetaCounters(TimerIndex, StartIndex, nLog, nFrameLast)
+{
+	var HoverInfo = new Object();
+	var StackPos = 1;
+	//search backwards, count meta counters 
+	for(var i = nFrameLast; i >= 0; i--)
+	{
+		var fr = Frames[i];
+		var ts = fr.ts[nLog];
+		var ti = fr.ti[nLog];
+		var tt = fr.tt[nLog];
+		var start = i == nFrameLast ? StartIndex-1 : ts.length-1;
+
+		for(var j = start; j >= 0; j--)
+		{
+			var type = tt[j];
+			var index = ti[j];
+			var time = ts[j];
+			if(type == 1)
+			{
+				StackPos--;
+				if(StackPos == 0 && index == TimerIndex)
+				{
+					return HoverInfo;
+				}
+			}
+			else if(type == 0)
+			{
+				StackPos++;
+			}
+			else if(type >= 8)
+			{
+				var nMetaCount = type - 8;
+				var nMetaIndex = MetaNames[index];
+				if(nMetaIndex in HoverInfo)
+				{
+					HoverInfo[nMetaIndex] += nMetaCount;
+				}
+				else
+				{
+					HoverInfo[nMetaIndex] = nMetaCount;
+				}
+			}
+		}
+	}
+}
+
+function GatherHoverLabels(TimerIndex, StartIndex, nLog, nFrameLast)
+{
+	var HoverInfo = [];
+	var StackPos = 1;
+	//search backwards, aggregate labels
+	for(var i = nFrameLast; i >= 0; i--)
+	{
+		var fr = Frames[i];
+		var ts = fr.ts[nLog];
+		var ti = fr.ti[nLog];
+		var tt = fr.tt[nLog];
+		var tl = fr.tl[nLog];
+		var start = i == nFrameLast ? StartIndex-1 : ts.length-1;
+
+		for(var j = start; j >= 0; j--)
+		{
+			var type = tt[j];
+			var index = ti[j];
+			var time = ts[j];
+			if(type == 1)
+			{
+				StackPos--;
+				if(StackPos == 0 && index == TimerIndex)
+				{
+					return HoverInfo.reverse();
+				}
+			}
+			else if(type == 0)
+			{
+				StackPos++;
+			}
+			else if (type == 3 && StackPos == 1)
+			{
+				var Label = tl[index];
+				HoverInfo.push(Label ? Label : "??");
+			}
+		}
+	}
+}
+
+function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken, nGroup)
+{
+	if(!nFrameFirst || nFrameFirst < 0)
+		nFrameFirst = 0;
+	if(!nFrameLast || nFrameLast > Frames.length)
+		nFrameLast = Frames.length;
+	var FrameCount = nFrameLast - nFrameFirst;
+	if(0 == FrameCount)
+		return;
+	for(var j = 0; j < GroupInfo.length; j++)
+	{
+		GroupInfo[j].Sum = 0;
+		GroupInfo[j].FrameMax = 0;
+	}
+	for(var j = 0; j < TimerInfo.length; j++)
+	{
+		TimerInfo[j].CallCount = 0;
+		TimerInfo[j].Sum = 0;
+		TimerInfo[j].ExclusiveSum = 0;
+		TimerInfo[j].Max = 0;
+		TimerInfo[j].FrameMax = 0;
+		TimerInfo[j].ExclusiveFrameMax = 0;
+	}
+
+	var nNumLogs = Frames[0].ts.length;
+	var StackPosArray = Array(nNumLogs);
+	var StackArray = Array(nNumLogs);
+	var StackChildArray = Array(nNumLogs);
+	var GroupPosArray = Array(nNumLogs);
+	for(var i = 0; i < nNumLogs; ++i)
+	{
+		StackPosArray[i] = 0;
+		StackArray[i] = Array(20);
+		StackChildArray[i] = Array(20);
+		GroupPosArray[i] = Array(GroupInfo.length);
+
+		var GroupPos = GroupPosArray[i];
+		for(var j = 0; j < GroupInfo.length; j++)
+		{
+			GroupPos[j] = 0;
+		}
+	}
+
+	for(var i = nFrameFirst; i < nFrameLast; i++)
+	{
+		for(var j = 0; j < GroupInfo.length; j++)
+		{
+			GroupInfo[j].FrameSum = 0;
+		}
+		for(var j = 0; j < TimerInfo.length; j++)
+		{
+			TimerInfo[j].FrameSum = 0;
+			TimerInfo[j].ExclusiveFrameSum = 0;
+		}
+
+		var fr = Frames[i];
+		for(nLog = 0; nLog < nNumLogs; nLog++)
+		{
+			var StackPos = StackPosArray[nLog];
+			var Stack = StackArray[nLog];
+			var StackChild = StackChildArray[nLog];
+			var GroupPos = GroupPosArray[nLog];
+			var ts = fr.ts[nLog];
+			var ti = fr.ti[nLog];
+			var tt = fr.tt[nLog];
+			var count = ts.length;
+			for(j = 0; j < count; j++)
+			{
+				var type = tt[j];
+				var index = ti[j];
+				var time = ts[j];
+				if(type == 1) //enter
+				{
+					//push
+					Stack[StackPos] = time;
+					StackPos++;
+					StackChild[StackPos] = 0;
+
+					var groupid = TimerInfo[index].group;
+					GroupPos[groupid]++;
+				}
+				else if(type == 0) // leave
+				{
+					var TimeDelta, TimeDeltaExclusive, TimeStart;
+					if(StackPos>0)
+					{
+						StackPos--;
+						TimeStart = Stack[StackPos];
+						TimeDelta = time - Stack[StackPos];
+						TimeDeltaExclusive = TimeDelta - StackChild[StackPos+1];
+						StackChild[StackPos] += TimeDelta;
+					}
+					else
+					{
+						TimeStart = Frames[nFrameFirst].framestart;
+						TimeDelta = time - Frames[nFrameFirst].framestart;
+						TimeDeltaExclusive = TimeDelta;
+					}
+
+					if(nToken < 0 || nToken == index)
+					{
+						TimerInfo[index].CallCount++;
+						TimerInfo[index].FrameSum += TimeDelta;
+						TimerInfo[index].ExclusiveFrameSum += TimeDeltaExclusive;
+						TimerInfo[index].Sum += TimeDelta;
+						TimerInfo[index].ExclusiveSum += TimeDeltaExclusive;
+						if(TimeDelta > TimerInfo[index].Max)
+						{
+							TimerInfo[index].Max = TimeDelta;
+							TimerInfo[index].worst = TimeDelta;
+							TimerInfo[index].worststart = TimeStart;
+							TimerInfo[index].worstend = time;
+							TimerInfo[index].worstthread = nLog;
+						}
+					}
+
+					var groupid = TimerInfo[index].group;
+					if(nGroup < 0 || nGroup == groupid)
+					{
+						if(GroupPos[groupid] > 0)
+						{
+							GroupPos[groupid]--;
+						}
+						if(GroupPos[groupid] == 0)
+						{
+							GroupInfo[groupid].Sum += TimeDelta;
+							GroupInfo[groupid].FrameSum += TimeDelta;
+						}
+					}
+				}
+				else
+				{
+					//meta
+				}
+			}
+			StackPosArray[nLog] = StackPos;
+		}
+		for(var j = 0; j < GroupInfo.length; j++)
+		{
+			if(GroupInfo[j].FrameSum > GroupInfo[j].FrameMax)
+			{
+				GroupInfo[j].FrameMax = GroupInfo[j].FrameSum;
+			}
+		}
+		for(var j = 0; j < TimerInfo.length; j++)
+		{
+			if(TimerInfo[j].FrameSum > TimerInfo[j].FrameMax)
+			{
+				TimerInfo[j].FrameMax = TimerInfo[j].FrameSum;
+			}
+			if(TimerInfo[j].ExclusiveFrameSum > TimerInfo[j].ExclusiveFrameMax)
+			{
+				TimerInfo[j].ExclusiveFrameMax = TimerInfo[j].ExclusiveFrameSum;
+			}
+		}
+	}
+
+	for(var j = 0; j < GroupInfo.length; j++)
+	{
+		GroupInfo[j].FrameAverage = (GroupInfo[j].Sum / FrameCount);
+	}
+	for(var j = 0; j < TimerInfo.length; j++)
+	{
+		TimerInfo[j].CallAverage = (TimerInfo[j].Sum / TimerInfo[j].CallCount);
+		TimerInfo[j].FrameAverage = (TimerInfo[j].Sum / FrameCount);
+		TimerInfo[j].ExclusiveFrameAverage = (TimerInfo[j].ExclusiveSum / FrameCount);
+	}
+}
+
+function PreprocessCalculateAllTimers()
+{
+	ProfileEnter("PreprocessCalculateAllTimers");
+	CalculateTimers(GroupInfo, TimerInfo, 0, Frames.length, -1, -1);
+	ProfileLeave();
+}
+
+var FlashFrames = 10;
+var FlashFrameCounter = 0;
+var FlashMessage = '';
+function TimeString(Diff)
+{
+	var DiffString = "0 sec";
+	var DiffTable = [1,60,60*60,60*60*24];
+	var DiffNameTable = ["sec", "min", "hr", "day"];
+	for(var i = 0; i < DiffTable.length; ++i)
+	{
+		if(Diff >= DiffTable[i])
+		{
+			DiffString = Math.floor(Diff / DiffTable[i]) + " " + DiffNameTable[i];
+		}
+	}
+	return DiffString;
+
+}
+function ShowFlashMessage(Message, FrameCount)
+{
+	FlashMessage = Message;
+	FlashFrameCounter = FrameCount;
+}
+function OnPageReady()
+{
+	var DumpDate = DumpUtcCaptureTime;
+	var CurrentDate = Date.now() / 1000;
+	var Diff = CurrentDate - DumpDate;
+	var Limit = 10*60;//flash old message when loading captures older than 10 minutes 
+	if(Diff > Limit)
+	{
+		ShowFlashMessage("Captured " + TimeString(Diff) + " ago", 100);
+	}
+	if(!nHideHelp)
+	{
+		ShowHelp(1,0);
+	}
+}
+
+function DrawFlashMessage(context)
+{
+	if(FlashFrameCounter > 0)
+	{
+		if(FlashFrameCounter>1)
+		{
+			var FlashPrc = Math.sin(FlashFrameCounter / FlashFrames);
+			context.font = FontFlash;
+			context.globalAlpha = FlashPrc * 0.35 + 0.5;
+			context.textAlign = 'center';
+			context.fillStyle = 'red';
+			context.fillText(FlashMessage, nWidth * 0.5, 50);
+			context.globalAlpha = 1;
+			context.textAlign = 'left';
+			context.font = Font;
+		}
+		FlashFrameCounter -= 1;
+
+	}
+}
+
+function DrawCaptureInfo(context)
+{
+	context.fillStyle = 'white';
+	context.textAlign = 'right';
+	context.font = Font;
+	var DumpDate = DumpUtcCaptureTime;
+	var CurrentDate = Date.now() / 1000;
+	var Diff = CurrentDate - DumpDate;
+	var DiffString = TimeString(Diff) + " ago";
+	context.fillText(new Date(DumpDate*1000).toLocaleString(), nWidth, FontHeight);
+	if(Mode == ModeTimers)
+	{
+		context.fillText("Timer Frames: " + AggregateInfo.Frames, nWidth, FontHeight*2);
+	}
+	else
+	{
+		context.fillText("Detailed Frames "+ Frames.length, nWidth, FontHeight*2);
+	}
+	context.fillText(DumpHost, nWidth, FontHeight*3);
+	context.fillText(DiffString, nWidth, FontHeight*4);
+	context.textAlign = 'left';
+	DrawFlashMessage(context);
+}
+
+function DrawDetailedFrameHistory()
+{
+	ProfileEnter("DrawDetailedFrameHistory");
+	var x = HistoryViewMouseX;
+
+	var context = CanvasHistory.getContext('2d');
+	context.clearRect(0, 0, CanvasHistory.width, CanvasHistory.height);
+
+	var fHeight = nHistoryHeight;
+	var fWidth = nWidth / Frames.length;
+	var fHeightScale = fHeight / ReferenceTime;
+	var fX = 0;
+	var FrameIndex = -1;
+	var MouseDragging = MouseDragState != MouseDragOff;
+	RangeCpuHistory = RangeInit();
+	RangeGpuHistory = RangeInit()
+
+	var FrameFirst = -1;
+	var FrameLast = nWidth;
+	var fDetailedOffsetEnd = fDetailedOffset + fDetailedRange;
+	for(i = 0; i < Frames.length; i++)
+	{
+		var fMs = Frames[i].frameend - Frames[i].framestart;
+		if(fDetailedOffset <= Frames[i].frameend && fDetailedOffset >= Frames[i].framestart)
+		{
+			var lerp = (fDetailedOffset - Frames[i].framestart) / (Frames[i].frameend - Frames[i].framestart);
+			FrameFirst = fX + fWidth * lerp;
+		}
+		if(fDetailedOffsetEnd <= Frames[i].frameend && fDetailedOffsetEnd >= Frames[i].framestart)
+		{
+			var lerp = (fDetailedOffsetEnd - Frames[i].framestart) / (Frames[i].frameend - Frames[i].framestart);
+			FrameLast = fX + fWidth * lerp;
+		}
+		var fH = fHeightScale * fMs;
+		var bMouse = x > fX && x < fX + fWidth;
+		if(bMouse && !MouseDragging)
+		{
+			context.fillStyle = FRAME_HISTORY_COLOR_GPU;
+			RangeCpuHistory.Begin = Frames[i].framestart;
+			RangeCpuHistory.End = Frames[i].frameend;
+			if(Frames[i].framestartgpu)
+			{
+				RangeGpuHistory.Begin = Frames[i].framestartgpu;
+				RangeGpuHistory.End = Frames[i].frameendgpu;
+			}
+			FrameIndex = i;
+		}
+		else
+		{
+			context.fillStyle = FRAME_HISTORY_COLOR_CPU;
+		}
+		context.fillRect(fX, fHeight - fH, fWidth-1, fH);
+		fX += fWidth;
+	}
+
+	var fRangeHistoryBegin = FrameFirst;
+	var fRangeHistoryEnd = FrameLast;
+	var X = fRangeHistoryBegin;
+	var Y = 0;
+	var W = fRangeHistoryEnd - fRangeHistoryBegin;
+	context.globalAlpha = 0.35;
+	context.fillStyle = '#009900';
+	context.fillRect(X, Y, W, fHeight);
+	context.globalAlpha = 1;
+	context.strokeStyle = '#00ff00';
+	context.beginPath();
+	context.moveTo(X, Y);
+	context.lineTo(X, Y+fHeight);
+	context.moveTo(X+W, Y);
+	context.lineTo(X+W, Y+fHeight);
+	context.stroke();
+
+
+
+
+	DrawCaptureInfo(context);
+
+	if(FrameIndex>=0 && !MouseDragging)
+	{
+		var StringArray = [];
+		StringArray.push("Frame");
+		StringArray.push("" + FrameIndex);
+		StringArray.push("Time");
+		StringArray.push("" + (Frames[FrameIndex].frameend - Frames[FrameIndex].framestart).toFixed(3));
+
+		DrawToolTip(StringArray, CanvasHistory, HistoryViewMouseX, HistoryViewMouseY+20);
+
+	}
+	ProfileLeave();
+}
+function TimeToMsString(Time)
+{
+	return Time.toFixed(3) + "ms";
+}
+function TimeToString(Time)
+{
+	if(Time > 1000)
+	{
+		return (Time/1000.0).toFixed(0) +"s";
+	}
+	else if(Time > 0.9)
+	{
+		return Time.toFixed(0) + "ms";
+	}
+	else if(Time > 0.0009)
+	{
+		return (Time*1000).toFixed(0) + "us";
+	}
+	else
+	{
+		return (Time*1000000).toFixed(0) + "ns";
+	}
+}
+
+function DrawDetailedBackground(context)
+{
+	var fMs = fDetailedRange;
+	var fMsEnd = fMs + fDetailedOffset;
+	var fMsToScreen = nWidth / fMs;
+	var fRate = Math.floor(2*((Math.log(fMs)/Math.log(10))-1))/2;
+	var fStep = Math.pow(10, fRate);
+	var fRcpStep = 1.0 / fStep;
+	var nColorIndex = Math.floor(fDetailedOffset * fRcpStep) % 2;
+	if(nColorIndex < 0)
+		nColorIndex = -nColorIndex;
+	var fStart = Math.floor(fDetailedOffset * fRcpStep) * fStep;
+	var fHeight = CanvasDetailedView.height;
+	var fScaleX = nWidth / fDetailedRange; 
+	var HeaderString = TimeToString(fStep);
+	context.textAlign = 'center';
+	for(f = fStart; f < fMsEnd; )
+	{
+		var fNext = f + fStep;
+		var X = (f - fDetailedOffset) * fScaleX;
+		var W = (fNext-f)*fScaleX;
+		context.fillStyle = nBackColors[nColorIndex];
+		context.fillRect(X, 0, W+2, fHeight);
+		nColorIndex = 1 - nColorIndex;
+		context.fillStyle = '#777777'
+		context.fillText(HeaderString, X + W * 0.5, 10);
+		context.fillText(HeaderString, X + W * 0.5, nHeight - 10);
+		f = fNext;
+	}
+	context.textAlign = 'left';
+	var fScaleX = nWidth / fDetailedRange; 
+	context.globalAlpha = 0.5;
+	context.strokeStyle = '#bbbbbb';
+	context.beginPath();
+	for(var i = 0; i < Frames.length; i++)
+	{
+		var frfr = Frames[i];
+		if(frfr.frameend < fDetailedOffset || frfr.framestart > fDetailedOffset + fDetailedRange)
+		{
+			continue;
+		}
+		var X = (frfr.framestart - fDetailedOffset) * fScaleX;
+		if(X >= 0 && X < nWidth)
+		{
+			context.moveTo(X, 0);
+			context.lineTo(X, nHeight);
+		}
+	}
+	context.stroke();
+	context.globalAlpha = 1;
+
+}
+function DrawToolTip(StringArray, Canvas, x, y, color)
+{
+	var context = Canvas.getContext('2d');
+	context.font = Font;
+	var WidthArray = Array(StringArray.length);
+	var nMaxWidth = 0;
+	var nHeight = 0;
+	for(i = 0; i < StringArray.length; i += 2)
+	{
+		var nWidth0 = context.measureText(StringArray[i]).width;
+		var nWidth1 = context.measureText(StringArray[i+1]).width;
+		var nSum = nWidth0 + nWidth1;
+		WidthArray[i] = nWidth0;
+		WidthArray[i+1] = nWidth1;
+		if(nSum > nMaxWidth)
+		{
+			nMaxWidth = nSum;
+		}
+		nHeight += BoxHeight;
+	}
+	nMaxWidth += 15;
+	//bounds check.
+	var CanvasRect = Canvas.getBoundingClientRect();
+	if(y + nHeight > CanvasRect.height)
+	{
+		y = CanvasRect.height - nHeight;
+		x += 20;
+	}
+	if(x + nMaxWidth > CanvasRect.width)
+	{
+		x = CanvasRect.width - nMaxWidth;
+	}
+
+	context.fillStyle = color ? color : 'black';
+	context.fillRect(x-2, y-1, nMaxWidth+4, nHeight+2);
+	context.fillStyle = 'black';
+	context.fillRect(x-1, y, nMaxWidth+2, nHeight);
+	context.fillStyle = 'white';
+
+	var XPos = x;
+	var XPosRight = x + nMaxWidth;
+	var YPos = y + BoxHeight-2;
+	for(i = 0; i < StringArray.length; i += 2)
+	{
+		context.fillText(StringArray[i], XPos, YPos);
+		context.fillText(StringArray[i+1], XPosRight - WidthArray[i+1], YPos);
+		YPos += BoxHeight;
+	}
+}
+function CloneObject(obj)
+{
+	var copy = new Object();
+	for(var attr in obj)
+	{
+		if(obj.hasOwnProperty(attr))
+		{
+			copy[attr] = obj[attr];
+		}
+	}
+	return copy;
+}
+function CloneArray(arr)
+{
+	var result = Array(arr.length);
+	for(var i = 0; i < arr.length; ++i)
+	{
+		result[i] = CloneObject(arr[i]);
+	}
+	return result;
+}
+function DrawHoverToolTip()
+{
+	if(!ToolTip)
+	{
+		return;
+	}
+	ProfileEnter("DrawHoverToolTip");
+	if(nHoverToken != -1)
+	{
+		var StringArray = [];
+
+		var Timer = TimerInfo[nHoverToken];
+		var Group = GroupInfo[Timer.group];
+
+		var bShowTimers = Mode == ModeTimers;
+		if(ToolTip == 2)
+		{ //0: off, 1: default, 2: flipped
+			bShowTimers = !bShowTimers;
+		}
+		if(bShowTimers || nHoverFrame == -1)
+		{
+			StringArray.push("Timer:");
+			StringArray.push(Timer.name);
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Average:");
+			StringArray.push(Timer.average.toFixed(3)+"ms");
+			StringArray.push("Max:");
+			StringArray.push(Timer.max.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Exclusive Average:");
+			StringArray.push(Timer.exclaverage.toFixed(3)+"ms");
+			StringArray.push("Exclusive Max:");
+			StringArray.push(Timer.exclmax.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Call Average:");
+			StringArray.push(Timer.callaverage.toFixed(3)+"ms");
+			StringArray.push("Call Count:");
+			StringArray.push((Timer.callcount / AggregateInfo.Frames).toFixed(2));
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Group:");
+			StringArray.push(Group.name);
+			StringArray.push("Frame Average:");
+			StringArray.push(Group.average.toFixed(3)+"ms");
+			StringArray.push("Frame Max:");
+			StringArray.push(Group.max.toFixed(3)+"ms");
+		}
+		else
+		{
+			var FrameGroupInfo = CloneArray(GroupInfo);
+			var FrameTimerInfo = CloneArray(TimerInfo);
+
+			CalculateTimers(FrameGroupInfo, FrameTimerInfo, nHoverFrame, nHoverFrame+1, nHoverToken, Timer.group);
+
+			var GroupTime = FrameGroupInfo[Timer.group];
+			var FrameTime = FrameTimerInfo[nHoverToken];
+
+			StringArray.push("Timer:");
+			StringArray.push(Timer.name);
+			StringArray.push("Time:");
+			StringArray.push((Group.isgpu ? RangeGpu.End-RangeGpu.Begin : RangeCpu.End-RangeCpu.Begin).toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Frame Time:");
+			StringArray.push(FrameTime.Sum.toFixed(3)+"ms");
+			StringArray.push("Average:");
+			StringArray.push(Timer.FrameAverage.toFixed(3)+"ms");
+			StringArray.push("Max:");
+			StringArray.push(Timer.FrameMax.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Call Average:");
+			StringArray.push(Timer.CallAverage.toFixed(3)+"ms");
+			StringArray.push("Call Count:");
+			StringArray.push((Timer.CallCount / Frames.length).toFixed(2));
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Exclusive Frame Time:");
+			StringArray.push(FrameTime.ExclusiveSum.toFixed(3)+"ms");
+			StringArray.push("Exclusive Average:");
+			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+"ms");
+			StringArray.push("Exclusive Max:");
+			StringArray.push(Timer.ExclusiveFrameMax.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Group:");
+			StringArray.push(Group.name);
+			StringArray.push("Frame Time:");
+			StringArray.push(GroupTime.Sum.toFixed(3)+"ms");
+			StringArray.push("Frame Average:");
+			StringArray.push(Group.FrameAverage.toFixed(3)+"ms");
+			StringArray.push("Frame Max:");
+			StringArray.push(Group.FrameMax.toFixed(3)+"ms");
+
+			var HoverMeta = GatherHoverMetaCounters(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
+			var HeaderMeta = 0;
+			for(index in HoverMeta)
+			{
+				if(0 == HeaderMeta)
+				{
+					HeaderMeta = 1;
+					StringArray.push("");
+					StringArray.push("");
+				}
+				StringArray.push(""+index);
+				StringArray.push(""+HoverMeta[index]);
+			}
+
+			var HoverLabel = GatherHoverLabels(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
+			if(HoverLabel.length > 0)
+			{
+				StringArray.push("");
+				StringArray.push("");
+
+				for(index in HoverLabel)
+				{
+					StringArray.push("Label:")
+					StringArray.push(HoverLabel[index]);
+				}
+			}
+		}
+		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20, Timer.color);
+	}
+	else if(nHoverCSCpu >= 0)
+	{
+		var StringArray = [];
+		StringArray.push("Context Switch");
+		StringArray.push("");
+		StringArray.push("");
+		StringArray.push("");
+		StringArray.push("Cpu");
+		StringArray.push("" + nHoverCSCpu);
+		StringArray.push("Begin");
+		StringArray.push("" + RangeCpu.Begin);
+		StringArray.push("End");
+		StringArray.push("" + RangeCpu.End);
+		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20);
+	}
+	ProfileLeave();
+}
+
+function FormatMeta(Value, Dec)
+{
+	if(!Value)
+	{
+		Value = "0";
+	}
+	else
+	{
+		Value = '' + Value.toFixed(Dec);
+	}
+	return Value;
+}
+
+function DrawBarView()
+{
+	ProfileEnter("DrawBarView");
+	Invalidate++;
+	nHoverToken = -1;
+	nHoverFrame = -1;
+	var context = CanvasDetailedView.getContext('2d');
+	context.clearRect(0, 0, nWidth, nHeight);
+
+	var Height = BoxHeight;
+	var Width = nWidth;
+
+	//clamp offset to prevent scrolling into the void
+	var nTotalRows = 0;
+	for(var groupid in GroupInfo)
+	{
+		if(GroupsAllActive || GroupsActive[GroupInfo[groupid].name])
+		{
+			nTotalRows += GroupInfo[groupid].TimerArray.length + 1;
+		}
+	}
+	var nTotalRowPixels = nTotalRows * Height;
+	var nFrameRows = nHeight - BoxHeight;
+	if(nOffsetBarsY + nFrameRows > nTotalRowPixels && nTotalRowPixels > nFrameRows)
+	{
+		nOffsetBarsY = nTotalRowPixels - nFrameRows;
+	}
+
+
+	var Y = -nOffsetBarsY + BoxHeight;
+	if(TimersGroups)
+	{
+		nOffsetBarsX = 0;
+	}
+	var XBase = -nOffsetBarsX;
+	var nColorIndex = 0;
+
+	context.fillStyle = 'white';
+	context.font = Font;
+	var bMouseIn = 0;
+	var RcpReferenceTime = 1.0 / ReferenceTime;
+	var CountWidth = 8 * FontWidth;
+	var nMetaLen = TimerInfo[0].meta.length;
+	var nMetaCharacters = 10;
+	var InnerBoxHeight = BoxHeight-2;
+	var TimerLen = 8; //todo: fix max digits.
+	var TimerWidth = TimerLen * FontWidth;
+	var nWidthBars = nBarsWidth+2;
+	var nWidthMs = TimerWidth+2+10;
+
+
+
+	for(var i = 0; i < nMetaLen; ++i)
+	{
+		if(nMetaCharacters < MetaNames[i].length)
+			nMetaCharacters = MetaNames[i].length;
+	}
+	var nWidthMeta = nMetaCharacters * FontWidth + 6;
+	function HeaderMouseHandle(XBegin, X, Header)
+	{
+		var bMouseIn = DetailedViewMouseY >= 0 && DetailedViewMouseY < BoxHeight && DetailedViewMouseX < X && DetailedViewMouseX > XBegin;
+		if(bMouseIn)
+		{
+			SortColumnMouseOverNext = Header;
+		}
+	}
+	function HeaderString(Header)
+	{
+		if(Header == SortColumnMouseOver)
+		{
+			return Header + (SortColumnOrderFlip ? '<' : '>');
+		}
+		else
+		{
+			return Header;
+		}
+
+	}
+	function DrawHeaderSplit(Header)
+	{
+		context.fillStyle = 'white';
+		context.fillText(HeaderString(Header), X, Height-FontAscent);
+		var XBegin = X;
+		X += nWidthBars;
+		context.fillStyle = nBackColorOffset;
+		X += nWidthMs;
+
+		if(X >= NameWidth)
+		{
+			context.fillRect(X-3, 0, 1, nHeight);
+		}
+
+		HeaderMouseHandle(XBegin, X, Header);
+	}
+	function DrawHeaderSplitSingle(Header, Width)
+	{
+		context.fillStyle = 'white';
+		context.fillText(HeaderString(Header), X, Height-FontAscent);
+		var XBegin = X;
+		X += Width;
+		context.fillStyle = nBackColorOffset;
+		if(X >= NameWidth)
+		{
+			context.fillRect(X-3, 0, 1, nHeight);
+		}
+		HeaderMouseHandle(XBegin, X, Header);
+	}
+	function DrawHeaderSplitLeftRight(HeaderLeft, HeaderRight, Width)
+	{
+		context.textAlign = 'left';
+		context.fillStyle = 'white';
+		context.fillText(HeaderLeft, X, Height-FontAscent);
+		var XBegin = X;
+		X += Width;
+		context.textAlign = 'right';
+		context.fillText(HeaderRight, X-5, Height-FontAscent);
+		context.textAlign = 'left';
+		context.fillStyle = nBackColorOffset;
+		if(X >= NameWidth)
+		{
+			context.fillRect(X-3, 0, 1, nHeight);
+		}
+		HeaderMouseHandle(XBegin, X, HeaderLeft);
+	}
+	function DrawTimer(Value, Color)
+	{
+		var Prc = Value * RcpReferenceTime;
+		var YText = Y+Height-FontAscent;
+		if(Prc > 1)
+		{
+			Prc = 1;
+		}
+		context.fillStyle = Color;
+		context.fillRect(X+1, Y+1, Prc * nBarsWidth, InnerBoxHeight);
+		X += nWidthBars;
+		context.fillStyle = 'white';
+		context.fillText(("      " + Value.toFixed(2)).slice(-TimerLen), X, YText);
+		X += nWidthMs;
+	}
+	function DrawMeta(Value, Width, Dec, YText)
+	{
+		Value = FormatMeta(Value, Dec);
+		X += (FontWidth*Width);
+		context.textAlign = 'right';
+		context.fillText(Value, X-FontWidth, YText);
+		context.textAlign = 'left';
+	}
+
+
+
+	function DrawTimerRow(timerid, showgroup)
+	{
+		var Timer = TimerInfo[timerid];
+		var Average = Timer.average;
+		var Max = Timer.max;
+		var Min = Timer.min;
+		var ExclusiveMax = Timer.exclmax;
+		var ExclusiveAverage = Timer.exclaverage;
+		var CallAverage = Timer.callaverage;
+		var CallCount = Timer.callcount;
+		var YText = Y+Height-FontAscent;
+		X = NameWidth + XBase;
+
+		nColorIndex = 1-nColorIndex;
+		bMouseIn = DetailedViewMouseY >= Y && DetailedViewMouseY < Y + BoxHeight;
+		if(bMouseIn)
+		{
+			nHoverToken = timerid;
+		}
+		context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+		context.fillRect(0, Y, Width, FontHeight+2);
+
+		DrawTimer(Average, Timer.color);
+		DrawTimer(Max,Timer.color);
+		DrawTimer(Timer.total,Timer.color);
+		DrawTimer(Min,Timer.color);
+		DrawTimer(CallAverage,Timer.color);
+		context.fillStyle = 'white';
+		context.fillText(CallCount, X, YText);
+		X += CountWidth;
+		DrawTimer(ExclusiveAverage,Timer.color);
+		DrawTimer(ExclusiveMax,Timer.color);
+
+		if(TimersMeta)
+		{
+			context.fillStyle = 'white';
+			for(var j = 0; j < nMetaLen; ++j)
+			{
+				DrawMeta(Timer.meta[j], MetaLengths[j], 0, YText);
+				DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2, YText);
+				DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0, YText);
+			}
+		}
+		context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+		context.fillRect(0, Y, NameWidth, Height);
+		context.textAlign = 'right';
+		context.fillStyle = Timer.color;
+		context.fillText(Timer.name, NameWidth - 5, YText);
+		context.textAlign = 'left';
+		if(showgroup)
+		{
+			context.fillStyle = 'white';
+			context.fillText(GroupInfo[Timer.group].name, 1, YText);
+		}
+	}
+	function FilterMatch(FilterArray, value)
+	{
+		if(!FilterArray)
+			return true;
+		for(var i = 0; i < FilterArray.length; ++i)
+		{
+			var res = value.search(FilterArray[i]);
+			if(res<0)
+				return false;
+		}
+		return true;
+	}
+	if(SortColumn)
+	{
+		var OrderArray = new Array(TimerInfo.length);
+		var KeyArray = new Array(TimerInfo.length);
+		for(var idx in GroupOrder)
+		{
+			var Group = GroupInfo[idx];
+			if((GroupsAllActive || GroupsActive[Group.name]) && FilterMatch(FilterGroup, Group.name))
+			{
+				var TimerArray = Group.TimerArray;
+				for(var timerindex in TimerArray)
+				{
+					var timerid = TimerArray[timerindex];
+					if(FilterMatch(FilterTimer, TimerInfo[timerid].name))
+					{
+						OrderArray.push(timerid);
+					}
+				}
+			}
+		}
+		var KeyFunc = null;
+		switch(SortColumn)
+		{
+			case 1: KeyFunc = function (a) { return TimerInfo[a].average; }; break;
+			case 2: KeyFunc = function (a) { return TimerInfo[a].max; }; break;
+			case 3: KeyFunc = function (a) { return TimerInfo[a].total; }; break;
+			case 4: KeyFunc = function (a) { return TimerInfo[a].min; }; break;
+			case 5: KeyFunc = function (a) { return TimerInfo[a].callaverage; }; break;
+			case 6: KeyFunc = function (a) { return TimerInfo[a].callcount; }; break;
+			case 7: KeyFunc = function (a) { return TimerInfo[a].exclaverage; }; break;
+			case 8: KeyFunc = function (a) { return TimerInfo[a].exclmax; }; break;
+		}
+
+		var Flip = SortColumnOrderFlip == 1 ? -1 : 1;
+		OrderArray.sort(function(a,b) { return Flip * (KeyFunc(b) - KeyFunc(a)); } );
+
+		for(var i in OrderArray)
+		{
+			DrawTimerRow(OrderArray[i], 1);
+			Y += Height;
+		}			
+
+	}
+	else if(2 == TimersGroups)
+	{
+		for(var i = 0; i < ThreadNames.length; ++i)
+		{
+			if((ThreadsActive[ThreadNames[i]] || ThreadsAllActive) && FilterMatch(FilterTimer, ThreadNames[i]))
+			{
+				var X = 0;
+				var YText = Y+Height-FontAscent;
+				bMouseIn = DetailedViewMouseY >= Y && DetailedViewMouseY < Y + BoxHeight;
+				nColorIndex = 1-nColorIndex;
+				context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+				context.fillRect(0, Y, Width, FontHeight+2);
+				var ThreadColor = CSwitchColors[i % CSwitchColors.length];
+				context.fillStyle = ThreadColor;
+				context.fillText(ThreadNames[i], 1, YText);
+				context.textAlign = 'left';
+				Y += Height;
+				for(var idx in GroupOrder)
+				{
+					var groupid = GroupOrder[idx];
+					var Group = GroupInfo[groupid];
+					var PerThreadTimerTotal = ThreadGroupTimeArray[i][groupid];
+					var PerThreadTimer = PerThreadTimerTotal / AggregateInfo.Frames;
+					if((PerThreadTimer > 0.0001|| PerThreadTimerTotal>0.1) && (GroupsAllActive || GroupsActive[Group.name]) && FilterMatch(FilterGroup, Group.name))
+					{
+						var GColor = GroupColors ? GroupInfo[groupid].color : 'white';
+						var X = 0;
+						nColorIndex = 1-nColorIndex;
+						bMouseIn = DetailedViewMouseY >= Y && DetailedViewMouseY < Y + BoxHeight;
+						context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+						context.fillRect(0, Y, Width, nHeight);
+						context.fillStyle = GColor;
+						context.textAlign = 'right';
+						context.fillText(Group.name, NameWidth - 5, Y+Height-FontAscent);
+						context.textAlign = 'left';
+						X += NameWidth;
+						DrawTimer(PerThreadTimer, GColor);
+						X += nWidthBars + nWidthMs;	
+						DrawTimer(PerThreadTimerTotal, GColor);
+
+						Y += Height;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for(var idx in GroupOrder)
+		{
+			var groupid = GroupOrder[idx];
+			var Group = GroupInfo[groupid];
+			var GColor = GroupColors ? GroupInfo[groupid].color : 'white';
+			if((GroupsAllActive || GroupsActive[Group.name]) && FilterMatch(FilterGroup, Group.name))
+			{
+				var TimerArray = Group.TimerArray;
+				var X = XBase;
+				nColorIndex = 1-nColorIndex;
+				bMouseIn = DetailedViewMouseY >= Y && DetailedViewMouseY < Y + BoxHeight;
+				context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+				context.fillRect(0, Y, Width, FontHeight+2);
+				context.fillStyle = GColor;
+				context.fillText(Group.name, 1, Y+Height-FontAscent);
+				X += NameWidth;
+				DrawTimer(Group.average, GColor);
+				DrawTimer(Group.max, GColor);
+				DrawTimer(Group.total, GColor);
+
+				context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+				context.fillRect(0, Y, NameWidth, FontHeight+2);
+				context.fillStyle = GColor;
+				context.fillText(Group.name, 1, Y+Height-FontAscent);
+
+
+
+				Y += Height;
+				if(TimersGroups)
+				{
+					for(var i = 0; i < ThreadNames.length; ++i)
+					{
+						var PerThreadTimerTotal = ThreadGroupTimeArray[i][groupid];
+						var PerThreadTimer = PerThreadTimerTotal / AggregateInfo.Frames;
+						if((PerThreadTimer > 0.0001|| PerThreadTimerTotal>0.1) && (ThreadsActive[ThreadNames[i]] || ThreadsAllActive) && FilterMatch(FilterTimer, ThreadNames[i]))
+						{
+							var YText = Y+Height-FontAscent;
+							bMouseIn = DetailedViewMouseY >= Y && DetailedViewMouseY < Y + BoxHeight;
+							nColorIndex = 1-nColorIndex;
+							context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+							context.fillRect(0, Y, Width, FontHeight+2);
+							var ThreadColor = CSwitchColors[i % CSwitchColors.length];
+							context.fillStyle = ThreadColor;
+							context.textAlign = 'right';
+							context.fillText(ThreadNames[i], NameWidth - 5, YText);
+							context.textAlign = 'left';
+							X = NameWidth;
+							DrawTimer(PerThreadTimer, ThreadColor);
+							X += nWidthBars + nWidthMs;	
+							DrawTimer(PerThreadTimerTotal, ThreadColor);
+							Y += Height;
+						}
+					}
+				}
+				else
+				{
+					for(var timerindex in TimerArray)
+					{
+						var timerid = TimerArray[timerindex];
+						if(FilterMatch(FilterTimer, TimerInfo[timerid].name))
+						{
+							DrawTimerRow(timerid, 0);
+							Y += Height;
+						}
+					}			
+				}
+			}
+		}
+	}
+	X = 0;
+	context.fillStyle = nBackColorOffset;
+	context.fillRect(0, 0, Width, Height);
+	context.fillStyle = 'white';
+	SortColumnMouseOverNext = null;
+
+	if(TimersGroups)
+	{
+		if(2 == TimersGroups)
+		{
+			DrawHeaderSplitLeftRight(StrThread, StrGroup, NameWidth);
+			DrawHeaderSplit(StrAverage);
+		}
+		else
+		{
+			DrawHeaderSplitLeftRight(StrGroup, StrThread, NameWidth);
+			DrawHeaderSplit(StrAverage);
+			DrawHeaderSplit(StrMax);
+			DrawHeaderSplit(StrTotal);
+		}
+	}
+	else
+	{
+		X = NameWidth + XBase;
+		DrawHeaderSplit(StrAverage);
+		DrawHeaderSplit(StrMax);
+		DrawHeaderSplit(StrTotal);
+		DrawHeaderSplit(StrMin);
+		DrawHeaderSplit(StrCallAverage);
+		DrawHeaderSplitSingle(StrCount, CountWidth);
+		DrawHeaderSplit(StrExclAverage);
+		DrawHeaderSplit(StrExclMax);
+		if(TimersMeta)
+		{
+			for(var i = 0; i < nMetaLen; ++i)
+			{
+				DrawHeaderSplitSingle(MetaNames[i], MetaLengths[i] * FontWidth);
+				DrawHeaderSplitSingle(MetaNames[i] + " Avg", MetaLengthsAvg[i] * FontWidth);
+				DrawHeaderSplitSingle(MetaNames[i] + " Max", MetaLengthsMax[i] * FontWidth);
+			}
+		}
+		X = 0;
+		context.fillStyle = nBackColorOffset;
+		context.fillRect(0, 0, NameWidth, Height);
+		context.fillStyle = 'white';
+	
+		DrawHeaderSplitLeftRight(StrGroup, StrTimer, NameWidth);
+	
+	}
+
+	ProfileLeave();
+}
+
+var CounterNameWidth = 100;
+var CounterValueWidth = 100;
+var CounterLimitWidth = 100;
+
+var FormatCounterDefault = 0;
+var FormatCounterBytes = 1;
+var FormatCounterBytesExt = [ "b","kb","mb","gb","tb","pb", "eb","zb", "yb" ];
+
+function FormatCounter(Format, Counter)
+{
+	if(!Counter)
+	{
+		return '0';
+	}
+	var Negative = 0;
+	if(Counter < 0)
+	{
+		Counter = -Counter;
+		Negative = 1;
+		if(Counter < 0) // handle INT_MIN
+		{
+			Counter = -(Counter+1);
+			if(Counter < 0)
+			{
+				return '?';
+			}
+		}
+	}
+	var str = Negative ? '-' :'' ;
+	if(Format == FormatCounterDefault)
+	{
+		var Seperate = 0;
+		var result = '';
+		while (Counter)
+		{
+			if (Seperate)
+			{
+				result += '.';
+			}
+			Seperate = 1;
+			for (var i = 0; Counter && i < 3; ++i)
+			{
+				var Digit = Math.floor(Counter % 10);
+				Counter = Math.floor(Counter / 10);
+				result += '' + Digit;
+			}
+		}
+
+		for(var i = 0; i < result.length; ++i)
+		{
+			str += result[result.length-1-i];
+		}
+		return str;
+	}
+	else if(Format == FormatCounterBytes)
+	{
+		var Shift = 0;
+		var Divisor = 1;
+		var CountShifted = Counter >> 10;
+		while(CountShifted)
+		{
+			Divisor <<= 10;
+			CountShifted >>= 10;
+			Shift++;
+		}
+		if(Shift)
+		{
+			return str + (Counter / Divisor).toFixed(2) + '' + FormatCounterBytesExt[Shift];
+		}
+		else
+		{
+			return str + Counter.toFixed(2) + '' + FormatCounterBytesExt[0];
+		}
+	}
+	return '?'
+}
+function DrawCounterView()
+{
+	ProfileEnter("DrawCounterView");
+	Invalidate++;
+	nHoverToken = -1;
+	nHoverFrame = -1;
+	var context = CanvasDetailedView.getContext('2d');
+	context.clearRect(0, 0, nWidth, nHeight);
+
+	var Height = BoxHeight;
+	var Width = nWidth;
+	//clamp offset to prevent scrolling into the void
+	var nTotalRows = CounterInfo.length;
+	var nTotalRowPixels = nTotalRows * Height;
+	var nFrameRows = nHeight - BoxHeight;
+	if(nOffsetCountersY + nFrameRows > nTotalRowPixels && nTotalRowPixels > nFrameRows)
+	{
+		nOffsetCountersY = nTotalRowPixels - nFrameRows;
+	}
+
+	var CounterNameWidthTemp = 10;
+	var CounterValueWidthTemp = 10;
+	var CounterLimitWidthTemp = 10;
+
+	var CounterWidth = 150;
+	var Y = -nOffsetCountersY + BoxHeight;
+	var X = 0;
+	var nColorIndex = 0;
+	context.fillStyle = 'white';
+	context.font = Font;
+	var bMouseIn = 0;
+	function DrawHeaderSplitSingle(Header, Width)
+	{
+		context.fillStyle = 'white';
+		context.fillText(Header, X, Height-FontAscent);
+		X += Width;
+		context.fillStyle = nBackColorOffset;
+		context.fillRect(X-3, 0, 1, nHeight);
+	}
+	function DrawHeaderSplitSingleRight(Header, Width)
+	{
+		X += Width;
+		context.fillStyle = 'white';
+		context.textAlign  = 'right';
+		context.fillText(Header, X - FontWidth, Height-FontAscent);
+		context.fillStyle = nBackColorOffset;
+		context.fillRect(X, 0, 1, nHeight);
+		context.textAlign  = 'left';
+	}
+	var TimerLen = 6;
+	var TimerWidth = TimerLen * FontWidth;
+	nHoverCounter = -1;
+	function CounterIndent(Level)
+	{
+		return Level * 4 * FontWidth;
+	}
+	function Max(a, b)
+	{
+		return a > b ? a : b;
+	}
+
+	function DrawCounterRecursive(Index)
+	{
+		var Counter = CounterInfo[Index];
+		var Indent = CounterIndent(Counter.level);
+		CounterNameWidthTemp = Max(CounterNameWidthTemp, Counter.name.length+1 + Indent / (FontWidth+1));
+		CounterValueWidthTemp = Max(CounterValueWidthTemp, Counter.formatted.length);
+		CounterLimitWidthTemp = Max(CounterLimitWidthTemp, Counter.formattedlimit.length);
+
+		var X = 0;
+		nColorIndex = 1-nColorIndex;
+		var HeightExpanded = Counter.Expanded ? Height * 5 : Height
+
+		bMouseIn = DetailedViewMouseY >= Y && DetailedViewMouseY < Y + HeightExpanded;
+		if(bMouseIn)
+		{
+			nHoverCounter = Index;
+		}
+		var bgcolor = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];
+		context.fillStyle = bgcolor;
+		context.fillRect(0, Y, Width, HeightExpanded);
+		context.fillStyle = 'white';
+		var c = Counter.closed ? '*' : ' ';
+		context.fillText(c + Counter.name, Indent, Y+Height-FontAscent);
+		X += CounterNameWidth;
+		X += CounterValueWidth - FontWidth;
+		context.textAlign = 'right';
+		context.fillText(Counter.formatted, X, Y+Height-FontAscent);
+		context.textAlign = 'left';
+		X += FontWidth * 4;
+		var Y0 = Y + 1;
+		if(Counter.limit != 0)
+		{
+			context.fillText(Counter.formattedlimit, X, Y+Height-FontAscent);
+			X += CounterLimitWidth;
+			var X0 = X + 1;
+			context.fillStyle = 'white';
+			context.fillRect(X0, Y0, Counter.boxprc * (CounterWidth-2), Height-2);
+			context.fillStyle = bgcolor;
+			context.fillRect(X0+1, Y0+1, Counter.boxprc * (CounterWidth-4), Height-4);
+			context.fillStyle = 'cyan';
+			context.fillRect(X0+1, Y0+1, Counter.counterprc * (CounterWidth-4), Height-4);
+			X += CounterWidth + 10;
+		}
+		else
+		{
+			X += CounterLimitWidth;
+			X += CounterWidth + 10;
+		}
+		if(Counter.historydata.length > 0)
+		{
+			var Prc = Counter.historyprc;
+			var Data = Counter.historydata;
+
+			context.fillStyle = 'cyan';
+			context.strokeStyle = 'cyan';
+			context.globalAlpha = 0.5;
+			context.beginPath();
+			var x = X;
+			var YBase = Y0 + HeightExpanded-1;
+			var YOffset = -(HeightExpanded-2);
+
+			context.moveTo(X, Y0);
+			for(var i = 0; i < Prc.length; ++i)
+			{
+				context.moveTo(x, YBase);
+				context.lineTo(x, YBase + Prc[i] * YOffset);
+
+				x += 1;
+			}
+			context.stroke();
+
+			x = X;
+			context.globalAlpha = 1.0;
+			context.beginPath();
+			context.moveTo(X, YBase);
+
+			for(var i = 0; i < Prc.length; ++i)
+			{
+				context.lineTo(x, YBase + Prc[i] * YOffset);
+				x += 1;
+			}
+			context.stroke();
+			if(bMouseIn)
+			{
+				var MouseGraphX = Math.floor(DetailedViewMouseX - X);
+				if(MouseGraphX >= 0 && MouseGraphX < Data.length)
+				{
+					context.fillStyle = 'white';
+					var Formatted = FormatCounter(Counter.format, Data[MouseGraphX]);
+					context.fillText(Formatted, X, Y+Height-FontAscent);
+				}
+				context.strokeStyle = 'orange';
+				context.beginPath();
+				var CrossX = X + MouseGraphX;
+				var CrossY = YBase + Prc[MouseGraphX] * YOffset;
+				context.moveTo(CrossX-2, CrossY-2);
+				context.lineTo(CrossX+2, CrossY+2);
+				context.moveTo(CrossX+2, CrossY-2);
+				context.lineTo(CrossX-2, CrossY+2);
+				context.stroke();
+
+			}
+			X += Prc.length + 5;
+			context.fillStyle = 'white';
+			context.fillText( FormatCounter(Counter.format, Counter.minvalue), X, Y + Height - FontAscent);
+			X += CounterWidth + 5;
+			context.fillText( FormatCounter(Counter.format, Counter.maxvalue), X, Y + Height - FontAscent);
+			X += CounterWidth + 5;
+		}
+
+		Y += HeightExpanded;
+
+		if(!Counter.closed)
+		{
+			var ChildIndex = Counter.firstchild;
+			while(ChildIndex != -1)
+			{
+				DrawCounterRecursive(ChildIndex);
+				ChildIndex = CounterInfo[ChildIndex].sibling;
+			}
+		}
+	}
+
+	for(var i = 0; i < CounterInfo.length; ++i)
+	{
+		if(CounterInfo[i].parent == -1)
+		{
+			DrawCounterRecursive(i);
+		}
+	}
+
+	X = 0;
+	context.fillStyle = nBackColorOffset;
+	context.fillRect(0, 0, Width, Height);
+	context.fillStyle = 'white';
+	DrawHeaderSplitSingle('Name', CounterNameWidth);
+	DrawHeaderSplitSingleRight('Value', CounterValueWidth + (FontWidth+1));
+	DrawHeaderSplitSingle('Limit', CounterLimitWidth + CounterWidth + 3 * (FontWidth+1));
+
+
+
+
+
+	var CounterNameWidthNew = CounterNameWidthTemp * (FontWidth+1);
+	var CounterValueWidthNew = CounterValueWidthTemp * (FontWidth+1);
+	var CounterLimitWidthNew = CounterLimitWidthTemp * (FontWidth+1);
+	if(CounterNameWidthNew != CounterNameWidth || CounterValueWidthNew != CounterValueWidth || CounterLimitWidthNew != CounterLimitWidth)
+	{
+		// console.log('requesting redraw 0' + CounterNameWidthNew + '= ' + CounterNameWidth );
+		// console.log('requesting redraw 1' + CounterValueWidthNew + '= ' + CounterValueWidth );
+		// console.log('requesting redraw 2' + CounterLimitWidthNew + '= ' + CounterLimitWidth );
+		CounterNameWidth = CounterNameWidthNew;
+		CounterValueWidth = CounterValueWidthNew;
+		CounterLimitWidth = CounterLimitWidthNew;
+		Invalidate = 0;
+	}
+
+	ProfileLeave();
+}
+
+
+//preprocess context switch data to contain array per thread
+function PreprocessContextSwitchCacheItem(ThreadId)
+{
+	var CSObject = CSwitchCache[ThreadId];
+	if(ThreadId > 0 && !CSObject)
+	{
+		CSArrayIn = new Array();
+		CSArrayOut = new Array();
+		CSArrayCpu = new Array();
+		var nCount = CSwitchTime.length;
+		var j = 0;
+		var TimeIn = -1.0;
+		for(var i = 0; i < nCount; ++i)
+		{	
+			var ThreadIn = CSwitchThreadInOutCpu[j];
+			var ThreadOut = CSwitchThreadInOutCpu[j+1];
+			var Cpu = CSwitchThreadInOutCpu[j+2];
+			if(TimeIn < 0)
+			{
+				if(ThreadIn == ThreadId)
+				{
+					TimeIn = CSwitchTime[i];
+				}
+			}
+			else
+			{
+				if(ThreadOut == ThreadId)
+				{
+					var TimeOut = CSwitchTime[i];
+					CSArrayIn.push(TimeIn);
+					CSArrayOut.push(TimeOut);
+					CSArrayCpu.push(Cpu);
+					TimeIn = -1;
+				}
+			}
+			j += 3;
+		}
+		CSObject = new Object();
+		CSObject.Size = CSArrayIn.length;
+		CSObject.In = CSArrayIn;
+		CSObject.Out = CSArrayOut;
+		CSObject.Cpu = CSArrayCpu;
+		CSwitchCache[ThreadId] = CSObject;
+	}
+
+}
+function PreprocessContextSwitchCache()
+{
+	ProfileEnter("PreprocessContextSwitchCache");
+	var AllThreads = {};
+	var nCount = CSwitchTime.length;
+	for(var i = 0; i < nCount; ++i)
+	{	
+		var nThreadIn = CSwitchThreadInOutCpu[i];
+		if(!AllThreads[nThreadIn])
+		{
+		    AllThreads[nThreadIn] = '' + nThreadIn;
+		    var FoundThread = false;
+		    for(var i = 0; i < ThreadIds.length; ++i)
+		    {
+		        if(ThreadIds[i] == nThreadIn)
+		        {
+		            FoundThread = true;
+		        }
+		    }
+		    if(!FoundThread)
+		    {
+		        CSwitchOnlyThreads.push(nThreadIn);
+		    }
+		}
+	}
+	for(var i = 0; i < CSwitchOnlyThreads.length; ++i)
+	{
+		PreprocessContextSwitchCacheItem(CSwitchOnlyThreads[i]);
+	}
+	for(var i = 0; i < ThreadIds.length; ++i)
+	{
+		PreprocessContextSwitchCacheItem(ThreadIds[i]);	
+	}
+	function HandleMissingThread(a)
+	{
+		if(!CSwitchThreads[a])
+		{
+			CSwitchThreads[a] = {'tid':a, 'pid':-1, 't':'?', 'p':'?'}
+		}
+	}
+	function CompareThreadInfo(a, b)
+	{
+		if(a.pid != b.pid)
+			return b.pid - a.pid;
+		else
+			return a.tid - b.tid;
+	}
+	CSwitchOnlyThreads.sort( function(a, b){ 
+		HandleMissingThread(a);
+		HandleMissingThread(b);
+		return CompareThreadInfo(CSwitchThreads[a], CSwitchThreads[b]); 
+	} );
+
+	ProfileLeave();
+}
+
+function DrawContextSwitchBars(context, ThreadId, fScaleX, fOffsetY, fDetailedOffset, nHoverColor, MinWidth, bDrawEnabled)
+{
+	ProfileEnter("DrawContextSwitchBars");
+	var CSObject = CSwitchCache[ThreadId];
+	if(CSObject)
+	{
+		var Size = CSObject.Size;		
+		var In = CSObject.In;
+		var Out = CSObject.Out;
+		var Cpu = CSObject.Cpu;
+		var nNumColors = CSwitchColors.length;
+		for(var i = 0; i < Size; ++i)
+		{
+			var TimeIn = In[i];
+			var TimeOut = Out[i];
+			var ActiveCpu = Cpu[i];
+
+			var X = (TimeIn - fDetailedOffset) * fScaleX;
+			if(X > nWidth)
+			{
+				break;
+			}
+			var W = (TimeOut - TimeIn) * fScaleX;
+			if(W > MinWidth && X+W > 0)
+			{
+				if(nHoverCSCpu == ActiveCpu || bDrawEnabled)
+				{
+					if(nHoverCSCpu == ActiveCpu)
+					{
+						context.fillStyle = nHoverColor;
+					}
+					else
+					{
+						context.fillStyle = CSwitchColors[ActiveCpu % nNumColors];
+					}
+					context.fillRect(X, fOffsetY, W, CSwitchHeight);
+				}
+				if(DetailedViewMouseX >= X && DetailedViewMouseX <= X+W && DetailedViewMouseY < fOffsetY+CSwitchHeight && DetailedViewMouseY >= fOffsetY)
+				{
+					nHoverCSCpuNext = ActiveCpu;
+					RangeCpuNext.Begin = TimeIn;
+					RangeCpuNext.End = TimeOut;
+					RangeCpuNext.Thread = ThreadId;
+					RangeGpuNext.Begin = RangeGpuNext.End = -1;
+				}
+			}
+		}
+	}
+	ProfileLeave();
+}
+
+function SetHoverToken(nToken, nIndex, nLog)
+{
+	for(var i = Frames.length-1; i >= 0; --i)
+	{
+		var IndexStart = LodData[0].LogStart[i][nLog];
+		if(nIndex >= IndexStart)
+		{
+			nHoverFrame = i;
+			nHoverTokenNext = nToken;
+			nHoverTokenIndexNext = nIndex - IndexStart;
+			nHoverTokenLogIndexNext = nLog;
+			break;
+		}
+	}
+}
+
+function DrawDetailedView(context, MinWidth, bDrawEnabled)
+{
+	if(bDrawEnabled)
+	{
+		DrawDetailedBackground(context);
+	}
+
+	var colors = [ '#ff0000', '#ff00ff', '#ffff00'];
+
+	var fScaleX = nWidth / fDetailedRange; 
+	var fOffsetY = -nOffsetY + BoxHeight;
+	nHoverTokenNext = -1;
+	nHoverTokenLogIndexNext = -1;
+	nHoverTokenIndexNext = -1;
+	nHoverCounter += nHoverCounterDelta;
+	if(nHoverCounter >= 255) 
+	{
+		nHoverCounter = 255;
+		nHoverCounterDelta = -nHoverCounterDelta;
+	}
+	if(nHoverCounter < 128) 
+	{
+		nHoverCounter = 128;
+		nHoverCounterDelta = -nHoverCounterDelta;
+	}
+	var nHoverHigh = nHoverCounter.toString(16);
+	var nHoverLow = (127+255-nHoverCounter).toString(16);
+	var nHoverColor = '#' + nHoverHigh + nHoverHigh + nHoverHigh;
+
+	context.fillStyle = 'black';
+	context.font = Font;
+	var nNumLogs = Frames[0].ts.length;
+	var fTimeEnd = fDetailedOffset + fDetailedRange;
+
+	var FirstFrame = 0;
+	for(var i = 0; i < Frames.length ; i++)
+	{
+		if(Frames[i].frameend < fDetailedOffset)
+		{
+			FirstFrame = i;
+		}
+	}
+	var nMinTimeMs = MinWidth / fScaleX;
+	{
+
+		var Batches = new Array(TimerInfo.length);
+		var BatchesTxt = Array();
+		var BatchesTxtPos = Array();
+		var BatchesTxtColor = ['#ffffff', '#333333'];
+		if(!ThreadY)
+		{
+			ThreadY = new Array(ThreadNames.length+1);
+		}
+
+		for(var i = 0; i < 2; ++i)
+		{
+			BatchesTxt[i] = Array();
+			BatchesTxtPos[i] = Array();
+		}
+		for(var i = 0; i < Batches.length; ++i)
+		{
+			Batches[i] = Array();
+		}
+		for(nLog = 0; nLog < nNumLogs; nLog++)
+		{
+			var ThreadName = ThreadNames[nLog];
+			ThreadY[nLog] = fOffsetY;
+			if(ThreadsAllActive || ThreadsActive[ThreadName])
+			{
+				var LodIndex = 0;
+				var MinDelta = 0;
+				var NextLod = 1;
+				while(NextLod < LodData.length && LodData[NextLod].MinDelta[nLog] < nMinTimeMs)
+				{
+					LodIndex = NextLod;
+					NextLod = NextLod + 1;
+					MinDelta = LodData[LodIndex].MinDelta[nLog];
+				}
+				if(LodIndex == LodData.length)
+				{
+					LodIndex = LodData.length-1;
+				}
+				if(DisableLod)
+				{
+					LodIndex = 0;
+				}
+
+				context.fillStyle = 'white';
+				fOffsetY += BoxHeight;
+				context.fillText(ThreadName, 0, fOffsetY);
+				if(nContextSwitchEnabled)
+				{
+					DrawContextSwitchBars(context, ThreadIds[nLog], fScaleX, fOffsetY, fDetailedOffset, nHoverColor, MinWidth, bDrawEnabled);
+					fOffsetY += CSwitchHeight+1;
+				}
+				var MaxDepth = 1;
+				var StackPos = 0;
+				var Stack = Array(20);
+				var Lod = LodData[LodIndex];
+
+				var TypeArray = g_TypeArray[nLog];
+				var TimeArray = g_TimeArray[nLog];
+				var IndexArray = g_IndexArray[nLog];
+				var LabelArray = g_LabelArray[nLog];
+				var GlobalArray = Lod.GlobalArray[nLog];
+
+				var LocalFirstFrame = Frames[FirstFrame].FirstFrameIndex[nLog];
+				var IndexStart = Lod.LogStart[LocalFirstFrame][nLog];
+				var IndexEnd = GlobalArray.length;
+
+				for(var j = IndexStart; j < IndexEnd; ++j)
+				{
+					var glob = GlobalArray[j];
+					var type = TypeArray[glob];
+					var index = IndexArray[glob];
+					var time = TimeArray[glob];
+					if(type == 1)
+					{
+						Stack[StackPos] = glob;
+						StackPos++;
+						if(StackPos > MaxDepth)
+						{
+							MaxDepth = StackPos;
+						}
+					}
+					else if(type == 0)
+					{
+						if(StackPos>0)
+						{
+							StackPos--;
+
+							var globstart = Stack[StackPos];
+							var timestart = TimeArray[globstart];
+							var timeend = time;
+							var X = (timestart - fDetailedOffset) * fScaleX;
+							var Y = fOffsetY + StackPos * BoxHeight;
+							var W = (timeend-timestart)*fScaleX;
+
+							if(W > MinWidth && X < nWidth && X+W > 0)
+							{
+								if(bDrawEnabled || index == nHoverToken)
+								{
+									Batches[index].push(X);
+									Batches[index].push(Y);
+									Batches[index].push(W);
+									DebugDrawQuadCount++;
+
+									var XText = X < 0 ? 0 : X;
+									var WText = W - (XText-X);
+									if(XText + WText > nWidth)
+									{
+										WText = nWidth - XText;
+									}
+									var Name = LabelArray[globstart] ? LabelArray[globstart] : TimerInfo[index].name;
+									var BarTextLen = Math.floor((WText-2)/FontWidth);
+									var TimeText = TimeToMsString(timeend-timestart);
+									var TimeTextLen = TimeText.length;
+
+									if(BarTextLen >= 2)
+									{
+										if(BarTextLen < Name.length)
+											Name = Name.substr(0, BarTextLen);
+										var txtidx = TimerInfo[index].textcolorindex;
+										var YPos = Y+BoxHeight-FontAscent;
+										BatchesTxt[txtidx].push(Name);
+										BatchesTxtPos[txtidx].push(XText+2);
+
+										BatchesTxtPos[txtidx].push(YPos);
+										DebugDrawTextCount++;
+										if(BarTextLen - Name.length > TimeTextLen)
+										{
+											BatchesTxt[txtidx].push(TimeText);
+											BatchesTxtPos[txtidx].push(XText+WText-2 - TimeTextLen * FontWidth);
+											BatchesTxtPos[txtidx].push(YPos);
+											DebugDrawTextCount++;
+										}
+
+									}
+								}
+
+								if(DetailedViewMouseX >= X && DetailedViewMouseX <= X+W && DetailedViewMouseY < Y+BoxHeight && DetailedViewMouseY >= Y)
+								{
+									RangeCpuNext.Begin = timestart;
+									RangeCpuNext.End = timeend;
+									RangeCpuNext.Thread = nLog;
+
+									if(TypeArray[globstart+1] == 4 && TypeArray[glob+1] == 4)
+									{
+										RangeGpuNext.Begin = RangeCpuNext.Begin;
+										RangeGpuNext.End = RangeCpuNext.End;
+										RangeGpuNext.Thread = nLog;
+										//cpu tick is stored following
+										RangeCpuNext.Begin = TimeArray[globstart+1];
+										RangeCpuNext.End = TimeArray[glob+1];
+										RangeCpuNext.Thread = IndexArray[globstart+1];
+									}
+									else
+									{
+										RangeGpuNext.Begin = -1;
+										RangeGpuNext.End = -1
+									}
+
+									SetHoverToken(index, glob, nLog)
+								}
+							}
+							if(StackPos == 0 && time > fTimeEnd)
+								break;											
+						}
+					}
+				}
+				fOffsetY += (1+g_MaxStack[nLog]) * BoxHeight;
+			}
+			ThreadY[nLog+1] = fOffsetY;
+		}
+
+		if(nContextSwitchEnabled) //non instrumented threads.
+		{
+			var CurrentPid = -112;
+			var ContextSwitchThreads = CSwitchOnlyThreads;
+			function DrawHeader(str, X, Y)
+			{
+				var width = str.length * FontWidth;
+				context.globalAlpha = 0.5;
+				context.fillStyle = 'grey';
+				context.fillRect(X, Y-FontHeight + 2, width, FontHeight);
+				context.globalAlpha = 1.0;
+				context.fillStyle = 'white';
+				context.fillText(str, X, Y);
+
+
+			}
+			for(var i = 0; i < ContextSwitchThreads.length; ++i)
+			{
+				var ThreadId = ContextSwitchThreads[i];
+				var ThreadName = '' + ThreadId;
+				var TI = CSwitchThreads[ThreadId];
+
+				if(TI)
+				{
+					if(CurrentPid != TI.pid)
+					{
+						fOffsetY += BoxHeight + 1;
+						CurrentPid = TI.pid;
+						var str = TI.pid.toString(16) +':' +TI.p;
+						DrawHeader(str, 0, fOffsetY+5);
+						fOffsetY += BoxHeight + 1;
+					}
+				}
+
+				DrawContextSwitchBars(context, ThreadId, fScaleX, fOffsetY, fDetailedOffset, nHoverColor, MinWidth, bDrawEnabled);
+
+				if(TI)
+				{
+					DrawHeader(TI.tid.toString(16) +':' +TI.t, 10, fOffsetY+5);
+				}
+				fOffsetY += BoxHeight + 1;
+			}
+		}
+
+
+		{
+			for(var i = 0; i < Batches.length; ++i)
+			{
+				var a = Batches[i];
+				if(a.length)
+				{
+					if(!DisableMerge)
+					{
+						for(var j = 0; j < a.length; j += 3)
+						{						
+							var X = a[j];
+							var Y = a[j+1];
+							var BaseWidth = j + 2;
+							var W = a[BaseWidth];
+							while(j+1 < a.length && W < 1)
+							{
+								var jnext = j+3;
+								var XNext = a[jnext];
+								var YNext = a[jnext+1];
+								var WNext = a[jnext+2];
+								var Delta = XNext - (X+W);
+								var YDelta = Math.abs(Y - YNext);							
+								if(Delta < 0.3 && YDelta < 0.5 && WNext < 1)
+								{
+									W = (XNext+WNext) - X;
+									a[BaseWidth] = W;
+									a[jnext+2] = 0;
+									j += 3;
+								}
+								else
+								{
+									break;
+								}
+
+							}
+						}
+					}
+					var off = 0.7;
+					var off2 = 2*off;
+					context.fillStyle = TimerInfo[i].colordark;
+					for(var j = 0; j < a.length; j += 3)
+					{						
+						var X = a[j];
+						var Y = a[j+1];
+						var W = a[j+2];
+						if(W >= 1)
+						{
+							context.fillRect(X, Y, W, BoxHeight-1);
+						}
+					}
+	
+
+					if(i == nHoverToken)
+					{
+						context.fillStyle = nHoverColor;
+					}
+					else
+					{
+						context.fillStyle = TimerInfo[i].color;
+					}
+					for(var j = 0; j < a.length; j += 3)
+					{						
+						var X = a[j];
+						var Y = a[j+1];
+						var W = a[j+2];
+						if(W > 0)
+						{
+							context.fillRect(X+off, Y+off, W-off2, BoxHeight-1-off2);
+						}
+					}
+				}
+			}	
+		}
+		for(var i = 0; i < BatchesTxt.length; ++i)
+		{
+			context.fillStyle = BatchesTxtColor[i];
+			var TxtArray = BatchesTxt[i];
+			var PosArray = BatchesTxtPos[i];
+			for(var j = 0; j < TxtArray.length; ++j)
+			{
+				var k = j * 2;
+				context.fillText(TxtArray[j], PosArray[k],PosArray[k+1]);
+			}
+		}
+
+	}
+}
+function DrawTextBox(context, text, x, y, align)
+{
+	var textsize = context.measureText(text).width;
+	var offsetx = 0;
+	var offsety = -FontHeight;
+	if(align == 'center')
+	{
+		offsetx = -textsize / 2.0;
+	}
+	else if(align == 'right')
+	{
+		offsetx = -textsize;
+	}
+	context.fillStyle = nBackColors[0];
+	context.fillRect(x + offsetx, y + offsety, textsize+2, FontHeight + 2);
+	context.fillStyle = 'white';
+	context.fillText(text, x, y);
+
+}
+function DrawRange(context, Range, ColorBack, ColorFront, Name)
+{
+	var fBegin = Range.Begin;
+	var fEnd = Range.End;
+	var OffsetTop = Range.YBegin;
+	var OffsetBottom = Range.YEnd;
+	if(fBegin < fEnd)
+	{
+		var MarginTop = 0.5 * FontHeight;
+		var MarginBottom = nHeight - 1.5 * FontHeight;
+		if(OffsetTop < MarginTop)
+			OffsetTop = MarginTop;
+		if(OffsetBottom > MarginBottom)
+			OffsetBottom = MarginBottom;
+		var fRulerOffset = FontHeight * 0.5;
+		var fScaleX = nWidth / fDetailedRange; 
+		var X = (fBegin - fDetailedOffset) * fScaleX;
+		var YSpace = (FontHeight+2);
+		var Y = OffsetTop;
+		var YBottom = OffsetBottom;
+		var W = (fEnd - fBegin) * fScaleX;
+		context.globalAlpha = 0.1;
+		context.fillStyle = ColorBack;
+		context.fillRect(X, OffsetTop + fRulerOffset, W, OffsetBottom - OffsetTop);
+		context.globalAlpha = 1;
+		context.strokeStyle = ColorFront;
+		context.beginPath();
+		context.moveTo(X, 0);
+		context.lineTo(X, nHeight);
+		context.moveTo(X+W, 0);
+		context.lineTo(X+W, nHeight);
+		context.stroke();
+		var Duration = (fEnd - fBegin).toFixed(2) + "ms";
+		var Center = ((fBegin + fEnd) / 2.0) - fDetailedOffset;
+		var DurationWidth = context.measureText(Duration+ "   ").width;
+
+		context.fillStyle = 'white';
+		context.textAlign = 'right';
+		var TextPosY = Y + YSpace;
+		DrawTextBox(context, fBegin.toFixed(2), X-3, TextPosY, 'right');
+		var YS = [Y, YBottom];
+		for(var i = 0; i < YS.length; ++i)
+		{
+			var Y = YS[i];
+			var Y0 = Y + fRulerOffset;
+			var W0 = W - DurationWidth + FontWidth*1.5;
+			if(W0 > 6)
+			{
+				context.textAlign = 'center';
+				DrawTextBox(context, Duration,Center * fScaleX, Y + YSpace, 'center');
+				W0 = W0 / 2.0;
+				var X0 = X + W0;
+				var X1 = X + W - W0;
+				context.strokeStyle = ColorFront;
+				context.beginPath();
+				context.moveTo(X, Y0);
+				context.lineTo(X0, Y0);
+				context.moveTo(X0, Y0-2);
+				context.lineTo(X0, Y0+2);
+				context.moveTo(X1, Y0-2);
+				context.lineTo(X1, Y0+2);
+				context.moveTo(X1, Y0);
+				context.lineTo(X + W, Y0);
+				context.stroke();
+			}
+			else
+			{
+				if(i == 1)
+				{
+					context.textAlign = 'right';
+					DrawTextBox(context, Duration, X - 3, Y0, 'right');
+					context.textAlign = 'left';
+					DrawTextBox(context, Duration, X + W + 2, Y0, 'left');
+				}
+				context.strokeStyle = ColorFront;
+				context.beginPath();
+				context.moveTo(X, Y0);
+				context.lineTo(X+W, Y0);
+				context.stroke();
+			}
+		}
+		context.textAlign = 'left';
+		DrawTextBox(context, fEnd.toFixed(2), X + W + 2, TextPosY, 'left');
+		DrawTextBox(context, Name, X + W + 2, OffsetTop + YSpace + FontHeight, 'left');
+	}
+	return 1;
+}
+
+function DrawDetailed(Animation)
+{
+	if(AnimationActive != Animation || !Initialized)
+	{
+		return;
+	}
+	ProfileEnter("DrawDetailed");
+	DebugDrawQuadCount = 0;
+	DebugDrawTextCount = 0;
+	nHoverCSCpuNext = -1;
+
+	RangeCpuNext = RangeInit();
+	RangeGpuNext = RangeInit();
+	RangeGpu = RangeInit();
+
+	var start = new Date();
+	nDrawCount++;
+
+	var context = CanvasDetailedView.getContext('2d');
+	var offscreen = CanvasDetailedOffscreen.getContext('2d');
+	var fScaleX = nWidth / fDetailedRange; 
+	var fOffsetY = -nOffsetY + BoxHeight;
+
+	if(DetailedRedrawState.fOffsetY == fOffsetY && DetailedRedrawState.fDetailedOffset == fDetailedOffset && DetailedRedrawState.fDetailedRange == fDetailedRange && !KeyCtrlDown && !KeyShiftDown && !MouseDragButton)
+	{
+		Invalidate++;
+	}
+	else
+	{
+		Invalidate = 0;
+		DetailedRedrawState.fOffsetY = fOffsetY;
+		DetailedRedrawState.fDetailedOffset = fDetailedOffset;
+		DetailedRedrawState.fDetailedRange = fDetailedRange;
+	}
+	if(nHoverTokenDrawn != nHoverToken)
+	{
+		Invalidate = 1;
+	}
+	nHoverTokenDrawn = nHoverToken;
+	if(Invalidate == 0) //when panning, only draw bars that are a certain width to keep decent framerate
+	{
+		context.clearRect(0, 0, CanvasDetailedView.width, CanvasDetailedView.height);
+		DrawDetailedView(context, nMinWidthPan, true);
+		ProfileRedraw0++;
+	}
+	else if(Invalidate == 1) //draw full and store
+	{
+		offscreen.clearRect(0, 0, CanvasDetailedView.width, CanvasDetailedView.height);
+		DrawDetailedView(offscreen, nMinWidth, true);
+		OffscreenData = offscreen.getImageData(0, 0, CanvasDetailedOffscreen.width, CanvasDetailedOffscreen.height);
+		ProfileRedraw1++;
+	}
+	else//reuse stored result untill next time viewport is changed.
+	{
+		context.clearRect(0, 0, CanvasDetailedView.width, CanvasDetailedView.height);
+		context.putImageData(OffscreenData, 0, 0);
+		DrawDetailedView(context, nMinWidth, false);
+		ProfileRedraw2++;
+	}
+
+	if(KeyShiftDown || KeyCtrlDown || MouseDragButton || MouseDragSelectRange() || ZoomActive)
+	{
+		nHoverToken = -1;
+		nHoverTokenIndex = -1;
+		nHoverTokenLogIndex = -1;
+		RangeCpu = RangeInit();
+		RangeGpu = RangeInit();
+	}
+	else
+	{
+		nHoverToken = nHoverTokenNext;
+		nHoverTokenIndex = nHoverTokenIndexNext;
+		nHoverTokenLogIndex = nHoverTokenLogIndexNext;
+		if(RangeValid(RangeCpuHistory))
+		{
+			RangeCopy(RangeCpu, RangeCpuHistory);
+			RangeCopy(RangeGpu, RangeGpuHistory);
+		}
+		else
+		{
+			RangeCopy(RangeCpu, RangeCpuNext);
+			RangeCopy(RangeGpu, RangeGpuNext);
+		}
+	}
+
+	DrawTextBox(context, TimeToMsString(fDetailedOffset), 0, FontHeight, 'left');
+	context.textAlign = 'right';
+	DrawTextBox(context, TimeToMsString(fDetailedOffset + fDetailedRange), nWidth, FontHeight, 'right');
+	context.textAlign = 'left';
+
+	var YBegin = ThreadY[fRangeThreadIdNext];
+	var YEnd = ThreadY[fRangeThreadIdNext+1];
+	var YBeginGpu = YBegin;
+	var YEndGpu = YEnd;
+	function RangeSet(R)
+	{
+		if(R.Thread >= 0)
+		{
+			R.YBegin = ThreadY[R.Thread];
+			R.YEnd = ThreadY[R.Thread + 1];
+		}
+		else
+		{
+			R.YBegin = 0;
+			R.YEnd = nHeight;
+		}
+	}
+	RangeSet(RangeSelect);
+	RangeSet(RangeCpu);
+	RangeSet(RangeGpu);
+	var Offset = 0;
+	Offset = DrawRange(context, RangeSelect, '#59d0ff', '#00ddff', "Selection");
+	Offset = DrawRange(context, RangeCpu, '#009900', '#00ff00', "Cpu");
+	Offset = DrawRange(context, RangeGpu, '#996600', '#775500', "Gpu");
+
+	nHoverCSCpu = nHoverCSCpuNext;
+	ProfileLeave();
+}
+function ZoomToHighlight(NoGpu)
+{
+	if(RangeValid(RangeGpu) && !NoGpu)
+	{
+		ZoomTo(RangeGpu.Begin, RangeGpu.End);
+	}
+	else if(RangeValid(RangeCpu))
+	{
+		ZoomTo(RangeCpu.Begin, RangeCpu.End);
+	}
+	RangeCpu = RangeInit();
+	RangeGpu = RangeInit();
+}
+
+function MoveToNext(Direction) //1 forward, -1 backwards
+{
+	var fTimeBegin, fTimeEnd, nLog;
+	var Index = nHoverToken;
+
+	if(nHoverToken != -1 && nHoverTokenLogIndex != -1)
+	{
+		fTimeBegin = RangeCpu.Begin;
+		fTimeEnd = RangeCpu.End;
+		nLog = nHoverTokenLogIndex;
+	}
+	else if(RangeValid(RangeSelect))
+	{
+		fTimeBegin = RangeSelect.Begin;
+		fTimeEnd = RangeSelect.End;
+		nLog = RangeSelect.Thread;
+		Index = RangeSelect.Index;
+	}
+	else
+	{
+		return;
+	}
+	if(nLog<0)
+	{
+		return;
+	}
+	var Forward = Direction && Direction < 0 ? 0 : 1;
+	var bFound = false;
+	var nStackPos = 0;
+	var fResultTimeBegin, fResultTimeEnd;
+	var TypeBegin = Forward ? 1 : 0;
+	var TypeEnd = Forward ? 0 : 1;
+	var SearchTimeBegin = Forward ? fTimeBegin : fTimeEnd;
+
+	var istart = Forward ? 0 : Frames.length-1;
+	var iend = Forward ? Frames.length : -1;
+	var idelta = Forward ? 1 : -1;
+	for(var i = istart; i != iend; i += idelta)
+	{
+		var fr = Frames[i];
+		var ts = fr.ts[nLog];
+		var ti = fr.ti[nLog];
+		var tt = fr.tt[nLog];
+		var jstart = Forward ? 0 : ts.length-1;
+		var jend = Forward ? ts.length : -1;
+		var jdelta = Forward ? 1 : -1;
+		for(var j = jstart; j != jend; j += jdelta)
+		{
+			if(!bFound)
+			{
+				if(tt[j] == TypeBegin && Index == ti[j])
+				{
+					if(SearchTimeBegin == ts[j])
+					{
+						bFound = true;
+					}
+				}
+			}
+			else
+			{
+				if(Index == ti[j])
+				{
+					var type = tt[j];
+					if(type == TypeBegin)
+					{
+						if(0 == nStackPos)
+						{
+							fResultTimeBegin = ts[j];
+						}
+						nStackPos++;
+					}
+					else if(type == TypeEnd && nStackPos)
+					{
+						nStackPos--;
+						if(0 == nStackPos)
+						{
+							fResultTimeEnd = ts[j];
+							if(0 == Forward)
+							{
+								var Tmp = fResultTimeBegin;
+								fResultTimeBegin = fResultTimeEnd;
+								fResultTimeEnd = Tmp;
+							}
+							RangeSelect.Begin = fResultTimeBegin;
+							RangeSelect.End = fResultTimeEnd;
+							RangeSelect.Thread = nLog;
+							RangeSelect.Index = Index;
+							MoveTo(fResultTimeBegin,fResultTimeEnd);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+function MoveTo(fMoveBegin, fMoveEnd, YTop, YBottom)
+{
+	var nOffsetYBottom = YBottom - nHeight;
+	var nOffsetYDest = nOffsetY;
+	if(nOffsetYDest < nOffsetYBottom)
+	{
+		nOffsetYDest = nOffsetYBottom;
+	}
+	if(nOffsetYDest > YTop)
+	{
+		nOffsetYDest = YTop;
+	}
+	var fRange = fDetailedRange;
+	var fMinRange = (fMoveEnd-fMoveBegin) * 2.0;
+	if(fRange < fMinRange)
+	{
+		fRange = fMinRange;
+	}
+	var fMoveCenter = (fMoveBegin + fMoveEnd) * 0.5;
+	fMoveBegin = fMoveCenter - 0.5 * fRange;
+	fMoveEnd = fMoveCenter + 0.5 * fRange;
+	var nOffset;
+	if(nOffsetYDest != nOffsetY)
+		nOffset = nOffsetYDest;
+	ZoomTo(fMoveBegin, fMoveEnd, nOffsetYDest, -1);
+}
+function ZoomTo(fZoomBegin, fZoomEnd, OffsetYDest, ZoomTime)
+{
+	if(fZoomBegin < fZoomEnd)
+	{
+		AnimationActive = true;
+		var fDetailedOffsetOriginal = fDetailedOffset;
+		var fDetailedRangeOriginal = fDetailedRange;
+		var fDetailedOffsetTarget = fZoomBegin;
+		var fDetailedRangeTarget = fZoomEnd - fZoomBegin;
+		var OffsetYOriginal = nOffsetY;
+		var OffsetYTarget = OffsetYDest;
+		var TimestampStart = new Date();
+		var count = 0;
+		if(!ZoomTime)
+		{			
+			ZoomTime = ZOOM_TIME;
+		}
+
+		function ZoomFunc(Timestamp)
+		{
+			ZoomActive = 1;
+			var fPrc = (new Date() - TimestampStart) / (ZoomTime * 1000.0);
+			if(fPrc > 1.0 || ZoomTime < 0.01)
+			{
+				fPrc = 1.0;
+			}
+			fPrc = Math.pow(fPrc, 0.3);
+			fDetailedOffset = fDetailedOffsetOriginal + (fDetailedOffsetTarget - fDetailedOffsetOriginal) * fPrc;
+			fDetailedRange = fDetailedRangeOriginal + (fDetailedRangeTarget - fDetailedRangeOriginal) * fPrc;
+			if(OffsetYDest)
+			{
+				nOffsetY = OffsetYOriginal + (OffsetYTarget - OffsetYOriginal) * fPrc;
+			}
+			DrawDetailed(true);
+			if(fPrc >= 1.0)
+			{
+				AnimationActive = false;
+				fDetailedOffset = fDetailedOffsetTarget;
+				fDetailedRange = fDetailedRangeTarget;
+				if(OffsetYDest)
+				{
+					nOffsetY = OffsetYTarget;
+				}
+			}
+			else
+			{
+				requestAnimationFrame(ZoomFunc);
+			}
+		}
+		requestAnimationFrame(ZoomFunc);
+	}
+}
+function RequestRedraw()
+{
+	Invalidate = 0;
+	Draw(1);
+}
+function Draw(RedrawMode)
+{
+	if(ProfileMode)
+	{
+		ProfileModeClear();
+		ProfileEnter("Total");
+	}
+	if(RedrawMode == 1)
+	{
+		if(Mode == ModeTimers)
+		{
+			DrawBarView();
+			DrawHoverToolTip();
+		}
+		else if(Mode == ModeDetailed)
+		{
+			DrawDetailed(false);
+			DrawHoverToolTip();
+		}
+		else if(Mode == ModeCounters)
+		{
+			DrawCounterView();
+			DrawHoverToolTip();
+		}
+	}
+	DrawDetailedFrameHistory();
+
+	if(ProfileMode)
+	{
+		ProfileLeave();
+		ProfileModeDraw(CanvasDetailedView);
+	}
+}
+
+function AutoRedraw(Timestamp)
+{
+	var RedrawMode = 0;
+	if(Mode == ModeDetailed)
+	{
+		if(ProfileMode == 2 || ((nHoverCSCpu >= 0 || nHoverToken != -1) && !KeyCtrlDown && !KeyShiftDown && !MouseDragButton)||(Invalidate<2 && !KeyCtrlDown && !KeyShiftDown && !MouseDragButton))
+		{
+			RedrawMode = 1;
+		}
+	}
+	else
+	{
+		if(Invalidate < 1)
+		{
+			RedrawMode = 1;
+		}
+	}
+	if(RedrawMode)
+	{
+		Draw(RedrawMode);
+	}
+	else if(FlashFrameCounter>0)
+	{
+		Draw(0);
+	}
+	requestAnimationFrame(AutoRedraw);
+}
+
+
+function ZoomGraph(nZoom)
+{
+	var fOldRange = fDetailedRange;
+	if(nZoom>0)
+	{
+		fDetailedRange *= Math.pow(nModDown ? 1.40 : 1.03, nZoom);
+	}
+	else
+	{
+		var fNewDetailedRange = fDetailedRange / Math.pow((nModDown ? 1.40 : 1.03), -nZoom);
+		if(fNewDetailedRange < 0.0001) //100ns
+			fNewDetailedRange = 0.0001;
+		fDetailedRange = fNewDetailedRange;
+	}
+
+	var fDiff = fOldRange - fDetailedRange;
+	var fMousePrc = DetailedViewMouseX / nWidth;
+	if(fMousePrc < 0)
+	{
+		fMousePrc = 0;
+	}
+	fDetailedOffset += fDiff * fMousePrc;
+
+}
+
+function MeasureFont()
+{
+	var context = CanvasDetailedView.getContext('2d');
+	context.font = Font;
+	FontWidth = context.measureText('W').width;
+
+}
+function ResizeCanvas() 
+{
+	nWidth = window.innerWidth;
+	nHeight = window.innerHeight - CanvasHistory.height-2;
+	DPR = window.devicePixelRatio;
+
+	if(DPR)
+	{
+		CanvasDetailedView.style.width = nWidth + 'px'; 
+		CanvasDetailedView.style.height = nHeight + 'px';
+		CanvasDetailedView.width = nWidth * DPR;
+		CanvasDetailedView.height = nHeight * DPR;
+		CanvasHistory.style.width = window.innerWidth + 'px';
+		CanvasHistory.style.height = 70 + 'px';
+		CanvasHistory.width = window.innerWidth * DPR;
+		CanvasHistory.height = 70 * DPR;
+		CanvasHistory.getContext('2d').scale(DPR,DPR);
+		CanvasDetailedView.getContext('2d').scale(DPR,DPR);
+
+		CanvasDetailedOffscreen.style.width = nWidth + 'px';
+		CanvasDetailedOffscreen.style.height = nHeight + 'px';
+		CanvasDetailedOffscreen.width = nWidth * DPR;
+		CanvasDetailedOffscreen.height = nHeight * DPR;
+		CanvasDetailedOffscreen.getContext('2d').scale(DPR,DPR);
+
+	}
+	else
+	{
+		DPR = 1;
+		CanvasDetailedView.width = nWidth;
+		CanvasDetailedView.height = nHeight;
+		CanvasDetailedOffscreen.width = nWidth;
+		CanvasDetailedOffscreen.height = nHeight;
+		CanvasHistory.width = window.innerWidth;
+	}
+	RequestRedraw();
+}
+
+var MouseDragOff = 0;
+var MouseDragDown = 1;
+var MouseDragUp = 2;
+var MouseDragMove = 3;
+var MouseDragState = MouseDragOff;
+var MouseDragTarget = 0;
+var MouseDragButton = 0;
+var MouseDragKeyShift = 0;
+var MouseDragKeyCtrl = 0;
+var MouseDragX = 0;
+var MouseDragY = 0;
+var MouseDragXLast = 0;
+var MouseDragYLast = 0;
+var MouseDragXStart = 0;
+var MouseDragYStart = 0;
+
+function clamp(number, min, max)
+{
+  return Math.max(min, Math.min(number, max));
+}
+
+function MouseDragPan()
+{
+	return MouseDragButton == 1 || MouseDragKeyShift;
+}
+function MouseDragSelectRange()
+{
+	return MouseDragState == MouseDragMove && (MouseDragButton == 3 || (MouseDragKeyShift && MouseDragKeyCtrl));
+}
+function MouseHandleDrag()
+{
+	if(MouseDragTarget == CanvasDetailedView)
+	{
+		if(Mode == ModeDetailed)
+		{
+			if(MouseDragSelectRange())
+			{
+				var xStart = MouseDragXStart;
+				var xEnd = MouseDragX;
+				if(xStart > xEnd)
+				{
+					var Temp = xStart;
+					xStart = xEnd;
+					xEnd = Temp;
+				}
+				if(xEnd - xStart > 1)
+				{
+					RangeCpu.Begin = fDetailedOffset + fDetailedRange * (xStart / nWidth);
+					RangeCpu.End = fDetailedOffset + fDetailedRange * (xEnd / nWidth);
+					RangeSelect.Begin = fDetailedOffset + fDetailedRange * (xStart / nWidth);
+					RangeSelect.End = fDetailedOffset + fDetailedRange * (xEnd / nWidth);
+					RangeSelect.Thread = -1;
+					RangeSelect.Index = -1;
+				}
+			}
+			else if(MouseDragPan())
+			{
+				var X = MouseDragX - MouseDragXLast;
+				var Y = MouseDragY - MouseDragYLast;
+				if(X)
+				{
+					fDetailedOffset += -X * fDetailedRange / nWidth;
+				}
+				nOffsetY -= Y;
+				if(nOffsetY < 0)
+				{
+					nOffsetY = 0;
+				}
+			}
+			else if(MouseDragKeyCtrl)
+			{
+				if(MouseDragY != MouseDragYLast)
+				{
+					ZoomGraph(MouseDragY - MouseDragYLast);
+				}
+			}
+		}
+		else if(Mode == ModeTimers)
+		{
+			if(MouseDragKeyShift || MouseDragButton == 1)
+			{
+				var X = MouseDragX - MouseDragXLast;
+				var Y = MouseDragY - MouseDragYLast;
+				nOffsetBarsY -= Y;
+				nOffsetBarsX -= X;
+				if(nOffsetBarsY < 0)
+				{
+					nOffsetBarsY = 0;
+				}
+				if(nOffsetBarsX < 0)
+				{
+					nOffsetBarsX = 0;
+				}
+			}
+		}
+		else if(Mode == ModeCounters)
+		{
+			if(MouseDragKeyShift || MouseDragButton == 1)
+			{
+				var Y = MouseDragY - MouseDragYLast;
+				nOffsetCountersY -= Y;
+				if(nOffsetCountersY < 0)
+				{
+					nOffsetCountersY = 0;
+				}
+			}
+		}
+
+	}
+	else if(MouseDragTarget == CanvasHistory)
+	{
+		function HistoryFrameTime(x)
+		{
+			var NumFrames = Frames.length;
+			var fBarWidth = nWidth / NumFrames;
+			var Index = clamp(Math.floor(NumFrames * x / nWidth), 0, NumFrames-1);
+			var Lerp = clamp((x/fBarWidth - Index) , 0, 1);
+			var time = Frames[Index].framestart + (Frames[Index].frameend - Frames[Index].framestart) * Lerp;
+			return time;
+		}
+		if(MouseDragSelectRange())
+		{
+			RangeCpu = RangeInit();
+			RangeGpu = RangeInit();
+
+			var xStart = MouseDragXStart;
+			var xEnd = MouseDragX;
+			if(xStart > xEnd)
+			{
+				var Temp = xStart;
+				xStart = xEnd;
+				xEnd = Temp;
+			}
+			if(xEnd - xStart > 2)
+			{
+				var timestart = HistoryFrameTime(xStart);
+				var timeend = HistoryFrameTime(xEnd);
+				fDetailedOffset = timestart;
+				fDetailedRange = timeend-timestart;
+			}
+		}
+		else if(MouseDragPan())
+		{
+			var Time = HistoryFrameTime(MouseDragX);
+			fDetailedOffset = Time - fDetailedRange / 2.0;
+		}
+	}
+}
+function MouseHandleDragEnd()
+{
+	if(MouseDragTarget == CanvasDetailedView)
+	{
+
+	}
+	else if(MouseDragTarget == CanvasHistory)
+	{
+		if(!MouseDragSelectRange() && !MouseDragPan())
+		{
+			ZoomToHighlight(1);
+		}
+	}
+}
+
+function MouseHandleDragClick()
+{
+	if(MouseDragTarget == CanvasDetailedView)
+	{
+		if(Mode == ModeCounters)
+		{
+			if(nHoverCounter != -1)
+			{
+				if(CounterInfo[nHoverCounter].firstchild != -1)
+				{
+					CounterInfo[nHoverCounter].closed = !CounterInfo[nHoverCounter].closed;
+				}
+				else
+				{
+					CounterInfo[nHoverCounter].Expanded = !CounterInfo[nHoverCounter].Expanded;
+				}
+				Draw(1);
+			}
+		}
+		else
+		{
+			ZoomToHighlight();
+		}
+	}
+	else if(MouseDragTarget == CanvasHistory)
+	{
+		if(Mode == ModeDetailed)
+		{
+			ZoomToHighlight(1);
+		}
+	}
+}
+
+function MapMouseButton(event)
+{
+	if(event.button == 1 || event.which == 1)
+	{
+		return 1;
+	}
+	else if(event.button == 3 || event.which == 3)
+	{
+		return 3;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+function MouseDragReset()
+{
+	MouseDragState = MouseDragOff;
+	MouseDragTarget = 0;
+	MouseDragKeyShift = 0;
+	MouseDragKeyCtrl = 0;
+	MouseDragButton = 0;
+}
+function MouseDragKeyUp()
+{
+	if((MouseDragKeyShift && !KeyShiftDown) || (MouseDragKeyCtrl && !KeyCtrlDown))
+	{
+		MouseHandleDragEnd();
+		MouseDragReset();
+	}
+}
+function MouseDrag(Source, Event)
+{
+	if(Source == MouseDragOff || (MouseDragTarget && MouseDragTarget != Event.target))
+	{
+		MouseDragReset();
+		return;
+	}
+
+	var LocalRect = Event.target.getBoundingClientRect();
+	MouseDragX = Event.clientX - LocalRect.left;
+	MouseDragY = Event.clientY - LocalRect.top;
+	if(MouseDragState == MouseDragMove)
+	{
+		var dx = Math.abs(MouseDragX - MouseDragXStart);
+		var dy = Math.abs(MouseDragY - MouseDragYStart);
+		if((Source == MouseDragUp && MapMouseButton(Event) == MouseDragButton) ||
+			(MouseDragKeyCtrl && !KeyCtrlDown) ||
+			(MouseDragKeyShift && !KeyShiftDown))
+		{
+			MouseHandleDragEnd();
+			MouseDragReset();
+			return;
+		}
+		else
+		{
+			MouseHandleDrag();
+		}
+	}
+	else if(MouseDragState == MouseDragOff)
+	{
+		if(Source == MouseDragDown || KeyShiftDown || KeyCtrlDown)
+		{
+			MouseDragTarget = Event.target;
+			MouseDragButton = MapMouseButton(Event);
+			MouseDragState = MouseDragDown;
+			MouseDragXStart = MouseDragX;
+			MouseDragYStart = MouseDragY;
+			MouseDragKeyCtrl = 0;
+			MouseDragKeyShift = 0;
+
+			if(KeyShiftDown || KeyCtrlDown)
+			{
+				MouseDragKeyShift = KeyShiftDown;
+				MouseDragKeyCtrl = KeyCtrlDown;
+				MouseDragState = MouseDragMove;
+			}
+		}
+	}
+	else if(MouseDragState == MouseDragDown)
+	{
+		if(Source == MouseDragUp)
+		{
+			MouseHandleDragClick();
+			MouseDragReset();
+		}
+		else if(Source == MouseDragMove)
+		{
+			var dx = Math.abs(MouseDragX - MouseDragXStart);
+			var dy = Math.abs(MouseDragY - MouseDragYStart);
+			if(dx+dy>1)
+			{
+				MouseDragState = MouseDragMove;
+			}
+		}
+	}
+	MouseDragXLast = MouseDragX;
+	MouseDragYLast = MouseDragY;
+}
+
+function MouseMove(evt)
+{
+    evt.preventDefault();
+    ZoomActive = 0;
+    MouseDrag(MouseDragMove, evt);
+ 	MouseHistory = 0;
+	MouseDetailed = 0;
+	HistoryViewMouseX = HistoryViewMouseY = -1;
+	var rect = evt.target.getBoundingClientRect();
+	var x = evt.clientX - rect.left;
+	var y = evt.clientY - rect.top;
+	if(evt.target == CanvasDetailedView)
+	{
+		if(!MouseDragSelectRange())
+		{
+			RangeCpu = RangeInit();
+		}
+		DetailedViewMouseX = x;
+		DetailedViewMouseY = y;
+	}
+	else if(evt.target = CanvasHistory)
+	{
+		var Rect = CanvasHistory.getBoundingClientRect();
+		HistoryViewMouseX = x;
+		HistoryViewMouseY = y;
+	}
+	Draw(1);
+}
+
+function MouseButton(bPressed, evt)
+{
+    evt.preventDefault();
+	MouseDrag(bPressed ? MouseDragDown : MouseDragUp, evt);
+	if(!bPressed)
+	{
+		if(SortColumnMouseOverNext)
+		{
+			if(SortColumnMouseOverNext == SortColumnMouseOver)
+			{
+				SortColumnOrderFlip =  1 - SortColumnOrderFlip;
+			}
+			else
+			{
+				SortColumnOrderFlip = 0;
+			}
+
+			SortColumnMouseOver = SortColumnMouseOverNext;
+			SortColumnMouseOverNext = null;
+			if(SortColumnMouseOver == StrAverage)
+			{
+				SortColumn = 1;
+			}
+			else if(SortColumnMouseOver == StrMax)
+			{
+				SortColumn = 2;
+			}
+			else if(SortColumnMouseOver == StrTotal)
+			{
+				SortColumn = 3;
+			}
+			else if(SortColumnMouseOver == StrMin)
+			{
+				SortColumn = 4;
+			}
+			else if(SortColumnMouseOver == StrCallAverage)
+			{
+				SortColumn = 5;
+			}
+			else if(SortColumnMouseOver == StrCount)
+			{
+				SortColumn = 6;
+			}
+			else if(SortColumnMouseOver == StrExclAverage)
+			{
+				SortColumn = 7;
+			}
+			else if(SortColumnMouseOver == StrExclMax)
+			{
+				SortColumn = 8;
+			}
+			else if(SortColumnMouseOver == StrGroup)
+			{
+				SortColumn = 0;
+			}
+			RequestRedraw();
+		}
+	}
+}
+
+function MouseOut(evt)
+{
+	MouseDrag(MouseDragOff, evt);
+	KeyCtrlDown = 0;
+	KeyShiftDown = 0;
+	MouseDragButton = 0;
+	nHoverToken = -1;
+	RangeCpu = RangeInit();
+}
+
+function MouseWheel(e)
+{
+    var e = window.event || e;
+    var delta = (e.wheelDelta || e.detail * (-120));
+    ZoomGraph((-4 * delta / 120.0) | 0);
+    Draw(1);
+}
+function ShowFilterInput(bShow)
+{
+	if(bShow)
+	{
+		document.getElementById('filterinput').style['display'] = 'block';
+	}
+	else
+	{
+		document.getElementById('filterinput').style['display'] = 'none';
+	}
+}
+
+function SetFilterInput(group, timer)
+{
+	FilterInputGroupString = group;
+	FilterInputTimerString = timer;
+	FilterInputGroup.value = group?group:'';
+	FilterInputTimer.value = timer?timer:'';
+	FilterUpdate();
+	if(group || timer)
+	{
+		ShowFilterInput(1);
+	}
+	else
+	{
+		ShowFilterInput(0);
+	}
+
+}
+
+function ToggleFilterInput(escape)
+{
+	var ActiveElement = -1;
+	for(var i = 0; i < FilterInputArray.length; ++i)
+	{
+		if(FilterInputArray[i] == document.activeElement)
+		{
+			ActiveElement = i;
+		}
+	}
+	var OldActiveElement = ActiveElement;
+	if(ActiveElement >= 0)
+	{
+		FilterInputArray[ActiveElement].blur();
+	}
+	ActiveElement++;
+	if(!escape)
+	{
+		if(ActiveElement < FilterInputArray.length)
+		{
+			ShowFilterInput(1);
+			FilterInputArray[ActiveElement].focus();
+		}
+	}
+	else
+	{
+		if(-1 == OldActiveElement)
+		{
+			SetFilterInput();
+		}
+	}
+}
+
+function KeyUp(evt)
+{
+	if(evt.keyCode == 39)
+	{
+		MoveToNext(1);
+	}
+	if(evt.keyCode == 37)
+	{
+		MoveToNext(-1);
+	}
+	if(evt.keyCode == 17)
+	{
+		KeyCtrlDown = 0;
+		MouseDragKeyUp();
+	}
+	else if(evt.keyCode == 16)
+	{
+		KeyShiftDown = 0;
+		MouseDragKeyUp();
+	}
+	if(evt.keyCode == 32)
+	{
+		if(RangeSelect.Begin < RangeSelect.End)
+		{
+			ZoomTo(RangeSelect.Begin, RangeSelect.End);
+			RangeSelect = RangeInit();
+			MouseHandleDragEnd();
+		}
+	}
+	if(evt.keyCode == 9)
+	{
+		evt.preventDefault();
+		if(Mode == ModeDetailed)
+		{
+			var Token = nHoverToken;
+			if(Token == -1 && RangeValid(RangeSelect) && RangeSelect.Index >= 0)
+			{
+				Token = RangeSelect.Index;
+			}
+			if(Token != -1 && Token < TimerInfo.length)
+			{
+				var start = TimerInfo[Token].worststart;
+				var end = TimerInfo[Token].worstend;
+				RangeSelect.Begin = start;
+				RangeSelect.End = end;
+				RangeSelect.Thread = TimerInfo[Token].worstthread;
+				RangeSelect.Index = Token;
+				ShowFlashMessage('Worst: ' + (end-start).toFixed(2) + 'ms', 100);
+				MoveTo(RangeSelect.Begin, RangeSelect.End, ThreadY[RangeSelect.Thread] + nOffsetY, ThreadY[RangeSelect.Thread+1] + nOffsetY);
+				MouseHandleDragEnd();
+			}
+		}
+		else if(Mode == ModeTimers)
+		{
+			ToggleFilterInput(0);
+			evt.preventDefault();
+		}
+
+	}
+	if(evt.keyCode == 27)
+	{
+		RangeSelect = RangeInit();
+		SortColumn = 0;
+		SortColumnMouseOver = "";
+		if(Mode == ModeTimers)
+		{
+			ToggleFilterInput(1);
+			evt.preventDefault();
+		}
+	}
+
+	if(evt.keyCode == 18 || evt.keyCode == 90) // z/tab to toggle tooltip
+	{
+		ToolTip = (ToolTip+1)%3; //0: off, 1: default, 2: flipped
+		var ToolTipStr = 'Off';
+		var bShowTimers = Mode == ModeTimers;
+		if(ToolTip == 2)
+		{
+			bShowTimers = !bShowTimers;
+		}
+		if(ToolTip)
+		{
+			if(bShowTimers)
+				ToolTipStr = "Timers";
+			else
+				ToolTipStr = "Detailed";
+		}
+		ShowFlashMessage('ToolTip: ' + ToolTipStr, 100);
+	}
+
+
+	Invalidate = 0;
+}
+function CreateFilter(Filter)
+{
+	if(!Filter || Filter.length == 0)
+	{
+		return null;
+	}
+	Filter = Filter.split(' ');
+	for(var i = 0; i < Filter.length; ++i)
+	{
+		Filter[i] = new RegExp(Filter[i], "i");
+	}
+	return Filter;
+}
+function FilterKeyUp()
+{
+	FilterInputTimerString = FilterInputTimer.value;
+	FilterInputGroupString = FilterInputGroup.value;
+	FilterUpdate();
+}
+
+function FilterUpdate()
+{
+	FilterTimer = CreateFilter(FilterInputTimerString);
+	FilterGroup = CreateFilter(FilterInputGroupString);
+}
+
+function KeyDown(evt)
+{
+	if(evt.keyCode == 17)
+	{
+		KeyCtrlDown = 1;
+	}
+	else if(evt.keyCode == 16)
+	{
+		KeyShiftDown = 1;
+	}
+	else if(evt.keyCode == 9)
+	{
+		evt.preventDefault();
+	}
+	Invalidate = 0;
+}
+
+function ReadCookie()
+{
+	var result = document.cookie.match(/fisk=([^;]+)/);
+	var NewMode = ModeDetailed;
+	var ReferenceTimeString = '33ms';
+	if(result && result.length > 0)
+	{
+		var Obj = JSON.parse(result[1]);
+		if(Obj.Mode)
+		{
+			NewMode = Obj.Mode;
+		}
+		if(Obj.ReferenceTime)
+		{
+			ReferenceTimeString = Obj.ReferenceTime;
+		}
+		if(Obj.ThreadsAllActive || Obj.ThreadsAllActive == 0 || Obj.ThreadsAllActive == false)
+		{
+			ThreadsAllActive = Obj.ThreadsAllActive;
+		}
+		else
+		{
+			ThreadsAllActive = 1;
+		}
+		if(Obj.ThreadsActive)
+		{
+			ThreadsActive = Obj.ThreadsActive;
+		}
+		if(Obj.GroupsAllActive || Obj.GroupsAllActive == 0 || Obj.GroupsAllActive)
+		{
+			GroupsAllActive = Obj.GroupsAllActive;
+		}
+		else
+		{
+			GroupsAllActive = 1;
+		}
+		if(Obj.GroupsActive)
+		{
+			GroupsActive = Obj.GroupsActive;
+		}
+		if(Obj.nContextSwitchEnabled)
+		{
+			nContextSwitchEnabled = Obj.nContextSwitchEnabled; 
+		}
+		else
+		{
+			nContextSwitchEnabled = 1;
+		}
+		if(Obj.GroupColors)
+		{
+			GroupColors = Obj.GroupColors;
+		}
+		else
+		{
+			GroupColors = 0;
+		}
+		if(Obj.nHideHelp)
+		{
+			nHideHelp = 1;
+		}
+		TimersGroups = Obj.TimersGroups?Obj.TimersGroups:0;
+		TimersMeta = Obj.TimersMeta?0:1;
+	}
+	SetContextSwitch(nContextSwitchEnabled);
+	SetMode(NewMode, TimersGroups);
+	SetReferenceTime(ReferenceTimeString);
+	UpdateOptionsMenu();
+	UpdateGroupColors();
+}
+function WriteCookie()
+{
+	var Obj = new Object();
+	Obj.Mode = Mode;
+	Obj.ReferenceTime = ReferenceTime + 'ms';
+	Obj.ThreadsActive = ThreadsActive;
+	Obj.ThreadsAllActive = ThreadsAllActive;
+	Obj.GroupsActive = GroupsActive;
+	Obj.GroupsAllActive = GroupsAllActive;
+	Obj.nContextSwitchEnabled = nContextSwitchEnabled;
+	Obj.TimersGroups = TimersGroups?TimersGroups:0;
+	Obj.TimersMeta = TimersMeta?0:1;
+	Obj.GroupColors = GroupColors;
+	if(nHideHelp)
+	{
+		Obj.nHideHelp = 1;
+	}
+	var date = new Date();
+	date.setFullYear(2099);
+	var cookie = 'fisk=' + JSON.stringify(Obj) + ';expires=' + date;
+	document.cookie = cookie;
+}
+
+var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel" //FF doesn't recognize mousewheel as of FF3.x
+
+CanvasDetailedView.addEventListener('mousemove', MouseMove, false);
+CanvasDetailedView.addEventListener('mousedown', function(evt) { MouseButton(true, evt); });
+CanvasDetailedView.addEventListener('mouseup', function(evt) { MouseButton(false, evt); } );
+CanvasDetailedView.addEventListener('mouseout', MouseOut);
+CanvasDetailedView.addEventListener("contextmenu", function (e) { e.preventDefault(); }, false);
+CanvasDetailedView.addEventListener(mousewheelevt, MouseWheel, false);
+CanvasHistory.addEventListener('mousemove', MouseMove);
+CanvasHistory.addEventListener('mousedown', function(evt) { MouseButton(true, evt); });
+CanvasHistory.addEventListener('mouseup', function(evt) { MouseButton(false, evt); } );
+CanvasHistory.addEventListener('mouseout', MouseOut);
+CanvasHistory.addEventListener("contextmenu", function (e) { e.preventDefault(); }, false);
+CanvasHistory.addEventListener(mousewheelevt, MouseWheel, false);
+FilterInputTimer.addEventListener('keyup', FilterKeyUp);
+FilterInputGroup.addEventListener('keyup', FilterKeyUp);
+window.addEventListener('keydown', KeyDown);
+window.addEventListener('keyup', KeyUp);
+window.addEventListener('resize', ResizeCanvas, false);
+
+
+
+
+function CalcAverage()
+{
+	var Sum = 0;
+	var Count = 0;
+	for(nLog = 0; nLog < nNumLogs; nLog++)
+	{
+		StackPos = 0;
+		for(var i = 0; i < Frames.length; i++)
+		{
+			var Frame_ = Frames[i];			
+			var tt = Frame_.tt[nLog];
+			var ts = Frame_.ts[nLog];
+
+			var count = tt.length;
+			for(var j = 0; j < count; j++)
+			{
+				var type = tt[j];
+				var time = ts[j];
+				if(type == 1)
+				{
+					Stack[StackPos] = time;//store the frame which it comes from
+					StackPos++;
+				}
+				else if(type == 0)
+				{
+					if(StackPos>0)
+					{
+
+						StackPos--;
+						var localtime = time - Stack[StackPos];
+						Count++;
+						Sum += localtime;
+					}
+				}
+			}
+		}
+	}
+	return Sum / Count;
+
+}
+
+function MakeLod(index, MinDelta, GlobalArray, LogStart)
+{
+	if(LodData[index])
+	{
+		console.log("error!!");
+	}
+	var o = new Object();
+	o.MinDelta = MinDelta;
+	o.GlobalArray = GlobalArray;
+	o.LogStart = LogStart;
+	LodData[index] = o;
+}
+
+function PreprocessBuildSplitArray()
+{
+	var nNumLogs = Frames[0].ts.length;
+
+	ProfileEnter("PreprocessBuildSplitArray");
+	var SplitArrays = new Array(nNumLogs);
+
+	for(nLog = 0; nLog < nNumLogs; nLog++)
+	{
+		var MaxDepth = 1;
+		var StackPos = 0;
+		var Stack = Array(20);
+		var TypeArray = g_TypeArray[nLog];
+		var TimeArray = g_TimeArray[nLog];
+		var DeltaTimes = new Array(TypeArray.length);
+
+		for(var j = 0; j < TypeArray.length; ++j)
+		{
+			var type = TypeArray[j];
+			var time = TimeArray[j];
+			if(type == 1)
+			{
+				//push
+				Stack[StackPos] = time;
+				StackPos++;
+			}
+			else if(type == 0)
+			{
+				if(StackPos>0)
+				{
+					StackPos--;
+					DeltaTimes[j] = time - Stack[StackPos];
+				}
+				else
+				{
+					DeltaTimes[j] = 0;
+				}
+			}
+		}
+		DeltaTimes.sort(function(a,b){return b-a;});
+		var SplitArray = Array(NumLodSplits);
+		var SplitIndex = DeltaTimes.length;
+
+		var j = 0;
+		for(j = 0; j < NumLodSplits; ++j)
+		{
+			SplitIndex = Math.floor(SplitIndex / 2);
+			while(SplitIndex > 0 && !DeltaTimes[SplitIndex])
+			{
+				SplitIndex--;
+			}
+			if(SplitIndex < SplitMin)
+			{
+				break;
+			}
+			//search.. if 0
+			var SplitTime = DeltaTimes[SplitIndex];
+			if(SplitTime>=0)
+			{
+				SplitArray[j] = SplitTime;
+			}
+			else
+			{
+				SplitArray[j] = SPLIT_LIMIT;
+			}
+			if(j>0)
+			{
+				console.assert(SplitArray[j-1] <= SplitArray[j], "must be less");
+			}
+
+		}
+		for(; j < NumLodSplits; ++j)
+		{
+			SplitArray[j] = SPLIT_LIMIT;
+		}
+
+
+		SplitArrays[nLog] = SplitArray;
+	}
+	ProfileLeave();
+	return SplitArrays;
+}
+
+function PreprocessBuildDurationArray()
+{
+	var nNumLogs = Frames[0].ts.length;
+	ProfileEnter("PreprocessBuildDurationArray");
+	var DurationArrays = new Array(nNumLogs);
+	for(nLog = 0; nLog < nNumLogs; ++nLog)
+	{
+		var MaxDepth = 1;
+		var StackPos = 0;
+		var Stack = Array(20);
+		var StackIndex = Array(20);
+		var TypeArray = g_TypeArray[nLog];
+		var TimeArray = g_TimeArray[nLog];
+		var DurationArray = Array(g_TypeArray[nLog].length);
+		for(var j = 0; j < TypeArray.length; ++j)
+		{
+			var type = TypeArray[j];
+			var time = TimeArray[j];
+			if(type == 1)
+			{
+				//push
+				Stack[StackPos] = time;
+				StackIndex[StackPos] = j;
+				StackPos++;
+			}
+			else if(type == 0)
+			{
+				if(StackPos>0)
+				{
+					StackPos--;
+					var Duration = time - Stack[StackPos];
+					DurationArray[StackIndex[StackPos]] = Duration;
+					DurationArray[j] = Duration;
+				}
+				else
+				{
+					DurationArray[j] = 0;
+				}
+			}
+		}
+		for(var j = 0; j < StackPos; ++j)
+		{
+			DurationArray[j] = 0;
+		}
+		DurationArrays[nLog] = DurationArray;
+	}
+	ProfileLeave();
+	return DurationArrays;
+
+}
+function PreprocessLods()
+{
+	ProfileEnter("PreprocessLods");
+	var nNumLogs = Frames[0].ts.length;
+	var SplitArrays = PreprocessBuildSplitArray();
+	var DurationArrays = PreprocessBuildDurationArray();
+	var Source = LodData[0];
+	var SourceLogStart = Source.LogStart;
+	var NumFrames = SourceLogStart.length;
+
+	for(var i = 0; i < NumLodSplits-1; ++i)
+	{
+		var DestLogStart = Array(SourceLogStart.length);
+		for(var j = 0; j < DestLogStart.length; ++j)
+		{
+			DestLogStart[j] = Array(nNumLogs);
+		}
+		var MinDelta = Array(nNumLogs);
+		var GlobalArray = Array(nNumLogs);
+
+		for(nLog = 0; nLog < nNumLogs; ++nLog)
+		{
+			var Duration = DurationArrays[nLog];
+			var SplitTime = SplitArrays[nLog][i];
+
+			MinDelta[nLog] = SplitTime;
+			if(SplitTime < SPLIT_LIMIT)
+			{
+				var SourceCount = Duration.length;
+				var DestGlobalArray = Array();
+				var RemapArray = Array(SourceCount);
+
+				for(var j = 0; j < SourceCount; ++j)
+				{
+					RemapArray[j] = DestGlobalArray.length;
+					if(Duration[j] >= SplitTime)
+					{
+						DestGlobalArray.push(j);
+					}
+				}
+				GlobalArray[nLog] = DestGlobalArray;
+				for(var j = 0; j < NumFrames; ++j)
+				{
+					var OldStart = SourceLogStart[j][nLog];
+					var NewStart = RemapArray[OldStart];
+					var FrameArray = DestLogStart[j];
+					FrameArray[nLog] = NewStart;
+				}
+			}
+			else
+			{
+
+				for(var j = 0; j < NumFrames; ++j)
+				{
+					var FrameArray = DestLogStart[j];
+	
+					FrameArray[nLog] = 0;
+				}
+
+			}
+
+		}
+		MakeLod(i+1, MinDelta, GlobalArray, DestLogStart);
+	}
+	ProfileLeave();
+}
+function PreprocessGlobalArray()
+{
+	ProfileEnter("PreprocessGlobalArray");
+	var nNumLogs = Frames[0].ts.length;
+	var CaptureStart = Frames[0].framestart;
+	var CaptureEnd = Frames[Frames.length-1].frameend;
+	g_GlobalArray = new Array(nNumLogs);
+	g_TypeArray = new Array(nNumLogs);
+	g_TimeArray = new Array(nNumLogs);
+	g_IndexArray = new Array(nNumLogs);
+	g_LabelArray = new Array(nNumLogs);
+	var StackPos = 0;
+	var Stack = Array(20);
+	var LogStartArray = new Array(Frames.length);
+	for(var i = 0; i < Frames.length; i++)
+	{
+		Frames[i].LogStart = new Array(nNumLogs);	
+		LogStartArray[i] = Frames[i].LogStart;
+
+		Frames[i].LogEnd = new Array(nNumLogs);
+	}
+	var MinDelta = Array(nNumLogs);
+	for(nLog = 0; nLog < nNumLogs; nLog++)
+	{
+		MinDelta[nLog] = 0;
+		var Discard = 0;
+		var GlobalArray = new Array();
+		var TypeArray = new Array();
+		var TimeArray = new Array();
+		var IndexArray = new Array();
+		var LabelArray = new Array();
+		for(var i = 0; i < Frames.length; i++)
+		{
+			var Frame_ = Frames[i];	
+			Frame_.LogStart[nLog] = TimeArray.length;
+			var FrameDiscard = (ThreadGpu[nLog] ? Frame_.frameendgpu : Frame_.frameend) + 33;//if timestamps are more than 33ms after current frame, we assume buffer has wrapped.
+			var tt = Frame_.tt[nLog];
+			var ts = Frame_.ts[nLog];
+			var ti = Frame_.ti[nLog];
+			var tl = Frame_.tl[nLog];
+			var len = tt.length;
+			var DiscardLast = 0;
+			for(var xx = 0; xx < len; ++xx)
+			{
+				var Skip = (tt[xx] == 4) ? DiscardLast : ts[xx] > FrameDiscard;
+				if(Skip)
+				{
+					Discard++;
+					DiscardLast = 1;
+				}
+				else
+				{
+					DiscardLast = 0;
+					GlobalArray.push(TypeArray.length);
+					TypeArray.push(tt[xx]);
+					TimeArray.push(ts[xx]);
+					IndexArray.push(ti[xx]);
+
+					// Use label after the region instead of the region name for some regions
+					var Label = null;
+					if(xx + 1 < len && tt[xx] == 1 && tt[xx+1] == 3 && TimerInfo[ti[xx]].namelabel)
+					{
+						Label = tl[ti[xx+1]];
+					}
+
+					LabelArray.push(Label);
+				}
+			}
+			Frame_.LogEnd[nLog] = TimeArray.length;
+		}
+		g_GlobalArray[nLog] = GlobalArray;
+		g_TypeArray[nLog] = TypeArray;
+		g_TimeArray[nLog] = TimeArray;
+		g_IndexArray[nLog] = IndexArray;
+		g_LabelArray[nLog] = LabelArray;
+		if(Discard)
+		{
+			console.log('discarded ' + Discard + ' markers from ' + ThreadNames[nLog]);
+		}
+	}
+	MakeLod(0, MinDelta, g_GlobalArray, LogStartArray);
+	ProfileLeave();
+}
+
+function PreprocessFindFirstFrames()
+{
+	ProfileEnter("PreprocesFindFirstFrames");
+	//create arrays that show how far back we need to start search in order to get all markers.
+	var nNumLogs = Frames[0].ts.length;
+	for(var i = 0; i < Frames.length; i++)
+	{
+		Frames[i].FirstFrameIndex = new Array(nNumLogs);
+	}
+
+	var StackPos = 0;
+	var Stack = Array(20);
+	g_MaxStack = Array(nNumLogs);
+	
+	for(nLog = 0; nLog < nNumLogs; nLog++)
+	{
+		var MaxStack = 0;
+		StackPos = 0;
+		for(var i = 0; i < Frames.length; i++)
+		{
+			var Frame_ = Frames[i];			
+			var tt = Frame_.tt[nLog];
+			var count = tt.length;
+
+			var FirstFrame = i;
+			if(StackPos>0)
+			{
+				FirstFrame = Stack[0];
+			}
+			Frames[i].FirstFrameIndex[nLog] = FirstFrame;
+
+			for(var j = 0; j < count; j++)
+			{
+				var type = tt[j];
+				if(type == 1)
+				{
+					Stack[StackPos] = i;//store the frame which it comes from
+					StackPos++;
+					if(StackPos > MaxStack)
+					{
+						MaxStack = StackPos;
+					}
+				}
+				else if(type == 0)
+				{
+					if(StackPos>0)
+					{
+						StackPos--;
+					}
+				}
+			}
+		}
+		g_MaxStack[nLog] = MaxStack;
+	}
+	ProfileLeave();
+}
+function PreprocessMeta()
+{
+	MetaLengths = Array(MetaNames.length);
+	MetaLengthsAvg = Array(MetaNames.length);
+	MetaLengthsMax = Array(MetaNames.length);
+	for(var i = 0; i < MetaNames.length; ++i)
+	{
+		MetaLengths[i] = MetaNames[i].length+1;
+		MetaLengthsAvg[i] = MetaNames[i].length+5;
+		MetaLengthsMax[i] = MetaNames[i].length+5;
+		if(MetaLengths[i]<12)
+			MetaLengths[i] = 12;
+		if(MetaLengthsAvg[i]<12)
+			MetaLengthsAvg[i] = 12;
+		if(MetaLengthsMax[i]<12)
+			MetaLengthsMax[i] = 12;
+	}
+	for(var i = 0; i < TimerInfo.length; ++i)
+	{
+		var Timer = TimerInfo[i];
+		for(var j = 0; j < MetaNames.length; ++j)
+		{
+			var Len = FormatMeta(Timer.meta[j],0).length + 2;
+			var LenAvg = FormatMeta(Timer.meta[j],2).length + 2;
+			var LenMax = FormatMeta(Timer.meta[j],0).length + 2;
+			if(Len > MetaLengths[j])
+			{
+				MetaLengths[j] = Len;
+			}
+			if(LenAvg > MetaLengthsAvg[j])
+			{
+				MetaLengthsAvg[j] = LenAvg;
+			}
+			if(LenMax > MetaLengthsMax[j])
+			{
+				MetaLengthsMax[j] = LenMax;
+			}
+		}
+	}
+}
+
+function Preprocess()
+{
+	var ProfileModeOld = ProfileMode;
+	ProfileMode = 1;
+	ProfileModeClear();
+	ProfileEnter("Preprocess");
+	PreprocessCalculateAllTimers();
+	PreprocessFindFirstFrames();
+	PreprocessGlobalArray();
+	PreprocessLods();
+	PreprocessMeta();
+	PreprocessContextSwitchCache();
+	ProfileLeave();
+	ProfileModeDump();
+	ProfileMode = ProfileModeOld;
+	Initialized = 1;
+}
+
+InitGroups();
+ReadCookie();
+MeasureFont()
+InitThreadMenu();
+InitGroupMenu();
+InitFrameInfo();
+UpdateThreadMenu();
+ResizeCanvas();
+Preprocess();
+OnPageReady();
+Draw(1);
+AutoRedraw();
+
+</script>
+</body>
+</html>

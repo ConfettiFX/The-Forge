@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="f6f6f0cf-9bb6-4bcc-839d-362df19ff006" Version="1.4" Language="en-US" Publisher="Confetti Interactive Inc." />
+        <Identity Id="f6f6f0cf-9bb6-4bcc-839d-362df19ff006" Version="1.5" Language="en-US" Publisher="Confetti Interactive Inc." />
         <DisplayName>ShaderBuildCommand</DisplayName>
         <Description xml:space="preserve">Right Click context menu tool to test whether selected shader file compiles. Supports HLSL and Vulkan GLSL shaders</Description>
     </Metadata>

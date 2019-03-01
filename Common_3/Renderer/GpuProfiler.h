@@ -86,13 +86,13 @@ double getAverageCpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, struct GpuProfiler** ppGpuProfiler, uint32_t maxTimers = 4096);
 void removeGpuProfiler(Renderer* pRenderer, struct GpuProfiler* pGpuProfiler);
 
-void cmdBeginGpuTimestampQuery(
-	Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker = false, const float3& color = { 1, 1, 0 });
+void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker = true, const float3& color = { 1,1,0 });
+
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTimer** ppGpuTimer = NULL);
 
 /// Must be called before any call to cmdBeginGpuTimestampQuery
 /// Preferred time to call this function is right after calling beginCmd
-void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker = false);
+void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker = true);
 /// Must be called after all gpu profiles are finished.
 /// This function cannot be called inside a render pass (cmdBeginRender-cmdEndRender)
 /// Preferred time to call this function is right before calling endCmd

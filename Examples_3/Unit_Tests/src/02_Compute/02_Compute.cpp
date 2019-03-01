@@ -26,7 +26,6 @@
 
 // Unit Test for testing Compute Shaders
 // using Julia 4D demonstration
-
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -174,6 +173,7 @@ class Compute: public IApp
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
@@ -188,7 +188,7 @@ class Compute: public IApp
 		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-
+		gAppUI.ActivateMicroProfile(true);
 #if defined(MOBILE_PLATFORM)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
@@ -229,10 +229,12 @@ class Compute: public IApp
 		computeRootDesc.ppShaders = &pComputeShader;
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
-		ComputePipelineDesc computePipelineDesc = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
 		computePipelineDesc.pRootSignature = pComputeRootSignature;
 		computePipelineDesc.pShaderProgram = pComputeShader;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pComputePipeline);
+		addPipeline(pRenderer, &desc, &pComputePipeline);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -275,7 +277,7 @@ class Compute: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 
@@ -329,7 +331,9 @@ class Compute: public IApp
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 0;
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.pRasterizerState = pRast;
 		pipelineSettings.mRenderTargetCount = 1;
@@ -340,14 +344,14 @@ class Compute: public IApp
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
-		addPipeline(pRenderer, &pipelineSettings, &pPipeline);
+		addPipeline(pRenderer, &desc, &pPipeline);
 
 		return true;
 	}
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #if defined(MOBILE_PLATFORM)
 		gVirtualJoystick.Unload();
@@ -414,7 +418,7 @@ class Compute: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -434,7 +438,7 @@ class Compute: public IApp
 
 		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
+		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass", true);
 
 		// Compute Julia 4D
 		cmdBindPipeline(cmd, pComputePipeline);
@@ -462,7 +466,7 @@ class Compute: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass");
+		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass", true);
 		// Draw computed results
 		cmdBindPipeline(cmd, pPipeline);
 		params[0].pName = "uTex0";

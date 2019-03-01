@@ -745,8 +745,7 @@ class Transparency: public IApp
 
 	void Exit() override
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
-		waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
 
@@ -802,7 +801,7 @@ class Transparency: public IApp
 
 	void Unload() override
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
@@ -1930,7 +1929,7 @@ class Transparency: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		gCpuTimer.GetUSec(true);
 		/************************************************************************/
@@ -3290,7 +3289,9 @@ class Transparency: public IApp
 		bool srgbDisabled[] = { false, false, false, false, false, false, false, false };
 
 		// Skybox pipeline
-		GraphicsPipelineDesc skyboxPipelineDesc = {};
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& skyboxPipelineDesc = desc.mGraphicsDesc;
 		skyboxPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		skyboxPipelineDesc.pShaderProgram = pShaderSkybox;
 		skyboxPipelineDesc.pRootSignature = pRootSignatureSkybox;
@@ -3304,11 +3305,12 @@ class Transparency: public IApp
 		skyboxPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		skyboxPipelineDesc.pDepthState = pDepthStateDisable;
 		skyboxPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &skyboxPipelineDesc, &pPipelineSkybox);
+		addPipeline(pRenderer, &desc, &pPipelineSkybox);
 
 #if USE_SHADOWS != 0
 		// Shadow pipeline
-		GraphicsPipelineDesc shadowPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& shadowPipelineDesc = desc.mGraphicsDesc;
 		shadowPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		shadowPipelineDesc.pShaderProgram = pShaderShadow;
 		shadowPipelineDesc.pRootSignature = pRootSignatureShadow;
@@ -3322,10 +3324,11 @@ class Transparency: public IApp
 		shadowPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
 		shadowPipelineDesc.pDepthState = pDepthStateEnable;
 		shadowPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &shadowPipelineDesc, &pPipelineShadow);
+		addPipeline(pRenderer, &desc, &pPipelineShadow);
 
 		// Gaussian blur pipeline
-		GraphicsPipelineDesc blurPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& blurPipelineDesc = desc.mGraphicsDesc;
 		blurPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		blurPipelineDesc.pShaderProgram = pShaderGaussianBlur;
 		blurPipelineDesc.pRootSignature = pRootSignatureGaussianBlur;
@@ -3339,7 +3342,7 @@ class Transparency: public IApp
 		blurPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		blurPipelineDesc.pDepthState = pDepthStateDisable;
 		blurPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &blurPipelineDesc, &pPipelineGaussianBlur);
+		addPipeline(pRenderer, &desc, &pPipelineGaussianBlur);
 
 #if PT_USE_CAUSTICS != 0
 		ImageFormat::Enum stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mDesc.mFormat,
@@ -3347,7 +3350,8 @@ class Transparency: public IApp
 															 pRenderTargetPTShadowVariance[2]->mDesc.mFormat };
 
 		// Stochastic shadow pipeline
-		GraphicsPipelineDesc stochasticShadowPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& stochasticShadowPipelineDesc = desc.mGraphicsDesc;
 		stochasticShadowPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		stochasticShadowPipelineDesc.pShaderProgram = pShaderPTShadow;
 		stochasticShadowPipelineDesc.pRootSignature = pRootSignaturePTShadow;
@@ -3361,10 +3365,11 @@ class Transparency: public IApp
 		stochasticShadowPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
 		stochasticShadowPipelineDesc.pDepthState = pDepthStateDisable;
 		stochasticShadowPipelineDesc.pBlendState = pBlendStatePTMinBlend;
-		addPipeline(pRenderer, &stochasticShadowPipelineDesc, &pPipelinePTShadow);
+		addPipeline(pRenderer, &desc, &pPipelinePTShadow);
 
 		// Downsample shadow pipeline
-		GraphicsPipelineDesc downsampleShadowPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& downsampleShadowPipelineDesc = desc.mGraphicsDesc;
 		downsampleShadowPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		downsampleShadowPipelineDesc.pShaderProgram = pShaderPTDownsample;
 		downsampleShadowPipelineDesc.pRootSignature = pRootSignaturePTDownsample;
@@ -3378,10 +3383,11 @@ class Transparency: public IApp
 		downsampleShadowPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		downsampleShadowPipelineDesc.pDepthState = pDepthStateDisable;
 		downsampleShadowPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &downsampleShadowPipelineDesc, &pPipelinePTDownsample);
+		addPipeline(pRenderer, &desc, &pPipelinePTDownsample);
 
 		// Copy shadow map pipeline
-		GraphicsPipelineDesc copyShadowDepthPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& copyShadowDepthPipelineDesc = desc.mGraphicsDesc;
 		copyShadowDepthPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		copyShadowDepthPipelineDesc.pShaderProgram = pShaderPTCopyShadowDepth;
 		copyShadowDepthPipelineDesc.pRootSignature = pRootSignaturePTCopyShadowDepth;
@@ -3395,13 +3401,14 @@ class Transparency: public IApp
 		copyShadowDepthPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		copyShadowDepthPipelineDesc.pDepthState = pDepthStateDisable;
 		copyShadowDepthPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &copyShadowDepthPipelineDesc, &pPipelinePTCopyShadowDepth);
+		addPipeline(pRenderer, &desc, &pPipelinePTCopyShadowDepth);
 
 #endif
 #endif
 
 		// Forward shading pipeline
-		GraphicsPipelineDesc forwardPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& forwardPipelineDesc = desc.mGraphicsDesc;
 		forwardPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		forwardPipelineDesc.pShaderProgram = pShaderForward;
 		forwardPipelineDesc.pRootSignature = pRootSignatureForward;
@@ -3415,10 +3422,11 @@ class Transparency: public IApp
 		forwardPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
 		forwardPipelineDesc.pDepthState = pDepthStateEnable;
 		forwardPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &forwardPipelineDesc, &pPipelineForward);
+		addPipeline(pRenderer, &desc, &pPipelineForward);
 
 		// Transparent forward shading pipeline
-		GraphicsPipelineDesc transparentForwardPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& transparentForwardPipelineDesc = desc.mGraphicsDesc;
 		transparentForwardPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		transparentForwardPipelineDesc.pShaderProgram = pShaderForward;
 		transparentForwardPipelineDesc.pRootSignature = pRootSignatureForward;
@@ -3432,10 +3440,11 @@ class Transparency: public IApp
 		transparentForwardPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		transparentForwardPipelineDesc.pDepthState = pDepthStateNoWrite;
 		transparentForwardPipelineDesc.pBlendState = pBlendStateAlphaBlend;
-		addPipeline(pRenderer, &transparentForwardPipelineDesc, &pPipelineTransparentForward);
+		addPipeline(pRenderer, &desc, &pPipelineTransparentForward);
 
 		// WBOIT shading pipeline
-		GraphicsPipelineDesc wboitShadePipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& wboitShadePipelineDesc = desc.mGraphicsDesc;
 		wboitShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		wboitShadePipelineDesc.pShaderProgram = pShaderWBOITShade;
 		wboitShadePipelineDesc.pRootSignature = pRootSignatureWBOITShade;
@@ -3449,10 +3458,11 @@ class Transparency: public IApp
 		wboitShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		wboitShadePipelineDesc.pDepthState = pDepthStateNoWrite;
 		wboitShadePipelineDesc.pBlendState = pBlendStateWBOITShade;
-		addPipeline(pRenderer, &wboitShadePipelineDesc, &pPipelineWBOITShade);
+		addPipeline(pRenderer, &desc, &pPipelineWBOITShade);
 
 		// WBOIT composite pipeline
-		GraphicsPipelineDesc wboitCompositePipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& wboitCompositePipelineDesc = desc.mGraphicsDesc;
 		wboitCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		wboitCompositePipelineDesc.pShaderProgram = pShaderWBOITComposite;
 		wboitCompositePipelineDesc.pRootSignature = pRootSignatureWBOITComposite;
@@ -3466,10 +3476,11 @@ class Transparency: public IApp
 		wboitCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		wboitCompositePipelineDesc.pDepthState = pDepthStateDisable;
 		wboitCompositePipelineDesc.pBlendState = pBlendStateAlphaBlend;
-		addPipeline(pRenderer, &wboitCompositePipelineDesc, &pPipelineWBOITComposite);
+		addPipeline(pRenderer, &desc, &pPipelineWBOITComposite);
 
 		// WBOIT Volition shading pipeline
-		GraphicsPipelineDesc wboitVolitionShadePipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& wboitVolitionShadePipelineDesc = desc.mGraphicsDesc;
 		wboitVolitionShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		wboitVolitionShadePipelineDesc.pShaderProgram = pShaderWBOITVShade;
 		wboitVolitionShadePipelineDesc.pRootSignature = pRootSignatureWBOITVShade;
@@ -3483,10 +3494,11 @@ class Transparency: public IApp
 		wboitVolitionShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		wboitVolitionShadePipelineDesc.pDepthState = pDepthStateNoWrite;
 		wboitVolitionShadePipelineDesc.pBlendState = pBlendStateWBOITVolitionShade;
-		addPipeline(pRenderer, &wboitVolitionShadePipelineDesc, &pPipelineWBOITVShade);
+		addPipeline(pRenderer, &desc, &pPipelineWBOITVShade);
 
 		// WBOIT Volition composite pipeline
-		GraphicsPipelineDesc wboitVolitionCompositePipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& wboitVolitionCompositePipelineDesc = desc.mGraphicsDesc;
 		wboitVolitionCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		wboitVolitionCompositePipelineDesc.pShaderProgram = pShaderWBOITVComposite;
 		wboitVolitionCompositePipelineDesc.pRootSignature = pRootSignatureWBOITVComposite;
@@ -3500,10 +3512,11 @@ class Transparency: public IApp
 		wboitVolitionCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		wboitVolitionCompositePipelineDesc.pDepthState = pDepthStateDisable;
 		wboitVolitionCompositePipelineDesc.pBlendState = pBlendStateAlphaBlend;
-		addPipeline(pRenderer, &wboitVolitionCompositePipelineDesc, &pPipelineWBOITVComposite);
+		addPipeline(pRenderer, &desc, &pPipelineWBOITVComposite);
 
 		// PT shading pipeline
-		GraphicsPipelineDesc ptShadePipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& ptShadePipelineDesc = desc.mGraphicsDesc;
 		ptShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ptShadePipelineDesc.pShaderProgram = pShaderPTShade;
 		ptShadePipelineDesc.pRootSignature = pRootSignaturePTShade;
@@ -3517,10 +3530,11 @@ class Transparency: public IApp
 		ptShadePipelineDesc.pRasterizerState = pRasterizerStateCullFront;
 		ptShadePipelineDesc.pDepthState = pDepthStateNoWrite;
 		ptShadePipelineDesc.pBlendState = pBlendStatePTShade;
-		addPipeline(pRenderer, &ptShadePipelineDesc, &pPipelinePTShade);
+		addPipeline(pRenderer, &desc, &pPipelinePTShade);
 
 		// PT composite pipeline
-		GraphicsPipelineDesc ptCompositePipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& ptCompositePipelineDesc = desc.mGraphicsDesc;
 		ptCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ptCompositePipelineDesc.pShaderProgram = pShaderPTComposite;
 		ptCompositePipelineDesc.pRootSignature = pRootSignaturePTComposite;
@@ -3534,13 +3548,14 @@ class Transparency: public IApp
 		ptCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		ptCompositePipelineDesc.pDepthState = pDepthStateDisable;
 		ptCompositePipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &ptCompositePipelineDesc, &pPipelinePTComposite);
+		addPipeline(pRenderer, &desc, &pPipelinePTComposite);
 
 #if PT_USE_DIFFUSION != 0
 		ImageFormat::Enum ptCopyDepthFormat = ImageFormat::R32F;
 
 		// PT copy depth pipeline
-		GraphicsPipelineDesc ptCopyDepthPipelineDesc = {};
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& ptCopyDepthPipelineDesc = desc.mGraphicsDesc;
 		ptCopyDepthPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ptCopyDepthPipelineDesc.pShaderProgram = pShaderPTCopyDepth;
 		ptCopyDepthPipelineDesc.pRootSignature = pRootSignaturePTCopyDepth;
@@ -3554,19 +3569,23 @@ class Transparency: public IApp
 		ptCopyDepthPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 		ptCopyDepthPipelineDesc.pDepthState = pDepthStateDisable;
 		ptCopyDepthPipelineDesc.pBlendState = NULL;
-		addPipeline(pRenderer, &ptCopyDepthPipelineDesc, &pPipelinePTCopyDepth);
+		addPipeline(pRenderer, &desc, &pPipelinePTCopyDepth);
 
 		// PT generate mips pipeline
-		ComputePipelineDesc ptGenMipsPipelineDesc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		desc.mComputeDesc = {};
+		ComputePipelineDesc& ptGenMipsPipelineDesc = desc.mComputeDesc;
 		ptGenMipsPipelineDesc.pShaderProgram = pShaderPTGenMips;
 		ptGenMipsPipelineDesc.pRootSignature = pRootSignaturePTGenMips;
-		addComputePipeline(pRenderer, &ptGenMipsPipelineDesc, &pPipelinePTGenMips);
+		addPipeline(pRenderer, &desc, &pPipelinePTGenMips);
 #endif
 #if defined(DIRECT3D12) && !defined(_DURANGO)
 		if (pRenderer->pActiveGpuSettings->mROVsSupported)
 		{
 			// AOIT shading pipeline
-			GraphicsPipelineDesc aoitShadePipelineDesc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			desc.mGraphicsDesc = {};
+			GraphicsPipelineDesc& aoitShadePipelineDesc = desc.mGraphicsDesc;
 			aoitShadePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 			aoitShadePipelineDesc.pShaderProgram = pShaderAOITShade;
 			aoitShadePipelineDesc.pRootSignature = pRootSignatureAOITShade;
@@ -3580,10 +3599,11 @@ class Transparency: public IApp
 			aoitShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 			aoitShadePipelineDesc.pDepthState = pDepthStateNoWrite;
 			aoitShadePipelineDesc.pBlendState = NULL;
-			addPipeline(pRenderer, &aoitShadePipelineDesc, &pPipelineAOITShade);
+			addPipeline(pRenderer, &desc, &pPipelineAOITShade);
 
 			// AOIT composite pipeline
-			GraphicsPipelineDesc aoitCompositePipelineDesc = {};
+			desc.mGraphicsDesc = {};
+			GraphicsPipelineDesc& aoitCompositePipelineDesc = desc.mGraphicsDesc;
 			aoitCompositePipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 			aoitCompositePipelineDesc.pShaderProgram = pShaderAOITComposite;
 			aoitCompositePipelineDesc.pRootSignature = pRootSignatureAOITComposite;
@@ -3597,10 +3617,11 @@ class Transparency: public IApp
 			aoitCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 			aoitCompositePipelineDesc.pDepthState = pDepthStateDisable;
 			aoitCompositePipelineDesc.pBlendState = pBlendStateAOITComposite;
-			addPipeline(pRenderer, &aoitCompositePipelineDesc, &pPipelineAOITComposite);
+			addPipeline(pRenderer, &desc, &pPipelineAOITComposite);
 
 			// AOIT clear pipeline
-			GraphicsPipelineDesc aoitClearPipelineDesc = {};
+			desc.mGraphicsDesc = {};
+			GraphicsPipelineDesc& aoitClearPipelineDesc = desc.mGraphicsDesc;
 			aoitClearPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 			aoitClearPipelineDesc.pShaderProgram = pShaderAOITClear;
 			aoitClearPipelineDesc.pRootSignature = pRootSignatureAOITClear;
@@ -3614,7 +3635,7 @@ class Transparency: public IApp
 			aoitClearPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 			aoitClearPipelineDesc.pDepthState = pDepthStateDisable;
 			aoitClearPipelineDesc.pBlendState = NULL;
-			addPipeline(pRenderer, &aoitClearPipelineDesc, &pPipelineAOITClear);
+			addPipeline(pRenderer, &desc, &pPipelineAOITClear);
 		}
 #endif
 	}

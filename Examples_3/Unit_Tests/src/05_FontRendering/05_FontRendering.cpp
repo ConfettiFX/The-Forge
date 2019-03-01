@@ -323,7 +323,7 @@ class FontRendering: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Exit();
 
@@ -364,7 +364,7 @@ class FontRendering: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 		removeSwapChain(pRenderer, pSwapChain);
 	}
 
@@ -424,7 +424,7 @@ class FontRendering: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};

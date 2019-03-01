@@ -104,6 +104,7 @@ public:
 
 				HandleAxis(device_, nextState_, delta_, MouseAxisX, (float)absMousePosX);
 				HandleAxis(device_, nextState_, delta_, MouseAxisY, (float)absMousePosY);
+
 			}
 			else if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
 			{

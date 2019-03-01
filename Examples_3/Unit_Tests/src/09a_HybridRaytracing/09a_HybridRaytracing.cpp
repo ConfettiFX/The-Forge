@@ -1116,7 +1116,7 @@ return true;
 
 void Exit()
 {
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+	waitQueueIdle(pGraphicsQueue);
 
 	destroyCameraController(pCameraController);
 
@@ -1714,7 +1714,9 @@ bool Load()
 			deferredSrgb[i] = false;
 		}
 
-		GraphicsPipelineDesc pipelineSettings = {};
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = GBufferRT::Noof;
 		pipelineSettings.pDepthState = pDepthDefault;
@@ -1731,31 +1733,37 @@ bool Load()
 		pipelineSettings.pVertexLayout = &vertexLayoutGPrepass;
 		pipelineSettings.pRasterizerState = pRasterDefault;
 
-		addPipeline(pRenderer, &pipelineSettings, &RenderPasses[RenderPass::GBuffer]->pPipeline);
+		addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::GBuffer]->pPipeline);
 	}
 
 	//create shadows pipeline
 	{
-		ComputePipelineDesc pipelineDesc = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
 		pipelineDesc.pRootSignature = RenderPasses[RenderPass::RaytracedShadows]->pRootSignature;
 		pipelineDesc.pShaderProgram = RenderPasses[RenderPass::RaytracedShadows]->pShader;
-		addComputePipeline(pRenderer, &pipelineDesc, &RenderPasses[RenderPass::RaytracedShadows]->pPipeline);
+		addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::RaytracedShadows]->pPipeline);
 	}
 
 	//create lighting pipeline
 	{
-		ComputePipelineDesc pipelineDesc = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
 		pipelineDesc.pRootSignature = RenderPasses[RenderPass::Lighting]->pRootSignature;
 		pipelineDesc.pShaderProgram = RenderPasses[RenderPass::Lighting]->pShader;
-		addComputePipeline(pRenderer, &pipelineDesc, &RenderPasses[RenderPass::Lighting]->pPipeline);
+		addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::Lighting]->pPipeline);
 	}
 
 	//create composite pipeline
 	{
-		ComputePipelineDesc pipelineDesc = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
 		pipelineDesc.pRootSignature = RenderPasses[RenderPass::Composite]->pRootSignature;
 		pipelineDesc.pShaderProgram = RenderPasses[RenderPass::Composite]->pShader;
-		addComputePipeline(pRenderer, &pipelineDesc, &RenderPasses[RenderPass::Composite]->pPipeline);
+		addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::Composite]->pPipeline);
 	}
 
 	//create copy to backbuffer pipeline
@@ -1763,7 +1771,9 @@ bool Load()
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 0;
 
-		GraphicsPipelineDesc pipelineSettings = {};
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pRasterizerState = pRasterDefault;
@@ -1778,7 +1788,7 @@ bool Load()
 		pipelineSettings.pRootSignature = RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature;
 		pipelineSettings.pShaderProgram = RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
 
-		addPipeline(pRenderer, &pipelineSettings, &RenderPasses[RenderPass::CopyToBackbuffer]->pPipeline);
+		addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::CopyToBackbuffer]->pPipeline);
 	}
 
 	//make the camera point towards the centre of the scene;
@@ -1796,7 +1806,7 @@ bool Load()
 
 void Unload()
 {
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+	waitQueueIdle(pGraphicsQueue);
 
 	gAppUI.Unload();
 
@@ -2245,7 +2255,7 @@ void Draw()
 		pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 		&pRenderCompleteSemaphore);
 	queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-	waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+	waitForFences(pRenderer, 1, &pRenderCompleteFence);
 }
 
 tinystl::string GetName() { return "09a_HybridRaytracing"; }

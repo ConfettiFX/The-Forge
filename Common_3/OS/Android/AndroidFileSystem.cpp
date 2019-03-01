@@ -54,7 +54,11 @@ FileHandle open_file(const char* filename, const char* flags)
 		LOGERROR("Writing to asset file is not supported on android platform!");
 		return NULL;
 	}
-	AAsset* file = AAssetManager_open(_mgr, filename, AASSET_MODE_BUFFER);
+	if(_mgr == nullptr)
+		return NULL;
+
+	AAsset* file = AAssetManager_open(_mgr,
+		filename, AASSET_MODE_BUFFER);
 
 	if(_mgr == nullptr) return NULL;
 

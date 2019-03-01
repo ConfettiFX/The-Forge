@@ -32,7 +32,6 @@
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Image/Image.h"
 #include "../../Common_3/OS/Core/RingBuffer.h"
-
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
 
@@ -172,12 +171,13 @@ class _Impl_FontStash
 #endif
 
 		mPipelineDesc = {};
-		mPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		mPipelineDesc.mRenderTargetCount = 1;
-		mPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
-		mPipelineDesc.pBlendState = pBlendAlpha;
-		mPipelineDesc.pRootSignature = pRootSignature;
-		mPipelineDesc.pVertexLayout = &mVertexLayout;
+		mPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		mPipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		mPipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
+		mPipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
+		mPipelineDesc.mGraphicsDesc.pBlendState = pBlendAlpha;
+		mPipelineDesc.mGraphicsDesc.pRootSignature = pRootSignature;
+		mPipelineDesc.mGraphicsDesc.pVertexLayout = &mVertexLayout;
 		/************************************************************************/
 		/************************************************************************/
 	}
@@ -258,7 +258,7 @@ class _Impl_FontStash
 	UniformRingBuffer*   pUniformRingBuffer;
 	MeshRingBuffer*      pMeshRingBuffer;
 	VertexLayout         mVertexLayout = {};
-	GraphicsPipelineDesc mPipelineDesc = {};
+	PipelineDesc		 mPipelineDesc = {};
 	float2               mDpiScale;
 	float                mDpiScaleMin;
 	bool                 mText3D;
@@ -479,7 +479,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	_Impl_FontStash::PipelineMap::iterator it = ctx->mPipelines[ctx->mText3D].find(pCmd->mRenderPassHash);
 	if (it == ctx->mPipelines[ctx->mText3D].end())
 	{
-		GraphicsPipelineDesc pipelineDesc = ctx->mPipelineDesc;
+		GraphicsPipelineDesc& pipelineDesc = ctx->mPipelineDesc.mGraphicsDesc;
 		pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
 		pipelineDesc.mRenderTargetCount = pCmd->mBoundRenderTargetCount;
 		pipelineDesc.mSampleCount = pCmd->mBoundSampleCount;
@@ -489,7 +489,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		pipelineDesc.pRasterizerState = ctx->pRasterizerStates[ctx->mText3D];
 		pipelineDesc.pSrgbValues = pCmd->pBoundSrgbValues;
 		pipelineDesc.pShaderProgram = ctx->pShaders[ctx->mText3D];
-		addPipeline(pCmd->pRenderer, &pipelineDesc, &pPipeline);
+		addPipeline(pCmd->pRenderer, &ctx->mPipelineDesc, &pPipeline);
 		ctx->mPipelines[ctx->mText3D].insert({ pCmd->mRenderPassHash, pPipeline });
 	}
 	else

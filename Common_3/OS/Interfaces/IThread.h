@@ -39,6 +39,17 @@
 typedef unsigned ThreadID;
 #endif
 
+struct AtomicUint
+{
+	AtomicUint();
+	~AtomicUint();
+	unsigned int AtomicIncrement();
+	unsigned int AtomicDecrement();
+	void AtomicStore(unsigned int i);
+
+	volatile unsigned int mAtomicInt;
+};
+
 /// Operating system mutual exclusion primitive.
 struct Mutex
 {

@@ -530,7 +530,7 @@ class MultiThread: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 
@@ -628,7 +628,9 @@ class MultiThread: public IApp
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc graphicsPipelineDesc = {};
+		graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_POINT_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pBlendState = gParticleBlend;
@@ -640,7 +642,7 @@ class MultiThread: public IApp
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pPipeline);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipeline);
 
 		//layout and pipeline for skybox draw
 		vertexLayout = {};
@@ -662,7 +664,7 @@ class MultiThread: public IApp
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pSkyBoxDrawPipeline);
 
 		/********** layout and pipeline for graph draw*****************/
 		vertexLayout = {};
@@ -691,13 +693,13 @@ class MultiThread: public IApp
 		pipelineSettings.pRootSignature = pGraphRootSignature;
 		pipelineSettings.pShaderProgram = pGraphShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineSettings, &pGraphLinePipeline);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pGraphLinePipeline);
 
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-		addPipeline(pRenderer, &pipelineSettings, &pGraphTrianglePipeline);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pGraphTrianglePipeline);
 
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_LIST;
-		addPipeline(pRenderer, &pipelineSettings, &pGraphLineListPipeline);
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pGraphLineListPipeline);
 		/********************************************************************/
 
 		return true;
@@ -705,7 +707,7 @@ class MultiThread: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex % gImageCount], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
@@ -808,7 +810,7 @@ class MultiThread: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		uint32_t frameIdx = gFrameIndex;
 		/*******record command for drawing particles***************/

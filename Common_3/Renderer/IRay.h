@@ -40,7 +40,6 @@ static inline ENUM_TYPE operator&=(ENUM_TYPE& a, ENUM_TYPE b) \
 #endif
 
 typedef struct Renderer Renderer;
-typedef struct RaytracingShader RaytracingShader;
 typedef struct Buffer Buffer;
 typedef struct Texture Texture;
 typedef struct Cmd Cmd;
@@ -52,6 +51,7 @@ typedef struct RootSignature RootSignature;
 typedef struct RootSignatureDesc RootSignatureDesc;
 typedef struct ShaderResource ShaderResource;
 typedef struct DescriptorData DescriptorData;
+typedef struct ID3D12Device5 ID3D12Device5;
 
 //Supported by DXR. Metal ignores this.
 typedef enum AccelerationStructureBuildFlags
@@ -146,41 +146,12 @@ typedef struct AccelerationStructureDescTop
 /************************************************************************/
 typedef struct RaytracingHitGroup
 {
-	RootSignature*	  pRootSignature;
-	RaytracingShader*   pIntersectionShader;
-	RaytracingShader*   pAnyHitShader;
-	RaytracingShader*   pClosestHitShader;
-	const char*		 pHitGroupName;
+	RootSignature*	    pRootSignature;
+	Shader*             pIntersectionShader;
+	Shader*             pAnyHitShader;
+	Shader*             pClosestHitShader;
+	const char*			pHitGroupName;
 } RaytracingHitGroup;
-/************************************************************************/
-// #pGlobalRootSignature - Root Signature used by all shaders in the ppShaders array
-// #ppShaders - Array of all shaders which can be called during the raytracing operation
-//	  This includes the ray generation shader, all miss, any hit, closest hit shaders
-// #pHitGroups - Name of the hit groups which will tell the pipeline about which combination of hit shaders to use
-// #mPayloadSize - Size of the payload struct for passing data to and from the shaders.
-//	  Example - float4 payload sent by raygen shader which will be filled by miss shader as a skybox color
-//				  or by hit shader as shaded color
-// #mAttributeSize - Size of the intersection attribute. As long as user uses the default intersection shader
-//	  this size is sizeof(float2) which represents the ZW of the barycentric co-ordinates of the intersection
-/************************************************************************/
-typedef struct RaytracingPipelineDesc
-{
-	RootSignature*		pGlobalRootSignature;
-	RaytracingShader*   pRayGenShader;
-	RootSignature*		pRayGenRootSignature;
-	RaytracingShader**  ppMissShaders;
-	RootSignature**		ppMissRootSignatures;
-	RaytracingHitGroup* pHitGroups;
-	RootSignature*		pEmptyRootSignature;
-	unsigned			mMissShaderCount;
-	unsigned			mHitGroupCount;
-	// #TODO : Remove this after adding shader reflection for raytracing shaders
-	unsigned			mPayloadSize;
-	// #TODO : Remove this after adding shader reflection for raytracing shaders
-	unsigned			mAttributeSize;
-	unsigned			mMaxTraceRecursionDepth;
-    unsigned            mMaxRaysCount;
-} RaytracingPipelineDesc;
 
 typedef struct RaytracingShaderTableRecordDesc
 {
@@ -195,7 +166,7 @@ typedef struct RaytracingShaderTableRecordDesc
 
 typedef struct RaytracingShaderTableDesc
 {
-	RaytracingPipeline*				    pPipeline;
+	Pipeline*						    pPipeline;
 	RootSignature*						pEmptyRootSignature;
 	RaytracingShaderTableRecordDesc*	pRayGenShader;
 	RaytracingShaderTableRecordDesc*	pMissShaders;
@@ -213,7 +184,7 @@ typedef struct RaytracingDispatchDesc
 	RaytracingShaderTable*  pShaderTable;
     DescriptorData*         pRootSignatureDescriptorData;
     RootSignature*          pRootSignature;
-    RaytracingPipeline*     pPipeline;
+    Pipeline*				pPipeline;
 } RaytracingDispatchDesc;
 
 typedef struct RaytracingBuildASDesc
@@ -249,22 +220,10 @@ void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure);
 void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 
-void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode, unsigned byteCodeSize, const char* pName, RaytracingShader** ppShader);
-void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader);
-
-void addRaytracingRootSignature(Raytracing* pRaytracing, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
-// #NOTE : Use the regular removeRootSignature function for cleaning up
-
-void addRaytracingPipeline(Raytracing* pRaytracing, const RaytracingPipelineDesc* pDesc, RaytracingPipeline** ppPipeline);
-void removeRaytracingPipeline(Raytracing* pRaytracing, RaytracingPipeline* pPipeline);
-
 void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable);
 void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable);
 
 void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
 void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc);
-
-//Rustam: remove this. Use blit shader Assets/Shaders/D3D12/Scene/textureQuad
-void cmdCopyTexture(Cmd* pCmd, Texture* pDst, Texture* pSrc);
 
 #endif

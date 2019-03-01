@@ -51,11 +51,11 @@ struct Fragment_Shader
 
 fragment float4 stageMain(
 						  Fragment_Shader::PsIn In [[stage_in]],
-						  constant Fragment_Shader::Uniforms_RootConstantSunMatrices & RootConstantSunMatrices [[buffer(1)]])
+						  constant Fragment_Shader::Uniforms_RootConstantSunMatrices & UniformBufferSunMatrices [[buffer(1)]])
 {
 	Fragment_Shader::PsIn In0;
 	In0.Position = float4(In.Position.xyz, 1.0 / In.Position.w);
-	Fragment_Shader main(RootConstantSunMatrices);
+	Fragment_Shader main(UniformBufferSunMatrices);
 	return main.main(In0);
 }
 

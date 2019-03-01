@@ -26,6 +26,8 @@
 		5CABF3762141543F00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3752141543F00EFD76A /* GameController.framework */; };
 		5CE86ACD21D0F58000B4778F /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CE86AC821D0F56100B4778F /* libLuaManager.a */; };
 		5CE86AD021D21B9B00B4778F /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CE86ACA21D0F56100B4778F /* libLuaManager_iOS.a */; };
+		650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */; };
+		650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */; };
 		654D976621E9215F00113964 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976221E9215F00113964 /* TressFXAsset.cpp */; };
 		654D976721E9215F00113964 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976421E9215F00113964 /* TFXImporter.cpp */; };
 		654D976821E9216200113964 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976421E9215F00113964 /* TFXImporter.cpp */; };
@@ -434,6 +436,8 @@
 		5CA80E8121F0A02000C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
 		5CABF3752141543F00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		5CE86AC221D0F56100B4778F /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
+		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		654D976121E9215F00113964 /* TFXImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TFXImporter.h; path = ../../../../Common_3/Tools/TFXImporter/TFXImporter.h; sourceTree = "<group>"; };
 		654D976221E9215F00113964 /* TressFXAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TressFXAsset.cpp; path = ../../../../Common_3/Tools/TFXImporter/TressFXAsset.cpp; sourceTree = "<group>"; };
 		654D976321E9215F00113964 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../../Common_3/Tools/TFXImporter/TressFXFileFormat.h; sourceTree = "<group>"; };
@@ -492,6 +496,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */,
 				654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */,
 				5CE86AD021D21B9B00B4778F /* libLuaManager_iOS.a in Frameworks */,
@@ -510,6 +515,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C172F8721414A2C0074EE71 /* libThe-Forge.a in Frameworks */,
 				654D977F21E9219800113964 /* ozz_animation.a in Frameworks */,
 				654D978021E9219800113964 /* ozz_base.a in Frameworks */,
@@ -586,6 +592,8 @@
 		28A5AD99201F7411000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */,
+				650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */,
 				B21F76D521420EB300DF2297 /* Metal.framework */,
 				B2087DE621421A4A006F372D /* Metal.framework */,
 				B21F76D421420EB300DF2297 /* MetalKit.framework */,

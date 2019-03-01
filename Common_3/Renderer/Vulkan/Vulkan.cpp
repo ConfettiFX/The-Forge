@@ -24,6 +24,10 @@
 
 #ifdef VULKAN
 
+#ifndef MICROPROFILE_IMPL
+#define MICROPROFILE_IMPL 1
+#endif
+
 #define RENDERER_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
 #define MAX_FRAMES_IN_FLIGHT 3U
@@ -83,8 +87,7 @@ static const char * g_hackSemanticList[] =
 
 #include "../../OS/Interfaces/IMemoryManager.h"
 
-extern void
-			vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
+extern void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 extern long vk_createBuffer(
 	MemoryAllocator* pAllocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Buffer* pBuffer);
@@ -93,6 +96,9 @@ extern long vk_createTexture(
 	MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Texture* pTexture);
 extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
+extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
+	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr);
+extern void addRaytracingPipeline(const RaytracingPipelineDesc*, Pipeline**);
 
 // clang-format off
 VkBlendOp gVkBlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
@@ -1271,7 +1277,6 @@ static void create_default_resources(Renderer* pRenderer)
 	Queue*   graphicsQueue = NULL;
 	CmdPool* cmdPool = NULL;
 	Cmd*     cmd = NULL;
-	Fence*   fence = NULL;
 
 	QueueDesc queueDesc = {};
 	queueDesc.mType = CMD_POOL_DIRECT;
@@ -1279,7 +1284,6 @@ static void create_default_resources(Renderer* pRenderer)
 
 	addCmdPool(pRenderer, graphicsQueue, false, &cmdPool);
 	addCmd(cmdPool, false, &cmd);
-	addFence(pRenderer, &fence);
 
 	// Transition resources
 	beginCmd(cmd);
@@ -1305,14 +1309,10 @@ static void create_default_resources(Renderer* pRenderer)
 	cmdResourceBarrier(cmd, bufferBarrierCount, bufferBarriers, textureBarrierCount, textureBarriers, false);
 	endCmd(cmd);
 
-	queueSubmit(graphicsQueue, 1, &cmd, fence, 0, NULL, 0, NULL);
-	FenceStatus fenceStatus = {};
-	getFenceStatus(pRenderer, fence, &fenceStatus);
-	if (fenceStatus != FENCE_STATUS_COMPLETE)
-		waitForFences(graphicsQueue, 1, &fence, false);
+	queueSubmit(graphicsQueue, 1, &cmd, NULL, 0, NULL, 0, NULL);
+	waitQueueIdle(graphicsQueue);
 
 	// Delete command buffer
-	removeFence(pRenderer, fence);
 	removeCmd(cmdPool, cmd);
 	removeCmdPool(pRenderer, cmdPool);
 	removeQueue(graphicsQueue);
@@ -1564,6 +1564,11 @@ uint32_t util_vk_determine_image_channel_count(ImageFormat::Enum format)
 	return result;
 }
 
+bool util_vk_format_has_stencil(ImageFormat::Enum format)
+{
+	return format == ImageFormat::D16S8 || format == ImageFormat::D24S8 || format == ImageFormat::D32S8;
+}
+
 VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount)
 {
 	VkSampleCountFlagBits result = VK_SAMPLE_COUNT_1_BIT;
@@ -1698,7 +1703,7 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage)
 	return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
-VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format, bool directlyForRenderTarget)
+VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format, bool includeStencilBit)
 {
 	VkImageAspectFlags result = 0;
 	switch (format)
@@ -1717,10 +1722,8 @@ VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format, bool directlyF
 		case VK_FORMAT_D16_UNORM_S8_UINT:
 		case VK_FORMAT_D24_UNORM_S8_UINT:
 		case VK_FORMAT_D32_SFLOAT_S8_UINT:
-			if (directlyForRenderTarget)
-				result = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-			else    // @devsh : you cannot sample both aspects at once, change when The Forge will expose texture views fully
-				result = VK_IMAGE_ASPECT_DEPTH_BIT /* | VK_IMAGE_ASPECT_STENCIL_BIT*/;
+			result = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (includeStencilBit) result |= VK_IMAGE_ASPECT_STENCIL_BIT;
 			break;
 			// Assume everything else is Color
 		default: result = VK_IMAGE_ASPECT_COLOR_BIT; break;
@@ -1908,7 +1911,7 @@ void CreateInstance(const char* app_name, Renderer* pRenderer)
 					{
 						pRenderer->gVkInstanceExtensions[extension_count++] = wantedInstanceExtensions[k];
 						// clear wanted extenstion so we dont load it more then once
-						//gVkWantedInstanceExtensions[k] = "";
+						wantedInstanceExtensions[k] = "";
 						break;
 					}
 				}
@@ -2490,9 +2493,14 @@ static void AddDevice(Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
+#if ENABLE_MICRO_PROFILER
+	{
+		MicroProfileGpuShutdown();
+	}
+#endif
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
 	{
-		SAFE_FREE(pRenderer->mVkQueueFamilyProperties[i]);
+
 	}
 
 	vkDestroyDevice(pRenderer->pVkDevice, NULL);
@@ -2774,6 +2782,18 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 		*ppQueue = pQueueToCreate;
 
 		++pRenderer->mVkUsedQueueCount[nodeIndex][queueFlags];
+#if ENABLE_MICRO_PROFILER
+		if (pDesc->mFlag == QUEUE_FLAG_INIT_MICROPROFILE)
+		{
+			MicroProfileOnThreadCreate("RenderThread");
+			MicroProfileGpuInitInternal(pRenderer->pVkDevice, pRenderer->pVkActiveGPU, pQueueToCreate->pVkQueue);
+			MicroProfileSetForceEnable(true);
+			MicroProfileSetEnableAllGroups(true);
+			MicroProfileSetForceMetaCounters(true);
+			MicroProfileWebServerStart();
+			MicroProfileContextSwitchTraceStart();
+		}
+#endif
 	}
 	else
 	{
@@ -3598,10 +3618,19 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	srvDesc.subresourceRange.levelCount = pDesc->mMipLevels;
 	srvDesc.subresourceRange.baseArrayLayer = 0;
 	srvDesc.subresourceRange.layerCount = pDesc->mArraySize;
-	pTexture->mVkAspectMask = srvDesc.subresourceRange.aspectMask;
+	pTexture->mVkAspectMask = util_vk_determine_aspect_mask(srvDesc.format, true);
 	if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
 	{
 		VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &srvDesc, NULL, &pTexture->pVkSRVDescriptor);
+		ASSERT(VK_SUCCESS == vk_res);
+	}
+
+	// SRV stencil
+	if (util_vk_format_has_stencil(pDesc->mFormat) && (descriptors & DESCRIPTOR_TYPE_TEXTURE))
+	{
+		pTexture->pVkSRVStencilDescriptor = (VkImageView*)conf_malloc(sizeof(VkImageView));
+		srvDesc.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+		VkResult vk_res = vkCreateImageView(pRenderer->pVkDevice, &srvDesc, NULL, pTexture->pVkSRVStencilDescriptor);
 		ASSERT(VK_SUCCESS == vk_res);
 	}
 
@@ -3645,6 +3674,9 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 	if (VK_NULL_HANDLE != pTexture->pVkSRVDescriptor)
 		vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkSRVDescriptor, NULL);
 
+	if (VK_NULL_HANDLE != pTexture->pVkSRVStencilDescriptor)
+		vkDestroyImageView(pRenderer->pVkDevice, *pTexture->pVkSRVStencilDescriptor, NULL);
+
 	if (pTexture->pVkUAVDescriptors)
 	{
 		for (uint32_t i = 0; i < pTexture->mDesc.mMipLevels; ++i)
@@ -3653,6 +3685,7 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 		}
 	}
 
+	SAFE_FREE(pTexture->pVkSRVStencilDescriptor);
 	SAFE_FREE(pTexture->pVkUAVDescriptors);
 	SAFE_FREE(pTexture);
 }
@@ -4061,7 +4094,7 @@ typedef struct UpdateFrequencyLayoutInfo
 	tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
 
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 
@@ -4352,6 +4385,34 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	SAFE_FREE(pRootSignature);
 }
 
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+{
+	switch (pRootSignatureDesc->mSignatureType)
+	{
+	case(ROOT_SIGNATURE_GRAPHICS_COMPUTE):
+	{
+		addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
+		break;
+	}
+	case(ROOT_SIGNATURE_RAYTRACING_LOCAL):
+	{
+		addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
+			true, ppRootSignature, pRootSignatureDesc);
+		break;
+	}
+	case(ROOT_SIGNATURE_RAYTRACING_GLOBAL):
+	{
+		addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
+			false, ppRootSignature, pRootSignatureDesc);
+		break;
+	}
+	default:
+	{
+		ASSERT(false);
+	}
+	}
+}
+
 #ifdef FORGE_JHABLE_EDITS_V01
 static bool convertVertInputToSemantic(int& semanticType, int& semanticIndex, const char attrName[], int attrLen)
 {
@@ -4436,7 +4497,8 @@ static bool convertVertInputToSemantic(int& semanticType, int& semanticIndex, co
 /************************************************************************/
 // Pipeline State Functions
 /************************************************************************/
-void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
+
+void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -4818,7 +4880,12 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 	*ppPipeline = pPipeline;
 }
 
-void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, Pipeline** ppPipeline)
+void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+	addGraphicsPipelineImpl(pRenderer, pDesc, ppPipeline);
+}
+
+void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -4857,6 +4924,39 @@ void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, P
 	}
 
 	*ppPipeline = pPipeline;
+}
+
+void addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+	addComputePipelineImpl(pRenderer, pDesc, ppPipeline);
+}
+
+void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+	switch (pDesc->mType)
+	{
+		case(PIPELINE_TYPE_COMPUTE):
+		{
+			addComputePipelineImpl(pRenderer, &pDesc->mComputeDesc, ppPipeline);
+			break;
+		}
+		case(PIPELINE_TYPE_GRAPHICS):
+		{
+			addGraphicsPipelineImpl(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
+			break;
+		}
+		case(PIPELINE_TYPE_RAYTRACING):
+		{
+			addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
+			break;
+		}
+		default:
+		{
+			ASSERT(false);
+			ppPipeline = nullptr;
+			break;
+		}
+	}
 }
 
 void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
@@ -5453,9 +5553,14 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 				}
 
 				pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
+				uint32_t bindStencilResource = (uint32_t)pParam->mBindStencilResource;	// Needed to meet alignment requirements
+				pHash[setIndex] = tinystl::hash_state(&bindStencilResource, 1, pHash[setIndex]);
 
 				// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
-				pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = pParam->ppTextures[i]->pVkSRVDescriptor;
+				if(!pParam->mBindStencilResource)
+					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = pParam->ppTextures[i]->pVkSRVDescriptor;
+				else
+					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = *pParam->ppTextures[i]->pVkSRVStencilDescriptor;
 				// SRVs need to be in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 				pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
@@ -5933,6 +6038,11 @@ void queueSubmit(
 			ppSignalSemaphores[signalCount]->mSignaled = true;
 			++signalCount;
 		}
+
+#if ENABLE_MICRO_PROFILER
+		// Call profile flip to indicate a new frame
+		MicroProfileFlip();
+#endif
 	}
 
 	DECLARE_ZERO(VkSubmitInfo, submit_info);
@@ -5980,10 +6090,11 @@ void queueSubmit(
 		submit_info.pNext = &deviceGroupSubmitInfo;
 	}
 
-	VkResult vk_res = vkQueueSubmit(pQueue->pVkQueue, 1, &submit_info, pFence->pVkFence);
+	VkResult vk_res = vkQueueSubmit(pQueue->pVkQueue, 1, &submit_info, pFence ? pFence->pVkFence : VK_NULL_HANDLE);
 	ASSERT(VK_SUCCESS == vk_res);
 
-	pFence->mSubmitted = true;
+	if (pFence)
+		pFence->mSubmitted = true;
 }
 
 void queuePresent(
@@ -6029,14 +6140,11 @@ void queuePresent(
 		ASSERT(VK_SUCCESS == vk_res);
 }
 
-void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool signal)
+void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
-	ASSERT(pQueue);
+	ASSERT(pRenderer);
 	ASSERT(fenceCount);
 	ASSERT(ppFences);
-
-	if (signal)
-		vkQueueWaitIdle(pQueue->pVkQueue);
 
 	VkFence* pFences = (VkFence*)alloca(fenceCount * sizeof(VkFence));
 	uint32_t numValidFences = 0;
@@ -6048,12 +6156,18 @@ void waitForFences(Queue* pQueue, uint32_t fenceCount, Fence** ppFences, bool si
 
 	if (numValidFences)
 	{
-		vkWaitForFences(pQueue->pRenderer->pVkDevice, numValidFences, pFences, VK_TRUE, UINT64_MAX);
-		vkResetFences(pQueue->pRenderer->pVkDevice, numValidFences, pFences);
+		vkWaitForFences(pRenderer->pVkDevice, numValidFences, pFences, VK_TRUE, UINT64_MAX);
+		vkResetFences(pRenderer->pVkDevice, numValidFences, pFences);
 	}
 
 	for (uint32_t i = 0; i < fenceCount; ++i)
 		ppFences[i]->mSubmitted = false;
+}
+
+
+void waitQueueIdle(Queue* pQueue)
+{
+	vkQueueWaitIdle(pQueue->pVkQueue);
 }
 
 void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
@@ -6251,6 +6365,18 @@ void freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(pRen
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+#if ENABLE_MICRO_PROFILER
+	MicroProfileGpuSetContext(pCmd->pVkCmdBuf);
+	// Convert float3 color to *rgb8.
+	uint32 scope_color = static_cast<uint32>(r * 255) << 16
+		| static_cast<uint32>(g * 255) << 8
+		| static_cast<uint32>(b * 255);
+
+	// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
+	MICROPROFILE_DEFINE_GPU(temp, pName, scope_color);
+	// Create new scope on top of the current stack and enter
+	MICROPROFILE_GPU_ENTER_TOKEN(g_mp_temp);
+#endif
 	if (gDebugMarkerSupport)
 	{
 #ifdef USE_DEBUG_UTILS_EXTENSION
@@ -6279,12 +6405,17 @@ void cmdEndDebugMarker(Cmd* pCmd)
 {
 	if (gDebugMarkerSupport)
 	{
+
 #ifdef USE_DEBUG_UTILS_EXTENSION
 		vkCmdEndDebugUtilsLabelEXT(pCmd->pVkCmdBuf);
 #else
 		vkCmdDebugMarkerEndEXT(pCmd->pVkCmdBuf);
 #endif
 	}
+#if ENABLE_MICRO_PROFILER
+	// Leave the current scope and pop up the scope stack
+	MICROPROFILE_GPU_LEAVE();
+#endif
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -6368,10 +6499,256 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 #endif
 	}
 }
-/************************************************************************/
-/************************************************************************/
-#endif    // RENDERER_IMPLEMENTATION
 
+/************************************************************************/
+/************************************************************************/
+#if MICROPROFILE_GPU_TIMERS_VK
+#define S g_MicroProfile
+
+struct MicroProfileGpuTimerStateInternal
+{
+	VkDevice pDevice;
+	VkQueue pQueue;
+	VkQueryPool pQueryPool;
+	VkCommandPool pCommandPool;
+	VkCommandBuffer pCommandBuffers[MICROPROFILE_GPU_FRAMES];
+	VkFence pFences[MICROPROFILE_GPU_FRAMES];
+
+	VkCommandBuffer pReferenceCommandBuffer;
+	uint32_t nReferenceQuery;
+
+	uint64_t nFrame;
+	AtomicUint nFramePutAtomic;
+
+	uint32_t nSubmitted[MICROPROFILE_GPU_FRAMES];
+	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
+	uint64_t nQueryFrequency;
+};
+
+MICROPROFILE_GPU_STATE_DECL(Internal)
+
+void MicroProfileGpuInitInternal(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, VkQueue pQueue)
+{
+	MicroProfileGpuInitStateInternal();
+
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	VkPhysicalDeviceProperties Properties;
+	vkGetPhysicalDeviceProperties(pPhysicalDevice, &Properties);
+
+	GPU.pDevice = pDevice;
+	GPU.pQueue = pQueue;
+
+	VkQueryPoolCreateInfo queryPoolInfo = {};
+	queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+	queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+	queryPoolInfo.queryCount = MICROPROFILE_GPU_MAX_QUERIES + 1; // reference query
+
+	VkResult res = vkCreateQueryPool(pDevice, &queryPoolInfo, nullptr, &GPU.pQueryPool);
+	ASSERT(res == VK_SUCCESS);
+
+	VkCommandPoolCreateInfo commandPoolInfo = {};
+	commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	commandPoolInfo.queueFamilyIndex = 0;
+
+	res = vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &GPU.pCommandPool);
+	ASSERT(res == VK_SUCCESS);
+
+	VkCommandBuffer pCommandBuffers[MICROPROFILE_GPU_FRAMES + 1] = {};
+
+	VkCommandBufferAllocateInfo commandBufferInfo = {};
+	commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferInfo.commandPool = GPU.pCommandPool;
+	commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferInfo.commandBufferCount = sizeof(pCommandBuffers) / sizeof(pCommandBuffers[0]);
+
+	res = vkAllocateCommandBuffers(pDevice, &commandBufferInfo, pCommandBuffers);
+	ASSERT(res == VK_SUCCESS);
+
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
+	{
+		GPU.pCommandBuffers[i] = pCommandBuffers[i];
+
+		res = vkCreateFence(pDevice, &fenceInfo, nullptr, &GPU.pFences[i]);
+		ASSERT(res == VK_SUCCESS);
+	}
+
+	GPU.pReferenceCommandBuffer = pCommandBuffers[MICROPROFILE_GPU_FRAMES];
+	GPU.nReferenceQuery = MICROPROFILE_GPU_MAX_QUERIES; // reference query
+
+	GPU.nQueryFrequency = (uint64_t)(1e9 / Properties.limits.timestampPeriod);
+}
+
+void MicroProfileGpuShutdownInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	if (GPU.nFrame > 0)
+	{
+		uint32_t nFrameIndex = (GPU.nFrame - 1) % MICROPROFILE_GPU_FRAMES;
+
+		VkResult res = vkWaitForFences(GPU.pDevice, 1, &GPU.pFences[nFrameIndex], VK_TRUE, UINT64_MAX);
+		ASSERT(res == VK_SUCCESS);
+	}
+
+	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
+	{
+		vkDestroyFence(GPU.pDevice, GPU.pFences[i], nullptr);
+		GPU.pFences[i] = 0;
+	}
+
+	vkDestroyCommandPool(GPU.pDevice, GPU.pCommandPool, nullptr);
+	memset(GPU.pCommandBuffers, 0, sizeof(GPU.pCommandBuffers));
+	GPU.pCommandPool = 0;
+
+	vkDestroyQueryPool(GPU.pDevice, GPU.pQueryPool, nullptr);
+	GPU.pQueryPool = 0;
+
+	GPU.pQueue = 0;
+	GPU.pDevice = 0;
+}
+
+uint32_t MicroProfileGpuFlipInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
+
+	// Submit current frame
+	uint32_t nFrameIndex = GPU.nFrame % MICROPROFILE_GPU_FRAMES;
+	uint32_t nFrameStart = nFrameIndex * nFrameQueries;
+
+	VkCommandBuffer pCommandBuffer = GPU.pCommandBuffers[nFrameIndex];
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	VkResult res = vkBeginCommandBuffer(pCommandBuffer, &commandBufferBeginInfo);
+	ASSERT(res == VK_SUCCESS);
+
+	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandBuffer);
+	uint32_t nFramePut = MicroProfileMin(GPU.nFramePutAtomic.mAtomicInt, nFrameQueries);
+
+	res = vkEndCommandBuffer(pCommandBuffer);
+	ASSERT(res == VK_SUCCESS);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pCommandBuffer;
+
+	res = vkQueueSubmit(GPU.pQueue, 1, &submitInfo, GPU.pFences[nFrameIndex]);
+	ASSERT(res == VK_SUCCESS);
+
+	GPU.nSubmitted[nFrameIndex] = nFramePut;
+	GPU.nFramePutAtomic.AtomicStore(0);
+	GPU.nFrame++;
+
+	// Fetch frame results
+	if (GPU.nFrame >= MICROPROFILE_GPU_FRAMES)
+	{
+		uint64_t nPendingFrame = GPU.nFrame - MICROPROFILE_GPU_FRAMES;
+		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAMES;
+
+		res = vkWaitForFences(GPU.pDevice, 1, &GPU.pFences[nPendingFrameIndex], VK_TRUE, UINT64_MAX);
+		ASSERT(res == VK_SUCCESS);
+
+		res = vkResetFences(GPU.pDevice, 1, &GPU.pFences[nPendingFrameIndex]);
+		ASSERT(res == VK_SUCCESS);
+
+		uint32_t nPendingFrameStart = nPendingFrameIndex * nFrameQueries;
+		uint32_t nPendingFrameCount = GPU.nSubmitted[nPendingFrameIndex];
+
+		if (nPendingFrameCount)
+		{
+			res = vkGetQueryPoolResults(GPU.pDevice, GPU.pQueryPool,
+				nPendingFrameStart, nPendingFrameCount,
+				nPendingFrameCount * sizeof(uint64_t), &GPU.nResults[nPendingFrameStart],
+				sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+			ASSERT(res == VK_SUCCESS);
+		}
+	}
+
+	return nFrameTimeStamp;
+}
+
+uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
+
+	uint32_t nIndex = GPU.nFramePutAtomic.AtomicIncrement();
+	if (nIndex >= nFrameQueries) return (uint32_t)-1;
+
+	uint32_t nQueryIndex = (GPU.nFrame % MICROPROFILE_GPU_FRAMES) * nFrameQueries + nIndex;
+
+	vkCmdWriteTimestamp((VkCommandBuffer)pContext, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, GPU.pQueryPool, nQueryIndex);
+
+	return nQueryIndex;
+}
+
+uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return GPU.nResults[nIndex];
+}
+
+uint64_t MicroProfileTicksPerSecondGpuInternal()
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	return GPU.nQueryFrequency ? GPU.nQueryFrequency : 1000000000ll;
+}
+
+bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
+{
+	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
+
+	VkCommandBuffer pCommandBuffer = GPU.pReferenceCommandBuffer;
+	uint32_t nQueryIndex = GPU.nReferenceQuery;
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	VkResult res = vkBeginCommandBuffer(pCommandBuffer, &commandBufferBeginInfo);
+	ASSERT(res == VK_SUCCESS);
+
+	vkCmdWriteTimestamp(pCommandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, GPU.pQueryPool, nQueryIndex);
+
+	res = vkEndCommandBuffer(pCommandBuffer);
+	ASSERT(res == VK_SUCCESS);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pCommandBuffer;
+
+	res = vkQueueSubmit(GPU.pQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	ASSERT(res == VK_SUCCESS);
+
+	res = vkQueueWaitIdle(GPU.pQueue);
+	ASSERT(res == VK_SUCCESS);
+
+	*pOutCpu = MP_TICK();
+
+	res = vkGetQueryPoolResults(GPU.pDevice, GPU.pQueryPool, nQueryIndex, 1, sizeof(uint64_t), pOutGpu, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+	ASSERT(res == VK_SUCCESS);
+
+	return true;
+}
+
+MICROPROFILE_GPU_STATE_IMPL(Internal)
+#undef S
+#endif
+#endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 }    // namespace RENDERER_CPP_NAMESPACE
 #endif

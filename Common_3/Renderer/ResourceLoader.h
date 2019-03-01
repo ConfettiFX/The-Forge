@@ -128,6 +128,7 @@ typedef struct ShaderStageLoadDesc
 	ShaderMacro*    pMacros;
 	uint32_t        mMacroCount;
 	FSRoot          mRoot;
+    const char*     mEntryPointName;
 } ShaderStageLoadDesc;
 
 typedef struct ShaderLoadDesc

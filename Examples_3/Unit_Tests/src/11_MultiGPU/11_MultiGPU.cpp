@@ -489,7 +489,7 @@ class MultiGPU: public IApp
 	void Exit()
 	{
 		for (uint32_t i = 0; i < gViewCount; ++i)
-			waitForFences(pGraphicsQueue[i], 1, &pRenderCompleteFences[i][gFrameIndex], true);
+			waitQueueIdle(pGraphicsQueue[i]);
 
 		destroyCameraController(pCameraController);
 
@@ -585,7 +585,9 @@ class MultiGPU: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
@@ -598,7 +600,7 @@ class MultiGPU: public IApp
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRasterizerState = pSkyboxRast;
-		addPipeline(pRenderer, &pipelineSettings, &pSpherePipeline);
+		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
 		//layout and pipeline for skybox draw
 		vertexLayout = {};
@@ -612,7 +614,7 @@ class MultiGPU: public IApp
 		pipelineSettings.pDepthState = NULL;
 		pipelineSettings.pRasterizerState = pSkyboxRast;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &pipelineSettings, &pSkyBoxDrawPipeline);
+		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
 
 		return true;
 	}
@@ -620,7 +622,7 @@ class MultiGPU: public IApp
 	void Unload()
 	{
 		for (uint32_t i = 0; i < gViewCount; ++i)
-			waitForFences(pGraphicsQueue[i], 1, &pRenderCompleteFences[i][gFrameIndex], true);
+			waitQueueIdle(pGraphicsQueue[i]);
 
 		gPanini.Unload();
 		gAppUI.Unload();
@@ -642,7 +644,7 @@ class MultiGPU: public IApp
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
-			waitForFences(pGraphicsQueue[0], gImageCount, pRenderCompleteFences[0], true);
+			waitQueueIdle(pGraphicsQueue[0]);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
@@ -917,7 +919,7 @@ class MultiGPU: public IApp
 			getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			{
-				waitForFences(pGraphicsQueue[i], 1, &pNextFence, false);
+				waitForFences(pRenderer, 1, &pNextFence);
 			}
 		}
 

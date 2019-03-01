@@ -324,10 +324,12 @@ class Tessellation: public IApp
 		addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
 #endif
 
-		ComputePipelineDesc computePipelineDesc = { 0 };
+		PipelineDesc pipelineDesc = { };
+		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = pipelineDesc.mComputeDesc;
 		computePipelineDesc.pRootSignature = pComputeRootSignature;
 		computePipelineDesc.pShaderProgram = pComputeShader;
-		addComputePipeline(pRenderer, &computePipelineDesc, &pComputePipeline);
+		addPipeline(pRenderer, &pipelineDesc, &pComputePipeline);
 
 		DepthStateDesc depthStateDesc = {};
 		depthStateDesc.mDepthTest = true;
@@ -353,10 +355,11 @@ class Tessellation: public IApp
 		addRasterizerState(pRenderer, &rasterizerStateWireframeDesc, &pWireframeRast);
 
 #ifdef METAL
-		ComputePipelineDesc grassVertexHullPipelineDesc = { 0 };
+        pipelineDesc.mComputeDesc = {};
+		ComputePipelineDesc& grassVertexHullPipelineDesc = pipelineDesc.mComputeDesc;
 		grassVertexHullPipelineDesc.pRootSignature = pGrassVertexHullRootSignature;
 		grassVertexHullPipelineDesc.pShaderProgram = pGrassVertexHullShader;
-		addComputePipeline(pRenderer, &grassVertexHullPipelineDesc, &pGrassVertexHullPipeline);
+		addPipeline(pRenderer, &pipelineDesc, &pGrassVertexHullPipeline);
 #endif
 
 		BufferLoadDesc ubGrassDesc = {};
@@ -515,7 +518,7 @@ class Tessellation: public IApp
 
 	void Exit()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
 
@@ -644,7 +647,9 @@ class Tessellation: public IApp
 		vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
 #endif
 
-		GraphicsPipelineDesc pipelineSettings = { 0 };
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
 		pipelineSettings.pRasterizerState = pRast;
 		pipelineSettings.pDepthState = pDepth;
@@ -657,9 +662,9 @@ class Tessellation: public IApp
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pGrassRootSignature;
 		pipelineSettings.pShaderProgram = pGrassShader;
-		addPipeline(pRenderer, &pipelineSettings, &pGrassPipeline);
+		addPipeline(pRenderer, &desc, &pGrassPipeline);
 		pipelineSettings.pRasterizerState = pWireframeRast;
-		addPipeline(pRenderer, &pipelineSettings, &pGrassPipelineForWireframe);
+		addPipeline(pRenderer, &desc, &pGrassPipelineForWireframe);
 
 #if defined(VULKAN)
 		transitionRenderTargets();
@@ -670,7 +675,7 @@ class Tessellation: public IApp
 
 	void Unload()
 	{
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[gFrameIndex], true);
+		waitQueueIdle(pGraphicsQueue);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
@@ -691,7 +696,7 @@ class Tessellation: public IApp
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
-			waitForFences(pGraphicsQueue, gImageCount, pRenderCompleteFences, true);
+			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
@@ -750,7 +755,7 @@ class Tessellation: public IApp
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-			waitForFences(pGraphicsQueue, 1, &pRenderCompleteFence, false);
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -993,7 +998,7 @@ class Tessellation: public IApp
 		cmdResourceBarrier(ppCmds[0], 0, NULL, 1, &barrier, false);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, ppCmds, pRenderCompleteFences[0], 0, NULL, 0, NULL);
-		waitForFences(pGraphicsQueue, 1, &pRenderCompleteFences[0], false);
+		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 	}
 #endif
 
