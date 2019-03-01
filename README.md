@@ -15,11 +15,12 @@ The Forge is a cross-platform rendering framework supporting
 
 Particularly, the graphics layer of The Forge supports cross-platform
 - Descriptor management
-- Multi-threaded resource loading
+- Multi-threaded and asynchronous resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
 
 The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
+- Asynchronous Resource loading with a resource loader task system as shown in 10_PixelProjectedReflections
 - [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath)
@@ -47,6 +48,23 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.24 - March 1st, 2019 - Asynchronous Resource Loading | Micro Profiler
+- The Forge now allows to asynchronously load resources on all platforms. There are two ways to do this:
+-- use addResource/updateResource with boolean parameter called batch set to true, and later wait for completion with waitBatchCompleted (used in 01_Transformations, 03_MultiThread, 06_MaterialPlayground, 09_LightShadowPlayground, 09a_HybridRaytracing, 12_RendererRumtimeSwitch, 15_Transparency)
+-- use addResource with SyncToken parameter and check for completion with isTokenCompleted or wait for completion with waitTokenCompleted (used in 10_PixelProjectedReflections)
+addResource/updateResource with boolean parameter set to false are the old blocking versions.
+Let us know what you think of this system.
+- We integrated zeux's [Micro Profiler](https://github.com/zeux/microprofile) into The Forge. So far it supports DirectX 11, 12 and Vulkan. We are still working on Metal and Android support.
+
+![Micro Profiler in Chrome](Screenshots/MP_VISBUF.PNG)
+
+![Micro Profiler in Visibility Buffer](Screenshots/MP_INAPP_VIS.PNG)
+
+- Better integration of Ray Tracing into the renderer; still Vulkan RTX is work in progress
+- Fixed Vulkan instance extension bug: "InstanceLayers loop is wrong in CreateInstance" issue #92
+
+
 
 ## Release 1.23 - February 14th, 2019 - New Cross-Platform Ray Tracing Interface 
 Happy Valentines! Here is some love from The Forge team:
@@ -493,4 +511,5 @@ The Forge utilizes the following Open-Source libraries:
 * [ENTT](https://github.com/skypjack/entt)
 * [Lua Scripting System](https://www.lua.org/)
 * [TressFX](https://github.com/GPUOpen-Effects/TressFX)
+* [Micro Profiler](https://github.com/zeux/microprofile)
 
