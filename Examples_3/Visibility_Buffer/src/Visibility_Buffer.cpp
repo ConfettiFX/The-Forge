@@ -22,8 +22,8 @@
  * under the License.
  */
 
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
+#include "../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -266,7 +266,12 @@ typedef struct AppSettings
 	// Cluster culling increases CPU time and does not provide enough benefit in terms of culling results to keep it enabled by default
 	bool mClusterCulling = false;
 	
-	bool mAsyncCompute = true;
+	// TODO: there is an issue that prevents to launch this in async mode by default. The problem is that the renderer needs to be notified
+	// of when a frame starts, so that it updates the internal frameIdx (which is needed for handling the multiple frames in-flight for 
+	// descriptor binding) . The problem is that the renderer assumes that acquireNextImage image is always called at the begining of the
+	// frame, but it is not the case for this application. So the frame starts, and the renderer doesn't update the frameIdx accordingly.
+	// Changing to async compute at runtime is fine (because this app only skips calling acquireNextImage during the first 3 frames).
+	bool mAsyncCompute = false;
 	
 	// toggle rendering of local point lights
 	bool mRenderLocalLights = false;
@@ -402,136 +407,152 @@ AppSettings gAppSettings;
 /************************************************************************/
 // Rendering data
 /************************************************************************/
-Renderer* pRenderer = nullptr;
+Renderer* pRenderer = NULL;
 /************************************************************************/
 // Synchronization primitives
 /************************************************************************/
-Fence*     pTransitionFences = nullptr;
-Fence*     pRenderCompleteFences[gImageCount] = { nullptr };
-Fence*     pComputeCompleteFences[gImageCount] = { nullptr };
-Semaphore* pImageAcquiredSemaphore = nullptr;
-Semaphore* pRenderCompleteSemaphores[gImageCount] = { nullptr };
-Semaphore* pComputeCompleteSemaphores[gImageCount] = { nullptr };
+Fence*     pTransitionFences = NULL;
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
+Fence*     pComputeCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
+Semaphore* pComputeCompleteSemaphores[gImageCount] = { NULL };
 /************************************************************************/
 // Queues and Command buffers
 /************************************************************************/
-Queue*   pGraphicsQueue = nullptr;
-CmdPool* pCmdPool = nullptr;
-Cmd**    ppCmds = nullptr;
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool = NULL;
+Cmd**    ppCmds = NULL;
 
-Queue*   pComputeQueue = nullptr;
-CmdPool* pComputeCmdPool = nullptr;
-Cmd**    ppComputeCmds = nullptr;
+Queue*   pComputeQueue = NULL;
+CmdPool* pComputeCmdPool = NULL;
+Cmd**    ppComputeCmds = NULL;
 /************************************************************************/
 // Swapchain
 /************************************************************************/
-SwapChain* pSwapChain = nullptr;
+SwapChain* pSwapChain = NULL;
 /************************************************************************/
 // Clear buffers pipeline
 /************************************************************************/
-Shader*        pShaderClearBuffers = nullptr;
-Pipeline*      pPipelineClearBuffers = nullptr;
-RootSignature* pRootSignatureClearBuffers = nullptr;
+Shader*           pShaderClearBuffers = nullptr;
+Pipeline*         pPipelineClearBuffers = nullptr;
+RootSignature*    pRootSignatureClearBuffers = nullptr;
+DescriptorBinder* pDescriptorBinderClearBuffers = nullptr;
 /************************************************************************/
 // Triangle filtering pipeline
 /************************************************************************/
-Shader*        pShaderTriangleFiltering = nullptr;
-Pipeline*      pPipelineTriangleFiltering = nullptr;
-RootSignature* pRootSignatureTriangleFiltering = nullptr;
+Shader*           pShaderTriangleFiltering = nullptr;
+Pipeline*         pPipelineTriangleFiltering = nullptr;
+RootSignature*    pRootSignatureTriangleFiltering = nullptr;
+DescriptorBinder* pDescriptorBinderTriangleFiltering = nullptr;
 /************************************************************************/
 // Batch compaction pipeline
 /************************************************************************/
 #if !defined(METAL)
-Shader*        pShaderBatchCompaction = nullptr;
-Pipeline*      pPipelineBatchCompaction = nullptr;
-RootSignature* pRootSignatureBatchCompaction = nullptr;
+Shader*           pShaderBatchCompaction = nullptr;
+Pipeline*         pPipelineBatchCompaction = nullptr;
+RootSignature*    pRootSignatureBatchCompaction = nullptr;
+DescriptorBinder* pDescriptorBinderBatchCompaction = nullptr;
 #endif
 /************************************************************************/
 // Clear light clusters pipeline
 /************************************************************************/
-Shader*        pShaderClearLightClusters = nullptr;
-Pipeline*      pPipelineClearLightClusters = nullptr;
-RootSignature* pRootSignatureClearLightClusters = nullptr;
+Shader*           pShaderClearLightClusters = nullptr;
+Pipeline*         pPipelineClearLightClusters = nullptr;
+RootSignature*    pRootSignatureClearLightClusters = nullptr;
+DescriptorBinder* pDescriptorBinderClearLightClusters = nullptr;
 /************************************************************************/
 // Compute light clusters pipeline
 /************************************************************************/
-Shader*        pShaderClusterLights = nullptr;
-Pipeline*      pPipelineClusterLights = nullptr;
-RootSignature* pRootSignatureClusterLights = nullptr;
+Shader*           pShaderClusterLights = nullptr;
+Pipeline*         pPipelineClusterLights = nullptr;
+RootSignature*    pRootSignatureClusterLights = nullptr;
+DescriptorBinder* pDescriptorBinderClusterLights = nullptr;
 /************************************************************************/
 // Shadow pass pipeline
 /************************************************************************/
-Shader*   pShaderShadowPass[gNumGeomSets] = { nullptr };
-Pipeline* pPipelineShadowPass[gNumGeomSets] = { nullptr };
+Shader*   pShaderShadowPass[gNumGeomSets] = { NULL };
+Pipeline* pPipelineShadowPass[gNumGeomSets] = { NULL };
 /************************************************************************/
 // VB pass pipeline
 /************************************************************************/
 Shader*           pShaderVisibilityBufferPass[gNumGeomSets] = {};
 Pipeline*         pPipelineVisibilityBufferPass[gNumGeomSets] = {};
 RootSignature*    pRootSignatureVBPass = nullptr;
+DescriptorBinder* pDescriptorBinderVBPass = nullptr;
 CommandSignature* pCmdSignatureVBPass = nullptr;
 /************************************************************************/
 // VB shade pipeline
 /************************************************************************/
-Shader*        pShaderVisibilityBufferShade[2] = { nullptr };
-Pipeline*      pPipelineVisibilityBufferShadeSrgb[2] = { nullptr };
-RootSignature* pRootSignatureVBShade = nullptr;
+Shader*           pShaderVisibilityBufferShade[2] = { nullptr };
+Pipeline*         pPipelineVisibilityBufferShadeSrgb[2] = { nullptr };
+RootSignature*    pRootSignatureVBShade = nullptr;
+DescriptorBinder* pDescriptorBinderVBShade = nullptr;
 /************************************************************************/
 // Deferred pass pipeline
 /************************************************************************/
 Shader*           pShaderDeferredPass[gNumGeomSets] = {};
 Pipeline*         pPipelineDeferredPass[gNumGeomSets] = {};
 RootSignature*    pRootSignatureDeferredPass = nullptr;
+DescriptorBinder* pDescriptorBinderDeferredPass = nullptr;
 CommandSignature* pCmdSignatureDeferredPass = nullptr;
 /************************************************************************/
 // Deferred shade pipeline
 /************************************************************************/
-Shader*        pShaderDeferredShade[2] = { nullptr };
-Pipeline*      pPipelineDeferredShadeSrgb[2] = { nullptr };
-RootSignature* pRootSignatureDeferredShade = nullptr;
+Shader*           pShaderDeferredShade[2] = { nullptr };
+Pipeline*         pPipelineDeferredShadeSrgb[2] = { nullptr };
+RootSignature*    pRootSignatureDeferredShade = nullptr;
+DescriptorBinder* pDescriptorBinderDeferredShade = nullptr;
 /************************************************************************/
 // Deferred point light shade pipeline
 /************************************************************************/
-Shader*        pShaderDeferredShadePointLight = nullptr;
-Pipeline*      pPipelineDeferredShadePointLightSrgb = nullptr;
-RootSignature* pRootSignatureDeferredShadePointLight = nullptr;
+Shader*           pShaderDeferredShadePointLight = nullptr;
+Pipeline*         pPipelineDeferredShadePointLightSrgb = nullptr;
+RootSignature*    pRootSignatureDeferredShadePointLight = nullptr;
+DescriptorBinder* pDescriptorBinderDeferredShadePointLight = nullptr;
 /************************************************************************/
 // AO pipeline
 /************************************************************************/
-Shader*        pShaderAO[4] = { nullptr };
-Pipeline*      pPipelineAO[4] = { nullptr };
-RootSignature* pRootSignatureAO = nullptr;
+Shader*           pShaderAO[4] = { nullptr };
+Pipeline*         pPipelineAO[4] = { nullptr };
+RootSignature*    pRootSignatureAO = nullptr;
+DescriptorBinder* pDescriptorBinderAO = nullptr;
 /************************************************************************/
 // Resolve pipeline
 /************************************************************************/
-Shader*        pShaderResolve = nullptr;
-Pipeline*      pPipelineResolve = nullptr;
-Pipeline*      pPipelineResolvePost = nullptr;
-RootSignature* pRootSignatureResolve = nullptr;
+Shader*           pShaderResolve = nullptr;
+Pipeline*         pPipelineResolve = nullptr;
+Pipeline*         pPipelineResolvePost = nullptr;
+RootSignature*    pRootSignatureResolve = nullptr;
+DescriptorBinder* pDescriptorBinderResolve = nullptr;
 
-Shader*        pShaderGodrayResolve = nullptr;
-Pipeline*      pPipelineGodrayResolve = nullptr;
-Pipeline*      pPipelineGodrayResolvePost = nullptr;
-RootSignature* pRootSignatureGodrayResolve = nullptr;
+Shader*           pShaderGodrayResolve = nullptr;
+Pipeline*         pPipelineGodrayResolve = nullptr;
+Pipeline*         pPipelineGodrayResolvePost = nullptr;
+RootSignature*    pRootSignatureGodrayResolve = nullptr;
+DescriptorBinder* pDescriptorBinderGodrayResolve = nullptr;
 /************************************************************************/
 // Skybox pipeline
 /************************************************************************/
-Shader*        pShaderSkybox = nullptr;
-Pipeline*      pSkyboxPipeline = nullptr;
-RootSignature* pRootSingatureSkybox = nullptr;
+Shader*           pShaderSkybox = nullptr;
+Pipeline*         pSkyboxPipeline = nullptr;
+RootSignature*    pRootSingatureSkybox = nullptr;
+DescriptorBinder* pDescriptorBinderSkybox = nullptr;
 
 Buffer*  pSkyboxVertexBuffer = NULL;
 Texture* pSkybox = NULL;
 /************************************************************************/
 // Godray pipeline
 /************************************************************************/
-Shader*        pSunPass = nullptr;
-Pipeline*      pPipelineSunPass = nullptr;
-RootSignature* pRootSigSunPass = nullptr;
+Shader*           pSunPass = nullptr;
+Pipeline*         pPipelineSunPass = nullptr;
+RootSignature*    pRootSigSunPass = nullptr;
+DescriptorBinder* pDescriptorBinderSunPass = nullptr;
 
-Shader*        pGodRayPass = nullptr;
-Pipeline*      pPipelineGodRayPass = nullptr;
-RootSignature* pRootSigGodRayPass = nullptr;
+Shader*           pGodRayPass = nullptr;
+Pipeline*         pPipelineGodRayPass = nullptr;
+RootSignature*    pRootSigGodRayPass = nullptr;
+DescriptorBinder* pDescriptorBinderGodRayPass = nullptr;
 
 uint SunVertexCount;
 uint SunIndexCount;
@@ -541,9 +562,10 @@ Buffer* pSunIndexBuffer = NULL;
 /************************************************************************/
 // Curve Conversion pipeline
 /************************************************************************/
-Shader*        pShaderCurveConversion = nullptr;
-Pipeline*      pPipelineCurveConversionPass = nullptr;
-RootSignature* pRootSigCurveConversionPass = nullptr;
+Shader*           pShaderCurveConversion = nullptr;
+Pipeline*         pPipelineCurveConversionPass = nullptr;
+RootSignature*    pRootSigCurveConversionPass = nullptr;
+DescriptorBinder* pDescriptorBinderCurveConversionPass = nullptr;
 
 OutputMode         gWasOutputMode = gAppSettings.mOutputMode;
 DisplayColorSpace  gWasColorSpace = gAppSettings.mCurrentSwapChainColorSpace;
@@ -553,51 +575,52 @@ DisplaySignalRange gWasDisplaySignalRange = gAppSettings.mDisplaySignalRange;
 /************************************************************************/
 // Present pipeline
 /************************************************************************/
-Shader*        pShaderPresentPass = nullptr;
-Pipeline*      pPipelinePresentPass = nullptr;
-RootSignature* pRootSigPresentPass = nullptr;
+Shader*           pShaderPresentPass = nullptr;
+Pipeline*         pPipelinePresentPass = nullptr;
+RootSignature*    pRootSigPresentPass = nullptr;
+DescriptorBinder* pDescriptorBinderPresentPass = nullptr;
 
 /************************************************************************/
 // Render targets
 /************************************************************************/
-RenderTarget* pDepthBuffer = nullptr;
-RenderTarget* pRenderTargetVBPass = nullptr;
-RenderTarget* pRenderTargetMSAA = nullptr;
-RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { nullptr };
-RenderTarget* pRenderTargetShadow = nullptr;
-RenderTarget* pRenderTargetAO = nullptr;
-RenderTarget* pIntermediateRenderTarget = nullptr;
-RenderTarget* pRenderTargetSun = nullptr;
-RenderTarget* pRenderTargetSunResolved = nullptr;
-RenderTarget* pRenderTargetGodRayA = nullptr;
-RenderTarget* pRenderTargetGodRayB = nullptr;
-RenderTarget* pCurveConversionRenderTarget = nullptr;
+RenderTarget* pDepthBuffer = NULL;
+RenderTarget* pRenderTargetVBPass = NULL;
+RenderTarget* pRenderTargetMSAA = NULL;
+RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { NULL };
+RenderTarget* pRenderTargetShadow = NULL;
+RenderTarget* pRenderTargetAO = NULL;
+RenderTarget* pIntermediateRenderTarget = NULL;
+RenderTarget* pRenderTargetSun = NULL;
+RenderTarget* pRenderTargetSunResolved = NULL;
+RenderTarget* pRenderTargetGodRayA = NULL;
+RenderTarget* pRenderTargetGodRayB = NULL;
+RenderTarget* pCurveConversionRenderTarget = NULL;
 /************************************************************************/
 // Rasterizer states
 /************************************************************************/
-RasterizerState* pRasterizerStateCullBack = nullptr;
-RasterizerState* pRasterizerStateCullFront = nullptr;
-RasterizerState* pRasterizerStateCullNone = nullptr;
-RasterizerState* pRasterizerStateCullBackMS = nullptr;
-RasterizerState* pRasterizerStateCullFrontMS = nullptr;
-RasterizerState* pRasterizerStateCullNoneMS = nullptr;
+RasterizerState* pRasterizerStateCullBack = NULL;
+RasterizerState* pRasterizerStateCullFront = NULL;
+RasterizerState* pRasterizerStateCullNone = NULL;
+RasterizerState* pRasterizerStateCullBackMS = NULL;
+RasterizerState* pRasterizerStateCullFrontMS = NULL;
+RasterizerState* pRasterizerStateCullNoneMS = NULL;
 /************************************************************************/
 // Depth states
 /************************************************************************/
-DepthState* pDepthStateEnable = nullptr;
-DepthState* pDepthStateDisable = nullptr;
+DepthState* pDepthStateEnable = NULL;
+DepthState* pDepthStateDisable = NULL;
 /************************************************************************/
 // Blend state used in deferred point light shading
 /************************************************************************/
-BlendState* pBlendStateOneZero = nullptr;
-BlendState* pBlendStateSkyBox = nullptr;
+BlendState* pBlendStateOneZero = NULL;
+BlendState* pBlendStateSkyBox = NULL;
 /************************************************************************/
 // Samplers
 /************************************************************************/
-Sampler* pSamplerTrilinearAniso = nullptr;
-Sampler* pSamplerBilinear = nullptr;
-Sampler* pSamplerPointClamp = nullptr;
-Sampler* pSamplerBilinearClamp = nullptr;
+Sampler* pSamplerTrilinearAniso = NULL;
+Sampler* pSamplerBilinear = NULL;
+Sampler* pSamplerPointClamp = NULL;
+Sampler* pSamplerBilinearClamp = NULL;
 /************************************************************************/
 // Bindless texture array
 /************************************************************************/
@@ -615,70 +638,70 @@ tinystl::vector<Texture*> gSpecularMapsPacked;
 /************************************************************************/
 // Vertex buffers for the scene
 /************************************************************************/
-Buffer* pVertexBufferPosition = nullptr;
-Buffer* pVertexBufferTexCoord = nullptr;
-Buffer* pVertexBufferNormal = nullptr;
-Buffer* pVertexBufferTangent = nullptr;
+Buffer* pVertexBufferPosition = NULL;
+Buffer* pVertexBufferTexCoord = NULL;
+Buffer* pVertexBufferNormal = NULL;
+Buffer* pVertexBufferTangent = NULL;
 /************************************************************************/
 // Indirect buffers
 /************************************************************************/
-Buffer* pMaterialPropertyBuffer = nullptr;
-Buffer* pPerFrameUniformBuffers[gImageCount] = { nullptr };
+Buffer* pMaterialPropertyBuffer = NULL;
+Buffer* pPerFrameUniformBuffers[gImageCount] = { NULL };
 
 #if defined(METAL)
 // Buffer containing all indirect draw commands for all geometry sets (no culling)
-Buffer* pIndirectDrawArgumentsBufferAll = nullptr;
-Buffer* pIndirectMaterialBufferAll = nullptr;
+Buffer* pIndirectDrawArgumentsBufferAll = NULL;
+Buffer* pIndirectMaterialBufferAll = NULL;
 // Buffer containing filtered indirect draw commands for all geometry sets (culled)
 Buffer* pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumViews] = {};
 #else
 // Buffers containing all indirect draw commands per geometry set (no culling)
-Buffer* pIndirectDrawArgumentsBufferAll[gNumGeomSets] = { nullptr };
-Buffer* pIndirectMaterialBufferAll = nullptr;
-Buffer* pMeshConstantsBuffer = nullptr;
+Buffer* pIndirectDrawArgumentsBufferAll[gNumGeomSets] = { NULL };
+Buffer* pIndirectMaterialBufferAll = NULL;
+Buffer* pMeshConstantsBuffer = NULL;
 // Buffers containing filtered indirect draw commands per geometry set (culled)
-Buffer* pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumGeomSets][gNumViews] = { nullptr };
+Buffer* pFilteredIndirectDrawArgumentsBuffer[gImageCount][gNumGeomSets][gNumViews] = { NULL };
 // Buffer containing the draw args after triangle culling which will be stored compactly in the indirect buffer
-Buffer* pUncompactedDrawArgumentsBuffer[gImageCount][gNumViews] = { nullptr };
-Buffer* pFilterIndirectMaterialBuffer[gImageCount] = { nullptr };
+Buffer* pUncompactedDrawArgumentsBuffer[gImageCount][gNumViews] = { NULL };
+Buffer* pFilterIndirectMaterialBuffer[gImageCount] = { NULL };
 #endif
 /************************************************************************/
 // Index buffers
 /************************************************************************/
-Buffer* pIndexBufferAll = nullptr;
+Buffer* pIndexBufferAll = NULL;
 Buffer* pFilteredIndexBuffer[gImageCount][gNumViews] = {};
 /************************************************************************/
 // Other buffers for lighting, point lights,...
 /************************************************************************/
-Buffer*       pLightsBuffer = nullptr;
-Buffer**      gPerBatchUniformBuffers = nullptr;
-Buffer*       pVertexBufferCube = nullptr;
-Buffer*       pIndexBufferCube = nullptr;
-Buffer*       pLightClustersCount[gImageCount] = { nullptr };
-Buffer*       pLightClusters[gImageCount] = { nullptr };
-Buffer*       pUniformBufferSun[gImageCount] = { nullptr };
+Buffer*       pLightsBuffer = NULL;
+Buffer**      gPerBatchUniformBuffers = NULL;
+Buffer*       pVertexBufferCube = NULL;
+Buffer*       pIndexBufferCube = NULL;
+Buffer*       pLightClustersCount[gImageCount] = { NULL };
+Buffer*       pLightClusters[gImageCount] = { NULL };
+Buffer*       pUniformBufferSun[gImageCount] = { NULL };
 uint64_t      gFrameCount = 0;
-Scene*        pScene = nullptr;
+Scene*        pScene = NULL;
 UIApp         gAppUI;
-GuiComponent* pGuiWindow = nullptr;
-GuiComponent* pDebugTexturesWindow = nullptr;
+GuiComponent* pGuiWindow = NULL;
+GuiComponent* pDebugTexturesWindow = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
 #if defined(METAL)
-FilterBatchChunk* pFilterBatchChunk[gImageCount] = { nullptr };
+FilterBatchChunk* pFilterBatchChunk[gImageCount] = { NULL };
 #else
 const uint32_t gSmallBatchChunkCount = max(1U, 512U / CLUSTER_SIZE) * 16U;
-FilterBatchChunk* pFilterBatchChunk[gImageCount][gSmallBatchChunkCount] = { nullptr };
-UniformRingBuffer* pFilterBatchDataBuffer[gImageCount] = { nullptr };
+FilterBatchChunk* pFilterBatchChunk[gImageCount][gSmallBatchChunkCount] = { NULL };
+UniformRingBuffer* pFilterBatchDataBuffer[gImageCount] = { NULL };
 #endif
 /************************************************************************/
 // GPU Profilers
 /************************************************************************/
-GpuProfiler*       pGraphicsGpuProfiler = nullptr;
-GpuProfiler*       pComputeGpuProfiler = nullptr;
-ICameraController* pCameraController = nullptr;
+GpuProfiler*       pGraphicsGpuProfiler = NULL;
+GpuProfiler*       pComputeGpuProfiler = NULL;
+ICameraController* pCameraController = NULL;
 /************************************************************************/
 // CPU staging data
 /************************************************************************/
@@ -686,19 +709,19 @@ ICameraController* pCameraController = nullptr;
 LightData gLightData[LIGHT_COUNT] = {};
 
 PerFrameData  gPerFrame[gImageCount] = {};
-RenderTarget* pScreenRenderTarget = nullptr;
+RenderTarget* pScreenRenderTarget = NULL;
 /************************************************************************/
 // Screen resolution UI data
 /************************************************************************/
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
-IWidget*                    gResolutionProperty = nullptr;
+IWidget*                    gResolutionProperty = NULL;
 tinystl::vector<Resolution> gResolutions;
 uint32_t                    gResolutionIndex = 0;
 bool                        gResolutionChange = false;
 #endif
 /************************************************************************/
 /************************************************************************/
-class VisibilityBuffer* pVisibilityBuffer = nullptr;
+class VisibilityBuffer* pVisibilityBuffer = NULL;
 /************************************************************************/
 // Culling intrinsic data
 /************************************************************************/
@@ -786,7 +809,7 @@ IWidget* addResolutionProperty(
 		{
 			data.resNamePointers[i] = data.resNameContainer[i];
 		}
-		data.resNamePointers[data.resNamePointers.size() - 1] = nullptr;
+		data.resNamePointers[data.resNamePointers.size() - 1] = NULL;
 		
 		DropdownWidget control(
 							   "Screen Resolution", &resolutionIndex, data.resNamePointers.data(), data.resValues.data(), (uint32_t)data.resValues.size());
@@ -827,6 +850,12 @@ public:
 	}
 #endif
 	
+	void CreateDescriptorBinder(RootSignature* pRootSignature, uint32_t maxDescriptorUpdatesPerBatch, uint32_t maxDescriptorUpdatesPerDraw, DescriptorBinder** ppDescriptorBinder)
+	{
+		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, maxDescriptorUpdatesPerBatch, maxDescriptorUpdatesPerDraw };
+		addDescriptorBinder(pRenderer, &descriptorBinderDesc, ppDescriptorBinder);
+	}
+
 	bool Init()
 	{
 		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
@@ -1209,6 +1238,35 @@ public:
 		addRootSignature(pRenderer, &finalShaderRootSigDesc, &pRootSigPresentPass);
 		
 		/************************************************************************/
+		// Setup descriptor binders
+		/************************************************************************/
+		
+		uint32_t maxSceneClustersToFilter = 0;
+		for (uint32_t i = 0; i < pScene->numMeshes; i++)
+			maxSceneClustersToFilter += pScene->meshes[i].clusterCount;
+
+		CreateDescriptorBinder(pRootSignatureClearBuffers, 0, 0, &pDescriptorBinderClearBuffers);
+		CreateDescriptorBinder(pRootSignatureTriangleFiltering, 0, maxSceneClustersToFilter, &pDescriptorBinderTriangleFiltering);
+#if !defined(METAL)
+		CreateDescriptorBinder(pRootSignatureBatchCompaction, 0, 0, &pDescriptorBinderBatchCompaction);
+#endif
+		CreateDescriptorBinder(pRootSignatureClearLightClusters, 0, 0, &pDescriptorBinderClearLightClusters);
+		CreateDescriptorBinder(pRootSignatureClusterLights, 0, 0, &pDescriptorBinderClusterLights);
+		CreateDescriptorBinder(pRootSignatureVBPass, 0, 0, &pDescriptorBinderVBPass);
+		CreateDescriptorBinder(pRootSignatureVBShade, 0, 0, &pDescriptorBinderVBShade);
+		CreateDescriptorBinder(pRootSignatureDeferredPass, 0, 0, &pDescriptorBinderDeferredPass);
+		CreateDescriptorBinder(pRootSignatureDeferredShade, 0, 0, &pDescriptorBinderDeferredShade);
+		CreateDescriptorBinder(pRootSignatureDeferredShadePointLight, 0, 0, &pDescriptorBinderDeferredShadePointLight);
+		CreateDescriptorBinder(pRootSignatureAO, 0, 0, &pDescriptorBinderAO);
+		CreateDescriptorBinder(pRootSignatureResolve, 0, 0, &pDescriptorBinderResolve);
+		CreateDescriptorBinder(pRootSignatureGodrayResolve, 0, 0, &pDescriptorBinderGodrayResolve);
+		CreateDescriptorBinder(pRootSingatureSkybox, 0, 0, &pDescriptorBinderSkybox);
+		CreateDescriptorBinder(pRootSigSunPass, 0, 0, &pDescriptorBinderSunPass);
+		CreateDescriptorBinder(pRootSigGodRayPass, 0, gAppSettings.gGodrayInteration + 1, &pDescriptorBinderGodRayPass);
+		CreateDescriptorBinder(pRootSigCurveConversionPass, 0, 0, &pDescriptorBinderCurveConversionPass);
+		CreateDescriptorBinder(pRootSigPresentPass, 0, 0, &pDescriptorBinderPresentPass);
+
+		/************************************************************************/
 		// Setup indirect command signatures
 		/************************************************************************/
 #if defined(DIRECT3D12)
@@ -1300,7 +1358,7 @@ public:
 		pGuiWindow->AddWidget(debugTargets);
 		
 #if !defined(METAL)
-		static const char*      outputModeNames[] = { "SDR", "HDR10 (DirectX 12 Only)", nullptr };
+		static const char*      outputModeNames[] = { "SDR", "HDR10 (DirectX 12 Only)", NULL };
 		static const OutputMode outputModeValues[] = {
 			OUTPUT_MODE_SDR,
 			OUTPUT_MODE_HDR10,
@@ -1309,14 +1367,14 @@ public:
 		DropdownWidget outputMode("Output Mode", (uint32_t*)&gAppSettings.mOutputMode, outputModeNames, (uint32_t*)outputModeValues, 2U);
 		pGuiWindow->AddWidget(outputMode);
 #else
-		static const char* outputModeNames[] = { "SDR", nullptr };
+		static const char* outputModeNames[] = { "SDR", NULL };
 		static const OutputMode outputModeValues[] = { OUTPUT_MODE_SDR };
 		
 		DropdownWidget outputMode("Output Mode", (uint32_t*)&gAppSettings.mOutputMode, outputModeNames, (uint32_t*)outputModeValues, 1U);
 		pGuiWindow->AddWidget(outputMode);
 #endif
 		
-		static const char* lightingModeNames[] = { "Phong", "Physically Based Rendering", nullptr };
+		static const char* lightingModeNames[] = { "Phong", "Physically Based Rendering", NULL };
 		
 		static const LightingMode lightingModeValues[] = {
 			LIGHTING_PHONG,
@@ -1391,7 +1449,7 @@ public:
 		/************************************************************************/
 		// Rendering Settings
 		/************************************************************************/
-		static const char*      renderModeNames[] = { "Visibility Buffer", "Deferred Shading", nullptr };
+		static const char*      renderModeNames[] = { "Visibility Buffer", "Deferred Shading", NULL };
 		static const RenderMode renderModeValues[] = {
 			RENDERMODE_VISBUFF,
 			RENDERMODE_DEFERRED,
@@ -1400,15 +1458,15 @@ public:
 		renderMode.pOnDeactivatedAfterEdit = SetupDebugTexturesWindow;
 		pGuiWindow->AddWidget(renderMode);
 		
-		static const char* displayColorRangeNames[] = { "RGB", nullptr };
+		static const char* displayColorRangeNames[] = { "RGB", NULL };
 		
 		static const DisplayColorRange displayColorRangeValues[] = { ColorRange_RGB };
 		
-		static const char* displaySignalRangeNames[] = { "Range Full", "Range Limited", nullptr };
+		static const char* displaySignalRangeNames[] = { "Range Full", "Range Limited", NULL };
 		
 		static const DisplaySignalRange displaySignalRangeValues[] = { Display_SIGNAL_RANGE_FULL, Display_SIGNAL_RANGE_NARROW };
 		
-		static const char* displayColorSpaceNames[] = { "ColorSpace Rec709", "ColorSpace Rec2020", "ColorSpace P3D65", nullptr };
+		static const char* displayColorSpaceNames[] = { "ColorSpace Rec709", "ColorSpace Rec2020", "ColorSpace P3D65", NULL };
 		
 		static const DisplayColorSpace displayColorSpaceValues[] = { ColorSpace_Rec709, ColorSpace_Rec2020, ColorSpace_P3D65 };
 		
@@ -1450,7 +1508,7 @@ public:
 		if (gAppSettings.mEnableHDAO)
 			gAppSettings.mDynamicUIWidgetsAO.ShowWidgets(pGuiWindow);
 		
-		static const char* curveConversionModeNames[] = { "Linear Scale", "Scurve", nullptr };
+		static const char* curveConversionModeNames[] = { "Linear Scale", "Scurve", NULL };
 		
 		static const CurveConversionMode curveConversionValues[] = { CurveConversion_LinearScale, CurveConversion_SCurve };
 		
@@ -1565,6 +1623,7 @@ public:
 #endif
 		removePipeline(pRenderer, pPipelineClearBuffers);
 		
+		// Remove root signatures
 		removeRootSignature(pRenderer, pRootSignatureResolve);
 		removeRootSignature(pRenderer, pRootSignatureGodrayResolve);
 		removeRootSignature(pRenderer, pRootSignatureAO);
@@ -1590,6 +1649,29 @@ public:
 		removeRootSignature(pRenderer, pRootSignatureVBShade);
 		removeRootSignature(pRenderer, pRootSignatureVBPass);
 		
+		// Remove descriptor binders
+		removeDescriptorBinder(pRenderer, pDescriptorBinderClearBuffers);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderTriangleFiltering);
+#if !defined(METAL)
+		removeDescriptorBinder(pRenderer, pDescriptorBinderBatchCompaction);
+#endif
+		removeDescriptorBinder(pRenderer, pDescriptorBinderClearLightClusters);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderClusterLights);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderVBPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderVBShade);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderDeferredPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderDeferredShade);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderDeferredShadePointLight);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderAO);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderResolve);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderGodrayResolve);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSkybox);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSunPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderGodRayPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderCurveConversionPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPresentPass);
+
+		// Remove indirect command signatures
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
 		/************************************************************************/
@@ -2362,7 +2444,7 @@ public:
 		{
 			// Get the current render target for this frame
 			acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &gPresentFrameIdx);
-			
+
 			// check to see if we can use the cmd buffer
 			Fence*      pRenderFence = pRenderCompleteFences[gPresentFrameIdx];
 			FenceStatus fenceStatus;
@@ -2381,9 +2463,9 @@ public:
 			else
 			{
 				// Get the current render target for this frame
-				acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &gPresentFrameIdx);
+				acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gPresentFrameIdx);
 			}
-			
+
 			// check to see if we can use the cmd buffer
 			Fence*      pComputeFence = pComputeCompleteFences[gPresentFrameIdx];
 			FenceStatus fenceStatus;
@@ -3308,7 +3390,7 @@ public:
 			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 			ubDesc.mDesc.mSize = bufferSize;
-			ubDesc.pData = nullptr;
+			ubDesc.pData = NULL;
 			ubDesc.ppBuffer = &(pFilterBatchChunk[i]->batchDataBuffer);
 			ubDesc.mDesc.pDebugName = L"Uniform Buffer Desc";
 			addResource(&ubDesc);
@@ -3366,7 +3448,7 @@ public:
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = nullptr;
+		ubDesc.pData = NULL;
 		ubDesc.mDesc.pDebugName = L"Uniform Buffer Desc";
 		
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -3444,7 +3526,7 @@ public:
 		lightClustersDataBufferDesc.mDesc.mFirstElement = 0;
 		lightClustersDataBufferDesc.mDesc.mElementCount = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
 		lightClustersDataBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
-		lightClustersDataBufferDesc.pData = nullptr;
+		lightClustersDataBufferDesc.pData = NULL;
 		lightClustersDataBufferDesc.mDesc.pDebugName = L"Light Cluster Data Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
@@ -3457,7 +3539,7 @@ public:
 		sunDataBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		sunDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		sunDataBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		sunDataBufferDesc.pData = nullptr;
+		sunDataBufferDesc.pData = NULL;
 		sunDataBufferDesc.mDesc.pDebugName = L"Sun matrices Data Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
@@ -3619,7 +3701,7 @@ public:
 		if (submitAndWait)
 		{
 			endCmd(ppCmds[frameIdx]);
-			queueSubmit(pGraphicsQueue, 1, ppCmds, pTransitionFences, 0, nullptr, 0, nullptr);
+			queueSubmit(pGraphicsQueue, 1, ppCmds, pTransitionFences, 0, NULL, 0, NULL);
 			waitForFences(pRenderer, 1, &pTransitionFences);
 		}
 	}
@@ -3760,22 +3842,22 @@ public:
 		UNREF_PARAM(deltaTime);
 		
 		// Pressing space holds / unholds triangle filtering results
-		if (getKeyUp(KEY_LEFT_TRIGGER))
+		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED))
 			gAppSettings.mHoldFilteredResults = !gAppSettings.mHoldFilteredResults;
 		
-		if (getKeyUp(KEY_MENU))
+		if (InputSystem::GetBoolInput(KEY_MENU_TRIGGERED))
 			gAppSettings.mFilterTriangles = !gAppSettings.mFilterTriangles;
 		
-		if (getKeyUp(KEY_RIGHT_TRIGGER))
+		if (InputSystem::GetBoolInput(KEY_RIGHT_TRIGGER_TRIGGERED))
 		{
 			gAppSettings.mRenderMode = (RenderMode)((gAppSettings.mRenderMode + 1) % RENDERMODE_COUNT);
 			SetupDebugTexturesWindow();
 		}
 		
-		if (getKeyUp(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 			gAppSettings.mRenderLocalLights = !gAppSettings.mRenderLocalLights;
 		
-		if (getKeyUp(KEY_BUTTON_Y))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_Y_TRIGGERED))
 		{
 			gAppSettings.mDrawDebugTargets = !gAppSettings.mDrawDebugTargets;
 			SetupDebugTexturesWindow();
@@ -3921,7 +4003,7 @@ public:
 		shadowParams[1].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		shadowParams[2].pName = "filteredTriangles";
 		shadowParams[2].ppBuffers = &filteredTrianglesBuffer;
-		cmdBindDescriptors(cmd, pRootSignatureVBPass, 3, shadowParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 3, shadowParams);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -3934,7 +4016,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pRootSignatureVBPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineShadowPass[i]);
 			
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -3949,8 +4031,8 @@ public:
 				meshParams[0].ppBuffers = &gPerBatchUniformBuffers[m];
 				meshParams[1].pName = "diffuseMap";
 				meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pRootSignatureVBPass, 2, meshParams);
-				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), nullptr, 0);
+				cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 2, meshParams);
+				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), NULL, 0);
 			}
 			
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -3969,7 +4051,7 @@ public:
 		params[1].ppBuffers = &pIndirectMaterialBuffer;
 		params[2].pName = "uniforms";
 		params[2].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureVBPass, 3, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 3, params);
 		
 		// Position only opaque shadow pass
 		Buffer* pVertexBuffersPositionOnly[] = { pVertexBufferPosition };
@@ -4032,7 +4114,7 @@ public:
 		vbPassParams[2].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		vbPassParams[3].pName = "filteredTriangles";
 		vbPassParams[3].ppBuffers = &filteredTrianglesBuffer;
-		cmdBindDescriptors(cmd, pRootSignatureVBPass, 4, vbPassParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 4, vbPassParams);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4045,7 +4127,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pRootSignatureVBPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineVisibilityBufferPass[i]);
 			
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -4061,8 +4143,8 @@ public:
 				meshParams[0].ppBuffers = &gPerBatchUniformBuffers[m];
 				meshParams[1].pName = "diffuseMap";
 				meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pRootSignatureVBPass, 2, meshParams);
-				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), nullptr, 0);
+				cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 2, meshParams);
+				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), NULL, 0);
 			}
 			
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -4116,7 +4198,7 @@ public:
 		const uint32_t numDescriptors = 17;
 #else
 		const uint32_t numDescriptors = 19;
-		Buffer* pIndirectBuffers[gNumGeomSets] = { nullptr };
+		Buffer* pIndirectBuffers[gNumGeomSets] = { NULL };
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
 			pIndirectBuffers[i] = pFilteredIndirectDrawArgumentsBuffer[frameIdx][i][VIEW_CAMERA];
@@ -4180,7 +4262,7 @@ public:
 		vbShadeParams[18].ppBuffers = &pMeshConstantsBuffer;
 #endif
 		
-		cmdBindDescriptors(cmd, pRootSignatureVBShade, numDescriptors, vbShadeParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderVBShade, numDescriptors, vbShadeParams);
 		
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
@@ -4232,7 +4314,7 @@ public:
 		deferredPassParams[5].ppBuffers = &filteredTrianglesBuffer;
 		deferredPassParams[6].pName = "textureSampler";
 		deferredPassParams[6].ppSamplers = &pSamplerBilinear;
-		cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 7, deferredPassParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 7, deferredPassParams);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4245,7 +4327,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineDeferredPass[i]);
 			
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -4265,9 +4347,9 @@ public:
 				meshParams[2].ppTextures = &gNormalMaps[pScene->meshes[m].materialId];
 				meshParams[3].pName = "specularMap";
 				meshParams[3].ppTextures = &gSpecularMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 4, meshParams);
+				cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 4, meshParams);
 				cmdExecuteIndirect(
-								   cmd, pCmdSignatureDeferredPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), nullptr, 0);
+								   cmd, pCmdSignatureDeferredPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), NULL, 0);
 			}
 			
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -4294,7 +4376,7 @@ public:
 		params[4].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		params[5].pName = "meshConstantsBuffer";
 		params[5].ppBuffers = &pMeshConstantsBuffer;
-		cmdBindDescriptors(cmd, pRootSignatureDeferredPass, 6, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 6, params);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4354,7 +4436,7 @@ public:
 		params[8].pName = "RootConstantDrawScene";
 		params[8].pRootConstant = &gRootConstantDrawsceneData;
 		
-		cmdBindDescriptors(cmd, pRootSignatureDeferredShade, 9, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderDeferredShade, 9, params);
 		
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
@@ -4399,7 +4481,7 @@ public:
 		params[8].pName = "RootConstantDrawScene";
 		params[8].pRootConstant = &gRootConstantDrawsceneData;
 		
-		cmdBindDescriptors(cmd, pRootSignatureDeferredShadePointLight, numDescriptors, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderDeferredShadePointLight, numDescriptors, params);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferCube, NULL);
 		cmdBindIndexBuffer(cmd, pIndexBufferCube, 0);
 		cmdDrawIndexedInstanced(cmd, 36, 0, LIGHT_COUNT, 0, 0);
@@ -4435,7 +4517,7 @@ public:
 		params[0].ppTextures = &pDepthBuffer->pTexture;
 		params[1].pName = "HDAORootConstants";
 		params[1].pRootConstant = &data;
-		cmdBindDescriptors(cmd, pRootSignatureAO, 2, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderAO, 2, params);
 		cmdBindPipeline(cmd, pPipelineAO[gAppSettings.mAOQuality - 1]);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -4457,7 +4539,7 @@ public:
 		params[0].pName = "msaaSource";
 		params[0].ppTextures = &msaaRT->pTexture;
 		
-		cmdBindDescriptors(cmd, pRootSignatureResolve, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderResolve, 1, params);
 		cmdBindPipeline(cmd, pPipelineResolve);
 		cmdDraw(cmd, 3, 0);
 		
@@ -4482,7 +4564,7 @@ public:
 		params[0].pName = "msaaSource";
 		params[0].ppTextures = &msaaRT->pTexture;
 		
-		cmdBindDescriptors(cmd, pRootSignatureGodrayResolve, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderGodrayResolve, 1, params);
 		cmdBindPipeline(cmd, pPipelineGodrayResolve);
 		cmdDraw(cmd, 3, 0);
 		
@@ -4497,7 +4579,7 @@ public:
 		DescriptorData params[1] = {};
 		params[0].pName = "lightClustersCount";
 		params[0].ppBuffers = &pLightClustersCount[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureClearLightClusters, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderClearLightClusters, 1, params);
 		
 		cmdDispatch(cmd, 1, 1, 1);
 	}
@@ -4516,7 +4598,7 @@ public:
 		params[2].ppBuffers = &pLightsBuffer;
 		params[3].pName = "uniforms";
 		params[3].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureClusterLights, 4, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderClusterLights, 4, params);
 		
 		cmdDispatch(cmd, LIGHT_COUNT, 1, 1);
 	}
@@ -4547,7 +4629,7 @@ public:
 		params[0].pName = "perBatch";
 		params[0].pOffsets = &bufferOffset;
 		params[0].ppBuffers = &batchDataBuffer;
-		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 1, params);
 		
 		// This compute shader executes one thread per triangle and one group per batch
 		ASSERT(pShaderTriangleFiltering->mReflection.mStageReflections[0].mNumThreadsPerGroup[0] == CLUSTER_SIZE);
@@ -4574,7 +4656,7 @@ public:
 		params[0].pName = "batchData";
 		params[0].pOffsets = &offset.mOffset;
 		params[0].ppBuffers = &offset.pBuffer;
-		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 		
 		// Reset batch chunk to start adding triangles to it
@@ -4732,7 +4814,7 @@ public:
 		clearParams[2].pRootConstant = (void*)&pScene->numMeshes;
 		
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
-		cmdBindDescriptors(cmd, pRootSignatureClearBuffers, 3, clearParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderClearBuffers, 3, clearParams);
 		uint32_t numGroups = (pScene->numMeshes / CLEAR_THREAD_COUNT) + 1;
 		
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4755,7 +4837,7 @@ public:
 		filterParams[4].ppBuffers = &pFilteredIndexBuffer[frameIdx][VIEW_CAMERA];
 		filterParams[5].pName = "filteredTrianglesShadow";
 		filterParams[5].ppBuffers = &pFilteredIndexBuffer[frameIdx][VIEW_SHADOW];
-		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 6, filterParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 6, filterParams);
 		
 		// Iterate mesh clusters and perform cluster culling
 		uint32_t batchBufferOffset = 0;
@@ -4816,7 +4898,7 @@ public:
 		clearParams[2].pName = "uncompactedDrawArgs";
 		clearParams[2].mCount = gNumViews;
 		clearParams[2].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureClearBuffers, 3, clearParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderClearBuffers, 3, clearParams);
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
 		uint32_t numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4862,7 +4944,7 @@ public:
 		filterParams[4].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
 		filterParams[5].pName = "uniforms";
 		filterParams[5].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureTriangleFiltering, 6, filterParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 6, filterParams);
 #if 0
 #define SORT_CLUSTERS 1
 		
@@ -5077,7 +5159,7 @@ public:
 		compactParams[4].pName = "uncompactedDrawArgs";
 		compactParams[4].mCount = gNumViews;
 		compactParams[4].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
-		cmdBindDescriptors(cmd, pRootSignatureBatchCompaction, 5, compactParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderBatchCompaction, 5, compactParams);
 		numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -5199,10 +5281,11 @@ public:
 	
 	void LoadSkybox()
 	{
-		Texture*       pPanoSkybox = NULL;
-		Shader*        pPanoToCubeShader = NULL;
-		RootSignature* pPanoToCubeRootSignature = NULL;
-		Pipeline*      pPanoToCubePipeline = NULL;
+		Texture*          pPanoSkybox = NULL;
+		Shader*           pPanoToCubeShader = NULL;
+		RootSignature*    pPanoToCubeRootSignature = NULL;
+		DescriptorBinder* pPanoToCubeDescriptorBinder = NULL;
+		Pipeline*         pPanoToCubePipeline = NULL;
 		
 		Sampler* pSkyboxSampler = NULL;
 		
@@ -5257,6 +5340,8 @@ public:
 		
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
 		
+		CreateDescriptorBinder(pPanoToCubeRootSignature, 0, gSkyboxMips + 1, &pPanoToCubeDescriptorBinder);
+
 		PipelineDesc pipelineDesc = {};
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = pipelineDesc.mComputeDesc;
@@ -5280,7 +5365,7 @@ public:
 		cmdBindPipeline(cmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
 		params[0].ppTextures = &pPanoSkybox;
-		cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 1, params);
 		
 		struct Data
 		{
@@ -5296,7 +5381,7 @@ public:
 			params[1].pName = "dstTexture";
 			params[1].ppTextures = &pSkybox;
 			params[1].mUAVMipSlice = i;
-			cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
+			cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 2, params);
 			
 			const uint32_t* pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(
@@ -5400,7 +5485,7 @@ public:
 		skyParams[1].pName = "skyboxTex";
 		skyParams[1].ppTextures = &pSkybox;
 		
-		cmdBindDescriptors(cmd, pRootSingatureSkybox, 2, skyParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderSkybox, 2, skyParams);
 		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
 		
 		cmdDraw(cmd, 36, 0);
@@ -5436,7 +5521,7 @@ public:
 		sunParams[0].pName = "UniformBufferSunMatrices";
 		sunParams[0].ppBuffers = &pUniformBufferSun[gPresentFrameIdx];
 		
-		cmdBindDescriptors(cmd, pRootSigSunPass, 1, sunParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderSunPass, 1, sunParams);
 		cmdBindVertexBuffer(cmd, 1, &pSunVertexBuffer, NULL);
 		cmdBindIndexBuffer(cmd, pSunIndexBuffer, 0);
 		
@@ -5478,7 +5563,7 @@ public:
 		GodrayParams[2].pName = "RootConstantGodrayInfo";
 		GodrayParams[2].pRootConstant = &gAppSettings.gGodrayInfo;
 		
-		cmdBindDescriptors(cmd, pRootSigGodRayPass, 3, GodrayParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderGodRayPass, 3, GodrayParams);
 		cmdDraw(cmd, 3, 0);
 		
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5509,7 +5594,7 @@ public:
 			GodrayParams[2].pName = "RootConstantGodrayInfo";
 			GodrayParams[2].pRootConstant = &gAppSettings.gGodrayInfo;
 			
-			cmdBindDescriptors(cmd, pRootSigGodRayPass, 3, GodrayParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderGodRayPass, 3, GodrayParams);
 			cmdDraw(cmd, 3, 0);
 			
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5552,7 +5637,7 @@ public:
 		CurveConversionParams[2].pName = "GodRayTex";
 		CurveConversionParams[2].ppTextures = &pRenderTargetGodRayA->pTexture;
 		
-		cmdBindDescriptors(cmd, pRootSigCurveConversionPass, 3, CurveConversionParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderCurveConversionPass, 3, CurveConversionParams);
 		
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5584,7 +5669,7 @@ public:
 		params[2].pName = "RootConstantSCurveInfo";
 		params[2].pRootConstant = &gSCurveInfomation;
 		
-		cmdBindDescriptors(cmd, pRootSigPresentPass, 3, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderPresentPass, 3, params);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		

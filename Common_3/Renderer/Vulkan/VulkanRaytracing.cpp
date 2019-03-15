@@ -21,7 +21,7 @@ void addAccelerationStructure(Raytracing* /*pRaytracing*/, const AccelerationStr
 void removeAccelerationStructure(Raytracing* /*pRaytracing*/, AccelerationStructure* /*pAccelerationStructure*/) {}
 
 extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr) {}
+	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL) {}
 
 void addRaytracingPipeline(const RaytracingPipelineDesc* /*pDesc*/, Pipeline** /*ppPipeline*/) {}
 

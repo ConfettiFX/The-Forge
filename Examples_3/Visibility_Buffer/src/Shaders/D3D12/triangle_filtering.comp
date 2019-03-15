@@ -57,7 +57,7 @@ StructuredBuffer<MeshConstants> meshConstantsBuffer;
 RWStructuredBuffer<uint> filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
 RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
 
-cbuffer batchData
+cbuffer batchData : register(b0, space3)
 {
 	SmallBatchData smallBatchDataBuffer[BATCH_COUNT];
 };

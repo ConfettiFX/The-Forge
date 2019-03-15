@@ -48,8 +48,8 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 // Input
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // NOTE: should be the last include in a .cpp!
@@ -374,8 +374,7 @@ class FontRendering: public IApp
 		//-------------------------------------------------------------------------------------
 
 		// Toggle Theme
-		const int offset = (getKeyDown(KEY_LEFT_SHIFT) || getKeyDown(KEY_RIGHT_SHIFT)) ? -1 : +1;
-		if (getKeyUp(KEY_LEFT_TRIGGER))    // KEY_LEFT_TRIGGER = spacebar
+		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED))    // KEY_LEFT_TRIGGER = spacebar
 		{
 			gSceneData.theme = !gSceneData.theme;    // dark/light theme
 													 // no need to call InitializeSceneText() here,
@@ -388,7 +387,7 @@ class FontRendering: public IApp
 		// --------------------------------------------------------------------
 
 		// Toggle Displaying UI Window
-		if (getKeyUp(KEY_LEFT_STICK_BUTTON))    // F1 key
+		if (InputSystem::GetBoolInput(KEY_LEFT_STICK_BUTTON_TRIGGERED))    // F1 key
 		{
 			gbShowSceneControlsUIWindow = !gbShowSceneControlsUIWindow;
 		}

@@ -14,12 +14,12 @@
 		65AC433A21ACE80300F6DE4E /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432D21ACE7BB00F6DE4E /* libassimp.a */; };
 		65AC433B21ACE80300F6DE4E /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432B21ACE7BB00F6DE4E /* libIrrXML.a */; };
 		65AC433C21ACE80300F6DE4E /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432F21ACE7BB00F6DE4E /* libzlibstatic.a */; };
+		81FF8E3A2237ADE70009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E382237ADE70009402D /* InputSystem.cpp */; };
 		97FD71DA2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71D82141D5E00051A203 /* ImguiGUIDriver.cpp */; };
 		97FD71E32141D6400051A203 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71DD2141D6400051A203 /* imgui.cpp */; };
 		97FD71E52141D6400051A203 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E02141D6400051A203 /* imgui_draw.cpp */; };
 		97FD71E72141D6400051A203 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71E22141D6400051A203 /* imgui_widgets.cpp */; };
 		B22EE24B21547612009CD7F2 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22EE24921547612009CD7F2 /* imgui_demo.cpp */; };
-		B235DC6520EC351300592362 /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B235DC6420EC351300592362 /* InputSystem.cpp */; };
 		B235DC7820EC37B800592362 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7520EC37B000592362 /* libgainputstatic.a */; };
 		B235DC7D20EC387500592362 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7B20EC387500592362 /* Metal.framework */; };
 		B235DC7E20EC387500592362 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7C20EC387500592362 /* MetalKit.framework */; };
@@ -158,6 +158,9 @@
 		651017A6222539C9009A1174 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = ../../../Common_3/Renderer/Metal/MetalRaytracing.mm; sourceTree = SOURCE_ROOT; };
 		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		65AC432121ACE7BA00F6DE4E /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
+		81FF8E372237ADE70009402D /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = Input/InputSystem.h; sourceTree = "<group>"; };
+		81FF8E382237ADE70009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
+		81FF8E392237ADE70009402D /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = Input/InputMappings.h; sourceTree = "<group>"; };
 		97FD71D82141D5E00051A203 /* ImguiGUIDriver.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ImguiGUIDriver.cpp; path = ../../Middleware_3/UI/ImguiGUIDriver.cpp; sourceTree = "<group>"; };
 		97FD71DD2141D6400051A203 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui.cpp; path = OpenSource/imgui/imgui.cpp; sourceTree = "<group>"; };
 		97FD71DE2141D6400051A203 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imgui.h; path = OpenSource/imgui/imgui.h; sourceTree = "<group>"; };
@@ -167,9 +170,6 @@
 		97FD71E22141D6400051A203 /* imgui_widgets.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = imgui_widgets.cpp; path = OpenSource/imgui/imgui_widgets.cpp; sourceTree = "<group>"; };
 		B22EE24921547612009CD7F2 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_demo.cpp; path = OpenSource/imgui/imgui_demo.cpp; sourceTree = "<group>"; };
 		B235DC5420EC349800592362 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
-		B235DC6220EC351300592362 /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = ../../../Middleware_3/Input/InputMappings.h; sourceTree = "<group>"; };
-		B235DC6320EC351300592362 /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = ../../../Middleware_3/Input/InputSystem.h; sourceTree = "<group>"; };
-		B235DC6420EC351300592362 /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = ../../../Middleware_3/Input/InputSystem.cpp; sourceTree = "<group>"; };
 		B235DC7B20EC387500592362 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B235DC7C20EC387500592362 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B235DC7F20EC387C00592362 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = System/Library/Frameworks/ModelIO.framework; sourceTree = SDKROOT; };
@@ -286,6 +286,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		81FF8E362237ADD40009402D /* Input */ = {
+			isa = PBXGroup;
+			children = (
+				81FF8E392237ADE70009402D /* InputMappings.h */,
+				81FF8E382237ADE70009402D /* InputSystem.cpp */,
+				81FF8E372237ADE70009402D /* InputSystem.h */,
+			);
+			name = Input;
+			sourceTree = "<group>";
+		};
 		97FD71DC2141D61E0051A203 /* ImGUI */ = {
 			isa = PBXGroup;
 			children = (
@@ -298,24 +308,6 @@
 				97FD71DE2141D6400051A203 /* imgui.h */,
 			);
 			name = ImGUI;
-			sourceTree = "<group>";
-		};
-		B235DC6020EC34FE00592362 /* Middleware_3 */ = {
-			isa = PBXGroup;
-			children = (
-				B235DC6120EC350500592362 /* Input */,
-			);
-			name = Middleware_3;
-			sourceTree = "<group>";
-		};
-		B235DC6120EC350500592362 /* Input */ = {
-			isa = PBXGroup;
-			children = (
-				B235DC6220EC351300592362 /* InputMappings.h */,
-				B235DC6420EC351300592362 /* InputSystem.cpp */,
-				B235DC6320EC351300592362 /* InputSystem.h */,
-			);
-			name = Input;
 			sourceTree = "<group>";
 		};
 		B235DC7020EC37B000592362 /* Products */ = {
@@ -446,7 +438,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B235DC6020EC34FE00592362 /* Middleware_3 */,
 				D2D30A171F4772740086ED2E /* Fonts */,
 				D2D307F01F475F720086ED2E /* Meshes */,
 				D2C8A3D21F13CD650099B68D /* Shaders */,
@@ -538,6 +529,7 @@
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
+				81FF8E362237ADD40009402D /* Input */,
 				EA463CDA1EF81FC5005AC8C7 /* macOS */,
 				D26E803C1F4708D300C043F1 /* iOS */,
 				D2F8848B1F4450E70005BE5B /* MemoryTracking */,
@@ -796,7 +788,6 @@
 				C96E13312007C1CD004363F0 /* macOSFileSystem.mm in Sources */,
 				D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */,
 				D2B157271F1CD2CA0037A8C8 /* Visibility_Buffer.cpp in Sources */,
-				B235DC6520EC351300592362 /* InputSystem.cpp in Sources */,
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				B28506F71F4FB0280013C61A /* MemoryTrackingManager.cpp in Sources */,
 				5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */,
@@ -810,6 +801,7 @@
 				EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */,
 				D278835E1F327ED300F4362D /* FpsCameraController.cpp in Sources */,
 				97FD71E52141D6400051A203 /* imgui_draw.cpp in Sources */,
+				81FF8E3A2237ADE70009402D /* InputSystem.cpp in Sources */,
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLogManager.cpp in Sources */,
 				EA463D011EF81FC5005AC8C7 /* MetalRenderer.mm in Sources */,

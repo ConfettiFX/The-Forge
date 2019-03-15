@@ -44,8 +44,8 @@
 
 // Middleware packages
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -476,7 +476,7 @@ class UserInterfaceUnitTest: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}

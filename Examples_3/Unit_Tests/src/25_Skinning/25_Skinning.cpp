@@ -54,8 +54,8 @@
 #include "../../../../Middleware_3/Animation/Rig.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 // tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
@@ -118,14 +118,16 @@ Pipeline* pSkeletonPipeline = NULL;
 int       gNumberOfJointPoints;
 int       gNumberOfBonePoints;
 
-Shader*        pPlaneDrawShader = NULL;
-Buffer*        pPlaneVertexBuffer = NULL;
-Pipeline*      pPlaneDrawPipeline = NULL;
-RootSignature* pRootSignature = NULL;
+Shader*           pPlaneDrawShader = NULL;
+Buffer*           pPlaneVertexBuffer = NULL;
+Pipeline*         pPlaneDrawPipeline = NULL;
+RootSignature*    pRootSignature = NULL;
+DescriptorBinder* pDescriptorBinderPlane = NULL;
 
-Shader*        pShaderSkinning = NULL;
-RootSignature* pRootSignatureSkinning = NULL;
-Pipeline*      pPipelineSkinning = NULL;
+Shader*           pShaderSkinning = NULL;
+RootSignature*    pRootSignatureSkinning = NULL;
+DescriptorBinder* pDescriptorBinderSkinning = NULL;
+Pipeline*         pPipelineSkinning = NULL;
 
 struct Vertex
 {
@@ -357,6 +359,9 @@ class Skinning: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
+		DescriptorBinderDesc descriptorBinderDescPlane = { pRootSignature, 0, 1 };
+		addDescriptorBinder(pRenderer, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
+
 		const char* staticSamplers[] = { "DefaultSampler" };
 
 		RootSignatureDesc skinningRootSignatureDesc = {};
@@ -366,6 +371,9 @@ class Skinning: public IApp
 		skinningRootSignatureDesc.ppStaticSamplerNames = staticSamplers;
 		skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
+
+		DescriptorBinderDesc descriptorBinderDescSkinning = { pRootSignatureSkinning, 0, 1 };
+		addDescriptorBinder(pRenderer, &descriptorBinderDescSkinning, &pDescriptorBinderSkinning);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -557,6 +565,7 @@ class Skinning: public IApp
 
 		// Set up details for rendering the skeletons
 		SkeletonRenderDesc skeletonRenderDesc = {};
+		skeletonRenderDesc.mRenderer = pRenderer;
 		skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
 		skeletonRenderDesc.mRootSignature = pRootSignature;
 		skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
@@ -711,6 +720,8 @@ class Skinning: public IApp
 		removeShader(pRenderer, pPlaneDrawShader);
 		removeRootSignature(pRenderer, pRootSignatureSkinning);
 		removeRootSignature(pRenderer, pRootSignature);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSkinning);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPlane);
 
 		removeDepthState(pDepth);
 
@@ -876,7 +887,7 @@ class Skinning: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
@@ -1003,7 +1014,7 @@ class Skinning: public IApp
 			DescriptorData params[1] = {};
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pPlaneUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pRootSignature, 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderPlane, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, NULL);
 			cmdDraw(cmd, 6, 0);
 			cmdEndDebugMarker(cmd);
@@ -1031,7 +1042,7 @@ class Skinning: public IApp
 			params[2].ppBuffers = &pBoneOffsetBuffer;
 			params[3].pName = "DiffuseTexture";
 			params[3].ppTextures = &pTextureDiffuse;
-			cmdBindDescriptors(cmd, pRootSignatureSkinning, 4, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderSkinning, 4, params);
 			cmdBindVertexBuffer(cmd, 1, &pVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pIndexBuffer, NULL);
 			cmdDrawIndexed(cmd, gIndexCount, 0, 0);

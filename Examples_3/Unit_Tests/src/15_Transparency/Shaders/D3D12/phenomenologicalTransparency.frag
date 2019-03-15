@@ -56,12 +56,12 @@ struct ObjectInfo
 	uint matID;
 };
 
-cbuffer ObjectUniformBlock : register(b0)
+cbuffer ObjectUniformBlock : register(b0, space3)
 {
 	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
 };
 
-Texture2D DepthTexture : register(t0);
+Texture2D DepthTexture : register(t0, space3);
 SamplerState PointSampler : register(s0);
 #endif
 

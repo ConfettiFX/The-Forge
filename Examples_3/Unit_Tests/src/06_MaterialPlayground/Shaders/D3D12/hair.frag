@@ -86,12 +86,12 @@ struct Camera
 	float fNormalMapIntensity;
 };
 
-cbuffer cbCamera : register(b0)
+cbuffer cbCamera : register(b0, space3)
 {
 	Camera Cam;
 }
 
-cbuffer cbHair : register(b2)
+cbuffer cbHair : register(b2, space3)
 {
 	float4x4 Transform;
 	uint RootColor;
@@ -119,12 +119,12 @@ cbuffer cbDirectionalLights : register(b4)
 	uint NumDirectionalLights;
 }
 
-cbuffer cbDirectionalLightShadowCameras : register(b6)
+cbuffer cbDirectionalLightShadowCameras : register(b6, space3)
 {
 	Camera ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS];
 }
 
-Texture2D<float> DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS] : register(t3);
+Texture2D<float> DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS] : register(t3, space3);
 SamplerState PointSampler : register(s1);
 
 cbuffer cbHairGlobal : register(b5)

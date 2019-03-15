@@ -306,318 +306,6 @@ void iDecodeCompressedImage(unsigned char* dest, unsigned char* src, const int w
 	}
 }
 
-// --- IMAGE FORMATS ---
-
-int ImageFormat::GetBytesPerPixel(const ImageFormat::Enum format)
-{
-	// Does not accept compressed formats
-
-	static const int bytesPP[] = {
-		0, 1, 2,  3,  4,       //  8-bit unsigned
-		2, 4, 6,  8,           // 16-bit unsigned
-		1, 2, 3,  4,           //  8-bit signed
-		2, 4, 6,  8,           // 16-bit signed
-		2, 4, 6,  8,           // 16-bit float
-		4, 8, 12, 16,          // 32-bit float
-		2, 4, 6,  8,           // 16-bit unsigned integer
-		4, 8, 12, 16,          // 32-bit unsigned integer
-		2, 4, 6,  8,           // 16-bit signed integer
-		4, 8, 12, 16,          // 32-bit signed integer
-		4, 4, 4,  2,  2, 4,    // Packed
-		2, 4, 4,  4,           // Depth
-	};
-
-	if (format == ImageFormat::BGRA8)
-		return 4;
-
-	ASSERT(format <= ImageFormat::D32F || format == ImageFormat::BGRA8 || format == ImageFormat::D32S8);
-
-	return bytesPP[format];
-}
-
-int ImageFormat::GetBytesPerBlock(const ImageFormat::Enum format)
-{
-	ASSERT(ImageFormat::IsCompressedFormat(format));
-	switch (format)
-	{
-			// BC1 == DXT1
-			// BC2 == DXT2
-			// BC3 == DXT4 / 5
-			// BC4 == ATI1 == One color channel (8 bits)
-			// BC5 == ATI2 == Two color channels (8 bits:8 bits)
-			// BC6 == Three color channels (16 bits:16 bits:16 bits) in "half" floating point*
-			// BC7 == Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
-		case ImageFormat::DXT1:         //  4x4
-		case ImageFormat::ATI1N:        //  4x4
-		case ImageFormat::GNF_BC1:      //  4x4
-		case ImageFormat::ETC1:         //  4x4
-		case ImageFormat::ATC:          //  4x4
-		case ImageFormat::PVR_4BPP:     //  4x4
-		case ImageFormat::PVR_4BPPA:    //  4x4
-		case ImageFormat::PVR_2BPP:     //  4x8
-		case ImageFormat::PVR_2BPPA:    //  4x8
-		case ImageFormat::PVR_4BPP_SRGB:     //  4x4
-		case ImageFormat::PVR_4BPPA_SRGB:    //  4x4
-		case ImageFormat::PVR_2BPP_SRGB:     //  4x8
-		case ImageFormat::PVR_2BPPA_SRGB:    //  4x8
-			return 8;
-
-		case ImageFormat::DXT3:       //  4x4
-		case ImageFormat::DXT5:       //  4x4
-		case ImageFormat::GNF_BC3:    //  4x4
-		case ImageFormat::GNF_BC5:    //  4x4
-		case ImageFormat::ATI2N:      //  4x4
-		case ImageFormat::ATCA:       //  4x4
-		case ImageFormat::ATCI:       //  4x4
-#ifdef FORGE_JHABLE_EDITS_V01
-		case ImageFormat::GNF_BC6:    //  4x4
-		case ImageFormat::GNF_BC7:    //  4x4
-#endif
-			return 16;
-
-		default: return 0;
-	}
-}
-
-int ImageFormat::GetBytesPerChannel(const ImageFormat::Enum format)
-{
-	// Accepts only plain formats
-	static const int bytesPC[] = {
-		1,    //  8-bit unsigned
-		2,    // 16-bit unsigned
-		1,    //  8-bit signed
-		2,    // 16-bit signed
-		2,    // 16-bit float
-		4,    // 32-bit float
-		2,    // 16-bit unsigned integer
-		4,    // 32-bit unsigned integer
-		2,    // 16-bit signed integer
-		4,    // 32-bit signed integer
-	};
-
-	ASSERT(format <= ImageFormat::RGBA32UI);
-
-	return bytesPC[(format - 1) >> 2];
-}
-
-ImageFormat::BlockSize ImageFormat::GetBlockSize(const ImageFormat::Enum format)
-{
-	switch (format)
-	{
-		case ImageFormat::PVR_2BPP_SRGB:     //  4x8
-		case ImageFormat::PVR_2BPPA_SRGB:    //  4x8
-		case ImageFormat::PVR_2BPP:          //  4x8
-		case ImageFormat::PVR_2BPPA:         //  4x8
-			return BLOCK_SIZE_4x8;
-
-		case ImageFormat::DXT1:         //  4x4
-		case ImageFormat::ATI1N:        //  4x4
-		case ImageFormat::GNF_BC1:      //  4x4
-		case ImageFormat::ETC1:         //  4x4
-		case ImageFormat::ATC:          //  4x4
-		case ImageFormat::PVR_4BPP:     //  4x4
-		case ImageFormat::PVR_4BPPA:    //  4x4
-		case ImageFormat::DXT3:         //  4x4
-		case ImageFormat::DXT5:         //  4x4
-		case ImageFormat::GNF_BC3:      //  4x4
-		case ImageFormat::GNF_BC5:      //  4x4
-		case ImageFormat::ATI2N:        //  4x4
-		case ImageFormat::ATCA:         //  4x4
-		case ImageFormat::ATCI:         //  4x4
-#ifdef FORGE_JHABLE_EDITS_V01
-		case ImageFormat::GNF_BC6:    //  4x4
-		case ImageFormat::GNF_BC7:    //  4x4
-#endif
-			return BLOCK_SIZE_4x4;
-
-		default: return BLOCK_SIZE_1x1;
-	}
-}
-
-bool ImageFormat::IsIntegerFormat(const ImageFormat::Enum format)
-{
-	return (format >= ImageFormat::R16I && format <= ImageFormat::RGBA32UI);
-}
-
-bool ImageFormat::IsCompressedFormat(const ImageFormat::Enum format)
-{
-	return (
-		((format >= ImageFormat::DXT1) && (format <= ImageFormat::PVR_4BPPA)) ||
-		((format >= ImageFormat::PVR_2BPP_SRGB) && (format <= ImageFormat::PVR_4BPPA_SRGB)) ||
-		((format >= ImageFormat::ETC1) && (format <= ImageFormat::ATCI)) ||
-		((format >= ImageFormat::GNF_BC1) && (format <= ImageFormat::GNF_BC7)));
-}
-
-bool ImageFormat::IsFloatFormat(const ImageFormat::Enum format)
-{
-	//	return (format >= ImageFormat::R16F && format <= ImageFormat::RGBA32F);
-	return (format >= ImageFormat::R16F && format <= ImageFormat::RG11B10F) || (format == ImageFormat::D32F);
-}
-
-bool ImageFormat::IsSignedFormat(const ImageFormat::Enum format)
-{
-	return ((format >= ImageFormat::R8S) && (format <= ImageFormat::RGBA16S)) ||
-		   ((format >= ImageFormat::R16I) && (format <= ImageFormat::RGBA32I));
-}
-
-bool ImageFormat::IsStencilFormat(const ImageFormat::Enum format)
-{
-  return (format == ImageFormat::D24S8) || (format >= ImageFormat::X8D24PAX32 && format <= ImageFormat::D32S8);
-}
-
-bool ImageFormat::IsDepthFormat(const ImageFormat::Enum format)
-{
-  return (format >= ImageFormat::D16 && format <= ImageFormat::D32F) || (format == ImageFormat::X8D24PAX32) || (format == ImageFormat::D16S8) || (format == ImageFormat::D32S8);
-}
-
-bool ImageFormat::IsPackedFormat(const ImageFormat::Enum format)
-{
-	return (format >= ImageFormat::RGBE8 && format <= ImageFormat::RGB10A2);
-}
-
-bool ImageFormat::IsPlainFormat(const ImageFormat::Enum format)
-{
-	return (format <= ImageFormat::RGBA32UI) || (format == ImageFormat::BGRA8);
-}
-
-struct ImageFormatString
-{
-	ImageFormat::Enum format;
-	const char*       string;
-};
-
-const ImageFormatString* getFormatStrings()
-{
-	static const ImageFormatString formatStrings[] = { { ImageFormat::NONE, "NONE" },
-
-													   { ImageFormat::R8, "R8" },
-													   { ImageFormat::RG8, "RG8" },
-													   { ImageFormat::RGB8, "RGB8" },
-													   { ImageFormat::RGBA8, "RGBA8" },
-
-													   { ImageFormat::R16, "R16" },
-													   { ImageFormat::RG16, "RG16" },
-													   { ImageFormat::RGB16, "RGB16" },
-													   { ImageFormat::RGBA16, "RGBA16" },
-
-													   { ImageFormat::R16F, "R16F" },
-													   { ImageFormat::RG16F, "RG16F" },
-													   { ImageFormat::RGB16F, "RGB16F" },
-													   { ImageFormat::RGBA16F, "RGBA16F" },
-
-													   { ImageFormat::R32F, "R32F" },
-													   { ImageFormat::RG32F, "RG32F" },
-													   { ImageFormat::RGB32F, "RGB32F" },
-													   { ImageFormat::RGBA32F, "RGBA32F" },
-
-													   { ImageFormat::RGBE8, "RGBE8" },
-													   { ImageFormat::RGB565, "RGB565" },
-													   { ImageFormat::RGBA4, "RGBA4" },
-													   { ImageFormat::RGB10A2, "RGB10A2" },
-
-													   { ImageFormat::DXT1, "DXT1" },
-													   { ImageFormat::DXT3, "DXT3" },
-													   { ImageFormat::DXT5, "DXT5" },
-													   { ImageFormat::ATI1N, "ATI1N" },
-													   { ImageFormat::ATI2N, "ATI2N" },
-
-													   { ImageFormat::PVR_2BPP, "PVR_2BPP" },
-													   { ImageFormat::PVR_2BPPA, "PVR_2BPPA" },
-													   { ImageFormat::PVR_4BPP, "PVR_4BPP" },
-													   { ImageFormat::PVR_4BPPA, "PVR_4BPPA" },
-
-													   { ImageFormat::INTZ, "ImageFormat::INTZ" },
-
-													   { ImageFormat::LE_XRGB8, "ImageFormat::LE_XRGB8" },
-													   { ImageFormat::LE_ARGB8, "ImageFormat::LE_ARGB8" },
-													   { ImageFormat::LE_X2RGB10, "ImageFormat::LE_X2RGB10" },
-													   { ImageFormat::LE_A2RGB10, "ImageFormat::LE_A2RGB10" },
-
-													   { ImageFormat::ETC1, "ImageFormat::ETC1" },
-													   { ImageFormat::ATC, "ImageFormat::ATC" },
-													   { ImageFormat::ATCA, "ImageFormat::ATCA" },
-													   { ImageFormat::ATCI, "ImageFormat::ATCI" },
-
-													   { ImageFormat::GNF_BC1, "GNF_BC1" },
-													   { ImageFormat::GNF_BC2, "GNF_BC2" },
-													   { ImageFormat::GNF_BC3, "GNF_BC3" },
-													   { ImageFormat::GNF_BC4, "GNF_BC4" },
-													   { ImageFormat::GNF_BC5, "GNF_BC5" },
-													   { ImageFormat::GNF_BC6, "GNF_BC6" },
-													   { ImageFormat::GNF_BC7, "GNF_BC7" },
-
-													   { ImageFormat::BGRA8, "BGRA8" },
-													   { ImageFormat::X8D24PAX32, "X8D24PAX32" },
-													   { ImageFormat::S8, "S8" },
-													   { ImageFormat::D16S8, "D16S8" },
-													   { ImageFormat::D32S8, "D32S8" },
-		
-													   { ImageFormat::PVR_2BPP_SRGB, "PVR_2BPP_SRGB" },
-													   { ImageFormat::PVR_2BPPA_SRGB, "PVR_2BPPA_SRGB" },
-													   { ImageFormat::PVR_4BPP_SRGB, "PVR_4BPP_SRGB" },
-													   { ImageFormat::PVR_4BPPA_SRGB, "PVR_4BPPA_SRGB" },
-
-	};
-	return formatStrings;
-}
-
-const char* ImageFormat::GetFormatString(const ImageFormat::Enum format)
-{
-	for (unsigned int i = 0; i < ImageFormat::COUNT; i++)
-	{
-		if (format == getFormatStrings()[i].format)
-			return getFormatStrings()[i].string;
-	}
-	return NULL;
-}
-
-ImageFormat::Enum ImageFormat::GetFormatFromString(char* string)
-{
-	for (unsigned int i = 0; i < ImageFormat::COUNT; i++)
-	{
-		if (stricmp(string, getFormatStrings()[i].string) == 0)
-			return getFormatStrings()[i].format;
-	}
-	return ImageFormat::NONE;
-}
-
-int ImageFormat::GetChannelCount(const ImageFormat::Enum format)
-{
-	// #REMOVE
-	if (format == ImageFormat::BGRA8)
-		return 4;
-	static const int channelCount[] = {
-		0, 1, 2, 3, 4,         //  8-bit unsigned
-		1, 2, 3, 4,            // 16-bit unsigned
-		1, 2, 3, 4,            //  8-bit signed
-		1, 2, 3, 4,            // 16-bit signed
-		1, 2, 3, 4,            // 16-bit float
-		1, 2, 3, 4,            // 32-bit float
-		1, 2, 3, 4,            // 16-bit signed integer
-		1, 2, 3, 4,            // 32-bit signed integer
-		1, 2, 3, 4,            // 16-bit unsigned integer
-		1, 2, 3, 4,            // 32-bit unsigned integer
-		3, 3, 3, 3, 4, 4,      // Packed
-		1, 1, 2, 1,            // Depth
-		3, 4, 4, 1, 2,         // Compressed
-		3, 4, 3, 4,            // PVR
-		1,                     //  INTZ
-		3, 4, 3, 4,            //  XBox front buffer formats
-		3, 3, 4, 4,            //  ETC, ATC
-		1, 1,                  //  RAWZ, DF16
-		3, 4, 4, 1, 2, 3, 3,   // GNF_BC1~GNF_BC7
-		3, 4, 3, 4,            // PVR sRGB
-	};
-
-	if (format >= sizeof(channelCount) / sizeof(int))
-	{
-		LOGERRORF("Fail to find Channel in format : %s", ImageFormat::GetFormatString(format));
-		return 0;
-	}
-
-	return channelCount[format];
-}
-
 template <typename T>
 inline void swapPixelChannels(T* pixels, int num_pixels, const int channels, const int ch0, const int ch1)
 {
@@ -644,6 +332,7 @@ Image::Image()
 	pAdditionalData = NULL;
 	mIsRendertarget = false;
 	mOwnsMemory = true;
+	mLinearLayout = true;
 }
 
 Image::Image(const Image& img)
@@ -654,7 +343,8 @@ Image::Image(const Image& img)
 	mMipMapCount = img.mMipMapCount;
 	mArrayCount = img.mArrayCount;
 	mFormat = img.mFormat;
-
+	mLinearLayout = img.mLinearLayout;
+	
 	int size = GetMipMappedSize(0, mMipMapCount) * mArrayCount;
 	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * size);
 	memcpy(pData, img.pData, size);
@@ -678,6 +368,22 @@ unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int
 	uint holder = GetMipMappedSize(0, mMipMapCount);
 	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * holder * mArrayCount);
 	memset(pData, 0x00, holder * mArrayCount);
+	mLoadFileName = "Undefined";
+
+	return pData;
+}
+
+unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, unsigned char* rawData)
+{
+	mFormat = fmt;
+	mWidth = w;
+	mHeight = h;
+	mDepth = d;
+	mMipMapCount = mipMapCount;
+	mArrayCount = arraySize;
+	mOwnsMemory = false;
+
+	pData = rawData;	
 	mLoadFileName = "Undefined";
 
 	return pData;
@@ -1288,20 +994,24 @@ bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool use
 	mMipMapCount = psPVRHeader->mNumMipMaps;
 	
 	bool isSrgb = (psPVRHeader->mColorSpace == 1);
-	
+
 	switch (psPVRHeader->mPixelFormat)
 	{
 		case 0:
 			mFormat = isSrgb ? ImageFormat::PVR_2BPP_SRGB : ImageFormat::PVR_2BPP;
+			mLinearLayout = false;
 			break;
 		case 1:
 			mFormat = isSrgb ? ImageFormat::PVR_2BPPA_SRGB : ImageFormat::PVR_2BPPA;
+			mLinearLayout = false;
 			break;
 		case 2:
 			mFormat = isSrgb ? ImageFormat::PVR_4BPP_SRGB : ImageFormat::PVR_4BPP;
+			mLinearLayout = false;
 			break;
 		case 3:
 			mFormat = isSrgb ? ImageFormat::PVR_4BPPA_SRGB : ImageFormat::PVR_4BPPA;
+			mLinearLayout = false;
 			break;
 		default:    // NOT SUPPORTED
 			LOGERRORF("Load PVR failed: pixel type not supported. ");

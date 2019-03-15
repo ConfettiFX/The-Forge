@@ -48,8 +48,8 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 
 //input
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 //asimp importer
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
@@ -137,6 +137,7 @@ class RenderPassData
 	public:
 	Shader*                        pShader;
 	RootSignature*                 pRootSignature;
+	DescriptorBinder*              pDescriptorBinder;
 	Pipeline*                      pPipeline;
 	CmdPool*                       pCmdPool;
 	Cmd**                          ppCmds;
@@ -607,8 +608,8 @@ void sortAlongAxis(tinystl::vector<AABBox>& bboxData, int begin, int end, int ax
 //  if (count == 1)
 //  {
 //	  //this is a leaf node
-//	  node->Left = nullptr;
-//	  node->Right = nullptr;
+//	  node->Left = NULL;
+//	  node->Right = NULL;
 //
 //	  node->BoundingBox.InstanceID = bboxData[begin].InstanceID;
 //
@@ -720,8 +721,8 @@ BVHNode* createBVHNodeSHA(tinystl::vector<AABBox>& bboxData, int begin, int end,
 	if (count == 1)
 	{
 		//this is a leaf node
-		node->Left = nullptr;
-		node->Right = nullptr;
+		node->Left = NULL;
+		node->Right = NULL;
 
 		node->BoundingBox.InstanceID = bboxData[begin].InstanceID;
 
@@ -775,7 +776,7 @@ void writeBVHTree(BVHNode* root, BVHNode* node, uint8* bboxData, int& dataOffset
 		{
 			int          tempIndex = 0;
 			int          tempdataOffset = 0;
-			BVHNodeBBox* bbox = nullptr;
+			BVHNodeBBox* bbox = NULL;
 
 			//do not write the root node, for secondary rays the origin will always be in the scene bounding box
 			if (node != root)
@@ -823,7 +824,7 @@ void writeBVHTree(BVHNode* root, BVHNode* node, uint8* bboxData, int& dataOffset
 
 void deleteBVHTree(BVHNode* node)
 {
-	if (node && (node->Left != nullptr || node->Right != nullptr))
+	if (node && (node->Left != NULL || node->Right != NULL))
 	{
 		deleteBVHTree(node->Left);
 		deleteBVHTree(node->Right);
@@ -970,18 +971,21 @@ class HybridRaytracing: public IApp
 
 //Create root signatures
 { //Add root signature for GPrepass
-  { const char * pStaticSamplers[] = { "samplerLinear" };
-RootSignatureDesc rootDesc = {};
-rootDesc.mStaticSamplerCount = 1;
-rootDesc.ppStaticSamplerNames = pStaticSamplers;
-rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
-rootDesc.mShaderCount = 1;
-rootDesc.ppShaders = &RenderPasses[RenderPass::GBuffer]->pShader;
-#ifndef TARGET_IOS
-rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
+{ const char * pStaticSamplers[] = { "samplerLinear" };
+	RootSignatureDesc rootDesc = {};
+	rootDesc.mStaticSamplerCount = 1;
+	rootDesc.ppStaticSamplerNames = pStaticSamplers;
+	rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
+	rootDesc.mShaderCount = 1;
+	rootDesc.ppShaders = &RenderPasses[RenderPass::GBuffer]->pShader;
+	#ifndef TARGET_IOS
+	rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
+	#endif
 
-addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRootSignature);
+	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRootSignature);
+
+	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature };
+	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorBinder);
 }
 
 //Add root signature for Shadow pass
@@ -990,6 +994,9 @@ addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRoot
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::RaytracedShadows]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::RaytracedShadows]->pRootSignature);
+
+	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::RaytracedShadows]->pRootSignature };
+	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::RaytracedShadows]->pDescriptorBinder);
 }
 
 //Add root signature for Lighting pass
@@ -998,6 +1005,9 @@ addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRoot
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::Lighting]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Lighting]->pRootSignature);
+
+	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::Lighting]->pRootSignature };
+	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::Lighting]->pDescriptorBinder);
 }
 
 //Add root signature for composite pass
@@ -1006,6 +1016,9 @@ addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRoot
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::Composite]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Composite]->pRootSignature);
+
+	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::Composite]->pRootSignature };
+	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::Composite]->pDescriptorBinder);
 }
 
 //Add root signature for Copy to Backbuffer Pass
@@ -1014,6 +1027,9 @@ addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRoot
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature);
+
+	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature };
+	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorBinder);
 }
 }
 
@@ -1846,30 +1862,16 @@ void Unload()
 
 void Update(float deltaTime)
 {
-	if (getKeyDown(KEY_BUTTON_X))
+	if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 	{
 		RecenterCameraView(85.0f);
 	}
 
 	static float LightRotationX = 0.0f;
-	if (getKeyDown(KEY_PAD_RIGHT))
-	{
-		LightRotationX += 0.004f;
-	}
-	else if (getKeyDown(KEY_PAD_LEFT))
-	{
-		LightRotationX -= 0.004f;
-	}
-
 	static float LightRotationZ = 0.0f;
-	if (getKeyDown(KEY_PAD_UP))
-	{
-		LightRotationZ += 0.004f;
-	}
-	else if (getKeyDown(KEY_PAD_DOWN))
-	{
-		LightRotationZ -= 0.004f;
-	}
+
+	LightRotationX += 0.004f * (InputSystem::GetFloatInput(KEY_PAD_RIGHT_PRESSED) - InputSystem::GetFloatInput(KEY_PAD_LEFT_PRESSED));
+	LightRotationZ += 0.004f * (InputSystem::GetFloatInput(KEY_PAD_UP_PRESSED) - InputSystem::GetFloatInput(KEY_PAD_DOWN_PRESSED));
 
 	pCameraController->update(deltaTime);
 
@@ -2018,9 +2020,9 @@ void Draw()
 			params[2].pName = "textureMaps";
 			params[2].ppTextures = pMaterialTextures;
 			params[2].mCount = TOTAL_IMGS;
-			cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, 3, params);
+			cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 3, params);
 #else
-			cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, 2, params);
+			cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 2, params);
 #endif
 
 			struct MaterialMaps
@@ -2045,7 +2047,7 @@ void Draw()
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
-				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, 1, params);
+				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 1, params);
 #else
 				//bind textures explicitely for iOS
 				//we only use Albedo for the time being so just bind the albedo texture.
@@ -2058,7 +2060,7 @@ void Draw()
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
-				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, 1, params);
+				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 1, params);
 #endif
 
 				Buffer* pVertexBuffers[] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
@@ -2105,7 +2107,7 @@ void Draw()
 		params[4].pName = "outputRT";
 		params[4].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
 
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, 5, params);
+		cmdBindDescriptors(cmd, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorBinder, 5, params);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth / 8 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight / 8 + 1;
@@ -2143,7 +2145,7 @@ void Draw()
 		params[3].pName = "outputRT";
 		params[3].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
 
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::Lighting]->pRootSignature, 4, params);
+		cmdBindDescriptors(cmd, RenderPasses[RenderPass::Lighting]->pDescriptorBinder, 4, params);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth / 16 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight / 16 + 1;
@@ -2180,7 +2182,7 @@ void Draw()
 		params[2].pName = "outputRT";
 		params[2].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
 
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::Composite]->pRootSignature, 3, params);
+		cmdBindDescriptors(cmd, RenderPasses[RenderPass::Composite]->pDescriptorBinder, 3, params);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth / 16 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight / 16 + 1;
@@ -2216,7 +2218,7 @@ void Draw()
 		DescriptorData params[4] = {};
 		params[0].pName = "inputRT";
 		params[0].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature, 1, params);
+		cmdBindDescriptors(cmd, RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorBinder, 1, params);
 
 		//draw fullscreen triangle
 		cmdDraw(cmd, 3, 0);

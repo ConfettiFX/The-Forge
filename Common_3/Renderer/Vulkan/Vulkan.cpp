@@ -84,6 +84,7 @@ static const char * g_hackSemanticList[] =
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
 #include "../../OS/Core/GPUConfig.h"
+#include "../../OS/Image/Image.h"
 
 #include "../../OS/Interfaces/IMemoryManager.h"
 
@@ -97,7 +98,7 @@ extern long vk_createTexture(
 	Texture* pTexture);
 extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
 extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr);
+	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
 extern void addRaytracingPipeline(const RaytracingPipelineDesc*, Pipeline**);
 
 // clang-format off
@@ -418,69 +419,19 @@ PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount);
 VkFormat              util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+// clang-format off
 API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
 API_INTERFACE void CALLTYPE removeTexture(Renderer* pRenderer, Texture* pTexture);
 API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void          CALLTYPE
-							cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t intermediateOffset, Texture* pTexture);
+API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
+API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture);
 API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+// clang-format on
 #endif
-/************************************************************************/
-// DescriptorInfo Heap Defines
-/************************************************************************/
-static const uint32_t gDefaultDescriptorPoolSize = 4096;
-static const uint32_t gDefaultDescriptorSets = gDefaultDescriptorPoolSize * VK_DESCRIPTOR_TYPE_RANGE_SIZE;
 
-VkDescriptorPoolSize gDescriptorHeapPoolSizes[VK_DESCRIPTOR_TYPE_RANGE_SIZE] = {
-	{ VK_DESCRIPTOR_TYPE_SAMPLER, gDefaultDescriptorPoolSize },
-	// Not used in framework
-	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
-	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gDefaultDescriptorPoolSize * 4 },
-	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, gDefaultDescriptorPoolSize * 4 },
-	// Not used in framework
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1 },
-	// Not used in framework
-	{
-		VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-		1,
-	},
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gDefaultDescriptorPoolSize * 4 },
-	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, gDefaultDescriptorPoolSize * 4 },
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, gDefaultDescriptorPoolSize },
-	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, gDefaultDescriptorPoolSize },
-	// Not used in framework
-	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 },
-};
-
-static const uint32_t gDefaultDynamicDescriptorPoolSize = gDefaultDescriptorPoolSize / 4;
-static const uint32_t gDefaultDynamicDescriptorSets = gDefaultDynamicDescriptorPoolSize * VK_DESCRIPTOR_TYPE_RANGE_SIZE;
-
-VkDescriptorPoolSize gDynamicDescriptorHeapPoolSizes[VK_DESCRIPTOR_TYPE_RANGE_SIZE] = {
-	{ VK_DESCRIPTOR_TYPE_SAMPLER, gDefaultDynamicDescriptorPoolSize },
-	// Not used in framework
-	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
-	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gDefaultDynamicDescriptorPoolSize },
-	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, gDefaultDynamicDescriptorPoolSize },
-	// Not used in framework
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1 },
-	// Not used in framework
-	{
-		VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-		1,
-	},
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gDefaultDynamicDescriptorPoolSize },
-	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, gDefaultDynamicDescriptorPoolSize },
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, gDefaultDynamicDescriptorPoolSize },
-	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, gDefaultDynamicDescriptorPoolSize },
-	// Not used in framework
-	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 },
-};
 /************************************************************************/
 // DescriptorInfo Heap Structures
 /************************************************************************/
@@ -488,13 +439,12 @@ VkDescriptorPoolSize gDynamicDescriptorHeapPoolSizes[VK_DESCRIPTOR_TYPE_RANGE_SI
 typedef struct DescriptorStoreHeap
 {
 	uint32_t mNumDescriptorSets;
-	/// Lock for multi-threaded descriptor allocations
-	Mutex*   pAllocationMutex;
 	uint32_t mUsedDescriptorSetCount;
 	/// VK Heap
 	VkDescriptorPool            pCurrentHeap;
 	VkDescriptorPoolCreateFlags mFlags;
 } DescriptorStoreHeap;
+
 /************************************************************************/
 // Static DescriptorInfo Heap Implementation
 /************************************************************************/
@@ -503,7 +453,6 @@ static void add_descriptor_heap(
 	uint32_t numPoolSizes, DescriptorStoreHeap** ppHeap)
 {
 	DescriptorStoreHeap* pHeap = (DescriptorStoreHeap*)conf_calloc(1, sizeof(*pHeap));
-	pHeap->pAllocationMutex = conf_placement_new<Mutex>(conf_calloc(1, sizeof(Mutex)));
 	pHeap->mFlags = flags;
 	pHeap->mNumDescriptorSets = numDescriptorSets;
 	pHeap->mUsedDescriptorSetCount = 0;
@@ -531,8 +480,6 @@ static void reset_descriptor_heap(Renderer* pRenderer, DescriptorStoreHeap* pHea
 
 static void remove_descriptor_heap(Renderer* pRenderer, DescriptorStoreHeap* pHeap)
 {
-	pHeap->pAllocationMutex->~Mutex();
-	conf_free(pHeap->pAllocationMutex);
 	vkDestroyDescriptorPool(pRenderer->pVkDevice, pHeap->pCurrentHeap, NULL);
 	SAFE_FREE(pHeap);
 }
@@ -554,13 +501,6 @@ static void consume_descriptor_sets_lock_free(
 	pHeap->mUsedDescriptorSetCount += numDescriptorSets;
 }
 
-static void consume_descriptor_sets(
-	Renderer* pRenderer, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet** pSets, uint32_t numDescriptorSets,
-	DescriptorStoreHeap* pHeap)
-{
-	MutexLock lock(*pHeap->pAllocationMutex);
-	consume_descriptor_sets_lock_free(pRenderer, pLayouts, pSets, numDescriptorSets, pHeap);
-}
 /************************************************************************/
 /************************************************************************/
 VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] = {
@@ -568,12 +508,9 @@ VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] = {
 	VK_PIPELINE_BIND_POINT_COMPUTE,
 	VK_PIPELINE_BIND_POINT_GRAPHICS,
 };
-/************************************************************************/
-// Descriptor Manager Implementation
-/************************************************************************/
-using DescriptorSetMap = tinystl::unordered_map<uint64_t, VkDescriptorSet>;
-using ConstDescriptorSetMapIterator = tinystl::unordered_map<uint64_t, VkDescriptorSet>::const_iterator;
-using DescriptorSetMapNode = tinystl::unordered_hash_node<uint64_t, VkDescriptorSet>;
+
+using HashMap = tinystl::unordered_map<uint64_t, uint32_t>;
+using ConstHashMapIterator = tinystl::unordered_map<uint64_t, uint32_t>::const_iterator;
 using DescriptorNameToIndexMap = tinystl::unordered_map<uint32_t, uint32_t>;
 
 union DescriptorUpdateData
@@ -583,208 +520,38 @@ union DescriptorUpdateData
 	VkBufferView           mBuferView;
 };
 
-typedef struct DescriptorManager
+/************************************************************************/
+// Descriptor Binder Structure
+/************************************************************************/
+
+typedef struct DescriptorBinder
 {
-	/// The root signature associated with this descriptor manager
-	RootSignature* pRootSignature;
+	DescriptorBinderDesc  mDesc;
+	DescriptorStoreHeap*  pDescriptorPool;
+	VkDescriptorSet*      pDescriptorSets_FrameFreqUsage[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint64_t              mUpdatedNoneFreqHash[MAX_FRAMES_IN_FLIGHT];
+	uint64_t              mUpdatedFrameFreqHash[MAX_FRAMES_IN_FLIGHT];
+	HashMap               mUpdatedBatchFreqHashes[MAX_FRAMES_IN_FLIGHT];
+	uint32_t              mUpdatesThisFrame[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t              mLastFrameUpdated;
+	Cmd*                  pCurrentCmd;
+
 	/// Array of Dynamic offsets per update frequency to pass the vkCmdBindDescriptorSet for binding dynamic uniform or storage buffers
-	uint32_t* pDynamicOffsets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t*             pDynamicOffsets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	/// Array of flags to check whether a descriptor set of the update frequency is already bound to avoid unnecessary rebinding of descriptor sets
-	bool                       mBoundSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	bool                  mBoundSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	VkDescriptorUpdateTemplate mUpdateTemplates[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	/// Compact Descriptor data which will be filled up and passed to vkUpdateDescriptorSetWithTemplate
 	DescriptorUpdateData* pUpdateData[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	/// Triple buffered Hash map to check if a descriptor table with a descriptor hash already exists to avoid redundant copy descriptors operations
-	DescriptorSetMap mStaticDescriptorSetMap[MAX_FRAMES_IN_FLIGHT];
-	VkDescriptorSet  pEmptyDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	/// Triple buffered array of number of descriptor tables allocated per update frequency
-	/// Only used for recording stats
-	uint32_t mDescriptorSetCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	Cmd*     pCurrentCmd;
-	uint32_t mFrameIdx;
-} DescriptorManager;
+	VkDescriptorSet       pEmptyDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	DescriptorStoreHeap*  pEmptySetsDescriptorPool;
+} DescriptorBinder;
 
-static Mutex gDescriptorMutex;
-
-static void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager)
-{
-	DescriptorManager* pManager = (DescriptorManager*)conf_calloc(1, sizeof(*pManager));
-	pManager->pRootSignature = pRootSignature;
-	pManager->mFrameIdx = -1;
-
-	const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
-
-	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
-	{
-		// Allocate dynamic offsets array if the descriptor set of this update frequency uses descriptors of type uniform / storage buffer dynamic
-		if (pRootSignature->mVkDynamicDescriptorCounts[setIndex])
-		{
-			pManager->pDynamicOffsets[setIndex] =
-				(uint32_t*)conf_calloc(pRootSignature->mVkDynamicDescriptorCounts[setIndex], sizeof(uint32_t));
-		}
-
-		if (pRootSignature->mVkDescriptorCounts[setIndex])
-		{
-			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)alloca(
-				pRootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
-
-			pManager->pUpdateData[setIndex] =
-				(DescriptorUpdateData*)conf_calloc(pRootSignature->mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
-
-			// Fill the write descriptors with default values during initialize so the only thing we change in cmdBindDescriptors is the the VkBuffer / VkImageView objects
-			for (uint32_t i = 0; i < pRootSignature->mVkDescriptorCounts[setIndex]; ++i)
-			{
-				const DescriptorInfo* pDesc = &pRootSignature->pDescriptors[pRootSignature->pVkDescriptorIndices[setIndex][i]];
-				const uint64_t        offset = pDesc->mHandleIndex * sizeof(DescriptorUpdateData);
-
-				pEntries[i].descriptorCount = pDesc->mDesc.size;
-				pEntries[i].descriptorType = pDesc->mVkType;
-				pEntries[i].dstArrayElement = 0;
-				pEntries[i].dstBinding = pDesc->mDesc.reg;
-				pEntries[i].offset = offset;
-				pEntries[i].stride = sizeof(DescriptorUpdateData);
-
-				Texture* srvTexture = NULL;
-				Texture* uavTexture = NULL;
-				switch (pDesc->mDesc.textureDim)
-				{
-					case TEXTURE_DIM_1D:
-						srvTexture = pRenderer->pDefaultTexture1DSRV;
-						uavTexture = pRenderer->pDefaultTexture1DUAV;
-						break;
-					case TEXTURE_DIM_2D:
-						srvTexture = pRenderer->pDefaultTexture2DSRV;
-						uavTexture = pRenderer->pDefaultTexture2DUAV;
-						break;
-					case TEXTURE_DIM_3D:
-						srvTexture = pRenderer->pDefaultTexture3DSRV;
-						uavTexture = pRenderer->pDefaultTexture3DUAV;
-						break;
-					case TEXTURE_DIM_1D_ARRAY:
-						srvTexture = pRenderer->pDefaultTexture1DArraySRV;
-						uavTexture = pRenderer->pDefaultTexture1DArrayUAV;
-						break;
-					case TEXTURE_DIM_2D_ARRAY:
-						srvTexture = pRenderer->pDefaultTexture2DArraySRV;
-						uavTexture = pRenderer->pDefaultTexture2DArrayUAV;
-						break;
-					case TEXTURE_DIM_CUBE: srvTexture = pRenderer->pDefaultTextureCubeSRV; break;
-					default: break;
-				}
-
-				if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
-				{
-					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-						pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo = pRenderer->pDefaultSampler->mVkSamplerView;
-				}
-				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
-				{
-					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-						pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo = {
-							VK_NULL_HANDLE, srvTexture->pVkSRVDescriptor, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-						};
-				}
-				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
-				{
-					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-						pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo = { VK_NULL_HANDLE,
-																								  uavTexture->pVkUAVDescriptors[0],
-																								  VK_IMAGE_LAYOUT_GENERAL };
-				}
-				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXEL_BUFFER)
-				{
-					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-						pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mBuferView =
-							pRenderer->pDefaultBuffer->pVkUniformTexelView;
-				}
-				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXEL_BUFFER)
-				{
-					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-						pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mBuferView =
-							pRenderer->pDefaultBuffer->pVkStorageTexelView;
-				}
-				else
-				{
-					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
-						pManager->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mBufferInfo = pRenderer->pDefaultBuffer->mVkBufferInfo;
-				}
-			}
-
-			VkDescriptorUpdateTemplateCreateInfoKHR createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR;
-			createInfo.pNext = NULL;
-			createInfo.descriptorSetLayout = pRootSignature->mVkDescriptorSetLayouts[setIndex];
-			createInfo.descriptorUpdateEntryCount = pRootSignature->mVkDescriptorCounts[setIndex];
-			createInfo.pDescriptorUpdateEntries = pEntries;
-			createInfo.pipelineBindPoint = gPipelineBindPoint[pRootSignature->mPipelineType];
-			createInfo.pipelineLayout = pRootSignature->pPipelineLayout;
-			createInfo.set = setIndex;
-			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
-			VkResult vkRes =
-				vkCreateDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, &createInfo, NULL, &pManager->mUpdateTemplates[setIndex]);
-			ASSERT(VK_SUCCESS == vkRes);
-		}
-		else
-		{
-			VkDescriptorSet* pSets[] = { &pManager->pEmptyDescriptorSets[setIndex] };
-			consume_descriptor_sets(pRenderer, &pRootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1, pRenderer->pDescriptorPool);
-		}
-	}
-
-	*ppManager = pManager;
-}
-
-static void remove_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager* pManager)
-{
-	const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
-	const uint32_t frameCount = MAX_FRAMES_IN_FLIGHT;
-
-	// Clean up all allocated descriptor sets
-	for (uint32_t frameIdx = 0; frameIdx < frameCount; ++frameIdx)
-	{
-		pManager->mStaticDescriptorSetMap[frameIdx].~DescriptorSetMap();
-	}
-
-	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
-	{
-		SAFE_FREE(pManager->pDynamicOffsets[setIndex]);
-		SAFE_FREE(pManager->pUpdateData[setIndex]);
-
-		if (VK_NULL_HANDLE != pManager->mUpdateTemplates[setIndex])
-			vkDestroyDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, pManager->mUpdateTemplates[setIndex], NULL);
-	}
-
-	SAFE_FREE(pManager);
-}
-
-// This function returns the descriptor manager belonging to this thread
-// If a descriptor manager does not exist for this thread, a new one is created
-// With this approach we make sure that descriptor binding is thread safe and lock conf_free at the same time
-static DescriptorManager* get_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature)
-{
-	tinystl::unordered_hash_node<ThreadID, DescriptorManager*>* pNode =
-		pRootSignature->pDescriptorManagerMap.find(Thread::GetCurrentThreadID()).node;
-	if (pNode == NULL)
-	{
-		// Only need a lock when creating a new descriptor manager for this thread
-		MutexLock          lock(gDescriptorMutex);
-		DescriptorManager* pManager = NULL;
-		add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-		pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
-		return pManager;
-	}
-	else
-	{
-		return pNode->second;
-	}
-}
-
-static const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
+static const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName)
 {
 	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
 	if (it.node)
 	{
-		*pIndex = it.node->second;
 		return &pRootSignature->pDescriptors[it.node->second];
 	}
 	else
@@ -1344,6 +1111,7 @@ static void destroy_default_resources(Renderer* pRenderer)
 static volatile uint64_t gBufferIds = 0;
 static volatile uint64_t gTextureIds = 0;
 static volatile uint64_t gSamplerIds = 0;
+static volatile uint32_t gFrameNumber = (uint32_t)-1;
 /************************************************************************/
 // Internal utility functions
 /************************************************************************/
@@ -1813,7 +1581,7 @@ uint32_t util_calculate_shared_device_mask(uint32_t gpuCount) { return (1 << gpu
 void util_calculate_device_indices(
 	Renderer* pRenderer, uint32_t nodeIndex, uint32_t* pSharedNodeIndices, uint32_t sharedNodeIndexCount, uint32_t* pIndices)
 {
-	for (uint32_t i = 0; i < pRenderer->mVkLinkedNodeCount; ++i)
+	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 		pIndices[i] = i;
 
 	pIndices[nodeIndex] = nodeIndex;
@@ -2035,6 +1803,7 @@ static void AddDevice(Renderer* pRenderer)
 	tinystl::vector<VkPhysicalDeviceGroupPropertiesKHR> props;
 	VkResult                                            vk_res = VK_RESULT_MAX_ENUM;
 
+	pRenderer->mLinkedNodeCount = 1;
 	if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
 	{
 		// (not shown) fill out devCreateInfo as usual.
@@ -2061,13 +1830,13 @@ static void AddDevice(Renderer* pRenderer)
 			{
 				deviceGroupInfo.physicalDeviceCount = props[i].physicalDeviceCount;
 				deviceGroupInfo.pPhysicalDevices = props[i].physicalDevices;
-				pRenderer->mVkLinkedNodeCount = deviceGroupInfo.physicalDeviceCount;
+				pRenderer->mLinkedNodeCount = deviceGroupInfo.physicalDeviceCount;
 				break;
 			}
 		}
 	}
 
-	if (!pRenderer->mVkLinkedNodeCount)
+	if (pRenderer->mLinkedNodeCount < 2)
 	{
 		pRenderer->mSettings.mGpuMode = GPU_MODE_SINGLE;
 	}
@@ -2500,7 +2269,7 @@ static void RemoveDevice(Renderer* pRenderer)
 #endif
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
 	{
-
+		SAFE_FREE(pRenderer->mVkQueueFamilyProperties[i]);
 	}
 
 	vkDestroyDevice(pRenderer->pVkDevice, NULL);
@@ -2602,13 +2371,11 @@ void initRenderer(const char* app_name, const RendererDesc* settings, Renderer**
 		vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
 		vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
 		vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+		vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
 
 		createInfo.pVulkanFunctions = &vulkanFunctions;
 
 		vmaCreateAllocator(&createInfo, &pRenderer->pVmaAllocator);
-
-		add_descriptor_heap(
-			pRenderer, gDefaultDescriptorSets, 0, gDescriptorHeapPoolSizes, VK_DESCRIPTOR_TYPE_RANGE_SIZE, &pRenderer->pDescriptorPool);
 	}
 
 	create_default_resources(pRenderer);
@@ -2638,7 +2405,6 @@ void removeRenderer(Renderer* pRenderer)
 	gFrameBufferMap.clear();
 
 	// Destroy the Vulkan bits
-	remove_descriptor_heap(pRenderer, pRenderer->pDescriptorPool);
 	vmaDestroyAllocator(pRenderer->pVmaAllocator);
 
 	RemoveDevice(pRenderer);
@@ -2887,9 +2653,6 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	ASSERT(VK_NULL_HANDLE != pCmdPool->pVkCmdPool);
 	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
 
-	if (pCmd->pDescriptorPool)
-		remove_descriptor_heap(pCmd->pRenderer, pCmd->pDescriptorPool);
-
 	if (pCmd->pBoundColorFormats)
 		SAFE_FREE(pCmd->pBoundColorFormats);
 
@@ -2986,10 +2749,10 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	DECLARE_ZERO(VkAndroidSurfaceCreateInfoKHR, add_info);
 	add_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-	add_info.pNext = nullptr;
+	add_info.pNext = NULL;
 	add_info.flags = 0;
 	add_info.window = (ANativeWindow*)pDesc->pWindow->handle;
-	vk_res = vkCreateAndroidSurfaceKHR(pRenderer->pVkInstance, &add_info, nullptr, &pSwapChain->pVkSurface);
+	vk_res = vkCreateAndroidSurfaceKHR(pRenderer->pVkInstance, &add_info, NULL, &pSwapChain->pVkSurface);
 #else
 #error PLATFORM NOT SUPPORTED
 #endif
@@ -3278,6 +3041,8 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	if (pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
 		add_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
+	const bool linkedMultiGpu = (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex));
+
 	AllocatorMemoryRequirements vma_mem_reqs = { 0 };
 	vma_mem_reqs.usage = (VmaMemoryUsage)pBuffer->mDesc.mMemoryUsage;
 	vma_mem_reqs.flags = 0;
@@ -3285,6 +3050,8 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 	if (pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
 		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+	if (linkedMultiGpu)
+		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_DONT_BIND_BIT;
 
 	BufferCreateInfo alloc_info = { &add_info };
 	VkResult         vk_res = (VkResult)vk_createBuffer(pRenderer->pVmaAllocator, &alloc_info, &vma_mem_reqs, pBuffer);
@@ -3292,19 +3059,19 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	/************************************************************************/
 	// Buffer to be used on multiple GPUs
 	/************************************************************************/
-	if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex))
+	if (linkedMultiGpu)
 	{
 		/************************************************************************/
 		// Set all the device indices to the index of the device where we will create the buffer
 		/************************************************************************/
-		uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mVkLinkedNodeCount * sizeof(uint32_t));
+		uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mLinkedNodeCount * sizeof(uint32_t));
 		util_calculate_device_indices(pRenderer, pDesc->mNodeIndex, pDesc->pSharedNodeIndices, pDesc->mSharedNodeIndexCount, pIndices);
 		/************************************************************************/
 		// #TODO : Move this to the Vulkan memory allocator
 		/************************************************************************/
 		VkBindBufferMemoryInfoKHR            bindInfo = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR };
 		VkBindBufferMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO_KHR };
-		bindDeviceGroup.deviceIndexCount = pRenderer->mVkLinkedNodeCount;
+		bindDeviceGroup.deviceIndexCount = pRenderer->mLinkedNodeCount;
 		bindDeviceGroup.pDeviceIndices = pIndices;
 		bindInfo.buffer = pBuffer->pVkBuffer;
 		bindInfo.memory = pBuffer->pVkAllocation->GetMemory();
@@ -3497,9 +3264,13 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			ASSERT((0 != flags) && "Format is not supported for GPU local images (i.e. not host visible images)");
 		}
 
+		const bool linkedMultiGpu = (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED) && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex);
+
 		AllocatorMemoryRequirements mem_reqs = { 0 };
 		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT)
 			mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+		if (linkedMultiGpu)
+			mem_reqs.flags |= VMA_ALLOCATION_CREATE_DONT_BIND_BIT;
 		mem_reqs.usage = (VmaMemoryUsage)VMA_MEMORY_USAGE_GPU_ONLY;
 
 		VkExternalMemoryImageCreateInfoKHR externalInfo = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR, NULL };
@@ -3550,19 +3321,19 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		/************************************************************************/
 		// Texture to be used on multiple GPUs
 		/************************************************************************/
-		if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex))
+		if (linkedMultiGpu)
 		{
 			/************************************************************************/
 			// Set all the device indices to the index of the device where we will create the texture
 			/************************************************************************/
-			uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mVkLinkedNodeCount * sizeof(uint32_t));
+			uint32_t* pIndices = (uint32_t*)alloca(pRenderer->mLinkedNodeCount * sizeof(uint32_t));
 			util_calculate_device_indices(pRenderer, pDesc->mNodeIndex, pDesc->pSharedNodeIndices, pDesc->mSharedNodeIndexCount, pIndices);
 			/************************************************************************/
 			// #TODO : Move this to the Vulkan memory allocator
 			/************************************************************************/
 			VkBindImageMemoryInfoKHR            bindInfo = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO_KHR };
 			VkBindImageMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR };
-			bindDeviceGroup.deviceIndexCount = pRenderer->mVkLinkedNodeCount;
+			bindDeviceGroup.deviceIndexCount = pRenderer->mLinkedNodeCount;
 			bindDeviceGroup.pDeviceIndices = pIndices;
 			bindInfo.image = pTexture->pVkImage;
 			bindInfo.memory = pTexture->pVkAllocation->GetMemory();
@@ -3911,6 +3682,226 @@ void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 	vkUnmapMemory(pRenderer->pVkDevice, pBuffer->pVkAllocation->GetMemory());
 	pBuffer->pCpuMappedAddress = NULL;
 }
+
+
+/************************************************************************/
+// Descriptor Binder Functions
+/************************************************************************/
+
+void add_descriptor_pool(Renderer* pRenderer, const RootSignature* pRootSignature, uint32_t descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_COUNT], DescriptorStoreHeap** ppDescriptorPool)
+{
+	// Calculate total required pool data based on root signature and usage data
+	VkDescriptorPoolSize descriptorHeapPoolSizes[VK_DESCRIPTOR_TYPE_RANGE_SIZE] = {};
+	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; i++)
+	{
+		DescriptorInfo* descriptorInfo = pRootSignature->pDescriptors + i;
+		uint32_t descriptorTypeIndex = descriptorInfo->mVkType;
+		uint32_t count = descriptorRoomPerFrequency[descriptorInfo->mUpdateFrquency] * MAX_FRAMES_IN_FLIGHT * descriptorInfo->mDesc.size;
+
+		descriptorHeapPoolSizes[descriptorTypeIndex].type = descriptorInfo->mVkType;
+		descriptorHeapPoolSizes[descriptorTypeIndex].descriptorCount += count;
+	}
+
+	uint32_t maxDescriptorSets = 0;
+	for (uint32_t frameIdx = 0; frameIdx < MAX_FRAMES_IN_FLIGHT; frameIdx++)
+		for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; setIndex++)
+			for (uint32_t usageIdx = 0; usageIdx < descriptorRoomPerFrequency[setIndex]; usageIdx++)
+				maxDescriptorSets++;
+
+	// Ensure all pool types allocate at least one (Vulkan requirement)
+	for (uint32_t i = 0; i < VK_DESCRIPTOR_TYPE_RANGE_SIZE; i++)
+	{
+		if (descriptorHeapPoolSizes[i].descriptorCount == 0) {
+			maxDescriptorSets++;
+			descriptorHeapPoolSizes[i].type = (VkDescriptorType)i;
+			descriptorHeapPoolSizes[i].descriptorCount = 1;
+		}
+	}
+
+	// Allocate pool total size for all descriptors
+	add_descriptor_heap(pRenderer, maxDescriptorSets, 0, descriptorHeapPoolSizes, VK_DESCRIPTOR_TYPE_RANGE_SIZE, ppDescriptorPool);
+}
+
+void addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* pDesc, DescriptorBinder** ppDescriptorBinder)
+{
+	const uint32_t		 setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
+	const RootSignature* rootSignature = pDesc->pRootSignature;
+
+	DescriptorBinder* pDescriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(DescriptorBinder));
+	pDescriptorBinder->mDesc = *pDesc;
+	pDescriptorBinder->mLastFrameUpdated = (uint32_t)-1;
+	
+	uint32_t descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_NONE] = 1;
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_PER_FRAME] = 1;
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_PER_BATCH] = pDesc->mMaxDynamicUpdatesPerBatch;
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_PER_DRAW] = pDesc->mMaxDynamicUpdatesPerDraw;	
+
+	// allocate pool for root signature and defined usage data
+	add_descriptor_pool(pRenderer, rootSignature, descriptorRoomPerFrequency, &pDescriptorBinder->pDescriptorPool);
+	
+	// Consume all descriptor sets
+	for (uint32_t frameIdx = 0; frameIdx < MAX_FRAMES_IN_FLIGHT; frameIdx++) 
+	{
+		for (uint32_t setIndex = 0; setIndex < setCount; setIndex++)
+		{
+			uint32_t usageCountThisSet = descriptorRoomPerFrequency[setIndex];
+			pDescriptorBinder->pDescriptorSets_FrameFreqUsage[frameIdx][setIndex] = (VkDescriptorSet*)conf_calloc(usageCountThisSet, sizeof(VkDescriptorSet));
+			for (uint32_t usageIdx = 0; usageIdx < usageCountThisSet; usageIdx++)
+			{
+				VkDescriptorSet* pSets[] = { &pDescriptorBinder->pDescriptorSets_FrameFreqUsage[frameIdx][setIndex][usageIdx] };
+				consume_descriptor_sets_lock_free(pRenderer, &rootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1, pDescriptorBinder->pDescriptorPool);
+			}
+		}
+	}
+
+	// Allocate pool for empty sets
+	uint32_t descriptorRoomForEmptySets[setCount] = { 1,1,1,1 };  // We don't need updates for empty descriptor sets, so one set per frequency is fine
+	add_descriptor_pool(pRenderer, rootSignature, descriptorRoomForEmptySets, &pDescriptorBinder->pEmptySetsDescriptorPool);
+
+	// Create descriptor update templates from descriptor set layouts
+	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
+	{
+		// Allocate dynamic offsets array if the descriptor set of this update frequency uses descriptors of type uniform / storage buffer dynamic
+		if (rootSignature->mVkDynamicDescriptorCounts[setIndex])
+		{
+			pDescriptorBinder->pDynamicOffsets[setIndex] = (uint32_t*)conf_calloc(rootSignature->mVkDynamicDescriptorCounts[setIndex], sizeof(uint32_t));
+		}
+
+		if (rootSignature->mVkDescriptorCounts[setIndex])
+		{
+			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)alloca(rootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
+
+			pDescriptorBinder->pUpdateData[setIndex] =	(DescriptorUpdateData*)conf_calloc(rootSignature->mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
+
+			// Fill the write descriptors with default values during initialize so the only thing we change in cmdBindDescriptors is the the VkBuffer / VkImageView objects
+			for (uint32_t i = 0; i < rootSignature->mVkDescriptorCounts[setIndex]; ++i)
+			{
+				const DescriptorInfo* pDesc = &rootSignature->pDescriptors[rootSignature->pVkDescriptorIndices[setIndex][i]];
+				const uint64_t        offset = pDesc->mHandleIndex * sizeof(DescriptorUpdateData);
+
+				pEntries[i].descriptorCount = pDesc->mDesc.size;
+				pEntries[i].descriptorType = pDesc->mVkType;
+				pEntries[i].dstArrayElement = 0;
+				pEntries[i].dstBinding = pDesc->mDesc.reg;
+				pEntries[i].offset = offset;
+				pEntries[i].stride = sizeof(DescriptorUpdateData);
+
+				Texture* srvTexture = NULL;
+				Texture* uavTexture = NULL;
+				switch (pDesc->mDesc.textureDim)
+				{
+				case TEXTURE_DIM_1D:
+					srvTexture = pRenderer->pDefaultTexture1DSRV;
+					uavTexture = pRenderer->pDefaultTexture1DUAV;
+					break;
+				case TEXTURE_DIM_2D:
+					srvTexture = pRenderer->pDefaultTexture2DSRV;
+					uavTexture = pRenderer->pDefaultTexture2DUAV;
+					break;
+				case TEXTURE_DIM_3D:
+					srvTexture = pRenderer->pDefaultTexture3DSRV;
+					uavTexture = pRenderer->pDefaultTexture3DUAV;
+					break;
+				case TEXTURE_DIM_1D_ARRAY:
+					srvTexture = pRenderer->pDefaultTexture1DArraySRV;
+					uavTexture = pRenderer->pDefaultTexture1DArrayUAV;
+					break;
+				case TEXTURE_DIM_2D_ARRAY:
+					srvTexture = pRenderer->pDefaultTexture2DArraySRV;
+					uavTexture = pRenderer->pDefaultTexture2DArrayUAV;
+					break;
+				case TEXTURE_DIM_CUBE: srvTexture = pRenderer->pDefaultTextureCubeSRV; break;
+				default: break;
+				}
+
+				if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
+				{
+					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+						pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo = pRenderer->pDefaultSampler->mVkSamplerView;
+				}
+				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
+				{
+					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+						pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo = {
+							VK_NULL_HANDLE, srvTexture->pVkSRVDescriptor, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+					};
+				}
+				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
+				{
+					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+						pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mImageInfo = { VK_NULL_HANDLE,
+																								  uavTexture->pVkUAVDescriptors[0],
+																								  VK_IMAGE_LAYOUT_GENERAL };
+				}
+				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXEL_BUFFER)
+				{
+					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+						pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mBuferView =
+						pRenderer->pDefaultBuffer->pVkUniformTexelView;
+				}
+				else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXEL_BUFFER)
+				{
+					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+						pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mBuferView =
+						pRenderer->pDefaultBuffer->pVkStorageTexelView;
+				}
+				else
+				{
+					for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
+						pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + arr].mBufferInfo = pRenderer->pDefaultBuffer->mVkBufferInfo;
+				}
+			}
+
+			VkDescriptorUpdateTemplateCreateInfoKHR createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR;
+			createInfo.pNext = NULL;
+			createInfo.descriptorSetLayout = rootSignature->mVkDescriptorSetLayouts[setIndex];
+			createInfo.descriptorUpdateEntryCount = rootSignature->mVkDescriptorCounts[setIndex];
+			createInfo.pDescriptorUpdateEntries = pEntries;
+			createInfo.pipelineBindPoint = gPipelineBindPoint[rootSignature->mPipelineType];
+			createInfo.pipelineLayout = rootSignature->pPipelineLayout;
+			createInfo.set = setIndex;
+			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
+			VkResult vkRes = vkCreateDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, &createInfo, NULL, &pDescriptorBinder->mUpdateTemplates[setIndex]);
+			ASSERT(VK_SUCCESS == vkRes);
+		}
+		else
+		{
+			// Consume empty descriptor sets from empty descriptor set pool
+			VkDescriptorSet* pSets[] = { &pDescriptorBinder->pEmptyDescriptorSets[setIndex] };
+			consume_descriptor_sets_lock_free(pRenderer, &rootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1, pDescriptorBinder->pEmptySetsDescriptorPool);
+		}
+	}
+
+	*ppDescriptorBinder = pDescriptorBinder;
+}
+
+void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBinder)
+{
+	remove_descriptor_heap(pRenderer, pDescriptorBinder->pDescriptorPool);
+	
+	// Clean up descriptor pool for empty descriptors
+	reset_descriptor_heap(pRenderer, pDescriptorBinder->pEmptySetsDescriptorPool);
+	remove_descriptor_heap(pRenderer, pDescriptorBinder->pEmptySetsDescriptorPool);
+
+	// Clean up descriptor update templates
+	for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; ++setIndex)
+	{
+		SAFE_FREE(pDescriptorBinder->pDynamicOffsets[setIndex]);
+		SAFE_FREE(pDescriptorBinder->pUpdateData[setIndex]);
+
+		if (VK_NULL_HANDLE != pDescriptorBinder->mUpdateTemplates[setIndex])
+			vkDestroyDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, pDescriptorBinder->mUpdateTemplates[setIndex], NULL);
+	}
+
+	for (uint32_t frameIdx = 0; frameIdx < MAX_FRAMES_IN_FLIGHT; frameIdx++)
+		for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; setIndex++)
+			SAFE_FREE(pDescriptorBinder->pDescriptorSets_FrameFreqUsage[frameIdx][setIndex]);
+
+	SAFE_FREE(pDescriptorBinder);
+}
+
 /************************************************************************/
 // Shader Functions
 /************************************************************************/
@@ -4345,22 +4336,11 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	/************************************************************************/
 	/************************************************************************/
 
-	conf_placement_new<RootSignature::ThreadLocalDescriptorManager>(&pRootSignature->pDescriptorManagerMap);
-	// Create descriptor manager for this thread
-	DescriptorManager* pManager = NULL;
-	add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-	pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
-
 	*ppRootSignature = pRootSignature;
 }
 
 void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
-	for (tinystl::unordered_hash_node<ThreadID, DescriptorManager*>& it : pRootSignature->pDescriptorManagerMap)
-	{
-		remove_descriptor_manager(pRenderer, pRootSignature, it.second);
-	}
-
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 	{
 		vkDestroyDescriptorSetLayout(pRenderer->pVkDevice, pRootSignature->mVkDescriptorSetLayouts[i], NULL);
@@ -4373,7 +4353,6 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 		SAFE_FREE(pRootSignature->pDescriptors[i].mDesc.name);
 	}
 
-	pRootSignature->pDescriptorManagerMap.~unordered_map();
 	// Need delete since the destructor frees allocated memory
 	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
@@ -4621,7 +4600,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			const ShaderReflection* pVertReflection =
 				&pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mVertexStageIndex];
 			int numVertexInputs = 0;
-			if (pVertReflection != nullptr)
+			if (pVertReflection != NULL)
 			{
 				numVertexInputs = pVertReflection->mVertexInputsCount;
 				for (uint32_t i = 0; i < numVertexInputs; ++i)
@@ -4675,7 +4654,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 					++input_binding_count;
 				}
 
-				input_bindings[input_binding_count - 1].stride += calculateImageFormatStride(attrib->mFormat);
+				input_bindings[input_binding_count - 1].stride += ImageFormat::GetImageFormatStride(attrib->mFormat);
 
 				if (vertLocation[i] >= 0)
 				{
@@ -4717,7 +4696,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 				{
 					input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 				}
-				input_bindings[input_binding_count - 1].stride += calculateImageFormatStride(attrib->mFormat);
+				input_bindings[input_binding_count - 1].stride += ImageFormat::GetImageFormatStride(attrib->mFormat);
 
 				input_attributes[input_attribute_count].location = attrib->mLocation;
 				input_attributes[input_attribute_count].binding = attrib->mBinding;
@@ -4953,7 +4932,7 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 		default:
 		{
 			ASSERT(false);
-			ppPipeline = nullptr;
+			ppPipeline = NULL;
 			break;
 		}
 	}
@@ -5125,9 +5104,6 @@ void beginCmd(Cmd* pCmd)
 
 	VkResult vk_res = vkBeginCommandBuffer(pCmd->pVkCmdBuf, &begin_info);
 	ASSERT(VK_SUCCESS == vk_res);
-
-	if (pCmd->pDescriptorPool)
-		reset_descriptor_heap(pCmd->pRenderer, pCmd->pDescriptorPool);
 }
 
 void endCmd(Cmd* pCmd)
@@ -5440,35 +5416,34 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	vkCmdDispatch(pCmd->pVkCmdBuf, groupCountX, groupCountY, groupCountZ);
 }
 
-void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	Renderer*          pRenderer = pCmd->pRenderer;
+	RootSignature*     pRootSignature = pDescriptorBinder->mDesc.pRootSignature;
 	const uint32_t     setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
-	DescriptorManager* pm = get_descriptor_manager(pRenderer, pRootSignature);
 
 	// Logic to detect beginning of a new frame so we dont run this code everytime user calls cmdBindDescriptors
 	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 	{
 		// Reset other data
-		pm->mBoundSets[setIndex] = true;
+		pDescriptorBinder->mBoundSets[setIndex] = true;
 	}
 
-	if (pm->pCurrentCmd != pCmd)
+	if (pDescriptorBinder->pCurrentCmd != pCmd)
 	{
-		pm->pCurrentCmd = pCmd;
-		pm->mFrameIdx = (pm->mFrameIdx + 1) % MAX_FRAMES_IN_FLIGHT;
+		pDescriptorBinder->pCurrentCmd = pCmd;
 
 		// Vulkan requires to bind all descriptor sets upto the highest set number even if they are empty
 		// Example: If shader uses only set 1, we still have to bind an empty set 0
 		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 		{
-			if (pm->pEmptyDescriptorSets[setIndex] != VK_NULL_HANDLE)
+			if (pDescriptorBinder->pEmptyDescriptorSets[setIndex] != VK_NULL_HANDLE)
 			{
 				vkCmdBindDescriptorSets(
 					pCmd->pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->pPipelineLayout, setIndex, 1,
-					&pm->pEmptyDescriptorSets[setIndex], 0, NULL);    // Reset other data
+					&pDescriptorBinder->pEmptyDescriptorSets[setIndex], 0, NULL);    // Reset other data
 			}
-			pm->mBoundSets[setIndex] = true;
+			pDescriptorBinder->mBoundSets[setIndex] = true;
 		}
 	}
 
@@ -5476,9 +5451,7 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 	// This value will be later used as look up to find if a descriptor set with the given hash already exists
 	// This way we will call updateDescriptorSet for a particular set of descriptors only once
 	// Then we only need to do a look up into the mDescriptorSetMap with pHash[setIndex] as the key and retrieve the DescriptorSet* value
-	uint64_t* pHash = (uint64_t*)alloca(setCount * sizeof(uint64_t));
-	// Initialize this memory to zero
-	memset(pHash, 0, setCount * sizeof(uint64_t));
+	uint64_t pHash[setCount] = {};
 
 	// Loop through input params to check for new data
 	for (uint32_t i = 0; i < numDescriptors; ++i)
@@ -5491,8 +5464,7 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 			return;
 		}
 
-		uint32_t              descIndex = -1;
-		const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pParam->pName, &descIndex);
+		const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pParam->pName);
 		if (!pDesc)
 			continue;
 
@@ -5533,7 +5505,7 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 					return;
 				}
 				pHash[setIndex] = tinystl::hash_state(&pParam->ppSamplers[i]->mSamplerId, 1, pHash[setIndex]);
-				pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo = pParam->ppSamplers[i]->mVkSamplerView;
+				pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo = pParam->ppSamplers[i]->mVkSamplerView;
 			}
 		}
 		else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
@@ -5558,11 +5530,11 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 
 				// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
 				if(!pParam->mBindStencilResource)
-					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = pParam->ppTextures[i]->pVkSRVDescriptor;
+					pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = pParam->ppTextures[i]->pVkSRVDescriptor;
 				else
-					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = *pParam->ppTextures[i]->pVkSRVStencilDescriptor;
+					pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView = *pParam->ppTextures[i]->pVkSRVStencilDescriptor;
 				// SRVs need to be in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-				pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
 		}
 		else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE)
@@ -5587,10 +5559,10 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 				pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
 
 				// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
-				pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView =
+				pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView =
 					pParam->ppTextures[i]->pVkUAVDescriptors[pParam->mUAVMipSlice];
 				// UAVs need to be in VK_IMAGE_LAYOUT_GENERAL
-				pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 			}
 		}
 		else
@@ -5610,22 +5582,22 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 				pHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[i]->mBufferId, 1, pHash[setIndex]);
 
 				if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
-					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBuferView = pParam->ppBuffers[i]->pVkUniformTexelView;
+					pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBuferView = pParam->ppBuffers[i]->pVkUniformTexelView;
 				else if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
-					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBuferView = pParam->ppBuffers[i]->pVkStorageTexelView;
+					pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBuferView = pParam->ppBuffers[i]->pVkStorageTexelView;
 				else
 				{
 					// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
-					pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBufferInfo = pParam->ppBuffers[i]->mVkBufferInfo;
+					pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBufferInfo = pParam->ppBuffers[i]->mVkBufferInfo;
 
 					// Only store the offset provided in pParam if the descriptor is not dynamic
 					// For dynamic descriptors the offsets are bound in vkCmdBindDescriptorSets
 					if (pDesc->mVkType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 					{
 						if (pParam->pOffsets)
-							pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBufferInfo.offset = pParam->pOffsets[i];
+							pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBufferInfo.offset = pParam->pOffsets[i];
 						if (pParam->pSizes)
-							pm->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBufferInfo.range = pParam->pSizes[i];
+							pDescriptorBinder->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBufferInfo.range = pParam->pSizes[i];
 					}
 				}
 			}
@@ -5637,7 +5609,7 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 				if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 				{
 					// Dynamic uniform buffers cannot form arrays so jut use element 0
-					pm->pDynamicOffsets[setIndex][pDesc->mDynamicUniformIndex] = (uint32_t)pParam->pOffsets[0];
+					pDescriptorBinder->pDynamicOffsets[setIndex][pDesc->mDynamicUniformIndex] = (uint32_t)pParam->pOffsets[0];
 				}
 				// If descriptor is not of type uniform buffer dynamic, hash the offset value
 				// Non dynamic uniform buffer descriptors using the same VkBuffer object but different offset values are considered as different descriptors
@@ -5652,7 +5624,20 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 		}
 
 		// Unbind current descriptor set so we can bind a new one
-		pm->mBoundSets[setIndex] = false;
+		pDescriptorBinder->mBoundSets[setIndex] = false;
+	}
+
+	uint32_t descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_NONE] = 1;
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_PER_FRAME] = 1;
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_PER_BATCH] = pDescriptorBinder->mDesc.mMaxDynamicUpdatesPerBatch;
+	descriptorRoomPerFrequency[DESCRIPTOR_UPDATE_FREQ_PER_DRAW] = pDescriptorBinder->mDesc.mMaxDynamicUpdatesPerDraw;
+
+	if (pDescriptorBinder->mLastFrameUpdated != gFrameNumber) {
+		// Frame changed: reuse descriptors from the beginning since all allocations are per frame
+		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
+			pDescriptorBinder->mUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex] = 0;
+		pDescriptorBinder->mLastFrameUpdated = gFrameNumber;
 	}
 
 	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
@@ -5660,54 +5645,62 @@ void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDe
 		uint32_t descCount = pRootSignature->mVkDescriptorCounts[setIndex];
 		uint32_t rootDescCount = pRootSignature->mVkDynamicDescriptorCounts[setIndex];
 
-		if (descCount && !pm->mBoundSets[setIndex])
+		if (descCount && !pDescriptorBinder->mBoundSets[setIndex])
 		{
+			const uint64_t setIndexHash = pHash[setIndex];
 			VkDescriptorSet pDescriptorSet = VK_NULL_HANDLE;
-			// Search for the generated hash of descriptors in the descriptor set map
-			// If the hash already exists, it means we have already created a descriptor set with the input descriptors
-			// Now we just bind that descriptor set and no other op is required
-			if (setIndex == DESCRIPTOR_UPDATE_FREQ_NONE)
-			{
-				ConstDescriptorSetMapIterator it = pm->mStaticDescriptorSetMap[pm->mFrameIdx].find(pHash[setIndex]);
-				if (it.node)
-				{
-					pDescriptorSet = it.node->second;
-				}
-				// If the given hash does not exist, we create a new descriptor set and insert it into the descriptor set map
-				else
-				{
-					VkDescriptorSet* pSets[] = { &pDescriptorSet };
-					consume_descriptor_sets(
-						pRenderer, &pRootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1, pRenderer->pDescriptorPool);
-					vkUpdateDescriptorSetWithTemplateKHR(
-						pRenderer->pVkDevice, pDescriptorSet, pm->mUpdateTemplates[setIndex], pm->pUpdateData[setIndex]);
-					++pm->mDescriptorSetCount[pm->mFrameIdx][setIndex];
-					pm->mStaticDescriptorSetMap[pm->mFrameIdx].insert({ pHash[setIndex], pDescriptorSet });
-				}
-			}
-			// Dynamic descriptors
-			else
-			{
-				if (!pCmd->pDescriptorPool)
-					add_descriptor_heap(
-						pRenderer, gDefaultDynamicDescriptorSets, 0, gDynamicDescriptorHeapPoolSizes, VK_DESCRIPTOR_TYPE_RANGE_SIZE,
-						&pCmd->pDescriptorPool);
+			uint32_t descriptorSetSlotToUse = 0;
 
-				VkDescriptorSet* pSets[] = { &pDescriptorSet };
-				consume_descriptor_sets_lock_free(
-					pRenderer, &pRootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1, pCmd->pDescriptorPool);
-				vkUpdateDescriptorSetWithTemplateKHR(
-					pRenderer->pVkDevice, pDescriptorSet, pm->mUpdateTemplates[setIndex], pm->pUpdateData[setIndex]);
-				++pm->mDescriptorSetCount[pm->mFrameIdx][setIndex];
+			// Determine if we have to update the descriptor set depending on the hashed states. Frequencies BATCH and DRAW are considered dynamic (multiple updates per frame). 
+			// DRAW and are always updated to a new (pre-allocated) slot every time they are bound. This allows to avoid a dictionary lookup for them. 
+			// BATCH use a dictionary lookup to reuse descriptors that are already updated. This avoids updating them every time.
+			// Frequencies NONE and FRAME only allow 1 update per frame by definition. So for those, the the last udpated and current hashes are compared. If
+			// the hashes are the same, the last stored descriptors are just updated. Otherwise, they allow for 1 update per frame each.
+			bool mustUpdateDescriptorSet = (setIndex == DESCRIPTOR_UPDATE_FREQ_NONE && pDescriptorBinder->mUpdatedNoneFreqHash[pRenderer->mCurrentFrameIdx] != setIndexHash) ||
+										   (setIndex == DESCRIPTOR_UPDATE_FREQ_PER_FRAME && pDescriptorBinder->mUpdatedFrameFreqHash[pRenderer->mCurrentFrameIdx] != setIndexHash) ||
+											setIndex == DESCRIPTOR_UPDATE_FREQ_PER_DRAW;
+
+			if (setIndex == DESCRIPTOR_UPDATE_FREQ_PER_BATCH)
+			{
+				ConstHashMapIterator it = pDescriptorBinder->mUpdatedBatchFreqHashes[pRenderer->mCurrentFrameIdx].find(setIndexHash);
+				if (it.node != NULL) {
+					descriptorSetSlotToUse = it.node->second;
+					mustUpdateDescriptorSet = false;
+				}
+				else
+					mustUpdateDescriptorSet = true;
+			}
+
+			if (mustUpdateDescriptorSet)
+			{
+				descriptorSetSlotToUse = pDescriptorBinder->mUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex]++;
+				if (descriptorSetSlotToUse >= descriptorRoomPerFrequency[setIndex]) {
+					LOGERRORF("Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
+					return;
+				}
+
+				pDescriptorSet = pDescriptorBinder->pDescriptorSets_FrameFreqUsage[pRenderer->mCurrentFrameIdx][setIndex][descriptorSetSlotToUse];
+				vkUpdateDescriptorSetWithTemplateKHR(pRenderer->pVkDevice, pDescriptorSet, pDescriptorBinder->mUpdateTemplates[setIndex], pDescriptorBinder->pUpdateData[setIndex]);
+
+				if (setIndex == DESCRIPTOR_UPDATE_FREQ_NONE)		
+					pDescriptorBinder->mUpdatedNoneFreqHash[pRenderer->mCurrentFrameIdx] = setIndexHash;
+				if (setIndex == DESCRIPTOR_UPDATE_FREQ_PER_FRAME)	
+					pDescriptorBinder->mUpdatedFrameFreqHash[pRenderer->mCurrentFrameIdx] = setIndexHash;
+				if (setIndex == DESCRIPTOR_UPDATE_FREQ_PER_BATCH)	
+					pDescriptorBinder->mUpdatedBatchFreqHashes[pRenderer->mCurrentFrameIdx].insert({ setIndexHash, descriptorSetSlotToUse });
+			}
+			else {
+				// No need to update descriptors. Just point to a pre-allocated available descriptor set given by descriptorSetSlotToUse.
+				pDescriptorSet = pDescriptorBinder->pDescriptorSets_FrameFreqUsage[pRenderer->mCurrentFrameIdx][setIndex][descriptorSetSlotToUse];
 			}
 
 			vkCmdBindDescriptorSets(
 				pCmd->pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->pPipelineLayout, setIndex, 1,
-				&pDescriptorSet, rootDescCount, pm->pDynamicOffsets[setIndex]);
+				&pDescriptorSet, rootDescCount, pDescriptorBinder->pDynamicOffsets[setIndex]);
 
 			// Set the bound flag for the descriptor set of this update frequency
 			// This way in the future if user tries to bind the same descriptor set, we can avoid unnecessary rebinds
-			pm->mBoundSets[setIndex] = true;
+			pDescriptorBinder->mBoundSets[setIndex] = true;
 		}
 	}
 }
@@ -5911,11 +5904,10 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 }
 
 void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t, Texture* pTexture)
+	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture)
 {
 	VkBufferImageCopy* pCopyRegions = (VkBufferImageCopy*)alloca(numSubresources * sizeof(VkBufferImageCopy));
-	for (uint32_t i = startSubresource; i < startSubresource + numSubresources; ++i)
+	for (uint32_t i = 0; i < numSubresources; ++i)
 	{
 		VkBufferImageCopy*   pCopy = &pCopyRegions[i];
 		SubresourceDataDesc* pRes = &pSubresources[i];
@@ -5982,6 +5974,8 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 		ASSERT(VK_SUCCESS == vk_res);
 		pSignalSemaphore->mSignaled = true;
 	}
+	pRenderer->mCurrentFrameIdx = *pImageIndex;
+	gFrameNumber++;
 }
 
 void queueSubmit(
@@ -6544,7 +6538,7 @@ void MicroProfileGpuInitInternal(VkDevice pDevice, VkPhysicalDevice pPhysicalDev
 	queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
 	queryPoolInfo.queryCount = MICROPROFILE_GPU_MAX_QUERIES + 1; // reference query
 
-	VkResult res = vkCreateQueryPool(pDevice, &queryPoolInfo, nullptr, &GPU.pQueryPool);
+	VkResult res = vkCreateQueryPool(pDevice, &queryPoolInfo, NULL, &GPU.pQueryPool);
 	ASSERT(res == VK_SUCCESS);
 
 	VkCommandPoolCreateInfo commandPoolInfo = {};
@@ -6552,7 +6546,7 @@ void MicroProfileGpuInitInternal(VkDevice pDevice, VkPhysicalDevice pPhysicalDev
 	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	commandPoolInfo.queueFamilyIndex = 0;
 
-	res = vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &GPU.pCommandPool);
+	res = vkCreateCommandPool(pDevice, &commandPoolInfo, NULL, &GPU.pCommandPool);
 	ASSERT(res == VK_SUCCESS);
 
 	VkCommandBuffer pCommandBuffers[MICROPROFILE_GPU_FRAMES + 1] = {};
@@ -6573,7 +6567,7 @@ void MicroProfileGpuInitInternal(VkDevice pDevice, VkPhysicalDevice pPhysicalDev
 	{
 		GPU.pCommandBuffers[i] = pCommandBuffers[i];
 
-		res = vkCreateFence(pDevice, &fenceInfo, nullptr, &GPU.pFences[i]);
+		res = vkCreateFence(pDevice, &fenceInfo, NULL, &GPU.pFences[i]);
 		ASSERT(res == VK_SUCCESS);
 	}
 
@@ -6597,15 +6591,15 @@ void MicroProfileGpuShutdownInternal()
 
 	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
 	{
-		vkDestroyFence(GPU.pDevice, GPU.pFences[i], nullptr);
+		vkDestroyFence(GPU.pDevice, GPU.pFences[i], NULL);
 		GPU.pFences[i] = 0;
 	}
 
-	vkDestroyCommandPool(GPU.pDevice, GPU.pCommandPool, nullptr);
+	vkDestroyCommandPool(GPU.pDevice, GPU.pCommandPool, NULL);
 	memset(GPU.pCommandBuffers, 0, sizeof(GPU.pCommandBuffers));
 	GPU.pCommandPool = 0;
 
-	vkDestroyQueryPool(GPU.pDevice, GPU.pQueryPool, nullptr);
+	vkDestroyQueryPool(GPU.pDevice, GPU.pQueryPool, NULL);
 	GPU.pQueryPool = 0;
 
 	GPU.pQueue = 0;

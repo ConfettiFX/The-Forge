@@ -302,8 +302,8 @@
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y
-xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
+      <Command>
+</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -344,7 +344,8 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -433,8 +434,8 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y
-xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -479,7 +480,8 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

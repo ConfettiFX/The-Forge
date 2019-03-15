@@ -66,8 +66,8 @@
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #if !defined(TARGET_IOS)
 //PostProcess
@@ -212,36 +212,40 @@ Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 // Basic shader variables, used by instanced rendering.
-Shader*          pBasicShader = NULL;
-Pipeline*        pBasicPipeline = NULL;
-RasterizerState* pBasicRast = NULL;
-RootSignature*   pBasicRoot = NULL;
-Sampler*         pBasicSampler = NULL;
+Shader*           pBasicShader = NULL;
+Pipeline*         pBasicPipeline = NULL;
+RasterizerState*  pBasicRast = NULL;
+RootSignature*    pBasicRoot = NULL;
+DescriptorBinder* pBasicDescriptorBinder = NULL;
+Sampler*          pBasicSampler = NULL;
 
 // Execute Indirect variables
 Shader*           pIndirectShader = NULL;
 Pipeline*         pIndirectPipeline = NULL;
 RootSignature*    pIndirectRoot = NULL;
+DescriptorBinder* pIndirectDescriptorBinder = NULL;
 Buffer*           pIndirectBuffer[gImageCount] = {};
 Buffer*           pIndirectUniformBuffer[gImageCount] = { NULL };
 CommandSignature* pIndirectCommandSignature = NULL;
 CommandSignature* pIndirectSubsetCommandSignature = NULL;
 
 // Compute shader variables
-Shader*        pComputeShader = NULL;
-Pipeline*      pComputePipeline = NULL;
-RootSignature* pComputeRoot = NULL;
-Buffer*        pComputeUniformBuffer[gImageCount] = {};
+Shader*           pComputeShader = NULL;
+Pipeline*         pComputePipeline = NULL;
+RootSignature*    pComputeRoot = NULL;
+DescriptorBinder* pComputeDescriptorBinder = NULL;
+Buffer*           pComputeUniformBuffer[gImageCount] = {};
 
 // Skybox Variables
-Shader*          pSkyBoxDrawShader = NULL;
-Pipeline*        pSkyBoxDrawPipeline = NULL;
-RasterizerState* pSkyboxRast = NULL;
-RootSignature*   pSkyBoxRoot = NULL;
-Sampler*         pSkyBoxSampler = NULL;
-Buffer*          pSkyboxUniformBuffer[gImageCount] = { NULL };
-Buffer*          pSkyBoxVertexBuffer = NULL;
-Texture*         pSkyBoxTextures[6];
+Shader*           pSkyBoxDrawShader = NULL;
+Pipeline*         pSkyBoxDrawPipeline = NULL;
+RasterizerState*  pSkyboxRast = NULL;
+RootSignature*    pSkyBoxRoot = NULL;
+DescriptorBinder* pSkyBoxDescriptorBinder = NULL;
+Sampler*          pSkyBoxSampler = NULL;
+Buffer*           pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*           pSkyBoxVertexBuffer = NULL;
+Texture*          pSkyBoxTextures[6];
 
 // Necessary buffers
 Buffer* pAsteroidVertexBuffer = NULL;
@@ -390,6 +394,18 @@ class ExecuteIndirect: public IApp
 		addRootSignature(pRenderer, &skyRootDesc, &pSkyBoxRoot);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRoot);
 		addRootSignature(pRenderer, &indirectRootDesc, &pIndirectRoot);
+
+		DescriptorBinderDesc skyDescriptorBinderDesc = { pSkyBoxRoot };
+		addDescriptorBinder(pRenderer, &skyDescriptorBinderDesc, &pSkyBoxDescriptorBinder);
+
+		DescriptorBinderDesc computeDescriptorBinderDesc = { pComputeRoot };
+		addDescriptorBinder(pRenderer, &computeDescriptorBinderDesc, &pComputeDescriptorBinder);
+
+		DescriptorBinderDesc indirectDescriptorBinderDesc = { pIndirectRoot };
+		addDescriptorBinder(pRenderer, &indirectDescriptorBinderDesc, &pIndirectDescriptorBinder);
+
+		DescriptorBinderDesc basicDescriptorBinderDesc = { pBasicRoot };
+		addDescriptorBinder(pRenderer, &basicDescriptorBinderDesc, &pBasicDescriptorBinder);
 
 		/* Setup Pipelines */
 
@@ -901,12 +917,12 @@ class ExecuteIndirect: public IApp
 
 		frameTime = deltaTime;
 
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
 
-		if (getKeyUp(KEY_LEFT_TRIGGER))
+		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED))
 		{
 			gRenderingMode = (++gRenderingMode) % RenderingMode_Count;
 		}
@@ -1025,7 +1041,7 @@ class ExecuteIndirect: public IApp
 		skyboxParams[6].ppTextures = &pSkyBoxTextures[5];
 		skyboxParams[7].pName = "uSampler0";
 		skyboxParams[7].ppSamplers = &pSkyBoxSampler;
-		cmdBindDescriptors(cmd, pSkyBoxRoot, 8, skyboxParams);
+		cmdBindDescriptors(cmd, pSkyBoxDescriptorBinder, 8, skyboxParams);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
@@ -1109,7 +1125,7 @@ class ExecuteIndirect: public IApp
 			computeParams[2].ppBuffers = &pDynamicAsteroidBuffer;
 			computeParams[3].pName = "drawCmds";
 			computeParams[3].ppBuffers = &pIndirectBuffer[frameIdx];
-			cmdBindDescriptors(cmd, pComputeRoot, 4, computeParams);
+			cmdBindDescriptors(cmd, pComputeDescriptorBinder, 4, computeParams);
 
 			BufferBarrier uavBarrier = { pIndirectBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS };
 			cmdResourceBarrier(cmd, 1, &uavBarrier, 0, NULL, false);
@@ -1139,7 +1155,7 @@ class ExecuteIndirect: public IApp
 			indirectParams[3].ppTextures = &pAsteroidTex;
 			indirectParams[4].pName = "uSampler0";
 			indirectParams[4].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pIndirectRoot, 5, indirectParams);
+			cmdBindDescriptors(cmd, pIndirectDescriptorBinder, 5, indirectParams);
 
 			cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
@@ -1532,15 +1548,15 @@ class ExecuteIndirect: public IApp
 
 	void CreateTextures(uint32_t texture_count)
 	{
-		Image image;
-		genTextures(texture_count, &image);
+		RawImageData rawData;
+		genTextures(texture_count, &rawData);
 
 		TextureLoadDesc textureDesc = {};
-		textureDesc.pImage = &image;
+		textureDesc.pRawImageData = &rawData;
 		textureDesc.ppTexture = &pAsteroidTex;
 		addResource(&textureDesc);
 
-		image.Destroy();
+		conf_free(rawData.pRawData);
 	}
 
 	void CreateSubsets()
@@ -1646,7 +1662,7 @@ class ExecuteIndirect: public IApp
 			params[1].ppTextures = &pAsteroidTex;
 			params[2].pName = "uSampler0";
 			params[2].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pBasicRoot, 3, params);
+			cmdBindDescriptors(cmd, pBasicDescriptorBinder, 3, params);
 			cmdBindPipeline(cmd, pBasicPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
@@ -1662,7 +1678,7 @@ class ExecuteIndirect: public IApp
 				DescriptorData rootConst = {};
 				rootConst.pName = "rootConstant";
 				rootConst.pRootConstant = &i;
-				cmdBindDescriptors(cmd, pBasicRoot, 1, &rootConst);
+				cmdBindDescriptors(cmd, pBasicDescriptorBinder, 1, &rootConst);
 				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart, 0);
 			}
 		}
@@ -1727,7 +1743,7 @@ class ExecuteIndirect: public IApp
 			indirectParams[3].ppTextures = &pAsteroidTex;
 			indirectParams[4].pName = "uSampler0";
 			indirectParams[4].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pIndirectRoot, 5, indirectParams);
+			cmdBindDescriptors(cmd, pIndirectDescriptorBinder, 5, indirectParams);
 			cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);

@@ -48,14 +48,14 @@
 
 #define EPSILON 1e-7f
 
-layout(set = 0, binding = 0) uniform cbCamera
+layout(set = 3, binding = 0) uniform cbCamera
 {
 	mat4 CamVPMatrix;
 	mat4 CamInvVPMatrix;
 	vec3 CamPos;
 };
 
-layout(set = 0, binding = 1) uniform cbHair
+layout(set = 3, binding = 1) uniform cbHair
 {
 	mat4 Transform;
 	uint RootColor;
@@ -79,17 +79,17 @@ layout(set = 0, binding = 2) uniform cbHairGlobal
 	float TimeStep;
 };
 
-layout(set = 0, binding = 3) buffer GuideHairVertexPositions
+layout(set = 3, binding = 3) buffer GuideHairVertexPositions
 {
 	vec4 GuideHairVertexPosition[];
 };
 
-layout(set = 0, binding = 4) buffer GuideHairVertexTangents
+layout(set = 3, binding = 4) buffer GuideHairVertexTangents
 {
 	vec4 GuideHairVertexTangent[];
 };
 
-layout(set = 0, binding = 5) buffer HairThicknessCoefficients
+layout(set = 3, binding = 5) buffer HairThicknessCoefficients
 {
 	float HairThicknessCoefficient[];
 };

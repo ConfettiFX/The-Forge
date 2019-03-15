@@ -67,7 +67,7 @@ cbuffer cbCamera : register(b0)
 	float fNormalMapIntensity;
 }
 
-cbuffer cbObject : register(b1) 
+cbuffer cbObject : register(b1, space3) 
 {
 	float4x4 worldMat;
 	float3 albedo;
@@ -92,17 +92,17 @@ cbuffer cbDirectionalLights : register(b3)
 	uint NumDirectionalLights;
 }
 
-Texture2D<float2> brdfIntegrationMap : register(t3, space1);
-TextureCube<float4> irradianceMap : register(t4, space1);
-TextureCube<float4> specularMap : register(t5, space1);
+Texture2D<float2> brdfIntegrationMap : register(t3, space3);
+TextureCube<float4> irradianceMap : register(t4, space3);
+TextureCube<float4> specularMap : register(t5, space3);
 
-Texture2D albedoMap : register(t7, space1);
-Texture2D normalMap : register(t8, space1);
-Texture2D metallicMap : register(t9, space1);
-Texture2D roughnessMap : register(t10, space1);
-Texture2D aoMap : register(t11, space1);
+Texture2D albedoMap : register(t7, space3);
+Texture2D normalMap : register(t8, space3);
+Texture2D metallicMap : register(t9, space3);
+Texture2D roughnessMap : register(t10, space3);
+Texture2D aoMap : register(t11, space3);
 
-Texture2D shadowMap : register(t12, space1);
+Texture2D shadowMap : register(t12, space3);
 
 SamplerState bilinearSampler : register(s12);
 SamplerState bilinearClampedSampler : register(s6);

@@ -33,7 +33,7 @@ cbuffer RootConstant
 	float axis;
 };
 
-Texture2D Source : register(t0);
+Texture2D Source : register(t0, space3);
 SamplerState LinearSampler : register(s0);
 
 float4 main(VSOutput input) : SV_Target

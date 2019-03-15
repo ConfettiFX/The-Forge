@@ -1,7 +1,7 @@
 #version 450 core
 
-layout(set = 0, binding = 0, rgba8) uniform image2D Source;
-layout(set = 0, binding = 1, rgba8) uniform image2D Destination;
+layout(set = 3, binding = 0, rgba8) uniform image2D Source;
+layout(set = 3, binding = 1, rgba8) uniform image2D Destination;
 
 layout(push_constant) uniform RootConstant_Block
 {

@@ -149,7 +149,9 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y</Command>
+      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
+xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y
+xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>WinPixEventRuntime.lib</AdditionalDependencies>
@@ -211,7 +213,9 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y</Command>
+      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
+xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y
+xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalDependencies>WinPixEventRuntime.lib</AdditionalDependencies>

@@ -229,13 +229,6 @@ float2       getDpiScale();
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
-// Input handling
-float2 getMousePosition();
-bool   getKeyDown(int key);
-bool   getKeyUp(int key);
-bool   getJoystickButtonDown(int button);
-bool   getJoystickButtonUp(int button);
-
 // Time related functions
 unsigned getSystemTime();
 unsigned getTimeSinceStart();

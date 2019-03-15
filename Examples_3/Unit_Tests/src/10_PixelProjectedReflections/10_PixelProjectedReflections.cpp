@@ -53,8 +53,8 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 
 //Input
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -354,7 +354,7 @@ Cmd**    pPPR_ReflectionCmds = NULL;
 
 SwapChain* pSwapChain = NULL;
 
-RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { nullptr };
+RenderTarget* pRenderTargetDeferredPass[DEFERRED_RT_COUNT] = { NULL };
 
 RenderTarget* pSceneBuffer = NULL;
 RenderTarget* pReflectionBuffer = NULL;
@@ -364,32 +364,38 @@ Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*        pShaderBRDF = NULL;
-Pipeline*      pPipelineBRDF = NULL;
-RootSignature* pRootSigBRDF = NULL;
+Shader*           pShaderBRDF = NULL;
+Pipeline*         pPipelineBRDF = NULL;
+RootSignature*    pRootSigBRDF = NULL;
+DescriptorBinder* pDescriptorBinderBRDF = NULL;
 
-Buffer*        pSkyboxVertexBuffer = NULL;
-Shader*        pSkyboxShader = NULL;
-Pipeline*      pSkyboxPipeline = NULL;
-RootSignature* pSkyboxRootSignature = NULL;
+Buffer*           pSkyboxVertexBuffer = NULL;
+Shader*           pSkyboxShader = NULL;
+Pipeline*         pSkyboxPipeline = NULL;
+RootSignature*    pSkyboxRootSignature = NULL;
+DescriptorBinder* pSkyboxDescriptorBinder = NULL;
 
-Shader*        pPPR_ProjectionShader = NULL;
-RootSignature* pPPR_ProjectionRootSignature = NULL;
-Pipeline*      pPPR_ProjectionPipeline = NULL;
+Shader*           pPPR_ProjectionShader = NULL;
+RootSignature*    pPPR_ProjectionRootSignature = NULL;
+DescriptorBinder* pPPR_ProjectionDescriptorBinder = NULL;
+Pipeline*         pPPR_ProjectionPipeline = NULL;
 
-Shader*        pPPR_ReflectionShader = NULL;
-RootSignature* pPPR_ReflectionRootSignature = NULL;
-Pipeline*      pPPR_ReflectionPipeline = NULL;
+Shader*           pPPR_ReflectionShader = NULL;
+RootSignature*    pPPR_ReflectionRootSignature = NULL;
+DescriptorBinder* pPPR_ReflectionDescriptorBinder = NULL;
+Pipeline*         pPPR_ReflectionPipeline = NULL;
 
-Shader*        pPPR_HolePatchingShader = NULL;
-RootSignature* pPPR_HolePatchingRootSignature = NULL;
-Pipeline*      pPPR_HolePatchingPipeline = NULL;
+Shader*           pPPR_HolePatchingShader = NULL;
+RootSignature*    pPPR_HolePatchingRootSignature = NULL;
+DescriptorBinder* pPPR_HolePatchingDescriptorBinder = NULL;
+Pipeline*         pPPR_HolePatchingPipeline = NULL;
 
 Buffer* pScreenQuadVertexBuffer = NULL;
 
-Shader*        pShaderGbuffers = NULL;
-Pipeline*      pPipelineGbuffers = NULL;
-RootSignature* pRootSigGbuffers = NULL;
+Shader*           pShaderGbuffers = NULL;
+Pipeline*         pPipelineGbuffers = NULL;
+RootSignature*    pRootSigGbuffers = NULL;
+DescriptorBinder* pDescriptorBinderSigGbuffers = NULL;
 
 Texture* pSkybox = NULL;
 Texture* pBRDFIntegrationMap = NULL;
@@ -419,7 +425,8 @@ UniformObjData pUniformDataMVP;
 enum
 {
 	SPONZA_MODEL,
-	LION_MODEL
+	LION_MODEL,
+	MODEL_COUNT
 };
 
 Buffer* pSponzaBuffer;
@@ -461,7 +468,7 @@ uint32_t gFrameIndex = 0;
 
 GpuProfiler* pGpuProfiler = NULL;
 
-BlendState* pBlendStateOneZero = nullptr;
+BlendState* pBlendStateOneZero = NULL;
 
 tinystl::vector<Buffer*> gSphereBuffers;
 
@@ -469,10 +476,10 @@ ICameraController* pCameraController = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
-GuiComponent* pGui = nullptr;
-GuiComponent* pLoadingGui = nullptr;
+GuiComponent* pGui = NULL;
+GuiComponent* pLoadingGui = NULL;
 
-IOResourceLoader* pIOResourceLoader = nullptr;
+IOResourceLoader* pIOResourceLoader = NULL;
 
 const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
@@ -492,8 +499,8 @@ struct MeshVertex
 
 struct Mesh
 {
-	Buffer*                   pVertexBuffer = nullptr;
-	Buffer*                   pIndexBuffer = nullptr;
+	Buffer*                   pVertexBuffer = NULL;
+	Buffer*                   pIndexBuffer = NULL;
 	tinystl::vector<uint32_t> materialID;
 	struct CmdParam
 	{
@@ -524,20 +531,24 @@ void transitionRenderTargets()
 void computePBRMaps()
 {
 	// Temporary resources that will be loaded on PBR preprocessing.
-	Texture*       pPanoSkybox = NULL;
-	Shader*        pPanoToCubeShader = NULL;
-	RootSignature* pPanoToCubeRootSignature = NULL;
-	Pipeline*      pPanoToCubePipeline = NULL;
-	Shader*        pBRDFIntegrationShader = NULL;
-	RootSignature* pBRDFIntegrationRootSignature = NULL;
-	Pipeline*      pBRDFIntegrationPipeline = NULL;
-	Shader*        pIrradianceShader = NULL;
-	RootSignature* pIrradianceRootSignature = NULL;
-	Pipeline*      pIrradiancePipeline = NULL;
-	Shader*        pSpecularShader = NULL;
-	RootSignature* pSpecularRootSignature = NULL;
-	Pipeline*      pSpecularPipeline = NULL;
-	Sampler*       pSkyboxSampler = NULL;
+	Texture*          pPanoSkybox = NULL;
+	Shader*           pPanoToCubeShader = NULL;
+	RootSignature*    pPanoToCubeRootSignature = NULL;
+	DescriptorBinder* pPanoToCubeDescriptorBinder = NULL;
+	Pipeline*         pPanoToCubePipeline = NULL;
+	Shader*           pBRDFIntegrationShader = NULL;
+	RootSignature*    pBRDFIntegrationRootSignature = NULL;
+	DescriptorBinder* pBRDFIntegrationDescriptorBinder = NULL;
+	Pipeline*         pBRDFIntegrationPipeline = NULL;
+	Shader*           pIrradianceShader = NULL;
+	RootSignature*    pIrradianceRootSignature = NULL;
+	DescriptorBinder* pIrradianceDescriptorBinder = NULL;
+	Pipeline*         pIrradiancePipeline = NULL;
+	Shader*           pSpecularShader = NULL;
+	RootSignature*    pSpecularRootSignature = NULL;
+	DescriptorBinder* pSpecularDescriptorBinder = NULL;
+	Pipeline*         pSpecularPipeline = NULL;
+	Sampler*          pSkyboxSampler = NULL;
 
 	SamplerDesc samplerDesc = {
 		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
@@ -667,6 +678,18 @@ void computePBRMaps()
 	addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
 	addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 
+	DescriptorBinderDesc panoDescriptorBinderDesc = { pPanoToCubeRootSignature, 0, gSkyboxMips };
+	addDescriptorBinder(pRenderer, &panoDescriptorBinderDesc, &pPanoToCubeDescriptorBinder);
+
+	DescriptorBinderDesc brdfDescriptorBinderDesc = { pBRDFIntegrationRootSignature };
+	addDescriptorBinder(pRenderer, &brdfDescriptorBinderDesc, &pBRDFIntegrationDescriptorBinder);
+
+	DescriptorBinderDesc irradianceDescriptorBinderDesc = { pIrradianceRootSignature };
+	addDescriptorBinder(pRenderer, &irradianceDescriptorBinderDesc, &pIrradianceDescriptorBinder);
+
+	DescriptorBinderDesc specularDescriptorBinderDesc = { pSpecularRootSignature, 0, gSpecularMips };
+	addDescriptorBinder(pRenderer, &specularDescriptorBinderDesc, &pSpecularDescriptorBinder);
+
 	PipelineDesc desc = {};
 	desc.mType = PIPELINE_TYPE_COMPUTE;
 	ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
@@ -702,7 +725,7 @@ void computePBRMaps()
 	DescriptorData params[2] = {};
 	params[0].pName = "dstTexture";
 	params[0].ppTextures = &pBRDFIntegrationMap;
-	cmdBindDescriptors(cmd, pBRDFIntegrationRootSignature, 1, params);
+	cmdBindDescriptors(cmd, pBRDFIntegrationDescriptorBinder, 1, params);
 	const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 	cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
@@ -714,7 +737,7 @@ void computePBRMaps()
 	cmdBindPipeline(cmd, pPanoToCubePipeline);
 	params[0].pName = "srcTexture";
 	params[0].ppTextures = &pPanoSkybox;
-	cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 1, params);
+	cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 1, params);
 
 	struct Data
 	{
@@ -730,7 +753,7 @@ void computePBRMaps()
 		params[1].pName = "dstTexture";
 		params[1].ppTextures = &pSkybox;
 		params[1].mUAVMipSlice = i;
-		cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
+		cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 2, params);
 
 		pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(
@@ -750,7 +773,7 @@ void computePBRMaps()
 	params[0].ppTextures = &pSkybox;
 	params[1].pName = "dstTexture";
 	params[1].ppTextures = &pIrradianceMap;
-	cmdBindDescriptors(cmd, pIrradianceRootSignature, 2, params);
+	cmdBindDescriptors(cmd, pIrradianceDescriptorBinder, 2, params);
 	pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 	cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
 	/************************************************************************/
@@ -759,7 +782,7 @@ void computePBRMaps()
 	cmdBindPipeline(cmd, pSpecularPipeline);
 	params[0].pName = "srcTexture";
 	params[0].ppTextures = &pSkybox;
-	cmdBindDescriptors(cmd, pSpecularRootSignature, 1, params);
+	cmdBindDescriptors(cmd, pSpecularDescriptorBinder, 1, params);
 
 	struct PrecomputeSkySpecularData
 	{
@@ -777,7 +800,7 @@ void computePBRMaps()
 		params[1].pName = "dstTexture";
 		params[1].ppTextures = &pSpecularMap;
 		params[1].mUAVMipSlice = i;
-		cmdBindDescriptors(cmd, pSpecularRootSignature, 2, params);
+		cmdBindDescriptors(cmd, pSpecularDescriptorBinder, 2, params);
 		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(cmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
 	}
@@ -794,18 +817,22 @@ void computePBRMaps()
 	// Remove temporary resources.
 	removePipeline(pRenderer, pSpecularPipeline);
 	removeRootSignature(pRenderer, pSpecularRootSignature);
+	removeDescriptorBinder(pRenderer, pSpecularDescriptorBinder);
 	removeShader(pRenderer, pSpecularShader);
 
 	removePipeline(pRenderer, pIrradiancePipeline);
 	removeRootSignature(pRenderer, pIrradianceRootSignature);
+	removeDescriptorBinder(pRenderer, pIrradianceDescriptorBinder);
 	removeShader(pRenderer, pIrradianceShader);
 
 	removePipeline(pRenderer, pBRDFIntegrationPipeline);
 	removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
+	removeDescriptorBinder(pRenderer, pBRDFIntegrationDescriptorBinder);
 	removeShader(pRenderer, pBRDFIntegrationShader);
 
 	removePipeline(pRenderer, pPanoToCubePipeline);
 	removeRootSignature(pRenderer, pPanoToCubeRootSignature);
+	removeDescriptorBinder(pRenderer, pPanoToCubeDescriptorBinder);
 	removeShader(pRenderer, pPanoToCubeShader);
 
 	removeResource(pPanoSkybox);
@@ -914,6 +941,9 @@ class PixelProjectedReflections: public IApp
 #endif
 		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
 
+		DescriptorBinderDesc gBuffersDescriptorBinderDesc = { pRootSigGbuffers, 0, MODEL_COUNT };
+		addDescriptorBinder(pRenderer, &gBuffersDescriptorBinderDesc, &pDescriptorBinderSigGbuffers);
+
 		ShaderLoadDesc skyboxShaderDesc = {};
 		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
 		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
@@ -925,6 +955,9 @@ class PixelProjectedReflections: public IApp
 		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxamplerName;
 		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
 		addRootSignature(pRenderer, &skyboxRootDesc, &pSkyboxRootSignature);
+
+		DescriptorBinderDesc skyboxDescriptorBinderDesc = { pSkyboxRootSignature };
+		addDescriptorBinder(pRenderer, &skyboxDescriptorBinderDesc, &pSkyboxDescriptorBinder);
 
 		//BRDF
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
@@ -941,6 +974,9 @@ class PixelProjectedReflections: public IApp
 		brdfRootDesc.ppStaticSamplers = pStaticSamplers2;
 		addRootSignature(pRenderer, &brdfRootDesc, &pRootSigBRDF);
 
+		DescriptorBinderDesc brdfDescriptorBinderDesc = { pRootSigBRDF, 1 };
+		addDescriptorBinder(pRenderer, &brdfDescriptorBinderDesc, &pDescriptorBinderBRDF);
+
 		//PPR_Projection
 		ShaderLoadDesc PPR_ProjectionShaderDesc = {};
 		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0, FSR_SrcShaders };
@@ -948,6 +984,9 @@ class PixelProjectedReflections: public IApp
 
 		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
 		addRootSignature(pRenderer, &PPR_PRootDesc, &pPPR_ProjectionRootSignature);
+
+		DescriptorBinderDesc pprProjDescriptorBinderDesc = { pPPR_ProjectionRootSignature };
+		addDescriptorBinder(pRenderer, &pprProjDescriptorBinderDesc, &pPPR_ProjectionDescriptorBinder);
 
 		//PPR_Reflection
 		ShaderLoadDesc PPR_ReflectionShaderDesc = {};
@@ -961,6 +1000,9 @@ class PixelProjectedReflections: public IApp
 		PPR_RRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		PPR_RRootDesc.ppStaticSamplers = pStaticSamplers;
 		addRootSignature(pRenderer, &PPR_RRootDesc, &pPPR_ReflectionRootSignature);
+
+		DescriptorBinderDesc pprReflDescriptorBinderDesc = { pPPR_ReflectionRootSignature };
+		addDescriptorBinder(pRenderer, &pprReflDescriptorBinderDesc, &pPPR_ReflectionDescriptorBinder);
 
 		//PPR_HolePatching
 		ShaderLoadDesc PPR_HolePatchingShaderDesc = {};
@@ -977,6 +1019,9 @@ class PixelProjectedReflections: public IApp
 		PPR_HolePatchingRootDesc.ppStaticSamplerNames = pStaticSamplerforHolePatchingNames;
 		PPR_HolePatchingRootDesc.ppStaticSamplers = pStaticSamplersforHolePatching;
 		addRootSignature(pRenderer, &PPR_HolePatchingRootDesc, &pPPR_HolePatchingRootSignature);
+
+		DescriptorBinderDesc pprHoleDescriptorBinderDesc = { pPPR_HolePatchingRootSignature };
+		addDescriptorBinder(pRenderer, &pprHoleDescriptorBinderDesc, &pPPR_HolePatchingDescriptorBinder);
 
 		// Create depth state and rasterizer state
 		DepthStateDesc depthStateDesc = {};
@@ -1355,8 +1400,14 @@ class PixelProjectedReflections: public IApp
 		removeRootSignature(pRenderer, pPPR_ProjectionRootSignature);
 		removeRootSignature(pRenderer, pRootSigBRDF);
 		removeRootSignature(pRenderer, pSkyboxRootSignature);
-
 		removeRootSignature(pRenderer, pRootSigGbuffers);
+
+		removeDescriptorBinder(pRenderer, pPPR_HolePatchingDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pPPR_ReflectionDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pPPR_ProjectionDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderBRDF);
+		removeDescriptorBinder(pRenderer, pSkyboxDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSigGbuffers);
 
 		// Remove commands and command pool&
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
@@ -1410,8 +1461,8 @@ class PixelProjectedReflections: public IApp
 		mesh.materialID.resize(meshCount);
 		mesh.cmdArray.resize(meshCount);
 
-		MeshVertex* vertices = nullptr;
-		uint32_t*   indices = nullptr;
+		MeshVertex* vertices = NULL;
+		uint32_t*   indices = NULL;
 
 		uint32_t totalVertexCount = 0;
 		uint32_t totalIndexCount = 0;
@@ -1783,7 +1834,7 @@ class PixelProjectedReflections: public IApp
 		}
 #endif
 
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
@@ -1945,7 +1996,7 @@ class PixelProjectedReflections: public IApp
 		skyParams[0].ppBuffers = &pBufferUniformCameraSky[gFrameIndex];
 		skyParams[1].pName = "skyboxTex";
 		skyParams[1].ppTextures = &pSkybox;
-		cmdBindDescriptors(cmd, pSkyboxRootSignature, 2, skyParams);
+		cmdBindDescriptors(cmd, pSkyboxDescriptorBinder, 2, skyParams);
 		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 
@@ -1992,7 +2043,7 @@ class PixelProjectedReflections: public IApp
 					params[2 + j].ppTextures = &pMaterialTextures[gSponzaTextureIndexforMaterial[materialID + j]];
 				}
 
-				cmdBindDescriptors(cmd, pRootSigGbuffers, 7, params);
+				cmdBindDescriptors(cmd, pDescriptorBinderSigGbuffers, 7, params);
 
 				Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
 				cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
@@ -2009,7 +2060,7 @@ class PixelProjectedReflections: public IApp
 			params[2].pName = "textureMaps";
 			params[2].ppTextures = pMaterialTextures;
 			params[2].mCount = TOTAL_IMGS;
-			cmdBindDescriptors(cmd, pRootSigGbuffers, 3, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderSigGbuffers, 3, params);
 
 			struct MaterialMaps
 			{
@@ -2028,7 +2079,7 @@ class PixelProjectedReflections: public IApp
 				}
 				params[0].pName = "cbTextureRootConstants";
 				params[0].pRootConstant = &data;
-				cmdBindDescriptors(cmd, pRootSigGbuffers, 1, params);
+				cmdBindDescriptors(cmd, pDescriptorBinderSigGbuffers, 1, params);
 
 				Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
 				cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
@@ -2060,7 +2111,7 @@ class PixelProjectedReflections: public IApp
 			params[6].pName = pTextureName[4];
 			params[6].ppTextures = &pMaterialTextures[0];
 
-			cmdBindDescriptors(cmd, pRootSigGbuffers, 7, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderSigGbuffers, 7, params);
 
 #else
 			data.mapIDs[0] = 81;
@@ -2075,7 +2126,7 @@ class PixelProjectedReflections: public IApp
 			params[1].pName = "cbTextureRootConstants";
 			params[1].pRootConstant = &data;
 
-			cmdBindDescriptors(cmd, pRootSigGbuffers, 2, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderSigGbuffers, 2, params);
 #endif
 
 			Buffer* pLionVertexBuffers[] = { lionMesh.pVertexBuffer };
@@ -2159,7 +2210,7 @@ class PixelProjectedReflections: public IApp
 
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 
-		cmdBindDescriptors(cmd, pRootSigBRDF, 10, BRDFParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderBRDF, 10, BRDFParams);
 
 		cmdDraw(cmd, 3, 0);
 
@@ -2192,7 +2243,7 @@ class PixelProjectedReflections: public IApp
 		PPR_ProjectionParams[3].pName = "planeInfoBuffer";
 		PPR_ProjectionParams[3].ppBuffers = &pBufferUniformPlaneInfo[gFrameIndex];
 
-		cmdBindDescriptors(cmd, pPPR_ProjectionRootSignature, 4, PPR_ProjectionParams);
+		cmdBindDescriptors(cmd, pPPR_ProjectionDescriptorBinder, 4, PPR_ProjectionParams);
 
 		const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
@@ -2246,7 +2297,7 @@ class PixelProjectedReflections: public IApp
 		PPR_ReflectionParams[5].pName = "cbProperties";
 		PPR_ReflectionParams[5].ppBuffers = &pBufferUniformPPRPro[gFrameIndex];
 
-		cmdBindDescriptors(cmd, pPPR_ReflectionRootSignature, 6, PPR_ReflectionParams);
+		cmdBindDescriptors(cmd, pPPR_ReflectionDescriptorBinder, 6, PPR_ReflectionParams);
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 		cmdDraw(cmd, 3, 0);
 
@@ -2294,7 +2345,7 @@ class PixelProjectedReflections: public IApp
 		PPR_HolePatchingParams[3].pName = "cbProperties";
 		PPR_HolePatchingParams[3].ppBuffers = &pBufferUniformPPRPro[gFrameIndex];
 
-		cmdBindDescriptors(cmd, pPPR_HolePatchingRootSignature, 4, PPR_HolePatchingParams);
+		cmdBindDescriptors(cmd, pPPR_HolePatchingDescriptorBinder, 4, PPR_HolePatchingParams);
 
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 		cmdDraw(cmd, 3, 0);

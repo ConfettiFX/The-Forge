@@ -34,7 +34,7 @@ cbuffer cbPerPass : register(b0)
 	float4x4	projView;
 }
 
-cbuffer cbPerProp : register(b1)
+cbuffer cbPerProp : register(b1, space1)
 {
 	float4x4	world;
 	float		roughness;

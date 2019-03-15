@@ -34,9 +34,6 @@
     <Filter Include="Middleware_3">
       <UniqueIdentifier>{a9268313-8233-4fcd-8b2f-daa1ea49d480}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Middleware_3\Input">
-      <UniqueIdentifier>{876bbf80-2f47-408d-893b-3488727f5462}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Middleware_3\UI">
       <UniqueIdentifier>{67dcb179-77f7-4735-ba7a-9d47f2c86c55}</UniqueIdentifier>
     </Filter>
@@ -51,6 +48,9 @@
     </Filter>
     <Filter Include="Middleware_3\Animation">
       <UniqueIdentifier>{1f453981-a767-4c40-af2e-0f8c18732ab7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Input">
+      <UniqueIdentifier>{3e277fa4-c0b6-44eb-b9d4-efc9070ff1e0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -111,12 +111,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputSystem.h">
-      <Filter>Middleware_3\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Input\InputMappings.h">
-      <Filter>Middleware_3\Input</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h">
       <Filter>Middleware_3\Text</Filter>
     </ClInclude>
@@ -152,6 +146,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">
       <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputMappings.h">
+      <Filter>OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.h">
+      <Filter>OS\Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -200,9 +200,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>Middleware_3\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Input\InputSystem.cpp">
-      <Filter>Middleware_3\Input</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp">
       <Filter>Middleware_3\Text</Filter>
     </ClCompile>
@@ -241,6 +238,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp">
       <Filter>Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp">
+      <Filter>OS\Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

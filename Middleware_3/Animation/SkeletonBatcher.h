@@ -50,13 +50,14 @@ struct UniformSkeletonBlock
 // Description needed to handle buffer updates and draw calls
 struct SkeletonRenderDesc
 {
-	Pipeline*      mSkeletonPipeline;
-	RootSignature* mRootSignature;
-	Buffer*        mJointVertexBuffer;
-	int            mNumJointPoints;
-	bool           mDrawBones;
-	Buffer*        mBoneVertexBuffer;
-	int            mNumBonePoints;
+	Renderer*         mRenderer;
+	Pipeline*         mSkeletonPipeline;
+	RootSignature*    mRootSignature;
+	Buffer*           mJointVertexBuffer;
+	int               mNumJointPoints;
+	bool              mDrawBones;
+	Buffer*           mBoneVertexBuffer;
+	int               mNumBonePoints;
 	BufferCreationFlags mCreationFlag;
 };
 
@@ -92,12 +93,16 @@ class SkeletonBatcher
 	unsigned int          mNumRigs = 0;
 
 	// Application variables used to be able to update buffers
+	Renderer*      mRenderer;
 	Pipeline*      mSkeletonPipeline;
 	RootSignature* mRootSignature;
 	Buffer*        mJointVertexBuffer;
 	int            mNumJointPoints;
 	Buffer*        mBoneVertexBuffer;
 	int            mNumBonePoints;
+
+	// Descriptor binder with all required memory allocation space
+	DescriptorBinder* mDescriptorBinder;
 
 	// Buffer pointers that will get updated for each batch to be rendered
 	Buffer* mProjViewUniformBufferJoints[MAX_BATCHES][ImageCount] = { NULL };

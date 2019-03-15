@@ -207,7 +207,6 @@ struct UpdateBufferCmd
 
 struct UpdateSubresourcesCmd
 {
-	uint32_t             startSubresource;
 	uint32_t             numSubresources;
 	SubresourceDataDesc* pSubresources;
 	Buffer*              pIntermediate;

@@ -27,7 +27,7 @@
 
 #define MAX_INSTANCES 815
 
-cbuffer uniformBlock : register(b0)
+cbuffer uniformBlock : register(b0, space3)
 {
 	  float4x4 mvp;
     float4x4 toWorld[MAX_INSTANCES];

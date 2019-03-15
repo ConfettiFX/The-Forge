@@ -41,6 +41,7 @@ struct Pipeline;
 struct Sampler;
 struct DepthState;
 struct RasterizerState;
+struct DescriptorBinder;
 
 /************************************************************************/
 /*					   HOW TO USE THIS MODULE
@@ -117,6 +118,8 @@ class Panini: public IMiddleware
 	void Update(float deltaTime) {}
 	void Draw(Cmd* cmd);
 
+	// Allocates descriptor memory
+	void SetDescriptorBinder(uint32_t maxSourceTextureUpdatesPerFrame);
 	// Set input texture to sample from
 	void SetSourceTexture(Texture* pTex);
 	// Sets the parameters to be sent to the panini projection shader
@@ -126,12 +129,13 @@ class Panini: public IMiddleware
 	Renderer* pRenderer;
 	Texture*  pSourceTexture = NULL;
 
-	Shader*          pShaderPanini = NULL;
-	RootSignature*   pRootSignaturePaniniPostProcess = NULL;
-	Sampler*         pSamplerPointWrap = NULL;
-	DepthState*      pDepthStateDisable = NULL;
-	RasterizerState* pRasterizerStateCullNone = NULL;
-	Pipeline*        pPipelinePaniniPostProcess = NULL;
+	Shader*           pShaderPanini = NULL;
+	RootSignature*    pRootSignaturePaniniPostProcess = NULL;
+	DescriptorBinder* pDescriptorBinderPaniniPostProcess = NULL;
+	Sampler*          pSamplerPointWrap = NULL;
+	DepthState*       pDepthStateDisable = NULL;
+	RasterizerState*  pRasterizerStateCullNone = NULL;
+	Pipeline*         pPipelinePaniniPostProcess = NULL;
 
 	Buffer* pVertexBufferTessellatedQuad = NULL;
 	Buffer* pIndexBufferTessellatedQuad = NULL;

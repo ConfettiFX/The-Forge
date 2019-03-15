@@ -79,15 +79,15 @@ struct AOITColorData
 // Shader resources
 /************************************************************************/
 #ifdef AOIT_UNORDERED_ACCESS
-RasterizerOrderedTexture2D<uint> AOITClearMaskUAV : register(u10);
-RWStructuredBuffer<AOITDepthData> AOITDepthDataUAV : register(u11);
-RWStructuredBuffer<AOITColorData> AOITColorDataUAV : register(u12);
+RasterizerOrderedTexture2D<uint> AOITClearMaskUAV : register(u10, space3);
+RWStructuredBuffer<AOITDepthData> AOITDepthDataUAV : register(u11, space3);
+RWStructuredBuffer<AOITColorData> AOITColorDataUAV : register(u12, space3);
 #endif
 
 #ifdef AOIT_ORDERED_ACCESS
-Texture2D<uint> AOITClearMaskSRV : register(t10);
-StructuredBuffer<AOITDepthData> AOITDepthDataSRV : register(t11);
-StructuredBuffer<AOITColorData> AOITColorDataSRV : register(t12);
+Texture2D<uint> AOITClearMaskSRV : register(t10, space3);
+StructuredBuffer<AOITDepthData> AOITDepthDataSRV : register(t11, space3);
+StructuredBuffer<AOITColorData> AOITColorDataSRV : register(t12, space3);
 #endif
 
 /************************************************************************/

@@ -44,23 +44,23 @@ const char* pszRoots[FSR_Count] = {
 	"",                         // FSR_OtherFiles
 };
 
-static AAssetManager* _mgr = nullptr;
+static AAssetManager* _mgr = NULL;
 
 FileHandle open_file(const char* filename, const char* flags)
 {
 	// Android does not support write to file. All assets accessed through asset manager are read only.
-	if(strstr(flags, "w") != nullptr)
+	if(strstr(flags, "w") != NULL)
 	{
 		LOGERROR("Writing to asset file is not supported on android platform!");
 		return NULL;
 	}
-	if(_mgr == nullptr)
+	if(_mgr == NULL)
 		return NULL;
 
 	AAsset* file = AAssetManager_open(_mgr,
 		filename, AASSET_MODE_BUFFER);
 
-	if(_mgr == nullptr) return NULL;
+	if(_mgr == NULL) return NULL;
 
 	return reinterpret_cast<void*>(file);
 }

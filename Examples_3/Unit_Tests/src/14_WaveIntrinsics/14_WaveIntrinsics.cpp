@@ -37,8 +37,8 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -71,12 +71,14 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 RenderTarget* pRenderTargetIntermediate = NULL;
 
-Shader*        pShaderWave = NULL;
-Pipeline*      pPipelineWave = NULL;
-RootSignature* pRootSignatureWave = NULL;
-Shader*        pShaderMagnify = NULL;
-Pipeline*      pPipelineMagnify = NULL;
-RootSignature* pRootSignatureMagnify = NULL;
+Shader*           pShaderWave = NULL;
+Pipeline*         pPipelineWave = NULL;
+RootSignature*    pRootSignatureWave = NULL;
+DescriptorBinder* pDescriptorBinderWave = NULL;
+Shader*           pShaderMagnify = NULL;
+Pipeline*         pPipelineMagnify = NULL;
+RootSignature*    pRootSignatureMagnify = NULL;
+DescriptorBinder* pDescriptorBinderMagnify = NULL;
 
 Sampler* pSamplerPointWrap = NULL;
 
@@ -209,6 +211,14 @@ class WaveIntrinsics: public IApp
 		rootDesc.ppShaders = &pShaderMagnify;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureMagnify);
 
+
+		DescriptorBinderDesc waveDescriptorBinderDesc = { pRootSignatureWave };
+		addDescriptorBinder(pRenderer, &waveDescriptorBinderDesc, &pDescriptorBinderWave);
+
+		DescriptorBinderDesc magnifyDescriptorBinderDesc = { pRootSignatureMagnify };
+		addDescriptorBinder(pRenderer, &magnifyDescriptorBinderDesc, &pDescriptorBinderMagnify);
+
+
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerCullNone);
@@ -326,8 +336,10 @@ class WaveIntrinsics: public IApp
 		removeSampler(pRenderer, pSamplerPointWrap);
 		removeShader(pRenderer, pShaderMagnify);
 		removeRootSignature(pRenderer, pRootSignatureMagnify);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderMagnify);
 		removeShader(pRenderer, pShaderWave);
 		removeRootSignature(pRenderer, pRootSignatureWave);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderWave);
 
 		removeDepthState(pDepthNone);
 		removeRasterizerState(pRasterizerCullNone);
@@ -484,7 +496,7 @@ class WaveIntrinsics: public IApp
 		DescriptorData params[1] = {};
 		params[0].pName = "SceneConstantBuffer";
 		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignatureWave, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderWave, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferTriangle, NULL);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -505,7 +517,7 @@ class WaveIntrinsics: public IApp
 		magnifyParams[0].ppBuffers = &pUniformBuffer[gFrameIndex];
 		magnifyParams[1].pName = "g_texture";
 		magnifyParams[1].ppTextures = &pRenderTarget->pTexture;
-		cmdBindDescriptors(cmd, pRootSignatureMagnify, 2, magnifyParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderMagnify, 2, magnifyParams);
 		cmdBindPipeline(cmd, pPipelineMagnify);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferQuad, NULL);
 		cmdDrawInstanced(cmd, 6, 0, 2, 0);
@@ -573,7 +585,7 @@ class WaveIntrinsics: public IApp
 		{
 			if (pData->mUserId == KEY_UI_MOVE)
 			{
-				if (InputSystem::IsButtonPressed(KEY_CONFIRM))
+				if (InputSystem::GetBoolInput(KEY_CONFIRM_PRESSED))
 				{
 					gSceneData.mousePosition.x = pData->mValue[0];
 					gSceneData.mousePosition.y = pData->mValue[1];

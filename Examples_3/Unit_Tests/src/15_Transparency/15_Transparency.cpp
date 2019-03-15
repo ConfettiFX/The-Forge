@@ -61,8 +61,8 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -304,6 +304,36 @@ RootSignature* pRootSignaturePTGenMips = NULL;
 RootSignature* pRootSignatureAOITShade = NULL;
 RootSignature* pRootSignatureAOITComposite = NULL;
 RootSignature* pRootSignatureAOITClear = NULL;
+#endif
+
+/************************************************************************/
+// Descriptor binders
+/************************************************************************/
+DescriptorBinder* pDescriptorBinderSkybox = NULL;
+#if USE_SHADOWS != 0
+DescriptorBinder* pDescriptorBinderShadow = NULL;
+DescriptorBinder* pDescriptorBinderGaussianBlur = NULL;
+#if PT_USE_CAUSTICS != 0
+DescriptorBinder* pDescriptorBinderPTShadow = NULL;
+DescriptorBinder* pDescriptorBinderPTDownsample = NULL;
+DescriptorBinder* pDescriptorBinderPTCopyShadowDepth = NULL;
+#endif
+#endif
+DescriptorBinder* pDescriptorBinderForward = NULL;
+DescriptorBinder* pDescriptorBinderWBOITShade = NULL;
+DescriptorBinder* pDescriptorBinderWBOITComposite = NULL;
+DescriptorBinder* pDescriptorBinderWBOITVShade = NULL;
+DescriptorBinder* pDescriptorBinderWBOITVComposite = NULL;
+DescriptorBinder* pDescriptorBinderPTShade = NULL;
+DescriptorBinder* pDescriptorBinderPTComposite = NULL;
+#if PT_USE_DIFFUSION != 0
+DescriptorBinder* pDescriptorBinderPTCopyDepth = NULL;
+DescriptorBinder* pDescriptorBinderPTGenMips = NULL;
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+DescriptorBinder* pDescriptorBinderAOITShade = NULL;
+DescriptorBinder* pDescriptorBinderAOITComposite = NULL;
+DescriptorBinder* pDescriptorBinderAOITClear = NULL;
 #endif
 
 /************************************************************************/
@@ -701,6 +731,7 @@ class Transparency: public IApp
 		CreateRootSignatures();
 		CreateResources();
 		CreateUniformBuffers();
+		CreateDescriptorBinders();
 
 		/************************************************************************/
 		// Add GPU profiler
@@ -765,6 +796,7 @@ class Transparency: public IApp
 		DestroyBlendStates();
 		DestroyShaders();
 		DestroyRootSignatures();
+		DestroyDescriptorBinders();
 		DestroyResources();
 		DestroyUniformBuffers();
 
@@ -820,7 +852,7 @@ class Transparency: public IApp
 
 		gCurrentTime += deltaTime;
 
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 			RecenterCameraView(170.0f);
 
 		// Dynamic UI elements
@@ -1159,7 +1191,7 @@ class Transparency: public IApp
 		params[5].ppTextures = &pTextures[TEXTURE_SKYBOX_FRONT];
 		params[6].pName = "BackText";
 		params[6].ppTextures = &pTextures[TEXTURE_SKYBOX_BACK];
-		cmdBindDescriptors(pCmd, pRootSignatureSkybox, 7, params);
+		cmdBindDescriptors(pCmd, pDescriptorBinderSkybox, 7, params);
 		cmdBindVertexBuffer(pCmd, 1, &pBufferSkyboxVertex, NULL);
 		cmdDraw(pCmd, 36, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1197,7 +1229,7 @@ class Transparency: public IApp
 		cmdBindPipeline(pCmd, pPipelineShadow);
 
 		DrawObjects(
-			pCmd, &gOpaqueDrawCalls, pRootSignatureShadow, pBufferOpaqueObjectTransforms[gFrameIndex],
+			pCmd, &gOpaqueDrawCalls, pDescriptorBinderShadow, pBufferOpaqueObjectTransforms[gFrameIndex],
 			pBufferCameraLightUniform[gFrameIndex], false, false);
 		cmdEndDebugMarker(pCmd);
 
@@ -1226,7 +1258,7 @@ class Transparency: public IApp
 			params[0].pRootConstant = &axis;
 			params[1].pName = "Source";
 			params[1].pRootConstant = &pRenderTargetShadowVariance[0]->pTexture;
-			cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
+			cmdBindDescriptors(pCmd, pDescriptorBinderGaussianBlur, 2, params);
 
 			cmdDraw(pCmd, 3, 0);
 
@@ -1246,7 +1278,7 @@ class Transparency: public IApp
 			params[0].pRootConstant = &axis;
 			params[1].pName = "Source";
 			params[1].pRootConstant = &pRenderTargetShadowVariance[1]->pTexture;
-			cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
+			cmdBindDescriptors(pCmd, pDescriptorBinderGaussianBlur, 2, params);
 
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1296,7 +1328,7 @@ class Transparency: public IApp
 			DescriptorData param = {};
 			param.pName = "Source";
 			param.ppTextures = &pRenderTargetShadowVariance[0]->pTexture;
-			cmdBindDescriptors(pCmd, pRootSignaturePTCopyShadowDepth, 1, &param);
+			cmdBindDescriptors(pCmd, pDescriptorBinderPTCopyShadowDepth, 1, &param);
 
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1317,7 +1349,7 @@ class Transparency: public IApp
 		cmdBindPipeline(pCmd, pPipelinePTShadow);
 
 		DrawObjects(
-			pCmd, &gTransparentDrawCalls, pRootSignaturePTShadow, pBufferTransparentObjectTransforms[gFrameIndex],
+			pCmd, &gTransparentDrawCalls, pDescriptorBinderPTShadow, pBufferTransparentObjectTransforms[gFrameIndex],
 			pBufferCameraLightUniform[gFrameIndex], true, false);
 		cmdEndDebugMarker(pCmd);
 
@@ -1347,7 +1379,7 @@ class Transparency: public IApp
 			DescriptorData param = {};
 			param.pName = "Source";
 			param.pRootConstant = &pRenderTargetPTShadowVariance[w]->pTexture;
-			cmdBindDescriptors(pCmd, pRootSignaturePTDownsample, 1, &param);
+			cmdBindDescriptors(pCmd, pDescriptorBinderPTDownsample, 1, &param);
 
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1380,7 +1412,7 @@ class Transparency: public IApp
 				params[0].pRootConstant = &axis;
 				params[1].pName = "Source";
 				params[1].ppTextures = &pRenderTargetPTShadowFinal[0][w]->pTexture;
-				cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
+				cmdBindDescriptors(pCmd, pDescriptorBinderGaussianBlur, 2, params);
 
 				cmdDraw(pCmd, 3, 0);
 
@@ -1400,7 +1432,7 @@ class Transparency: public IApp
 				params[0].pRootConstant = &axis;
 				params[1].pName = "Source";
 				params[1].ppTextures = &pRenderTargetPTShadowFinal[1][w]->pTexture;
-				cmdBindDescriptors(pCmd, pRootSignatureGaussianBlur, 2, params);
+				cmdBindDescriptors(pCmd, pDescriptorBinderGaussianBlur, 2, params);
 
 				cmdDraw(pCmd, 3, 0);
 			}
@@ -1421,7 +1453,7 @@ class Transparency: public IApp
 	}
 
 	void DrawObjects(
-		Cmd* pCmd, tinystl::vector<DrawCall>* pDrawCalls, RootSignature* pRootSignature, Buffer* pObjectTransforms, Buffer* cameraBuffer,
+		Cmd* pCmd, tinystl::vector<DrawCall>* pDrawCalls, DescriptorBinder* pDescriptorBinder, Buffer* pObjectTransforms, Buffer* cameraBuffer,
 		bool bindMaterials = true, bool bindLights = true)
 	{
 		static MeshResource boundMesh = (MeshResource)0xFFFFFFFF;
@@ -1464,14 +1496,14 @@ class Transparency: public IApp
 #endif
 		}
 
-		cmdBindDescriptors(pCmd, pRootSignature, descriptorCount, params);
+		cmdBindDescriptors(pCmd, pDescriptorBinder, descriptorCount, params);
 
 		for (size_t i = 0; i < pDrawCalls->size(); ++i)
 		{
 			DrawCall* dc = &(*pDrawCalls)[i];
 			params[0].pName = "DrawInfoRootConstant";
 			params[0].pRootConstant = &dc->mInstanceOffset;
-			cmdBindDescriptors(pCmd, pRootSignature, 1, params);
+			cmdBindDescriptors(pCmd, pDescriptorBinder, 1, params);
 
 			if (dc->mMesh != boundMesh || dc->mMesh > MESH_COUNT)
 			{
@@ -1522,7 +1554,7 @@ class Transparency: public IApp
 		cmdBindPipeline(pCmd, pPipelineForward);
 
 		DrawObjects(
-			pCmd, &gOpaqueDrawCalls, pRootSignatureForward, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
+			pCmd, &gOpaqueDrawCalls, pDescriptorBinderForward, pBufferOpaqueObjectTransforms[gFrameIndex], pBufferCameraUniform[gFrameIndex]);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 #if PT_USE_DIFFUSION != 0
@@ -1551,7 +1583,7 @@ class Transparency: public IApp
 				params[1].mUAVMipSlice = i;
 				params[2].pName = "RootConstant";
 				params[2].pRootConstant = mipSize;
-				cmdBindDescriptors(pCmd, pRootSignaturePTGenMips, 3, params);
+				cmdBindDescriptors(pCmd, pDescriptorBinderPTGenMips, 3, params);
 
 				uint groupCountX = mipSizeX / 16;
 				uint groupCountY = mipSizeY / 16;
@@ -1590,7 +1622,7 @@ class Transparency: public IApp
 		cmdBindPipeline(pCmd, pPipelineTransparentForward);
 
 		DrawObjects(
-			pCmd, &gTransparentDrawCalls, pRootSignatureForward, pBufferTransparentObjectTransforms[gFrameIndex],
+			pCmd, &gTransparentDrawCalls, pDescriptorBinderForward, pBufferTransparentObjectTransforms[gFrameIndex],
 			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1602,8 +1634,8 @@ class Transparency: public IApp
 	{
 		Pipeline*      pShadePipeline = volition ? pPipelineWBOITVShade : pPipelineWBOITShade;
 		Pipeline*      pCompositePipeline = volition ? pPipelineWBOITVComposite : pPipelineWBOITComposite;
-		RootSignature* pShadeRootSignature = volition ? pRootSignatureWBOITVShade : pRootSignatureWBOITShade;
-		RootSignature* pCompositeRootSignature = volition ? pRootSignatureWBOITVComposite : pRootSignatureWBOITComposite;
+		DescriptorBinder* pShadeDescriptorBinder = volition ? pDescriptorBinderWBOITVShade : pDescriptorBinderWBOITShade;
+		DescriptorBinder* pCompositeDescriptorBinder = volition ? pDescriptorBinderWBOITVComposite : pDescriptorBinderWBOITComposite;
 
 		TextureBarrier textureBarriers[WBOIT_RT_COUNT] = {};
 		for (int i = 0; i < WBOIT_RT_COUNT; ++i)
@@ -1611,7 +1643,7 @@ class Transparency: public IApp
 			textureBarriers[i].pTexture = pRenderTargetWBOIT[i]->pTexture;
 			textureBarriers[i].mNewState = RESOURCE_STATE_RENDER_TARGET;
 		}
-		cmdResourceBarrier(pCmd, 0, nullptr, WBOIT_RT_COUNT, textureBarriers, false);
+		cmdResourceBarrier(pCmd, 0, NULL, WBOIT_RT_COUNT, textureBarriers, false);
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -1635,10 +1667,10 @@ class Transparency: public IApp
 		DescriptorData shadeParam = {};
 		shadeParam.pName = "WBOITSettings";
 		shadeParam.ppBuffers = &pBufferWBOITSettings[gFrameIndex];
-		cmdBindDescriptors(pCmd, pShadeRootSignature, 1, &shadeParam);
+		cmdBindDescriptors(pCmd, pShadeDescriptorBinder, 1, &shadeParam);
 
 		DrawObjects(
-			pCmd, &gTransparentDrawCalls, pShadeRootSignature, pBufferTransparentObjectTransforms[gFrameIndex],
+			pCmd, &gTransparentDrawCalls, pShadeDescriptorBinder, pBufferTransparentObjectTransforms[gFrameIndex],
 			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1651,13 +1683,13 @@ class Transparency: public IApp
 			textureBarriers[i].pTexture = pRenderTargetWBOIT[i]->pTexture;
 			textureBarriers[i].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 		}
-		cmdResourceBarrier(pCmd, 0, nullptr, WBOIT_RT_COUNT, textureBarriers, false);
+		cmdResourceBarrier(pCmd, 0, NULL, WBOIT_RT_COUNT, textureBarriers, false);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		// Start render pass and apply load actions
-		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, nullptr, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
 
@@ -1673,7 +1705,7 @@ class Transparency: public IApp
 		compositeParams[1].pName = "RevealageTexture";
 		compositeParams[1].ppTextures = &pRenderTargetWBOIT[WBOIT_RT_REVEALAGE]->pTexture;
 
-		cmdBindDescriptors(pCmd, pCompositeRootSignature, 2, compositeParams);
+		cmdBindDescriptors(pCmd, pCompositeDescriptorBinder, 2, compositeParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1691,7 +1723,7 @@ class Transparency: public IApp
 		textureBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 		textureBarriers[1].pTexture = pRenderTargetPTDepthCopy->pTexture;
 		textureBarriers[1].mNewState = RESOURCE_STATE_RENDER_TARGET;
-		cmdResourceBarrier(pCmd, 0, nullptr, 2, textureBarriers, false);
+		cmdResourceBarrier(pCmd, 0, NULL, 2, textureBarriers, false);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 		loadActions.mClearColorValues[0] = pRenderTargetPTDepthCopy->pTexture->mDesc.mClearValue;
@@ -1711,7 +1743,7 @@ class Transparency: public IApp
 		DescriptorData copyParam = {};
 		copyParam.pName = "Source";
 		copyParam.ppTextures = &pRenderTargetDepth->pTexture;
-		cmdBindDescriptors(pCmd, pRootSignaturePTCopyDepth, 1, &copyParam);
+		cmdBindDescriptors(pCmd, pDescriptorBinderPTCopyDepth, 1, &copyParam);
 
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1722,7 +1754,7 @@ class Transparency: public IApp
 		textureBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
 		textureBarriers[1].pTexture = pRenderTargetPTDepthCopy->pTexture;
 		textureBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-		cmdResourceBarrier(pCmd, 0, nullptr, 2, textureBarriers, false);
+		cmdResourceBarrier(pCmd, 0, NULL, 2, textureBarriers, false);
 #endif
 
 		for (int i = 0; i < PT_RT_COUNT; ++i)
@@ -1755,11 +1787,11 @@ class Transparency: public IApp
 		DescriptorData shadeParam = {};
 		shadeParam.pName = "DepthTexture";
 		shadeParam.ppTextures = &pRenderTargetPTDepthCopy->pTexture;
-		cmdBindDescriptors(pCmd, pRootSignaturePTShade, 1, &shadeParam);
+		cmdBindDescriptors(pCmd, pDescriptorBinderPTShade, 1, &shadeParam);
 #endif
 
 		DrawObjects(
-			pCmd, &gTransparentDrawCalls, pRootSignaturePTShade, pBufferTransparentObjectTransforms[gFrameIndex],
+			pCmd, &gTransparentDrawCalls, pDescriptorBinderPTShade, pBufferTransparentObjectTransforms[gFrameIndex],
 			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1774,7 +1806,7 @@ class Transparency: public IApp
 		}
 		textureBarriers[PT_RT_COUNT].pTexture = pRenderTargetPTBackground->pTexture;
 		textureBarriers[PT_RT_COUNT].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-		cmdResourceBarrier(pCmd, 0, nullptr, PT_RT_COUNT + 1, textureBarriers, false);
+		cmdResourceBarrier(pCmd, 0, NULL, PT_RT_COUNT + 1, textureBarriers, false);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
@@ -1803,7 +1835,7 @@ class Transparency: public IApp
 		compositeParams[3].pName = "RefractionTexture";
 		compositeParams[3].ppTextures = &pRenderTargetPT[PT_RT_REFRACTION]->pTexture;
 #endif
-		cmdBindDescriptors(pCmd, pRootSignaturePTComposite, compositeParamCount, compositeParams);
+		cmdBindDescriptors(pCmd, pDescriptorBinderPTComposite, compositeParamCount, compositeParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1832,7 +1864,7 @@ class Transparency: public IApp
 		clearParams[0].pName = "AOITClearMaskUAV";
 		clearParams[0].ppTextures = &pTextureAOITClearMask;
 
-		cmdBindDescriptors(pCmd, pRootSignatureAOITClear, 1, clearParams);
+		cmdBindDescriptors(pCmd, pDescriptorBinderAOITClear, 1, clearParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1870,10 +1902,10 @@ class Transparency: public IApp
 		shadeParams[2].ppBuffers = &pBufferAOITDepthData;
 		shadeParamsCount = 3;
 #endif
-		cmdBindDescriptors(pCmd, pRootSignatureAOITShade, shadeParamsCount, shadeParams);
+		cmdBindDescriptors(pCmd, pDescriptorBinderAOITShade, shadeParamsCount, shadeParams);
 
 		DrawObjects(
-			pCmd, &gTransparentDrawCalls, pRootSignatureAOITShade, pBufferTransparentObjectTransforms[gFrameIndex],
+			pCmd, &gTransparentDrawCalls, pDescriptorBinderAOITShade, pBufferTransparentObjectTransforms[gFrameIndex],
 			pBufferCameraUniform[gFrameIndex]);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1894,7 +1926,7 @@ class Transparency: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		// Start render pass and apply load actions
-		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, nullptr, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
 
@@ -1910,7 +1942,7 @@ class Transparency: public IApp
 		compositeParams[1].pName = "AOITColorDataSRV";
 		compositeParams[1].ppBuffers = &pBufferAOITColorData;
 
-		cmdBindDescriptors(pCmd, pRootSignatureAOITComposite, 2, compositeParams);
+		cmdBindDescriptors(pCmd, pDescriptorBinderAOITComposite, 2, compositeParams);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -2684,6 +2716,46 @@ class Transparency: public IApp
 #endif
 	}
 
+	void CreateDescriptorBinder(RootSignature* rootSignature, uint32_t maxPerBatchUpdates, uint32_t maxPerDrawUpdates, DescriptorBinder** descriptorBinder)
+	{
+		DescriptorBinderDesc descriptorBinderDesc = { rootSignature, maxPerBatchUpdates, maxPerDrawUpdates };
+		addDescriptorBinder(pRenderer, &descriptorBinderDesc, descriptorBinder);
+	}
+
+	void CreateDescriptorBinders()
+	{
+		CreateDescriptorBinder(pRootSignatureSkybox, 0, 0, &pDescriptorBinderSkybox);
+
+#if USE_SHADOWS != 0
+		CreateDescriptorBinder(pRootSignatureShadow, 0, 0, &pDescriptorBinderShadow);
+		CreateDescriptorBinder(pRootSignatureGaussianBlur, 0, 2, &pDescriptorBinderGaussianBlur);
+#if PT_USE_CAUSTICS != 0
+		CreateDescriptorBinder(pRootSignaturePTShadow, 0, 0, &pDescriptorBinderPTShadow);
+		CreateDescriptorBinder(pRootSignaturePTDownsample, 0, 0, &pDescriptorBinderPTDownsample);
+		CreateDescriptorBinder(pRootSignaturePTCopyShadowDepth, 0, 0, &pDescriptorBinderPTCopyShadowDepth);
+#endif
+#endif
+		// Allocate enough space descriptor space for all passes 
+		CreateDescriptorBinder(pRootSignatureForward, 0, 10, &pDescriptorBinderForward);
+		CreateDescriptorBinder(pRootSignatureWBOITShade, 0, 10, &pDescriptorBinderWBOITShade);
+		CreateDescriptorBinder(pRootSignatureWBOITComposite, 0, 10, &pDescriptorBinderWBOITComposite);
+		CreateDescriptorBinder(pRootSignatureWBOITVShade, 0, 10, &pDescriptorBinderWBOITVShade);
+		CreateDescriptorBinder(pRootSignatureWBOITVComposite, 0, 10, &pDescriptorBinderWBOITVComposite);
+		CreateDescriptorBinder(pRootSignaturePTShade, 0, 10, &pDescriptorBinderPTShade);
+		CreateDescriptorBinder(pRootSignaturePTComposite, 0, 10, &pDescriptorBinderPTComposite);
+
+#if PT_USE_DIFFUSION != 0
+		CreateDescriptorBinder(pRootSignaturePTCopyDepth, 0, 0, &pDescriptorBinderPTCopyDepth);
+		CreateDescriptorBinder(pRootSignaturePTGenMips, 0, 20, &pDescriptorBinderPTGenMips); // enougth updates to update all mip levels
+#endif
+
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		CreateDescriptorBinder(pRootSignatureAOITShade, 0, 10, &pDescriptorBinderAOITShade);
+		CreateDescriptorBinder(pRootSignatureAOITComposite, 0, 10, &pDescriptorBinderAOITComposite);
+		CreateDescriptorBinder(pRootSignatureAOITClear, 0, 10, &pDescriptorBinderAOITClear);
+#endif
+	}
+
 	void DestroyRootSignatures()
 	{
 		removeRootSignature(pRenderer, pRootSignatureSkybox);
@@ -2713,6 +2785,39 @@ class Transparency: public IApp
 			removeRootSignature(pRenderer, pRootSignatureAOITShade);
 			removeRootSignature(pRenderer, pRootSignatureAOITComposite);
 			removeRootSignature(pRenderer, pRootSignatureAOITClear);
+		}
+#endif
+	}
+
+	void DestroyDescriptorBinders()
+	{
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSkybox);
+#if USE_SHADOWS != 0
+		removeDescriptorBinder(pRenderer, pDescriptorBinderShadow);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderGaussianBlur);
+#if PT_USE_CAUSTICS != 0
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTShadow);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTDownsample);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTCopyShadowDepth);
+#endif
+#endif
+		removeDescriptorBinder(pRenderer, pDescriptorBinderForward);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderWBOITShade);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderWBOITComposite);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderWBOITVShade);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderWBOITVComposite);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTShade);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTComposite);
+#if PT_USE_DIFFUSION != 0
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTCopyDepth);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPTGenMips);
+#endif
+#if defined(DIRECT3D12) && !defined(_DURANGO)
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			removeDescriptorBinder(pRenderer, pDescriptorBinderAOITShade);
+			removeDescriptorBinder(pRenderer, pDescriptorBinderAOITComposite);
+			removeDescriptorBinder(pRenderer, pDescriptorBinderAOITClear);
 		}
 #endif
 	}

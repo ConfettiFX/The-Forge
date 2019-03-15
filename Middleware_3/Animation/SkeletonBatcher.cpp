@@ -27,10 +27,14 @@
 void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 {
 	// Set member render variables based on the description
+	mRenderer = skeletonRenderDesc.mRenderer;
 	mSkeletonPipeline = skeletonRenderDesc.mSkeletonPipeline;
 	mRootSignature = skeletonRenderDesc.mRootSignature;
 	mJointVertexBuffer = skeletonRenderDesc.mJointVertexBuffer;
 	mNumJointPoints = skeletonRenderDesc.mNumJointPoints;
+
+	DescriptorBinderDesc descriptorBinderDescSkeleton = { mRootSignature, 0, MAX_BATCHES * 2}; // 2 because updates buffer twice per instanced draw call: one for joints and one for bones
+	addDescriptorBinder(mRenderer, &descriptorBinderDescSkeleton, &mDescriptorBinder);
 
 	// Determine if we will ever expect to use this renderer to draw bones
 	mDrawBones = skeletonRenderDesc.mDrawBones;
@@ -64,6 +68,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 
 void SkeletonBatcher::Destroy()
 {
+	removeDescriptorBinder(mRenderer, mDescriptorBinder);
 	for (unsigned int i = 0; i < MAX_BATCHES; i++)
 	{
 		for (uint32_t j = 0; j < ImageCount; ++j)
@@ -194,7 +199,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 	for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
 	{
 		params[0].ppBuffers = &mProjViewUniformBufferJoints[batchIndex][frameIndex];
-		cmdBindDescriptors(cmd, mRootSignature, 1, params);
+		cmdBindDescriptors(cmd, mDescriptorBinder, 1, params);
 
 		if (batchIndex < numBatches - 1)
 		{
@@ -209,6 +214,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 	}
 	cmdEndDebugMarker(cmd);
 
+
 	// Bones
 	if (mDrawBones)
 	{
@@ -219,7 +225,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 		for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
 		{
 			params[0].ppBuffers = &mProjViewUniformBufferBones[batchIndex][frameIndex];
-			cmdBindDescriptors(cmd, mRootSignature, 1, params);
+			cmdBindDescriptors(cmd, mDescriptorBinder, 1, params);
 
 			if (batchIndex < numBatches - 1)
 			{

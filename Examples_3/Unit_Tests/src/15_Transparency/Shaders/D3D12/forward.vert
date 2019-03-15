@@ -29,7 +29,7 @@ struct ObjectInfo
 	uint matID;
 };
 
-cbuffer ObjectUniformBlock : register(b0)
+cbuffer ObjectUniformBlock : register(b0, space3)
 {
 	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
 };

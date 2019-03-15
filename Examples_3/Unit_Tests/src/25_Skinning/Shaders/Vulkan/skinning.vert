@@ -37,7 +37,7 @@ layout(location = 4) in uvec4 iBoneIndices;
 layout(location = 0) out vec3 oNormal;
 layout(location = 1) out vec2 oUV;
 
-layout (std140, set=0, binding=0) uniform uniformBlock 
+layout (std140, set=3, binding=0) uniform uniformBlock 
 {
 	mat4 vpMatrix;
 	mat4 modelMatrix;

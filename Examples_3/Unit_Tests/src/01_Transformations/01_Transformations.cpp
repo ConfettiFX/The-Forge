@@ -41,8 +41,8 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -102,6 +102,8 @@ Pipeline*      pSkyBoxDrawPipeline = NULL;
 RootSignature* pRootSignature = NULL;
 Sampler*       pSamplerSkyBox = NULL;
 Texture*       pSkyBoxTextures[6];
+DescriptorBinder* pSkyBoxDescriptorBinder = NULL;
+DescriptorBinder* pPlanetsDescriptorBinder = NULL;
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
 #endif
@@ -218,6 +220,12 @@ class Transformations: public IApp
 		rootDesc.mShaderCount = 2;
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		DescriptorBinderDesc skyBoxDescriptorBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, &skyBoxDescriptorBinderDesc, &pSkyBoxDescriptorBinder);
+
+		DescriptorBinderDesc planetsDescriptorBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, &planetsDescriptorBinderDesc, &pPlanetsDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -447,6 +455,9 @@ class Transformations: public IApp
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
 
+		removeDescriptorBinder(pRenderer, pSkyBoxDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pPlanetsDescriptorBinder);
+
 		removeSampler(pRenderer, pSamplerSkyBox);
 		removeShader(pRenderer, pSphereShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
@@ -557,7 +568,7 @@ class Transformations: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
@@ -674,7 +685,7 @@ class Transformations: public IApp
 		params[5].ppTextures = &pSkyBoxTextures[4];
 		params[6].pName = "BackText";
 		params[6].ppTextures = &pSkyBoxTextures[5];
-		cmdBindDescriptors(cmd, pRootSignature, 7, params);
+		cmdBindDescriptors(cmd, pSkyBoxDescriptorBinder, 7, params);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 		cmdEndDebugMarker(cmd);
@@ -683,7 +694,7 @@ class Transformations: public IApp
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Planets");
 		cmdBindPipeline(cmd, pSpherePipeline);
 		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pPlanetsDescriptorBinder, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 		cmdEndDebugMarker(cmd);

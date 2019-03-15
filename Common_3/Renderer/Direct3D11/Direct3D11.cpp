@@ -44,6 +44,7 @@
 #include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
 #include "../../OS/Core/GPUConfig.h"
+#include "../../OS/Image/Image.h"
 #include "Direct3D11Commands.h"
 
 #if !defined(_WIN32)
@@ -869,7 +870,7 @@ API_INTERFACE void CALLTYPE removeTexture(Renderer* pRenderer, Texture* pTexture
 API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, uint64_t intermediateOffset, Texture* pTexture);
+API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture);
 API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
 
@@ -903,8 +904,7 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 }
 
 void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t, Texture* pTexture)
+	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture)
 {
 	ASSERT(pCmd);
 	ASSERT(pSubresources);
@@ -924,7 +924,6 @@ void cmdUpdateSubresources(
 	DECLARE_ZERO(CachedCmd, cmd);
 	cmd.pCmd = pCmd;
 	cmd.sType = CMD_TYPE_cmdUpdateSubresources;
-	cmd.mUpdateSubresourcesCmd.startSubresource = startSubresource;
 	cmd.mUpdateSubresourcesCmd.numSubresources = numSubresources;
 	cmd.mUpdateSubresourcesCmd.pSubresources = (SubresourceDataDesc*)conf_calloc(numSubresources, sizeof(SubresourceDataDesc));
 	memcpy(cmd.mUpdateSubresourcesCmd.pSubresources, pSubresources, numSubresources * sizeof(SubresourceDataDesc));
@@ -1100,6 +1099,7 @@ static void AddDevice(Renderer* pRenderer)
 	pRenderer->pDxActiveGPU = pRenderer->pDxGPUs[gpuIndex];
 	ASSERT(pRenderer->pDxActiveGPU != NULL);
 	pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[gpuIndex];
+	pRenderer->mLinkedNodeCount = 1;
 
 	//print selected GPU information
 	LOGINFOF("GPU[%d] is selected as default GPU", gpuIndex);
@@ -2152,7 +2152,11 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 	pBuffer->pCpuMappedAddress = sub.pData;
 }
 
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer) { pRenderer->pDxContext->Unmap(pBuffer->pDxResource, 0); }
+void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
+{
+	pRenderer->pDxContext->Unmap(pBuffer->pDxResource, 0);
+	pBuffer->pCpuMappedAddress = nullptr;
+}
 
 void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 {
@@ -2680,7 +2684,6 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 		SAFE_FREE((void*)pRootSignature->pDescriptors[i].mDesc.name);
 	}
 
-	pRootSignature->pDescriptorManagerMap.~unordered_map();
 	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
 	SAFE_FREE(pRootSignature->pDescriptors);
@@ -2897,7 +2900,7 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 	default:
 	{
 		ASSERT(false);
-		ppPipeline = nullptr;
+		ppPipeline = NULL;
 		break;
 	}
 	}
@@ -3060,6 +3063,28 @@ void removeRasterizerState(RasterizerState* pRasterizerState)
 	SAFE_RELEASE(pRasterizerState->pDxRasterizerState);
 	SAFE_FREE(pRasterizerState);
 }
+
+/************************************************************************/
+// Descriptor Binder Implementation
+/************************************************************************/
+typedef struct DescriptorBinder
+{
+	DescriptorBinderDesc mDesc;
+} DescriptorBinder;
+
+void addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* pDesc, DescriptorBinder** ppDescriptorBinder)
+{
+	DescriptorBinder* pDescriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(*pDescriptorBinder));
+	pDescriptorBinder->mDesc = *pDesc;
+	*ppDescriptorBinder = pDescriptorBinder;
+}
+
+void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBinder)
+{
+	UNREF_PARAM(pRenderer);
+	SAFE_FREE(pDescriptorBinder);
+}
+
 /************************************************************************/
 // Command buffer Functions
 /************************************************************************/
@@ -3232,10 +3257,12 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 	}
 }
 
-void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	ASSERT(pCmd);
-	ASSERT(pRootSignature);
+	ASSERT(pDescriptorBinder);
+
+	RootSignature* pRootSignature = pDescriptorBinder->mDesc.pRootSignature;
 
 	// Ensure beingCmd was actually called
 	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);

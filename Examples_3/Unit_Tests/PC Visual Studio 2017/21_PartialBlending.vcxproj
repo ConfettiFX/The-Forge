@@ -35,7 +35,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{3EBA89F8-ED24-4E63-A953-AAFE35B84CBB}</ProjectGuid>
     <RootNamespace>My03PartialBlending</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">

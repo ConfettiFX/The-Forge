@@ -29,10 +29,8 @@
 #include <windowsx.h>
 #include <ntverp.h>
 
-#ifndef NO_GAINPUT
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
-#endif
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
 
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
@@ -124,9 +122,9 @@ static bool captureMouse(bool shouldCapture, bool shouldHide)
 				SetCursorPos(currentWind->lastCursorPosX, currentWind->lastCursorPosY);
 		}
 	}
-#ifndef NO_GAINPUT
+
 	InputSystem::SetMouseCapture(isCaptured);
-#endif
+
 	return true;
 }
 
@@ -454,14 +452,12 @@ bool handleMessages()
 		if (WM_CLOSE == msg.message || WM_QUIT == msg.message)
 			quit = true;
 
-#ifndef NO_GAINPUT
 		// Forward any input messages to Gainput
 		InputSystem::HandleMessage(msg);
-#endif
 	}
 
 #ifndef NO_GAINPUT
-	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CANCEL))
+	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CANCEL_TRIGGERED))
 	{
 		if (!isCaptured)
 		{
@@ -474,7 +470,7 @@ bool handleMessages()
 		}
 	}
 
-	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CONFIRM))
+	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CONFIRM_TRIGGERED))
 	{
 		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
 		{
@@ -485,8 +481,8 @@ bool handleMessages()
 		}
 	}
 
-	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_MENU) &&
-		(InputSystem::IsButtonPressed(UserInputKeys::KEY_LEFT_ALT) || InputSystem::IsButtonPressed(UserInputKeys::KEY_RIGHT_ALT)))
+	if (InputSystem::GetBoolInput(UserInputKeys::KEY_MENU_TRIGGERED) &&
+		(InputSystem::GetBoolInput(UserInputKeys::KEY_LEFT_ALT_PRESSED) || InputSystem::GetBoolInput(UserInputKeys::KEY_RIGHT_ALT_PRESSED)))
 	{
 		if (gHWNDMap.size() == 0)
 			return quit;
@@ -610,14 +606,14 @@ MonitorDesc* getMonitor(uint32_t index)
 
 float2 getDpiScale()
 {
-	HDC hdc = ::GetDC(nullptr);
+	HDC hdc = ::GetDC(NULL);
 	float2 ret = {};
 	const float dpi = 96.0f;
 	if (hdc)
 	{
 		ret.x = (UINT)(::GetDeviceCaps(hdc, LOGPIXELSX)) / dpi;
 		ret.y = static_cast<UINT>(::GetDeviceCaps(hdc, LOGPIXELSY)) / dpi;
-		::ReleaseDC(nullptr, hdc);
+		::ReleaseDC(NULL, hdc);
 	}
 	else
 	{
@@ -636,38 +632,6 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 			return true;
 	}
 
-	return false;
-}
-
-float2 getMousePosition() { return float2(0, 0); }
-
-bool getKeyDown(int key)
-{
-#ifndef NO_GAINPUT
-	return InputSystem::IsButtonPressed(key);
-#else
-	return false;
-#endif
-}
-
-bool getKeyUp(int key)
-{
-#ifndef NO_GAINPUT
-	return InputSystem::IsButtonReleased(key);
-#else
-	return false;
-#endif
-}
-
-bool getJoystickButtonDown(int button)
-{
-	// TODO: Implement gamepad / joystick support on windows
-	return false;
-}
-
-bool getJoystickButtonUp(int button)
-{
-	// TODO: Implement gamepad / joystick support on windows
 	return false;
 }
 
@@ -730,9 +694,7 @@ static void onResize(const WindowResizeEventData* pData)
 	pApp->Unload();
 	pApp->Load();
 
-#ifndef NO_GAINPUT
 	InputSystem::UpdateSize(pApp->mSettings.mWidth, pApp->mSettings.mHeight);
-#endif
 }
 
 int WindowsMain(int argc, char** argv, IApp* app)
@@ -769,10 +731,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
 
-#ifndef NO_GAINPUT
 	//Init Input System
 	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-#endif
 
 	pApp->pWindow = &window;
 	pApp->mCommandLine = GetCommandLineA();
@@ -794,10 +754,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
 
-#ifndef NO_GAINPUT
 		//Update Input after message handling
 		InputSystem::Update();
-#endif
 
 		quit = handleMessages();
 
@@ -819,10 +777,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 #endif
 	}
 
-#ifndef NO_GAINPUT
 	//Clean input resources
 	InputSystem::Shutdown();
-#endif
+
 	pApp->Unload();
 	pApp->Exit();
 	return 0;

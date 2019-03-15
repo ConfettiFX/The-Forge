@@ -11,8 +11,8 @@ struct PS_INPUT
     vec2 uv;
 };
 
-layout(set = 0, binding = 1) uniform texture2D uTex;
-layout(set = 0, binding = 2) uniform sampler uSampler;
+layout(set = 2, binding = 1) uniform texture2D uTex;
+layout(set = 2, binding = 2) uniform sampler uSampler;
 
 vec4 HLSLmain(PS_INPUT input0)
 {

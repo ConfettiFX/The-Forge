@@ -27,6 +27,7 @@
 #include "../OS/Interfaces/ILogManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
 #include "../OS/Interfaces/IThread.h"
+#include "../OS/Image/Image.h"
 
 //this is needed for unix as PATH_MAX is defined instead of MAX_PATH
 #ifndef _WIN32
@@ -50,12 +51,22 @@ extern void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** 
 extern void removeTexture(Renderer* pRenderer, Texture* p_texture);
 extern void cmdUpdateBuffer(Cmd* p_cmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* p_src_buffer, Buffer* p_buffer);
 extern void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t intermediateOffset, Texture* pTexture);
+	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture);
 extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
 #endif
 /************************************************************************/
 /************************************************************************/
+
+//////////////////////////////////////////////////////////////////////////
+// Internal TextureUpdateDesc
+// Used internally as to not expose Image class in the public interface
+//////////////////////////////////////////////////////////////////////////
+typedef struct TextureUpdateDescInternal
+{
+	Texture* pTexture;
+	Image*   pImage;
+	bool     mFreeImage;
+} TextureUpdateDescInternal;
 
 //////////////////////////////////////////////////////////////////////////
 // Resource CopyEngine Structures
@@ -175,12 +186,6 @@ static void streamerFlush(CopyEngine* pCopyEngine, size_t activeSet)
 	}
 }
 
-static void finish(CopyEngine* pCopyEngine, size_t activeSet)
-{
-	streamerFlush(pCopyEngine, activeSet);
-	waitQueueIdle(pCopyEngine->pQueue);
-}
-
 /// Return memory from pre-allocated staging buffer or create a temporary buffer if the streamer ran out of memory
 static MappedMemoryRange allocateStagingMemory(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, uint64_t memoryRequirement, uint32_t alignment)
 {
@@ -219,7 +224,7 @@ static MappedMemoryRange allocateStagingMemory(Renderer* pRenderer, CopyEngine* 
 	Buffer* buffer = pResourceSet->mBuffers.back();
 #if defined(DIRECT3D11)
 	// TODO: do done once, unmap before queue submit
-	mapBuffer(pRenderer, buffer, nullptr);
+	mapBuffer(pRenderer, buffer, NULL);
 #endif
 	void* pDstData = (uint8_t*)buffer->pCpuMappedAddress + offset;
 	pCopyEngine->allocatedSpace = offset + memoryRequirement;
@@ -267,89 +272,56 @@ static ResourceState util_determine_resource_start_state(const BufferDesc* pBuff
 	}
 }
 
-struct UploadTextureParams
+struct TextureUploadParams
 {
-	uint32_t w, h;
+	uint32_t blockSize;
+	uint32_t numBlocksInStride;
+	uint32_t numStridesInSlice;
 	uint32_t stridePitch;
-	uint32_t numStrides;
 };
 
-#ifndef METAL
-static void calculate_upload_texture_params(ImageFormat::Enum fmt, uint32_t w, uint32_t h, UploadTextureParams& params)
+static void calculate_upload_texture_params(ImageFormat::Enum fmt, uint32_t w, uint32_t h, TextureUploadParams& params)
 {
 	switch (ImageFormat::GetBlockSize(fmt))
 	{
 	case ImageFormat::BLOCK_SIZE_4x4:
-		params.w = (w + 3) & 0xFFFFFFFC;
-		params.stridePitch = (params.w >> 2) * ImageFormat::GetBytesPerBlock(fmt);
-		params.h = (h + 3) & 0xFFFFFFFC;
-		params.numStrides = params.h >> 2;
+		params.numBlocksInStride = (w + 3) >> 2;
+		params.blockSize = ImageFormat::GetBytesPerBlock(fmt);
+		params.stridePitch = params.numBlocksInStride * params.blockSize;
+		params.numStridesInSlice = (h + 3) >> 2;
 		break;
 	case ImageFormat::BLOCK_SIZE_4x8:
-		params.w = (w + 7) & 0xFFFFFFF8;
-		params.stridePitch = (params.w >> 3) * ImageFormat::GetBytesPerBlock(fmt);
-		params.h = (h + 3) & 0xFFFFFFFC;
-		params.numStrides = params.h >> 2;
+		params.numBlocksInStride = (w + 7) >> 3;
+		params.blockSize = ImageFormat::GetBytesPerBlock(fmt);
+		params.stridePitch = params.numBlocksInStride * params.blockSize;
+		params.numStridesInSlice = (h + 3) >> 2;
 		break;
 	default:
-		params.w = w;
-		params.h = h;
-		params.stridePitch = params.w * ImageFormat::GetBytesPerPixel(fmt);
-		params.numStrides = h;
+		params.numBlocksInStride = w;
+		params.blockSize = ImageFormat::GetBytesPerPixel(fmt);
+		params.stridePitch = params.numBlocksInStride * params.blockSize;
+		params.numStridesInSlice = h;
 		break;
 	};
 }
-#endif
 
-static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, TextureUpdateDesc* pTextureUpdate)
+uint32 SplitBitsWith0(uint32 x)
 {
-#if defined(METAL)
-	const Image& img = *pTextureUpdate->pImage;
-	Texture*     pTexture = pTextureUpdate->pTexture;
-	Cmd*         pCmd = aquireCmd(pCopyEngine, activeSet);
+	x &= 0x0000ffff;
+	x = (x ^ (x <<  8)) & 0x00ff00ff;
+	x = (x ^ (x <<  4)) & 0x0f0f0f0f;
+	x = (x ^ (x <<  2)) & 0x33333333;
+	x = (x ^ (x <<  1)) & 0x55555555;
+	return x;
+}
 
-	ASSERT(pTexture);
+uint32 EncodeMorton(uint32 x, uint32 y)
+{
+	return (SplitBitsWith0(y) << 1) + SplitBitsWith0(x);
+}
 
-	uint32_t          textureAlignment = pRenderer->pActiveGpuSettings->mUploadBufferTextureAlignment;
-	MappedMemoryRange range = allocateStagingMemory(pRenderer, pCopyEngine, activeSet, pTexture->mTextureSize, textureAlignment);
-
-	ASSERT(pTexture);
-
-	// create source subres data structs
-	SubresourceDataDesc  texData[1024];
-	SubresourceDataDesc* dest = texData;
-	uint                 nSlices = img.IsCube() ? 6 : 1;
-
-	for (uint32_t n = 0; n < img.GetArrayCount(); ++n)
-	{
-		for (uint32_t k = 0; k < nSlices; ++k)
-		{
-			for (uint32_t i = 0; i < img.GetMipMapCount(); ++i)
-			{
-				uint32_t pitch, slicePitch;
-				if (ImageFormat::IsCompressedFormat(img.getFormat()))
-				{
-					pitch = ((img.GetWidth(i) + 3) >> 2) * ImageFormat::GetBytesPerBlock(img.getFormat());
-					slicePitch = pitch * ((img.GetHeight(i) + 3) >> 2);
-				}
-				else
-				{
-					pitch = img.GetWidth(i) * ImageFormat::GetBytesPerPixel(img.getFormat());
-					slicePitch = pitch * img.GetHeight(i);
-				}
-
-				dest->pData = img.GetPixels(i, n) + k * slicePitch;
-				dest->mRowPitch = pitch;
-				dest->mSlicePitch = slicePitch;
-				++dest;
-			}
-		}
-	}
-
-	// calculate number of subresources
-	int numSubresources = (int)(dest - texData);
-	cmdUpdateSubresources(pCmd, 0, numSubresources, texData, range.pBuffer, range.mOffset, pTexture);
-#else
+static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, TextureUpdateDescInternal* pTextureUpdate)
+{
 	ASSERT(pCopyEngine->pQueue->mQueueDesc.mNodeIndex == pTextureUpdate->pTexture->mDesc.mNodeIndex);
 	bool         applyBarrieers = pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12;
 	const Image& img = *pTextureUpdate->pImage;
@@ -370,35 +342,59 @@ static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 	SubresourceDataDesc  texData[1024];
 	SubresourceDataDesc* dest = texData;
 
+	// TODO: move to Image
+	bool isSwizzledZCurve = !img.IsLinearLayout();
+
 	uint32_t offset = 0;
 	for (uint32_t i = 0; i < img.GetMipMapCount(); ++i)
 	{
-		UploadTextureParams uploadParams;
+		TextureUploadParams uploadParams;
 		calculate_upload_texture_params(img.getFormat(), img.GetWidth(i), img.GetHeight(i), uploadParams);
 		uint32_t bufferStridePitch = round_up(uploadParams.stridePitch, textureRowAlignment);
-		uint32_t slicePitch = uploadParams.stridePitch * uploadParams.numStrides;
+		uint32_t slicePitch = uploadParams.stridePitch * uploadParams.numStridesInSlice;
 
 		for (uint32_t j = 0; j < arrayCount; ++j)
 		{
 			dest->mArrayLayer = j /*n * nSlices + k*/;
 			dest->mMipLevel = i;
 			dest->mBufferOffset = range.mOffset + offset;
-			dest->mWidth = uploadParams.w;
-			dest->mHeight = uploadParams.h;
+			dest->mWidth = img.GetWidth(i);
+			dest->mHeight = img.GetHeight(i);
 			dest->mDepth = img.GetDepth(i);
 			dest->mRowPitch = bufferStridePitch;
-			dest->mSlicePitch = bufferStridePitch * uploadParams.numStrides;
+			dest->mSlicePitch = bufferStridePitch * uploadParams.numStridesInSlice;
 			++dest;
 
 			uint32_t n = j / nSlices;
 			uint32_t k = j - n * nSlices;
 			uint8_t* pSrcData = (uint8_t*)img.GetPixels(i, n) + k * slicePitch;
-			uint8_t* pSrcDataEnd = pSrcData + slicePitch * img.GetDepth(i);
-			while (pSrcData < pSrcDataEnd)
+
+			if (isSwizzledZCurve)
 			{
-				memcpy((uint8_t*)range.pData + offset, pSrcData, uploadParams.stridePitch);
-				pSrcData += uploadParams.stridePitch;
-				offset += bufferStridePitch;
+				for (uint32_t z = 0; z < img.GetDepth(i); ++z)
+				{
+					for(uint32_t y = 0; y < uploadParams.numStridesInSlice; ++y)
+					{
+						for (uint32_t x = 0; x < uploadParams.numBlocksInStride; ++x)
+						{
+							uint32_t blockOffset = EncodeMorton(y, x);
+							memcpy((uint8_t*)range.pData + offset, pSrcData + blockOffset*uploadParams.blockSize, uploadParams.blockSize);
+							offset += uploadParams.blockSize;
+						}
+						offset = round_up(offset, bufferStridePitch);
+					}
+					pSrcData += slicePitch;
+				}
+			}
+			else
+			{
+				uint32_t numStrides = uploadParams.numStridesInSlice * img.GetDepth(i);
+				for (uint32_t s = 0; s < numStrides; ++s)
+				{
+					memcpy((uint8_t*)range.pData + offset, pSrcData, uploadParams.stridePitch);
+					pSrcData += uploadParams.stridePitch;
+					offset += bufferStridePitch;
+				}
 			}
 			offset = round_up(offset, textureAlignment);
 		}
@@ -415,7 +411,7 @@ static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &preCopyBarrier, false);
 	}
 
-	cmdUpdateSubresources(pCmd, 0, numSubresources, texData, range.pBuffer, 0, pTexture);
+	cmdUpdateSubresources(pCmd, numSubresources, texData, range.pBuffer, pTexture);
 
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 	if (applyBarrieers)
@@ -423,9 +419,8 @@ static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 		TextureBarrier postCopyBarrier = { pTexture, util_determine_resource_start_state(pTexture->mDesc.mDescriptors) };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
 	}
-#endif
 	
-	if (pTextureUpdate->freeImage)
+	if (pTextureUpdate->mFreeImage)
 	{
 		pTextureUpdate->pImage->Destroy();
 		conf_delete(pTextureUpdate->pImage);
@@ -491,14 +486,14 @@ typedef struct StreamerRequest
 {
 	StreamerRequest() : mType(STREAMER_REQUEST_INVALID) {}
 	StreamerRequest(BufferUpdateDesc& buffer) : mType(STREAMER_REQUEST_UPDATE_BUFFER), bufUpdateDesc(buffer) {}
-	StreamerRequest(TextureUpdateDesc& texture) : mType(STREAMER_REQUEST_UPDATE_TEXTURE), texUpdateDesc(texture) {}
+	StreamerRequest(TextureUpdateDescInternal& texture) : mType(STREAMER_REQUEST_UPDATE_TEXTURE), texUpdateDesc(texture) {}
 
 	StreamerRequestType mType;
 	SyncToken mToken = 0;
 	union
 	{
 		BufferUpdateDesc bufUpdateDesc;
-		TextureUpdateDesc texUpdateDesc;
+		TextureUpdateDescInternal texUpdateDesc;
 	};
 } StreamerRequest;
 
@@ -520,21 +515,22 @@ typedef struct ResourceLoader
 	ConditionVariable mQueueCond;
 	Mutex mTokenMutex;
 	ConditionVariable mTokenCond;
-	tinystl::vector <StreamerRequest> mRequestQueue;
+	tinystl::vector <StreamerRequest> mRequestQueue[MAX_GPUS];
 
 	tfrg_atomic64_t mTokenCompleted;
 	tfrg_atomic64_t mTokenCounter;
 } ResourceLoader;
 
-static CopyEngine* getCopyEngine(ResourceLoader* pLoader, uint32_t nodeIndex)
+static bool allQueuesEmpty(ResourceLoader* pLoader)
 {
-	CopyEngine*& pCopyEngine = pLoader->pCopyEngines[nodeIndex];
-	if (!pCopyEngine)
+	for (size_t i = 0; i < MAX_GPUS; ++i)
 	{
-		pCopyEngine = conf_new<CopyEngine>();
-		setupCopyEngine(pLoader->pRenderer, pCopyEngine, nodeIndex, pLoader->mSize);
+		if (!pLoader->mRequestQueue[i].empty())
+		{
+			return false;
+		}
 	}
-	return pCopyEngine;
+	return true;
 }
 
 static void streamerThreadFunc(void* pThreadData)
@@ -544,6 +540,14 @@ static void streamerThreadFunc(void* pThreadData)
 	ResourceLoader* pLoader = (ResourceLoader*)pThreadData;
 	ASSERT(pLoader);
 
+	uint32_t linkedGPUCount = pLoader->pRenderer->mLinkedNodeCount;
+	for (uint32_t i = 0; i < linkedGPUCount; ++i)
+	{
+		CopyEngine* pCopyEngine = conf_new<CopyEngine>();
+		setupCopyEngine(pLoader->pRenderer, pCopyEngine, i, pLoader->mSize);
+		pLoader->pCopyEngines[i] = pCopyEngine;
+	}
+
 	unsigned nextTimeslot = getSystemTime() + TIME_SLICE_DURATION_MS;
 	SyncToken maxToken[NUM_RESOURCE_SETS] = { 0 };
 	size_t activeSet = 0;
@@ -551,60 +555,59 @@ static void streamerThreadFunc(void* pThreadData)
 	while (pLoader->mRun)
 	{
 		pLoader->mQueueMutex.Acquire();
-		while (pLoader->mRun && pLoader->mRequestQueue.empty() && getSystemTime() < nextTimeslot)
+		while (pLoader->mRun && allQueuesEmpty(pLoader) && getSystemTime() < nextTimeslot)
 		{
 			unsigned time = getSystemTime();
 			pLoader->mQueueCond.Wait(pLoader->mQueueMutex, nextTimeslot - time);
 		}
 		pLoader->mQueueMutex.Release();
 
-		pLoader->mQueueMutex.Acquire();
-		if (!pLoader->mRequestQueue.empty())
+		for (uint32_t i = 0; i < linkedGPUCount; ++i)
 		{
-			request = pLoader->mRequestQueue.front();
-			pLoader->mRequestQueue.erase(pLoader->mRequestQueue.begin());
-		}
-		else
-		{
-			request = StreamerRequest();
-		}
-		pLoader->mQueueMutex.Release();
+			pLoader->mQueueMutex.Acquire();
+			if (!pLoader->mRequestQueue[i].empty())
+			{
+				request = pLoader->mRequestQueue[i].front();
+				pLoader->mRequestQueue[i].erase(pLoader->mRequestQueue[i].begin());
+			}
+			else
+			{
+				request = StreamerRequest();
+			}
+			pLoader->mQueueMutex.Release();
 
-		if (request.mToken)
-		{
-			ASSERT(maxToken[activeSet] < request.mToken);
-			maxToken[activeSet] = request.mToken;
-		}
-		switch (request.mType)
-		{
-		case STREAMER_REQUEST_UPDATE_BUFFER:
-			updateBuffer(
-				pLoader->pRenderer, getCopyEngine(pLoader, request.bufUpdateDesc.pBuffer->mDesc.mNodeIndex), activeSet,
-				&request.bufUpdateDesc);
-			break;
-		case STREAMER_REQUEST_UPDATE_TEXTURE:
-			updateTexture(
-				pLoader->pRenderer, getCopyEngine(pLoader, request.texUpdateDesc.pTexture->mDesc.mNodeIndex), activeSet,
-				&request.texUpdateDesc);
-			break;
-		default:break;
+			if (request.mToken)
+			{
+				ASSERT(maxToken[activeSet] < request.mToken);
+				maxToken[activeSet] = request.mToken;
+			}
+			switch (request.mType)
+			{
+			case STREAMER_REQUEST_UPDATE_BUFFER:
+				updateBuffer(
+					pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet,
+					&request.bufUpdateDesc);
+				break;
+			case STREAMER_REQUEST_UPDATE_TEXTURE:
+				updateTexture(
+					pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet,
+					&request.texUpdateDesc);
+				break;
+			default:break;
+			}
 		}
 
 		if (getSystemTime() > nextTimeslot)
 		{
-			for (size_t i = 0; i < MAX_GPUS; ++i)
+			for (uint32_t i = 0; i < linkedGPUCount; ++i)
 			{
-				if (pLoader->pCopyEngines[i])
-					streamerFlush(pLoader->pCopyEngines[i], activeSet);
+				streamerFlush(pLoader->pCopyEngines[i], activeSet);
 			}
 			activeSet = (activeSet + 1) % NUM_RESOURCE_SETS;
-			for (size_t i = 0; i < MAX_GPUS; ++i)
+			for (uint32_t i = 0; i < linkedGPUCount; ++i)
 			{
-				if (pLoader->pCopyEngines[i])
-				{
-					waitCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
-					resetCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
-				}
+				waitCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
+				resetCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
 			}
 			SyncToken nextToken = maxToken[activeSet];
 			SyncToken prevToken = tfrg_atomic64_load_relaxed(&pLoader->mTokenCompleted);
@@ -615,10 +618,15 @@ static void streamerThreadFunc(void* pThreadData)
 		}
 
 	}
-	for (size_t i = 0; i < MAX_GPUS; ++i)
+
+	for (uint32_t i = 0; i < linkedGPUCount; ++i)
 	{
-		if (pLoader->pCopyEngines[i])
-			finish(pLoader->pCopyEngines[i], activeSet);
+		CopyEngine* pCopyEngine = pLoader->pCopyEngines[i];
+		ASSERT(pCopyEngine);
+		streamerFlush(pCopyEngine, activeSet);
+		waitQueueIdle(pCopyEngine->pQueue);
+		cleanupCopyEngine(pLoader->pRenderer, pCopyEngine);
+		conf_delete(pCopyEngine);
 	}
 }
 
@@ -645,15 +653,6 @@ static void removeResourceLoader(ResourceLoader* pLoader)
 	pLoader->mRun = false;
 	pLoader->mQueueCond.Set();
 	destroy_thread(pLoader->mThread);
-
-	for (size_t i = 0; i < MAX_GPUS; ++i)
-	{
-		if (pLoader->pCopyEngines[i])
-		{
-			cleanupCopyEngine(pLoader->pRenderer, pLoader->pCopyEngines[i]);
-			conf_delete(pLoader->pCopyEngines[i]);
-		}
-	}
 
 	conf_delete(pLoader);
 }
@@ -696,21 +695,23 @@ static void updateCPUbuffer(Renderer* pRenderer, BufferUpdateDesc* pBufferUpdate
 
 static void queueResourceUpdate(ResourceLoader* pLoader, BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 {
+	uint32_t nodeIndex = pBufferUpdate->pBuffer->mDesc.mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 	SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->mTokenCounter, 1) + 1;
-	pLoader->mRequestQueue.emplace_back(StreamerRequest(*pBufferUpdate));
-	pLoader->mRequestQueue.back().mToken = t;
+	pLoader->mRequestQueue[nodeIndex].emplace_back(StreamerRequest(*pBufferUpdate));
+	pLoader->mRequestQueue[nodeIndex].back().mToken = t;
 	pLoader->mQueueMutex.Release();
 	pLoader->mQueueCond.Set();
 	if (token) *token = t;
 }
 
-static void queueResourceUpdate(ResourceLoader* pLoader, TextureUpdateDesc* pTextureUpdate, SyncToken* token)
+static void queueResourceUpdate(ResourceLoader* pLoader, TextureUpdateDescInternal* pTextureUpdate, SyncToken* token)
 {
+	uint32_t nodeIndex = pTextureUpdate->pTexture->mDesc.mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 	SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->mTokenCounter, 1) + 1;
-	pLoader->mRequestQueue.emplace_back(StreamerRequest(*pTextureUpdate));
-	pLoader->mRequestQueue.back().mToken = t;
+	pLoader->mRequestQueue[nodeIndex].emplace_back(StreamerRequest(*pTextureUpdate));
+	pLoader->mRequestQueue[nodeIndex].back().mToken = t;
 	pLoader->mQueueMutex.Release();
 	pLoader->mQueueCond.Set();
 	if (token) *token = t;
@@ -781,18 +782,18 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	ASSERT(pTextureDesc->ppTexture);
 
 	bool freeImage = false;
-	Image* pImage = pTextureDesc->pImage;
+	Image* pImage = NULL;
 	if (pTextureDesc->pFilename)
 	{
 		pImage = conf_new<Image>();
-		if (!pImage->loadImage(pTextureDesc->pFilename, pTextureDesc->mUseMipmaps, nullptr, nullptr, pTextureDesc->mRoot))
+		if (!pImage->loadImage(pTextureDesc->pFilename, pTextureDesc->mUseMipmaps, NULL, NULL, pTextureDesc->mRoot))
 		{
 			conf_delete(pImage);
 			return;
 		}
 		freeImage = true;
 	}
-	else if (!pTextureDesc->pFilename && !pTextureDesc->pImage)
+	else if (!pTextureDesc->pFilename && !pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData)
 	{
 		pTextureDesc->pDesc->mStartState = util_determine_resource_start_state(pTextureDesc->pDesc->mDescriptors);
 		addTexture(pResourceLoader->pRenderer, pTextureDesc->pDesc, pTextureDesc->ppTexture);
@@ -805,6 +806,26 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 		//}
 		return;
 	}
+	else if (pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData)
+	{
+		pImage = conf_new<Image>();
+		pImage->Create(pTextureDesc->pRawImageData->mFormat, pTextureDesc->pRawImageData->mWidth, pTextureDesc->pRawImageData->mHeight, pTextureDesc->pRawImageData->mDepth, pTextureDesc->pRawImageData->mMipLevels, pTextureDesc->pRawImageData->mArraySize, pTextureDesc->pRawImageData->pRawData);
+		freeImage = true;
+	}
+	else if (pTextureDesc->pBinaryImageData)
+	{
+		pImage = conf_new<Image>();
+#ifdef _DEBUG
+		bool success =
+#endif
+		pImage->loadFromMemory(pTextureDesc->pBinaryImageData->pBinaryData, pTextureDesc->pBinaryImageData->mSize, pTextureDesc->pBinaryImageData->mUseMipMaps, pTextureDesc->pBinaryImageData->pExtension);
+#ifdef _DEBUG
+		ASSERT(success);
+#endif
+		freeImage = true;
+	}
+	else
+		ASSERT(0 && "Invalid params");
 
 	TextureDesc desc = {};
 	desc.mFlags = pTextureDesc->mCreationFlag;
@@ -837,14 +858,17 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 
 	addTexture(pResourceLoader->pRenderer, &desc, pTextureDesc->ppTexture);
 
-	TextureUpdateDesc updateDesc = { *pTextureDesc->ppTexture, pImage, freeImage };
-	updateResource(&updateDesc, token);
+	TextureUpdateDescInternal updateDesc = { *pTextureDesc->ppTexture, pImage, freeImage };
+	queueResourceUpdate(pResourceLoader, &updateDesc, token);
 }
 
 void updateResource(BufferUpdateDesc* pBufferUpdate, bool batch)
 {
 	SyncToken token = 0;
 	updateResource(pBufferUpdate, &token);
+#if defined(DIRECT3D11)
+	batch = false;
+#endif
 	if (!batch) waitTokenCompleted(token);
 }
 
@@ -852,6 +876,9 @@ void updateResource(TextureUpdateDesc* pTextureUpdate, bool batch)
 {
 	SyncToken token = 0;
 	updateResource(pTextureUpdate, &token);
+#if defined(DIRECT3D11)
+	batch = false;
+#endif
 	if (!batch) waitTokenCompleted(token);
 }
 
@@ -867,7 +894,12 @@ void updateResource(BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 	if (pBufferUpdate->pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY ||
 		pBufferUpdate->pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU)
 	{
-		queueResourceUpdate(pResourceLoader, pBufferUpdate, token);
+		SyncToken updateToken;
+		queueResourceUpdate(pResourceLoader, pBufferUpdate, &updateToken);
+#if defined(DIRECT3D11)
+		waitTokenCompleted(updateToken);
+#endif
+		if (token) *token = updateToken;
 	}
 	else
 	{
@@ -876,8 +908,24 @@ void updateResource(BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 }
 
 void updateResource(TextureUpdateDesc* pTextureUpdate, SyncToken* token)
-{
-	queueResourceUpdate(pResourceLoader, pTextureUpdate, token);
+{	
+	TextureUpdateDescInternal desc;
+	desc.pTexture = pTextureUpdate->pTexture;
+	if (pTextureUpdate->pRawImageData)
+	{
+		Image* pImage = conf_new<Image>();
+		pImage->Create(pTextureUpdate->pRawImageData->mFormat, pTextureUpdate->pRawImageData->mWidth, pTextureUpdate->pRawImageData->mHeight, pTextureUpdate->pRawImageData->mDepth, pTextureUpdate->pRawImageData->mMipLevels, pTextureUpdate->pRawImageData->mArraySize, pTextureUpdate->pRawImageData->pRawData);
+		desc.mFreeImage = true;
+	}
+	else
+		desc.mFreeImage = false;
+
+	SyncToken updateToken;
+	queueResourceUpdate(pResourceLoader, &desc, &updateToken);
+#if defined(DIRECT3D11)
+	waitTokenCompleted(updateToken);
+#endif
+	if (token) *token = updateToken;
 }
 
 void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources, SyncToken* token)
@@ -964,7 +1012,7 @@ void vk_compileShader(
 	// compile into spir-V shader
 	shaderc_compiler_t           compiler = shaderc_compiler_initialize();
 	shaderc_compilation_result_t spvShader =
-		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", pEntryPoint ? pEntryPoint : "main", nullptr);
+		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", pEntryPoint ? pEntryPoint : "main", NULL);
 	if (shaderc_result_get_compilation_status(spvShader) != shaderc_compilation_status_success)
 	{
 		LOGERRORF("Shader compiling failed! with status");
@@ -1012,7 +1060,7 @@ void vk_compileShader(
 		commandLine += " --target-env vulkan1.1 ";
 		//commandLine += " \"-D" + tinystl::string("VULKAN") + "=" + "1" + "\"";
 
-	if (pEntryPoint != nullptr)
+	if (pEntryPoint != NULL)
 		commandLine += tinystl::string::format(" -e %s", pEntryPoint);
 
 		// Add platform macro

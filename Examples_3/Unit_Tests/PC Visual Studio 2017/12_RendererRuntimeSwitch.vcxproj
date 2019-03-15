@@ -26,6 +26,7 @@
     <ClCompile Include="..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Core\Timer.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Image\Image.cpp" />
+    <ClCompile Include="..\..\..\Common_3\OS\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Logging\LogManager.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\MemoryTracking\MemoryTrackingManager.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Windows\WindowsBase.cpp" />
@@ -51,7 +52,6 @@
     <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross.cpp" />
     <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
     <ClCompile Include="..\..\..\Common_3\Tools\SpirvTools\SpirvTools.cpp" />
-    <ClCompile Include="..\..\..\Middleware_3\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\UI\AppUI.cpp" />
     <ClCompile Include="..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
@@ -72,6 +72,8 @@
     <ClInclude Include="..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Image\Image.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Image\ImageEnums.h" />
+    <ClInclude Include="..\..\..\Common_3\OS\Input\InputMappings.h" />
+    <ClInclude Include="..\..\..\Common_3\OS\Input\InputSystem.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
@@ -99,7 +101,6 @@
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross.hpp" />
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
     <ClInclude Include="..\..\..\Common_3\Tools\SpirvTools\SpirvTools.h" />
-    <ClInclude Include="..\..\..\Middleware_3\Input\InputSystem.h" />
     <ClInclude Include="..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h" />
@@ -113,7 +114,7 @@
     <ProjectGuid>{42B9F7E1-3E3D-4BD0-9B97-8080A740E032}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Samples_GLFW</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>12_RendererRuntimeSwitch</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

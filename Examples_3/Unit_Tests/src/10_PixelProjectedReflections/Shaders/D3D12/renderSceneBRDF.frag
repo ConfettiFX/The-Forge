@@ -47,7 +47,7 @@ cbuffer cbExtendCamera : register(b0) {
 }
 
 
-cbuffer cbLights : register(b1) {
+cbuffer cbLights : register(b1, space1) {
 	Light lights[16];
 	int currAmountOflights;
 }
@@ -59,7 +59,7 @@ struct DirectionalLight
 	float4 mDir;
 };
 
-cbuffer cbDLights : register(b2)  {
+cbuffer cbDLights : register(b2, space2)  {
 	DirectionalLight dlights[16];
 	int currAmountOfDLights;
 };
