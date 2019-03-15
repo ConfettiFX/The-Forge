@@ -49,6 +49,21 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.25 - March 15th, 2019 - New Descriptor Memory Management System
+
+- The purpose of the DescriptorBinder approach is to allocate all memory descriptor space at load time, instead of doing it on-demand at runtime, as it is commonly done. This is done in an effort to allow applications to have better control over memory footprint overhead, which is especially important on mobile targets, and to improve performance by avoiding runtime memory allocations.
+The system will use shader reflection to determine the appropriate descriptor layouts in combination with descriptor update frequency knowledge. This knowledge will come from the client domain or from content editor tools.
+With this information, we are able to allocate all necessary descriptor memory up-front, giving more control to the application about the memory footprint. This is one of the initiatives leading up to the new version of The Forge.
+Read more [Descriptor Management](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
+
+- The input system was refactored and streamlined. This is mostly a rewrite of the code layer above [gainput](https://github.com/jkuhlmann/gainput).
+  - IOperatingSystem.h: getMousePosition, getKeyDown, getKeyUp, getJoystickButtonDown, getJoystickButtonUp were removed
+  - InputSystem.h: 
+    - KeyMappingDescription - changed now every axis should be defined as separate entry
+    - IsButtonPressed, IsButtonTriggered, IsButtonReleased, MapKey, SetActiveInputMap,  GetButtonData,  GetDisplayWidth, GetDisplayHeight, were removed
+    - New functions GetBoolInput, GetFloatInput. KeyMappingDescription  for new function require directly specifying intended action(released, pressed, triggered) via DEFINE_DEVICE_ACTION macro
+    - For InputEventHandler old style definition is used
+
 ## Release 1.24 - March 1st, 2019 - Asynchronous Resource Loading | Micro Profiler
 - The Forge now allows to asynchronously load resources on all platforms. There are two ways to do this:
   - use addResource/updateResource with boolean parameter called batch set to true, and later wait for completion with waitBatchCompleted (used in 01_Transformations, 03_MultiThread, 06_MaterialPlayground, 09_LightShadowPlayground, 09a_HybridRaytracing, 12_RendererRumtimeSwitch, 15_Transparency)
