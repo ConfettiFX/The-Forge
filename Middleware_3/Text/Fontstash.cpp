@@ -39,6 +39,9 @@
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
+// TODO: this should be configurable
+#define MAX_SHADER_RESOURCE_UPDATES_PER_FRAME 20 
+
 FSRoot FSR_MIDDLEWARE_TEXT = FSR_Middleware0;
 
 class _Impl_FontStash
@@ -133,11 +136,15 @@ class _Impl_FontStash
 		textureRootDesc.mDynamicUniformBufferCount = 1;
 		textureRootDesc.ppDynamicUniformBufferNames = pDynamicUniformBuffers;
 #endif
+		pRootSignature = NULL;
 		const char* pStaticSamplers[] = { "uSampler0" };
 		textureRootDesc.mStaticSamplerCount = 1;
 		textureRootDesc.ppStaticSamplerNames = pStaticSamplers;
 		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
+
+		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, MAX_SHADER_RESOURCE_UPDATES_PER_FRAME };
+		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
 
 		addUniformRingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
 
@@ -160,7 +167,7 @@ class _Impl_FontStash
 		mVertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
 		mVertexLayout.mAttribs[1].mBinding = 0;
 		mVertexLayout.mAttribs[1].mLocation = 1;
-		mVertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(ImageFormat::RG32F);
+		mVertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(ImageFormat::RG32F);
 
 #ifdef FORGE_JHABLE_EDITS_V01
 		mVertexLayout.mAttribs[0].mSemanticType = 0;
@@ -196,6 +203,7 @@ class _Impl_FontStash
 		for (uint32_t i = 0; i < (uint32_t)mTextureList.size(); ++i)
 			removeResource(mTextureList[i]);
 
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 		removeRootSignature(pRenderer, pRootSignature);
 
 		for (uint32_t i = 0; i < 2; ++i)
@@ -223,8 +231,7 @@ class _Impl_FontStash
 	static int  fonsImplementationGenerateTexture(void* userPtr, int width, int height);
 	static int  fonsImplementationResizeTexture(void* userPtr, int width, int height);
 	static void fonsImplementationModifyTexture(void* userPtr, int* rect, const unsigned char* data);
-	static void
-				fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
+	static void fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
 	static void fonsImplementationRemoveTexture(void* userPtr);
 
 	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
@@ -249,6 +256,7 @@ class _Impl_FontStash
 
 	Shader*        pShaders[2];
 	RootSignature* pRootSignature;
+	DescriptorBinder* pDescriptorBinder;
 	PipelineMap    mPipelines[2];
 	/// Default states
 	BlendState*          pBlendAlpha;
@@ -411,9 +419,18 @@ int _Impl_FontStash::fonsImplementationGenerateTexture(void* userPtr, int width,
 
 	Texture* oldTex = ctx->pCurrentTexture;
 
+	RawImageData rawData;
+	rawData.pRawData = ctx->mStagingImage.GetPixels();
+	rawData.mFormat = ctx->mStagingImage.getFormat();
+	rawData.mWidth = ctx->mStagingImage.GetWidth();
+	rawData.mHeight = ctx->mStagingImage.GetHeight();
+	rawData.mDepth = ctx->mStagingImage.GetDepth();
+	rawData.mArraySize = ctx->mStagingImage.GetArrayCount();
+	rawData.mMipLevels = ctx->mStagingImage.GetMipMapCount();
+
 	TextureLoadDesc loadDesc = {};
 	loadDesc.ppTexture = &ctx->pCurrentTexture;
-	loadDesc.pImage = &ctx->mStagingImage;
+	loadDesc.pRawImageData = &rawData;
 	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	// R8 mode
 	//addTexture2d(ctx->renderer, width, height, SampleCount::SAMPLE_COUNT_1, ctx->img.getFormat(), ctx->img.GetMipMapCount(), NULL, false, TextureUsage::TEXTURE_USAGE_SAMPLED_IMAGE, &ctx->tex);
@@ -527,7 +544,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		params[1].pOffsets = &uniformBlock.mOffset;
 		params[2].pName = "uTex0";
 		params[2].ppTextures = &ctx->pCurrentTexture;
-		cmdBindDescriptors(pCmd, ctx->pRootSignature, 3, params);
+		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, 3, params);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}
@@ -538,7 +555,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		params[0].pRootConstant = &data;
 		params[1].pName = "uTex0";
 		params[1].ppTextures = &ctx->pCurrentTexture;
-		cmdBindDescriptors(pCmd, ctx->pRootSignature, 2, params);
+		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, 2, params);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}

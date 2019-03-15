@@ -29,11 +29,11 @@ add_library(os STATIC
             ${COMMON_DIR}/OS/Image/Image.cpp
             ${COMMON_DIR}/OS/Logging/LogManager.cpp
             ${COMMON_DIR}/OS/Image/Image.cpp
+            ${COMMON_DIR}/OS/Input/InputSystem.cpp
             ${COMMON_DIR}/OS/MemoryTracking/MemoryTrackingManager.cpp
             ${COMMON_DIR}/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp
 
             # middleware
-            ${MIDDLEWARE_DIR}/Input/InputSystem.cpp
             ${MIDDLEWARE_DIR}/Text/Fontstash.cpp
             ${MIDDLEWARE_DIR}/UI/AppUI.cpp
             ${MIDDLEWARE_DIR}/UI/ImguiGUIDriver.cpp

@@ -467,6 +467,7 @@ struct Renderer;
 struct Texture;
 struct Shader;
 struct RootSignature;
+struct DescriptorBinder;
 struct Pipeline;
 struct Sampler;
 struct RasterizerState;
@@ -592,6 +593,16 @@ private:
 class GUIDriver
 {
 	public:
+		struct GUIUpdate
+		{
+			GuiComponent** pGuiComponents;
+			uint32_t componentCount;
+			float deltaTime;
+			float width;
+			float height;
+			bool showDemoWindow;
+		};
+
 	virtual bool init(Renderer* pRenderer) = 0;
 	virtual void exit() = 0;
 
@@ -601,7 +612,7 @@ class GUIDriver
 
 	virtual void* getContext() = 0;
 
-	virtual bool update(float deltaTime, GuiComponent** pGuiComponents, uint32_t componentCount, bool showDemoWindow) = 0;
+	virtual bool update(GUIUpdate* update) = 0;
 
 	virtual void draw(Cmd* q) = 0;
 
@@ -845,7 +856,7 @@ struct MicroProfileMetaAverageArgs
 typedef const char* (*MicroProfileSubmenuCallback)(int, bool* bSelected);
 typedef void(*MicroProfileClickCallback)(int);
 class UIApp;
-static UIApp* gUIApp_MP = nullptr;
+static UIApp* gUIApp_MP = NULL;
 static MICROPROFILE_DEFINE(g_MicroProfileDrawGraph, "MicroProfile", "Draw Graph", 0xff44ee00);
 static MICROPROFILE_DEFINE(g_MicroProfileDrawBarView, "MicroProfile", "DrawBarView", 0x00dd77);
 static MICROPROFILE_DEFINE(g_MicroProfileDraw, "MicroProfile", "Draw", 0x737373);
@@ -927,6 +938,8 @@ class UIApp: public IMiddleware
 	void ActivateMicroProfile(bool isActive);
 	bool			  mMicroProfileEnabled;
 	private:
+	float   mWidth;
+	float   mHeight;
 #if	ENABLE_MICRO_PROFILER
 	void ProfileDraw(Cmd* pCmd, uint32_t nWidth, uint32_t nHeight); //! call if drawing microprofilers
 	bool ProfileIsDrawing();
@@ -1497,17 +1510,18 @@ class VirtualJoystickUI
 	void Draw(Cmd* pCmd, const float4& color);
 
 	private:
-	Renderer*        pRenderer;
-	Shader*          pShader;
-	RootSignature*   pRootSignature;
-	Pipeline*        pPipeline;
-	Texture*         pTexture;
-	Sampler*         pSampler;
-	BlendState*      pBlendAlpha;
-	DepthState*      pDepthState;
-	RasterizerState* pRasterizerState;
-	MeshRingBuffer*  pMeshRingBuffer;
-	vec2             mRenderSize;
+	Renderer*         pRenderer;
+	Shader*           pShader;
+	RootSignature*    pRootSignature;
+	DescriptorBinder* pDescriptorBinder;
+	Pipeline*         pPipeline;
+	Texture*          pTexture;
+	Sampler*          pSampler;
+	BlendState*       pBlendAlpha;
+	DepthState*       pDepthState;
+	RasterizerState*  pRasterizerState;
+	MeshRingBuffer*   pMeshRingBuffer;
+	vec2              mRenderSize;
 	//input related
 	private:
 	float mInsideRadius;

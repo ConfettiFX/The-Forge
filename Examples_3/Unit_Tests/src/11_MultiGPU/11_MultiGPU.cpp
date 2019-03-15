@@ -48,8 +48,8 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Middleware_3/PaniniProjection/Panini.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -109,10 +109,11 @@ SwapChain* pSwapChain = NULL;
 Shader*   pSphereShader = NULL;
 Pipeline* pSpherePipeline = NULL;
 
-Shader*        pSkyBoxDrawShader = NULL;
-Pipeline*      pSkyBoxDrawPipeline = NULL;
-RootSignature* pRootSignature = NULL;
-Sampler*       pSamplerSkyBox = NULL;
+Shader*           pSkyBoxDrawShader = NULL;
+Pipeline*         pSkyBoxDrawPipeline = NULL;
+RootSignature*    pRootSignature = NULL;
+Sampler*          pSamplerSkyBox = NULL;
+DescriptorBinder* pDescriptorBinder[gViewCount] = { NULL };
 
 DepthState*      pDepth = NULL;
 RasterizerState* pSkyboxRast = NULL;
@@ -237,6 +238,12 @@ class MultiGPU: public IApp
 		rootDesc.mShaderCount = 2;
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		for (uint32_t i = 0; i < gViewCount; i++)
+		{
+			DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, 0, 2, gMultiGPU ? i : 0 }; // 2 = planets + skybox rendering
+			addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder[i]);
+		}
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -482,7 +489,7 @@ class MultiGPU: public IApp
 
 		if (!gPanini.Init(pRenderer))
 			return false;
-
+		gPanini.SetDescriptorBinder(2);
 		return true;
 	}
 
@@ -651,12 +658,12 @@ class MultiGPU: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
 
-		if (getKeyUp(KEY_LEFT_TRIGGER))
+		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED))
 			gMultiGPU = !gMultiGPU;
 
 		pCameraController->update(deltaTime);
@@ -791,7 +798,7 @@ class MultiGPU: public IApp
 			params[5].ppTextures = &pSkyBoxTextures[i][4];
 			params[6].pName = "BackText";
 			params[6].ppTextures = &pSkyBoxTextures[i][5];
-			cmdBindDescriptors(cmd, pRootSignature, 7, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder[i], 7, params);
 			cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer[i], NULL);
 			cmdDraw(cmd, 36, 0);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -800,7 +807,7 @@ class MultiGPU: public IApp
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
 			cmdBindPipeline(cmd, pSpherePipeline);
 			params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pRootSignature, 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder[i], 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer[i], NULL);
 			cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);

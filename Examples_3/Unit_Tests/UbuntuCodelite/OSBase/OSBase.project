@@ -17,11 +17,6 @@
       <File Name="../../../../Middleware_3/Animation/AnimatedObject.h"/>
       <File Name="../../../../Middleware_3/Animation/AnimatedObject.cpp"/>
     </VirtualDirectory>
-    <VirtualDirectory Name="Input">
-      <File Name="../../../../Middleware_3/Input/InputSystem.h"/>
-      <File Name="../../../../Middleware_3/Input/InputSystem.cpp"/>
-      <File Name="../../../../Middleware_3/Input/InputMappings.h"/>
-    </VirtualDirectory>
     <VirtualDirectory Name="UI">
       <File Name="../../../../Middleware_3/Text/TextShaders.h"/>
       <File Name="../../../../Middleware_3/Text/Fontstash.h"/>
@@ -62,6 +57,11 @@
     <File Name="../../../../Common_3/OS/Image/Image.h"/>
     <File Name="../../../../Common_3/OS/Image/ImageEnums.h"/>
     <File Name="../../../../Common_3/OS/Image/ImageKTXImpl.h"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="Input">
+    <File Name="../../../../Common_3/OS/Input/InputSystem.h"/>
+    <File Name="../../../../Common_3/OS/Input/InputSystem.cpp"/>
+    <File Name="../../../../Common_3/OS/Input/InputMappings.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Interfaces">
     <File Name="../../../../Common_3/OS/Interfaces/IApp.h"/>

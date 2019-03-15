@@ -71,7 +71,7 @@ layout(set = 0, binding = 0) uniform cbCamera
 	float fNormalMapIntensity;
 };
 
-layout (set = 0, binding = 1) uniform cbObject 
+layout (set = 3, binding = 1) uniform cbObject 
 {
 	mat4 worldMat;
 	vec3 albedo;
@@ -94,18 +94,18 @@ layout(set = 0, binding = 3) uniform cbDirectionalLights
 };
 
 
-layout(set = 1, binding = 4) uniform texture2D brdfIntegrationMap;
-layout(set = 1, binding = 5) uniform textureCube irradianceMap;
-layout(set = 1, binding = 6) uniform textureCube  specularMap;
+layout(set = 3, binding = 4) uniform texture2D brdfIntegrationMap;
+layout(set = 3, binding = 5) uniform textureCube irradianceMap;
+layout(set = 3, binding = 6) uniform textureCube  specularMap;
 
 // material parameters
-layout(set = 1, binding = 7)  uniform texture2D albedoMap;
-layout(set = 1, binding = 8)  uniform texture2D normalMap;
-layout(set = 1, binding = 9)  uniform texture2D metallicMap;
-layout(set = 1, binding = 10) uniform texture2D roughnessMap;
-layout(set = 1, binding = 11) uniform texture2D aoMap;
+layout(set = 3, binding = 7)  uniform texture2D albedoMap;
+layout(set = 3, binding = 8)  uniform texture2D normalMap;
+layout(set = 3, binding = 9)  uniform texture2D metallicMap;
+layout(set = 3, binding = 10) uniform texture2D roughnessMap;
+layout(set = 3, binding = 11) uniform texture2D aoMap;
 
-layout(set = 1, binding = 12) uniform texture2D shadowMap;
+layout(set = 3, binding = 12) uniform texture2D shadowMap;
 
 layout(set = 0, binding = 13) uniform sampler bilinearSampler;
 layout(set = 0, binding = 14) uniform sampler bilinearClampedSampler;

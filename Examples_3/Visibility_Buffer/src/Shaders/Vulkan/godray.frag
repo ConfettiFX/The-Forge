@@ -36,7 +36,7 @@ struct PsIn
     vec4 position;
     vec2 texCoord;
 };
-layout(set = 0, binding = 0) uniform texture2D uTex0;
+layout(set = 3, binding = 0) uniform texture2D uTex0;
 layout(set = 0, binding = 1) uniform sampler uSampler0;
 layout(push_constant) uniform RootConstantGodrayInfo_Block
 {

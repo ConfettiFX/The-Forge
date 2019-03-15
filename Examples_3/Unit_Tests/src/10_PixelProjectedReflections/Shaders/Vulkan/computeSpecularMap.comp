@@ -44,7 +44,7 @@ layout(push_constant) uniform RootConstant_Block
 }RootConstant;
 
 layout(set = 0, binding = 1) uniform textureCube srcTexture;
-layout(set = 1, binding = 2, rgba32f) uniform image2DArray dstTexture;
+layout(set = 3, binding = 2, rgba32f) uniform image2DArray dstTexture;
 layout(set = 0, binding = 3) uniform sampler skyboxSampler;
 
 float RadicalInverse_VdC(uint bits)

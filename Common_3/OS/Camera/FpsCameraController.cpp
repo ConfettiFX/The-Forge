@@ -31,8 +31,8 @@
 #endif
 #endif
 
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
 #include "../../../Middleware_3/UI/AppUI.h"
 
 // Include this file as last include in all cpp files allocating memory
@@ -40,12 +40,10 @@
 
 #include "../Interfaces/IMemoryManager.h"
 
-static float       k_joystickRotationSpeed = 0.06f;
 static const float k_scrollSpeed = -5.0f;
 #if !defined(METAL) && !defined(__ANDROID__)
 static const float k_xRotLimit = (float)(M_PI_2 - 0.1);
 #endif
-static float k_mouseRotationSpeed = 0.003f;
 
 class FpsCameraController: public ICameraController
 {
@@ -165,19 +163,18 @@ void FpsCameraController::update(float deltaTime)
 		//We want to keep checking instead of on doing it on events
 		//Events get triggered on press or release (except for mouse)
 		//this is in case a button is pressed down but hasn't changed.
-		ButtonData leftStick = InputSystem::GetButtonData(KEY_LEFT_STICK);
-		if (leftStick.mIsPressed)
-		{
-			moveVec.setX(leftStick.mValue[0]);
-			moveVec.setY(0);
-			moveVec.setZ(leftStick.mValue[1]);
-		}
+		float dx = InputSystem::GetFloatInput(CAMERA_INPUT_MOVE, 0);
+		float dz = InputSystem::GetFloatInput(CAMERA_INPUT_MOVE, 1);
+		moveVec.setX(dx);
+		moveVec.setY(0);
+		moveVec.setZ(dz);
 
 		//We want to keep checking instead of on events
 		//Events get triggered on press or release(except for mouse)
 		//will need to handle iOS differently for now
-		ButtonData rightStick = InputSystem::GetButtonData(KEY_RIGHT_STICK);
-		if (rightStick.mIsPressed)
+		float drx = InputSystem::GetFloatInput(CAMERA_INPUT_ROTATE, 0);
+		float dry = InputSystem::GetFloatInput(CAMERA_INPUT_ROTATE, 1);
+		if (abs(drx) + abs(dry) > 0.0f)
 		{
 			//Windows Fall Creators Update breaks this camera controller
 			//  So only use this controller if we are running on macOS or before Fall Creators Update
@@ -185,22 +182,8 @@ void FpsCameraController::update(float deltaTime)
 			float ry = viewRotation.getY();
 			float interpolant = 0.75f;
 
-			float newRx = rx;
-			float newRy = ry;
-
-			//Use different values for different input devices.
-			//For mouse we want deltas.
-			//For controllers and touch we want current value.
-			if (rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_GAMEPAD)
-			{
-				newRx = rx + (rightStick.mValue[1] * k_joystickRotationSpeed) * interpolant;
-				newRy = ry + (rightStick.mValue[0] * k_joystickRotationSpeed) * interpolant;
-			}
-			else if (rightStick.mActiveDevicesMask & GainputDeviceType::GAINPUT_RAW_MOUSE)
-			{
-				newRx = rx + (rightStick.mDeltaValue[1] * k_mouseRotationSpeed) * interpolant;
-				newRy = ry + (rightStick.mDeltaValue[0] * k_mouseRotationSpeed) * interpolant;
-			}
+			float newRx = rx + drx * interpolant;
+			float newRy = ry + dry * interpolant;
 
 			//set new target view to interpolate to
 			viewRotation = { newRx, newRy };

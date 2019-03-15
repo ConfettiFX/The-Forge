@@ -37,8 +37,8 @@
 
 #include "../../Middleware_3/Text/Fontstash.h"
 
-#include "../Input/InputSystem.h"
-#include "../Input/InputMappings.h"
+#include "../../Common_3/OS/Input/InputSystem.h"
+#include "../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../Common_3/OS/Core/RingBuffer.h"
 
@@ -339,7 +339,13 @@ void UIApp::Exit()
 	conf_free(pImpl);
 }
 
-bool UIApp::Load(RenderTarget** rts) { return true; }
+bool UIApp::Load(RenderTarget** rts)
+{ 
+	ASSERT(rts && rts[0]);
+	mWidth = (float)rts[0]->mDesc.mWidth;
+	mHeight = (float)rts[0]->mDesc.mHeight;
+	return true;
+}
 
 void UIApp::Unload() {}
 
@@ -505,7 +511,8 @@ void UIApp::Update(float deltaTime)
 		if (pImpl->mComponentsToUpdate[i]->mActive)
 			activeComponents[activeComponentCount++] = pImpl->mComponentsToUpdate[i];
 
-	mHovering = pDriver->update(deltaTime, activeComponents.data(), activeComponentCount, mShowDemoUiWindow);
+	GUIDriver::GUIUpdate guiUpdate{ activeComponents.data(), activeComponentCount, deltaTime, mWidth, mHeight, mShowDemoUiWindow };
+	mHovering = pDriver->update(&guiUpdate);
 
 	// Only on iOS as this only applies to virtual keyboard.
 	// TODO: add Durango at a later stage
@@ -526,7 +533,7 @@ void UIApp::Update(float deltaTime)
 	//text input status then toggle the appropriate behavior (hide, show)
 	if (InputSystem::IsVirtualKeyboardActive() != (wantsTextInput > 0))
 	{
-		InputSystem::ToggleVirtualTouchKeyboard(wantsTextInput);
+		InputSystem::ToggleVirtualKeyboard(wantsTextInput);
 	}
 #endif
 
@@ -644,6 +651,10 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 	textureRootDesc.ppStaticSamplers = &pSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
+
+	DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
+	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+
 	/************************************************************************/
 	// Resources
 	/************************************************************************/
@@ -670,6 +681,7 @@ void VirtualJoystickUI::Exit()
 	removeRasterizerState(pRasterizerState);
 	removeBlendState(pBlendAlpha);
 	removeDepthState(pDepthState);
+	removeDescriptorBinder(pRenderer, pDescriptorBinder);
 	removeRootSignature(pRenderer, pRootSignature);
 	removeShader(pRenderer, pShader);
 	removeResource(pTexture);
@@ -692,7 +704,7 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat)
 	vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
 	vertexLayout.mAttribs[1].mBinding = 0;
 	vertexLayout.mAttribs[1].mLocation = 1;
-	vertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(ImageFormat::RG32F);
+	vertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(ImageFormat::RG32F);
 
 	PipelineDesc desc = {};
 	desc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -788,7 +800,7 @@ bool VirtualJoystickUI::OnInputEvent(const ButtonData* pData)
 	if (pData->mEventConsumed || !mActive)
 		return false;
 
-	if (pData->mActiveDevicesMask & GAINPUT_TOUCH && (pData->mUserId == KEY_LEFT_STICK || pData->mUserId == KEY_RIGHT_STICK))
+	if (pData->mActiveDevicesMask & GAINPUT_TOUCH && (pData->mUserId == VIRTUAL_JOYSTICK_TOUCH0 || pData->mUserId == VIRTUAL_JOYSTICK_TOUCH1))
 	{
 		// Get normalized touch pos
 		vec2 touchPos = vec2(pData->mValue[0], pData->mValue[1]);
@@ -869,7 +881,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 	params[0].pRootConstant = &data;
 	params[1].pName = "uTex";
 	params[1].ppTextures = &pTexture;
-	cmdBindDescriptors(pCmd, pRootSignature, 2, params);
+	cmdBindDescriptors(pCmd, pDescriptorBinder, 2, params);
 
 	if (mRenderSize[0] != (float)pCmd->mBoundWidth)
 		mRenderSize[0] = (float)pCmd->mBoundWidth;
@@ -930,9 +942,8 @@ void OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
 		// Here we construct the 'toSend' data to contain both the
 		// position (from the latest Move event) and click info from the
 		// current event.
-		ButtonData latestUIMoveEventData = InputSystem::GetButtonData((uint32_t)KEY_UI_MOVE);
-		toSend.mValue[0] = latestUIMoveEventData.mValue[0];
-		toSend.mValue[1] = latestUIMoveEventData.mValue[1];
+		toSend.mValue[0] = InputSystem::GetFloatInput(KEY_UI_MOVE, 0);
+		toSend.mValue[1] = InputSystem::GetFloatInput(KEY_UI_MOVE, 1);
 	}
 
 	// just relay the rest of the events to the UI and let the UI system process the events
@@ -1822,7 +1833,7 @@ void UIApp::ProfileDrawDetailedBars(Cmd* pCmd, uint32_t nWidth, uint32_t nHeight
 			uint32_t nMaxStackDepth = 0;
 
 			nY += 3;
-			ProfileWriteThreadHeader(pCmd, nY, nThreadId, &pLog->ThreadName[0], nullptr);
+			ProfileWriteThreadHeader(pCmd, nY, nThreadId, &pLog->ThreadName[0], NULL);
 			nY += 3;
 			nY += MICROPROFILE_TEXT_HEIGHT + 1;
 
@@ -2030,7 +2041,7 @@ void UIApp::ProfileDrawDetailedBars(Cmd* pCmd, uint32_t nWidth, uint32_t nHeight
 
 				ProfileDrawDetailedContextSwitchBars(pCmd, nY + 2, tt.nThreadId, nContextSwitchStart, nContextSwitchEnd, nBaseTicksCpu, nBaseY);
 
-				ProfileWriteThreadHeader(pCmd, nY, tt.nThreadId, i < nNumThreadsBase && S.Pool[i] ? &S.Pool[i]->ThreadName[0] : nullptr, nullptr);
+				ProfileWriteThreadHeader(pCmd, nY, tt.nThreadId, i < nNumThreadsBase && S.Pool[i] ? &S.Pool[i]->ThreadName[0] : NULL, NULL);
 				nY += MICROPROFILE_TEXT_HEIGHT + 1;
 			}
 		}

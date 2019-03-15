@@ -61,17 +61,14 @@
     <Filter Include="Renderer\SpirvTools">
       <UniqueIdentifier>{6fb30569-0ee5-45f3-ab27-719ee7d58b7e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Middleware_3">
-      <UniqueIdentifier>{a4958373-4f9e-4fd2-ba04-39e7bc6be7eb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Middleware_3\Input">
-      <UniqueIdentifier>{7b4c8dee-01d9-45f8-980f-20c8cb1fe2e5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\Text">
       <UniqueIdentifier>{56661410-90c5-4e8f-9451-be646b8fdca5}</UniqueIdentifier>
     </Filter>
     <Filter Include="OS\UI\imgui">
       <UniqueIdentifier>{1dad1790-9f64-418c-8252-7b48e1dace7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Input">
+      <UniqueIdentifier>{390343da-dc24-43b8-915e-2df5c9f874f9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -162,9 +159,6 @@
     <ClCompile Include="..\src\12_RendererRuntimeSwitch\12_RendererRuntimeSwitch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Middleware_3\Input\InputSystem.cpp">
-      <Filter>Middleware_3\Input</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\Middleware_3\Text\Fontstash.cpp">
       <Filter>OS\Text</Filter>
     </ClCompile>
@@ -185,6 +179,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp">
       <Filter>Renderer\Direct3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\OS\Input\InputSystem.cpp">
+      <Filter>OS\Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -304,9 +301,6 @@
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">
       <Filter>Renderer\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Middleware_3\Input\InputSystem.h">
-      <Filter>Middleware_3\Input</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Middleware_3\Text\Fontstash.h">
       <Filter>OS\Text</Filter>
     </ClInclude>
@@ -318,6 +312,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
       <Filter>OS\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Input\InputMappings.h">
+      <Filter>OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Input\InputSystem.h">
+      <Filter>OS\Input</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

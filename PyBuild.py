@@ -799,7 +799,7 @@ def BuildAndroidProjects():
 		return -1
 	return 0
 	
-def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild):
+def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild, skipAura):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
@@ -839,15 +839,18 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 
 	if not xboxOnly:
 		for proj in projects:
+			if skipAura == True and "Aura" in proj:
+				continue
 			#we don't want to build Xbox one solutions when building PC
 			if "Xbox" not in proj and "XBOXOne" not in proj:
 				fileList.append(proj)
 
 	if xboxDefined:
 		for proj in projects:
+			if skipAura == True and "Aura" in proj:
+				continue
 			if "Xbox" in proj or "XBOXOne" in proj:
 				fileList.append(proj)
-		
 				
 	for proj in fileList:
 		#get current path for sln file
@@ -945,6 +948,7 @@ def MainLogic():
 	parser.add_argument('--skipdebugbuild', action="store_true", help='If enabled, will skip Debug build.')
 	parser.add_argument('--skipreleasebuild', action="store_true", help='If enabled, will skip Release build.')
 	parser.add_argument('--printbuildoutput', action="store_true", help='If enabled, will print output of project builds.')
+	parser.add_argument('--skipaura', action="store_true", help='If enabled, will skip building aura.')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
 	
@@ -1011,7 +1015,7 @@ def MainLogic():
 			if arguments.android:
 				returnCode = BuildAndroidProjects()
 			else:
-				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
+				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.skipaura)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 

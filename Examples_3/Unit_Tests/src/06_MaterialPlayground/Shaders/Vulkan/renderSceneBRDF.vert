@@ -46,7 +46,7 @@ layout(set = 0, binding = 0) uniform cbCamera
 	float fNormalMapIntensity;
 };
 
-layout(set = 0, binding = 1) uniform cbObject
+layout(set = 3, binding = 1) uniform cbObject
 {
 	mat4 worldMat;
 	vec3 albedo;

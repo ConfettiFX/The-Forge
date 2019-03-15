@@ -37,23 +37,6 @@
 #define MAKE_CHAR4(a, b, c, d) (a | (b << 8) | (c << 16) | (d << 24))
 
 /*************************************************************************************/
-namespace ImageFormat {
-bool                   IsPlainFormat(const ImageFormat::Enum format);
-bool                   IsCompressedFormat(const ImageFormat::Enum format);
-bool                   IsFloatFormat(const ImageFormat::Enum format);
-bool                   IsSignedFormat(const ImageFormat::Enum format);
-bool                   IsStencilFormat(const ImageFormat::Enum format);
-bool                   IsDepthFormat(const ImageFormat::Enum format);
-bool                   IsPackedFormat(const ImageFormat::Enum format);
-bool                   IsIntegerFormat(const ImageFormat::Enum format);
-int                    GetChannelCount(const ImageFormat::Enum format);
-int                    GetBytesPerChannel(const ImageFormat::Enum format);
-int                    GetBytesPerPixel(const ImageFormat::Enum format);
-int                    GetBytesPerBlock(const ImageFormat::Enum format);
-ImageFormat::BlockSize GetBlockSize(const ImageFormat::Enum format);
-const char*            GetFormatString(const ImageFormat::Enum format);
-ImageFormat::Enum      GetFormatFromString(char* string);
-};    // namespace ImageFormat
 
 typedef void* (*memoryAllocationFunc)(class Image* pImage, uint64_t memoryRequirement, void* pUserData);
 
@@ -63,10 +46,10 @@ class Image
 	Image();
 	Image(const Image& img);
 
-	unsigned char*
-		 Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
-	void RedefineDimensions(
-		const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
+	unsigned char* Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
+	// The following Create function will use passed in data as reference without allocating memory for internal pData (meaning the Image object will not own the data)
+	unsigned char* Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, unsigned char* rawData);
+	void RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
 	void Destroy();
 	void Clear();
 
@@ -114,7 +97,8 @@ class Image
 	bool IsArray() const { return (mArrayCount > 1); }
 	bool IsCube() const { return (mDepth == 0); }
 	bool IsRenderTarget() const { return mIsRendertarget; }
-
+	bool IsLinearLayout() const {return mLinearLayout;}
+	
 	// Image Format Loading from mData
 	bool iLoadDDSFromMemory(
 		const char* memory, uint32_t memsize, const bool useMipMaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
@@ -162,6 +146,7 @@ class Image
 	ImageFormat::Enum mFormat;
 	int               mAdditionalDataSize;
 	unsigned char*    pAdditionalData;
+	bool              mLinearLayout;
 	bool              mIsRendertarget;
 	bool              mOwnsMemory;
 
@@ -170,68 +155,6 @@ class Image
 		const char* memory, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData);
 	static void AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc);
 };
-
-static inline uint32_t calculateImageFormatStride(ImageFormat::Enum format)
-{
-	uint32_t result = 0;
-	switch (format)
-	{
-			// 1 channel
-		case ImageFormat::R8: result = 1; break;
-		case ImageFormat::R16: result = 2; break;
-		case ImageFormat::R16F: result = 2; break;
-		case ImageFormat::R32UI: result = 4; break;
-		case ImageFormat::R32F:
-			result = 4;
-			break;
-			// 2 channel
-		case ImageFormat::RG8: result = 2; break;
-		case ImageFormat::RG16: result = 4; break;
-		case ImageFormat::RG16F: result = 4; break;
-		case ImageFormat::RG32UI: result = 8; break;
-		case ImageFormat::RG32F:
-			result = 8;
-			break;
-			// 3 channel
-		case ImageFormat::RGB8: result = 3; break;
-		case ImageFormat::RGB16: result = 6; break;
-		case ImageFormat::RGB16F: result = 6; break;
-		case ImageFormat::RGB32UI: result = 12; break;
-		case ImageFormat::RGB32F:
-			result = 12;
-			break;
-			// 4 channel
-		case ImageFormat::BGRA8: result = 4; break;
-		case ImageFormat::RGBA8: result = 4; break;
-		case ImageFormat::RGBA16: result = 8; break;
-		case ImageFormat::RGBA16F: result = 8; break;
-		case ImageFormat::RGBA32UI: result = 16; break;
-		case ImageFormat::RGBA32F:
-			result = 16;
-			break;
-			// Depth/stencil
-		case ImageFormat::D16: result = 0; break;
-		case ImageFormat::X8D24PAX32: result = 0; break;
-		case ImageFormat::D32F: result = 0; break;
-		case ImageFormat::S8: result = 0; break;
-		case ImageFormat::D16S8: result = 0; break;
-		case ImageFormat::D24S8: result = 0; break;
-		case ImageFormat::D32S8: result = 0; break;
-		default: break;
-	}
-	return result;
-}
-
-static inline uint32_t calculateImageFormatChannelCount(ImageFormat::Enum format)
-{
-	//  uint32_t result = 0;
-	if (format == ImageFormat::BGRA8)
-		return 3;
-	else
-	{
-		return ImageFormat::GetChannelCount(format);
-	}
-}
 
 static inline uint32_t calculateMipMapLevels(uint32_t width, uint32_t height)
 {

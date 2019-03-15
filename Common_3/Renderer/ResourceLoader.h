@@ -29,7 +29,10 @@
 
 #pragma once
 
+#include "../Renderer/IRenderer.h"
 #include "../OS/Core/Atomics.h"
+#include "../OS/Image/ImageEnums.h"
+#include "../OS/Interfaces/IFileSystem.h"
 
 // Resource Loader Interface
 #if !defined(TARGET_IOS)
@@ -47,11 +50,25 @@ typedef struct BufferLoadDesc
 	bool mForceReset;
 } BufferLoadDesc;
 
+typedef struct RawImageData
+{
+	unsigned char* pRawData;
+	ImageFormat::Enum mFormat;
+	uint32_t mWidth, mHeight, mDepth, mArraySize, mMipLevels;
+} RawImageData;
+
+typedef struct BinaryImageData
+{
+	unsigned char* pBinaryData;
+	bool mUseMipMaps;
+	uint32_t mSize;
+	const char* pExtension;
+} BinaryImageData;
+
 typedef struct TextureLoadDesc
 {
 	Texture** ppTexture;
-	/// Load texture from image
-	Image* pImage;
+	
 	/// Load empty texture
 	TextureDesc* pDesc;
 	/// Load texture from disk
@@ -60,6 +77,10 @@ typedef struct TextureLoadDesc
 	uint32_t    mNodeIndex;
 	bool        mUseMipmaps;
 	bool        mSrgb;
+	/// Load texture from raw data
+	RawImageData* pRawImageData = NULL;
+	/// Load texture from binary data (with header)
+	BinaryImageData* pBinaryImageData = NULL;
 
 	// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag; 
@@ -86,8 +107,7 @@ typedef struct BufferUpdateDesc
 typedef struct TextureUpdateDesc
 {
 	Texture* pTexture;
-	Image*   pImage;
-	bool     freeImage;
+	RawImageData* pRawImageData = NULL;
 } TextureUpdateDesc;
 
 typedef enum ResourceType
@@ -95,19 +115,6 @@ typedef enum ResourceType
 	RESOURCE_TYPE_BUFFER = 0,
 	RESOURCE_TYPE_TEXTURE,
 } ResourceType;
-
-typedef struct ResourceLoadDesc
-{
-	ResourceLoadDesc(BufferLoadDesc& buffer): mType(RESOURCE_TYPE_BUFFER), buf(buffer) {}
-	ResourceLoadDesc(TextureLoadDesc& texture): mType(RESOURCE_TYPE_TEXTURE), tex(texture) {}
-
-	ResourceType mType;
-	union
-	{
-		BufferLoadDesc  buf;
-		TextureLoadDesc tex;
-	};
-} ResourceLoadDesc;
 
 typedef struct ResourceUpdateDesc
 {

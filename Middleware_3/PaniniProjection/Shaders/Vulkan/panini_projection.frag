@@ -28,7 +28,7 @@
 layout(location = 0) in vec2 iTexcoord;
 layout(location = 0) out vec4 oColor;
 
-layout(set = 0, binding = 1) uniform texture2D uTex;
+layout(set = 2, binding = 1) uniform texture2D uTex;
 layout(set = 0, binding = 2) uniform sampler uSampler;
 
 void main()

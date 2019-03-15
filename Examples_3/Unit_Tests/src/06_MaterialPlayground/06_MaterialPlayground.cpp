@@ -57,8 +57,8 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 // Animations
 #undef min
@@ -553,6 +553,30 @@ RootSignature* pRootSignatureHairShadow = NULL;
 #endif
 
 //--------------------------------------------------------------------------------------------
+// DESCRIPTOR BINDERS
+//--------------------------------------------------------------------------------------------
+
+DescriptorBinder* pDescriptorBinderSkybox = NULL;
+DescriptorBinder* pDescriptorBinderBRDF = NULL;
+DescriptorBinder* pDescriptorBinderShadowPass = NULL;
+#ifndef DIRECT3D11
+DescriptorBinder* pDescriptorBinderHairClear = NULL;
+DescriptorBinder* pDescriptorBinderHairDepthPeeling = NULL;
+DescriptorBinder* pDescriptorBinderHairDepthResolve = NULL;
+DescriptorBinder* pDescriptorBinderHairFillColors = NULL;
+DescriptorBinder* pDescriptorBinderHairColorResolve = NULL;
+DescriptorBinder* pDescriptorBinderHairIntegrate = NULL;
+DescriptorBinder* pDescriptorBinderHairShockPropagation = NULL;
+DescriptorBinder* pDescriptorBinderHairLocalConstraints = NULL;
+DescriptorBinder* pDescriptorBinderHairLengthConstraints = NULL;
+DescriptorBinder* pDescriptorBinderHairUpdateFollowHairs = NULL;
+DescriptorBinder* pDescriptorBinderHairPreWarm = NULL;
+DescriptorBinder* pDescriptorBinderShowCapsules = NULL;
+DescriptorBinder* pDescriptorBinderSkeleton = NULL;
+DescriptorBinder* pDescriptorBinderHairShadow = NULL;
+#endif
+
+//--------------------------------------------------------------------------------------------
 // PIPELINES
 //--------------------------------------------------------------------------------------------
 Pipeline* pPipelineSkybox = NULL;
@@ -920,6 +944,7 @@ class MaterialPlayground: public IApp
 		LoadModelsAndTextures();
 
 		CreateResources();
+		CreateDescriptorBinders();
 		LoadAnimations();
 		CreateUniformBuffers();
 
@@ -1090,11 +1115,11 @@ class MaterialPlayground: public IApp
 	{
 		// HANDLE INPUT
 		//
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
-		if (getKeyUp(KEY_LEFT_TRIGGER) && gMaterialType == MATERIAL_WOOD)    // KEY_LEFT_TRIGGER = spacebar
+		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED) && gMaterialType == MATERIAL_WOOD)    // KEY_LEFT_TRIGGER = spacebar
 		{
 			gDiffuseReflectionModel = (gDiffuseReflectionModel + 1) == DIFFUSE_REFLECTION_MODEL_COUNT ? 0 : gDiffuseReflectionModel + 1;
 		}
@@ -1434,7 +1459,7 @@ class MaterialPlayground: public IApp
 		DescriptorData shadowParams[1] = {};
 		shadowParams[0].pName = "cbCamera";
 		shadowParams[0].ppBuffers = &pUniformBufferCameraShadowPass[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignatureShadowPass, 1, shadowParams);
+		cmdBindDescriptors(cmd, pDescriptorBinderShadowPass, 1, shadowParams);
 
 		if (gMaterialType != MATERIAL_HAIR)
 		{
@@ -1445,7 +1470,7 @@ class MaterialPlayground: public IApp
 
 			shadowParams[0].pName = "cbObject";
 			shadowParams[0].ppBuffers = &pUniformBufferGroundPlane;	// TODO
-			cmdBindDescriptors(cmd, pRootSignatureShadowPass, 1, shadowParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderShadowPass, 1, shadowParams);
 			cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 
 			// DRAW THE LABEL PLATES
@@ -1454,7 +1479,7 @@ class MaterialPlayground: public IApp
 			{
 				shadowParams[0].pName = "cbObject";
 				shadowParams[0].ppBuffers = &pUniformBufferNamePlates[j]; // TODO
-				cmdBindDescriptors(cmd, pRootSignatureShadowPass, 1, shadowParams);
+				cmdBindDescriptors(cmd, pDescriptorBinderShadowPass, 1, shadowParams);
 				cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 			}
 
@@ -1466,7 +1491,7 @@ class MaterialPlayground: public IApp
 			{
 				shadowParams[0].pName = "cbObject";
 				shadowParams[0].ppBuffers = &pUniformBufferMatBall[gFrameIndex][i]; // TODO
-				cmdBindDescriptors(cmd, pRootSignatureShadowPass, 1, shadowParams);
+				cmdBindDescriptors(cmd, pDescriptorBinderShadowPass, 1, shadowParams);
 				cmdDrawIndexed(cmd, pMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
 			}
 		}
@@ -1494,7 +1519,7 @@ class MaterialPlayground: public IApp
 			skyParams[0].ppBuffers = &pUniformBufferCameraSkybox[gFrameIndex];
 			skyParams[1].pName = "skyboxTex";
 			skyParams[1].ppTextures = &pTextureSkybox;
-			cmdBindDescriptors(cmd, pRootSignatureSkybox, 2, skyParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderSkybox, 2, skyParams);
 			cmdBindVertexBuffer(cmd, 1, &pVertexBufferSkybox, NULL);
 			cmdDraw(cmd, 36, 0);
 		}
@@ -1534,7 +1559,7 @@ class MaterialPlayground: public IApp
 		params[5].ppTextures = &pTextureSpecularMap;
 		params[6].pName = "shadowMap";
 		params[6].ppTextures = &pRenderTargetShadowMap->pTexture;
-		cmdBindDescriptors(cmd, pRootSignatureBRDF, numDesc, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderBRDF, numDesc, params);
 
 		int matTypeId = GuiController::currentMaterialType * MATERIAL_TEXTURE_COUNT * MATERIAL_INSTANCE_COUNT;
 		int textureIndex = 0;
@@ -1547,7 +1572,7 @@ class MaterialPlayground: public IApp
 
 		params[0].pName = "cbObject";
 		params[0].ppBuffers = &pUniformBufferGroundPlane;
-		cmdBindDescriptors(cmd, pRootSignatureBRDF, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderBRDF, 1, params);
 
 		for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
 		{
@@ -1555,7 +1580,7 @@ class MaterialPlayground: public IApp
 			params[j].ppTextures = &pTextureMaterialMapsGround[j];
 		}
 
-		cmdBindDescriptors(cmd, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
+		cmdBindDescriptors(cmd, pDescriptorBinderBRDF, MATERIAL_TEXTURE_COUNT, params);
 		cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 
 
@@ -1572,13 +1597,13 @@ class MaterialPlayground: public IApp
 				params[j].pName = pTextureName[j];
 				params[j].ppTextures = &pTextureMaterialMaps[j + 4];
 			}
-			cmdBindDescriptors(cmd, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderBRDF, MATERIAL_TEXTURE_COUNT, params);
 
 			for (int j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
 			{
 				params[0].pName = "cbObject";
 				params[0].ppBuffers = &pUniformBufferNamePlates[j];
-				cmdBindDescriptors(cmd, pRootSignatureBRDF, 1, params);
+				cmdBindDescriptors(cmd, pDescriptorBinderBRDF, 1, params);
 				cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 			}
 
@@ -1592,7 +1617,7 @@ class MaterialPlayground: public IApp
 			{
 				params[0].pName = "cbObject";
 				params[0].ppBuffers = &pUniformBufferMatBall[gFrameIndex][i];
-				cmdBindDescriptors(cmd, pRootSignatureBRDF, 1, params);
+				cmdBindDescriptors(cmd, pDescriptorBinderBRDF, 1, params);
 
 				//binding pbr material textures
 				for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
@@ -1608,7 +1633,7 @@ class MaterialPlayground: public IApp
 					params[j].ppTextures = &pTextureMaterialMaps[textureIndex];
 				}
 
-				cmdBindDescriptors(cmd, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
+				cmdBindDescriptors(cmd, pDescriptorBinderBRDF, MATERIAL_TEXTURE_COUNT, params);
 				cmdDrawIndexed(cmd, pMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
 			}
 #endif
@@ -1663,7 +1688,7 @@ class MaterialPlayground: public IApp
 						hairParams[3].ppBuffers = &gHair[k].pBufferHairSimulationVertexPositions[2];
 						hairParams[4].pName = "HairRestPositions";
 						hairParams[4].ppBuffers = &gHair[k].pBufferHairVertexPositions;
-						cmdBindDescriptors(cmd, pRootSignatureHairPreWarm, 5, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinderHairPreWarm, 5, hairParams);
 
 						cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
@@ -1689,7 +1714,7 @@ class MaterialPlayground: public IApp
 					hairParams[4].ppBuffers = &gHair[k].pBufferHairVertexPositions;
 					hairParams[5].pName = "cbHairGlobal";
 					hairParams[5].ppBuffers = &pUniformBufferHairGlobal;
-					cmdBindDescriptors(cmd, pRootSignatureHairIntegrate, 6, hairParams);
+					cmdBindDescriptors(cmd, pDescriptorBinderHairIntegrate, 6, hairParams);
 
 					cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
@@ -1712,7 +1737,7 @@ class MaterialPlayground: public IApp
 						hairParams[2].ppBuffers = &gHair[k].pBufferHairSimulationVertexPositions[1];
 						hairParams[3].pName = "HairVertexPositionsPrevPrev";
 						hairParams[3].ppBuffers = &gHair[k].pBufferHairSimulationVertexPositions[2];
-						cmdBindDescriptors(cmd, pRootSignatureHairShockPropagation, 4, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinderHairShockPropagation, 4, hairParams);
 
 						cmdDispatch(cmd, dispatchGroupCountPerStrand, 1, 1);
 
@@ -1737,7 +1762,7 @@ class MaterialPlayground: public IApp
 						hairParams[2].ppBuffers = &gHair[k].pBufferHairGlobalRotations;
 						hairParams[3].pName = "HairRefsInLocalFrame";
 						hairParams[3].ppBuffers = &gHair[k].pBufferHairRefsInLocalFrame;
-						cmdBindDescriptors(cmd, pRootSignatureHairLocalConstraints, 4, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinderHairLocalConstraints, 4, hairParams);
 
 						for (int j = 0; j < 3; ++j)
 						{
@@ -1771,9 +1796,9 @@ class MaterialPlayground: public IApp
 #if HAIR_MAX_CAPSULE_COUNT > 0
 					hairParams[5].pName = "HairVertexPositionsPrev";
 					hairParams[5].ppBuffers = &gHair[k].pBufferHairSimulationVertexPositions[1];
-					cmdBindDescriptors(cmd, pRootSignatureHairLengthConstraints, 6, hairParams);
+					cmdBindDescriptors(cmd, pDescriptorBinderHairLengthConstraints, 6, hairParams);
 #else
-					cmdBindDescriptors(cmd, pRootSignatureHairLengthConstraints, 5, hairParams);
+					cmdBindDescriptors(cmd, pDescriptorBinderHairLengthConstraints, 5, hairParams);
 #endif
 
 					cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
@@ -1801,7 +1826,7 @@ class MaterialPlayground: public IApp
 						hairParams[2].ppBuffers = &gHair[k].pBufferHairVertexTangents;
 						hairParams[3].pName = "FollowHairRootOffsets";
 						hairParams[3].ppBuffers = &gHair[k].pBufferFollowHairRootOffsets;
-						cmdBindDescriptors(cmd, pRootSignatureHairUpdateFollowHairs, 4, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinderHairUpdateFollowHairs, 4, hairParams);
 
 						cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
@@ -1849,7 +1874,7 @@ class MaterialPlayground: public IApp
 					cmdBindPipeline(cmd, pPipelineHairShadow);
 					hairParams[0].pName = "cbCamera";
 					hairParams[0].ppBuffers = &pUniformBufferCameraHairShadows[gFrameIndex][hairType][i];
-					cmdBindDescriptors(cmd, pRootSignatureHairShadow, 1, hairParams);
+					cmdBindDescriptors(cmd, pDescriptorBinderHairShadow, 1, hairParams);
 
 					for (size_t j = 0; j < gHairTypeIndices[hairType].size(); ++j)
 					{
@@ -1863,7 +1888,7 @@ class MaterialPlayground: public IApp
 						hairParams[2].ppBuffers = &gHair[k].pBufferHairVertexTangents;
 						hairParams[3].pName = "HairThicknessCoefficients";
 						hairParams[3].ppBuffers = &gHair[k].pBufferHairThicknessCoefficients;
-						cmdBindDescriptors(cmd, pRootSignatureHairShadow, 4, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinderHairShadow, 4, hairParams);
 
 						cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, 0);
 						cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
@@ -1893,12 +1918,12 @@ class MaterialPlayground: public IApp
 			hairParams[0].pName = "DepthsTexture";
 #ifndef METAL
 			hairParams[0].ppTextures = &pTextureHairDepth;
-			cmdBindDescriptors(cmd, pRootSignatureHairClear, 1, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairClear, 1, hairParams);
 #else
 			hairParams[0].ppBuffers = &pBufferHairDepth;
 			hairParams[1].pName = "cbHairGlobal";
 			hairParams[1].ppBuffers = &pUniformBufferHairGlobal;
-			cmdBindDescriptors(cmd, pRootSignatureHairClear, 2, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairClear, 2, hairParams);
 #endif
 
 			cmdDraw(cmd, 3, 0);
@@ -1931,7 +1956,7 @@ class MaterialPlayground: public IApp
 #endif
 			hairParams[2].pName = "cbHairGlobal";
 			hairParams[2].ppBuffers = &pUniformBufferHairGlobal;
-			cmdBindDescriptors(cmd, pRootSignatureHairDepthPeeling, 3, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairDepthPeeling, 3, hairParams);
 
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
@@ -1950,7 +1975,7 @@ class MaterialPlayground: public IApp
 					hairParams[2].ppBuffers = &gHair[k].pBufferHairVertexTangents;
 					hairParams[3].pName = "HairThicknessCoefficients";
 					hairParams[3].ppBuffers = &gHair[k].pBufferHairThicknessCoefficients;
-					cmdBindDescriptors(cmd, pRootSignatureHairDepthPeeling, 4, hairParams);
+					cmdBindDescriptors(cmd, pDescriptorBinderHairDepthPeeling, 4, hairParams);
 
 					cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, 0);
 					cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
@@ -1975,12 +2000,12 @@ class MaterialPlayground: public IApp
 			hairParams[0].pName = "DepthsTexture";
 #ifndef METAL
 			hairParams[0].ppTextures = &pTextureHairDepth;
-			cmdBindDescriptors(cmd, pRootSignatureHairDepthResolve, 1, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairDepthResolve, 1, hairParams);
 #else
 			hairParams[0].ppBuffers = &pBufferHairDepth;
 			hairParams[1].pName = "cbHairGlobal";
 			hairParams[1].ppBuffers = &pUniformBufferHairGlobal;
-			cmdBindDescriptors(cmd, pRootSignatureHairDepthResolve, 2, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairDepthResolve, 2, hairParams);
 #endif
 			cmdDraw(cmd, 3, 0);
 
@@ -2020,7 +2045,7 @@ class MaterialPlayground: public IApp
 			hairParams[2].ppBuffers = &pUniformBufferDirectionalLights;
 			hairParams[3].pName = "cbHairGlobal";
 			hairParams[3].ppBuffers = &pUniformBufferHairGlobal;
-			cmdBindDescriptors(cmd, pRootSignatureHairFillColors, 4, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairFillColors, 4, hairParams);
 
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
@@ -2037,7 +2062,7 @@ class MaterialPlayground: public IApp
 				hairParams[1].pName = "cbDirectionalLightShadowCameras";
 				hairParams[1].ppBuffers = pUniformBufferCameraHairShadows[gFrameIndex][hairType];
 				hairParams[1].mCount = MAX_NUM_DIRECTIONAL_LIGHTS;
-				cmdBindDescriptors(cmd, pRootSignatureHairFillColors, 2, hairParams);
+				cmdBindDescriptors(cmd, pDescriptorBinderHairFillColors, 2, hairParams);
 
 				for (size_t i = 0; i < gHairTypeIndices[hairType].size(); ++i)
 				{
@@ -2051,7 +2076,7 @@ class MaterialPlayground: public IApp
 					hairParams[2].ppBuffers = &gHair[k].pBufferHairVertexTangents;
 					hairParams[3].pName = "HairThicknessCoefficients";
 					hairParams[3].ppBuffers = &gHair[k].pBufferHairThicknessCoefficients;
-					cmdBindDescriptors(cmd, pRootSignatureHairFillColors, 4, hairParams);
+					cmdBindDescriptors(cmd, pDescriptorBinderHairFillColors, 4, hairParams);
 
 					cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, 0);
 					cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
@@ -2078,7 +2103,7 @@ class MaterialPlayground: public IApp
 			hairParams[0].ppTextures = &pRenderTargetFillColors->pTexture;
 			hairParams[1].pName = "InvAlphaTexture";
 			hairParams[1].ppTextures = &pRenderTargetDepthPeeling->pTexture;
-			cmdBindDescriptors(cmd, pRootSignatureHairColorResolve, 2, hairParams);
+			cmdBindDescriptors(cmd, pDescriptorBinderHairColorResolve, 2, hairParams);
 			cmdDraw(cmd, 3, 0);
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -2102,7 +2127,7 @@ class MaterialPlayground: public IApp
 						hairParams[0].pRootConstant = &gFinalCapsules[hairType][i];
 						hairParams[1].pName = "cbCamera";
 						hairParams[1].ppBuffers = &pUniformBufferCamera[gFrameIndex];
-						cmdBindDescriptors(cmd, pRootSignatureShowCapsules, 2, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinderShowCapsules, 2, hairParams);
 						cmdDrawIndexed(cmd, pMeshes[MESH_CAPSULE]->mIndexCount, 0, 0);
 					}
 				}
@@ -2655,6 +2680,66 @@ class MaterialPlayground: public IApp
 #endif
 	}
 
+	void CreateDescriptorBinders()
+	{
+		DescriptorBinderDesc skyboxDescriptorBinderDesc = { pRootSignatureSkybox };
+		addDescriptorBinder(pRenderer, &skyboxDescriptorBinderDesc, &pDescriptorBinderSkybox);
+
+		DescriptorBinderDesc brdfDescriptorBinderDesc = { pRootSignatureBRDF, 1, MATERIAL_TEXTURE_COUNT * MATERIAL_INSTANCE_COUNT };
+		addDescriptorBinder(pRenderer, &brdfDescriptorBinderDesc, &pDescriptorBinderBRDF);
+
+		DescriptorBinderDesc shadowDescriptorBinderDesc = { pRootSignatureShadowPass, 4 * MATERIAL_INSTANCE_COUNT };
+		addDescriptorBinder(pRenderer, &shadowDescriptorBinderDesc, &pDescriptorBinderShadowPass);
+
+#ifndef DIRECT3D11
+		uint32_t hairDynamicDescriptorSets = 0;
+		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; i++)
+			hairDynamicDescriptorSets += (uint32_t)gHairTypeIndices[i].size();
+
+		DescriptorBinderDesc hairClearDescriptorBinderDesc = { pRootSignatureHairClear, 0, hairDynamicDescriptorSets};
+		addDescriptorBinder(pRenderer, &hairClearDescriptorBinderDesc, &pDescriptorBinderHairClear);
+
+		DescriptorBinderDesc hairDepthPeelingDescriptorBinderDesc = { pRootSignatureHairDepthPeeling, 0, hairDynamicDescriptorSets + HAIR_TYPE_COUNT };
+		addDescriptorBinder(pRenderer, &hairDepthPeelingDescriptorBinderDesc, &pDescriptorBinderHairDepthPeeling);
+
+		DescriptorBinderDesc hairDepthResolveDescriptorBinderDesc = { pRootSignatureHairDepthResolve, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairDepthResolveDescriptorBinderDesc, &pDescriptorBinderHairDepthResolve);
+
+		DescriptorBinderDesc hairFillColorsDescriptorBinderDesc = { pRootSignatureHairFillColors, 0, hairDynamicDescriptorSets + HAIR_TYPE_COUNT + 1};
+		addDescriptorBinder(pRenderer, &hairFillColorsDescriptorBinderDesc, &pDescriptorBinderHairFillColors);
+		
+		DescriptorBinderDesc hairColorResolveDescriptorBinderDesc = { pRootSignatureHairColorResolve, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairColorResolveDescriptorBinderDesc, &pDescriptorBinderHairColorResolve);
+		
+		DescriptorBinderDesc hairIntegrateDescriptorBinderDesc = { pRootSignatureHairIntegrate, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairIntegrateDescriptorBinderDesc, &pDescriptorBinderHairIntegrate);
+
+		DescriptorBinderDesc hairShockPropagationDescriptorBinderDesc = { pRootSignatureHairShockPropagation, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairShockPropagationDescriptorBinderDesc, &pDescriptorBinderHairShockPropagation);
+
+		DescriptorBinderDesc hairLocalConstraintsDescriptorBinderDesc = { pRootSignatureHairLocalConstraints, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairLocalConstraintsDescriptorBinderDesc, &pDescriptorBinderHairLocalConstraints);
+
+		DescriptorBinderDesc hairLengthConstraintsDescriptorBinderDesc = { pRootSignatureHairLengthConstraints, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairLengthConstraintsDescriptorBinderDesc, &pDescriptorBinderHairLengthConstraints);
+
+		DescriptorBinderDesc hairUpdateFollowHairsDescriptorBinderDesc = { pRootSignatureHairUpdateFollowHairs, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairUpdateFollowHairsDescriptorBinderDesc, &pDescriptorBinderHairUpdateFollowHairs);
+
+		DescriptorBinderDesc hairHairPreWarmDescriptorBinderDesc = { pRootSignatureHairPreWarm, 0, hairDynamicDescriptorSets };
+		addDescriptorBinder(pRenderer, &hairHairPreWarmDescriptorBinderDesc, &pDescriptorBinderHairPreWarm);
+
+		DescriptorBinderDesc showCapsulesDescriptorBinderDesc = { pRootSignatureShowCapsules };
+		addDescriptorBinder(pRenderer, &showCapsulesDescriptorBinderDesc, &pDescriptorBinderShowCapsules);
+
+		DescriptorBinderDesc skeletonDescriptorBinderDesc = { pRootSignatureSkeleton, 0, 20 };
+		addDescriptorBinder(pRenderer, &skeletonDescriptorBinderDesc, &pDescriptorBinderSkeleton);
+
+		DescriptorBinderDesc hairShadowDescriptorBinderDesc = { pRootSignatureHairShadow, 0, hairDynamicDescriptorSets * MAX_NUM_DIRECTIONAL_LIGHTS + HAIR_TYPE_COUNT * MAX_NUM_DIRECTIONAL_LIGHTS };
+		addDescriptorBinder(pRenderer, &hairShadowDescriptorBinderDesc, &pDescriptorBinderHairShadow);
+#endif
+	}
+
 	void DestroyRootSignatures()
 	{
 		removeRootSignature(pRenderer, pRootSignatureBRDF);
@@ -2689,20 +2774,24 @@ class MaterialPlayground: public IApp
 		const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
 
 		// Temporary resources that will be loaded on PBR preprocessing.
-		Texture*       pPanoSkybox = NULL;
-		Shader*        pPanoToCubeShader = NULL;
-		RootSignature* pPanoToCubeRootSignature = NULL;
-		Pipeline*      pPanoToCubePipeline = NULL;
-		Shader*        pBRDFIntegrationShader = NULL;
-		RootSignature* pBRDFIntegrationRootSignature = NULL;
-		Pipeline*      pBRDFIntegrationPipeline = NULL;
-		Shader*        pIrradianceShader = NULL;
-		RootSignature* pIrradianceRootSignature = NULL;
-		Pipeline*      pIrradiancePipeline = NULL;
-		Shader*        pSpecularShader = NULL;
-		RootSignature* pSpecularRootSignature = NULL;
-		Pipeline*      pSpecularPipeline = NULL;
-		Sampler*       pSkyboxSampler = NULL;
+		Texture*          pPanoSkybox = NULL;
+		Shader*           pPanoToCubeShader = NULL;
+		RootSignature*    pPanoToCubeRootSignature = NULL;
+		DescriptorBinder* pPanoToCubeDescriptorBinder = NULL;
+		Pipeline*         pPanoToCubePipeline = NULL;
+		Shader*           pBRDFIntegrationShader = NULL;
+		RootSignature*    pBRDFIntegrationRootSignature = NULL;
+		DescriptorBinder* pBRDFIntegrationDescriptorBinder = NULL;
+		Pipeline*         pBRDFIntegrationPipeline = NULL;
+		Shader*           pIrradianceShader = NULL;
+		RootSignature*    pIrradianceRootSignature = NULL;
+		DescriptorBinder* pIrradianceDescriptorBinder = NULL;
+		Pipeline*         pIrradiancePipeline = NULL;
+		Shader*           pSpecularShader = NULL;
+		RootSignature*    pSpecularRootSignature = NULL;
+		DescriptorBinder* pSpecularDescriptorBinder = NULL;
+		Pipeline*         pSpecularPipeline = NULL;
+		Sampler*          pSkyboxSampler = NULL;
 
 		SamplerDesc samplerDesc = {
 			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
@@ -2832,6 +2921,19 @@ class MaterialPlayground: public IApp
 		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
 		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 
+		DescriptorBinderDesc panoToCubeDescriptorBinderDesc = { pPanoToCubeRootSignature, gSkyboxMips + 1 };
+		addDescriptorBinder(pRenderer, &panoToCubeDescriptorBinderDesc, &pPanoToCubeDescriptorBinder);
+
+		DescriptorBinderDesc brdfIntegrationDescriptorBinderDesc = { pBRDFIntegrationRootSignature };
+		addDescriptorBinder(pRenderer, &brdfIntegrationDescriptorBinderDesc, &pBRDFIntegrationDescriptorBinder);
+
+		DescriptorBinderDesc irradianceDescriptorBinderDesc = { pIrradianceRootSignature };
+		addDescriptorBinder(pRenderer, &irradianceDescriptorBinderDesc, &pIrradianceDescriptorBinder);
+
+		DescriptorBinderDesc specularDescriptorBinderDesc = { pSpecularRootSignature, gSpecularMips + 1 };
+		addDescriptorBinder(pRenderer, &specularDescriptorBinderDesc, &pSpecularDescriptorBinder);
+
+
 		PipelineDesc computeDesc = {};
 		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = computeDesc.mComputeDesc;
@@ -2867,7 +2969,7 @@ class MaterialPlayground: public IApp
 		DescriptorData params[2] = {};
 		params[0].pName = "dstTexture";
 		params[0].ppTextures = &pTextureBRDFIntegrationMap;
-		cmdBindDescriptors(cmd, pBRDFIntegrationRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pBRDFIntegrationDescriptorBinder, 1, params);
 		const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
@@ -2879,7 +2981,7 @@ class MaterialPlayground: public IApp
 		cmdBindPipeline(cmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
 		params[0].ppTextures = &pPanoSkybox;
-		cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 1, params);
 
 		struct Data
 		{
@@ -2895,7 +2997,7 @@ class MaterialPlayground: public IApp
 			params[1].pName = "dstTexture";
 			params[1].ppTextures = &pTextureSkybox;
 			params[1].mUAVMipSlice = i;
-			cmdBindDescriptors(cmd, pPanoToCubeRootSignature, 2, params);
+			cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 2, params);
 
 			pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(
@@ -2915,7 +3017,7 @@ class MaterialPlayground: public IApp
 		params[0].ppTextures = &pTextureSkybox;
 		params[1].pName = "dstTexture";
 		params[1].ppTextures = &pTextureIrradianceMap;
-		cmdBindDescriptors(cmd, pIrradianceRootSignature, 2, params);
+		cmdBindDescriptors(cmd, pIrradianceDescriptorBinder, 2, params);
 		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
 		/************************************************************************/
@@ -2924,7 +3026,7 @@ class MaterialPlayground: public IApp
 		cmdBindPipeline(cmd, pSpecularPipeline);
 		params[0].pName = "srcTexture";
 		params[0].ppTextures = &pTextureSkybox;
-		cmdBindDescriptors(cmd, pSpecularRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pSpecularDescriptorBinder, 1, params);
 
 		struct PrecomputeSkySpecularData
 		{
@@ -2942,7 +3044,7 @@ class MaterialPlayground: public IApp
 			params[1].pName = "dstTexture";
 			params[1].ppTextures = &pTextureSpecularMap;
 			params[1].mUAVMipSlice = i;
-			cmdBindDescriptors(cmd, pSpecularRootSignature, 2, params);
+			cmdBindDescriptors(cmd, pSpecularDescriptorBinder, 2, params);
 			pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(cmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
 		}
@@ -3862,6 +3964,7 @@ class MaterialPlayground: public IApp
 #ifndef DIRECT3D11
 		// Create skeleton batcher
 		SkeletonRenderDesc skeletonRenderDesc = {};
+		skeletonRenderDesc.mRenderer = pRenderer;
 		skeletonRenderDesc.mSkeletonPipeline = pPipelineSkeleton;
 		skeletonRenderDesc.mRootSignature = pRootSignatureSkeleton;
 		skeletonRenderDesc.mJointVertexBuffer = pVertexBufferSkeletonJoint;

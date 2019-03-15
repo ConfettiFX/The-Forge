@@ -31,7 +31,7 @@ struct Data
 ConstantBuffer<Data> RootConstant : register(b0);
 Texture2D<float4> srcTexture : register(t1, space1);
 
-RWTexture2DArray<float4> dstTexture : register(u2, space1);
+RWTexture2DArray<float4> dstTexture : register(u2, space3);
 SamplerState skyboxSampler : register(s3);
 
 [numthreads(16, 16, 1)]

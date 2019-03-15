@@ -46,12 +46,12 @@
 
 #define EPSILON 1e-7f
 
-StructuredBuffer<float4> GuideHairVertexPositions : register(t0);
-StructuredBuffer<float4> GuideHairVertexTangents : register(t1);
-StructuredBuffer<float> HairThicknessCoefficients : register(t2);
+StructuredBuffer<float4> GuideHairVertexPositions : register(t0, space3);
+StructuredBuffer<float4> GuideHairVertexTangents : register(t1, space3);
+StructuredBuffer<float> HairThicknessCoefficients : register(t2, space3);
 SamplerState LinearSampler : register(s0);
 
-cbuffer cbCamera : register(b0)
+cbuffer cbCamera : register(b0, space3)
 {
 	float4x4 CamVPMatrix;
 	float4x4 CamInvVPMatrix;
@@ -60,7 +60,7 @@ cbuffer cbCamera : register(b0)
 	int bUseEnvironmentLight;
 }
 
-cbuffer cbHair : register(b2)
+cbuffer cbHair : register(b2, space3)
 {
 	float4x4 Transform;
 	uint RootColor;

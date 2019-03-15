@@ -37,8 +37,8 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // Must be last include in cpp file
 
@@ -61,9 +61,10 @@ Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore* pImageAcquiredSemaphore = NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*        pRTDemoShader = NULL;
-Pipeline*      pRTDemoPipeline = NULL;
-RootSignature* pRootSignature = NULL;
+Shader*           pRTDemoShader = NULL;
+Pipeline*         pRTDemoPipeline = NULL;
+RootSignature*    pRootSignature = NULL;
+DescriptorBinder* pDescriptorBinder = NULL;
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
 #endif
@@ -156,6 +157,9 @@ class SphereTracing: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
+		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
@@ -214,6 +218,7 @@ class SphereTracing: public IApp
 
 		removeShader(pRenderer, pRTDemoShader);
 		removeRootSignature(pRenderer, pRootSignature);
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeRasterizerState(pRast);
 
@@ -286,7 +291,7 @@ class SphereTracing: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(5.0f, vec3(-0.5f, -0.4f, 0.5f));
 		}
@@ -354,7 +359,7 @@ class SphereTracing: public IApp
 		DescriptorData params[1] = {};
 		params[0].pName = "u_input";
 		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, 1, params);
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndDebugMarker(cmd);

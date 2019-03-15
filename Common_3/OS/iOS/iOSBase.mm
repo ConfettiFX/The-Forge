@@ -41,8 +41,8 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
 
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
@@ -72,10 +72,6 @@ int getTouchEvent()
 }
 
 void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, gDeviceWidth, gDeviceHeight }; }
-
-bool getKeyDown(int key) { return InputSystem::IsButtonPressed(key); }
-
-bool getKeyUp(int key) { return InputSystem::IsButtonReleased(key); }
 
 /************************************************************************/
 // Time Related Functions
@@ -190,7 +186,13 @@ UIViewController* pMainViewController;
 	
 	// Get the device's width and height.
 	if (pApp->mSettings.mContentScaleFactor >= 1.f)
+	{
 		[_view setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+		for (UIView *subview in _view.subviews)
+		{
+			[subview setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+		}
+	}
 	gDeviceWidth = _view.drawableSize.width;
 	gDeviceHeight = _view.drawableSize.height;
 	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width),
@@ -228,7 +230,13 @@ UIViewController* pMainViewController;
 - (void)mtkView:(nonnull MTKView*)view drawableSizeWillChange:(CGSize)size
 {
 	if (pApp->mSettings.mContentScaleFactor >= 1.f)
+	{
 		[view setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+		for (UIView *subview in view.subviews)
+		{
+			[subview setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+		}
+	}
 	[_application drawRectResized:view.bounds.size];
 }
 

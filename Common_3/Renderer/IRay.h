@@ -183,7 +183,7 @@ typedef struct RaytracingDispatchDesc
 	AccelerationStructure*  pTopLevelAccelerationStructure;
 	RaytracingShaderTable*  pShaderTable;
     DescriptorData*         pRootSignatureDescriptorData;
-    RootSignature*          pRootSignature;
+	DescriptorBinder*       pDescriptorBinder;
     Pipeline*				pPipeline;
 } RaytracingDispatchDesc;
 

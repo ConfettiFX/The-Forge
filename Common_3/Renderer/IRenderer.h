@@ -77,7 +77,7 @@
 //#define USE_PIX
 #endif
 
-#include "../OS/Image/Image.h"
+#include "../OS/Image/ImageEnums.h"
 #include "../ThirdParty/OpenSource/TinySTL/string.h"
 #include "../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../ThirdParty/OpenSource/TinySTL/unordered_map.h"
@@ -172,7 +172,7 @@ typedef enum LoadActionType
 	MAX_LOAD_ACTION
 } LoadActionType;
 
-typedef void (*LogFn)(LogType, const char*, const char*);
+typedef void(*LogFn)(LogType, const char*, const char*);
 
 typedef enum ResourceState
 {
@@ -222,6 +222,7 @@ typedef struct ResidencySet         ResidencySet;
 typedef struct BlendState           BlendState;
 typedef struct ShaderReflectionInfo ShaderReflectionInfo;
 typedef struct Shader               Shader;
+typedef struct DescriptorBinder     DescriptorBinder;
 
 typedef struct IndirectDrawArguments
 {
@@ -725,8 +726,8 @@ typedef struct Buffer
 
 typedef struct ClearValue
 {
-// Anonymous structures generates warnings in C++11.
-// See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs
+	// Anonymous structures generates warnings in C++11.
+	// See discussion here for more info: https://stackoverflow.com/questions/2253878/why-does-c-disallow-anonymous-structs
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4201)    // warning C4201: nonstandard extension used: nameless struct/union
@@ -1046,14 +1047,17 @@ typedef struct RootSignature
 	uint32_t              mVkCumulativeDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	VkPushConstantRange*  pVkPushConstantRanges;
 	uint32_t              mVkPushConstantCount;
-
-	VkPipelineLayout pPipelineLayout;
+	VkPipelineLayout      pPipelineLayout;
 #endif
 #if defined(METAL)
 	Sampler**    ppStaticSamplers;
 	uint32_t*    pStaticSamplerSlots;
 	ShaderStage* pStaticSamplerStages;
 	uint32_t     mStaticSamplerCount;
+
+	// TODO: remove descriptor manager from Metal backend
+	using ThreadLocalDescriptorManager = tinystl::unordered_map<ThreadID, struct DescriptorManager*>;
+	ThreadLocalDescriptorManager pDescriptorManagerMap;
 #endif
 #if defined(DIRECT3D11)
 	ID3D11SamplerState** ppStaticSamplers;
@@ -1061,11 +1065,6 @@ typedef struct RootSignature
 	ShaderStage*         pStaticSamplerStages;
 	uint32_t             mStaticSamplerCount;
 #endif
-
-	using ThreadLocalDescriptorManager = tinystl::unordered_map<ThreadID, struct DescriptorManager*>;
-
-	/// Api specific binding manager
-	ThreadLocalDescriptorManager pDescriptorManagerMap;
 } RootSignature;
 
 typedef struct DescriptorData
@@ -1141,12 +1140,6 @@ typedef struct Cmd
 	D3D12_RESOURCE_BARRIER     pBatchBarriers[MAX_BATCH_BARRIERS];
 	// Small ring buffer to be used for copying root constant data in case the root constant was converted to root cbv
 	struct UniformRingBuffer*   pRootConstantRingBuffer;
-	D3D12_CPU_DESCRIPTOR_HANDLE mViewCpuHandle;
-	D3D12_GPU_DESCRIPTOR_HANDLE mViewGpuHandle;
-	uint64_t                    mViewPosition;
-	D3D12_CPU_DESCRIPTOR_HANDLE mSamplerCpuHandle;
-	D3D12_GPU_DESCRIPTOR_HANDLE mSamplerGpuHandle;
-	uint64_t                    mSamplerPosition;
 	D3D12_CPU_DESCRIPTOR_HANDLE mTransientCBVs;
 	uint64_t                    mTransientCBVPosition;
 	uint32_t                    mBatchBarrierCount;
@@ -1157,7 +1150,6 @@ typedef struct Cmd
 
 	VkImageMemoryBarrier        pBatchImageMemoryBarriers[MAX_BATCH_BARRIERS];
 	VkBufferMemoryBarrier       pBatchBufferMemoryBarriers[MAX_BATCH_BARRIERS];
-	struct DescriptorStoreHeap* pDescriptorPool;
 	uint32_t                    mBatchImageMemoryBarrierCount;
 	uint32_t                    mBatchBufferMemoryBarrierCount;
 #endif
@@ -1629,11 +1621,6 @@ typedef struct Pipeline
 
 typedef struct SubresourceDataDesc
 {
-#if defined(METAL)
-	uint32_t mRowPitch;
-	uint32_t mSlicePitch;
-	void*    pData;
-#else
 	uint32_t mArrayLayer;
 	uint32_t mMipLevel;
 	uint64_t mBufferOffset;
@@ -1642,7 +1629,6 @@ typedef struct SubresourceDataDesc
 	uint32_t mDepth;
 	uint32_t mRowPitch;
 	uint32_t mSlicePitch;
-#endif
 } SubresourceDataDesc;
 
 typedef struct SwapChainDesc
@@ -1682,7 +1668,6 @@ typedef struct SwapChain
 	IDXGISwapChain1* pDxSwapChain;
 	UINT             mDxSyncInterval;
 	ID3D12Resource** ppDxSwapChainResources;
-	uint32_t         mImageIndex;
 	uint32_t         mFlags;
 #elif defined(DIRECT3D12)
 	/// Use IDXGISwapChain3 for now since IDXGISwapChain4
@@ -1691,7 +1676,6 @@ typedef struct SwapChain
 	/// Sync interval to specify how interval for vsync
 	UINT             mDxSyncInterval;
 	ID3D12Resource** ppDxSwapChainResources;
-	uint32_t         mImageIndex;
 	uint32_t         mFlags;
 #endif
 #if defined(DIRECT3D11)
@@ -1701,7 +1685,6 @@ typedef struct SwapChain
 	/// Sync interval to specify how interval for vsync
 	UINT             mDxSyncInterval;
 	ID3D11Resource** ppDxSwapChainResources;
-	uint32_t         mImageIndex;
 	uint32_t         mFlags;
 #endif
 #if defined(VULKAN)
@@ -1720,7 +1703,7 @@ typedef struct SwapChain
 
 typedef enum ShaderTarget
 {
-// We only need SM 5.0 for supporting D3D11 fallback
+	// We only need SM 5.0 for supporting D3D11 fallback
 #if defined(DIRECT3D11)
 	shader_target_5_0,
 #else
@@ -1791,6 +1774,8 @@ typedef struct Renderer
 	uint32_t     mNumOfGPUs;
 	GPUSettings* pActiveGpuSettings;
 	GPUSettings  mGpuSettings[MAX_GPUS];
+	uint32_t     mLinkedNodeCount;
+
 #if defined(_DURANGO)
 	IDXGIFactory2* pDXGIFactory;
 	IDXGIAdapter*  pDxGPUs[MAX_GPUS];
@@ -1806,12 +1791,12 @@ typedef struct Renderer
 	D3D12_CPU_DESCRIPTOR_HANDLE mCbvNullDescriptor;
 	D3D12_CPU_DESCRIPTOR_HANDLE mSamplerNullDescriptor;
 
-	// API specific descriptor heap and memory allocator
 	struct DescriptorStoreHeap* pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 	struct DescriptorStoreHeap* pCbvSrvUavHeap[MAX_GPUS];
 	struct DescriptorStoreHeap* pSamplerHeap[MAX_GPUS];
+
+	// API specific descriptor heap and memory allocator
 	struct ResourceAllocator*   pResourceAllocator;
-	uint32_t                    mDxLinkedNodeCount;
 #elif defined(DIRECT3D12)
 	IDXGIFactory5* pDXGIFactory;
 	IDXGIAdapter3* pDxGPUs[MAX_GPUS];
@@ -1831,7 +1816,6 @@ typedef struct Renderer
 	struct DescriptorStoreHeap* pCbvSrvUavHeap[MAX_GPUS];
 	struct DescriptorStoreHeap* pSamplerHeap[MAX_GPUS];
 	struct ResourceAllocator*   pResourceAllocator;
-	uint32_t                    mDxLinkedNodeCount;
 #endif
 #if defined(DIRECT3D11)
 	IDXGIFactory1*       pDXGIFactory;
@@ -1859,7 +1843,6 @@ typedef struct Renderer
 	VkDebugReportCallbackEXT     pVkDebugReport;
 	tinystl::vector<const char*> mInstanceLayers;
 	uint32_t                     mVkUsedQueueCount[MAX_GPUS][16];
-	uint32_t                     mVkLinkedNodeCount;
 
 	Texture* pDefaultTexture1DSRV;
 	Texture* pDefaultTexture1DUAV;
@@ -1876,7 +1859,6 @@ typedef struct Renderer
 	Sampler* pDefaultSampler;
 
 	struct VmaAllocator_T*      pVmaAllocator;
-	struct DescriptorStoreHeap* pDescriptorPool;
 
 	// These are the extensions that we have loaded
 	const char* gVkInstanceExtensions[MAX_INSTANCE_EXTENSIONS];
@@ -1887,7 +1869,7 @@ typedef struct Renderer
 	id<MTLDevice>             pDevice;
 	struct ResourceAllocator* pResourceAllocator;
 #endif
-
+	uint32_t         mCurrentFrameIdx;
 	// Default states used if user does not specify them in pipeline creation
 	BlendState*      pDefaultBlendState;
 	DepthState*      pDefaultDepthState;
@@ -1927,6 +1909,15 @@ typedef struct CommandSignature
 	IndirectArgumentType mDrawType;
 #endif
 } CommandSignature;
+
+typedef struct DescriptorBinderDesc
+{
+	RootSignature* pRootSignature;
+	uint32_t       mMaxDynamicUpdatesPerBatch;
+	uint32_t       mMaxDynamicUpdatesPerDraw;
+	uint32_t       mGpuNodeIndex;
+} DescriptorBinderDesc;
+
 
 #define API_INTERFACE
 
@@ -1989,6 +1980,10 @@ API_INTERFACE void CALLTYPE addComputePipeline(Renderer* pRenderer, const Comput
 
 API_INTERFACE void CALLTYPE removePipeline(Renderer* pRenderer, Pipeline* p_pipeline);
 
+// descriptor binder functions
+API_INTERFACE void CALLTYPE addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* p_desc, DescriptorBinder** pp_descriptor_binder);
+API_INTERFACE void CALLTYPE removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* p_descriptor_binder);
+
 /// Pipeline State Functions
 API_INTERFACE void CALLTYPE addBlendState(Renderer* pRenderer, const BlendStateDesc* pDesc, BlendState** ppBlendState);
 API_INTERFACE void CALLTYPE removeBlendState(BlendState* pBlendState);
@@ -2006,7 +2001,7 @@ API_INTERFACE void CALLTYPE cmdBindRenderTargets(Cmd* p_cmd, uint32_t render_tar
 API_INTERFACE void CALLTYPE cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, float min_depth, float max_depth);
 API_INTERFACE void CALLTYPE cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 API_INTERFACE void CALLTYPE cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline);
-API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
+API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams);
 API_INTERFACE void CALLTYPE cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer, uint64_t offset);
 API_INTERFACE void CALLTYPE cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers, uint64_t* pOffsets);
 API_INTERFACE void CALLTYPE cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex);

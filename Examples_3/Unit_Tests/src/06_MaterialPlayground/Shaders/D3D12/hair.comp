@@ -69,7 +69,7 @@ struct Capsule
 	float radius1;
 };
 
-cbuffer cbSimulation : register(b0)
+cbuffer cbSimulation : register(b0, space3)
 {
 	float4x4 Transform;
 	float4 QuatRotation;
@@ -92,7 +92,7 @@ cbuffer cbSimulation : register(b0)
 	float TipSeperationFactor;
 }
 
-cbuffer cbHairGlobal : register(b4)
+cbuffer cbHairGlobal : register(b4, space3)
 {
 	float4 Viewport;
 	float4 Gravity;
@@ -100,16 +100,16 @@ cbuffer cbHairGlobal : register(b4)
 	float TimeStep;
 }
 
-RWStructuredBuffer<float4> HairVertexPositions : register(u0);
-RWStructuredBuffer<float4> HairVertexPositionsPrev : register(u1);
-RWStructuredBuffer<float4> HairVertexPositionsPrevPrev : register(u2);
-RWStructuredBuffer<float4> HairVertexTangents : register(u3);
+RWStructuredBuffer<float4> HairVertexPositions : register(u0, space3);
+RWStructuredBuffer<float4> HairVertexPositionsPrev : register(u1, space3);
+RWStructuredBuffer<float4> HairVertexPositionsPrevPrev : register(u2, space3);
+RWStructuredBuffer<float4> HairVertexTangents : register(u3, space3);
 
-StructuredBuffer<float4> HairRestPositions : register(t0);
-StructuredBuffer<float> HairRestLengths : register(t1);
-StructuredBuffer<float4> HairGlobalRotations : register(t2);
-StructuredBuffer<float4> HairRefsInLocalFrame : register(t3);
-StructuredBuffer<float4> FollowHairRootOffsets : register(t4);
+StructuredBuffer<float4> HairRestPositions : register(t0, space3);
+StructuredBuffer<float> HairRestLengths : register(t1, space3);
+StructuredBuffer<float4> HairGlobalRotations : register(t2, space3);
+StructuredBuffer<float4> HairRefsInLocalFrame : register(t3, space3);
+StructuredBuffer<float4> FollowHairRootOffsets : register(t4, space3);
 
 float3 RotateVec(float4 q, float3 v)
 {

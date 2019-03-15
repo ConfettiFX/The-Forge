@@ -56,8 +56,8 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -174,43 +174,50 @@ Shader* pShaderZPass = NULL;
 /************************************************************************/
 // Z-prepass Shader Pack
 /************************************************************************/
-Pipeline*      pPipelineZPrepass = NULL;
-RootSignature* pRootSignatureZprepass = NULL;
+Pipeline*         pPipelineZPrepass = NULL;
+RootSignature*    pRootSignatureZprepass = NULL;
+DescriptorBinder* pDescriptorBinderZprepass = NULL;
 /************************************************************************/
 // Forward Shade Shader pack
 /************************************************************************/
-Shader*        pShaderForwardPass = NULL;
-Pipeline*      pPipelineForwardShadeSrgb = NULL;
-RootSignature* pRootSignatureForwardPass = NULL;
+Shader*           pShaderForwardPass = NULL;
+Pipeline*         pPipelineForwardShadeSrgb = NULL;
+RootSignature*    pRootSignatureForwardPass = NULL;
+DescriptorBinder* pDescriptorBinderForwardPass = NULL;
 /************************************************************************/
 // SDF Shader pack
 /************************************************************************/
-Shader*        pShaderSdfSphere = NULL;
-Pipeline*      pPipelineSdfSphere = NULL;
-RootSignature* pRootSignatureSdfSphere = NULL;
+Shader*           pShaderSdfSphere = NULL;
+Pipeline*         pPipelineSdfSphere = NULL;
+RootSignature*    pRootSignatureSdfSphere = NULL;
+DescriptorBinder* pDescriptorBinderSdfSphere = NULL;
 /************************************************************************/
 // Skybox Shader Pack
 /************************************************************************/
-Shader*        pShaderSkybox = NULL;
-Pipeline*      pPipelineSkybox = NULL;
-RootSignature* pRootSignatureSkybox = NULL;
+Shader*           pShaderSkybox = NULL;
+Pipeline*         pPipelineSkybox = NULL;
+RootSignature*    pRootSignatureSkybox = NULL;
+DescriptorBinder* pDescriptorBinderSkybox = NULL;
 /************************************************************************/
 // Shadow Shader Pack
 /************************************************************************/
-Pipeline*      pPipelineShadowPass = NULL;
-RootSignature* pRootSignatureShadowPass = NULL;
+Pipeline*         pPipelineShadowPass = NULL;
+RootSignature*    pRootSignatureShadowPass = NULL;
+DescriptorBinder* pDescriptorBinderShadowPass = NULL;
 /************************************************************************/
 // ESM Compute Blur Shader Pack
 /************************************************************************/
-Shader*        pShaderESMBlur = NULL;
-Pipeline*      pPipelineESMBlur = NULL;
-RootSignature* pRootSignatureESMBlur = NULL;
+Shader*           pShaderESMBlur = NULL;
+Pipeline*         pPipelineESMBlur = NULL;
+RootSignature*    pRootSignatureESMBlur = NULL;
+DescriptorBinder* pDescriptorBinderESMBlur = NULL;
 /************************************************************************/
 // Depth buffer copy compute shader
 /************************************************************************/
-Shader*        pShaderCopyBuffer = NULL;
-Pipeline*      pPipelineCopyBuffer = NULL;
-RootSignature* pRootSignatureCopyBuffer = NULL;
+Shader*           pShaderCopyBuffer = NULL;
+Pipeline*         pPipelineCopyBuffer = NULL;
+RootSignature*    pRootSignatureCopyBuffer = NULL;
+DescriptorBinder* pDescriptorBinderCopyBuffer = NULL;
 
 /************************************************************************/
 // Samplers
@@ -713,6 +720,21 @@ class LightShadowPlayground: public IApp
 		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignatureSkybox);
 		addRootSignature(pRenderer, &sdfSphereRootDesc, &pRootSignatureSdfSphere);
 
+		DescriptorBinderDesc zPrepassDescriptorBinderDesc = { pRootSignatureZprepass, 0, 1 };
+		addDescriptorBinder(pRenderer, &zPrepassDescriptorBinderDesc, &pDescriptorBinderZprepass);
+
+		DescriptorBinderDesc forwardPassDescriptorBinderDesc = { pRootSignatureForwardPass, 0, 1 };
+		addDescriptorBinder(pRenderer, &forwardPassDescriptorBinderDesc, &pDescriptorBinderForwardPass);
+
+		DescriptorBinderDesc shadowMapDescriptorBinderDesc = { pRootSignatureShadowPass, 0, 1 };
+		addDescriptorBinder(pRenderer, &shadowMapDescriptorBinderDesc, &pDescriptorBinderShadowPass);
+
+		DescriptorBinderDesc skyboxDescriptorBinderDesc = { pRootSignatureSkybox, 0, 1 };
+		addDescriptorBinder(pRenderer, &skyboxDescriptorBinderDesc, &pDescriptorBinderSkybox);
+
+		DescriptorBinderDesc sdfSphereDescriptorBinderDesc = { pRootSignatureSdfSphere, 1, 1 };
+		addDescriptorBinder(pRenderer, &sdfSphereDescriptorBinderDesc, &pDescriptorBinderSdfSphere);
+
 		RootSignatureDesc esmBlurShaderRootDesc = {};
 		esmBlurShaderRootDesc.ppShaders = &pShaderESMBlur;
 		esmBlurShaderRootDesc.mShaderCount = 1;
@@ -724,6 +746,9 @@ class LightShadowPlayground: public IApp
 		esmBlurShaderRootDesc.ppStaticSamplerNames = esmblurShaderRootSamplerNames;
 		addRootSignature(pRenderer, &esmBlurShaderRootDesc, &pRootSignatureESMBlur);
 
+		DescriptorBinderDesc esmBlurDescriptorBinderDesc = { pRootSignatureESMBlur, 0, 2 };
+		addDescriptorBinder(pRenderer, &esmBlurDescriptorBinderDesc, &pDescriptorBinderESMBlur);
+
 		RootSignatureDesc bufferCopyShaderRootDesc = {};
 		bufferCopyShaderRootDesc.ppShaders = &pShaderCopyBuffer;
 		bufferCopyShaderRootDesc.mShaderCount = 1;
@@ -734,6 +759,9 @@ class LightShadowPlayground: public IApp
 		};
 		bufferCopyShaderRootDesc.ppStaticSamplerNames = bufferCopyShaderRootSamplerNames;
 		addRootSignature(pRenderer, &bufferCopyShaderRootDesc, &pRootSignatureCopyBuffer);
+
+		DescriptorBinderDesc copyBufferDescriptorBinderDesc = { pRootSignatureCopyBuffer, 0, 1 };
+		addDescriptorBinder(pRenderer, &copyBufferDescriptorBinderDesc, &pDescriptorBinderCopyBuffer);
 
 		/************************************************************************/
 		// setup Rasterizer State
@@ -855,6 +883,14 @@ class LightShadowPlayground: public IApp
 		removeRootSignature(pRenderer, pRootSignatureSkybox);
 		removeRootSignature(pRenderer, pRootSignatureSdfSphere);
 		removeRootSignature(pRenderer, pRootSignatureCopyBuffer);
+
+		removeDescriptorBinder(pRenderer, pDescriptorBinderZprepass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderForwardPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderESMBlur);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderShadowPass);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSkybox);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderSdfSphere);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderCopyBuffer);
 
 		removeDepthState(pDepthStateEnable);
 		removeDepthState(pDepthStateTestOnly);
@@ -1060,7 +1096,7 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
@@ -1193,7 +1229,7 @@ class LightShadowPlayground: public IApp
 		params[0].pName = "objectUniformBlock";
 		params[0].ppBuffers = &pBufferObjectTransforms[MAIN_CAMERA][gFrameIndex];
 
-		cmdBindDescriptors(cmd, pRootSignatureZprepass, sizeof(params) / sizeof(DescriptorData), params);
+		cmdBindDescriptors(cmd, pDescriptorBinderZprepass, sizeof(params) / sizeof(DescriptorData), params);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 		
 		setRenderTarget(cmd, 0, NULL, NULL, NULL);
@@ -1243,7 +1279,7 @@ class LightShadowPlayground: public IApp
 		params[7].pName = "cameraUniformBlock";
 		params[7].ppBuffers = &pBufferCameraUniform[gFrameIndex];
 		cmdBindPipeline(cmd, pPipelineForwardShadeSrgb);
-		cmdBindDescriptors(cmd, pRootSignatureForwardPass, sizeof(params) / sizeof(DescriptorData), params);
+		cmdBindDescriptors(cmd, pDescriptorBinderForwardPass, sizeof(params) / sizeof(DescriptorData), params);
 
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 
@@ -1269,7 +1305,7 @@ class LightShadowPlayground: public IApp
 		params[3].ppBuffers = &pBufferESMBlurIntermediate;
 		params[4].pName = "RootConstants";
 		params[4].pRootConstant = &rtId;
-		cmdBindDescriptors(cmd, pRootSignatureESMBlur, sizeof(params) / sizeof(DescriptorData), params);
+		cmdBindDescriptors(cmd, pDescriptorBinderESMBlur, sizeof(params) / sizeof(DescriptorData), params);
 		cmdBindPipeline(cmd, pPipelineESMBlur);
 		cmdDispatch(cmd, 1u, ESM_SHADOWMAP_RES, 1u);
 
@@ -1294,7 +1330,7 @@ class LightShadowPlayground: public IApp
 		DescriptorData params[1] = {};
 		params[0].pName = "objectUniformBlock";
 		params[0].ppBuffers = &pBufferObjectTransforms[SHADOWMAP][gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignatureShadowPass, sizeof(params) / sizeof(DescriptorData), params);
+		cmdBindDescriptors(cmd, pDescriptorBinderShadowPass, sizeof(params) / sizeof(DescriptorData), params);
 
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, SPHERE_NUM, 0);
 		setRenderTarget(cmd, 0, NULL, NULL, NULL);
@@ -1327,7 +1363,7 @@ class LightShadowPlayground: public IApp
 		params[4].ppTextures = &pDepthCopyTexture;
 		params[5].pName = "sdfUniformBlock";
 		params[5].ppBuffers = &pBufferSdfInputUniform[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignatureSdfSphere, sizeof(params) / sizeof(DescriptorData), params);
+		cmdBindDescriptors(cmd, pDescriptorBinderSdfSphere, sizeof(params) / sizeof(DescriptorData), params);
 		cmdBindIndexBuffer(cmd, pBufferBoxIndex, NULL);
 		cmdDrawIndexedInstanced(cmd, 36, 0, SPHERE_NUM - 1, 0, 0);
 
@@ -1347,7 +1383,7 @@ class LightShadowPlayground: public IApp
 		params[1].ppBuffers = &pBufferCameraUniform[gFrameIndex];
 		params[2].pName = "Skybox";
 		params[2].ppTextures = &pTextureSkybox;
-		cmdBindDescriptors(cmd, pRootSignatureSkybox, sizeof(params) / sizeof(DescriptorData), params);
+		cmdBindDescriptors(cmd, pDescriptorBinderSkybox, sizeof(params) / sizeof(DescriptorData), params);
 		cmdDraw(cmd, 3, 0);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -1488,7 +1524,7 @@ class LightShadowPlayground: public IApp
 				params[0].ppTextures = &pRenderTargetDepth->pTexture;
 				params[1].pName = "dstImg";
 				params[1].ppTextures = &pDepthCopyTexture;
-				cmdBindDescriptors(cmd, pRootSignatureCopyBuffer, 2, params);
+				cmdBindDescriptors(cmd, pDescriptorBinderCopyBuffer, 2, params);
 				cmdBindPipeline(cmd, pPipelineCopyBuffer);
 				cmdDispatch(
 					cmd, pRenderTargetDepth->mDesc.mWidth / COPY_BUFFER_WORKGROUP,

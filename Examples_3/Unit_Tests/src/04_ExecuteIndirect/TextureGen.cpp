@@ -42,7 +42,7 @@
 #include "NoiseOctaves.h"
 #include "Random.h"
 
-void genTextures(uint32_t texture_count, Image* out_texture)
+void genTextures(uint32_t texture_count, RawImageData* out_data)
 {
 	static const int textureDim = 256;
 
@@ -54,9 +54,15 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 			seeds[i] = rand();
 	}
 
-	Image* image = out_texture;
-	image->Create(ImageFormat::RGBA8, textureDim, textureDim, 1, 1, texture_count * array_count);
-
+	uint32_t sliceSize = sizeof(unsigned char) * textureDim * textureDim * 4;
+	out_data->mFormat = ImageFormat::RGBA8;
+	out_data->mWidth = textureDim;
+	out_data->mHeight = textureDim;
+	out_data->mDepth = 1;
+	out_data->mMipLevels = 1;
+	out_data->mArraySize = texture_count * array_count;
+	out_data->pRawData = (unsigned char*)conf_malloc(sliceSize * out_data->mArraySize);
+	
 	for (uint32_t t = 0; t < texture_count; ++t)
 	{
 		MyRandom rng(seeds[t]);
@@ -75,9 +81,10 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 
 			NoiseOctaves<4> textureNoise(persistence);
 
-			uint      mipLevel = 0;
-			uint      slice = t * array_count + a;
-			uint32_t* scanline = (uint32_t*)image->GetPixels(mipLevel, slice);
+			uint32_t    mipLevel = 0;
+			uint32_t    slice = t * array_count + a;
+			uint32_t	nextSliceInMem = sliceSize * slice;
+			uint32_t*	scanline = (uint32_t*)((unsigned char*)(out_data->pRawData + nextSliceInMem));
 			for (size_t y = 0; y < textureDim; ++y)
 			{
 				for (size_t x = 0; x < textureDim; ++x)
@@ -89,12 +96,9 @@ void genTextures(uint32_t texture_count, Image* out_texture)
 					int32_t cg = (int32_t)(c * 255.0f);
 					int32_t cb = (int32_t)(c * 255.0f);
 					scanline[x] = (cr) << 16 | (cg) << 8 | (cb) << 0;
-					//scanline[x] = cr;
 				}
-				scanline += image->GetWidth();
+				scanline += textureDim;
 			}
 		}
 	}
-
-	//*out_textures = images;
 }

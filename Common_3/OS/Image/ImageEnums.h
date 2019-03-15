@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../Interfaces/ILogManager.h"
+
 #if defined(ORBIS)
 // Indicates the result of a GNF load operation
 enum GnfError
@@ -197,4 +199,378 @@ enum BlockSize
 	BLOCK_SIZE_4x4,
 	BLOCK_SIZE_4x8,
 };
+
+static inline bool IsPlainFormat(const Enum format)
+{
+	return (format <= RGBA32UI) || (format == BGRA8);
+}
+
+static inline int32_t GetBytesPerPixel(const Enum format)
+{
+	// Does not accept compressed formats
+
+	static const int32_t bytesPP[] = {
+		0, 1, 2,  3,  4,       //  8-bit unsigned
+		2, 4, 6,  8,           // 16-bit unsigned
+		1, 2, 3,  4,           //  8-bit signed
+		2, 4, 6,  8,           // 16-bit signed
+		2, 4, 6,  8,           // 16-bit float
+		4, 8, 12, 16,          // 32-bit float
+		2, 4, 6,  8,           // 16-bit unsigned integer
+		4, 8, 12, 16,          // 32-bit unsigned integer
+		2, 4, 6,  8,           // 16-bit signed integer
+		4, 8, 12, 16,          // 32-bit signed integer
+		4, 4, 4,  2,  2, 4,    // Packed
+		2, 4, 4,  4,           // Depth
+	};
+
+	if (format == BGRA8)
+		return 4;
+
+	ASSERT(format <= D32F || format == BGRA8 || format == D32S8);
+
+	return bytesPP[format];
+}
+
+static inline int32_t GetBytesPerChannel(const Enum format)
+{
+	// Accepts only plain formats
+	static const int32_t bytesPC[] = {
+		1,    //  8-bit unsigned
+		2,    // 16-bit unsigned
+		1,    //  8-bit signed
+		2,    // 16-bit signed
+		2,    // 16-bit float
+		4,    // 32-bit float
+		2,    // 16-bit unsigned integer
+		4,    // 32-bit unsigned integer
+		2,    // 16-bit signed integer
+		4,    // 32-bit signed integer
+	};
+
+	ASSERT(format <= RGBA32UI);
+
+	return bytesPC[(format - 1) >> 2];
+}
+
+static inline BlockSize GetBlockSize(const Enum format)
+{
+	switch (format)
+	{
+	case PVR_2BPP_SRGB:     //  4x8
+	case PVR_2BPPA_SRGB:    //  4x8
+	case PVR_2BPP:          //  4x8
+	case PVR_2BPPA:         //  4x8
+		return BLOCK_SIZE_4x8;
+
+	case DXT1:         //  4x4
+	case ATI1N:        //  4x4
+	case GNF_BC1:      //  4x4
+	case ETC1:         //  4x4
+	case ATC:          //  4x4
+	case PVR_4BPP:     //  4x4
+	case PVR_4BPPA:    //  4x4
+	case DXT3:         //  4x4
+	case DXT5:         //  4x4
+	case GNF_BC3:      //  4x4
+	case GNF_BC5:      //  4x4
+	case ATI2N:        //  4x4
+	case ATCA:         //  4x4
+	case ATCI:         //  4x4
+#ifdef FORGE_JHABLE_EDITS_V01
+	case GNF_BC6:    //  4x4
+	case GNF_BC7:    //  4x4
+#endif
+		return BLOCK_SIZE_4x4;
+
+	default: return BLOCK_SIZE_1x1;
+	}
+}
+
+static inline bool IsIntegerFormat(const Enum format)
+{
+	return (format >= R16I && format <= RGBA32UI);
+}
+
+static inline bool IsCompressedFormat(const Enum format)
+{
+	return (
+		((format >= DXT1) && (format <= PVR_4BPPA)) ||
+		((format >= PVR_2BPP_SRGB) && (format <= PVR_4BPPA_SRGB)) ||
+		((format >= ETC1) && (format <= ATCI)) ||
+		((format >= GNF_BC1) && (format <= GNF_BC7)));
+}
+
+static inline int32_t GetBytesPerBlock(const Enum format)
+{
+	ASSERT(IsCompressedFormat(format));
+	switch (format)
+	{
+		// BC1 == DXT1
+		// BC2 == DXT2
+		// BC3 == DXT4 / 5
+		// BC4 == ATI1 == One color channel (8 bits)
+		// BC5 == ATI2 == Two color channels (8 bits:8 bits)
+		// BC6 == Three color channels (16 bits:16 bits:16 bits) in "half" floating point*
+		// BC7 == Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
+	case DXT1:         //  4x4
+	case ATI1N:        //  4x4
+	case GNF_BC1:      //  4x4
+	case ETC1:         //  4x4
+	case ATC:          //  4x4
+	case PVR_4BPP:     //  4x4
+	case PVR_4BPPA:    //  4x4
+	case PVR_2BPP:     //  4x8
+	case PVR_2BPPA:    //  4x8
+	case PVR_4BPP_SRGB:     //  4x4
+	case PVR_4BPPA_SRGB:    //  4x4
+	case PVR_2BPP_SRGB:     //  4x8
+	case PVR_2BPPA_SRGB:    //  4x8
+		return 8;
+
+	case DXT3:       //  4x4
+	case DXT5:       //  4x4
+	case GNF_BC3:    //  4x4
+	case GNF_BC5:    //  4x4
+	case ATI2N:      //  4x4
+	case ATCA:       //  4x4
+	case ATCI:       //  4x4
+#ifdef FORGE_JHABLE_EDITS_V01
+	case GNF_BC6:    //  4x4
+	case GNF_BC7:    //  4x4
+#endif
+		return 16;
+
+	default: return 0;
+	}
+}
+
+
+static inline bool IsFloatFormat(const Enum format)
+{
+	//	return (format >= R16F && format <= RGBA32F);
+	return (format >= R16F && format <= RG11B10F) || (format == D32F);
+}
+
+static inline bool IsSignedFormat(const Enum format)
+{
+	return ((format >= R8S) && (format <= RGBA16S)) ||
+		((format >= R16I) && (format <= RGBA32I));
+}
+
+static inline bool IsStencilFormat(const Enum format)
+{
+	return (format == D24S8) || (format >= X8D24PAX32 && format <= D32S8);
+}
+
+static inline bool IsDepthFormat(const Enum format)
+{
+	return (format >= D16 && format <= D32F) || (format == X8D24PAX32) || (format == D16S8) || (format == D32S8);
+}
+
+static inline bool IsPackedFormat(const Enum format)
+{
+	return (format >= RGBE8 && format <= RGB10A2);
+}
+
+struct ImageFormatString
+{
+	Enum format;
+	const char* string;
+};
+
+static inline const ImageFormatString* getFormatStrings()
+{
+	static const ImageFormatString formatStrings[] = { { NONE, "NONE" },
+
+													   { R8, "R8" },
+													   { RG8, "RG8" },
+													   { RGB8, "RGB8" },
+													   { RGBA8, "RGBA8" },
+
+													   { R16, "R16" },
+													   { RG16, "RG16" },
+													   { RGB16, "RGB16" },
+													   { RGBA16, "RGBA16" },
+
+													   { R16F, "R16F" },
+													   { RG16F, "RG16F" },
+													   { RGB16F, "RGB16F" },
+													   { RGBA16F, "RGBA16F" },
+
+													   { R32F, "R32F" },
+													   { RG32F, "RG32F" },
+													   { RGB32F, "RGB32F" },
+													   { RGBA32F, "RGBA32F" },
+
+													   { RGBE8, "RGBE8" },
+													   { RGB565, "RGB565" },
+													   { RGBA4, "RGBA4" },
+													   { RGB10A2, "RGB10A2" },
+
+													   { DXT1, "DXT1" },
+													   { DXT3, "DXT3" },
+													   { DXT5, "DXT5" },
+													   { ATI1N, "ATI1N" },
+													   { ATI2N, "ATI2N" },
+
+													   { PVR_2BPP, "PVR_2BPP" },
+													   { PVR_2BPPA, "PVR_2BPPA" },
+													   { PVR_4BPP, "PVR_4BPP" },
+													   { PVR_4BPPA, "PVR_4BPPA" },
+
+													   { INTZ, "INTZ" },
+
+													   { LE_XRGB8, "LE_XRGB8" },
+													   { LE_ARGB8, "LE_ARGB8" },
+													   { LE_X2RGB10, "LE_X2RGB10" },
+													   { LE_A2RGB10, "LE_A2RGB10" },
+
+													   { ETC1, "ETC1" },
+													   { ATC, "ATC" },
+													   { ATCA, "ATCA" },
+													   { ATCI, "ATCI" },
+
+													   { GNF_BC1, "GNF_BC1" },
+													   { GNF_BC2, "GNF_BC2" },
+													   { GNF_BC3, "GNF_BC3" },
+													   { GNF_BC4, "GNF_BC4" },
+													   { GNF_BC5, "GNF_BC5" },
+													   { GNF_BC6, "GNF_BC6" },
+													   { GNF_BC7, "GNF_BC7" },
+
+													   { BGRA8, "BGRA8" },
+													   { X8D24PAX32, "X8D24PAX32" },
+													   { S8, "S8" },
+													   { D16S8, "D16S8" },
+													   { D32S8, "D32S8" },
+
+													   { PVR_2BPP_SRGB, "PVR_2BPP_SRGB" },
+													   { PVR_2BPPA_SRGB, "PVR_2BPPA_SRGB" },
+													   { PVR_4BPP_SRGB, "PVR_4BPP_SRGB" },
+													   { PVR_4BPPA_SRGB, "PVR_4BPPA_SRGB" },
+
+	};
+	return formatStrings;
+}
+
+static inline const char* GetFormatString(const Enum format)
+{
+	for (uint32_t i = 0; i < COUNT; i++)
+	{
+		if (format == getFormatStrings()[i].format)
+			return getFormatStrings()[i].string;
+	}
+	return NULL;
+}
+
+static inline Enum GetFormatFromString(char* string)
+{
+	for (uint32_t i = 0; i < COUNT; i++)
+	{
+		if (stricmp(string, getFormatStrings()[i].string) == 0)
+			return getFormatStrings()[i].format;
+	}
+	return NONE;
+}
+
+static inline int32_t GetChannelCount(const Enum format)
+{
+	// #REMOVE
+	if (format == BGRA8)
+		return 4;
+	static const int32_t channelCount[] = {
+		0, 1, 2, 3, 4,         //  8-bit unsigned
+		1, 2, 3, 4,            // 16-bit unsigned
+		1, 2, 3, 4,            //  8-bit signed
+		1, 2, 3, 4,            // 16-bit signed
+		1, 2, 3, 4,            // 16-bit float
+		1, 2, 3, 4,            // 32-bit float
+		1, 2, 3, 4,            // 16-bit signed integer
+		1, 2, 3, 4,            // 32-bit signed integer
+		1, 2, 3, 4,            // 16-bit unsigned integer
+		1, 2, 3, 4,            // 32-bit unsigned integer
+		3, 3, 3, 3, 4, 4,      // Packed
+		1, 1, 2, 1,            // Depth
+		3, 4, 4, 1, 2,         // Compressed
+		3, 4, 3, 4,            // PVR
+		1,                     //  INTZ
+		3, 4, 3, 4,            //  XBox front buffer formats
+		3, 3, 4, 4,            //  ETC, ATC
+		1, 1,                  //  RAWZ, DF16
+		3, 4, 4, 1, 2, 3, 3,   // GNF_BC1~GNF_BC7
+		3, 4, 3, 4,            // PVR sRGB
+	};
+
+	if (format >= sizeof(channelCount) / sizeof(int))
+	{
+		LOGERRORF("Fail to find Channel in format : %s", GetFormatString(format));
+		return 0;
+	}
+
+	return channelCount[format];
+}
+
+static inline uint32_t GetImageFormatStride(Enum format)
+{
+	uint32_t result = 0;
+	switch (format)
+	{
+		// 1 channel
+	case R8: result = 1; break;
+	case R16: result = 2; break;
+	case R16F: result = 2; break;
+	case R32UI: result = 4; break;
+	case R32F:
+		result = 4;
+		break;
+		// 2 channel
+	case RG8: result = 2; break;
+	case RG16: result = 4; break;
+	case RG16F: result = 4; break;
+	case RG32UI: result = 8; break;
+	case RG32F:
+		result = 8;
+		break;
+		// 3 channel
+	case RGB8: result = 3; break;
+	case RGB16: result = 6; break;
+	case RGB16F: result = 6; break;
+	case RGB32UI: result = 12; break;
+	case RGB32F:
+		result = 12;
+		break;
+		// 4 channel
+	case BGRA8: result = 4; break;
+	case RGBA8: result = 4; break;
+	case RGBA16: result = 8; break;
+	case RGBA16F: result = 8; break;
+	case RGBA32UI: result = 16; break;
+	case RGBA32F:
+		result = 16;
+		break;
+		// Depth/stencil
+	case D16: result = 0; break;
+	case X8D24PAX32: result = 0; break;
+	case D32F: result = 0; break;
+	case S8: result = 0; break;
+	case D16S8: result = 0; break;
+	case D24S8: result = 0; break;
+	case D32S8: result = 0; break;
+	default: break;
+	}
+	return result;
+}
+
+static inline uint32_t GetImageFormatChannelCount(Enum format)
+{
+	//  uint32_t result = 0;
+	if (format == BGRA8)
+		return 3;
+	else
+	{
+		return GetChannelCount(format);
+	}
+}
+
 }    // namespace ImageFormat

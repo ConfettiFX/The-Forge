@@ -52,8 +52,8 @@
 #include "../../../../Middleware_3/Animation/Rig.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 // tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
@@ -112,6 +112,7 @@ Shader*        pPlaneDrawShader = NULL;
 Buffer*        pPlaneVertexBuffer = NULL;
 Pipeline*      pPlaneDrawPipeline = NULL;
 RootSignature* pRootSignature = NULL;
+DescriptorBinder* pDescriptorBinderPlane = NULL;
 
 struct UniformBlockPlane
 {
@@ -254,6 +255,9 @@ class BakedPhysics: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
+		DescriptorBinderDesc descriptorBinderDescPlane = { pRootSignature, 0, 1 };
+		addDescriptorBinder(pRenderer, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
+
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pPlaneRast);
@@ -324,6 +328,7 @@ class BakedPhysics: public IApp
 
 		// Set up details for rendering the skeletons
 		SkeletonRenderDesc skeletonRenderDesc = {};
+		skeletonRenderDesc.mRenderer = pRenderer;
 		skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
 		skeletonRenderDesc.mRootSignature = pRootSignature;
 		skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
@@ -507,6 +512,7 @@ class BakedPhysics: public IApp
 		removeShader(pRenderer, pSkeletonShader);
 		removeShader(pRenderer, pPlaneDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPlane);
 
 		removeDepthState(pDepth);
 
@@ -625,7 +631,7 @@ class BakedPhysics: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(170.0f);
 		}
@@ -754,7 +760,7 @@ class BakedPhysics: public IApp
 			DescriptorData params[1] = {};
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pPlaneUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pRootSignature, 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderPlane, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, NULL);
 			cmdDraw(cmd, 6, 0);
 			cmdEndDebugMarker(cmd);

@@ -38,6 +38,7 @@
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Core/GPUConfig.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Image/Image.h"
 
 #define MAX_BUFFER_BINDINGS 31
 
@@ -302,6 +303,8 @@ bool            util_is_mtl_depth_pixel_format(const MTLPixelFormat& format);
 bool            util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format);
 MTLVertexFormat util_to_mtl_vertex_format(const ImageFormat::Enum& format);
 MTLLoadAction   util_to_mtl_load_action(const LoadActionType& loadActionType);
+
+typedef struct DescriptorManager DescriptorManager;  // TODO: remove DescriptorManager, we now have DescriptorBinder
 
 void util_bind_argument_buffer(Cmd* pCmd, DescriptorManager* pManager, const DescriptorInfo* descInfo, const DescriptorData* descData);
 void util_end_current_encoders(Cmd* pCmd);
@@ -822,10 +825,33 @@ const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
         }
     }
 
-void cmdBindDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
+/************************************************************************/
+// Descriptor Binder implementation
+/************************************************************************/
+
+typedef struct DescriptorBinder
+{
+	RootSignature* pRootSignature;
+} DescriptorBinder;
+
+void addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* pDesc, DescriptorBinder** ppDescriptorBinder)
+{
+	DescriptorBinder* descriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(DescriptorBinder));
+	descriptorBinder->pRootSignature = pDesc->pRootSignature;
+	*ppDescriptorBinder = descriptorBinder;
+}
+
+void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBinder)
+{
+	SAFE_FREE(pDescriptorBinder);
+}
+
+void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	ASSERT(pCmd);
-	ASSERT(pRootSignature);
+	ASSERT(pDescriptorBinder);
+
+	RootSignature* pRootSignature = pDescriptorBinder->pRootSignature;
 
 	Renderer*          pRenderer = pCmd->pRenderer;
 	DescriptorManager* pManager = get_descriptor_manager(pRenderer, pRootSignature);
@@ -1455,6 +1481,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 #endif
 		// Set the default GPU settings.
 		pRenderer->mNumOfGPUs = 1;
+		pRenderer->mLinkedNodeCount = 1;
 		pRenderer->mGpuSettings[0].mUniformBufferAlignment = 256;
 		pRenderer->mGpuSettings[0].mUploadBufferTextureAlignment = 16;
 		pRenderer->mGpuSettings[0].mUploadBufferTextureRowAlignment = 1;
@@ -1957,7 +1984,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 		const char*                  entry_point = NULL;
 		const char*                  shader_name = NULL;
 		tinystl::vector<ShaderMacro> shader_macros;
-		__strong id<MTLFunction>* compiled_code = nullptr;
+		__strong id<MTLFunction>* compiled_code = NULL;
 
 		ShaderStage stage_mask = (ShaderStage)(1 << i);
 		if (stage_mask == (pShaderProgram->mStages & stage_mask))
@@ -2081,8 +2108,8 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	{
 		ShaderStage                  stage_mask = (ShaderStage)(1 << i);
 		const BinaryShaderStageDesc* pStage = NULL;
-		__strong id<MTLFunction>* compiled_code = nullptr;
-        tinystl::string* entryPointName = nullptr;
+		__strong id<MTLFunction>* compiled_code = NULL;
+        tinystl::string* entryPointName = NULL;
 
 		if (stage_mask == (pShaderProgram->mStages & stage_mask))
 		{
@@ -2272,7 +2299,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 }
     
 extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-                                       bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr);
+                                       bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
 
 void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
@@ -2326,7 +2353,7 @@ uint32_t util_calculate_vertex_layout_stride(const VertexLayout* pVertexLayout)
 	uint32_t result = 0;
 	for (uint32_t i = 0; i < pVertexLayout->mAttribCount; ++i)
 	{
-		result += calculateImageFormatStride(pVertexLayout->mAttribs[i].mFormat);
+		result += ImageFormat::GetImageFormatStride(pVertexLayout->mAttribs[i].mFormat);
 	}
 	return result;
 }
@@ -2373,7 +2400,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			renderPipelineDesc.vertexDescriptor.attributes[i].format = util_to_mtl_vertex_format(attrib->mFormat);
 
 			//setup layout for all bindings instead of just 0.
-			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stride += calculateImageFormatStride(attrib->mFormat);
+			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stride += ImageFormat::GetImageFormatStride(attrib->mFormat);
 			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepRate = 1;
 			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepFunction =
 				pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone ? MTLVertexStepFunctionPerPatchControlPoint
@@ -3363,81 +3390,32 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 }
 
 void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t startSubresource, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate,
-	uint64_t intermediateOffset, Texture* pTexture)
+	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture)
 {
 	util_end_current_encoders(pCmd);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
-	uint nLayers = pTexture->mDesc.mArraySize;
-	uint nFaces = 1;
-	uint nMips = pTexture->mDesc.mMipLevels;
-	
-	bool isPvrtc = (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA) || (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP_SRGB && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA_SRGB);
+#ifndef TARGET_IOS
+	MTLBlitOption blitOptions = MTLBlitOptionNone;
+#else
+	bool isPvrtc = (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA) ||
+				   (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP_SRGB && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA_SRGB);
+	MTLBlitOption blitOptions = isPvrtc ? MTLBlitOptionRowLinearPVRTC : MTLBlitOptionNone;
+#endif
 
-	uint32_t subresourceOffset = 0;
-	for (uint32_t layer = 0; layer < nLayers; ++layer)
+	for (UINT i = 0; i < numSubresources; ++i)
 	{
-		for (uint32_t face = 0; face < nFaces; ++face)
-		{
-			for (uint32_t mip = 0; mip < nMips; ++mip)
-			{
-				SubresourceDataDesc* pRes = &pSubresources[(layer * nFaces * nMips) + (face * nMips) + mip];
-				uint32_t             mipmapWidth = max(pTexture->mDesc.mWidth >> mip, 1);
-				uint32_t             mipmapHeight = max(pTexture->mDesc.mHeight >> mip, 1);
-				
-				// NOTE: as of 2/4/2019, there is a bug in the Metal API when copying PVRTC textures using MTLBlitCommandEncoder
-				// See: https://forums.developer.apple.com/thread/113262
-				// Hence, for PVRTC we temporarily create a non-private texture so we can use replaceRegion.  We then copy that over to the private texture.
-				// This is the better work around as we get to both keep the final texture private while still being able to use the Metal validation layer.
-				
-				if (isPvrtc)
-				{
-					Texture* pTmpTex = NULL;
-					add_texture(pCmd->pRenderer, &pTexture->mDesc, &pTmpTex, false, true);
-					
-					[pTmpTex->mtlTexture replaceRegion:MTLRegionMake2D(0, 0, mipmapWidth, mipmapHeight)
-											mipmapLevel:mip
-												  slice:layer * nFaces + face
-											  withBytes:pRes->pData
-											bytesPerRow:0
-											bytesPerImage:0];
-					
-					[pCmd->mtlBlitEncoder copyFromTexture:pTmpTex->mtlTexture
-											  sourceSlice:layer * nFaces + face
-											  sourceLevel:mip
-											 sourceOrigin:MTLOriginMake(0, 0, 0)
-											   sourceSize:MTLSizeMake(mipmapWidth, mipmapHeight, 1)
-												toTexture:pTexture->mtlTexture
-										 destinationSlice:layer * nFaces + face
-										 destinationLevel:mip
-										destinationOrigin:MTLOriginMake(0, 0, 0)];
-					
-					[pCmd->mtlCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
-						removeTexture(pCmd->pRenderer, pTmpTex);
-					}];
-				}
-				else
-				{
-					// Copy the data for this resource to an intermediate buffer.
-					memcpy((uint8_t*)pIntermediate->pCpuMappedAddress + intermediateOffset + subresourceOffset, pRes->pData, pRes->mSlicePitch);
-					
-					// Copy to the texture's final subresource.
-					[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
-											sourceOffset:intermediateOffset + subresourceOffset
-									   sourceBytesPerRow:pRes->mRowPitch
-									 sourceBytesPerImage:pRes->mSlicePitch
-											  sourceSize:MTLSizeMake(mipmapWidth, mipmapHeight, 1)
-											   toTexture:pTexture->mtlTexture
-										destinationSlice:layer * nFaces + face
-										destinationLevel:mip
-									   destinationOrigin:MTLOriginMake(0, 0, 0)];
-				}
-				
-				// Increase the subresource offset.
-				subresourceOffset += pRes->mSlicePitch;
-			}
-		}
+		// Copy to the texture's final subresource.
+		[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
+								sourceOffset:pSubresources[i].mBufferOffset
+						   sourceBytesPerRow:pSubresources[i].mRowPitch
+						 sourceBytesPerImage:pSubresources[i].mSlicePitch
+								  sourceSize:MTLSizeMake(pSubresources[i].mWidth, pSubresources[i].mHeight, pSubresources[i].mDepth)
+								   toTexture:pTexture->mtlTexture
+							destinationSlice:pSubresources[i].mArrayLayer
+							destinationLevel:pSubresources[i].mMipLevel
+						   destinationOrigin:MTLOriginMake(0, 0, 0)
+									 options:blitOptions];
 	}
 }
 

@@ -127,6 +127,7 @@ void createTessellatedQuadBuffers(
 bool Panini::Init(Renderer* renderer)
 {
 	pRenderer = renderer;
+
 	// SHADER
 	//----------------------------------------------------------------------------------------------------------------
 	ShaderLoadDesc paniniPass = {};
@@ -157,6 +158,8 @@ bool Panini::Init(Renderer* renderer)
 	paninniRootDesc.ppStaticSamplers = &pSamplerPointWrap;
 	addRootSignature(pRenderer, &paninniRootDesc, &pRootSignaturePaniniPostProcess);
 
+	SetDescriptorBinder(1); // Create descriptor binder space that allows for 1 texture per frame by default
+
 	createTessellatedQuadBuffers(
 		pRenderer, &pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, mPaniniDistortionTessellation[0],
 		mPaniniDistortionTessellation[1]);
@@ -173,6 +176,8 @@ void Panini::Exit()
 	removeDepthState(pDepthStateDisable);
 
 	removeRootSignature(pRenderer, pRootSignaturePaniniPostProcess);
+	removeDescriptorBinder(pRenderer, pDescriptorBinderPaniniPostProcess);
+	pDescriptorBinderPaniniPostProcess = NULL;
 
 	removeResource(pVertexBufferTessellatedQuad);
 	removeResource(pIndexBufferTessellatedQuad);
@@ -218,6 +223,7 @@ void Panini::Draw(Cmd* cmd)
 {
 	ASSERT(cmd);
 	ASSERT(pSourceTexture);
+	ASSERT(pDescriptorBinderPaniniPostProcess);
 
 	//beginCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App
 
@@ -227,7 +233,7 @@ void Panini::Draw(Cmd* cmd)
 	params[0].ppTextures = &pSourceTexture;
 	params[1].pName = "PaniniRootConstants";
 	params[1].pRootConstant = &mParams;
-	cmdBindDescriptors(cmd, pRootSignaturePaniniPostProcess, 2, params);
+	cmdBindDescriptors(cmd, pDescriptorBinderPaniniPostProcess, 2, params);
 	cmdBindPipeline(cmd, pPipelinePaniniPostProcess);
 
 	// draw
@@ -235,6 +241,15 @@ void Panini::Draw(Cmd* cmd)
 	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad, 0);
 	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad, NULL);
 	cmdDrawIndexed(cmd, numIndices, 0, 0);
+}
+
+void Panini::SetDescriptorBinder(uint32_t maxSourceTextureUpdatesPerFrame) 
+{
+	if (pDescriptorBinderPaniniPostProcess) {
+		removeDescriptorBinder(pRenderer, pDescriptorBinderPaniniPostProcess);
+	}
+	DescriptorBinderDesc paniniDescriptorBinderDesc = { pRootSignaturePaniniPostProcess, maxSourceTextureUpdatesPerFrame };
+	addDescriptorBinder(pRenderer, &paniniDescriptorBinderDesc, &pDescriptorBinderPaniniPostProcess);
 }
 
 void Panini::SetSourceTexture(Texture* pTex)

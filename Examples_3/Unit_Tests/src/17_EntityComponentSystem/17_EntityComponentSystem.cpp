@@ -45,8 +45,8 @@
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -89,11 +89,12 @@ Buffer*   pSpriteVertexBuffers[gImageCount] = { NULL };
 Buffer*   pSpriteIndexBuffer = NULL;
 Pipeline* pSpritePipeline = NULL;
 
-RootSignature*   pRootSignature = NULL;
-Sampler*         pLinearClampSampler = NULL;
-DepthState*      pDepthState = NULL;
-RasterizerState* pRasterizerStateCullNone = NULL;
-BlendState*      pBlendState = NULL;
+RootSignature*    pRootSignature = NULL;
+DescriptorBinder* pDescriptorBinder = NULL;
+Sampler*          pLinearClampSampler = NULL;
+DepthState*       pDepthState = NULL;
+RasterizerState*  pRasterizerStateCullNone = NULL;
+BlendState*       pBlendState = NULL;
 
 Buffer* pParamsUbo[gImageCount] = { NULL };
 
@@ -340,6 +341,9 @@ class EntityComponentSystem: public IApp
 		rootDesc.ppStaticSamplers = &pLinearClampSampler;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
+		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStateCullNone);
@@ -489,7 +493,8 @@ class EntityComponentSystem: public IApp
 
 		removeSampler(pRenderer, pLinearClampSampler);
 		removeRootSignature(pRenderer, pRootSignature);
-
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		
 		removeDepthState(pDepthState);
 		removeRasterizerState(pRasterizerStateCullNone);
 		removeBlendState(pBlendState);
@@ -661,7 +666,7 @@ class EntityComponentSystem: public IApp
 			params[2].pName = "instanceBuffer";
 			params[2].ppBuffers = &pSpriteVertexBuffers[gFrameIndex];
 
-			cmdBindDescriptors(cmd, pRootSignature, NUM_BUFFERS, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, NUM_BUFFERS, params);
 			cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, 0);
 			cmdDrawIndexedInstanced(cmd, 6, 0, gDrawSpriteCount, 0, 0);
 			cmdEndDebugMarker(cmd);

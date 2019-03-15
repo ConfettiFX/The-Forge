@@ -26,7 +26,7 @@ cbuffer cbCamera : register(b0)
 {
 	float4x4 projView;
 }
-cbuffer cbObject : register(b1)
+cbuffer cbObject : register(b1, space2)
 {
 	float4x4 worldMat;
 }

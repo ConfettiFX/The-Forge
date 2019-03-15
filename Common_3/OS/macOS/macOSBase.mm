@@ -40,8 +40,8 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
 
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
@@ -181,28 +181,6 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 	location.x = winDesc->windowedRect.left + x;
 	location.y = winDesc->windowedRect.bottom - y;
 	CGWarpMouseCursorPosition(location);
-}
-
-float2 getMousePosition()
-{
-	NSPoint mouseLoc = [NSEvent mouseLocation];
-	return float2((float)mouseLoc.x, (float)mouseLoc.y);
-}
-
-bool getKeyDown(int key) { return InputSystem::IsButtonPressed(key); }
-
-bool getKeyUp(int key) { return InputSystem::IsButtonReleased(key); }
-
-bool getJoystickButtonDown(int button)
-{
-	// TODO: Implement gamepad / joystick support on macOS
-	return false;
-}
-
-bool getJoystickButtonUp(int button)
-{
-	// TODO: Implement gamepad / joystick support on macOS
-	return false;
 }
 
 /************************************************************************/
@@ -475,7 +453,7 @@ uint32_t testingMaxFrameCount = 120;
 
 - (void)updateInput
 {
-	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CANCEL))
+	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CANCEL_TRIGGERED))
 	{
 		if (!isCaptured && !gCurrentWindow.fullScreen)
 		{
@@ -487,7 +465,7 @@ uint32_t testingMaxFrameCount = 120;
 		}
 	}
 
-	if (InputSystem::IsButtonTriggered(UserInputKeys::KEY_CONFIRM))
+	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CONFIRM_TRIGGERED))
 	{
 		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
 		{
@@ -496,8 +474,8 @@ uint32_t testingMaxFrameCount = 120;
 	}
 
 	//if alt (left or right) is pressed and Enter is triggered then toggle fullscreen
-	if ((InputSystem::IsButtonPressed(UserInputKeys::KEY_LEFT_ALT) || InputSystem::IsButtonPressed(UserInputKeys::KEY_RIGHT_ALT)) &&
-		InputSystem::IsButtonReleased(UserInputKeys::KEY_MENU))
+	if ((InputSystem::GetBoolInput(UserInputKeys::KEY_LEFT_ALT_PRESSED) || InputSystem::GetBoolInput(UserInputKeys::KEY_RIGHT_ALT_PRESSED)) &&
+		InputSystem::GetBoolInput(UserInputKeys::KEY_MENU_TRIGGERED))
 	{
 		//get first window available.
 		//TODO:Fix this once we have multiple window handles

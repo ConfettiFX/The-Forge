@@ -38,8 +38,8 @@
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IThread.h"
 
-#include "../../../Middleware_3/Input/InputSystem.h"
-#include "../../../Middleware_3/Input/InputMappings.h"
+#include "../Input/InputSystem.h"
+#include "../Input/InputMappings.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
@@ -83,22 +83,6 @@ void requestShutdown()
 	event.type = ClientMessage;
 	event.xclient.data.l[0] == gWindow.xlib_wm_delete_window;
 	XSendEvent(gWindow.display, gWindow.xlib_window, false, 0, &event);
-}
-
-bool getKeyDown(int key) { return InputSystem::IsButtonPressed(key); }
-
-bool getKeyUp(int key) { return InputSystem::IsButtonReleased(key); }
-
-bool getJoystickButtonDown(int button)
-{
-	ASSERT(0);    // We don't support joystick
-	return false;
-}
-
-bool getJoystickButtonUp(int button)
-{
-	ASSERT(0);    // We don't support joystick
-	return false;
 }
 
 /************************************************************************/
@@ -252,9 +236,8 @@ bool handleMessages(WindowsDesc* winDesc)
 	//that way current frame data will be delta after resetting mouse position
 	if (InputSystem::IsMouseCaptured())
 	{
-		ButtonData button = InputSystem::GetButtonData(KEY_UI_MOVE);
-		gCursorLastX = button.mValue[0];
-		gCursorLastY = button.mValue[1];
+		gCursorLastX = InputSystem::GetFloatInput(KEY_UI_MOVE, 0);
+		gCursorLastY = InputSystem::GetFloatInput(KEY_UI_MOVE, 1);
 		{
 			float x = 0;
 			float y = 0;
@@ -303,7 +286,7 @@ bool handleMessages(WindowsDesc* winDesc)
 
 	XFlush(winDesc->display);
 
-	if (InputSystem::IsButtonTriggered(KEY_CANCEL))
+	if (InputSystem::GetBoolInput(KEY_CANCEL_TRIGGERED))
 	{
 		if (!isCaptured)
 		{
@@ -317,7 +300,7 @@ bool handleMessages(WindowsDesc* winDesc)
 		}
 	}
 
-	if (InputSystem::IsButtonPressed(KEY_CONFIRM) && !PlatformEvents::skipMouseCapture && !isCaptured)
+	if (InputSystem::GetBoolInput(KEY_CONFIRM_PRESSED) && !PlatformEvents::skipMouseCapture && !isCaptured)
 	{
 		// Create invisible cursor that will be used when mouse is captured
 		Cursor      invisibleCursor;

@@ -75,9 +75,9 @@ const char* pszBases[FSR_Count] =
 };
 
 LogManager				gLogManager;
-IWidget*				pCameraXWidget = nullptr;
-IWidget*				pCameraYWidget = nullptr;
-IWidget*				pCameraZWidget = nullptr;
+IWidget*				pCameraXWidget = NULL;
+IWidget*				pCameraYWidget = NULL;
+IWidget*				pCameraZWidget = NULL;
 float2					gCameraXLimits(-1.0f, 1.0f);
 float2					gCameraYLimits(-1.0f, 2.0f);
 float2					gCameraZLimits(-4.0f, 0.0f);
@@ -166,6 +166,9 @@ public:
         rootDesc.mShaderCount = 1;
         rootDesc.ppShaders = &pDisplayTextureShader;
         addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
+
+		DescriptorBinderDesc descriptorBinderDesc = { pDisplayTextureSignature };
+		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDisplayTextureDescriptorBinder);
         
         RasterizerStateDesc rasterizerStateDesc = {};
         rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -301,6 +304,10 @@ public:
 		signatureDesc.pRaytracingShaderResources = &shaderResources[0];
 		signatureDesc.pRaytracingResourcesCount = 2;
 		addRootSignature(pRenderer, &signatureDesc, &pRootSignature);
+
+		DescriptorBinderDesc descBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, &descBinderDesc, &pDescriptorBinder);
+
 		//Empty root signature for shaders we don't provide one
 		RootSignatureDesc emptySignatureDesc = {};
 		emptySignatureDesc.mSignatureType = ROOT_SIGNATURE_RAYTRACING_LOCAL;
@@ -376,7 +383,7 @@ public:
         pipelineDesc.mPayloadSize			= sizeof(float3);
         pipelineDesc.pGlobalRootSignature	= pRootSignature;
         pipelineDesc.pRayGenShader			= pShaderRayGen;
-        pipelineDesc.pRayGenRootSignature	= pRayGenSignature; //nullptr to bind empty LRS
+        pipelineDesc.pRayGenRootSignature	= pRayGenSignature; //NULL to bind empty LRS
 		pipelineDesc.pEmptyRootSignature	= pEmptyRootSignature;
         pipelineDesc.ppMissShaders			= pMissShaders;
         pipelineDesc.mMissShaderCount		= 2;
@@ -471,7 +478,7 @@ public:
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
-		if (pRaytracing != nullptr)
+		if (pRaytracing != NULL)
 		{
 			removeRaytracingShaderTable(pRaytracing, pShaderTable);
 			removePipeline(pRenderer, pPipeline);
@@ -495,6 +502,7 @@ public:
 		removeRasterizerState(pRast);
 		removeShader(pRenderer, pDisplayTextureShader);
 		removeRootSignature(pRenderer, pDisplayTextureSignature);
+		removeDescriptorBinder(pRenderer, pDisplayTextureDescriptorBinder);
 		removePipeline(pRenderer, pDisplayTexturePipeline);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -587,7 +595,7 @@ public:
 
 	void Draw()
 	{
-		if (pHitPlaneConfigBuffer != nullptr)
+		if (pHitPlaneConfigBuffer != NULL)
         {
             RayPlaneConfigBlock cb;
             cb.mLightDirection = mLightDirection;
@@ -598,7 +606,7 @@ public:
             bufferUpdate.mSize = sizeof(cb);
             updateResource(&bufferUpdate);
         }
-		if (pRayGenConfigBuffer != nullptr)
+		if (pRayGenConfigBuffer != NULL)
 		{
 			RayGenConfigBlock cb;
 			cb.mCameraPosition = mCameraOrigin;
@@ -630,7 +638,7 @@ public:
 		/************************************************************************/
 		// Perform raytracing
 		/************************************************************************/
-		if (pRaytracing != nullptr)
+		if (pRaytracing != NULL)
 		{
 			DescriptorData params[2] = {};
 			params[0].pName = "gOutput";
@@ -645,7 +653,7 @@ public:
 			dispatchDesc.pTopLevelAccelerationStructure = pTopLevelAS;
 			dispatchDesc.pRootSignatureDescriptorData = &params[0];
 			dispatchDesc.mRootSignatureDescriptorsCount = 2;
-			dispatchDesc.pRootSignature = pRootSignature;
+			dispatchDesc.pDescriptorBinder = pDescriptorBinder;
 			dispatchDesc.pPipeline = pPipeline;
 			cmdDispatchRays(pCmd, pRaytracing, &dispatchDesc);
 		}
@@ -674,7 +682,7 @@ public:
         cmdBindPipeline(pCmd, pDisplayTexturePipeline);
         params[0].pName = "uTex0";
         params[0].ppTextures = &pComputeOutput;
-        cmdBindDescriptors(pCmd, pDisplayTextureSignature, 1, params);
+        cmdBindDescriptors(pCmd, pDisplayTextureDescriptorBinder, 1, params);
         cmdDraw(pCmd, 3, 0);
         cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
         
@@ -731,6 +739,8 @@ private:
 	RootSignature*			pPlaneHitSignature;
 	RootSignature*			pEmptyRootSignature;
     RootSignature*          pDisplayTextureSignature;
+	DescriptorBinder*       pDescriptorBinder;
+	DescriptorBinder*       pDisplayTextureDescriptorBinder;
 	Pipeline*				pPipeline;
     Pipeline*               pDisplayTexturePipeline;
 	RaytracingShaderTable*  pShaderTable;

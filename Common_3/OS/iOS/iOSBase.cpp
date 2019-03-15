@@ -41,7 +41,7 @@
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
 static bool                         gAppRunning;
-static WindowsDesc*                 gCurrentWindow = nullptr;
+static WindowsDesc*                 gCurrentWindow = NULL;
 static tinystl::vector<MonitorDesc> gMonitors;
 static int                          gCurrentTouchEvent = 0;
 

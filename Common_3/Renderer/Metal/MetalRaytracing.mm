@@ -137,6 +137,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     };
     
     //implemented in MetalRenderer.mm
+	typedef struct DescriptorManager DescriptorManager;
     extern void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager);
     extern void util_end_current_encoders(Cmd* pCmd);
 
@@ -183,15 +184,15 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                     mskSize += (pDesc->mBottomASDescs[i].pGeometryDescs[idesc].vertexCount / 3) * sizeof(uint32_t);
             }
         }
-        if (pVbSize != nullptr)
+        if (pVbSize != NULL)
         {
             *pVbSize = vbSize;
         }
-        if (pIbSize != nullptr)
+        if (pIbSize != NULL)
         {
             *pIbSize = ibSize;
         }
-        if (pMasksSize != nullptr)
+        if (pMasksSize != NULL)
         {
             *pMasksSize = mskSize;
         }
@@ -240,7 +241,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         unsigned ibOffset = 0;
         unsigned mbOffset = 0;
         uint8_t* vbDstPtr = static_cast<uint8_t*>(_vertexPositionBuffer.contents);
-        uint8_t* ibDstPtr = nullptr;
+        uint8_t* ibDstPtr = NULL;
         if (ibSize > 0)
         {
             _indexBuffer = [pRaytracing->pRenderer->pDevice newBufferWithLength:ibSize options:options];
@@ -273,7 +274,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                 vbOffset += pDesc->mBottomASDescs[i].pGeometryDescs[j].vertexCount * sizeof(float3);
                 asoffset.vbSize += pDesc->mBottomASDescs[i].pGeometryDescs[j].vertexCount * sizeof(float3);
                 
-                if (ibDstPtr != nullptr)
+                if (ibDstPtr != NULL)
                 {
                     unsigned indexSize = (pDesc->mIndexType == INDEX_TYPE_UINT16 ? 2 : 4);
                     void* instanceIndexPtr = (pDesc->mBottomASDescs[i].pGeometryDescs[j].indexType == INDEX_TYPE_UINT16 ?
@@ -860,7 +861,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                 [shadersInfo->mPayloadBuffer addObject: payloadBuffer];
             
             /* Check Local Root Signature */
-            if (pHitGroups[i].pRootSignature != nullptr)
+            if (pHitGroups[i].pRootSignature != NULL)
             {
                 shadersInfo->pShadersLocalData[i].pLocalRootSignature = pHitGroups[i].pRootSignature;
                 shadersInfo->pShadersLocalData[i].mRootDataCount = pHitGroups[i].mRootDataCount;
@@ -883,7 +884,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         memset(table, 0, sizeof(RaytracingShaderTable));
         
         table->mRayGenData.pLocalRootSignature = pDesc->pRayGenShader->pRootSignature;
-        if (pDesc->pRayGenShader->pRootData != nullptr)
+        if (pDesc->pRayGenShader->pRootData != NULL)
         {
             table->mRayGenData.pRootData = (DescriptorData*)conf_calloc(pDesc->pRayGenShader->mRootDataCount, sizeof(DescriptorData));
             memcpy(table->mRayGenData.pRootData, pDesc->pRayGenShader->pRootData, pDesc->pRayGenShader->mRootDataCount * sizeof(DescriptorData));
@@ -913,12 +914,12 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         infoSet->mIntersectionBuffer = nil;
         infoSet->mPayloadBuffer = nil;
         
-        if (infoSet->pShadersLocalData != nullptr)
+        if (infoSet->pShadersLocalData != NULL)
         {
             conf_free(infoSet->pShadersLocalData->pRootData);
             infoSet->pShadersLocalData->~ShaderLocalData();
         }
-        if (infoSet->pHitReferences != nullptr)
+        if (infoSet->pHitReferences != NULL)
         {
             conf_free(infoSet->pHitReferences);
         }
@@ -928,7 +929,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
     {
         ASSERT(pTable);
-        if (pTable->mRayGenData.pRootData != nullptr)
+        if (pTable->mRayGenData.pRootData != NULL)
         {
             conf_free(pTable->mRayGenData.pRootData);
             pTable->mRayGenData.~ShaderLocalData();
@@ -941,7 +942,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     }
     
     void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
- bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = nullptr)
+ bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL)
     {
         ASSERT(pRenderer);
         ASSERT(pRenderer->pDevice);
@@ -953,7 +954,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         // Collect static samplers
         tinystl::vector <tinystl::pair<ShaderResource const*, Sampler*> > staticSamplers;
         tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
-        if (pRootDesc != nullptr)
+        if (pRootDesc != NULL)
         {
             for (uint32_t i = 0; i < pRootDesc->mStaticSamplerCount; ++i)
                 staticSamplerMap.insert({ pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i] });
@@ -1117,7 +1118,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         }
         
         //Bind "Global Root Signature" again
-        cmdBindDescriptors(pCmd, pDesc->pRootSignature, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
+        cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
         if (pShadersInfo->pShadersLocalData[shaderId].pLocalRootSignature)
         {
             RootSignature* rs   = pShadersInfo->pShadersLocalData[shaderId].pLocalRootSignature;
@@ -1197,7 +1198,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         // First, we will generate rays on the GPU. We create a compute command encoder which will be used to add
         // commands to the command buffer.
         //In terms of DXR here we bind "Global Root Signature"
-        cmdBindDescriptors(pCmd, pDesc->pRootSignature, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
+        cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
         if (pDesc->pShaderTable->mRayGenData.pLocalRootSignature)
         {
             RootSignature* rs = pDesc->pShaderTable->mRayGenData.pLocalRootSignature;

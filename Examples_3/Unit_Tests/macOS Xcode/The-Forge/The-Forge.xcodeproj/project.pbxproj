@@ -21,9 +21,6 @@
 		5C172FD321414C670074EE71 /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C951330A2010E6B1002E584B /* iOSFileSystem.mm */; };
 		5C172FD421414C670074EE71 /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133122010E6B2002E584B /* iOSLogManager.cpp */; };
 		5C172FD521414C670074EE71 /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133102010E6B1002E584B /* iOSThreadManager.cpp */; };
-		5C172FD621414CC60074EE71 /* InputMappings.h in Sources */ = {isa = PBXBuildFile; fileRef = B2D1CEB520EAEF0D001BB8C4 /* InputMappings.h */; };
-		5C172FD721414CC60074EE71 /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2FA5EF020E40A20007F8FAE /* InputSystem.cpp */; };
-		5C172FD821414CC60074EE71 /* InputSystem.h in Sources */ = {isa = PBXBuildFile; fileRef = B2FA5EF220E40A20007F8FAE /* InputSystem.h */; };
 		5C172FD921414CC60074EE71 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B25AC24120EFF14500ED50CF /* Fontstash.cpp */; };
 		5C172FDA21414CC60074EE71 /* Fontstash.h in Sources */ = {isa = PBXBuildFile; fileRef = B25AC24020EFF14500ED50CF /* Fontstash.h */; };
 		5C172FDC21414CC60074EE71 /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBE92080FED8008E3A2C /* AppUI.cpp */; };
@@ -71,9 +68,6 @@
 		5C512C682141561E00E7A798 /* imgui.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C512C5E2141561E00E7A798 /* imgui.h */; };
 		5C512C692141561E00E7A798 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C5F2141561E00E7A798 /* imgui_widgets.cpp */; };
 		5C512C6A2141561E00E7A798 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C5F2141561E00E7A798 /* imgui_widgets.cpp */; };
-		5C5582E921413D550019960B /* InputMappings.h in Sources */ = {isa = PBXBuildFile; fileRef = B2D1CEB520EAEF0D001BB8C4 /* InputMappings.h */; };
-		5C5582EA21413D550019960B /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2FA5EF020E40A20007F8FAE /* InputSystem.cpp */; };
-		5C5582EB21413D550019960B /* InputSystem.h in Sources */ = {isa = PBXBuildFile; fileRef = B2FA5EF220E40A20007F8FAE /* InputSystem.h */; };
 		5C5582EC21413D550019960B /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B25AC24120EFF14500ED50CF /* Fontstash.cpp */; };
 		5C5582ED21413D550019960B /* Fontstash.h in Sources */ = {isa = PBXBuildFile; fileRef = B25AC24020EFF14500ED50CF /* Fontstash.h */; };
 		5C5582EF21413D550019960B /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBE92080FED8008E3A2C /* AppUI.cpp */; };
@@ -124,6 +118,10 @@
 		65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
 		65F9793721EDFA45008EC741 /* IRay.h in Headers */ = {isa = PBXBuildFile; fileRef = 65F9793621EDFA44008EC741 /* IRay.h */; };
 		65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEA920EAD160001BB8C4 /* libgainputstatic.a */; };
+		81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
+		81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
+		81FF8E2E2237A9D30009402D /* InputMappings.h in Headers */ = {isa = PBXBuildFile; fileRef = 81FF8E2A2237A9D30009402D /* InputMappings.h */; };
+		81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = 81FF8E2B2237A9D30009402D /* InputSystem.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -221,12 +219,12 @@
 		654D979321E922F400113964 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../../../../Middleware_3/Animation/Clip.h; sourceTree = "<group>"; };
 		65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = Metal/MetalRaytracing.mm; sourceTree = "<group>"; };
 		65F9793621EDFA44008EC741 /* IRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IRay.h; sourceTree = "<group>"; };
+		81FF8E292237A9D30009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
+		81FF8E2A2237A9D30009402D /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = Input/InputMappings.h; sourceTree = "<group>"; };
+		81FF8E2B2237A9D30009402D /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = Input/InputSystem.h; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
-		B2D1CEB520EAEF0D001BB8C4 /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InputMappings.h; sourceTree = "<group>"; };
-		B2FA5EF020E40A20007F8FAE /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; indentWidth = 4; path = InputSystem.cpp; sourceTree = "<group>"; tabWidth = 4; usesTabs = 0; };
-		B2FA5EF220E40A20007F8FAE /* InputSystem.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; indentWidth = 4; path = InputSystem.h; sourceTree = "<group>"; tabWidth = 4; usesTabs = 0; };
 		C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C951330A2010E6B1002E584B /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = iOS/iOSFileSystem.mm; sourceTree = "<group>"; };
 		C95133102010E6B1002E584B /* iOSThreadManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSThreadManager.cpp; path = iOS/iOSThreadManager.cpp; sourceTree = "<group>"; };
@@ -339,6 +337,16 @@
 			name = Animation;
 			sourceTree = "<group>";
 		};
+		81FF8E282237A9C00009402D /* Input */ = {
+			isa = PBXGroup;
+			children = (
+				81FF8E2A2237A9D30009402D /* InputMappings.h */,
+				81FF8E292237A9D30009402D /* InputSystem.cpp */,
+				81FF8E2B2237A9D30009402D /* InputSystem.h */,
+			);
+			name = Input;
+			sourceTree = "<group>";
+		};
 		B214ACF120E2DAFC0025F76B /* gainput */ = {
 			isa = PBXGroup;
 			children = (
@@ -352,20 +360,8 @@
 				654D978521E922C800113964 /* Animation */,
 				B25AC23F20EFF13100ED50CF /* Text */,
 				5CD2BBB32080FCC1008E3A2C /* UI */,
-				B22D907020E3F8E10036B88E /* Input */,
 			);
 			name = Middleware_3;
-			sourceTree = "<group>";
-		};
-		B22D907020E3F8E10036B88E /* Input */ = {
-			isa = PBXGroup;
-			children = (
-				B2D1CEB520EAEF0D001BB8C4 /* InputMappings.h */,
-				B2FA5EF020E40A20007F8FAE /* InputSystem.cpp */,
-				B2FA5EF220E40A20007F8FAE /* InputSystem.h */,
-			);
-			name = Input;
-			path = ../../../../Middleware_3/Input;
 			sourceTree = "<group>";
 		};
 		B25AC23F20EFF13100ED50CF /* Text */ = {
@@ -479,6 +475,7 @@
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
+				81FF8E282237A9C00009402D /* Input */,
 				C95133092010E6A5002E584B /* iOS */,
 				D205E2811F9F9C1500040CCE /* FileSystem */,
 				D2111E771F4457910014FFE6 /* MemoryManager */,
@@ -585,8 +582,10 @@
 				654D97A121E922F400113964 /* Clip.h in Headers */,
 				654D979E21E922F400113964 /* Animation.h in Headers */,
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
+				81FF8E2E2237A9D30009402D /* InputMappings.h in Headers */,
 				5C512C682141561E00E7A798 /* imgui.h in Headers */,
 				654D979421E922F400113964 /* ClipController.h in Headers */,
+				81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
 				5C512C652141561E00E7A798 /* imgui_internal.h in Headers */,
@@ -699,9 +698,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5C512C6A2141561E00E7A798 /* imgui_widgets.cpp in Sources */,
-				5C172FD621414CC60074EE71 /* InputMappings.h in Sources */,
-				5C172FD721414CC60074EE71 /* InputSystem.cpp in Sources */,
-				5C172FD821414CC60074EE71 /* InputSystem.h in Sources */,
 				5C172FD921414CC60074EE71 /* Fontstash.cpp in Sources */,
 				5C172FDA21414CC60074EE71 /* Fontstash.h in Sources */,
 				5C172FDC21414CC60074EE71 /* AppUI.cpp in Sources */,
@@ -738,6 +734,7 @@
 				5C172FF621414CC60074EE71 /* tinyexr.h in Sources */,
 				654D97B921E92F8700113964 /* Clip.cpp in Sources */,
 				5C172FF721414CC60074EE71 /* LogManager.cpp in Sources */,
+				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
@@ -756,9 +753,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5C512C602141561E00E7A798 /* imgui_draw.cpp in Sources */,
-				5C5582E921413D550019960B /* InputMappings.h in Sources */,
-				5C5582EA21413D550019960B /* InputSystem.cpp in Sources */,
-				5C5582EB21413D550019960B /* InputSystem.h in Sources */,
 				5C5582EC21413D550019960B /* Fontstash.cpp in Sources */,
 				5C5582ED21413D550019960B /* Fontstash.h in Sources */,
 				654D979921E922F400113964 /* ClipController.cpp in Sources */,
@@ -767,6 +761,7 @@
 				5C172F53214148840074EE71 /* CommonShaderReflection.cpp in Sources */,
 				5C172F57214148840074EE71 /* ResourceLoader.cpp in Sources */,
 				5C512C692141561E00E7A798 /* imgui_widgets.cpp in Sources */,
+				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				5C5582F421413D550019960B /* FileSystem.cpp in Sources */,
 				5C5582F521413D550019960B /* RingBuffer.h in Sources */,

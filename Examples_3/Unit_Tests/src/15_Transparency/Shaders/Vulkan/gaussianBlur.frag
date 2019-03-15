@@ -32,7 +32,7 @@ layout(push_constant) uniform RootConstant_Block
 	float axis;
 } RootConstant;
 
-layout(set = 0, binding = 0) uniform texture2D Source;
+layout(set = 3, binding = 0) uniform texture2D Source;
 layout(set = 0, binding = 1) uniform sampler LinearSampler;
 
 void main()

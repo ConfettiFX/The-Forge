@@ -38,7 +38,7 @@
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 
 #include "../../../../Common_3/OS/Math/MathTypes.h"
-#include "../../../../Common_3/OS/Image/Image.h"
+#include "../../../../Common_3/OS/Image/ImageEnums.h"
 
 // for cpu usage query
 #if defined(_WIN32)
@@ -62,8 +62,8 @@
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../../../Middleware_3/Input/InputSystem.h"
-#include "../../../../Middleware_3/Input/InputMappings.h"
+#include "../../../../Common_3/OS/Input/InputSystem.h"
+#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -79,13 +79,14 @@ struct ParticleData
 
 struct ThreadData
 {
-	CmdPool*      pCmdPool;
-	Cmd**         ppCmds;
-	RenderTarget* pRenderTarget;
-	GpuProfiler*  pGpuProfiler;
-	int           mStartPoint;
-	int           mDrawCount;
-	uint32_t      mFrameIndex;
+	CmdPool*          pCmdPool;
+	Cmd**             ppCmds;
+	RenderTarget*     pRenderTarget;
+	GpuProfiler*      pGpuProfiler;
+	int               mStartPoint;
+	int               mDrawCount;
+	uint32_t          mFrameIndex;
+	DescriptorBinder* pDescriptorBinder;
 };
 
 struct ObjectProperty
@@ -159,6 +160,8 @@ Pipeline*      pGraphLineListPipeline = NULL;
 Pipeline*      pGraphTrianglePipeline = NULL;
 RootSignature* pRootSignature = NULL;
 RootSignature* pGraphRootSignature = NULL;
+DescriptorBinder* pSkyboxDescriptorBinder = NULL;
+DescriptorBinder* pGraphDescriptorBinder = NULL;
 Texture*       pTextures[5];
 Texture*       pSkyBoxTextures[6];
 #ifdef TARGET_IOS
@@ -365,10 +368,31 @@ class MultiThread: public IApp
 		skyBoxRootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
 
+		DescriptorBinderDesc skyBoxDescriptorBinderDesc = {};
+		skyBoxDescriptorBinderDesc.pRootSignature = pRootSignature;
+		skyBoxDescriptorBinderDesc.mMaxDynamicUpdatesPerBatch = 1;
+		skyBoxDescriptorBinderDesc.mMaxDynamicUpdatesPerDraw = 1;
+		addDescriptorBinder(pRenderer, &skyBoxDescriptorBinderDesc, &pSkyboxDescriptorBinder);
+
 		RootSignatureDesc graphRootDesc = {};
 		graphRootDesc.mShaderCount = 1;
 		graphRootDesc.ppShaders = &pGraphShader;
 		addRootSignature(pRenderer, &graphRootDesc, &pGraphRootSignature);
+
+		for (int i = 0; i < gThreadCount; ++i)
+		{
+			DescriptorBinderDesc threadDescriptorBinderDesc = {};
+			threadDescriptorBinderDesc.pRootSignature = pRootSignature;
+			threadDescriptorBinderDesc.mMaxDynamicUpdatesPerBatch = 1;
+			threadDescriptorBinderDesc.mMaxDynamicUpdatesPerDraw = 1;
+			addDescriptorBinder(pRenderer, &threadDescriptorBinderDesc, &gThreadData[i].pDescriptorBinder);
+		}
+
+		DescriptorBinderDesc graphDescriptorBinderDesc = {};
+		graphDescriptorBinderDesc.pRootSignature = pGraphRootSignature;
+		graphDescriptorBinderDesc.mMaxDynamicUpdatesPerBatch = 1;
+		graphDescriptorBinderDesc.mMaxDynamicUpdatesPerDraw = 1;
+		addDescriptorBinder(pRenderer, &graphDescriptorBinderDesc, &pGraphDescriptorBinder);
 
 		gTextureIndex = 0;
 
@@ -571,6 +595,11 @@ class MultiThread: public IApp
 		removeSampler(pRenderer, pSampler);
 		removeSampler(pRenderer, pSamplerSkyBox);
 
+		removeDescriptorBinder(pRenderer, pSkyboxDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pGraphDescriptorBinder);
+		for (int i = 0; i < gThreadCount; ++i)
+			removeDescriptorBinder(pRenderer, gThreadData[i].pDescriptorBinder);
+
 		removeShader(pRenderer, pShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeShader(pRenderer, pGraphShader);
@@ -681,7 +710,7 @@ class MultiThread: public IApp
 		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = calculateImageFormatStride(vertexLayout.mAttribs[0].mFormat);
+		vertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(vertexLayout.mAttribs[0].mFormat);
 
 		pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
@@ -732,7 +761,7 @@ class MultiThread: public IApp
 		const float  autoModeTimeoutReset = 3.0f;
 		static float autoModeTimeout = 0.0f;
 
-		if (getKeyDown(KEY_BUTTON_X))
+		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
 		{
 			RecenterCameraView(85.0f);
 		}
@@ -873,7 +902,7 @@ class MultiThread: public IApp
 		params[5].ppTextures = &pSkyBoxTextures[5];
 		params[6].pName = "uniformBlock";
 		params[6].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pRootSignature, 7, params);
+		cmdBindDescriptors(cmd, pSkyboxDescriptorBinder, 7, params);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
@@ -925,7 +954,7 @@ class MultiThread: public IApp
 				pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-			cmdBindDescriptors(ppGraphCmds[frameIdx], pGraphRootSignature, 0, NULL);
+			cmdBindDescriptors(ppGraphCmds[frameIdx], pGraphDescriptorBinder, 0, NULL);
 
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
 			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], NULL);
@@ -1409,7 +1438,7 @@ class MultiThread: public IApp
 		params[1].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		params[2].pName = "particleRootConstant";
 		params[2].pRootConstant = &gParticleData;
-		cmdBindDescriptors(cmd, pRootSignature, 3, params);
+		cmdBindDescriptors(cmd, data->pDescriptorBinder, 3, params);
 
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 

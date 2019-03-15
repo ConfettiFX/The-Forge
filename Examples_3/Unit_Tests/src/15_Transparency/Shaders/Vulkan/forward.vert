@@ -31,7 +31,7 @@ struct ObjectInfo
 	uint matID;
 };
 
-layout(set = 0, binding = 0) uniform ObjectUniformBlock
+layout(set = 3, binding = 0) uniform ObjectUniformBlock
 {
 	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
 };

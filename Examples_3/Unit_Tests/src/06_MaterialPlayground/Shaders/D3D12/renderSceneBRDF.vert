@@ -29,7 +29,7 @@ cbuffer cbCamera : register(b0)
 	float3 camPos;
 }
 
-cbuffer cbObject : register(b1)
+cbuffer cbObject : register(b1, space3)
 {
 	float4x4 worldMat;
 	float3 albedo;

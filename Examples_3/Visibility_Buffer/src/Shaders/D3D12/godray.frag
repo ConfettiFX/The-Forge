@@ -28,7 +28,7 @@ struct PsIn {
 };
 
 
-Texture2D uTex0 : register(t0);
+Texture2D uTex0 : register(t0, space3);
 SamplerState uSampler0 : register(s0);
 
 cbuffer RootConstantGodrayInfo : register(b0)

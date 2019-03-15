@@ -28,7 +28,7 @@ cbuffer cbPerPass : register(b0)
 	float4x4	projView;
 }
 
-cbuffer cbPerProp : register(b1)
+cbuffer cbPerProp : register(b1, space1)
 {
 	float4x4	world;
 	float		roughness;
@@ -49,7 +49,7 @@ cbuffer cbTextureRootConstants : register(b2)
 SamplerState samplerLinear : register(s2);
 
 // material parameters
-Texture2D textureMaps[] : register(t3, space1);
+Texture2D textureMaps[] : register(t3);
 
 
 struct PsIn
