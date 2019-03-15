@@ -49,7 +49,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
-## Release 1.25 - March 15th, 2019 - New Descriptor Memory Management System
+## Release 1.25 - March 15th, 2019 - New Descriptor Memory Management System | Refactored Input System
 
 - The purpose of the DescriptorBinder approach is to allocate all memory descriptor space at load time, instead of doing it on-demand at runtime, as it is commonly done. This is done in an effort to allow applications to have better control over memory footprint overhead, which is especially important on mobile targets, and to improve performance by avoiding runtime memory allocations.
 The system will use shader reflection to determine the appropriate descriptor layouts in combination with descriptor update frequency knowledge. This knowledge will come from the client domain or from content editor tools.
