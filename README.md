@@ -198,10 +198,9 @@ See the release notes from previous releases in the [Release section](https://gi
 
 1. Windows 10 RS5 with latest update for DXR support
 
-
 2. Drivers
 * AMD / NVIDIA - latest drivers 
-* Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
+* Intel - we need to test this. Last time we looked the driver still didn't have full DirectX 12 and Vulkan support and the Visibility Buffer didn't run.
 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 
@@ -209,14 +208,9 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 4. Vulkan [1.1.92.1](https://vulkan.lunarg.com/sdk/home)
 
-
-5. Ray Tracing 
- * DirectX Raytracing Experimental SDK v0.09.01
- * Windows 10 RS4 builds more info at [DXR](http://aka.ms/DXR)
-
-6. The Forge is currently tested on 
+5. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
-* NVIDIA GeForce 9x, 10x GPUs (various)
+* NVIDIA GeForce 9x, 10x, 20x GPUs (various)
 * Intel Skull Canyon
 
 
@@ -291,7 +285,6 @@ In the moment we only support the first two unit tests. We are waiting for devki
     It will only download and unzip required Art Assets (No plugins/extensions install). 
 
 # Unit Tests
-There are the following unit tests in The Forge:
 
 ## 1. Transformation
 
