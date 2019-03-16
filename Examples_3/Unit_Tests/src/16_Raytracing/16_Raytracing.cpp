@@ -402,7 +402,7 @@ public:
         /************************************************************************/
         DescriptorData rayGenParams[1] = {};
         rayGenParams[0].pName = "RaygenSettings";
-        rayGenParams[0].ppBuffers = &pRayGenConfigBuffer;
+        rayGenParams[0].ppBuffers = &pRayGenConfigBuffer[0];
         {
             // Update uniform buffers
             RayGenConfigBlock configBlock;
@@ -412,10 +412,12 @@ public:
             ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
             ubDesc.mDesc.mSize = sizeof(RayGenConfigBlock);
-            //ubDesc.mDesc.mFlags = 0;//BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
             ubDesc.pData = &configBlock;
-            ubDesc.ppBuffer = &pRayGenConfigBuffer;
-            addResource(&ubDesc);
+			for(uint32_t i = 0 ; i < gImageCount; i++)
+			{
+				ubDesc.ppBuffer = &pRayGenConfigBuffer[i];
+				addResource(&ubDesc);
+			}
         }
         RaytracingShaderTableRecordDesc rayGenRecord = { "rayGen" };
         rayGenRecord.pRootSignature = pRayGenSignature;
@@ -434,7 +436,7 @@ public:
         };
         DescriptorData planeHitParams[1] = {};
         planeHitParams[0].pName = "LightSettings";
-        planeHitParams[0].ppBuffers = &pHitPlaneConfigBuffer;
+        planeHitParams[0].ppBuffers = &pHitPlaneConfigBuffer[0];
         {
             // Update uniform buffers
             RayPlaneConfigBlock configBlock;
@@ -446,7 +448,11 @@ public:
             ubDesc.mDesc.mSize = sizeof(RayPlaneConfigBlock);
             //ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
             ubDesc.pData = &configBlock;
-            ubDesc.ppBuffer = &pHitPlaneConfigBuffer;
+			for(uint32_t i = 0 ; i < gImageCount; i++)
+			{
+				ubDesc.ppBuffer = &pHitPlaneConfigBuffer[i];
+				addResource(&ubDesc);
+			}
             addResource(&ubDesc);
         }
         hitRecords[2].pRootSignature = pPlaneHitSignature;
@@ -486,8 +492,11 @@ public:
 			removeRootSignature(pRenderer, pPlaneHitSignature);
 			removeRootSignature(pRenderer, pRootSignature);
 			removeRootSignature(pRenderer, pEmptyRootSignature);
-			removeResource(pRayGenConfigBuffer);
-			removeResource(pHitPlaneConfigBuffer);
+			for(uint32_t i = 0 ; i < gImageCount; i++)
+			{
+				removeResource(pRayGenConfigBuffer[i]);
+				removeResource(pHitPlaneConfigBuffer[i]);
+			}
 			removeShader(pRenderer, pShaderRayGen);
 			removeShader(pRenderer, pShaderHitTriangle);
 			removeShader(pRenderer, pShaderHitPlane);
@@ -536,9 +545,11 @@ public:
 		uavDesc.mWidth = mSettings.mWidth;
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pDesc = &uavDesc;
-		loadDesc.ppTexture = &pComputeOutput;
-		addResource(&loadDesc);
-
+		for(uint i = 0 ; i < gImageCount; i++)
+		{
+			loadDesc.ppTexture = &pComputeOutput[i];
+			addResource(&loadDesc);
+		}
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
@@ -585,7 +596,8 @@ public:
 		mAppUI.Unload();
 
 		removeSwapChain(pRenderer, pSwapChain);
-		removeResource(pComputeOutput);
+		for(uint i = 0; i < gImageCount; i++)
+			removeResource(pComputeOutput[i]);
 	}
 
 	void Update(float deltaTime)
@@ -595,36 +607,38 @@ public:
 
 	void Draw()
 	{
-		if (pHitPlaneConfigBuffer != NULL)
-        {
-            RayPlaneConfigBlock cb;
-            cb.mLightDirection = mLightDirection;
-            
-            BufferUpdateDesc bufferUpdate;
-            bufferUpdate.pBuffer = pHitPlaneConfigBuffer;
-            bufferUpdate.pData = &cb;
-            bufferUpdate.mSize = sizeof(cb);
-            updateResource(&bufferUpdate);
-        }
-		if (pRayGenConfigBuffer != NULL)
-		{
-			RayGenConfigBlock cb;
-			cb.mCameraPosition = mCameraOrigin;
-
-			BufferUpdateDesc bufferUpdate;
-			bufferUpdate.pBuffer = pRayGenConfigBuffer;
-			bufferUpdate.pData = &cb;
-			bufferUpdate.mSize = sizeof(cb);
-			updateResource(&bufferUpdate);
-		}
-        
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &mFrameIdx);
+		
 
 		FenceStatus fenceStatus = {};
 		getFenceStatus(pRenderer, pRenderCompleteFences[mFrameIdx], &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFences[mFrameIdx]);
 
+		if (pHitPlaneConfigBuffer[mFrameIdx] != NULL)
+		{
+			RayPlaneConfigBlock cb;
+			cb.mLightDirection = mLightDirection;
+			
+			BufferUpdateDesc bufferUpdate;
+			bufferUpdate.pBuffer = pHitPlaneConfigBuffer[mFrameIdx];
+			bufferUpdate.pData = &cb;
+			bufferUpdate.mSize = sizeof(cb);
+			updateResource(&bufferUpdate);
+		}
+		if (pRayGenConfigBuffer[mFrameIdx] != NULL)
+		{
+			RayGenConfigBlock cb;
+			cb.mCameraPosition = mCameraOrigin;
+			
+			BufferUpdateDesc bufferUpdate;
+			bufferUpdate.pBuffer = pRayGenConfigBuffer[mFrameIdx];
+			bufferUpdate.pData = &cb;
+			bufferUpdate.mSize = sizeof(cb);
+			updateResource(&bufferUpdate);
+		}
+		
+		
 		Cmd* pCmd = ppCmds[mFrameIdx];
 		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[mFrameIdx];
 		beginCmd(pCmd);
@@ -633,7 +647,7 @@ public:
 		// Transition UAV texture so raytracing shader can write to it
 		/************************************************************************/
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Raytrace Triangle", true);
-		TextureBarrier uavBarrier = { pComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
+		TextureBarrier uavBarrier = { pComputeOutput[mFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &uavBarrier, false);
 		/************************************************************************/
 		// Perform raytracing
@@ -642,7 +656,7 @@ public:
 		{
 			DescriptorData params[2] = {};
 			params[0].pName = "gOutput";
-			params[0].ppTextures = &pComputeOutput;
+			params[0].ppTextures = &pComputeOutput[mFrameIdx];
 			params[1].pName = "gLightDirectionRootConstant";
 			params[1].pRootConstant = &mLightDirection;
 
@@ -661,7 +675,7 @@ public:
 		// Transition UAV to be used as source and swapchain as destination in copy operation
 		/************************************************************************/
 		TextureBarrier copyBarriers[] = {
-			{ pComputeOutput, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pComputeOutput[mFrameIdx], RESOURCE_STATE_SHADER_RESOURCE },
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
 		cmdResourceBarrier(pCmd, 0, NULL, 2, copyBarriers, false);
@@ -681,7 +695,7 @@ public:
         DescriptorData params[1] = {};
         cmdBindPipeline(pCmd, pDisplayTexturePipeline);
         params[0].pName = "uTex0";
-        params[0].ppTextures = &pComputeOutput;
+        params[0].ppTextures = &pComputeOutput[mFrameIdx];
         cmdBindDescriptors(pCmd, pDisplayTextureDescriptorBinder, 1, params);
         cmdDraw(pCmd, 3, 0);
         cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -720,8 +734,8 @@ private:
 	Fence*				  pRenderCompleteFences[gImageCount];
 	Buffer*				 pVertexBufferTriangle;
 	Buffer*				 pVertexBufferPlane;
-	Buffer*				 pRayGenConfigBuffer;
-	Buffer*				 pHitPlaneConfigBuffer;
+	Buffer*				 pRayGenConfigBuffer[gImageCount];
+	Buffer*				 pHitPlaneConfigBuffer[gImageCount];
 	AccelerationStructure*  pBottomLevelASTriangle;
 	AccelerationStructure*  pBottomLevelASPlane;
 	AccelerationStructure*  pTopLevelAS;
@@ -745,7 +759,7 @@ private:
     Pipeline*               pDisplayTexturePipeline;
 	RaytracingShaderTable*  pShaderTable;
 	SwapChain*				pSwapChain;
-	Texture*				pComputeOutput;
+	Texture*				pComputeOutput[gImageCount];
 	Semaphore*				pRenderCompleteSemaphores[gImageCount];
 	Semaphore*				pImageAcquiredSemaphore;
 	GpuProfiler*			pGpuProfiler;
