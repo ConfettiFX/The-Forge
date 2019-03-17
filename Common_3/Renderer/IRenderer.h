@@ -1054,10 +1054,6 @@ typedef struct RootSignature
 	uint32_t*    pStaticSamplerSlots;
 	ShaderStage* pStaticSamplerStages;
 	uint32_t     mStaticSamplerCount;
-
-	// TODO: remove descriptor manager from Metal backend
-	using ThreadLocalDescriptorManager = tinystl::unordered_map<ThreadID, struct DescriptorManager*>;
-	ThreadLocalDescriptorManager pDescriptorManagerMap;
 #endif
 #if defined(DIRECT3D11)
 	ID3D11SamplerState** ppStaticSamplers;
@@ -1122,7 +1118,7 @@ typedef struct Cmd
 	Renderer* pRenderer;
 	CmdPool*  pCmdPool;
 
-	const RootSignature* pBoundRootSignature;
+	DescriptorBinder*    pBoundDescriptorBinder;
 	uint32_t*            pBoundColorFormats;
 	bool*                pBoundSrgbValues;
 	uint32_t             mBoundDepthStencilFormat;

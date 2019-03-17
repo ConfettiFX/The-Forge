@@ -5005,7 +5005,7 @@ void beginCmd(Cmd* pCmd)
 		pCmd->pDxCmdList->SetDescriptorHeaps(2, heaps);
 	}
 
-	pCmd->pBoundRootSignature = NULL;
+	pCmd->pBoundDescriptorBinder = NULL;
 	pCmd->mTransientCBVPosition = 0;
 }
 
@@ -5298,10 +5298,10 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 		pDescriptorBinder->mBoundSamplerTables[setIndex] = true;
 	}
 
-	// Compare the currently bound root signature with the root signature of the descriptor manager
-	// If these values dont match, we must bind the root signature of the descriptor manager
+	// Compare the currently bound descriptor binder with the current descriptor binder
+	// If these values dont match, we must bind the new descriptor binder
 	// If the values match, no op is required
-	if (pCmd->pBoundRootSignature != pRootSignature)
+	if (pCmd->pBoundDescriptorBinder != pDescriptorBinder)
 	{
 		if (pDescriptorBinder->pCurrentCmd != pCmd)
 		{
@@ -5309,7 +5309,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 		}
 
 		// Bind root signature
-		pCmd->pBoundRootSignature = pRootSignature;
+		pCmd->pBoundDescriptorBinder = pDescriptorBinder;
 
 		if (pRootSignature->mPipelineType == PIPELINE_TYPE_GRAPHICS)
 			pCmd->pDxCmdList->SetGraphicsRootSignature(pRootSignature->pDxRootSignature);

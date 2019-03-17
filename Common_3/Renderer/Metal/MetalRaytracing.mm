@@ -71,7 +71,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     
     struct ShaderLocalData
     {
-        RootSignature*     pLocalRootSignature;
+        DescriptorBinder*  pLocalDescriptorBinder;
         DescriptorData*    pRootData;
         uint32_t           mRootDataCount;
     };
@@ -137,8 +137,6 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     };
     
     //implemented in MetalRenderer.mm
-	typedef struct DescriptorManager DescriptorManager;
-    extern void add_descriptor_manager(Renderer* pRenderer, RootSignature* pRootSignature, DescriptorManager** ppManager);
     extern void util_end_current_encoders(Cmd* pCmd);
 
     bool isRaytracingSupported(Renderer* pRenderer)
@@ -863,7 +861,11 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             /* Check Local Root Signature */
             if (pHitGroups[i].pRootSignature != NULL)
             {
-                shadersInfo->pShadersLocalData[i].pLocalRootSignature = pHitGroups[i].pRootSignature;
+				DescriptorBinder* localDescriptorBinder = NULL;
+				DescriptorBinderDesc localDescBinDesc = { pHitGroups[i].pRootSignature };
+				addDescriptorBinder(pRaytracing->pRenderer, &localDescBinDesc, &localDescriptorBinder);
+
+                shadersInfo->pShadersLocalData[i].pLocalDescriptorBinder = localDescriptorBinder;
                 shadersInfo->pShadersLocalData[i].mRootDataCount = pHitGroups[i].mRootDataCount;
                 shadersInfo->pShadersLocalData[i].pRootData =
                 (DescriptorData*)conf_calloc(pHitGroups[i].mRootDataCount, sizeof(DescriptorData));
@@ -882,8 +884,12 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         
         RaytracingShaderTable* table = (RaytracingShaderTable*)conf_calloc(1, sizeof(RaytracingShaderTable));
         memset(table, 0, sizeof(RaytracingShaderTable));
-        
-        table->mRayGenData.pLocalRootSignature = pDesc->pRayGenShader->pRootSignature;
+
+		DescriptorBinder* localDescriptorBinder = NULL;
+		DescriptorBinderDesc localDescBinDesc = { pDesc->pRayGenShader->pRootSignature };
+		addDescriptorBinder(pRaytracing->pRenderer, &localDescBinDesc, &localDescriptorBinder);
+
+        table->mRayGenData.pLocalDescriptorBinder = localDescriptorBinder;
         if (pDesc->pRayGenShader->pRootData != NULL)
         {
             table->mRayGenData.pRootData = (DescriptorData*)conf_calloc(pDesc->pRayGenShader->mRootDataCount, sizeof(DescriptorData));
@@ -1043,15 +1049,10 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             pRootSignature->pStaticSamplerSlots[i] = staticSamplers[i].first->reg;
         }
         
-        // Create descriptor manager for this thread.
-        DescriptorManager* pManager = NULL;
-        add_descriptor_manager(pRenderer, pRootSignature, &pManager);
-        pRootSignature->pDescriptorManagerMap.insert({ Thread::GetCurrentThreadID(), pManager });
-        
         *ppRootSignature = pRootSignature;
     }
     
-    extern void cmdBindLocalDescriptors(Cmd* pCmd, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
+    extern void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams);
     
     void dispatch(id <MTLComputeCommandEncoder> computeEncoder,
                   id <MTLBuffer> raysBuffer,
@@ -1119,12 +1120,12 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         
         //Bind "Global Root Signature" again
         cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
-        if (pShadersInfo->pShadersLocalData[shaderId].pLocalRootSignature)
+        if (pShadersInfo->pShadersLocalData[shaderId].pLocalDescriptorBinder)
         {
-            RootSignature* rs   = pShadersInfo->pShadersLocalData[shaderId].pLocalRootSignature;
+            DescriptorBinder* db   = pShadersInfo->pShadersLocalData[shaderId].pLocalDescriptorBinder;
             uint32_t dc         = pShadersInfo->pShadersLocalData[shaderId].mRootDataCount;
             DescriptorData* dd  = pShadersInfo->pShadersLocalData[shaderId].pRootData;
-            cmdBindLocalDescriptors(pCmd, rs, dc, dd);
+            cmdBindLocalDescriptors(pCmd, db, dc, dd);
         }
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         dispatch(computeEncoder, raysBufferLocal, globalSettingsBuffer, intersectionsBuffer,
@@ -1199,12 +1200,12 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         // commands to the command buffer.
         //In terms of DXR here we bind "Global Root Signature"
         cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
-        if (pDesc->pShaderTable->mRayGenData.pLocalRootSignature)
+        if (pDesc->pShaderTable->mRayGenData.pLocalDescriptorBinder)
         {
-            RootSignature* rs = pDesc->pShaderTable->mRayGenData.pLocalRootSignature;
+            DescriptorBinder* db = pDesc->pShaderTable->mRayGenData.pLocalDescriptorBinder;
             uint32_t dc = pDesc->pShaderTable->mRayGenData.mRootDataCount;
             DescriptorData* dd = pDesc->pShaderTable->mRayGenData.pRootData;
-            cmdBindLocalDescriptors(pCmd, rs, dc, dd);
+            cmdBindLocalDescriptors(pCmd, db, dc, dd);
         }
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         /*********************************************************************************/
