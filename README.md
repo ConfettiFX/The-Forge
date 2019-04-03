@@ -49,9 +49,44 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.26 - April 3rd, 2019 - Vulkan Ray Tracing for Windows & Linux
+- Ray Tracing with the Vulkan API (Vulkan SDK 1.1.101.0) is now working on Windows and Ubuntu through our unified Ray Tracing interface in IRay.h:
+
+PC Ubuntu Vulkan RTX, GeForce RTX 2070, Driver Version 418.56 1080p
+![Ray Tracing on PC Ubuntu with Vulkan RTX](Screenshots/16_RayTrace_Linux_Vulkan.png)
+
+PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 1080p:
+![Ray Tracing on PC With DXR](Screenshots/16_RayTrace_Windows_DXR.png)
+
+Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
+![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
+
+iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
+![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
+
+- New Descriptor Memory Management System: we did a second pass over that system and improved performance and memory consumption further. Now we can group individual descriptor bindors into a single one. A lot of bug and memory leak fixes were done as well.
+- Async / Sync Resource Loading system: instead of allocating additional memory, it uses now fixed size memory and splits resources for upload
+- Unified UniformRingBuffer and MeshRingBuffer into GPURingBuffer
+- Vulkan: we implemented now something close to the official recommendation how to convert "Vsync on/off" to Vulkan parameters (in pseudocode) (thanks to Adam Sawicki
+@Reg__):
+```cpp
+if mEnableVsync:
+    Try to find among available present modes, in this order: FIFO_RELAXED, FIFO
+else:
+    Try to find among available present modes, in this order: IMMEDIATE, MAILBOX, FIFO (we prefer here FIFO_RELAXED instead)
+
+if chosen mode == IMMEDIATE:
+    imageCount = (Fullscreen ? 2 : 3)
+else if chosen mode == MAILBOX:
+    imageCount = 3
+else if chosen mode == FIFO or FIFO_RELAXED:
+    imageCount = 2
+imageCount = max(VkSurfaceCapabilitiesKHR::minImageCount, min(imageCount, VkSurfaceCapabilitiesKHR::maxImageCount))
+```
+
 ## Release 1.25 - March 15th, 2019 - New Descriptor Memory Management System | Refactored Input System
 
-- The purpose of the DescriptorBinder approach is to allocate all memory descriptor space at load time, instead of doing it on-demand at runtime, as it is commonly done. This is done in an effort to allow applications to have better control over memory footprint overhead, which is especially important on mobile targets, and to improve performance by avoiding runtime memory allocations.
+- The purpose of the DescriptorBinder approach is to allocate all memory descriptor space at load time (streaming is also considered load time), instead of doing it on-demand at runtime, as it is commonly done. This is done in an effort to allow applications to have better control over memory footprint overhead, which is especially important on mobile targets, and to improve performance by avoiding runtime memory allocations.
 The system will use shader reflection to determine the appropriate descriptor layouts in combination with descriptor update frequency knowledge. This knowledge will come from the client domain or from content editor tools.
 With this information, we are able to allocate all necessary descriptor memory up-front, giving more control to the application about the memory footprint. This is one of the initiatives leading up to the new version of The Forge.
 Read more [Descriptor Management](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
@@ -86,111 +121,6 @@ Linux Ubuntu
 
 
 
-## Release 1.23 - February 14th, 2019 - New Cross-Platform Ray Tracing Interface 
-Happy Valentines! Here is some love from The Forge team:
-- new cross-platform Ray Tracing interface in IRay.h, currently supporting DXR (Vulkan comes next) and Metal Ray Tracing on Windows, macOS and iOS. In other words you can now write Ray Tracing code that runs on Windows, macOS and iOS. You will need a RTX GPU to run this on Windows. On macOS / iOS only latest software update is needed.
-
-PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 with resolution 3440x1440:
-![Ray Tracing on PC With DXR](Screenshots/RayTracing_PC_DX12.png)
-
-Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
-![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
-
-iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
-![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
-
-- Rewrote the Light & Shadow Playground from scratch, thanks to Mateusz Kielan:
-
-iMac with AMD RADEON 580 (Part No. MNED2xxA) with resolution of 5120x2880:
-![Light & Shadow Playground](Screenshots/09_LightShadowPlayground.png)
-
-iPhone 7 iOS 12.1.4 (16D57) with a resolution of 1334x750:
-![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_iOS.png)
-
-Linux Ubuntu 18.04.1 LTS Vulkan 1.1.92 RADEON 480 Driver 18.30 with a resolution of 1920x1080:
-![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_Linux.png)
-
-- macOS / iOS: 
-  - upgraded to 
-    - macOS Mojave 10.14.4 beta (18E174f)
-    - iOS 12.2 beta (16E5181f)
-    - Xcode 10.2 beta (10P82s)
-  - a few months ago, we submitted a bug report for wave intrinsics to Apple and with the latest firmware beta (see above), wave intrinsics are working now in unit test 15
-  - support PVR texture compression (V3 header) on iOS 
-
-- Improvements for all Platforms:
-  - 3D Texture mip maps for write
-  - Unified texture subresource updates across all APIs
-  - Memory optimizations: much less memory is used across all platforms
-- All the unit tests are now in one folder unit test and they are in one solution file
-
-
-## Release 1.22 - January 22nd, 2019 - TressFX Hair | Entity Component System | Lua Scripting System
-This is the first release in 2019 and The Forge GitHub repository is today exactly one year old, with the first release on the same day last year :-) In 2018 we made 22 releases and we improved The Forge in many areas.
-If you followed us so far ... why not just join us? We are looking for more graphics programmers joining our teams. We have offices in Encinitas, CA USA (Main) / Mumbai, India / Shanghai, China / Breda, Netherlands / St. Petersburg, Russia and in Lviv, Ukraine.
-
-Now back to release notes: many years ago in 2012 / 2013, we helped AMD and Crystal Dynamics with the development of TressFX for [Tomb Raider](https://gfxspeak.com/2013/05/21/amd-and-confetti-collaborate-on-hair/). We also wrote an article about the implementation in [GPU Pro 5](http://gpupro.blogspot.com/2013/10/gpu-pro-5-table-of-contents.html ) and gave a few joint presentations on conferences like [FMX](https://www.slideshare.net/WolfgangEngel/hair-intombraider-final). At the end of last year we revisited TressFX. We took the current code in the [GitHub repository](https://github.com/GPUOpen-Effects/TressFX), changed it a bit and ported it to The Forge. It now runs on PC with DirectX 12 / Vulkan, Linux with Vulkan, macOS and iOS with Metal 2 and on the XBOX One. We also created a few new hair assets so that we can showcase it. Here are screenshots of our programmers art:
-
-PC Windows DirectX 12 GTX 950 Driver 416.81:
-
-![Hair on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Hair_closup.gif)
-
-iPad (Model A1803):
-
-![Hair on iOS](Screenshots/MaterialPlayground/06_MaterialPlayground_hair_iOS_ponytail.png)
-
-
-The current implementation is overall too slow to be used on some of our platforms but we are going to improve performance over time. We are also going to improve the hair art assets.
-Apart from Hair, the Material Playground now also has improved versions of Metal and a new material category Wood:
-
-Metal:
-
-![Material Playground Metal on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Metal.png)
-
-Wood:
-
-![Material Playground Wood on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
-
-- New Entity component system (ECS) for all platforms: we've chosen to integrate ENTT (https://github.com/skypjack/entt) into The Forge. The initial implementation was contributed by Amer Koleci @AmerKoleci:
-
-![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
-
-- Lua Scripting System for all platforms: the Lua scripting integration allows to register functions to lua contexts so these functions will be available via scripts. Functions can be static or lambda. In latter case you can store some state information within lambda. Scripts are executed using LuaManager::RunScript() or LuaManager::AddAsyncScript() methods. In second case scripts are still executed in synchronous way. Async execution implementation is planned. Also there is "updateable" script. It is loaded (at this point script main body is executed), then it can be "updated" - update() function from script is invoked. Script can invoke any registered function and can store state information which will be available from update to update. The script can be reloaded - can be useful for fast iterations when you just modify script and don't even need to restart application. If that script contains exit() function then it will be executed when script is reloaded or closed. Checkout unit test 06_MaterialPlayground for an example on how to use it. In this unit tests it executes three scripts to load models and textures and animate the camera.
-
-
-
-## Release 1.21 - December 1st, 2018 - Season Greetings with new Skinning Unit Test | Unified Vulkan Shaders
-The team will soon go into winter hybernation mode ... which means many Confetti people will fly home over the holiday season to spend time with their loved ones. We will be back with more releases next year, probably in February. 
-
-To send you season greetings, we extended our Ozz implementation by adding a new Skinning unit test:
-
-PC Windows 10 DirectX 12 GeForce 950 Driver 411.63 with a resolution of 1080p
-![PC Windows 10 skinning unit test](Screenshots/Skinning_PC.gif)
-
-Linux Ubuntu 18.04.1 LTS Vulkan 1.1.92 RADEON 480 Driver 18.30 with a resolution of 1920x1080
-![Ubuntu skinning unit test](Screenshots/Skinning_Ubuntu.png)
-
-iMac with AMD RADEON 580 (Part No. MNED2xx/A) with resolution of 1920x1080
-![macOS skinning unit test](Screenshots/Skinning_macOS.png)
-
-iPhone 7 iOS 12.0.1 (16A404) with a resolution of 1334x750
-![iOS skinning unit test](Screenshots/Skinning_iOS.png)
-
-XBOX One
-![XBOX One skinning unit test](Screenshots/Skinning_XBOX.png)
-
-- Vulkan: 
-  - all three Vulkan platforms (Windows, Linux, Android) use now the same Vulkan shaders
-  - Upgraded Linux and Windows SDK to 1.1.92.1
-- The math library now supports more integer data types
-- Updated assimp to use latest master + added projects instead of shipping binaries
-- macOS / iOS
-  - Added support for iOS Gestures (Not currently in use in the unit-tests)
-  - Improved pixel projected reflections on Metal Platforms
-  - Upgraded all the XCode projects to target Xcode 10.1 (10B61) and  iOS Version 12.0.1 (16A404) 
-  - Started Testing additionally on A12 Devices Phone Xs Max (Model MT5D2LL/A)
-- Numerous shader translator updates. Head over to [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net) check them out :-) It is getting more and more stable.
-
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
@@ -198,19 +128,20 @@ See the release notes from previous releases in the [Release section](https://gi
 
 1. Windows 10 RS5 with latest update for DXR support
 
+
 2. Drivers
 * AMD / NVIDIA - latest drivers 
-* Intel - we need to test this. Last time we looked the driver still didn't have full DirectX 12 and Vulkan support and the Visibility Buffer didn't run.
+* Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan [1.1.92.1](https://vulkan.lunarg.com/sdk/home)
+4. Vulkan [1.1.101.0](https://vulkan.lunarg.com/sdk/home)
 
-5. The Forge is currently tested on 
+6. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
-* NVIDIA GeForce 9x, 10x, 20x GPUs (various)
+* NVIDIA GeForce 9x, 10x. 20x GPUs (various)
 * Intel Skull Canyon
 
 
@@ -250,7 +181,7 @@ We are currently testing on
 
 2. GPU Drivers:
 * [AMDGpu-Pro 18.30-641594](https://www.amd.com/en/support/graphics/radeon-500-series/radeon-rx-500-series/radeon-rx-580)
-* [NVIDIA Linux x86_64/AMD64/EM64T 390.87](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
+* [NVIDIA Linux x86_64/AMD64/EM64T 418.56](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
 
 3. Workspace file is provided for [codelite 12.0.6](https://codelite.org/)
 
@@ -259,10 +190,7 @@ We are currently testing on
 5. The Forge is currently tested on Ubuntu with the following GPUs:
  * AMD RADEON RX 480
  * AMD RADEON VEGA 56
- * NVIDIA GeForce GTX 950
-
-Make sure VulkanSDK environment variables are configured correctly.
-Please read the "Set up the Runtime Environment" and "Environment Variable Persistence" [https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html](https://vulkan.lunarg.com/doc/sdk/1.1.70.1/linux/getting_started.html)
+ * NVIDIA GeForce 2070 RTX
 
 
 # Android Requirements:
@@ -285,6 +213,7 @@ In the moment we only support the first two unit tests. We are waiting for devki
     It will only download and unzip required Art Assets (No plugins/extensions install). 
 
 # Unit Tests
+There are the following unit tests in The Forge:
 
 ## 1. Transformation
 
@@ -405,10 +334,13 @@ This unit test shows how to use the new wave intrinsics. Supporting Windows with
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
 ## 16. Ray Tracing Unit Test
-Ray Tracing API unit test, showing how the cross-platfrom Ray Tracing Interface running on Windows, macOS and iOS
+Ray Tracing API unit test, showing how the cross-platfrom Ray Tracing Interface running on Windows, Ubuntu with Vulkan RTX, macOS and iOS
 
-PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 with resolution 3440x1440:
-![Ray Tracing on PC With DXR](Screenshots/RayTracing_PC_DX12.png)
+PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 1080p:
+![Ray Tracing on PC With DXR](Screenshots/16_RayTrace_Windows_DXR.png)
+
+PC Ubuntu Vulkan RTX, GeForce RTX 2070, Driver Version 418.56 1080p
+![Ray Tracing on PC Ubuntu with Vulkan RTX](Screenshots/16_RayTrace_Linux_Vulkan.png)
 
 Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
 ![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
