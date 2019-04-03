@@ -36,8 +36,18 @@ static DescriptorType sSPIRV_TO_DESCRIPTOR[SPIRV_TYPE_COUNT] = {
 	DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DESCRIPTOR_TYPE_TEXEL_BUFFER, DESCRIPTOR_TYPE_RW_TEXEL_BUFFER,
 };
 
-static TextureDimension sSPIRV_TO_TEXTURE_DIM[SPIRV_TEXTURE_DIM_COUNT] = {
-	TEXTURE_DIM_UNDEFINED, TEXTURE_DIM_1D, TEXTURE_DIM_2D, TEXTURE_DIM_3D, TEXTURE_DIM_1D_ARRAY, TEXTURE_DIM_2D_ARRAY, TEXTURE_DIM_CUBE,
+static TextureDimension sSPIRV_TO_RESOURCE_DIM[SPIRV_DIM_COUNT] = {
+	TEXTURE_DIM_UNDEFINED,
+	TEXTURE_DIM_UNDEFINED,
+	TEXTURE_DIM_1D,
+	TEXTURE_DIM_1D_ARRAY,
+	TEXTURE_DIM_2D,
+	TEXTURE_DIM_2D_ARRAY,
+	TEXTURE_DIM_2DMS,
+	TEXTURE_DIM_2DMS_ARRAY,
+	TEXTURE_DIM_3D,
+	TEXTURE_DIM_CUBE,
+	TEXTURE_DIM_CUBE_ARRAY,
 };
 
 bool filterResouce(SPIRV_Resource* resource, ShaderStage currentStage)
@@ -196,10 +206,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 
 				pResources[j].name = pCurrentName;
 				pResources[j].name_size = resource->name_size;
-				if (resource->type == SPIRV_TYPE_IMAGES || resource->type == SPIRV_TYPE_STORAGE_IMAGES)
-					pResources[j].textureDim = sSPIRV_TO_TEXTURE_DIM[resource->dim];
-				else
-					pResources[j].textureDim = TEXTURE_DIM_UNDEFINED;
+				pResources[j].dim = sSPIRV_TO_RESOURCE_DIM[resource->dim];
 				// we dont own the names memory we need to copy it to the name pool
 				memcpy(pCurrentName, resource->name, resource->name_size);
 				pCurrentName += resource->name_size + 1;

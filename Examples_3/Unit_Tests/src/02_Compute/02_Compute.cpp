@@ -126,13 +126,13 @@ SwapChain* pSwapChain = NULL;
 Shader*            pShader = NULL;
 Pipeline*          pPipeline = NULL;
 RootSignature*     pRootSignature = NULL;
-DescriptorBinder*  pDescriptorBinder = NULL;
 
 Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
 RootSignature*    pComputeRootSignature = NULL;
-DescriptorBinder* pComputeDescriptorBinder = NULL;
 Texture*          pTextureComputeOutput = NULL;
+
+DescriptorBinder* pDescriptorBinder = NULL;
 
 #if defined(MOBILE_PLATFORM)
 VirtualJoystickUI gVirtualJoystick;
@@ -187,7 +187,7 @@ class Compute: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 		gAppUI.ActivateMicroProfile(true);
@@ -226,16 +226,13 @@ class Compute: public IApp
 		rootDesc.ppShaders = &pShader;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
-
 		RootSignatureDesc computeRootDesc = {};
 		computeRootDesc.mShaderCount = 1;
 		computeRootDesc.ppShaders = &pComputeShader;
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
-		DescriptorBinderDesc computeDescriptorBinderDesc = { pComputeRootSignature };
-		addDescriptorBinder(pRenderer, &computeDescriptorBinderDesc, &pComputeDescriptorBinder);
+		DescriptorBinderDesc descriptorBinderDesc[] = { { pRootSignature }, { pComputeRootSignature } };
+		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
@@ -313,7 +310,6 @@ class Compute: public IApp
 		removeShader(pRenderer, pComputeShader);
 		removePipeline(pRenderer, pComputePipeline);
 		removeDescriptorBinder(pRenderer, pDescriptorBinder);
-		removeDescriptorBinder(pRenderer, pComputeDescriptorBinder);
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pComputeRootSignature);
 
@@ -458,7 +454,7 @@ class Compute: public IApp
 		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
 		params[1].pName = "outputTexture";
 		params[1].ppTextures = &pTextureComputeOutput;
-		cmdBindDescriptors(cmd, pComputeDescriptorBinder, 2, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRootSignature, 2, params);
 
 		uint32_t groupCountX = (pTextureComputeOutput->mDesc.mWidth + pThreadGroupSize[0] - 1) / pThreadGroupSize[0];
 		uint32_t groupCountY = (pTextureComputeOutput->mDesc.mHeight + pThreadGroupSize[1] - 1) / pThreadGroupSize[1];
@@ -481,7 +477,7 @@ class Compute: public IApp
 		cmdBindPipeline(cmd, pPipeline);
 		params[0].pName = "uTex0";
 		params[0].ppTextures = &pTextureComputeOutput;
-		cmdBindDescriptors(cmd, pDescriptorBinder, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
 
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);

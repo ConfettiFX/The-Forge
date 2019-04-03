@@ -176,7 +176,7 @@ class MultiGPU: public IApp
 		if (!pRenderer)
 			return false;
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initResourceLoaderInterface(pRenderer);
 
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
@@ -241,8 +241,8 @@ class MultiGPU: public IApp
 
 		for (uint32_t i = 0; i < gViewCount; i++)
 		{
-			DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, 0, 2, gMultiGPU ? i : 0 }; // 2 = planets + skybox rendering
-			addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder[i]);
+			DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, 0, 2 }; // 2 = planets + skybox rendering
+			addDescriptorBinder(pRenderer, gMultiGPU ? i : 0 , 1, &descriptorBinderDesc, &pDescriptorBinder[i]);
 		}
 
 		RasterizerStateDesc rasterizerStateDesc = {};
@@ -517,8 +517,11 @@ class MultiGPU: public IApp
 
 		for (uint32_t view = 0; view < gViewCount; ++view)
 		{
+			removeDescriptorBinder(pRenderer, pDescriptorBinder[view]);
+
+
 			if (!gMultiGPU && view > 0)
-				break;
+				continue;
 
 			removeResource(pSphereVertexBuffer[view]);
 			removeResource(pSkyBoxVertexBuffer[view]);
@@ -798,7 +801,7 @@ class MultiGPU: public IApp
 			params[5].ppTextures = &pSkyBoxTextures[i][4];
 			params[6].pName = "BackText";
 			params[6].ppTextures = &pSkyBoxTextures[i][5];
-			cmdBindDescriptors(cmd, pDescriptorBinder[i], 7, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder[i], pRootSignature, 7, params);
 			cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer[i], NULL);
 			cmdDraw(cmd, 36, 0);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -807,7 +810,7 @@ class MultiGPU: public IApp
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
 			cmdBindPipeline(cmd, pSpherePipeline);
 			params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pDescriptorBinder[i], 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder[i], pRootSignature, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer[i], NULL);
 			cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);

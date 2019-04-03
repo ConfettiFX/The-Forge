@@ -157,8 +157,9 @@ class ImguiGUIDriver: public GUIDriver
 	RootSignature*     pRootSignatureTextured;
 	DescriptorBinder*  pDescriptorBinderTextured;
 	PipelineMap        mPipelinesTextured;
-	MeshRingBuffer*    pPlainMeshRingBuffer[MAX_FRAMES];
-	UniformRingBuffer* pRingBuffer[MAX_FRAMES];
+	GPURingBuffer*     pVertexRingBuffer[MAX_FRAMES];
+	GPURingBuffer*     pIndexRingBuffer[MAX_FRAMES];
+	GPURingBuffer*     pUniformRingBuffer[MAX_FRAMES];
 	/// Default states
 	BlendState*      pBlendAlpha;
 	DepthState*      pDepthState;
@@ -507,7 +508,7 @@ bool ImguiGUIDriver::init(Renderer* renderer)
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignatureTextured);
 
 	DescriptorBinderDesc descriptorBinderDesc = { pRootSignatureTextured, MAX_SHADER_RESOURCE_UPDATES_PER_FRAME};
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinderTextured);
+	addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinderTextured);
 
 	BufferDesc vbDesc = {};
 	vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -522,8 +523,9 @@ bool ImguiGUIDriver::init(Renderer* renderer)
 	ibDesc.mSize = 128 * 1024 * sizeof(ImDrawIdx);
 	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
 	{
-		addMeshRingBuffer(pRenderer, &vbDesc, &ibDesc, &pPlainMeshRingBuffer[i]);
-		addUniformRingBuffer(pRenderer, 256, &pRingBuffer[i], true);
+		addGPURingBuffer(pRenderer, &vbDesc, &pVertexRingBuffer[i]);
+		addGPURingBuffer(pRenderer, &ibDesc, &pIndexRingBuffer[i]);
+		addUniformGPURingBuffer(pRenderer, 256, &pUniformRingBuffer[i], true);
 	}
 
 	mVertexLayoutTextured.mAttribCount = 3;
@@ -569,11 +571,13 @@ void ImguiGUIDriver::exit()
 	removeDepthState(pDepthState);
 	removeRasterizerState(pRasterizerState);
 	removeShader(pRenderer, pShaderTextured);
+	removeDescriptorBinder(pRenderer, pDescriptorBinderTextured);
 	removeRootSignature(pRenderer, pRootSignatureTextured);
 	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
 	{
-		removeMeshRingBuffer(pPlainMeshRingBuffer[i]);
-		removeUniformRingBuffer(pRingBuffer[i]);
+		removeGPURingBuffer(pVertexRingBuffer[i]);
+		removeGPURingBuffer(pIndexRingBuffer[i]);
+		removeGPURingBuffer(pUniformRingBuffer[i]);
 	}
 }
 
@@ -598,23 +602,11 @@ bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorT
 			ImGui::GetIO().Fonts->AddFontDefault();
 		}
 		ImGui::GetIO().Fonts->Build();
-		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+		ImGui::GetIO().Fonts->GetTexDataAsAlpha8(&pixels, &width, &height);
 		// At this point you've got the texture data and you need to upload that your your graphic system:
 		// After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
 		// This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
-		Image image = {};
-		image.RedefineDimensions(ImageFormat::RGBA8, width, height, 1, 1, 1);
-		image.SetPixels(pixels);
-
-		RawImageData rawData;
-		rawData.pRawData = image.GetPixels();
-		rawData.mFormat = image.getFormat();
-		rawData.mWidth = image.GetWidth();
-		rawData.mHeight = image.GetHeight();
-		rawData.mDepth = image.GetDepth();
-		rawData.mArraySize = image.GetArrayCount();
-		rawData.mMipLevels = image.GetMipMapCount();
-
+		RawImageData    rawData{ pixels, ImageFormat::R8, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pRawImageData = &rawData;
 		loadDesc.ppTexture = &pFontTexture;
@@ -908,7 +900,8 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	/************************************************************************/
 	ImGui::Render();
 	frameIdx = (frameIdx + 1) % MAX_FRAMES;
-	resetMeshRingBuffer(pPlainMeshRingBuffer[frameIdx]);
+	resetGPURingBuffer(pVertexRingBuffer[frameIdx]);
+	resetGPURingBuffer(pIndexRingBuffer[frameIdx]);
 
 	ImDrawData* draw_data = ImGui::GetDrawData();
 
@@ -948,8 +941,8 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		iSize += (int)(cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx));
 	}
 
-	RingBufferOffset vOffset = getVertexBufferOffset(pPlainMeshRingBuffer[frameIdx], vSize);
-	RingBufferOffset iOffset = getIndexBufferOffset(pPlainMeshRingBuffer[frameIdx], iSize);
+	GPURingBufferOffset vOffset = getGPURingBufferOffset(pVertexRingBuffer[frameIdx], vSize);
+	GPURingBufferOffset iOffset = getGPURingBufferOffset(pIndexRingBuffer[frameIdx], iSize);
 	// Copy and convert all vertices into a single contiguous buffer
 	uint64_t vtx_dst = vOffset.mOffset;
 	uint64_t idx_dst = iOffset.mOffset;
@@ -976,7 +969,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		{ 0.0f, 0.0f, 0.5f, 0.0f },
 		{ (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
 	};
-	RingBufferOffset offset = getUniformBufferOffset(pRingBuffer[frameIdx], sizeof(mvp));
+	GPURingBufferOffset offset = getGPURingBufferOffset(pUniformRingBuffer[frameIdx], sizeof(mvp));
 	BufferUpdateDesc update = { offset.pBuffer, mvp, 0, offset.mOffset, sizeof(mvp) };
 	updateResource(&update);
 
@@ -985,14 +978,14 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		pCmd, (uint32_t)draw_data->DisplayPos.x, (uint32_t)draw_data->DisplayPos.y, (uint32_t)draw_data->DisplaySize.x,
 		(uint32_t)draw_data->DisplaySize.y);
 	cmdBindPipeline(pCmd, pPipeline);
-	cmdBindIndexBuffer(pCmd, pPlainMeshRingBuffer[frameIdx]->pIndexBuffer, iOffset.mOffset);
-	cmdBindVertexBuffer(pCmd, 1, &pPlainMeshRingBuffer[frameIdx]->pVertexBuffer, &vOffset.mOffset);
+	cmdBindIndexBuffer(pCmd, pIndexRingBuffer[frameIdx]->pBuffer, iOffset.mOffset);
+	cmdBindVertexBuffer(pCmd, 1, &pVertexRingBuffer[frameIdx]->pBuffer, &vOffset.mOffset);
 
 	DescriptorData params[1] = {};
 	params[0].pName = "uniformBlockVS";
 	params[0].pOffsets = &offset.mOffset;
 	params[0].ppBuffers = &offset.pBuffer;
-	cmdBindDescriptors(pCmd, pDescriptorBinderTextured, 1, params);
+	cmdBindDescriptors(pCmd, pDescriptorBinderTextured, pRootSignatureTextured, 1, params);
 	
 
 	// Render command lists
@@ -1022,7 +1015,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 				DescriptorData params[1] = {};
 				params[0].pName = "uTex";
 				params[0].ppTextures = (Texture**)&pcmd->TextureId;
-				cmdBindDescriptors(pCmd, pDescriptorBinderTextured, 1, params);
+				cmdBindDescriptors(pCmd, pDescriptorBinderTextured, pRootSignatureTextured, 1, params);
 				cmdDrawIndexed(pCmd, pcmd->ElemCount, idx_offset, vtx_offset);
 			}
 			idx_offset += pcmd->ElemCount;

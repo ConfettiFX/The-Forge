@@ -473,7 +473,7 @@ struct Sampler;
 struct RasterizerState;
 struct DepthState;
 struct BlendState;
-struct MeshRingBuffer;
+struct GPURingBuffer;
 
 typedef struct GuiDesc
 {
@@ -1520,7 +1520,7 @@ class VirtualJoystickUI
 	BlendState*       pBlendAlpha;
 	DepthState*       pDepthState;
 	RasterizerState*  pRasterizerState;
-	MeshRingBuffer*   pMeshRingBuffer;
+	GPURingBuffer*    pMeshRingBuffer;
 	vec2              mRenderSize;
 	//input related
 	private:

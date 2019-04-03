@@ -72,7 +72,7 @@ kernel void chsPlane(uint2 tid                                       [[thread_po
                 device uint *hitGroupID                 [[buffer(7)]],
                 device ShaderSettings &shaderSettings   [[buffer(8)]],
                      
-                constant RayPlaneConfigBlock & configBlock [[buffer(10)]],
+                constant RayGenConfigBlock & configBlock [[buffer(10)]],
                 
                 texture2d<float, access::write> dstTex  [[texture(0)]])
 {

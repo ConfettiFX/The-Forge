@@ -155,19 +155,17 @@ typedef struct RaytracingHitGroup
 
 typedef struct RaytracingShaderTableRecordDesc
 {
-	const char*		pName;
-	RootSignature*  pRootSignature;
-	DescriptorData* pRootData;
-	unsigned		mRootDataCount;
-    bool            mInvokeTraceRay;
-    unsigned        mHitShaderIndex;
-    unsigned        mMissShaderIndex;
+	const char*		  pName;
+    bool              mInvokeTraceRay;
+    uint32_t        mHitShaderIndex;
+    uint32_t        mMissShaderIndex;
 } RaytracingShaderTableRecordDesc;
 
 typedef struct RaytracingShaderTableDesc
 {
 	Pipeline*						    pPipeline;
 	RootSignature*						pEmptyRootSignature;
+	DescriptorBinder*					pDescriptorBinder;
 	RaytracingShaderTableRecordDesc*	pRayGenShader;
 	RaytracingShaderTableRecordDesc*	pMissShaders;
 	RaytracingShaderTableRecordDesc*	pHitGroups;
@@ -183,7 +181,8 @@ typedef struct RaytracingDispatchDesc
 	AccelerationStructure*  pTopLevelAccelerationStructure;
 	RaytracingShaderTable*  pShaderTable;
     DescriptorData*         pRootSignatureDescriptorData;
-	DescriptorBinder*       pDescriptorBinder;
+	RootSignature*          pRootSignature;
+	DescriptorBinder*		pDescriptorBinder;
     Pipeline*				pPipeline;
 } RaytracingDispatchDesc;
 
@@ -204,6 +203,12 @@ struct Raytracing
 #endif
 #ifdef METAL
     MPSRayIntersector* pIntersector;
+#endif
+
+#ifdef VULKAN
+#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+	VkPhysicalDeviceRayTracingPropertiesNV* pRayTracingProperties;
+#endif
 #endif
 };
 

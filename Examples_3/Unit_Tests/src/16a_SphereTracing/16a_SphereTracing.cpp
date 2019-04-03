@@ -133,7 +133,7 @@ class SphereTracing: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -158,7 +158,7 @@ class SphereTracing: public IApp
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
 		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -359,7 +359,7 @@ class SphereTracing: public IApp
 		DescriptorData params[1] = {};
 		params[0].pName = "u_input";
 		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndDebugMarker(cmd);

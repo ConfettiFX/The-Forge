@@ -63,10 +63,6 @@ struct Payload
 struct RayGenConfigBlock
 {
     float3 mCameraPosition;
-};
-
-struct RayPlaneConfigBlock
-{
     float3 mLightDirection;
 };
 

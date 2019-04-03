@@ -38,8 +38,14 @@
     <None Include="..\src\16_Raytracing\Shaders\D3D12\Miss.rmiss" />
     <None Include="..\src\16_Raytracing\Shaders\D3D12\MissShadow.rmiss" />
     <None Include="..\src\16_Raytracing\Shaders\D3D12\RayGen.rgen" />
+    <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHit.rchit" />
+    <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHitPlane.rchit" />
+    <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHitShadow.rchit" />
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\DisplayTexture.frag" />
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\DisplayTexture.vert" />
+    <None Include="..\src\16_Raytracing\Shaders\Vulkan\Miss.rmiss" />
+    <None Include="..\src\16_Raytracing\Shaders\Vulkan\MissShadow.rmiss" />
+    <None Include="..\src\16_Raytracing\Shaders\Vulkan\RayGen.rgen" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -303,7 +309,7 @@
     </Link>
     <PostBuildEvent>
       <Command>
-</Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

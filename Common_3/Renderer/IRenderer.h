@@ -296,21 +296,10 @@ typedef enum DescriptorType
 	DESCRIPTOR_TYPE_INPUT_ATTACHMENT = (DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES << 1),
 	DESCRIPTOR_TYPE_TEXEL_BUFFER = (DESCRIPTOR_TYPE_INPUT_ATTACHMENT << 1),
 	DESCRIPTOR_TYPE_RW_TEXEL_BUFFER = (DESCRIPTOR_TYPE_TEXEL_BUFFER << 1),
+	DESCRIPTOR_TYPE_RAY_TRACING = (DESCRIPTOR_TYPE_RW_TEXEL_BUFFER << 1),
 #endif
 } DescriptorType;
 MAKE_ENUM_FLAG(uint32_t, DescriptorType)
-
-typedef enum TextureDimension
-{
-	TEXTURE_DIM_UNDEFINED = 0,
-	TEXTURE_DIM_1D,
-	TEXTURE_DIM_2D,
-	TEXTURE_DIM_3D,
-	TEXTURE_DIM_1D_ARRAY,
-	TEXTURE_DIM_2D_ARRAY,
-	TEXTURE_DIM_CUBE,
-} TextureDimension;
-MAKE_ENUM_FLAG(uint32_t, TextureDimension)
 
 typedef enum SampleCount
 {
@@ -597,6 +586,23 @@ typedef struct ReadRange
 	uint64_t mOffset;
 	uint64_t mSize;
 } ReadRange;
+
+typedef struct Region3D
+{
+	uint32_t mXOffset;
+	uint32_t mYOffset;
+	uint32_t mZOffset;
+	uint32_t mWidth;
+	uint32_t mHeight;
+	uint32_t mDepth;
+} Region3D;
+
+typedef struct Extent3D
+{
+	uint32_t mWidth;
+	uint32_t mHeight;
+	uint32_t mDepth;
+} Extent3D;
 
 typedef enum QueryType
 {
@@ -992,7 +998,7 @@ typedef struct DescriptorInfo
 typedef enum RootSignatureType
 {
 	ROOT_SIGNATURE_GRAPHICS_COMPUTE,
-	ROOT_SIGNATURE_RAYTRACING_LOCAL,
+	ROOT_SIGNATURE_RAYTRACING_EMPTY,
 	ROOT_SIGNATURE_RAYTRACING_GLOBAL,
 } RootSignatureType;
 
@@ -1135,7 +1141,7 @@ typedef struct Cmd
 	ID3D12GraphicsCommandList* pDxCmdList;
 	D3D12_RESOURCE_BARRIER     pBatchBarriers[MAX_BATCH_BARRIERS];
 	// Small ring buffer to be used for copying root constant data in case the root constant was converted to root cbv
-	struct UniformRingBuffer*   pRootConstantRingBuffer;
+	struct GPURingBuffer*       pRootConstantRingBuffer;
 	D3D12_CPU_DESCRIPTOR_HANDLE mTransientCBVs;
 	uint64_t                    mTransientCBVPosition;
 	uint32_t                    mBatchBarrierCount;
@@ -1161,6 +1167,7 @@ typedef struct Cmd
 	uint64_t                     mSelectedIndexBufferOffset;
 	MTLPrimitiveType             selectedPrimitiveType;
 	bool                         mRenderPassActive;
+	RootSignature*               pBoundRootSignature;
 #endif
 #if defined(DIRECT3D11)
 	uint8_t* pDescriptorStructPool;
@@ -1252,6 +1259,7 @@ typedef struct Queue
 	id<MTLCommandQueue>  mtlCommandQueue;
 #endif
 	QueueDesc mQueueDesc;
+	Extent3D  mUploadGranularity;
 } Queue;
 
 typedef struct ShaderMacro
@@ -1320,6 +1328,7 @@ typedef struct Shader
 #endif
 #if defined(VULKAN)
 	VkShaderModule* pShaderModules;
+	tinystl::vector<tinystl::string> mEntryNames;
 #endif
 #if defined(METAL)
 	id<MTLFunction> mtlVertexShader;
@@ -1594,6 +1603,10 @@ typedef struct Pipeline
 #endif
 #if defined(VULKAN)
 	VkPipeline pVkPipeline;
+	
+	//In DX12 this information is stored in ID3D12StateObject.
+	//But for Vulkan we need to store it manually
+	tinystl::vector<tinystl::string> mShadersStagesNames;
 #endif
 #if defined(METAL)
 	RenderTarget*               pRenderPasspRenderTarget;
@@ -1617,14 +1630,14 @@ typedef struct Pipeline
 
 typedef struct SubresourceDataDesc
 {
-	uint32_t mArrayLayer;
-	uint32_t mMipLevel;
+	// Source description
 	uint64_t mBufferOffset;
-	uint32_t mWidth;
-	uint32_t mHeight;
-	uint32_t mDepth;
 	uint32_t mRowPitch;
 	uint32_t mSlicePitch;
+	// Destination description
+	uint32_t mArrayLayer;
+	uint32_t mMipLevel;
+	Region3D mRegion;
 } SubresourceDataDesc;
 
 typedef struct SwapChainDesc
@@ -1772,46 +1785,35 @@ typedef struct Renderer
 	GPUSettings  mGpuSettings[MAX_GPUS];
 	uint32_t     mLinkedNodeCount;
 
+#if defined(DIRECT3D12)
+	// Default NULL Descriptors for binding at empty descriptor slots to make sure all descriptors are bound at submit
+	D3D12_CPU_DESCRIPTOR_HANDLE mNullTextureSRV[TEXTURE_DIM_COUNT];
+	D3D12_CPU_DESCRIPTOR_HANDLE mNullTextureUAV[TEXTURE_DIM_COUNT];
+	D3D12_CPU_DESCRIPTOR_HANDLE mNullBufferSRV;
+	D3D12_CPU_DESCRIPTOR_HANDLE mNullBufferUAV;
+	D3D12_CPU_DESCRIPTOR_HANDLE mNullBufferCBV;
+	D3D12_CPU_DESCRIPTOR_HANDLE mNullSampler;
+
+	// API specific descriptor heap and memory allocator
+	struct DescriptorStoreHeap* pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+	struct ResourceAllocator*   pResourceAllocator;
+
+#if defined(_DEBUG) || defined(PROFILE)
+	ID3D12Debug* pDXDebug;
+#endif
+#endif
+
 #if defined(_DURANGO)
 	IDXGIFactory2* pDXGIFactory;
 	IDXGIAdapter*  pDxGPUs[MAX_GPUS];
 	IDXGIAdapter*  pDxActiveGPU;
 	ID3D12Device*  pDxDevice;
 	EsramManager*  pESRAMManager;
-#if defined(_DEBUG) || defined(PROFILE)
-	ID3D12Debug* pDXDebug;
-#endif
-	// Default NULL Descriptors for binding at empty descriptor slots to make sure all descriptors are bound at submit
-	D3D12_CPU_DESCRIPTOR_HANDLE mSrvNullDescriptor;
-	D3D12_CPU_DESCRIPTOR_HANDLE mUavNullDescriptor;
-	D3D12_CPU_DESCRIPTOR_HANDLE mCbvNullDescriptor;
-	D3D12_CPU_DESCRIPTOR_HANDLE mSamplerNullDescriptor;
-
-	struct DescriptorStoreHeap* pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-	struct DescriptorStoreHeap* pCbvSrvUavHeap[MAX_GPUS];
-	struct DescriptorStoreHeap* pSamplerHeap[MAX_GPUS];
-
-	// API specific descriptor heap and memory allocator
-	struct ResourceAllocator*   pResourceAllocator;
 #elif defined(DIRECT3D12)
 	IDXGIFactory5* pDXGIFactory;
 	IDXGIAdapter3* pDxGPUs[MAX_GPUS];
 	IDXGIAdapter3* pDxActiveGPU;
 	ID3D12Device*  pDxDevice;
-#if defined(_DEBUG)
-	ID3D12Debug*   pDXDebug;
-#endif
-	// Default NULL Descriptors for binding at empty descriptor slots to make sure all descriptors are bound at submit
-	D3D12_CPU_DESCRIPTOR_HANDLE mSrvNullDescriptor;
-	D3D12_CPU_DESCRIPTOR_HANDLE mUavNullDescriptor;
-	D3D12_CPU_DESCRIPTOR_HANDLE mCbvNullDescriptor;
-	D3D12_CPU_DESCRIPTOR_HANDLE mSamplerNullDescriptor;
-
-	// API specific descriptor heap and memory allocator
-	struct DescriptorStoreHeap* pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-	struct DescriptorStoreHeap* pCbvSrvUavHeap[MAX_GPUS];
-	struct DescriptorStoreHeap* pSamplerHeap[MAX_GPUS];
-	struct ResourceAllocator*   pResourceAllocator;
 #endif
 #if defined(DIRECT3D11)
 	IDXGIFactory1*       pDXGIFactory;
@@ -1825,12 +1827,18 @@ typedef struct Renderer
 	VkPhysicalDevice                  pVkGPUs[MAX_GPUS];
 	VkPhysicalDevice                  pVkActiveGPU;
 	VkPhysicalDeviceProperties2       mVkGpuProperties[MAX_GPUS];
+#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+	VkPhysicalDeviceRayTracingPropertiesNV mVkRaytracingProperties[MAX_GPUS];
+#endif
 	VkPhysicalDeviceMemoryProperties  mVkGpuMemoryProperties[MAX_GPUS];
 	VkPhysicalDeviceFeatures          mVkGpuFeatures[MAX_GPUS];
 	uint32_t                          mVkQueueFamilyPropertyCount[MAX_GPUS];
 	VkQueueFamilyProperties*          mVkQueueFamilyProperties[MAX_GPUS];
 	uint32_t                          mActiveGPUIndex;
 	VkPhysicalDeviceMemoryProperties* pVkActiveGpuMemoryProperties;
+#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+	VkPhysicalDeviceRayTracingPropertiesNV* pVkActiveCPURaytracingProperties;
+#endif
 	VkPhysicalDeviceProperties2*      pVkActiveGPUProperties;
 	VkDevice                          pVkDevice;
 #ifdef USE_DEBUG_UTILS_EXTENSION
@@ -1840,18 +1848,10 @@ typedef struct Renderer
 	tinystl::vector<const char*> mInstanceLayers;
 	uint32_t                     mVkUsedQueueCount[MAX_GPUS][16];
 
-	Texture* pDefaultTexture1DSRV;
-	Texture* pDefaultTexture1DUAV;
-	Texture* pDefaultTexture1DArraySRV;
-	Texture* pDefaultTexture1DArrayUAV;
-	Texture* pDefaultTexture2DSRV;
-	Texture* pDefaultTexture2DUAV;
-	Texture* pDefaultTexture2DArraySRV;
-	Texture* pDefaultTexture2DArrayUAV;
-	Texture* pDefaultTexture3DSRV;
-	Texture* pDefaultTexture3DUAV;
-	Texture* pDefaultTextureCubeSRV;
-	Buffer*  pDefaultBuffer;
+	Texture* pDefaultTextureSRV[MAX_GPUS][TEXTURE_DIM_COUNT];
+	Texture* pDefaultTextureUAV[MAX_GPUS][TEXTURE_DIM_COUNT];
+	Buffer*  pDefaultBufferSRV[MAX_GPUS];
+	Buffer*  pDefaultBufferUAV[MAX_GPUS];
 	Sampler* pDefaultSampler;
 
 	struct VmaAllocator_T*      pVmaAllocator;
@@ -1911,7 +1911,6 @@ typedef struct DescriptorBinderDesc
 	RootSignature* pRootSignature;
 	uint32_t       mMaxDynamicUpdatesPerBatch;
 	uint32_t       mMaxDynamicUpdatesPerDraw;
-	uint32_t       mGpuNodeIndex;
 } DescriptorBinderDesc;
 
 
@@ -1977,7 +1976,7 @@ API_INTERFACE void CALLTYPE addComputePipeline(Renderer* pRenderer, const Comput
 API_INTERFACE void CALLTYPE removePipeline(Renderer* pRenderer, Pipeline* p_pipeline);
 
 // descriptor binder functions
-API_INTERFACE void CALLTYPE addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* p_desc, DescriptorBinder** pp_descriptor_binder);
+API_INTERFACE void CALLTYPE addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* p_descs, DescriptorBinder** pp_descriptor_binder);
 API_INTERFACE void CALLTYPE removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* p_descriptor_binder);
 
 /// Pipeline State Functions
@@ -1997,7 +1996,7 @@ API_INTERFACE void CALLTYPE cmdBindRenderTargets(Cmd* p_cmd, uint32_t render_tar
 API_INTERFACE void CALLTYPE cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, float min_depth, float max_depth);
 API_INTERFACE void CALLTYPE cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 API_INTERFACE void CALLTYPE cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline);
-API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams);
+API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
 API_INTERFACE void CALLTYPE cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer, uint64_t offset);
 API_INTERFACE void CALLTYPE cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers, uint64_t* pOffsets);
 API_INTERFACE void CALLTYPE cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex);

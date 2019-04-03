@@ -233,7 +233,7 @@ void Panini::Draw(Cmd* cmd)
 	params[0].ppTextures = &pSourceTexture;
 	params[1].pName = "PaniniRootConstants";
 	params[1].pRootConstant = &mParams;
-	cmdBindDescriptors(cmd, pDescriptorBinderPaniniPostProcess, 2, params);
+	cmdBindDescriptors(cmd, pDescriptorBinderPaniniPostProcess, pRootSignaturePaniniPostProcess, 2, params);
 	cmdBindPipeline(cmd, pPipelinePaniniPostProcess);
 
 	// draw
@@ -249,7 +249,7 @@ void Panini::SetDescriptorBinder(uint32_t maxSourceTextureUpdatesPerFrame)
 		removeDescriptorBinder(pRenderer, pDescriptorBinderPaniniPostProcess);
 	}
 	DescriptorBinderDesc paniniDescriptorBinderDesc = { pRootSignaturePaniniPostProcess, maxSourceTextureUpdatesPerFrame };
-	addDescriptorBinder(pRenderer, &paniniDescriptorBinderDesc, &pDescriptorBinderPaniniPostProcess);
+	addDescriptorBinder(pRenderer, 0, 1, &paniniDescriptorBinderDesc, &pDescriptorBinderPaniniPostProcess);
 }
 
 void Panini::SetSourceTexture(Texture* pTex)

@@ -10,6 +10,5 @@ SamplerState uSampler : register(s2);
 
 float4 main(PS_INPUT input) : SV_Target
 {
-	float4 out_col = input.col * uTex.Sample(uSampler, input.uv);
-	return out_col;
+	return float4(input.col.xyz, input.col.a * uTex.Sample(uSampler, input.uv).r);
 }

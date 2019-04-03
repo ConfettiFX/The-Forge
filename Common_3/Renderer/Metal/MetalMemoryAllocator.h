@@ -3644,7 +3644,11 @@ void destroyTexture(ResourceAllocator* allocator, Texture* pTexture)
 
 		pTexture->mtlTexture = nil;
 
-		allocator->FreeMemory(pTexture->pMtlAllocation);
+		if (pTexture->pMtlAllocation)
+		{
+			allocator->FreeMemory(pTexture->pMtlAllocation);
+			pTexture->pMtlAllocation = NULL;
+		}
 	}
 }
 

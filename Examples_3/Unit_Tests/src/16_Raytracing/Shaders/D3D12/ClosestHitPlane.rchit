@@ -1,19 +1,14 @@
 RaytracingAccelerationStructure		gRtScene	: register(t0);
 
-cbuffer gLightDirectionRootConstant : register(b0)
-{
-	float3 direction;
-}
-
 cbuffer gSettings : register(b1)
 {
-	uint RayFlags;
 	uint HitGroupIndex;
 	uint MissGroupIndex;
 }
 
-cbuffer LightSettings : register(b10)
+cbuffer Settings : register(b10)
 {
+	float3 CameraPosition;
 	float3 LightDirection;
 }
 
@@ -48,7 +43,7 @@ void chsPlane(inout RayPayload payload : SV_RayPayload, IntersectionAttribs attr
 	ray.TMax = 100000;
 	RayPayload shadowPayload;
 	//TraceRay(gRtScene, 0  /*rayFlags*/, 0xFF, 3 /* ray index*/, 0, 1, ray, shadowPayload);
-	TraceRay(gRtScene, RayFlags, 0xFF, HitGroupIndex, 0, MissGroupIndex, ray, shadowPayload);
+	TraceRay(gRtScene, 0, 0xFF, HitGroupIndex, 0, MissGroupIndex, ray, shadowPayload);
 	/*
 	void TraceRay(RaytracingAccelerationStructure AccelerationStructure,
 			  uint RayFlags,

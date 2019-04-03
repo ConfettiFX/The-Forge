@@ -160,8 +160,7 @@ Pipeline*      pGraphLineListPipeline = NULL;
 Pipeline*      pGraphTrianglePipeline = NULL;
 RootSignature* pRootSignature = NULL;
 RootSignature* pGraphRootSignature = NULL;
-DescriptorBinder* pSkyboxDescriptorBinder = NULL;
-DescriptorBinder* pGraphDescriptorBinder = NULL;
+DescriptorBinder* pDescriptorBinder = NULL;
 Texture*       pTextures[5];
 Texture*       pSkyBoxTextures[6];
 #ifdef TARGET_IOS
@@ -288,7 +287,7 @@ class MultiThread: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		HiresTimer timer;
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
@@ -368,12 +367,6 @@ class MultiThread: public IApp
 		skyBoxRootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
 
-		DescriptorBinderDesc skyBoxDescriptorBinderDesc = {};
-		skyBoxDescriptorBinderDesc.pRootSignature = pRootSignature;
-		skyBoxDescriptorBinderDesc.mMaxDynamicUpdatesPerBatch = 1;
-		skyBoxDescriptorBinderDesc.mMaxDynamicUpdatesPerDraw = 1;
-		addDescriptorBinder(pRenderer, &skyBoxDescriptorBinderDesc, &pSkyboxDescriptorBinder);
-
 		RootSignatureDesc graphRootDesc = {};
 		graphRootDesc.mShaderCount = 1;
 		graphRootDesc.ppShaders = &pGraphShader;
@@ -381,18 +374,12 @@ class MultiThread: public IApp
 
 		for (int i = 0; i < gThreadCount; ++i)
 		{
-			DescriptorBinderDesc threadDescriptorBinderDesc = {};
-			threadDescriptorBinderDesc.pRootSignature = pRootSignature;
-			threadDescriptorBinderDesc.mMaxDynamicUpdatesPerBatch = 1;
-			threadDescriptorBinderDesc.mMaxDynamicUpdatesPerDraw = 1;
-			addDescriptorBinder(pRenderer, &threadDescriptorBinderDesc, &gThreadData[i].pDescriptorBinder);
+			DescriptorBinderDesc threadDescriptorBinderDesc = { pRootSignature, 1, 1 };
+			addDescriptorBinder(pRenderer, 0, 1, &threadDescriptorBinderDesc, &gThreadData[i].pDescriptorBinder);
 		}
 
-		DescriptorBinderDesc graphDescriptorBinderDesc = {};
-		graphDescriptorBinderDesc.pRootSignature = pGraphRootSignature;
-		graphDescriptorBinderDesc.mMaxDynamicUpdatesPerBatch = 1;
-		graphDescriptorBinderDesc.mMaxDynamicUpdatesPerDraw = 1;
-		addDescriptorBinder(pRenderer, &graphDescriptorBinderDesc, &pGraphDescriptorBinder);
+		DescriptorBinderDesc descriptorBinderDesc[2] = { {pRootSignature, 1, 1}, {pGraphRootSignature, 1, 1} };
+		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
 
 		gTextureIndex = 0;
 
@@ -595,8 +582,7 @@ class MultiThread: public IApp
 		removeSampler(pRenderer, pSampler);
 		removeSampler(pRenderer, pSamplerSkyBox);
 
-		removeDescriptorBinder(pRenderer, pSkyboxDescriptorBinder);
-		removeDescriptorBinder(pRenderer, pGraphDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 		for (int i = 0; i < gThreadCount; ++i)
 			removeDescriptorBinder(pRenderer, gThreadData[i].pDescriptorBinder);
 
@@ -902,7 +888,7 @@ class MultiThread: public IApp
 		params[5].ppTextures = &pSkyBoxTextures[5];
 		params[6].pName = "uniformBlock";
 		params[6].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pSkyboxDescriptorBinder, 7, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 7, params);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
@@ -954,7 +940,7 @@ class MultiThread: public IApp
 				pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-			cmdBindDescriptors(ppGraphCmds[frameIdx], pGraphDescriptorBinder, 0, NULL);
+			cmdBindDescriptors(ppGraphCmds[frameIdx], pDescriptorBinder, pGraphRootSignature, 0, NULL);
 
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
 			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], NULL);
@@ -1438,7 +1424,7 @@ class MultiThread: public IApp
 		params[1].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		params[2].pName = "particleRootConstant";
 		params[2].pRootConstant = &gParticleData;
-		cmdBindDescriptors(cmd, data->pDescriptorBinder, 3, params);
+		cmdBindDescriptors(cmd, data->pDescriptorBinder, pRootSignature, 3, params);
 
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 

@@ -840,6 +840,10 @@ constexpr T min(const T &x, const T &y) { return (x < y) ? x : y; }
 template <class T>
 constexpr T max(const T &x, const T &y) { return (x > y) ? x : y; }
 
+inline uint2 min(const uint2 &x, const uint2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
+inline uint3 min(const uint3 &x, const uint3& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
+inline uint4 min(const uint4 &x, const uint4& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
+
 inline Vector3 min(const Vector3 &a, const Vector3 &b)
 {
 #if VECTORMATH_MODE_SCALAR
@@ -956,9 +960,11 @@ inline unsigned int getLowerPowerOfTwo(const unsigned int x)
 	return i >> 1;
 }
 
-static inline unsigned int round_up(unsigned int value, unsigned int multiple) { return ((value + multiple - 1) / multiple) * multiple; }
+static inline uint32_t round_up(uint32_t value, uint32_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
 static inline uint64_t round_up_64(uint64_t value, uint64_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
 
+static inline uint32_t round_down(uint32_t value, uint32_t multiple) { return value  - value % multiple; }
+static inline uint64_t round_down_64(uint64_t value, uint64_t multiple) { return value - value % multiple; }
 
 
 //----------------------------------------------------------------------------
@@ -1863,14 +1869,10 @@ inline void initNoise()
 //----------------------------------------------------------------------------
 inline const Vector3 eulerAngles(const Matrix3& rotationMatrix)
 {
-	float r11, r12, r13, r21, r22, r23, r31, r32, r33;
+	float r11, r12, r13, r23, r33;
 	r11 = rotationMatrix.getCol0().getX();
-	r21 = rotationMatrix.getCol1().getX();
-	r31 = rotationMatrix.getCol2().getX();
 
 	r12 = rotationMatrix.getCol0().getY();
-	r22 = rotationMatrix.getCol1().getY();
-	r32 = rotationMatrix.getCol2().getY();
 
 	r13 = rotationMatrix.getCol0().getZ();
 	r23 = rotationMatrix.getCol1().getZ();

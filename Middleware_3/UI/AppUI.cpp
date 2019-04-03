@@ -653,7 +653,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
 	DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+	addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
 
 	/************************************************************************/
 	// Resources
@@ -664,7 +664,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.mSize = 128 * 4 * sizeof(float4);
 	vbDesc.mVertexStride = sizeof(float4);
-	addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pMeshRingBuffer);
+	addGPURingBuffer(pRenderer, &vbDesc, &pMeshRingBuffer);
 	/************************************************************************/
 	/************************************************************************/
 
@@ -677,7 +677,7 @@ void VirtualJoystickUI::Exit()
 	if (!mInitialized)
 		return;
 
-	removeMeshRingBuffer(pMeshRingBuffer);
+	removeGPURingBuffer(pMeshRingBuffer);
 	removeRasterizerState(pRasterizerState);
 	removeBlendState(pBlendAlpha);
 	removeDepthState(pDepthState);
@@ -881,7 +881,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 	params[0].pRootConstant = &data;
 	params[1].pName = "uTex";
 	params[1].ppTextures = &pTexture;
-	cmdBindDescriptors(pCmd, pDescriptorBinder, 2, params);
+	cmdBindDescriptors(pCmd, pDescriptorBinder, pRootSignature, 2, params);
 
 	if (mRenderSize[0] != (float)pCmd->mBoundWidth)
 		mRenderSize[0] = (float)pCmd->mBoundWidth;
@@ -903,7 +903,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			// the last variable can be used to create a border
 			TexVertex        vertices[] = { MAKETEXQUAD(
                 joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-			RingBufferOffset buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(vertices));
+			GPURingBufferOffset buffer = getGPURingBufferOffset(pMeshRingBuffer, sizeof(vertices));
 			BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
 			updateResource(&updateDesc);
 			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
@@ -916,7 +916,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			// the last variable can be used to create a border
 			TexVertex verticesInner[] = { MAKETEXQUAD(
 				joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-			buffer = getVertexBufferOffset(pMeshRingBuffer, sizeof(verticesInner));
+			buffer = getGPURingBufferOffset(pMeshRingBuffer, sizeof(verticesInner));
 			updateDesc = { buffer.pBuffer, verticesInner, 0, buffer.mOffset, sizeof(verticesInner) };
 			updateResource(&updateDesc);
 			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);

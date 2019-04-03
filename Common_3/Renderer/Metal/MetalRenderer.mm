@@ -304,10 +304,6 @@ bool            util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format
 MTLVertexFormat util_to_mtl_vertex_format(const ImageFormat::Enum& format);
 MTLLoadAction   util_to_mtl_load_action(const LoadActionType& loadActionType);
 
-void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, const DescriptorInfo* descInfo, const DescriptorData* descData);
-void util_end_current_encoders(Cmd* pCmd);
-bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType);
-
 void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT = false, const bool forceNonPrivate = false);
 
 /************************************************************************/
@@ -459,30 +455,43 @@ const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 // Descriptor Binder implementation
 /************************************************************************/
 
-typedef struct DescriptorBinder
+typedef struct DescriptorBinderNode
 {
-	/// The root signature associated with this descriptor binder.
-	RootSignature* pRootSignature;
 	/// The descriptor data bound to the current rootSignature;
-	DescriptorData* pDescriptorDataArray;
+	DescriptorData* pDescriptorDataArray = NULL;
 	/// Array of flags to check whether a descriptor has already been bound.
-	bool* pBoundDescriptors;
-	bool  mBoundStaticSamplers;
+	bool* pBoundDescriptors = NULL;
+	bool  mBoundStaticSamplers = false;
 
 	/// Map that holds all the argument buffers bound by this descriptor biner for each root signature.
 	tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>> mArgumentBuffers;
+} DescriptorBinderNode;
+
+typedef struct DescriptorBinder
+{
+	tinystl::unordered_map<const RootSignature*, DescriptorBinderNode> mRootSignatureNodes;
 } DescriptorBinder;
 
-void reset_bound_resources(DescriptorBinder* pDescriptorBinder)
-{
-	pDescriptorBinder->mBoundStaticSamplers = false;
-	for (uint32_t i = 0; i < pDescriptorBinder->pRootSignature->mDescriptorCount; ++i)
-	{
-		DescriptorInfo* descInfo = &pDescriptorBinder->pRootSignature->pDescriptors[i];
+/************************************************************************/
+// Internal functions
+/************************************************************************/
 
-		pDescriptorBinder->pDescriptorDataArray[i].mCount = 1;
-		pDescriptorBinder->pDescriptorDataArray[i].pOffsets = NULL;
-		pDescriptorBinder->pDescriptorDataArray[i].pSizes = NULL;
+void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const DescriptorInfo* descInfo, const DescriptorData* descData);
+void util_end_current_encoders(Cmd* pCmd);
+bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType);
+
+void reset_bound_resources(DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature)
+{
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
+
+	node.mBoundStaticSamplers = false;
+	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
+	{
+		DescriptorInfo* descInfo = &pRootSignature->pDescriptors[i];
+
+		node.pDescriptorDataArray[i].mCount = 1;
+		node.pDescriptorDataArray[i].pOffsets = NULL;
+		node.pDescriptorDataArray[i].pSizes = NULL;
 
 		// Metal requires that the bound textures match the texture type present in the shader.
 		Texture** ppDefaultTexture = nil;
@@ -504,32 +513,33 @@ void reset_bound_resources(DescriptorBinder* pDescriptorBinder)
 		switch (descInfo->mDesc.type)
 		{
 			case DESCRIPTOR_TYPE_RW_TEXTURE:
-			case DESCRIPTOR_TYPE_TEXTURE: pDescriptorBinder->pDescriptorDataArray[i].ppTextures = ppDefaultTexture; break;
-			case DESCRIPTOR_TYPE_SAMPLER: pDescriptorBinder->pDescriptorDataArray[i].ppSamplers = &pDefaultSampler; break;
-			case DESCRIPTOR_TYPE_ROOT_CONSTANT: pDescriptorBinder->pDescriptorDataArray[i].pRootConstant = &pDefaultBuffer; break;
+			case DESCRIPTOR_TYPE_TEXTURE: node.pDescriptorDataArray[i].ppTextures = ppDefaultTexture; break;
+			case DESCRIPTOR_TYPE_SAMPLER: node.pDescriptorDataArray[i].ppSamplers = &pDefaultSampler; break;
+			case DESCRIPTOR_TYPE_ROOT_CONSTANT: node.pDescriptorDataArray[i].pRootConstant = &pDefaultBuffer; break;
 			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 			case DESCRIPTOR_TYPE_RW_BUFFER:
 			case DESCRIPTOR_TYPE_BUFFER:
 			{
-				pDescriptorBinder->pDescriptorDataArray[i].ppBuffers = &pDefaultBuffer;
+				node.pDescriptorDataArray[i].ppBuffers = &pDefaultBuffer;
 				break;
 			default: break;
 			}
 		}
-		pDescriptorBinder->pBoundDescriptors[i] = false;
+		node.pBoundDescriptors[i] = false;
 	}
 }
-void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	ASSERT(pCmd);
 	ASSERT(pDescriptorBinder);
-
-	RootSignature* pRootSignature = pDescriptorBinder->pRootSignature;
+	ASSERT(pRootSignature);
 
 	// Compare the currently bound descriptor binder with the new descriptor binder
 	// If these values dont match, we must bind the new descriptor binder
 	// If the values match, no op is required
-	reset_bound_resources(pDescriptorBinder);
+	reset_bound_resources(pDescriptorBinder, pRootSignature);
+
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
 
 	// Loop through input params to check for new data
 	for (uint32_t paramIdx = 0; paramIdx < numDescriptors; ++paramIdx)
@@ -551,9 +561,9 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uin
 		const uint32_t arrayCount = max(1U, pParam->mCount);
 
 		// Replace the default DescriptorData by the new data pased into this function.
-		pDescriptorBinder->pDescriptorDataArray[descIndex].pName = pParam->pName;
-		pDescriptorBinder->pDescriptorDataArray[descIndex].mCount = arrayCount;
-		pDescriptorBinder->pDescriptorDataArray[descIndex].pOffsets = pParam->pOffsets;
+		node.pDescriptorDataArray[descIndex].pName = pParam->pName;
+		node.pDescriptorDataArray[descIndex].mCount = arrayCount;
+		node.pDescriptorDataArray[descIndex].pOffsets = pParam->pOffsets;
 		switch(pDesc->mDesc.type)
 		{
 			case DESCRIPTOR_TYPE_RW_TEXTURE:
@@ -562,21 +572,21 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uin
 					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
+				node.pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
 				break;
 			case DESCRIPTOR_TYPE_SAMPLER:
 				if (!pParam->ppSamplers) {
 					LOGERRORF("Sampler descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
+				node.pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
 				break;
 			case DESCRIPTOR_TYPE_ROOT_CONSTANT:
 				if (!pParam->pRootConstant) {
 					LOGERRORF("RootConstant array (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
+				node.pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
 				break;
 			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 			case DESCRIPTOR_TYPE_RW_BUFFER:
@@ -585,26 +595,26 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uin
 					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
+				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
 
 				// In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
-				if(arrayCount > 1 && pDescriptorBinder->mArgumentBuffers.find(hash).node) pDescriptorBinder->mArgumentBuffers[hash].second = true;
+				if(arrayCount > 1 && node.mArgumentBuffers.find(hash).node) node.mArgumentBuffers[hash].second = true;
 
 				break;
 			default: break;
 		}
 
 		// Mark this descriptor as unbound, so it's values are updated.
-		pDescriptorBinder->pBoundDescriptors[descIndex] = false;
+		node.pBoundDescriptors[descIndex] = false;
 	}
 
 	// Bind all the unbound root signature descriptors.
-	for (uint32_t i = 0; i < pDescriptorBinder->pRootSignature->mDescriptorCount; ++i)
+	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
 	{
-		const DescriptorInfo* descriptorInfo = &pDescriptorBinder->pRootSignature->pDescriptors[i];
-		const DescriptorData* descriptorData = &pDescriptorBinder->pDescriptorDataArray[i];
+		const DescriptorInfo* descriptorInfo = &pRootSignature->pDescriptors[i];
+		const DescriptorData* descriptorData = &node.pDescriptorDataArray[i];
 
-		if(!pDescriptorBinder->pBoundDescriptors[i])
+		if(!node.pBoundDescriptors[i])
 		{
 			ShaderStage usedStagesMask = descriptorInfo->mDesc.used_stages;
 			switch(descriptorInfo->mDesc.type)
@@ -692,7 +702,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uin
 					// If we're trying to bind a buffer with an mCount > 1, it means we're binding many descriptors into an argument buffer.
 					if (descriptorData->mCount > 1)
 					{
-						util_bind_argument_buffer(pCmd, pDescriptorBinder, descriptorInfo, descriptorData);
+						util_bind_argument_buffer(pCmd, node, descriptorInfo, descriptorData);
 					}
 					else
 					{
@@ -707,20 +717,20 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uin
 				}
 				default: break;
 			}
-			pDescriptorBinder->pBoundDescriptors[i] = true;
+			node.pBoundDescriptors[i] = true;
 		}
 	}
 
 	// We need to bind static samplers manually since Metal API has no concept of static samplers
-	if (!pDescriptorBinder->mBoundStaticSamplers)
+	if (!node.mBoundStaticSamplers)
 	{
-		pDescriptorBinder->mBoundStaticSamplers = true;
+		node.mBoundStaticSamplers = true;
 
-		for (uint32_t i = 0; i < pDescriptorBinder->pRootSignature->mStaticSamplerCount; ++i)
+		for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
 		{
-			ShaderStage usedStagesMask = pDescriptorBinder->pRootSignature->pStaticSamplerStages[i];
-			Sampler* pSampler = pDescriptorBinder->pRootSignature->ppStaticSamplers[i];
-			uint32_t reg = pDescriptorBinder->pRootSignature->pStaticSamplerSlots[i];
+			ShaderStage usedStagesMask = pRootSignature->pStaticSamplerStages[i];
+			Sampler* pSampler = pRootSignature->ppStaticSamplers[i];
+			uint32_t reg = pRootSignature->pStaticSamplerSlots[i];
 			if ((usedStagesMask & SHADER_STAGE_VERT) != 0)
 				[pCmd->mtlRenderEncoder setVertexSamplerState:pSampler->mtlSamplerState atIndex:reg];
 			if ((usedStagesMask & SHADER_STAGE_FRAG) != 0)
@@ -731,90 +741,107 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uin
 	}
 }
 
-void addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* pDesc, DescriptorBinder** ppDescriptorBinder)
+void addDescriptorBinder(
+	Renderer* pRenderer, uint32_t gpuIndex, uint32_t numDescriptorDescs, const DescriptorBinderDesc* pDescs,
+	DescriptorBinder** ppDescriptorBinder)
 {
-	DescriptorBinder* descriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(DescriptorBinder));
-	descriptorBinder->pRootSignature = pDesc->pRootSignature;
-	RootSignature* pRootSignature = descriptorBinder->pRootSignature;
+	DescriptorBinder* descriptorBinder = conf_new<DescriptorBinder>();
 
-	// Allocate enough memory to hold all the necessary data for all the descriptors of this rootSignature.
-	descriptorBinder->pDescriptorDataArray = (DescriptorData*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorData));
-	descriptorBinder->pBoundDescriptors = (bool*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(bool));
-
-	// Fill all the descriptors in the rootSignature with their default values.
-	for (uint32_t i = 0; i < descriptorBinder->pRootSignature->mDescriptorCount; ++i)
+	for (uint32_t idesc = 0; idesc < numDescriptorDescs; idesc++)
 	{
-		DescriptorInfo* descriptorInfo = &pRootSignature->pDescriptors[i];
+		const DescriptorBinderDesc* pDesc = pDescs + idesc;
+		RootSignature*              pRootSignature = pDesc->pRootSignature;
 
-		// Create a DescriptorData structure for a default resource.
-		descriptorBinder->pDescriptorDataArray[i].pName = "";
-		descriptorBinder->pDescriptorDataArray[i].mCount = 1;
-		descriptorBinder->pDescriptorDataArray[i].pOffsets = NULL;
+		tinystl::unordered_map<const RootSignature*, DescriptorBinderNode>::const_iterator it = descriptorBinder->mRootSignatureNodes.find(pRootSignature);
+		if (it != descriptorBinder->mRootSignatureNodes.end())
+			continue;  // we only need to store data per unique root signature. It is safe to skip repeated ones in Metal renderer.
 
-		// Metal requires that the bound textures match the texture type present in the shader.
-		Texture** ppDefaultTexture = nil;
-		if (descriptorInfo->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE || descriptorInfo->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
+		DescriptorBinderNode node = {};
+
+		// Allocate enough memory to hold all the necessary data for all the descriptors of this rootSignature.
+		node.pDescriptorDataArray = (DescriptorData*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorData));
+		node.pBoundDescriptors = (bool*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(bool));
+
+		// Fill all the descriptors in the rootSignature with their default values.
+		for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
 		{
-			switch ((MTLTextureType)descriptorInfo->mDesc.mtlTextureType)
+			DescriptorInfo* descriptorInfo = &pRootSignature->pDescriptors[i];
+
+			// Create a DescriptorData structure for a default resource.
+			node.pDescriptorDataArray[i].pName = "";
+			node.pDescriptorDataArray[i].mCount = 1;
+			node.pDescriptorDataArray[i].pOffsets = NULL;
+
+			// Metal requires that the bound textures match the texture type present in the shader.
+			Texture** ppDefaultTexture = nil;
+			if (descriptorInfo->mDesc.type == DESCRIPTOR_TYPE_RW_TEXTURE || descriptorInfo->mDesc.type == DESCRIPTOR_TYPE_TEXTURE)
 			{
-				case MTLTextureType1D: ppDefaultTexture = &pDefault1DTexture; break;
-				case MTLTextureType1DArray: ppDefaultTexture = &pDefault1DTextureArray; break;
-				case MTLTextureType2D: ppDefaultTexture = &pDefault2DTexture; break;
-				case MTLTextureType2DArray: ppDefaultTexture = &pDefault2DTextureArray; break;
-				case MTLTextureType3D: ppDefaultTexture = &pDefault3DTexture; break;
-				case MTLTextureTypeCube: ppDefaultTexture = &pDefaultCubeTexture; break;
-				case MTLTextureTypeCubeArray: ppDefaultTexture = &pDefaultCubeTextureArray; break;
-				default: break;
+				switch ((MTLTextureType)descriptorInfo->mDesc.mtlTextureType)
+				{
+					case MTLTextureType1D: ppDefaultTexture = &pDefault1DTexture; break;
+					case MTLTextureType1DArray: ppDefaultTexture = &pDefault1DTextureArray; break;
+					case MTLTextureType2D: ppDefaultTexture = &pDefault2DTexture; break;
+					case MTLTextureType2DArray: ppDefaultTexture = &pDefault2DTextureArray; break;
+					case MTLTextureType3D: ppDefaultTexture = &pDefault3DTexture; break;
+					case MTLTextureTypeCube: ppDefaultTexture = &pDefaultCubeTexture; break;
+					case MTLTextureTypeCubeArray: ppDefaultTexture = &pDefaultCubeTextureArray; break;
+					default: break;
+				}
+			}
+
+			// Point to the appropiate default resource depending of the type of descriptor.
+			switch (descriptorInfo->mDesc.type)
+			{
+				case DESCRIPTOR_TYPE_RW_TEXTURE:
+				case DESCRIPTOR_TYPE_TEXTURE: node.pDescriptorDataArray[i].ppTextures = ppDefaultTexture; break;
+				case DESCRIPTOR_TYPE_SAMPLER: node.pDescriptorDataArray[i].ppSamplers = &pDefaultSampler; break;
+				case DESCRIPTOR_TYPE_ROOT_CONSTANT:
+					// Default root constants can be bound the same way buffers are.
+					node.pDescriptorDataArray[i].pRootConstant = &pDefaultBuffer;
+					break;
+				case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				case DESCRIPTOR_TYPE_RW_BUFFER:
+				case DESCRIPTOR_TYPE_BUFFER:
+				{
+					node.pDescriptorDataArray[i].ppBuffers = &pDefaultBuffer;
+					break;
+					default: break;
+				}
 			}
 		}
-
-		// Point to the appropiate default resource depending of the type of descriptor.
-		switch (descriptorInfo->mDesc.type)
-		{
-			case DESCRIPTOR_TYPE_RW_TEXTURE:
-			case DESCRIPTOR_TYPE_TEXTURE: descriptorBinder->pDescriptorDataArray[i].ppTextures = ppDefaultTexture; break;
-			case DESCRIPTOR_TYPE_SAMPLER: descriptorBinder->pDescriptorDataArray[i].ppSamplers = &pDefaultSampler; break;
-			case DESCRIPTOR_TYPE_ROOT_CONSTANT:
-				// Default root constants can be bound the same way buffers are.
-				descriptorBinder->pDescriptorDataArray[i].pRootConstant = &pDefaultBuffer;
-				break;
-			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-			case DESCRIPTOR_TYPE_RW_BUFFER:
-			case DESCRIPTOR_TYPE_BUFFER:
-			{
-				descriptorBinder->pDescriptorDataArray[i].ppBuffers = &pDefaultBuffer;
-				break;
-			default: break;
-			}
-		}
+		descriptorBinder->mRootSignatureNodes.insert({ pRootSignature, node });
 	}
-
 	*ppDescriptorBinder = descriptorBinder;
 }
 
 void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBinder)
 {
-	pDescriptorBinder->mArgumentBuffers.clear();
-	SAFE_FREE(pDescriptorBinder->pDescriptorDataArray);
-	SAFE_FREE(pDescriptorBinder->pBoundDescriptors);
-	SAFE_FREE(pDescriptorBinder);
+	for (tinystl::unordered_hash_node<const RootSignature*, DescriptorBinderNode>& node : pDescriptorBinder->mRootSignatureNodes)
+	{
+		node.second.mArgumentBuffers.clear();
+		SAFE_FREE(node.second.pDescriptorDataArray);
+		SAFE_FREE(node.second.pBoundDescriptors);
+	}
+	conf_delete(pDescriptorBinder);
 }
 
-void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	ASSERT(pCmd);
 	ASSERT(pDescriptorBinder);
+	ASSERT(pRootSignature);
 
-	RootSignature* pRootSignature = pDescriptorBinder->pRootSignature;
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
 
 	// Compare the currently bound descriptor binder with the new descriptor binder
 	// If these values dont match, we must bind the new descriptor binder
 	// If the values match, no op is required
-	if (pCmd->pBoundDescriptorBinder != pDescriptorBinder)
+	if (pCmd->pBoundDescriptorBinder != pDescriptorBinder || pCmd->pBoundRootSignature != pRootSignature)
 	{
 		// Bind the new root signature and reset its bound resources (if any).
 		pCmd->pBoundDescriptorBinder = pDescriptorBinder;
-		reset_bound_resources(pDescriptorBinder);
+		pCmd->pBoundRootSignature = pRootSignature;
+		reset_bound_resources(pDescriptorBinder, pRootSignature);
 	}
 
 	// Loop through input params to check for new data
@@ -837,9 +864,9 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 		const uint32_t arrayCount = max(1U, pParam->mCount);
 
 		// Replace the default DescriptorData by the new data pased into this function.
-		pDescriptorBinder->pDescriptorDataArray[descIndex].pName = pParam->pName;
-		pDescriptorBinder->pDescriptorDataArray[descIndex].mCount = arrayCount;
-		pDescriptorBinder->pDescriptorDataArray[descIndex].pOffsets = pParam->pOffsets;
+		node.pDescriptorDataArray[descIndex].pName = pParam->pName;
+		node.pDescriptorDataArray[descIndex].mCount = arrayCount;
+		node.pDescriptorDataArray[descIndex].pOffsets = pParam->pOffsets;
 		switch (pDesc->mDesc.type)
 		{
 			case DESCRIPTOR_TYPE_RW_TEXTURE:
@@ -849,7 +876,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
+				node.pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
 				break;
 			case DESCRIPTOR_TYPE_SAMPLER:
 				if (!pParam->ppSamplers)
@@ -857,7 +884,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 					LOGERRORF("Sampler descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
+				node.pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
 				break;
 			case DESCRIPTOR_TYPE_ROOT_CONSTANT:
 				if (!pParam->pRootConstant)
@@ -865,7 +892,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 					LOGERRORF("RootConstant array (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
+				node.pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
 				break;
 			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 			case DESCRIPTOR_TYPE_RW_BUFFER:
@@ -875,22 +902,22 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
-				pDescriptorBinder->pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
+				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
 
 				// In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
-				if (arrayCount > 1 && pDescriptorBinder->mArgumentBuffers.find(hash).node)
-					pDescriptorBinder->mArgumentBuffers[hash].second = true;
+				if (arrayCount > 1 && node.mArgumentBuffers.find(hash).node)
+					node.mArgumentBuffers[hash].second = true;
 
 				break;
 			default: break;
 		}
 
 		// Mark this descriptor as unbound, so it's values are updated.
-		pDescriptorBinder->pBoundDescriptors[descIndex] = false;
+		node.pBoundDescriptors[descIndex] = false;
 	}
 
 	// If we're binding descriptors for a compute pipeline, we must ensure that we have a correct compute enconder recording commands.
-	if (pCmd->pBoundDescriptorBinder->pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE && !pCmd->mtlComputeEncoder)
+	if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE && !pCmd->mtlComputeEncoder)
 	{
 		util_end_current_encoders(pCmd);
 		pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
@@ -900,9 +927,9 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
 	{
 		const DescriptorInfo* descriptorInfo = &pRootSignature->pDescriptors[i];
-		const DescriptorData* descriptorData = &pDescriptorBinder->pDescriptorDataArray[i];
+		const DescriptorData* descriptorData = &node.pDescriptorDataArray[i];
 
-		if (!pDescriptorBinder->pBoundDescriptors[i])
+		if (!node.pBoundDescriptors[i])
 		{
 			ShaderStage usedStagesMask = descriptorInfo->mDesc.used_stages;
 			switch (descriptorInfo->mDesc.type)
@@ -1008,7 +1035,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 					// If we're trying to bind a buffer with an mCount > 1, it means we're binding many descriptors into an argument buffer.
 					if (descriptorData->mCount > 1)
 					{
-						util_bind_argument_buffer(pCmd, pDescriptorBinder, descriptorInfo, descriptorData);
+						util_bind_argument_buffer(pCmd, node, descriptorInfo, descriptorData);
 					}
 					else
 					{
@@ -1032,14 +1059,14 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t
 				}
 				default: break;
 			}
-			pDescriptorBinder->pBoundDescriptors[i] = true;
+			node.pBoundDescriptors[i] = true;
 		}
 	}
 
 	// We need to bind static samplers manually since Metal API has no concept of static samplers
-	if (!pDescriptorBinder->mBoundStaticSamplers)
+	if (!node.mBoundStaticSamplers)
 	{
-		pDescriptorBinder->mBoundStaticSamplers = true;
+		node.mBoundStaticSamplers = true;
 
 		for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
 		{
@@ -1540,7 +1567,8 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 
 	pQueue->pRenderer = pRenderer;
 	pQueue->mtlCommandQueue = [pRenderer->pDevice newCommandQueue];
-
+	pQueue->mUploadGranularity = {1, 1, 1};
+	
 	ASSERT(pQueue->mtlCommandQueue != nil);
 
 	*ppQueue = pQueue;
@@ -1596,13 +1624,14 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	ASSERT(pCmd);
 	pCmd->mtlEncoderFence = nil;
 	pCmd->mtlCommandBuffer = nil;
+	pCmd->pRenderPassDesc = nil;
 
 	if (pCmd->pBoundColorFormats)
 		SAFE_FREE(pCmd->pBoundColorFormats);
-
+	
 	if (pCmd->pBoundSrgbValues)
 		SAFE_FREE(pCmd->pBoundSrgbValues);
-
+	
 	SAFE_FREE(pCmd);
 }
 
@@ -1723,6 +1752,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i)
 	{
 		addRenderTarget(pRenderer, &descColor, &pSwapChain->ppSwapchainRenderTargets[i]);
+		destroyTexture(pRenderer->pResourceAllocator, pSwapChain->ppSwapchainRenderTargets[i]->pTexture);
 	}
 
 	*ppSwapChain = pSwapChain;
@@ -2121,14 +2151,7 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	pShaderProgram->mtlFragmentShader = nil;
 	pShaderProgram->mtlComputeShader = nil;
 
-	// free allocated resources during reflection.
-	for (uint32_t i = 0; i < MAX_SHADER_STAGE_COUNT; i++)
-	{
-		SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pNamePool);
-		SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pVertexInputs);
-		SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pShaderResources);
-		SAFE_FREE(pShaderProgram->mReflection.mStageReflections[i].pVariables);
-	}
+	destroyPipelineReflection(&pShaderProgram->mReflection);
 
 	SAFE_FREE(pShaderProgram);
 }
@@ -2257,7 +2280,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
             addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
             break;
         }
-        case(ROOT_SIGNATURE_RAYTRACING_LOCAL):
+        case(ROOT_SIGNATURE_RAYTRACING_EMPTY):
         {
             addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
                                        true, ppRootSignature, pRootSignatureDesc);
@@ -2280,6 +2303,11 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
 	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
 
+	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
+	{
+		SAFE_FREE(pRootSignature->pDescriptors[i].mDesc.name);
+	}
+	SAFE_FREE(pRootSignature->pDescriptors);
 	SAFE_FREE(pRootSignature->ppStaticSamplers);
 	SAFE_FREE(pRootSignature->pStaticSamplerStages);
 	SAFE_FREE(pRootSignature->pStaticSamplerSlots);
@@ -2699,6 +2727,7 @@ void beginCmd(Cmd* pCmd)
 		pCmd->pRenderPassDesc = nil;
 		pCmd->selectedIndexBuffer = nil;
 		pCmd->pBoundDescriptorBinder = nil;
+		pCmd->pBoundRootSignature = nil;
 		pCmd->mtlCommandBuffer = [pCmd->pCmdPool->pQueue->mtlCommandQueue commandBuffer];
 	}
 }
@@ -2708,8 +2737,8 @@ void endCmd(Cmd* pCmd)
 	if (pCmd->mRenderPassActive)
 	{
 		// Reset the bound resources flags for the current root signature's descriptor binder.
-		if (pCmd->pBoundDescriptorBinder)
-			reset_bound_resources(pCmd->pBoundDescriptorBinder);
+		if (pCmd->pBoundDescriptorBinder && pCmd->pBoundRootSignature)
+			reset_bound_resources(pCmd->pBoundDescriptorBinder, pCmd->pBoundRootSignature);
 
 		@autoreleasepool
 		{
@@ -2722,9 +2751,9 @@ void endCmd(Cmd* pCmd)
 	pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
 
 	// Reset the bound resources flags for the current root signature's descriptor binder.
-	if (pCmd->pBoundDescriptorBinder)
+	if (pCmd->pBoundDescriptorBinder && pCmd->pBoundRootSignature)
 	{
-		reset_bound_resources(pCmd->pBoundDescriptorBinder);
+		reset_bound_resources(pCmd->pBoundDescriptorBinder, pCmd->pBoundRootSignature);
 	}
 }
 
@@ -2736,10 +2765,10 @@ void cmdBindRenderTargets(
 
 	if (pCmd->mRenderPassActive)
 	{
-		if (pCmd->pBoundDescriptorBinder)
+		if (pCmd->pBoundDescriptorBinder && pCmd->pBoundRootSignature)
 		{
 			// Reset the bound resources flags for the current root signature's descriptor binder.
-			reset_bound_resources(pCmd->pBoundDescriptorBinder);
+			reset_bound_resources(pCmd->pBoundDescriptorBinder, pCmd->pBoundRootSignature);
 		}
 		else
 		{
@@ -3301,7 +3330,7 @@ void cmdResourceBarrier(
 void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch) {}
 void cmdFlushBarriers(Cmd* pCmd) {}
 
-void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer)
+void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
 	ASSERT(pCmd);
 	ASSERT(pSrcBuffer);
@@ -3315,14 +3344,13 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
 	[pCmd->mtlBlitEncoder copyFromBuffer:pSrcBuffer->mtlBuffer
-							sourceOffset:srcOffset
+							sourceOffset:pSrcBuffer->mPositionInHeap + srcOffset
 								toBuffer:pBuffer->mtlBuffer
-					   destinationOffset:dstOffset
+					   destinationOffset:pBuffer->mPositionInHeap + dstOffset
 									size:size];
 }
 
-void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture)
+void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, SubresourceDataDesc* pSubresourceDesc)
 {
 	util_end_current_encoders(pCmd);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
@@ -3335,20 +3363,17 @@ void cmdUpdateSubresources(
 	MTLBlitOption blitOptions = isPvrtc ? MTLBlitOptionRowLinearPVRTC : MTLBlitOptionNone;
 #endif
 
-	for (UINT i = 0; i < numSubresources; ++i)
-	{
-		// Copy to the texture's final subresource.
-		[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
-								sourceOffset:pSubresources[i].mBufferOffset
-						   sourceBytesPerRow:pSubresources[i].mRowPitch
-						 sourceBytesPerImage:pSubresources[i].mSlicePitch
-								  sourceSize:MTLSizeMake(pSubresources[i].mWidth, pSubresources[i].mHeight, pSubresources[i].mDepth)
-								   toTexture:pTexture->mtlTexture
-							destinationSlice:pSubresources[i].mArrayLayer
-							destinationLevel:pSubresources[i].mMipLevel
-						   destinationOrigin:MTLOriginMake(0, 0, 0)
-									 options:blitOptions];
-	}
+	// Copy to the texture's final subresource.
+	[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
+							sourceOffset:pIntermediate->mPositionInHeap + pSubresourceDesc->mBufferOffset
+					   sourceBytesPerRow:pSubresourceDesc->mRowPitch
+					 sourceBytesPerImage:pSubresourceDesc->mSlicePitch
+							  sourceSize:MTLSizeMake(pSubresourceDesc->mRegion.mWidth, pSubresourceDesc->mRegion.mHeight, pSubresourceDesc->mRegion.mDepth)
+							   toTexture:pTexture->mtlTexture
+						destinationSlice:pSubresourceDesc->mArrayLayer
+						destinationLevel:pSubresourceDesc->mMipLevel
+					   destinationOrigin:MTLOriginMake(pSubresourceDesc->mRegion.mXOffset, pSubresourceDesc->mRegion.mYOffset, pSubresourceDesc->mRegion.mZOffset)
+								 options:blitOptions];
 }
 
 void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
@@ -3774,7 +3799,7 @@ MTLLoadAction util_to_mtl_load_action(const LoadActionType& loadActionType)
 		return MTLLoadActionClear;
 }
 
-void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, const DescriptorInfo* descInfo, const DescriptorData* descData)
+void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const DescriptorInfo* descInfo, const DescriptorData* descData)
 {
 	Buffer* argumentBuffer;
 	bool    bufferNeedsReencoding = false;
@@ -3785,7 +3810,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, c
 	// Look for the argument buffer (or create one if needed).
 	uint32_t hash = tinystl::hash(descData->pName);
 	{
-		tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>::iterator jt = pDescriptorBinder->mArgumentBuffers.find(hash);
+		tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>::iterator jt = node.mArgumentBuffers.find(hash);
 		// If not previous argument buffer was found, create a new bufffer.
 		if (jt.node == nil)
 		{
@@ -3807,7 +3832,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, c
 			bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 			addBuffer(pCmd->pRenderer, &bufferDesc, &argumentBuffer);
 
-			pDescriptorBinder->mArgumentBuffers[hash] = { argumentBuffer, true };
+			node.mArgumentBuffers[hash] = { argumentBuffer, true };
 			bufferNeedsReencoding = true;
 		}
 		else
@@ -3843,7 +3868,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, c
 			}
 		}
 
-		pDescriptorBinder->mArgumentBuffers[hash].second = false;
+		node.mArgumentBuffers[hash].second = false;
 	}
 
 	// Bind the argument buffer.

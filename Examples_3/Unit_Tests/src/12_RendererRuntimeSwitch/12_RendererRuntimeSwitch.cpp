@@ -104,7 +104,8 @@ Shader*           pSkyBoxDrawShader = NULL;
 Buffer*           pSkyBoxVertexBuffer = NULL;
 Pipeline*         pSkyBoxDrawPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorBinder* pSkyBoxDescriptorBinder = NULL;
+DescriptorBinder* pPlanetsDescriptorBinder = NULL;
 Sampler*          pSamplerSkyBox = NULL;
 Texture*          pSkyBoxTextures[6];
 #ifdef TARGET_IOS
@@ -152,9 +153,9 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 RendererApi gTargetApi = RENDERER_API_D3D12;
 
-class RendererRuntimeSwitch: public IApp
+class RendererRuntimeSwitch : public IApp
 {
-	public:
+public:
 	bool Init()
 	{
 		loadRendererFunctions(gTargetApi);
@@ -189,7 +190,7 @@ class RendererRuntimeSwitch: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -239,8 +240,11 @@ class RendererRuntimeSwitch: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorBinderDesc skyBoxDescriptorBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, 0, 1, &skyBoxDescriptorBinderDesc, &pSkyBoxDescriptorBinder);
+
+		DescriptorBinderDesc planetsDescriptorBinderDesc = { pRootSignature };
+		addDescriptorBinder(pRenderer, 0, 1, &planetsDescriptorBinderDesc, &pPlanetsDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -477,7 +481,8 @@ class RendererRuntimeSwitch: public IApp
 		removeShader(pRenderer, pSphereShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pSkyBoxDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pPlanetsDescriptorBinder);
 
 		removeDepthState(pDepth);
 		removeRasterizerState(pSkyboxRast);
@@ -714,7 +719,7 @@ class RendererRuntimeSwitch: public IApp
 		params[5].ppTextures = &pSkyBoxTextures[4];
 		params[6].pName = "BackText";
 		params[6].ppTextures = &pSkyBoxTextures[5];
-		cmdBindDescriptors(cmd, pDescriptorBinder, 7, params);
+		cmdBindDescriptors(cmd, pSkyBoxDescriptorBinder, pRootSignature, 7, params);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 		cmdEndDebugMarker(cmd);
@@ -723,7 +728,7 @@ class RendererRuntimeSwitch: public IApp
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Planets");
 		cmdBindPipeline(cmd, pSpherePipeline);
 		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, 1, params);
+		cmdBindDescriptors(cmd, pPlanetsDescriptorBinder, pRootSignature, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 		cmdEndDebugMarker(cmd);

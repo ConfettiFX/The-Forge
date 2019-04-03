@@ -237,7 +237,7 @@ class UserInterfaceUnitTest: public IApp
 
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;

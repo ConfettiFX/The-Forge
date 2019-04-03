@@ -49,9 +49,8 @@ extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pp_texture);
 extern void removeTexture(Renderer* pRenderer, Texture* p_texture);
-extern void cmdUpdateBuffer(Cmd* p_cmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* p_src_buffer, Buffer* p_buffer);
-extern void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture);
+extern void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+extern void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
 extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
 #endif
 /************************************************************************/
@@ -73,7 +72,7 @@ typedef struct TextureUpdateDescInternal
 //////////////////////////////////////////////////////////////////////////
 typedef struct MappedMemoryRange
 {
-	void*    pData;
+	uint8_t* pData;
 	Buffer*  pBuffer;
 	uint64_t mOffset;
 	uint64_t mSize;
@@ -81,66 +80,82 @@ typedef struct MappedMemoryRange
 
 typedef struct ResourceSet
 {
-	Fence* pFence;
-	Cmd* pCmd;
-	tinystl::vector<Buffer*> mBuffers;
+	Fence*  pFence;
+	Cmd*    pCmd;
+	Buffer* mBuffer;
 } CopyResourceSet;
 
-#define NUM_RESOURCE_SETS 2
+enum
+{
+	DEFAULT_BUFFER_SIZE = 16ull<<20,
+	DEFAULT_BUFFER_COUNT = 2u,
+	DEFAULT_TIMESLICE_MS = 4u,
+	MAX_BUFFER_COUNT = 8u,
+};
 
 //Synchronization?
 typedef struct CopyEngine
 {
-	Queue* pQueue;
-	CmdPool* pCmdPool;
-	ResourceSet resourceSets[NUM_RESOURCE_SETS];
-	uint64_t bufferSize;
-	uint64_t allocatedSpace;
-	bool isRecording;
+	Queue*      pQueue;
+	CmdPool*    pCmdPool;
+	ResourceSet* resourceSets;
+	uint64_t    bufferSize;
+	uint64_t    allocatedSpace;
+	uint32_t    bufferCount;
+	bool        isRecording;
 } CopyEngine;
 
 //////////////////////////////////////////////////////////////////////////
 // Resource Loader Internal Functions
 //////////////////////////////////////////////////////////////////////////
-static void setupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine, uint32_t nodeIndex, uint64_t size)
+static void setupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine, uint32_t nodeIndex, uint64_t size, uint32_t bufferCount)
 {
 	QueueDesc desc = { QUEUE_FLAG_NONE, QUEUE_PRIORITY_NORMAL, CMD_POOL_COPY, nodeIndex };
 	addQueue(pRenderer, &desc, &pCopyEngine->pQueue);
 
 	addCmdPool(pRenderer, pCopyEngine->pQueue, false, &pCopyEngine->pCmdPool);
 
-	for (auto& resourceSet : pCopyEngine->resourceSets)
+	const uint32_t maxBlockSize = 32;
+	uint64_t       minUploadSize = pCopyEngine->pQueue->mUploadGranularity.mWidth * pCopyEngine->pQueue->mUploadGranularity.mHeight *
+							 pCopyEngine->pQueue->mUploadGranularity.mDepth * maxBlockSize;
+	size = max(size, minUploadSize);
+
+	pCopyEngine->resourceSets = (ResourceSet*)conf_malloc(sizeof(ResourceSet)*bufferCount);
+	for (uint32_t i=0;  i < bufferCount; ++i)
 	{
+		ResourceSet& resourceSet = pCopyEngine->resourceSets[i];
 		addFence(pRenderer, &resourceSet.pFence);
 
 		addCmd(pCopyEngine->pCmdPool, false, &resourceSet.pCmd);
 
-		resourceSet.mBuffers.resize(1);
 		BufferDesc bufferDesc = {};
 		bufferDesc.mSize = size;
 		bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
 		bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		bufferDesc.mNodeIndex = nodeIndex;
-		addBuffer(pRenderer, &bufferDesc, &resourceSet.mBuffers.back());
+		addBuffer(pRenderer, &bufferDesc, &resourceSet.mBuffer);
 	}
 
 	pCopyEngine->bufferSize = size;
+	pCopyEngine->bufferCount = bufferCount;
 	pCopyEngine->allocatedSpace = 0;
 	pCopyEngine->isRecording = false;
 }
 
 static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 {
-	for (auto& resourceSet : pCopyEngine->resourceSets)
+	for (uint32_t i = 0; i < pCopyEngine->bufferCount; ++i)
 	{
-		for (size_t i = 0; i < resourceSet.mBuffers.size(); ++i)
-			removeBuffer(pRenderer, resourceSet.mBuffers[i]);
+		ResourceSet& resourceSet = pCopyEngine->resourceSets[i];
+		removeBuffer(pRenderer, resourceSet.mBuffer);
 
 		removeCmd(pCopyEngine->pCmdPool, resourceSet.pCmd);
 
 		removeFence(pRenderer, resourceSet.pFence);
 	}
 	
+	conf_free(pCopyEngine->resourceSets);
+
 	removeCmdPool(pRenderer, pCopyEngine->pCmdPool);
 
 	removeQueue(pCopyEngine->pQueue);
@@ -156,10 +171,6 @@ static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, size
 static void resetCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet)
 {
 	ASSERT(!pCopyEngine->isRecording);
-	ResourceSet& resourceSet = pCopyEngine->resourceSets[activeSet];
-	for (size_t i = 1; i < resourceSet.mBuffers.size(); ++i)
-		removeBuffer(pRenderer, resourceSet.mBuffers[i]);
-	resourceSet.mBuffers.resize(1);
 	pCopyEngine->allocatedSpace = 0;
 	pCopyEngine->isRecording = false;
 }
@@ -196,39 +207,21 @@ static MappedMemoryRange allocateStagingMemory(Renderer* pRenderer, CopyEngine* 
 	}
 
 	CopyResourceSet* pResourceSet = &pCopyEngine->resourceSets[activeSet];
-	uint64_t size = pResourceSet->mBuffers.back()->mDesc.mSize;
+	uint64_t size = pResourceSet->mBuffer->mDesc.mSize;
 	bool memoryAvailable = (offset < size) && (memoryRequirement <= size - offset);
-	if (!memoryAvailable)
+	if (memoryAvailable)
 	{
-		// Try creating a temporary staging buffer which we will clean up after resource is uploaded
-		Buffer* tempStagingBuffer = NULL;
-		BufferDesc desc = {};
-		desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
-		desc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		desc.mSize = round_up_64(memoryRequirement, pCopyEngine->bufferSize);
-		desc.mNodeIndex = pResourceSet->mBuffers.back()->mDesc.mNodeIndex;
-		addBuffer(pRenderer, &desc, &tempStagingBuffer);
-
-		if (tempStagingBuffer)
-		{
-			pResourceSet->mBuffers.emplace_back(tempStagingBuffer);
-			offset = 0;
-		}
-		else
-		{
-			LOGERRORF("Failed to allocate memory (%llu) for resource", memoryRequirement);
-			return { NULL };
-		}
-	}
-
-	Buffer* buffer = pResourceSet->mBuffers.back();
+		Buffer* buffer = pResourceSet->mBuffer;
 #if defined(DIRECT3D11)
-	// TODO: do done once, unmap before queue submit
+		// TODO: do done once, unmap before queue submit
 	mapBuffer(pRenderer, buffer, NULL);
 #endif
-	void* pDstData = (uint8_t*)buffer->pCpuMappedAddress + offset;
-	pCopyEngine->allocatedSpace = offset + memoryRequirement;
-	return { pDstData, buffer, offset, memoryRequirement };
+		uint8_t* pDstData = (uint8_t*)buffer->pCpuMappedAddress + offset;
+		pCopyEngine->allocatedSpace = offset + memoryRequirement;
+		return { pDstData, buffer, offset, memoryRequirement };
+	}
+
+	return { nullptr, nullptr, 0, 0};
 }
 
 static ResourceState util_determine_resource_start_state(DescriptorType usage)
@@ -272,46 +265,51 @@ static ResourceState util_determine_resource_start_state(const BufferDesc* pBuff
 	}
 }
 
-struct TextureUploadParams
+typedef enum UpdateRequestType
 {
-	uint32_t blockSize;
-	uint32_t numBlocksInStride;
-	uint32_t numStridesInSlice;
-	uint32_t stridePitch;
-};
+	UPDATE_REQUEST_UPDATE_BUFFER,
+	UPDATE_REQUEST_UPDATE_TEXTURE,
+	UPDATE_REQUEST_INVALID,
+} UpdateRequestType;
 
-static void calculate_upload_texture_params(ImageFormat::Enum fmt, uint32_t w, uint32_t h, TextureUploadParams& params)
+typedef struct UpdateRequest
 {
-	switch (ImageFormat::GetBlockSize(fmt))
+	UpdateRequest() : mType(UPDATE_REQUEST_INVALID) {}
+	UpdateRequest(BufferUpdateDesc& buffer) : mType(UPDATE_REQUEST_UPDATE_BUFFER), bufUpdateDesc(buffer) {}
+	UpdateRequest(TextureUpdateDescInternal& texture) : mType(UPDATE_REQUEST_UPDATE_TEXTURE), texUpdateDesc(texture) {}
+
+	UpdateRequestType mType;
+	SyncToken mToken = 0;
+	union
 	{
-	case ImageFormat::BLOCK_SIZE_4x4:
-		params.numBlocksInStride = (w + 3) >> 2;
-		params.blockSize = ImageFormat::GetBytesPerBlock(fmt);
-		params.stridePitch = params.numBlocksInStride * params.blockSize;
-		params.numStridesInSlice = (h + 3) >> 2;
-		break;
-	case ImageFormat::BLOCK_SIZE_4x8:
-		params.numBlocksInStride = (w + 7) >> 3;
-		params.blockSize = ImageFormat::GetBytesPerBlock(fmt);
-		params.stridePitch = params.numBlocksInStride * params.blockSize;
-		params.numStridesInSlice = (h + 3) >> 2;
-		break;
-	default:
-		params.numBlocksInStride = w;
-		params.blockSize = ImageFormat::GetBytesPerPixel(fmt);
-		params.stridePitch = params.numBlocksInStride * params.blockSize;
-		params.numStridesInSlice = h;
-		break;
+		BufferUpdateDesc bufUpdateDesc;
+		TextureUpdateDescInternal texUpdateDesc;
 	};
-}
+} UpdateRequest;
+
+typedef struct UpdateState
+{
+	UpdateState(): UpdateState(UpdateRequest())
+	{
+	}
+	UpdateState(const UpdateRequest& request): mRequest(request), mMipLevel(0), mArrayLayer(0), mOffset({ 0, 0, 0 }), mSize(0)
+	{
+	}
+
+	UpdateRequest mRequest;
+	uint32_t      mMipLevel;
+	uint32_t      mArrayLayer;
+	uint3         mOffset;
+	uint64_t      mSize;
+} UpdateState;
 
 uint32 SplitBitsWith0(uint32 x)
 {
 	x &= 0x0000ffff;
-	x = (x ^ (x <<  8)) & 0x00ff00ff;
-	x = (x ^ (x <<  4)) & 0x0f0f0f0f;
-	x = (x ^ (x <<  2)) & 0x33333333;
-	x = (x ^ (x <<  1)) & 0x55555555;
+	x = (x ^ (x << 8)) & 0x00ff00ff;
+	x = (x ^ (x << 4)) & 0x0f0f0f0f;
+	x = (x ^ (x << 2)) & 0x33333333;
+	x = (x ^ (x << 1)) & 0x55555555;
 	return x;
 }
 
@@ -320,12 +318,96 @@ uint32 EncodeMorton(uint32 x, uint32 y)
 	return (SplitBitsWith0(y) << 1) + SplitBitsWith0(x);
 }
 
-static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, TextureUpdateDescInternal* pTextureUpdate)
+// TODO: test and fix
+void copyUploadRectZCurve(uint8_t* pDstData, uint8_t* pSrcData, Region3D uploadRegion, uint3 srcPitches, uint3 dstPitches)
 {
-	ASSERT(pCopyEngine->pQueue->mQueueDesc.mNodeIndex == pTextureUpdate->pTexture->mDesc.mNodeIndex);
+	uint32_t offset = 0;
+	for (uint32_t z = uploadRegion.mZOffset; z < uploadRegion.mZOffset+uploadRegion.mDepth; ++z)
+	{
+		for (uint32_t y = uploadRegion.mYOffset; y < uploadRegion.mYOffset+uploadRegion.mHeight; ++y)
+		{
+			for (uint32_t x = uploadRegion.mXOffset; x < uploadRegion.mXOffset+uploadRegion.mWidth; ++x)
+			{
+				uint32_t blockOffset = EncodeMorton(y, x);
+				memcpy(pDstData + offset, pSrcData + blockOffset * srcPitches.x, srcPitches.x);
+				offset += dstPitches.x;
+			}
+			offset = round_up(offset, dstPitches.y);
+		}
+		pSrcData += srcPitches.z;
+	}
+}
+
+void copyUploadRect(uint8_t* pDstData, uint8_t* pSrcData, Region3D uploadRegion, uint3 srcPitches, uint3 dstPitches)
+{
+	uint32_t srcOffset = uploadRegion.mZOffset * srcPitches.z + uploadRegion.mYOffset * srcPitches.y +
+						 uploadRegion.mXOffset * srcPitches.x;
+	uint32_t numSlices = uploadRegion.mHeight * uploadRegion.mDepth;
+	uint32_t pitch = uploadRegion.mWidth * srcPitches.x;
+	pSrcData += srcOffset;
+	for (uint32_t s = 0; s < numSlices; ++s)
+	{
+		memcpy(pDstData, pSrcData, pitch);
+		pSrcData += srcPitches.y;
+		pDstData += dstPitches.y;
+	}
+}
+
+
+uint3 calculateUploadBlock(ImageFormat::Enum fmt)
+{
+	// TODO: include row alignment and transfer granularity into consideration for better utilization
+	switch (ImageFormat::GetBlockSize(fmt))
+	{
+	case ImageFormat::BLOCK_SIZE_4x4:
+		return { 4, 4, 1 };
+	case ImageFormat::BLOCK_SIZE_4x8:
+		return { 8, 4, 1 };
+	default:
+		return { 1, 1, 1 };
+	};
+}
+
+uint3 calculateUploadRect(uint64_t mem, uint3 pitches, uint3 offset, uint3 extent, uint3 granularity)
+{
+	uint3 scaler{granularity.x*granularity.y*granularity.z, granularity.y*granularity.z, granularity.z};
+	pitches *= scaler;
+	uint3 leftover = extent-offset;
+	uint32_t numSlices = (uint32_t)min<uint64_t>((mem / pitches.z) * granularity.z, leftover.z);
+	// advance by slices
+	if (offset.y == 0 && numSlices > 0)
+	{
+		return { extent.x, extent.y, numSlices };
+	}
+
+	// advance by strides
+	numSlices = min(leftover.z, granularity.z);
+	uint32_t numStrides = (uint32_t)min<uint64_t>((mem / pitches.y) * granularity.y, leftover.y);
+	if (offset.x == 0 && numStrides > 0)
+	{
+		return { extent.x, numStrides, numSlices };
+	}
+
+	numStrides = min(leftover.y, granularity.y);
+	// advance by blocks
+	uint32_t numBlocks = (uint32_t)min<uint64_t>((mem / pitches.x) * granularity.x, leftover.x);
+	return { numBlocks, numStrides, numSlices };
+}
+
+Region3D calculateUploadRegion(uint3 offset, uint3 extent, uint3 uploadBlock, uint3 pxImageDim)
+{
+	uint3 regionOffset = offset * uploadBlock;
+	uint3 regionSize = min(extent * uploadBlock, pxImageDim);
+	return { regionOffset.x, regionOffset.y, regionOffset.z, regionSize.x, regionSize.y, regionSize.z };
+}
+
+static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateState& pTextureUpdate)
+{
+	TextureUpdateDescInternal& texUpdateDesc = pTextureUpdate.mRequest.texUpdateDesc;
+	ASSERT(pCopyEngine->pQueue->mQueueDesc.mNodeIndex == texUpdateDesc.pTexture->mDesc.mNodeIndex);
 	bool         applyBarrieers = pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12;
-	const Image& img = *pTextureUpdate->pImage;
-	Texture*     pTexture = pTextureUpdate->pTexture;
+	const Image& img = *texUpdateDesc.pImage;
+	Texture*     pTexture = texUpdateDesc.pTexture;
 	Cmd*         pCmd = aquireCmd(pCopyEngine, activeSet);
 
 	ASSERT(pTexture);
@@ -335,83 +417,116 @@ static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 
 	uint32_t          nSlices = img.IsCube() ? 6 : 1;
 	uint32_t          arrayCount = img.GetArrayCount() * nSlices;
-	uint32_t          numSubresources = arrayCount * img.GetMipMapCount();
-	MappedMemoryRange range = allocateStagingMemory(
-		pRenderer, pCopyEngine, activeSet, pTexture->mTextureSize + textureAlignment * numSubresources, textureAlignment);
-	// create source subres data structs
-	SubresourceDataDesc  texData[1024];
-	SubresourceDataDesc* dest = texData;
 
 	// TODO: move to Image
 	bool isSwizzledZCurve = !img.IsLinearLayout();
 
-	uint32_t offset = 0;
-	for (uint32_t i = 0; i < img.GetMipMapCount(); ++i)
-	{
-		TextureUploadParams uploadParams;
-		calculate_upload_texture_params(img.getFormat(), img.GetWidth(i), img.GetHeight(i), uploadParams);
-		uint32_t bufferStridePitch = round_up(uploadParams.stridePitch, textureRowAlignment);
-		uint32_t slicePitch = uploadParams.stridePitch * uploadParams.numStridesInSlice;
-
-		for (uint32_t j = 0; j < arrayCount; ++j)
-		{
-			dest->mArrayLayer = j /*n * nSlices + k*/;
-			dest->mMipLevel = i;
-			dest->mBufferOffset = range.mOffset + offset;
-			dest->mWidth = img.GetWidth(i);
-			dest->mHeight = img.GetHeight(i);
-			dest->mDepth = img.GetDepth(i);
-			dest->mRowPitch = bufferStridePitch;
-			dest->mSlicePitch = bufferStridePitch * uploadParams.numStridesInSlice;
-			++dest;
-
-			uint32_t n = j / nSlices;
-			uint32_t k = j - n * nSlices;
-			uint8_t* pSrcData = (uint8_t*)img.GetPixels(i, n) + k * slicePitch;
-
-			if (isSwizzledZCurve)
-			{
-				for (uint32_t z = 0; z < img.GetDepth(i); ++z)
-				{
-					for(uint32_t y = 0; y < uploadParams.numStridesInSlice; ++y)
-					{
-						for (uint32_t x = 0; x < uploadParams.numBlocksInStride; ++x)
-						{
-							uint32_t blockOffset = EncodeMorton(y, x);
-							memcpy((uint8_t*)range.pData + offset, pSrcData + blockOffset*uploadParams.blockSize, uploadParams.blockSize);
-							offset += uploadParams.blockSize;
-						}
-						offset = round_up(offset, bufferStridePitch);
-					}
-					pSrcData += slicePitch;
-				}
-			}
-			else
-			{
-				uint32_t numStrides = uploadParams.numStridesInSlice * img.GetDepth(i);
-				for (uint32_t s = 0; s < numStrides; ++s)
-				{
-					memcpy((uint8_t*)range.pData + offset, pSrcData, uploadParams.stridePitch);
-					pSrcData += uploadParams.stridePitch;
-					offset += bufferStridePitch;
-				}
-			}
-			offset = round_up(offset, textureAlignment);
-		}
-	}
-
-#if defined(DIRECT3D11)
-	unmapBuffer(pRenderer, range.pBuffer);
-#endif
+	uint32_t i = pTextureUpdate.mMipLevel;
+	uint32_t j = pTextureUpdate.mArrayLayer;
+	uint3 uploadOffset = pTextureUpdate.mOffset;
 
 	// Only need transition for vulkan and durango since resource will auto promote to copy dest on copy queue in PC dx12
-	if (applyBarrieers)
+	if (applyBarrieers && (uploadOffset.x == 0) && (uploadOffset.y == 0) && (uploadOffset.z == 0))
 	{
 		TextureBarrier preCopyBarrier = { pTexture, RESOURCE_STATE_COPY_DEST };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &preCopyBarrier, false);
 	}
 
-	cmdUpdateSubresources(pCmd, numSubresources, texData, range.pBuffer, pTexture);
+	ImageFormat::Enum fmt = img.getFormat();
+	Extent3D          uploadGran = pCopyEngine->pQueue->mUploadGranularity;
+	const uint32_t    blockSize = ImageFormat::GetBytesPerBlock(fmt);
+	const uint32      pxPerRow = max<uint32_t>(round_down(textureRowAlignment / blockSize, uploadGran.mWidth), uploadGran.mWidth);
+	const uint3       queueGranularity = { pxPerRow, uploadGran.mHeight, uploadGran.mDepth };
+	const uint3       pxBlockDim = calculateUploadBlock(img.getFormat());
+
+	for (; i < img.GetMipMapCount(); ++i)
+	{
+		uint3    pxImageDim{ img.GetWidth(i), img.GetHeight(i), img.GetDepth(i) };
+		uint3    uploadExtent{ (pxImageDim + pxBlockDim - uint3(1)) / pxBlockDim };
+		uint3    granularity{ min(queueGranularity, uploadExtent) };
+		uint32_t srcPitchY{ blockSize * uploadExtent.x };
+		uint32_t dstPitchY{ round_up(srcPitchY, textureRowAlignment) };
+		uint3    srcPitches{ blockSize, srcPitchY, srcPitchY * uploadExtent.y };
+		uint3    dstPitches{ blockSize, dstPitchY, dstPitchY * uploadExtent.y };
+
+		ASSERT(uploadOffset.x < uploadExtent.x || uploadOffset.y < uploadExtent.y || uploadOffset.z < uploadExtent.z);
+
+		for (; j < arrayCount; ++j)
+		{
+			uint64_t spaceAvailable{ round_down_64(pCopyEngine->bufferSize - pCopyEngine->allocatedSpace, textureRowAlignment) };
+			uint3    uploadRectExtent{ calculateUploadRect(spaceAvailable, dstPitches, uploadOffset, uploadExtent, granularity) };
+			uint32_t uploadPitchY{ round_up(uploadRectExtent.x * dstPitches.x, textureRowAlignment) };
+			uint3    uploadPitches{ blockSize, uploadPitchY, uploadPitchY * uploadRectExtent.y };
+
+			ASSERT(
+				uploadOffset.x + uploadRectExtent.x <= uploadExtent.x || uploadOffset.y + uploadRectExtent.y <= uploadExtent.y ||
+				uploadOffset.z + uploadRectExtent.z <= uploadExtent.z);
+
+			if (uploadRectExtent.x == 0)
+			{
+				pTextureUpdate.mMipLevel = i;
+				pTextureUpdate.mArrayLayer = j;
+				pTextureUpdate.mOffset = uploadOffset;
+				return false;
+			}
+
+			MappedMemoryRange range =
+				allocateStagingMemory(pRenderer, pCopyEngine, activeSet, uploadRectExtent.z * uploadPitches.z, textureAlignment);
+			// TODO: should not happed, resolve, simplify
+			//ASSERT(range.pData);
+			if (!range.pData)
+			{
+				pTextureUpdate.mMipLevel = i;
+				pTextureUpdate.mArrayLayer = j;
+				pTextureUpdate.mOffset = uploadOffset;
+				return false;
+			}
+
+			SubresourceDataDesc  texData;
+			texData.mArrayLayer = j /*n * nSlices + k*/;
+			texData.mMipLevel = i;
+			texData.mBufferOffset = range.mOffset;
+			texData.mRegion = calculateUploadRegion(uploadOffset, uploadRectExtent, pxBlockDim, pxImageDim);
+			texData.mRowPitch = uploadPitches.y;
+			texData.mSlicePitch = uploadPitches.z;
+
+			uint32_t n = j / nSlices;
+			uint32_t k = j - n * nSlices;
+			uint8_t* pSrcData = (uint8_t*)img.GetPixels(i, n) + k * srcPitches.z;
+
+			Region3D uploadRegion{ uploadOffset.x,     uploadOffset.y,     uploadOffset.z,
+								   uploadRectExtent.x, uploadRectExtent.y, uploadRectExtent.z };
+
+			if (isSwizzledZCurve)
+				copyUploadRectZCurve(range.pData, pSrcData, uploadRegion, srcPitches, uploadPitches);
+			else
+				copyUploadRect(range.pData, pSrcData, uploadRegion, srcPitches, uploadPitches);
+
+#if defined(DIRECT3D11)
+			unmapBuffer(pRenderer, range.pBuffer);
+#endif
+
+			cmdUpdateSubresource(pCmd, pTexture, pCopyEngine->resourceSets[activeSet].mBuffer, &texData);
+
+			uploadOffset.x += uploadRectExtent.x;
+			uploadOffset.y += (uploadOffset.x < uploadExtent.x) ? 0 : uploadRectExtent.y;
+			uploadOffset.z += (uploadOffset.y < uploadExtent.y) ? 0 : uploadRectExtent.z;
+
+			uploadOffset.x = uploadOffset.x % uploadExtent.x;
+			uploadOffset.y = uploadOffset.y % uploadExtent.y;
+			uploadOffset.z = uploadOffset.z % uploadExtent.z;
+
+			if (uploadOffset.x != 0 || uploadOffset.y != 0 || uploadOffset.z != 0)
+			{
+				pTextureUpdate.mMipLevel = i;
+				pTextureUpdate.mArrayLayer = j;
+				pTextureUpdate.mOffset = uploadOffset;
+				return false;
+			}
+		}
+		j = 0;
+		ASSERT(uploadOffset.x == 0 && uploadOffset.y == 0 && uploadOffset.z == 0);
+	}
 
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 	if (applyBarrieers)
@@ -420,46 +535,61 @@ static void updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
 	}
 	
-	if (pTextureUpdate->mFreeImage)
+	if (texUpdateDesc.mFreeImage)
 	{
-		pTextureUpdate->pImage->Destroy();
-		conf_delete(pTextureUpdate->pImage);
+		texUpdateDesc.pImage->Destroy();
+		conf_delete(texUpdateDesc.pImage);
 	}
+
+	return true;
 }
 
-static void updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, BufferUpdateDesc* pBufferUpdate)
+static bool updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateState& pBufferUpdate)
 {
-	ASSERT(pCopyEngine->pQueue->mQueueDesc.mNodeIndex == pBufferUpdate->pBuffer->mDesc.mNodeIndex);
-	Buffer* pBuffer = pBufferUpdate->pBuffer;
+	BufferUpdateDesc& bufUpdateDesc = pBufferUpdate.mRequest.bufUpdateDesc;
+	ASSERT(pCopyEngine->pQueue->mQueueDesc.mNodeIndex == bufUpdateDesc.pBuffer->mDesc.mNodeIndex);
+	Buffer* pBuffer = bufUpdateDesc.pBuffer;
+	ASSERT(pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU);
+
 	// TODO: remove uniform buffer alignment?
-	const uint64_t bufferSize = (pBufferUpdate->mSize > 0) ? pBufferUpdate->mSize : pBuffer->mDesc.mSize;
+	const uint64_t bufferSize = (bufUpdateDesc.mSize > 0) ? bufUpdateDesc.mSize : pBuffer->mDesc.mSize;
 	const uint64_t alignment = pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER ? pRenderer->pActiveGpuSettings->mUniformBufferAlignment : 1;
-	const uint64_t offset = round_up_64(pBufferUpdate->mDstOffset, alignment);
+	const uint64_t offset = round_up_64(bufUpdateDesc.mDstOffset, alignment) + pBufferUpdate.mSize;
+	uint64_t       spaceAvailable = round_down_64(pCopyEngine->bufferSize - pCopyEngine->allocatedSpace, RESOURCE_BUFFER_ALIGNMENT);
+
+	if (spaceAvailable < RESOURCE_BUFFER_ALIGNMENT)
+		return false;
+
+	uint64_t dataToCopy = min(spaceAvailable, bufferSize - pBufferUpdate.mSize);
+
+	Cmd* pCmd = aquireCmd(pCopyEngine, activeSet);
+	MappedMemoryRange range = allocateStagingMemory(pRenderer, pCopyEngine, activeSet, dataToCopy, RESOURCE_BUFFER_ALIGNMENT);
+
+	// TODO: should not happed, resolve, simplify
+	//ASSERT(range.pData);
+	if (!range.pData)
+		return false;
 
 	void* pSrcBufferAddress = NULL;
-	if (pBufferUpdate->pData)
-		//calculate address based on progress
-		pSrcBufferAddress = (uint8_t*)(pBufferUpdate->pData) + pBufferUpdate->mSrcOffset;
-
-	ASSERT(pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU);
-	Cmd* pCmd = aquireCmd(pCopyEngine, activeSet);
-	//calculate remaining size
-	MappedMemoryRange range = allocateStagingMemory(pRenderer, pCopyEngine, activeSet, bufferSize, RESOURCE_BUFFER_ALIGNMENT);
-	//calculate upload size
-	//calculate partial offset
-	//update progress
-	ASSERT(range.pData);
+	if (bufUpdateDesc.pData)
+		pSrcBufferAddress = (uint8_t*)(bufUpdateDesc.pData) + (bufUpdateDesc.mSrcOffset + pBufferUpdate.mSize);
 
 	if (pSrcBufferAddress)
-		memcpy(range.pData, pSrcBufferAddress, range.mSize);
+		memcpy(range.pData, pSrcBufferAddress, dataToCopy);
 	else
-		memset(range.pData, 0, range.mSize);
+		memset(range.pData, 0, dataToCopy);
 
-	cmdUpdateBuffer(pCmd, range.mOffset, pBuffer->mPositionInHeap + offset,
-		bufferSize, range.pBuffer, pBuffer);
+	cmdUpdateBuffer(pCmd, pBuffer, offset, range.pBuffer, range.mOffset, dataToCopy);
 #if defined(DIRECT3D11)
 	unmapBuffer(pRenderer, range.pBuffer);
 #endif
+
+	pBufferUpdate.mSize += dataToCopy;
+
+	if (pBufferUpdate.mSize != bufferSize)
+	{
+		return false;
+	}
 
 	ResourceState state = util_determine_resource_start_state(&pBuffer->mDesc);
 #ifdef _DURANGO
@@ -470,32 +600,9 @@ static void updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t ac
 	// Resource will automatically transition so just set the next state without a barrier
 	pBuffer->mCurrentState = state;
 #endif
+
+	return true;
 }
-
-//////////////////////////////////////////////////////////////////////////
-// Resource Loader Globals
-//////////////////////////////////////////////////////////////////////////
-typedef enum StreamerRequestType
-{
-	STREAMER_REQUEST_UPDATE_BUFFER,
-	STREAMER_REQUEST_UPDATE_TEXTURE,
-	STREAMER_REQUEST_INVALID,
-} StreamerRequestType;
-
-typedef struct StreamerRequest
-{
-	StreamerRequest() : mType(STREAMER_REQUEST_INVALID) {}
-	StreamerRequest(BufferUpdateDesc& buffer) : mType(STREAMER_REQUEST_UPDATE_BUFFER), bufUpdateDesc(buffer) {}
-	StreamerRequest(TextureUpdateDescInternal& texture) : mType(STREAMER_REQUEST_UPDATE_TEXTURE), texUpdateDesc(texture) {}
-
-	StreamerRequestType mType;
-	SyncToken mToken = 0;
-	union
-	{
-		BufferUpdateDesc bufUpdateDesc;
-		TextureUpdateDescInternal texUpdateDesc;
-	};
-} StreamerRequest;
 
 //////////////////////////////////////////////////////////////////////////
 // Resource Loader Implementation
@@ -504,8 +611,7 @@ typedef struct ResourceLoader
 {
 	Renderer* pRenderer;
 
-	uint64_t    mSize;
-	CopyEngine* pCopyEngines[MAX_GPUS];
+	ResourceLoaderDesc mDesc;
 
 	volatile int mRun;
 	WorkItem mWorkItem;
@@ -515,7 +621,7 @@ typedef struct ResourceLoader
 	ConditionVariable mQueueCond;
 	Mutex mTokenMutex;
 	ConditionVariable mTokenCond;
-	tinystl::vector <StreamerRequest> mRequestQueue[MAX_GPUS];
+	tinystl::vector <UpdateRequest> mRequestQueue[MAX_GPUS];
 
 	tfrg_atomic64_t mTokenCompleted;
 	tfrg_atomic64_t mTokenCounter;
@@ -535,27 +641,27 @@ static bool allQueuesEmpty(ResourceLoader* pLoader)
 
 static void streamerThreadFunc(void* pThreadData)
 {
-#define TIME_SLICE_DURATION_MS 4
-
 	ResourceLoader* pLoader = (ResourceLoader*)pThreadData;
 	ASSERT(pLoader);
 
 	uint32_t linkedGPUCount = pLoader->pRenderer->mLinkedNodeCount;
+	CopyEngine pCopyEngines[MAX_GPUS];
 	for (uint32_t i = 0; i < linkedGPUCount; ++i)
 	{
-		CopyEngine* pCopyEngine = conf_new<CopyEngine>();
-		setupCopyEngine(pLoader->pRenderer, pCopyEngine, i, pLoader->mSize);
-		pLoader->pCopyEngines[i] = pCopyEngine;
+		setupCopyEngine(pLoader->pRenderer, &pCopyEngines[i], i, pLoader->mDesc.mBufferSize, pLoader->mDesc.mBufferCount);
 	}
 
-	unsigned nextTimeslot = getSystemTime() + TIME_SLICE_DURATION_MS;
-	SyncToken maxToken[NUM_RESOURCE_SETS] = { 0 };
+	const uint32_t allUploadsCompleted = (1 << linkedGPUCount) - 1;
+	uint32_t       completionMask = allUploadsCompleted;
+	UpdateState updateState[MAX_GPUS];
+
+	unsigned nextTimeslot = getSystemTime() + pLoader->mDesc.mTimesliceMs;
+	SyncToken maxToken[MAX_BUFFER_COUNT] = { 0 };
 	size_t activeSet = 0;
-	StreamerRequest request;
 	while (pLoader->mRun)
 	{
 		pLoader->mQueueMutex.Acquire();
-		while (pLoader->mRun && allQueuesEmpty(pLoader) && getSystemTime() < nextTimeslot)
+		while (pLoader->mRun && (completionMask == allUploadsCompleted) && allQueuesEmpty(pLoader) && getSystemTime() < nextTimeslot)
 		{
 			unsigned time = getSystemTime();
 			pLoader->mQueueCond.Wait(pLoader->mQueueMutex, nextTimeslot - time);
@@ -565,78 +671,79 @@ static void streamerThreadFunc(void* pThreadData)
 		for (uint32_t i = 0; i < linkedGPUCount; ++i)
 		{
 			pLoader->mQueueMutex.Acquire();
-			if (!pLoader->mRequestQueue[i].empty())
+			const uint32_t mask = 1 << i;
+			if (completionMask & mask)
 			{
-				request = pLoader->mRequestQueue[i].front();
-				pLoader->mRequestQueue[i].erase(pLoader->mRequestQueue[i].begin());
+				if (!pLoader->mRequestQueue[i].empty())
+				{
+					updateState[i] = pLoader->mRequestQueue[i].front();
+					pLoader->mRequestQueue[i].erase(pLoader->mRequestQueue[i].begin());
+					completionMask &= ~mask;
+				}
+				else
+				{
+					updateState[i] = UpdateRequest();
+				}
 			}
-			else
-			{
-				request = StreamerRequest();
-			}
+
 			pLoader->mQueueMutex.Release();
 
-			if (request.mToken)
+			bool completed = true;
+			switch (updateState[i].mRequest.mType)
 			{
-				ASSERT(maxToken[activeSet] < request.mToken);
-				maxToken[activeSet] = request.mToken;
+				case UPDATE_REQUEST_UPDATE_BUFFER:
+					completed = updateBuffer(pLoader->pRenderer, &pCopyEngines[i], activeSet, updateState[i]);
+					break;
+				case UPDATE_REQUEST_UPDATE_TEXTURE:
+					completed = updateTexture(pLoader->pRenderer, &pCopyEngines[i], activeSet, updateState[i]);
+					break;
+				default: break;
 			}
-			switch (request.mType)
+			completionMask |= completed << i;
+			if (updateState[i].mRequest.mToken && completed)
 			{
-			case STREAMER_REQUEST_UPDATE_BUFFER:
-				updateBuffer(
-					pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet,
-					&request.bufUpdateDesc);
-				break;
-			case STREAMER_REQUEST_UPDATE_TEXTURE:
-				updateTexture(
-					pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet,
-					&request.texUpdateDesc);
-				break;
-			default:break;
+				ASSERT(maxToken[activeSet] < updateState[i].mRequest.mToken);
+				maxToken[activeSet] = updateState[i].mRequest.mToken;
 			}
 		}
 
-		if (getSystemTime() > nextTimeslot)
+		if (getSystemTime() > nextTimeslot || completionMask == 0)
 		{
 			for (uint32_t i = 0; i < linkedGPUCount; ++i)
 			{
-				streamerFlush(pLoader->pCopyEngines[i], activeSet);
+				streamerFlush(&pCopyEngines[i], activeSet);
 			}
-			activeSet = (activeSet + 1) % NUM_RESOURCE_SETS;
+			activeSet = (activeSet + 1) % pLoader->mDesc.mBufferCount;
 			for (uint32_t i = 0; i < linkedGPUCount; ++i)
 			{
-				waitCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
-				resetCopyEngineSet(pLoader->pRenderer, pLoader->pCopyEngines[i], activeSet);
+				waitCopyEngineSet(pLoader->pRenderer, &pCopyEngines[i], activeSet);
+				resetCopyEngineSet(pLoader->pRenderer, &pCopyEngines[i], activeSet);
 			}
 			SyncToken nextToken = maxToken[activeSet];
 			SyncToken prevToken = tfrg_atomic64_load_relaxed(&pLoader->mTokenCompleted);
 			// As the only writer atomicity is preserved
 			tfrg_atomic64_store_release(&pLoader->mTokenCompleted, nextToken > prevToken ? nextToken : prevToken);
 			pLoader->mTokenCond.SetAll();
-			nextTimeslot = getSystemTime() + TIME_SLICE_DURATION_MS;
+			nextTimeslot = getSystemTime() + pLoader->mDesc.mTimesliceMs;
 		}
 
 	}
 
 	for (uint32_t i = 0; i < linkedGPUCount; ++i)
 	{
-		CopyEngine* pCopyEngine = pLoader->pCopyEngines[i];
-		ASSERT(pCopyEngine);
-		streamerFlush(pCopyEngine, activeSet);
-		waitQueueIdle(pCopyEngine->pQueue);
-		cleanupCopyEngine(pLoader->pRenderer, pCopyEngine);
-		conf_delete(pCopyEngine);
+		streamerFlush(&pCopyEngines[i], activeSet);
+		waitQueueIdle(pCopyEngines[i].pQueue);
+		cleanupCopyEngine(pLoader->pRenderer, &pCopyEngines[i]);
 	}
 }
 
-static void addResourceLoader(Renderer* pRenderer, uint64_t size, ResourceLoader** ppLoader)
+static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, ResourceLoader** ppLoader)
 {
 	ResourceLoader* pLoader = conf_new<ResourceLoader>();
 	pLoader->pRenderer = pRenderer;
 
 	pLoader->mRun = true;
-	pLoader->mSize = size;
+	pLoader->mDesc = pDesc ? *pDesc : ResourceLoaderDesc{ DEFAULT_BUFFER_SIZE, DEFAULT_BUFFER_COUNT, DEFAULT_TIMESLICE_MS };
 
 	pLoader->mWorkItem.pFunc = streamerThreadFunc;
 	pLoader->mWorkItem.pData = pLoader;
@@ -698,7 +805,7 @@ static void queueResourceUpdate(ResourceLoader* pLoader, BufferUpdateDesc* pBuff
 	uint32_t nodeIndex = pBufferUpdate->pBuffer->mDesc.mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 	SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->mTokenCounter, 1) + 1;
-	pLoader->mRequestQueue[nodeIndex].emplace_back(StreamerRequest(*pBufferUpdate));
+	pLoader->mRequestQueue[nodeIndex].emplace_back(UpdateRequest(*pBufferUpdate));
 	pLoader->mRequestQueue[nodeIndex].back().mToken = t;
 	pLoader->mQueueMutex.Release();
 	pLoader->mQueueCond.Set();
@@ -710,7 +817,7 @@ static void queueResourceUpdate(ResourceLoader* pLoader, TextureUpdateDescIntern
 	uint32_t nodeIndex = pTextureUpdate->pTexture->mDesc.mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 	SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->mTokenCounter, 1) + 1;
-	pLoader->mRequestQueue[nodeIndex].emplace_back(StreamerRequest(*pTextureUpdate));
+	pLoader->mRequestQueue[nodeIndex].emplace_back(UpdateRequest(*pTextureUpdate));
 	pLoader->mRequestQueue[nodeIndex].back().mToken = t;
 	pLoader->mQueueMutex.Release();
 	pLoader->mQueueCond.Set();
@@ -732,14 +839,12 @@ static void waitTokenCompleted(ResourceLoader* pLoader, SyncToken token)
 	}
 	pLoader->mTokenMutex.Release();
 }
-//////////////////////////////////////////////////////////////////////////
-// Resource Loader Implementation
-//////////////////////////////////////////////////////////////////////////
+
 static ResourceLoader* pResourceLoader = NULL;
 
-void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget, bool useThreads)
+void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 {
-	addResourceLoader(pRenderer, memoryBudget, &pResourceLoader);
+	addResourceLoader(pRenderer, pDesc, &pResourceLoader);
 }
 
 void removeResourceLoaderInterface(Renderer* pRenderer)

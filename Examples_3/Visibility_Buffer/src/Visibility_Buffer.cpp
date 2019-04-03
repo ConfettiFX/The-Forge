@@ -383,8 +383,6 @@ const uint32_t gNumGeomSets = 2;
 const uint32_t GEOMSET_OPAQUE = 0;
 const uint32_t GEOMSET_ALPHATESTED = 1;
 
-// Memory budget used for internal ring buffer
-const uint32_t gMemoryBudget = 1024ULL * 1024ULL * 64ULL;
 /************************************************************************/
 // Per frame staging data
 /************************************************************************/
@@ -437,14 +435,12 @@ SwapChain* pSwapChain = NULL;
 Shader*           pShaderClearBuffers = nullptr;
 Pipeline*         pPipelineClearBuffers = nullptr;
 RootSignature*    pRootSignatureClearBuffers = nullptr;
-DescriptorBinder* pDescriptorBinderClearBuffers = nullptr;
 /************************************************************************/
 // Triangle filtering pipeline
 /************************************************************************/
 Shader*           pShaderTriangleFiltering = nullptr;
 Pipeline*         pPipelineTriangleFiltering = nullptr;
 RootSignature*    pRootSignatureTriangleFiltering = nullptr;
-DescriptorBinder* pDescriptorBinderTriangleFiltering = nullptr;
 /************************************************************************/
 // Batch compaction pipeline
 /************************************************************************/
@@ -452,7 +448,6 @@ DescriptorBinder* pDescriptorBinderTriangleFiltering = nullptr;
 Shader*           pShaderBatchCompaction = nullptr;
 Pipeline*         pPipelineBatchCompaction = nullptr;
 RootSignature*    pRootSignatureBatchCompaction = nullptr;
-DescriptorBinder* pDescriptorBinderBatchCompaction = nullptr;
 #endif
 /************************************************************************/
 // Clear light clusters pipeline
@@ -460,14 +455,12 @@ DescriptorBinder* pDescriptorBinderBatchCompaction = nullptr;
 Shader*           pShaderClearLightClusters = nullptr;
 Pipeline*         pPipelineClearLightClusters = nullptr;
 RootSignature*    pRootSignatureClearLightClusters = nullptr;
-DescriptorBinder* pDescriptorBinderClearLightClusters = nullptr;
 /************************************************************************/
 // Compute light clusters pipeline
 /************************************************************************/
 Shader*           pShaderClusterLights = nullptr;
 Pipeline*         pPipelineClusterLights = nullptr;
 RootSignature*    pRootSignatureClusterLights = nullptr;
-DescriptorBinder* pDescriptorBinderClusterLights = nullptr;
 /************************************************************************/
 // Shadow pass pipeline
 /************************************************************************/
@@ -479,7 +472,6 @@ Pipeline* pPipelineShadowPass[gNumGeomSets] = { NULL };
 Shader*           pShaderVisibilityBufferPass[gNumGeomSets] = {};
 Pipeline*         pPipelineVisibilityBufferPass[gNumGeomSets] = {};
 RootSignature*    pRootSignatureVBPass = nullptr;
-DescriptorBinder* pDescriptorBinderVBPass = nullptr;
 CommandSignature* pCmdSignatureVBPass = nullptr;
 /************************************************************************/
 // VB shade pipeline
@@ -487,14 +479,12 @@ CommandSignature* pCmdSignatureVBPass = nullptr;
 Shader*           pShaderVisibilityBufferShade[2] = { nullptr };
 Pipeline*         pPipelineVisibilityBufferShadeSrgb[2] = { nullptr };
 RootSignature*    pRootSignatureVBShade = nullptr;
-DescriptorBinder* pDescriptorBinderVBShade = nullptr;
 /************************************************************************/
 // Deferred pass pipeline
 /************************************************************************/
 Shader*           pShaderDeferredPass[gNumGeomSets] = {};
 Pipeline*         pPipelineDeferredPass[gNumGeomSets] = {};
 RootSignature*    pRootSignatureDeferredPass = nullptr;
-DescriptorBinder* pDescriptorBinderDeferredPass = nullptr;
 CommandSignature* pCmdSignatureDeferredPass = nullptr;
 /************************************************************************/
 // Deferred shade pipeline
@@ -502,21 +492,18 @@ CommandSignature* pCmdSignatureDeferredPass = nullptr;
 Shader*           pShaderDeferredShade[2] = { nullptr };
 Pipeline*         pPipelineDeferredShadeSrgb[2] = { nullptr };
 RootSignature*    pRootSignatureDeferredShade = nullptr;
-DescriptorBinder* pDescriptorBinderDeferredShade = nullptr;
 /************************************************************************/
 // Deferred point light shade pipeline
 /************************************************************************/
 Shader*           pShaderDeferredShadePointLight = nullptr;
 Pipeline*         pPipelineDeferredShadePointLightSrgb = nullptr;
 RootSignature*    pRootSignatureDeferredShadePointLight = nullptr;
-DescriptorBinder* pDescriptorBinderDeferredShadePointLight = nullptr;
 /************************************************************************/
 // AO pipeline
 /************************************************************************/
 Shader*           pShaderAO[4] = { nullptr };
 Pipeline*         pPipelineAO[4] = { nullptr };
 RootSignature*    pRootSignatureAO = nullptr;
-DescriptorBinder* pDescriptorBinderAO = nullptr;
 /************************************************************************/
 // Resolve pipeline
 /************************************************************************/
@@ -524,20 +511,17 @@ Shader*           pShaderResolve = nullptr;
 Pipeline*         pPipelineResolve = nullptr;
 Pipeline*         pPipelineResolvePost = nullptr;
 RootSignature*    pRootSignatureResolve = nullptr;
-DescriptorBinder* pDescriptorBinderResolve = nullptr;
 
 Shader*           pShaderGodrayResolve = nullptr;
 Pipeline*         pPipelineGodrayResolve = nullptr;
 Pipeline*         pPipelineGodrayResolvePost = nullptr;
 RootSignature*    pRootSignatureGodrayResolve = nullptr;
-DescriptorBinder* pDescriptorBinderGodrayResolve = nullptr;
 /************************************************************************/
 // Skybox pipeline
 /************************************************************************/
 Shader*           pShaderSkybox = nullptr;
 Pipeline*         pSkyboxPipeline = nullptr;
 RootSignature*    pRootSingatureSkybox = nullptr;
-DescriptorBinder* pDescriptorBinderSkybox = nullptr;
 
 Buffer*  pSkyboxVertexBuffer = NULL;
 Texture* pSkybox = NULL;
@@ -547,12 +531,10 @@ Texture* pSkybox = NULL;
 Shader*           pSunPass = nullptr;
 Pipeline*         pPipelineSunPass = nullptr;
 RootSignature*    pRootSigSunPass = nullptr;
-DescriptorBinder* pDescriptorBinderSunPass = nullptr;
 
 Shader*           pGodRayPass = nullptr;
 Pipeline*         pPipelineGodRayPass = nullptr;
 RootSignature*    pRootSigGodRayPass = nullptr;
-DescriptorBinder* pDescriptorBinderGodRayPass = nullptr;
 
 uint SunVertexCount;
 uint SunIndexCount;
@@ -565,7 +547,6 @@ Buffer* pSunIndexBuffer = NULL;
 Shader*           pShaderCurveConversion = nullptr;
 Pipeline*         pPipelineCurveConversionPass = nullptr;
 RootSignature*    pRootSigCurveConversionPass = nullptr;
-DescriptorBinder* pDescriptorBinderCurveConversionPass = nullptr;
 
 OutputMode         gWasOutputMode = gAppSettings.mOutputMode;
 DisplayColorSpace  gWasColorSpace = gAppSettings.mCurrentSwapChainColorSpace;
@@ -578,7 +559,11 @@ DisplaySignalRange gWasDisplaySignalRange = gAppSettings.mDisplaySignalRange;
 Shader*           pShaderPresentPass = nullptr;
 Pipeline*         pPipelinePresentPass = nullptr;
 RootSignature*    pRootSigPresentPass = nullptr;
-DescriptorBinder* pDescriptorBinderPresentPass = nullptr;
+
+/************************************************************************/
+// Descriptor Binder
+/************************************************************************/
+DescriptorBinder* pDescriptorBinder = NULL;
 
 /************************************************************************/
 // Render targets
@@ -694,7 +679,7 @@ FilterBatchChunk* pFilterBatchChunk[gImageCount] = { NULL };
 #else
 const uint32_t gSmallBatchChunkCount = max(1U, 512U / CLUSTER_SIZE) * 16U;
 FilterBatchChunk* pFilterBatchChunk[gImageCount][gSmallBatchChunkCount] = { NULL };
-UniformRingBuffer* pFilterBatchDataBuffer[gImageCount] = { NULL };
+GPURingBuffer* pFilterBatchDataBuffer[gImageCount] = { NULL };
 #endif
 /************************************************************************/
 // GPU Profilers
@@ -850,12 +835,6 @@ public:
 	}
 #endif
 	
-	void CreateDescriptorBinder(RootSignature* pRootSignature, uint32_t maxDescriptorUpdatesPerBatch, uint32_t maxDescriptorUpdatesPerDraw, DescriptorBinder** ppDescriptorBinder)
-	{
-		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, maxDescriptorUpdatesPerBatch, maxDescriptorUpdatesPerDraw };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, ppDescriptorBinder);
-	}
-
 	bool Init()
 	{
 		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
@@ -907,7 +886,7 @@ public:
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
-		initResourceLoaderInterface(pRenderer, gMemoryBudget);
+		initResourceLoaderInterface(pRenderer);
 		
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler);
 		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler);
@@ -1238,33 +1217,37 @@ public:
 		addRootSignature(pRenderer, &finalShaderRootSigDesc, &pRootSigPresentPass);
 		
 		/************************************************************************/
-		// Setup descriptor binders
+		// Setup descriptor binder
 		/************************************************************************/
 		
 		uint32_t maxSceneClustersToFilter = 0;
 		for (uint32_t i = 0; i < pScene->numMeshes; i++)
 			maxSceneClustersToFilter += pScene->meshes[i].clusterCount;
 
-		CreateDescriptorBinder(pRootSignatureClearBuffers, 0, 0, &pDescriptorBinderClearBuffers);
-		CreateDescriptorBinder(pRootSignatureTriangleFiltering, 0, maxSceneClustersToFilter, &pDescriptorBinderTriangleFiltering);
-#if !defined(METAL)
-		CreateDescriptorBinder(pRootSignatureBatchCompaction, 0, 0, &pDescriptorBinderBatchCompaction);
-#endif
-		CreateDescriptorBinder(pRootSignatureClearLightClusters, 0, 0, &pDescriptorBinderClearLightClusters);
-		CreateDescriptorBinder(pRootSignatureClusterLights, 0, 0, &pDescriptorBinderClusterLights);
-		CreateDescriptorBinder(pRootSignatureVBPass, 0, 0, &pDescriptorBinderVBPass);
-		CreateDescriptorBinder(pRootSignatureVBShade, 0, 0, &pDescriptorBinderVBShade);
-		CreateDescriptorBinder(pRootSignatureDeferredPass, 0, 0, &pDescriptorBinderDeferredPass);
-		CreateDescriptorBinder(pRootSignatureDeferredShade, 0, 0, &pDescriptorBinderDeferredShade);
-		CreateDescriptorBinder(pRootSignatureDeferredShadePointLight, 0, 0, &pDescriptorBinderDeferredShadePointLight);
-		CreateDescriptorBinder(pRootSignatureAO, 0, 0, &pDescriptorBinderAO);
-		CreateDescriptorBinder(pRootSignatureResolve, 0, 0, &pDescriptorBinderResolve);
-		CreateDescriptorBinder(pRootSignatureGodrayResolve, 0, 0, &pDescriptorBinderGodrayResolve);
-		CreateDescriptorBinder(pRootSingatureSkybox, 0, 0, &pDescriptorBinderSkybox);
-		CreateDescriptorBinder(pRootSigSunPass, 0, 0, &pDescriptorBinderSunPass);
-		CreateDescriptorBinder(pRootSigGodRayPass, 0, gAppSettings.gGodrayInteration + 1, &pDescriptorBinderGodRayPass);
-		CreateDescriptorBinder(pRootSigCurveConversionPass, 0, 0, &pDescriptorBinderCurveConversionPass);
-		CreateDescriptorBinder(pRootSigPresentPass, 0, 0, &pDescriptorBinderPresentPass);
+		DescriptorBinderDesc descriptorBinderDesc[] = {
+			{ pRootSignatureClearBuffers },
+			{ pRootSignatureTriangleFiltering, 0, maxSceneClustersToFilter },
+	#if !defined(METAL)
+			{ pRootSignatureBatchCompaction },
+	#endif
+			{ pRootSignatureClearLightClusters },
+			{ pRootSignatureClusterLights },
+			{ pRootSignatureVBPass },
+			{ pRootSignatureVBShade },
+			{ pRootSignatureDeferredPass },
+			{ pRootSignatureDeferredShade },
+			{ pRootSignatureDeferredShadePointLight },
+			{ pRootSignatureAO },
+			{ pRootSignatureResolve },
+			{ pRootSignatureGodrayResolve },
+			{ pRootSingatureSkybox },
+			{ pRootSigSunPass },
+			{ pRootSigGodRayPass, 0, gAppSettings.gGodrayInteration + 1 },
+			{ pRootSigCurveConversionPass },
+			{ pRootSigPresentPass },
+		};
+
+		addDescriptorBinder(pRenderer, 0, (uint32_t)sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc), descriptorBinderDesc, &pDescriptorBinder);
 
 		/************************************************************************/
 		// Setup indirect command signatures
@@ -1649,27 +1632,8 @@ public:
 		removeRootSignature(pRenderer, pRootSignatureVBShade);
 		removeRootSignature(pRenderer, pRootSignatureVBPass);
 		
-		// Remove descriptor binders
-		removeDescriptorBinder(pRenderer, pDescriptorBinderClearBuffers);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderTriangleFiltering);
-#if !defined(METAL)
-		removeDescriptorBinder(pRenderer, pDescriptorBinderBatchCompaction);
-#endif
-		removeDescriptorBinder(pRenderer, pDescriptorBinderClearLightClusters);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderClusterLights);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderVBPass);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderVBShade);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderDeferredPass);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderDeferredShade);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderDeferredShadePointLight);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderAO);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderResolve);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderGodrayResolve);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderSkybox);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderSunPass);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderGodRayPass);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderCurveConversionPass);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderPresentPass);
+		// Remove descriptor binder
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		// Remove indirect command signatures
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
@@ -3406,7 +3370,7 @@ public:
 				pFilterBatchChunk[i][j]->currentDrawCallCount = 0;
 			}
 			
-			addUniformRingBuffer(pRenderer, bufferSizeTotal, &pFilterBatchDataBuffer[i]);
+			addUniformGPURingBuffer(pRenderer, bufferSizeTotal, &pFilterBatchDataBuffer[i]);
 #endif
 		}
 #ifndef METAL
@@ -3622,7 +3586,7 @@ public:
 				conf_free(pFilterBatchChunk[i][j]);
 			}
 			
-			removeUniformRingBuffer(pFilterBatchDataBuffer[i]);
+			removeGPURingBuffer(pFilterBatchDataBuffer[i]);
 #endif
 		}
 #ifndef METAL
@@ -4003,7 +3967,7 @@ public:
 		shadowParams[1].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		shadowParams[2].pName = "filteredTriangles";
 		shadowParams[2].ppBuffers = &filteredTrianglesBuffer;
-		cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 3, shadowParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 3, shadowParams);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4016,7 +3980,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineShadowPass[i]);
 			
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -4031,7 +3995,7 @@ public:
 				meshParams[0].ppBuffers = &gPerBatchUniformBuffers[m];
 				meshParams[1].pName = "diffuseMap";
 				meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 2, meshParams);
+				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 2, meshParams);
 				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), NULL, 0);
 			}
 			
@@ -4051,7 +4015,7 @@ public:
 		params[1].ppBuffers = &pIndirectMaterialBuffer;
 		params[2].pName = "uniforms";
 		params[2].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 3, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 3, params);
 		
 		// Position only opaque shadow pass
 		Buffer* pVertexBuffersPositionOnly[] = { pVertexBufferPosition };
@@ -4114,7 +4078,7 @@ public:
 		vbPassParams[2].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		vbPassParams[3].pName = "filteredTriangles";
 		vbPassParams[3].ppBuffers = &filteredTrianglesBuffer;
-		cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 4, vbPassParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 4, vbPassParams);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4127,7 +4091,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineVisibilityBufferPass[i]);
 			
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -4143,7 +4107,7 @@ public:
 				meshParams[0].ppBuffers = &gPerBatchUniformBuffers[m];
 				meshParams[1].pName = "diffuseMap";
 				meshParams[1].ppTextures = &gDiffuseMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pDescriptorBinderVBPass, 2, meshParams);
+				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBPass, 2, meshParams);
 				cmdExecuteIndirect(cmd, pCmdSignatureVBPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), NULL, 0);
 			}
 			
@@ -4262,7 +4226,7 @@ public:
 		vbShadeParams[18].ppBuffers = &pMeshConstantsBuffer;
 #endif
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderVBShade, numDescriptors, vbShadeParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureVBShade, numDescriptors, vbShadeParams);
 		
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
@@ -4314,7 +4278,7 @@ public:
 		deferredPassParams[5].ppBuffers = &filteredTrianglesBuffer;
 		deferredPassParams[6].pName = "textureSampler";
 		deferredPassParams[6].ppSamplers = &pSamplerBilinear;
-		cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 7, deferredPassParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureDeferredPass, 7, deferredPassParams);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4327,7 +4291,7 @@ public:
 			DescriptorData indirectParams[1] = {};
 			indirectParams[0].pName = "indirectDrawArgs";
 			indirectParams[0].ppBuffers = &indirectDrawArguments;
-			cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 1, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureDeferredPass, 1, indirectParams);
 			cmdBindPipeline(cmd, pPipelineDeferredPass[i]);
 			
 			for (uint32_t m = 0; m < pScene->numMeshes; ++m)
@@ -4347,7 +4311,7 @@ public:
 				meshParams[2].ppTextures = &gNormalMaps[pScene->meshes[m].materialId];
 				meshParams[3].pName = "specularMap";
 				meshParams[3].ppTextures = &gSpecularMaps[pScene->meshes[m].materialId];
-				cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 4, meshParams);
+				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureDeferredPass, 4, meshParams);
 				cmdExecuteIndirect(
 								   cmd, pCmdSignatureDeferredPass, 1, indirectDrawArguments, m * sizeof(VisBufferIndirectCommand), NULL, 0);
 			}
@@ -4376,7 +4340,7 @@ public:
 		params[4].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
 		params[5].pName = "meshConstantsBuffer";
 		params[5].ppBuffers = &pMeshConstantsBuffer;
-		cmdBindDescriptors(cmd, pDescriptorBinderDeferredPass, 6, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureDeferredPass, 6, params);
 		
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -4436,7 +4400,7 @@ public:
 		params[8].pName = "RootConstantDrawScene";
 		params[8].pRootConstant = &gRootConstantDrawsceneData;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderDeferredShade, 9, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureDeferredShade, 9, params);
 		
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
@@ -4481,7 +4445,7 @@ public:
 		params[8].pName = "RootConstantDrawScene";
 		params[8].pRootConstant = &gRootConstantDrawsceneData;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderDeferredShadePointLight, numDescriptors, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureDeferredShadePointLight, numDescriptors, params);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferCube, NULL);
 		cmdBindIndexBuffer(cmd, pIndexBufferCube, 0);
 		cmdDrawIndexedInstanced(cmd, 36, 0, LIGHT_COUNT, 0, 0);
@@ -4517,7 +4481,7 @@ public:
 		params[0].ppTextures = &pDepthBuffer->pTexture;
 		params[1].pName = "HDAORootConstants";
 		params[1].pRootConstant = &data;
-		cmdBindDescriptors(cmd, pDescriptorBinderAO, 2, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureAO, 2, params);
 		cmdBindPipeline(cmd, pPipelineAO[gAppSettings.mAOQuality - 1]);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -4539,7 +4503,7 @@ public:
 		params[0].pName = "msaaSource";
 		params[0].ppTextures = &msaaRT->pTexture;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderResolve, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureResolve, 1, params);
 		cmdBindPipeline(cmd, pPipelineResolve);
 		cmdDraw(cmd, 3, 0);
 		
@@ -4564,7 +4528,7 @@ public:
 		params[0].pName = "msaaSource";
 		params[0].ppTextures = &msaaRT->pTexture;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderGodrayResolve, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureGodrayResolve, 1, params);
 		cmdBindPipeline(cmd, pPipelineGodrayResolve);
 		cmdDraw(cmd, 3, 0);
 		
@@ -4579,7 +4543,7 @@ public:
 		DescriptorData params[1] = {};
 		params[0].pName = "lightClustersCount";
 		params[0].ppBuffers = &pLightClustersCount[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinderClearLightClusters, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureClearLightClusters, 1, params);
 		
 		cmdDispatch(cmd, 1, 1, 1);
 	}
@@ -4598,7 +4562,7 @@ public:
 		params[2].ppBuffers = &pLightsBuffer;
 		params[3].pName = "uniforms";
 		params[3].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinderClusterLights, 4, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureClusterLights, 4, params);
 		
 		cmdDispatch(cmd, LIGHT_COUNT, 1, 1);
 	}
@@ -4629,7 +4593,7 @@ public:
 		params[0].pName = "perBatch";
 		params[0].pOffsets = &bufferOffset;
 		params[0].ppBuffers = &batchDataBuffer;
-		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 1, params);
 		
 		// This compute shader executes one thread per triangle and one group per batch
 		ASSERT(pShaderTriangleFiltering->mReflection.mStageReflections[0].mNumThreadsPerGroup[0] == CLUSTER_SIZE);
@@ -4648,7 +4612,7 @@ public:
 			return;
 		
 		uint32_t batchSize = batchChunk->currentBatchCount * sizeof(SmallBatchData);
-		RingBufferOffset offset = getUniformBufferOffset(pFilterBatchDataBuffer[frameIdx], batchSize);
+		GPURingBufferOffset offset = getGPURingBufferOffset(pFilterBatchDataBuffer[frameIdx], batchSize);
 		BufferUpdateDesc updateDesc = { offset.pBuffer, batchChunk->batches, 0, offset.mOffset, batchSize };
 		updateResource(&updateDesc, true);
 		
@@ -4656,7 +4620,7 @@ public:
 		params[0].pName = "batchData";
 		params[0].pOffsets = &offset.mOffset;
 		params[0].ppBuffers = &offset.pBuffer;
-		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 		
 		// Reset batch chunk to start adding triangles to it
@@ -4814,7 +4778,7 @@ public:
 		clearParams[2].pRootConstant = (void*)&pScene->numMeshes;
 		
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
-		cmdBindDescriptors(cmd, pDescriptorBinderClearBuffers, 3, clearParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureClearBuffers, 3, clearParams);
 		uint32_t numGroups = (pScene->numMeshes / CLEAR_THREAD_COUNT) + 1;
 		
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4837,7 +4801,7 @@ public:
 		filterParams[4].ppBuffers = &pFilteredIndexBuffer[frameIdx][VIEW_CAMERA];
 		filterParams[5].pName = "filteredTrianglesShadow";
 		filterParams[5].ppBuffers = &pFilteredIndexBuffer[frameIdx][VIEW_SHADOW];
-		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 6, filterParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 6, filterParams);
 		
 		// Iterate mesh clusters and perform cluster culling
 		uint32_t batchBufferOffset = 0;
@@ -4898,7 +4862,7 @@ public:
 		clearParams[2].pName = "uncompactedDrawArgs";
 		clearParams[2].mCount = gNumViews;
 		clearParams[2].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinderClearBuffers, 3, clearParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureClearBuffers, 3, clearParams);
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
 		uint32_t numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4944,7 +4908,7 @@ public:
 		filterParams[4].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
 		filterParams[5].pName = "uniforms";
 		filterParams[5].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinderTriangleFiltering, 6, filterParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 6, filterParams);
 #if 0
 #define SORT_CLUSTERS 1
 		
@@ -5159,7 +5123,7 @@ public:
 		compactParams[4].pName = "uncompactedDrawArgs";
 		compactParams[4].mCount = gNumViews;
 		compactParams[4].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinderBatchCompaction, 5, compactParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBatchCompaction, 5, compactParams);
 		numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -5284,8 +5248,8 @@ public:
 		Texture*          pPanoSkybox = NULL;
 		Shader*           pPanoToCubeShader = NULL;
 		RootSignature*    pPanoToCubeRootSignature = NULL;
-		DescriptorBinder* pPanoToCubeDescriptorBinder = NULL;
 		Pipeline*         pPanoToCubePipeline = NULL;
+		DescriptorBinder* pPanoToCubeDescriptorBinder = NULL;
 		
 		Sampler* pSkyboxSampler = NULL;
 		
@@ -5340,7 +5304,8 @@ public:
 		
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
 		
-		CreateDescriptorBinder(pPanoToCubeRootSignature, 0, gSkyboxMips + 1, &pPanoToCubeDescriptorBinder);
+		DescriptorBinderDesc descriptorBinderDesc = { pPanoToCubeRootSignature, 0, gSkyboxMips + 1 };
+		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pPanoToCubeDescriptorBinder);
 
 		PipelineDesc pipelineDesc = {};
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
@@ -5365,7 +5330,7 @@ public:
 		cmdBindPipeline(cmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
 		params[0].ppTextures = &pPanoSkybox;
-		cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 1, params);
+		cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, pPanoToCubeRootSignature, 1, params);
 		
 		struct Data
 		{
@@ -5381,7 +5346,7 @@ public:
 			params[1].pName = "dstTexture";
 			params[1].ppTextures = &pSkybox;
 			params[1].mUAVMipSlice = i;
-			cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, 2, params);
+			cmdBindDescriptors(cmd, pPanoToCubeDescriptorBinder, pPanoToCubeRootSignature, 2, params);
 			
 			const uint32_t* pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(
@@ -5405,6 +5370,7 @@ public:
 		removePipeline(pRenderer, pPanoToCubePipeline);
 		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
 		removeShader(pRenderer, pPanoToCubeShader);
+		removeDescriptorBinder(pRenderer, pPanoToCubeDescriptorBinder);
 		
 		removeResource(pPanoSkybox);
 		removeSampler(pRenderer, pSkyboxSampler);
@@ -5485,7 +5451,7 @@ public:
 		skyParams[1].pName = "skyboxTex";
 		skyParams[1].ppTextures = &pSkybox;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderSkybox, 2, skyParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSingatureSkybox, 2, skyParams);
 		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
 		
 		cmdDraw(cmd, 36, 0);
@@ -5521,7 +5487,7 @@ public:
 		sunParams[0].pName = "UniformBufferSunMatrices";
 		sunParams[0].ppBuffers = &pUniformBufferSun[gPresentFrameIdx];
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderSunPass, 1, sunParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigSunPass, 1, sunParams);
 		cmdBindVertexBuffer(cmd, 1, &pSunVertexBuffer, NULL);
 		cmdBindIndexBuffer(cmd, pSunIndexBuffer, 0);
 		
@@ -5563,7 +5529,7 @@ public:
 		GodrayParams[2].pName = "RootConstantGodrayInfo";
 		GodrayParams[2].pRootConstant = &gAppSettings.gGodrayInfo;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderGodRayPass, 3, GodrayParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigGodRayPass, 3, GodrayParams);
 		cmdDraw(cmd, 3, 0);
 		
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5594,7 +5560,7 @@ public:
 			GodrayParams[2].pName = "RootConstantGodrayInfo";
 			GodrayParams[2].pRootConstant = &gAppSettings.gGodrayInfo;
 			
-			cmdBindDescriptors(cmd, pDescriptorBinderGodRayPass, 3, GodrayParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigGodRayPass, 3, GodrayParams);
 			cmdDraw(cmd, 3, 0);
 			
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5637,7 +5603,7 @@ public:
 		CurveConversionParams[2].pName = "GodRayTex";
 		CurveConversionParams[2].ppTextures = &pRenderTargetGodRayA->pTexture;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderCurveConversionPass, 3, CurveConversionParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigCurveConversionPass, 3, CurveConversionParams);
 		
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5669,7 +5635,7 @@ public:
 		params[2].pName = "RootConstantSCurveInfo";
 		params[2].pRootConstant = &gSCurveInfomation;
 		
-		cmdBindDescriptors(cmd, pDescriptorBinderPresentPass, 3, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigPresentPass, 3, params);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		

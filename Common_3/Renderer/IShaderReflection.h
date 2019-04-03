@@ -26,6 +26,21 @@
 
 static const uint32_t MAX_SHADER_STAGE_COUNT = 5;
 
+typedef enum TextureDimension
+{
+	TEXTURE_DIM_UNDEFINED = 0,
+	TEXTURE_DIM_1D,
+	TEXTURE_DIM_2D,
+	TEXTURE_DIM_2DMS,
+	TEXTURE_DIM_3D,
+	TEXTURE_DIM_CUBE,
+	TEXTURE_DIM_1D_ARRAY,
+	TEXTURE_DIM_2D_ARRAY,
+	TEXTURE_DIM_2DMS_ARRAY,
+	TEXTURE_DIM_CUBE_ARRAY,
+	TEXTURE_DIM_COUNT
+} TextureDimension;
+
 struct VertexInput
 {
 	// The size of the attribute
@@ -61,15 +76,15 @@ struct ShaderResource
 	// name size
 	uint32_t name_size;
 
+	// 1D / 2D / Array / MSAA / ...
+	TextureDimension dim;
+
 #if defined(METAL)
 	uint32_t mtlTextureType;           // Needed to bind different types of textures as default resources on Metal.
 	uint32_t mtlArgumentBufferType;    // Needed to bind multiple resources under a same descriptor on Metal.
 #endif
 #if defined(DIRECT3D11)
 	uint32_t constant_size;
-#endif
-#if defined(VULKAN)
-	TextureDimension textureDim;
 #endif
 };
 

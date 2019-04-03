@@ -303,48 +303,51 @@ static inline bool IsCompressedFormat(const Enum format)
 
 static inline int32_t GetBytesPerBlock(const Enum format)
 {
-	ASSERT(IsCompressedFormat(format));
-	switch (format)
+	if (IsCompressedFormat(format))
 	{
-		// BC1 == DXT1
-		// BC2 == DXT2
-		// BC3 == DXT4 / 5
-		// BC4 == ATI1 == One color channel (8 bits)
-		// BC5 == ATI2 == Two color channels (8 bits:8 bits)
-		// BC6 == Three color channels (16 bits:16 bits:16 bits) in "half" floating point*
-		// BC7 == Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
-	case DXT1:         //  4x4
-	case ATI1N:        //  4x4
-	case GNF_BC1:      //  4x4
-	case ETC1:         //  4x4
-	case ATC:          //  4x4
-	case PVR_4BPP:     //  4x4
-	case PVR_4BPPA:    //  4x4
-	case PVR_2BPP:     //  4x8
-	case PVR_2BPPA:    //  4x8
-	case PVR_4BPP_SRGB:     //  4x4
-	case PVR_4BPPA_SRGB:    //  4x4
-	case PVR_2BPP_SRGB:     //  4x8
-	case PVR_2BPPA_SRGB:    //  4x8
-		return 8;
+		switch (format)
+		{
+				// BC1 == DXT1
+				// BC2 == DXT2
+				// BC3 == DXT4 / 5
+				// BC4 == ATI1 == One color channel (8 bits)
+				// BC5 == ATI2 == Two color channels (8 bits:8 bits)
+				// BC6 == Three color channels (16 bits:16 bits:16 bits) in "half" floating point*
+				// BC7 == Three color channels (4 to 7 bits per channel) with 0 to 8 bits of alpha
+			case DXT1:              //  4x4
+			case ATI1N:             //  4x4
+			case GNF_BC1:           //  4x4
+			case ETC1:              //  4x4
+			case ATC:               //  4x4
+			case PVR_4BPP:          //  4x4
+			case PVR_4BPPA:         //  4x4
+			case PVR_2BPP:          //  4x8
+			case PVR_2BPPA:         //  4x8
+			case PVR_4BPP_SRGB:     //  4x4
+			case PVR_4BPPA_SRGB:    //  4x4
+			case PVR_2BPP_SRGB:     //  4x8
+			case PVR_2BPPA_SRGB:    //  4x8
+				return 8;
 
-	case DXT3:       //  4x4
-	case DXT5:       //  4x4
-	case GNF_BC3:    //  4x4
-	case GNF_BC5:    //  4x4
-	case ATI2N:      //  4x4
-	case ATCA:       //  4x4
-	case ATCI:       //  4x4
+			case DXT3:       //  4x4
+			case DXT5:       //  4x4
+			case GNF_BC3:    //  4x4
+			case GNF_BC5:    //  4x4
+			case ATI2N:      //  4x4
+			case ATCA:       //  4x4
+			case ATCI:       //  4x4
 #ifdef FORGE_JHABLE_EDITS_V01
-	case GNF_BC6:    //  4x4
-	case GNF_BC7:    //  4x4
+			case GNF_BC6:    //  4x4
+			case GNF_BC7:    //  4x4
 #endif
-		return 16;
+				return 16;
 
-	default: return 0;
+			default: return 0;
+		}
 	}
-}
 
+	return GetBytesPerPixel(format);
+}
 
 static inline bool IsFloatFormat(const Enum format)
 {

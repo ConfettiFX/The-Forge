@@ -105,8 +105,8 @@ class SkeletonBatcher
 	DescriptorBinder* mDescriptorBinder;
 
 	// Buffer pointers that will get updated for each batch to be rendered
-	Buffer* mProjViewUniformBufferJoints[MAX_BATCHES][ImageCount] = { NULL };
-	Buffer* mProjViewUniformBufferBones[MAX_BATCHES][ImageCount] = { NULL };
+	Buffer* mProjViewUniformBufferJoints[MAX_BATCHES][ImageCount] = {{ NULL }};
+	Buffer* mProjViewUniformBufferBones[MAX_BATCHES][ImageCount] = {{ NULL } };
 
 	// Uniform data for the joints and bones
 	UniformSkeletonBlock mUniformDataJoints;

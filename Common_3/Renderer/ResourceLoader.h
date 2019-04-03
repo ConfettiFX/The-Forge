@@ -34,13 +34,6 @@
 #include "../OS/Image/ImageEnums.h"
 #include "../OS/Interfaces/IFileSystem.h"
 
-// Resource Loader Interface
-#if !defined(TARGET_IOS)
-#define DEFAULT_MEMORY_BUDGET (uint64_t)8e+7
-#else
-#define DEFAULT_MEMORY_BUDGET (uint64_t)6e+7
-#endif
-
 typedef struct BufferLoadDesc
 {
 	Buffer**    ppBuffer;
@@ -146,7 +139,15 @@ typedef struct ShaderLoadDesc
 
 typedef tfrg_atomic64_t SyncToken;
 
-void initResourceLoaderInterface(Renderer* pRenderer, uint64_t memoryBudget = DEFAULT_MEMORY_BUDGET, bool useThreads = false);
+typedef struct ResourceLoaderDesc
+{
+	uint64_t mBufferSize;
+	uint32_t mBufferCount;
+	uint32_t mTimesliceMs;
+} ResourceLoaderDesc;
+
+
+void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc = nullptr);
 void removeResourceLoaderInterface(Renderer* pRenderer);
 
 void addResource(BufferLoadDesc* pBuffer, bool batch = false);

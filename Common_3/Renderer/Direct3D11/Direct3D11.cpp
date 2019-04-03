@@ -869,13 +869,13 @@ API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* p
 API_INTERFACE void CALLTYPE removeTexture(Renderer* pRenderer, Texture* pTexture);
 API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateSubresources(Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture);
+API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+API_INTERFACE void CALLTYPE cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
 API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
 
 // clang-format on
-void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t size, Buffer* pSrcBuffer, Buffer* pBuffer)
+void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
 	ASSERT(pCmd);
 	ASSERT(pSrcBuffer);
@@ -903,11 +903,10 @@ void cmdUpdateBuffer(Cmd* pCmd, uint64_t srcOffset, uint64_t dstOffset, uint64_t
 	cachedCmdsIter->second.push_back(cmd);
 }
 
-void cmdUpdateSubresources(
-	Cmd* pCmd, uint32_t numSubresources, SubresourceDataDesc* pSubresources, Buffer* pIntermediate, Texture* pTexture)
+void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc)
 {
 	ASSERT(pCmd);
-	ASSERT(pSubresources);
+	ASSERT(pSubresourceDesc);
 	//ASSERT(pSrcBuffer->pDxResource);
 	ASSERT(pTexture);
 	//ASSERT(pBuffer->pDxResource);
@@ -923,12 +922,10 @@ void cmdUpdateSubresources(
 
 	DECLARE_ZERO(CachedCmd, cmd);
 	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdUpdateSubresources;
-	cmd.mUpdateSubresourcesCmd.numSubresources = numSubresources;
-	cmd.mUpdateSubresourcesCmd.pSubresources = (SubresourceDataDesc*)conf_calloc(numSubresources, sizeof(SubresourceDataDesc));
-	memcpy(cmd.mUpdateSubresourcesCmd.pSubresources, pSubresources, numSubresources * sizeof(SubresourceDataDesc));
-	cmd.mUpdateSubresourcesCmd.pIntermediate = pIntermediate;
+	cmd.sType = CMD_TYPE_cmdUpdateSubresource;
 	cmd.mUpdateSubresourcesCmd.pTexture = pTexture;
+	cmd.mUpdateSubresourcesCmd.pSrcBuffer = pSrcBuffer;
+	cmd.mUpdateSubresourcesCmd.mSubresourceDesc = *pSubresourceDesc;
 	cachedCmdsIter->second.push_back(cmd);
 }
 
@@ -1332,7 +1329,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	// Note these don't really mean much w/ DX11 but we can use it for debugging
 	// what the client is intending to do.
 	pQueue->mQueueDesc = *pQDesc;
-
+	pQueue->mUploadGranularity = { 1, 1, 1 };
 	tinystl::string queueType = "DUMMY QUEUE FOR DX11 BACKEND";
 	pQueue->pRenderer = pRenderer;
 
@@ -3072,10 +3069,9 @@ typedef struct DescriptorBinder
 	DescriptorBinderDesc mDesc;
 } DescriptorBinder;
 
-void addDescriptorBinder(Renderer* pRenderer, const DescriptorBinderDesc* pDesc, DescriptorBinder** ppDescriptorBinder)
+void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* pDescs, DescriptorBinder** ppDescriptorBinder)
 {
 	DescriptorBinder* pDescriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(*pDescriptorBinder));
-	pDescriptorBinder->mDesc = *pDesc;
 	*ppDescriptorBinder = pDescriptorBinder;
 }
 
@@ -3257,12 +3253,10 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 	}
 }
 
-void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	ASSERT(pCmd);
-	ASSERT(pDescriptorBinder);
-
-	RootSignature* pRootSignature = pDescriptorBinder->mDesc.pRootSignature;
+	ASSERT(pRootSignature);
 
 	// Ensure beingCmd was actually called
 	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
@@ -4013,27 +4007,30 @@ void queueSubmit(
 					const UpdateBufferCmd&   update = cmd.mUpdateBufferCmd;
 					D3D11_MAPPED_SUBRESOURCE sub = {};
 					pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+					D3D11_BOX dstBox = { (UINT)update.dstOffset, 0, 0, (UINT)(update.dstOffset + update.size), 1, 1 };
 					pContext->UpdateSubresource(
-						update.pBuffer->pDxResource, 0, NULL, ((uint8_t*)sub.pData) + update.srcOffset, sub.RowPitch, sub.DepthPitch);
+						update.pBuffer->pDxResource, 0, &dstBox, (uint8_t*)sub.pData + update.srcOffset, (UINT)update.size, 0);
 					pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
 					break;
 				}
-				case CMD_TYPE_cmdUpdateSubresources:
+				case CMD_TYPE_cmdUpdateSubresource:
 				{
 					const UpdateSubresourcesCmd& update = cmd.mUpdateSubresourcesCmd;
-					D3D11_MAPPED_SUBRESOURCE sub = {};
-					pContext->Map(update.pIntermediate->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
-					TextureDesc Desc = update.pTexture->mDesc;
-					uint8_t* pData = (uint8_t*)sub.pData;
-					for (uint32_t i = 0; i < update.numSubresources; ++i)
-					{
-						const SubresourceDataDesc* pSubresource = update.pSubresources + i;
-						UINT DstSubresource = pSubresource->mMipLevel + pSubresource->mArrayLayer * Desc.mMipLevels;
-						pContext->UpdateSubresource(
-							update.pTexture->pDxResource, i, NULL, pData+ pSubresource->mBufferOffset, pSubresource->mRowPitch, pSubresource->mSlicePitch);
-					}
-					pContext->Unmap(update.pIntermediate->pDxResource, 0);
-					conf_free(update.pSubresources);
+					TextureDesc                  Desc = update.pTexture->mDesc;
+					const SubresourceDataDesc&   pSubresource = update.mSubresourceDesc;
+					D3D11_MAPPED_SUBRESOURCE     sub = {};
+					UINT                         DstSubresource = pSubresource.mMipLevel + pSubresource.mArrayLayer * Desc.mMipLevels;
+					D3D11_BOX                    dstBox = { pSubresource.mRegion.mXOffset,
+                                         pSubresource.mRegion.mYOffset,
+                                         pSubresource.mRegion.mZOffset,
+                                         pSubresource.mRegion.mXOffset + pSubresource.mRegion.mWidth,
+                                         pSubresource.mRegion.mYOffset + pSubresource.mRegion.mHeight,
+                                         pSubresource.mRegion.mZOffset + pSubresource.mRegion.mDepth };
+					pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+					pContext->UpdateSubresource(
+						update.pTexture->pDxResource, DstSubresource, &dstBox, (uint8_t*)sub.pData + pSubresource.mBufferOffset,
+						pSubresource.mRowPitch, pSubresource.mSlicePitch);
+					pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
 					break;
 				}
 				default: break;

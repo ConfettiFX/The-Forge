@@ -216,14 +216,12 @@ Shader*           pBasicShader = NULL;
 Pipeline*         pBasicPipeline = NULL;
 RasterizerState*  pBasicRast = NULL;
 RootSignature*    pBasicRoot = NULL;
-DescriptorBinder* pBasicDescriptorBinder = NULL;
 Sampler*          pBasicSampler = NULL;
 
 // Execute Indirect variables
 Shader*           pIndirectShader = NULL;
 Pipeline*         pIndirectPipeline = NULL;
 RootSignature*    pIndirectRoot = NULL;
-DescriptorBinder* pIndirectDescriptorBinder = NULL;
 Buffer*           pIndirectBuffer[gImageCount] = {};
 Buffer*           pIndirectUniformBuffer[gImageCount] = { NULL };
 CommandSignature* pIndirectCommandSignature = NULL;
@@ -233,7 +231,6 @@ CommandSignature* pIndirectSubsetCommandSignature = NULL;
 Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
 RootSignature*    pComputeRoot = NULL;
-DescriptorBinder* pComputeDescriptorBinder = NULL;
 Buffer*           pComputeUniformBuffer[gImageCount] = {};
 
 // Skybox Variables
@@ -241,11 +238,13 @@ Shader*           pSkyBoxDrawShader = NULL;
 Pipeline*         pSkyBoxDrawPipeline = NULL;
 RasterizerState*  pSkyboxRast = NULL;
 RootSignature*    pSkyBoxRoot = NULL;
-DescriptorBinder* pSkyBoxDescriptorBinder = NULL;
 Sampler*          pSkyBoxSampler = NULL;
 Buffer*           pSkyboxUniformBuffer[gImageCount] = { NULL };
 Buffer*           pSkyBoxVertexBuffer = NULL;
 Texture*          pSkyBoxTextures[6];
+
+// Descriptor binder
+DescriptorBinder* pDescriptorBinder = NULL;
 
 // Necessary buffers
 Buffer* pAsteroidVertexBuffer = NULL;
@@ -341,7 +340,7 @@ class ExecuteIndirect: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -395,17 +394,8 @@ class ExecuteIndirect: public IApp
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRoot);
 		addRootSignature(pRenderer, &indirectRootDesc, &pIndirectRoot);
 
-		DescriptorBinderDesc skyDescriptorBinderDesc = { pSkyBoxRoot };
-		addDescriptorBinder(pRenderer, &skyDescriptorBinderDesc, &pSkyBoxDescriptorBinder);
-
-		DescriptorBinderDesc computeDescriptorBinderDesc = { pComputeRoot };
-		addDescriptorBinder(pRenderer, &computeDescriptorBinderDesc, &pComputeDescriptorBinder);
-
-		DescriptorBinderDesc indirectDescriptorBinderDesc = { pIndirectRoot };
-		addDescriptorBinder(pRenderer, &indirectDescriptorBinderDesc, &pIndirectDescriptorBinder);
-
-		DescriptorBinderDesc basicDescriptorBinderDesc = { pBasicRoot };
-		addDescriptorBinder(pRenderer, &basicDescriptorBinderDesc, &pBasicDescriptorBinder);
+		DescriptorBinderDesc descriptorBinderDesc[4] = { { pSkyBoxRoot }, {pComputeRoot}, {pIndirectRoot}, {pBasicRoot} };
+		addDescriptorBinder(pRenderer, 0, 4, descriptorBinderDesc, &pDescriptorBinder);
 
 		/* Setup Pipelines */
 
@@ -714,6 +704,8 @@ class ExecuteIndirect: public IApp
 			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 			removeResource(pSkyboxUniformBuffer[i]);
@@ -1041,7 +1033,7 @@ class ExecuteIndirect: public IApp
 		skyboxParams[6].ppTextures = &pSkyBoxTextures[5];
 		skyboxParams[7].pName = "uSampler0";
 		skyboxParams[7].ppSamplers = &pSkyBoxSampler;
-		cmdBindDescriptors(cmd, pSkyBoxDescriptorBinder, 8, skyboxParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pSkyBoxRoot, 8, skyboxParams);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
@@ -1125,7 +1117,7 @@ class ExecuteIndirect: public IApp
 			computeParams[2].ppBuffers = &pDynamicAsteroidBuffer;
 			computeParams[3].pName = "drawCmds";
 			computeParams[3].ppBuffers = &pIndirectBuffer[frameIdx];
-			cmdBindDescriptors(cmd, pComputeDescriptorBinder, 4, computeParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRoot, 4, computeParams);
 
 			BufferBarrier uavBarrier = { pIndirectBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS };
 			cmdResourceBarrier(cmd, 1, &uavBarrier, 0, NULL, false);
@@ -1155,7 +1147,7 @@ class ExecuteIndirect: public IApp
 			indirectParams[3].ppTextures = &pAsteroidTex;
 			indirectParams[4].pName = "uSampler0";
 			indirectParams[4].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pIndirectDescriptorBinder, 5, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pIndirectRoot, 5, indirectParams);
 
 			cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
@@ -1662,7 +1654,7 @@ class ExecuteIndirect: public IApp
 			params[1].ppTextures = &pAsteroidTex;
 			params[2].pName = "uSampler0";
 			params[2].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pBasicDescriptorBinder, 3, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pBasicRoot, 3, params);
 			cmdBindPipeline(cmd, pBasicPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
@@ -1678,7 +1670,7 @@ class ExecuteIndirect: public IApp
 				DescriptorData rootConst = {};
 				rootConst.pName = "rootConstant";
 				rootConst.pRootConstant = &i;
-				cmdBindDescriptors(cmd, pBasicDescriptorBinder, 1, &rootConst);
+				cmdBindDescriptors(cmd, pDescriptorBinder, pBasicRoot, 1, &rootConst);
 				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart, 0);
 			}
 		}
@@ -1743,7 +1735,7 @@ class ExecuteIndirect: public IApp
 			indirectParams[3].ppTextures = &pAsteroidTex;
 			indirectParams[4].pName = "uSampler0";
 			indirectParams[4].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pIndirectDescriptorBinder, 5, indirectParams);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pIndirectRoot, 5, indirectParams);
 			cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
