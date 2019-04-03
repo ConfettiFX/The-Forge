@@ -359,6 +359,10 @@ class FontRendering: public IApp
 			return false;
 
 		InitializeSceneText();
+
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+			return false;
+
 		return true;
 	}
 

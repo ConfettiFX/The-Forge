@@ -48,8 +48,6 @@
 
 const char* pszBases[FSR_Count] =
 {
-	//Rustam: find what is wrong with these paths
-#ifdef _WINDOWS
 	"../../../src/16_Raytracing/",       // FSR_BinShaders
 	"../../../src/16_Raytracing/",       // FSR_SrcShaders
 	"../../../UnitTestResources/",                  // FSR_Textures
@@ -60,18 +58,6 @@ const char* pszBases[FSR_Count] =
 	"",                                             // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",            // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",              // FSR_MIDDLEWARE_UI
-#else
-	"../../../../src/16_Raytracing/",       // FSR_BinShaders
-	"../../../../src/16_Raytracing/",       // FSR_SrcShaders
-	"../../../../UnitTestResources/",                  // FSR_Textures
-	"../../../../UnitTestResources/",                  // FSR_Meshes
-	"../../../../UnitTestResources/",                  // FSR_Builtin_Fonts
-	"../../../../src/16_Raytracing/",       // FSR_GpuConfig
-	"",                                             // FSR_Animation
-	"",                                             // FSR_OtherFiles
-    "../../../../../../Middleware_3/Text/",            // FSR_MIDDLEWARE_TEXT
-    "../../../../../../Middleware_3/UI/",              // FSR_MIDDLEWARE_UI
-#endif
 };
 
 LogManager				gLogManager;
@@ -83,9 +69,12 @@ float2					gCameraYLimits(-1.0f, 2.0f);
 float2					gCameraZLimits(-4.0f, 0.0f);
 float3					mCameraOrigin = float3(0.0f, 0.0f, -2.0f);
 
-struct RayGenConfigBlock
+struct ShadersConfigBlock
 {
     float3 mCameraPosition;
+	uint32_t pad1;
+	float3 mLightDirection;
+	uint32_t pad2;
 };
 
 struct RayPlaneConfigBlock
@@ -167,15 +156,17 @@ public:
         rootDesc.ppShaders = &pDisplayTextureShader;
         addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc = { pDisplayTextureSignature };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDisplayTextureDescriptorBinder);
-        
         RasterizerStateDesc rasterizerStateDesc = {};
         rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
         addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
+
+		tinystl::vector<DescriptorBinderDesc> descBinderDesc;
+		descBinderDesc.push_back({ pDisplayTextureSignature });
         
 		if (!isRaytracingSupported(pRenderer))
 		{
+			pRaytracing = NULL;
+			addDescriptorBinder(pRenderer, 0, (uint32_t)descBinderDesc.size(), descBinderDesc.data(), &pDescriptorBinder);
 			pGuiWindow->AddWidget(LabelWidget("Raytracing is NOT SUPPORTED"));
 			return true;
 		}
@@ -202,13 +193,13 @@ public:
         };
         float3 planeVertices[] =
         {
-            float3(-100, -1,  -2),
-            float3(100, -1,  100),
-            float3(-100, -1,  100),
+            float3(-10, -1,  -2),
+            float3(10, -1,  10),
+            float3(-10, -1,  10),
             
-            float3(-100, -1,  -2),
-            float3(100, -1,  -2),
-            float3(100, -1,  100),
+            float3(-10, -1,  -2),
+            float3(10, -1,  -2),
+            float3(10, -1,  10),
         };
         
         // Construct descriptions for Bottom Acceleration Structure
@@ -292,12 +283,15 @@ public:
         shaderResources[0].size = 1;
         shaderResources[0].type = DESCRIPTOR_TYPE_RW_TEXTURE;
         shaderResources[0].used_stages = SHADER_STAGE_COMP;
-        shaderResources[1].name = "gLightDirectionRootConstant";
+#ifdef VULKAN
+		shaderResources[0].dim = TEXTURE_DIM_2D;
+#endif
+        shaderResources[1].name = "gSettings";
         shaderResources[1].name_size = (uint32_t)strlen(shaderResources[1].name);
-        shaderResources[1].reg = 0;
+        shaderResources[1].reg = RaytracingUserdataStartBufferRegister;
         shaderResources[1].set = 0;
-        shaderResources[1].size = sizeof(float3);
-        shaderResources[1].type = DESCRIPTOR_TYPE_ROOT_CONSTANT;
+        shaderResources[1].size = 1;
+        shaderResources[1].type = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         shaderResources[1].used_stages = SHADER_STAGE_COMP;
 		RootSignatureDesc signatureDesc = {};
 		signatureDesc.mSignatureType = ROOT_SIGNATURE_RAYTRACING_GLOBAL;
@@ -305,12 +299,9 @@ public:
 		signatureDesc.pRaytracingResourcesCount = 2;
 		addRootSignature(pRenderer, &signatureDesc, &pRootSignature);
 
-		DescriptorBinderDesc descBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, &descBinderDesc, &pDescriptorBinder);
-
 		//Empty root signature for shaders we don't provide one
 		RootSignatureDesc emptySignatureDesc = {};
-		emptySignatureDesc.mSignatureType = ROOT_SIGNATURE_RAYTRACING_LOCAL;
+		emptySignatureDesc.mSignatureType = ROOT_SIGNATURE_RAYTRACING_EMPTY;
 		addRootSignature(pRenderer, &emptySignatureDesc, &pEmptyRootSignature);
         /************************************************************************/
         // 03 - Create Raytracing Pipeline
@@ -339,28 +330,6 @@ public:
             addShader(pRenderer, &desc, &pShaderMissShadow);
         }
 
-        //create local root signatures
-        /************************************************************************/
-        {
-            ShaderResource shaderResources[1] = {};
-            shaderResources[0].name = "RaygenSettings";
-            shaderResources[0].name_size = (uint32_t)strlen(shaderResources[0].name);
-            shaderResources[0].reg = RaytracingUserdataStartBufferRegister;
-            shaderResources[0].set = 0;
-            shaderResources[0].size = 1;
-            shaderResources[0].type = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            shaderResources[0].used_stages = SHADER_STAGE_COMP;
-			RootSignatureDesc signatureDesc = {};
-			signatureDesc.mSignatureType = ROOT_SIGNATURE_RAYTRACING_LOCAL;
-			signatureDesc.pRaytracingShaderResources = &shaderResources[0];
-			signatureDesc.pRaytracingResourcesCount = 1;
-			addRootSignature(pRenderer, &signatureDesc, &pRayGenSignature);
-            
-            //Create new separate signature just in case if we will want to change input of HitPlane shader.
-            //(we could use pRayGenSignature for HitPlane shader too).
-            shaderResources[0].name = "LightSettings";
-			addRootSignature(pRenderer, &signatureDesc, &pPlaneHitSignature);
-        }
         /************************************************************************/
         
         RaytracingHitGroup hitGroups[3] = {};
@@ -369,7 +338,6 @@ public:
         
         hitGroups[1].pClosestHitShader    = pShaderHitPlane;
         hitGroups[1].pHitGroupName        = "hitGroupPlane";
-        hitGroups[1].pRootSignature        = pPlaneHitSignature;
         
         hitGroups[2].pClosestHitShader    = pShaderHitShadow;
         hitGroups[2].pHitGroupName        = "hitGroupShadow";
@@ -383,7 +351,7 @@ public:
         pipelineDesc.mPayloadSize			= sizeof(float3);
         pipelineDesc.pGlobalRootSignature	= pRootSignature;
         pipelineDesc.pRayGenShader			= pShaderRayGen;
-        pipelineDesc.pRayGenRootSignature	= pRayGenSignature; //NULL to bind empty LRS
+		pipelineDesc.pRayGenRootSignature	= nullptr;// pRayGenSignature; //nullptr to bind empty LRS
 		pipelineDesc.pEmptyRootSignature	= pEmptyRootSignature;
         pipelineDesc.ppMissShaders			= pMissShaders;
         pipelineDesc.mMissShaderCount		= 2;
@@ -400,29 +368,24 @@ public:
         /************************************************************************/
         // 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
         /************************************************************************/
-        DescriptorData rayGenParams[1] = {};
-        rayGenParams[0].pName = "RaygenSettings";
-        rayGenParams[0].ppBuffers = &pRayGenConfigBuffer[0];
-        {
-            // Update uniform buffers
-            RayGenConfigBlock configBlock;
-            configBlock.mCameraPosition = mCameraOrigin;
-            
-            BufferLoadDesc ubDesc = {};
-            ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-            ubDesc.mDesc.mSize = sizeof(RayGenConfigBlock);
-            ubDesc.pData = &configBlock;
-			for(uint32_t i = 0 ; i < gImageCount; i++)
+		{
+			// Update uniform buffers
+			ShadersConfigBlock configBlock;
+			configBlock.mCameraPosition = mCameraOrigin;
+			configBlock.mLightDirection = mLightDirection;
+
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			ubDesc.mDesc.mSize = sizeof(ShadersConfigBlock);
+			ubDesc.pData = &configBlock;
+			for (uint32_t i = 0; i < gImageCount; i++)
 			{
 				ubDesc.ppBuffer = &pRayGenConfigBuffer[i];
 				addResource(&ubDesc);
 			}
-        }
+		}
         RaytracingShaderTableRecordDesc rayGenRecord = { "rayGen" };
-        rayGenRecord.pRootSignature = pRayGenSignature;
-        rayGenRecord.pRootData = &rayGenParams[0];
-        rayGenRecord.mRootDataCount = 1;
         rayGenRecord.mInvokeTraceRay = true;
         rayGenRecord.mHitShaderIndex = 0;
         rayGenRecord.mMissShaderIndex = 0;
@@ -434,9 +397,7 @@ public:
             { "hitGroupPlane" },    // Plane
             { "hitGroupShadow" },   // Shadow
         };
-        DescriptorData planeHitParams[1] = {};
-        planeHitParams[0].pName = "LightSettings";
-        planeHitParams[0].ppBuffers = &pHitPlaneConfigBuffer[0];
+
         {
             // Update uniform buffers
             RayPlaneConfigBlock configBlock;
@@ -453,16 +414,15 @@ public:
 				ubDesc.ppBuffer = &pHitPlaneConfigBuffer[i];
 				addResource(&ubDesc);
 			}
-            addResource(&ubDesc);
         }
-        hitRecords[2].pRootSignature = pPlaneHitSignature;
-        hitRecords[2].pRootData = &planeHitParams[0];
-        hitRecords[2].mRootDataCount = 1;
         hitRecords[2].mInvokeTraceRay = true;
         hitRecords[2].mHitShaderIndex = 3; //hitGroupShadow
         hitRecords[2].mMissShaderIndex = 1; //missShadow
-        
-        
+
+		descBinderDesc.push_back({ pRootSignature });
+
+		addDescriptorBinder(pRenderer, 0, (uint32_t)descBinderDesc.size(), descBinderDesc.data(), &pDescriptorBinder);
+
         RaytracingShaderTableDesc shaderTableDesc = {};
         shaderTableDesc.pPipeline = pPipeline;
 		shaderTableDesc.pEmptyRootSignature = pEmptyRootSignature;
@@ -471,6 +431,7 @@ public:
         shaderTableDesc.pMissShaders = missRecords;
         shaderTableDesc.mHitGroupCount = 4;
         shaderTableDesc.pHitGroups = hitRecords;
+		shaderTableDesc.pDescriptorBinder = pDescriptorBinder;
         addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
 
 		return true;
@@ -488,8 +449,6 @@ public:
 		{
 			removeRaytracingShaderTable(pRaytracing, pShaderTable);
 			removePipeline(pRenderer, pPipeline);
-			removeRootSignature(pRenderer, pRayGenSignature);
-			removeRootSignature(pRenderer, pPlaneHitSignature);
 			removeRootSignature(pRenderer, pRootSignature);
 			removeRootSignature(pRenderer, pEmptyRootSignature);
 			for(uint32_t i = 0 ; i < gImageCount; i++)
@@ -506,13 +465,12 @@ public:
 			removeAccelerationStructure(pRaytracing, pTopLevelAS);
 			removeRaytracing(pRenderer, pRaytracing);
 		}
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeSampler(pRenderer, pSampler);
 		removeRasterizerState(pRast);
 		removeShader(pRenderer, pDisplayTextureShader);
 		removeRootSignature(pRenderer, pDisplayTextureSignature);
-		removeDescriptorBinder(pRenderer, pDisplayTextureDescriptorBinder);
-		removePipeline(pRenderer, pDisplayTexturePipeline);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -595,6 +553,7 @@ public:
 
 		mAppUI.Unload();
 
+		removePipeline(pRenderer, pDisplayTexturePipeline);
 		removeSwapChain(pRenderer, pSwapChain);
 		for(uint i = 0; i < gImageCount; i++)
 			removeResource(pComputeOutput[i]);
@@ -615,7 +574,7 @@ public:
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFences[mFrameIdx]);
 
-		if (pHitPlaneConfigBuffer[mFrameIdx] != NULL)
+		if (pRaytracing != NULL)
 		{
 			RayPlaneConfigBlock cb;
 			cb.mLightDirection = mLightDirection;
@@ -626,10 +585,11 @@ public:
 			bufferUpdate.mSize = sizeof(cb);
 			updateResource(&bufferUpdate);
 		}
-		if (pRayGenConfigBuffer[mFrameIdx] != NULL)
+		if (pRaytracing != NULL)
 		{
-			RayGenConfigBlock cb;
+			ShadersConfigBlock cb;
 			cb.mCameraPosition = mCameraOrigin;
+			cb.mLightDirection = mLightDirection;
 			
 			BufferUpdateDesc bufferUpdate;
 			bufferUpdate.pBuffer = pRayGenConfigBuffer[mFrameIdx];
@@ -657,8 +617,8 @@ public:
 			DescriptorData params[2] = {};
 			params[0].pName = "gOutput";
 			params[0].ppTextures = &pComputeOutput[mFrameIdx];
-			params[1].pName = "gLightDirectionRootConstant";
-			params[1].pRootConstant = &mLightDirection;
+			params[1].pName = "gSettings";
+			params[1].ppBuffers = &pRayGenConfigBuffer[mFrameIdx];
 
 			RaytracingDispatchDesc dispatchDesc = {};
 			dispatchDesc.mHeight = mSettings.mHeight;
@@ -667,8 +627,9 @@ public:
 			dispatchDesc.pTopLevelAccelerationStructure = pTopLevelAS;
 			dispatchDesc.pRootSignatureDescriptorData = &params[0];
 			dispatchDesc.mRootSignatureDescriptorsCount = 2;
-			dispatchDesc.pDescriptorBinder = pDescriptorBinder;
 			dispatchDesc.pPipeline = pPipeline;
+			dispatchDesc.pRootSignature = pRootSignature;
+			dispatchDesc.pDescriptorBinder = pDescriptorBinder;
 			cmdDispatchRays(pCmd, pRaytracing, &dispatchDesc);
 		}
 		/************************************************************************/
@@ -683,23 +644,31 @@ public:
 		/************************************************************************/
 		// Present to screen
 		/************************************************************************/
-		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+		loadActions.mClearColorValues[0].r = 0.0f;
+		loadActions.mClearColorValues[0].g = 0.0f;
+		loadActions.mClearColorValues[0].b = 0.0f;
+		loadActions.mClearColorValues[0].a = 1.0f;
+		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
         
-        /************************************************************************/
-        // Perform copy
-        /************************************************************************/
-        cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render result", true);
-        // Draw computed results
-        DescriptorData params[1] = {};
-        cmdBindPipeline(pCmd, pDisplayTexturePipeline);
-        params[0].pName = "uTex0";
-        params[0].ppTextures = &pComputeOutput[mFrameIdx];
-        cmdBindDescriptors(pCmd, pDisplayTextureDescriptorBinder, 1, params);
-        cmdDraw(pCmd, 3, 0);
-        cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
-        
+		if(pRaytracing != NULL)
+		{
+			/************************************************************************/
+			// Perform copy
+			/************************************************************************/
+			cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render result", true);
+			// Draw computed results
+			DescriptorData params[1] = {};
+			cmdBindPipeline(pCmd, pDisplayTexturePipeline);
+			params[0].pName = "uTex0";
+			params[0].ppTextures = &pComputeOutput[mFrameIdx];
+			cmdBindDescriptors(pCmd, pDescriptorBinder, pDisplayTextureSignature, 1, params);
+			cmdDraw(pCmd, 3, 0);
+			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+        }
 		mAppUI.Gui(pGuiWindow);
 		mAppUI.Draw(pCmd);
 
@@ -749,12 +718,9 @@ private:
     Shader*                 pDisplayTextureShader;
     Sampler*                pSampler;
 	RootSignature*			pRootSignature;
-	RootSignature*			pRayGenSignature;
-	RootSignature*			pPlaneHitSignature;
 	RootSignature*			pEmptyRootSignature;
     RootSignature*          pDisplayTextureSignature;
 	DescriptorBinder*       pDescriptorBinder;
-	DescriptorBinder*       pDisplayTextureDescriptorBinder;
 	Pipeline*				pPipeline;
     Pipeline*               pDisplayTexturePipeline;
 	RaytracingShaderTable*  pShaderTable;

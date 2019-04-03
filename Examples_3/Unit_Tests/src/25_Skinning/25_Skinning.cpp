@@ -122,12 +122,12 @@ Shader*           pPlaneDrawShader = NULL;
 Buffer*           pPlaneVertexBuffer = NULL;
 Pipeline*         pPlaneDrawPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
-DescriptorBinder* pDescriptorBinderPlane = NULL;
 
 Shader*           pShaderSkinning = NULL;
 RootSignature*    pRootSignatureSkinning = NULL;
-DescriptorBinder* pDescriptorBinderSkinning = NULL;
 Pipeline*         pPipelineSkinning = NULL;
+
+DescriptorBinder* pDescriptorBinder = NULL;
 
 struct Vertex
 {
@@ -275,7 +275,7 @@ class Skinning: public IApp
 
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -359,9 +359,6 @@ class Skinning: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDescPlane = { pRootSignature, 0, 1 };
-		addDescriptorBinder(pRenderer, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
-
 		const char* staticSamplers[] = { "DefaultSampler" };
 
 		RootSignatureDesc skinningRootSignatureDesc = {};
@@ -372,8 +369,8 @@ class Skinning: public IApp
 		skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
 
-		DescriptorBinderDesc descriptorBinderDescSkinning = { pRootSignatureSkinning, 0, 1 };
-		addDescriptorBinder(pRenderer, &descriptorBinderDescSkinning, &pDescriptorBinderSkinning);
+		DescriptorBinderDesc descriptorBinderDesc[2] = { { pRootSignature, 0, 1 }, { pRootSignatureSkinning, 0, 1 } };
+		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -720,8 +717,7 @@ class Skinning: public IApp
 		removeShader(pRenderer, pPlaneDrawShader);
 		removeRootSignature(pRenderer, pRootSignatureSkinning);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderSkinning);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderPlane);
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeDepthState(pDepth);
 
@@ -1014,7 +1010,7 @@ class Skinning: public IApp
 			DescriptorData params[1] = {};
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pPlaneUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pDescriptorBinderPlane, 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, NULL);
 			cmdDraw(cmd, 6, 0);
 			cmdEndDebugMarker(cmd);
@@ -1042,7 +1038,7 @@ class Skinning: public IApp
 			params[2].ppBuffers = &pBoneOffsetBuffer;
 			params[3].pName = "DiffuseTexture";
 			params[3].ppTextures = &pTextureDiffuse;
-			cmdBindDescriptors(cmd, pDescriptorBinderSkinning, 4, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureSkinning, 4, params);
 			cmdBindVertexBuffer(cmd, 1, &pVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pIndexBuffer, NULL);
 			cmdDrawIndexed(cmd, gIndexCount, 0, 0);

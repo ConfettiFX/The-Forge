@@ -208,11 +208,9 @@ Pipeline* pGrassVertexHullPipeline = NULL;
 Pipeline* pGrassPipelineForWireframe = NULL;
 
 RootSignature* pGrassRootSignature = NULL;
-DescriptorBinder* pGrassDescriptorBinder = NULL;
 
 #ifdef METAL
 RootSignature* pGrassVertexHullRootSignature = NULL;
-DescriptorBinder* pGrassVertexHullDescriptorBinder = NULL;
 #endif
 
 #ifdef TARGET_IOS
@@ -222,7 +220,8 @@ VirtualJoystickUI gVirtualJoystick;
 Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
 RootSignature*    pComputeRootSignature = NULL;
-DescriptorBinder* pComputeDescriptorBinder = NULL;
+
+DescriptorBinder* pDescriptorBinder = NULL;
 
 uint32_t gFrameIndex = 0;
 
@@ -286,7 +285,7 @@ class Tessellation: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET);
+		initResourceLoaderInterface(pRenderer);
 
 #ifndef METAL
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
@@ -322,20 +321,18 @@ class Tessellation: public IApp
 		addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
-		DescriptorBinderDesc grassDescriptorBinderDesc = { pGrassRootSignature };
-		addDescriptorBinder(pRenderer, &grassDescriptorBinderDesc, &pGrassDescriptorBinder);
-		DescriptorBinderDesc computeDescriptorBinderDesc = { pComputeRootSignature };
-		addDescriptorBinder(pRenderer, &computeDescriptorBinderDesc, &pComputeDescriptorBinder);
+		tinystl::vector<DescriptorBinderDesc> descriptorBinderDesc;
+		descriptorBinderDesc.push_back({ pGrassRootSignature });
+		descriptorBinderDesc.push_back({ pComputeRootSignature });
 
 #ifdef METAL
 		addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
 
 		RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
 		addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
-
-		DescriptorBinderDesc grassVertexDescriptorBinderDesc = { pGrassVertexHullRootSignature };
-		addDescriptorBinder(pRenderer, &grassVertexDescriptorBinderDesc, &pGrassVertexHullDescriptorBinder);
+		descriptorBinderDesc.push_back({ pGrassVertexHullRootSignature });
 #endif
+		addDescriptorBinder(pRenderer, 0, (uint32_t)descriptorBinderDesc.size(), descriptorBinderDesc.data(), &pDescriptorBinder);
 
 		PipelineDesc pipelineDesc = { };
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
@@ -587,9 +584,11 @@ class Tessellation: public IApp
 		removePipeline(pRenderer, pComputePipeline);
 
 		removeRootSignature(pRenderer, pGrassRootSignature);
+				
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+
 #ifdef METAL
 		removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
-		removeDescriptorBinder(pRenderer, pGrassVertexHullDescriptorBinder);
 #endif
 		removeRootSignature(pRenderer, pComputeRootSignature);
 
@@ -814,7 +813,7 @@ class Tessellation: public IApp
 		computeParams[3].pName = "NumBlades";
 		computeParams[3].ppBuffers = &pBladeNumBuffer;
 
-		cmdBindDescriptors(cmd, pComputeDescriptorBinder, 4, computeParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRootSignature, 4, computeParams);
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 
 #ifndef METAL
@@ -844,7 +843,7 @@ class Tessellation: public IApp
 		vertexHullParams[3].ppBuffers = &pTessFactorsBuffer;
 		vertexHullParams[4].pName = "hullOutputBuffer";
 		vertexHullParams[4].ppBuffers = &pHullOutputBuffer;
-		cmdBindDescriptors(cmd, pGrassVertexHullDescriptorBinder, 5, vertexHullParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pGrassVertexHullRootSignature, 5, vertexHullParams);
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 #endif
 
@@ -865,7 +864,7 @@ class Tessellation: public IApp
 		DescriptorData grassParams[1] = {};
 		grassParams[0].pName = "GrassUniformBlock";
 		grassParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pGrassDescriptorBinder, 1, grassParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pGrassRootSignature, 1, grassParams);
 
 #ifndef METAL
 		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, NULL);

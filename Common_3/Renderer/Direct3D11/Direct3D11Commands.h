@@ -32,7 +32,7 @@ enum CmdType
 	CMD_TYPE_cmdEndDebugMarker,
 	CMD_TYPE_cmdAddDebugMarker,
 	CMD_TYPE_cmdUpdateBuffer,
-	CMD_TYPE_cmdUpdateSubresources
+	CMD_TYPE_cmdUpdateSubresource
 };
 
 struct BindRenderTargetsCmd
@@ -207,10 +207,9 @@ struct UpdateBufferCmd
 
 struct UpdateSubresourcesCmd
 {
-	uint32_t             numSubresources;
-	SubresourceDataDesc* pSubresources;
-	Buffer*              pIntermediate;
-	Texture*             pTexture;
+	Texture*            pTexture;
+	Buffer*             pSrcBuffer;
+	SubresourceDataDesc mSubresourceDesc;
 };
 
 struct CachedCmd

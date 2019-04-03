@@ -137,7 +137,6 @@ class RenderPassData
 	public:
 	Shader*                        pShader;
 	RootSignature*                 pRootSignature;
-	DescriptorBinder*              pDescriptorBinder;
 	Pipeline*                      pPipeline;
 	CmdPool*                       pCmdPool;
 	Cmd**                          ppCmds;
@@ -264,6 +263,8 @@ GPrepassUniformBuffer    gPrepasUniformData;
 ShadowpassUniformBuffer  gShadowPassUniformData;
 LightpassUniformBuffer   gLightPassUniformData;
 DefaultpassUniformBuffer gDefaultPassUniformData;
+
+DescriptorBinder* pDescriptorBinder;
 
 uint32_t gFrameIndex = 0;
 
@@ -824,10 +825,12 @@ void writeBVHTree(BVHNode* root, BVHNode* node, uint8* bboxData, int& dataOffset
 
 void deleteBVHTree(BVHNode* node)
 {
-	if (node && (node->Left != NULL || node->Right != NULL))
+	if (node)
 	{
-		deleteBVHTree(node->Left);
-		deleteBVHTree(node->Right);
+		if (node->Left)
+			deleteBVHTree(node->Left);
+		if (node->Right)
+			deleteBVHTree(node->Right);
 		node->~BVHNode();
 		conf_free(node);
 	}
@@ -893,7 +896,7 @@ class HybridRaytracing: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -983,9 +986,6 @@ class HybridRaytracing: public IApp
 	#endif
 
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRootSignature);
-
-	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature };
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorBinder);
 }
 
 //Add root signature for Shadow pass
@@ -994,9 +994,6 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::RaytracedShadows]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::RaytracedShadows]->pRootSignature);
-
-	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::RaytracedShadows]->pRootSignature };
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::RaytracedShadows]->pDescriptorBinder);
 }
 
 //Add root signature for Lighting pass
@@ -1005,9 +1002,6 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::Lighting]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Lighting]->pRootSignature);
-
-	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::Lighting]->pRootSignature };
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::Lighting]->pDescriptorBinder);
 }
 
 //Add root signature for composite pass
@@ -1016,9 +1010,6 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::Composite]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Composite]->pRootSignature);
-
-	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::Composite]->pRootSignature };
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::Composite]->pDescriptorBinder);
 }
 
 //Add root signature for Copy to Backbuffer Pass
@@ -1027,11 +1018,19 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature);
+}
+}
 
-	DescriptorBinderDesc descriptorBinderDesc = { RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature };
-	addDescriptorBinder(pRenderer, &descriptorBinderDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorBinder);
-}
-}
+//Create descriptor binder
+DescriptorBinderDesc descriptorBinderDesc[] = {
+	{ RenderPasses[RenderPass::GBuffer]->pRootSignature },
+	{ RenderPasses[RenderPass::RaytracedShadows]->pRootSignature },
+	{ RenderPasses[RenderPass::Lighting]->pRootSignature },
+	{ RenderPasses[RenderPass::Composite]->pRootSignature },
+	{ RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature }
+};
+const uint32_t descBinderSize = sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc);
+addDescriptorBinder(pRenderer, 0, descBinderSize, descriptorBinderDesc, &pDescriptorBinder);
 
 //Create Constant buffers
 {
@@ -1141,6 +1140,8 @@ void Exit()
 #ifdef TARGET_IOS
 	gVirtualJoystick.Exit();
 #endif
+
+	removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 	for (uint32_t i = 0; i < gImageCount; ++i)
 	{
@@ -2020,9 +2021,9 @@ void Draw()
 			params[2].pName = "textureMaps";
 			params[2].ppTextures = pMaterialTextures;
 			params[2].mCount = TOTAL_IMGS;
-			cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 3, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 3, params);
 #else
-			cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 2, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 2, params);
 #endif
 
 			struct MaterialMaps
@@ -2047,7 +2048,7 @@ void Draw()
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
-				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 1, params);
+				cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 1, params);
 #else
 				//bind textures explicitely for iOS
 				//we only use Albedo for the time being so just bind the albedo texture.
@@ -2060,7 +2061,7 @@ void Draw()
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
-				cmdBindDescriptors(cmd, RenderPasses[RenderPass::GBuffer]->pDescriptorBinder, 1, params);
+				cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 1, params);
 #endif
 
 				Buffer* pVertexBuffers[] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
@@ -2107,7 +2108,7 @@ void Draw()
 		params[4].pName = "outputRT";
 		params[4].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
 
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorBinder, 5, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, 5, params);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth / 8 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight / 8 + 1;
@@ -2145,7 +2146,7 @@ void Draw()
 		params[3].pName = "outputRT";
 		params[3].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
 
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::Lighting]->pDescriptorBinder, 4, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::Lighting]->pRootSignature, 4, params);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth / 16 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight / 16 + 1;
@@ -2182,7 +2183,7 @@ void Draw()
 		params[2].pName = "outputRT";
 		params[2].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
 
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::Composite]->pDescriptorBinder, 3, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::Composite]->pRootSignature, 3, params);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth / 16 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight / 16 + 1;
@@ -2218,7 +2219,7 @@ void Draw()
 		DescriptorData params[4] = {};
 		params[0].pName = "inputRT";
 		params[0].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
-		cmdBindDescriptors(cmd, RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorBinder, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature, 1, params);
 
 		//draw fullscreen triangle
 		cmdDraw(cmd, 3, 0);

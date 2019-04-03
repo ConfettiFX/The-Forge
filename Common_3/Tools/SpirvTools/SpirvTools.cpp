@@ -71,20 +71,26 @@ void ReflectBoundResources(
 	  // Set the texture dimensions
 	  switch (type.image.dim)
 	  {
+	  case spv::DimBuffer:
+		  resource.dim = SPIRV_DIM_BUFFER;
+		  break;
 	  case spv::Dim1D:
-		  resource.dim = type.image.arrayed ? SPIRV_TEXTURE_DIM_1D_ARRAY : SPIRV_TEXTURE_DIM_1D;
+		  resource.dim = type.image.arrayed ? SPIRV_DIM_TEXTURE1DARRAY : SPIRV_DIM_TEXTURE1D;
 		  break;
 	  case spv::Dim2D:
-		  resource.dim = type.image.arrayed ? SPIRV_TEXTURE_DIM_2D_ARRAY : SPIRV_TEXTURE_DIM_2D;
+		  if (type.image.ms)
+			resource.dim = type.image.arrayed ? SPIRV_DIM_TEXTURE2DMSARRAY : SPIRV_DIM_TEXTURE2DMS;
+		  else
+			resource.dim = type.image.arrayed ? SPIRV_DIM_TEXTURE2DARRAY : SPIRV_DIM_TEXTURE2D;
 		  break;
 	  case spv::Dim3D:
-		  resource.dim = SPIRV_TEXTURE_DIM_3D;
+		  resource.dim = SPIRV_DIM_TEXTURE3D;
 		  break;
 	  case spv::DimCube:
-		  resource.dim = SPIRV_TEXTURE_DIM_CUBE;
+		  resource.dim = type.image.arrayed ? SPIRV_DIM_TEXTURECUBEARRAY : SPIRV_DIM_TEXTURECUBE;
 		  break;
-	  default: 
-		  resource.dim = SPIRV_TEXTURE_DIM_UNDEFINED;
+	  default:
+		  resource.dim = SPIRV_DIM_UNDEFINED;
 		  break;
 	  }
 
@@ -309,6 +315,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
 
 	  resource.name_size = (uint32_t)input.name.size();
 	  resource.name = new char[resource.name_size + 1];
+	  resource.dim = SPIRV_DIM_UNDEFINED;
 	  // name is a const char * but we just allocated it so it is fine to modify it now
 	  memcpy((char*)resource.name, input.name.data(), resource.name_size);
 	  ((char*)resource.name)[resource.name_size] = 0;

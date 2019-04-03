@@ -68,14 +68,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         uint32_t missShader;
         bool     active;
     };
-    
-    struct ShaderLocalData
-    {
-        DescriptorBinder*  pLocalDescriptorBinder;
-        DescriptorData*    pRootData;
-        uint32_t           mRootDataCount;
-    };
-    
+
     struct RaytracingShaderInfoSet
     {
         id <MTLBuffer>             mHitSettings;
@@ -84,15 +77,13 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         NSMutableArray* mIntersectionBuffer; //id <MTLBuffer>
         NSMutableArray* mPayloadBuffer; //id <MTLBuffer>
         ShaderReference*    pHitReferences;
-        ShaderLocalData*    pShadersLocalData;
     };
     
     struct RaytracingShaderTable
     {
         RaytracingShaderInfoSet mHitShadersInfo;
         RaytracingShaderInfoSet mMissShadersInfo;
-        
-        ShaderLocalData mRayGenData;
+		DescriptorBinder* pDescriptorBinder;
         uint32_t mRayGenHitRef;
         uint32_t mRayGenMissRef;
         bool mInvokeShaders;
@@ -818,8 +809,6 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         /*Check what shaders generate secondary rays*/
         /***************************************************************/
         shadersInfo->pHitReferences = (ShaderReference*)conf_calloc(groupsCount, sizeof(ShaderReference));
-        shadersInfo->pShadersLocalData = (ShaderLocalData*)conf_calloc(groupsCount, sizeof(ShaderLocalData));
-        memset(shadersInfo->pShadersLocalData, 0, groupsCount * sizeof(ShaderLocalData));
         shadersInfo->mHitGroupsRaysBuffers = [[NSMutableArray alloc] init];
         shadersInfo->mIntersectionBuffer = [[NSMutableArray alloc] init];
         shadersInfo->mPayloadBuffer = [[NSMutableArray alloc] init];
@@ -857,22 +846,6 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                 [shadersInfo->mPayloadBuffer addObject: [NSNull null]];
             else
                 [shadersInfo->mPayloadBuffer addObject: payloadBuffer];
-            
-            /* Check Local Root Signature */
-            if (pHitGroups[i].pRootSignature != NULL)
-            {
-				DescriptorBinder* localDescriptorBinder = NULL;
-				DescriptorBinderDesc localDescBinDesc = { pHitGroups[i].pRootSignature };
-				addDescriptorBinder(pRaytracing->pRenderer, &localDescBinDesc, &localDescriptorBinder);
-
-                shadersInfo->pShadersLocalData[i].pLocalDescriptorBinder = localDescriptorBinder;
-                shadersInfo->pShadersLocalData[i].mRootDataCount = pHitGroups[i].mRootDataCount;
-                shadersInfo->pShadersLocalData[i].pRootData =
-                (DescriptorData*)conf_calloc(pHitGroups[i].mRootDataCount, sizeof(DescriptorData));
-                memcpy(shadersInfo->pShadersLocalData[i].pRootData,
-                       pHitGroups[i].pRootData,
-                       pHitGroups[i].mRootDataCount * sizeof(DescriptorData));
-            }
         }
     }
     
@@ -885,21 +858,10 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         RaytracingShaderTable* table = (RaytracingShaderTable*)conf_calloc(1, sizeof(RaytracingShaderTable));
         memset(table, 0, sizeof(RaytracingShaderTable));
 
-		DescriptorBinder* localDescriptorBinder = NULL;
-		DescriptorBinderDesc localDescBinDesc = { pDesc->pRayGenShader->pRootSignature };
-		addDescriptorBinder(pRaytracing->pRenderer, &localDescBinDesc, &localDescriptorBinder);
-
-        table->mRayGenData.pLocalDescriptorBinder = localDescriptorBinder;
-        if (pDesc->pRayGenShader->pRootData != NULL)
-        {
-            table->mRayGenData.pRootData = (DescriptorData*)conf_calloc(pDesc->pRayGenShader->mRootDataCount, sizeof(DescriptorData));
-            memcpy(table->mRayGenData.pRootData, pDesc->pRayGenShader->pRootData, pDesc->pRayGenShader->mRootDataCount * sizeof(DescriptorData));
-            table->mRayGenData.mRootDataCount = pDesc->pRayGenShader->mRootDataCount;
-        }
-        
         table->mRayGenHitRef = pDesc->pRayGenShader->mHitShaderIndex;
         table->mRayGenMissRef = pDesc->pRayGenShader->mMissShaderIndex;
         table->mInvokeShaders = pDesc->pRayGenShader->mInvokeTraceRay;
+		table->pDescriptorBinder = pDesc->pDescriptorBinder;
 
         /***************************************************************/
         /*Setup shaders settings*/
@@ -920,11 +882,6 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         infoSet->mIntersectionBuffer = nil;
         infoSet->mPayloadBuffer = nil;
         
-        if (infoSet->pShadersLocalData != NULL)
-        {
-            conf_free(infoSet->pShadersLocalData->pRootData);
-            infoSet->pShadersLocalData->~ShaderLocalData();
-        }
         if (infoSet->pHitReferences != NULL)
         {
             conf_free(infoSet->pHitReferences);
@@ -935,11 +892,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
     {
         ASSERT(pTable);
-        if (pTable->mRayGenData.pRootData != NULL)
-        {
-            conf_free(pTable->mRayGenData.pRootData);
-            pTable->mRayGenData.~ShaderLocalData();
-        }
+
         removeShaderInfoSet(&pTable->mHitShadersInfo);
         removeShaderInfoSet(&pTable->mMissShadersInfo);
         pTable->~RaytracingShaderTable();
@@ -1052,7 +1005,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         *ppRootSignature = pRootSignature;
     }
     
-    extern void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, uint32_t numDescriptors, DescriptorData* pDescParams);
+    extern void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
     
     void dispatch(id <MTLComputeCommandEncoder> computeEncoder,
                   id <MTLBuffer> raysBuffer,
@@ -1119,14 +1072,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         }
         
         //Bind "Global Root Signature" again
-        cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
-        if (pShadersInfo->pShadersLocalData[shaderId].pLocalDescriptorBinder)
-        {
-            DescriptorBinder* db   = pShadersInfo->pShadersLocalData[shaderId].pLocalDescriptorBinder;
-            uint32_t dc         = pShadersInfo->pShadersLocalData[shaderId].mRootDataCount;
-            DescriptorData* dd  = pShadersInfo->pShadersLocalData[shaderId].pRootData;
-            cmdBindLocalDescriptors(pCmd, db, dc, dd);
-        }
+        cmdBindDescriptors(pCmd, pDesc->pShaderTable->pDescriptorBinder, pDesc->pRootSignature, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         dispatch(computeEncoder, raysBufferLocal, globalSettingsBuffer, intersectionsBuffer,
                  indexBuffer, instancesIDsBuffer, payloadBuffer, masksBuffer, hitGroupIndices,
@@ -1199,14 +1145,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         // First, we will generate rays on the GPU. We create a compute command encoder which will be used to add
         // commands to the command buffer.
         //In terms of DXR here we bind "Global Root Signature"
-        cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
-        if (pDesc->pShaderTable->mRayGenData.pLocalDescriptorBinder)
-        {
-            DescriptorBinder* db = pDesc->pShaderTable->mRayGenData.pLocalDescriptorBinder;
-            uint32_t dc = pDesc->pShaderTable->mRayGenData.mRootDataCount;
-            DescriptorData* dd = pDesc->pShaderTable->mRayGenData.pRootData;
-            cmdBindLocalDescriptors(pCmd, db, dc, dd);
-        }
+        cmdBindDescriptors(pCmd, pDesc->pShaderTable->pDescriptorBinder, pDesc->pRootSignature, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         /*********************************************************************************/
         //Now we work with initial RayGen shader

@@ -315,7 +315,7 @@ class EntityComponentSystem: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -342,7 +342,7 @@ class EntityComponentSystem: public IApp
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
 		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -666,7 +666,7 @@ class EntityComponentSystem: public IApp
 			params[2].pName = "instanceBuffer";
 			params[2].ppBuffers = &pSpriteVertexBuffers[gFrameIndex];
 
-			cmdBindDescriptors(cmd, pDescriptorBinder, NUM_BUFFERS, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, NUM_BUFFERS, params);
 			cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, 0);
 			cmdDrawIndexedInstanced(cmd, 6, 0, gDrawSpriteCount, 0, 0);
 			cmdEndDebugMarker(cmd);

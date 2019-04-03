@@ -51,6 +51,21 @@ static DescriptorType sD3D12_TO_DESCRIPTOR[] = {
 	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
 };
 
+static TextureDimension sD3D12_TO_RESOURCE_DIM[D3D_SRV_DIMENSION_BUFFEREX + 1] = {
+	TEXTURE_DIM_UNDEFINED,             //D3D_SRV_DIMENSION_UNKNOWN
+	TEXTURE_DIM_UNDEFINED,             //D3D_SRV_DIMENSION_BUFFER
+	TEXTURE_DIM_1D,                    //D3D_SRV_DIMENSION_TEXTURE1D
+	TEXTURE_DIM_1D_ARRAY,              //D3D_SRV_DIMENSION_TEXTURE1DARRAY
+	TEXTURE_DIM_2D,                    //D3D_SRV_DIMENSION_TEXTURE2D
+	TEXTURE_DIM_2D_ARRAY,              //D3D_SRV_DIMENSION_TEXTURE2DARRAY
+	TEXTURE_DIM_2DMS,                  //D3D_SRV_DIMENSION_TEXTURE2DMS
+	TEXTURE_DIM_2DMS_ARRAY,            //D3D_SRV_DIMENSION_TEXTURE2DMSARRAY
+	TEXTURE_DIM_3D,                    //D3D_SRV_DIMENSION_TEXTURE3D
+	TEXTURE_DIM_CUBE,                  //D3D_SRV_DIMENSION_TEXTURECUBE
+	TEXTURE_DIM_CUBE_ARRAY,            //D3D_SRV_DIMENSION_TEXTURECUBEARRAY
+	TEXTURE_DIM_UNDEFINED,             //D3D_SRV_DIMENSION_BUFFEREX
+};
+
 void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
 	//Check to see if parameters are valid
@@ -217,6 +232,7 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			reflection.pShaderResources[i].used_stages = shaderStage;
 			reflection.pShaderResources[i].name = pCurrentName;
 			reflection.pShaderResources[i].name_size = len;
+			reflection.pShaderResources[i].dim = sD3D12_TO_RESOURCE_DIM[bindDesc.Dimension];
 
 			// RWTyped is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for RWBuffer here
 			if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)

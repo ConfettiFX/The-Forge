@@ -145,8 +145,7 @@ Shader*        pShaderBG = NULL;
 Pipeline*      pPipelineBG = NULL;
 RootSignature* pRootSigBG = NULL;
 
-DescriptorBinder* pDescriptorBinderBG = NULL;
-DescriptorBinder* pDescriptorBinderBRDF = NULL;
+DescriptorBinder* pDescriptorBinder = NULL;
 
 UniformObjData gUniformDataMVP;
 ScreenSize     gScreenSizeData;
@@ -235,7 +234,7 @@ class Procedural: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
@@ -276,19 +275,8 @@ class Procedural: public IApp
 		addRootSignature(pRenderer, &bgRootDesc, &pRootSigBG);
 		addRootSignature(pRenderer, &brdfRootDesc, &pRootSigBRDF);
 
-		DescriptorBinderDesc descriptorBinderDescBG = {};
-		descriptorBinderDescBG.pRootSignature = pRootSigBG;
-		descriptorBinderDescBG.mMaxDynamicUpdatesPerBatch = 1;
-		descriptorBinderDescBG.mMaxDynamicUpdatesPerDraw = 1;
-		addDescriptorBinder(pRenderer, &descriptorBinderDescBG, &pDescriptorBinderBG);
-
-		DescriptorBinderDesc descriptorBinderDescBRDF = {};
-		descriptorBinderDescBRDF.pRootSignature = pRootSigBRDF;
-		descriptorBinderDescBRDF.mMaxDynamicUpdatesPerBatch = 10;
-		descriptorBinderDescBRDF.mMaxDynamicUpdatesPerDraw = 10; 
-		addDescriptorBinder(pRenderer, &descriptorBinderDescBRDF, &pDescriptorBinderBRDF);
-
-		
+		DescriptorBinderDesc descriptorBinderDesc[2] = { {pRootSigBG, 1, 1}, {pRootSigBRDF, 10, 10} };
+		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
 
 		// Create depth state and rasterizer state
 		RasterizerStateDesc rasterizerStateDesc = {};
@@ -505,8 +493,7 @@ class Procedural: public IApp
 		removeShader(pRenderer, pShaderBRDF);
 		removeShader(pRenderer, pShaderBG);
 
-		removeDescriptorBinder(pRenderer, pDescriptorBinderBG);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderBRDF);
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeRootSignature(pRenderer, pRootSigBRDF);
 		removeRootSignature(pRenderer, pRootSigBG);
@@ -743,7 +730,7 @@ class Procedural: public IApp
 		paramsBG[1].pName = "cbScreen";
 		paramsBG[1].ppBuffers = &pScreenSizeBuffer;
 
-		cmdBindDescriptors(cmd, pDescriptorBinderBG, 2, paramsBG);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigBG, 2, paramsBG);
 		cmdBindVertexBuffer(cmd, 1, &pBGVertexBuffer, NULL);
 
 		cmdDraw(cmd, 6, 0);
@@ -773,7 +760,7 @@ class Procedural: public IApp
 		params[3].pName = "uEnvTex0";
 		params[3].ppTextures = &pEnvTex;
 
-		cmdBindDescriptors(cmd, pDescriptorBinderBRDF, 4, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigBRDF, 4, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 
 		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1, 0);

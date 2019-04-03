@@ -367,7 +367,7 @@ class Blending: public IApp
 
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -395,7 +395,7 @@ class Blending: public IApp
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
 		DescriptorBinderDesc descriptorBinderDescPlane = { pRootSignature, 0, 1 };
-		addDescriptorBinder(pRenderer, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
+		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -1081,7 +1081,7 @@ class Blending: public IApp
 			DescriptorData params[1] = {};
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pPlaneUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pDescriptorBinderPlane, 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinderPlane, pRootSignature, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, NULL);
 			cmdDraw(cmd, 6, 0);
 			cmdEndDebugMarker(cmd);

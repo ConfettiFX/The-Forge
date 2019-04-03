@@ -1,0 +1,47 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+
+layout(binding = 0, set=1) uniform accelerationStructureNV gRtScene;
+layout(binding = 0, rgba8) uniform image2D gOutput;
+
+layout(binding = 10, set=0, std140) uniform Settings
+{
+	vec3 cameraPosition;
+	vec3 lightDirection;
+} gSettings;
+
+layout(shaderRecordNV) buffer block
+{
+    uint HitGroupIndex;
+    uint MissGroupIndex;
+};
+
+layout(location = 0) rayPayloadNV vec3 hitValue;
+
+void main()
+{
+    const uvec2 launchIndex = gl_LaunchIDNV.xy;
+    const uvec2 launchDim = gl_LaunchSizeNV.xy;
+
+    vec2 crd = vec2(launchIndex);
+    vec2 dims = vec2(launchDim);
+
+    vec2 d = ((crd / dims) * 2.f - 1.f);
+    float aspectRatio = dims.x / dims.y;
+
+	vec4 origin = vec4(gSettings.cameraPosition.x, gSettings.cameraPosition.y, gSettings.cameraPosition.z, 1.0);
+    vec4 direction = vec4(normalize(vec3(d.x * aspectRatio, -d.y, 1.0)), 1.0);
+
+    uint rayFlags = gl_RayFlagsNoneNV ;//gl_RayFlagsOpaqueNV;
+    uint cullMask = 0xFF;
+    float tmin = 0.000;
+    float tmax = 10000.0;
+
+    //Rustam: "settings" uniform should be used here
+    //traceNV(gRtScene, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 1 /*sbtRecordStride*/,
+    //  0 /*missIndex*/, origin.xyz, tmin, direction.xyz, tmax, 0 /*payload location*/);
+	traceNV(gRtScene, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 1 /*sbtRecordStride*/,
+			MissGroupIndex /*missIndex*/, origin.xyz, tmin, direction.xyz, tmax, 0 /*payload location*/);
+
+    imageStore(gOutput, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 0.0));
+}

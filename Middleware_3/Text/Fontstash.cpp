@@ -40,7 +40,7 @@
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 // TODO: this should be configurable
-#define MAX_SHADER_RESOURCE_UPDATES_PER_FRAME 20 
+#define MAX_SHADER_RESOURCE_UPDATES_PER_FRAME 40 
 
 FSRoot FSR_MIDDLEWARE_TEXT = FSR_Middleware0;
 
@@ -144,9 +144,9 @@ class _Impl_FontStash
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
 		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, MAX_SHADER_RESOURCE_UPDATES_PER_FRAME };
-		addDescriptorBinder(pRenderer, &descriptorBinderDesc, &pDescriptorBinder);
+		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
 
-		addUniformRingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
+		addUniformGPURingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
 
 		BufferDesc vbDesc = {};
 		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -154,7 +154,7 @@ class _Impl_FontStash
 		vbDesc.mSize = 1024 * 1024 * sizeof(float4);
 		vbDesc.mVertexStride = sizeof(float4);
 		vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-		addMeshRingBuffer(pRenderer, &vbDesc, NULL, &pMeshRingBuffer);
+		addGPURingBuffer(pRenderer, &vbDesc, &pMeshRingBuffer);
 
 		mVertexLayout.mAttribCount = 2;
 		mVertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -215,8 +215,8 @@ class _Impl_FontStash
 			mPipelines[i].clear();
 		}
 
-		removeMeshRingBuffer(pMeshRingBuffer);
-		removeUniformRingBuffer(pUniformRingBuffer);
+		removeGPURingBuffer(pMeshRingBuffer);
+		removeGPURingBuffer(pUniformRingBuffer);
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			removeDepthState(pDepthStates[i]);
@@ -263,8 +263,8 @@ class _Impl_FontStash
 	DepthState*          pDepthStates[2];
 	RasterizerState*     pRasterizerStates[2];
 	Sampler*             pDefaultSampler;
-	UniformRingBuffer*   pUniformRingBuffer;
-	MeshRingBuffer*      pMeshRingBuffer;
+	GPURingBuffer*       pUniformRingBuffer;
+	GPURingBuffer*       pMeshRingBuffer;
 	VertexLayout         mVertexLayout = {};
 	PipelineDesc		 mPipelineDesc = {};
 	float2               mDpiScale;
@@ -482,7 +482,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		vtx[impl].setW(tcoords[impl * 2 + 1]);
 	}
 
-	RingBufferOffset buffer = getVertexBufferOffset(ctx->pMeshRingBuffer, nverts * sizeof(float4));
+	GPURingBufferOffset buffer = getGPURingBufferOffset(ctx->pMeshRingBuffer, nverts * sizeof(float4));
 	BufferUpdateDesc update = { buffer.pBuffer, vtx, 0, buffer.mOffset, nverts * sizeof(float4) };
 	updateResource(&update);
 
@@ -531,8 +531,8 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		data.color = color;
 		data.scaleBias.x = -data.scaleBias.x;
 
-		RingBufferOffset uniformBlock = {};
-		uniformBlock = getUniformBufferOffset(ctx->pUniformRingBuffer, sizeof(mvp));
+		GPURingBufferOffset uniformBlock = {};
+		uniformBlock = getGPURingBufferOffset(ctx->pUniformRingBuffer, sizeof(mvp));
 		BufferUpdateDesc updateDesc = { uniformBlock.pBuffer, &mvp, 0, uniformBlock.mOffset, sizeof(mvp) };
 		updateResource(&updateDesc);
 
@@ -544,7 +544,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		params[1].pOffsets = &uniformBlock.mOffset;
 		params[2].pName = "uTex0";
 		params[2].ppTextures = &ctx->pCurrentTexture;
-		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, 3, params);
+		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, ctx->pRootSignature, 3, params);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}
@@ -555,7 +555,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		params[0].pRootConstant = &data;
 		params[1].pName = "uTex0";
 		params[1].ppTextures = &ctx->pCurrentTexture;
-		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, 2, params);
+		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, ctx->pRootSignature, 2, params);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}

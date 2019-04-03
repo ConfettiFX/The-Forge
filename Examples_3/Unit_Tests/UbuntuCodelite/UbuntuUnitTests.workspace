@@ -3,7 +3,7 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="No"/>
+  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="Yes"/>
   <Project Name="02_Compute" Path="02_Compute/02_Compute.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
   <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="No"/>
@@ -17,6 +17,7 @@
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
+  <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="No"/>
   <Project Name="16a_SphereTracing" Path="16a_SphereTracing/16a_SphereTracing.project" Active="No"/>
   <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
   <Project Name="18_Playback" Path="18_Playback/18_Playback.project" Active="No"/>
@@ -26,7 +27,7 @@
   <Project Name="22_AdditiveBlending" Path="22_AdditiveBlending/22_AdditiveBlending.project" Active="No"/>
   <Project Name="23_BakedPhysics" Path="23_BakedPhysics/23_BakedPhysics.project" Active="No"/>
   <Project Name="24_MultiThread" Path="24_MultiThread/24_MultiThread.project" Active="No"/>
-  <Project Name="25_Skinning" Path="25_Skinning/25_Skinning.project" Active="Yes"/>
+  <Project Name="25_Skinning" Path="25_Skinning/25_Skinning.project" Active="No"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
@@ -37,7 +38,7 @@
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="LuaManager" ConfigName="Debug"/>
@@ -59,6 +60,7 @@
       <Project Name="13_UserInterface" ConfigName="Debug"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
+      <Project Name="16_Raytracing" ConfigName="Debug"/>
       <Project Name="16a_SphereTracing" ConfigName="Debug"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Debug"/>
       <Project Name="18_Playback" ConfigName="Debug"/>
@@ -78,7 +80,7 @@
       <Project Name="AssetPipeline" ConfigName="Debug"/>
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
@@ -100,6 +102,7 @@
       <Project Name="13_UserInterface" ConfigName="Release"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="15_Transparency" ConfigName="Release"/>
+      <Project Name="16_Raytracing" ConfigName="Release"/>
       <Project Name="16a_SphereTracing" ConfigName="Release"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
       <Project Name="18_Playback" ConfigName="Release"/>

@@ -114,7 +114,7 @@ Shader*           pPlaneDrawShader = NULL;
 Buffer*           pPlaneVertexBuffer = NULL;
 Pipeline*         pPlaneDrawPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
-DescriptorBinder* pDescriptorBinderPlane = NULL;
+DescriptorBinder* pDescriptorBinder = NULL;
 
 struct UniformBlockPlane
 {
@@ -239,7 +239,7 @@ class Playback: public IApp
 
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
-		initResourceLoaderInterface(pRenderer, DEFAULT_MEMORY_BUDGET, true);
+		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -266,8 +266,8 @@ class Playback: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDescPlane = { pRootSignature, 0, 1 };
-		addDescriptorBinder(pRenderer, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
+		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, 0, 1 };
+		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -570,7 +570,7 @@ class Playback: public IApp
 		removeShader(pRenderer, pSkeletonShader);
 		removeShader(pRenderer, pPlaneDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderPlane);
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeDepthState(pDepth);
 
@@ -810,7 +810,7 @@ class Playback: public IApp
 			DescriptorData params[1] = {};
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pPlaneUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pDescriptorBinderPlane, 1, params);
+			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
 			cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, NULL);
 			cmdDraw(cmd, 6, 0);
 			cmdEndDebugMarker(cmd);
