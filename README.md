@@ -47,8 +47,8 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 ## Release 1.27 - April 25th, 2019 - Spring House Cleaning Release :-)
 * DirectX
-  * Improved our support for DXGI_FORMAT_BC6H_SF16, DXGI_FORMAT_BC7_UNORM support for DirectX
-  * DX12 removed CPU wait on GPU only fences.
+  * Improved our support for DXGI_FORMAT_BC6H_SF16, DXGI_FORMAT_BC7_UNORM 
+  * DirectX12 removed CPU wait on GPU only fences.
 * Windows - header include cleanup, resolved conflict with CALLTYPE enum in objidl.h
 * macOS / iOS - utilize packed_* data types more in shaders
 * Replaced some usages of GPURingBuffer with API Buffers, for reduced dependencies
