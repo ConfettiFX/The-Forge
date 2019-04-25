@@ -37,16 +37,10 @@
 #include "../../Common_3/OS/Input/InputSystem.h"
 #include "../../Common_3/OS/Input/InputMappings.h"
 
-#include "../../Common_3/OS/Core/RingBuffer.h"
-#include "../../Common_3/OS/Image/Image.h"
-
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"    //NOTE: this should be the last include in a .cpp
 
 #define LABELID(prop) tinystl::string::format("##%llu", (uint64_t)(prop.pData))
 #define LABELID1(prop) tinystl::string::format("##%llu", (uint64_t)(prop))
-
-// TODO: this should be configurable by the app
-#define MAX_SHADER_RESOURCE_UPDATES_PER_FRAME 20
 
 namespace ImGui {
 bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max, float v_step, const char* display_format)
@@ -123,7 +117,7 @@ class ImguiGUIDriver: public GUIDriver
 	public:
 	// Declare virtual destructor
 	virtual ~ImguiGUIDriver() {}
-	bool init(Renderer* pRenderer);
+	bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch);
 	void exit();
 
 	bool load(Fontstash* fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);
@@ -157,9 +151,10 @@ class ImguiGUIDriver: public GUIDriver
 	RootSignature*     pRootSignatureTextured;
 	DescriptorBinder*  pDescriptorBinderTextured;
 	PipelineMap        mPipelinesTextured;
-	GPURingBuffer*     pVertexRingBuffer[MAX_FRAMES];
-	GPURingBuffer*     pIndexRingBuffer[MAX_FRAMES];
-	GPURingBuffer*     pUniformRingBuffer[MAX_FRAMES];
+	Buffer*            pVertexBuffer;
+	Buffer*            pIndexBuffer;
+	Buffer*            pUniformBuffer;
+	uint64_t           mUniformSize;
 	/// Default states
 	BlendState*      pBlendAlpha;
 	DepthState*      pDepthState;
@@ -168,10 +163,13 @@ class ImguiGUIDriver: public GUIDriver
 	VertexLayout     mVertexLayoutTextured = {};
 };
 
-void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver)
+static const uint64_t VERTEX_BUFFER_SIZE = 1024 * 64 * sizeof(ImDrawVert);
+static const uint64_t INDEX_BUFFER_SIZE = 128 * 1024 * sizeof(ImDrawIdx);
+
+void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver, uint32_t const maxDynamicUIUpdatesPerBatch)
 {
 	ImguiGUIDriver* pDriver = conf_placement_new<ImguiGUIDriver>(conf_calloc(1, sizeof(ImguiGUIDriver)));
-	pDriver->init(pRenderer);
+	pDriver->init(pRenderer, maxDynamicUIUpdatesPerBatch);
 	*ppDriver = pDriver;
 }
 
@@ -459,7 +457,7 @@ static void SetDefaultStyle()
 	colors[ImGuiCol_NavWindowingHighlight] = float4(1.00f, 1.00f, 1.00f, 0.70f);
 }
 
-bool ImguiGUIDriver::init(Renderer* renderer)
+bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdatesPerBatch)
 {
 	mHandledGestures = false;
 	pRenderer = renderer;
@@ -507,26 +505,38 @@ bool ImguiGUIDriver::init(Renderer* renderer)
 	textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignatureTextured);
 
-	DescriptorBinderDesc descriptorBinderDesc = { pRootSignatureTextured, MAX_SHADER_RESOURCE_UPDATES_PER_FRAME};
+	DescriptorBinderDesc descriptorBinderDesc = { pRootSignatureTextured, maxDynamicUIUpdatesPerBatch };
 	addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinderTextured);
 
-	BufferDesc vbDesc = {};
-	vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-	vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	vbDesc.mVertexStride = sizeof(ImDrawVert);
-	vbDesc.mSize = 1024 * 64 * vbDesc.mVertexStride;
-	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	BufferLoadDesc vbDesc = {};
+	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	vbDesc.mDesc.mVertexStride = sizeof(ImDrawVert);
+	vbDesc.mDesc.mSize = VERTEX_BUFFER_SIZE * MAX_FRAMES;
+	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	vbDesc.ppBuffer = &pVertexBuffer;
+	addResource(&vbDesc);
 
-	BufferDesc ibDesc = vbDesc;
-	ibDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-	ibDesc.mIndexType = INDEX_TYPE_UINT16;
-	ibDesc.mSize = 128 * 1024 * sizeof(ImDrawIdx);
-	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
-	{
-		addGPURingBuffer(pRenderer, &vbDesc, &pVertexRingBuffer[i]);
-		addGPURingBuffer(pRenderer, &ibDesc, &pIndexRingBuffer[i]);
-		addUniformGPURingBuffer(pRenderer, 256, &pUniformRingBuffer[i], true);
-	}
+	BufferLoadDesc ibDesc = vbDesc;
+	ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
+	ibDesc.mDesc.mSize = INDEX_BUFFER_SIZE * MAX_FRAMES;
+	ibDesc.ppBuffer = &pIndexBuffer;
+	addResource(&ibDesc);
+
+	BufferLoadDesc ubDesc = {};
+	mUniformSize = round_up_64(256, pRenderer->mGpuSettings->mUniformBufferAlignment);
+#if defined(DIRECT3D11)
+	ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
+#else
+	ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+#endif
+	ubDesc.mDesc.mFlags =
+		BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	ubDesc.mDesc.mSize = mUniformSize * MAX_FRAMES;
+	ubDesc.ppBuffer = &pUniformBuffer;
+	addResource(&ubDesc);
 
 	mVertexLayoutTextured.mAttribCount = 3;
 	mVertexLayoutTextured.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -573,12 +583,9 @@ void ImguiGUIDriver::exit()
 	removeShader(pRenderer, pShaderTextured);
 	removeDescriptorBinder(pRenderer, pDescriptorBinderTextured);
 	removeRootSignature(pRenderer, pRootSignatureTextured);
-	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
-	{
-		removeGPURingBuffer(pVertexRingBuffer[i]);
-		removeGPURingBuffer(pIndexRingBuffer[i]);
-		removeGPURingBuffer(pUniformRingBuffer[i]);
-	}
+	removeResource(pVertexBuffer);
+	removeResource(pIndexBuffer);
+	removeResource(pUniformBuffer);
 }
 
 bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorTexture, float uiwidth, float uiheight)
@@ -602,11 +609,11 @@ bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorT
 			ImGui::GetIO().Fonts->AddFontDefault();
 		}
 		ImGui::GetIO().Fonts->Build();
-		ImGui::GetIO().Fonts->GetTexDataAsAlpha8(&pixels, &width, &height);
+		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 		// At this point you've got the texture data and you need to upload that your your graphic system:
 		// After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
 		// This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
-		RawImageData    rawData{ pixels, ImageFormat::R8, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
+		RawImageData    rawData{ pixels, ImageFormat::RGBA8, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pRawImageData = &rawData;
 		loadDesc.ppTexture = &pFontTexture;
@@ -900,8 +907,6 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	/************************************************************************/
 	ImGui::Render();
 	frameIdx = (frameIdx + 1) % MAX_FRAMES;
-	resetGPURingBuffer(pVertexRingBuffer[frameIdx]);
-	resetGPURingBuffer(pIndexRingBuffer[frameIdx]);
 
 	ImDrawData* draw_data = ImGui::GetDrawData();
 
@@ -941,18 +946,21 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		iSize += (int)(cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx));
 	}
 
-	GPURingBufferOffset vOffset = getGPURingBufferOffset(pVertexRingBuffer[frameIdx], vSize);
-	GPURingBufferOffset iOffset = getGPURingBufferOffset(pIndexRingBuffer[frameIdx], iSize);
+	vSize = min<uint32_t>(vSize, VERTEX_BUFFER_SIZE);
+	iSize = min<uint32_t>(iSize, INDEX_BUFFER_SIZE);
+
 	// Copy and convert all vertices into a single contiguous buffer
-	uint64_t vtx_dst = vOffset.mOffset;
-	uint64_t idx_dst = iOffset.mOffset;
+	uint64_t vOffset = frameIdx * VERTEX_BUFFER_SIZE;
+	uint64_t iOffset = frameIdx * INDEX_BUFFER_SIZE;
+	uint64_t vtx_dst = vOffset;
+	uint64_t idx_dst = iOffset;
 	for (int n = 0; n < draw_data->CmdListsCount; n++)
 	{
 		const ImDrawList* cmd_list = draw_data->CmdLists[n];
-		BufferUpdateDesc  update = { vOffset.pBuffer, cmd_list->VtxBuffer.data(), 0, vtx_dst,
+		BufferUpdateDesc  update = { pVertexBuffer, cmd_list->VtxBuffer.data(), 0, vtx_dst,
                                     cmd_list->VtxBuffer.size() * sizeof(ImDrawVert) };
 		updateResource(&update);
-		update = { iOffset.pBuffer, cmd_list->IdxBuffer.data(), 0, idx_dst, cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx) };
+		update = { pIndexBuffer, cmd_list->IdxBuffer.data(), 0, idx_dst, cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx) };
 		updateResource(&update);
 
 		vtx_dst += (cmd_list->VtxBuffer.size() * sizeof(ImDrawVert));
@@ -969,8 +977,8 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		{ 0.0f, 0.0f, 0.5f, 0.0f },
 		{ (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
 	};
-	GPURingBufferOffset offset = getGPURingBufferOffset(pUniformRingBuffer[frameIdx], sizeof(mvp));
-	BufferUpdateDesc update = { offset.pBuffer, mvp, 0, offset.mOffset, sizeof(mvp) };
+	uint64_t uOffset = frameIdx * mUniformSize;
+	BufferUpdateDesc update = { pUniformBuffer, mvp, 0, uOffset, sizeof(mvp) };
 	updateResource(&update);
 
 	cmdSetViewport(pCmd, 0.0f, 0.0f, draw_data->DisplaySize.x, draw_data->DisplaySize.y, 0.0f, 1.0f);
@@ -978,13 +986,13 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		pCmd, (uint32_t)draw_data->DisplayPos.x, (uint32_t)draw_data->DisplayPos.y, (uint32_t)draw_data->DisplaySize.x,
 		(uint32_t)draw_data->DisplaySize.y);
 	cmdBindPipeline(pCmd, pPipeline);
-	cmdBindIndexBuffer(pCmd, pIndexRingBuffer[frameIdx]->pBuffer, iOffset.mOffset);
-	cmdBindVertexBuffer(pCmd, 1, &pVertexRingBuffer[frameIdx]->pBuffer, &vOffset.mOffset);
+	cmdBindIndexBuffer(pCmd, pIndexBuffer, iOffset);
+	cmdBindVertexBuffer(pCmd, 1, &pVertexBuffer, &vOffset);
 
 	DescriptorData params[1] = {};
 	params[0].pName = "uniformBlockVS";
-	params[0].pOffsets = &offset.mOffset;
-	params[0].ppBuffers = &offset.pBuffer;
+	params[0].pOffsets = &uOffset;
+	params[0].ppBuffers = &pUniformBuffer;
 	cmdBindDescriptors(pCmd, pDescriptorBinderTextured, pRootSignatureTextured, 1, params);
 	
 

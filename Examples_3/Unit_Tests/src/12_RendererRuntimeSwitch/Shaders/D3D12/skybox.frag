@@ -67,7 +67,7 @@ float4 main(VSOutput input) : SV_TARGET
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
         return LeftText.Sample(uSampler0, newtextcoord);
     }
-    if (side == 4.0f)
+    else if (side == 4.0f)
     {
         newtextcoord = (input.TexCoord.xz) / 20 +0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);

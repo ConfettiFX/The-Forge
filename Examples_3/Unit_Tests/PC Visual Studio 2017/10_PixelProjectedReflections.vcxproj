@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Common\AppHelpers.cpp" />
     <ClCompile Include="..\src\10_PixelProjectedReflections\10_PixelProjectedReflections.cpp" />
-    <ClCompile Include="..\src\10_PixelProjectedReflections\IOResourceLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\BRDFIntegration.comp" />
@@ -69,7 +69,7 @@
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\skybox.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\10_PixelProjectedReflections\IOResourceLoader.h" />
+    <ClInclude Include="..\..\Common\AppHelpers.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>

@@ -45,10 +45,10 @@ struct VSOutput
 
 struct RootConstantDrawSceneData
 {
-	float4 lightColor;
+	packed_float4 lightColor;
 	uint lightingMode;
 	uint outputMode;
-	float4 CameraPlane; //x : near, y : far
+	packed_float4 CameraPlane; //x : near, y : far
 };
 
 fragment float4 stageMain(VSOutput input                                        [[stage_in]],

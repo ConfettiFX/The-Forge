@@ -14,6 +14,7 @@
 		65AC433A21ACE80300F6DE4E /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432D21ACE7BB00F6DE4E /* libassimp.a */; };
 		65AC433B21ACE80300F6DE4E /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432B21ACE7BB00F6DE4E /* libIrrXML.a */; };
 		65AC433C21ACE80300F6DE4E /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 65AC432F21ACE7BB00F6DE4E /* libzlibstatic.a */; };
+		81B986802269FC9A0078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B9867F2269FC9A0078E5F4 /* AppHelpers.cpp */; };
 		81FF8E3A2237ADE70009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E382237ADE70009402D /* InputSystem.cpp */; };
 		97FD71DA2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71D82141D5E00051A203 /* ImguiGUIDriver.cpp */; };
 		97FD71E32141D6400051A203 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71DD2141D6400051A203 /* imgui.cpp */; };
@@ -158,6 +159,8 @@
 		651017A6222539C9009A1174 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = ../../../Common_3/Renderer/Metal/MetalRaytracing.mm; sourceTree = SOURCE_ROOT; };
 		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		65AC432121ACE7BA00F6DE4E /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
+		81B9867C2269FAFA0078E5F4 /* AppHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppHelpers.h; path = ../../../Common/AppHelpers.h; sourceTree = "<group>"; };
+		81B9867F2269FC9A0078E5F4 /* AppHelpers.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppHelpers.cpp; path = ../../../Common/AppHelpers.cpp; sourceTree = "<group>"; };
 		81FF8E372237ADE70009402D /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = Input/InputSystem.h; sourceTree = "<group>"; };
 		81FF8E382237ADE70009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
 		81FF8E392237ADE70009402D /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = Input/InputMappings.h; sourceTree = "<group>"; };
@@ -477,6 +480,8 @@
 		EA463C941EF81E8F005AC8C7 /* Visibility_Buffer */ = {
 			isa = PBXGroup;
 			children = (
+				81B9867F2269FC9A0078E5F4 /* AppHelpers.cpp */,
+				81B9867C2269FAFA0078E5F4 /* AppHelpers.h */,
 				D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */,
 				EA463C951EF81E8F005AC8C7 /* Assets.xcassets */,
 				EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */,
@@ -791,6 +796,7 @@
 				EA463D031EF81FC5005AC8C7 /* LogManager.cpp in Sources */,
 				B28506F71F4FB0280013C61A /* MemoryTrackingManager.cpp in Sources */,
 				5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */,
+				81B986802269FC9A0078E5F4 /* AppHelpers.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
 				D0ADCF5420C2451C0031B732 /* AssimpImporter.cpp in Sources */,
 				D2B157231F1CBB5E0037A8C8 /* ResourceLoader.cpp in Sources */,

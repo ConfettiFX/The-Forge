@@ -40,8 +40,6 @@
 #include "../../Common_3/OS/Input/InputSystem.h"
 #include "../../Common_3/OS/Input/InputMappings.h"
 
-#include "../../Common_3/OS/Core/RingBuffer.h"
-
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 namespace PlatformEvents {
@@ -52,7 +50,7 @@ FSRoot                         FSR_MIDDLEWARE_UI = FSR_Middleware1;
 static tinystl::vector<UIApp*> gInstances;
 static Mutex                   gMutex;
 
-extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
+extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver, uint32_t const maxDynamicUIUpdatesPerBatch);
 extern void removeGUIDriver(GUIDriver* pDriver);
 
 static bool uiInputEvent(const ButtonData* pData);
@@ -280,9 +278,10 @@ IWidget* CheckboxWidget::Clone() const
 // UI Implementation
 /************************************************************************/
 
-UIApp::UIApp(int32_t const fontAtlasSize)
+UIApp::UIApp(int32_t const fontAtlasSize, uint32_t const maxDynamicUIUpdatesPerBatch)
 {
 	mFontAtlasSize = fontAtlasSize;
+	mMaxDynamicUIUpdatesPerBatch = maxDynamicUIUpdatesPerBatch;
 }
 
 bool UIApp::Init(Renderer* renderer)
@@ -304,7 +303,7 @@ bool UIApp::Init(Renderer* renderer)
 
 	pImpl->pFontStash =
 		conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, mFontAtlasSize, mFontAtlasSize);
-	initGUIDriver(pImpl->pRenderer, &pDriver);
+	initGUIDriver(pImpl->pRenderer, &pDriver, mMaxDynamicUIUpdatesPerBatch);
 
 	MutexLock lock(gMutex);
 	gInstances.emplace_back(this);
@@ -481,6 +480,9 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 	{
 		(*it)->RemoveAllWidgets();
 		pImpl->mComponents.erase(it);
+		GuiComponent** active_it = pImpl->mComponentsToUpdate.find(pComponent);
+		if (active_it != pImpl->mComponentsToUpdate.end())
+			pImpl->mComponentsToUpdate.erase(active_it);
 		pComponent->mWidgets.clear();
 	}
 
@@ -658,13 +660,14 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	/************************************************************************/
 	// Resources
 	/************************************************************************/
-	BufferDesc vbDesc = {};
-	vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-	vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-	vbDesc.mSize = 128 * 4 * sizeof(float4);
-	vbDesc.mVertexStride = sizeof(float4);
-	addGPURingBuffer(pRenderer, &vbDesc, &pMeshRingBuffer);
+	BufferLoadDesc vbDesc = {};
+	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	vbDesc.mDesc.mSize = 128 * 4 * sizeof(float4);
+	vbDesc.mDesc.mVertexStride = sizeof(float4);
+	vbDesc.ppBuffer = &pMeshBuffer;
+	addResource(&vbDesc);
 	/************************************************************************/
 	/************************************************************************/
 
@@ -677,7 +680,7 @@ void VirtualJoystickUI::Exit()
 	if (!mInitialized)
 		return;
 
-	removeGPURingBuffer(pMeshRingBuffer);
+	removeResource(pMeshBuffer);
 	removeRasterizerState(pRasterizerState);
 	removeBlendState(pBlendAlpha);
 	removeDepthState(pDepthState);
@@ -892,6 +895,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 	float extSide = mOutsideRadius;
 	float intSide = mInsideRadius;
 
+	uint64_t bufferOffset = 0;
 	for (uint i = 0; i < 2; i++)
 	{
 		if (mSticks[i].mIsPressed)
@@ -901,26 +905,26 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			float2 joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
 			// the last variable can be used to create a border
-			TexVertex        vertices[] = { MAKETEXQUAD(
-                joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-			GPURingBufferOffset buffer = getGPURingBufferOffset(pMeshRingBuffer, sizeof(vertices));
-			BufferUpdateDesc updateDesc = { buffer.pBuffer, vertices, 0, buffer.mOffset, sizeof(vertices) };
+			TexVertex        vertices[4] = { MAKETEXQUAD(
+				joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
+			BufferUpdateDesc updateDesc = { pMeshBuffer, vertices, 0, bufferOffset, sizeof(vertices) };
 			updateResource(&updateDesc);
-			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdBindVertexBuffer(pCmd, 1, &pMeshBuffer, &bufferOffset);
 			cmdDraw(pCmd, 4, 0);
+			bufferOffset += sizeof(vertices);
 
 			joystickSize = float2(intSide);
 			joystickCenter = mSticks[i].mCurrPos;
 			joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
 			// the last variable can be used to create a border
-			TexVertex verticesInner[] = { MAKETEXQUAD(
+			TexVertex verticesInner[4] = { MAKETEXQUAD(
 				joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-			buffer = getGPURingBufferOffset(pMeshRingBuffer, sizeof(verticesInner));
-			updateDesc = { buffer.pBuffer, verticesInner, 0, buffer.mOffset, sizeof(verticesInner) };
+			updateDesc = { pMeshBuffer, verticesInner, 0, bufferOffset, sizeof(verticesInner) };
 			updateResource(&updateDesc);
-			cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+			cmdBindVertexBuffer(pCmd, 1, &pMeshBuffer, &bufferOffset);
 			cmdDraw(pCmd, 4, 0);
+			bufferOffset += sizeof(verticesInner);
 		}
 	}
 }

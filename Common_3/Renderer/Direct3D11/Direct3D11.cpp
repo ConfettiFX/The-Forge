@@ -222,8 +222,8 @@ const DXGI_FORMAT gFormatTranslatorTypeless[] = {
 	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC6 = 77,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC7 = 78,
+	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 77,
+	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 78,
 	// Reveser Form
 	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
 	// Extend for DXGI
@@ -314,8 +314,8 @@ const DXGI_FORMAT gFormatTranslator[] = {
 	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC6 = 77,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC7 = 78,
+	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 77,
+	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 78,
 	// Reveser Form
 	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
 	// Extend for DXGI
@@ -603,10 +603,6 @@ DXGI_FORMAT util_to_dx_image_format(ImageFormat::Enum format, bool srgb)
 static const uint32_t gDescriptorTableDWORDS = 1;
 static const uint32_t gRootDescriptorDWORDS = 2;
 
-static volatile uint64_t gBufferIds = 0;
-static volatile uint64_t gTextureIds = 0;
-static volatile uint64_t gSamplerIds = 0;
-
 static uint32_t gMaxRootConstantsPerRootParam = 4U;
 
 /************************************************************************/
@@ -863,16 +859,16 @@ static void add_dsv(
 // Functions not exposed in IRenderer but still need to be exported in dll
 /************************************************************************/
 // clang-format off
-API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-API_INTERFACE void CALLTYPE removeTexture(Renderer* pRenderer, Texture* pTexture);
-API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
-API_INTERFACE void CALLTYPE cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
-API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
-API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+API_INTERFACE void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+API_INTERFACE void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+API_INTERFACE void FORGE_CALLCONV addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+API_INTERFACE void FORGE_CALLCONV removeTexture(Renderer* pRenderer, Texture* pTexture);
+API_INTERFACE void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+API_INTERFACE void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
+API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
+API_INTERFACE const RendererShaderDefinesDesc FORGE_CALLCONV get_renderer_shaderdefines(Renderer* pRenderer);
 
 // clang-format on
 void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
@@ -1734,8 +1730,6 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	if (FAILED(pRenderer->pDxDevice->CreateSamplerState(&desc, &pSampler->pSamplerState)))
 		LOGERROR("Failed to create sampler state.");
 
-	pSampler->mSamplerId = (++gSamplerIds << 8U) + Thread::GetCurrentThreadID();
-
 	*ppSampler = pSampler;
 }
 
@@ -2114,8 +2108,6 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		pRenderer->pDxDevice->CreateUnorderedAccessView(pBuffer->pDxResource, &uavDesc, &pBuffer->pDxUavHandle);
 	}
 
-	pBuffer->mBufferId = (++gBufferIds << 8U) + Thread::GetCurrentThreadID();
-
 	*pp_buffer = pBuffer;
 }
 
@@ -2172,7 +2164,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 	//set texture properties
 	pTexture->mDesc = *pDesc;
-	pTexture->mTextureId = (++gTextureIds << 8U) + Thread::GetCurrentThreadID();
 
 	if (pDesc->pNativeHandle)
 	{

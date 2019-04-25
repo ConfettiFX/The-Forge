@@ -121,7 +121,7 @@ struct PsIn
 
 struct HDAOParameters
 {
-	float2 f2RTSize;                  // Used by HDAO shaders for scaling texture coords
+	packed_float2 f2RTSize;                  // Used by HDAO shaders for scaling texture coords
 	float fHDAORejectRadius;          // HDAO param
 	float fHDAOIntensity;             // HDAO param
 	float fHDAOAcceptRadius;          // HDAO param

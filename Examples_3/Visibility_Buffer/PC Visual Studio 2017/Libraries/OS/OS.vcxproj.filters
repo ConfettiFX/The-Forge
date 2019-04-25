@@ -123,6 +123,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.h">
       <Filter>OS\Input</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">

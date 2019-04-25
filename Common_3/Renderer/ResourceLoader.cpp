@@ -614,7 +614,7 @@ typedef struct ResourceLoader
 	ResourceLoaderDesc mDesc;
 
 	volatile int mRun;
-	WorkItem mWorkItem;
+	ThreadDesc   mThreadDesc;
 	ThreadHandle mThread;
 
 	Mutex mQueueMutex;
@@ -722,7 +722,9 @@ static void streamerThreadFunc(void* pThreadData)
 			SyncToken nextToken = maxToken[activeSet];
 			SyncToken prevToken = tfrg_atomic64_load_relaxed(&pLoader->mTokenCompleted);
 			// As the only writer atomicity is preserved
+			pLoader->mTokenMutex.Acquire();
 			tfrg_atomic64_store_release(&pLoader->mTokenCompleted, nextToken > prevToken ? nextToken : prevToken);
+			pLoader->mTokenMutex.Release();
 			pLoader->mTokenCond.SetAll();
 			nextTimeslot = getSystemTime() + pLoader->mDesc.mTimesliceMs;
 		}
@@ -745,12 +747,10 @@ static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, Re
 	pLoader->mRun = true;
 	pLoader->mDesc = pDesc ? *pDesc : ResourceLoaderDesc{ DEFAULT_BUFFER_SIZE, DEFAULT_BUFFER_COUNT, DEFAULT_TIMESLICE_MS };
 
-	pLoader->mWorkItem.pFunc = streamerThreadFunc;
-	pLoader->mWorkItem.pData = pLoader;
-	pLoader->mWorkItem.mPriority = 0;
-	pLoader->mWorkItem.mCompleted = false;
+	pLoader->mThreadDesc.pFunc = streamerThreadFunc;
+	pLoader->mThreadDesc.pData = pLoader;
 
-	pLoader->mThread = create_thread(&pLoader->mWorkItem);
+	pLoader->mThread = create_thread(&pLoader->mThreadDesc);
 
 	*ppLoader = pLoader;
 }
@@ -878,6 +878,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 	if (update)
 	{
 		BufferUpdateDesc bufferUpdate(*pBufferDesc->ppBuffer, pBufferDesc->pData);
+        bufferUpdate.mSize = pBufferDesc->mDesc.mSize;
 		updateResource(&bufferUpdate, token);
 	}
 }
@@ -1068,10 +1069,16 @@ void waitTokenCompleted(SyncToken token)
 	waitTokenCompleted(pResourceLoader, token);
 }
 
+bool isBatchCompleted()
+{
+	SyncToken token = tfrg_atomic64_load_relaxed(&pResourceLoader->mTokenCounter);
+	return isTokenCompleted(pResourceLoader, token);
+}
+
 void waitBatchCompleted()
 {
 	SyncToken token = tfrg_atomic64_load_relaxed(&pResourceLoader->mTokenCounter);
-	waitTokenCompleted(token);
+	waitTokenCompleted(pResourceLoader, token);
 }
 
 void flushResourceUpdates()
@@ -1443,7 +1450,7 @@ bool save_byte_code(const tinystl::string& binaryShaderName, const tinystl::vect
 
 bool load_shader_stage_byte_code(
 	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount,
-	ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode,
+	ShaderMacro* pMacros, tinystl::vector<char>& byteCode,
 	const char* pEntryPoint)
 {
 	File            shaderSource = {};
@@ -1471,11 +1478,6 @@ bool load_shader_stage_byte_code(
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
 		shaderDefines += (pMacros[i].definition + pMacros[i].value);
-	}
-	// Apply renderer specified macros
-	for (uint32_t i = 0; i < rendererMacroCount; ++i)
-	{
-		shaderDefines += (pRendererMacros[i].definition + pRendererMacros[i].value);
 	}
 
 #if 0    //#ifdef _DURANGO
@@ -1683,9 +1685,15 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 			BinaryShaderStageDesc* pStage = NULL;
 			if (find_shader_stage(filename, &binaryDesc, &pStage, &stage))
 			{
+				const uint32_t macroCount = pDesc->mStages[i].mMacroCount + rendererDefinesDesc.rendererShaderDefinesCnt;
+				tinystl::vector<ShaderMacro> macros(macroCount);
+				for (uint32_t macro = 0; macro < rendererDefinesDesc.rendererShaderDefinesCnt; ++macro)
+					macros[macro] = rendererDefinesDesc.rendererShaderDefines[macro];
+				for (uint32_t macro = 0; macro < pDesc->mStages[i].mMacroCount; ++macro)
+					macros[rendererDefinesDesc.rendererShaderDefinesCnt + macro] = pDesc->mStages[i].pMacros[macro];
+
 				if (!load_shader_stage_byte_code(
-						pRenderer, pDesc->mTarget, stage, filename, pDesc->mStages[i].mRoot, pDesc->mStages[i].mMacroCount,
-						pDesc->mStages[i].pMacros, rendererDefinesDesc.rendererShaderDefinesCnt, rendererDefinesDesc.rendererShaderDefines,
+						pRenderer, pDesc->mTarget, stage, filename, pDesc->mStages[i].mRoot, macroCount, macros.data(),
 						byteCodes[i], pDesc->mStages[i].mEntryPointName))
 					return;
 

@@ -10,8 +10,8 @@ struct Fragment_Shader
     };
     struct Uniforms_uRootConstants
     {
-        float4 color;
-        float2 scaleBias;
+        packed_float4 color;
+        packed_float2 scaleBias;
     };
     constant Uniforms_uRootConstants & uRootConstants;
     texture2d<float> uTex0;

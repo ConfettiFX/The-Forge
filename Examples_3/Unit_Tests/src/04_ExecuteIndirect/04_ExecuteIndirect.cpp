@@ -64,6 +64,7 @@
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 //Math
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Common_3/OS/Input/InputSystem.h"
@@ -79,10 +80,11 @@
 #define MAX_LOD_OFFSETS 10
 
 FileSystem gFileSystem;
-ThreadPool gThreadSystem;
 LogManager gLogManager;
 Timer      gAccumTimer;
 HiresTimer mFrameTimer;
+
+ThreadSystem* pThreadSystem;
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/04_ExecuteIndirect/",                 // FSR_BinShaders
@@ -363,7 +365,7 @@ class ExecuteIndirect: public IApp
 
 		CreateSubsets();
 
-		gThreadSystem.CreateThreads(gNumSubsets);
+		initThreadSystem(&pThreadSystem);
 
 		ShaderLoadDesc instanceShader = {};
 		instanceShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
@@ -682,6 +684,7 @@ class ExecuteIndirect: public IApp
 
 	void Exit()
 	{
+		shutdownThreadSystem(pThreadSystem);
 		waitQueueIdle(pGraphicsQueue);
 
 #if !defined(TARGET_IOS)
@@ -1050,8 +1053,6 @@ class ExecuteIndirect: public IApp
 			if (gUseThreads)
 			{
 				// With Multithreading
-				WorkItem pWorkGroups[gNumSubsets];
-
 				for (int i = 0; i < gNumSubsets; i++)
 				{
 					gThreadData[i].mDeltaTime = frameTime;
@@ -1060,13 +1061,11 @@ class ExecuteIndirect: public IApp
 					gThreadData[i].pRenderTarget = pSceneRenderTarget;
 					gThreadData[i].pDepthBuffer = pDepthBuffer;
 					gThreadData[i].mFrameIndex = frameIdx;
-					pWorkGroups[i].pData = &gThreadData[i];
-					pWorkGroups[i].pFunc = RenderSubset;
-					gThreadSystem.AddWorkItem(&pWorkGroups[i]);
 				}
+				addThreadSystemRangeTask(pThreadSystem, &ExecuteIndirect::RenderSubset, gThreadData, gNumSubsets);
 
 				// wait for all threads to finish
-				gThreadSystem.Complete(0);
+				waitThreadSystemIdle(pThreadSystem);
 
 				for (int i = 0; i < gNumSubsets; i++)
 					allCmds.push_back(gAsteroidSubsets[i].ppCmds[frameIdx]);    // Asteroid Cmds
@@ -1746,10 +1745,10 @@ class ExecuteIndirect: public IApp
 		endCmd(cmd);
 	}
 
-	static void RenderSubset(void* pData)
+	static void RenderSubset(void* pData, uintptr_t i)
 	{
 		// For multithreading call
-		ThreadData* data = (ThreadData*)pData;
+		ThreadData* data = ((ThreadData*)pData)+i;
 		RenderSubset(data->mIndex, data->mViewProj, data->mFrameIndex, data->pRenderTarget, data->pDepthBuffer, data->mDeltaTime);
 	}
 

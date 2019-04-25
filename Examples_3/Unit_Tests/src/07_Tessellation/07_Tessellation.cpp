@@ -140,7 +140,6 @@ struct HullOut
 tinystl::vector<Blade> gBlades;
 
 FileSystem gFileSystem;
-ThreadPool gThreadSystem;
 LogManager gLogManager;
 Timer      gAccumTimer;
 HiresTimer gTimer;

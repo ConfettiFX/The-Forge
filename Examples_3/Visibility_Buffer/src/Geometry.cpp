@@ -1691,7 +1691,7 @@ void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& ve
 	vbPosDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbPosDesc.ppBuffer = &pVertexBuffer;
 	vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc";
-	addResource(&vbPosDesc);
+	addResource(&vbPosDesc, true);
 
 	indexCount = (int)meshIndices.size();
 
@@ -1705,7 +1705,7 @@ void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& ve
 	ibPosDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	ibPosDesc.ppBuffer = &pIndexBuffer;
 	ibPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc";
-	addResource(&ibPosDesc);
+	addResource(&ibPosDesc, true);
 }
 
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number
@@ -2027,7 +2027,7 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	vbDesc.pData = vertexData;
 	vbDesc.ppBuffer = ppVertexBuffer;
 	vbDesc.mDesc.pDebugName = L"VB Desc";
-	addResource(&vbDesc);
+	addResource(&vbDesc, true);
 
 	// Create index buffer
 	uint16_t indices[6 * 6] = {
@@ -2042,7 +2042,7 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	ibDesc.pData = indices;
 	ibDesc.ppBuffer = ppIndexBuffer;
 	ibDesc.mDesc.pDebugName = L"IB Desc";
-	addResource(&ibDesc);
+	addResource(&ibDesc, true);
 }
 
 void destroyBuffers(Renderer* pRenderer, Buffer* outVertexBuffer, Buffer* outIndexBuffer)

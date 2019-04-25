@@ -66,6 +66,8 @@
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
+
 const char* pszBases[FSR_Count] = {
 	"../../../src/24_MultiThread/",         // FSR_BinShaders
 	"../../../src/24_MultiThread/",         // FSR_SrcShaders
@@ -198,7 +200,7 @@ struct ThreadData
 };
 ThreadData gThreadData[kMaxTaskCount];
 
-ThreadPool gThreadSystem;
+ThreadSystem* pThreadSystem = NULL;
 
 //--------------------------------------------------------------------------------------------
 // UI DATA
@@ -467,7 +469,7 @@ class MultiThread: public IApp
 
 		// INITIALIZE THREAD SYSTEM
 		//
-		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
+		initThreadSystem(&pThreadSystem);
 
 		// INITIALIZE THE USER INTERFACE
 		//
@@ -542,6 +544,7 @@ class MultiThread: public IApp
 
 	void Exit()
 	{
+		shutdownThreadSystem(pThreadSystem);
 		// wait for rendering to finish before freeing resources
 		waitQueueIdle(pGraphicsQueue);
 
@@ -744,8 +747,6 @@ class MultiThread: public IApp
 		// Threading
 		if (gEnableThreading)
 		{
-			WorkItem pWorkGroups[kMaxTaskCount];
-
 			unsigned int taskCount = gNumRigs / gGrainSize;
 
 			// Submit taskCount number of jobs
@@ -754,11 +755,8 @@ class MultiThread: public IApp
 				gThreadData[i].mAnimatedObject = &gStickFigureAnimObjects[gGrainSize * i];
 				gThreadData[i].mDeltaTime = deltaTime;
 				gThreadData[i].mNumberSystems = gGrainSize;
-
-				pWorkGroups[i].pData = &gThreadData[i];
-				pWorkGroups[i].pFunc = AnimatedObjectThreadedUpdate;
-				gThreadSystem.AddWorkItem(&pWorkGroups[i]);
 			}
+			addThreadSystemRangeTask(pThreadSystem, &MultiThread::AnimatedObjectThreadedUpdate, gThreadData, taskCount);
 
 			// If there is a remainder, submit another job to finish it
 			unsigned int remainder = gNumRigs - (taskCount * gGrainSize);
@@ -768,13 +766,11 @@ class MultiThread: public IApp
 				gThreadData[taskCount].mDeltaTime = deltaTime;
 				gThreadData[taskCount].mNumberSystems = remainder;
 
-				pWorkGroups[taskCount].pData = &gThreadData[taskCount];
-				pWorkGroups[taskCount].pFunc = AnimatedObjectThreadedUpdate;
-				gThreadSystem.AddWorkItem(&pWorkGroups[taskCount]);
+				addThreadSystemTask(pThreadSystem, &MultiThread::AnimatedObjectThreadedUpdate, &gThreadData[taskCount]);
 			}
 
 			// Ensure all jobs are finished before proceeding
-			gThreadSystem.Complete(0);
+			waitThreadSystemIdle(pThreadSystem);
 		}
 		// Naive
 		else
@@ -968,10 +964,10 @@ class MultiThread: public IApp
 	}
 
 	// Threaded animated object update call
-	static void AnimatedObjectThreadedUpdate(void* pData)
+	static void AnimatedObjectThreadedUpdate(void* pData, uintptr_t i)
 	{
 		// Unpack data
-		ThreadData*     data = (ThreadData*)pData;
+		ThreadData*     data = ((ThreadData*)pData)+i;
 		AnimatedObject* animSystem = data->mAnimatedObject;
 		float           deltaTime = data->mDeltaTime;
 		unsigned int    numberSystems = data->mNumberSystems;

@@ -31,8 +31,8 @@
 
 DWORD WINAPI ThreadFunctionStatic(void* data)
 {
-	WorkItem* pItem = (WorkItem*)data;
-	pItem->pFunc(pItem->pData);
+	ThreadDesc* pDesc = (ThreadDesc*)data;
+	pDesc->pFunc(pDesc->pData);
 	return 0;
 }
 
@@ -110,9 +110,9 @@ ThreadID Thread::GetCurrentThreadID() { return GetCurrentThreadId(); }
 
 bool Thread::IsMainThread() { return GetCurrentThreadID() == mainThreadID; }
 
-ThreadHandle create_thread(WorkItem* pData)
+ThreadHandle create_thread(ThreadDesc* pDesc)
 {
-	ThreadHandle handle = CreateThread(0, 0, ThreadFunctionStatic, pData, 0, 0);
+	ThreadHandle handle = CreateThread(0, 0, ThreadFunctionStatic, pDesc, 0, 0);
 	ASSERT(handle != NULL);
 	return handle;
 }

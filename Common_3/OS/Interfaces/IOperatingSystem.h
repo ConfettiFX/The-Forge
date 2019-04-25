@@ -25,21 +25,12 @@
 #pragma once
 
 #if defined(_WIN32)
-#include <WinSock2.h>
 #include <sys/stat.h>
-#if !defined(_DURANGO)
-#include <shlwapi.h>
-#pragma comment(lib, "shlwapi.lib")
-#include "shlobj.h"
-#endif
 #include <stdlib.h>
-
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 #include <windows.h>
-typedef HINSTANCE HINST;
-
 #endif
 
 #if defined(__APPLE__)
@@ -61,9 +52,9 @@ typedef uint64_t uint64;
 #endif
 
 #ifdef _WIN32
-#define CALLTYPE __cdecl
+#define FORGE_CALLCONV __cdecl
 #else
-#define CALLTYPE
+#define FORGE_CALLCONV
 #endif
 
 #include <stdio.h>

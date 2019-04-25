@@ -19,10 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Common\AppHelpers.cpp" />
     <ClCompile Include="..\src\Geometry.cpp" />
     <ClCompile Include="..\src\Visibility_Buffer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Common\AppHelpers.h" />
     <ClInclude Include="..\src\Geometry.h" />
     <ClInclude Include="..\src\Shaders\D3D12\packing.h" />
     <ClInclude Include="..\src\Shaders\D3D12\shader_defs.h" />

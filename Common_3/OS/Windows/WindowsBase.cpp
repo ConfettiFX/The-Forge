@@ -29,6 +29,11 @@
 #include <windowsx.h>
 #include <ntverp.h>
 
+#if !defined(_DURANGO)
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
+#endif
+
 #include "../Input/InputSystem.h"
 #include "../Input/InputMappings.h"
 
@@ -737,12 +742,15 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pApp->pWindow = &window;
 	pApp->mCommandLine = GetCommandLineA();
 
-	if (!pApp->Init())
-		return EXIT_FAILURE;
+	{
+		Timer t;
+		if (!pApp->Init())
+			return EXIT_FAILURE;
 
-	if (!pApp->Load())
-		return EXIT_FAILURE;
-
+		if (!pApp->Load())
+			return EXIT_FAILURE;
+		LOGINFOF("Application Init+Load %f", t.GetMSec(false)/1000.0f);
+	}
 	registerWindowResizeEvent(onResize);
 
 	bool quit = false;

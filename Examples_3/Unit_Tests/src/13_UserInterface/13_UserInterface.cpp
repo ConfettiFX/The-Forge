@@ -81,6 +81,8 @@ Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
+Texture*	  pSpriteTexture = NULL;
+
 #ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
 #endif
@@ -207,9 +209,9 @@ void ButtonCallback()
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
-class UserInterfaceUnitTest: public IApp
+class UserInterfaceUnitTest : public IApp
 {
-	public:
+public:
 	bool Init()
 	{
 		InputSystem::SetHideMouseCursorWhileCaptured(false);
@@ -242,6 +244,14 @@ class UserInterfaceUnitTest: public IApp
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
+
+		TextureLoadDesc textureDesc = {};
+		textureDesc.mRoot = FSR_Textures;
+		textureDesc.ppTexture = &pSpriteTexture;
+		textureDesc.mUseMipmaps = false;
+		textureDesc.pFilename = "sprites.png";
+		addResource(&textureDesc);
+
 		finishResourceLoading();
 
 		// INITIALIZE PIPILINE STATES
@@ -378,6 +388,14 @@ class UserInterfaceUnitTest: public IApp
 			CollapsingColorWidgets.AddSubWidget(ColorSliderWidget("[Color Slider]", &gUIData.mStandalone.mColorForSlider));
 			CollapsingColorWidgets.AddSubWidget(ColorPickerWidget("[Color Picker]", &gUIData.mStandalone.mColorForSlider));
 
+			// Texture preview
+			CollapsingHeaderWidget CollapsingTexPreviewWidgets("TEXTURE PREVIEW");
+			DebugTexturesWidget dbgTexWidget("Texture Preview");
+			tinystl::vector<Texture*> texPreviews;
+			texPreviews.push_back(pSpriteTexture);
+			dbgTexWidget.SetTextures(texPreviews, float2(441, 64));
+			CollapsingTexPreviewWidgets.AddSubWidget(dbgTexWidget);
+
 			// Register the GUI elements to the Window
 			pStandaloneControlsGUIWindow->AddWidget(LabelWidget("[Label] UI Controls"));
 			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
@@ -395,6 +413,7 @@ class UserInterfaceUnitTest: public IApp
 			pStandaloneControlsGUIWindow->AddWidget(CollapsingSliderWidgets);
 			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
 			pStandaloneControlsGUIWindow->AddWidget(CollapsingColorWidgets);
+			pStandaloneControlsGUIWindow->AddWidget(CollapsingTexPreviewWidgets);
 		}
 
 		return true;
@@ -417,6 +436,8 @@ class UserInterfaceUnitTest: public IApp
 		//{
 		//  removeResource(pProjViewUniformBuffer[i]);
 		//}
+
+		removeResource(pSpriteTexture);
 
 		removeDepthState(pDepth);
 
@@ -531,10 +552,10 @@ class UserInterfaceUnitTest: public IApp
 		beginCmd(cmd);    // start recording commands
 
 		TextureBarrier barriers[] =    // wait for resource transition
-			{
-				{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
-			};
+		{
+			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+		};
 		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
 
 		// bind and clear the render target

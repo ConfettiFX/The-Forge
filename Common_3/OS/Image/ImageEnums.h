@@ -277,10 +277,8 @@ static inline BlockSize GetBlockSize(const Enum format)
 	case ATI2N:        //  4x4
 	case ATCA:         //  4x4
 	case ATCI:         //  4x4
-#ifdef FORGE_JHABLE_EDITS_V01
-	case GNF_BC6:    //  4x4
-	case GNF_BC7:    //  4x4
-#endif
+	case GNF_BC6:      //  4x4
+	case GNF_BC7:      //  4x4
 		return BLOCK_SIZE_4x4;
 
 	default: return BLOCK_SIZE_1x1;
@@ -336,10 +334,8 @@ static inline int32_t GetBytesPerBlock(const Enum format)
 			case ATI2N:      //  4x4
 			case ATCA:       //  4x4
 			case ATCI:       //  4x4
-#ifdef FORGE_JHABLE_EDITS_V01
 			case GNF_BC6:    //  4x4
 			case GNF_BC7:    //  4x4
-#endif
 				return 16;
 
 			default: return 0;

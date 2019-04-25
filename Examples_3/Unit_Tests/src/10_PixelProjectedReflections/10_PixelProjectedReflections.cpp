@@ -58,7 +58,9 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-#include "IOResourceLoader.h"
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
+
+#include "../../../Common/AppHelpers.h"
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/10_PixelProjectedReflections/",    // FSR_BinShaders
@@ -475,7 +477,7 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 GuiComponent* pGui = NULL;
 GuiComponent* pLoadingGui = NULL;
 
-IOResourceLoader* pIOResourceLoader = NULL;
+ThreadSystem* pIOThreads = NULL;
 
 const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
@@ -523,311 +525,6 @@ void transitionRenderTargets()
 	waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 }
 
-// Compute PBR maps (skybox, BRDF Integration Map, Irradiance Map and Specular Map).
-void computePBRMaps()
-{
-	// Temporary resources that will be loaded on PBR preprocessing.
-	Texture*          pPanoSkybox = NULL;
-	Shader*           pPanoToCubeShader = NULL;
-	RootSignature*    pPanoToCubeRootSignature = NULL;
-	Pipeline*         pPanoToCubePipeline = NULL;
-	Shader*           pBRDFIntegrationShader = NULL;
-	RootSignature*    pBRDFIntegrationRootSignature = NULL;
-	Pipeline*         pBRDFIntegrationPipeline = NULL;
-	Shader*           pIrradianceShader = NULL;
-	RootSignature*    pIrradianceRootSignature = NULL;
-	Pipeline*         pIrradiancePipeline = NULL;
-	Shader*           pSpecularShader = NULL;
-	RootSignature*    pSpecularRootSignature = NULL;
-	Pipeline*         pSpecularPipeline = NULL;
-	Sampler*          pSkyboxSampler = NULL;
-	DescriptorBinder* pPBRDescriptorBinder = NULL;
-
-	SamplerDesc samplerDesc = {
-		FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
-	};
-	addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
-
-	// Load the skybox panorama texture.
-	TextureLoadDesc panoDesc = {};
-	panoDesc.mRoot = FSR_Textures;
-	panoDesc.mUseMipmaps = true;
-	panoDesc.pFilename = "LA_Helipad.hdr";
-	panoDesc.ppTexture = &pPanoSkybox;
-	addResource(&panoDesc);
-
-	TextureDesc skyboxImgDesc = {};
-	skyboxImgDesc.mArraySize = 6;
-	skyboxImgDesc.mDepth = 1;
-	skyboxImgDesc.mFormat = ImageFormat::RGBA32F;
-	skyboxImgDesc.mHeight = gSkyboxSize;
-	skyboxImgDesc.mWidth = gSkyboxSize;
-	skyboxImgDesc.mMipLevels = gSkyboxMips;
-	skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
-	skyboxImgDesc.mSrgb = false;
-	skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-	skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-	skyboxImgDesc.pDebugName = L"skyboxImgBuff";
-
-	TextureLoadDesc skyboxLoadDesc = {};
-	skyboxLoadDesc.pDesc = &skyboxImgDesc;
-	skyboxLoadDesc.ppTexture = &pSkybox;
-	addResource(&skyboxLoadDesc);
-
-	TextureDesc irrImgDesc = {};
-	irrImgDesc.mArraySize = 6;
-	irrImgDesc.mDepth = 1;
-	irrImgDesc.mFormat = ImageFormat::RGBA32F;
-	irrImgDesc.mHeight = gIrradianceSize;
-	irrImgDesc.mWidth = gIrradianceSize;
-	irrImgDesc.mMipLevels = 1;
-	irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
-	irrImgDesc.mSrgb = false;
-	irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-	irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-	irrImgDesc.pDebugName = L"irrImgBuff";
-
-	TextureLoadDesc irrLoadDesc = {};
-	irrLoadDesc.pDesc = &irrImgDesc;
-	irrLoadDesc.ppTexture = &pIrradianceMap;
-	addResource(&irrLoadDesc);
-
-	TextureDesc specImgDesc = {};
-	specImgDesc.mArraySize = 6;
-	specImgDesc.mDepth = 1;
-	specImgDesc.mFormat = ImageFormat::RGBA32F;
-	specImgDesc.mHeight = gSpecularSize;
-	specImgDesc.mWidth = gSpecularSize;
-	specImgDesc.mMipLevels = gSpecularMips;
-	specImgDesc.mSampleCount = SAMPLE_COUNT_1;
-	specImgDesc.mSrgb = false;
-	specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-	specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-	specImgDesc.pDebugName = L"specImgBuff";
-
-	TextureLoadDesc specImgLoadDesc = {};
-	specImgLoadDesc.pDesc = &specImgDesc;
-	specImgLoadDesc.ppTexture = &pSpecularMap;
-	addResource(&specImgLoadDesc);
-
-	// Create empty texture for BRDF integration map.
-	TextureLoadDesc brdfIntegrationLoadDesc = {};
-	TextureDesc     brdfIntegrationDesc = {};
-	brdfIntegrationDesc.mWidth = gBRDFIntegrationSize;
-	brdfIntegrationDesc.mHeight = gBRDFIntegrationSize;
-	brdfIntegrationDesc.mDepth = 1;
-	brdfIntegrationDesc.mArraySize = 1;
-	brdfIntegrationDesc.mMipLevels = 1;
-	brdfIntegrationDesc.mFormat = ImageFormat::RG32F;
-	brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-	brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
-	brdfIntegrationDesc.mHostVisible = false;
-	brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
-	brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
-	addResource(&brdfIntegrationLoadDesc);
-
-	// Load pre-processing shaders.
-	ShaderLoadDesc panoToCubeShaderDesc = {};
-	panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
-
-	GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
-	uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
-	uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-	ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", tinystl::string::format("%u", importanceSampleCount) };
-
-	ShaderLoadDesc brdfIntegrationShaderDesc = {};
-	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
-
-	ShaderLoadDesc irradianceShaderDesc = {};
-	irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, FSR_SrcShaders };
-
-	ShaderLoadDesc specularShaderDesc = {};
-	specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
-
-	addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
-	addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
-	addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
-	addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
-
-	const char*       pStaticSamplerNames[] = { "skyboxSampler" };
-	RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
-	panoRootDesc.mStaticSamplerCount = 1;
-	panoRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-	panoRootDesc.ppStaticSamplers = &pSkyboxSampler;
-	RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
-	brdfRootDesc.mStaticSamplerCount = 1;
-	brdfRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-	brdfRootDesc.ppStaticSamplers = &pSkyboxSampler;
-	RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
-	irradianceRootDesc.mStaticSamplerCount = 1;
-	irradianceRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-	irradianceRootDesc.ppStaticSamplers = &pSkyboxSampler;
-	RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
-	specularRootDesc.mStaticSamplerCount = 1;
-	specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-	specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
-	addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
-	addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
-	addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
-	addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
-
-	DescriptorBinderDesc descriptorBinderDesc[4] = { 
-		{ pPanoToCubeRootSignature, 0, gSkyboxMips},
-		{ pBRDFIntegrationRootSignature },
-		{ pIrradianceRootSignature },
-		{ pSpecularRootSignature, 0, gSpecularMips }
-	};
-
-	addDescriptorBinder(pRenderer, 0, 4, descriptorBinderDesc, &pPBRDescriptorBinder);
-
-	PipelineDesc desc = {};
-	desc.mType = PIPELINE_TYPE_COMPUTE;
-	ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
-	pipelineSettings.pShaderProgram = pPanoToCubeShader;
-	pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
-	addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
-	pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
-	pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
-	addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
-	pipelineSettings.pShaderProgram = pIrradianceShader;
-	pipelineSettings.pRootSignature = pIrradianceRootSignature;
-	addPipeline(pRenderer, &desc, &pIrradiancePipeline);
-	pipelineSettings.pShaderProgram = pSpecularShader;
-	pipelineSettings.pRootSignature = pSpecularRootSignature;
-	addPipeline(pRenderer, &desc, &pSpecularPipeline);
-
-	// Since this happens on iniatilization, use the first cmd/fence pair available.
-	Cmd*   cmd = ppCmds[0];
-	Fence* pRenderCompleteFence = pRenderCompleteFences[0];
-
-	// Compute the BRDF Integration map.
-	beginCmd(cmd);
-
-	TextureBarrier uavBarriers[4] = {
-		{ pSkybox, RESOURCE_STATE_UNORDERED_ACCESS },
-		{ pIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS },
-		{ pSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
-		{ pBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
-	};
-	cmdResourceBarrier(cmd, 0, NULL, 4, uavBarriers, false);
-
-	cmdBindPipeline(cmd, pBRDFIntegrationPipeline);
-	DescriptorData params[2] = {};
-	params[0].pName = "dstTexture";
-	params[0].ppTextures = &pBRDFIntegrationMap;
-	cmdBindDescriptors(cmd, pPBRDescriptorBinder, pBRDFIntegrationRootSignature, 1, params);
-	const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-	cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
-
-	TextureBarrier srvBarrier[1] = { { pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE } };
-
-	cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier, true);
-
-	// Store the panorama texture inside a cubemap.
-	cmdBindPipeline(cmd, pPanoToCubePipeline);
-	params[0].pName = "srcTexture";
-	params[0].ppTextures = &pPanoSkybox;
-	cmdBindDescriptors(cmd, pPBRDescriptorBinder, pPanoToCubeRootSignature, 1, params);
-
-	struct Data
-	{
-		uint mip;
-		uint textureSize;
-	} data = { 0, gSkyboxSize };
-
-	for (int i = 0; i < (int)gSkyboxMips; i++)
-	{
-		data.mip = i;
-		params[0].pName = "RootConstant";
-		params[0].pRootConstant = &data;
-		params[1].pName = "dstTexture";
-		params[1].ppTextures = &pSkybox;
-		params[1].mUAVMipSlice = i;
-		cmdBindDescriptors(cmd, pPBRDescriptorBinder, pPanoToCubeRootSignature, 2, params);
-
-		pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-		cmdDispatch(
-			cmd, max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[0]),
-			max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
-	}
-
-	TextureBarrier srvBarriers[1] = { { pSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
-	cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers, false);
-	/************************************************************************/
-	// Compute sky irradiance
-	/************************************************************************/
-	params[0] = {};
-	params[1] = {};
-	cmdBindPipeline(cmd, pIrradiancePipeline);
-	params[0].pName = "srcTexture";
-	params[0].ppTextures = &pSkybox;
-	params[1].pName = "dstTexture";
-	params[1].ppTextures = &pIrradianceMap;
-	cmdBindDescriptors(cmd, pPBRDescriptorBinder, pIrradianceRootSignature, 2, params);
-	pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-	cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
-	/************************************************************************/
-	// Compute specular sky
-	/************************************************************************/
-	cmdBindPipeline(cmd, pSpecularPipeline);
-	params[0].pName = "srcTexture";
-	params[0].ppTextures = &pSkybox;
-	cmdBindDescriptors(cmd, pPBRDescriptorBinder, pSpecularRootSignature, 1, params);
-
-	struct PrecomputeSkySpecularData
-	{
-		uint  mipSize;
-		float roughness;
-	};
-
-	for (int i = 0; i < (int)gSpecularMips; i++)
-	{
-		PrecomputeSkySpecularData data = {};
-		data.roughness = (float)i / (float)(gSpecularMips - 1);
-		data.mipSize = gSpecularSize >> i;
-		params[0].pName = "RootConstant";
-		params[0].pRootConstant = &data;
-		params[1].pName = "dstTexture";
-		params[1].ppTextures = &pSpecularMap;
-		params[1].mUAVMipSlice = i;
-		cmdBindDescriptors(cmd, pPBRDescriptorBinder, pSpecularRootSignature, 2, params);
-		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-		cmdDispatch(cmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
-	}
-	/************************************************************************/
-	/************************************************************************/
-	TextureBarrier srvBarriers2[2] = { { pIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
-									   { pSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
-	cmdResourceBarrier(cmd, 0, NULL, 2, srvBarriers2, false);
-
-	endCmd(cmd);
-	queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-	waitForFences(pRenderer, 1, &pRenderCompleteFence);
-
-	// Remove temporary resources.
-	removePipeline(pRenderer, pSpecularPipeline);
-	removeRootSignature(pRenderer, pSpecularRootSignature);
-	removeShader(pRenderer, pSpecularShader);
-
-	removePipeline(pRenderer, pIrradiancePipeline);
-	removeRootSignature(pRenderer, pIrradianceRootSignature);
-	removeShader(pRenderer, pIrradianceShader);
-
-	removePipeline(pRenderer, pBRDFIntegrationPipeline);
-	removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
-	removeShader(pRenderer, pBRDFIntegrationShader);
-
-	removePipeline(pRenderer, pPanoToCubePipeline);
-	removeRootSignature(pRenderer, pPanoToCubeRootSignature);
-	removeShader(pRenderer, pPanoToCubeShader);
-
-	removeDescriptorBinder(pRenderer, pPBRDescriptorBinder);
-
-	removeResource(pPanoSkybox);
-
-	removeSampler(pRenderer, pSkyboxSampler);
-}
-
 void assignSponzaTextures();
 
 void unloadMesh(Mesh& mesh)
@@ -853,6 +550,8 @@ class PixelProjectedReflections: public IApp
 	
 	bool Init()
 	{
+		initThreadSystem(&pIOThreads);
+
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -895,7 +594,28 @@ class PixelProjectedReflections: public IApp
 #endif
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-		computePBRMaps();
+		ComputePBRMapsTaskData computePBRMapsData;
+		computePBRMapsData.pRenderer = pRenderer;
+		computePBRMapsData.pQueue = pGraphicsQueue;
+		computePBRMapsData.pCmd = ppCmds[0];
+		computePBRMapsData.pFence = pRenderCompleteFences[0];
+		computePBRMapsData.pSemaphore = NULL;
+		computePBRMapsData.mSourceName = "LA_Helipad.hdr";
+		computePBRMapsData.mPresetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
+		computePBRMapsData.mSkyboxSize = gSkyboxSize;
+		computePBRMapsData.mSkyboxMips = gSkyboxMips;
+		computePBRMapsData.mSpecularSize = gSpecularSize;
+		computePBRMapsData.mSpecularMips = gSpecularMips;
+		computePBRMapsData.mBRDFIntegrationSize = gBRDFIntegrationSize;
+		computePBRMapsData.mIrradianceSize = gIrradianceSize;
+		computePBRMaps(&computePBRMapsData);
+		queueSubmit(pGraphicsQueue, 1, ppCmds, pRenderCompleteFences[0], 0, NULL, 0, NULL);
+		waitForFences(pRenderer, 1, pRenderCompleteFences);
+		cleanupPBRMapsTaskData(&computePBRMapsData);
+		pSkybox = computePBRMapsData.pSkybox;
+		pBRDFIntegrationMap = computePBRMapsData.pBRDFIntegrationMap;
+		pIrradianceMap = computePBRMapsData.pIrradianceMap;
+		pSpecularMap = computePBRMapsData.pSpecularMap;
 
 		SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
 									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
@@ -1295,19 +1015,11 @@ class PixelProjectedReflections: public IApp
 		// do resource streaming after resource loading completed.
 		// Shared queue won't be used concurrently,
 		// unless someone will try to update GPU only or GPU-to-CPU resource after this point
+		addThreadSystemRangeTask(
+			pIOThreads, &memberTaskFunc<PixelProjectedReflections, &PixelProjectedReflections::loadTexture>, this, TOTAL_IMGS);
 
-		initializeIOResourceLoader(&pIOResourceLoader);
-
-		//adding material textures
-		for (size_t i = 0; i < TOTAL_IMGS; ++i)
-		{
-			addIOResourceTask(
-				pIOResourceLoader, &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::loadTexture>, this, i);
-		}
-		addIOResourceTask(
-			pIOResourceLoader, &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::loadMesh>, this, SPONZA_MODEL);
-		addIOResourceTask(
-			pIOResourceLoader, &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::loadMesh>, this, LION_MODEL);
+		addThreadSystemRangeTask(
+			pIOThreads, &memberTaskFunc<PixelProjectedReflections, &PixelProjectedReflections::loadMesh>, this, 2);
 
 		assignSponzaTextures();
 
@@ -1351,7 +1063,7 @@ class PixelProjectedReflections: public IApp
 
 		// Remove streamer before removing any actual resources
 		// otherwise we might delete a resource while uploading to it.
-		shutdownIOResourceLoader(pIOResourceLoader);
+		shutdownThreadSystem(pIOThreads);
 		finishResourceLoading();
 
 		removeResource(pBufferUniformLights);
@@ -1430,7 +1142,6 @@ class PixelProjectedReflections: public IApp
 		}
 
 		uint32_t meshCount = (uint32_t)model.mMeshArray.size();
-		uint32_t matCount = (uint32_t)model.mMaterialList.size();
 
 		Mesh& mesh = gModels[index];
 
@@ -1990,7 +1701,8 @@ class PixelProjectedReflections: public IApp
 		//iOS only supports 31 max texture units in a fragment shader for most devices.
 		//so fallback to binding every texture for every draw call (max of 5 textures)
 
-		if (mProgressBarValue == mProgressBarValueMax)
+		bool dataLoaded = isThreadSystemIdle(pIOThreads) && isBatchCompleted();
+		if (dataLoaded)
 		{
 			Mesh& sponzaMesh = gModels[SPONZA_MODEL];
 
@@ -2347,7 +2059,7 @@ class PixelProjectedReflections: public IApp
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
-		if (mPrevProgressBarValue < mProgressBarValueMax)
+		if (!dataLoaded)
 			gAppUI.Gui(pLoadingGui);
 #ifndef TARGET_IOS
 		else
@@ -2537,7 +2249,6 @@ void assignSponzaTextures()
 {
 	int AO = 5;
 	int NoMetallic = 6;
-	int Metallic = 7;
 
 	//00 : leaf
 	gSponzaTextureIndexforMaterial.push_back(66);

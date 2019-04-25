@@ -83,6 +83,7 @@ static const char * g_hackSemanticList[] =
 #include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
+#include "../../OS/Core/Atomics.h"
 #include "../../OS/Core/GPUConfig.h"
 #include "../../OS/Image/Image.h"
 
@@ -265,14 +266,9 @@ static const VkFormat gVkFormatTranslator[] = {
 	VK_FORMAT_UNDEFINED, // GNF_BC3 = 74,
 	VK_FORMAT_UNDEFINED, // GNF_BC4 = 75,
 	VK_FORMAT_UNDEFINED, // GNF_BC5 = 76,
-#ifdef FORGE_JHABLE_EDITS_V01
-							// this is incorrect, because we need separate enums for signed float and unsigned float. for now, just pretend it's a signed float
+	// We should add a separate unsigned float option
 	VK_FORMAT_BC6H_SFLOAT_BLOCK, // GNF_BC6 = 77,
 	VK_FORMAT_BC7_UNORM_BLOCK, // GNF_BC7 = 78,
-#else
-	VK_FORMAT_UNDEFINED, // GNF_BC6 = 77,
-	VK_FORMAT_UNDEFINED, // GNF_BC7 = 78,
-#endif
     // Reveser Form
     VK_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
     // Extend for DXGI
@@ -426,15 +422,15 @@ VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount);
 VkFormat              util_to_vk_image_format(ImageFormat::Enum format, bool srgb);
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 // clang-format off
-API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-API_INTERFACE void CALLTYPE removeTexture(Renderer* pRenderer, Texture* pTexture);
-API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
-API_INTERFACE void CALLTYPE cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
-API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+API_INTERFACE void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+API_INTERFACE void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+API_INTERFACE void FORGE_CALLCONV addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+API_INTERFACE void FORGE_CALLCONV removeTexture(Renderer* pRenderer, Texture* pTexture);
+API_INTERFACE void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+API_INTERFACE void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
+API_INTERFACE const RendererShaderDefinesDesc FORGE_CALLCONV get_renderer_shaderdefines(Renderer* pRenderer);
 // clang-format on
 #endif
 
@@ -1179,9 +1175,9 @@ static void destroy_default_resources(Renderer* pRenderer)
 /************************************************************************/
 // Globals
 /************************************************************************/
-static volatile uint64_t gBufferIds = 0;
-static volatile uint64_t gTextureIds = 0;
-static volatile uint64_t gSamplerIds = 0;
+static tfrg_atomic64_t gBufferIds = 0;
+static tfrg_atomic64_t gTextureIds = 0;
+static tfrg_atomic64_t gSamplerIds = 0;
 static volatile uint32_t gFrameNumber = (uint32_t)-1;
 /************************************************************************/
 // Internal utility functions
@@ -3179,7 +3175,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	}
 	/************************************************************************/
 	/************************************************************************/
-	pBuffer->mBufferId = (++gBufferIds << 8U) + Thread::GetCurrentThreadID();
+	pBuffer->mBufferId = tfrg_atomic32_add_relaxed(&gBufferIds, 1);
 
 	*pp_buffer = pBuffer;
 }
@@ -3223,7 +3219,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 	pTexture->mDesc = *pDesc;
 	// Monotonically increasing thread safe id generation
-	pTexture->mTextureId = (++gTextureIds << 8U) + Thread::GetCurrentThreadID();
+	pTexture->mTextureId = tfrg_atomic32_add_relaxed(&gTextureIds, 1);
 
 	if (pDesc->pNativeHandle && !(pDesc->mFlags & TEXTURE_CREATION_FLAG_IMPORT_BIT))
 	{
@@ -3675,7 +3671,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_samp
 	VkResult vk_res = vkCreateSampler(pRenderer->pVkDevice, &add_info, NULL, &(pSampler->pVkSampler));
 	ASSERT(VK_SUCCESS == vk_res);
 
-	pSampler->mSamplerId = (++gSamplerIds << 8U) + Thread::GetCurrentThreadID();
+	pSampler->mSamplerId = tfrg_atomic32_add_relaxed(&gSamplerIds, 1);
 
 	pSampler->mVkSamplerView.sampler = pSampler->pVkSampler;
 
@@ -3970,17 +3966,17 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 // Shader Functions
 /************************************************************************/
 // renderer shader macros allocated on stack
-ShaderMacro                     _rendererShaderDefines[2];
+ShaderMacro                     gRendererShaderDefines[2];
 const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 {
 	// Set shader macro based on runtime information
-	_rendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
-	_rendererShaderDefines[0].value = tinystl::string::format("%d", static_cast<int>(gDescriptorIndexingExtension));
-	_rendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
-	_rendererShaderDefines[1].value =
-		tinystl::string::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
+	gRendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
+	gRendererShaderDefines[0].value = tinystl::string::format("%d", static_cast<int>(gDescriptorIndexingExtension));
 
-	RendererShaderDefinesDesc defineDesc = { _rendererShaderDefines, 2 };
+	gRendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
+	gRendererShaderDefines[1].value = tinystl::string::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
+
+	RendererShaderDefinesDesc defineDesc = { gRendererShaderDefines, 2 };
 	return defineDesc;
 }
 

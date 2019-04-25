@@ -848,7 +848,7 @@ bool Image::iLoadDDSFromMemory(
 			case 77: mFormat = ImageFormat::DXT5; break;
 			case 80: mFormat = ImageFormat::ATI1N; break;
 			case 83: mFormat = ImageFormat::ATI2N; break;
-#ifdef FORGE_JHABLE_EDITS_V01
+
 				// these two should be different
 			case 95:    // unsigned float
 			case 96:    // signed float
@@ -858,7 +858,7 @@ bool Image::iLoadDDSFromMemory(
 			case 99:    // srgb
 				mFormat = ImageFormat::GNF_BC7;
 				break;
-#endif
+
 			default: return false;
 		}
 	}

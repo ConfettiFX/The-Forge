@@ -162,6 +162,7 @@ void updateResource(BufferUpdateDesc* pBuffer, SyncToken* token);
 void updateResource(TextureUpdateDesc* pTexture, SyncToken* token);
 void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources, SyncToken* token);
 
+bool isBatchCompleted();
 void waitBatchCompleted();
 bool isTokenCompleted(SyncToken token);
 void waitTokenCompleted(SyncToken token);

@@ -54,7 +54,7 @@ fragment float4 stageMain(VSOutput input                          [[stage_in]],
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
         return LeftText.sample(SkySampler, newtextcoord);
     }
-    if (side == 4.0f)
+    else if (side == 4.0f)
     {
         newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);

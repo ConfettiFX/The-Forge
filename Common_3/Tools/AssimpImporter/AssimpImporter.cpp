@@ -551,3 +551,21 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 
 	return true;
 }
+
+const AssimpImporter::Node* AssimpImporter::FindMeshNode(const Node* node, int meshIndex)
+{
+    for (int i = 0; i < (int)node->mMeshIndices.size(); ++i)
+    {
+        if (node->mMeshIndices[i] == meshIndex)
+            return node;
+    }
+
+    for (int i = 0; i < node->mChildren.size(); ++i)
+    {
+        const Node* result = FindMeshNode(&node->mChildren[i], meshIndex);
+        if (result)
+            return result;
+    }
+
+    return NULL;
+}

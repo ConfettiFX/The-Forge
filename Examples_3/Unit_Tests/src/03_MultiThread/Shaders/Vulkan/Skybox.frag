@@ -73,7 +73,7 @@ void main(void)
   {
        fs_out_color  =  texture(sampler2D(TopText, uSkyboxSampler), (fs_in.texcoord.xz)/20+vec2(0.5));
   }
-  if(side == 4.0f)
+  else if(side == 4.0f)
   {
     
        newtextcoord = (fs_in.texcoord.xz)/20+vec2(0.5);
