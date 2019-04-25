@@ -35,10 +35,6 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 Please find a link and credits for all open-source packages used at the end of this readme.
 
 
-Future plans are
-- Unified shader generation -> check out an alpha version of the [Confetti Shader Translator](http://confettishadertranslator.azurewebsites.net). This shader translator is build with the purpose of supporting a higher-level shading language, which we call super HLSL or short sHLSL
-
-
 <a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="Screenshots/twitter.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
  
@@ -48,6 +44,23 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.27 - April 25th, 2019 - Spring House Cleaning Release :-)
+* DirectX
+  * Improved our support for DXGI_FORMAT_BC6H_SF16, DXGI_FORMAT_BC7_UNORM support for DirectX
+  * DX12 removed CPU wait on GPU only fences.
+* Windows - header include cleanup, resolved conflict with CALLTYPE enum in objidl.h
+* macOS / iOS - utilize packed_* data types more in shaders
+* Replaced some usages of GPURingBuffer with API Buffers, for reduced dependencies
+* Unit tests fixes
+  * Fixed sky frag shaders in all unit tests
+  * Fixed unit test debug vk crash from validation layer with AMD gpu (Vulkan SDK 1.1.101)
+* UI fixes + improvements
+  * Added an example of how to use the texture previewer widget in the ui unit test (13_UserInterface)
+  * App can now control the UI descriptor binder update freq
+* Improved ThreadedTask system and added helper texture loading code that uses the new async loading system in 06_MaterialPlayground and Visibility Buffer
+* Fixed issue #100 "About FBX resource import?"
+
 
 ## Release 1.26 - April 3rd, 2019 - Vulkan Ray Tracing for Windows & Linux
 - Ray Tracing with the Vulkan API (Vulkan SDK 1.1.101.0) is now working on Windows and Ubuntu through our unified Ray Tracing interface in IRay.h:
@@ -99,34 +112,13 @@ Read more [Descriptor Management](https://github.com/ConfettiFX/The-Forge/wiki/D
     - New functions GetBoolInput, GetFloatInput. KeyMappingDescription  for new function require directly specifying intended action(released, pressed, triggered) via DEFINE_DEVICE_ACTION macro
     - For InputEventHandler old style definition is used
 
-## Release 1.24 - March 1st, 2019 - Asynchronous Resource Loading | Micro Profiler
-- The Forge now allows to asynchronously load resources on all platforms. There are two ways to do this:
-  - use addResource/updateResource with boolean parameter called batch set to true, and later wait for completion with waitBatchCompleted (used in 01_Transformations, 03_MultiThread, 06_MaterialPlayground, 09_LightShadowPlayground, 09a_HybridRaytracing, 12_RendererRumtimeSwitch, 15_Transparency)
-  - use addResource with SyncToken parameter and check for completion with isTokenCompleted or wait for completion with waitTokenCompleted (used in 10_PixelProjectedReflections)
-addResource/updateResource with boolean parameter set to false are the old blocking versions.
-Let us know what you think of this system.
-- We integrated zeux's [Micro Profiler](https://github.com/zeux/microprofile) into The Forge. So far it supports DirectX 11, 12 and Vulkan. We are still working on Metal and Android support.
-
-Chrome
-![Micro Profiler in Chrome](Screenshots/MP_VISBUF.PNG)
-
-Visibility Buffer on PC Windows 10
-![Micro Profiler in Visibility Buffer](Screenshots/MP_INAPP_VIS.PNG)
-
-Linux Ubuntu
-![Micro Profiler Linux Ubuntu](Screenshots/Linux_Ubuntu_MicroProfiler.png)
-
-- Better integration of Ray Tracing into the renderer; still Vulkan RTX is work in progress
-- Fixed Vulkan instance extension bug: "InstanceLayers loop is wrong in CreateInstance" issue #92
-
-
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
 # PC Windows Requirements:
 
-1. Windows 10 RS5 with latest update for DXR support
+1. Windows 10 
 
 
 2. Drivers
@@ -134,7 +126,7 @@ See the release notes from previous releases in the [Release section](https://gi
 * Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
 
 
-3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 
+3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 (you need to get it via the Visual Studio Intaller)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 4. Vulkan [1.1.101.0](https://vulkan.lunarg.com/sdk/home)
@@ -182,6 +174,7 @@ We are currently testing on
 2. GPU Drivers:
 * [AMDGpu-Pro 18.30-641594](https://www.amd.com/en/support/graphics/radeon-500-series/radeon-rx-500-series/radeon-rx-580)
 * [NVIDIA Linux x86_64/AMD64/EM64T 418.56](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
+* Ubuntu comes with open souce Intel and AMD drivers, but for the latest driver you can use the stable Mesa packages supplied here: https://launchpad.net/~paulo-miguel-dias/+archive/ubuntu/pkppa/
 
 3. Workspace file is provided for [codelite 12.0.6](https://codelite.org/)
 
@@ -321,10 +314,10 @@ This unit test shows how the integration of imGui with a wide range of functiona
 ## 14. Order-Independent Transparency unit test
 This unit test compares various Order-Indpendent Transparency Methods. In the moment it shows:
 - Alpha blended transparency
-- Weighted blended Order Independent Transparency (Morgan McGuire Blog Entry 2014)[http://casual-effects.blogspot.com/2014/03/weighted-blended-order-independent.html] and (Morgan McGuire Blog Entry 2015)[http://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html]
-- Weighted blended Order Independent Transparency by Volition (GDC 2018 Talk)[https://www.gdcvault.com/play/1025400/Rendering-Technology-in-Agents-of]
-- Adaptive Order Independent Transparency with Raster Order Views (paper by Intel, supports DirectX 11, 12 only)[https://software.intel.com/en-us/articles/oit-approximation-with-pixel-synchronization-update-2014], and a (Primer)[https://software.intel.com/en-us/gamedev/articles/rasterizer-order-views-101-a-primer]
-- Phenomenological Transparency - Diffusion, Refraction, Shadows by (Morgan McGuire)[https://casual-effects.com/research/McGuire2017Transparency/McGuire2017Transparency.pdf]
+- Weighted blended Order Independent Transparency [Morgan McGuire Blog Entry 2014](http://casual-effects.blogspot.com/2014/03/weighted-blended-order-independent.html) and [Morgan McGuire Blog Entry 2015](http://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html)
+- Weighted blended Order Independent Transparency by Volition [GDC 2018 Talk](https://www.gdcvault.com/play/1025400/Rendering-Technology-in-Agents-of)
+- Adaptive Order Independent Transparency with Raster Order Views [paper by Intel, supports DirectX 11, 12 only](https://software.intel.com/en-us/articles/oit-approximation-with-pixel-synchronization-update-2014), and a [Primer](https://software.intel.com/en-us/gamedev/articles/rasterizer-order-views-101-a-primer)
+- Phenomenological Transparency - Diffusion, Refraction, Shadows by [Morgan McGuire](https://casual-effects.com/research/McGuire2017Transparency/McGuire2017Transparency.pdf)
 ![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.png)
 
 
@@ -349,7 +342,7 @@ iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
 ![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
 
 ## 16a. Sphere Tracing
-This unit test was originally posted on ShaderToy by Inigo Quilez (https://www.shadertoy.com/view/Xds3zN and https://sopyer.github.io/b/post/vulkan-shader-sample/). It shows how a scene is ray marched with shadows, reflections and AO
+This unit test was originally posted on ShaderToy by [Inigo Quilez](https://www.shadertoy.com/view/Xds3zN) and [Sopyer](https://sopyer.github.io/b/post/vulkan-shader-sample/). It shows how a scene is ray marched with shadows, reflections and AO
 
 ![Image of the Sphere Tracing  unit test in The Forge](Screenshots/16_RayMarching_Linux.png)
 
