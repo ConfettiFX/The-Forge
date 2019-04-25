@@ -22,6 +22,8 @@
 		5CB04F5E21353D1E000BDFE0 /* 13_UserInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CB04F5C21353D1E000BDFE0 /* 13_UserInterface.cpp */; };
 		650CCC6D2223CD07003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC6C2223CD07003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC6F2223CD12003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC6E2223CD12003533D9 /* MetalPerformanceShaders.framework */; };
+		65BEEB1B2257EAD400EA1AE6 /* sprites.png in Resources */ = {isa = PBXBuildFile; fileRef = 65BEEB1A2257EAD400EA1AE6 /* sprites.png */; };
+		65BEEB1C2257EADB00EA1AE6 /* sprites.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 65BEEB1A2257EAD400EA1AE6 /* sprites.png */; };
 		971BCF4321701CC1007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AB89201F3A77000E571F /* TitilliumText */; };
 		971BCF4421701CCB007F2B2F /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.png */; };
 		971BCF4521701CCB007F2B2F /* Skybox_back6.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AB80201F3A35000E571F /* Skybox_back6.png */; };
@@ -91,6 +93,7 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
+				65BEEB1C2257EADB00EA1AE6 /* sprites.png in Copy Textures */,
 				971BCF4421701CCB007F2B2F /* circlepad.png in Copy Textures */,
 				971BCF4521701CCB007F2B2F /* Skybox_back6.png in Copy Textures */,
 				971BCF4621701CCB007F2B2F /* Skybox_bottom4.png in Copy Textures */,
@@ -149,6 +152,7 @@
 		5CB04F5C21353D1E000BDFE0 /* 13_UserInterface.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 13_UserInterface.cpp; path = ../../../src/13_UserInterface/13_UserInterface.cpp; sourceTree = "<group>"; };
 		650CCC6C2223CD07003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC6E2223CD12003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		65BEEB1A2257EAD400EA1AE6 /* sprites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = sprites.png; path = ../../../UnitTestResources/Textures/sprites.png; sourceTree = "<group>"; };
 		B214AD3120E2DD620025F76B /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B214AD3220E2DD620025F76B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B22D906220E2EDCE0036B88E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -209,6 +213,7 @@
 		28A5AB7A201F399E000E571F /* Textures */ = {
 			isa = PBXGroup;
 			children = (
+				65BEEB1A2257EAD400EA1AE6 /* sprites.png */,
 				281FA9DF2033059C00CD5D9C /* circlepad.png */,
 				28A5AB80201F3A35000E571F /* Skybox_back6.png */,
 				28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */,
@@ -438,6 +443,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				65BEEB1B2257EAD400EA1AE6 /* sprites.png in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -37,6 +37,8 @@
 #include "../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../Common_3/OS/Core/ThreadSystem.h"
+#include "../../Common/AppHelpers.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
 
@@ -63,6 +65,8 @@ File       mFile;
 FileSystem mFileSystem;
 LogManager mLogManager;
 HiresTimer gTimer;
+
+ThreadSystem* pThreadSystem;
 
 #if defined(__linux__)
 //_countof is MSVS macro, add define for Linux. a is expected to be static array type
@@ -267,7 +271,7 @@ typedef struct AppSettings
 	bool mClusterCulling = false;
 	
 	// TODO: there is an issue that prevents to launch this in async mode by default. The problem is that the renderer needs to be notified
-	// of when a frame starts, so that it updates the internal frameIdx (which is needed for handling the multiple frames in-flight for 
+	// of when a frame starts, so that it updates the internal frameIdx (which is needed for handling the multiple frames in-flight for
 	// descriptor binding) . The problem is that the renderer assumes that acquireNextImage image is always called at the begining of the
 	// frame, but it is not the case for this application. So the frame starts, and the renderer doesn't update the frameIdx accordingly.
 	// Changing to async compute at runtime is fine (because this app only skips calling acquireNextImage during the first 3 frames).
@@ -337,6 +341,9 @@ typedef struct AppSettings
 	bool  cameraWalking = false;
 	float cameraWalkingSpeed = 1.0f;
 	
+	bool mActivateMicroProfiler = false;
+	bool mToggleVSync = false;
+	
 } AppSettings;
 
 /************************************************************************/
@@ -348,8 +355,6 @@ const char* gSunName = "sun.obj";
 // Number of in-flight buffers
 const uint32_t gImageCount = 3;
 uint32_t       gPresentFrameIdx = ~0u;
-
-bool gToggleVSync = false;
 
 // Constants
 const uint32_t gShadowMapSize = 1024;
@@ -720,8 +725,7 @@ void SetupDebugTexturesWindow()
 	{
 		if (pDebugTexturesWindow)
 		{
-			gAppUI.RemoveGuiComponent(pDebugTexturesWindow);
-			pDebugTexturesWindow = NULL;
+			pDebugTexturesWindow->mActive = false;
 		}
 	}
 	else
@@ -740,26 +744,29 @@ void SetupDebugTexturesWindow()
 			
 			DebugTexturesWidget widget("Debug RTs");
 			pDebugTexturesWindow->AddWidget(widget);
-		}
-		
-		tinystl::vector<Texture*> pVBRTs;
+			
+			
+			tinystl::vector<Texture*> pVBRTs;
 #if (MSAASAMPLECOUNT == 1)
-		if (gAppSettings.mRenderMode == RENDERMODE_VISBUFF)
-		{
-			pVBRTs.push_back(pRenderTargetVBPass->pTexture);
-		}
-		else
-		{
-			pVBRTs.push_back(pRenderTargetDeferredPass[0]->pTexture);
-			pVBRTs.push_back(pRenderTargetDeferredPass[1]->pTexture);
-			pVBRTs.push_back(pRenderTargetDeferredPass[2]->pTexture);
-			pVBRTs.push_back(pRenderTargetDeferredPass[3]->pTexture);
-		}
+			if (gAppSettings.mRenderMode == RENDERMODE_VISBUFF)
+			{
+				pVBRTs.push_back(pRenderTargetVBPass->pTexture);
+			}
+			else
+			{
+				pVBRTs.push_back(pRenderTargetDeferredPass[0]->pTexture);
+				pVBRTs.push_back(pRenderTargetDeferredPass[1]->pTexture);
+				pVBRTs.push_back(pRenderTargetDeferredPass[2]->pTexture);
+				pVBRTs.push_back(pRenderTargetDeferredPass[3]->pTexture);
+			}
 #endif
-		pVBRTs.push_back(pRenderTargetAO->pTexture);
-		pVBRTs.push_back(pRenderTargetShadow->pTexture);
+			pVBRTs.push_back(pRenderTargetAO->pTexture);
+			pVBRTs.push_back(pRenderTargetShadow->pTexture);
+			
+			((DebugTexturesWidget*)(pDebugTexturesWindow->mWidgets[0]))->SetTextures(pVBRTs, texSize);
+		}
 		
-		((DebugTexturesWidget*)(pDebugTexturesWindow->mWidgets[0]))->SetTextures(pVBRTs, texSize);
+		pDebugTexturesWindow->mActive = true;
 	}
 }
 
@@ -837,6 +844,7 @@ public:
 	
 	bool Init()
 	{
+		initThreadSystem(&pThreadSystem);
 		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
 		// We need to set the modified root path so that filesystem can find the meshes and textures.
 		FileSystem::SetRootPath(FSRoot::FSR_Meshes, "/");
@@ -976,7 +984,7 @@ public:
 		/************************************************************************/
 		// Load resources for skybox
 		/************************************************************************/
-		LoadSkybox();
+		addThreadSystemTask(pThreadSystem, memberTaskFunc0<VisibilityBuffer, &VisibilityBuffer::LoadSkybox>, this);
 		
 		/************************************************************************/
 		// Load the scene using the SceneLoader class, which uses Assimp
@@ -1004,7 +1012,7 @@ public:
 		ibDesc.pData = pScene->indices.data();
 		ibDesc.ppBuffer = &pIndexBufferAll;
 		ibDesc.mDesc.pDebugName = L"Non-filtered Index Buffer Desc";
-		addResource(&ibDesc);
+		addResource(&ibDesc, true);
 #else
 		// Fill the pIndexBufferAll with triangle IDs for the whole scene (since metal implementation doesn't use scene indices).
 		uint32_t* trianglesBuffer = (uint32_t*)conf_malloc(pScene->totalTriangles * 3 * sizeof(uint32_t));
@@ -1023,7 +1031,7 @@ public:
 		ibDesc.pData = trianglesBuffer;
 		ibDesc.ppBuffer = &pIndexBufferAll;
 		ibDesc.mDesc.pDebugName = L"Non-filtered Index Buffer Desc";
-		addResource(&ibDesc);
+		addResource(&ibDesc, true);
 		
 		conf_free(trianglesBuffer);
 #endif
@@ -1039,7 +1047,7 @@ public:
 		vbPosDesc.pData = pScene->positions.data();
 		vbPosDesc.ppBuffer = &pVertexBufferPosition;
 		vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc";
-		addResource(&vbPosDesc);
+		addResource(&vbPosDesc, true);
 		
 		// Vertex texcoord buffer for the scene
 		BufferLoadDesc vbTexCoordDesc = {};
@@ -1052,7 +1060,7 @@ public:
 		vbTexCoordDesc.pData = pScene->texCoords.data();
 		vbTexCoordDesc.ppBuffer = &pVertexBufferTexCoord;
 		vbTexCoordDesc.mDesc.pDebugName = L"Vertex TexCoord Buffer Desc";
-		addResource(&vbTexCoordDesc);
+		addResource(&vbTexCoordDesc, true);
 		
 		// Vertex normal buffer for the scene
 		BufferLoadDesc vbNormalDesc = {};
@@ -1065,7 +1073,7 @@ public:
 		vbNormalDesc.pData = pScene->normals.data();
 		vbNormalDesc.ppBuffer = &pVertexBufferNormal;
 		vbNormalDesc.mDesc.pDebugName = L"Vertex Normal Buffer Desc";
-		addResource(&vbNormalDesc);
+		addResource(&vbNormalDesc, true);
 		
 		// Vertex tangent buffer for the scene
 		BufferLoadDesc vbTangentDesc = {};
@@ -1078,10 +1086,28 @@ public:
 		vbTangentDesc.pData = pScene->tangents.data();
 		vbTangentDesc.ppBuffer = &pVertexBufferTangent;
 		vbTangentDesc.mDesc.pDebugName = L"Vertex Tangent Buffer Desc";
-		addResource(&vbTangentDesc);
+		addResource(&vbTangentDesc, true);
 		
 		LOGINFOF("Load scene buffers : %f ms", bufferLoadTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
+		// Texture loading
+		/************************************************************************/
+		gDiffuseMaps.resize(pScene->numMaterials);
+		gNormalMaps.resize(pScene->numMaterials);
+		gSpecularMaps.resize(pScene->numMaterials);
+		
+		TextureLoadDesc desc = {};
+		desc.mRoot = FSR_Textures;
+		desc.mUseMipmaps = true;
+		desc.mSrgb = false;
+		
+		TextureLoadTaskData diffuseData{ gDiffuseMaps.data(), (const char**)pScene->textures, desc };
+		addThreadSystemRangeTask(pThreadSystem, loadTexturesTask, &diffuseData, pScene->numMaterials);
+		TextureLoadTaskData normalData{ gNormalMaps.data(), (const char**)pScene->normalMaps, desc };
+		addThreadSystemRangeTask(pThreadSystem, loadTexturesTask, &normalData, pScene->numMaterials);
+		TextureLoadTaskData specularData{ gSpecularMaps.data(), (const char**)pScene->specularMaps, desc };
+		addThreadSystemRangeTask(pThreadSystem, loadTexturesTask, &specularData, pScene->numMaterials);
+		
 		// Cluster creation
 		/************************************************************************/
 		HiresTimer clusterTimer;
@@ -1093,40 +1119,6 @@ public:
 			createClusters(material->twoSided, pScene, mesh);
 		}
 		LOGINFOF("Load clusters : %f ms", clusterTimer.GetUSec(true) / 1000.0f);
-		/************************************************************************/
-		// Texture loading
-		/************************************************************************/
-		HiresTimer textureLoadTimer;
-		gDiffuseMaps = tinystl::vector<Texture*>(pScene->numMaterials);
-		gNormalMaps = tinystl::vector<Texture*>(pScene->numMaterials);
-		gSpecularMaps = tinystl::vector<Texture*>(pScene->numMaterials);
-		
-		for (uint32_t i = 0; i < pScene->numMaterials; ++i)
-		{
-			TextureLoadDesc diffuse = {};
-			diffuse.pFilename = pScene->textures[i];
-			diffuse.mRoot = FSR_Textures;
-			diffuse.mUseMipmaps = true;
-			diffuse.ppTexture = &gDiffuseMaps[i];
-			diffuse.mSrgb = false;
-			addResource(&diffuse);
-			
-			TextureLoadDesc normal = {};
-			normal.pFilename = pScene->normalMaps[i];
-			normal.mRoot = FSR_Textures;
-			normal.mUseMipmaps = true;
-			normal.ppTexture = &gNormalMaps[i];
-			addResource(&normal);
-			
-			TextureLoadDesc specular = {};
-			specular.pFilename = pScene->specularMaps[i];
-			specular.mRoot = FSR_Textures;
-			specular.mUseMipmaps = true;
-			specular.ppTexture = &gSpecularMaps[i];
-			addResource(&specular);
-		}
-		
-		LOGINFOF("Load textures : %f ms", textureLoadTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// Setup root signatures
 		/************************************************************************/
@@ -1223,13 +1215,13 @@ public:
 		uint32_t maxSceneClustersToFilter = 0;
 		for (uint32_t i = 0; i < pScene->numMeshes; i++)
 			maxSceneClustersToFilter += pScene->meshes[i].clusterCount;
-
+		
 		DescriptorBinderDesc descriptorBinderDesc[] = {
 			{ pRootSignatureClearBuffers },
 			{ pRootSignatureTriangleFiltering, 0, maxSceneClustersToFilter },
-	#if !defined(METAL)
+#if !defined(METAL)
 			{ pRootSignatureBatchCompaction },
-	#endif
+#endif
 			{ pRootSignatureClearLightClusters },
 			{ pRootSignatureClusterLights },
 			{ pRootSignatureVBPass },
@@ -1246,9 +1238,9 @@ public:
 			{ pRootSigCurveConversionPass },
 			{ pRootSigPresentPass },
 		};
-
+		
 		addDescriptorBinder(pRenderer, 0, (uint32_t)sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc), descriptorBinderDesc, &pDescriptorBinder);
-
+		
 		/************************************************************************/
 		// Setup indirect command signatures
 		/************************************************************************/
@@ -1325,35 +1317,34 @@ public:
 			return false;
 		
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
-		gAppUI.ActivateMicroProfile(true);
-
+		gAppUI.ActivateMicroProfile(gAppSettings.mActivateMicroProfiler);
+		
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+		pGuiWindow->mFlags = GUI_COMPONENT_FLAGS_NO_RESIZE;
 		
 #if !defined(TARGET_IOS)
-		CheckboxWidget vsyncProp("Toggle VSync", &gToggleVSync);
+		CheckboxWidget vsyncProp("Toggle VSync", &gAppSettings.mToggleVSync);
 		pGuiWindow->AddWidget(vsyncProp);
 #endif
+		
+		CheckboxWidget microprofile("Activate Microprofile", &gAppSettings.mActivateMicroProfiler);
+		pGuiWindow->AddWidget(microprofile);
 		
 		CheckboxWidget debugTargets("Draw Debug Targets", &gAppSettings.mDrawDebugTargets);
 		debugTargets.pOnDeactivatedAfterEdit = SetupDebugTexturesWindow;
 		pGuiWindow->AddWidget(debugTargets);
 		
-#if !defined(METAL)
-		static const char*      outputModeNames[] = { "SDR", "HDR10 (DirectX 12 Only)", NULL };
+		// DirectX 12 Only
+#if defined(DIRECT3D12)
+		static const char*      outputModeNames[] = { "SDR", "HDR10", NULL };
 		static const OutputMode outputModeValues[] = {
 			OUTPUT_MODE_SDR,
 			OUTPUT_MODE_HDR10,
 		};
 		
 		DropdownWidget outputMode("Output Mode", (uint32_t*)&gAppSettings.mOutputMode, outputModeNames, (uint32_t*)outputModeValues, 2U);
-		pGuiWindow->AddWidget(outputMode);
-#else
-		static const char* outputModeNames[] = { "SDR", NULL };
-		static const OutputMode outputModeValues[] = { OUTPUT_MODE_SDR };
-		
-		DropdownWidget outputMode("Output Mode", (uint32_t*)&gAppSettings.mOutputMode, outputModeNames, (uint32_t*)outputModeValues, 1U);
 		pGuiWindow->AddWidget(outputMode);
 #endif
 		
@@ -1541,6 +1532,7 @@ public:
 		/************************************************************************/
 		/************************************************************************/
 		// Finish the resource loading process since the next code depends on the loaded resources
+		waitThreadSystemIdle(pThreadSystem);
 		finishResourceLoading();
 		
 		gDiffuseMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gDiffuseMaps.size());
@@ -1584,6 +1576,7 @@ public:
 	
 	void Exit()
 	{
+		shutdownThreadSystem(pThreadSystem);
 		removeResource(pSkybox);
 		
 		removeTriangleFilteringBuffers();
@@ -1634,7 +1627,7 @@ public:
 		
 		// Remove descriptor binder
 		removeDescriptorBinder(pRenderer, pDescriptorBinder);
-
+		
 		// Remove indirect command signatures
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
@@ -2242,7 +2235,7 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 		waitQueueIdle(pComputeQueue);
-
+		
 		// Remove default fences, semaphores
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -2303,7 +2296,7 @@ public:
 	void Update(float deltaTime)
 	{
 #if !defined(TARGET_IOS)
-		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		if (pSwapChain->mDesc.mEnableVsync != gAppSettings.mToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
@@ -2408,7 +2401,7 @@ public:
 		{
 			// Get the current render target for this frame
 			acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &gPresentFrameIdx);
-
+			
 			// check to see if we can use the cmd buffer
 			Fence*      pRenderFence = pRenderCompleteFences[gPresentFrameIdx];
 			FenceStatus fenceStatus;
@@ -2429,7 +2422,7 @@ public:
 				// Get the current render target for this frame
 				acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gPresentFrameIdx);
 			}
-
+			
 			// check to see if we can use the cmd buffer
 			Fence*      pComputeFence = pComputeCompleteFences[gPresentFrameIdx];
 			FenceStatus fenceStatus;
@@ -2607,6 +2600,7 @@ public:
 			{
 				// Update uniform buffers
 				BufferUpdateDesc update = { pUniformBufferSun[gPresentFrameIdx], &gUniformDataSunMatrices };
+                update.mSize = sizeof(gUniformDataSunMatrices);
 				updateResource(&update);
 				
 				drawGodray(graphicsCmd, gPresentFrameIdx);
@@ -3832,10 +3826,10 @@ public:
 	/************************************************************************/
 	void updateDynamicUIElements()
 	{
-		static OutputMode          gWasHDR10 = gAppSettings.mOutputMode;
-		static CurveConversionMode gWasLinear = gAppSettings.mCurveConversionMode;
+		static OutputMode          wasHDR10 = gAppSettings.mOutputMode;
+		static CurveConversionMode wasLinear = gAppSettings.mCurveConversionMode;
 		
-		if (gAppSettings.mCurveConversionMode != gWasLinear)
+		if (gAppSettings.mCurveConversionMode != wasLinear)
 		{
 			if (gAppSettings.mCurveConversionMode == CurveConversion_LinearScale)
 			{
@@ -3855,10 +3849,10 @@ public:
 				}
 			}
 			
-			gWasLinear = gAppSettings.mCurveConversionMode;
+			wasLinear = gAppSettings.mCurveConversionMode;
 		}
 		
-		if (gAppSettings.mOutputMode != gWasHDR10)
+		if (gAppSettings.mOutputMode != wasHDR10)
 		{
 			if (gAppSettings.mOutputMode == OUTPUT_MODE_SDR)
 			{
@@ -3867,37 +3861,37 @@ public:
 			}
 			else
 			{
-				if (gWasHDR10 == OUTPUT_MODE_SDR && gAppSettings.mCurveConversionMode != CurveConversion_LinearScale)
+				if (wasHDR10 == OUTPUT_MODE_SDR && gAppSettings.mCurveConversionMode != CurveConversion_LinearScale)
 				{
 					gAppSettings.mSCurve.ShowWidgets(pGuiWindow);
 					gSCurveInfomation.UseSCurve = 1.0f;
 				}
 			}
 			
-			gWasHDR10 = gAppSettings.mOutputMode;
+			wasHDR10 = gAppSettings.mOutputMode;
 		}
 		
-		static OutputMode gWasOutputMode;
+		static OutputMode prevOutputMode;
 		
-		if (gWasOutputMode != gAppSettings.mOutputMode)
+		if (prevOutputMode != gAppSettings.mOutputMode)
 		{
 			if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 				gAppSettings.mDisplaySetting.ShowWidgets(pGuiWindow);
 			else
 			{
-				if (gWasOutputMode == OUTPUT_MODE_HDR10)
+				if (prevOutputMode == OUTPUT_MODE_HDR10)
 					gAppSettings.mDisplaySetting.HideWidgets(pGuiWindow);
 			}
 		}
 		
-		gWasOutputMode = gAppSettings.mOutputMode;
+		prevOutputMode = gAppSettings.mOutputMode;
 		
-		static bool gWasAOEnabled = gAppSettings.mEnableHDAO;
+		static bool wasAOEnabled = gAppSettings.mEnableHDAO;
 		
-		if (gAppSettings.mEnableHDAO != gWasAOEnabled)
+		if (gAppSettings.mEnableHDAO != wasAOEnabled)
 		{
-			gWasAOEnabled = gAppSettings.mEnableHDAO;
-			if (gWasAOEnabled)
+			wasAOEnabled = gAppSettings.mEnableHDAO;
+			if (wasAOEnabled)
 			{
 				gAppSettings.mDynamicUIWidgetsAO.ShowWidgets(pGuiWindow);
 			}
@@ -3907,12 +3901,12 @@ public:
 			}
 		}
 		
-		static bool gWasGREnabled = gAppSettings.mEnableGodray;
+		static bool wasGREnabled = gAppSettings.mEnableGodray;
 		
-		if (gAppSettings.mEnableGodray != gWasGREnabled)
+		if (gAppSettings.mEnableGodray != wasGREnabled)
 		{
-			gWasGREnabled = gAppSettings.mEnableGodray;
-			if (gWasGREnabled)
+			wasGREnabled = gAppSettings.mEnableGodray;
+			if (wasGREnabled)
 			{
 				gAppSettings.mDynamicUIWidgetsGR.ShowWidgets(pGuiWindow);
 			}
@@ -3923,11 +3917,11 @@ public:
 		}
 		
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
-		static bool gWasFullscreen = pWindow->fullScreen;
-		if (pWindow->fullScreen != gWasFullscreen)
+		static bool wasFullscreen = pWindow->fullScreen;
+		if (pWindow->fullScreen != wasFullscreen)
 		{
-			gWasFullscreen = pWindow->fullScreen;
-			if (gWasFullscreen)
+			wasFullscreen = pWindow->fullScreen;
+			if (wasFullscreen)
 			{
 				gResolutionProperty = addResolutionProperty(
 															pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
@@ -3938,11 +3932,17 @@ public:
 			}
 		}
 #endif
+		
+		static bool wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
+		if (wasMicroProfileActivated != gAppSettings.mActivateMicroProfiler)
+		{
+			wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
+			gAppUI.ActivateMicroProfile(gAppSettings.mActivateMicroProfiler);
+		}
 	}
 	/************************************************************************/
 	// Rendering
 	/************************************************************************/
-	
 	// Render the shadow mapping pass. This pass updates the shadow map texture
 	void drawShadowMapPass(Cmd* cmd, GpuProfiler* pGpuProfiler, uint32_t frameIdx)
 	{
@@ -5275,7 +5275,7 @@ public:
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
 		skyboxLoadDesc.ppTexture = &pSkybox;
-		addResource(&skyboxLoadDesc);
+		addResource(&skyboxLoadDesc, true);
 		
 		// Load the skybox panorama texture.
 		TextureLoadDesc panoDesc = {};
@@ -5288,7 +5288,7 @@ public:
 		panoDesc.pFilename = "daytime.hdr";
 		//panoDesc.pFilename = "LA_Helipad.hdr";
 		panoDesc.ppTexture = &pPanoSkybox;
-		addResource(&panoDesc);
+		addResource(&panoDesc, true);
 		
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
@@ -5306,7 +5306,7 @@ public:
 		
 		DescriptorBinderDesc descriptorBinderDesc = { pPanoToCubeRootSignature, 0, gSkyboxMips + 1 };
 		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pPanoToCubeDescriptorBinder);
-
+		
 		PipelineDesc pipelineDesc = {};
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = pipelineDesc.mComputeDesc;
@@ -5364,6 +5364,7 @@ public:
 		
 		endCmd(cmd);
 		
+		waitBatchCompleted();
 		queueSubmit(pGraphicsQueue, 1, &cmd, pTransitionFences, 0, 0, 0, 0);
 		waitForFences(pRenderer, 1, &pTransitionFences);
 		
@@ -5389,7 +5390,7 @@ public:
 		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSingatureSkybox);
 		
 		//Generate sky box vertex buffer
-		float skyBoxPoints[] = {
+		static const float skyBoxPoints[] = {
 			0.5f,  -0.5f, -0.5f, 1.0f,    // -z
 			-0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,  -0.5f, 0.5f,
 			-0.5f, 1.0f,  0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
@@ -5424,7 +5425,7 @@ public:
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, true);
 		
 		tinystl::string sunFullPath = FileSystem::FixPath(gSunName, FSRoot::FSR_Meshes);
 		loadModel(sunFullPath, pSunVertexBuffer, SunVertexCount, pSunIndexBuffer, SunIndexCount);

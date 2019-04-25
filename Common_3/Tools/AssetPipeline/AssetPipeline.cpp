@@ -527,21 +527,21 @@ bool AssetPipeline::CreateRuntimeAnimation(
 			for (uint j = 0; j < node->mNumPositionKeys; ++j)
 			{
 				aiVectorKey key = node->mPositionKeys[j];
-				track->translations[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration),
+				track->translations[j] = { clamp((float)(key.mTime / animationData->mTicksPerSecond), 0.0f, rawAnimation.duration),
 										   vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
 			}
 
 			for (uint j = 0; j < node->mNumRotationKeys; ++j)
 			{
 				aiQuatKey key = node->mRotationKeys[j];
-				track->rotations[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration),
+				track->rotations[j] = { clamp((float)(key.mTime / animationData->mTicksPerSecond), 0.0f, rawAnimation.duration),
 										Quat(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w) };
 			}
 
 			for (uint j = 0; j < node->mNumScalingKeys; ++j)
 			{
 				aiVectorKey key = node->mScalingKeys[j];
-				track->scales[j] = { min((float)(key.mTime / animationData->mTicksPerSecond), rawAnimation.duration),
+				track->scales[j] = { clamp((float)(key.mTime / animationData->mTicksPerSecond), 0.0f, rawAnimation.duration),
 									 vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
 			}
 

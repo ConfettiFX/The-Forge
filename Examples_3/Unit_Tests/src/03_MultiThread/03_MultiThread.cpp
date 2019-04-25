@@ -39,6 +39,7 @@
 
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 #include "../../../../Common_3/OS/Image/ImageEnums.h"
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 // for cpu usage query
 #if defined(_WIN32)
@@ -207,9 +208,9 @@ GpuProfiler*       pGpuProfilers[gThreadCount] = { NULL };
 UIApp              gAppUI;
 ICameraController* pCameraController = NULL;
 
-FileSystem gFileSystem;
-ThreadPool gThreadSystem;
-LogManager gLogManager;
+FileSystem    gFileSystem;
+LogManager    gLogManager;
+ThreadSystem* pThreadSystem;
 
 GraphVertex   gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
@@ -516,7 +517,7 @@ class MultiThread: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
-		gThreadSystem.CreateThreads(Thread::GetNumCPUCores() - 1);
+		initThreadSystem(&pThreadSystem);
 
 		CameraMotionParameters cmp{ 100.0f, 800.0f, 1000.0f };
 		vec3                   camPos{ 24.0f, 24.0f, 10.0f };
@@ -541,6 +542,7 @@ class MultiThread: public IApp
 
 	void Exit()
 	{
+		shutdownThreadSystem(pThreadSystem);
 		waitQueueIdle(pGraphicsQueue);
 
 		destroyCameraController(pCameraController);
@@ -829,17 +831,13 @@ class MultiThread: public IApp
 
 		uint32_t frameIdx = gFrameIndex;
 		/*******record command for drawing particles***************/
-		WorkItem pWorkGroups[gThreadCount];
-
 		for (int i = 0; i < gThreadCount; ++i)
 		{
 			gThreadData[i].pRenderTarget = pRenderTarget;
 			gThreadData[i].mFrameIndex = frameIdx;
 			gThreadData[i].pGpuProfiler = pGpuProfilers[i];
-			pWorkGroups[i].pData = &gThreadData[i];
-			pWorkGroups[i].pFunc = ParticleThreadDraw;
-			gThreadSystem.AddWorkItem(&pWorkGroups[i]);
 		}
+		addThreadSystemRangeTask(pThreadSystem, &MultiThread::ParticleThreadDraw, gThreadData, gThreadCount);
 		// simply record the screen cleaning command
 
 		LoadActionsDesc loadActions = {};
@@ -965,7 +963,7 @@ class MultiThread: public IApp
 		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 1, &barrier, true);
 		endCmd(ppGraphCmds[frameIdx]);
 		// wait all particle threads done
-		gThreadSystem.Complete(0);
+		waitThreadSystemIdle(pThreadSystem);
 
 		/***************draw cpu graph*****************************/
 		/***************draw cpu graph*****************************/
@@ -1405,15 +1403,15 @@ class MultiThread: public IApp
 	}
 
 	// thread for recording particle draw
-	static void ParticleThreadDraw(void* pData)
+	static void ParticleThreadDraw(void* pData, uintptr_t i)
 	{
-		ThreadData* data = (ThreadData*)pData;
-		Cmd*        cmd = data->ppCmds[data->mFrameIndex];
+		ThreadData& data = ((ThreadData*)pData)[i];
+		Cmd*        cmd = data.ppCmds[data.mFrameIndex];
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, data->pGpuProfiler);
-		cmdBindRenderTargets(cmd, 1, &data->pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data->pRenderTarget->mDesc.mWidth, (float)data->pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, data->pRenderTarget->mDesc.mWidth, data->pRenderTarget->mDesc.mHeight);
+		cmdBeginGpuFrameProfile(cmd, data.pGpuProfiler);
+		cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mDesc.mWidth, (float)data.pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mDesc.mWidth, data.pRenderTarget->mDesc.mHeight);
 
 		cmdBindPipeline(cmd, pPipeline);
 		DescriptorData params[3] = {};
@@ -1421,16 +1419,16 @@ class MultiThread: public IApp
 		params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
 		params[0].ppTextures = pTextures;
 		params[1].pName = "uniformBlock";
-		params[1].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
+		params[1].ppBuffers = &pProjViewUniformBuffer[data.mFrameIndex];
 		params[2].pName = "particleRootConstant";
 		params[2].pRootConstant = &gParticleData;
-		cmdBindDescriptors(cmd, data->pDescriptorBinder, pRootSignature, 3, params);
+		cmdBindDescriptors(cmd, data.pDescriptorBinder, pRootSignature, 3, params);
 
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 
-		cmdDrawInstanced(cmd, data->mDrawCount, data->mStartPoint, 1, 0);
+		cmdDrawInstanced(cmd, data.mDrawCount, data.mStartPoint, 1, 0);
 
-		cmdEndGpuFrameProfile(cmd, data->pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, data.pGpuProfiler);
 		endCmd(cmd);
 	}
 

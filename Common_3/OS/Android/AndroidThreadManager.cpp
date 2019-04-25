@@ -70,7 +70,7 @@ void Mutex::Release() { pthread_mutex_unlock(&pHandle); }
 
 void* ThreadFunctionStatic(void* data)
 {
-	WorkItem* pItem = static_cast<WorkItem*>(data);
+	ThreadDesc* pItem = static_cast<ThreadDesc*>(data);
 	pItem->pFunc(pItem->pData);
 	return 0;
 }
@@ -112,7 +112,7 @@ ThreadID Thread::GetCurrentThreadID() { return pthread_self(); }
 
 bool Thread::IsMainThread() { return GetCurrentThreadID() == mainThreadID; }
 
-ThreadHandle _createThread(WorkItem* pData)
+ThreadHandle _createThread(ThreadDesc* pData)
 {
 	pthread_t handle;
 	pthread_create(&handle, NULL, ThreadFunctionStatic, pData);
@@ -126,7 +126,7 @@ void _destroyThread(ThreadHandle handle)
 	pthread_join(handle, NULL);
 }
 
-ThreadHandle create_thread(WorkItem* pData)
+ThreadHandle create_thread(ThreadDesc* pData)
 {
 	pthread_t handle;
 	pthread_create(&handle,NULL,ThreadFunctionStatic,pData);

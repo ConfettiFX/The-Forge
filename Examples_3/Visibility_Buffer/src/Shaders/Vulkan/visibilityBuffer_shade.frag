@@ -382,21 +382,19 @@ void main()
 
 		uint materialBaseSlot = BaseMaterialBuffer(alpha1_opaque0 == 1, 1);
 		uint materialID = indirectMaterialBufferData[materialBaseSlot + drawID];
+		bool isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
 
 		vec4 normalMapRG;
 		vec4 diffuseColor;
 		vec4 specularData;
-		bool isTwoSided;
-#if VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED
-		normalMapRG = textureGrad(sampler2D(normalMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
-		diffuseColor = textureGrad(sampler2D(diffuseMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
-		specularData = textureGrad(sampler2D(specularMaps[materialID], textureSampler), texCoord, texCoordDX, texCoordDY);
-		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
-#elif VK_EXT_DESCRIPTOR_INDEXING_ENABLED
+#if VK_EXT_DESCRIPTOR_INDEXING_ENABLED
 		normalMapRG = textureGrad(sampler2D(normalMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
 		diffuseColor = textureGrad(sampler2D(diffuseMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
 		specularData = textureGrad(sampler2D(specularMaps[nonuniformEXT(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
-		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1);
+#elif VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED
+		normalMapRG = textureGrad(sampler2D(normalMaps[(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
+		diffuseColor = textureGrad(sampler2D(diffuseMaps[(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
+		specularData = textureGrad(sampler2D(specularMaps[(materialID)], textureSampler), texCoord, texCoordDX, texCoordDY);
 #else
 		switch (materialID)
 		{
@@ -405,7 +403,6 @@ void main()
 		normalMapRG = textureGrad(sampler2D(normalMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
 		diffuseColor = textureGrad(sampler2D(diffuseMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
 		specularData = textureGrad(sampler2D(specularMaps[id], textureSampler), texCoord, texCoordDX, texCoordDY); \
-		isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBufferData[materialID].twoSided == 1); \
 break;
 			CASE_LIST
 		}

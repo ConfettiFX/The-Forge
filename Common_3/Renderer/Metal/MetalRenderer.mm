@@ -416,10 +416,6 @@ static BlendState*      pDefaultBlendState = NULL;
 static DepthState*      pDefaultDepthState = NULL;
 static RasterizerState* pDefaultRasterizerState = NULL;
 
-static volatile uint64_t gBufferIds = 0;
-static volatile uint64_t gTextureIds = 0;
-static volatile uint64_t gSamplerIds = 0;
-
 // Since there are no descriptor tables in Metal, we just hold a map of all descriptors.
 using DescriptorMap = tinystl::unordered_map<uint64_t, DescriptorInfo>;
 using ConstDescriptorMapIterator = tinystl::unordered_map<uint64_t, DescriptorInfo>::const_iterator;
@@ -1812,7 +1808,6 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	allocSuccess = createBuffer(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pBuffer);
 	ASSERT(allocSuccess);
 
-	pBuffer->mBufferId = (++gBufferIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
 	pBuffer->mCurrentState = pBuffer->mDesc.mStartState;
 
 	// If buffer is a suballocation use offset in heap else use zero offset (placed resource / committed resource)
@@ -1936,7 +1931,6 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	samplerDesc.compareFunction = gMtlComparisonFunctionTranslator[pDesc->mCompareFunc];
 
 	pSampler->mtlSamplerState = [pRenderer->pDevice newSamplerStateWithDescriptor:samplerDesc];
-	pSampler->mSamplerId = (++gSamplerIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
 
 	*ppSampler = pSampler;
 }
@@ -3961,7 +3955,6 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		((TextureDesc*)pDesc)->mMipLevels = 1;
 
 	pTexture->mDesc = *pDesc;
-	pTexture->mTextureId = (++gTextureIds << 8U) + util_pthread_to_uint64(Thread::GetCurrentThreadID());
 
 	pTexture->mtlPixelFormat = util_to_mtl_pixel_format(pTexture->mDesc.mFormat, pTexture->mDesc.mSrgb);
 #ifndef TARGET_IOS

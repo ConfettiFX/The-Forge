@@ -246,7 +246,7 @@ void LuaManagerImpl::AddAsyncScript(const char* scriptname, IScriptCallbackWrap*
 
 	info->callbackLambda = callbackLambda;
 
-	//WorkItem* pItem = (WorkItem*)conf_calloc(1, sizeof(*pItem));
+	//ThreadDesc* pItem = (ThreadDesc*)conf_calloc(1, sizeof(*pItem));
 
 	//pItem->pFunc = AsyncScriptExecute;
 	//pItem->pData = info;
@@ -269,7 +269,7 @@ void LuaManagerImpl::AddAsyncScript(const char* scriptname, ScriptDoneCallback c
 	info->scriptName = tinystl::string(scriptname);
 	info->callback = callback;
 	info->callbackLambda = nullptr;
-	//WorkItem* pItem = (WorkItem*)conf_calloc(1, sizeof(*pItem));
+	//ThreadDesc* pItem = (ThreadDesc*)conf_calloc(1, sizeof(*pItem));
 
 	//pItem->pFunc = AsyncScriptExecute;
 	//pItem->pData = info;

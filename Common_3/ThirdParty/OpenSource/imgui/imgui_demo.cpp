@@ -3498,8 +3498,9 @@ static void ShowExampleAppCustomRendering(bool* p_open)
             }
         }
         draw_list->PushClipRect(canvas_pos, float2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), true);      // clip lines within the canvas (if we resize it, etc.)
-        for (int i = 0; i < points.size() - 1; i += 2)
-            draw_list->AddLine(float2(canvas_pos.x + points[i].x, canvas_pos.y + points[i].y), float2(canvas_pos.x + points[i + 1].x, canvas_pos.y + points[i + 1].y), IM_COL32(255, 255, 0, 255), 2.0f);
+		if (points.size() > 0)
+			for (int i = 0; i < points.size() - 1; i += 2)
+				draw_list->AddLine(float2(canvas_pos.x + points[i].x, canvas_pos.y + points[i].y), float2(canvas_pos.x + points[i + 1].x, canvas_pos.y + points[i + 1].y), IM_COL32(255, 255, 0, 255), 2.0f);
         draw_list->PopClipRect();
         if (adding_preview)
             points.pop_back();

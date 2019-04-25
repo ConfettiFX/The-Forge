@@ -303,6 +303,7 @@ class AssimpImporter: public IModelImporter
 	public:
 	~AssimpImporter() {}
 	bool ImportModel(const char* filename, Model* outModel);
+    const Node* FindMeshNode(const Node* rootNode, int meshIndex);
 
 	tinystl::string MATKEY_NAME() { return "?mat.name"; }
 	tinystl::string MATKEY_TWOSIDED() { return "$mat.twosided"; }

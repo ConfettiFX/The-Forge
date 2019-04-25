@@ -473,7 +473,6 @@ struct Sampler;
 struct RasterizerState;
 struct DepthState;
 struct BlendState;
-struct GPURingBuffer;
 
 typedef struct GuiDesc
 {
@@ -603,7 +602,7 @@ class GUIDriver
 			bool showDemoWindow;
 		};
 
-	virtual bool init(Renderer* pRenderer) = 0;
+	virtual bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch) = 0;
 	virtual void exit() = 0;
 
 	virtual bool
@@ -888,7 +887,7 @@ struct UIAppImpl
 class UIApp: public IMiddleware
 {
 	public:
-	UIApp(int32_t const fontAtlasSize = 0);
+	UIApp(int32_t const fontAtlasSize = 0, uint32_t const maxDynamicUIUpdatesPerBatch = 20u);
 
 	bool Init(Renderer* renderer);
 	void Exit();
@@ -1476,7 +1475,8 @@ class UIApp: public IMiddleware
 		// Need multi platform support
 	}
 #endif
-	int32_t mFontAtlasSize = 0;
+	int32_t  mFontAtlasSize = 0;
+	uint32_t mMaxDynamicUIUpdatesPerBatch = 20;
 };
 
 class VirtualJoystickUI
@@ -1520,7 +1520,7 @@ class VirtualJoystickUI
 	BlendState*       pBlendAlpha;
 	DepthState*       pDepthState;
 	RasterizerState*  pRasterizerState;
-	GPURingBuffer*    pMeshRingBuffer;
+	Buffer*           pMeshBuffer;
 	vec2              mRenderSize;
 	//input related
 	private:

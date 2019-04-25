@@ -271,14 +271,9 @@ const DXGI_FORMAT gDX12FormatTranslatorTypeless[] = {
 	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-#ifdef FORGE_JHABLE_EDITS_V01
 	// should have 2 bc6h formats
 	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 77,
 	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 78,
-#else
-	DXGI_FORMAT_UNKNOWN, // GNF_BC6 = 77,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC7 = 78,
-#endif
 	// Reveser Form
 	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
 	// Extend for DXGI
@@ -368,13 +363,8 @@ const DXGI_FORMAT gDX12FormatTranslator[] = {
 	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-#ifdef FORGE_JHABLE_EDITS_V01
 	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 77,
 	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 78,
-#else
-	DXGI_FORMAT_UNKNOWN, // GNF_BC6 = 77,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC7 = 78,
-#endif
 	// Reveser Form
 	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
 	// Extend for DXGI
@@ -823,9 +813,10 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 static const uint32_t gDescriptorTableDWORDS = 1;
 static const uint32_t gRootDescriptorDWORDS = 2;
 
-static volatile uint64_t gBufferIds = 0;
-static volatile uint64_t gTextureIds = 0;
-static volatile uint64_t gSamplerIds = 0;
+static tfrg_atomic64_t gBufferIds = 0;
+static tfrg_atomic64_t gTextureIds = 0;
+static tfrg_atomic64_t gSamplerIds = 0;
+
 static volatile uint32_t gFrameNumber = (uint32_t)-1;
 
 static uint32_t gMaxRootConstantsPerRootParam = 4U;
@@ -2050,16 +2041,16 @@ namespace d3d12 {
 // Functions not exposed in IRenderer but still need to be assigned when using runtime switching of renderers
 /************************************************************************/
 // clang-format off
-API_INTERFACE void CALLTYPE addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-API_INTERFACE void CALLTYPE removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-API_INTERFACE void CALLTYPE removeTexture(Renderer* pRenderer, Texture* pTexture);
-API_INTERFACE void CALLTYPE mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-API_INTERFACE void CALLTYPE unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void CALLTYPE cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
-API_INTERFACE void CALLTYPE cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
-API_INTERFACE void CALLTYPE compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
-API_INTERFACE const RendererShaderDefinesDesc CALLTYPE get_renderer_shaderdefines(Renderer* pRenderer);
+API_INTERFACE void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
+API_INTERFACE void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+API_INTERFACE void FORGE_CALLCONV addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+API_INTERFACE void FORGE_CALLCONV removeTexture(Renderer* pRenderer, Texture* pTexture);
+API_INTERFACE void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+API_INTERFACE void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
+API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
+API_INTERFACE const RendererShaderDefinesDesc FORGE_CALLCONV get_renderer_shaderdefines(Renderer* pRenderer);
 // clang-format on
 /************************************************************************/
 // Renderer Init Remove
@@ -2822,7 +2813,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		add_uav(pRenderer, pBuffer->pDxResource, pCounterResource, &uavDesc, &pBuffer->mDxUavHandle);
 	}
 
-	pBuffer->mBufferId = (++gBufferIds << 8U) + Thread::GetCurrentThreadID();
+	pBuffer->mBufferId = tfrg_atomic32_add_relaxed(&gBufferIds, 1);
 
 	*pp_buffer = pBuffer;
 }
@@ -2895,7 +2886,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 	//set texture properties
 	pTexture->mDesc = *pDesc;
-	pTexture->mTextureId = (++gTextureIds << 8U) + Thread::GetCurrentThreadID();
+	pTexture->mTextureId = tfrg_atomic32_add_relaxed(&gTextureIds, 1);
 
 	if (pDesc->pNativeHandle)
 	{
@@ -3655,7 +3646,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 
 	add_sampler(pRenderer, &pSampler->mDxSamplerDesc, &pSampler->mDxSamplerHandle);
 
-	pSampler->mSamplerId = (++gSamplerIds << 8U) + Thread::GetCurrentThreadID();
+	pSampler->mSamplerId = tfrg_atomic32_add_relaxed(&gSamplerIds, 1);
 
 	*ppSampler = pSampler;
 }
@@ -6203,11 +6194,6 @@ void queueSubmit(
 
 	for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
 		pQueue->pDxQueue->Wait(ppWaitSemaphores[i]->pFence->pDxFence, ppWaitSemaphores[i]->pFence->mFenceValue - 1);
-
-	for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
-	{
-		waitForFences(pQueue->pRenderer, 1, &ppWaitSemaphores[i]->pFence);
-	}
 
 	pQueue->pDxQueue->ExecuteCommandLists(cmdCount, cmds);
 	

@@ -65,7 +65,7 @@ float4 main(VSOutput input) : SV_TARGET
         return LeftText.Sample(uSkyboxSampler, newtextcoord);
 
     }
-    if (side == 4.0f)
+    else if (side == 4.0f)
     {
     
         newtextcoord = (input.TexCoord.xz) / 20 +0.5;

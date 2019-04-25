@@ -53,6 +53,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputMappings.h" />

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2019 Confetti Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,275 +22,146 @@
  * under the License.
 */
 
-#include <algorithm>
-
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
 
-MutexLock::MutexLock(Mutex& rhs): mMutex(rhs) { rhs.Acquire(); }
+#include "ThreadSystem.h"
 
-MutexLock::~MutexLock() { mMutex.Release(); }
-
-Thread::Thread(ThreadPool* pThreadSystem)
+struct ThreadedTask
 {
-	pItem = (WorkItem*)conf_calloc(1, sizeof(WorkItem));
-	pItem->pData = pThreadSystem;
-	pItem->pFunc = ThreadPool::ProcessItems;
-	pItem->mCompleted = false;
+	TaskFunc  mTask;
+	void*     mUser;
+	uintptr_t mStart;
+	uintptr_t mEnd;
+};
 
-	pHandle = create_thread(pItem);
-}
-
-Thread::~Thread()
+enum
 {
-	if (pHandle != 0)
+	MAX_LOAD_THREADS = 4
+};
+
+struct ThreadSystem
+{
+	ThreadDesc                    mThreadDescs[MAX_LOAD_THREADS];
+	ThreadHandle                  mThread[MAX_LOAD_THREADS];
+	tinystl::vector<ThreadedTask> mLoadQueue;
+	ConditionVariable             mQueueCond;
+	Mutex                         mQueueMutex;
+	ConditionVariable             mIdleCond;
+	uint32_t                      mNumLoaders;
+	uint32_t                      mNumIdleLoaders;
+	volatile bool                 mRun;
+};
+
+static void taskThreadFunc(void* pThreadData)
+{
+	ThreadSystem* pThreadSystem = (ThreadSystem*)pThreadData;
+	while (pThreadSystem->mRun)
 	{
-		destroy_thread(pHandle);
-		conf_free(pItem);
-	}
-}
-
-ThreadPool::ThreadPool(): mShutDown(false), mPausing(false), mPaused(false), mCompleting(false) { Thread::SetMainThread(); }
-
-ThreadPool::~ThreadPool()
-{
-	// Stop the worker threads. First make sure they are not waiting for work items
-	mShutDown = true;
-	Resume();
-
-	for (unsigned i = 0; i < mThreads.size(); ++i)
-	{
-		mThreads[i]->~Thread();
-		conf_free(mThreads[i]);
-	}
-}
-
-void ThreadPool::CreateThreads(unsigned numThreads)
-{
-	// Only allow creation of threads once during lifetime of a threadpool instance
-	if (!mThreads.empty())
-		return;
-
-	// Start threads in paused mode
-	Pause();
-
-	for (unsigned i = 0; i < numThreads; ++i)
-	{
-		Thread* thread(conf_placement_new<Thread>(conf_calloc(1, sizeof(Thread)), this));
-		mThreads.emplace_back(thread);
-	}
-}
-
-void ThreadPool::AddWorkItem(WorkItem* item)
-{
-	// Check for duplicate / invalid items.
-	ASSERT(item && "Null work item submitted to thread pool");
-	ASSERT(mWorkItems.find(item) == mWorkItems.end());
-
-	// Push to the main thread list to keep item alive
-	// Clear completed flag in case item is reused
-	mWorkItems.push_back(item);
-	item->mCompleted = false;
-
-	if (mThreads.size() && !mPaused)
-		mQueueMutex.Acquire();
-
-	// Find position for new item
-	if (mWorkQueue.empty())
-		mWorkQueue.push_back(item);
-	else
-	{
-		for (WorkItem** i = mWorkQueue.begin(); i != mWorkQueue.end(); ++i)
+		pThreadSystem->mQueueMutex.Acquire();
+		++pThreadSystem->mNumIdleLoaders;
+		while (pThreadSystem->mRun && pThreadSystem->mLoadQueue.empty())
 		{
-			if ((*i)->mPriority <= item->mPriority)
-			{
-				mWorkQueue.insert(i, item);
-				break;
-			}
+			pThreadSystem->mIdleCond.SetAll();
+			pThreadSystem->mQueueCond.Wait(pThreadSystem->mQueueMutex);
 		}
-	}
-
-	if (mThreads.size())
-	{
-		mQueueMutex.Release();
-		mPaused = false;
-	}
-}
-
-bool ThreadPool::RemoveWorkItem(WorkItem*& item)
-{
-	if (!item)
-		return false;
-
-	MutexLock lock(mQueueMutex);
-
-	tinystl::vector<WorkItem*>::iterator i = mWorkQueue.find(item);
-	if (i != mWorkQueue.end())
-	{
-		WorkItem** j = mWorkItems.find(item);
-		if (j != mWorkItems.end())
+		--pThreadSystem->mNumIdleLoaders;
+		if (!pThreadSystem->mLoadQueue.empty())
 		{
-			mWorkQueue.erase(i);
-			mWorkItems.erase(j);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-unsigned ThreadPool::RemoveWorkItems(const tinystl::vector<WorkItem*>& items)
-{
-	MutexLock lock(mQueueMutex);
-	unsigned  removed = 0;
-
-	for (WorkItem* const& i : items)
-	{
-		WorkItem** j = mWorkQueue.find(i);
-		if (j != mWorkQueue.end())
-		{
-			WorkItem** k = mWorkItems.find(i);
-			if (k != mWorkItems.end())
-			{
-				mWorkQueue.erase(j);
-				mWorkItems.erase(k);
-				++removed;
-			}
-		}
-	}
-
-	return removed;
-}
-
-void ThreadPool::Pause()
-{
-	if (!mPaused)
-	{
-		mPausing = true;
-
-		mQueueMutex.Acquire();
-		mPaused = true;
-
-		mPausing = false;
-	}
-}
-
-void ThreadPool::Resume()
-{
-	if (mPaused)
-	{
-		mQueueMutex.Release();
-		mPaused = false;
-	}
-}
-
-void ThreadPool::Complete(unsigned priority)
-{
-	mCompleting = true;
-
-	if (mThreads.size())
-	{
-		Resume();
-
-		while (!mWorkQueue.empty())
-		{
-			mQueueMutex.Acquire();
-			if (!mWorkQueue.empty() && mWorkQueue.front()->mPriority >= priority)
-			{
-				WorkItem* item = mWorkQueue.front();
-				mWorkQueue.erase(mWorkQueue.begin());
-				mQueueMutex.Release();
-				item->pFunc(item->pData);
-				item->mCompleted = true;
-			}
+			ThreadedTask resourceTask = pThreadSystem->mLoadQueue.front();
+			if (resourceTask.mStart + 1 == resourceTask.mEnd)
+				pThreadSystem->mLoadQueue.erase(pThreadSystem->mLoadQueue.begin());
 			else
-			{
-				mQueueMutex.Release();
-				break;
-			}
+				++pThreadSystem->mLoadQueue.front().mStart;
+			pThreadSystem->mQueueMutex.Release();
+			resourceTask.mTask(resourceTask.mUser, resourceTask.mStart);
 		}
-
-		// Wait for threads to complete work
-		while (!IsCompleted(priority)) {}
-
-		// Pause worker threads
-		if (mWorkQueue.empty())
-			Pause();
-	}
-	else
-	{
-		// Single threaded systems
-		while (!mWorkQueue.empty() && mWorkQueue.front()->mPriority >= priority)
-		{
-			WorkItem* item = mWorkQueue.front();
-			mWorkQueue.erase(mWorkQueue.begin());
-			item->pFunc(item->pData);
-			item->mCompleted = true;
-		}
-	}
-
-	Cleanup(priority);
-	mCompleting = false;
-}
-
-bool ThreadPool::IsCompleted(unsigned priority) const
-{
-	for (WorkItem* const* i = mWorkItems.begin(); i != mWorkItems.end(); ++i)
-	{
-		if ((*i)->mPriority >= priority && !(*i)->mCompleted)
-			return false;
-	}
-
-	return true;
-}
-
-void ThreadPool::ProcessItems(void* pData)
-{
-	bool wasActive = false;
-
-	ThreadPool* pSystem = (ThreadPool*)pData;
-
-	for (;;)
-	{
-		if (pSystem->mShutDown)
-			return;
-
-		if (pSystem->mPausing && !wasActive)
-			Thread::Sleep(0);
 		else
 		{
-			pSystem->mQueueMutex.Acquire();
-			if (!pSystem->mWorkQueue.empty())
-			{
-				wasActive = true;
-
-				WorkItem* item = pSystem->mWorkQueue.front();
-				pSystem->mWorkQueue.erase(pSystem->mWorkQueue.begin());
-				pSystem->mQueueMutex.Release();
-				item->pFunc(item->pData);
-				item->mCompleted = true;
-			}
-			else
-			{
-				wasActive = false;
-
-				pSystem->mQueueMutex.Release();
-				Thread::Sleep(0);
-			}
+			pThreadSystem->mQueueMutex.Release();
 		}
 	}
+	pThreadSystem->mQueueMutex.Acquire();
+	++pThreadSystem->mNumIdleLoaders;
+	pThreadSystem->mIdleCond.SetAll();
+	pThreadSystem->mQueueMutex.Release();
 }
 
-void ThreadPool::Cleanup(unsigned priority)
+void initThreadSystem(ThreadSystem** ppThreadSystem)
 {
-	for (WorkItem** i = mWorkItems.begin(); i != mWorkItems.end();)
+	ThreadSystem* pThreadSystem = conf_new<ThreadSystem>();
+
+	uint32_t numThreads = max<uint32_t>(Thread::GetNumCPUCores() - 1, 1);
+	uint32_t numLoaders = min<uint32_t>(numThreads, MAX_LOAD_THREADS);
+
+	pThreadSystem->mRun = true;
+	pThreadSystem->mNumIdleLoaders = 0;
+
+	for (unsigned i = 0; i < numLoaders; ++i)
 	{
-		if ((*i)->mCompleted && (*i)->mPriority >= priority)
-		{
-			i = mWorkItems.erase(i);
-		}
-		else
-			++i;
+		pThreadSystem->mThreadDescs[i].pFunc = taskThreadFunc;
+		pThreadSystem->mThreadDescs[i].pData = pThreadSystem;
+
+		pThreadSystem->mThread[i] = create_thread(&pThreadSystem->mThreadDescs[i]);
 	}
+	pThreadSystem->mNumLoaders = numLoaders;
+
+	*ppThreadSystem = pThreadSystem;
+}
+
+void addThreadSystemTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t index)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	pThreadSystem->mLoadQueue.emplace_back(ThreadedTask{ task, user, index, index+1 });
+	pThreadSystem->mQueueMutex.Release();
+	pThreadSystem->mQueueCond.Set();
+}
+
+void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t count)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	pThreadSystem->mLoadQueue.emplace_back(ThreadedTask{ task, user, 0, count });
+	pThreadSystem->mQueueMutex.Release();
+	pThreadSystem->mQueueCond.Set();
+}
+
+void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t start, uintptr_t end)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	pThreadSystem->mLoadQueue.emplace_back(ThreadedTask{ task, user, start, end });
+	pThreadSystem->mQueueMutex.Release();
+	pThreadSystem->mQueueCond.Set();
+}
+
+void shutdownThreadSystem(ThreadSystem* pThreadSystem)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	pThreadSystem->mRun = false;
+	pThreadSystem->mQueueMutex.Release();
+	pThreadSystem->mQueueCond.SetAll();
+
+	uint32_t numLoaders = pThreadSystem->mNumLoaders;
+	for (uint32_t i = 0; i < numLoaders; ++i)
+	{
+		destroy_thread(pThreadSystem->mThread[i]);
+	}
+
+	conf_delete(pThreadSystem);
+}
+
+bool isThreadSystemIdle(ThreadSystem* pThreadSystem)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	bool idle = (pThreadSystem->mLoadQueue.empty() && pThreadSystem->mNumIdleLoaders == pThreadSystem->mNumLoaders) || !pThreadSystem->mRun;
+	pThreadSystem->mQueueMutex.Release();
+	return idle;
+}
+
+void waitThreadSystemIdle(ThreadSystem* pThreadSystem)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	while ((!pThreadSystem->mLoadQueue.empty() || pThreadSystem->mNumIdleLoaders < pThreadSystem->mNumLoaders) && pThreadSystem->mRun)
+		pThreadSystem->mIdleCond.Wait(pThreadSystem->mQueueMutex);
+	pThreadSystem->mQueueMutex.Release();
 }

@@ -468,13 +468,19 @@ class Skinning: public IApp
 			AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
 			uint                  startVertices = (uint)vertices.size();
 			uint                  vertexCount = (uint)mesh->mPositions.size();
+            mat4 localToWorldMat = mat4::identity();
+            const AssimpImporter::Node* node = importer.FindMeshNode(&model.mRootNode, i);
+            if (node)
+                localToWorldMat = node->mTransform;
 
 			vertices.resize(startVertices + vertexCount);
 			for (uint j = 0; j < vertexCount; ++j)
 			{
-				vertices[startVertices + j].mPosition = mesh->mPositions[j];
-				vertices[startVertices + j].mNormal = mesh->mNormals[j];
-				vertices[startVertices + j].mUV = mesh->mUvs[j];
+                vec4 pos = vec4(mesh->mPositions[j].x, mesh->mPositions[j].y, mesh->mPositions[j].z, 1);
+                vec4 normal = vec4(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z, 0);
+                vertices[startVertices + j].mPosition = v3ToF3((localToWorldMat * pos).getXYZ());
+				vertices[startVertices + j].mNormal = v3ToF3(normalize((localToWorldMat * normal).getXYZ()));
+                vertices[startVertices + j].mUV = mesh->mUvs[j];
 			}
 
 			if (!mesh->mBoneNames.empty() && !mesh->mBoneWeights.empty())
@@ -494,9 +500,9 @@ class Skinning: public IApp
 
 				for (size_t j = 0; j < mesh->mBones.size(); ++j)
 				{
-					int jointIndex = gStickFigureRig.FindJoint(mesh->mBones[j].mName.c_str());
-					if (jointIndex >= 0)
-						boneOffsetMatrices[jointIndex] = mesh->mBones[j].mOffsetMatrix;
+                    int jointIndex = gStickFigureRig.FindJoint(mesh->mBones[j].mName.c_str());
+                    if (jointIndex >= 0)
+                        boneOffsetMatrices[jointIndex] = mesh->mBones[j].mOffsetMatrix * inverse(localToWorldMat);
 				}
 			}
 

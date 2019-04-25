@@ -76,6 +76,10 @@
 //mmgr
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // Must be the last include in a cpp file
 
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
+
+#include "../../../Common/AppHelpers.h"
+
 // define folders for resources
 const char* pszBases[FSR_Count] = {
 	"../../../src/06_MaterialPlayground/",    // FSR_BinShaders
@@ -463,7 +467,7 @@ uint32_t   gFrameIndex = 0;
 // THE FORGE OBJECTS
 //--------------------------------------------------------------------------------------------
 LogManager         gLogManager;
-UIApp			   gAppUI(256);
+UIApp              gAppUI(256);
 ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 TextDrawDesc       gFrameTimeDraw = TextDrawDesc(0, 0xff00ff00, 18);
@@ -473,6 +477,8 @@ GuiComponent*      pGuiWindowMain = NULL;
 GuiComponent*      pGuiWindowHairSimulation = NULL;
 GuiComponent*      pGuiWindowMaterial = NULL;
 LuaManager         gLuaManager;
+ThreadSystem*      pIOThreads = NULL;
+
 #ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
 #endif
@@ -872,9 +878,34 @@ class MaterialPlayground: public IApp
 		mSettings.mContentScaleFactor = 1.f;
 #endif
 	}
-	
+
+	struct StagingData
+	{
+		tinystl::vector<tinystl::string> mModelList;
+		tinystl::vector<tinystl::vector<Vertex>> mModelVerticesList;
+		tinystl::vector<tinystl::vector<uint>> mModelIndicesList;
+		tinystl::vector<tinystl::string> mMaterialNamesStorage;
+		tinystl::vector<tinystl::string> mGroundNamesStorage;
+		tinystl::vector<const char*> mMaterialTextureList;
+		tinystl::vector<const char*> mGroundTextureList;
+		TextureLoadTaskData mMaterialTexturesData = {};
+		TextureLoadTaskData mGroundTexturesData = {};
+		float* pJointPoints;
+		float* pBonePoints;
+		TFXAsset tfxAsset[9];
+		~StagingData()
+		{
+			conf_free(pJointPoints);
+			conf_free(pBonePoints);
+		}
+	};
+	StagingData* pStagingData;
+
 	bool Init()
 	{
+		initThreadSystem(&pIOThreads);
+
+		Timer t;
 		// INITIALIZE RENDERER, COMMAND BUFFERS
 		//
 		RendererDesc settings = { 0 };
@@ -912,25 +943,72 @@ class MaterialPlayground: public IApp
 #endif
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
 
+		pStagingData = conf_new<StagingData>();
 		// CREATE RENDERING RESOURCES
 		//
+		// PBR Texture values (these values are mirrored on the shaders).
+		static const uint32_t gBRDFIntegrationSize = 512;
+		static const uint32_t gSkyboxSize = 1024;
+		static const uint32_t gSkyboxMips = 11;
+		static const uint32_t gIrradianceSize = 32;
+		static const uint32_t gSpecularSize = 128;
+		static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
+
+		const char * skyboxNames[] =
+		{
+			"LA_Helipad.hdr",
+			"LA_Helipad.exr",
+			"LA_Helipad.png",
+			"LA_Helipad_DXT1.DDS",
+			"LA_Helipad_BC7.DDS",
+			"LA_Helipad_BC6H_SF.DDS"
+		};
+
+		static const int skyboxIndex = 0;
+
+		ComputePBRMapsTaskData pPBRMapLoadData;
+		pPBRMapLoadData.pRenderer = pRenderer;
+		pPBRMapLoadData.pQueue = pGraphicsQueue;
+		pPBRMapLoadData.pCmd = ppCmds[0];
+		pPBRMapLoadData.pFence = NULL;
+		pPBRMapLoadData.pSemaphore = NULL;
+		pPBRMapLoadData.mSourceName = skyboxNames[skyboxIndex];
+		pPBRMapLoadData.mPresetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
+		pPBRMapLoadData.mSkyboxSize = gSkyboxSize;
+		pPBRMapLoadData.mSkyboxMips = gSkyboxMips;
+		pPBRMapLoadData.mSpecularSize = gSpecularSize;
+		pPBRMapLoadData.mSpecularMips = gSpecularMips;
+		pPBRMapLoadData.mBRDFIntegrationSize = gBRDFIntegrationSize;
+		pPBRMapLoadData.mIrradianceSize = gIrradianceSize;
+		computePBRMaps(&pPBRMapLoadData);
+		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], NULL, 0, NULL, 0, NULL);
+
+		LoadModelsAndTextures();
+
 		CreateRasterizerStates();
 		CreateDepthStates();
 		CreateBlendStates();
 		CreateSamplers();
-
 		CreateShaders();
 		CreateRootSignatures();
-
-		CreatePBRMaps();
-		LoadModelsAndTextures();
-
-		CreateResources();
-		CreateDescriptorBinders();
-		LoadAnimations();
 		CreateUniformBuffers();
 
-		finishResourceLoading();
+		CreateResources();
+		LoadAnimations();
+		CreateDescriptorBinders();
+
+		waitThreadSystemIdle(pIOThreads);
+		waitBatchCompleted();
+		waitQueueIdle(pGraphicsQueue);
+
+		pTextureSkybox = pPBRMapLoadData.pSkybox;
+		pTextureBRDFIntegrationMap = pPBRMapLoadData.pBRDFIntegrationMap;
+		pTextureIrradianceMap = pPBRMapLoadData.pIrradianceMap;
+		pTextureSpecularMap = pPBRMapLoadData.pSpecularMap;
+
+		cleanupPBRMapsTaskData(&pPBRMapLoadData);
+
+		conf_delete(pStagingData);
 
 		InitializeUniformBuffers();
 
@@ -1014,6 +1092,7 @@ class MaterialPlayground: public IApp
 	void Exit()
 	{
 		gLuaManager.Exit();
+		shutdownThreadSystem(pIOThreads);
 
 		waitQueueIdle(pGraphicsQueue);
 
@@ -1449,7 +1528,7 @@ class MaterialPlayground: public IApp
 			// DRAW THE GROUND
 			//
 			cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_CUBE]->pVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, pMeshes[MESH_CUBE]->pIndexBuffer, NULL);
+			cmdBindIndexBuffer(cmd, pMeshes[MESH_CUBE]->pIndexBuffer, 0);
 
 			shadowParams[0].pName = "cbObject";
 			shadowParams[0].ppBuffers = &pUniformBufferGroundPlane;	// TODO
@@ -1469,7 +1548,7 @@ class MaterialPlayground: public IApp
 			// DRAW THE MATERIAL BALLS
 			//
 			cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_MAT_BALL]->pVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, pMeshes[MESH_MAT_BALL]->pIndexBuffer, NULL);
+			cmdBindIndexBuffer(cmd, pMeshes[MESH_MAT_BALL]->pIndexBuffer, 0);
 			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
 				shadowParams[0].pName = "cbObject";
@@ -1551,7 +1630,7 @@ class MaterialPlayground: public IApp
 		// DRAW THE GROUND PLANE
 		//
 		cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_CUBE]->pVertexBuffer, NULL);
-		cmdBindIndexBuffer(cmd, pMeshes[MESH_CUBE]->pIndexBuffer, NULL);
+		cmdBindIndexBuffer(cmd, pMeshes[MESH_CUBE]->pIndexBuffer, 0);
 
 		params[0].pName = "cbObject";
 		params[0].ppBuffers = &pUniformBufferGroundPlane;
@@ -1591,7 +1670,7 @@ class MaterialPlayground: public IApp
 			}
 
 			cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_MAT_BALL]->pVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, pMeshes[MESH_MAT_BALL]->pIndexBuffer, NULL);
+			cmdBindIndexBuffer(cmd, pMeshes[MESH_MAT_BALL]->pIndexBuffer, 0);
 
 			// DRAW THE MATERIAL BALLS
 			//
@@ -2099,7 +2178,7 @@ class MaterialPlayground: public IApp
 				cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 				cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_CAPSULE]->pVertexBuffer, NULL);
-				cmdBindIndexBuffer(cmd, pMeshes[MESH_CAPSULE]->pIndexBuffer, NULL);
+				cmdBindIndexBuffer(cmd, pMeshes[MESH_CAPSULE]->pIndexBuffer, 0);
 
 				cmdBindPipeline(cmd, pPipelineShowCapsules);
 				for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
@@ -2723,317 +2802,6 @@ class MaterialPlayground: public IApp
 #endif
 	}
 
-	void CreatePBRMaps()
-	{
-		// PBR Texture values (these values are mirrored on the shaders).
-		const uint32_t gBRDFIntegrationSize = 512;
-		const uint32_t gSkyboxSize = 1024;
-		const uint32_t gSkyboxMips = 11;
-		const uint32_t gIrradianceSize = 32;
-		const uint32_t gSpecularSize = 128;
-		const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
-
-		// Temporary resources that will be loaded on PBR preprocessing.
-		Texture*          pPanoSkybox = NULL;
-		Shader*           pPanoToCubeShader = NULL;
-		RootSignature*    pPanoToCubeRootSignature = NULL;
-		Pipeline*         pPanoToCubePipeline = NULL;
-		Shader*           pBRDFIntegrationShader = NULL;
-		RootSignature*    pBRDFIntegrationRootSignature = NULL;
-		Pipeline*         pBRDFIntegrationPipeline = NULL;
-		Shader*           pIrradianceShader = NULL;
-		RootSignature*    pIrradianceRootSignature = NULL;
-		Pipeline*         pIrradiancePipeline = NULL;
-		Shader*           pSpecularShader = NULL;
-		RootSignature*    pSpecularRootSignature = NULL;
-		Pipeline*         pSpecularPipeline = NULL;
-		Sampler*          pSkyboxSampler = NULL;
-		DescriptorBinder* pPBRDescriptorBinder = NULL;
-
-		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
-		};
-		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
-
-		// Load the skybox panorama texture.
-		TextureLoadDesc panoDesc = {};
-		panoDesc.mRoot = FSR_Textures;
-		panoDesc.mUseMipmaps = true;
-		panoDesc.pFilename = "LA_Helipad.hdr";
-		panoDesc.ppTexture = &pPanoSkybox;
-		addResource(&panoDesc);
-
-		TextureDesc skyboxImgDesc = {};
-		skyboxImgDesc.mArraySize = 6;
-		skyboxImgDesc.mDepth = 1;
-		skyboxImgDesc.mFormat = ImageFormat::RGBA32F;
-		skyboxImgDesc.mHeight = gSkyboxSize;
-		skyboxImgDesc.mWidth = gSkyboxSize;
-		skyboxImgDesc.mMipLevels = gSkyboxMips;
-		skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
-		skyboxImgDesc.mSrgb = false;
-		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		skyboxImgDesc.pDebugName = L"skyboxImgBuff";
-
-		TextureLoadDesc skyboxLoadDesc = {};
-		skyboxLoadDesc.pDesc = &skyboxImgDesc;
-		skyboxLoadDesc.ppTexture = &pTextureSkybox;
-		addResource(&skyboxLoadDesc);
-
-		TextureDesc irrImgDesc = {};
-		irrImgDesc.mArraySize = 6;
-		irrImgDesc.mDepth = 1;
-		irrImgDesc.mFormat = ImageFormat::RGBA32F;
-		irrImgDesc.mHeight = gIrradianceSize;
-		irrImgDesc.mWidth = gIrradianceSize;
-		irrImgDesc.mMipLevels = 1;
-		irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
-		irrImgDesc.mSrgb = false;
-		irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		irrImgDesc.pDebugName = L"irrImgBuff";
-
-		TextureLoadDesc irrLoadDesc = {};
-		irrLoadDesc.pDesc = &irrImgDesc;
-		irrLoadDesc.ppTexture = &pTextureIrradianceMap;
-		addResource(&irrLoadDesc);
-
-		TextureDesc specImgDesc = {};
-		specImgDesc.mArraySize = 6;
-		specImgDesc.mDepth = 1;
-		specImgDesc.mFormat = ImageFormat::RGBA32F;
-		specImgDesc.mHeight = gSpecularSize;
-		specImgDesc.mWidth = gSpecularSize;
-		specImgDesc.mMipLevels = gSpecularMips;
-		specImgDesc.mSampleCount = SAMPLE_COUNT_1;
-		specImgDesc.mSrgb = false;
-		specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		specImgDesc.pDebugName = L"specImgBuff";
-
-		TextureLoadDesc specImgLoadDesc = {};
-		specImgLoadDesc.pDesc = &specImgDesc;
-		specImgLoadDesc.ppTexture = &pTextureSpecularMap;
-		addResource(&specImgLoadDesc);
-
-		// Create empty texture for BRDF integration map.
-		TextureLoadDesc brdfIntegrationLoadDesc = {};
-		TextureDesc     brdfIntegrationDesc = {};
-		brdfIntegrationDesc.mWidth = gBRDFIntegrationSize;
-		brdfIntegrationDesc.mHeight = gBRDFIntegrationSize;
-		brdfIntegrationDesc.mDepth = 1;
-		brdfIntegrationDesc.mArraySize = 1;
-		brdfIntegrationDesc.mMipLevels = 1;
-		brdfIntegrationDesc.mFormat = ImageFormat::RG32F;
-		brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
-		brdfIntegrationDesc.mHostVisible = false;
-		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
-		brdfIntegrationLoadDesc.ppTexture = &pTextureBRDFIntegrationMap;
-		addResource(&brdfIntegrationLoadDesc);
-
-		// Load pre-processing shaders.
-		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
-
-		GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
-		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
-		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", tinystl::string::format("%u", importanceSampleCount) };
-
-		ShaderLoadDesc brdfIntegrationShaderDesc = {};
-		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
-
-		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, FSR_SrcShaders };
-
-		ShaderLoadDesc specularShaderDesc = {};
-		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
-
-		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
-		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
-		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
-		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
-
-		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
-		RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
-		panoRootDesc.mStaticSamplerCount = 1;
-		panoRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		panoRootDesc.ppStaticSamplers = &pSkyboxSampler;
-		RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
-		brdfRootDesc.mStaticSamplerCount = 1;
-		brdfRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		brdfRootDesc.ppStaticSamplers = &pSkyboxSampler;
-		RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
-		irradianceRootDesc.mStaticSamplerCount = 1;
-		irradianceRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		irradianceRootDesc.ppStaticSamplers = &pSkyboxSampler;
-		RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
-		specularRootDesc.mStaticSamplerCount = 1;
-		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
-		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
-		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
-		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
-		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
-
-		
-		DescriptorBinderDesc descriptorBinderDesc[4] = {
-			{ pPanoToCubeRootSignature, gSkyboxMips + 1 },
-			{ pBRDFIntegrationRootSignature },
-			{ pIrradianceRootSignature },
-			{ pSpecularRootSignature, gSpecularMips + 1 }
-		};
-		addDescriptorBinder(pRenderer, 0, 4, descriptorBinderDesc, &pPBRDescriptorBinder);
-
-		PipelineDesc computeDesc = {};
-		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
-		ComputePipelineDesc& pipelineSettings = computeDesc.mComputeDesc;
-		pipelineSettings.pShaderProgram = pPanoToCubeShader;
-		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
-		addPipeline(pRenderer, &computeDesc, &pPanoToCubePipeline);
-		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
-		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
-		addPipeline(pRenderer, &computeDesc, &pBRDFIntegrationPipeline);
-		pipelineSettings.pShaderProgram = pIrradianceShader;
-		pipelineSettings.pRootSignature = pIrradianceRootSignature;
-		addPipeline(pRenderer, &computeDesc, &pIrradiancePipeline);
-		pipelineSettings.pShaderProgram = pSpecularShader;
-		pipelineSettings.pRootSignature = pSpecularRootSignature;
-		addPipeline(pRenderer, &computeDesc, &pSpecularPipeline);
-
-		// Since this happens on iniatilization, use the first cmd/fence pair available.
-		Cmd*   cmd = ppCmds[0];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[0];
-
-		// Compute the BRDF Integration map.
-		beginCmd(cmd);
-
-		TextureBarrier uavBarriers[4] = {
-			{ pTextureSkybox, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pTextureIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pTextureSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pTextureBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
-		};
-		cmdResourceBarrier(cmd, 0, NULL, 4, uavBarriers, false);
-
-		cmdBindPipeline(cmd, pBRDFIntegrationPipeline);
-		DescriptorData params[2] = {};
-		params[0].pName = "dstTexture";
-		params[0].ppTextures = &pTextureBRDFIntegrationMap;
-		cmdBindDescriptors(cmd, pPBRDescriptorBinder, pBRDFIntegrationRootSignature, 1, params);
-		const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-		cmdDispatch(cmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
-
-		TextureBarrier srvBarrier[1] = { { pTextureBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE } };
-
-		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier, true);
-
-		// Store the panorama texture inside a cubemap.
-		cmdBindPipeline(cmd, pPanoToCubePipeline);
-		params[0].pName = "srcTexture";
-		params[0].ppTextures = &pPanoSkybox;
-		cmdBindDescriptors(cmd, pPBRDescriptorBinder, pPanoToCubeRootSignature, 1, params);
-
-		struct Data
-		{
-			uint mip;
-			uint textureSize;
-		} data = { 0, gSkyboxSize };
-
-		for (int i = 0; i < gSkyboxMips; i++)
-		{
-			data.mip = i;
-			params[0].pName = "RootConstant";
-			params[0].pRootConstant = &data;
-			params[1].pName = "dstTexture";
-			params[1].ppTextures = &pTextureSkybox;
-			params[1].mUAVMipSlice = i;
-			cmdBindDescriptors(cmd, pPBRDescriptorBinder, pPanoToCubeRootSignature, 2, params);
-
-			pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-			cmdDispatch(
-				cmd, max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[0]),
-				max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
-		}
-
-		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
-		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers, false);
-		/************************************************************************/
-		// Compute sky irradiance
-		/************************************************************************/
-		params[0] = {};
-		params[1] = {};
-		cmdBindPipeline(cmd, pIrradiancePipeline);
-		params[0].pName = "srcTexture";
-		params[0].ppTextures = &pTextureSkybox;
-		params[1].pName = "dstTexture";
-		params[1].ppTextures = &pTextureIrradianceMap;
-		cmdBindDescriptors(cmd, pPBRDescriptorBinder, pIrradianceRootSignature, 2, params);
-		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-		cmdDispatch(cmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
-		/************************************************************************/
-		// Compute specular sky
-		/************************************************************************/
-		cmdBindPipeline(cmd, pSpecularPipeline);
-		params[0].pName = "srcTexture";
-		params[0].ppTextures = &pTextureSkybox;
-		cmdBindDescriptors(cmd, pPBRDescriptorBinder, pSpecularRootSignature, 1, params);
-
-		struct PrecomputeSkySpecularData
-		{
-			uint  mipSize;
-			float roughness;
-		};
-
-		for (uint i = 0; i < gSpecularMips; i++)
-		{
-			PrecomputeSkySpecularData data = {};
-			data.roughness = (float)i / (float)(gSpecularMips - 1);
-			data.mipSize = gSpecularSize >> i;
-			params[0].pName = "RootConstant";
-			params[0].pRootConstant = &data;
-			params[1].pName = "dstTexture";
-			params[1].ppTextures = &pTextureSpecularMap;
-			params[1].mUAVMipSlice = i;
-			cmdBindDescriptors(cmd, pPBRDescriptorBinder, pSpecularRootSignature, 2, params);
-			pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
-			cmdDispatch(cmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
-		}
-		/************************************************************************/
-		/************************************************************************/
-		TextureBarrier srvBarriers2[2] = { { pTextureIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
-										   { pTextureSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
-		cmdResourceBarrier(cmd, 0, NULL, 2, srvBarriers2, false);
-
-		endCmd(cmd);
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 0, 0, 0, 0);
-		waitForFences(pRenderer, 1, &pRenderCompleteFence);
-
-		// Remove temporary resources.
-		removeDescriptorBinder(pRenderer, pPBRDescriptorBinder);
-		removePipeline(pRenderer, pSpecularPipeline);
-		removeRootSignature(pRenderer, pSpecularRootSignature);
-		removeShader(pRenderer, pSpecularShader);
-
-		removePipeline(pRenderer, pIrradiancePipeline);
-		removeRootSignature(pRenderer, pIrradianceRootSignature);
-		removeShader(pRenderer, pIrradianceShader);
-
-		removePipeline(pRenderer, pBRDFIntegrationPipeline);
-		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
-		removeShader(pRenderer, pBRDFIntegrationShader);
-
-		removePipeline(pRenderer, pPanoToCubePipeline);
-		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
-		removeShader(pRenderer, pPanoToCubeShader);
-
-		removeResource(pPanoSkybox);
-
-		removeSampler(pRenderer, pSkyboxSampler);
-	}
-
 	void DestroyPBRMaps()
 	{
 		removeResource(pTextureSpecularMap);
@@ -3047,7 +2815,8 @@ class MaterialPlayground: public IApp
 		bool modelsAreLoaded = false;
 		gLuaManager.SetFunction("LoadModel", [this](ILuaStateWrap* state) -> int {
 			tinystl::string filename = state->GetStringArg(1);    //indexing in Lua starts from 1 (NOT 0) !!
-			this->LoadModel(filename);
+			pStagingData->mModelList.push_back(filename);
+			//this->LoadModel(filename);
 			return 0;    //return amount of arguments that we want to send back to script
 		});
 
@@ -3057,22 +2826,31 @@ class MaterialPlayground: public IApp
 		while (!modelsAreLoaded)
 			Thread::Sleep(0);
 
+		uintptr_t meshCount = pStagingData->mModelList.size();
+		pMeshes.resize(meshCount);
+		pStagingData->mModelVerticesList.resize(meshCount);
+		pStagingData->mModelIndicesList.resize(meshCount);
+		addThreadSystemRangeTask(pIOThreads, &memberTaskFunc<MaterialPlayground, &MaterialPlayground::LoadModel>, this, meshCount);
+
 		bool texturesAreLoaded = false;
+		TextureLoadDesc textureDesc = {};
 		gLuaManager.SetFunction("GetTextureResolution", [this](ILuaStateWrap* state) -> int {
 			state->PushResultString(TEXTURE_RESOLUTION);
 			return 1;
 		});
-		gLuaManager.SetFunction("GetSkipLoadingTexturesFlag", [this](ILuaStateWrap* state)->int
-		{
+		gLuaManager.SetFunction("GetSkipLoadingTexturesFlag", [this](ILuaStateWrap* state) -> int {
 			state->PushResultInteger(SKIP_LOADING_TEXTURES);
 			return 1;
 		});
-		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state)->int
-		{
+		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state) -> int {
 			tinystl::vector<const char*> texturesNames;
 			state->GetStringArrayArg(1, texturesNames);
-			bool generateMips = state->GetIntegerArg(2) != 0;    //bool for Lua is integer
-			this->LoadTextureMaps(pTextureMaterialMaps, texturesNames.data(), (int)texturesNames.size(), generateMips);
+			pStagingData->mMaterialTexturesData.mDesc.mUseMipmaps = state->GetIntegerArg(2) != 0;    //bool for Lua is integer
+			for (const char* name : texturesNames)
+			{
+				pStagingData->mMaterialNamesStorage.push_back(name);
+				pStagingData->mMaterialTextureList.push_back(pStagingData->mMaterialNamesStorage.back().c_str());
+			}
 			return 0;
 		});
 		tinystl::string loadTexturesFilename = FileSystem::FixPath("loadTextures.lua", FSR_Middleware2);
@@ -3081,13 +2859,24 @@ class MaterialPlayground: public IApp
 		while (!texturesAreLoaded)
 			Thread::Sleep(0);
 
+		uintptr_t materialTextureCount = pStagingData->mMaterialTextureList.size();
+		pTextureMaterialMaps.resize(materialTextureCount);
+		pStagingData->mMaterialTexturesData.mDesc.mRoot = FSR_OtherFiles;
+		pStagingData->mMaterialTexturesData.mTextures = pTextureMaterialMaps.data();
+		pStagingData->mMaterialTexturesData.mNames = pStagingData->mMaterialTextureList.data();
+		addThreadSystemRangeTask(pIOThreads, loadTexturesTask, &pStagingData->mMaterialTexturesData, materialTextureCount);
+
 		bool groundTexturesAreLoaded = false;
 		//This is how we can replace function in runtime.
 		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state) -> int {
 			tinystl::vector<const char*> texturesNames;
 			state->GetStringArrayArg(1, texturesNames);
-			bool generateMips = state->GetIntegerArg(2) != 0;    //bool for Lua is integer
-			this->LoadTextureMaps(pTextureMaterialMapsGround, texturesNames.data(), (int)texturesNames.size(), generateMips);
+			pStagingData->mGroundTexturesData.mDesc.mUseMipmaps = state->GetIntegerArg(2) != 0;
+			for (const char* name : texturesNames)
+			{
+				pStagingData->mGroundNamesStorage.push_back(name);
+				pStagingData->mGroundTextureList.push_back(pStagingData->mGroundNamesStorage.back().c_str());
+			}
 			return 0;
 		});
 		tinystl::string loadGroundTexturesFilename = FileSystem::FixPath("loadGroundTextures.lua", FSR_Middleware2);
@@ -3096,34 +2885,42 @@ class MaterialPlayground: public IApp
 
 		while (!groundTexturesAreLoaded)
 			Thread::Sleep(0);
+
+		uintptr_t groundTextureCount = pStagingData->mGroundTextureList.size();
+		pTextureMaterialMapsGround.resize(groundTextureCount);
+		pStagingData->mGroundTexturesData.mDesc.mRoot = FSR_OtherFiles;
+		pStagingData->mGroundTexturesData.mTextures = pTextureMaterialMapsGround.data();
+		pStagingData->mGroundTexturesData.mNames = pStagingData->mGroundTextureList.data();
+		addThreadSystemRangeTask(pIOThreads, &loadTexturesTask, &pStagingData->mGroundTexturesData, groundTextureCount);
 	}
 
-	bool LoadModel(const char* model_name)
+	void LoadModel(uintptr_t i)
 	{
-		tinystl::vector<Vertex> vertices = {};
-		tinystl::vector<uint>   indices = {};
+		tinystl::vector<Vertex>& vertices = pStagingData->mModelVerticesList[i];
+		tinystl::vector<uint>&   indices = pStagingData->mModelIndicesList[i];
 		AssimpImporter          importer;
 
 		AssimpImporter::Model model;
-		if (importer.ImportModel(FileSystem::FixPath(model_name, FSR_Meshes).c_str(), &model))
+		if (importer.ImportModel(FileSystem::FixPath(pStagingData->mModelList[i], FSR_Meshes).c_str(), &model))
 		{
 			for (size_t i = 0; i < model.mMeshArray.size(); ++i)
 			{
 				AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
-				vertices.reserve(vertices.size() + mesh->mPositions.size());
-				indices.reserve(indices.size() + mesh->mIndices.size());
+				size_t vertexCount = vertices.size();
+				size_t indexCount = indices.size();
+				vertices.resize(vertexCount + mesh->mPositions.size());
+				indices.resize(indexCount + mesh->mIndices.size());
 
 				for (size_t v = 0; v < mesh->mPositions.size(); ++v)
 				{
-					Vertex vertex = { float3(0.0f), float3(0.0f, 1.0f, 0.0f) };
+					Vertex& vertex = vertices[vertexCount + v];
 					vertex.mPos = mesh->mPositions[v];
 					vertex.mNormal = mesh->mNormals[v];
 					vertex.mUv = mesh->mUvs[v];
-					vertices.push_back(vertex);
 				}
 
 				for (size_t j = 0; j < mesh->mIndices.size(); ++j)
-					indices.push_back(mesh->mIndices[j]);
+					indices[indexCount+j] = mesh->mIndices[j];
 			}
 
 			MeshData* meshData = conf_placement_new<MeshData>(conf_malloc(sizeof(MeshData)));
@@ -3137,7 +2934,7 @@ class MaterialPlayground: public IApp
 			vertexBufferDesc.mDesc.mVertexStride = sizeof(Vertex);
 			vertexBufferDesc.pData = vertices.data();
 			vertexBufferDesc.ppBuffer = &meshData->pVertexBuffer;
-			addResource(&vertexBufferDesc);
+			addResource(&vertexBufferDesc, true);
 
 			if (meshData->mIndexCount > 0)
 			{
@@ -3149,15 +2946,11 @@ class MaterialPlayground: public IApp
 				indexBufferDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 				indexBufferDesc.pData = indices.data();
 				indexBufferDesc.ppBuffer = &meshData->pIndexBuffer;
-				addResource(&indexBufferDesc);
+				addResource(&indexBufferDesc, true);
 			}
 
-			pMeshes.insert(pMeshes.end(), meshData);
+			pMeshes[i] = meshData;
 		}
-		else
-			return false;
-
-		return true;
 	}
 
 	void DestroyModels()
@@ -3172,33 +2965,20 @@ class MaterialPlayground: public IApp
 		pMeshes.clear();
 	}
 
-	void LoadTextureMaps(tinystl::vector<Texture*>& textures, const char* mapsNames[], int mapsCount, bool generateMips)
-	{
-		textures.resize(mapsCount);
-		for (int i = 0; i < mapsCount; ++i)
-		{
-			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_OtherFiles;
-			textureDesc.ppTexture = &textures[i];
-			textureDesc.mUseMipmaps = generateMips;
-			textureDesc.pFilename = mapsNames[i];
-			addResource(&textureDesc, true);
-		}
-	}
-
 	void DestroyTextures()
 	{
-		for (uint i = 0; i < pTextureMaterialMaps.size(); ++i)
+		for (size_t i = 0; i < pTextureMaterialMaps.size(); ++i)
 			removeResource(pTextureMaterialMaps[i]);
 		pTextureMaterialMaps.clear();
 
-		for (int i = 0; i < pTextureMaterialMapsGround.size(); ++i)
+		for (size_t i = 0; i < pTextureMaterialMapsGround.size(); ++i)
 			removeResource(pTextureMaterialMapsGround[i]);
 		pTextureMaterialMapsGround.clear();
 	}
 
 	void CreateResources()
 	{
+		Timer t;
 		//Generate skybox vertex buffer
 		float skyBoxPoints[] = {
 			0.5f,  -0.5f, -0.5f, 1.0f,    // -z
@@ -3234,7 +3014,7 @@ class MaterialPlayground: public IApp
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pVertexBufferSkybox;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, true);
 
 		// Load hair models
 		gUniformDataHairGlobal.mGravity = float4(0.0f, -9.81f, 0.0f, 0.0f);
@@ -3338,32 +3118,32 @@ class MaterialPlayground: public IApp
 		staticHairSimulationParameters.mGlobalConstraintStiffness = 1.0f;
 
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "ponytail", "Hair/tail.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &ponytailHairShadingParameters,
-			&ponytailHairSimulationParameters);
+			HAIR_TYPE_PONYTAIL, pStagingData->tfxAsset[0], "ponytail", "Hair/tail.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&ponytailHairShadingParameters, &ponytailHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "top", "Hair/front_top.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
-			&stiffHairSimulationParameters);
+			HAIR_TYPE_PONYTAIL, pStagingData->tfxAsset[1], "top", "Hair/front_top.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&hairShadingParameters, &stiffHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "side", "Hair/side.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
-			&stiffHairSimulationParameters);
+			HAIR_TYPE_PONYTAIL, pStagingData->tfxAsset[2], "side", "Hair/side.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&hairShadingParameters, &stiffHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "back", "Hair/back.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
-			&staticHairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_1, "Female hair 1", "Hair/female_hair_1.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
-			&hairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_2, "Female hair 2", "Hair/female_hair_2.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
-			&hairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_3, "Female hair 3", "Hair/female_hair_3.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
-			&stiffHairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_6, "female hair 6 top", "Hair/female_hair_6_top.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			HAIR_TYPE_PONYTAIL, pStagingData->tfxAsset[3], "back", "Hair/back.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
 			&hairShadingParameters, &staticHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_FEMALE_6, "female hair 6 tail", "Hair/female_hair_6_tail.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&ponytailHairShadingParameters, &ponytailHairSimulationParameters);
+			HAIR_TYPE_FEMALE_1, pStagingData->tfxAsset[4], "Female hair 1", "Hair/female_hair_1.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&hairShadingParameters, &hairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_2, pStagingData->tfxAsset[5], "Female hair 2", "Hair/female_hair_2.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&hairShadingParameters, &hairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_3, pStagingData->tfxAsset[6], "Female hair 3", "Hair/female_hair_3.tfx", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&hairShadingParameters, &stiffHairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_6, pStagingData->tfxAsset[7], "female hair 6 top", "Hair/female_hair_6_top.tfx", (uint)(5 * gpuPresetScore),
+			0.5f, 0, &hairShadingParameters, &staticHairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_6, pStagingData->tfxAsset[8], "female hair 6 tail", "Hair/female_hair_6_tail.tfx", (uint)(5 * gpuPresetScore),
+			0.5f, 0, &ponytailHairShadingParameters, &ponytailHairSimulationParameters);
 #endif
 
 		// Create skeleton buffers
@@ -3372,8 +3152,7 @@ class MaterialPlayground: public IApp
 		const float jointRadius = boneWidthRatio * 0.5f;    // set to replicate Ozz skeleton
 
 		// Generate joint vertex buffer
-		float* pJointPoints;
-		generateSpherePoints(&pJointPoints, &gVertexCountSkeletonJoint, sphereResolution, jointRadius);
+		generateSpherePoints(&pStagingData->pJointPoints, &gVertexCountSkeletonJoint, sphereResolution, jointRadius);
 
 		uint64_t       jointDataSize = gVertexCountSkeletonJoint * sizeof(float);
 		BufferLoadDesc jointVbDesc = {};
@@ -3381,16 +3160,12 @@ class MaterialPlayground: public IApp
 		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		jointVbDesc.mDesc.mSize = jointDataSize;
 		jointVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
-		jointVbDesc.pData = pJointPoints;
+		jointVbDesc.pData = pStagingData->pJointPoints;
 		jointVbDesc.ppBuffer = &pVertexBufferSkeletonJoint;
-		addResource(&jointVbDesc);
-
-		// Need to free memory;
-		conf_free(pJointPoints);
+		addResource(&jointVbDesc, true);
 
 		// Generate bone vertex buffer
-		float* pBonePoints;
-		generateBonePoints(&pBonePoints, &gVertexCountSkeletonBone, boneWidthRatio);
+		generateBonePoints(&pStagingData->pBonePoints, &gVertexCountSkeletonBone, boneWidthRatio);
 
 		uint64_t       boneDataSize = gVertexCountSkeletonBone * sizeof(float);
 		BufferLoadDesc boneVbDesc = {};
@@ -3398,12 +3173,9 @@ class MaterialPlayground: public IApp
 		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		boneVbDesc.mDesc.mSize = boneDataSize;
 		boneVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
-		boneVbDesc.pData = pBonePoints;
+		boneVbDesc.pData = pStagingData->pBonePoints;
 		boneVbDesc.ppBuffer = &pVertexBufferSkeletonBone;
 		addResource(&boneVbDesc);
-
-		// Need to free memory;
-		conf_free(pBonePoints);
 	}
 
 	void DestroyResources()
@@ -3546,7 +3318,6 @@ class MaterialPlayground: public IApp
 		float baseY = -1.8f;
 		float baseZ = 12.0f;
 		float offsetX = 0.1f;
-		float offsetZ = 10.0f;
 		float scaleVal = 1.0f;
 		float roughDelta = 1.0f;
 		float materialPlateOffset = 4.0f;
@@ -3623,10 +3394,9 @@ class MaterialPlayground: public IApp
 	}
 
 	static void AddHairMesh(
-		HairType type, const char* name, const char* tfxFile, uint numFollowHairs, float maxRadiusAroundGuideHair, uint transform,
+		HairType type, TFXAsset& tfxAsset, const char* name, const char* tfxFile, uint numFollowHairs, float maxRadiusAroundGuideHair, uint transform,
 		HairSectionShadingParameters* shadingParameters, HairSimulationParameters* simulationParameters)
 	{
-		TFXAsset tfxAsset = {};
 		if (!TFXImporter::ImportTFX(
 				tfxFile, FSRoot::FSR_OtherFiles, numFollowHairs, simulationParameters->mTipSeperationFactor, maxRadiusAroundGuideHair,
 				&tfxAsset))
@@ -3647,7 +3417,7 @@ class MaterialPlayground: public IApp
 		vertexPositionsBufferDesc.pData = tfxAsset.mPositions.data();
 		vertexPositionsBufferDesc.ppBuffer = &hairBuffer.pBufferHairVertexPositions;
 		vertexPositionsBufferDesc.mDesc.pDebugName = L"Hair vertex positions";
-		addResource(&vertexPositionsBufferDesc);
+		addResource(&vertexPositionsBufferDesc, true);
 
 		for (int i = 0; i < 3; ++i)
 		{
@@ -3655,7 +3425,7 @@ class MaterialPlayground: public IApp
 				(DescriptorType)(DESCRIPTOR_TYPE_RW_BUFFER | (i == 0 ? DESCRIPTOR_TYPE_BUFFER : 0));
 			vertexPositionsBufferDesc.mDesc.pDebugName = L"Hair simulation vertex positions";
 			vertexPositionsBufferDesc.ppBuffer = &hairBuffer.pBufferHairSimulationVertexPositions[i];
-			addResource(&vertexPositionsBufferDesc);
+			addResource(&vertexPositionsBufferDesc, true);
 		}
 
 		BufferLoadDesc vertexTangentsBufferDesc = {};
@@ -3668,7 +3438,7 @@ class MaterialPlayground: public IApp
 		vertexTangentsBufferDesc.pData = tfxAsset.mTangents.data();
 		vertexTangentsBufferDesc.ppBuffer = &hairBuffer.pBufferHairVertexTangents;
 		vertexTangentsBufferDesc.mDesc.pDebugName = L"Hair vertex tangents";
-		addResource(&vertexTangentsBufferDesc);
+		addResource(&vertexTangentsBufferDesc, true);
 
 		BufferLoadDesc indexBufferDesc = {};
 		indexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
@@ -3681,7 +3451,7 @@ class MaterialPlayground: public IApp
 		indexBufferDesc.pData = tfxAsset.mTriangleIndices.data();
 		indexBufferDesc.ppBuffer = &hairBuffer.pBufferTriangleIndices;
 		indexBufferDesc.mDesc.pDebugName = L"Index buffer hair";
-		addResource(&indexBufferDesc);
+		addResource(&indexBufferDesc, true);
 
 		BufferLoadDesc restLengthsBufferDesc = {};
 		restLengthsBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -3693,7 +3463,7 @@ class MaterialPlayground: public IApp
 		restLengthsBufferDesc.pData = tfxAsset.mRestLengths.data();
 		restLengthsBufferDesc.ppBuffer = &hairBuffer.pBufferHairRestLenghts;
 		restLengthsBufferDesc.mDesc.pDebugName = L"Hair rest lenghts";
-		addResource(&restLengthsBufferDesc);
+		addResource(&restLengthsBufferDesc, true);
 
 		BufferLoadDesc globalRotationsBufferDesc = {};
 		globalRotationsBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -3706,7 +3476,7 @@ class MaterialPlayground: public IApp
 		globalRotationsBufferDesc.pData = tfxAsset.mGlobalRotations.data();
 		globalRotationsBufferDesc.ppBuffer = &hairBuffer.pBufferHairGlobalRotations;
 		globalRotationsBufferDesc.mDesc.pDebugName = L"Hair global rotations";
-		addResource(&globalRotationsBufferDesc);
+		addResource(&globalRotationsBufferDesc, true);
 
 		BufferLoadDesc refVecsInLocalFrameBufferDesc = {};
 		refVecsInLocalFrameBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -3719,7 +3489,7 @@ class MaterialPlayground: public IApp
 		refVecsInLocalFrameBufferDesc.pData = tfxAsset.mRefVectors.data();
 		refVecsInLocalFrameBufferDesc.ppBuffer = &hairBuffer.pBufferHairRefsInLocalFrame;
 		refVecsInLocalFrameBufferDesc.mDesc.pDebugName = L"Hair refs in local frame";
-		addResource(&refVecsInLocalFrameBufferDesc);
+		addResource(&refVecsInLocalFrameBufferDesc, true);
 
 		BufferLoadDesc followHairRootOffsetsBufferDesc = {};
 		followHairRootOffsetsBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -3732,7 +3502,7 @@ class MaterialPlayground: public IApp
 		followHairRootOffsetsBufferDesc.pData = tfxAsset.mFollowRootOffsets.data();
 		followHairRootOffsetsBufferDesc.ppBuffer = &hairBuffer.pBufferFollowHairRootOffsets;
 		followHairRootOffsetsBufferDesc.mDesc.pDebugName = L"Follow hair root offsets";
-		addResource(&followHairRootOffsetsBufferDesc);
+		addResource(&followHairRootOffsetsBufferDesc, true);
 
 		BufferLoadDesc thicknessCoefficientsBufferDesc = {};
 		thicknessCoefficientsBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
@@ -3745,7 +3515,7 @@ class MaterialPlayground: public IApp
 		thicknessCoefficientsBufferDesc.pData = tfxAsset.mThicknessCoeffs.data();
 		thicknessCoefficientsBufferDesc.ppBuffer = &hairBuffer.pBufferHairThicknessCoefficients;
 		thicknessCoefficientsBufferDesc.mDesc.pDebugName = L"Hair thickness coefficients";
-		addResource(&thicknessCoefficientsBufferDesc);
+		addResource(&thicknessCoefficientsBufferDesc, true);
 
 		BufferLoadDesc hairShadingBufferDesc = {};
 		hairShadingBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3753,10 +3523,10 @@ class MaterialPlayground: public IApp
 		hairShadingBufferDesc.mDesc.mSize = sizeof(UniformDataHairShading);
 		hairShadingBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		hairShadingBufferDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			hairShadingBufferDesc.ppBuffer = &hairBuffer.pUniformBufferHairShading[i];
-			addResource(&hairShadingBufferDesc);
+			addResource(&hairShadingBufferDesc, true);
 		}
 
 		BufferLoadDesc hairSimulationBufferDesc = {};
@@ -3765,10 +3535,10 @@ class MaterialPlayground: public IApp
 		hairSimulationBufferDesc.mDesc.mSize = sizeof(UniformDataHairSimulation);
 		hairSimulationBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		hairSimulationBufferDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			hairSimulationBufferDesc.ppBuffer = &hairBuffer.pUniformBufferHairSimulation[i];
-			addResource(&hairSimulationBufferDesc);
+			addResource(&hairSimulationBufferDesc, true);
 		}
 
 		hairBuffer.mUniformDataHairShading.mColorBias = shadingParameters->mColorBias;
@@ -3828,7 +3598,7 @@ class MaterialPlayground: public IApp
 			removeResource(gHair[i].pBufferHairRefsInLocalFrame);
 			removeResource(gHair[i].pBufferFollowHairRootOffsets);
 			removeResource(gHair[i].pBufferHairThicknessCoefficients);
-			for (int j = 0; j < gImageCount; ++j)
+			for (uint32_t j = 0; j < gImageCount; ++j)
 			{
 				removeResource(gHair[i].pUniformBufferHairShading[j]);
 				removeResource(gHair[i].pUniformBufferHairSimulation[j]);
@@ -4067,7 +3837,6 @@ class MaterialPlayground: public IApp
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineSkybox);
 
 		// shadow pass
-		ImageFormat::Enum shadowPassRenderTargetFormat = ImageFormat::D32F;
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo      = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount  = 0;
@@ -4559,11 +4328,6 @@ void GuiController::AddGui()
 	{
 		GuiController::hairDynamicWidgets.resize(HAIR_TYPE_COUNT);
 
-		static const char* hairNames[HAIR_TYPE_COUNT] = { "Ponytail", "Female hair 1", "Female hair 2", "Female hair 3", "Female hair 6" };
-
-		static const uint32_t hairTypeValues[HAIR_TYPE_COUNT] = { HAIR_TYPE_PONYTAIL, HAIR_TYPE_FEMALE_1, HAIR_TYPE_FEMALE_2,
-																  HAIR_TYPE_FEMALE_3, HAIR_TYPE_FEMALE_6 };
-
 		static const char* hairColorNames[HAIR_COLOR_COUNT] = { "Brown", "Blonde", "Black", "Red" };
 
 		static const uint32_t hairColorValues[HAIR_COLOR_COUNT] = { HAIR_COLOR_BROWN, HAIR_COLOR_BLONDE, HAIR_COLOR_BLACK, HAIR_COLOR_RED };
@@ -4573,6 +4337,11 @@ void GuiController::AddGui()
 		GuiController::hairShadingDynamicWidgets.AddWidget(DropdownWidget("Hair Color", &gHairColor, hairColorNames, hairColorValues, HAIR_COLOR_COUNT));
 
 #if HAIR_DEV_UI
+		static const char* hairNames[HAIR_TYPE_COUNT] = { "Ponytail", "Female hair 1", "Female hair 2", "Female hair 3", "Female hair 6" };
+
+		static const uint32_t hairTypeValues[HAIR_TYPE_COUNT] = { HAIR_TYPE_PONYTAIL, HAIR_TYPE_FEMALE_1, HAIR_TYPE_FEMALE_2,
+																  HAIR_TYPE_FEMALE_3, HAIR_TYPE_FEMALE_6 };
+
 		GuiController::hairShadingDynamicWidgets.AddWidget(DropdownWidget("Hair type", &GuiController::currentHairType, hairNames, hairTypeValues, HAIR_TYPE_COUNT));
 
 		for (uint i = 0; i < HAIR_TYPE_COUNT; ++i)

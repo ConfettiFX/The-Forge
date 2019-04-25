@@ -27,11 +27,13 @@
     <File Name="../../../../Common_3/OS/Camera/GuiCameraController.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Core">
+    <File Name="../../../../Common_3/OS/Core/Atomics.h"/>
     <File Name="../../../../Common_3/OS/Core/Compiler.h"/>
     <File Name="../../../../Common_3/OS/Core/DLL.h"/>
     <File Name="../../../../Common_3/OS/Core/FileSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/PlatformEvents.cpp"/>
     <File Name="../../../../Common_3/OS/Core/RingBuffer.h"/>
+    <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>    
   </VirtualDirectory>

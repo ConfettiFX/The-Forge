@@ -24,6 +24,11 @@
 
 #ifdef _WIN32
 
+#if !defined(_DURANGO)
+#include "shlobj.h"
+#include "commdlg.h"
+#endif
+
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
@@ -35,6 +40,8 @@
 #define RESOURCE_DIR "Shaders/D3D11"
 #elif defined(VULKAN)
 #define RESOURCE_DIR "Shaders/Vulkan"
+#else
+#define RESOURCE_DIR "Shaders"
 #endif
 
 const char* pszRoots[FSR_Count] = {

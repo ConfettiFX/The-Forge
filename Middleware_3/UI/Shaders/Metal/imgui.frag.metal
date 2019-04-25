@@ -13,7 +13,7 @@ struct Fragment_Shader
     sampler uSampler;
     float4 main(PS_INPUT input)
     {
-        return float4((input).col.xyz, (input).col.a * ((float4)(uTex.sample(uSampler, (input).uv))).r);
+        return (input).col * ((float4)(uTex.sample(uSampler, (input).uv)));
     };
 
     Fragment_Shader(

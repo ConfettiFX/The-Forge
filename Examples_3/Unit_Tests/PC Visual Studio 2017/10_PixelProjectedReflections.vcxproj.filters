@@ -4,7 +4,7 @@
     <ClCompile Include="..\src\10_PixelProjectedReflections\10_PixelProjectedReflections.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\10_PixelProjectedReflections\IOResourceLoader.cpp">
+    <ClCompile Include="..\..\Common\AppHelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -115,7 +115,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\10_PixelProjectedReflections\IOResourceLoader.h">
+    <ClInclude Include="..\..\Common\AppHelpers.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

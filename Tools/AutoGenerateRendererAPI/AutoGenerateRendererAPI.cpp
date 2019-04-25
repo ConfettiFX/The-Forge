@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 	};
 	Vector<String> file_list = {};
 	Vector<String> function_names = {};
-	String pattern = functionDeclaration + " ([A-Za-z0-9:_ ]*) CALLTYPE ([A-Za-z0-9_]*)\\(([A-Za-z0-9:_, \\*\\(\\)]*)\\);";
+	String pattern = functionDeclaration + " ([A-Za-z0-9:_ ]*) FORGE_CALLCONV ([A-Za-z0-9_]*)\\(([A-Za-z0-9:_, \\*\\(\\)]*)\\);";
 	Regex regex = Regex(pattern);
 
 	//// Get list of all files in the Include directory

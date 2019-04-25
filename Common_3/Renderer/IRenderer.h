@@ -36,7 +36,6 @@
 #endif
 
 #if defined(DIRECT3D11)
-#include <WinSock2.h>
 #include <d3d11_1.h>
 #include <dxgi1_2.h>
 #endif
@@ -46,14 +45,12 @@
 #define DIRECT3D12
 #endif
 #elif defined(DIRECT3D12)
-#include <WinSock2.h>
 #include <d3d12.h>
 #include <dxgi1_5.h>
 #include <dxgidebug.h>
 #endif
 #if defined(VULKAN)
 #if defined(_WIN32)
-#include <WinSock2.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 #if defined(__ANDROID__)
@@ -1921,145 +1918,145 @@ typedef struct DescriptorBinderDesc
 // API functions
 // allocates memory and initializes the renderer -> returns pRenderer
 //
-API_INTERFACE void CALLTYPE initRenderer(const char* app_name, const RendererDesc* p_settings, Renderer** ppRenderer);
-API_INTERFACE void CALLTYPE removeRenderer(Renderer* pRenderer);
+API_INTERFACE void FORGE_CALLCONV initRenderer(const char* app_name, const RendererDesc* p_settings, Renderer** ppRenderer);
+API_INTERFACE void FORGE_CALLCONV removeRenderer(Renderer* pRenderer);
 
-API_INTERFACE void CALLTYPE addFence(Renderer* pRenderer, Fence** pp_fence);
-API_INTERFACE void CALLTYPE removeFence(Renderer* pRenderer, Fence* p_fence);
+API_INTERFACE void FORGE_CALLCONV addFence(Renderer* pRenderer, Fence** pp_fence);
+API_INTERFACE void FORGE_CALLCONV removeFence(Renderer* pRenderer, Fence* p_fence);
 
-API_INTERFACE void CALLTYPE addSemaphore(Renderer* pRenderer, Semaphore** pp_semaphore);
-API_INTERFACE void CALLTYPE removeSemaphore(Renderer* pRenderer, Semaphore* p_semaphore);
+API_INTERFACE void FORGE_CALLCONV addSemaphore(Renderer* pRenderer, Semaphore** pp_semaphore);
+API_INTERFACE void FORGE_CALLCONV removeSemaphore(Renderer* pRenderer, Semaphore* p_semaphore);
 
-API_INTERFACE void CALLTYPE addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue);
-API_INTERFACE void CALLTYPE removeQueue(Queue* pQueue);
+API_INTERFACE void FORGE_CALLCONV addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue);
+API_INTERFACE void FORGE_CALLCONV removeQueue(Queue* pQueue);
 
-API_INTERFACE void CALLTYPE addSwapChain(Renderer* pRenderer, const SwapChainDesc* p_desc, SwapChain** pp_swap_chain);
-API_INTERFACE void CALLTYPE removeSwapChain(Renderer* pRenderer, SwapChain* p_swap_chain);
+API_INTERFACE void FORGE_CALLCONV addSwapChain(Renderer* pRenderer, const SwapChainDesc* p_desc, SwapChain** pp_swap_chain);
+API_INTERFACE void FORGE_CALLCONV removeSwapChain(Renderer* pRenderer, SwapChain* p_swap_chain);
 
 // command pool functions
-API_INTERFACE void CALLTYPE addCmdPool(Renderer* pRenderer, Queue* p_queue, bool transient, CmdPool** pp_CmdPool);
-API_INTERFACE void CALLTYPE removeCmdPool(Renderer* pRenderer, CmdPool* p_CmdPool);
-API_INTERFACE void CALLTYPE addCmd(CmdPool* p_CmdPool, bool secondary, Cmd** pp_cmd);
-API_INTERFACE void CALLTYPE removeCmd(CmdPool* p_CmdPool, Cmd* p_cmd);
-API_INTERFACE void CALLTYPE addCmd_n(CmdPool* p_CmdPool, bool secondary, uint32_t cmd_count, Cmd*** ppp_cmd);
-API_INTERFACE void CALLTYPE removeCmd_n(CmdPool* p_CmdPool, uint32_t cmd_count, Cmd** pp_cmd);
+API_INTERFACE void FORGE_CALLCONV addCmdPool(Renderer* pRenderer, Queue* p_queue, bool transient, CmdPool** pp_CmdPool);
+API_INTERFACE void FORGE_CALLCONV removeCmdPool(Renderer* pRenderer, CmdPool* p_CmdPool);
+API_INTERFACE void FORGE_CALLCONV addCmd(CmdPool* p_CmdPool, bool secondary, Cmd** pp_cmd);
+API_INTERFACE void FORGE_CALLCONV removeCmd(CmdPool* p_CmdPool, Cmd* p_cmd);
+API_INTERFACE void FORGE_CALLCONV addCmd_n(CmdPool* p_CmdPool, bool secondary, uint32_t cmd_count, Cmd*** ppp_cmd);
+API_INTERFACE void FORGE_CALLCONV removeCmd_n(CmdPool* p_CmdPool, uint32_t cmd_count, Cmd** pp_cmd);
 
 //
 // All buffer, texture loading handled by resource system -> IResourceLoader.*
 //
 
-API_INTERFACE void CALLTYPE addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* p_desc, RenderTarget** pp_render_target);
-API_INTERFACE void CALLTYPE removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target);
-API_INTERFACE void CALLTYPE addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_sampler);
-API_INTERFACE void CALLTYPE removeSampler(Renderer* pRenderer, Sampler* p_sampler);
+API_INTERFACE void FORGE_CALLCONV addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* p_desc, RenderTarget** pp_render_target);
+API_INTERFACE void FORGE_CALLCONV removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target);
+API_INTERFACE void FORGE_CALLCONV addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_sampler);
+API_INTERFACE void FORGE_CALLCONV removeSampler(Renderer* pRenderer, Sampler* p_sampler);
 
 // shader functions
 #if defined(METAL)
-API_INTERFACE void CALLTYPE addShader(Renderer* pRenderer, const ShaderDesc* p_desc, Shader** p_shader_program);
+API_INTERFACE void FORGE_CALLCONV addShader(Renderer* pRenderer, const ShaderDesc* p_desc, Shader** p_shader_program);
 #endif
-API_INTERFACE void CALLTYPE addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* p_desc, Shader** p_shader_program);
-API_INTERFACE void CALLTYPE removeShader(Renderer* pRenderer, Shader* p_shader_program);
+API_INTERFACE void FORGE_CALLCONV addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* p_desc, Shader** p_shader_program);
+API_INTERFACE void FORGE_CALLCONV removeShader(Renderer* pRenderer, Shader* p_shader_program);
 
 // pipeline functions
-API_INTERFACE void CALLTYPE addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootDesc, RootSignature** pp_root_signature);
-API_INTERFACE void CALLTYPE removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature);
-API_INTERFACE void CALLTYPE addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline); 
+API_INTERFACE void FORGE_CALLCONV addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootDesc, RootSignature** pp_root_signature);
+API_INTERFACE void FORGE_CALLCONV removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature);
+API_INTERFACE void FORGE_CALLCONV addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline); 
 
 /////////////////////////Deprecated!
 RENDERER_DEPRECATED("Use addPipeline(Renderer* , const PipelineDesc* , Pipeline** ) instead")
-API_INTERFACE void CALLTYPE addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline);
+API_INTERFACE void FORGE_CALLCONV addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline);
 RENDERER_DEPRECATED("Use addPipeline(Renderer* , const PipelineDesc* , Pipeline** ) instead")
-API_INTERFACE void CALLTYPE addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* p_pipeline_settings, Pipeline** p_pipeline);
+API_INTERFACE void FORGE_CALLCONV addComputePipeline(Renderer* pRenderer, const ComputePipelineDesc* p_pipeline_settings, Pipeline** p_pipeline);
 /////////////////////////////////////
 
 
-API_INTERFACE void CALLTYPE removePipeline(Renderer* pRenderer, Pipeline* p_pipeline);
+API_INTERFACE void FORGE_CALLCONV removePipeline(Renderer* pRenderer, Pipeline* p_pipeline);
 
 // descriptor binder functions
-API_INTERFACE void CALLTYPE addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* p_descs, DescriptorBinder** pp_descriptor_binder);
-API_INTERFACE void CALLTYPE removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* p_descriptor_binder);
+API_INTERFACE void FORGE_CALLCONV addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* p_descs, DescriptorBinder** pp_descriptor_binder);
+API_INTERFACE void FORGE_CALLCONV removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* p_descriptor_binder);
 
 /// Pipeline State Functions
-API_INTERFACE void CALLTYPE addBlendState(Renderer* pRenderer, const BlendStateDesc* pDesc, BlendState** ppBlendState);
-API_INTERFACE void CALLTYPE removeBlendState(BlendState* pBlendState);
+API_INTERFACE void FORGE_CALLCONV addBlendState(Renderer* pRenderer, const BlendStateDesc* pDesc, BlendState** ppBlendState);
+API_INTERFACE void FORGE_CALLCONV removeBlendState(BlendState* pBlendState);
 
-API_INTERFACE void CALLTYPE addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState** ppDepthState);
-API_INTERFACE void CALLTYPE removeDepthState(DepthState* pDepthState);
+API_INTERFACE void FORGE_CALLCONV addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState** ppDepthState);
+API_INTERFACE void FORGE_CALLCONV removeDepthState(DepthState* pDepthState);
 
-API_INTERFACE void CALLTYPE addRasterizerState(Renderer* pRenderer, const RasterizerStateDesc* pDesc, RasterizerState** ppRasterizerState);
-API_INTERFACE void CALLTYPE removeRasterizerState(RasterizerState* pRasterizerState);
+API_INTERFACE void FORGE_CALLCONV addRasterizerState(Renderer* pRenderer, const RasterizerStateDesc* pDesc, RasterizerState** ppRasterizerState);
+API_INTERFACE void FORGE_CALLCONV removeRasterizerState(RasterizerState* pRasterizerState);
 
 // command buffer functions
-API_INTERFACE void CALLTYPE beginCmd(Cmd* p_cmd);
-API_INTERFACE void CALLTYPE endCmd(Cmd* p_cmd);
-API_INTERFACE void CALLTYPE cmdBindRenderTargets(Cmd* p_cmd, uint32_t render_target_count, RenderTarget** pp_render_targets, RenderTarget* p_depth_stencil, const LoadActionsDesc* loadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice);
-API_INTERFACE void CALLTYPE cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, float min_depth, float max_depth);
-API_INTERFACE void CALLTYPE cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-API_INTERFACE void CALLTYPE cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline);
-API_INTERFACE void CALLTYPE cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
-API_INTERFACE void CALLTYPE cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer, uint64_t offset);
-API_INTERFACE void CALLTYPE cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers, uint64_t* pOffsets);
-API_INTERFACE void CALLTYPE cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex);
-API_INTERFACE void CALLTYPE cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance);
-API_INTERFACE void CALLTYPE cmdDrawIndexed(Cmd* p_cmd, uint32_t index_count, uint32_t first_index, uint32_t first_vertex);
-API_INTERFACE void CALLTYPE cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
-API_INTERFACE void CALLTYPE cmdDispatch(Cmd* p_cmd, uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z);
+API_INTERFACE void FORGE_CALLCONV beginCmd(Cmd* p_cmd);
+API_INTERFACE void FORGE_CALLCONV endCmd(Cmd* p_cmd);
+API_INTERFACE void FORGE_CALLCONV cmdBindRenderTargets(Cmd* p_cmd, uint32_t render_target_count, RenderTarget** pp_render_targets, RenderTarget* p_depth_stencil, const LoadActionsDesc* loadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice);
+API_INTERFACE void FORGE_CALLCONV cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, float min_depth, float max_depth);
+API_INTERFACE void FORGE_CALLCONV cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+API_INTERFACE void FORGE_CALLCONV cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline);
+API_INTERFACE void FORGE_CALLCONV cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
+API_INTERFACE void FORGE_CALLCONV cmdBindIndexBuffer(Cmd* p_cmd, Buffer* p_buffer, uint64_t offset);
+API_INTERFACE void FORGE_CALLCONV cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, Buffer** pp_buffers, uint64_t* pOffsets);
+API_INTERFACE void FORGE_CALLCONV cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex);
+API_INTERFACE void FORGE_CALLCONV cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance);
+API_INTERFACE void FORGE_CALLCONV cmdDrawIndexed(Cmd* p_cmd, uint32_t index_count, uint32_t first_index, uint32_t first_vertex);
+API_INTERFACE void FORGE_CALLCONV cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+API_INTERFACE void FORGE_CALLCONV cmdDispatch(Cmd* p_cmd, uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z);
 
 // Transition Commands
-API_INTERFACE void CALLTYPE cmdResourceBarrier(Cmd* p_cmd, uint32_t buffer_barrier_count, BufferBarrier* p_buffer_barriers, uint32_t texture_barrier_count, TextureBarrier* p_texture_barriers, bool batch);
-API_INTERFACE void CALLTYPE cmdSynchronizeResources(Cmd* p_cmd, uint32_t buffer_count, Buffer** p_buffers, uint32_t texture_count, Texture** p_textures, bool batch);
+API_INTERFACE void FORGE_CALLCONV cmdResourceBarrier(Cmd* p_cmd, uint32_t buffer_barrier_count, BufferBarrier* p_buffer_barriers, uint32_t texture_barrier_count, TextureBarrier* p_texture_barriers, bool batch);
+API_INTERFACE void FORGE_CALLCONV cmdSynchronizeResources(Cmd* p_cmd, uint32_t buffer_count, Buffer** p_buffers, uint32_t texture_count, Texture** p_textures, bool batch);
 /// Flushes all the batched transitions requested in cmdResourceBarrier
-API_INTERFACE void CALLTYPE cmdFlushBarriers(Cmd* p_cmd);
+API_INTERFACE void FORGE_CALLCONV cmdFlushBarriers(Cmd* p_cmd);
 
 //
 // All buffer, texture update handled by resource system -> IResourceLoader.*
 //
 
 // queue/fence/swapchain functions
-API_INTERFACE void CALLTYPE acquireNextImage(Renderer* pRenderer, SwapChain* p_swap_chain, Semaphore* p_signal_semaphore, Fence* p_fence, uint32_t* p_image_index);
-API_INTERFACE void CALLTYPE queueSubmit(Queue* p_queue, uint32_t cmd_count, Cmd** pp_cmds, Fence* pFence, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores, uint32_t signal_semaphore_count, Semaphore** pp_signal_semaphores);
-API_INTERFACE void CALLTYPE queuePresent(Queue* p_queue, SwapChain* p_swap_chain, uint32_t swap_chain_image_index, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores);
-API_INTERFACE void CALLTYPE waitQueueIdle(Queue* p_queue);
-API_INTERFACE void CALLTYPE getFenceStatus(Renderer* pRenderer, Fence* p_fence, FenceStatus* p_fence_status);
-API_INTERFACE void CALLTYPE waitForFences(Renderer* pRenderer, uint32_t fence_count, Fence** pp_fences);
-API_INTERFACE void CALLTYPE toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
+API_INTERFACE void FORGE_CALLCONV acquireNextImage(Renderer* pRenderer, SwapChain* p_swap_chain, Semaphore* p_signal_semaphore, Fence* p_fence, uint32_t* p_image_index);
+API_INTERFACE void FORGE_CALLCONV queueSubmit(Queue* p_queue, uint32_t cmd_count, Cmd** pp_cmds, Fence* pFence, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores, uint32_t signal_semaphore_count, Semaphore** pp_signal_semaphores);
+API_INTERFACE void FORGE_CALLCONV queuePresent(Queue* p_queue, SwapChain* p_swap_chain, uint32_t swap_chain_image_index, uint32_t wait_semaphore_count, Semaphore** pp_wait_semaphores);
+API_INTERFACE void FORGE_CALLCONV waitQueueIdle(Queue* p_queue);
+API_INTERFACE void FORGE_CALLCONV getFenceStatus(Renderer* pRenderer, Fence* p_fence, FenceStatus* p_fence_status);
+API_INTERFACE void FORGE_CALLCONV waitForFences(Renderer* pRenderer, uint32_t fence_count, Fence** pp_fences);
+API_INTERFACE void FORGE_CALLCONV toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain);
 
 // image related functions
-API_INTERFACE bool CALLTYPE isImageFormatSupported(ImageFormat::Enum format);
+API_INTERFACE bool FORGE_CALLCONV isImageFormatSupported(ImageFormat::Enum format);
 //Returns the recommended format for the swapchain.
 //If true is passed for the hintHDR parameter, it will return an HDR format IF the platform supports it
 //If false is passed or the platform does not support HDR a non HDR format is returned.
-API_INTERFACE ImageFormat::Enum CALLTYPE getRecommendedSwapchainFormat(bool hintHDR);
+API_INTERFACE ImageFormat::Enum FORGE_CALLCONV getRecommendedSwapchainFormat(bool hintHDR);
 
 //indirect Draw functions
-API_INTERFACE void CALLTYPE addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* p_desc, CommandSignature** ppCommandSignature);
-API_INTERFACE void CALLTYPE removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
-API_INTERFACE void CALLTYPE cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset);
+API_INTERFACE void FORGE_CALLCONV addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* p_desc, CommandSignature** ppCommandSignature);
+API_INTERFACE void FORGE_CALLCONV removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
+API_INTERFACE void FORGE_CALLCONV cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset);
 /************************************************************************/
 // GPU Query Interface
 /************************************************************************/
-API_INTERFACE void CALLTYPE getTimestampFrequency(Queue* pQueue, double* pFrequency);
-API_INTERFACE void CALLTYPE addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap);
-API_INTERFACE void CALLTYPE removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap);
-API_INTERFACE void CALLTYPE cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery);
-API_INTERFACE void CALLTYPE cmdEndQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery);
-API_INTERFACE void CALLTYPE cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount);
+API_INTERFACE void FORGE_CALLCONV getTimestampFrequency(Queue* pQueue, double* pFrequency);
+API_INTERFACE void FORGE_CALLCONV addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap);
+API_INTERFACE void FORGE_CALLCONV removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap);
+API_INTERFACE void FORGE_CALLCONV cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery);
+API_INTERFACE void FORGE_CALLCONV cmdEndQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery);
+API_INTERFACE void FORGE_CALLCONV cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount);
 /************************************************************************/
 // Stats Info Interface
 /************************************************************************/
-API_INTERFACE void CALLTYPE calculateMemoryStats(Renderer* pRenderer, char** stats);
-API_INTERFACE void CALLTYPE freeMemoryStats(Renderer* pRenderer, char* stats);
+API_INTERFACE void FORGE_CALLCONV calculateMemoryStats(Renderer* pRenderer, char** stats);
+API_INTERFACE void FORGE_CALLCONV freeMemoryStats(Renderer* pRenderer, char* stats);
 /************************************************************************/
 // Debug Marker Interface
 /************************************************************************/
-API_INTERFACE void CALLTYPE cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
-API_INTERFACE void CALLTYPE cmdEndDebugMarker(Cmd* pCmd);
-API_INTERFACE void CALLTYPE cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
+API_INTERFACE void FORGE_CALLCONV cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
+API_INTERFACE void FORGE_CALLCONV cmdEndDebugMarker(Cmd* pCmd);
+API_INTERFACE void FORGE_CALLCONV cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
-API_INTERFACE void CALLTYPE setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName);
-API_INTERFACE void CALLTYPE setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName);
+API_INTERFACE void FORGE_CALLCONV setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName);
+API_INTERFACE void FORGE_CALLCONV setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName);
 /************************************************************************/
 /************************************************************************/
 #else

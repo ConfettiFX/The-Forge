@@ -64,6 +64,8 @@
 		65F9787E21E71EEB008EC741 /* loadGroundTextures.lua in Resources */ = {isa = PBXBuildFile; fileRef = 65F9787721E71EEB008EC741 /* loadGroundTextures.lua */; };
 		65F9787F21E71EEB008EC741 /* loadTextures.lua in Resources */ = {isa = PBXBuildFile; fileRef = 65F9787821E71EEB008EC741 /* loadTextures.lua */; };
 		65F9788021E71EEB008EC741 /* loadTextures.lua in Resources */ = {isa = PBXBuildFile; fileRef = 65F9787821E71EEB008EC741 /* loadTextures.lua */; };
+		81B986B02269FEB90078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B986AC2269FEB90078E5F4 /* AppHelpers.cpp */; };
+		81B986B12269FF1C0078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B986AC2269FEB90078E5F4 /* AppHelpers.cpp */; };
 		971BCEDD217012E2007F2B2F /* BRDFIntegration.comp.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2637CB520C9A2DB00D76037 /* BRDFIntegration.comp.metal */; };
 		971BCEDE217012E2007F2B2F /* computeIrradianceMap.comp.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2637CB420C9A2DB00D76037 /* computeIrradianceMap.comp.metal */; };
 		971BCEDF217012E2007F2B2F /* computeSpecularMap.comp.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2637CB820C9A2DB00D76037 /* computeSpecularMap.comp.metal */; };
@@ -460,6 +462,8 @@
 		65F9787621E71EEB008EC741 /* updateCamera.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = updateCamera.lua; path = ../../src/06_MaterialPlayground/updateCamera.lua; sourceTree = "<group>"; };
 		65F9787721E71EEB008EC741 /* loadGroundTextures.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadGroundTextures.lua; path = ../../src/06_MaterialPlayground/loadGroundTextures.lua; sourceTree = "<group>"; };
 		65F9787821E71EEB008EC741 /* loadTextures.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = loadTextures.lua; path = ../../src/06_MaterialPlayground/loadTextures.lua; sourceTree = "<group>"; };
+		81B986AC2269FEB90078E5F4 /* AppHelpers.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppHelpers.cpp; path = ../../../../Common/AppHelpers.cpp; sourceTree = "<group>"; };
+		81B986AF2269FEB90078E5F4 /* AppHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppHelpers.h; path = ../../../../Common/AppHelpers.h; sourceTree = "<group>"; };
 		977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = renderSceneShadows.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneShadows.frag.metal; sourceTree = "<group>"; };
 		977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = renderSceneShadows.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneShadows.vert.metal; sourceTree = "<group>"; };
 		97B2DD1F218BA44600DDDE62 /* PBR */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PBR; path = ../../../../Art/PBR; sourceTree = "<group>"; };
@@ -756,6 +760,8 @@
 		EA463C941EF81E8F005AC8C7 /* 06_MaterialPlayground */ = {
 			isa = PBXGroup;
 			children = (
+				81B986AC2269FEB90078E5F4 /* AppHelpers.cpp */,
+				81B986AF2269FEB90078E5F4 /* AppHelpers.h */,
 				5C172F7D214149FD0074EE71 /* AppDelegate.h */,
 				5C172F7C214149FD0074EE71 /* AppDelegate.m */,
 				B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */,
@@ -1040,6 +1046,7 @@
 				B2637CC620C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */,
 				5C17303C21414E500074EE71 /* AppDelegate.m in Sources */,
 				654D976921E9216700113964 /* TressFXAsset.cpp in Sources */,
+				81B986B12269FF1C0078E5F4 /* AppHelpers.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1052,6 +1059,7 @@
 				5C172F7E214149FD0074EE71 /* AppDelegate.m in Sources */,
 				654D976721E9215F00113964 /* TFXImporter.cpp in Sources */,
 				B2637CC520C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */,
+				81B986B02269FEB90078E5F4 /* AppHelpers.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
