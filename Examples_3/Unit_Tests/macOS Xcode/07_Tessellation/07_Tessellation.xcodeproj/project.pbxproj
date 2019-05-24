@@ -10,7 +10,6 @@
 		281FA9EC20333E7900CD5D9C /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = 281FA9EB20333E7900CD5D9C /* circlepad.png */; };
 		283F14722019EB8C005026E7 /* 07_Tessellation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 283F14712019EB8C005026E7 /* 07_Tessellation.cpp */; };
 		288F63192035BB1600B758DE /* grass.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = 288F63172035B94500B758DE /* grass.frag.metal */; };
-		28A5ADB7201F7587000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADB5201F7587000E571F /* Main.storyboard */; };
 		28A5ADB9201F7587000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADB8201F7587000E571F /* Assets.xcassets */; };
 		28A5ADBC201F7587000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADBA201F7587000E571F /* LaunchScreen.storyboard */; };
 		28A5ADC6201F75E0000E571F /* TitilliumText in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADC5201F75E0000E571F /* TitilliumText */; };
@@ -126,7 +125,6 @@
 		283F14712019EB8C005026E7 /* 07_Tessellation.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 07_Tessellation.cpp; path = ../../../src/07_Tessellation/07_Tessellation.cpp; sourceTree = "<group>"; };
 		288F63172035B94500B758DE /* grass.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = grass.frag.metal; path = ../../../src/07_Tessellation/Shaders/Metal/grass.frag.metal; sourceTree = "<group>"; };
 		28A5ADA7201F7587000E571F /* 07_Tessellation_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 07_Tessellation_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		28A5ADB6201F7587000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5ADB8201F7587000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5ADBB201F7587000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5ADBD201F7587000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -202,7 +200,6 @@
 			children = (
 				5C17304321414E700074EE71 /* AppDelegate.h */,
 				5C17304421414E700074EE71 /* AppDelegate.m */,
-				28A5ADB5201F7587000E571F /* Main.storyboard */,
 				28A5ADB8201F7587000E571F /* Assets.xcassets */,
 				28A5ADBA201F7587000E571F /* LaunchScreen.storyboard */,
 				28A5ADBD201F7587000E571F /* Info.plist */,
@@ -422,7 +419,6 @@
 				288F63192035BB1600B758DE /* grass.frag.metal in Resources */,
 				28A5ADBC201F7587000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5ADB9201F7587000E571F /* Assets.xcassets in Resources */,
-				28A5ADB7201F7587000E571F /* Main.storyboard in Resources */,
 				28A5ADC6201F75E0000E571F /* TitilliumText in Resources */,
 				281FA9EC20333E7900CD5D9C /* circlepad.png in Resources */,
 			);
@@ -474,14 +470,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		28A5ADB5201F7587000E571F /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				28A5ADB6201F7587000E571F /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		28A5ADBA201F7587000E571F /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -518,6 +506,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -697,6 +686,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

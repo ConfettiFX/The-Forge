@@ -28,6 +28,7 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IThread.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -71,19 +72,28 @@ long tell_file(FileHandle handle) { return ftell((::FILE*)handle); }
 
 size_t write_file(const void* buffer, size_t byteCount, FileHandle handle) { return fwrite(buffer, 1, byteCount, (::FILE*)handle); }
 
-size_t get_file_last_modified_time(const char* _fileName)
+time_t get_file_last_modified_time(const char* _fileName)
 {
-	struct stat fileInfo;
+	struct stat fileInfo = {0};
 
-	if (!stat(_fileName, &fileInfo))
-	{
-		return (size_t)fileInfo.st_mtime;
-	}
-	else
-	{
-		// return an impossible large mod time as the file doesn't exist
-		return ~0;
-	}
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_mtime;
+}
+
+time_t get_file_last_accessed_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_atime;
+}
+
+time_t get_file_creation_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_ctime;
 }
 
 tinystl::string get_current_dir()
@@ -206,14 +216,143 @@ void open_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
 	const tinystl::vector<tinystl::string>& fileExtensions)
 {
-	LOGERROR("Not implemented");
+	LOGF(LogLevel::eERROR, "Not implemented");
 }
 
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
 	const tinystl::vector<tinystl::string>& fileExtensions)
 {
-	LOGERROR("Not implemented");
+	LOGF(LogLevel::eERROR, "Not implemented");
+}
+
+#include <sys/inotify.h>
+
+struct FileSystem::Watcher::Data
+{
+	tinystl::string mWatchDir;
+	uint32_t        mNotifyFilter;
+	Callback        mCallback;
+	ThreadDesc      mThreadDesc;
+	ThreadHandle    mThread;
+	volatile int    mRun;
+};
+
+static void fswThreadFunc(void* data)
+{
+	FileSystem::Watcher::Data* fs = (FileSystem::Watcher::Data*)data;
+
+	int  fd, wd;
+	char buffer[4096];
+
+	fd = inotify_init();
+	if (fd < 0)
+	{
+		return;
+	}
+
+	wd = inotify_add_watch(fd, fs->mWatchDir.c_str(), fs->mNotifyFilter);
+
+	if (wd < 0)
+	{
+		close(fd);
+		return;
+	}
+
+	fd_set         rfds;
+	struct timeval tv = { 0, 128 << 10 };
+
+	while (fs->mRun)
+	{
+		FD_ZERO(&rfds);
+		FD_SET(fd, &rfds);
+		int retval = select(FD_SETSIZE, &rfds, 0, 0, &tv);
+		if (retval < 0)
+		{
+			break;
+		}
+		if (retval == 0)
+		{
+			continue;
+		}
+
+		int length = read(fd, buffer, sizeof(buffer));
+		if (length < 0)
+		{
+			break;
+		}
+
+		size_t offset = 0;
+		while (offset < length)
+		{
+			struct inotify_event* event = (struct inotify_event*)(buffer + offset);
+			if (event->len)
+			{
+				tinystl::string path = fs->mWatchDir + event->name;
+				if (event->mask & IN_MODIFY)
+				{
+					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_MODIFIED);
+				}
+				if (event->mask & (IN_ACCESS | IN_OPEN))
+				{
+					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_ACCESSED);
+				}
+				if (event->mask & (IN_MOVED_TO | IN_CREATE))
+				{
+					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_CREATED);
+				}
+				if (event->mask & (IN_MOVED_FROM | IN_DELETE))
+				{
+					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_DELETED);
+				}
+			}
+			offset += sizeof(struct inotify_event) + event->len;
+		}
+	}
+	inotify_rm_watch(fd, wd);
+
+	close(fd);
+};
+
+
+FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+{
+
+	pData->mWatchDir = FileSystem::FixPath(FileSystem::AddTrailingSlash(pWatchPath), root);
+	uint32_t notifyFilter = 0;
+
+	if (eventMask & EVENT_MODIFIED)
+	{
+		notifyFilter |= IN_MODIFY;
+	}
+	if (eventMask & EVENT_ACCESSED)
+	{
+		notifyFilter |= IN_ACCESS | IN_OPEN;
+	}
+	if (eventMask & EVENT_CREATED)
+	{
+		notifyFilter |= IN_CREATE | IN_MOVED_TO;
+	}
+	if (eventMask & EVENT_DELETED)
+	{
+		notifyFilter |= IN_DELETE | IN_MOVED_FROM;
+	}
+
+	pData->mNotifyFilter = notifyFilter;
+	pData->mCallback = callback;
+	pData->mRun = 1;
+
+	pData->mThreadDesc.pFunc = fswThreadFunc;
+	pData->mThreadDesc.pData = pData;
+
+	pData->mThread = create_thread(&pData->mThreadDesc);
+}
+
+FileSystem::Watcher::~Watcher()
+{
+	pData->mRun = 0;
+	destroy_thread(pData->mThread);
+	conf_delete(pData);
 }
 
 #endif

@@ -80,7 +80,6 @@
 #define MAX_LOD_OFFSETS 10
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 Timer      gAccumTimer;
 HiresTimer mFrameTimer;
 
@@ -1210,9 +1209,7 @@ class ExecuteIndirect: public IApp
 #endif
 
 		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-#ifndef METAL
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-#endif
 
 		char buff[256] = "";
 		char modeStr[128] = "Instanced";

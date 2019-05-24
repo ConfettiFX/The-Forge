@@ -57,6 +57,9 @@
 #endif
 #endif
 
+extern void* conf_malloc(size_t);
+extern void  conf_free(void*);
+
 // Play it nice with Windows users. Notepad in 2017 still doesn't display text data with Unix-style \n.
 #ifdef _WIN32
 #define IM_NEWLINE "\r\n"
@@ -2444,13 +2447,13 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
             if (output_dest == 0)
                 ImGui::LogToClipboard();
             
-			LOGINFOF("float4* colors = ImGui::GetStyle().Colors;" IM_NEWLINE);
+			LOGF(LogLevel::eINFO, "float4* colors = ImGui::GetStyle().Colors;" IM_NEWLINE);
             for (int i = 0; i < ImGuiCol_COUNT; i++)
             {
                 const float4& col = style.Colors[i];
                 const char* name = ImGui::GetStyleColorName(i);
                 if (!output_only_modified || memcmp(&col, &ref->Colors[i], sizeof(float4)) != 0)
-					LOGINFOF("colors[ImGuiCol_%s]%*s= float4(%.2ff, %.2ff, %.2ff, %.2ff);" IM_NEWLINE, name, 23-(int)strlen(name), "", col.x, col.y, col.z, col.w);
+					LOGF(LogLevel::eINFO, "colors[ImGuiCol_%s]%*s= float4(%.2ff, %.2ff, %.2ff, %.2ff);" IM_NEWLINE, name, 23-(int)strlen(name), "", col.x, col.y, col.z, col.w);
             }
             ImGui::LogFinish();
         }
@@ -2700,19 +2703,19 @@ struct ExampleAppConsole
     {
         ClearLog();
         for (int i = 0; i < History.size(); i++)
-            free(History[i]);
+            conf_free(History[i]);
     }
 
     // Portable helpers
     static int   Stricmp(const char* str1, const char* str2)         { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
     static int   Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
-    static char* Strdup(const char *str)                             { size_t len = strlen(str) + 1; void* buff = malloc(len); return (char*)memcpy(buff, (const void*)str, len); }
+    static char* Strdup(const char *str)                             { size_t len = strlen(str) + 1; void* buff = conf_malloc(len); return (char*)memcpy(buff, (const void*)str, len); }
     static void  Strtrim(char* str)                                  { char* str_end = str + strlen(str); while (str_end > str && str_end[-1] == ' ') str_end--; *str_end = 0; }
 
     void    ClearLog()
     {
         for (int i = 0; i < Items.size(); i++)
-            free(Items[i]);
+            conf_free(Items[i]);
         Items.clear();
         ScrollToBottom = true;
     }
@@ -2841,7 +2844,7 @@ struct ExampleAppConsole
         for (int i = (int)(History.size()-1); i >= 0; i--)
             if (Stricmp(History[i], command_line) == 0)
             {
-                free(History[i]);
+                conf_free(History[i]);
                 History.erase(History.begin() + i);
                 break;
             }

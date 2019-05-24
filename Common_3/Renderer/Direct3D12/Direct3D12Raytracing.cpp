@@ -564,7 +564,7 @@ uint32_t setupDescAndLayout(	const ShaderResource* pRes, DescriptorInfo* pDesc,
 
 		if (pNode)
 		{
-			LOGINFOF("Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
+			LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 			// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
 			pDesc->mIndexInParent = ~0u;
 			staticSamplers.push_back({ pDesc, pNode->second });
@@ -869,7 +869,7 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 	{
 		char* pMsg = (char*)conf_calloc(error_msgs->GetBufferSize(), sizeof(char));
 		memcpy(pMsg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-		LOGERRORF("Failed to serialize root signature with error (%s)", pMsg);
+		LOGF(LogLevel::eERROR, "Failed to serialize root signature with error (%s)", pMsg);
 		conf_free(pMsg);
 	}
 

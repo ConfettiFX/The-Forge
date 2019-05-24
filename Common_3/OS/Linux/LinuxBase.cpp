@@ -262,7 +262,7 @@ bool handleMessages(WindowsDesc* winDesc)
 				break;
 			case DestroyNotify:
 			{
-				LOGINFO("Destroying the window");
+				LOGF(LogLevel::eINFO, "Destroying the window");
 				break;
 			}
 			case ConfigureNotify:

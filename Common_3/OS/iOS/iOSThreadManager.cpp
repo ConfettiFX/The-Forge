@@ -93,6 +93,10 @@ void Thread::SetMainThread() { mainThreadID = GetCurrentThreadID(); }
 
 ThreadID Thread::GetCurrentThreadID() { return pthread_self(); }
 
+void Thread::GetCurrentThreadName(char * buffer, int buffer_size) {    pthread_getname_np(pthread_self(), buffer, buffer_size); }
+
+void Thread::SetCurrentThreadName(const char * name) { pthread_setname_np(name); }
+
 bool Thread::IsMainThread() { return GetCurrentThreadID() == mainThreadID; }
 
 ThreadHandle create_thread(ThreadDesc* pData)

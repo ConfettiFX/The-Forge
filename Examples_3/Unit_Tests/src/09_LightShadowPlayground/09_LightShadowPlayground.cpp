@@ -304,7 +304,6 @@ GuiComponent* pGuiWindow = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 const int   gSphereResolution = 120;    // Increase for higher resolution spheres
 const float gSphereRadius = 1.33f;
@@ -1548,11 +1547,12 @@ class LightShadowPlayground: public IApp
 		gTimer.GetUSec(true);
 
 		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-#ifndef TARGET_IOS
+
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#else
+
+#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 

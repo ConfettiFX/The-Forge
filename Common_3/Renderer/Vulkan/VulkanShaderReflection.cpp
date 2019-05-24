@@ -74,7 +74,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 {
 	if (pOutReflection == NULL)
 	{
-		LOGERROR("Create Shader Refection failed. Invalid reflection output!");
+		LOGF(LogLevel::eERROR, "Create Shader Refection failed. Invalid reflection output!");
 		return;    // TODO: error msg
 	}
 

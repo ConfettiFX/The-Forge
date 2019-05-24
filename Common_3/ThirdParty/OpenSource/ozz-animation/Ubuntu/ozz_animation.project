@@ -51,6 +51,7 @@
       <Compiler Options="-g;-std=c++11;" C_Options="-g;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>

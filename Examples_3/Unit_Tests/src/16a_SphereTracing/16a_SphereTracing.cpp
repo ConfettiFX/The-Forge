@@ -84,7 +84,6 @@ GpuProfiler* pGpuProfiler = NULL;
 UIApp gAppUI;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/16a_SphereTracing/",       // FSR_BinShaders
@@ -140,7 +139,7 @@ class SphereTracing: public IApp
 #if defined(__ANDROID__) || defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 		{
-			LOGERRORF("Could not initialize Virtual Joystick.");
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 #endif
@@ -374,7 +373,7 @@ class SphereTracing: public IApp
 
 		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
-#if !defined(METAL) && !defined(__ANDROID__)    // Metal doesn't support GPU profilers
+#if !defined(__ANDROID__)    // Metal doesn't support GPU profilers
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif

@@ -28,59 +28,127 @@
 #include "../../ThirdParty/OpenSource/TinySTL/string.h"
 
 #include "../../OS/Interfaces/IThread.h"
+#include "../../OS/Interfaces/IFileSystem.h"
 
+#ifndef FILENAME_NAME_LENGTH_LOG
+#define FILENAME_NAME_LENGTH_LOG 23
+#endif
+
+#ifndef INDENTATION_SIZE_LOG
+#define INDENTATION_SIZE_LOG 4
+#endif
+
+#ifndef LEVELS_LOG
+#define LEVELS_LOG 6
+#endif
+
+#define CONCAT_STR_LOG_IMPL(a, b) a ## b
+#define CONCAT_STR_LOG(a, b) CONCAT_STR_LOG_IMPL(a, b)
+
+#ifndef ANONIMOUS_VARIABLE_LOG
+#define ANONIMOUS_VARIABLE_LOG(str) CONCAT_STR_LOG(str, __LINE__)
+#endif
+
+// If you add more levels don't forget to change LOG_LEVELS macro to the actual number of levels
 enum LogLevel
 {
-	LL_Raw = -1,
-	LL_Debug,
-	LL_Info,
-	LL_Warning,
-	LL_Error,
-	LL_None,
+	eNONE = 0,
+	eRAW = 1,
+	eDEBUG = 2,
+	eINFO = 4,
+	eWARNING = 8,
+	eERROR = 16,
+	eALL = ~0
 };
 
 class File;
 
+typedef void(*log_callback_t)(void * user_data, const tinystl::string & message);
+typedef void(*log_close_t)(void * user_data);
+typedef void(*log_flush_t)(void * user_data);
+
 /// Logging subsystem.
 class LogManager
 {
-	public:
-	LogManager(
-		LogLevel level =
-#ifdef _DEBUG
-			LogLevel::LL_Debug
-#else
-			LogLevel::LL_Info
-#endif
-	);
-	~LogManager();
+public:
+	struct LogScope
+	{
+		LogScope(uint32_t log_level, const char * file, int line, const char * format, ...);
+		~LogScope();
 
-	void Open(const tinystl::string& fileName);
-	void Close();
+		tinystl::string mMessage;
+		const char * mFile;
+		int mLine;
+		uint32_t mLevel;
+	};
 
-	void SetLevel(LogLevel level);
-	void SetTimeStamp(bool enable);
-	void SetQuiet(bool quiet);
+	static void AddFile(const char * filename, FileMode file_mode, LogLevel log_level);
+	static void AddCallback(const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close = nullptr, log_flush_t flush = nullptr);
 
-	LogLevel        GetLevel() const { return mLogLevel; }
-	bool            GetTimeStamp() const { return mRecordTimestamp; }
-	tinystl::string GetLastMessage() const { return mLastMessage; }
-	bool            IsQuiet() const { return mQuietMode; }
+	static void SetLevel(LogLevel level);
+	static void SetQuiet(bool quiet);
+	static void SetTimeStamp(bool enable);
+	static void SetRecordingFile(bool enable);
+	static void SetRecordingThreadName(bool enable);
 
-	virtual void OutputLog(int level, const tinystl::string& message);
+	static uint32_t        GetLevel() { return Get().mLogLevel; }
+	static tinystl::string GetLastMessage() { return Get().mLastMessage; }
+	static bool            IsQuiet() { return Get().mQuietMode; }
+	static bool            IsRecordingTimeStamp() { return Get().mRecordTimestamp; }
+	static bool            IsRecordingFile() { return Get().mRecordFile; }
+	static bool            IsRecordingThreadName() { return Get().mRecordThreadName; }
 
-	static void Write(int level, const tinystl::string& message);
-	static void WriteRaw(const tinystl::string& message, bool error = false);
+	static void Write(uint32_t level, const tinystl::string& message, const char * filename, int line_number);
+	static void WriteRaw(uint32_t level, const tinystl::string& message, bool error = false);
 
 	private:
+	static LogManager & Get();
+	static void AddFile(LogManager & log, const char * filename, FileMode file_mode, LogLevel log_level);
+	static void AddCallback(LogManager & log, const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush);
+	static void Write(LogManager & log, uint32_t level, const tinystl::string & message, const char * filename, int line_number);
+	static void WriteRaw(LogManager & log, uint32_t level, const tinystl::string& message, bool error = false);
+
+	static void WritePreamble(LogManager & log, char * buffer, uint32_t buffer_size, const char * file, int line);
+	static bool CallbackExists(const LogManager & log, const char * id);
+
+	LogManager(LogLevel level = LogLevel::eALL);
+	~LogManager();
+
+	// Singleton
+	LogManager(const LogManager &) = delete;
+	LogManager(LogManager &&) = delete;
+	LogManager & operator=(const LogManager &) = delete;
+	LogManager & operator=(LogManager &&) = delete;
+
+	struct LogCallback
+	{
+		LogCallback(const tinystl::string & id, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush, uint32_t level)
+			: mID(id)
+			, mUserData(user_data)
+			, mCallback(callback)
+			, mClose(close)
+			, mFlush(flush)
+			, mLevel(level)
+		 { }
+		
+		tinystl::string mID;
+		void * mUserData;
+		log_callback_t mCallback;
+		log_close_t mClose = nullptr;
+		log_flush_t mFlush = nullptr;
+		uint32_t mLevel;
+	};
+
+	tinystl::vector<LogCallback> mCallbacks;
 	/// Mutex for threaded operation.
 	Mutex           mLogMutex;
-	File*           pLogFile;
 	tinystl::string mLastMessage;
-	LogLevel        mLogLevel;
-	bool            mRecordTimestamp;
-	bool            mInWrite;
+	uint32_t        mLogLevel;
+	uint32_t        mIndentation;
 	bool            mQuietMode;
+	bool            mRecordTimestamp;
+	bool            mRecordFile;
+	bool            mRecordThreadName;
 };
 
-tinystl::string ToString(const char* formatString, const char* function, ...);
+tinystl::string ToString(const char* formatString, ...);

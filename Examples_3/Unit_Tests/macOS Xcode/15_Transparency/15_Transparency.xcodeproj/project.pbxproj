@@ -110,7 +110,6 @@
 
 /* Begin PBXFileReference section */
 		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		28A5AE17201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -193,7 +192,6 @@
 			children = (
 				5C17305521414EA80074EE71 /* AppDelegate.h */,
 				5C17305621414EA80074EE71 /* AppDelegate.m */,
-				28A5AE16201F7D41000E571F /* Main.storyboard */,
 				28A5AE19201F7D41000E571F /* Assets.xcassets */,
 				28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */,
 				28A5AE1E201F7D41000E571F /* Info.plist */,
@@ -524,14 +522,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		28A5AE16201F7D41000E571F /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				28A5AE17201F7D41000E571F /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -673,6 +663,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

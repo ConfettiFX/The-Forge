@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		28A5AC10201F58BF000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC0E201F58BF000E571F /* Main.storyboard */; };
 		28A5AC12201F58BF000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC11201F58BF000E571F /* Assets.xcassets */; };
 		28A5AC15201F58BF000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC13201F58BF000E571F /* LaunchScreen.storyboard */; };
 		28A5AC68201F5D50000E571F /* 03_MultiThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2D3C5E61F34797700574C6E /* 03_MultiThread.cpp */; };
@@ -150,7 +149,6 @@
 		288F63002035A1F300B758DE /* Skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = Skybox.frag.metal; path = ../../../src/03_MultiThread/Shaders/Metal/Skybox.frag.metal; sourceTree = "<group>"; };
 		288F63012035A1F300B758DE /* Particle.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = Particle.frag.metal; path = ../../../src/03_MultiThread/Shaders/Metal/Particle.frag.metal; sourceTree = "<group>"; };
 		28A5AC00201F58BF000E571F /* 03_MultiThread_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 03_MultiThread_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		28A5AC0F201F58BF000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AC11201F58BF000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AC14201F58BF000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AC16201F58BF000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -229,7 +227,6 @@
 			children = (
 				5C17301F21414DDB0074EE71 /* AppDelegate.h */,
 				5C17302021414DDB0074EE71 /* AppDelegate.m */,
-				28A5AC0E201F58BF000E571F /* Main.storyboard */,
 				28A5AC11201F58BF000E571F /* Assets.xcassets */,
 				28A5AC13201F58BF000E571F /* LaunchScreen.storyboard */,
 				28A5AC16201F58BF000E571F /* Info.plist */,
@@ -467,7 +464,6 @@
 			files = (
 				28A5AC15201F58BF000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AC12201F58BF000E571F /* Assets.xcassets in Resources */,
-				28A5AC10201F58BF000E571F /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -517,14 +513,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		28A5AC0E201F58BF000E571F /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				28A5AC0F201F58BF000E571F /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		28A5AC13201F58BF000E571F /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -561,6 +549,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -739,6 +728,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

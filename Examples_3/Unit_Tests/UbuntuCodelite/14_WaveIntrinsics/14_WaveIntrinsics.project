@@ -10,6 +10,18 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/14_WaveIntrinsics/14_WaveIntrinsics.cpp"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -26,6 +38,7 @@
         <IncludePath Value="$(ProjectPath)/../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
@@ -127,16 +140,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-  </Dependencies>
 </CodeLite_Project>

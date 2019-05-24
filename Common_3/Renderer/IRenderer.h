@@ -81,8 +81,6 @@
 #include "../OS/Interfaces/IOperatingSystem.h"
 #include "../OS/Interfaces/IThread.h"
 
-#include "../ThirdParty/OpenSource/microprofile/microprofile.h"
-
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG
 #define MAKE_ENUM_FLAG(TYPE, ENUM_TYPE)                                                                        \
@@ -632,6 +630,10 @@ typedef struct QueryHeap
 #endif
 #if defined(DIRECT3D11)
 	ID3D11Query** ppDxQueries;
+#endif
+#if defined(METAL)
+    uint64_t gpuTimestampStart;
+    uint64_t gpuTimestampEnd;
 #endif
 } QueryHeap;
 
@@ -1254,6 +1256,7 @@ typedef struct Queue
 #endif
 #if defined(METAL)
 	id<MTLCommandQueue>  mtlCommandQueue;
+	uint32_t             mBarrierFlags;
 #endif
 	QueueDesc mQueueDesc;
 	Extent3D  mUploadGranularity;
@@ -1701,7 +1704,11 @@ typedef struct SwapChain
 	VkImage*       ppVkSwapChainImages;
 #endif
 #if defined(METAL)
-	MTKView*             pMTKView;
+#   if defined(TARGET_IOS)
+        UIView*              pForgeView;
+#   else
+        NSView*              pForgeView;
+#endif
 	id<CAMetalDrawable>  mMTKDrawable;
 	id<MTLCommandBuffer> presentCommandBuffer;
 #endif
@@ -1859,8 +1866,8 @@ typedef struct Renderer
 	const char* gVkDeviceExtensions[MAX_DEVICE_EXTENSIONS];
 #endif
 #if defined(METAL)
-	id<MTLDevice>             pDevice;
-	struct ResourceAllocator* pResourceAllocator;
+	id<MTLDevice>				pDevice;
+	struct ResourceAllocator*	pResourceAllocator;
 #endif
 	uint32_t         mCurrentFrameIdx;
 	// Default states used if user does not specify them in pipeline creation

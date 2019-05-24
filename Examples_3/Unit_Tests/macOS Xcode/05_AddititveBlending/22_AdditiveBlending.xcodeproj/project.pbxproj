@@ -42,7 +42,6 @@
 		D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */; };
 		D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE7211ED7950028AFFD /* ozz_animation_IOS.a */; };
 		D0796AEB211ED7A70028AFFD /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE9211ED7950028AFFD /* ozz_base_IOS.a */; };
-		D0858A8F211FBA5600215ECF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0858A8C211FBA5600215ECF /* Main.storyboard */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
@@ -236,7 +235,6 @@
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D0296BEB211EE433000C9281 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		D0858A8D211FBA5600215ECF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 22_AdditiveBlending/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 22_AdditiveBlending.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 22_AdditiveBlending.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -371,7 +369,6 @@
 				B2B7400E2175533E00324803 /* AppDelegate.m */,
 				B2B7400C2175532600324803 /* AppDelegate.h */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
-				D0858A8C211FBA5600215ECF /* Main.storyboard */,
 				D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */,
 				C95133032010E68A002E584B /* Info.plist */,
 			);
@@ -577,7 +574,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D0858A8F211FBA5600215ECF /* Main.storyboard in Resources */,
 				D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
 				B2B7406B21755F1200324803 /* circlepad.png in Resources */,
@@ -658,14 +654,6 @@
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
-		D0858A8C211FBA5600215ECF /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				D0858A8D211FBA5600215ECF /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -694,6 +682,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/$(TARGET_NAME)/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
@@ -867,6 +856,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/22_AdditiveBlending/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (

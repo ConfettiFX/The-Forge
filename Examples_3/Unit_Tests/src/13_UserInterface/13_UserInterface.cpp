@@ -96,7 +96,6 @@ uint32_t gFrameIndex = 0;
 //--------------------------------------------------------------------------------------------
 ICameraController* pCameraController = NULL;
 FileSystem         gFileSystem;
-LogManager         gLogManager;
 
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
@@ -140,7 +139,7 @@ tinystl::string sContextMenuItems[7] = { "Random Background Color",  "Random Pro
 										 "Dummy Context Menu Item7" };
 void            fnItem1Callback()    // sets slider color value: RGBA
 {
-	// LOGINFO("Contextual: Menu Item 1 Function called.");
+	// LOGF(LogLevel::eINFO, "Contextual: Menu Item 1 Function called.");
 	gUIData.mStandalone.mColorForSlider = packColorF32(
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // r
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // g
@@ -150,7 +149,7 @@ void            fnItem1Callback()    // sets slider color value: RGBA
 }
 void fnItem2Callback()    // sets debug text's font color: ABGR
 {
-	//LOGINFO("Contextual: Menu Item 2 Function called.");
+	//LOGF(LogLevel::eINFO, "Contextual: Menu Item 2 Function called.");
 	gFrameTimeDraw.mFontColor = packColorF32(
 		1.0f,                                      // a
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // b

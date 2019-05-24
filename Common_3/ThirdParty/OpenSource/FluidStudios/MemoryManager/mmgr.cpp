@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
 //                                                      
 //                                                      
-//  _ __ ___  _ __ ___   __ _ _ __      ___ _ __  _ __  
-// | '_ ` _ \| '_ ` _ \ / _` | '__|    / __| '_ \| '_ \ 
+//  _ __ ___  _ __ ___   __ _ _ __      ___ _ __  _ ___  
+// | '_ ` _ \| '_ ` _ \ / _` | '__|    / __| '_ \| '_  |
 // | | | | | | | | | | | (_| | |    _ | (__| |_) | |_) |
 // |_| |_| |_|_| |_| |_|\__, |_|   (_) \___| .__/| .__/ 
 //                       __/ |             | |   | |    
@@ -189,6 +189,15 @@ extern void debugger(const char *message);
 #endif
 #else	// Linux uses assert, which we can use safely, since it doesn't bring up a dialog within the program.
 #define	m_assert(cond) assert(cond)
+#define sprintf_s sprintf
+#define _unlink unlink
+#define localtime_s localtime_r
+#define fopen_s(file,filename,mode) ((*file)=fopen(filename,mode))
+#ifdef __APPLE__
+#define strcpy_s(destination,size,source) strlcpy(destination,source,size)
+#else
+#define strcpy_s(destination,size,source) strcpy(destination,source)
+#endif
 #endif
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -261,16 +270,12 @@ char* LogToMemory(char* log);
 // 3. Define MUTEX_UNLOCK to call the unlock function of the mutex.
 // 4. Add the mutex initialization function inside CreateMutex() on the bottom of this file.
 // 5. Add the mutex destruction function inside RemoveMutex() on the bottom of this file. (Currently not used)
-#ifdef WIN32
-typedef CRITICAL_SECTION MUTEX;
-#define MUTEX_LOCK(MUTEX) if (!MUTEX) {MUTEX = CreateMutex();} EnterCriticalSection(MUTEX);
-#define MUTEX_UNLOCK(MUTEX) LeaveCriticalSection(MUTEX);
-#else
-// Mutex definition in other OSes or single thread programs
-typedef void MUTEX;
-#define MUTEX_LOCK(MUTEX) ;
-#define MUTEX_UNLOCK(MUTEX) ;
-#endif
+
+#include "../../../../OS/Interfaces/IThread.h"
+
+typedef Mutex MUTEX;
+#define MUTEX_LOCK(mutex) if (!mutex) {mutex = CreateMutex();} mutex->Acquire();
+#define MUTEX_UNLOCK(mutex) mutex->Release();
 
 MUTEX* allocMutex;
 MUTEX* logMutex;
@@ -294,10 +299,11 @@ static	char*	log(const char *format, ...)
 	/*logMutex->lock();*/
 	MUTEX_LOCK(logMutex);
 
-	static char buffer[2048];
+	static const uint32_t BUFFER_SIZE = 2048;
+	static char buffer[BUFFER_SIZE];
 	va_list	ap;
 	va_start(ap, format);
-	vsprintf_s(buffer, format, ap);
+	vsprintf_s(buffer, BUFFER_SIZE, format, ap);
 	va_end(ap);
 
 	// Open the log file
@@ -342,7 +348,11 @@ static	void	doCleanupLogOnFirstRun()
 
 		time_t	t = time(NULL);
 		tm localt;
+#ifdef _WIN32
 		localtime_s(&localt, &t);
+#else
+		localtime_s(&t, &localt);
+#endif
 		char asciiTime[64];
 		// use strftime instead of asctime so we don't get the trailing newline. (We're writing the
 		// file in binary so we need to explicitly make all newlines "\r\n".)
@@ -429,7 +439,7 @@ static	const char	*insertCommas(unsigned int value)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static	const char	*memorySizeString(unsigned long size)
+static	const char	*memorySizeString(uint32_t size)
 {
 	static	char	str[90];
 	if (size > (1024 * 1024))	sprintf_s(str, "%10s (%7.2fM)", insertCommas(size), static_cast<float>(size) / (1024.0f * 1024.0f));
@@ -464,22 +474,22 @@ static	sAllocUnit	*findAllocUnit(const void *reportedAddress)
 
 static	size_t	calculateActualSize(const size_t reportedSize)
 {
-	// We use DWORDS as our padding, and a long is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
+	// We use DWORDS as our padding, and a uint32_t is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
 	// being the standard word size for a processor; on a 32-bit machine, that's 4 bytes, but on a 64-bit machine, it's
-	// 8 bytes, which means an int can actually be larger than a long.)
+	// 8 bytes, which means an int can actually be larger than a uint32_t.)
 
-	return reportedSize + paddingSize * sizeof(long) * 2;
+	return reportedSize + paddingSize * sizeof(uint32_t) * 2;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 static	size_t	calculateReportedSize(const size_t actualSize)
 {
-	// We use DWORDS as our padding, and a long is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
+	// We use DWORDS as our padding, and a uint32_t is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
 	// being the standard word size for a processor; on a 32-bit machine, that's 4 bytes, but on a 64-bit machine, it's
-	// 8 bytes, which means an int can actually be larger than a long.)
+	// 8 bytes, which means an int can actually be larger than a uint32_t.)
 
-	return actualSize - paddingSize * sizeof(long) * 2;
+	return actualSize - paddingSize * sizeof(uint32_t) * 2;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -492,12 +502,12 @@ static	void	*calculateReportedAddress(const void *actualAddress)
 
 	// JUst account for the padding
 
-	return reinterpret_cast<void *>(const_cast<char *>(reinterpret_cast<const char *>(actualAddress) + sizeof(long) * paddingSize));
+	return reinterpret_cast<void *>(const_cast<char *>(reinterpret_cast<const char *>(actualAddress) + sizeof(uint32_t) * paddingSize));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static	void	wipeWithPattern(sAllocUnit *allocUnit, unsigned long pattern, const unsigned int originalReportedSize = 0)
+static	void	wipeWithPattern(sAllocUnit *allocUnit, uint32_t pattern, const unsigned int originalReportedSize = 0)
 {
 	// For a serious test run, we use wipes of random a random value. However, if this causes a crash, we don't want it to
 	// crash in a differnt place each time, so we specifically DO NOT call srand. If, by chance your program calls srand(),
@@ -522,7 +532,7 @@ static	void	wipeWithPattern(sAllocUnit *allocUnit, unsigned long pattern, const 
 	{
 		// Fill the bulk
 
-		long	*lptr = reinterpret_cast<long *>(reinterpret_cast<char *>(allocUnit->reportedAddress) + originalReportedSize);
+		uint32_t	*lptr = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->reportedAddress) + originalReportedSize);
 		int	length = static_cast<int>(allocUnit->reportedSize - originalReportedSize);
 		int	i;
 		for (i = 0; i < (length >> 2); i++, lptr++)
@@ -542,8 +552,8 @@ static	void	wipeWithPattern(sAllocUnit *allocUnit, unsigned long pattern, const 
 
 	// Write in the prefix/postfix bytes
 
-	long		*pre = reinterpret_cast<long *>(allocUnit->actualAddress);
-	long		*post = reinterpret_cast<long *>(reinterpret_cast<char *>(allocUnit->actualAddress) + allocUnit->actualSize - paddingSize * sizeof(long));
+	uint32_t	*pre = reinterpret_cast<uint32_t *>(allocUnit->actualAddress);
+	uint32_t	*post = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->actualAddress) + allocUnit->actualSize - paddingSize * sizeof(uint32_t));
 	for (unsigned int i = 0; i < paddingSize; i++, pre++, post++)
 	{
 		*pre = prefixPattern;
@@ -586,8 +596,17 @@ static	void	dumpLeakReport()
 	// Open the report file
 
 	FILE	*fp = NULL;
+#ifdef TARGET_IOS
+	// temp solution until we integrate FileSystem with mem manager
+	char filename[1024] = "";
+	strcat(filename,getenv("HOME"));
+	strcat(filename,"/Documents/");
+    strcat(filename,memoryLogFile);
+	fopen_s(&fp, filename, "w+b");
+#else
 	fopen_s(&fp, memoryLeakLogFile, "w+b");
 
+#endif
 	// If you hit this assert, then the memory report generator is unable to log information to a file (can't open the file for
 	// some reason.)
 	m_assert(fp);
@@ -601,7 +620,11 @@ static	void	dumpLeakReport()
 	memset(timeString, 0, sizeof(timeString));
 	time_t  t = time(NULL);
 	struct tm tme;
+#ifdef _WIN32
 	localtime_s(&tme, &t);
+#else
+	localtime_s(&t, &tme);
+#endif
 	fprintf(fp, " ------------------------------------------------------------------------------\r\n");
 	fprintf(fp, "|                Memory leak report for:  %02d/%02d/%04d %02d:%02d:%02d                  |\r\n", tme.tm_mon + 1, tme.tm_mday, tme.tm_year + 1900, tme.tm_hour, tme.tm_min, tme.tm_sec);
 	fprintf(fp, " ------------------------------------------------------------------------------\r\n");
@@ -637,7 +660,7 @@ static	void	dumpLeakReport()
 
 	char* allMemoryLog = log("----All Allocations and Deallocations----");
 
-	fprintf(fp, allMemoryLog);
+	fprintf(fp, "%s", allMemoryLog);
 
 	fclose(fp);
 }
@@ -1356,12 +1379,12 @@ bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
 {
 	// Make sure the padding is untouched
 
-	long	*pre = reinterpret_cast<long *>(allocUnit->actualAddress);
-	long	*post = reinterpret_cast<long *>((char *)allocUnit->actualAddress + allocUnit->actualSize - paddingSize * sizeof(long));
+	uint32_t	*pre = reinterpret_cast<uint32_t *>(allocUnit->actualAddress);
+	uint32_t	*post = reinterpret_cast<uint32_t *>((char *)allocUnit->actualAddress + allocUnit->actualSize - paddingSize * sizeof(uint32_t));
 	bool	errorFlag = false;
 	for (unsigned int i = 0; i < paddingSize; i++, pre++, post++)
 	{
-		if (*pre != (long)prefixPattern)
+		if (*pre != (uint32_t)prefixPattern)
 		{
 			log("[!] A memory allocation unit was corrupt because of an underrun:");
 			m_dumpAllocUnit(allocUnit, "  ");
@@ -1371,9 +1394,9 @@ bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
 		// If you hit this assert, then you should know that this allocation unit has been damaged. Something (possibly the
 		// owner?) has underrun the allocation unit (modified a few bytes prior to the start). You can interrogate the
 		// variable 'allocUnit' to see statistics and information about this damaged allocation unit.
-		m_assert(*pre == static_cast<long>(prefixPattern));
+		m_assert(*pre == static_cast<uint32_t>(prefixPattern));
 
-		if (*post != static_cast<long>(postfixPattern))
+		if (*post != static_cast<uint32_t>(postfixPattern))
 		{
 			log("[!] A memory allocation unit was corrupt because of an overrun:");
 			m_dumpAllocUnit(allocUnit, "  ");
@@ -1383,7 +1406,7 @@ bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
 		// If you hit this assert, then you should know that this allocation unit has been damaged. Something (possibly the
 		// owner?) has overrun the allocation unit (modified a few bytes after the end). You can interrogate the variable
 		// 'allocUnit' to see statistics and information about this damaged allocation unit.
-		m_assert(*post == static_cast<long>(postfixPattern));
+		m_assert(*post == static_cast<uint32_t>(postfixPattern));
 	}
 
 	// Return the error status (we invert it, because a return of 'false' means error)
@@ -1444,12 +1467,12 @@ bool	m_validateAllAllocUnits()
 
 unsigned int	m_calcUnused(const sAllocUnit *allocUnit)
 {
-	const unsigned long	*ptr = reinterpret_cast<const unsigned long *>(allocUnit->reportedAddress);
+	const uint32_t	*ptr = reinterpret_cast<const uint32_t *>(allocUnit->reportedAddress);
 	unsigned int		count = 0;
 
-	for (unsigned int i = 0; i < allocUnit->reportedSize; i += sizeof(long), ptr++)
+	for (unsigned int i = 0; i < allocUnit->reportedSize; i += sizeof(uint32_t), ptr++)
 	{
-		if (*ptr == unusedPattern) count += sizeof(long);
+		if (*ptr == unusedPattern) count += sizeof(uint32_t);
 	}
 
 	return count;
@@ -1512,7 +1535,11 @@ void	m_dumpMemoryReport(const char *filename, const bool overwrite)
 	memset(timeString, 0, sizeof(timeString));
 	time_t  t = time(NULL);
 	struct  tm tme;
+#ifdef _WIN32
 	localtime_s(&tme, &t);
+#else
+	localtime_s(&t, &tme);
+#endif
 	fprintf(fp, " ---------------------------------------------------------------------------------------------------------------------------------- \r\n");
 	fprintf(fp, "|                                             Memory report for: %02d/%02d/%04d %02d:%02d:%02d                                               |\r\n", tme.tm_mon + 1, tme.tm_mday, tme.tm_year + 1900, tme.tm_hour, tme.tm_min, tme.tm_sec);
 	fprintf(fp, " ---------------------------------------------------------------------------------------------------------------------------------- \r\n");
@@ -1586,10 +1613,14 @@ char* LogToMemory(char* log)
 MUTEX* CreateMutex()
 {
 	MUTEX* mutex = (MUTEX*)malloc(sizeof(MUTEX));
-	new(mutex) MUTEX();
 
-#ifdef WIN32
-	InitializeCriticalSectionAndSpinCount(mutex, 0x0400);
+#if defined(_WIN32)
+	// We cannot use Mutex constructor due to infinite recursion
+	// Build it ourselves
+	mutex->pHandle = (CRITICAL_SECTION*)calloc(1, sizeof(CRITICAL_SECTION));
+	InitializeCriticalSection((CRITICAL_SECTION*)mutex->pHandle);
+#else
+	new (mutex) MUTEX();
 #endif
 	return mutex;
 }
@@ -1598,10 +1629,14 @@ void RemoveMutex(MUTEX*& mutex)
 {
 	if (mutex)
 	{
-#ifdef WIN32
-		DeleteCriticalSection(mutex);
-#endif
+#if defined(_WIN32)
+		// Because we allocated it, we need to free it ourselves
+		CRITICAL_SECTION* cs = (CRITICAL_SECTION*)mutex->pHandle;
+		DeleteCriticalSection(cs);
+		free(cs);
+#else
 		(mutex)->MUTEX::~MUTEX();
+#endif
 		free(mutex);
 		mutex = NULL;
 	}

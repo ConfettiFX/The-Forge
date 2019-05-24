@@ -154,6 +154,7 @@ InputDevicePadImplIos::InputDevicePadImplIos(InputManager& manager, InputDevice&
 
 InputDevicePadImplIos::~InputDevicePadImplIos()
 {
+	manager_.GetAllocator().Delete(mappedControllers_);
 }
 
 void InputDevicePadImplIos::Update(InputDeltaState* delta)

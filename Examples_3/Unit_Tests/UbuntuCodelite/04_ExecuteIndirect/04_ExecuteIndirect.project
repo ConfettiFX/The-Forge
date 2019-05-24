@@ -20,6 +20,18 @@
     <File Name="../../../../Middleware_3/PaniniProjection/Panini.cpp"/>
     <File Name="../../../../Middleware_3/PaniniProjection/Panini.h"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -36,6 +48,7 @@
         <IncludePath Value="$(ProjectPath)/../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
@@ -137,16 +150,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-  </Dependencies>
 </CodeLite_Project>

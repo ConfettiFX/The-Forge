@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		28A5AD53201F7276000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AD51201F7276000E571F /* Main.storyboard */; };
 		28A5AD55201F7276000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AD54201F7276000E571F /* Assets.xcassets */; };
 		28A5AD58201F7276000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AD56201F7276000E571F /* LaunchScreen.storyboard */; };
 		5C172F7E214149FD0074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F7C214149FD0074EE71 /* AppDelegate.m */; };
@@ -417,7 +416,6 @@
 		281FA9E820333E5700CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
 		2874FDB8202CA418007239DC /* LA_Helipad.hdr */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.hdr; path = ../../../UnitTestResources/Textures/LA_Helipad.hdr; sourceTree = "<group>"; };
 		28A5AD43201F7276000E571F /* 06_MaterialPlayground_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 06_MaterialPlayground_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		28A5AD52201F7276000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AD54201F7276000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AD57201F7276000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AD59201F7276000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -550,7 +548,6 @@
 			children = (
 				5C17303A21414E500074EE71 /* AppDelegate.h */,
 				5C17303B21414E500074EE71 /* AppDelegate.m */,
-				28A5AD51201F7276000E571F /* Main.storyboard */,
 				28A5AD54201F7276000E571F /* Assets.xcassets */,
 				28A5AD56201F7276000E571F /* LaunchScreen.storyboard */,
 				28A5AD59201F7276000E571F /* Info.plist */,
@@ -1014,7 +1011,6 @@
 				65F9788021E71EEB008EC741 /* loadTextures.lua in Resources */,
 				65F9787E21E71EEB008EC741 /* loadGroundTextures.lua in Resources */,
 				65F9787A21E71EEB008EC741 /* loadModels.lua in Resources */,
-				28A5AD53201F7276000E571F /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1139,14 +1135,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		28A5AD51201F7276000E571F /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				28A5AD52201F7276000E571F /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		28A5AD56201F7276000E571F /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -1184,6 +1172,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -1376,6 +1365,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

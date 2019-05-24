@@ -20,7 +20,6 @@
 		D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD42211027600CF2B1B /* GameController.framework */; };
 		D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D062DAE32211033700CF2B1B /* AppDelegate.m */; };
 		D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */; };
-		D062DAE72211038200CF2B1B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D062DADC2211030400CF2B1B /* Main.storyboard */; };
 		D062DAF6221104D500CF2B1B /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = D062DAF4221104C700CF2B1B /* TitilliumText */; };
 		D062DAF8221104FC00CF2B1B /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.png */; };
 		D062DAF92211052700CF2B1B /* imgui.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0E21F0A08D00C99983 /* imgui.frag.metal */; };
@@ -153,7 +152,6 @@
 		D062DAD42211027600CF2B1B /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		D062DAD92211030400CF2B1B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D062DADB2211030400CF2B1B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		D062DADD2211030400CF2B1B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		D062DADE2211030400CF2B1B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D062DAE32211033700CF2B1B /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
 		D062DAE42211033700CF2B1B /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
@@ -272,7 +270,6 @@
 				D062DAE32211033700CF2B1B /* AppDelegate.m */,
 				D062DAD92211030400CF2B1B /* Assets.xcassets */,
 				D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */,
-				D062DADC2211030400CF2B1B /* Main.storyboard */,
 				D062DADE2211030400CF2B1B /* Info.plist */,
 			);
 			path = 14_WaveIntrinsics_iOS;
@@ -421,7 +418,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */,
-				D062DAE72211038200CF2B1B /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -479,14 +475,6 @@
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
-		D062DADC2211030400CF2B1B /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				D062DADD2211030400CF2B1B /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -512,6 +500,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -692,6 +681,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

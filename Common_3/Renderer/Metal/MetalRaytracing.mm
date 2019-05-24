@@ -650,7 +650,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                                                             error:&error];
             if (!_pipeline)
             {
-                LOGERRORF("Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
+                LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
             }
             [pPipeline->mHitPipelines addObject: _pipeline];
             
@@ -678,7 +678,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                                                       error:&error];
             if (!_pipeline)
             {
-                LOGERRORF("Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
+                LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
             }
             [pPipeline->mMissPipelines addObject: _pipeline];
             
@@ -936,7 +936,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                     
                     if (pNode)
                     {
-                        LOGINFOF("Descriptor (%s) : User specified Static Sampler", pRes->name);
+                        LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pRes->name);
                         staticSamplers.push_back({ pRes, pNode->second });
                     }
                     else

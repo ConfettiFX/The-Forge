@@ -75,7 +75,6 @@ const char* pszBases[FSR_Count] = {
 	"../../../../../Middleware_3/UI/",               // FSR_MIDDLEWARE_UI
 };
 
-LogManager gLogManager;
 
 #define DEFERRED_RT_COUNT 3
 #define MAX_PLANES 4
@@ -2052,12 +2051,10 @@ class PixelProjectedReflections: public IApp
 
 		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
-#ifndef METAL    // Metal doesn't support GPU profilers
 		gAppUI.DrawText(
 			cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#endif
 
 		if (!dataLoaded)
 			gAppUI.Gui(pLoadingGui);

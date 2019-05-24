@@ -25,6 +25,7 @@
 #include "../../../Common_3/OS/Input/InputSystem.h"
 #include "../../../Common_3/OS/Input/InputMappings.h"
 
+#include "../../../Common_3/Tools/Profiler/Profiler.h"
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
@@ -63,7 +64,6 @@
 
 File       mFile;
 FileSystem mFileSystem;
-LogManager mLogManager;
 HiresTimer gTimer;
 
 ThreadSystem* pThreadSystem;
@@ -906,7 +906,7 @@ public:
 		HiresTimer shaderTimer;
 		// Load shaders
 		addShaders();
-		LOGINFOF("Load shaders : %f ms", shaderTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load shaders : %f ms", shaderTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// Setup default depth, blend, rasterizer, sampler states
 		/************************************************************************/
@@ -994,7 +994,7 @@ public:
 		pScene = loadScene(sceneFullPath.c_str(), 50.0f, -20.0f, 0.0f, 0.0f);
 		if (!pScene)
 			return false;
-		LOGINFOF("Load assimp scene : %f ms", sceneLoadTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load assimp scene : %f ms", sceneLoadTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// IA buffers
 		/************************************************************************/
@@ -1088,7 +1088,7 @@ public:
 		vbTangentDesc.mDesc.pDebugName = L"Vertex Tangent Buffer Desc";
 		addResource(&vbTangentDesc, true);
 		
-		LOGINFOF("Load scene buffers : %f ms", bufferLoadTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load scene buffers : %f ms", bufferLoadTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// Texture loading
 		/************************************************************************/
@@ -1118,7 +1118,7 @@ public:
 			Material* material = pScene->materials + mesh->materialId;
 			createClusters(material->twoSided, pScene, mesh);
 		}
-		LOGINFOF("Load clusters : %f ms", clusterTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load clusters : %f ms", clusterTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// Setup root signatures
 		/************************************************************************/
@@ -1317,7 +1317,9 @@ public:
 			return false;
 		
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
-		gAppUI.ActivateMicroProfile(gAppSettings.mActivateMicroProfiler);
+		ProfileInitialize(pRenderer, gImageCount);
+		ProfileRegisterInput();
+		ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
 		
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
@@ -1558,7 +1560,7 @@ public:
 		HiresTimer setupBuffersTimer;
 		addTriangleFilteringBuffers();
 		
-		LOGINFOF("Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
 		
 #ifdef _DURANGO
 		// When async compute is on, we need to transition some resources in the graphics queue
@@ -1567,7 +1569,7 @@ public:
 			setResourcesToComputeCompliantState(0, true);
 #endif
 		
-		LOGINFOF("Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
 		
 		InputSystem::RegisterInputEvent(onInputEventHandler);
 		
@@ -1585,6 +1587,8 @@ public:
 		
 		gAppSettings.mDynamicUIWidgetsAO.Destroy();
 		
+		ProfileExit(pRenderer);
+
 		gAppUI.Exit();
 		
 		// Destroy geometry for light rendering
@@ -1739,6 +1743,8 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 		
+		ProfileLoad(pRenderer, pSwapChain);
+
 #if defined(DIRECT3D12)
 		if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 		{
@@ -2245,6 +2251,8 @@ public:
 			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
 		}
 		
+		ProfileUnload(pRenderer);
+
 		gAppUI.Unload();
 		
 		for (uint32_t i = 0; i < 4; ++i)
@@ -3937,7 +3945,8 @@ public:
 		if (wasMicroProfileActivated != gAppSettings.mActivateMicroProfiler)
 		{
 			wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
-			gAppUI.ActivateMicroProfile(gAppSettings.mActivateMicroProfiler);
+			ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
+			ProfileSetDisplayMode(P_DRAW_BARS);
 		}
 	}
 	/************************************************************************/
@@ -5650,48 +5659,52 @@ public:
 	void drawGUI(Cmd* cmd, uint32_t frameIdx)
 	{
 		UNREF_PARAM(frameIdx);
+
 #if !defined(TARGET_IOS)
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
-		
-		gTimer.GetUSec(true);
-		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		
-#if 1
-		// NOTE: Realtime GPU Profiling is not supported on Metal.
-#ifndef METAL
-		if (gAppSettings.mAsyncCompute)
+
+		if(gAppSettings.mActivateMicroProfiler)
+			ProfileDraw(cmd, mSettings.mWidth, mSettings.mHeight);
+		else
 		{
-			if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
+			gTimer.GetUSec(true);
+			gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+
+#if 1
+			// NOTE: Realtime GPU Profiling is not supported on Metal.
+			if (gAppSettings.mAsyncCompute)
 			{
-				float time =
-				max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f, (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-				gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
-				
-				gAppUI.DrawText(
-								cmd, float2(8.0f, 65.0f), tinystl::string::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f),
-								&gFrameTimeDraw);
-				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 90.0f), pComputeGpuProfiler, NULL);
-				gAppUI.DrawText(
-								cmd, float2(8.0f, 300.0f),
-								tinystl::string::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
-								&gFrameTimeDraw);
-				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 325.0f), pGraphicsGpuProfiler, NULL);
+				if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
+				{
+					float time =
+						max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f, (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
+					gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+
+					gAppUI.DrawText(
+						cmd, float2(8.0f, 65.0f), tinystl::string::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f),
+						&gFrameTimeDraw);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 90.0f), pComputeGpuProfiler, NULL);
+					gAppUI.DrawText(
+						cmd, float2(8.0f, 300.0f),
+						tinystl::string::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
+						&gFrameTimeDraw);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 325.0f), pGraphicsGpuProfiler, NULL);
+				}
+				else
+				{
+					float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
+					gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+					gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
+				}
 			}
 			else
 			{
-				float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
-				gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+				gAppUI.DrawText(
+					cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
+					&gFrameTimeDraw);
 				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
 			}
 		}
-		else
-		{
-			gAppUI.DrawText(
-							cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
-							&gFrameTimeDraw);
-			gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
-		}
-#endif
 		
 		gAppUI.Gui(pGuiWindow);
 		if (pDebugTexturesWindow)

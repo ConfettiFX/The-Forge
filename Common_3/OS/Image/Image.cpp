@@ -951,7 +951,7 @@ bool Image::iLoadDDSFromMemory(
 bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
 {
 #ifndef TARGET_IOS
-	LOGERRORF("Load PVR failed: Only supported on iOS targets.");
+	LOGF(LogLevel::eERROR, "Load PVR failed: Only supported on iOS targets.");
 	return 0;
 #else
 	
@@ -971,19 +971,19 @@ bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool use
 
 	if (psPVRHeader->mVersion != gPvrtexV3HeaderVersion)
 	{
-		LOGERRORF("Load PVR failed: Not a valid PVR V3 header.");
+		LOGF(LogLevel::eERROR, "Load PVR failed: Not a valid PVR V3 header.");
 		return 0;
 	}
 	
 	if (psPVRHeader->mPixelFormat > 3)
 	{
-		LOGERRORF("Load PVR failed: Not a supported PVR pixel format.  Only PVRTC is supported at the moment.");
+		LOGF(LogLevel::eERROR, "Load PVR failed: Not a supported PVR pixel format.  Only PVRTC is supported at the moment.");
 		return 0;
 	}
 	
 	if (psPVRHeader->mNumSurfaces > 1 && psPVRHeader->mNumFaces > 1)
 	{
-		LOGERRORF("Load PVR failed: Loading arrays of cubemaps isn't supported.");
+		LOGF(LogLevel::eERROR, "Load PVR failed: Loading arrays of cubemaps isn't supported.");
 		return 0;
 	}
 
@@ -1014,7 +1014,7 @@ bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool use
 			mLinearLayout = false;
 			break;
 		default:    // NOT SUPPORTED
-			LOGERRORF("Load PVR failed: pixel type not supported. ");
+			LOGF(LogLevel::eERROR, "Load PVR failed: pixel type not supported. ");
 			ASSERT(0);
 			return 0;
 	}
@@ -1075,7 +1075,7 @@ bool Image::iLoadSTBIFromMemory(
 		pData = (stbi_uc*)pAllocator(this, memoryRequirement, pUserData);
 		if (pData == NULL)
 		{
-			LOGERRORF("Allocator returned NULL", mLoadFileName.c_str());
+			LOGF(LogLevel::eERROR, "Allocator returned NULL", mLoadFileName.c_str());
 			return false;
 		}
 
@@ -1147,7 +1147,7 @@ bool Image::iLoadSTBIFP32FromMemory(
 		pData = (stbi_uc*)pAllocator(this, memoryRequirement, pUserData);
 		if (pData == NULL)
 		{
-			LOGERRORF("Allocator returned NULL", mLoadFileName.c_str());
+			LOGF(LogLevel::eERROR, "Allocator returned NULL", mLoadFileName.c_str());
 			return false;
 		}
 
@@ -1186,7 +1186,7 @@ bool Image::iLoadEXRFP32FromMemory(
 	int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, (const unsigned char*)buffer, &err);
 	if (ret != 0)
 	{
-		LOGERRORF("Parse EXR err: %s\n", err);
+		LOGF(LogLevel::eERROR, "Parse EXR err: %s\n", err);
 		return false;
 	}
 
@@ -1200,7 +1200,7 @@ bool Image::iLoadEXRFP32FromMemory(
 	ret = LoadMultiChannelEXRFromMemory(&exrImage, (const unsigned char*)buffer, &err);
 	if (ret != 0)
 	{
-		LOGERRORF("Load EXR err: %s\n", err);
+		LOGF(LogLevel::eERROR, "Load EXR err: %s\n", err);
 		return false;
 	}
 
@@ -1404,7 +1404,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 		mFormat = ImageFormat::GNF_BC7;
 	else
 	{
-		LOGERRORF("Couldn't find the data format of the texture");
+		LOGF(LogLevel::eERROR, "Couldn't find the data format of the texture");
 		return false;
 	}
 
@@ -1560,7 +1560,7 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 	file.Open(fileName, FM_ReadBinary, root);
 	if (!file.IsOpen())
 	{
-		LOGERRORF("\"%s\": Image file not found.", fileName);
+		LOGF(LogLevel::eERROR, "\"%s\": Image file not found.", fileName);
 		return false;
 	}
 
@@ -1570,7 +1570,7 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 	{
 		//char output[256];
 		//sprintf(output, "\"%s\": Image file is empty.", fileName);
-		LOGERRORF("\"%s\": Image is an empty file.", fileName);
+		LOGF(LogLevel::eERROR, "\"%s\": Image is an empty file.", fileName);
 		file.Close();
 		return false;
 	}
@@ -1598,7 +1598,7 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 	if (!support)
 	{
 #if !defined(TARGET_IOS)
-		LOGERRORF("Can't load this file format for image  :  %s", fileName);
+		LOGF(LogLevel::eERROR, "Can't load this file format for image  :  %s", fileName);
 #else
 		// Try fallback with uncompressed textures: TODO: this shouldn't be here
 		char* uncompressedFileName = strdup(fileName);
@@ -1612,7 +1612,7 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 		conf_free(uncompressedFileName);
 		if (!loaded)
 		{
-			LOGERRORF("Can't load this file format for image  :  %s", fileName);
+			LOGF(LogLevel::eERROR, "Can't load this file format for image  :  %s", fileName);
 		}
 #endif
 	}
@@ -1658,7 +1658,7 @@ bool Image::Convert(const ImageFormat::Enum newFormat)
 		if (!ImageFormat::IsPlainFormat(mFormat) || !(ImageFormat::IsPlainFormat(newFormat) || newFormat == ImageFormat::RGB10A2 ||
 													  newFormat == ImageFormat::RGBE8 || newFormat == ImageFormat::RGB9E5))
 		{
-			LOGERRORF(
+			LOGF(LogLevel::eERROR, 
 				"Image: %s fail to convert from  %s  to  %s", mLoadFileName.c_str(), ImageFormat::GetFormatString(mFormat),
 				ImageFormat::GetFormatString(newFormat));
 			return false;
@@ -2194,7 +2194,7 @@ bool Image::SaveImage(const char* fileName)
 	}
 	if (!support)
 	{
-		LOGERRORF("Can't save this file format for image  :  %s", fileName);
+		LOGF(LogLevel::eERROR, "Can't save this file format for image  :  %s", fileName);
 	}
 
 	return false;

@@ -55,6 +55,11 @@ add_library(renderer STATIC
             ${COMMON_DIR}/Renderer/CommonShaderReflection.cpp
             ${COMMON_DIR}/Renderer/GpuProfiler.cpp
             ${COMMON_DIR}/Renderer/ResourceLoader.cpp
+            ${COMMON_DIR}/Tools/Profiler/Profiler.cpp
+            ${COMMON_DIR}/Tools/Profiler/ProfilerBase.cpp
+            ${COMMON_DIR}/Tools/Profiler/ProfilerUI.cpp
+            ${COMMON_DIR}/Tools/Profiler/ProfilerInput.cpp
+            ${COMMON_DIR}/Tools/Profiler/ProfilerVulkan.cpp
 
             # spirv tools
             ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.cpp

@@ -31,15 +31,12 @@
 #define RENDERER_IMPLEMENTATION
 #define IID_ARGS IID_PPV_ARGS
 
-#ifndef MICROPROFILE_IMPL
-#define MICROPROFILE_IMPL 1
-#endif
-
 #include "../../ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../IRenderer.h"
+#include "../../Tools/Profiler/Profiler.h"
 #include "../../OS/Core/RingBuffer.h"
 #include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
@@ -545,7 +542,7 @@ DXGI_FORMAT util_to_dx_swapchain_format(ImageFormat::Enum format)
 
 	if (result == DXGI_FORMAT_UNKNOWN)
 	{
-		LOGERRORF("Image Format (%u) not supported for creating swapchain buffer", (uint32_t)format);
+		LOGF(LogLevel::eERROR, "Image Format (%u) not supported for creating swapchain buffer", (uint32_t)format);
 	}
 
 	return result;
@@ -556,7 +553,7 @@ DXGI_FORMAT util_to_dx_image_format_typeless(ImageFormat::Enum format)
 	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 	if (format >= sizeof(gFormatTranslatorTypeless) / sizeof(DXGI_FORMAT))
 	{
-		LOGERRORF("Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
+		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
 	}
 	else
 	{
@@ -571,7 +568,7 @@ DXGI_FORMAT util_to_dx_image_format(ImageFormat::Enum format, bool srgb)
 	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 	if (format >= sizeof(gFormatTranslator) / sizeof(DXGI_FORMAT))
 	{
-		LOGERRORF("Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
+		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
 	}
 	else
 	{
@@ -613,10 +610,10 @@ static void internal_log(LogType type, const char* msg, const char* component)
 {
 	switch (type)
 	{
-		case LOG_TYPE_INFO: LOGINFOF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_WARN: LOGWARNINGF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_DEBUG: LOGDEBUGF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_ERROR: LOGERRORF("%s ( %s )", component, msg); break;
+		case LOG_TYPE_INFO: LOGF(LogLevel::eINFO, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_WARN: LOGF(LogLevel::eWARNING, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_DEBUG: LOGF(LogLevel::eDEBUG, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_ERROR: LOGF(LogLevel::eERROR, "%s ( %s )", component, msg); break;
 		default: break;
 	}
 }
@@ -884,7 +881,7 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -912,7 +909,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, Subr
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -943,7 +940,7 @@ static void AddDevice(Renderer* pRenderer)
 
 	if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pRenderer->pDXGIFactory)))
 	{
-		LOGERROR("Could not create DXGI factory.");
+		LOGF(LogLevel::eERROR, "Could not create DXGI factory.");
 		return;
 	}
 	ASSERT(pRenderer->pDXGIFactory);
@@ -1095,11 +1092,11 @@ static void AddDevice(Renderer* pRenderer)
 	pRenderer->mLinkedNodeCount = 1;
 
 	//print selected GPU information
-	LOGINFOF("GPU[%d] is selected as default GPU", gpuIndex);
-	LOGINFOF("Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-	LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
-	LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
-	LOGINFOF("Revision id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mRevisionId);
+	LOGF(LogLevel::eINFO, "GPU[%d] is selected as default GPU", gpuIndex);
+	LOGF(LogLevel::eINFO, "Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+	LOGF(LogLevel::eINFO, "Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+	LOGF(LogLevel::eINFO, "Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+	LOGF(LogLevel::eINFO, "Revision id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mRevisionId);
 
 	// Create the actual device
 	DWORD deviceFlags = 0;
@@ -1116,19 +1113,19 @@ static void AddDevice(Renderer* pRenderer)
 		&pRenderer->pDxContext);
 	ASSERT(SUCCEEDED(hr));
 	if (FAILED(hr))
-		LOGERROR("Failed to create D3D11 device and context.");
+		LOGF(LogLevel::eERROR, "Failed to create D3D11 device and context.");
 
-#if ENABLE_MICRO_PROFILER
-	MicroProfileOnThreadCreate("RenderThread");
-	MicroProfileGpuInitInternal(pRenderer->pDxDevice);
-	MicroProfileSetEnableAllGroups(true);
-	MicroProfileSetForceMetaCounters(true);
-	//MicroProfileSetCurrentNodeD3D12(0);
-	MicroProfileSetForceEnable(true);
-	MicroProfileSetEnableAllGroups(true);
-	MicroProfileSetForceMetaCounters(true);
-	MicroProfileWebServerStart();
-	MicroProfileContextSwitchTraceStart();
+#if PROFILE_ENABLED
+	ProfileOnThreadCreate("RenderThread");
+	ProfileGpuInitInternal(pRenderer->pDxDevice);
+	ProfileSetEnableAllGroups(true);
+	ProfileSetForceMetaCounters(true);
+	//ProfileSetCurrentNodeD3D12(0);
+	ProfileSetForceEnable(true);
+	ProfileSetEnableAllGroups(true);
+	ProfileSetForceMetaCounters(true);
+	ProfileWebServerStart();
+	ProfileContextSwitchTraceStart();
 #endif
 }
 
@@ -1136,10 +1133,8 @@ static void RemoveDevice(Renderer* pRenderer)
 {
 	SAFE_RELEASE(pRenderer->pDXGIFactory);
 
-#if ENABLE_MICRO_PROFILER
-		{
-			MicroProfileGpuShutdown();
-		}
+#if PROFILE_ENABLED
+	ProfileGpuShutdown();
 #endif
 
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
@@ -1227,8 +1222,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			//when initializing the forge
 			RemoveDevice(pRenderer);
 			SAFE_FREE(pRenderer);
-			LOGERROR("Selected GPU has an Office Preset in gpu.cfg.");
-			LOGERROR("Office preset is not supported by The Forge.");
+			LOGF(LogLevel::eERROR, "Selected GPU has an Office Preset in gpu.cfg.");
+			LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -1350,7 +1345,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	if (pSwapChain->mDesc.mSampleCount > SAMPLE_COUNT_1)
 	{
-		LOGWARNING("DirectX12 does not support multi-sample swapchains. Falling back to single sample swapchain");
+		LOGF(LogLevel::eWARNING, "DirectX12 does not support multi-sample swapchains. Falling back to single sample swapchain");
 		pSwapChain->mDesc.mSampleCount = SAMPLE_COUNT_1;
 	}
 
@@ -1728,7 +1723,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	desc.MaxLOD = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? D3D11_FLOAT32_MAX : 0.0f);
 
 	if (FAILED(pRenderer->pDxDevice->CreateSamplerState(&desc, &pSampler->pSamplerState)))
-		LOGERROR("Failed to create sampler state.");
+		LOGF(LogLevel::eERROR, "Failed to create sampler state.");
 
 	*ppSampler = pSampler;
 }
@@ -2053,7 +2048,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	{
 		if (pBuffer->mDesc.mVertexStride == 0)
 		{
-			LOGERRORF("Vertex Stride must be a non zero value");
+			LOGF(LogLevel::eERROR, "Vertex Stride must be a non zero value");
 			ASSERT(false);
 		}
 	}
@@ -2072,7 +2067,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		if (DESCRIPTOR_TYPE_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER_RAW))
 		{
 			if (pDesc->mFormat != ImageFormat::NONE)
-				LOGWARNING("Raw buffers use R32 typeless format. Format will be ignored");
+				LOGF(LogLevel::eWARNING, "Raw buffers use R32 typeless format. Format will be ignored");
 			srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 		}
 		// Cannot create a typed StructuredBuffer
@@ -2096,7 +2091,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		if (DESCRIPTOR_TYPE_RW_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER_RAW))
 		{
 			if (pDesc->mFormat != ImageFormat::NONE)
-				LOGWARNING("Raw buffers use R32 typeless format. Format will be ignored");
+				LOGF(LogLevel::eWARNING, "Raw buffers use R32 typeless format. Format will be ignored");
 			uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 			uavDesc.Buffer.Flags |= D3D11_BUFFER_UAV_FLAG_RAW;
 		}
@@ -2153,7 +2148,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
 	if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
 	{
-		LOGERROR("Multi-Sampled textures cannot have mip maps");
+		LOGF(LogLevel::eERROR, "Multi-Sampled textures cannot have mip maps");
 		ASSERT(false);
 		return;
 	}
@@ -2235,11 +2230,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			pTexture->pDxResource = pTex1D;
 		}
 
-		Image img;
-		img.RedefineDimensions(
-			pTexture->mDesc.mFormat, pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth, pTexture->mDesc.mMipLevels);
-		pTexture->mTextureSize = pDesc->mArraySize * img.GetMipMappedSize(0, pTexture->mDesc.mMipLevels);
-
 		pTexture->mCurrentState = pDesc->mStartState;
 	}
 	else
@@ -2272,6 +2262,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			default: break;
 		}
 	}
+
+	// Compute texture size
+	Image img;
+	img.RedefineDimensions(
+		pTexture->mDesc.mFormat, pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth, pTexture->mDesc.mMipLevels);
+	pTexture->mTextureSize = pDesc->mArraySize * img.GetMipMappedSize(0, pTexture->mDesc.mMipLevels);
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC  srvDesc = {};
 	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -2608,7 +2604,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 			if (pNode)
 			{
-				LOGINFOF("Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
+				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 				// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
 				pDesc->mIndexInParent = ~0u;
 				staticSamplers.push_back({ pDesc, pNode->second });
@@ -2964,7 +2960,7 @@ void addBlendState(Renderer* pRenderer, const BlendStateDesc* pDesc, BlendState*
 	}
 
 	if (FAILED(pRenderer->pDxDevice->CreateBlendState(&desc, &pBlendState->pBlendState)))
-		LOGERROR("Failed to create blend state.");
+		LOGF(LogLevel::eERROR, "Failed to create blend state.");
 
 	*ppBlendState = pBlendState;
 }
@@ -3008,7 +3004,7 @@ void addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState*
 	desc.FrontFace.StencilPassOp = gStencilOpTranslator[pDesc->mStencilBackPass];
 
 	if (FAILED(pRenderer->pDxDevice->CreateDepthStencilState(&desc, &pDepthState->pDxDepthStencilState)))
-		LOGERROR("Failed to create depth state.");
+		LOGF(LogLevel::eERROR, "Failed to create depth state.");
 
 	*ppDepthState = pDepthState;
 }
@@ -3041,7 +3037,7 @@ void addRasterizerState(Renderer* pRenderer, const RasterizerStateDesc* pDesc, R
 	desc.AntialiasedLineEnable = FALSE;
 
 	if (FAILED(pRenderer->pDxDevice->CreateRasterizerState(&desc, &pRasterizerState->pDxRasterizerState)))
-		LOGERROR("Failed to create depth state.");
+		LOGF(LogLevel::eERROR, "Failed to create depth state.");
 
 	*ppRasterizerState = pRasterizerState;
 }
@@ -3112,7 +3108,7 @@ void cmdBindRenderTargets(
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3168,7 +3164,7 @@ void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, floa
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3193,7 +3189,7 @@ void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t h
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3217,7 +3213,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3239,7 +3235,7 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 	}
 	else
 	{
-		LOGERRORF("Invalid descriptor param (%s)", pResName);
+		LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
 		return NULL;
 	}
 }
@@ -3254,7 +3250,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3340,7 +3336,7 @@ void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t offset)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3363,7 +3359,7 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, ui
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3392,7 +3388,7 @@ void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3413,7 +3409,7 @@ void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uin
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3436,7 +3432,7 @@ void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3459,7 +3455,7 @@ void cmdDrawIndexedInstanced(
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3483,7 +3479,7 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3509,7 +3505,7 @@ void cmdResourceBarrier(
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3533,7 +3529,7 @@ void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers,
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3557,7 +3553,7 @@ void cmdFlushBarriers(Cmd* pCmd)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -3763,7 +3759,7 @@ void queueSubmit(
 						ASSERT(pParam);
 						if (!pParam->pName)
 						{
-							LOGERRORF("Name of Descriptor at index (%u) is NULL", i);
+							LOGF(LogLevel::eERROR, "Name of Descriptor at index (%u) is NULL", i);
 							return;
 						}
 
@@ -3968,8 +3964,7 @@ void queueSubmit(
 
 				case CMD_TYPE_cmdBeginDebugMarker:
 				{
-#if ENABLE_MICRO_PROFILER
-					MicroProfileGpuSetContext(pContext);
+					ProfileGpuSetContext(pContext);
 
 					// Convert float3 color to *rgb8.
 					uint32 scope_color = static_cast<uint32>(cmd.mBeginDebugMarkerCmd.r * 255) << 16 
@@ -3977,18 +3972,14 @@ void queueSubmit(
 									   | static_cast<uint32>(cmd.mBeginDebugMarkerCmd.b * 255);
 
 					// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
-					MICROPROFILE_DEFINE_GPU(temp, cmd.mBeginDebugMarkerCmd.pName, scope_color);
 					// Create new scope on top of the current stack and enter
-					MICROPROFILE_GPU_ENTER_TOKEN(g_mp_temp);
-#endif
+					PROFILE_GPU_ENTER(temp, cmd.mBeginDebugMarkerCmd.pName, scope_color);
 					break;
 				}
 				case CMD_TYPE_cmdEndDebugMarker:
 				{
-#if ENABLE_MICRO_PROFILER
 					// Leave the current scope and pop up the scope stack
-					MICROPROFILE_GPU_LEAVE();
-#endif
+					PROFILE_GPU_LEAVE();
 					break;
 				}
 				case CMD_TYPE_cmdAddDebugMarker:
@@ -4034,9 +4025,9 @@ void queuePresent(
 	Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
 {
 	pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
-#if ENABLE_MICRO_PROFILER
+#if PROFILE_ENABLED
 		// Call profile flip to indicate a new frame
-		MicroProfileFlip();
+		ProfileFlip();
 #endif
 }
 
@@ -4084,7 +4075,7 @@ void cmdExecuteIndirect(
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4172,7 +4163,7 @@ void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4194,7 +4185,7 @@ void cmdEndQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4216,7 +4207,7 @@ void cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, 
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4248,7 +4239,7 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4271,7 +4262,7 @@ void cmdEndDebugMarker(Cmd* pCmd)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4291,7 +4282,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	ASSERT(cachedCmdsIter != gCachedCmds.end());
 	if (cachedCmdsIter == gCachedCmds.end())
 	{
-		LOGERRORF("beginCmd was never called for that specific Cmd buffer!");
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
 		return;
 	}
 
@@ -4311,191 +4302,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName) {}
 
 void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName) {}
-/************************************************************************/
-/************************************************************************/
-#if MICROPROFILE_GPU_TIMERS_D3D11
-#define S g_MicroProfile
-struct MicroProfileGpuTimerStateInternal
-{
-	ID3D11DeviceContext* pDeviceContext;
-	ID3D11Query* pQueries[MICROPROFILE_GPU_MAX_QUERIES];
-	ID3D11Query* pRateQuery;
-	ID3D11Query* pSyncQuery;
 
-	uint64_t nFrame;
-	std::atomic<uint32_t> nFramePut;
-	AtomicUint nFramePutAtomic;
-
-	uint32_t nSubmitted[MICROPROFILE_GPU_FRAMES];
-	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
-
-	uint32_t nRateQueryIssue;
-	uint64_t nQueryFrequency;
-};
-
-MICROPROFILE_GPU_STATE_DECL(Internal)
-
-void MicroProfileGpuInitInternal(ID3D11Device* pDevice)
-{
-	MicroProfileGpuInitStateInternal();
-
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	pDevice->GetImmediateContext(&GPU.pDeviceContext);
-
-	D3D11_QUERY_DESC Desc;
-	Desc.MiscFlags = 0;
-	Desc.Query = D3D11_QUERY_TIMESTAMP;
-	for (uint32_t i = 0; i < MICROPROFILE_GPU_MAX_QUERIES; ++i)
-	{
-		HRESULT hr = pDevice->CreateQuery(&Desc, &GPU.pQueries[i]);
-		ASSERT(hr == S_OK);
-	}
-
-	HRESULT hr = pDevice->CreateQuery(&Desc, &GPU.pSyncQuery);
-	ASSERT(hr == S_OK);
-
-	Desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-	hr = pDevice->CreateQuery(&Desc, &GPU.pRateQuery);
-	ASSERT(hr == S_OK);
-}
-
-void MicroProfileGpuShutdownInternal()
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	for (uint32_t i = 0; i < MICROPROFILE_GPU_MAX_QUERIES; ++i)
-	{
-		GPU.pQueries[i]->Release();
-		GPU.pQueries[i] = 0;
-	}
-
-	GPU.pRateQuery->Release();
-	GPU.pRateQuery = 0;
-
-	GPU.pSyncQuery->Release();
-	GPU.pSyncQuery = 0;
-
-	GPU.pDeviceContext->Release();
-	GPU.pDeviceContext = 0;
-}
-
-uint32_t MicroProfileGpuFlipInternal()
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	if (!GPU.pDeviceContext) return (uint32_t)-1;
-
-	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
-
-	// Submit current frame
-	uint32_t nFrameIndex = GPU.nFrame % MICROPROFILE_GPU_FRAMES;
-	uint32_t nFramePut = MicroProfileMin(GPU.nFramePutAtomic.mAtomicInt, nFrameQueries);
-
-	GPU.nSubmitted[nFrameIndex] = nFramePut;
-	GPU.nFramePutAtomic.AtomicStore(0);
-	GPU.nFramePut.store(0);
-	GPU.nFrame++;
-
-	// Fetch frame results
-	if (GPU.nFrame >= MICROPROFILE_GPU_FRAMES)
-	{
-		uint64_t nPendingFrame = GPU.nFrame - MICROPROFILE_GPU_FRAMES;
-		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAMES;
-
-		for (uint32_t i = 0; i < GPU.nSubmitted[nPendingFrameIndex]; ++i)
-		{
-			uint32_t nQueryIndex = nPendingFrameIndex * nFrameQueries + i;
-			ASSERT(nQueryIndex < MICROPROFILE_GPU_MAX_QUERIES);
-
-			uint64_t nResult = 0;
-
-			HRESULT hr;
-			do hr = GPU.pDeviceContext->GetData(GPU.pQueries[nQueryIndex], &nResult, sizeof(nResult), 0);
-			while (hr == S_FALSE);
-
-			GPU.nResults[nQueryIndex] = (hr == S_OK) ? nResult : MICROPROFILE_INVALID_TICK;
-		}
-	}
-
-	// Update timestamp frequency
-	if (GPU.nRateQueryIssue == 0)
-	{
-		GPU.pDeviceContext->Begin(GPU.pRateQuery);
-		GPU.nRateQueryIssue = 1;
-	}
-	else if (GPU.nRateQueryIssue == 1)
-	{
-		GPU.pDeviceContext->End(GPU.pRateQuery);
-		GPU.nRateQueryIssue = 2;
-	}
-	else
-	{
-		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT Result;
-		if (S_OK == GPU.pDeviceContext->GetData(GPU.pRateQuery, &Result, sizeof(Result), D3D11_ASYNC_GETDATA_DONOTFLUSH))
-		{
-			GPU.nQueryFrequency = Result.Frequency;
-			GPU.nRateQueryIssue = 0;
-		}
-	}
-
-	return MicroProfileGpuInsertTimer(0);
-}
-
-uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
-
-	uint32_t nIndex = GPU.nFramePutAtomic.AtomicIncrement();
-	if (nIndex >= nFrameQueries)
-		return (uint32_t)-1;
-
-	uint32_t nQueryIndex = (GPU.nFrame % MICROPROFILE_GPU_FRAMES) * nFrameQueries + nIndex;
-
-	GPU.pDeviceContext->End(GPU.pQueries[nQueryIndex]);
-
-	return nQueryIndex;
-}
-
-uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	return GPU.nResults[nIndex];
-}
-
-uint64_t MicroProfileTicksPerSecondGpuInternal()
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	return GPU.nQueryFrequency ? GPU.nQueryFrequency : 1000000000ll;
-}
-
-bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	GPU.pDeviceContext->End(GPU.pSyncQuery);
-
-	uint64_t nResult = 0;
-
-	HRESULT hr;
-	do hr = GPU.pDeviceContext->GetData(GPU.pSyncQuery, &nResult, sizeof(nResult), 0);
-	while (hr == S_FALSE);
-
-	if (hr != S_OK) return false;
-
-	*pOutCpu = MP_TICK();
-	*pOutGpu = nResult;
-
-	return true;
-}
-
-MICROPROFILE_GPU_STATE_IMPL(Internal)
-#undef S
-#endif
 #endif
 #endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)

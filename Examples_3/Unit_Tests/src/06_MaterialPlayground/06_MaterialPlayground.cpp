@@ -466,7 +466,6 @@ uint32_t   gFrameIndex = 0;
 //--------------------------------------------------------------------------------------------
 // THE FORGE OBJECTS
 //--------------------------------------------------------------------------------------------
-LogManager         gLogManager;
 UIApp              gAppUI(256);
 ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
@@ -1689,7 +1688,7 @@ class MaterialPlayground: public IApp
 					params[j].pName = pTextureName[j];
 					if (textureIndex >= gMaterialTextureCount)
 					{
-						LOGERROR("texture index greater than array size, setting it to default texture");
+						LOGF(LogLevel::eERROR, "texture index greater than array size, setting it to default texture");
 						textureIndex = matTypeId + j;
 					}
 					params[j].ppTextures = &pTextureMaterialMaps[textureIndex];

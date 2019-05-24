@@ -46,6 +46,9 @@
 //ui
 #include "../../../../Middleware_3/UI/AppUI.h"
 
+//profiler
+#include "../../../../Common_3/Tools/Profiler/Profiler.h"
+
 //input
 #include "../../../../Common_3/OS/Input/InputSystem.h"
 #include "../../../../Common_3/OS/Input/InputMappings.h"
@@ -89,7 +92,6 @@ struct UniformBlock
 };
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
@@ -152,6 +154,7 @@ struct ObjectProperty
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
+
 class Compute: public IApp
 {
 	public:
@@ -190,7 +193,7 @@ class Compute: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-		gAppUI.ActivateMicroProfile(true);
+		ActivateMicroProfile(&gAppUI, true);
 #if defined(MOBILE_PLATFORM)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
@@ -253,6 +256,10 @@ class Compute: public IApp
 			addResource(&ubDesc);
 		}
 
+		// Initialize profile
+		ProfileInitialize(pRenderer, gImageCount);
+		ProfileRegisterInput();
+
 		// Width and height needs to be same as Texture's
 		gUniformData.mHeight = mSettings.mHeight;
 		gUniformData.mWidth = mSettings.mWidth;
@@ -291,6 +298,9 @@ class Compute: public IApp
 #endif
 
 		gAppUI.Exit();
+
+		// Exit profile
+		ProfileExit(pRenderer);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -352,6 +362,9 @@ class Compute: public IApp
 		pipelineSettings.pShaderProgram = pShader;
 		addPipeline(pRenderer, &desc, &pPipeline);
 
+		// Load profile
+		ProfileLoad(pRenderer, pSwapChain);
+
 		return true;
 	}
 
@@ -364,6 +377,9 @@ class Compute: public IApp
 #endif
 
 		gAppUI.Unload();
+
+		// Unload profile
+		ProfileUnload(pRenderer);
 
 		removePipeline(pRenderer, pPipeline);
 
@@ -488,11 +504,15 @@ class Compute: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
+#if (PROFILE_ENABLED)
+		ProfileDraw(cmd, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
+#else
 		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
-#if !defined(METAL) && !defined(__ANDROID__)    // Metal doesn't support GPU profilers
+#if !defined(__ANDROID__)
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+#endif
 #endif
 
 		gAppUI.Draw(cmd);

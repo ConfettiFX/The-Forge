@@ -92,7 +92,7 @@ bool ImportFBX(const char* fbxFile, const aiScene** pScene)
 	// If the import failed, report it
 	if (*pScene == NULL)
 	{
-		LOGERRORF("%s", aiGetErrorString());
+		LOGF(LogLevel::eERROR, "%s", aiGetErrorString());
 		return false;
 	}
 
@@ -104,7 +104,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 	// Check if animationDirectory exists
 	if (!FileSystem::DirExists(animationDirectory))
 	{
-		LOGERRORF("AnimationDirectory: \"%s\" does not exist.", animationDirectory);
+		LOGF(LogLevel::eERROR, "AnimationDirectory: \"%s\" does not exist.", animationDirectory);
 		return false;
 	}
 
@@ -155,12 +155,12 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 	if (!settings->quiet)
 	{
 		if (animationAssets.empty())
-			LOGWARNINGF("%s does not contain any animation files.", animationDirectory);
+			LOGF(LogLevel::eWARNING, "%s does not contain any animation files.", animationDirectory);
 
 		for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
 		{
 			if (it->second.size() == 1)
-				LOGWARNINGF("No animations found for rigged mesh %s.", it->first.c_str());
+				LOGF(LogLevel::eWARNING, "No animations found for rigged mesh %s.", it->first.c_str());
 		}
 	}
 
@@ -183,8 +183,8 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 		bool processSkeleton = true;
 		if (!settings->force && outputDirExists)
 		{
-			uint lastModified = FileSystem::GetLastModifiedTime(skinnedMesh);
-			uint lastProcessed = FileSystem::GetLastModifiedTime(skeletonOutput);
+			time_t lastModified = FileSystem::GetLastModifiedTime(skinnedMesh);
+			time_t lastProcessed = FileSystem::GetLastModifiedTime(skeletonOutput);
 
 			if (lastModified < lastProcessed && lastProcessed != ~0u && lastProcessed > settings->minLastModifiedTime)
 				processSkeleton = false;
@@ -198,7 +198,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 			{
 				if (!FileSystem::CreateDir(outputDir))
 				{
-					LOGERRORF("Failed to create output directory %s.", outputDir.c_str());
+					LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDir.c_str());
 					return false;
 				}
 				outputDirExists = true;
@@ -208,7 +208,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 			{
 				if (!FileSystem::CreateDir(skeletonOutputDir))
 				{
-					LOGERRORF("Failed to create output directory %s.", skeletonOutputDir.c_str());
+					LOGF(LogLevel::eERROR, "Failed to create output directory %s.", skeletonOutputDir.c_str());
 					success = false;
 					continue;
 				}
@@ -235,7 +235,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 		{
 			if (!FileSystem::CreateDir(animationOutputDir))
 			{
-				LOGERRORF("Failed to create output directory %s.", animationOutputDir.c_str());
+				LOGF(LogLevel::eERROR, "Failed to create output directory %s.", animationOutputDir.c_str());
 				success = false;
 				skeleton.Deallocate();
 				continue;
@@ -256,8 +256,8 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 			bool processAnimation = true;
 			if (!settings->force && outputDirExists && !processSkeleton)
 			{
-				uint lastModified = FileSystem::GetLastModifiedTime(animationFile);
-				uint lastProcessed = FileSystem::GetLastModifiedTime(animationOutput);
+				time_t lastModified = FileSystem::GetLastModifiedTime(animationFile);
+				time_t lastProcessed = FileSystem::GetLastModifiedTime(animationOutput);
 
 				if (lastModified < lastProcessed && lastProcessed != ~0u && lastModified > settings->minLastModifiedTime)
 					processAnimation = false;
@@ -278,7 +278,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 	}
 
 	if (!settings->quiet && assetsProcessed == 0 && success)
-		LOGINFO("All assets already up-to-date.");
+		LOGF(LogLevel::eINFO, "All assets already up-to-date.");
 
 	return success;
 }
@@ -299,7 +299,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 
 	if (numBones == 0)
 	{
-		LOGERRORF("Rigged mesh %s has no bones. Skeleton can not be created.", skeletonName);
+		LOGF(LogLevel::eERROR, "Rigged mesh %s has no bones. Skeleton can not be created.", skeletonName);
 		return false;
 	}
 
@@ -338,7 +338,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 			nodeQueueEnd = (nodeQueueEnd + 1) % queueSize;
 			if (nodeQueueStart == nodeQueueEnd)
 			{
-				LOGERRORF("Too many nodes in scene. Skeleton can not be created.", skeletonName);
+				LOGF(LogLevel::eERROR, "Too many nodes in scene. Skeleton can not be created.", skeletonName);
 				return false;
 			}
 		}
@@ -446,14 +446,14 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	// Validate raw skeleton
 	if (!rawSkeleton.Validate())
 	{
-		LOGERRORF("Skeleton created for %s is invalid. Skeleton can not be created.", skeletonName);
+		LOGF(LogLevel::eERROR, "Skeleton created for %s is invalid. Skeleton can not be created.", skeletonName);
 		return false;
 	}
 
 	// Build runtime skeleton from raw skeleton
 	if (!ozz::animation::offline::SkeletonBuilder::Build(rawSkeleton, skeleton))
 	{
-		LOGERRORF("Skeleton can not be created for %s.", skeletonName);
+		LOGF(LogLevel::eERROR, "Skeleton can not be created for %s.", skeletonName);
 		return false;
 	}
 
@@ -479,7 +479,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	if (!scene->HasAnimations())
 	{
 		if (!settings->quiet)
-			LOGWARNINGF("Animation asset %s of skeleton %s contains no animations.", animationName, skeletonName);
+			LOGF(LogLevel::eWARNING, "Animation asset %s of skeleton %s contains no animations.", animationName, skeletonName);
 		return false;
 	}
 
@@ -487,7 +487,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	if (scene->mNumAnimations > 1)
 	{
 		if (!settings->quiet)
-			LOGWARNINGF(
+			LOGF(LogLevel::eWARNING, 
 				"Animation asset %s of skeleton %s contains more than one animation. This is not allowed.", animationName, skeletonName);
 		return false;
 	}
@@ -566,7 +566,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	// Validate raw animation
 	if (!rawAnimation.Validate())
 	{
-		LOGERRORF("Animation %s created for %s is invalid. Animation can not be created.", animationName, skeletonName);
+		LOGF(LogLevel::eERROR, "Animation %s created for %s is invalid. Animation can not be created.", animationName, skeletonName);
 		return false;
 	}
 
@@ -574,7 +574,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	ozz::animation::Animation animation;
 	if (!ozz::animation::offline::AnimationBuilder::Build(rawAnimation, &animation))
 	{
-		LOGERRORF("Animation %s can not be created for %s.", animationName, skeletonName);
+		LOGF(LogLevel::eERROR, "Animation %s can not be created for %s.", animationName, skeletonName);
 		return false;
 	}
 

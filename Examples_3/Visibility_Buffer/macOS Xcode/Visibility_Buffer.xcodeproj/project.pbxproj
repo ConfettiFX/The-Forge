@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5B1A66962295EF9500BD858E /* ProfilerInput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A668B2295EF9500BD858E /* ProfilerInput.cpp */; };
+		5B1A66972295EF9500BD858E /* ProfilerUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A668D2295EF9500BD858E /* ProfilerUI.cpp */; };
+		5B1A66982295EF9500BD858E /* ProfilerBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A66902295EF9500BD858E /* ProfilerBase.cpp */; };
+		5B29F974229706DD00814A1B /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B29F973229706DD00814A1B /* Profiler.cpp */; };
 		5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3812029FDFC00AB83C6 /* macOSBase.mm */; };
 		5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC662080FFCB008E3A2C /* AppUI.cpp */; };
 		651017AB222539C9009A1174 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 651017A6222539C9009A1174 /* MetalRaytracing.mm */; };
@@ -152,6 +156,16 @@
 		288F632C2035CE2E00B758DE /* visibilityBuffer_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.vert.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632D2035CE2E00B758DE /* shadow_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.vert.metal; path = ../src/Shaders/Metal/shadow_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632E2035CE2E00B758DE /* visibilityBuffer_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass.frag.metal; sourceTree = "<group>"; };
+		5B1A668B2295EF9500BD858E /* ProfilerInput.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerInput.cpp; path = ../Tools/Profiler/ProfilerInput.cpp; sourceTree = "<group>"; };
+		5B1A668C2295EF9500BD858E /* ProfilerInput.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerInput.h; path = ../Tools/Profiler/ProfilerInput.h; sourceTree = "<group>"; };
+		5B1A668D2295EF9500BD858E /* ProfilerUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerUI.cpp; path = ../Tools/Profiler/ProfilerUI.cpp; sourceTree = "<group>"; };
+		5B1A668E2295EF9500BD858E /* ProfilerUI.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerUI.h; path = ../Tools/Profiler/ProfilerUI.h; sourceTree = "<group>"; };
+		5B1A668F2295EF9500BD858E /* ProfilerBase.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.h; path = ../Tools/Profiler/ProfilerBase.h; sourceTree = "<group>"; };
+		5B1A66902295EF9500BD858E /* ProfilerBase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.cpp; path = ../Tools/Profiler/ProfilerBase.cpp; sourceTree = "<group>"; };
+		5B1A66912295EF9500BD858E /* ProfilerEnableMacro.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerEnableMacro.h; path = ../Tools/Profiler/ProfilerEnableMacro.h; sourceTree = "<group>"; };
+		5B1A66932295EF9500BD858E /* Profiler.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Profiler.h; path = ../Tools/Profiler/Profiler.h; sourceTree = "<group>"; };
+		5B1A66952295EF9500BD858E /* ProfilerHTML.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerHTML.h; path = ../Tools/Profiler/ProfilerHTML.h; sourceTree = "<group>"; };
+		5B29F973229706DD00814A1B /* Profiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Profiler.cpp; path = ../Tools/Profiler/Profiler.cpp; sourceTree = "<group>"; };
 		5C85A3812029FDFC00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
 		5CD2BC632080FFCA008E3A2C /* UIShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UIShaders.h; path = ../../Middleware_3/UI/UIShaders.h; sourceTree = "<group>"; };
 		5CD2BC662080FFCB008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
@@ -553,6 +567,16 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				5B29F973229706DD00814A1B /* Profiler.cpp */,
+				5B1A66932295EF9500BD858E /* Profiler.h */,
+				5B1A66902295EF9500BD858E /* ProfilerBase.cpp */,
+				5B1A668F2295EF9500BD858E /* ProfilerBase.h */,
+				5B1A66912295EF9500BD858E /* ProfilerEnableMacro.h */,
+				5B1A66952295EF9500BD858E /* ProfilerHTML.h */,
+				5B1A668B2295EF9500BD858E /* ProfilerInput.cpp */,
+				5B1A668C2295EF9500BD858E /* ProfilerInput.h */,
+				5B1A668D2295EF9500BD858E /* ProfilerUI.cpp */,
+				5B1A668E2295EF9500BD858E /* ProfilerUI.h */,
 				651017A6222539C9009A1174 /* MetalRaytracing.mm */,
 				C9DCF65F1FEAA86D008BFA67 /* MetalMemoryAllocator.h */,
 				D2A295C31FA20A00003AB495 /* MetalShaderReflection.mm */,
@@ -798,14 +822,18 @@
 				5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */,
 				81B986802269FC9A0078E5F4 /* AppHelpers.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
+				5B1A66962295EF9500BD858E /* ProfilerInput.cpp in Sources */,
 				D0ADCF5420C2451C0031B732 /* AssimpImporter.cpp in Sources */,
 				D2B157231F1CBB5E0037A8C8 /* ResourceLoader.cpp in Sources */,
 				D2A295C41FA20A00003AB495 /* MetalShaderReflection.mm in Sources */,
 				D2A295C21FA2096F003AB495 /* GpuProfiler.cpp in Sources */,
 				EA463D001EF81FC5005AC8C7 /* macOSThreadManager.cpp in Sources */,
+				5B1A66982295EF9500BD858E /* ProfilerBase.cpp in Sources */,
+				5B1A66972295EF9500BD858E /* ProfilerUI.cpp in Sources */,
 				97FD71E72141D6400051A203 /* imgui_widgets.cpp in Sources */,
 				EA463D041EF81FC5005AC8C7 /* ThreadSystem.cpp in Sources */,
 				D278835E1F327ED300F4362D /* FpsCameraController.cpp in Sources */,
+				5B29F974229706DD00814A1B /* Profiler.cpp in Sources */,
 				97FD71E52141D6400051A203 /* imgui_draw.cpp in Sources */,
 				81FF8E3A2237ADE70009402D /* InputSystem.cpp in Sources */,
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
@@ -992,6 +1020,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

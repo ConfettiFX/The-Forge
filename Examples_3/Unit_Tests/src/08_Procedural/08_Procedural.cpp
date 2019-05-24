@@ -59,8 +59,6 @@ const char* pszBases[FSR_Count] = {
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
 
-LogManager gLogManager;
-
 // Have a uniform for camera data
 struct UniformCamData
 {
@@ -498,9 +496,7 @@ class Procedural: public IApp
 		removeRootSignature(pRenderer, pRootSigBRDF);
 		removeRootSignature(pRenderer, pRootSigBG);
 
-#ifndef METAL
 		removeGpuProfiler(pRenderer, pGpuProfiler);
-#endif
 
 		// Remove resource loader and renderer
 		removeResourceLoaderInterface(pRenderer);
@@ -704,9 +700,8 @@ class Procedural: public IApp
 		tinystl::vector<Cmd*> allCmds;
 		Cmd*                  cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
-#ifndef METAL
+
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
-#endif
 
 		// Transfer our render target to a render target state
 		TextureBarrier barriers[] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
@@ -718,9 +713,7 @@ class Procedural: public IApp
 		/************************************************************************/
 		//Draw BG
 		/************************************************************************/
-#ifndef METAL
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw BG");
-#endif
 
 		cmdBindPipeline(cmd, pPipelineBG);
 
@@ -734,15 +727,12 @@ class Procedural: public IApp
 		cmdBindVertexBuffer(cmd, 1, &pBGVertexBuffer, NULL);
 
 		cmdDraw(cmd, 6, 0);
-#ifndef METAL
+
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-#endif
 		/************************************************************************/
 		//Draw Planet
 		/************************************************************************/
-#ifndef METAL
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planet");
-#endif
 
 		cmdBindPipeline(cmd, pPipelineBRDF);
 
@@ -764,14 +754,12 @@ class Procedural: public IApp
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 
 		cmdDrawInstanced(cmd, gNumOfSpherePoints / 6, 0, 1, 0);
-#ifndef METAL
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-#endif
+
+        /************************************************************************/
 		/************************************************************************/
-		/************************************************************************/
-#ifndef METAL
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
-#endif
+        
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
@@ -793,10 +781,8 @@ class Procedural: public IApp
 
 		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
-#ifndef METAL
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#endif
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);

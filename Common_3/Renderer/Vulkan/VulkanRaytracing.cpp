@@ -563,12 +563,12 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 			{
 				if (pDesc->mDesc.size == 1)
 				{
-					LOGINFOF("Descriptor (%s) : User specified VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC", pDesc->mDesc.name);
+					LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC", pDesc->mDesc.name);
 					binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 				}
 				else
 				{
-					LOGWARNINGF("Descriptor (%s) : Cannot use VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC for arrays", pDesc->mDesc.name);
+					LOGF(LogLevel::eWARNING, "Descriptor (%s) : Cannot use VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC for arrays", pDesc->mDesc.name);
 				}
 			}
 
@@ -593,7 +593,7 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
 			if (pNode)
 			{
-				LOGINFOF("Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
+				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 
 				// Set the index to an invalid value so we can use this later for error checking if user tries to update a static sampler
 				pDesc->mIndexInParent = -1;

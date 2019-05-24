@@ -69,19 +69,28 @@ long tell_file(FileHandle handle) { return ftell((::FILE*)handle); }
 
 size_t write_file(const void* buffer, size_t byteCount, FileHandle handle) { return fwrite(buffer, 1, byteCount, (::FILE*)handle); }
 
-size_t get_file_last_modified_time(const char* _fileName)
+time_t get_file_last_modified_time(const char* _fileName)
 {
-	struct stat fileInfo;
+	struct stat fileInfo = {0};
 
-	if (!stat(_fileName, &fileInfo))
-	{
-		return (size_t)fileInfo.st_mtime;
-	}
-	else
-	{
-		// return an impossible large mod time as the file doesn't exist
-		return ~0;
-	}
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_mtime;
+}
+
+time_t get_file_last_accessed_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_atime;
+}
+
+time_t get_file_creation_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_ctime;
 }
 
 tinystl::string get_current_dir()
@@ -123,7 +132,7 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	DIR*            pDir = opendir(dir);
 	if (!pDir)
 	{
-		LOGWARNINGF("Could not open directory: %s", dir);
+        LOGF(LogLevel::eWARNING, "Could not open directory: %s", dir);
 		return;
 	}
 
@@ -146,7 +155,7 @@ void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subD
 	DIR*            pDir = opendir(dir);
 	if (!pDir)
 	{
-		LOGWARNINGF("Could not open directory: %s", dir);
+		LOGF(LogLevel::eWARNING, "Could not open directory: %s", dir);
 		return;
 	}
 
@@ -176,7 +185,7 @@ bool copy_file(const char* src, const char* dst)
 													  toPath:[NSString stringWithUTF8String:dst]
 													   error:&error])
 	{
-		LOGINFOF("Failed to copy file with error : %s", [[error localizedDescription] UTF8String]);
+        LOGF(LogLevel::eINFO, "Failed to copy file with error : %s", [[error localizedDescription] UTF8String]);
 		return false;
 	}
 
@@ -271,6 +280,73 @@ void save_file_dialog(
 							callback(url.fileSystemRepresentation, userData);
 						}
 					}];
+}
+
+struct FileSystem::Watcher::Data
+{
+	Callback         mCallback;
+	uint32_t         mEventMask;
+	FSEventStreamRef mStream;
+};
+
+static void fswCbFunc(ConstFSEventStreamRef streamRef, void* data, size_t numEvents, void* eventPaths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[])
+{
+	FileSystem::Watcher::Data* fswData = (FileSystem::Watcher::Data*)data;
+	const char** paths = (const char**)eventPaths;
+	
+	for (size_t i=0; i < numEvents; ++i)
+	{
+		if ((fswData->mEventMask & FileSystem::Watcher::EVENT_MODIFIED) && (eventFlags[i]&kFSEventStreamEventFlagItemModified))
+		{
+			fswData->mCallback(paths[i], FileSystem::Watcher::EVENT_MODIFIED);
+		}
+		if ((fswData->mEventMask & FileSystem::Watcher::EVENT_ACCESSED) && (eventFlags[i]&kFSEventStreamEventFlagItemInodeMetaMod))
+		{
+			fswData->mCallback(paths[i], FileSystem::Watcher::EVENT_ACCESSED);
+		}
+		if ((fswData->mEventMask & FileSystem::Watcher::EVENT_CREATED) && (eventFlags[i]&kFSEventStreamEventFlagItemCreated))
+		{
+			fswData->mCallback(paths[i], FileSystem::Watcher::EVENT_CREATED);
+		}
+		if ((fswData->mEventMask & FileSystem::Watcher::EVENT_DELETED) && (eventFlags[i]&kFSEventStreamEventFlagItemRemoved))
+		{
+			fswData->mCallback(paths[i], FileSystem::Watcher::EVENT_DELETED);
+		}
+	}
+};
+
+FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+{
+	pData = conf_new<FileSystem::Watcher::Data>();
+	pData->mEventMask = eventMask;
+	pData->mCallback = callback;
+	CFStringRef paths[] = {CFStringCreateWithCString(NULL, pWatchPath, kCFStringEncodingUTF8)};
+	CFArrayRef pathsToWatch = CFArrayCreate(NULL, (const void **)paths, 1, &kCFTypeArrayCallBacks);
+	CFAbsoluteTime latency = 0.125;   // in seconds
+	FSEventStreamContext context = {0, pData, NULL, NULL, NULL};
+	pData->mStream = FSEventStreamCreate(NULL, fswCbFunc, &context, pathsToWatch, kFSEventStreamEventIdSinceNow, latency, kFSEventStreamCreateFlagFileEvents);
+	CFRelease(pathsToWatch);
+	CFRelease(paths[0]);
+	if (pData->mStream)
+	{
+		FSEventStreamScheduleWithRunLoop(pData->mStream, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+		if (!FSEventStreamStart(pData->mStream))
+		{
+			FSEventStreamInvalidate(pData->mStream);
+			FSEventStreamRelease(pData->mStream);
+		}
+	}
+}
+
+FileSystem::Watcher::~Watcher()
+{
+	if (pData->mStream)
+	{
+		FSEventStreamStop(pData->mStream);
+		FSEventStreamInvalidate(pData->mStream);
+		FSEventStreamRelease(pData->mStream);
+	}
+	conf_delete(pData);
 }
 
 #endif    // __APPLE__

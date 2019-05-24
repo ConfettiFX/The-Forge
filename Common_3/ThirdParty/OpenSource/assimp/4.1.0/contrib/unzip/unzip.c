@@ -56,6 +56,8 @@ typedef unsigned long z_crc_t;
 #   include <errno.h>
 #endif
 
+extern void* conf_malloc(size_t);
+extern void  conf_free(size_t);
 
 #ifndef local
 #  define local static
@@ -79,10 +81,10 @@ typedef unsigned long z_crc_t;
 #endif
 
 #ifndef ALLOC
-# define ALLOC(size) (malloc(size))
+# define ALLOC(size) (conf_malloc(size))
 #endif
 #ifndef TRYFREE
-# define TRYFREE(p) {if (p) free(p);}
+# define TRYFREE(p) {if (p) conf_free(p);}
 #endif
 
 #define SIZECENTRALDIRITEM (0x2e)

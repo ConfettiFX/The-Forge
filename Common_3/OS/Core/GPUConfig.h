@@ -219,7 +219,7 @@ static void setGPUPresetLevel(Renderer* pRenderer)
 	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
 	if (!gpuCfgFile.IsOpen())
 	{
-		LOGWARNING("gpu.cfg could not be found, setting preset to Low as a default.");
+		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return;
 	}
 
@@ -242,7 +242,7 @@ static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const ti
 	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
 	if (!gpuCfgFile.IsOpen())
 	{
-		LOGWARNING("gpu.cfg could not be found, setting preset to Low as a default.");
+		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return GPU_PRESET_LOW;
 	}
 
@@ -271,7 +271,7 @@ static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 	gpuCfgFile.Open("activeTestingGpu.cfg", FM_ReadBinary, FSR_GpuConfig);
 	if (!gpuCfgFile.IsOpen())
 	{
-		LOGINFO("activeTestingGpu.cfg could not be found, Using default GPU.");
+		LOGF(LogLevel::eINFO, "activeTestingGpu.cfg could not be found, Using default GPU.");
 		return false;
 	}
 

@@ -405,7 +405,7 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 {
 	TextureUpdateDescInternal& texUpdateDesc = pTextureUpdate.mRequest.texUpdateDesc;
 	ASSERT(pCopyEngine->pQueue->mQueueDesc.mNodeIndex == texUpdateDesc.pTexture->mDesc.mNodeIndex);
-	bool         applyBarrieers = pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12;
+	bool         applyBarrieers = pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_METAL;
 	const Image& img = *texUpdateDesc.pImage;
 	Texture*     pTexture = texUpdateDesc.pTexture;
 	Cmd*         pCmd = aquireCmd(pCopyEngine, activeSet);
@@ -939,6 +939,10 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	desc.mHeight = pImage->GetHeight();
 	desc.mDepth = max(1U, pImage->GetDepth());
 	desc.mArraySize = pImage->GetArrayCount();
+
+	if (pTextureDesc->mUseMipmaps && pImage->GetMipMapCount() <= 1)	
+		pImage->GenerateMipMaps();
+
 	desc.mMipLevels = pImage->GetMipMapCount();
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mSampleQuality = 0;
@@ -1127,7 +1131,7 @@ void vk_compileShader(
 		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", pEntryPoint ? pEntryPoint : "main", NULL);
 	if (shaderc_result_get_compilation_status(spvShader) != shaderc_compilation_status_success)
 	{
-		LOGERRORF("Shader compiling failed! with status");
+		LOGF(LogLevel::eERROR, "Shader compiling failed! with status");
 		abort();
 	}
 
@@ -1309,13 +1313,13 @@ extern void compileShader(
 #endif
 
 // Function to generate the timestamp of this shader source file considering all include file timestamp
-static bool process_source_file(File* original, File* file, uint32_t& outTimeStamp, tinystl::string& outCode)
+static bool process_source_file(File* original, File* file, time_t& outTimeStamp, tinystl::string& outCode)
 {
 	// If the source if a non-packaged file, store the timestamp
 	if (file)
 	{
 		tinystl::string fullName = file->GetName();
-		unsigned        fileTimeStamp = FileSystem::GetLastModifiedTime(fullName);
+		time_t          fileTimeStamp = FileSystem::GetLastModifiedTime(fullName);
 		if (fileTimeStamp > outTimeStamp)
 			outTimeStamp = fileTimeStamp;
 	}
@@ -1364,7 +1368,7 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 			includeFile.Open(includeFileName, FM_ReadBinary, FSR_Absolute);
 			if (!includeFile.IsOpen())
 			{
-				LOGERRORF("Cannot open #include file: %s", includeFileName.c_str());
+				LOGF(LogLevel::eERROR, "Cannot open #include file: %s", includeFileName.c_str());
 				return false;
 			}
 
@@ -1406,7 +1410,7 @@ static bool process_source_file(File* original, File* file, uint32_t& outTimeSta
 }
 
 // Loads the bytecode from file if the binary shader file is newer than the source
-bool check_for_byte_code(const tinystl::string& binaryShaderName, uint32_t sourceTimeStamp, tinystl::vector<char>& byteCode)
+bool check_for_byte_code(const tinystl::string& binaryShaderName, time_t sourceTimeStamp, tinystl::vector<char>& byteCode)
 {
 	if (!FileSystem::FileExists(binaryShaderName, FSR_Absolute))
 		return false;
@@ -1420,7 +1424,7 @@ bool check_for_byte_code(const tinystl::string& binaryShaderName, uint32_t sourc
 	file.Open(binaryShaderName, FM_ReadBinary, FSR_Absolute);
 	if (!file.IsOpen())
 	{
-		LOGERROR(binaryShaderName + " is not a valid shader bytecode file");
+		LOGF(LogLevel::eERROR, binaryShaderName + " is not a valid shader bytecode file");
 		return false;
 	}
 
@@ -1455,7 +1459,7 @@ bool load_shader_stage_byte_code(
 {
 	File            shaderSource = {};
 	tinystl::string code;
-	uint32_t        timeStamp = 0;
+	time_t          timeStamp = 0;
 
 #ifndef METAL
 	const char* shaderName = fileName;
@@ -1538,7 +1542,7 @@ bool load_shader_stage_byte_code(
 			if (!save_byte_code(binaryShaderName, byteCode))
 			{
 				const char* shaderName = shaderSource.GetName();
-				LOGWARNINGF("Failed to save byte code for file %s", shaderName);
+				LOGF(LogLevel::eWARNING, "Failed to save byte code for file %s", shaderName);
 			}
 #endif
 		}
@@ -1743,7 +1747,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 				ASSERT(shaderSource.IsOpen());
 
 				pStage->mName = pDesc->mStages[i].mFileName;
-				uint timestamp = 0;
+				time_t timestamp = 0;
 				process_source_file(&shaderSource, &shaderSource, timestamp, pStage->mCode);
                 if (pDesc->mStages[i].mEntryPointName)
                     pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;

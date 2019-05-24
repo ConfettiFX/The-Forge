@@ -209,7 +209,6 @@ UIApp              gAppUI;
 ICameraController* pCameraController = NULL;
 
 FileSystem    gFileSystem;
-LogManager    gLogManager;
 ThreadSystem* pThreadSystem;
 
 GraphVertex   gBackGroundPoints[gImageCount][gSampleCount];
@@ -444,7 +443,7 @@ class MultiThread: public IApp
 		}
 
 		finishResourceLoading();
-		LOGINFOF("Load Time %lld", timer.GetUSec(false) / 1000);
+		LOGF(LogLevel::eINFO, "Load Time %lld", timer.GetUSec(false) / 1000);
 
 		// generate partcile data
 		unsigned int particleSeed = 23232323;    //we have gseed as global declaration, pick a name that is not gseed

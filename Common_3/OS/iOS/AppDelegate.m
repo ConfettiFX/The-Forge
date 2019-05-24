@@ -24,15 +24,38 @@
 
 #import "AppDelegate.h"
 
-@interface AppDelegate ()
+@interface GameController: NSObject
+-(void)draw;
+@end
 
+@interface AppDelegate ()
+{
+    GameController *myController;
+    void (^drawBlock)(void);
+}
 @end
 
 @implementation AppDelegate
 
+-(void) drawFunc
+{
+    [myController draw];
+    drawBlock();
+}
+
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
 {
-	// Override point for customization after application launch.
+    myController = [GameController new];
+   
+    __weak AppDelegate *weakSelf = self;
+    drawBlock = ^{
+        dispatch_async( dispatch_get_main_queue(), ^{
+            [weakSelf drawFunc];
+        });
+    };
+    
+    drawBlock();
+    
 	return YES;
 }
 

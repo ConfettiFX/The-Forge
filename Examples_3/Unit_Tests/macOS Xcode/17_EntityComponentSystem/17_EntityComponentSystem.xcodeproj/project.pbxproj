@@ -32,7 +32,6 @@
 		B238509621C9C09300291CA6 /* basic.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = B22BBEAC21C4322E0071950F /* basic.frag.metal */; };
 		B238509721C9C09300291CA6 /* basic.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = B22BBEAD21C4322E0071950F /* basic.vert.metal */; };
 		B238509921C9C1BA00291CA6 /* sprites.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = B238509821C9C1B500291CA6 /* sprites.png */; };
-		C95132FD2010E68A002E584B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95132FB2010E68A002E584B /* Main.storyboard */; };
 		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
 		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
@@ -146,7 +145,6 @@
 		B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 17_EntityComponentSystem.cpp; path = ../../../src/17_EntityComponentSystem/17_EntityComponentSystem.cpp; sourceTree = "<group>"; };
 		B238509821C9C1B500291CA6 /* sprites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = sprites.png; path = ../../../UnitTestResources/Textures/sprites.png; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 17_EntityComponentSystem_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 17_EntityComponentSystem_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C95132FC2010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -262,7 +260,6 @@
 			children = (
 				5C17300321414D110074EE71 /* AppDelegate.h */,
 				5C17300421414D110074EE71 /* AppDelegate.m */,
-				C95132FB2010E68A002E584B /* Main.storyboard */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
 				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
 				C95133032010E68A002E584B /* Info.plist */,
@@ -419,7 +416,6 @@
 			files = (
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
-				C95132FD2010E68A002E584B /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -469,14 +465,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		C95132FB2010E68A002E584B /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C95132FC2010E68A002E584B /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		C95133002010E68A002E584B /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -514,6 +502,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = 17_EntityComponentSystem_iOS/Info.plist;
@@ -693,6 +682,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";

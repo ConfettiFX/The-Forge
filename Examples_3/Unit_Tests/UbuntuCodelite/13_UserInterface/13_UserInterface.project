@@ -40,6 +40,7 @@
         <IncludePath Value="$(ProjectPath)/../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
