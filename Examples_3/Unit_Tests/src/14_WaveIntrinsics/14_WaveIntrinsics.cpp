@@ -98,7 +98,6 @@ UIApp         gAppUI;
 GuiComponent* pGui = NULL;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 enum RenderMode
 {
@@ -156,7 +155,7 @@ class WaveIntrinsics: public IApp
 		if (stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId, "0x1002") == 0 &&
 			stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId, "0x67df") == 0)
 		{
-			LOGERROR("This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
+			LOGF(LogLevel::eERROR, "This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
 			//exit instead of returning not to trigger failure in Jenkins
 			exit(0);
 		}

@@ -948,8 +948,10 @@ ImGuiContext*   GImGui = NULL;
 // If you use DLL hotreloading you might need to call SetAllocatorFunctions() after reloading code from this file.
 // Otherwise, you probably don't want to modify them mid-program, and if you use global/static e.g. tinystl::vector<> instances you may need to keep them accessible during program destruction.
 #ifndef IMGUI_DISABLE_DEFAULT_ALLOCATORS
-static void*   MallocWrapper(size_t size, void* user_data)    { (void)user_data; return malloc(size); }
-static void    FreeWrapper(void* ptr, void* user_data)        { (void)user_data; free(ptr); }
+extern void* conf_malloc(size_t);
+extern void  conf_free(void*);
+static void*   MallocWrapper(size_t size, void* user_data)    { (void)user_data; return conf_malloc(size); }
+static void    FreeWrapper(void* ptr, void* user_data)        { (void)user_data; conf_free(ptr); }
 #else
 static void*   MallocWrapper(size_t size, void* user_data)    { (void)user_data; (void)size; IM_ASSERT(0); return NULL; }
 static void    FreeWrapper(void* ptr, void* user_data)        { (void)user_data; (void)ptr; IM_ASSERT(0); }
@@ -6148,7 +6150,7 @@ void ImGui::VerticalSeparator()
 
     window->DrawList->AddLine(float2(bb.Min.x, bb.Min.y), float2(bb.Min.x, bb.Max.y), GetColorU32(ImGuiCol_Separator));
     if (g.LogEnabled)
-        LOGINFO(" |");
+        LOGF(LogLevel::eINFO, " |");
 }
 
 // Using 'hover_visibility_delay' allows us to hide the highlight and mouse cursor for a short time, which can be convenient to reduce visual noise.
@@ -8460,9 +8462,9 @@ void ImGui::LogRenderedText(const float2* ref_pos, const char* text, const char*
         {
             const int char_count = (int)(line_end - text_remaining);
             if (log_new_line || !is_first_line)
-                LOGINFOF(IM_NEWLINE "%*s%.*s", tree_depth*4, "", char_count, text_remaining);
+                LOGF(LogLevel::eINFO, IM_NEWLINE "%*s%.*s", tree_depth*4, "", char_count, text_remaining);
             else
-				LOGINFOF(" %.*s", char_count, text_remaining);
+				LOGF(LogLevel::eINFO, " %.*s", char_count, text_remaining);
         }
 
         if (is_last_line)

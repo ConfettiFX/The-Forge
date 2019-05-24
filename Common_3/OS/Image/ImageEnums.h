@@ -503,7 +503,7 @@ static inline int32_t GetChannelCount(const Enum format)
 
 	if (format >= sizeof(channelCount) / sizeof(int))
 	{
-		LOGERRORF("Fail to find Channel in format : %s", GetFormatString(format));
+		LOGF(LogLevel::eERROR, "Fail to find Channel in format : %s", GetFormatString(format));
 		return 0;
 	}
 

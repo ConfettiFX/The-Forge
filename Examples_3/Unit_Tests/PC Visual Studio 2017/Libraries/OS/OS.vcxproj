@@ -39,6 +39,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D11.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D12.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerVulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp" />
@@ -73,6 +80,12 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerEnableMacro.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerHTML.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h" />

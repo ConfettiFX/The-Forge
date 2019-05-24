@@ -483,7 +483,6 @@ TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 HiresTimer    gCpuTimer;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 Renderer* pRenderer = NULL;
 
@@ -2021,14 +2020,15 @@ class Transparency: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#ifndef TARGET_IOS
+
 		gAppUI.DrawText(pCmd, float2(8.0f, 15.0f), tinystl::string::format("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawText(
 			pCmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawText(pCmd, float2(8.0f, 65.0f), tinystl::string::format("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
 		gAppUI.DrawDebugGpuProfile(pCmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
-#else
+
+#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(pCmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 

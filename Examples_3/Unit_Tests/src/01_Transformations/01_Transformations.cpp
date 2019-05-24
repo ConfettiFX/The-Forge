@@ -126,7 +126,6 @@ ICameraController* pCameraController = NULL;
 UIApp gAppUI;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
 										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
@@ -187,7 +186,7 @@ class Transformations: public IApp
 #if defined(__ANDROID__) || defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 		{
-			LOGERRORF("Could not initialize Virtual Joystick.");
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 #endif
@@ -588,7 +587,7 @@ class Transformations: public IApp
 		gUniformData.mLightColor = vec3(0.9f, 0.9f, 0.7f);    // Pale Yellow
 
 		// update planet transformations
-		for (int i = 0; i < gNumPlanets; i++)
+		for (unsigned int i = 0; i < gNumPlanets; i++)
 		{
 			mat4 rotSelf, rotOrbitY, rotOrbitZ, trans, scale, parentMat;
 			rotSelf = rotOrbitY = rotOrbitZ = trans = scale = parentMat = mat4::identity();

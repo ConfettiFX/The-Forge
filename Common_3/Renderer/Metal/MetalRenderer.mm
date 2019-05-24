@@ -24,6 +24,10 @@
 
 #ifdef METAL
 
+#ifndef MICROPROFILE_IMPL
+#define     MICROPROFILE_IMPL 1x
+#endif
+
 #define RENDERER_IMPLEMENTATION
 #define MAX_FRAMES_IN_FLIGHT 3
 
@@ -34,6 +38,7 @@
 #import <MetalKit/MetalKit.h>
 
 #import "../IRenderer.h"
+#include "../../Tools/Profiler/Profiler.h"
 #include "MetalMemoryAllocator.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Core/GPUConfig.h"
@@ -306,6 +311,16 @@ MTLLoadAction   util_to_mtl_load_action(const LoadActionType& loadActionType);
 
 void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT = false, const bool forceNonPrivate = false);
 
+// GPU frame time accessor for macOS and iOS
+#define GPU_FREQUENCY   1000000.0
+    
+@protocol CommandBufferOverride<MTLCommandBuffer>
+-(CFTimeInterval) GPUStartTime;
+-(CFTimeInterval) GPUEndTime;
+@end
+    
+static QueryHeap* lastFrameQuery = nullptr;
+
 /************************************************************************/
 // Dynamic Memory Allocator
 /************************************************************************/
@@ -432,7 +447,7 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 	}
 	else
 	{
-		LOGERRORF("Invalid descriptor param (%s)", pResName);
+        LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
 		return NULL;
 	}
 }
@@ -469,16 +484,27 @@ typedef struct DescriptorBinder
 } DescriptorBinder;
 
 /************************************************************************/
+// Misc
+/************************************************************************/
+enum BarrierFlag
+{
+	BARRIER_FLAG_BUFFERS		= 0x1,
+	BARRIER_FLAG_TEXTURES		= 0x2,
+	BARRIER_FLAG_RENDERTARGETS	= 0x4,
+	BARRIER_FLAG_FENCE			= 0x8,
+};
+	
+/************************************************************************/
 // Internal functions
 /************************************************************************/
 
 void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const DescriptorInfo* descInfo, const DescriptorData* descData);
 void util_end_current_encoders(Cmd* pCmd);
-bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType);
-
+void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType);
+	
 void reset_bound_resources(DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature)
 {
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
 
 	node.mBoundStaticSamplers = false;
 	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
@@ -535,7 +561,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 	// If the values match, no op is required
 	reset_bound_resources(pDescriptorBinder, pRootSignature);
 
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
 
 	// Loop through input params to check for new data
 	for (uint32_t paramIdx = 0; paramIdx < numDescriptors; ++paramIdx)
@@ -544,7 +570,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 		ASSERT(pParam);
 		if (!pParam->pName)
 		{
-			LOGERRORF("Name of Descriptor at index (%u) is NULL", paramIdx);
+			LOGF(LogLevel::eERROR, "Name of Descriptor at index (%u) is NULL", paramIdx);
 			return;
 		}
 
@@ -565,21 +591,21 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 			case DESCRIPTOR_TYPE_RW_TEXTURE:
 			case DESCRIPTOR_TYPE_TEXTURE:
 				if (!pParam->ppTextures) {
-					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
 				break;
 			case DESCRIPTOR_TYPE_SAMPLER:
 				if (!pParam->ppSamplers) {
-					LOGERRORF("Sampler descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Sampler descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
 				break;
 			case DESCRIPTOR_TYPE_ROOT_CONSTANT:
 				if (!pParam->pRootConstant) {
-					LOGERRORF("RootConstant array (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "RootConstant array (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
@@ -588,7 +614,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 			case DESCRIPTOR_TYPE_RW_BUFFER:
 			case DESCRIPTOR_TYPE_BUFFER:
 				if (!pParam->ppBuffers) {
-					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
@@ -622,7 +648,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 					{
 						if(!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
 						{
-							LOGERRORF("RW Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+							LOGF(LogLevel::eERROR, "RW Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
 							return;
 						}
 
@@ -646,7 +672,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 					{
 						if(!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
 						{
-							LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+							LOGF(LogLevel::eERROR, "Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
 							return;
 						}
 
@@ -670,7 +696,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 					{
 						if(!descriptorData->ppSamplers[j] || !descriptorData->ppSamplers[j]->mtlSamplerState)
 						{
-							LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+							LOGF(LogLevel::eERROR, "Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
 							return;
 						}
 
@@ -814,6 +840,14 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 {
 	for (tinystl::unordered_hash_node<const RootSignature*, DescriptorBinderNode>& node : pDescriptorBinder->mRootSignatureNodes)
 	{
+		tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>::iterator it = node.second.mArgumentBuffers.begin();
+			for(; it != node.second.mArgumentBuffers.end(); ++it)
+		{
+			if(it->second.first != NULL)
+			{
+				removeBuffer(pRenderer, it->second.first);
+			}
+		}
 		node.second.mArgumentBuffers.clear();
 		SAFE_FREE(node.second.pDescriptorDataArray);
 		SAFE_FREE(node.second.pBoundDescriptors);
@@ -827,7 +861,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 	ASSERT(pDescriptorBinder);
 	ASSERT(pRootSignature);
 
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
 
 	// Compare the currently bound descriptor binder with the new descriptor binder
 	// If these values dont match, we must bind the new descriptor binder
@@ -847,7 +881,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		ASSERT(pParam);
 		if (!pParam->pName)
 		{
-			LOGERRORF("Name of Descriptor at index (%u) is NULL", paramIdx);
+			LOGF(LogLevel::eERROR, "Name of Descriptor at index (%u) is NULL", paramIdx);
 			return;
 		}
 
@@ -869,7 +903,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_TEXTURE:
 				if (!pParam->ppTextures)
 				{
-					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].ppTextures = pParam->ppTextures;
@@ -877,7 +911,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_SAMPLER:
 				if (!pParam->ppSamplers)
 				{
-					LOGERRORF("Sampler descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Sampler descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].ppSamplers = pParam->ppSamplers;
@@ -885,7 +919,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_ROOT_CONSTANT:
 				if (!pParam->pRootConstant)
 				{
-					LOGERRORF("RootConstant array (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "RootConstant array (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].pRootConstant = pParam->pRootConstant;
@@ -895,7 +929,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_BUFFER:
 				if (!pParam->ppBuffers)
 				{
-					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
@@ -937,7 +971,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					{
 						if (!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
 						{
-							LOGERRORF("RW Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+							LOGF(LogLevel::eERROR, "RW Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
 							return;
 						}
 
@@ -967,7 +1001,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					{
 						if (!descriptorData->ppTextures[j] || !descriptorData->ppTextures[j]->mtlTexture)
 						{
-							LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+							LOGF(LogLevel::eERROR, "Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
 							return;
 						}
 
@@ -994,7 +1028,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					{
 						if (!descriptorData->ppSamplers[j] || !descriptorData->ppSamplers[j]->mtlSamplerState)
 						{
-							LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
+							LOGF(LogLevel::eERROR, "Texture descriptor (%s) at array index (%u) is NULL", descriptorData->pName, j);
 							return;
 						}
 
@@ -1087,10 +1121,10 @@ static void internal_log(LogType type, const char* msg, const char* component)
 {
 	switch (type)
 	{
-		case LOG_TYPE_INFO: LOGINFOF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_WARN: LOGWARNINGF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_DEBUG: LOGDEBUGF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_ERROR: LOGERRORF("%s ( %s )", component, msg); break;
+		case LOG_TYPE_INFO: LOGF(LogLevel::eINFO, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_WARN: LOGF(LogLevel::eWARNING, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_DEBUG: LOGF(LogLevel::eDEBUG, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_ERROR: LOGF(LogLevel::eERROR, "%s ( %s )", component, msg); break;
 		default: break;
 	}
 }
@@ -1197,7 +1231,10 @@ void destroy_default_resources(Renderer* pRenderer)
 	removeTexture(pRenderer, pDefault2DTextureArray);
 	removeTexture(pRenderer, pDefault3DTexture);
 	removeTexture(pRenderer, pDefaultCubeTexture);
-	removeTexture(pRenderer, pDefaultCubeTextureArray);
+#ifdef TARGET_IOS
+	if ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1])
+#endif
+		removeTexture(pRenderer, pDefaultCubeTextureArray);
 
 	removeBuffer(pRenderer, pDefaultBuffer);
 	removeSampler(pRenderer, pDefaultSampler);
@@ -1266,7 +1303,7 @@ void retrieveSystemProfilerInformation(tinystl::string& outVendorId)
 	pclose(sys_profile);
         if (bytesRead == 0)
         {
-            LOGERROR("Couldn't read SPDisplaysData from system_profiler");
+            LOGF(LogLevel::eERROR, "Couldn't read SPDisplaysData from system_profiler");
             outVendorId = tinystl::string("0x0000");
             return;
         }
@@ -1402,7 +1439,7 @@ uint32_t queryThreadExecutionWidth(Renderer* pRenderer)
 
 	if (error != nil)
 	{
-		LOGWARNINGF("Could not create library for simple compute shader: %s", [[error localizedDescription] UTF8String]);
+		LOGF(LogLevel::eWARNING, "Could not create library for simple compute shader: %s", [[error localizedDescription] UTF8String]);
 		return 0;
 	}
 
@@ -1413,7 +1450,7 @@ uint32_t queryThreadExecutionWidth(Renderer* pRenderer)
 	id<MTLComputePipelineState> computePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:kernelFunction error:&error];
 	if (error != nil)
 	{
-		LOGWARNINGF("Could not create compute pipeline state for simple compute shader: %s", [[error localizedDescription] UTF8String]);
+		LOGF(LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s", [[error localizedDescription] UTF8String]);
 		return 0;
 	}
 
@@ -1431,7 +1468,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	// Copy settings
 	memcpy(&(pRenderer->mSettings), settings, sizeof(*settings));
 	pRenderer->mSettings.mApi = RENDERER_API_METAL;
-
+	
 	// Initialize the Metal bits
 	{
 		// Get the systems default device.
@@ -1446,9 +1483,9 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		displayGraphicsInfo(pRenderer->pDevice.registryID, outModelId, gpuVendor);
 		tinystl::string mDeviceName = [pRenderer->pDevice.name UTF8String];
 		strncpy(gpuVendor.mGpuName, mDeviceName.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-		LOGINFOF("Current Gpu Name: %s", gpuVendor.mGpuName);
-		LOGINFOF("Current Gpu Vendor ID: %s", gpuVendor.mVendorId);
-		LOGINFOF("Current Gpu Model ID: %s", gpuVendor.mModelId);
+		LOGF(LogLevel::eINFO, "Current Gpu Name: %s", gpuVendor.mGpuName);
+		LOGF(LogLevel::eINFO, "Current Gpu Vendor ID: %s", gpuVendor.mVendorId);
+		LOGF(LogLevel::eINFO, "Current Gpu Model ID: %s", gpuVendor.mModelId);
 #else
 		strncpy(gpuVendor.mVendorId, "Apple", MAX_GPU_VENDOR_STRING_LENGTH);
 		strncpy(gpuVendor.mModelId, "iOS", MAX_GPU_VENDOR_STRING_LENGTH);
@@ -1482,8 +1519,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			//remove allocated renderer
 			SAFE_FREE(pRenderer);
 
-			LOGERROR("Selected GPU has an office Preset in gpu.cfg");
-			LOGERROR("Office Preset is not supported by the Forge");
+			LOGF(LogLevel::eERROR, "Selected GPU has an office Preset in gpu.cfg");
+			LOGF(LogLevel::eERROR, "Office Preset is not supported by the Forge");
 
 			ppRenderer = NULL;
 #ifdef AUTOMATED_TESTING
@@ -1511,6 +1548,7 @@ void removeRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
 	SAFE_FREE(pRenderer->pName);
+	destroy_default_resources(pRenderer);
 	destroyAllocator(pRenderer->pResourceAllocator);
 	pRenderer->pDevice = nil;
 	SAFE_FREE(pRenderer);
@@ -1564,6 +1602,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	pQueue->pRenderer = pRenderer;
 	pQueue->mtlCommandQueue = [pRenderer->pDevice newCommandQueue];
 	pQueue->mUploadGranularity = {1, 1, 1};
+	pQueue->mBarrierFlags = 0;
 	
 	ASSERT(pQueue->mtlCommandQueue != nil);
 
@@ -1663,22 +1702,14 @@ void toggleVSync(Renderer* pRenderer, SwapChain** pSwapchain)
 	(*pSwapchain)->mDesc.mEnableVsync = !(*pSwapchain)->mDesc.mEnableVsync;
 	//no need to have vsync on layers otherwise we will wait on semaphores
 	//get a copy of the layer for nextDrawables
-	CAMetalLayer* layer = (CAMetalLayer*)(*pSwapchain)->pMTKView.layer;
+	CAMetalLayer* layer = (CAMetalLayer*)(*pSwapchain)->pForgeView.layer;
 
 	//only available on mac OS.
 	//VSync seems to be necessary on iOS.
 	if (!(*pSwapchain)->mDesc.mEnableVsync)
-	{
-		(*pSwapchain)->pMTKView.enableSetNeedsDisplay = YES;
-		(*pSwapchain)->pMTKView.paused = YES;
 		layer.displaySyncEnabled = false;
-	}
 	else
-	{
-		(*pSwapchain)->pMTKView.enableSetNeedsDisplay = NO;
-		(*pSwapchain)->pMTKView.paused = NO;
 		layer.displaySyncEnabled = true;
-	}
 #endif
 }
 
@@ -1691,28 +1722,20 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	SwapChain* pSwapChain = (SwapChain*)conf_calloc(1, sizeof(*pSwapChain));
 	pSwapChain->mDesc = *pDesc;
 
-	// Assign MTKView to the swapchain.
-	pSwapChain->pMTKView = (MTKView*)CFBridgingRelease(pDesc->pWindow->handle);
-	pSwapChain->pMTKView.device = pRenderer->pDevice;
-	pSwapChain->pMTKView.autoresizesSubviews = TRUE;
-	pSwapChain->pMTKView.preferredFramesPerSecond = 60.0;
-	pSwapChain->pMTKView.enableSetNeedsDisplay = NO;
-	pSwapChain->pMTKView.paused = NO;
-        pSwapChain->pMTKView.framebufferOnly = FALSE;
-
 #if !defined(TARGET_IOS)
+
+    NSWindow* window = (__bridge NSWindow*)pDesc->pWindow->handle;
+	pSwapChain->pForgeView = window.contentView;
+	pSwapChain->pForgeView.autoresizesSubviews = TRUE;
+
 	//no need to have vsync on layers otherwise we will wait on semaphores
 	//get a copy of the layer for nextDrawables
-	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pMTKView.layer;
-	pSwapChain->pMTKView.layer = layer;
+	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
 
 	//only available on mac OS.
 	//VSync seems to be necessary on iOS.
 	if (!pDesc->mEnableVsync)
 	{
-		pSwapChain->pMTKView.enableSetNeedsDisplay = YES;
-		pSwapChain->pMTKView.paused = YES;
-
 		//This needs to be set to false to have working non-vsync
 		//otherwise present drawables will wait on vsync.
 		layer.displaySyncEnabled = false;
@@ -1720,15 +1743,19 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	else
 		//This needs to be set to false to have working vsync
 		layer.displaySyncEnabled = true;
-
-	pSwapChain->pMTKView.wantsLayer = YES;
+#else
+    UIWindow* window = (__bridge UIWindow*)pDesc->pWindow->handle;
+    pSwapChain->pForgeView = window.rootViewController.view;
+    pSwapChain->pForgeView.autoresizesSubviews = TRUE;
+   
+    CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
 #endif
-	pSwapChain->mMTKDrawable = nil;
+    // Set the view pixel format to match the swapchain's pixel format.
+    layer.pixelFormat = util_to_mtl_pixel_format(pSwapChain->mDesc.mColorFormat, pSwapChain->mDesc.mSrgb);
 
-	// Set the view pixel format to match the swapchain's pixel format.
-	pSwapChain->pMTKView.colorPixelFormat = util_to_mtl_pixel_format(pSwapChain->mDesc.mColorFormat, pSwapChain->mDesc.mSrgb);
-
-	// Create present command buffer for the swapchain.
+    pSwapChain->mMTKDrawable = nil;
+    
+    // Create present command buffer for the swapchain.
 	pSwapChain->presentCommandBuffer = [pSwapChain->mDesc.ppPresentQueues[0]->mtlCommandQueue commandBuffer];
 
 	// Create the swapchain RT descriptor.
@@ -2034,14 +2061,14 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 			{
 				if (lib)
 				{
-					LOGWARNINGF(
+					LOGF(LogLevel::eWARNING,
 						"Loaded shader %s with the following warnings:\n %s", shader_name, [[error localizedDescription] UTF8String]);
 					error = 0;    //  error string is an autorelease object.
 				}
 				// Error
 				else
 				{
-					LOGERRORF(
+					LOGF(LogLevel::eERROR,
 						"Couldn't load shader %s with the following error:\n %s", shader_name, [[error localizedDescription] UTF8String]);
 					error = 0;    //  error string is an autorelease object.
 				}
@@ -2193,7 +2220,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 					if (pNode)
 					{
-						LOGINFOF("Descriptor (%s) : User specified Static Sampler", pRes->name);
+						LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pRes->name);
 						staticSamplers.push_back({ pRes, pNode->second });
 					}
 					else
@@ -2442,7 +2469,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 																						   error:&error];
 	if (!pPipeline->mtlRenderPipelineState)
 	{
-		LOGERRORF("Failed to create render pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
+		LOGF(LogLevel::eERROR, "Failed to create render pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
 		return;
 	}
 
@@ -2468,7 +2495,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 	pPipeline->mtlComputePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:pDesc->pShaderProgram->mtlComputeShader error:&error];
 	if (!pPipeline->mtlComputePipelineState)
 	{
-		LOGERRORF("Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
+		LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
 		SAFE_FREE(pPipeline);
 		return;
 	}
@@ -2766,7 +2793,7 @@ void cmdBindRenderTargets(
 		}
 		else
 		{
-			LOGWARNINGF("Render pass is active but no root signature is bound!");
+			LOGF(LogLevel::eWARNING, "Render pass is active but no root signature is bound!");
 		}
 
 		@autoreleasepool
@@ -2927,12 +2954,8 @@ void cmdBindRenderTargets(
 		pCmd->mBoundSampleCount = sampleCount;
 		pCmd->mBoundRenderTargetCount = renderTargetCount;
 
-		bool switchedEncoders =
-			util_sync_encoders(pCmd, CMD_POOL_DIRECT);    // Check if we need to sync different types of encoders (only on direct cmds).
 		util_end_current_encoders(pCmd);
 		pCmd->mtlRenderEncoder = [pCmd->mtlCommandBuffer renderCommandEncoderWithDescriptor:pCmd->pRenderPassDesc];
-		if (switchedEncoders)
-			[pCmd->mtlRenderEncoder waitForFence:pCmd->mtlEncoderFence beforeStages:MTLRenderStageVertex];
 
 		pCmd->mRenderPassActive = true;
 	}
@@ -3073,6 +3096,8 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, ui
 void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
+	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	
 	if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
 	{
 		[pCmd->mtlRenderEncoder drawPrimitives:pCmd->selectedPrimitiveType vertexStart:firstVertex vertexCount:vertexCount];
@@ -3092,6 +3117,9 @@ void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 {
 	ASSERT(pCmd);
+	
+	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	
 	if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
 	{
 		if (firstInstance == 0)
@@ -3125,6 +3153,9 @@ void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uin
 void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
+	
+	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	
 	Buffer*      indexBuffer = pCmd->selectedIndexBuffer;
 	MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
 	uint64_t     offset = pCmd->mSelectedIndexBufferOffset + (firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4));
@@ -3149,7 +3180,7 @@ void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_
 #ifdef TARGET_IOS
 		else
 		{
-			LOGERRORF("Current device does not support ios gpuFamily 3_v1 feature set.");
+			LOGF(LogLevel::eERROR, "Current device does not support ios gpuFamily 3_v1 feature set.");
 			return;
 		}
 #endif
@@ -3176,6 +3207,8 @@ void cmdDrawIndexedInstanced(
 {
 	ASSERT(pCmd);
 
+	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	
 	Buffer*      indexBuffer = pCmd->selectedIndexBuffer;
 	MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
 	uint64_t     offset = pCmd->mSelectedIndexBufferOffset + (firstIndex * (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? 2 : 4));
@@ -3213,6 +3246,8 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	ASSERT(pCmd);
 	ASSERT(pCmd->mtlComputeEncoder != nil);
 
+	util_barrier_required(pCmd, CMD_POOL_COMPUTE);
+	
 	Shader* shader = pCmd->pShader;
 
 	MTLSize threadsPerThreadgroup =
@@ -3226,10 +3261,14 @@ void cmdExecuteIndirect(
 	Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset,
 	Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
+	ASSERT(pCmd);
+	
 	for (uint32_t i = 0; i < maxCommandCount; i++)
 	{
 		if (pCommandSignature->mDrawType == INDIRECT_DRAW)
 		{
+			util_barrier_required(pCmd, CMD_POOL_DIRECT);
+			
 			uint64_t indirectBufferOffset = bufferOffset + sizeof(IndirectDrawArguments) * i;
 			if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
 			{
@@ -3264,6 +3303,8 @@ void cmdExecuteIndirect(
 		}
 		else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
 		{
+			util_barrier_required(pCmd, CMD_POOL_DIRECT);
+			
 			Buffer*      indexBuffer = pCmd->selectedIndexBuffer;
 			MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
 			uint64_t     indirectBufferOffset = bufferOffset + sizeof(IndirectDrawIndexArguments) * i;
@@ -3279,6 +3320,8 @@ void cmdExecuteIndirect(
 			}
 			else    // Tessellated draw version.
 			{
+				util_barrier_required(pCmd, CMD_POOL_DIRECT);
+				
 #ifndef TARGET_IOS
 				[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
 								   patchIndexBuffer:indexBuffer->mtlBuffer
@@ -3310,6 +3353,8 @@ void cmdExecuteIndirect(
 		}
 		else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
 		{
+			util_barrier_required(pCmd, CMD_POOL_COMPUTE);
+			
 			//TODO: Implement.
 			ASSERT(0);
 		}
@@ -3320,9 +3365,53 @@ void cmdResourceBarrier(
 	Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
 	bool batch)
 {
+    if (numBufferBarriers)
+    {
+        for (uint32_t i = 0; i < numBufferBarriers; ++i)
+        {
+            BufferBarrier* pTrans = &pBufferBarriers[i];
+            Buffer*        pBuffer = pTrans->pBuffer;
+            
+            if (!(pTrans->mNewState & pBuffer->mCurrentState) || pBuffer->mCurrentState == RESOURCE_STATE_UNORDERED_ACCESS)
+            {
+				pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_BUFFERS;
+                pBuffer->mCurrentState = pTrans->mNewState;
+            }
+        }
+    }
+    
+    if (numTextureBarriers)
+    {
+        for (uint32_t i = 0; i < numTextureBarriers; ++i)
+        {
+            TextureBarrier* pTrans = &pTextureBarriers[i];
+            Texture*        pTexture = pTrans->pTexture;
+            
+            if (!(pTrans->mNewState & pTexture->mCurrentState) || pTexture->mCurrentState == RESOURCE_STATE_UNORDERED_ACCESS)
+            {
+				if (pTrans->mNewState == RESOURCE_STATE_DEPTH_WRITE ||
+					pTrans->mNewState == RESOURCE_STATE_DEPTH_READ ||
+					pTrans->mNewState == RESOURCE_STATE_RENDER_TARGET ||
+					pTexture->mCurrentState == RESOURCE_STATE_DEPTH_WRITE ||
+					pTexture->mCurrentState == RESOURCE_STATE_DEPTH_READ ||
+					pTexture->mCurrentState == RESOURCE_STATE_RENDER_TARGET)
+				{
+					pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_RENDERTARGETS;
+				}
+				
+				pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
+                pTexture->mCurrentState = pTrans->mNewState;
+            }
+        }
+    }
 }
-void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch) {}
-void cmdFlushBarriers(Cmd* pCmd) {}
+void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch)
+{
+}
+void cmdFlushBarriers(Cmd* pCmd)
+{
+	
+}
 
 void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
@@ -3337,6 +3426,8 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	util_end_current_encoders(pCmd);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
+	util_barrier_required(pCmd, CMD_POOL_COPY);
+	
 	[pCmd->mtlBlitEncoder copyFromBuffer:pSrcBuffer->mtlBuffer
 							sourceOffset:pSrcBuffer->mPositionInHeap + srcOffset
 								toBuffer:pBuffer->mtlBuffer
@@ -3349,6 +3440,8 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, S
 	util_end_current_encoders(pCmd);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
+	util_barrier_required(pCmd, CMD_POOL_COPY);
+	
 #ifndef TARGET_IOS
 	MTLBlitOption blitOptions = MTLBlitOptionNone;
 #else
@@ -3377,7 +3470,7 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 	ASSERT(pSwapChain);
 	ASSERT(pSignalSemaphore || pFence);
 
-	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pMTKView.layer;
+	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
 
 	if (pSwapChain->mMTKDrawable == nil)
 		pSwapChain->mMTKDrawable = [layer nextDrawable];
@@ -3441,6 +3534,10 @@ void queueSubmit(
 	// set the queue built-in semaphore to signal when all command lists finished their execution
 	__block uint32_t commandsFinished = 0;
 	__weak dispatch_semaphore_t completedFence = nil;
+    
+    __block double lastFrameMinTime = 0.0;
+    __block double lastFrameMaxTime = 0.0;
+    
 	if (pFence)
 	{
 		completedFence = pFence->pMtlSemaphore;
@@ -3450,11 +3547,34 @@ void queueSubmit(
 	{
 		[ppCmds[i]->mtlCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
 			commandsFinished++;
+            
+            id<CommandBufferOverride> fixedObj = (id<CommandBufferOverride>)buffer;
+  
+            const double gpuStartTime([fixedObj GPUStartTime]);
+            const double gpuEndTime([fixedObj GPUEndTime]);
+            
+            if (commandsFinished == 1)
+            {
+                lastFrameMinTime = gpuStartTime;
+                lastFrameMaxTime = gpuEndTime;
+            } else {
+                if (gpuStartTime < lastFrameMinTime)
+                    lastFrameMinTime = gpuStartTime;
+                if (gpuEndTime > lastFrameMaxTime)
+                    lastFrameMaxTime = gpuEndTime;
+            }
+            
 			if (commandsFinished == cmdCount)
 			{
 				if (completedFence)
 					dispatch_semaphore_signal(completedFence);
-			}
+            
+                if (lastFrameQuery)
+                {
+                    lastFrameQuery->gpuTimestampStart = lastFrameMinTime * GPU_FREQUENCY;
+                    lastFrameQuery->gpuTimestampEnd = lastFrameMaxTime * GPU_FREQUENCY;
+                }
+            }
 		}];
 	}
 
@@ -3489,9 +3609,9 @@ void queuePresent(
 #ifndef TARGET_IOS
 		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #else
-		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
-									 afterMinimumDuration:1.0 / pSwapChain->pMTKView.preferredFramesPerSecond];
-		//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->pMTKView.currentDrawable];
+		//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
+		//							 afterMinimumDuration:1.0 / 120.0];
+		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #endif
 	}
 
@@ -3500,6 +3620,10 @@ void queuePresent(
 	// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
 	pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
 	pSwapChain->mMTKDrawable = nil;
+	
+#ifdef PROFILE_ENABLED
+	ProfileFlip();
+#endif
 }
 
 void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
@@ -3563,6 +3687,16 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
+    ProfileGpuSetContext(nullptr);
+    // Convert float3 color to *rgb8.
+    uint32 scope_color = static_cast<uint32>(r * 255) << 16
+    | static_cast<uint32>(g * 255) << 8
+    | static_cast<uint32>(b * 255);
+    
+    // This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
+    // Create new scope on top of the current stack and enter
+    PROFILE_GPU_ENTER(temp, pName, scope_color);
+    
 	if (pCmd->mtlRenderEncoder)
 		[pCmd->mtlRenderEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
 	else if (pCmd->mtlComputeEncoder)
@@ -3593,6 +3727,9 @@ void cmdEndDebugMarker(Cmd* pCmd)
 		[pCmd->mtlBlitEncoder popDebugGroup];
 	else
 		[pCmd->mtlCommandBuffer popDebugGroup];
+    
+    // Leave the current scope and pop up the scope stack
+    PROFILE_GPU_LEAVE();
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -3616,6 +3753,96 @@ void cmdAddDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pForma
 	cmdAddDebugMarker(pCmd, r, g, b, buffer);
 }
 
+void getTimestampFrequency(Queue* pQueue, double* pFrequency)
+{
+    *pFrequency = GPU_FREQUENCY;
+}
+    
+void addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap)
+{
+    QueryHeap* pQueryHeap = (QueryHeap*)conf_calloc(1, sizeof(QueryHeap));
+    pQueryHeap->mDesc = *pDesc;
+    
+    // currently this is just a dummy struct for iOS GPU frame counters
+    pQueryHeap->gpuTimestampStart = 0.0;
+    pQueryHeap->gpuTimestampEnd = 0.0;
+    
+    *ppQueryHeap = pQueryHeap;
+}
+
+void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap)
+{
+    SAFE_FREE(pQueryHeap);
+}
+
+void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
+{
+    lastFrameQuery = pQueryHeap;
+}
+    
+void cmdEndQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
+{
+}
+
+void cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
+{
+    uint64_t* data = (uint64_t*)pReadbackBuffer->mtlBuffer.contents;
+    
+    memcpy(&data[0], &pQueryHeap->gpuTimestampStart, sizeof(uint64_t));
+    memcpy(&data[1], &pQueryHeap->gpuTimestampEnd, sizeof(uint64_t));
+}
+
+    
+// -------------------------------------------------------------------------------------------------
+// MicroProfile GPU timers
+// -------------------------------------------------------------------------------------------------
+#if MICROPROFILE_GPU_TIMERS_METAL
+#define S g_MicroProfile
+   
+struct MicroProfileGpuTimerStateInternal
+{
+        
+};
+    
+MICROPROFILE_GPU_STATE_DECL(Internal);
+    
+void MicroProfileGpuInitInternal()
+{
+}
+
+void MicroProfileGpuShutdownInternal()
+{
+}
+
+uint32_t MicroProfileGpuFlipInternal()
+{
+    return 0;
+}
+    
+uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
+{
+    return 0;
+}
+    
+uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
+{
+    return 0;
+}
+    
+uint64_t MicroProfileTicksPerSecondGpuInternal()
+{
+    return 0;
+}
+    
+bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
+{
+    return true;
+}
+    
+MICROPROFILE_GPU_STATE_IMPL(Internal);
+    
+#endif
+    
 // -------------------------------------------------------------------------------------------------
 // Utility functions
 // -------------------------------------------------------------------------------------------------
@@ -3672,7 +3899,7 @@ MTLPixelFormat util_to_mtl_pixel_format(const ImageFormat::Enum& format, const b
 
 	if (format >= sizeof(gMtlFormatTranslator) / sizeof(gMtlFormatTranslator[0]))
 	{
-		LOGERROR("Failed to Map from ConfettilFileFromat to MTLPixelFormat, should add map method in gMtlFormatTranslator");
+		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to MTLPixelFormat, should add map method in gMtlFormatTranslator");
 	}
 	else
 	{
@@ -3779,7 +4006,7 @@ MTLVertexFormat util_to_mtl_vertex_format(const ImageFormat::Enum& format)
 		case ImageFormat::RGB10A2: return MTLVertexFormatUInt1010102Normalized;
 		default: break;
 	}
-	LOGERRORF("Unknown vertex format: %d", format);
+	LOGF(LogLevel::eERROR, "Unknown vertex format: %d", format);
 	return MTLVertexFormatInvalid;
 }
 
@@ -3880,41 +4107,126 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const Desc
 
 void util_end_current_encoders(Cmd* pCmd)
 {
+	const bool barrierRequired(pCmd->pCmdPool->pQueue->mBarrierFlags);
+	
 	if (pCmd->mtlRenderEncoder != nil)
 	{
+		ASSERT(pCmd->mtlComputeEncoder == nil && pCmd->mtlBlitEncoder == nil);
+		
+		if (barrierRequired)
+		{
+			[pCmd->mtlRenderEncoder updateFence:pCmd->mtlEncoderFence afterStages:MTLRenderStageFragment];
+			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
+		}
+		
 		[pCmd->mtlRenderEncoder endEncoding];
 		pCmd->mtlRenderEncoder = nil;
 	}
+	
 	if (pCmd->mtlComputeEncoder != nil)
 	{
+		ASSERT(pCmd->mtlRenderEncoder == nil && pCmd->mtlBlitEncoder == nil);
+		
+		if (barrierRequired)
+		{
+			[pCmd->mtlComputeEncoder updateFence:pCmd->mtlEncoderFence];
+			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
+		}
+		
 		[pCmd->mtlComputeEncoder endEncoding];
 		pCmd->mtlComputeEncoder = nil;
 	}
+	
 	if (pCmd->mtlBlitEncoder != nil)
 	{
+		ASSERT(pCmd->mtlRenderEncoder == nil && pCmd->mtlComputeEncoder == nil);
+		
+		if (barrierRequired)
+		{
+			[pCmd->mtlBlitEncoder updateFence:pCmd->mtlEncoderFence];
+			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
+		}
+		
 		[pCmd->mtlBlitEncoder endEncoding];
 		pCmd->mtlBlitEncoder = nil;
 	}
 }
 
-bool util_sync_encoders(Cmd* pCmd, const CmdPoolType& newEncoderType)
+void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType)
 {
-	if (newEncoderType != CMD_POOL_DIRECT && pCmd->mtlRenderEncoder != nil)
+	if (pCmd->pCmdPool->pQueue->mBarrierFlags)
 	{
-		[pCmd->mtlRenderEncoder updateFence:pCmd->mtlEncoderFence afterStages:MTLRenderStageFragment];
-		return true;
+		if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
+		{
+			switch (encoderType)
+			{
+				case CMD_POOL_DIRECT:
+					[pCmd->mtlRenderEncoder waitForFence:pCmd->mtlEncoderFence beforeStages:MTLRenderStageVertex];
+					break;
+				case CMD_POOL_COMPUTE:
+					[pCmd->mtlComputeEncoder waitForFence:pCmd->mtlEncoderFence];
+					break;
+				case CMD_POOL_COPY:
+					[pCmd->mtlBlitEncoder waitForFence:pCmd->mtlEncoderFence];
+					break;
+				default:
+					ASSERT(false);
+			}
+		}
+		else
+		{
+			switch (encoderType)
+			{
+				case CMD_POOL_DIRECT:
+#ifdef TARGET_IOS
+					// memoryBarrierWithScope for render encoder is unavailable for iOS
+					// fallback to fence
+					[pCmd->mtlRenderEncoder waitForFence:pCmd->mtlEncoderFence beforeStages:MTLRenderStageVertex];
+#else
+					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
+					{
+						[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
+					}
+					
+					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
+					{
+						[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeTextures afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
+					}
+					
+					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_RENDERTARGETS)
+					{
+						[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeRenderTargets afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
+					}
+#endif
+					break;
+					
+				case CMD_POOL_COMPUTE:
+					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
+					{
+						[pCmd->mtlComputeEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
+					}
+					
+					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
+					{
+						[pCmd->mtlComputeEncoder memoryBarrierWithScope:MTLBarrierScopeTextures];
+					}
+					break;
+					
+				case CMD_POOL_COPY:
+					// we cant use barriers with blit encoder, only fence if available
+					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
+					{
+						[pCmd->mtlBlitEncoder waitForFence:pCmd->mtlEncoderFence];
+					}
+					break;
+					
+				default:
+					ASSERT(false);
+			}
+		}
+		
+		pCmd->pCmdPool->pQueue->mBarrierFlags = 0;
 	}
-	if (newEncoderType != CMD_POOL_COMPUTE && pCmd->mtlComputeEncoder != nil)
-	{
-		[pCmd->mtlComputeEncoder updateFence:pCmd->mtlEncoderFence];
-		return true;
-	}
-	if (newEncoderType != CMD_POOL_COPY && pCmd->mtlBlitEncoder != nil)
-	{
-		[pCmd->mtlBlitEncoder updateFence:pCmd->mtlEncoderFence];
-		return true;
-	}
-	return false;
 }
 
 bool util_is_compatible_texture_view(const MTLTextureType& textureType, const MTLTextureType& subviewTye)

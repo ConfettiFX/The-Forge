@@ -118,7 +118,7 @@ int64_t Deserializer::ReadInt64()
 	return ret;
 }
 
-int Deserializer::ReadInt()
+int32_t Deserializer::ReadInt()
 {
 	int ret;
 	Read(&ret, sizeof ret);
@@ -139,7 +139,7 @@ int8_t Deserializer::ReadByte()
 	return ret;
 }
 
-unsigned Deserializer::ReadUInt()
+uint32_t Deserializer::ReadUInt()
 {
 	unsigned ret;
 	Read(&ret, sizeof ret);
@@ -278,13 +278,13 @@ Serializer::~Serializer() {}
 
 bool Serializer::WriteInt64(int64_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteInt(int value) { return Write(&value, sizeof value) == sizeof value; }
+bool Serializer::WriteInt(int32_t value) { return Write(&value, sizeof value) == sizeof value; }
 
 bool Serializer::WriteShort(int16_t value) { return Write(&value, sizeof value) == sizeof value; }
 
 bool Serializer::WriteByte(int8_t value) { return Write(&value, sizeof value) == sizeof value; }
 
-bool Serializer::WriteUInt(unsigned value) { return Write(&value, sizeof value) == sizeof value; }
+bool Serializer::WriteUInt(uint32_t value) { return Write(&value, sizeof value) == sizeof value; }
 
 bool Serializer::WriteUShort(uint16_t value) { return Write(&value, sizeof value) == sizeof value; }
 
@@ -354,7 +354,7 @@ bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 
 	if (fileName.size() == 0)
 	{
-		LOGERRORF("Could not open file with empty name");
+		LOGF(LogLevel::eERROR, "Could not open file with empty name");
 		return false;
 	}
 
@@ -364,7 +364,7 @@ bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 
 	if (!pHandle)
 	{
-		LOGERRORF("Could not open file %s", fileName.c_str());
+		LOGF(LogLevel::eERROR, "Could not open file %s", fileName.c_str());
 		return false;
 	}
 
@@ -379,7 +379,7 @@ bool File::Open(const tinystl::string& _fileName, FileMode mode, FSRoot root)
 	size_t size = FileSystem::GetFileSize(pHandle);
 	if (size > UINT_MAX)
 	{
-		LOGERRORF("Could not open file %s which is larger than 4GB", fileName.c_str());
+		LOGF(LogLevel::eERROR, "Could not open file %s which is larger than 4GB", fileName.c_str());
 		Close();
 		mSize = 0;
 		return false;
@@ -420,7 +420,7 @@ unsigned File::Read(void* dest, unsigned size)
 
 	if (IsWriteOnly())
 	{
-		LOGERROR("File not opened for reading");
+		LOGF(LogLevel::eERROR, "File not opened for reading");
 		return 0;
 	}
 
@@ -468,6 +468,16 @@ unsigned File::Seek(unsigned position, SeekDir seekDir /* = SeekDir::SEEK_DIR_BE
 	return mPosition;
 }
 
+unsigned File::Tell()
+{
+    if (!pHandle)
+    {
+        return 0;
+    }
+    
+    return (unsigned)tell_file(pHandle);
+}
+
 unsigned File::Write(const void* data, unsigned size)
 {
 	if (!pHandle)
@@ -478,7 +488,7 @@ unsigned File::Write(const void* data, unsigned size)
 
 	if (IsReadOnly())
 	{
-		LOGERROR("File not opened for writing");
+		LOGF(LogLevel::eERROR, "File not opened for writing");
 		return 0;
 	}
 
@@ -498,7 +508,7 @@ unsigned File::Write(const void* data, unsigned size)
 	{
 		// Return to the position where the write began
 		seek_file(pHandle, mPosition + mOffset, SEEK_SET);
-		LOGERROR("Error while writing to file " + GetName());
+		LOGF(LogLevel::eERROR, "Error while writing to file " + GetName());
 		return 0;
 	}
 
@@ -602,6 +612,11 @@ unsigned MemoryBuffer::Seek(unsigned position, SeekDir seekDir /* = SeekDir::SEE
 	return mPosition;
 }
 
+unsigned MemoryBuffer::Tell()
+{
+    return mPosition;
+}
+
 unsigned MemoryBuffer::Write(const void* data, unsigned size)
 {
 	if (size + mPosition > mSize)
@@ -649,7 +664,9 @@ void FileSystem::ClearModifiedRootPaths()
 		s = "";
 }
 
-unsigned FileSystem::GetLastModifiedTime(const tinystl::string& fileName) { return (unsigned)get_file_last_modified_time(fileName); }
+time_t FileSystem::GetLastModifiedTime(const tinystl::string& fileName) { return get_file_last_modified_time(fileName); }
+time_t FileSystem::GetLastAccessedTime(const tinystl::string& fileName) { return get_file_last_accessed_time(fileName); }
+time_t FileSystem::GetCreationTime(const tinystl::string& fileName) { return get_file_creation_time(fileName); }
 
 unsigned FileSystem::GetFileSize(FileHandle handle)
 {
@@ -742,6 +759,14 @@ tinystl::string FileSystem::GetRootPath(FSRoot root)
 		return mModifiedRootPaths[root];
 	else
 		return pszRoots[root];
+}
+
+tinystl::string FileSystem::CombinePaths(const tinystl::string& path1, const tinystl::string& path2)
+{
+	tinystl::string tmp = path2.trimmed();
+	tmp.replace('\\', '/');
+
+	return RemoveTrailingSlash(path1) + ((tmp != "" && tmp[0] != '/') ? "/" : "") + tmp;
 }
 
 void FileSystem::SplitPath(
@@ -902,9 +927,9 @@ bool FileSystem::CreateDir(const tinystl::string& pathName)
 #endif
 
 	if (success)
-		LOGDEBUG("Created directory " + pathName);
+		LOGF(LogLevel::eDEBUG, "Created directory " + pathName);
 	else
-		LOGERROR("Failed to create directory " + pathName);
+		LOGF(LogLevel::eERROR, "Failed to create directory " + pathName);
 
 	return success;
 }

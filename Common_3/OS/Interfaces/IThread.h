@@ -121,9 +121,16 @@ struct Thread
 	static ThreadID     mainThreadID;
 	static void         SetMainThread();
 	static ThreadID     GetCurrentThreadID();
+	static void         GetCurrentThreadName(char * buffer, int buffer_size);
+	static void         SetCurrentThreadName(const char * name);
 	static bool         IsMainThread();
 	static void         Sleep(unsigned mSec);
 	static unsigned int GetNumCPUCores(void);
 };
+
+// Max thread name should be 15 + null character
+#ifndef MAX_THREAD_NAME_LENGTH
+#define MAX_THREAD_NAME_LENGTH 15
+#endif
 
 #endif

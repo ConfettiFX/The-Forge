@@ -51,12 +51,75 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
+static float2      gRetinaScale = { 1.0f, 1.0f };
+
+// Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
+@protocol RenderDestinationProvider
+-(void)draw;
+-(void)didResize:(CGSize)size;
+@end
+
+@interface ForgeMTLView : NSView <NSWindowDelegate>
+{
+@private
+    CVDisplayLinkRef    displayLink;
+    CAMetalLayer        *metalLayer;
+    
+}
+@property (weak) id<RenderDestinationProvider> delegate;
+
+-(id) initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
+- (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
+@end
+
+@implementation ForgeMTLView
+
+-(id)initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)in_displayID hdr:(bool)hdr vsync:(bool)vsync
+{
+    self = [super initWithFrame:FrameRect];
+    self.wantsLayer = YES;
+    
+    metalLayer = [CAMetalLayer layer];
+    metalLayer.device =  device;
+    metalLayer.framebufferOnly = YES; //todo: optimized way
+    metalLayer.pixelFormat = hdr? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
+    metalLayer.wantsExtendedDynamicRangeContent = hdr? true : false;
+    metalLayer.drawableSize = CGSizeMake(self.frame.size.width, self.frame.size.height);
+    metalLayer.displaySyncEnabled = vsync;
+    self.layer = metalLayer;
+    
+    [self setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
+    
+    return self;
+}
+
+- (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime
+{
+    // Called whenever the view needs to render
+    // Need to dispatch to main thread as CVDisplayLink uses it's own thread.
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [self.delegate draw];
+    });
+   
+    return kCVReturnSuccess;
+}
+
+- (void)windowDidResize:(NSNotification *)notification
+{
+    NSWindow* resizedWindow = [notification object];
+    NSRect viewSize = [resizedWindow.contentView frame];
+    [self.delegate didResize: viewSize.size];
+    metalLayer.drawableSize = CGSizeMake(self.frame.size.width * gRetinaScale.x, self.frame.size.height * gRetinaScale.y);
+ }
+
+@end
+
 namespace {
 bool isCaptured = false;
 }
 
 static WindowsDesc gCurrentWindow;
-static float2      gRetinaScale = { 1.0f, 1.0f };
+
 
 // TODO: Add multiple window/monitor handling functionality to macOS.
 //static tinystl::vector <MonitorDesc> gMonitors;
@@ -113,9 +176,38 @@ void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, 1920, 10
 
 void requestShutdown() { [[NSApplication sharedApplication] terminate:[NSApplication sharedApplication]]; }
 
-// TODO: Add multiple window handling functionality.
+void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device)
+{
+    NSRect ViewRect {0,0, (float)winDesc->windowedRect.right - winDesc->windowedRect.left, (float)winDesc->windowedRect.bottom - winDesc->windowedRect.top };
+    NSWindow* Window = [[NSWindow alloc] initWithContentRect:ViewRect
+                                         styleMask: (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable)
+                                           backing:NSBackingStoreBuffered
+                                             defer:YES];
+    [Window setAcceptsMouseMovedEvents:YES];
+    [Window setTitle:[NSString stringWithUTF8String:app_name]];
+    [Window setMinSize:NSSizeFromCGSize(CGSizeMake(800, 600))];
+    
+    [Window setOpaque:YES];
+    [Window setRestorable:NO];
+    [Window invalidateRestorableState];
+    [Window makeKeyAndOrderFront: nil];
+    [Window makeMainWindow];
+    winDesc->handle = (void*)CFBridgingRetain(Window);
+    
+    // Adjust window size to match retina scaling.
+    CGFloat scale = [Window backingScaleFactor];
+    gRetinaScale = { (float)scale, (float)scale };
+   
+    ForgeMTLView *View = [[ForgeMTLView alloc] initWithFrame:ViewRect device: device display:0 hdr:NO vsync:NO];
+    [Window setContentView: View];
+    [Window setDelegate: View];
 
-void openWindow(const char* app_name, WindowsDesc* winDesc) {}
+    NSSize windowSize = CGSizeMake(ViewRect.size.width / gRetinaScale.x, ViewRect.size.height / gRetinaScale.y);
+    [Window setContentSize:windowSize];
+    [Window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    if (!winDesc->fullScreen)
+        [Window center];
+}
 
 void closeWindow(const WindowsDesc* winDesc) {}
 
@@ -130,23 +222,22 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	winRect.size.width = currentRect.right - currentRect.left;
 	winRect.size.height = currentRect.top - currentRect.bottom;
 
-	MTKView* view = (MTKView*)CFBridgingRelease(winDesc->handle);
-	[view.window setFrame:winRect display:true];
+	NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	[window setFrame:winRect display:true];
 }
 
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setWindowRect(winDesc, { 0, 0, (int)width, (int)height }); }
 
 void toggleFullscreen(WindowsDesc* winDesc)
 {
-	MTKView* view = (MTKView*)CFBridgingRelease(winDesc->handle);
-	if (!view)
+    NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	if (!window)
 		return;
 
-	bool isFullscreen = ((view.window.styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen);
+	bool isFullscreen = ((window.styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen);
 	winDesc->fullScreen = !isFullscreen;
 
-	[view.window toggleFullScreen:view.window];
-	CFRetain(winDesc->handle);
+	[window toggleFullScreen:window];
 }
 
 void showWindow(WindowsDesc* winDesc)
@@ -164,15 +255,15 @@ void hideWindow(WindowsDesc* winDesc)
 void maximizeWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = true;
-	MTKView* view = (MTKView*)CFBridgingRelease(winDesc->handle);
-	[view.window deminiaturize:nil];
+	NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	[window deminiaturize:nil];
 }
 
 void minimizeWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = false;
-	MTKView* view = (MTKView*)CFBridgingRelease(winDesc->handle);
-	[view.window miniaturize:nil];
+	NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	[window miniaturize:nil];
 }
 
 void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
@@ -203,13 +294,18 @@ unsigned getSystemTime()
 	return (unsigned int)ms;
 }
 
-long long getUSec()
+int64_t getUSec()
 {
 	timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	long us = (ts.tv_nsec / 1000);
 	us += ts.tv_sec * 1e6;
 	return us;
+}
+
+int64_t getTimerFrequency()
+{
+    return 1;
 }
 
 unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
@@ -227,17 +323,13 @@ int macOSMain(int argc, const char** argv, IApp* app)
 	return NSApplicationMain(argc, argv);
 }
 
-// Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
-@protocol RenderDestinationProvider
 
-@end
 
 // Interface that controls the main updating/rendering loop on Metal appplications.
 @interface MetalKitApplication: NSObject
 
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-									   view:(nonnull MTKView*)view;
+				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider;
 
 - (void)drawRectResized:(CGSize)size;
 - (void)updateInput;
@@ -250,59 +342,42 @@ int macOSMain(int argc, const char** argv, IApp* app)
 // per-frame update and drawable resize callbacks.  Also implements the RenderDestinationProvider
 // protocol, which allows our renderer object to get and set drawable properties such as pixel
 // format and sample count
-@interface GameViewController: NSViewController<MTKViewDelegate, RenderDestinationProvider>
+@interface GameController: NSObject<RenderDestinationProvider>
 
 @end
 
 /************************************************************************/
-// GameViewController implementation
+// GameController implementation
 /************************************************************************/
 
-@implementation GameViewController
+@implementation GameController
 {
-	MTKView*             _view;
 	id<MTLDevice>        _device;
 	MetalKitApplication* _application;
 }
 
-- (void)viewDidLoad
+- (id)init
 {
-	[super viewDidLoad];
-
-	// Set the view to use the default device
-	_device = MTLCreateSystemDefaultDevice();
-	_view = (MTKView*)self.view;
-	_view.delegate = self;
-	_view.device = _device;
-	_view.paused = NO;
-	_view.enableSetNeedsDisplay = NO;
-	_view.preferredFramesPerSecond = 60.0;
-	[_view.window makeFirstResponder:self];
-	_view.autoresizesSubviews = YES;
-	isCaptured = false;
-
-	// Adjust window size to match retina scaling.
-	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width),
-					 (float)(_view.drawableSize.height / _view.frame.size.height) };
-	NSSize windowSize = CGSizeMake(_view.frame.size.width / gRetinaScale.x, _view.frame.size.height / gRetinaScale.y);
-	[_view.window setContentSize:windowSize];
-	[_view.window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-
-	// Kick-off the MetalKitApplication.
-	_application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
-
-	if (!_device)
-	{
-		NSLog(@"Metal is not supported on this device");
-		self.view = [[NSView alloc] initWithFrame:self.view.frame];
-	}
-
-	//register terminate callback
-	NSApplication* app = [NSApplication sharedApplication];
-	[[NSNotificationCenter defaultCenter] addObserver:self
-											 selector:@selector(applicationWillTerminate:)
-												 name:NSApplicationWillTerminateNotification
-											   object:app];
+    self = [super init];
+    
+    _device = MTLCreateSystemDefaultDevice();
+    isCaptured = false;
+    
+    // Kick-off the MetalKitApplication.
+    _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self];
+    
+    if (!_device)
+    {
+         NSLog(@"Metal is not supported on this device");
+    }
+    
+    //register terminate callback
+    NSApplication* app = [NSApplication sharedApplication];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(applicationWillTerminate:)
+                                                     name:NSApplicationWillTerminateNotification
+                                                   object:app];
+    return self;
 }
 
 /*A notification named NSApplicationWillTerminateNotification.*/
@@ -311,36 +386,18 @@ int macOSMain(int argc, const char** argv, IApp* app)
 	[_application shutdown];
 }
 
-- (BOOL)acceptsFirstResponder
-{
-	return TRUE;
-}
-
-- (BOOL)canBecomeKeyView
-{
-	return TRUE;
-}
-
 // Called whenever view changes orientation or layout is changed
-- (void)mtkView:(nonnull MTKView*)view drawableSizeWillChange:(CGSize)size
+- (void)didResize:(CGSize)size
 {
-	view.window.contentView = _view;
-	[_application drawRectResized:view.bounds.size];
+	[_application drawRectResized:size];
 }
 
 // Called whenever the view needs to render
-- (void)drawInMTKView:(nonnull MTKView*)view
+- (void)draw
 {
-	@autoreleasepool
-	{
-		[_application update];
-		[_application updateInput];
-		InputSystem::Update();
-		//this is needed for NON Vsync mode.
-		//This enables to force update the display
-		if (_view.enableSetNeedsDisplay == YES)
-			[_view setNeedsDisplay:YES];
-	}
+	[_application update];
+	[_application updateInput];
+	InputSystem::Update();
 }
 
 @end
@@ -363,7 +420,6 @@ uint32_t testingMaxFrameCount = 120;
 }
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-									   view:(nonnull MTKView*)view
 {
 	self = [super init];
 	if (self)
@@ -379,23 +435,14 @@ uint32_t testingMaxFrameCount = 120;
 			pSettings->mWidth = getRectWidth(rect);
 			pSettings->mHeight = getRectHeight(rect);
 		}
-		else
-		{
-			//if width and height were set manually in App constructor
-			//then override and set window size to user width/height.
-			//That means we now render at size * gRetinaScale.
-			//TODO: make sure pSettings->mWidth determines window size and not drawable size as on retina displays we need to make sure that's what user wants.
-			NSSize windowSize = CGSizeMake(pSettings->mWidth, pSettings->mHeight);
-			[view.window setContentSize:windowSize];
-			[view setFrameSize:windowSize];
-		}
 
 		gCurrentWindow = {};
 		gCurrentWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.maximized = false;
-		gCurrentWindow.handle = (void*)CFBridgingRetain(view);
-		openWindow(pApp->GetName(), &gCurrentWindow);
+		openWindow(pApp->GetName(), &gCurrentWindow, device);
+        ForgeMTLView *forgeView = ((__bridge NSWindow*)gCurrentWindow.handle).contentView;
+        forgeView.delegate = renderDestinationProvider;
 
 		pSettings->mWidth =
 			gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);
@@ -404,7 +451,8 @@ uint32_t testingMaxFrameCount = 120;
 		pApp->pWindow = &gCurrentWindow;
 
 		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-		InputSystem::InitSubView((__bridge void*)(view));
+        
+		InputSystem::InitSubView((__bridge void*)forgeView);
 
 		@autoreleasepool
 		{

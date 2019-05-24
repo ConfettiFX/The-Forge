@@ -49,6 +49,9 @@
     <Filter Include="OS\Input">
       <UniqueIdentifier>{12705cd5-7862-4903-995a-a9f1700c6f7a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Profiler">
+      <UniqueIdentifier>{d9b2db1f-cd3f-4e4f-9265-29af1dba4c86}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -126,6 +129,24 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerEnableMacro.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerHTML.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
@@ -193,6 +214,27 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp">
       <Filter>OS\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerVulkan.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D11.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D12.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.cpp">
+      <Filter>OS\Profiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

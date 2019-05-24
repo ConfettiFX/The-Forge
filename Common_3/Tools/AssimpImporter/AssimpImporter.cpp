@@ -532,7 +532,7 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 	aiReleasePropertyStore(propertyStore);
 	if (!pScene)
 	{
-		//LOGERRORF("Assimp could not import file: %s", filename);
+		//LOGF(LogLevel::eERROR, "Assimp could not import file: %s", filename);
 		return false;
 	}
 

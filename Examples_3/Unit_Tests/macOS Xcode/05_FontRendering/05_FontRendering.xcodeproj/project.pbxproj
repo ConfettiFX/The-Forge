@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		28A5ACFE201F6E8B000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACFC201F6E8B000E571F /* Main.storyboard */; };
 		28A5AD00201F6E8B000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ACFF201F6E8B000E571F /* Assets.xcassets */; };
 		28A5AD03201F6E8B000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AD01201F6E8B000E571F /* LaunchScreen.storyboard */; };
 		28A5AD0D201F6ECB000E571F /* 05_FontRendering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C96E131B20077CDF004363F0 /* 05_FontRendering.cpp */; };
@@ -106,7 +105,6 @@
 
 /* Begin PBXFileReference section */
 		28A5ACEE201F6E8B000E571F /* 05_FontRendering_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 05_FontRendering_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		28A5ACFD201F6E8B000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5ACFF201F6E8B000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AD02201F6E8B000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AD04201F6E8B000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -175,7 +173,6 @@
 				5C17303121414E320074EE71 /* AppDelegate.h */,
 				5C17303221414E320074EE71 /* AppDelegate.m */,
 				28A5AD0A201F6EB8000E571F /* Fonts */,
-				28A5ACFC201F6E8B000E571F /* Main.storyboard */,
 				28A5ACFF201F6E8B000E571F /* Assets.xcassets */,
 				28A5AD01201F6E8B000E571F /* LaunchScreen.storyboard */,
 				28A5AD04201F6E8B000E571F /* Info.plist */,
@@ -376,7 +373,6 @@
 			files = (
 				28A5AD03201F6E8B000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AD00201F6E8B000E571F /* Assets.xcassets in Resources */,
-				28A5ACFE201F6E8B000E571F /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -426,14 +422,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		28A5ACFC201F6E8B000E571F /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				28A5ACFD201F6E8B000E571F /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		28A5AD01201F6E8B000E571F /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -469,6 +457,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -645,6 +634,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

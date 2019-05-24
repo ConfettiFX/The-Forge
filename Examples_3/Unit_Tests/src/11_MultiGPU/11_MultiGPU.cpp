@@ -135,7 +135,6 @@ UIApp         gAppUI;
 GuiComponent* pGui;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
 										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
@@ -180,7 +179,7 @@ class MultiGPU: public IApp
 
 		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
-			LOGWARNINGF("Multi GPU will be disabled since the system only has one GPU");
+			LOGF(LogLevel::eWARNING, "Multi GPU will be disabled since the system only has one GPU");
 			gMultiGPU = false;
 		}
 

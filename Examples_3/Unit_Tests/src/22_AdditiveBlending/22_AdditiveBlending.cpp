@@ -131,7 +131,6 @@ Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 
 ICameraController* pCameraController = NULL;
 FileSystem         gFileSystem;
-LogManager         gLogManager;
 
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
@@ -1000,10 +999,10 @@ class AdditiveBlending: public IApp
 		gAppUI.DrawText(
 			cmd, float2(8, 65), tinystl::string::format("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f),
 			&gFrameTimeDraw);
-#ifndef METAL    // Metal doesn't support GPU profilers
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-#endif
-		gAppUI.Draw(cmd);
+
+        gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+
+        gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);

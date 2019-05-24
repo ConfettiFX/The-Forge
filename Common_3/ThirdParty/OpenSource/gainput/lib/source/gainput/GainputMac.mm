@@ -69,8 +69,8 @@ namespace gainput
 		pTrackingArea = nil;
 	}
 
-	MTKView * mtkView = (__bridge MTKView*)parentView;
-	NSRect bounds = [mtkView bounds];
+	NSView * forgeView = (__bridge NSView*)parentView;
+	NSRect bounds = [forgeView bounds];
 	NSTrackingAreaOptions options =
 	(NSTrackingActiveAlways | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved);
 	pTrackingArea = [[NSTrackingArea alloc] initWithRect: bounds
@@ -189,14 +189,14 @@ namespace gainput
 	if(!mouse && !mouseRaw)
 		return;
 	
-	MTKView * mtkView = (__bridge MTKView*)parentView;
-	mRetinaScale = mtkView.drawableSize.width / mtkView.frame.size.width;
+	NSView * forgeView = (__bridge NSView*)parentView;
+	mRetinaScale = ((CAMetalLayer*)(forgeView.layer)).drawableSize.width / forgeView.frame.size.width;
 	if(!isMouseCaptured)
 	{
 		// Translate the cursor position into view coordinates, accounting for the fact that
 		// App Kit's default window coordinate space has its origin in the bottom left
-		capturedMouseLocation = [mtkView convertPoint:[nsEvent locationInWindow] fromView:nil];
-		capturedMouseLocation.y = mtkView.bounds.size.height - capturedMouseLocation.y;
+		capturedMouseLocation = [forgeView convertPoint:[nsEvent locationInWindow] fromView:nil];
+		capturedMouseLocation.y = forgeView.bounds.size.height - capturedMouseLocation.y;
 		
 		// Multiply the mouse coordinates by the retina scale factor.
 		capturedMouseLocation.x *= mRetinaScale;

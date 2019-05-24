@@ -93,7 +93,7 @@ unsigned getSystemTime()
 	return (unsigned int)ms;
 }
 
-long long getUSec()
+int64_t getUSec()
 {
 	timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
@@ -102,9 +102,15 @@ long long getUSec()
 	return us;
 }
 
+int64_t getTimerFrequency()
+{
+    return 1;
+}
+
 unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
 float2 getDpiScale() { return gRetinaScale; }
+
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -113,24 +119,117 @@ static IApp* pApp = NULL;
 
 int iOSMain(int argc, char** argv, IApp* app)
 {
-	pApp = app;
-	@autoreleasepool
-	{
-		return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
-	}
+    pApp = app;
+    @autoreleasepool
+    {
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+    }
+}
+
+@protocol ForgeViewDelegate <NSObject>
+@required
+-(void)drawRectResized:(CGSize)size;
+@end
+
+@interface ForgeMTLViewController : UIViewController
+-(id) initWithFrame:(CGRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
+@end
+
+@interface ForgeMTLView: UIView
++(Class)layerClass;
+-(void)layoutSubviews;
+@property (nonatomic,weak) id<ForgeViewDelegate> delegate;
+
+@end
+
+@implementation ForgeMTLView
+
++(Class)layerClass
+{
+    return [CAMetalLayer class];
+}
+
+-(void)layoutSubviews
+{
+    [_delegate drawRectResized:self.bounds.size];
+    if (pApp->mSettings.mContentScaleFactor >= 1.f)
+    {
+        [self setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+        for (UIView *subview in self.subviews)
+        {
+            [subview setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
+        }
+        ((CAMetalLayer*)(self.layer)).drawableSize = CGSizeMake(self.frame.size.width * pApp->mSettings.mContentScaleFactor, self.frame.size.height * pApp->mSettings.mContentScaleFactor);
+    }
+    else
+    {
+        [self setContentScaleFactor:gRetinaScale.x];
+        for (UIView *subview in self.subviews)
+        {
+            [subview setContentScaleFactor:gRetinaScale.x];
+        }
+
+        ((CAMetalLayer*)(self.layer)).drawableSize = CGSizeMake(self.frame.size.width * gRetinaScale.x, self.frame.size.height * gRetinaScale.y);
+    }
+}
+@end
+
+@implementation ForgeMTLViewController
+
+-(id)initWithFrame:(CGRect)FrameRect device:(id<MTLDevice>)device display:(int)in_displayID hdr:(bool)hdr vsync:(bool)vsync
+{
+    self = [super init];
+    self.view = [[ForgeMTLView alloc] initWithFrame:FrameRect];
+    CAMetalLayer *metalLayer = (CAMetalLayer*)self.view.layer;
+    
+    metalLayer.device =  device;
+    metalLayer.framebufferOnly = YES; //todo: optimized way
+    metalLayer.pixelFormat = hdr? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
+    metalLayer.drawableSize = CGSizeMake(self.view.frame.size.width, self.view.frame.size.height);
+    
+    return self;
+}
+
+- (BOOL)prefersStatusBarHidden
+{
+    return pApp->mSettings.mShowStatusBar ? NO : YES;
+}
+
+@end
+
+void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device)
+{
+    CGRect ViewRect {0,0, 1280, 720 }; //Initial default values
+    UIWindow* Window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    
+    [Window setOpaque:YES];
+    [Window makeKeyAndVisible];
+    winDesc->handle = (void*)CFBridgingRetain(Window);
+    
+    // Adjust window size to match retina scaling.
+    CGFloat scale = UIScreen.mainScreen.scale;
+    if (pApp->mSettings.mContentScaleFactor >= 1.0f)
+        gRetinaScale = { (float)pApp->mSettings.mContentScaleFactor, (float)pApp->mSettings.mContentScaleFactor };
+    else
+        gRetinaScale = { (float)scale, (float)scale };
+    
+    gDeviceWidth = UIScreen.mainScreen.bounds.size.width;
+    gDeviceHeight = UIScreen.mainScreen.bounds.size.height;
+    
+    ForgeMTLViewController *ViewController = [[ForgeMTLViewController alloc] initWithFrame:ViewRect device:device display:0 hdr:NO vsync:NO];
+    [Window setRootViewController:ViewController];
 }
 
 // Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
 @protocol RenderDestinationProvider
-
+-(void)draw;
 @end
 
 // Interface that controls the main updating/rendering loop on Metal appplications.
-@interface MetalKitApplication: NSObject
+@interface MetalKitApplication: NSObject<ForgeViewDelegate>
 
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-				 renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-									  view:(nonnull MTKView*)view;
+                  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider;
 
 - (void)drawRectResized:(CGSize)size;
 
@@ -144,18 +243,18 @@ int iOSMain(int argc, char** argv, IApp* app)
 // per-frame update and drawable resize callbacks.  Also implements the RenderDestinationProvider
 // protocol, which allows our renderer object to get and set drawable properties such as pixel
 // format and sample count
-@interface GameViewController: UIViewController<MTKViewDelegate, RenderDestinationProvider>
+@interface GameController: NSObject<RenderDestinationProvider>
 
 @end
 
-UIViewController* pMainViewController;
+GameController* pMainViewController;
 /************************************************************************/
-// GameViewController implementation
+// GameController implementation
 /************************************************************************/
 
-@implementation GameViewController
+@implementation GameController
 {
-	MTKView*             _view;
+	ForgeMTLView*             _view;
 	id<MTLDevice> _device;
 	MetalKitApplication* _application;
 }
@@ -168,23 +267,23 @@ UIViewController* pMainViewController;
 	}
 }
 
-- (void)viewDidLoad
+- (id)init
 {
-	[super viewDidLoad];
+	self = [super init];
 
 	pMainViewController = self;
 	// Set the view to use the default device
 	_device = MTLCreateSystemDefaultDevice();
-	_view = (MTKView*)self.view;
-	_view.delegate = self;
-	_view.device = _device;
+
+    // Kick-off the MetalKitApplication.
+    _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self];
+    
+    _view = (ForgeMTLView*)UIApplication.sharedApplication.keyWindow.rootViewController.view;
 
 	// Enable multi-touch in our apps.
 	[_view setMultipleTouchEnabled:true];
 	_view.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
-	_view.autoResizeDrawable = TRUE;
 	
-	// Get the device's width and height.
 	if (pApp->mSettings.mContentScaleFactor >= 1.f)
 	{
 		[_view setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
@@ -193,18 +292,10 @@ UIViewController* pMainViewController;
 			[subview setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
 		}
 	}
-	gDeviceWidth = _view.drawableSize.width;
-	gDeviceHeight = _view.drawableSize.height;
-	gRetinaScale = { (float)(_view.drawableSize.width / _view.frame.size.width),
-		(float)(_view.drawableSize.height / _view.frame.size.height) };
 
-	// Kick-off the MetalKitApplication.
-	_application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self view:_view];
-
-	if (!_device)
+    if (!_device)
 	{
 		NSLog(@"Metal is not supported on this device");
-		self.view = [[UIView alloc] initWithFrame:self.view.frame];
 	}
 
 	//register terminate callback
@@ -213,6 +304,8 @@ UIViewController* pMainViewController;
 	 selector:@selector(applicationWillTerminate:)
 												 name:UIApplicationWillTerminateNotification
 											   object:app];
+    
+    return self;
 }
 
 /*A notification named NSApplicationWillTerminateNotification.*/
@@ -221,32 +314,10 @@ UIViewController* pMainViewController;
 	[_application shutdown];
 }
 
-- (BOOL)prefersStatusBarHidden
-{
-	return pApp->mSettings.mShowStatusBar ? NO : YES;
-}
-
-// Called whenever view changes orientation or layout is changed
-- (void)mtkView:(nonnull MTKView*)view drawableSizeWillChange:(CGSize)size
-{
-	if (pApp->mSettings.mContentScaleFactor >= 1.f)
-	{
-		[view setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
-		for (UIView *subview in view.subviews)
-		{
-			[subview setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
-		}
-	}
-	[_application drawRectResized:view.bounds.size];
-}
-
 // Called whenever the view needs to render
-- (void)drawInMTKView:(nonnull MTKView*)view
+- (void)draw
 {
-	@autoreleasepool
-	{
-		[_application update];
-	}
+	[_application update];
 }
 @end
 
@@ -264,11 +335,9 @@ uint32_t testingMaxFrameCount = 120;
 
 // Metal application implementation.
 @implementation MetalKitApplication
-{
-}
+
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
-									   view:(nonnull MTKView*)view
+				  renderDestinationProvider:(nonnull id<RenderDestinationProvider, ForgeViewDelegate>)renderDestinationProvider
 {
 	self = [super init];
 	if (self)
@@ -277,6 +346,10 @@ uint32_t testingMaxFrameCount = 120;
 
 		pSettings = &pApp->mSettings;
 
+        gCurrentWindow = {};
+        openWindow(pApp->GetName(), &gCurrentWindow, device);
+        UIApplication.sharedApplication.delegate.window = (__bridge UIWindow*)gCurrentWindow.handle;
+        
 		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 		{
 			RectDesc rect = {};
@@ -286,19 +359,19 @@ uint32_t testingMaxFrameCount = 120;
 			pSettings->mFullScreen = true;
 		}
 
-		gCurrentWindow = {};
 		gCurrentWindow.fullscreenRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.maximized = false;
-		gCurrentWindow.handle = (void*)CFBridgingRetain(view);
-		//openWindow(pApp->GetName(), &gCurrentWindow);
 
+        ForgeMTLView *forgeView = (ForgeMTLView*)((__bridge UIWindow*)(gCurrentWindow.handle)).rootViewController.view;
+        forgeView.delegate = self;
+        
 		pSettings->mWidth = getRectWidth(gCurrentWindow.fullscreenRect);
 		pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);
 		pApp->pWindow = &gCurrentWindow;
 
         InputSystem::Init(gDeviceWidth, gDeviceHeight);
-        InputSystem::InitSubView((__bridge void*)view);
+        InputSystem::InitSubView((__bridge void*)forgeView);
 		// App init may override those
 		// Mouse captured to true on iOS
 		// Set HideMouse to false so that UI can always be picked.

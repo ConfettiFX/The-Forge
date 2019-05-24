@@ -140,7 +140,6 @@ struct HullOut
 tinystl::vector<Blade> gBlades;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
@@ -286,9 +285,7 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-#ifndef METAL
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-#endif
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -521,7 +518,7 @@ class Tessellation: public IApp
 
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 
-		LOGINFOF("Load time %f ms", startTime.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load time %f ms", startTime.GetUSec(true) / 1000.0f);
 		return true;
 	}
 
@@ -591,10 +588,9 @@ class Tessellation: public IApp
 #endif
 		removeRootSignature(pRenderer, pComputeRootSignature);
 
-#ifndef METAL
 		removeGpuProfiler(pRenderer, pGpuProfiler);
-#endif
-		removeResourceLoaderInterface(pRenderer);
+
+        removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
@@ -787,15 +783,11 @@ class Tessellation: public IApp
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-#ifndef METAL
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
-#endif
 
 		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 
-#ifndef METAL
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
-#endif
 
 		DescriptorData computeParams[4] = {};
 		cmdBindPipeline(cmd, pComputePipeline);
@@ -815,9 +807,7 @@ class Tessellation: public IApp
 		cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRootSignature, 4, computeParams);
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 
-#ifndef METAL
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-#endif
 
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
@@ -850,9 +840,7 @@ class Tessellation: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-#ifndef METAL
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass");
-#endif
 
 		// Draw computed results
 		if (gFillMode == FILL_MODE_SOLID)
@@ -882,13 +870,9 @@ class Tessellation: public IApp
 		};
 		cmdResourceBarrier(cmd, 2, uavBarriers, 0, NULL, true);
 
-#ifndef METAL
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-#endif
 
-#ifndef METAL
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
-#endif
+        cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 
 		endCmd(cmd);
 
@@ -911,10 +895,8 @@ class Tessellation: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-#ifndef METAL    // Metal doesn't support GPU profilers
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#endif
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);

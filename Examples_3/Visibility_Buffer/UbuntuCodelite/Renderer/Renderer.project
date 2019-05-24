@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="Renderer" InternalType="Library">
+<CodeLite_Project Name="Renderer" InternalType="Library" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0005Debug000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="Profiler">
+    <File Name="../../../../Common_3/Tools/Profiler/Profiler.cpp"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerVulkan.cpp"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerUI.h"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerUI.cpp"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerInput.h"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerInput.cpp"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerHTML.h"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerEnableMacro.h"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerBase.h"/>
+    <File Name="../../../../Common_3/Tools/Profiler/ProfilerBase.cpp"/>
+    <File Name="../../../../Common_3/Tools/Profiler/Profiler.h"/>
+  </VirtualDirectory>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
@@ -17,6 +35,8 @@
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanRaytracing.cpp"/>
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanShaderReflection.cpp"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -32,10 +52,12 @@
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
@@ -76,6 +98,7 @@
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
@@ -108,6 +131,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>

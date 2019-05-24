@@ -33,7 +33,6 @@
 		971BCF4921701CCB007F2B2F /* Skybox_right1.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AB7B201F3A35000E571F /* Skybox_right1.png */; };
 		971BCF4A21701CCB007F2B2F /* Skybox_top3.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AB7F201F3A35000E571F /* Skybox_top3.png */; };
 		B27D879A20E2E88B00081DB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B27D879920E2E88B00081DB0 /* GameController.framework */; };
-		C95132FD2010E68A002E584B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95132FB2010E68A002E584B /* Main.storyboard */; };
 		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D0BBDFB1214267DD0081CE0F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
@@ -160,7 +159,6 @@
 		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		C95132ED2010E68A002E584B /* 13_UserInterface_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 13_UserInterface_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C95132FC2010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -278,7 +276,6 @@
 			children = (
 				5C512C412141555B00E7A798 /* AppDelegate.h */,
 				5C512C422141555B00E7A798 /* AppDelegate.m */,
-				C95132FB2010E68A002E584B /* Main.storyboard */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
 				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
 				C95133032010E68A002E584B /* Info.plist */,
@@ -434,7 +431,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
-				C95132FD2010E68A002E584B /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -485,14 +481,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		C95132FB2010E68A002E584B /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C95132FC2010E68A002E584B /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		C95133002010E68A002E584B /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -530,6 +518,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../,
@@ -717,6 +706,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

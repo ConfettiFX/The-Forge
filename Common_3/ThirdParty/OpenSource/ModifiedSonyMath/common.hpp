@@ -301,17 +301,15 @@ struct float2
 {
 	float2() = default;
 	float2(float x, float y)       : x(x), y(y) {}
-	float2(int x, int y)           : x((float)x), y((float)y) {}
-	float2(unsigned x, unsigned y) : x((float)x), y((float)y) {}
-#if !defined(__ANDROID__) // on andoird, size_t is unsigned: constructor cannot be redeclared
-    float2(size_t x, size_t y)     : x((float)x), y((float)y) {}
-#endif
+	float2(int32_t x, int32_t y)   : x((float)x), y((float)y) {}
+	float2(uint32_t x, uint32_t y) : x((float)x), y((float)y) {}
+	float2(int64_t x, int64_t y)   : x((float)x), y((float)y) {}
+	float2(uint64_t x, uint64_t y) : x((float)x), y((float)y) {}
 	float2(float x)                : x(x), y(x) {}
-	float2(int x)                  : x((float)x), y((float)x) {}
-	float2(unsigned  x)            : x((float)x), y((float)x) {}
-#if !defined(__ANDROID__) // on andoird, size_t is unsigned: constructor cannot be redeclared
-	float2(size_t x)               : x((float)x), y((float)x) {}
-#endif
+	float2(int32_t x)              : x((float)x), y((float)x) {}
+	float2(uint32_t  x)            : x((float)x), y((float)x) {}
+	float2(int64_t x)              : x((float)x), y((float)x) {}
+	float2(uint64_t  x)            : x((float)x), y((float)x) {}
 	float2(const float2& f)        : x(f.x), y(f.y) {}
 	float2(const float(&fv)[2])    : x(fv[0]), y(fv[1]){}
 
@@ -361,17 +359,15 @@ struct float3
 {
 	float3() = default;
 	float3(float x, float y, float z)          : x(x), y(y), z(z) {}
-	float3(int x, int y, int z)                : x((float)x), y((float)y), z((float)z) {}
-	float3(unsigned x, unsigned y, unsigned z) : x((float)x), y((float)y), z((float)z) {}
-#if !defined(__ANDROID__) // on andoird, size_t is unsigned: constructor cannot be redeclared
-    float3(size_t x, size_t y, size_t z)       : x((float)x), y((float)y), z((float)z) {}
-#endif
+	float3(int32_t x, int32_t y, int32_t z)    : x((float)x), y((float)y), z((float)z) {}
+	float3(uint32_t x, uint32_t y, uint32_t z) : x((float)x), y((float)y), z((float)z) {}
+	float3(int64_t x, int64_t y, int64_t z)    : x((float)x), y((float)y), z((float)z) {}
+	float3(uint64_t x, uint64_t y, uint64_t z) : x((float)x), y((float)y), z((float)z) {}
 	float3(float x)                            : x(x), y(x), z(x) {}
-	float3(int x)                              : x((float)x), y((float)x), z((float)x) {}
-	float3(unsigned x)                         : x((float)x), y((float)x), z((float)x) {}
-#if !defined(__ANDROID__) // on andoird, size_t is unsigned: constructor cannot be redeclared
-    float3(size_t x)                           : x((float)x), y((float)x), z((float)x) {}
-#endif
+	float3(int32_t x)                          : x((float)x), y((float)x), z((float)x) {}
+	float3(uint32_t x)                         : x((float)x), y((float)x), z((float)x) {}
+	float3(int64_t x)                          : x((float)x), y((float)x), z((float)x) {}
+	float3(uint64_t x)                         : x((float)x), y((float)x), z((float)x) {}
 	float3(const float3& f)                    : x(f.x), y(f.y), z(f.z) {}
 	float3(const float(&fv)[3])                : x(fv[0]), y(fv[1]), z(fv[2]) {}
 
@@ -416,17 +412,15 @@ struct float4
 {
 	float4() = default;
 	float4(float x, float y, float z, float w)             : x(x), y(y), z(z), w(w) {}
-	float4(int x, int y, int z, int w)                     : x((float)x), y((float)y), z((float)z), w((float)w) {}
-	float4(unsigned x, unsigned y, unsigned z, unsigned w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
-#if !defined(__ANDROID__) // on andoird, size_t is unsigned: constructor cannot be redeclared
-    float4(size_t x, size_t y, size_t z, size_t w)         : x((float)x), y((float)y), z((float)z), w((float)w) {}
-#endif
+	float4(int32_t x, int32_t y, int32_t z, int32_t w)     : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	float4(uint32_t x, uint32_t y, uint32_t z, uint32_t w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	float4(int64_t x, int64_t y, int64_t z, int64_t w)     : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	float4(uint64_t x, uint64_t y, uint64_t z, uint64_t w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
 	float4(float x)                                        : x(x), y(x), z(x), w(x) {}
-	float4(int x)                                          : x((float)x), y((float)x), z((float)x), w((float)x) {}
-	float4(unsigned x)                                     : x((float)x), y((float)x), z((float)x), w((float)x) {}
-#if !defined(__ANDROID__) // on andoird, size_t is unsigned: constructor cannot be redeclared
-    float4(size_t x)                                       : x((float)x), y((float)x), z((float)x), w((float)x) {}
-#endif
+	float4(int32_t x)                                      : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	float4(uint32_t x)                                     : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	float4(int64_t x)                                      : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	float4(uint64_t x)                                     : x((float)x), y((float)x), z((float)x), w((float)x) {}
 	float4(const float3& f, float w) : x(f.x), y(f.y), z(f.z), w(w) {}
 	float4(const float4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
 	float4(const float(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}

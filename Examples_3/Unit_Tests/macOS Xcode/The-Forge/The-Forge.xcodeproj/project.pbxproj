@@ -7,6 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5B1A66742295EB4C00BD858E /* ProfilerBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A66692295EB4C00BD858E /* ProfilerBase.cpp */; };
+		5B1A66752295EB4C00BD858E /* ProfilerBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A66692295EB4C00BD858E /* ProfilerBase.cpp */; };
+		5B1A66762295EB4C00BD858E /* ProfilerInput.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B1A666A2295EB4C00BD858E /* ProfilerInput.h */; };
+		5B1A66782295EB4C00BD858E /* Profiler.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B1A666C2295EB4C00BD858E /* Profiler.h */; };
+		5B1A66792295EB4C00BD858E /* ProfilerUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A666D2295EB4C00BD858E /* ProfilerUI.cpp */; };
+		5B1A667A2295EB4C00BD858E /* ProfilerUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A666D2295EB4C00BD858E /* ProfilerUI.cpp */; };
+		5B1A667B2295EB4C00BD858E /* ProfilerEnableMacro.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B1A666E2295EB4C00BD858E /* ProfilerEnableMacro.h */; };
+		5B1A667E2295EB4C00BD858E /* ProfilerBase.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B1A66702295EB4C00BD858E /* ProfilerBase.h */; };
+		5B1A667F2295EB4C00BD858E /* ProfilerHTML.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B1A66712295EB4C00BD858E /* ProfilerHTML.h */; };
+		5B1A66802295EB4C00BD858E /* ProfilerInput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A66722295EB4C00BD858E /* ProfilerInput.cpp */; };
+		5B1A66812295EB4C00BD858E /* ProfilerInput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1A66722295EB4C00BD858E /* ProfilerInput.cpp */; };
+		5B1A66822295EB4C00BD858E /* ProfilerUI.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B1A66732295EB4C00BD858E /* ProfilerUI.h */; };
+		5B2728B22296E8A30059403A /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B2728B12296E8A30059403A /* Profiler.cpp */; };
+		5B2728B32296E8A30059403A /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B2728B12296E8A30059403A /* Profiler.cpp */; };
 		5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* ResourceLoader.h */; };
 		5C172F4F214148840074EE71 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F45214148830074EE71 /* GpuProfiler.cpp */; };
 		5C172F50214148840074EE71 /* IRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
@@ -171,6 +185,16 @@
 /* Begin PBXFileReference section */
 		2875911F2028622600D89997 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
 		2875912420286FBA00D89997 /* iOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSBase.mm; path = iOS/iOSBase.mm; sourceTree = "<group>"; };
+		5B1A66692295EB4C00BD858E /* ProfilerBase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.cpp; path = ../Tools/Profiler/ProfilerBase.cpp; sourceTree = "<group>"; };
+		5B1A666A2295EB4C00BD858E /* ProfilerInput.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerInput.h; path = ../Tools/Profiler/ProfilerInput.h; sourceTree = "<group>"; };
+		5B1A666C2295EB4C00BD858E /* Profiler.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Profiler.h; path = ../Tools/Profiler/Profiler.h; sourceTree = "<group>"; };
+		5B1A666D2295EB4C00BD858E /* ProfilerUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerUI.cpp; path = ../Tools/Profiler/ProfilerUI.cpp; sourceTree = "<group>"; };
+		5B1A666E2295EB4C00BD858E /* ProfilerEnableMacro.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerEnableMacro.h; path = ../Tools/Profiler/ProfilerEnableMacro.h; sourceTree = "<group>"; };
+		5B1A66702295EB4C00BD858E /* ProfilerBase.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.h; path = ../Tools/Profiler/ProfilerBase.h; sourceTree = "<group>"; };
+		5B1A66712295EB4C00BD858E /* ProfilerHTML.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerHTML.h; path = ../Tools/Profiler/ProfilerHTML.h; sourceTree = "<group>"; };
+		5B1A66722295EB4C00BD858E /* ProfilerInput.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerInput.cpp; path = ../Tools/Profiler/ProfilerInput.cpp; sourceTree = "<group>"; };
+		5B1A66732295EB4C00BD858E /* ProfilerUI.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerUI.h; path = ../Tools/Profiler/ProfilerUI.h; sourceTree = "<group>"; };
+		5B2728B12296E8A30059403A /* Profiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Profiler.cpp; path = ../Tools/Profiler/Profiler.cpp; sourceTree = "<group>"; };
 		5C172F1F214145410074EE71 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		5C172F21214145440074EE71 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		5C172F44214148830074EE71 /* ResourceLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ResourceLoader.h; sourceTree = "<group>"; };
@@ -490,6 +514,16 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				5B2728B12296E8A30059403A /* Profiler.cpp */,
+				5B1A666C2295EB4C00BD858E /* Profiler.h */,
+				5B1A66692295EB4C00BD858E /* ProfilerBase.cpp */,
+				5B1A66702295EB4C00BD858E /* ProfilerBase.h */,
+				5B1A666E2295EB4C00BD858E /* ProfilerEnableMacro.h */,
+				5B1A66712295EB4C00BD858E /* ProfilerHTML.h */,
+				5B1A66722295EB4C00BD858E /* ProfilerInput.cpp */,
+				5B1A666A2295EB4C00BD858E /* ProfilerInput.h */,
+				5B1A666D2295EB4C00BD858E /* ProfilerUI.cpp */,
+				5B1A66732295EB4C00BD858E /* ProfilerUI.h */,
 				65F9793621EDFA44008EC741 /* IRay.h */,
 				65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */,
 				5C172F49214148830074EE71 /* CommonShaderReflection.cpp */,
@@ -573,16 +607,22 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5B1A66782295EB4C00BD858E /* Profiler.h in Headers */,
+				5B1A667E2295EB4C00BD858E /* ProfilerBase.h in Headers */,
 				5C172F52214148840074EE71 /* IShaderReflection.h in Headers */,
 				654D979621E922F400113964 /* ClipMask.h in Headers */,
 				5C172F51214148840074EE71 /* GpuProfiler.h in Headers */,
+				5B1A66822295EB4C00BD858E /* ProfilerUI.h in Headers */,
 				65F9793721EDFA45008EC741 /* IRay.h in Headers */,
+				5B1A667B2295EB4C00BD858E /* ProfilerEnableMacro.h in Headers */,
 				654D979C21E922F400113964 /* SkeletonBatcher.h in Headers */,
 				5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */,
 				654D97A121E922F400113964 /* Clip.h in Headers */,
 				654D979E21E922F400113964 /* Animation.h in Headers */,
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
+				5B1A667F2295EB4C00BD858E /* ProfilerHTML.h in Headers */,
 				81FF8E2E2237A9D30009402D /* InputMappings.h in Headers */,
+				5B1A66762295EB4C00BD858E /* ProfilerInput.h in Headers */,
 				5C512C682141561E00E7A798 /* imgui.h in Headers */,
 				654D979421E922F400113964 /* ClipController.h in Headers */,
 				81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */,
@@ -701,6 +741,7 @@
 				5C172FD921414CC60074EE71 /* Fontstash.cpp in Sources */,
 				5C172FDA21414CC60074EE71 /* Fontstash.h in Sources */,
 				5C172FDC21414CC60074EE71 /* AppUI.cpp in Sources */,
+				5B1A667A2295EB4C00BD858E /* ProfilerUI.cpp in Sources */,
 				5C512C672141561E00E7A798 /* imgui.cpp in Sources */,
 				5C172FDD21414CC60074EE71 /* AppUI.h in Sources */,
 				5C512C642141561E00E7A798 /* imgui_demo.cpp in Sources */,
@@ -708,9 +749,11 @@
 				5C172FE321414CC60074EE71 /* RingBuffer.h in Sources */,
 				654D97B821E92F8300113964 /* Animation.cpp in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
+				5B1A66812295EB4C00BD858E /* ProfilerInput.cpp in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTrackingManager.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* FpsCameraController.cpp in Sources */,
 				5C172FE621414CC60074EE71 /* GuiCameraController.cpp in Sources */,
+				5B2728B32296E8A30059403A /* Profiler.cpp in Sources */,
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
 				5C172FE821414CC60074EE71 /* Image.cpp in Sources */,
 				654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */,
@@ -738,6 +781,7 @@
 				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
+				5B1A66752295EB4C00BD858E /* ProfilerBase.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
 				5C172FFD21414CC60074EE71 /* Timer.cpp in Sources */,
 				5C512C612141561E00E7A798 /* imgui_draw.cpp in Sources */,
@@ -756,6 +800,7 @@
 				5C5582EC21413D550019960B /* Fontstash.cpp in Sources */,
 				5C5582ED21413D550019960B /* Fontstash.h in Sources */,
 				654D979921E922F400113964 /* ClipController.cpp in Sources */,
+				5B1A66792295EB4C00BD858E /* ProfilerUI.cpp in Sources */,
 				5C5582EF21413D550019960B /* AppUI.cpp in Sources */,
 				5C5582F021413D550019960B /* AppUI.h in Sources */,
 				5C172F53214148840074EE71 /* CommonShaderReflection.cpp in Sources */,
@@ -764,6 +809,7 @@
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				5C5582F421413D550019960B /* FileSystem.cpp in Sources */,
+				5B2728B22296E8A30059403A /* Profiler.cpp in Sources */,
 				5C5582F521413D550019960B /* RingBuffer.h in Sources */,
 				5C512C662141561E00E7A798 /* imgui.cpp in Sources */,
 				5C5582F621413D550019960B /* MemoryTrackingManager.cpp in Sources */,
@@ -779,9 +825,11 @@
 				5C5582FF21413D550019960B /* macOSBase.mm in Sources */,
 				5C55830021413D550019960B /* macOSFileSystem.mm in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
+				5B1A66742295EB4C00BD858E /* ProfilerBase.cpp in Sources */,
 				5C55830121413D550019960B /* macOSLogManager.cpp in Sources */,
 				5C55830221413D550019960B /* macOSThreadManager.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
+				5B1A66802295EB4C00BD858E /* ProfilerInput.cpp in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
@@ -830,6 +878,7 @@
 					METAL,
 					TARGET_IOS,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
@@ -884,6 +933,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;

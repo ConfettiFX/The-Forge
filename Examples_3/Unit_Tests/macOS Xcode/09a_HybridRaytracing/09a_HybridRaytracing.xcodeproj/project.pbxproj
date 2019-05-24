@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		28A5AE18201F7D41000E571F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE16201F7D41000E571F /* Main.storyboard */; };
 		28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE19201F7D41000E571F /* Assets.xcassets */; };
 		28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */; };
 		28A5AE39201F7EBE000E571F /* 09a_HybridRaytracing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28EE9FF6201B30B200D42AD7 /* 09a_HybridRaytracing.cpp */; };
@@ -252,7 +251,6 @@
 /* Begin PBXFileReference section */
 		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 09a_HybridRaytracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 09a_HybridRaytracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		28A5AE17201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -350,7 +348,6 @@
 			children = (
 				5C0F3AF221418C290088BBB0 /* AppDelegate.h */,
 				5C0F3AF321418C290088BBB0 /* AppDelegate.m */,
-				28A5AE16201F7D41000E571F /* Main.storyboard */,
 				28A5AE19201F7D41000E571F /* Assets.xcassets */,
 				28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */,
 				28A5AE1E201F7D41000E571F /* Info.plist */,
@@ -682,7 +679,6 @@
 				B22902FA2141DD2E004A09DE /* sponza.mtl in Resources */,
 				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */,
-				28A5AE18201F7D41000E571F /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -764,14 +760,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		28A5AE16201F7D41000E571F /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				28A5AE17201F7D41000E571F /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -809,6 +797,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -995,6 +984,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,

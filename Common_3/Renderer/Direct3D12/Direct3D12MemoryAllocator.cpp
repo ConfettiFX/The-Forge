@@ -468,7 +468,7 @@ long d3d12_createBuffer(
 				if (fnHookSpecialBufferAllocation != NULL &&
 					fnHookSpecialBufferAllocation(allocator->pRenderer, pBuffer, pCreateInfo, allocator))
 				{
-					LOGINFOF("Allocated memory in special platform-specific buffer");
+					LOGF(LogLevel::eINFO, "Allocated memory in special platform-specific buffer");
 				}
 				else
 				{
@@ -481,7 +481,7 @@ long d3d12_createBuffer(
 				{
 					if (pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 					{
-						LOGWARNINGF(
+						LOGF(LogLevel::eWARNING, 
 							"Cannot map memory not visible on CPU. Use a readback buffer instead for reading the memory to a cpu visible "
 							"buffer");
 					}
@@ -586,7 +586,7 @@ long d3d12_createTexture(
 			if (fnHookSpecialTextureAllocation != NULL &&
 				fnHookSpecialTextureAllocation(allocator->pRenderer, pTexture, pCreateInfo, allocator))
 			{
-				LOGINFOF("Allocated memory in special platform-specific buffer");
+				LOGF(LogLevel::eINFO, "Allocated memory in special platform-specific buffer");
 			}
 			else
 			{

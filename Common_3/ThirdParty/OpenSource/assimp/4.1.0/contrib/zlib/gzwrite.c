@@ -5,6 +5,9 @@
 
 #include "gzguts.h"
 
+extern void* conf_malloc(size_t);
+extern void  conf_free(void*);
+
 /* Local functions */
 local int gz_init OF((gz_statep));
 local int gz_comp OF((gz_statep, int));
@@ -21,7 +24,7 @@ local int gz_init(state)
     z_streamp strm = &(state->strm);
 
     /* allocate input buffer (double size for gzprintf) */
-    state->in = (unsigned char *)malloc(state->want << 1);
+    state->in = (unsigned char *)conf_malloc(state->want << 1);
     if (state->in == NULL) {
         gz_error(state, Z_MEM_ERROR, "out of memory");
         return -1;
@@ -30,9 +33,9 @@ local int gz_init(state)
     /* only need output buffer and deflate state if compressing */
     if (!state->direct) {
         /* allocate output buffer */
-        state->out = (unsigned char *)malloc(state->want);
+        state->out = (unsigned char *)conf_malloc(state->want);
         if (state->out == NULL) {
-            free(state->in);
+            conf_free(state->in);
             gz_error(state, Z_MEM_ERROR, "out of memory");
             return -1;
         }
@@ -44,8 +47,8 @@ local int gz_init(state)
         ret = deflateInit2(strm, state->level, Z_DEFLATED,
                            MAX_WBITS + 16, DEF_MEM_LEVEL, state->strategy);
         if (ret != Z_OK) {
-            free(state->out);
-            free(state->in);
+            conf_free(state->out);
+            conf_free(state->in);
             gz_error(state, Z_MEM_ERROR, "out of memory");
             return -1;
         }
@@ -655,14 +658,14 @@ int ZEXPORT gzclose_w(file)
     if (state->size) {
         if (!state->direct) {
             (void)deflateEnd(&(state->strm));
-            free(state->out);
+						conf_free(state->out);
         }
-        free(state->in);
+				conf_free(state->in);
     }
     gz_error(state, Z_OK, NULL);
-    free(state->path);
+		conf_free(state->path);
     if (close(state->fd) == -1)
         ret = Z_ERRNO;
-    free(state);
+		conf_free(state);
     return ret;
 }

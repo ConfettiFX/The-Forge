@@ -60,7 +60,6 @@ const char* pszBases[FSR_Count] =
 	"../../../../../Middleware_3/UI/",              // FSR_MIDDLEWARE_UI
 };
 
-LogManager				gLogManager;
 IWidget*				pCameraXWidget = NULL;
 IWidget*				pCameraYWidget = NULL;
 IWidget*				pCameraZWidget = NULL;
@@ -360,7 +359,8 @@ public:
 		pipelineDesc.pRaytracing			= pRaytracing;
 #ifdef METAL
         //use screen resolution on iOS device
-        pipelineDesc.mMaxRaysCount = mSettings.mHeight * mSettings.mWidth;
+        pipelineDesc.mMaxRaysCount = (mSettings.mHeight * mSettings.mWidth);
+        //RM: there is some issues with retina scale factor calculation. Need to fix it
 #else
         pipelineDesc.mMaxRaysCount = 1920 * 1080; //1 ray per pixel in FHD resolution
 #endif

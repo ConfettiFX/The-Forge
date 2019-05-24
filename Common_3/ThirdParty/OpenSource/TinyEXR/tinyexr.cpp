@@ -53,6 +53,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #endif
 
+extern void* conf_malloc(size_t);
+extern void* conf_realloc(void*, size_t);
+extern void  conf_free(void*);
+
 namespace {
 	namespace miniz {
 		/* miniz.c v1.15 - public domain deflate/inflate, zlib-subset, ZIP
@@ -1388,9 +1392,9 @@ namespace {
 #define MZ_FREE(x) (void) x, ((void)0)
 #define MZ_REALLOC(p, x) NULL
 #else
-#define MZ_MALLOC(x) malloc(x)
-#define MZ_FREE(x) free(x)
-#define MZ_REALLOC(p, x) realloc(p, x)
+#define MZ_MALLOC(x) conf_malloc(x)
+#define MZ_FREE(x) conf_free(x)
+#define MZ_REALLOC(p, x) conf_realloc(p, x)
 #endif
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -8581,7 +8585,7 @@ int LoadEXR(float **out_rgba, int *width, int *height, const char *filename,
 	//}
 
 	(*out_rgba) =
-		(float *)malloc(4 * sizeof(float) * exrImage.width * exrImage.height);
+		(float *)conf_malloc(4 * sizeof(float) * exrImage.width * exrImage.height);
 	for (size_t i = 0; i < exrImage.width * exrImage.height; i++) {
 		(*out_rgba)[4 * i + 0] =
 			reinterpret_cast<float **>(exrImage.images)[idxR][i];
@@ -9042,7 +9046,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 	}
 
 	exrImage->images = reinterpret_cast<unsigned char **>(
-		(float **)malloc(sizeof(float *) * numChannels));
+		(float **)conf_malloc(sizeof(float *) * numChannels));
 
 	std::vector<size_t> channelOffsetList(numChannels);
 	int pixelDataSize = 0;
@@ -9055,13 +9059,13 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 			// Alloc internal image for half type.
 			if (exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_HALF) {
 				exrImage->images[c] =
-					reinterpret_cast<unsigned char *>((unsigned short *)malloc(
+					reinterpret_cast<unsigned char *>((unsigned short *)conf_malloc(
 						sizeof(unsigned short) * dataWidth * dataHeight));
 			}
 			else if (exrImage->requested_pixel_types[c] ==
 				TINYEXR_PIXELTYPE_FLOAT) {
 				exrImage->images[c] = reinterpret_cast<unsigned char *>(
-					(float *)malloc(sizeof(float) * dataWidth * dataHeight));
+					(float *)conf_malloc(sizeof(float) * dataWidth * dataHeight));
 			}
 			else {
 				assert(0);
@@ -9071,13 +9075,13 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 			pixelDataSize += sizeof(float);
 			channelOffset += sizeof(float);
 			exrImage->images[c] = reinterpret_cast<unsigned char *>(
-				(float *)malloc(sizeof(float) * dataWidth * dataHeight));
+				(float *)conf_malloc(sizeof(float) * dataWidth * dataHeight));
 		}
 		else if (channels[c].pixelType == TINYEXR_PIXELTYPE_UINT) {
 			pixelDataSize += sizeof(unsigned int);
 			channelOffset += sizeof(unsigned int);
 			exrImage->images[c] = reinterpret_cast<unsigned char *>((
-				unsigned int *)malloc(sizeof(unsigned int) * dataWidth * dataHeight));
+				unsigned int *)conf_malloc(sizeof(unsigned int) * dataWidth * dataHeight));
 		}
 		else {
 			assert(0);
@@ -9451,7 +9455,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 
 	{
 		exrImage->channel_names =
-			(const char **)malloc(sizeof(const char *) * numChannels);
+			(const char **)conf_malloc(sizeof(const char *) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 #ifdef _WIN32
 			exrImage->channel_names[c] = _strdup(channels[c].name.c_str());
@@ -9465,7 +9469,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 		exrImage->height = dataHeight;
 
 		// Fill with requested_pixel_types.
-		exrImage->pixel_types = (int *)malloc(sizeof(int *) * numChannels);
+		exrImage->pixel_types = (int *)conf_malloc(sizeof(int *) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 			exrImage->pixel_types[c] = exrImage->requested_pixel_types[c];
 		}
@@ -9979,7 +9983,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 
 	assert(memory.size() > 0);
 
-	(*memory_out) = (unsigned char *)malloc(memory.size());
+	(*memory_out) = (unsigned char *)conf_malloc(memory.size());
 	memcpy((*memory_out), &memory.at(0), memory.size());
 
 	return memory.size(); // OK
@@ -10008,7 +10012,7 @@ int SaveMultiChannelEXRToFile(const EXRImage *exrImage, const char *filename,
 	if ((mem_size > 0) && mem) {
 		fwrite(mem, 1, mem_size, fp);
 	}
-	free(mem);
+	conf_free(mem);
 
 	fclose(fp);
 
@@ -10205,16 +10209,16 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 		return -10;
 	}
 
-	deepImage->image = (float ***)malloc(sizeof(float **) * numChannels);
+	deepImage->image = (float ***)conf_malloc(sizeof(float **) * numChannels);
 	for (int c = 0; c < numChannels; c++) {
-		deepImage->image[c] = (float **)malloc(sizeof(float *) * dataHeight);
+		deepImage->image[c] = (float **)conf_malloc(sizeof(float *) * dataHeight);
 		for (int y = 0; y < dataHeight; y++) {
 		}
 	}
 
-	deepImage->offset_table = (int **)malloc(sizeof(int *) * dataHeight);
+	deepImage->offset_table = (int **)conf_malloc(sizeof(int *) * dataHeight);
 	for (int y = 0; y < dataHeight; y++) {
-		deepImage->offset_table[y] = (int *)malloc(sizeof(int) * dataWidth);
+		deepImage->offset_table[y] = (int *)conf_malloc(sizeof(int) * dataWidth);
 	}
 
 	for (int y = 0; y < numBlocks; y++) {
@@ -10308,7 +10312,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 			unsigned long long dataOffset = 0;
 			for (int c = 0; c < numChannels; c++) {
 				deepImage->image[c][y] =
-					(float *)malloc(sizeof(float) * samplesPerLine);
+					(float *)conf_malloc(sizeof(float) * samplesPerLine);
 
 				if (channels[c].pixelType == 0) { // UINT
 					for (int x = 0; x < samplesPerLine; x++) {
@@ -10344,7 +10348,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 	deepImage->height = dataHeight;
 
 	deepImage->channel_names =
-		(const char **)malloc(sizeof(const char *) * numChannels);
+		(const char **)conf_malloc(sizeof(const char *) * numChannels);
 	for (int c = 0; c < numChannels; c++) {
 #ifdef _WIN32
 		deepImage->channel_names[c] = _strdup(channels[c].name.c_str());
@@ -10557,7 +10561,7 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 			unsigned long long dataOffset = 0;
 			for (int c = 0; c < numChannels; c++) {
 				deepImage->image[c][y] =
-					(float *)malloc(sizeof(float) * samplesPerLine);
+					(float *)conf_malloc(sizeof(float) * samplesPerLine);
 
 				// unsigned int channelOffset = channelOffsetList[c];
 				// unsigned int i = channelOffset;
@@ -10623,28 +10627,28 @@ int FreeEXRImage(EXRImage *exrImage) {
 
 	for (int i = 0; i < exrImage->num_channels; i++) {
 		if (exrImage->channel_names && exrImage->channel_names[i]) {
-			free((char *)exrImage->channel_names[i]); // remove const
+			conf_free((char *)exrImage->channel_names[i]); // remove const
 		}
 
 		if (exrImage->images && exrImage->images[i]) {
-			free(exrImage->images[i]);
+			conf_free(exrImage->images[i]);
 		}
 	}
 
 	if (exrImage->channel_names) {
-		free(exrImage->channel_names);
+		conf_free(exrImage->channel_names);
 	}
 
 	if (exrImage->images) {
-		free(exrImage->images);
+		conf_free(exrImage->images);
 	}
 
 	if (exrImage->pixel_types) {
-		free(exrImage->pixel_types);
+		conf_free(exrImage->pixel_types);
 	}
 
 	if (exrImage->requested_pixel_types) {
-		free(exrImage->requested_pixel_types);
+		conf_free(exrImage->requested_pixel_types);
 	}
 
 	return 0;
@@ -10818,7 +10822,7 @@ int ParseMultiChannelEXRHeaderFromMemory(EXRImage *exrImage,
 
 	{
 		exrImage->channel_names =
-			(const char **)malloc(sizeof(const char *) * numChannels);
+			(const char **)conf_malloc(sizeof(const char *) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 #ifdef _WIN32
 			exrImage->channel_names[c] = _strdup(channels[c].name.c_str());
@@ -10831,13 +10835,13 @@ int ParseMultiChannelEXRHeaderFromMemory(EXRImage *exrImage,
 		exrImage->width = dataWidth;
 		exrImage->height = dataHeight;
 
-		exrImage->pixel_types = (int *)malloc(sizeof(int) * numChannels);
+		exrImage->pixel_types = (int *)conf_malloc(sizeof(int) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 			exrImage->pixel_types[c] = channels[c].pixelType;
 		}
 
 		// Initially fill with values of `pixel-types`
-		exrImage->requested_pixel_types = (int *)malloc(sizeof(int) * numChannels);
+		exrImage->requested_pixel_types = (int *)conf_malloc(sizeof(int) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 			exrImage->requested_pixel_types[c] = channels[c].pixelType;
 		}

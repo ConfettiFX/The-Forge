@@ -27,16 +27,13 @@
 #define RENDERER_IMPLEMENTATION
 #define MAX_FRAMES_IN_FLIGHT 3U
 
-#ifndef MICROPROFILE_IMPL
-#define MICROPROFILE_IMPL 1
-#endif
-
 #ifdef _DURANGO
 #include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
 #else
 #define IID_ARGS IID_PPV_ARGS
 #endif
 
+#include "../../Tools/Profiler/Profiler.h"
 #include "../../ThirdParty/OpenSource/TinySTL/string.h"
 #include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
 #include "../../OS/Interfaces/ILogManager.h"
@@ -44,8 +41,10 @@
 #include "../../OS/Core/RingBuffer.h"
 #include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
+#include "../../ThirdParty/OpenSource/renderdoc/renderdoc_app.h"
 #include "../../OS/Core/GPUConfig.h"
 #include "../../OS/Image/Image.h"
+
 
 #include "Direct3D12Hooks.h"
 
@@ -799,7 +798,7 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 	}
 	else
 	{
-		LOGERRORF("Invalid descriptor param (%s)", pResName);
+		LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
 		return NULL;
 	}
 }
@@ -829,10 +828,10 @@ static void internal_log(LogType type, const char* msg, const char* component)
 {
 	switch (type)
 	{
-		case LOG_TYPE_INFO: LOGINFOF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_WARN: LOGWARNINGF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_DEBUG: LOGDEBUGF("%s ( %s )", component, msg); break;
-		case LOG_TYPE_ERROR: LOGERRORF("%s ( %s )", component, msg); break;
+		case LOG_TYPE_INFO: LOGF(LogLevel::eINFO, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_WARN: LOGF(LogLevel::eWARNING, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_DEBUG: LOGF(LogLevel::eDEBUG, "%s ( %s )", component, msg); break;
+		case LOG_TYPE_ERROR: LOGF(LogLevel::eERROR, "%s ( %s )", component, msg); break;
 		default: break;
 	}
 }
@@ -1502,7 +1501,7 @@ DXGI_FORMAT util_to_dx_swapchain_format(ImageFormat::Enum format)
 
 	if (result == DXGI_FORMAT_UNKNOWN)
 	{
-		LOGERRORF("Image Format (%u) not supported for creating swapchain buffer", (uint32_t)format);
+		LOGF(LogLevel::eERROR, "Image Format (%u) not supported for creating swapchain buffer", (uint32_t)format);
 	}
 
 	return result;
@@ -1513,7 +1512,7 @@ DXGI_FORMAT util_to_dx_image_format_typeless(ImageFormat::Enum format)
 	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 	if (format >= sizeof(gDX12FormatTranslatorTypeless) / sizeof(DXGI_FORMAT))
 	{
-		LOGERRORF("Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
+		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
 	}
 	else
 	{
@@ -1528,7 +1527,7 @@ DXGI_FORMAT util_to_dx_image_format(ImageFormat::Enum format, bool srgb)
 	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 	if (format >= sizeof(gDX12FormatTranslator) / sizeof(DXGI_FORMAT))
 	{
-		LOGERRORF("Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
+		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
 	}
 	else
 	{
@@ -1694,13 +1693,13 @@ static HRESULT EnableExperimentalShaderModels()
 #ifdef _DURANGO
 static UINT HANGBEGINCALLBACK(UINT64 Flags)
 {
-	LOGINFOF("( %d )", Flags);
+	LOGF(LogLevel::eINFO, "( %d )", Flags);
 	return (UINT)Flags;
 }
 
 static void HANGPRINTCALLBACK(const CHAR* strLine)
 {
-	LOGINFOF("( %s )", strLine);
+	LOGF(LogLevel::eINFO, "( %s )", strLine);
 	return;
 }
 
@@ -1715,12 +1714,6 @@ static void AddDevice(Renderer* pRenderer)
 	{
 		if (fnHookEnableDebugLayer != NULL)
 			fnHookEnableDebugLayer(pRenderer);
-	}
-#endif
-#ifndef _DURANGO
-	if (pRenderer->mSettings.mShaderTarget >= shader_target_6_0)
-	{
-		ASSERT(SUCCEEDED(EnableExperimentalShaderModels()));
 	}
 #endif
 
@@ -1924,7 +1917,7 @@ static void AddDevice(Renderer* pRenderer)
 		DXGI_ADAPTER_DESC adapterDesc;
 		pRenderer->pDxGPUs[i]->GetDesc(&adapterDesc);
 		pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = gRootSignatureDWORDS[util_to_internal_gpu_vendor(adapterDesc.VendorId)];
-		LOGINFOF(
+		LOGF(LogLevel::eINFO, 
 			"GPU[%i] detected. Vendor ID: %x, Revision ID: %x, GPU Name: %S", i, adapterDesc.VendorId, adapterDesc.Revision,
 			adapterDesc.Description);
 
@@ -1962,11 +1955,11 @@ static void AddDevice(Renderer* pRenderer)
 	pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[gpuIndex];
 
 	//print selected GPU information
-	LOGINFOF("GPU[%d] is selected as default GPU", gpuIndex);
-	LOGINFOF("Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-	LOGINFOF("Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
-	LOGINFOF("Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
-	LOGINFOF("Revision id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mRevisionId);
+	LOGF(LogLevel::eINFO, "GPU[%d] is selected as default GPU", gpuIndex);
+	LOGF(LogLevel::eINFO, "Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+	LOGF(LogLevel::eINFO, "Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+	LOGF(LogLevel::eINFO, "Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+	LOGF(LogLevel::eINFO, "Revision id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mRevisionId);
 
 	// Load functions
 	{
@@ -2004,11 +1997,7 @@ static void AddDevice(Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-#if ENABLE_MICRO_PROFILER
-	{
-		MicroProfileGpuShutdown();
-	}
-#endif
+	ProfileGpuShutdown();
 
 	SAFE_RELEASE(pRenderer->pDXGIFactory);
 
@@ -2091,8 +2080,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			//when initializing the forge
 			RemoveDevice(pRenderer);
 			SAFE_FREE(pRenderer);
-			LOGERROR("Selected GPU has an Office Preset in gpu.cfg.");
-			LOGERROR("Office preset is not supported by The Forge.");
+			LOGF(LogLevel::eERROR, "Selected GPU has an Office Preset in gpu.cfg.");
+			LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -2119,13 +2108,30 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			// If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating the device again.
 			if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
 			{
-				// If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up your application to use the highest supported shader model.
-				// For simplicity we just exit the application here.
-				if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
+				RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+				// At init, on windows
+				if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
 				{
-					RemoveDevice(pRenderer);
-					LOGERROR("Hardware does not support Shader Model 6.0");
-					return;
+					pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+					RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+				}
+
+				// If RenderDoc is connected shader model 6 is not detected but it still works
+				if (!rdoc_api || !rdoc_api->IsTargetControlConnected())
+				{
+					// If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up your application to use the highest supported shader model.
+					// For simplicity we just exit the application here.
+					if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE
+						&& !SUCCEEDED(EnableExperimentalShaderModels()))
+					{
+						RemoveDevice(pRenderer);
+						LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.0");
+						return;
+					}
+				}
+				else
+				{
+					WarningMsg("\nRenderDoc does not support SM 6.0 or higher. Application might work but you won't be able to debug the SM 6.0+ shaders or view their bytecode.");
 				}
 			}
 		}
@@ -2314,18 +2320,16 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 
 	*ppQueue = pQueue;
 
-#if ENABLE_MICRO_PROFILER
 	if (pQDesc->mFlag == QUEUE_FLAG_INIT_MICROPROFILE)
 	{
-		MicroProfileOnThreadCreate("RenderThread");
-		MicroProfileGpuInitInternal(pRenderer->pDxDevice, pQueue->pDxQueue);
-		MicroProfileSetForceEnable(true);
-		MicroProfileSetEnableAllGroups(true);
-		MicroProfileSetForceMetaCounters(true);
-		MicroProfileWebServerStart();
-		MicroProfileContextSwitchTraceStart();
+		ProfileOnThreadCreate("RenderThread");
+		ProfileGpuInitInternal(pRenderer->pDxDevice, pQueue->pDxQueue);
+		ProfileSetForceEnable(true);
+		ProfileSetEnableAllGroups(true);
+		ProfileSetForceMetaCounters(true);
+		ProfileWebServerStart();
+		ProfileContextSwitchTraceStart();
 	}
-#endif
 }
 
 void removeQueue(Queue* pQueue)
@@ -2508,7 +2512,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	if (pSwapChain->mDesc.mSampleCount > SAMPLE_COUNT_1)
 	{
-		LOGWARNING("DirectX12 does not support multi-sample swapchains. Falling back to single sample swapchain");
+		LOGF(LogLevel::eWARNING, "DirectX12 does not support multi-sample swapchains. Falling back to single sample swapchain");
 		pSwapChain->mDesc.mSampleCount = SAMPLE_COUNT_1;
 	}
 
@@ -2739,7 +2743,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	{
 		if (pBuffer->mDesc.mVertexStride == 0)
 		{
-			LOGERRORF("Vertex Stride must be a non zero value");
+			LOGF(LogLevel::eERROR, "Vertex Stride must be a non zero value");
 			ASSERT(false);
 		}
 	}
@@ -2759,7 +2763,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		if (DESCRIPTOR_TYPE_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER_RAW))
 		{
 			if (pDesc->mFormat != ImageFormat::NONE)
-				LOGWARNING("Raw buffers use R32 typeless format. Format will be ignored");
+				LOGF(LogLevel::eWARNING, "Raw buffers use R32 typeless format. Format will be ignored");
 			srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 			srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
 		}
@@ -2786,7 +2790,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		if (DESCRIPTOR_TYPE_RW_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER_RAW))
 		{
 			if (pDesc->mFormat != ImageFormat::NONE)
-				LOGWARNING("Raw buffers use R32 typeless format. Format will be ignored");
+				LOGF(LogLevel::eWARNING, "Raw buffers use R32 typeless format. Format will be ignored");
 			uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 			uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
 		}
@@ -2799,7 +2803,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 				!(FormatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE))
 			{
 				// Format does not support UAV Typed Load
-				LOGWARNINGF("Cannot use Typed UAV for buffer format %u", (uint32_t)pDesc->mFormat);
+				LOGF(LogLevel::eWARNING, "Cannot use Typed UAV for buffer format %u", (uint32_t)pDesc->mFormat);
 				uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 			}
 		}
@@ -2875,7 +2879,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
 	if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
 	{
-		LOGERROR("Multi-Sampled textures cannot have mip maps");
+		LOGF(LogLevel::eERROR, "Multi-Sampled textures cannot have mip maps");
 		ASSERT(false);
 		return;
 	}
@@ -2936,7 +2940,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		pRenderer->pDxDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
 		while (data.NumQualityLevels == 0 && data.SampleCount > 0)
 		{
-			LOGWARNINGF("Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount, data.SampleCount / 2);
+			LOGF(LogLevel::eWARNING, "Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount, data.SampleCount / 2);
 			data.SampleCount = desc.SampleDesc.Count / 2;
 			pRenderer->pDxDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
 		}
@@ -3001,12 +3005,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		HRESULT           hr = d3d12_createTexture(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pTexture);
 		ASSERT(SUCCEEDED(hr));
 
-		UINT64 buffer_size = 0;
-		pRenderer->pDxDevice->GetCopyableFootprints(
-			&desc, 0, desc.MipLevels * (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1 : desc.DepthOrArraySize), 0, NULL, NULL,
-			NULL, &buffer_size);
-
-		pTexture->mTextureSize = buffer_size;
 		pTexture->mCurrentState = pDesc->mStartState;
 	}
 	else
@@ -3014,6 +3012,13 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		desc = pTexture->pDxResource->GetDesc();
 		dxFormat = desc.Format;
 	}
+
+	// Compute texture size
+	UINT64 buffer_size = 0;
+	pRenderer->pDxDevice->GetCopyableFootprints(
+		&desc, 0, desc.MipLevels * (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1 : desc.DepthOrArraySize), 0, NULL, NULL,
+		NULL, &buffer_size);
+	pTexture->mTextureSize = buffer_size;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC  srvDesc = {};
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -3390,16 +3395,16 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 						switch (dim)
 						{
 						case TEXTURE_DIM_2DMS:
-							LOGERRORF("Texture2DMS not supported for UAV (%s)", pDesc->mDesc.name);
+							LOGF(LogLevel::eERROR, "Texture2DMS not supported for UAV (%s)", pDesc->mDesc.name);
 							break;
 						case TEXTURE_DIM_2DMS_ARRAY:
-							LOGERRORF("Texture2DMSArray not supported for UAV (%s)", pDesc->mDesc.name);
+							LOGF(LogLevel::eERROR, "Texture2DMSArray not supported for UAV (%s)", pDesc->mDesc.name);
 							break;
 						case TEXTURE_DIM_CUBE:
-							LOGERRORF("TextureCube not supported for UAV (%s)", pDesc->mDesc.name);
+							LOGF(LogLevel::eERROR, "TextureCube not supported for UAV (%s)", pDesc->mDesc.name);
 							break;
 						case TEXTURE_DIM_CUBE_ARRAY:
-							LOGERRORF("TextureCubeArray not supported for UAV (%s)", pDesc->mDesc.name);
+							LOGF(LogLevel::eERROR, "TextureCubeArray not supported for UAV (%s)", pDesc->mDesc.name);
 							break;
 						default:
 							break;
@@ -4210,7 +4215,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 			if (pNode)
 			{
-				LOGINFOF("Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
+				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 				// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
 				pDesc->mIndexInParent = ~0u;
 				staticSamplers.push_back({ pDesc, pNode->second });
@@ -4276,7 +4281,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				layout.mRootConstants.erase(layout.mRootConstants.find(*convertIt));
 				(*convertIt)->mDxType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 
-				LOGWARNINGF(
+				LOGF(LogLevel::eWARNING, 
 					"Converting root constant (%s) to root cbv to keep root signature size below hardware limit", (*convertIt)->mDesc.name);
 			}
 		}
@@ -4302,7 +4307,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 					layout.mCbvSrvUavTable.push_back(*constantIt);
 					layout.mConstantParams.erase(layout.mConstantParams.find(*constantIt));
 
-					LOGWARNINGF(
+					LOGF(LogLevel::eWARNING, 
 						"Placing root descriptor (%s) in descriptor table to keep root signature size below hardware limit",
 						(*constantIt)->mDesc.name);
 				}
@@ -4313,7 +4318,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	// We should never reach inside this if statement. If we do, something got messed up
 	if (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS < calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size()))
 	{
-		LOGWARNING("Root Signature size greater than the specified max size");
+		LOGF(LogLevel::eWARNING, "Root Signature size greater than the specified max size");
 		ASSERT(false);
 	}
 
@@ -4430,7 +4435,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				//Root constants - Number of 32 bit constants
 				//Descriptor tables - 1
 				//Static samplers - 0
-				LOGINFOF(
+				LOGF(LogLevel::eINFO, 
 					"Root constant (%s) has (%u) 32 bit values. It is recommended to have root constant number less or equal than 13",
 					pDesc->mDesc.name, pDesc->mDesc.size);
 			}
@@ -4585,7 +4590,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	{
 		char* pMsg = (char*)conf_calloc(error_msgs->GetBufferSize(), sizeof(char));
 		memcpy(pMsg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-		LOGERRORF("Failed to serialize root signature with error (%s)", pMsg);
+		LOGF(LogLevel::eERROR, "Failed to serialize root signature with error (%s)", pMsg);
 		conf_free(pMsg);
 	}
 
@@ -5396,7 +5401,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 	const uint32_t       setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 
 	Renderer*            pRenderer = pCmd->pRenderer;
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
 
 	DescriptorStoreHeap* pCbvSrvUavHeap = pDescriptorBinder->pCbvSrvUavHeap[nodeIndex];
 	DescriptorStoreHeap* pSamplerHeap = pDescriptorBinder->pSamplerHeap[nodeIndex];
@@ -5450,7 +5455,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		ASSERT(pParam);
 		if (!pParam->pName)
 		{
-			LOGERRORF("Name of Descriptor at index (%u) is NULL", i);
+			LOGF(LogLevel::eERROR, "Name of Descriptor at index (%u) is NULL", i);
 			return;
 		}
 
@@ -5467,7 +5472,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		{
 			if (!pParam->pRootConstant)
 			{
-				LOGERRORF("Root constant (%s) is NULL", pParam->pName);
+				LOGF(LogLevel::eERROR, "Root constant (%s) is NULL", pParam->pName);
 				continue;
 			}
 			if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
@@ -5486,7 +5491,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		{
 			if (!pParam->ppBuffers[0])
 			{
-				LOGERRORF("Root descriptor CBV (%s) is NULL", pParam->pName);
+				LOGF(LogLevel::eERROR, "Root descriptor CBV (%s) is NULL", pParam->pName);
 				continue;
 			}
 			D3D12_GPU_VIRTUAL_ADDRESS cbv = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -5534,7 +5539,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_SAMPLER:
 				if (pDesc->mIndexInParent == -1)
 				{
-					LOGERRORF(
+					LOGF(LogLevel::eERROR, 
 						"Trying to bind a static sampler (%s). All static samplers must be bound in addRootSignature through "
 						"RootSignatureDesc::mStaticSamplers",
 						pParam->pName);
@@ -5542,14 +5547,14 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				}
 				if (!pParam->ppSamplers)
 				{
-					LOGERRORF("Sampler descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Sampler descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				for (uint32_t j = 0; j < arrayCount; ++j)
 				{
 					if (!pParam->ppSamplers[j])
 					{
-						LOGERRORF("Sampler descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						LOGF(LogLevel::eERROR, "Sampler descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
 					pSamplerHash[setIndex] = tinystl::hash_state(&pParam->ppSamplers[j]->mSamplerId, 1, pSamplerHash[setIndex]);
@@ -5560,7 +5565,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			{
 				if (!pParam->ppTextures)
 				{
-					LOGERRORF("Texture descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				D3D12_CPU_DESCRIPTOR_HANDLE* handlePtr = &node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex];
@@ -5571,7 +5576,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 #ifdef _DEBUG
 					if (!pParam->ppTextures[j])
 					{
-						LOGERRORF("Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						LOGF(LogLevel::eERROR, "Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
 #endif
@@ -5588,7 +5593,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			{
 				if (!pParam->ppTextures)
 				{
-					LOGERRORF("RW Texture descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "RW Texture descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				D3D12_CPU_DESCRIPTOR_HANDLE* handlePtr = &node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex];
@@ -5601,7 +5606,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 #ifdef _DEBUG
 					if (!pParam->ppTextures[j])
 					{
-						LOGERRORF("RW Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						LOGF(LogLevel::eERROR, "RW Texture descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
 #endif
@@ -5617,14 +5622,14 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_BUFFER:
 				if (!pParam->ppBuffers)
 				{
-					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				for (uint32_t j = 0; j < arrayCount; ++j)
 				{
 					if (!pParam->ppBuffers[j])
 					{
-						LOGERRORF("Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						LOGF(LogLevel::eERROR, "Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
 					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
@@ -5645,14 +5650,14 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_RW_BUFFER:
 				if (!pParam->ppBuffers)
 				{
-					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 				for (uint32_t j = 0; j < arrayCount; ++j)
 				{
 					if (!pParam->ppBuffers[j])
 					{
-						LOGERRORF("Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						LOGF(LogLevel::eERROR, "Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
 					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
@@ -5667,7 +5672,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			{
 				if (!pParam->ppBuffers)
 				{
-					LOGERRORF("Buffer descriptor (%s) is NULL", pParam->pName);
+					LOGF(LogLevel::eERROR, "Buffer descriptor (%s) is NULL", pParam->pName);
 					return;
 				}
 
@@ -5677,7 +5682,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				{
 					if (!pParam->ppBuffers[j])
 					{
-						LOGERRORF("Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						LOGF(LogLevel::eERROR, "Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
 
@@ -5768,7 +5773,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				{
 					descriptorSetSlotToUse = node.mCbvSrvUavUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex]++;
 					if (descriptorSetSlotToUse >= node.mMaxUsagePerSet[setIndex]) {
-						LOGERRORF("Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
+						LOGF(LogLevel::eERROR, "Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
 						return;
 					}
 
@@ -5814,7 +5819,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				{
 					uint32_t descriptorSetSlotToUse = node.mSamplerUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex]++;
 					if (descriptorSetSlotToUse >= node.mMaxUsagePerSet[setIndex]) {
-						LOGERRORF("Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
+						LOGF(LogLevel::eERROR, "Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
 						return;
 					}
 
@@ -6262,10 +6267,8 @@ void queuePresent(
 			ASSERT(false);    //TODO: let's do something with the error
 	}
 #endif
-#if ENABLE_MICRO_PROFILER
 		// Call profile flip to indicate a new frame
-		MicroProfileFlip();
-#endif
+		ProfileFlip();
 }
 
 bool queueSignal(Queue* pQueue, Fence* fence, uint64_t value)
@@ -6357,8 +6360,8 @@ D3D12_INDIRECT_ARGUMENT_TYPE util_to_dx_indirect_argument_type(IndirectArgumentT
 		case INDIRECT_CONSTANT_BUFFER_VIEW: res = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW; break;
 		case INDIRECT_SHADER_RESOURCE_VIEW: res = D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW; break;
 		case INDIRECT_UNORDERED_ACCESS_VIEW: res = D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW; break;
-		case INDIRECT_DESCRIPTOR_TABLE: LOGERROR("Dx12 Doesn't support DescriptorTable in Indirect Command"); break;
-		case INDIRECT_PIPELINE: LOGERROR("Dx12 Doesn't support the Pipeline in Indirect Command"); break;
+		case INDIRECT_DESCRIPTOR_TABLE: LOGF(LogLevel::eERROR, "Dx12 Doesn't support DescriptorTable in Indirect Command"); break;
+		case INDIRECT_PIPELINE: LOGF(LogLevel::eERROR, "Dx12 Doesn't support the Pipeline in Indirect Command"); break;
 	}
 	return res;
 }
@@ -6384,7 +6387,7 @@ void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc
 	{
 		if (pDesc->pArgDescs[i].mType == INDIRECT_DESCRIPTOR_TABLE || pDesc->pArgDescs[i].mType == INDIRECT_PIPELINE)
 		{
-			LOGERROR("Dx12 Doesn't support DescriptorTable or Pipeline in Indirect Command");
+			LOGF(LogLevel::eERROR, "Dx12 Doesn't support DescriptorTable or Pipeline in Indirect Command");
 		}
 
 		argumentDescs[i].Type = util_to_dx_indirect_argument_type(pDesc->pArgDescs[i].mType);
@@ -6564,8 +6567,7 @@ void freeMemoryStats(Renderer* pRenderer, char* stats) { resourceAllocFreeStatsS
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-#if ENABLE_MICRO_PROFILER
-	MicroProfileGpuSetContext(pCmd->pDxCmdList);
+	ProfileGpuSetContext(pCmd->pDxCmdList);
 	//MICROPROFILE_GPU_SET_CONTEXT(pCmd->pDxCmdList, MicroProfileGetGlobalGpuThreadLog());
 
 	// Convert float3 color to *rgb8.
@@ -6573,12 +6575,10 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 		| static_cast<uint32>(g * 255) << 8
 		| static_cast<uint32>(b * 255);
 
-	// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
-	MICROPROFILE_DEFINE_GPU(temp, pName, scope_color);
+	// This macro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
 	// Create new scope on top of the current stack and enter
-	MICROPROFILE_GPU_ENTER_TOKEN(g_mp_temp);
+	PROFILE_GPU_ENTER(temp, pName, scope_color);
 
-#endif
 	// note: USE_PIX isn't the ideal test because we might be doing a debug build where pix
 	// is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
 #ifndef FORGE_JHABLE_EDITS_V01
@@ -6597,10 +6597,8 @@ void cmdEndDebugMarker(Cmd* pCmd)
 	PIXEndEvent(pCmd->pDxCmdList);
 #endif
 #endif
-#if ENABLE_MICRO_PROFILER
 	// Leave the current scope and pop up the scope stack
-	MICROPROFILE_GPU_LEAVE();
-#endif
+	PROFILE_GPU_LEAVE();
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -6649,233 +6647,6 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 	mbstowcs_s(&numConverted, wName, pName, strlen(pName));
 	pTexture->pDxResource->SetName(wName);
 }
-/************************************************************************/
-
-/************************************************************************/
-
-#if MICROPROFILE_GPU_TIMERS_D3D12
-#define S g_MicroProfile
-
-struct MicroProfileGpuTimerStateInternal
-{
-	ID3D12CommandQueue* pCommandQueue;
-	ID3D12QueryHeap* pHeap;
-	ID3D12Resource* pBuffer;
-	ID3D12GraphicsCommandList* pCommandLists[MICROPROFILE_GPU_FRAMES];
-	ID3D12CommandAllocator* pCommandAllocators[MICROPROFILE_GPU_FRAMES];
-	ID3D12Fence* pFence;
-	void* pFenceEvent;
-
-	uint64_t nFrame;
-	AtomicUint nFramePutAtomic;
-
-	uint32_t nSubmitted[MICROPROFILE_GPU_FRAMES];
-	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
-	uint64_t nQueryFrequency;
-};
-
-MICROPROFILE_GPU_STATE_DECL(Internal)
-
-void MicroProfileGpuInitInternal(ID3D12Device* pDevice, ID3D12CommandQueue* pCommandQueue)
-{
-	MicroProfileGpuInitStateInternal();
-
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	GPU.pCommandQueue = pCommandQueue;
-
-	HRESULT hr;
-
-	D3D12_QUERY_HEAP_DESC HeapDesc;
-	HeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-	HeapDesc.Count = MICROPROFILE_GPU_MAX_QUERIES;
-	HeapDesc.NodeMask = 0;
-
-	D3D12_HEAP_PROPERTIES HeapProperties;
-	HeapProperties.Type = D3D12_HEAP_TYPE_READBACK;
-	HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProperties.CreationNodeMask = 1;
-	HeapProperties.VisibleNodeMask = 1;
-
-	D3D12_RESOURCE_DESC ResourceDesc;
-	ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	ResourceDesc.Alignment = 0;
-	ResourceDesc.Width = MICROPROFILE_GPU_MAX_QUERIES * sizeof(uint64_t);
-	ResourceDesc.Height = 1;
-	ResourceDesc.DepthOrArraySize = 1;
-	ResourceDesc.MipLevels = 1;
-	ResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-	ResourceDesc.SampleDesc.Count = 1;
-	ResourceDesc.SampleDesc.Quality = 0;
-	ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	ResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	hr = pDevice->CreateQueryHeap(&HeapDesc, IID_PPV_ARGS(&GPU.pHeap));
-	ASSERT(hr == S_OK);
-	hr = pDevice->CreateCommittedResource(&HeapProperties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL, IID_PPV_ARGS(&GPU.pBuffer));
-	ASSERT(hr == S_OK);
-	hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&GPU.pFence));
-	ASSERT(hr == S_OK);
-	GPU.pFenceEvent = CreateEvent(NULL, false, false, NULL);
-	ASSERT(GPU.pFenceEvent != INVALID_HANDLE_VALUE);
-
-	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
-	{
-		hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&GPU.pCommandAllocators[i]));
-		ASSERT(hr == S_OK);
-		hr = pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, GPU.pCommandAllocators[i], NULL, IID_PPV_ARGS(&GPU.pCommandLists[i]));
-		ASSERT(hr == S_OK);
-		hr = GPU.pCommandLists[i]->Close();
-		ASSERT(hr == S_OK);
-	}
-
-	hr = pCommandQueue->GetTimestampFrequency(&GPU.nQueryFrequency);
-	ASSERT(hr == S_OK);
-}
-
-void MicroProfileGpuShutdownInternal()
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	if (!GPU.pCommandQueue)
-		return;
-
-	if (GPU.nFrame > 0)
-	{
-		GPU.pFence->SetEventOnCompletion(GPU.nFrame, GPU.pFenceEvent);
-		WaitForSingleObject(GPU.pFenceEvent, INFINITE);
-	}
-
-	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
-	{
-		GPU.pCommandLists[i]->Release();
-		GPU.pCommandLists[i] = 0;
-
-		GPU.pCommandAllocators[i]->Release();
-		GPU.pCommandAllocators[i] = 0;
-	}
-
-	GPU.pHeap->Release();
-	GPU.pHeap = 0;
-
-	GPU.pBuffer->Release();
-	GPU.pBuffer = 0;
-
-	GPU.pFence->Release();
-	GPU.pFence = 0;
-
-	CloseHandle(GPU.pFenceEvent);
-	GPU.pFenceEvent = 0;
-
-	GPU.pCommandQueue = 0;
-}
-
-uint32_t MicroProfileGpuFlipInternal()
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
-
-	// Submit current frame
-	uint32_t nFrameIndex = GPU.nFrame % MICROPROFILE_GPU_FRAMES;
-	uint32_t nFrameStart = nFrameIndex * nFrameQueries;
-
-	ID3D12CommandAllocator* pCommandAllocator = GPU.pCommandAllocators[nFrameIndex];
-	ID3D12GraphicsCommandList* pCommandList = GPU.pCommandLists[nFrameIndex];
-
-	pCommandAllocator->Reset();
-	pCommandList->Reset(pCommandAllocator, NULL);
-
-	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandList);
-
-	uint32_t nFramePut = MicroProfileMin(GPU.nFramePutAtomic.mAtomicInt, nFrameQueries);
-
-	if (nFramePut)
-		pCommandList->ResolveQueryData(GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nFrameStart, nFramePut, GPU.pBuffer, nFrameStart * sizeof(int64_t));
-
-	pCommandList->Close();
-
-	ID3D12CommandList* pList = pCommandList;
-	GPU.pCommandQueue->ExecuteCommandLists(1, &pList);
-	GPU.pCommandQueue->Signal(GPU.pFence, GPU.nFrame + 1);
-
-	GPU.nSubmitted[nFrameIndex] = nFramePut;
-	GPU.nFramePutAtomic.AtomicStore(0);
-	GPU.nFrame++;
-
-	// Fetch frame results
-	if (GPU.nFrame >= MICROPROFILE_GPU_FRAMES)
-	{
-		uint64_t nPendingFrame = GPU.nFrame - MICROPROFILE_GPU_FRAMES;
-		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAMES;
-
-		GPU.pFence->SetEventOnCompletion(nPendingFrame + 1, GPU.pFenceEvent);
-		WaitForSingleObject(GPU.pFenceEvent, INFINITE);
-
-		uint32_t nPendingFrameStart = nPendingFrameIndex * nFrameQueries;
-		uint32_t nPendingFrameCount = GPU.nSubmitted[nPendingFrameIndex];
-
-		if (nPendingFrameCount)
-		{
-			void* pData = 0;
-			D3D12_RANGE Range = { nPendingFrameStart * sizeof(uint64_t), (nPendingFrameStart + nPendingFrameCount) * sizeof(uint64_t) };
-
-			HRESULT hr = GPU.pBuffer->Map(0, &Range, &pData);
-			ASSERT(hr == S_OK);
-
-			memcpy(&GPU.nResults[nPendingFrameStart], (uint64_t*)pData + nPendingFrameStart, nPendingFrameCount * sizeof(uint64_t));
-
-			GPU.pBuffer->Unmap(0, 0);
-		}
-	}
-
-	return nFrameTimeStamp;
-}
-
-uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	if (!pContext) return (uint32_t)-1;
-
-	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAMES;
-
-	uint32_t nIndex = GPU.nFramePutAtomic.AtomicIncrement();
-	if (nIndex >= nFrameQueries) return (uint32_t)-1;
-
-	uint32_t nQueryIndex = (GPU.nFrame % MICROPROFILE_GPU_FRAMES) * nFrameQueries + nIndex;
-
-	((ID3D12GraphicsCommandList*)pContext)->EndQuery(GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nQueryIndex);
-
-	return nQueryIndex;
-}
-
-uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	return GPU.nResults[nIndex];
-}
-
-uint64_t MicroProfileTicksPerSecondGpuInternal()
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	return GPU.nQueryFrequency ? GPU.nQueryFrequency : 1000000000ll;
-}
-
-bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
-{
-	MicroProfileGpuTimerStateInternal& GPU = g_MicroProfileGPU_Internal;
-
-	return SUCCEEDED(GPU.pCommandQueue->GetClockCalibration((uint64_t*)pOutGpu, (uint64_t*)pOutCpu));
-}
-
-MICROPROFILE_GPU_STATE_IMPL(Internal)
-
-#undef S
-#endif
 
 #endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)

@@ -436,11 +436,11 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			}
 		}
 
-		LOGINFOF("Created window app %s", app_name);
+		LOGF(LogLevel::eINFO, "Created window app %s", app_name);
 	}
 	else
 	{
-		LOGERRORF("Failed to create window app %s", app_name);
+		LOGF(LogLevel::eERROR, "Failed to create window app %s", app_name);
 	}
 }
 
@@ -749,7 +749,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 		if (!pApp->Load())
 			return EXIT_FAILURE;
-		LOGINFOF("Application Init+Load %f", t.GetMSec(false)/1000.0f);
+		LOGF(LogLevel::eINFO, "Application Init+Load %f", t.GetMSec(false)/1000.0f);
 	}
 	registerWindowResizeEvent(onResize);
 

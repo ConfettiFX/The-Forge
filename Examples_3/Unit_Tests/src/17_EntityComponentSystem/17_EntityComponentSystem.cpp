@@ -109,7 +109,6 @@ uint        gDrawSpriteCount = 0;
 UIApp gAppUI;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/17_EntityComponentSystem/",    // FSR_BinShaders
@@ -678,10 +677,10 @@ class EntityComponentSystem: public IApp
 		uiTextDesc.mFontColor = 0xff00cc00;
 		uiTextDesc.mFontSize = 18;
 		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
-#ifndef METAL
+
 		gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
-#endif
-		gAppUI.Draw(cmd);
+
+        gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 

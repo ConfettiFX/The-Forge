@@ -51,7 +51,9 @@ size_t     read_file(void* buffer, size_t byteCount, FileHandle handle);
 bool       seek_file(FileHandle handle, long offset, int origin);
 long       tell_file(FileHandle handle);
 size_t     write_file(const void* buffer, size_t byteCount, FileHandle handle);
-size_t     get_file_last_modified_time(const char* _fileName);
+time_t     get_file_last_modified_time(const char* _fileName);
+time_t     get_file_last_accessed_time(const char* _fileName);
+time_t     get_file_creation_time(const char* _fileName);
 
 tinystl::string get_current_dir();
 tinystl::string get_exe_path();
@@ -137,6 +139,7 @@ class Deserializer
 
 	virtual unsigned               Read(void* dest, unsigned size) = 0;
 	virtual unsigned               Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) = 0;
+    virtual unsigned               Tell() = 0;
 	virtual const tinystl::string& GetName() const = 0;
 	virtual unsigned               GetChecksum();
 
@@ -144,10 +147,10 @@ class Deserializer
 	unsigned        GetSize() const { return mSize; }
 	bool            IsEof() const { return mPosition >= mSize; }
 	int64_t         ReadInt64();
-	int             ReadInt();
+	int32_t         ReadInt();
 	int16_t         ReadShort();
 	int8_t          ReadByte();
-	unsigned        ReadUInt();
+	uint32_t        ReadUInt();
 	uint16_t        ReadUShort();
 	uint8_t         ReadUByte();
 	bool            ReadBool();
@@ -175,10 +178,10 @@ class Serializer
 	virtual unsigned Write(const void* data, unsigned size) = 0;
 
 	bool WriteInt64(int64_t value);
-	bool WriteInt(int value);
+	bool WriteInt(int32_t value);
 	bool WriteShort(int16_t value);
 	bool WriteByte(int8_t value);
-	bool WriteUInt(unsigned value);
+	bool WriteUInt(uint32_t value);
 	bool WriteUShort(uint16_t value);
 	bool WriteUByte(uint8_t value);
 	bool WriteBool(bool value);
@@ -205,6 +208,7 @@ class File: public Deserializer, public Serializer
 
 	unsigned Read(void* dest, unsigned size) override;
 	unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) override;
+    unsigned Tell() override;
 	unsigned Write(const void* data, unsigned size) override;
 
 	tinystl::string ReadText();
@@ -238,6 +242,7 @@ class MemoryBuffer: public Deserializer, public Serializer
 
 	unsigned Read(void* dest, unsigned size) override;
 	unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) override;
+    unsigned Tell() override;
 	unsigned Write(const void* data, unsigned size) override;
 
 	unsigned char* GetData() { return pBuffer; }
@@ -258,7 +263,10 @@ class FileSystem
 	static void SetRootPath(FSRoot root, const tinystl::string& rootPath);
 	// Reverts back to App static defined pszRoots[]
 	static void     ClearModifiedRootPaths();
-	static unsigned GetLastModifiedTime(const tinystl::string& _fileName);
+	static time_t GetLastModifiedTime(const tinystl::string& _fileName);
+	static time_t GetLastAccessedTime(const tinystl::string& _fileName);
+	static time_t GetCreationTime(const tinystl::string& _fileName);
+
 	// First looks it root exists in m_ModifiedRootPaths
 	// otherwise uses App static defined pszRoots[]
 	static tinystl::string FixPath(const tinystl::string& pszFileName, FSRoot root);
@@ -284,6 +292,7 @@ class FileSystem
 
 	static void SetCurrentDir(const tinystl::string& path) { set_current_dir(path.c_str()); }
 
+	static tinystl::string CombinePaths(const tinystl::string& path1, const tinystl::string& path2);
 	static void SplitPath(
 		const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension,
 		bool lowercaseExtension = true);
@@ -317,6 +326,27 @@ class FileSystem
 	{
 		save_file_dialog(title, dir, callback, userData, fileDesc, allowedExtentions);
 	}
+
+
+	class Watcher
+	{
+		public:
+		struct Data;
+		enum
+		{
+			EVENT_MODIFIED = 1,
+			EVENT_ACCESSED = 2,
+			EVENT_CREATED = 4,
+			EVENT_DELETED = 8,
+		};
+		typedef void (*Callback)(const char* path, uint32_t action);
+
+		Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback);
+		~Watcher();
+
+		private:
+		Data* pData;
+	};
 
 	private:
 	// The following root paths are the ones that were modified at run-time

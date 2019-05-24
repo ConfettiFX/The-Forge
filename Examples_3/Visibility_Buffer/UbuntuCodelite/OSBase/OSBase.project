@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0005Debug000000000000]]>
+    </Plugin>
+  </Plugins>
   <VirtualDirectory Name="Middleware_3">
     <VirtualDirectory Name="UI">
       <File Name="../../../../Middleware_3/Text/TextShaders.h"/>
@@ -35,7 +40,7 @@
     <File Name="../../../../Common_3/OS/Core/RingBuffer.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>    
+    <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Image">
     <File Name="../../../../Common_3/OS/Image/Image.cpp"/>
@@ -80,6 +85,12 @@
   <VirtualDirectory Name="Dependencies">
     <File Name="../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="gainput"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="gainput"/>
+  </Dependencies>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -95,10 +106,12 @@
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
@@ -139,6 +152,7 @@
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
@@ -171,10 +185,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="gainput"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="gainput"/>
-  </Dependencies>
 </CodeLite_Project>

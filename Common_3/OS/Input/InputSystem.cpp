@@ -275,8 +275,8 @@ void InitSubView(void* view)
 								  UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
 								  UIViewAutoresizingFlexibleBottomMargin)];
 #else
-	MTKView* mainView = (MTKView*)CFBridgingRelease(view);
-	float retinScale = mainView.drawableSize.width / mainView.frame.size.width;
+	NSView* mainView = (__bridge NSView*)view;
+	float retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.size.width;
 	GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.bounds
 																	   window:mainView.window
 																  retinaScale:retinScale
@@ -309,7 +309,7 @@ bool GetBoolInput(uint32_t inputId)
 
 	if (keyMappings.size() == 0)
 	{
-		LOGWARNING("Couldn't find map from user to Description ");
+		LOGF(LogLevel::eWARNING, "Couldn't find map from user to Description ");
 		return false;
 	}
 
@@ -354,7 +354,7 @@ float GetFloatInput(uint32_t inputId, uint32_t axis)
 
 	if (keyMappings.size() == 0)
 	{
-		LOGWARNING("Couldn't find map from user to Description ");
+		LOGF(LogLevel::eWARNING, "Couldn't find map from user to Description ");
 		return false;
 	}
 
@@ -405,7 +405,7 @@ void AddMappings(KeyMappingDescription* mappings, uint32_t mappingCount, bool ov
 {
 	if (!mappings || mappingCount <= 0)
 	{
-		LOGWARNING("No mappings were added. Provided Mapping was empty or null.");
+		LOGF(LogLevel::eWARNING, "No mappings were added. Provided Mapping was empty or null.");
 		return;
 	}
 
@@ -438,7 +438,7 @@ void AddGestureMappings(GestureMappingDescription* mappings, uint32_t mappingCou
 {
 	if (!mappings || mappingCount <= 0)
 	{
-		LOGWARNING("No mappings were added. Provided Mapping was empty or null.");
+		LOGF(LogLevel::eWARNING, "No mappings were added. Provided Mapping was empty or null.");
 		return;
 	}
 
@@ -554,7 +554,7 @@ bool GatherInputEventButton(gainput::DeviceId deviceId, gainput::DeviceButtonId 
 
 		if (keyMappings.size() == 0)
 		{
-			LOGWARNING("Couldn't find map from user to Description ");
+			LOGF(LogLevel::eWARNING, "Couldn't find map from user to Description ");
 			continue;
 		}
 
@@ -662,7 +662,7 @@ static void MapKey(uint32_t sourceKey, uint32_t userKey, GainputDeviceType input
 
 	if (device == NULL)
 	{
-		LOGERROR("Unsupported Input Device");
+		LOGF(LogLevel::eERROR, "Unsupported Input Device");
 		return;
 	}
 

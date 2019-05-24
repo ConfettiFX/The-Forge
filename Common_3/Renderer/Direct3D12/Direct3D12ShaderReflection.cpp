@@ -71,17 +71,17 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	//Check to see if parameters are valid
 	if (shaderCode == NULL)
 	{
-		LOGERROR("Parameter 'shaderCode' was NULL.");
+		LOGF(LogLevel::eERROR, "Parameter 'shaderCode' was NULL.");
 		return;
 	}
 	if (shaderSize == 0)
 	{
-		LOGERROR("Parameter 'shaderSize' was 0.");
+		LOGF(LogLevel::eERROR, "Parameter 'shaderSize' was 0.");
 		return;
 	}
 	if (pOutReflection == NULL)
 	{
-		LOGERROR("Paramater 'pOutReflection' was NULL.");
+		LOGF(LogLevel::eERROR, "Paramater 'pOutReflection' was NULL.");
 		return;
 	}
 

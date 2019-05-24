@@ -1129,7 +1129,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		accIndex += batch.indexCount;
 #endif
 
-		LOGINFOF("%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
+		LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
 	}
 
 	tinystl::unordered_set<tinystl::string> twoSidedMaterials;

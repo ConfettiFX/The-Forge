@@ -40,7 +40,6 @@
 		B25042C22214EC10006D133F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD121421A13006F372D /* MetalKit.framework */; };
 		B2DA3B6E2214D8F300D5FD8F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2DA3B6C2214D8F300D5FD8F /* AppDelegate.m */; };
 		B2DA3B712214D91500D5FD8F /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = B2DA3B6F2214D91500D5FD8F /* MainMenu.xib */; };
-		C95132FD2010E68A002E584B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95132FB2010E68A002E584B /* Main.storyboard */; };
 		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
 		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
@@ -159,7 +158,6 @@
 		B2DA3B6D2214D8F300D5FD8F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
 		B2DA3B702214D91500D5FD8F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 16_Raytracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 16_Raytracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C95132FC2010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -265,7 +263,6 @@
 			children = (
 				5C17300321414D110074EE71 /* AppDelegate.h */,
 				5C17300421414D110074EE71 /* AppDelegate.m */,
-				C95132FB2010E68A002E584B /* Main.storyboard */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
 				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
 				C95133032010E68A002E584B /* Info.plist */,
@@ -422,7 +419,6 @@
 			files = (
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
-				C95132FD2010E68A002E584B /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -481,14 +477,6 @@
 			name = MainMenu.xib;
 			sourceTree = "<group>";
 		};
-		C95132FB2010E68A002E584B /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C95132FC2010E68A002E584B /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		C95133002010E68A002E584B /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -518,6 +506,7 @@
 					METAL,
 					_DEBUG,
 					TARGET_IOS,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/16_Raytracing_iOS/Info.plist";
@@ -695,6 +684,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
 					_DEBUG,
+					USE_MEMORY_TRACKING,
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";

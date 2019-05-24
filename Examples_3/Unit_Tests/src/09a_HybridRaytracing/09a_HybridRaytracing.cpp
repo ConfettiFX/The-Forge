@@ -58,7 +58,6 @@
 const float gTimeScale = 0.2f;
 
 FileSystem gFileSystem;
-LogManager gLogManager;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
@@ -2234,10 +2233,8 @@ void Draw()
 
 		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 
-#ifndef METAL    // Metal doesn't support GPU profilers
 		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#endif
 
 		gAppUI.Draw(cmd);
 

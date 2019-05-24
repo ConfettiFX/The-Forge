@@ -23,16 +23,58 @@
 */
 
 #import "AppDelegate.h"
+#define DISPATCH_APPROACH
+
+@interface GameController: NSViewController
+-(void)draw;
+@end
 
 @interface AppDelegate ()
 
 @end
 
 @implementation AppDelegate
+{
+    GameController *myController;
+    void (^drawBlock)(void);
+}
+
+-(void) drawFunc
+{
+    [myController draw];
+    drawBlock();
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNotification
 {
-	// Insert code here to initialize your application
+    myController = [GameController new];
+
+#ifdef DISPATCH_APPROACH
+    __weak AppDelegate *weakSelf = self;
+     drawBlock = ^{
+        dispatch_async( dispatch_get_main_queue(), ^{
+            [weakSelf drawFunc];
+        });
+    };
+    
+    drawBlock();
+#endif
+    
+#ifdef LOOP_IN_FINISH_LAUNCHING
+    for (;;)
+    {
+        NSEvent *Event;
+        @autoreleasepool
+        {
+            while ((Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: TRUE]))
+                   [NSApp sendEvent: Event];
+                   
+            [myController draw];
+        }
+    }
+    myController = nil;
+#endif
+    
 }
 
 - (void)applicationWillTerminate:(NSNotification*)aNotification

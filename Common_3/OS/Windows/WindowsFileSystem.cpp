@@ -33,6 +33,7 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IThread.h"
 
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "Shaders/D3D12"
@@ -74,19 +75,28 @@ long tell_file(FileHandle handle) { return ftell((::FILE*)handle); }
 
 size_t write_file(const void* buffer, size_t byteCount, FileHandle handle) { return fwrite(buffer, 1, byteCount, (::FILE*)handle); }
 
-size_t get_file_last_modified_time(const char* _fileName)
+time_t get_file_last_modified_time(const char* _fileName)
 {
-	struct stat fileInfo;
+	struct stat fileInfo = {0};
 
-	if (!stat(_fileName, &fileInfo))
-	{
-		return (size_t)fileInfo.st_mtime;
-	}
-	else
-	{
-		// return an impossible large mod time as the file doesn't exist
-		return ~0;
-	}
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_mtime;
+}
+
+time_t get_file_last_accessed_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_atime;
+}
+
+time_t get_file_creation_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_ctime;
 }
 
 tinystl::string get_current_dir()
@@ -173,7 +183,7 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	tinystl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	WIN32_FIND_DATAA fd;
 	HANDLE           hFind = ::FindFirstFileA(path + "*" + ext, &fd);
-	uint32_t         fileIndex = (uint32_t)filesOut.size();
+	size_t           fileIndex = filesOut.size();
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 		do
@@ -192,7 +202,7 @@ void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subD
 	tinystl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	WIN32_FIND_DATAA fd;
 	HANDLE           hFind = ::FindFirstFileA(path + "*", &fd);
-	uint32_t         fileIndex = (uint32_t)subDirectoriesOut.size();
+	size_t           fileIndex = subDirectoriesOut.size();
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 		do
@@ -292,6 +302,123 @@ void save_file_dialog(
 	{
 		callback(szFile, userData);
 	}
+}
+
+struct FileSystem::Watcher::Data
+{
+	tinystl::string  mWatchDir;
+	DWORD            mNotifyFilter;
+	FileSystem::Watcher::Callback    mCallback;
+	HANDLE           hExitEvt;
+	ThreadDesc       mThreadDesc;
+	ThreadHandle     mThread;
+	volatile int     mRun;
+};
+
+static void fswThreadFunc(void* data)
+{
+	FileSystem::Watcher::Data* fs = (FileSystem::Watcher::Data*)data;
+
+	HANDLE hDir = CreateFileA(
+		fs->mWatchDir.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+	HANDLE hEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	BYTE       notifyBuffer[1024];
+	OVERLAPPED ovl = { 0 };
+	ovl.hEvent = hEvt;
+
+	while (fs->mRun)
+	{
+		DWORD dwBytesReturned = 0;
+		ResetEvent(hEvt);
+		if (ReadDirectoryChangesW(hDir, &notifyBuffer, sizeof(notifyBuffer), TRUE, fs->mNotifyFilter, NULL, &ovl, NULL) == 0)
+		{
+			break;
+		}
+
+		HANDLE pHandles[2] = { hEvt, fs->hExitEvt };
+		WaitForMultipleObjects(2, pHandles, FALSE, INFINITE);
+
+		if (!fs->mRun)
+		{
+			break;
+		}
+
+		GetOverlappedResult(hDir, &ovl, &dwBytesReturned, FALSE);
+
+		char  fileName[MAX_PATH * 4];
+		DWORD offset = 0;
+		BYTE* p = notifyBuffer;
+		for (;;)
+		{
+			FILE_NOTIFY_INFORMATION* fni = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(p);
+			memset(fileName, '\0', sizeof(fileName));
+			WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength / sizeof(WCHAR), fileName, sizeof(fileName), NULL, NULL);
+			tinystl::string path = fs->mWatchDir + fileName;
+			uint32_t        action = 0;
+			switch (fni->Action)
+			{
+				case FILE_ACTION_ADDED: action = FileSystem::Watcher::EVENT_CREATED; break;
+				case FILE_ACTION_MODIFIED:
+					if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
+						action = FileSystem::Watcher::EVENT_MODIFIED;
+					if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
+						action = FileSystem::Watcher::EVENT_ACCESSED;
+					break;
+				case FILE_ACTION_REMOVED: action = FileSystem::Watcher::EVENT_DELETED; break;
+				case FILE_ACTION_RENAMED_NEW_NAME: action = FileSystem::Watcher::EVENT_CREATED; break;
+				case FILE_ACTION_RENAMED_OLD_NAME: action = FileSystem::Watcher::EVENT_DELETED; break;
+				default: break;
+			}
+			fs->mCallback(path.c_str(), action);
+			if (!fni->NextEntryOffset)
+				break;
+			p += fni->NextEntryOffset;
+		}
+	}
+
+	CloseHandle(hDir);
+	CloseHandle(hEvt);
+};
+
+
+FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+{
+	pData = conf_new<FileSystem::Watcher::Data>();
+	pData->mWatchDir = FileSystem::FixPath(FileSystem::AddTrailingSlash(pWatchPath), root);
+	uint32_t notifyFilter = 0;
+	if (eventMask & EVENT_MODIFIED)
+	{
+		notifyFilter |= FILE_NOTIFY_CHANGE_LAST_WRITE;
+	}
+	if (eventMask & EVENT_ACCESSED)
+	{
+		notifyFilter |= FILE_NOTIFY_CHANGE_LAST_ACCESS;
+	}
+	if (eventMask & (EVENT_DELETED | EVENT_CREATED))
+	{
+		notifyFilter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
+	}
+
+	pData->mNotifyFilter = notifyFilter;
+	pData->hExitEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+	pData->mCallback = callback;
+	pData->mRun = TRUE;
+
+	pData->mThreadDesc.pFunc = fswThreadFunc;
+	pData->mThreadDesc.pData = pData;
+
+	pData->mThread = create_thread(&pData->mThreadDesc);
+}
+
+FileSystem::Watcher::~Watcher()
+{
+	pData->mRun = FALSE;
+	SetEvent(pData->hExitEvt);
+	destroy_thread(pData->mThread);
+	CloseHandle(pData->hExitEvt);
+	conf_delete(pData);
 }
 
 #endif

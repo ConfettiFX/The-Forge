@@ -31,6 +31,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D11.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D12.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerVulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
@@ -57,6 +64,12 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_rect_pack.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_textedit.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\stb_truetype.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerEnableMacro.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerHTML.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
   </ItemGroup>

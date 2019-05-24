@@ -79,12 +79,12 @@ FileHandle open_file(const char* filename, const char* flags)
 	//No point in calling fopen if file path is null
 	if(fileUrl == nil)
 	{
-		LOGWARNINGF("Path '%s' is invalid!", filename);
+		LOGF(LogLevel::eWARNING, "Path '%s' is invalid!", filename);
 		return NULL;
 	}
 	
 	filename = [fileUrl fileSystemRepresentation];
-	//LOGINFOF("Open File: %s", filename); // debug log
+	//LOGF(LogLevel::eINFO, "Open File: %s", filename); // debug log
 #endif
 
 	// iOS file system has security measures for directories hence not all directories are writeable by default.
@@ -162,19 +162,28 @@ tinystl::string get_exe_path()
 	return str;
 }
 
-size_t get_file_last_modified_time(const char* _fileName)
-{    // TODO: use NSBundle
-	struct stat fileInfo;
+time_t get_file_last_modified_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
 
-	if (!stat(_fileName, &fileInfo))
-	{
-		return (size_t)fileInfo.st_mtime;
-	}
-	else
-	{
-		// return an impossible large mod time as the file doesn't exist
-		return ~0;
-	}
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_mtime;
+}
+
+time_t get_file_last_accessed_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_atime;
+}
+
+time_t get_file_creation_time(const char* _fileName)
+{
+	struct stat fileInfo = {0};
+
+	stat(_fileName, &fileInfo);
+	return fileInfo.st_ctime;
 }
 
 tinystl::string get_app_prefs_dir(const char* org, const char* app)
@@ -198,7 +207,7 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 {
 	if (!dir || strlen(dir) == 0)
 	{
-		LOGWARNINGF("%s directory passed as argument!", (!dir ? "NULL" : "Empty"));
+		LOGF(LogLevel::eWARNING, "%s directory passed as argument!", (!dir ? "NULL" : "Empty"));
 		return;
 	}
 
@@ -211,7 +220,7 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	BOOL isDir = YES;
 	if (![fileMan fileExistsAtPath:pStrSearchDir isDirectory:&isDir])
 	{
-		LOGERRORF("Directory '%s' doesn't exist.", dir);
+		LOGF(LogLevel::eERROR, "Directory '%s' doesn't exist.", dir);
 		return;
 	}
 	NSArray* pContents = [fileMan subpathsAtPath:pStrSearchDir];
@@ -254,7 +263,7 @@ bool copy_file(const char* src, const char* dst)
 													  toPath:[NSString stringWithUTF8String:dst]
 													   error:&error])
 	{
-		LOGINFOF("Failed to copy file with error : %s", [[error localizedDescription] UTF8String]);
+		LOGF(LogLevel::eINFO, "Failed to copy file with error : %s", [[error localizedDescription] UTF8String]);
 		return false;
 	}
 
@@ -548,4 +557,14 @@ void save_file_dialog(
 		defaultExt = [NSString stringWithCString:ext encoding:[NSString defaultCStringEncoding]];
 	}
 	create_document_browser(title, (void*)callback, (void*)userData, extList, defaultExt, true, false);
+}
+
+FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+{
+	ASSERT(false && "Unsupported on target iOS");
+}
+
+FileSystem::Watcher::~Watcher()
+{
+	ASSERT(false && "Unsupported on target iOS");
 }

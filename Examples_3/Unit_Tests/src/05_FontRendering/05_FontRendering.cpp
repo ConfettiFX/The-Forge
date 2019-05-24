@@ -139,7 +139,6 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 uint32_t gFrameIndex = 0;
 
-LogManager gLogManager;
 SceneData  gSceneData;
 Fonts      gFonts;
 
@@ -467,9 +466,9 @@ class FontRendering: public IApp
 		uiTextDesc.mFontColor = gSceneData.theme ? 0xff21D8DE : 0xff444444;
 		uiTextDesc.mFontSize = 18;
 		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
-#ifndef METAL
+
 		gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
-#endif
+
 		if (gbShowSceneControlsUIWindow)
 			gAppUI.Gui(pUIWindow);
 
