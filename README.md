@@ -11,7 +11,7 @@ The Forge is a cross-platform rendering framework supporting
 - macOS with Metal 2
 - iOS with Metal 2
 - XBOX One / XBOX One X (only available for accredited developers on request)
-- PS4 (in development) (only available for accredited developers on request)
+- PS4 (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
 - Descriptor management
@@ -45,6 +45,79 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.28 - May 24th, 2019 - SWB Level Editor | Micro Profiler Re-Write | Log and File System improvements | better macOS/iOS support 
+We added a new section below the Examples to show screenshots and an explanation of some of the Tools that we integrated. We will fill this up over the next few releases.
+* We were helping James Webb with his level editor for 'Star Wars Galaxies' called SWB that now uses The Forge
+
+Here is a screenshot
+
+![SWB Level Editor](Screenshots/SWB.png)
+
+SWB is an editor for the 2003 game 'Star Wars Galaxies' that can edit terrains, scenes, particles and import/export models via FBX. The editor uses an engine called 'atlas' that will be made open source in the future. It focuses on making efficient use of the new graphics APIs (with help from The-Forge!), ease-of-use and terrain rendering.
+* Memory tracking: 
+  * Fluid memory tracker cross-platform for Windows, macOS and Linux
+  * We used MTuner to remove many memory leaks and improve memory usage. MTuner might be integrated in the future.
+* [Micro Profiler](https://github.com/zeux/microprofile): our initial implementation of Microprofiler needed to be re-done from scratch. This time we wanted to do the integration right and also implemented the dedicated UI. 
+
+![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer.png)
+
+![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer2.png)
+
+To enable/disable profiling, go to file ProfileEnableMacro.h line 9 and set it
+to 0(disabled) or 1(enabled). 
+It's supported on the following platforms:
+ - Windows
+ - Linux
+ - macOS (GPU profiling is disabled)
+ - iOS (GPU profiling is disabled)
+ - Android(WIP will be enabled later on)
+
+We can find MicroProfile integrated in the follwing examples (more will follow):
+ - Unit Test 02_Compute
+ - VisibilityBuffer
+
+How to use it:
+MicroProfile has different display modes. The most useful one when running inside
+the application is Timers. We can change the display mode going to Mode and right
+clicking the one we want.
+
+If we are on Timer, we will be able to right click on the labels. This will enable
+a graph at the bottom left.
+
+If we wanted to just see some of the groups inside the profile display, go to Groups
+and select the ones you want.
+
+The other options are self explanatory.
+
+If the user wants to dump the profile to a file, we just need to go to dump,
+and right click on the amount of frames we want. This generates a html file in the
+executable folder. Open it with your prefered web browser to have a look.
+
+Dumping is useful, because we will be able to see the profile frame by frame,
+without it being updated every frame. This will be useful when displaying in Detailed
+mode.
+
+There is also a Help menu item.
+* Log system improvements: 
+  * Support for multiple log files
+  * Easy to use log macros
+  * Scoped logging
+  * Multithreaded support
+  * New log format: date, time, thread, file, line, log level and message
+  * No need to declare global LogManager, it will be created on demand
+* Filesystem improvements: this is fed  back from one of our game engine integrations of The Forge
+  * file time functions now use time_t
+  * added FileWatcher class for Windows/Linux/macOS
+  * added CombinePaths function
+* macOS / iOS Metal: 
+  * added Barriers with memoryBarrierWithScope for Buffers,Textures and Render targets
+  * added GPU sync with MTLFence as fallback (for cross encoder synchranization and BlitEncoder where memoryBarrier isn't available). Removed force fence on render targets change because it is no longer necessary. There might be a small performance improvements coming from this
+  * support of Microprofiler see above
+  * refactor of windows support code: replaced MTKView for iOS and macOS with a custom NSview and NSWindow implementation. We have more explicit control now over the window.
+* Issues fixed:
+  * #112 - cmdBindDescriptors performance issue (DX12)
+  * #110 - RenderDoc compatibility with SM6+
+
 ## Release 1.27 - April 25th, 2019 - Spring House Cleaning Release :-)
 * DirectX
   * Improved our support for DXGI_FORMAT_BC6H_SF16, DXGI_FORMAT_BC7_UNORM 
@@ -60,57 +133,6 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
   * App can now control the UI descriptor binder update freq
 * Improved ThreadedTask system and added helper texture loading code that uses the new async loading system in 06_MaterialPlayground and Visibility Buffer
 * Fixed issue #100 "About FBX resource import?"
-
-
-## Release 1.26 - April 3rd, 2019 - Vulkan Ray Tracing for Windows & Linux
-- Ray Tracing with the Vulkan API (Vulkan SDK 1.1.101.0) is now working on Windows and Ubuntu through our unified Ray Tracing interface in IRay.h:
-
-PC Ubuntu Vulkan RTX, GeForce RTX 2070, Driver Version 418.56 1080p
-![Ray Tracing on PC Ubuntu with Vulkan RTX](Screenshots/16_RayTrace_Linux_Vulkan.png)
-
-PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 1080p:
-![Ray Tracing on PC With DXR](Screenshots/16_RayTrace_Windows_DXR.png)
-
-Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
-![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
-
-iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
-![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
-
-- New Descriptor Memory Management System: we did a second pass over that system and improved performance and memory consumption further. Now we can group individual descriptor bindors into a single one. A lot of bug and memory leak fixes were done as well.
-- Async / Sync Resource Loading system: instead of allocating additional memory, it uses now fixed size memory and splits resources for upload
-- Unified UniformRingBuffer and MeshRingBuffer into GPURingBuffer
-- Vulkan: we implemented now something close to the official recommendation how to convert "Vsync on/off" to Vulkan parameters (in pseudocode) (thanks to Adam Sawicki
-@Reg__):
-```cpp
-if mEnableVsync:
-    Try to find among available present modes, in this order: FIFO_RELAXED, FIFO
-else:
-    Try to find among available present modes, in this order: IMMEDIATE, MAILBOX, FIFO (we prefer here FIFO_RELAXED instead)
-
-if chosen mode == IMMEDIATE:
-    imageCount = (Fullscreen ? 2 : 3)
-else if chosen mode == MAILBOX:
-    imageCount = 3
-else if chosen mode == FIFO or FIFO_RELAXED:
-    imageCount = 2
-imageCount = max(VkSurfaceCapabilitiesKHR::minImageCount, min(imageCount, VkSurfaceCapabilitiesKHR::maxImageCount))
-```
-
-## Release 1.25 - March 15th, 2019 - New Descriptor Memory Management System | Refactored Input System
-
-- The purpose of the DescriptorBinder approach is to allocate all memory descriptor space at load time (streaming is also considered load time), instead of doing it on-demand at runtime, as it is commonly done. This is done in an effort to allow applications to have better control over memory footprint overhead, which is especially important on mobile targets, and to improve performance by avoiding runtime memory allocations.
-The system will use shader reflection to determine the appropriate descriptor layouts in combination with descriptor update frequency knowledge. This knowledge will come from the client domain or from content editor tools.
-With this information, we are able to allocate all necessary descriptor memory up-front, giving more control to the application about the memory footprint. This is one of the initiatives leading up to the new version of The Forge.
-Read more [Descriptor Management](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
-
-- The input system was refactored and streamlined. This is mostly a rewrite of the code layer above [gainput](https://github.com/jkuhlmann/gainput).
-  - IOperatingSystem.h: getMousePosition, getKeyDown, getKeyUp, getJoystickButtonDown, getJoystickButtonUp were removed
-  - InputSystem.h: 
-    - KeyMappingDescription - changed now every axis should be defined as separate entry
-    - IsButtonPressed, IsButtonTriggered, IsButtonReleased, MapKey, SetActiveInputMap,  GetButtonData,  GetDisplayWidth, GetDisplayHeight, were removed
-    - New functions GetBoolInput, GetFloatInput. KeyMappingDescription  for new function require directly specifying intended action(released, pressed, triggered) via DEFINE_DEVICE_ACTION macro
-    - For InputEventHandler old style definition is used
 
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
@@ -393,12 +415,61 @@ This unit test shows how to use skinning with Ozz
 ![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
 
 
-
-
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
 
 ![Image of the Visibility Buffer](Screenshots/Visibility_Buffer.png)
+
+
+# Tools
+Below are screenshots and descriptions of some of the tools we integrated.
+
+## Microprofiler
+We integrated the [Micro Profiler](https://github.com/zeux/microprofile) into our code base. 
+
+![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer.png)
+
+![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer2.png)
+
+To enable/disable profiling, go to file ProfileEnableMacro.h line 9 and set it
+to 0(disabled) or 1(enabled). 
+It's supported on the following platforms:
+ - Windows
+ - Linux
+ - macOS (GPU profiling is disabled)
+ - iOS (GPU profiling is disabled)
+ - Android(WIP will be enabled later on)
+
+We can find MicroProfile integrated in the follwing examples:
+ - Unit Test 02_Compute
+ - VisibilityBuffer
+
+MicroProfile provides us an easy to use UI and visualization our frame.
+
+How to use it:
+MicroProfile has different display modes. The most useful one when running inside
+the application is Timers. We can change the display mode going to Mode and right
+clicking the one we want.
+
+If we are on Timer, we will be able to right click on the labels. This will enable
+a graph at the bottom left.
+
+If we wanted to just see some of the groups inside the profile display, go to Groups
+and select the ones you want.
+
+The other options are self explanatory.
+
+If the user wants to dump the profile to a file, we just need to go to dump,
+and right click on the amount of frames we want. This generates a html file in the
+executable folder. Open it with your prefered web browser to have a look.
+
+Dumping is useful, because we will be able to see the profile frame by frame,
+without it being updated every frame. This will be useful when displaying in Detailed
+mode.
+
+For any doubt on the use of the MicroProfile, hover Help.
+
+
 
 
 # Releases / Maintenance
@@ -418,6 +489,11 @@ The Forge is used as the rendering framework in Torque 3D:
 
 <a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
 alt="Torque 3D" width="417" height="106" border="0" /></a>
+
+## Star Wars Galaxies Level Editor
+SWB is an editor for the 2003 game 'Star Wars Galaxies' that can edit terrains, scenes, particles and import/export models via FBX. The editor uses an engine called 'atlas' that will be made open source in the future. It focuses on making efficient use of the new graphics APIs (with help from The-Forge!), ease-of-use and terrain rendering.
+
+![SWB Level Editor](Screenshots/SWB.png)
 
 
 # Open-Source Libraries
@@ -441,7 +517,6 @@ The Forge utilizes the following Open-Source libraries:
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 * [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 * [gainput](https://github.com/jkuhlmann/gainput)
-* [Shader Playground](https://github.com/tgjones/shader-playground)
 * [hlslparser](https://github.com/Thekla/hlslparser)
 * [imGui](https://github.com/ocornut/imgui)
 * [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
@@ -450,4 +525,5 @@ The Forge utilizes the following Open-Source libraries:
 * [Lua Scripting System](https://www.lua.org/)
 * [TressFX](https://github.com/GPUOpen-Effects/TressFX)
 * [Micro Profiler](https://github.com/zeux/microprofile)
+* [MTuner](https://github.com/milostosic/MTuner) 
 
