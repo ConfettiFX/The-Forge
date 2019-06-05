@@ -388,6 +388,7 @@ static bool gDeviceGroupCreationExtension = false;
 static bool gDescriptorIndexingExtension = false;
 static bool gAMDDrawIndirectCountExtension = false;
 static bool gAMDGCNShaderExtension = false;
+static bool gNVRayTracingExtension = false;
 
 static bool gDebugMarkerSupport = false;
 
@@ -431,12 +432,9 @@ API_INTERFACE const RendererShaderDefinesDesc FORGE_CALLCONV get_renderer_shader
 // clang-format on
 #endif
 
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-//+1 for Acceleration Structure because it is not counted by VK_DESCRIPTOR_TYPE_RANGE_SIZE
-#define CONF_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_RANGE_SIZE + 1)
-#else
-#define CONF_DESCRIPTOR_TYPE_RANGE_SIZE VK_DESCRIPTOR_TYPE_RANGE_SIZE
-#endif
+//+1 for Acceleration Structure because it is not counted by VK_DESCRIPTOR_TYPE_RANGE_SIZE	
+#define CONF_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_RANGE_SIZE + 1)	
+static uint32_t gDescriptorTypeRangeSize = VK_DESCRIPTOR_TYPE_RANGE_SIZE;
 
 /************************************************************************/
 // DescriptorInfo Heap Structures
@@ -2174,6 +2172,13 @@ static void AddDevice(Renderer* pRenderer)
 							int i = 0;
 							i++;
 						}
+#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+						if (strcmp(wantedDeviceExtensions[k], VK_NV_RAY_TRACING_EXTENSION_NAME) == 0)
+						{
+							gNVRayTracingExtension = true;
+							gDescriptorTypeRangeSize = CONF_DESCRIPTOR_TYPE_RANGE_SIZE;
+						}
+#endif
 						break;
 					}
 				}
@@ -2276,6 +2281,11 @@ static void AddDevice(Renderer* pRenderer)
 	if (gDescriptorIndexingExtension)
 	{
 		LOGF(LogLevel::eINFO, "Successfully loaded Descriptor Indexing extension");
+	}
+
+	if (gNVRayTracingExtension)
+	{
+		LOGF(LogLevel::eINFO, "Successfully loaded Nvidia Ray Tracing extension");
 	}
 
 #ifdef USE_DEBUG_UTILS_EXTENSION
@@ -3772,7 +3782,7 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 			maxDescriptorSets += (it.second->mMaxUsagePerSet[setIndex] + 1) * MAX_FRAMES_IN_FLIGHT;  // +1 to make room for empty descriptor sets
 
 	// Ensure all pool types allocate at least one (Vulkan requirement)
-	for (uint32_t i = 0; i < CONF_DESCRIPTOR_TYPE_RANGE_SIZE; i++)
+	for (uint32_t i = 0; i < gDescriptorTypeRangeSize; i++)
 	{
 		if (descriptorHeapPoolSizes[i].descriptorCount == 0) 
 		{
@@ -3790,7 +3800,7 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 	}
 
 	// Allocate pool total size for all descriptors
-	add_descriptor_heap(pRenderer, maxDescriptorSets, 0, descriptorHeapPoolSizes, CONF_DESCRIPTOR_TYPE_RANGE_SIZE, &pDescriptorBinder->pDescriptorPool);
+	add_descriptor_heap(pRenderer, maxDescriptorSets, 0, descriptorHeapPoolSizes, gDescriptorTypeRangeSize, &pDescriptorBinder->pDescriptorPool);
 
 	// Consume all descriptor sets
 	for (DescriptorBinderMapNode& it : pDescriptorBinder->mRootSignatureNodes)
