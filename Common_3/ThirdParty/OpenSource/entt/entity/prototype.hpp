@@ -6,7 +6,7 @@
 #include <utility>
 #include <cstddef>
 #include <type_traits>
-#include "../../TinySTL/unordered_map.h"
+#include "../../EASTL/unordered_map.h"
 #include "../config/config.h"
 #include "registry.hpp"
 #include "entity.hpp"
@@ -92,7 +92,7 @@ public:
      * @param other The instance to move from.
      */
     Prototype(Prototype &&other)
-        : handlers{std::move(other.handlers)},
+        : handlers{eastl::move(other.handlers)},
           registry{other.registry},
           entity{other.entity}
     {
@@ -114,10 +114,10 @@ public:
      */
     Prototype & operator=(Prototype &&other) {
         if(this != &other) {
-            auto tmp{std::move(other)};
+            auto tmp{eastl::move(other)};
             handlers.swap(tmp.handlers);
-            std::swap(registry, tmp.registry);
-            std::swap(entity, tmp.entity);
+            eastl::swap(registry, tmp.registry);
+            eastl::swap(entity, tmp.entity);
         }
 
         return *this;
@@ -145,7 +145,7 @@ public:
         };
 
         handlers[registry->template type<Component>()] = Handler{accommodate, assign};
-        auto &wrapper = registry->template accommodate<Wrapper<Component>>(entity, Component{std::forward<Args>(args)...});
+        auto &wrapper = registry->template accommodate<Wrapper<Component>>(entity, Component{eastl::forward<Args>(args)...});
         return wrapper.component;
     }
 
@@ -216,9 +216,9 @@ public:
      * @return References to the components owned by the prototype.
      */
     template<typename... Component>
-    inline std::enable_if_t<(sizeof...(Component) > 1), std::tuple<const Component &...>>
+    inline eastl::enable_if_t<(sizeof...(Component) > 1), eastl::tuple<const Component &...>>
     get() const ENTT_NOEXCEPT {
-        return std::tuple<const Component &...>{get<Component>()...};
+        return eastl::tuple<const Component &...>{get<Component>()...};
     }
 
     /**
@@ -234,9 +234,9 @@ public:
      * @return References to the components owned by the prototype.
      */
     template<typename... Component>
-    inline std::enable_if_t<(sizeof...(Component) > 1), std::tuple<Component &...>>
+    inline eastl::enable_if_t<(sizeof...(Component) > 1), eastl::tuple<Component &...>>
     get() ENTT_NOEXCEPT {
-        return std::tuple<Component &...>{get<Component>()...};
+        return eastl::tuple<Component &...>{get<Component>()...};
     }
 
     /**
@@ -475,7 +475,7 @@ public:
     }
 
 private:
-    tinystl::unordered_map<component_type, Handler> handlers;
+    eastl::unordered_map<component_type, Handler> handlers;
     Registry<Entity> *registry;
     entity_type entity;
 };

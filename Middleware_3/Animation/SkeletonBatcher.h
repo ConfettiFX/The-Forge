@@ -89,7 +89,7 @@ class SkeletonBatcher
 
 	private:
 	// List of Rigs whose skeletons need to be rendered
-	tinystl::vector<Rig*> mRigs;
+	eastl::vector<Rig*> mRigs;
 	unsigned int          mNumRigs = 0;
 
 	// Application variables used to be able to update buffers

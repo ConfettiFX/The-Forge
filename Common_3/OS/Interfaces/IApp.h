@@ -76,7 +76,7 @@ void drawFrame(float deltaTime);
 #ifndef _IAPP_H_
 #define _IAPP_H_
 
-#include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 class IApp
 {
@@ -90,7 +90,7 @@ class IApp
 	virtual void Update(float deltaTime) = 0;
 	virtual void Draw() = 0;
 
-	virtual tinystl::string GetName() = 0;
+	virtual const char* GetName() = 0;
 
 	struct Settings
 	{
@@ -109,7 +109,7 @@ class IApp
 	} mSettings;
 
 	WindowsDesc*    pWindow;
-	tinystl::string mCommandLine;
+	eastl::string mCommandLine;
 };
 
 #if defined(_DURANGO)

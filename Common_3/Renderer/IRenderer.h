@@ -24,7 +24,6 @@
 
 #pragma once
 
-
 #if __cplusplus >= 201402l
 #define RENDERER_DEPRECATED(reason) [[deprecated(reason)]]
 #elif defined(__GNUC__)
@@ -75,9 +74,9 @@
 #endif
 
 #include "../OS/Image/ImageEnums.h"
-#include "../ThirdParty/OpenSource/TinySTL/string.h"
-#include "../ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../ThirdParty/OpenSource/EASTL/string.h"
+#include "../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 #include "../OS/Interfaces/IOperatingSystem.h"
 #include "../OS/Interfaces/IThread.h"
 
@@ -1025,7 +1024,7 @@ typedef struct RootSignature
 	/// Array of all descriptors declared in the root signature layout
 	DescriptorInfo* pDescriptors;
 	/// Translates hash of descriptor name to descriptor index
-	tinystl::unordered_map<uint32_t, uint32_t> pDescriptorNameToIndexMap;
+	eastl::string_hash_map<uint32_t> pDescriptorNameToIndexMap;
 
 	PipelineType		 mPipelineType;
 #if defined(DIRECT3D12)
@@ -1264,8 +1263,8 @@ typedef struct Queue
 
 typedef struct ShaderMacro
 {
-	tinystl::string definition;
-	tinystl::string value;
+	eastl::string definition;
+	eastl::string value;
 } ShaderMacro;
 
 typedef struct RendererShaderDefinesDesc
@@ -1277,10 +1276,10 @@ typedef struct RendererShaderDefinesDesc
 #if defined(METAL)
 typedef struct ShaderStageDesc
 {
-	tinystl::string              mName;
-	tinystl::string              mCode;
-	tinystl::string              mEntryPoint;
-	tinystl::vector<ShaderMacro> mMacros;
+	eastl::string              mName;
+	eastl::string              mCode;
+	eastl::string              mEntryPoint;
+	eastl::vector<ShaderMacro> mMacros;
 } ShaderStageDesc;
 
 typedef struct ShaderDesc
@@ -1300,10 +1299,10 @@ typedef struct BinaryShaderStageDesc
 	/// Byte code array
 	char*    pByteCode;
 	uint32_t mByteCodeSize;
-	tinystl::string mEntryPoint;
+	eastl::string mEntryPoint;
 #if defined(METAL)
 	// Shader source is needed for reflection
-	tinystl::string mSource;
+	eastl::string mSource;
 #endif
 } BinaryShaderStageDesc;
 
@@ -1328,15 +1327,15 @@ typedef struct Shader
 #endif
 #if defined(VULKAN)
 	VkShaderModule* pShaderModules;
-	tinystl::vector<tinystl::string> mEntryNames;
+	eastl::vector<eastl::string> mEntryNames;
 #endif
 #if defined(METAL)
 	id<MTLFunction> mtlVertexShader;
 	id<MTLFunction> mtlFragmentShader;
 	id<MTLFunction> mtlComputeShader;
-    tinystl::string mtlVertexShaderEntryPoint;
-    tinystl::string mtlFragmentShaderEntryPoint;
-    tinystl::string mtlComputeShaderEntryPoint;
+    eastl::string mtlVertexShaderEntryPoint;
+    eastl::string mtlFragmentShaderEntryPoint;
+    eastl::string mtlComputeShaderEntryPoint;
 	uint32_t        mNumThreadsPerGroup[3];
 #endif
 #if defined(DIRECT3D11)
@@ -1606,7 +1605,7 @@ typedef struct Pipeline
 	
 	//In DX12 this information is stored in ID3D12StateObject.
 	//But for Vulkan we need to store it manually
-	tinystl::vector<tinystl::string> mShadersStagesNames;
+	eastl::vector<eastl::string> mShadersStagesNames;
 #endif
 #if defined(METAL)
 	RenderTarget*               pRenderPasspRenderTarget;
@@ -1743,9 +1742,9 @@ typedef struct RendererDesc
 	ShaderTarget mShaderTarget;
 	GpuMode      mGpuMode;
 #if defined(VULKAN)
-	tinystl::vector<tinystl::string> mInstanceLayers;
-	tinystl::vector<tinystl::string> mInstanceExtensions;
-	tinystl::vector<tinystl::string> mDeviceExtensions;
+	eastl::vector<eastl::string> mInstanceLayers;
+	eastl::vector<eastl::string> mInstanceExtensions;
+	eastl::vector<eastl::string> mDeviceExtensions;
 	PFN_vkDebugReportCallbackEXT     pVkDebugFn;
 #endif
 #if defined(DIRECT3D12)
@@ -1849,7 +1848,7 @@ typedef struct Renderer
 	VkDebugUtilsMessengerEXT pVkDebugUtilsMessenger;
 #endif
 	VkDebugReportCallbackEXT     pVkDebugReport;
-	tinystl::vector<const char*> mInstanceLayers;
+	eastl::vector<const char*> mInstanceLayers;
 	uint32_t                     mVkUsedQueueCount[MAX_GPUS][16];
 
 	Texture* pDefaultTextureSRV[MAX_GPUS][TEXTURE_DIM_COUNT];

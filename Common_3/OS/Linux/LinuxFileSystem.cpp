@@ -96,23 +96,23 @@ time_t get_file_creation_time(const char* _fileName)
 	return fileInfo.st_ctime;
 }
 
-tinystl::string get_current_dir()
+eastl::string get_current_dir()
 {
 	char curDir[MAX_PATH];
 	getcwd(curDir, sizeof(curDir));
-	return tinystl::string(curDir);
+	return eastl::string(curDir);
 }
 
-tinystl::string get_exe_path()
+eastl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	ssize_t count = readlink("/proc/self/exe", exeName, MAX_PATH);
 	exeName[count] = '\0';
-	return tinystl::string(exeName);
+	return eastl::string(exeName);
 }
 
-tinystl::string get_app_prefs_dir(const char* org, const char* app)
+eastl::string get_app_prefs_dir(const char* org, const char* app)
 {
 	const char* homedir;
 
@@ -120,17 +120,17 @@ tinystl::string get_app_prefs_dir(const char* org, const char* app)
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}
-	return tinystl::string(homedir);
+	return eastl::string(homedir);
 }
 
-tinystl::string get_user_documents_dir()
+eastl::string get_user_documents_dir()
 {
 	const char* homedir;
 	if ((homedir = getenv("HOME")) == NULL)
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}
-	tinystl::string homeString = tinystl::string(homedir);
+	eastl::string homeString = eastl::string(homedir);
 	const char*     doc = "Documents";
 	homeString.append(doc, doc + strlen(doc));
 	return homeString;
@@ -143,15 +143,16 @@ void set_current_dir(const char* path)
 	chdir(path);
 }
 
-void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)
 {
-	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	eastl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 
 	DIR* directory = opendir(path.c_str());
 	if (!directory)
 		return;
 
-	tinystl::string extension(ext);
+	eastl::string extension(ext);
+	extension.make_lower();
 	struct dirent*  entry;
 	do
 	{
@@ -159,10 +160,11 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 		if (!entry)
 			break;
 
-		tinystl::string file = entry->d_name;
-		if (file.find(extension, 0, false) != tinystl::string::npos)
+		eastl::string file = entry->d_name;
+		file.make_lower();
+		if (file.find(extension) != eastl::string::npos)
 		{
-			file = path + file;
+			file = path + entry->d_name;
 			filesOut.push_back(file);
 		}
 
@@ -171,9 +173,9 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	closedir(directory);
 }
 
-void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
+void get_sub_directories(const char* dir, eastl::vector<eastl::string>& subDirectoriesOut)
 {
-	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	eastl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 
 	DIR* directory = opendir(path.c_str());
 	if (!directory)
@@ -190,7 +192,7 @@ void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subD
 		{
 			if (entry->d_name[0] != '.')
 			{
-				tinystl::string subDirectory = path + entry->d_name;
+				eastl::string subDirectory = path + entry->d_name;
 				subDirectoriesOut.push_back(subDirectory);
 			}
 		}
@@ -214,14 +216,14 @@ bool copy_file(const char* src, const char* dst)
 
 void open_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
 	LOGF(LogLevel::eERROR, "Not implemented");
 }
 
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
 	LOGF(LogLevel::eERROR, "Not implemented");
 }
@@ -230,7 +232,7 @@ void save_file_dialog(
 
 struct FileSystem::Watcher::Data
 {
-	tinystl::string mWatchDir;
+	eastl::string mWatchDir;
 	uint32_t        mNotifyFilter;
 	Callback        mCallback;
 	ThreadDesc      mThreadDesc;
@@ -288,7 +290,7 @@ static void fswThreadFunc(void* data)
 			struct inotify_event* event = (struct inotify_event*)(buffer + offset);
 			if (event->len)
 			{
-				tinystl::string path = fs->mWatchDir + event->name;
+				eastl::string path = fs->mWatchDir + event->name;
 				if (event->mask & IN_MODIFY)
 				{
 					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_MODIFIED);

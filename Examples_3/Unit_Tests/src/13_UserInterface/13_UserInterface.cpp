@@ -134,7 +134,7 @@ UserInterfaceUnitTestingData gUIData;
 
 // ContextMenu Items and Callbacks Example:
 //
-tinystl::string sContextMenuItems[7] = { "Random Background Color",  "Random Profiler Color",    "Dummy Context Menu Item3",
+eastl::string sContextMenuItems[7] = { "Random Background Color",  "Random Profiler Color",    "Dummy Context Menu Item3",
 										 "Dummy Context Menu Item4", "Dummy Context Menu Item5", "Dummy Context Menu Item6",
 										 "Dummy Context Menu Item7" };
 void            fnItem1Callback()    // sets slider color value: RGBA
@@ -390,7 +390,7 @@ public:
 			// Texture preview
 			CollapsingHeaderWidget CollapsingTexPreviewWidgets("TEXTURE PREVIEW");
 			DebugTexturesWidget dbgTexWidget("Texture Preview");
-			tinystl::vector<Texture*> texPreviews;
+			eastl::vector<Texture*> texPreviews;
 			texPreviews.push_back(pSpriteTexture);
 			dbgTexWidget.SetTextures(texPreviews, float2(441, 64));
 			CollapsingTexPreviewWidgets.AddSubWidget(dbgTexWidget);
@@ -580,7 +580,8 @@ public:
 #endif
 
 		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -595,7 +596,7 @@ public:
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName() { return "13_UserInterface"; }
+	const char* GetName() { return "13_UserInterface"; }
 
 	bool addSwapChain()
 	{

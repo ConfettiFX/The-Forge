@@ -27,8 +27,8 @@
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../Text/Fontstash.h"
 
 typedef void (*WidgetCallback)();
@@ -39,7 +39,7 @@ struct Texture;
 class IWidget
 {
 	public:
-	IWidget(const tinystl::string& _label):
+	IWidget(const eastl::string& _label):
 		pOnHover(NULL),
 		pOnActive(NULL),
 		pOnFocus(NULL),
@@ -62,7 +62,7 @@ class IWidget
 	WidgetCallback
 		pOnDeactivatedAfterEdit;    // Widget was just made inactive from an active state and changed its underlying value.  This is useful for undo/redo patterns.
 
-	tinystl::string mLabel;
+	eastl::string mLabel;
 
 	protected:
 	void ProcessCallbacks();
@@ -76,7 +76,7 @@ class IWidget
 class CollapsingHeaderWidget: public IWidget
 {
 public:
-	CollapsingHeaderWidget(const tinystl::string& _label, bool defaultOpen = false, bool collapsed = true, bool headerIsVisible = true) :
+	CollapsingHeaderWidget(const eastl::string& _label, bool defaultOpen = false, bool collapsed = true, bool headerIsVisible = true) :
 		IWidget(_label), mCollapsed(collapsed), mPreviousCollapsed(!collapsed), mDefaultOpen(defaultOpen), mHeaderIsVisible(headerIsVisible) {}
 
 	~CollapsingHeaderWidget() { RemoveAllSubWidgets(); }
@@ -92,7 +92,7 @@ public:
 
 	void RemoveSubWidget(IWidget* pWidget)
 	{
-		decltype(mGroupedWidgets)::iterator it = mGroupedWidgets.find(pWidget);
+		decltype(mGroupedWidgets)::iterator it = eastl::find(mGroupedWidgets.begin(), mGroupedWidgets.end(), pWidget);
 		if (it != mGroupedWidgets.end())
 		{
 			IWidget* pWidget = *it;
@@ -138,7 +138,7 @@ public:
 	}
 
 	private:
-	tinystl::vector<IWidget*> mGroupedWidgets;
+	eastl::vector<IWidget*> mGroupedWidgets;
 	bool                      mCollapsed;
 	bool                      mPreviousCollapsed;
 	bool                      mDefaultOpen;
@@ -148,28 +148,28 @@ public:
 class DebugTexturesWidget : public IWidget
 {
 public:
-	DebugTexturesWidget(const tinystl::string& _label) :
+	DebugTexturesWidget(const eastl::string& _label) :
 		IWidget(_label),
 		mTextureDisplaySize(float2(512.f, 512.f)) {}
 
 	IWidget* Clone() const;
 	void     Draw();
 
-	void SetTextures(tinystl::vector<Texture*> const& textures, float2 const& displaySize)
+	void SetTextures(eastl::vector<Texture*> const& textures, float2 const& displaySize)
 	{
 		mTextures = textures;
 		mTextureDisplaySize = displaySize;
 	}
 
 private:
-	tinystl::vector<Texture*> mTextures;
+	eastl::vector<Texture*> mTextures;
 	float2 mTextureDisplaySize;
 };
 
 class LabelWidget: public IWidget
 {
 	public:
-	LabelWidget(const tinystl::string& _label): IWidget(_label) {}
+	LabelWidget(const eastl::string& _label): IWidget(_label) {}
 
 	IWidget* Clone() const;
 	void     Draw();
@@ -187,7 +187,7 @@ class SeparatorWidget: public IWidget
 class ButtonWidget: public IWidget
 {
 	public:
-	ButtonWidget(const tinystl::string& _label): IWidget(_label) {}
+	ButtonWidget(const eastl::string& _label): IWidget(_label) {}
 
 	IWidget* Clone() const;
 	void     Draw();
@@ -197,7 +197,7 @@ class SliderFloatWidget: public IWidget
 {
 	public:
 	SliderFloatWidget(
-		const tinystl::string& _label, float* _data, float _min, float _max, float _step = 0.01f, const tinystl::string& _format = "%.3f"):
+		const eastl::string& _label, float* _data, float _min, float _max, float _step = 0.01f, const eastl::string& _format = "%.3f"):
 		IWidget(_label),
 		mFormat(_format),
 		pData(_data),
@@ -211,7 +211,7 @@ class SliderFloatWidget: public IWidget
 	void     Draw();
 
 	protected:
-	tinystl::string mFormat;
+	eastl::string mFormat;
 	float*          pData;
 	float           mMin;
 	float           mMax;
@@ -222,8 +222,8 @@ class SliderFloat2Widget: public IWidget
 {
 	public:
 	SliderFloat2Widget(
-		const tinystl::string& _label, float2* _data, const float2& _min, const float2& _max, const float2& _step = float2(0.01f, 0.01f),
-		const tinystl::string& _format = "%.3f"):
+		const eastl::string& _label, float2* _data, const float2& _min, const float2& _max, const float2& _step = float2(0.01f, 0.01f),
+		const eastl::string& _format = "%.3f"):
 		IWidget(_label),
 		mFormat(_format),
 		pData(_data),
@@ -237,7 +237,7 @@ class SliderFloat2Widget: public IWidget
 	void     Draw();
 
 	protected:
-	tinystl::string mFormat;
+	eastl::string mFormat;
 	float2*         pData;
 	float2          mMin;
 	float2          mMax;
@@ -248,8 +248,8 @@ class SliderFloat3Widget: public IWidget
 {
 	public:
 	SliderFloat3Widget(
-		const tinystl::string& _label, float3* _data, const float3& _min, const float3& _max,
-		const float3& _step = float3(0.01f, 0.01f, 0.01f), const tinystl::string& _format = "%.3f"):
+		const eastl::string& _label, float3* _data, const float3& _min, const float3& _max,
+		const float3& _step = float3(0.01f, 0.01f, 0.01f), const eastl::string& _format = "%.3f"):
 		IWidget(_label),
 		mFormat(_format),
 		pData(_data),
@@ -263,7 +263,7 @@ class SliderFloat3Widget: public IWidget
 	void     Draw();
 
 	protected:
-	tinystl::string mFormat;
+	eastl::string mFormat;
 	float3*         pData;
 	float3          mMin;
 	float3          mMax;
@@ -274,8 +274,8 @@ class SliderFloat4Widget: public IWidget
 {
 	public:
 	SliderFloat4Widget(
-		const tinystl::string& _label, float4* _data, const float4& _min, const float4& _max,
-		const float4& _step = float4(0.01f, 0.01f, 0.01f, 0.01f), const tinystl::string& _format = "%.3f"):
+		const eastl::string& _label, float4* _data, const float4& _min, const float4& _max,
+		const float4& _step = float4(0.01f, 0.01f, 0.01f, 0.01f), const eastl::string& _format = "%.3f"):
 		IWidget(_label),
 		mFormat(_format),
 		pData(_data),
@@ -289,7 +289,7 @@ class SliderFloat4Widget: public IWidget
 	void     Draw();
 
 	protected:
-	tinystl::string mFormat;
+	eastl::string mFormat;
 	float4*         pData;
 	float4          mMin;
 	float4          mMax;
@@ -300,8 +300,8 @@ class SliderIntWidget: public IWidget
 {
 	public:
 	SliderIntWidget(
-		const tinystl::string& _label, int32_t* _data, int32_t _min, int32_t _max, int32_t _step = 1,
-		const tinystl::string& _format = "%d"):
+		const eastl::string& _label, int32_t* _data, int32_t _min, int32_t _max, int32_t _step = 1,
+		const eastl::string& _format = "%d"):
 		IWidget(_label),
 		mFormat(_format),
 		pData(_data),
@@ -315,7 +315,7 @@ class SliderIntWidget: public IWidget
 	void     Draw();
 
 	protected:
-	tinystl::string mFormat;
+	eastl::string mFormat;
 	int32_t*        pData;
 	int32_t         mMin;
 	int32_t         mMax;
@@ -326,8 +326,8 @@ class SliderUintWidget: public IWidget
 {
 	public:
 	SliderUintWidget(
-		const tinystl::string& _label, uint32_t* _data, uint32_t _min, uint32_t _max, uint32_t _step = 1,
-		const tinystl::string& _format = "%d"):
+		const eastl::string& _label, uint32_t* _data, uint32_t _min, uint32_t _max, uint32_t _step = 1,
+		const eastl::string& _format = "%d"):
 		IWidget(_label),
 		mFormat(_format),
 		pData(_data),
@@ -341,7 +341,7 @@ class SliderUintWidget: public IWidget
 	void     Draw();
 
 	protected:
-	tinystl::string mFormat;
+	eastl::string mFormat;
 	uint32_t*       pData;
 	uint32_t        mMin;
 	uint32_t        mMax;
@@ -351,7 +351,7 @@ class SliderUintWidget: public IWidget
 class RadioButtonWidget: public IWidget
 {
 	public:
-	RadioButtonWidget(const tinystl::string& _label, int32_t* _data, const int32_t _radioId):
+	RadioButtonWidget(const eastl::string& _label, int32_t* _data, const int32_t _radioId):
 		IWidget(_label),
 		pData(_data),
 		mRadioId(_radioId)
@@ -369,7 +369,7 @@ class RadioButtonWidget: public IWidget
 class CheckboxWidget: public IWidget
 {
 	public:
-	CheckboxWidget(const tinystl::string& _label, bool* _data): IWidget(_label), pData(_data) {}
+	CheckboxWidget(const eastl::string& _label, bool* _data): IWidget(_label), pData(_data) {}
 	IWidget* Clone() const;
 	void     Draw();
 
@@ -380,7 +380,7 @@ class CheckboxWidget: public IWidget
 class DropdownWidget: public IWidget
 {
 	public:
-	DropdownWidget(const tinystl::string& _label, uint32_t* _data, const char** _names, const uint32_t* _values, uint32_t count):
+	DropdownWidget(const eastl::string& _label, uint32_t* _data, const char** _names, const uint32_t* _values, uint32_t count):
 		IWidget(_label),
 		pData(_data)
 	{
@@ -397,14 +397,14 @@ class DropdownWidget: public IWidget
 
 	protected:
 	uint32_t*                        pData;
-	tinystl::vector<uint32_t>        mValues;
-	tinystl::vector<tinystl::string> mNames;
+	eastl::vector<uint32_t>        mValues;
+	eastl::vector<eastl::string> mNames;
 };
 
 class ProgressBarWidget: public IWidget
 {
 	public:
-	ProgressBarWidget(const tinystl::string& _label, size_t* _data, size_t const _maxProgress):
+	ProgressBarWidget(const eastl::string& _label, size_t* _data, size_t const _maxProgress):
 		IWidget(_label),
 		pData(_data),
 		mMaxProgress(_maxProgress)
@@ -422,7 +422,7 @@ class ProgressBarWidget: public IWidget
 class ColorSliderWidget: public IWidget
 {
 	public:
-	ColorSliderWidget(const tinystl::string& _label, uint32_t* _data): IWidget(_label), pData(_data) {}
+	ColorSliderWidget(const eastl::string& _label, uint32_t* _data): IWidget(_label), pData(_data) {}
 
 	IWidget* Clone() const;
 	void     Draw();
@@ -434,7 +434,7 @@ class ColorSliderWidget: public IWidget
 class ColorPickerWidget: public IWidget
 {
 	public:
-	ColorPickerWidget(const tinystl::string& _label, uint32_t* _data): IWidget(_label), pData(_data) {}
+	ColorPickerWidget(const eastl::string& _label, uint32_t* _data): IWidget(_label), pData(_data) {}
 
 	IWidget* Clone() const;
 	void     Draw();
@@ -446,7 +446,7 @@ class ColorPickerWidget: public IWidget
 class TextboxWidget: public IWidget
 {
 	public:
-	TextboxWidget(const tinystl::string& _label, char* _data, uint32_t const _length, bool const _autoSelectAll = true):
+	TextboxWidget(const eastl::string& _label, char* _data, uint32_t const _length, bool const _autoSelectAll = true):
 		IWidget(_label),
 		pData(_data),
 		mLength(_length),
@@ -523,11 +523,11 @@ class GuiComponent
 	void     RemoveAllWidgets();
 
 	class GUIDriver*          pDriver;
-	tinystl::vector<IWidget*> mWidgets;
-	tinystl::vector<bool>     mWidgetsClone;
+	eastl::vector<IWidget*> mWidgets;
+	eastl::vector<bool>     mWidgetsClone;
 	float4                    mInitialWindowRect;
 	float4                    mCurrentWindowRect;
-	tinystl::string           mTitle;
+	eastl::string           mTitle;
 	bool                      mActive;
 	// UI Component settings that can be modified at runtime by the client.
 	bool mHasCloseButton;
@@ -535,8 +535,8 @@ class GuiComponent
 	int32_t mFlags;
 
 	// Contextual menus when right clicking the title bar
-	tinystl::vector<tinystl::string> mContextualMenuLabels;
-	tinystl::vector<WidgetCallback>  mContextualMenuCallbacks;
+	eastl::vector<eastl::string> mContextualMenuLabels;
+	eastl::vector<WidgetCallback>  mContextualMenuCallbacks;
 };
 /************************************************************************/
 // Helper Class for removing and adding properties easily
@@ -584,7 +584,7 @@ typedef struct DynamicUIWidgets
 	}
 
 private:
-	tinystl::vector<IWidget*> mDynamicProperties;
+	eastl::vector<IWidget*> mDynamicProperties;
 } DynamicUIWidgets;
 /************************************************************************/
 // Abstract interface for handling GUI
@@ -639,9 +639,9 @@ struct UIAppImpl
 	Renderer*  pRenderer;
 	Fontstash* pFontStash;
 
-	tinystl::vector<GuiComponent*> mComponents;
+	eastl::vector<GuiComponent*> mComponents;
 
-	tinystl::vector<GuiComponent*> mComponentsToUpdate;
+	eastl::vector<GuiComponent*> mComponentsToUpdate;
 	bool                           mUpdated;
 };
 class UIApp: public IMiddleware

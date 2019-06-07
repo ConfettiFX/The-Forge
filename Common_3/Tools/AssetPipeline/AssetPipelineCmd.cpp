@@ -1,5 +1,5 @@
 #include "AssetPipeline.h"
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../OS/Interfaces/ILogManager.h"
 
 #include <cstdio>
@@ -57,8 +57,8 @@ int main(int argc, char** argv)
 	if (argc == 1)
 		PrintHelp();
 
-	tinystl::string arg = argv[1];
-	arg = arg.to_lower();
+	eastl::string arg = argv[1];
+	arg.make_lower();
 
 	if (arg == "-h" || arg == "-help")
 		PrintHelp();
@@ -71,15 +71,15 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		tinystl::string animationDir = argv[2];
-		tinystl::string outputDir = argv[3];
+		eastl::string animationDir = argv[2];
+		eastl::string outputDir = argv[3];
 
 		bool quiet = false;
 		bool force = false;
 		for (int j = 4; j < argc; ++j)
 		{
 			arg = argv[j];
-			arg = arg.to_lower();
+			arg.make_lower();
 
 			if (arg == "--quiet")
 				quiet = true;

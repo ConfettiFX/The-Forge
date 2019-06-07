@@ -1,5 +1,7 @@
 #include "../../OS/Interfaces/ILogManager.h"
 
+#include "../../ThirdParty/OpenSource/EASTL/sort.h"
+
 // Renderer
 #include "../IRenderer.h"
 #include "../IRay.h"
@@ -47,7 +49,7 @@ struct RaytracingShaderTable
 	uint64_t			mMissRecordSize;
 	uint64_t			mHitGroupRecordSize;
 	ShaderLocalData		mRaygenLocalData;
-	tinystl::vector<ShaderLocalData> mHitMissLocalData;
+	eastl::vector<ShaderLocalData> mHitMissLocalData;
 };
 
 //This structure is not defined in Vulkan headers but this layout is used on GPU side for
@@ -70,7 +72,7 @@ extern VkShaderStageFlags util_to_vk_shader_stage_flags(ShaderStage stages);
 extern const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex);
 extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
 extern bool load_shader_stage_byte_code( Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount,
-	ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, tinystl::vector<char>& byteCode);
+	ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, eastl::vector<char>& byteCode);
 extern void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
 VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flags(AccelerationStructureBuildFlags flags);
 VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags flags);
@@ -318,7 +320,7 @@ Buffer* createTopAS(Raytracing* pRaytracing, const AccelerationStructureDescTop*
 	/************************************************************************/
 	/*  Construct buffer with instances descriptions                        */
 	/************************************************************************/
-	tinystl::vector<VkGeometryInstanceNV> instanceDescs(pDesc->mInstancesDescCount);
+	eastl::vector<VkGeometryInstanceNV> instanceDescs(pDesc->mInstancesDescCount);
 	for (uint32_t i = 0; i < pDesc->mInstancesDescCount; ++i)
 	{
 		AccelerationStructureInstanceDesc* pInst = &pDesc->pInstanceDescs[i];
@@ -479,13 +481,13 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 typedef struct UpdateFrequencyLayoutInfo
 {
 	/// Array of all bindings in the descriptor set
-	tinystl::vector<VkDescriptorSetLayoutBinding> mBindings;
+	eastl::vector<VkDescriptorSetLayoutBinding> mBindings;
 	/// Array of all descriptors in this descriptor set
-	tinystl::vector<DescriptorInfo*> mDescriptors;
+	eastl::vector<DescriptorInfo*> mDescriptors;
 	/// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-	tinystl::vector<DescriptorInfo*> mDynamicDescriptors;
+	eastl::vector<DescriptorInfo*> mDynamicDescriptors;
 	/// Hash map to get index of the descriptor in the root signature
-	tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
+	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
 
 void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc) 
@@ -494,30 +496,28 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 	//////////////////////////////////////////////////////////////////////////
 
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
+	conf_placement_new<RootSignature>(pRootSignature);
 	if (local)
 	{
-		memset(pRootSignature, 0, sizeof(RootSignature));
 		*ppRootSignature = pRootSignature;
 		return;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////
-	tinystl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	tinystl::vector<DescriptorInfo*>           pushConstantDescriptors;
+	eastl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
+	eastl::vector<DescriptorInfo*>           pushConstantDescriptors;
 
-	tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
-	tinystl::vector<tinystl::string>                  dynamicUniformBuffers;
+	eastl::hash_map<eastl::string, Sampler*> staticSamplerMap;
+	eastl::vector<eastl::string>             dynamicUniformBuffers;
 
 	if (pRootDesc)
 	{
 		for (uint32_t i = 0; i < pRootDesc->mStaticSamplerCount; ++i)
-			staticSamplerMap.insert({ pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i] });
+			staticSamplerMap.insert({{ pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i] }});
 		for (uint32_t i = 0; i < pRootDesc->mDynamicUniformBufferCount; ++i)
 			dynamicUniformBuffers.push_back(pRootDesc->ppDynamicUniformBufferNames[i]);
 	}
-
-	conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
 
 	uint32_t additionalResources = local ? 0 : 1;
 
@@ -546,7 +546,7 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 		pDesc->mDesc.dim = pRes->dim;
 		memcpy((char*)pDesc->mDesc.name, pRes->name, pRes->name_size);
 
-		pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), i });
+		pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, i );
 
 		// If descriptor is not a root constant create a new layout binding for this descriptor and add it to the binding array
 		if (pDesc->mDesc.type != DESCRIPTOR_TYPE_ROOT_CONSTANT)
@@ -559,7 +559,7 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 
 			// If a user specified a uniform buffer to be used as a dynamic uniform buffer change its type to VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
 			// Also log a message for debugging purpose
-			if (dynamicUniformBuffers.find(pDesc->mDesc.name) != dynamicUniformBuffers.end())
+			if (eastl::find(dynamicUniformBuffers.begin(), dynamicUniformBuffers.end(), pDesc->mDesc.name) != dynamicUniformBuffers.end())
 			{
 				if (pDesc->mDesc.size == 1)
 				{
@@ -590,8 +590,8 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 			}
 
 			// Find if the given descriptor is a static sampler
-			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
-			if (pNode)
+			decltype(staticSamplerMap)::const_iterator pNode = staticSamplerMap.find(pDesc->mDesc.name);
+			if (pNode != staticSamplerMap.end())
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 
@@ -634,7 +634,7 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 		pDesc->mDesc.name_size = (uint32_t)strlen(name);
 		pDesc->mDesc.name = (const char*)conf_calloc(pDesc->mDesc.name_size + 1, sizeof(char));
 		memcpy((char*)pDesc->mDesc.name, name, pDesc->mDesc.name_size);
-		pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(name), resourceCount });
+		pRootSignature->pDescriptorNameToIndexMap.insert(name, resourceCount );
 
 		{
 			VkDescriptorSetLayoutBinding binding = {};
@@ -685,11 +685,11 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 		if (layouts[i].mBindings.size())
 		{
 			// sort table by type (CBV/SRV/UAV) by register
-			layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
-				return (int)(lhs.binding - rhs.binding);
+			eastl::stable_sort(layout.mBindings.begin(), layout.mBindings.end(), [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
+				return lhs.binding > rhs.binding;
 			});
-			layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
-				return (int)(lhs.descriptorType - rhs.descriptorType);
+			eastl::stable_sort(layout.mBindings.begin(), layout.mBindings.end(), [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
+				return lhs.descriptorType > rhs.descriptorType;
 			});
 		}
 
@@ -718,8 +718,9 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 			pRootSignature->mVkCumulativeDescriptorCounts[i] += pDesc->mDesc.size;
 		}
 
-		layout.mDynamicDescriptors.sort(
-			[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return (int)(lhs->mDesc.reg - rhs->mDesc.reg); });
+		eastl::stable_sort(
+			layout.mDynamicDescriptors.begin(), layout.mDynamicDescriptors.end(),
+			[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return lhs->mDesc.reg > rhs->mDesc.reg; });
 
 		pRootSignature->mVkDynamicDescriptorCounts[i] = (uint32_t)layout.mDynamicDescriptors.size();
 		for (uint32_t descIndex = 0; descIndex < pRootSignature->mVkDynamicDescriptorCounts[i]; ++descIndex)
@@ -731,8 +732,8 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 	/************************************************************************/
 	// Pipeline layout
 	/************************************************************************/
-	tinystl::vector<VkDescriptorSetLayout> descriptorSetLayouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	tinystl::vector<VkPushConstantRange>   pushConstants(pRootSignature->mVkPushConstantCount);
+	eastl::vector<VkDescriptorSetLayout> descriptorSetLayouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
+	eastl::vector<VkPushConstantRange>   pushConstants(pRootSignature->mVkPushConstantCount);
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		descriptorSetLayouts[i] = pRootSignature->mVkDescriptorSetLayouts[i];
 	for (uint32_t i = 0; i < pRootSignature->mVkPushConstantCount; ++i)
@@ -771,7 +772,7 @@ void CalculateMaxShaderRecordSize(const RaytracingShaderTableRecordDesc* pRecord
 
 uint32_t GetShaderStageIndex(Pipeline* pipeline, const char* name)
 {
-	tinystl::string nameStr(name);
+	eastl::string nameStr(name);
 	for (uint32_t i = 0; i < pipeline->mShadersStagesNames.size(); ++i)
 	{
 		if (pipeline->mShadersStagesNames[i] == nameStr)
@@ -876,9 +877,9 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 }
 
 void GenerateStagesGroupsData(const RaytracingPipelineDesc* pDesc, 
-								tinystl::vector<VkPipelineShaderStageCreateInfo>& stages,
-								tinystl::vector<tinystl::string>&	stagesNames,
-								tinystl::vector<VkRayTracingShaderGroupCreateInfoNV>& groups)
+								eastl::vector<VkPipelineShaderStageCreateInfo>& stages,
+								eastl::vector<eastl::string>&	stagesNames,
+								eastl::vector<VkRayTracingShaderGroupCreateInfoNV>& groups)
 {
 	stages.clear();
 	stages.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
@@ -1012,8 +1013,8 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 
 	//////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////
-	tinystl::vector<VkPipelineShaderStageCreateInfo> stages;
-	tinystl::vector<VkRayTracingShaderGroupCreateInfoNV> groups;
+	eastl::vector<VkPipelineShaderStageCreateInfo> stages;
+	eastl::vector<VkRayTracingShaderGroupCreateInfoNV> groups;
 	GenerateStagesGroupsData(pDesc, stages, pResult->mShadersStagesNames, groups);
 
 	VkRayTracingPipelineCreateInfoNV createInfo = {};

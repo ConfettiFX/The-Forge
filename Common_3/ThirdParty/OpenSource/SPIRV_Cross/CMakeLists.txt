@@ -35,7 +35,7 @@ endif()
 # -DCMAKE_CXX_COMPILE_FLAGS
 # However, we require the C++11 dialect.
 if (NOT "${MSVC}")
-  set(spirv-compiler-options ${spirv-compiler-options} -std=c++11 -Wall -Wextra -Werror -Wshadow)
+  set(spirv-compiler-options ${spirv-compiler-options} -std=c++14 -Wall -Wextra -Werror -Wshadow)
   set(spirv-compiler-defines ${spirv-compiler-defines} __STDC_LIMIT_MACROS)
 
   if(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)

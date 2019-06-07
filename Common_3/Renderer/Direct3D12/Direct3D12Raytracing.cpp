@@ -7,7 +7,9 @@
 
 // OS
 #include "../../OS/Interfaces/ILogManager.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_set.h"
+#include "../../ThirdParty/OpenSource/EASTL/hash_set.h"
+#include "../../ThirdParty/OpenSource/EASTL/hash_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/sort.h"
 
 // Renderer
 #include "../IRay.h"
@@ -54,7 +56,7 @@ typedef struct DescriptorTable
 } DescriptorTable;
 
 #define MAX_FRAMES_IN_FLIGHT 3U
-using HashMap = tinystl::unordered_map<uint64_t, uint32_t>;
+//using HashMap = eastl::unordered_map<uint64_t, uint32_t>;
 
 typedef struct DescriptorBinderNode
 {
@@ -64,7 +66,7 @@ typedef struct DescriptorBinderNode
 	uint32_t         mSamplerUsageCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint64_t         mUpdatedNoneFreqHash[MAX_FRAMES_IN_FLIGHT][2];  // 2 is for CbvSrvUav (0) and Sampler (1)
 	uint64_t         mUpdatedFrameFreqHash[MAX_FRAMES_IN_FLIGHT][2];
-	HashMap          mUpdatedBatchFreqHashes[MAX_FRAMES_IN_FLIGHT][2];
+	//HashMap          mUpdatedBatchFreqHashes[MAX_FRAMES_IN_FLIGHT][2];
 	uint32_t         mCbvSrvUavUpdatesThisFrame[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t         mSamplerUpdatesThisFrame[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t         mLastFrameUpdated;
@@ -83,8 +85,7 @@ typedef struct DescriptorBinderNode
 	uint32_t mDescriptorTableCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 } DescriptorBinderNode;
 
-using DescriptorBinderMap = tinystl::unordered_map<const RootSignature*, DescriptorBinderNode>;
-using DescriptorBinderMapNode = tinystl::unordered_hash_node<const RootSignature*, DescriptorBinderNode>;
+using DescriptorBinderMap = eastl::hash_map<const RootSignature*, DescriptorBinderNode>;
 
 typedef struct DescriptorBinder
 {
@@ -182,8 +183,8 @@ struct RaytracingShaderTable
 	uint64_t					mMissRecordSize;
 	uint64_t					mHitGroupRecordSize;
 
-	tinystl::vector<Buffer*> hitConfigBuffers;
-	tinystl::vector<Buffer*> missConfigBuffers;
+	eastl::vector<Buffer*> hitConfigBuffers;
+	eastl::vector<Buffer*> missConfigBuffers;
 	Buffer* pRayGenConfigBuffer;
 	DescriptorBinder* pDescriptorBinder;
 };
@@ -388,7 +389,7 @@ Buffer* createTopAS(Raytracing* pRaytracing, const AccelerationStructureDescTop*
 	/************************************************************************/
 	/*  Construct buffer with instances descriptions                        */
 	/************************************************************************/
-	tinystl::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs(pDesc->mInstancesDescCount);
+	eastl::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs(pDesc->mInstancesDescCount);
 	for (uint32_t i = 0; i < pDesc->mInstancesDescCount; ++i)
 	{
 		AccelerationStructureInstanceDesc* pInst = &pDesc->pInstanceDescs[i];
@@ -515,11 +516,11 @@ void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader)
 
 typedef struct UpdateFrequencyLayoutInfo
 {
-	tinystl::vector <DescriptorInfo*> mCbvSrvUavTable;
-	tinystl::vector <DescriptorInfo*> mSamplerTable;
-	tinystl::vector <DescriptorInfo*> mConstantParams;
-	tinystl::vector <DescriptorInfo*> mRootConstants;
-	tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
+	eastl::vector <DescriptorInfo*> mCbvSrvUavTable;
+	eastl::vector <DescriptorInfo*> mSamplerTable;
+	eastl::vector <DescriptorInfo*> mConstantParams;
+	eastl::vector <DescriptorInfo*> mRootConstants;
+	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
 
 static const RootSignatureDesc gDefaultRootSignatureDesc = {};
@@ -529,9 +530,9 @@ extern void create_root_constant_1_0(const DescriptorInfo* pDesc, D3D12_ROOT_PAR
 extern const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex);
 
 uint32_t setupDescAndLayout(	const ShaderResource* pRes, DescriptorInfo* pDesc,
-		tinystl::vector<UpdateFrequencyLayoutInfo>& layouts,
-		tinystl::vector <tinystl::pair<DescriptorInfo*, Sampler*> >& staticSamplers,
-		const tinystl::unordered_map<tinystl::string, Sampler*>& staticSamplerMap,
+		eastl::vector<UpdateFrequencyLayoutInfo>& layouts,
+		eastl::vector <eastl::pair<DescriptorInfo*, Sampler*> >& staticSamplers,
+		const eastl::string_hash_map<Sampler*>& staticSamplerMap,
 		uint32_t maxBindlessTextures)
 {
 	uint32_t setIndex = pRes->set;
@@ -560,9 +561,9 @@ uint32_t setupDescAndLayout(	const ShaderResource* pRes, DescriptorInfo* pDesc,
 	if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 	{
 		// If the sampler is a static sampler, no need to put it in the descriptor table
-		const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
+		eastl::string_hash_map<Sampler*>::const_iterator pNode = staticSamplerMap.find(pDesc->mDesc.name);
 
-		if (pNode)
+		if (pNode != staticSamplerMap.end())
 		{
 			LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 			// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
@@ -580,7 +581,9 @@ uint32_t setupDescAndLayout(	const ShaderResource* pRes, DescriptorInfo* pDesc,
 	{
 		// D3D12 has no special syntax to declare root constants like Vulkan
 		// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-		if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != tinystl::string::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+		eastl::string name(pRes->name);
+		name.make_lower();
+		if (name.find("rootconstant", 0) != eastl::string::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 		{
 			// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 			pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -614,6 +617,8 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 	ASSERT(pRootSignature);
 	
+	conf_placement_new<RootSignature>(pRootSignature);
+
 	uint32_t additinalResourcesCount = 0;
 	if (local)
 	{
@@ -628,18 +633,14 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 	if (resourceCount + additinalResourcesCount > 0)
 		pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(*pRootSignature->pDescriptors));
 
-	//pRootSignature->pDescriptorNameToIndexMap;
-	conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(
-		&pRootSignature->pDescriptorNameToIndexMap);
-
 	const RootSignatureDesc* pRootSignatureDesc = pRootDesc ? pRootDesc : &gDefaultRootSignatureDesc;
 
-	tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
+	eastl::string_hash_map<Sampler*> staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
-		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
+		staticSamplerMap.insert(pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i]);
 
-	tinystl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	tinystl::vector <tinystl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
+	eastl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
+	eastl::vector <eastl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
 	/************************************************************************/
 	// Fill Descriptor Info
 	/************************************************************************/
@@ -649,7 +650,7 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 		DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
 		const ShaderResource* pRes = &pResources[i];
 		uint32_t setIndex = setupDescAndLayout(pRes, pDesc, layouts, staticSamplers, staticSamplerMap, pRootSignatureDesc->mMaxBindlessTextures);
-		pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pDesc->mDesc.name), i });
+		pRootSignature->pDescriptorNameToIndexMap.insert(pDesc->mDesc.name, i);
 		layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 	}
 	if (local)
@@ -665,15 +666,15 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 		res.used_stages = SHADER_STAGE_COMP;
 
 		uint32_t setIndex = setupDescAndLayout(&res, pDesc, layouts, staticSamplers, staticSamplerMap, pRootSignatureDesc->mMaxBindlessTextures);
-		pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pDesc->mDesc.name), resourceCount });
+		pRootSignature->pDescriptorNameToIndexMap.insert(pDesc->mDesc.name, resourceCount);
 		layouts[setIndex].mDescriptorIndexMap[pDesc] = resourceCount;
 	}
 
-	tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE> > cbvSrvUavRange_1_0((uint32_t)layouts.size());
-	tinystl::vector <tinystl::vector <D3D12_DESCRIPTOR_RANGE> > samplerRange_1_0((uint32_t)layouts.size());
-	tinystl::vector <D3D12_ROOT_PARAMETER> rootParams_1_0;
+	eastl::vector <eastl::vector <D3D12_DESCRIPTOR_RANGE> > cbvSrvUavRange_1_0((uint32_t)layouts.size());
+	eastl::vector <eastl::vector <D3D12_DESCRIPTOR_RANGE> > samplerRange_1_0((uint32_t)layouts.size());
+	eastl::vector <D3D12_ROOT_PARAMETER> rootParams_1_0;
 
-	tinystl::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs(staticSamplers.size());
+	eastl::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs(staticSamplers.size());
 	for (uint32_t i = 0; i < (uint32_t)staticSamplers.size(); ++i)
 	{
 		staticSamplerDescs[i].Filter = staticSamplers[i].second->mDxSamplerDesc.Filter;
@@ -783,18 +784,15 @@ void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pReso
 		if (layout.mCbvSrvUavTable.size())
 		{
 			// sort table by type (CBV/SRV/UAV) by register by space
-			layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
-			{
-				return (int)(lhs->mDesc.reg - rhs->mDesc.reg);
-			});
-			layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
-			{
-				return (int)(lhs->mDesc.set - rhs->mDesc.set);
-			});
-			layout.mCbvSrvUavTable.sort([](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs)
-			{
-				return (int)(lhs->mDesc.type - rhs->mDesc.type);
-			});
+			eastl::stable_sort(
+				layout.mCbvSrvUavTable.begin(), layout.mCbvSrvUavTable.end(),
+				[](DescriptorInfo* const lhs, DescriptorInfo* const rhs) { return lhs->mDesc.reg > rhs->mDesc.reg; });
+			eastl::stable_sort(
+				layout.mCbvSrvUavTable.begin(), layout.mCbvSrvUavTable.end(),
+				[](DescriptorInfo* const lhs, DescriptorInfo* const rhs) { return lhs->mDesc.set > rhs->mDesc.set; });
+			eastl::stable_sort(
+				layout.mCbvSrvUavTable.begin(), layout.mCbvSrvUavTable.end(),
+				[](DescriptorInfo* const lhs, DescriptorInfo* const rhs) { return lhs->mDesc.type > rhs->mDesc.type; });
 
 			D3D12_ROOT_PARAMETER rootParam_1_0;
 			create_descriptor_table_1_0((uint32_t)layout.mCbvSrvUavTable.size(), layout.mCbvSrvUavTable.data(), cbvSrvUavRange_1_0[i].data(), &rootParam_1_0);
@@ -899,19 +897,19 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	/************************************************************************/
 	// Pipeline Creation
 	/************************************************************************/
-	tinystl::vector<D3D12_STATE_SUBOBJECT> subobjects;
-	tinystl::vector<tinystl::pair<uint32_t, D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION*> > exportAssociationsDelayed;
+	eastl::vector<D3D12_STATE_SUBOBJECT>                                           subobjects;
+	eastl::vector<eastl::pair<uint32_t, D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION*> > exportAssociationsDelayed;
 	// Reserve average number of subobject space in the beginning
 	subobjects.reserve(10);
 	/************************************************************************/
 	// Step 1 - Create DXIL Libraries
 	/************************************************************************/
-	tinystl::vector<D3D12_DXIL_LIBRARY_DESC> dxilLibDescs;
-	tinystl::vector<D3D12_STATE_SUBOBJECT> stateSubobject = {};
-	tinystl::vector<D3D12_EXPORT_DESC*> exportDesc = {};
+	eastl::vector<D3D12_DXIL_LIBRARY_DESC> dxilLibDescs;
+	eastl::vector<D3D12_STATE_SUBOBJECT>   stateSubobject = {};
+	eastl::vector<D3D12_EXPORT_DESC*>      exportDesc = {};
 
 	D3D12_DXIL_LIBRARY_DESC rayGenDesc = {};
-	D3D12_EXPORT_DESC rayGenExportDesc = {};
+	D3D12_EXPORT_DESC       rayGenExportDesc = {};
 	rayGenExportDesc.ExportToRename = NULL;
 	rayGenExportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
 	rayGenExportDesc.Name = pDesc->pRayGenShader->pEntryNames[0];
@@ -923,7 +921,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 
 	dxilLibDescs.emplace_back(rayGenDesc);
 
-	tinystl::vector<LPCWSTR> missShadersEntries(pDesc->mMissShaderCount);
+	eastl::vector<LPCWSTR> missShadersEntries(pDesc->mMissShaderCount);
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
 		D3D12_EXPORT_DESC* pMissExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pMissExportDesc));
@@ -943,9 +941,9 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 		dxilLibDescs.emplace_back(missDesc);
 	}
 
-	tinystl::vector<LPCWSTR> hitGroupsIntersectionsEntries(pDesc->mHitGroupCount);
-	tinystl::vector<LPCWSTR> hitGroupsAnyHitEntries(pDesc->mHitGroupCount);
-	tinystl::vector<LPCWSTR> hitGroupsClosestHitEntries(pDesc->mHitGroupCount);
+	eastl::vector<LPCWSTR> hitGroupsIntersectionsEntries(pDesc->mHitGroupCount);
+	eastl::vector<LPCWSTR> hitGroupsAnyHitEntries(pDesc->mHitGroupCount);
+	eastl::vector<LPCWSTR> hitGroupsClosestHitEntries(pDesc->mHitGroupCount);
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
 	{
 		if (pDesc->pHitGroups[i].pIntersectionShader)
@@ -1003,17 +1001,13 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 
 	for (uint32_t i = 0; i < (uint32_t)dxilLibDescs.size(); ++i)
 	{
-		D3D12_STATE_SUBOBJECT subobject = {};
-		subobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
-		subobject.pDesc = &dxilLibDescs[i];
-		subobjects.emplace_back(subobject);
+		subobjects.emplace_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &dxilLibDescs[i] });
 	}
 	/************************************************************************/
 	// Step 2 - Create Hit Groups
 	/************************************************************************/
-	tinystl::vector<D3D12_HIT_GROUP_DESC> hitGroupDescs(pDesc->mHitGroupCount);
-	tinystl::vector<D3D12_STATE_SUBOBJECT> hitGroupObjects(pDesc->mHitGroupCount);
-	tinystl::vector<WCHAR*> hitGroupNames(pDesc->mHitGroupCount);
+	eastl::vector<D3D12_HIT_GROUP_DESC> hitGroupDescs(pDesc->mHitGroupCount);
+	eastl::vector<WCHAR*>               hitGroupNames(pDesc->mHitGroupCount);
 
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
 	{
@@ -1045,41 +1039,30 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 
 		hitGroupDescs[i].HitGroupExport = hitGroupNames[i];
 
-		hitGroupObjects[i].Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
-		hitGroupObjects[i].pDesc = &hitGroupDescs[i];
-		subobjects.emplace_back(hitGroupObjects[i]);
+		subobjects.emplace_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, &hitGroupDescs[i] });
 	}
 	/************************************************************************/
 	// Step 4 = Pipeline Config
 	/************************************************************************/
 	D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};
 	pipelineConfig.MaxTraceRecursionDepth = pDesc->mMaxTraceRecursionDepth;
-	D3D12_STATE_SUBOBJECT pipelineConfigObject = {};
-	pipelineConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG;
-	pipelineConfigObject.pDesc = &pipelineConfig;
-	subobjects.emplace_back(pipelineConfigObject);
+	subobjects.emplace_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pipelineConfig });
 	/************************************************************************/
 	// Step 5 - Global Root Signature
 	/************************************************************************/
-	D3D12_STATE_SUBOBJECT globalRootSignatureObject = {};
-	globalRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
-	globalRootSignatureObject.pDesc = pDesc->pGlobalRootSignature ? &pDesc->pGlobalRootSignature->pDxRootSignature : NULL;
-	subobjects.emplace_back(globalRootSignatureObject);
+	subobjects.emplace_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE,
+												   pDesc->pGlobalRootSignature ? &pDesc->pGlobalRootSignature->pDxRootSignature : NULL });
 	/************************************************************************/
 	// Step 6 - Local Root Signatures
 	/************************************************************************/
 	// Local Root Signature for Ray Generation Shader
-	D3D12_STATE_SUBOBJECT rayGenRootSignatureObject = {};
 	D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION rayGenRootSignatureAssociation = {};
-	D3D12_LOCAL_ROOT_SIGNATURE rayGenRSdesc = {};
+	D3D12_LOCAL_ROOT_SIGNATURE             rayGenRSdesc = {};
 	//if (pDesc->pRayGenRootSignature)
 	{
-		rayGenRootSignatureObject.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-		rayGenRSdesc.pLocalRootSignature = pDesc->pRayGenRootSignature ?
-			pDesc->pRayGenRootSignature->pDxRootSignature :
-			pDesc->pEmptyRootSignature->pDxRootSignature;
-		rayGenRootSignatureObject.pDesc = &rayGenRSdesc;
-		subobjects.emplace_back(rayGenRootSignatureObject);
+		rayGenRSdesc.pLocalRootSignature =
+			pDesc->pRayGenRootSignature ? pDesc->pRayGenRootSignature->pDxRootSignature : pDesc->pEmptyRootSignature->pDxRootSignature;
+		subobjects.emplace_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE, &rayGenRSdesc });
 
 		rayGenRootSignatureAssociation.NumExports = 1;
 		rayGenRootSignatureAssociation.pExports = &rayGenExportDesc.Name;
@@ -1088,9 +1071,10 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	}
 
 	// Local Root Signatures for Miss Shaders
-	tinystl::vector<D3D12_STATE_SUBOBJECT> missRootSignatures(pDesc->mMissShaderCount);
-	tinystl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> missRootSignaturesAssociation(pDesc->mMissShaderCount);
-	tinystl::vector<D3D12_LOCAL_ROOT_SIGNATURE> mMissShaderRSDescs(pDesc->mMissShaderCount);;
+	eastl::vector<D3D12_STATE_SUBOBJECT>                  missRootSignatures(pDesc->mMissShaderCount);
+	eastl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> missRootSignaturesAssociation(pDesc->mMissShaderCount);
+	eastl::vector<D3D12_LOCAL_ROOT_SIGNATURE>             mMissShaderRSDescs(pDesc->mMissShaderCount);
+	;
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
 		//if (pDesc->ppMissRootSignatures && pDesc->ppMissRootSignatures[i])
@@ -1111,9 +1095,9 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	}
 
 	// Local Root Signatures for Hit Groups
-	tinystl::vector<D3D12_STATE_SUBOBJECT> hitGroupRootSignatures(pDesc->mHitGroupCount);
-	tinystl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> hitGroupRootSignatureAssociation(pDesc->mHitGroupCount);
-	tinystl::vector<D3D12_LOCAL_ROOT_SIGNATURE> hitGroupRSDescs(pDesc->mHitGroupCount);
+	eastl::vector<D3D12_STATE_SUBOBJECT>                  hitGroupRootSignatures(pDesc->mHitGroupCount);
+	eastl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> hitGroupRootSignatureAssociation(pDesc->mHitGroupCount);
+	eastl::vector<D3D12_LOCAL_ROOT_SIGNATURE>             hitGroupRSDescs(pDesc->mHitGroupCount);
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
 	{
 		//if (pDesc->pHitGroups[i].pRootSignature)
@@ -1135,21 +1119,17 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	/************************************************************************/
 	// Shader Config
 	/************************************************************************/
-	{
-		D3D12_RAYTRACING_SHADER_CONFIG shaderConfig = {};
-		shaderConfig.MaxAttributeSizeInBytes = pDesc->mAttributeSize;
-		shaderConfig.MaxPayloadSizeInBytes = pDesc->mPayloadSize;
+	D3D12_RAYTRACING_SHADER_CONFIG shaderConfig = {};
+	shaderConfig.MaxAttributeSizeInBytes = pDesc->mAttributeSize;
+	shaderConfig.MaxPayloadSizeInBytes = pDesc->mPayloadSize;
+	subobjects.push_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &shaderConfig });
 
-		D3D12_STATE_SUBOBJECT shaderConfigObject = {};
-		shaderConfigObject.Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG;
-		shaderConfigObject.pDesc = &shaderConfig;
-
-		subobjects.push_back(shaderConfigObject);
-	}
 	/************************************************************************/
 	// Export Associations
 	/************************************************************************/
-	for (uint32_t i = 0; i < (uint32_t)exportAssociationsDelayed.size(); ++i)
+	size_t base = subobjects.size(), numExportAssocs = exportAssociationsDelayed.size();
+	subobjects.resize(base + numExportAssocs);
+	for (size_t i = 0; i < numExportAssocs; ++i)
 	{
 		exportAssociationsDelayed[i].second->pSubobjectToAssociate = &subobjects[exportAssociationsDelayed[i].first];
 		//D3D12_STATE_SUBOBJECT exportAssociationLocalRootSignature;
@@ -1159,10 +1139,8 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 		//exportAssociationLocalRootSignature.pDesc = &desc;
 		//subobjects.push_back(exportAssociationLocalRootSignature);
 
-		D3D12_STATE_SUBOBJECT exportAssociationObject = {};
-		exportAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-		exportAssociationObject.pDesc = exportAssociationsDelayed[i].second;
-		subobjects.push_back(exportAssociationObject);
+		subobjects[base + i].Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
+		subobjects[base + i].pDesc = exportAssociationsDelayed[i].second;
 	}
 	/************************************************************************/
 	// Step 7 - Create State Object
@@ -1199,7 +1177,7 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDXDesc* pRecords, u
 {
 	for (uint32_t i = 0; i < shaderCount; ++i)
 	{
-		tinystl::unordered_set<uint32_t> addedTables;
+		eastl::hash_set<uint32_t> addedTables;
 
 		const RaytracingShaderTableRecordDXDesc* pRecord = &pRecords[i];
 		void* pIdentifier = NULL;
@@ -1224,18 +1202,18 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDXDesc* pRecords, u
 		// So we collect them here and do a lookup when looping through the descriptor array
 		// from the root signature
 		/************************************************************************/
-		tinystl::unordered_map<uint32_t, const DescriptorData*> data;
+		eastl::string_hash_map<const DescriptorData*> data;
 		for (uint32_t desc = 0; desc < pRecord->mRootDataCount; ++desc)
 		{
-			data.insert({ tinystl::hash(pRecord->pRootData[desc].pName), &pRecord->pRootData[desc] });
+			data.insert(pRecord->pRootData[desc].pName, &pRecord->pRootData[desc]);
 		}
 
 		for (uint32_t desc = 0; desc < pRecord->pRootSignature->mDescriptorCount; ++desc)
 		{
 			uint32_t descIndex = -1;
 			const DescriptorInfo* pDesc = &pRecord->pRootSignature->pDescriptors[desc];
-			tinystl::unordered_map<uint32_t, const DescriptorData*>::iterator it = data.find(tinystl::hash(pDesc->mDesc.name));
-			const DescriptorData* pData = it.node->second;
+			eastl::string_hash_map<const DescriptorData*>::iterator it = data.find(pDesc->mDesc.name);
+			const DescriptorData* pData = it->second;
 
 			switch (pDesc->mDxType)
 			{
@@ -1279,7 +1257,7 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDXDesc* pRecords, u
 						for (uint32_t i = 0; i < pRootSignature->mDxSamplerDescriptorCounts[setIndex]; ++i)
 						{
 							const DescriptorInfo* pTableDesc = &pRootSignature->pDescriptors[pRootSignature->pDxSamplerDescriptorIndices[setIndex][i]];
-							const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
+							const DescriptorData* pTableData = data.find(pTableDesc->mDesc.name)->second;
 							const uint32_t arrayCount = max(1U, pTableData->mCount);
 							for (uint32_t samplerIndex = 0; samplerIndex < arrayCount; ++samplerIndex)
 							{
@@ -1300,7 +1278,7 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDXDesc* pRecords, u
 						for (uint32_t i = 0; i < pRootSignature->mDxViewDescriptorCounts[setIndex]; ++i)
 						{
 							const DescriptorInfo* pTableDesc = &pRootSignature->pDescriptors[pRootSignature->pDxViewDescriptorIndices[setIndex][i]];
-							const DescriptorData* pTableData = data.find(tinystl::hash(pTableDesc->mDesc.name)).node->second;
+							const DescriptorData* pTableData = data.find(pTableDesc->mDesc.name)->second;
 							const DescriptorType type = pTableDesc->mDesc.type;
 							const uint32_t arrayCount = max(1U, pTableData->mCount);
 							switch (type)
@@ -1371,7 +1349,7 @@ void CalculateMaxShaderRecordSize(const RaytracingShaderTableRecordDXDesc* pReco
 {
 	for (uint32_t i = 0; i < shaderCount; ++i)
 	{
-		tinystl::unordered_set<uint32_t> addedTables;
+		eastl::hash_set<uint32_t> addedTables;
 		const RaytracingShaderTableRecordDXDesc* pRecord = &pRecords[i];
 		uint32_t shaderSize = 0;
 		for (uint32_t desc = 0; desc < pRecord->mRootDataCount; ++desc)
@@ -1456,7 +1434,7 @@ void SetupSingleConfigBuffer(const RaytracingShaderTableRecordDesc* desc, Buffer
 	addResource(&ubDesc);
 }
 
-void SetupConfigBuffers(const RaytracingShaderTableDesc* pDesc, tinystl::vector<Buffer*>& hitBuffers, tinystl::vector<Buffer*>& missBuffers, Buffer** pRayGenBuffer)
+void SetupConfigBuffers(const RaytracingShaderTableDesc* pDesc, eastl::vector<Buffer*>& hitBuffers, eastl::vector<Buffer*>& missBuffers, Buffer** pRayGenBuffer)
 {
 	if (pDesc->pRayGenShader->mInvokeTraceRay)
 	{
@@ -1486,8 +1464,8 @@ void SetupConfigBuffers(const RaytracingShaderTableDesc* pDesc, tinystl::vector<
 }
 
 RaytracingShaderTableDXDesc* CopyTableAndSetupLocalSignature(	const RaytracingShaderTableDesc* pInitialDesc,
-															tinystl::vector<Buffer*>& hitBuffers,
-															tinystl::vector<Buffer*>& missBuffers,
+															eastl::vector<Buffer*>& hitBuffers,
+															eastl::vector<Buffer*>& missBuffers,
 															Buffer** ppRayGenBuffer)
 {
 	RaytracingShaderTableDXDesc* newDesc = (RaytracingShaderTableDXDesc*)conf_calloc(1, sizeof(RaytracingShaderTableDXDesc));

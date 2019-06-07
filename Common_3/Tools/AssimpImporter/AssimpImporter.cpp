@@ -48,32 +48,31 @@ static inline mat4 AssimpMat4ToMatrix(const aiMatrix4x4& mat)
 	return transpose(result);
 }
 
-static tinystl::string ExtractSceneNameFromFileName(const char* input)
+static eastl::string ExtractSceneNameFromFileName(const char* input)
 {
-	tinystl::string in(input);
-	unsigned int    lastSlash = -1;
-	if (!in.rfind('/', -1, &lastSlash))
-		in.rfind('\\', -1, &lastSlash);
+	eastl::string in(input);
+	size_t lastSlash = in.rfind('/');
+	if (lastSlash == eastl::string::npos)
+		lastSlash = in.rfind('\\');
 
-	unsigned int lastperiod = 0;
-	in.rfind('.', -1, &lastperiod);
+	size_t lastperiod = in.rfind('.');
 
-	tinystl::string shortName(&in[lastSlash + 1], lastperiod - lastSlash - 1);
-	shortName = shortName.to_lower();
-	shortName.replace(' ', '_');
+	eastl::string shortName(&in[lastSlash + 1], lastperiod - lastSlash - 1);
+	shortName.make_lower();
+	eastl::replace(shortName.begin(), shortName.end(), ' ', '_');
 
 	return shortName;
 }
 
 static IModelImporter::ModelSourceType ExtractSourceTypeFromFileName(const char* input)
 {
-	tinystl::string in(input);
-	unsigned int    lastPeriod = 0;
-	if (!in.rfind('.', -1, &lastPeriod))
+	eastl::string in(input);
+	size_t    lastPeriod = in.rfind('.');
+	if (lastPeriod == eastl::string::npos)
 		return IModelImporter::MODEL_SOURCE_TYPE_UNKNOWN;
 
-	tinystl::string extension(&in[lastPeriod + 1]);
-	extension = extension.to_lower();
+	eastl::string extension(&in[lastPeriod + 1]);
+	extension.make_lower();
 
 	if (extension == "obj")
 		return IModelImporter::MODEL_SOURCE_TYPE_OBJ;
@@ -109,19 +108,19 @@ static bool SetTextureMapTilingMode(IModelImporter::TextureMap* textureMap, cons
 }
 
 static void GetNameFromAiString(
-	tinystl::unordered_map<tinystl::string, size_t>* pMap, const aiString& originalName, tinystl::string& meshName,
-	const tinystl::string& defaultPrefix /*= "entity"*/)
+	eastl::unordered_map<eastl::string, size_t>* pMap, const aiString& originalName, eastl::string& meshName,
+	const eastl::string& defaultPrefix /*= "entity"*/)
 {
 	meshName = originalName.C_Str();
-	meshName.replace(' ', '_');
+	eastl::replace(meshName.begin(), meshName.end(), ' ', '_');
 	if (meshName.size() == 0)
 	{
 		meshName = defaultPrefix + "_";
 		if (pMap->find(meshName) == pMap->end())
 		{
-			pMap->insert(tinystl::pair<tinystl::string, size_t>(meshName, 0));
+			pMap->insert(eastl::pair<eastl::string, size_t>(meshName, 0));
 		}
-		meshName += tinystl::string::format("%d", (int)((*pMap)[meshName])++);
+		meshName.append_sprintf("%d", (int)((*pMap)[meshName])++);
 	}
 }
 
@@ -231,7 +230,7 @@ static void CreateGeom(const aiMesh* mesh, const char* name, AssimpImporter::Mes
 		pMesh->mBoneWeights.resize(mesh->mNumVertices);
 		pMesh->mBoneNames.resize(mesh->mNumVertices);
 		pMesh->mBones.resize(mesh->mNumBones);
-		tinystl::vector<uint> vertexBoneCount(mesh->mNumVertices, 0);
+		eastl::vector<uint> vertexBoneCount(mesh->mNumVertices, 0);
 
 		for (uint32_t i = 0; i < mesh->mNumBones; ++i)
 		{
@@ -269,7 +268,7 @@ static void CreateGeom(const aiMesh* mesh, const char* name, AssimpImporter::Mes
 	}
 }
 
-static bool FindGeometry(const tinystl::string& src, const tinystl::string* pData, uint32_t count)
+static bool FindGeometry(const eastl::string& src, const eastl::string* pData, uint32_t count)
 {
 	for (uint32_t i = 0; i < count; ++i)
 		if (src == pData[i])
@@ -278,7 +277,7 @@ static bool FindGeometry(const tinystl::string& src, const tinystl::string* pDat
 	return false;
 }
 
-static void CollectMeshes(const aiScene* pScene, AssimpImporter::Model* pModel, tinystl::unordered_map<tinystl::string, size_t>* pMap)
+static void CollectMeshes(const aiScene* pScene, AssimpImporter::Model* pModel, eastl::unordered_map<eastl::string, size_t>* pMap)
 {
 	//Set the size of the geometryList
 	pModel->mGeometryNameList.resize(pScene->mNumMeshes);
@@ -287,7 +286,8 @@ static void CollectMeshes(const aiScene* pScene, AssimpImporter::Model* pModel, 
 	{
 		pModel->mMeshArray.push_back(AssimpImporter::Mesh());
 		//Get the mesh name
-		tinystl::string meshName = tinystl::string::format("%s_Mesh_%u", pModel->mSceneName.c_str(), i);
+		eastl::string meshName;
+		meshName.sprintf("%s_Mesh_%u", pModel->mSceneName.c_str(), i);
 
 		//parse geometry information
 		CreateGeom(pScene->mMeshes[i], (char*)meshName.c_str(), &pModel->mMeshArray.back());
@@ -300,12 +300,12 @@ static void CollectMeshes(const aiScene* pScene, AssimpImporter::Model* pModel, 
 		}
 		else
 		{
-			pModel->mGeometryNameList[i] = meshName + tinystl::string::format("%u", i);
+			pModel->mGeometryNameList[i].sprintf("%s%u", meshName.c_str(), i);
 		}
 	}
 }
 
-static void CollectMaterials(const aiScene* pScene, AssimpImporter::Model* pModel, tinystl::unordered_map<tinystl::string, size_t>* pMap)
+static void CollectMaterials(const aiScene* pScene, AssimpImporter::Model* pModel, eastl::unordered_map<eastl::string, size_t>* pMap)
 {
 	if (pScene->mNumMaterials > 0)
 	{
@@ -363,7 +363,7 @@ static void CollectMaterials(const aiScene* pScene, AssimpImporter::Model* pMode
 					default: break;
 				}
 
-				pModel->mMaterialList[matIndex].mProperties.insert({ tinystl::string(pProp->mKey.C_Str()), prop });
+				pModel->mMaterialList[matIndex].mProperties.insert({ eastl::string(pProp->mKey.C_Str()), prop });
 			}
 
 			for (uint32_t textureType = 0; textureType <= AI_TEXTURE_TYPE_MAX; ++textureType)
@@ -427,7 +427,7 @@ static void CollectMaterials(const aiScene* pScene, AssimpImporter::Model* pMode
 			//Get the material name
 			aiString name;
 			aiGetMaterialString(aiMaterial, AI_MATKEY_NAME, &name);
-			tinystl::string materialName = "";
+			eastl::string materialName = "";
 			GetNameFromAiString(pMap, name, materialName, "material");
 
 			if (materialName == AI_DEFAULT_MATERIAL_NAME)
@@ -512,7 +512,7 @@ static void CollectNodes(const aiScene* pScene, AssimpImporter::Model* pModel)
 
 bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 {
-	tinystl::unordered_map<tinystl::string, size_t> uniqueNameMap;
+	eastl::unordered_map<eastl::string, size_t> uniqueNameMap;
 
 	aiPropertyStore* propertyStore = aiCreatePropertyStore();
 

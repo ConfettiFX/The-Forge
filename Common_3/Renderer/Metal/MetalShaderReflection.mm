@@ -24,6 +24,7 @@
 
 #ifdef METAL
 
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../IRenderer.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
 #include <string.h>
@@ -79,10 +80,10 @@ struct TextureInfo
 
 struct ShaderReflectionInfo
 {
-	tinystl::vector<BufferStructMember> variableMembers;
-	tinystl::vector<BufferInfo>         buffers;
-	tinystl::vector<SamplerInfo>        samplers;
-	tinystl::vector<TextureInfo>        textures;
+	eastl::vector<BufferStructMember> variableMembers;
+	eastl::vector<BufferInfo>         buffers;
+	eastl::vector<SamplerInfo>        samplers;
+	eastl::vector<TextureInfo>        textures;
 };
 
 int getSizeFromDataType(MTLDataType dataType)
@@ -324,7 +325,7 @@ void addShaderResource(
 
 void mtl_createShaderReflection(
 	Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage,
-	tinystl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection)
+	eastl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection)
 {
 	if (pOutReflection == NULL)
 	{
@@ -444,9 +445,9 @@ void mtl_createShaderReflection(
 
 			MTLVertexFormat vf = MTLVertexFormatFloat;
 
-			tinystl::unordered_map<uint32_t, MTLVertexFormat>::iterator it = vertexAttributeFormats->find(i);
-			if (it.node != nil)
-				vf = it.node->second;
+			eastl::unordered_map<uint32_t, MTLVertexFormat>::iterator it = vertexAttributeFormats->find(i);
+			if (it != vertexAttributeFormats->end())
+				vf = it->second;
 
 			vertexDesc.attributes[i].format = vf;
 		}
@@ -494,7 +495,7 @@ void mtl_createShaderReflection(
 	uint32_t resourceCount = 0;
 	uint32_t variablesCount = (uint32_t)pReflectionInfo->variableMembers.size();
 
-	tinystl::vector<BufferInfo> vertexBuffers;
+	eastl::vector<BufferInfo> vertexBuffers;
 
 	for (uint32_t i = 0; i < pReflectionInfo->buffers.size(); ++i)
 	{
@@ -547,8 +548,10 @@ void mtl_createShaderReflection(
 			const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
 			if (!isInputVertexBuffer(bufferInfo, shaderStage))
 			{
+				eastl::string bufferName = bufferInfo.name;
+				bufferName.make_lower();
 				DescriptorType descriptorType =
-					(tinystl::string(bufferInfo.name).to_lower().find("rootconstant", 0) != tinystl::string::npos
+					(bufferName.find("rootconstant", 0) != eastl::string::npos
 						 ? DESCRIPTOR_TYPE_ROOT_CONSTANT
 						 : DESCRIPTOR_TYPE_BUFFER);
 				addShaderResource(

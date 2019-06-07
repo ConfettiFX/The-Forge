@@ -31,6 +31,12 @@
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
+namespace eastl
+{
+	template <>
+	struct has_equality<vec4> : eastl::false_type {};
+}
+
 FSRoot FSR_MIDDLEWARE_PANINI = FSR_Middleware2;
 /************************************************************************/
 /* HELPER FUNCTIONS
@@ -50,7 +56,7 @@ void createTessellatedQuadBuffers(
 	const int numQuads = tessellationX * tessellationY;
 	const int numVertices = (tessellationX + 1) * (tessellationY + 1);
 
-	tinystl::vector<vec4> vertices(numVertices);
+	eastl::vector<vec4> vertices(numVertices);
 	const unsigned        m = tessellationX + 1;
 	const unsigned        n = tessellationY + 1;
 	for (unsigned i = 0; i < n; ++i)
@@ -77,7 +83,7 @@ void createTessellatedQuadBuffers(
 	addResource(&vbDesc);
 
 	// Tessellate the quad
-	tinystl::vector<uint16_t> indices(numQuads * 6);
+	eastl::vector<uint16_t> indices(numQuads * 6);
 	//	A +------+ B
 	//	  |    / |
 	//	  |   /  |

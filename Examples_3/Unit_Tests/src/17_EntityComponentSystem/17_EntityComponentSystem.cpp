@@ -28,8 +28,8 @@
 #define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 // entt: https://github.com/skypjack/entt
 #include "../../../../Common_3/ThirdParty/OpenSource/entt/entt.hpp"
@@ -40,9 +40,9 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 #include "../../../../Common_3/OS/Input/InputSystem.h"
@@ -53,6 +53,7 @@
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 // Profilers
+GuiComponent*			pGuiWindow;
 GpuProfiler* pGpuProfiler = NULL;
 HiresTimer   gTimer;
 
@@ -71,6 +72,8 @@ struct SpriteData
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
 
@@ -232,8 +235,8 @@ static float DistanceSq(const PositionComponent& a, const PositionComponent& b)
 
 struct AvoidanceSystem
 {
-	tinystl::vector<float>    avoidDistanceList;
-	tinystl::vector<uint32_t> avoidList;
+	eastl::vector<float>    avoidDistanceList;
+	eastl::vector<uint32_t> avoidList;
 
 	void AddAvoidThisObjectToSystem(uint32_t id, float distance)
 	{
@@ -316,7 +319,10 @@ class EntityComponentSystem: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// TODO: rename to sprite
 		ShaderLoadDesc spriteShader = {};
@@ -423,6 +429,17 @@ class EntityComponentSystem: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
+    /************************************************************************/
+    // GUI
+    /************************************************************************/
+    
+    GuiDesc guiDesc = {};
+    guiDesc.mStartSize = vec2(300.0f, 250.0f);
+    guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
+    pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+    pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 		// Create sprite entities and components.
 		worldBoundsEntity = registry.create();
 		WorldBoundsComponent& bounds = registry.assign<WorldBoundsComponent>(worldBoundsEntity);
@@ -478,6 +495,8 @@ class EntityComponentSystem: public IApp
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitProfiler(pRenderer);
 
 		gAppUI.Exit();
 
@@ -590,6 +609,20 @@ class EntityComponentSystem: public IApp
 			spriteData.colB = sprite.colorB;
 			spriteData.sprite = (float)sprite.spriteIndex;
 		}
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
+    gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
@@ -676,11 +709,18 @@ class EntityComponentSystem: public IApp
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = 0xff00cc00;
 		uiTextDesc.mFontSize = 18;
-		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(
+			cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &uiTextDesc);
 
-		gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(
+			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&uiTextDesc);
 
-        gAppUI.Draw(cmd);
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+
+    gAppUI.Gui(pGuiWindow);
+
+		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
@@ -692,9 +732,10 @@ class EntityComponentSystem: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "17_EntityComponentSystem"; }
+	const char* GetName() { return "17_EntityComponentSystem"; }
 
 	bool addMainSwapChain()
 	{

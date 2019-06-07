@@ -5,7 +5,7 @@ CPP_DRIVER := $(SOURCES:.comp=.cpp)
 EXECUTABLES := $(SOURCES:.comp=.shader)
 OBJECTS := $(CPP_DRIVER:.cpp=.o) $(CPP_INTERFACE:.cpp=.o)
 
-CXXFLAGS += -std=c++11 -I../../include -I.
+CXXFLAGS += -std=c++14 -I../../include -I.
 LDFLAGS += -pthread -lm
 
 all: $(EXECUTABLES)

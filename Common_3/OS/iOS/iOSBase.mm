@@ -31,7 +31,7 @@
 
 #include <ctime>
 
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
@@ -52,14 +52,14 @@
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
 static WindowsDesc gCurrentWindow;
-static tinystl::vector<MonitorDesc> gMonitors;
+static eastl::vector<MonitorDesc> gMonitors;
 static int gCurrentTouchEvent = 0;
 
 static float2 gRetinaScale = { 1.0f, 1.0f };
 static int gDeviceWidth;
 static int gDeviceHeight;
 
-static tinystl::vector<MonitorDesc> monitors;
+static eastl::vector<MonitorDesc> monitors;
 
 // Update the state of the keys based on state previous frame
 void updateTouchEvent(int numTaps) { gCurrentTouchEvent = numTaps; }

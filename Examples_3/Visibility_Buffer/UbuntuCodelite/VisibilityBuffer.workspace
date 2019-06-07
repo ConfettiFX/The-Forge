@@ -7,6 +7,7 @@
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
+  <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
@@ -17,6 +18,7 @@
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
+      <Project Name="EASTL" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
@@ -27,6 +29,7 @@
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
+      <Project Name="EASTL" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

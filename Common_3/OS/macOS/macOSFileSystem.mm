@@ -93,42 +93,42 @@ time_t get_file_creation_time(const char* _fileName)
 	return fileInfo.st_ctime;
 }
 
-tinystl::string get_current_dir()
+eastl::string get_current_dir()
 {
 	char cwd[256] = "";
 	getcwd(cwd, sizeof(cwd));
-	tinystl::string str(cwd);
+	eastl::string str(cwd);
 	return str;
 }
 
-tinystl::string get_exe_path()
+eastl::string get_exe_path()
 {
 	const char*     exePath = [[[[NSBundle mainBundle] bundlePath] stringByStandardizingPath] cStringUsingEncoding:NSUTF8StringEncoding];
-	tinystl::string str(exePath);
+	eastl::string str(exePath);
 	return str;
 }
 
-tinystl::string get_app_prefs_dir(const char* org, const char* app)
+eastl::string get_app_prefs_dir(const char* org, const char* app)
 {
 	const char* rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
 	const char* path;
 	path = strstr(rawUserPath, "/Users/");
-	return tinystl::string(path) + tinystl::string("Library/") + tinystl::string(org) + tinystl::string("/") + tinystl::string(app);
+	return eastl::string(path) + eastl::string("Library/") + eastl::string(org) + eastl::string("/") + eastl::string(app);
 }
 
-tinystl::string get_user_documents_dir()
+eastl::string get_user_documents_dir()
 {
 	const char* rawUserPath = [[[[NSFileManager defaultManager] homeDirectoryForCurrentUser] absoluteString] UTF8String];
 	const char* path;
 	path = strstr(rawUserPath, "/Users/");
-	return tinystl::string(path);
+	return eastl::string(path);
 }
 
 void set_current_dir(const char* path) { chdir(path); }
 
-void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)
 {
-	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	eastl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	DIR*            pDir = opendir(dir);
 	if (!pDir)
 	{
@@ -149,9 +149,9 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	closedir(pDir);
 }
 
-void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
+void get_sub_directories(const char* dir, eastl::vector<eastl::string>& subDirectoriesOut)
 {
-	tinystl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	eastl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	DIR*            pDir = opendir(dir);
 	if (!pDir)
 	{
@@ -167,7 +167,7 @@ void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subD
 		{
 			if (entry->d_name[0] != '.')
 			{
-				tinystl::string subDirectory = path + entry->d_name;
+				eastl::string subDirectory = path + entry->d_name;
 				subDirectoriesOut.push_back(subDirectory);
 			}
 		}
@@ -193,7 +193,7 @@ bool copy_file(const char* src, const char* dst)
 }
 
 static void FormatFileExtensionsFilter(
-	tinystl::string const& fileDesc, tinystl::vector<tinystl::string> const& extFiltersIn, tinystl::string& extFiltersOut)
+	eastl::string const& fileDesc, eastl::vector<eastl::string> const& extFiltersIn, eastl::string& extFiltersOut)
 {
 	extFiltersOut = "";
 	for (size_t i = 0; i < extFiltersIn.size(); ++i)
@@ -206,13 +206,13 @@ static void FormatFileExtensionsFilter(
 
 void open_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
-	tinystl::string extFilter;
+	eastl::string extFilter;
 	FormatFileExtensionsFilter(fileDesc, fileExtensions, extFilter);
 
 	// Create array of filtered extentions
-	NSString* extString = [NSString stringWithCString:extFilter encoding:[NSString defaultCStringEncoding]];
+	NSString* extString = [NSString stringWithCString:extFilter.c_str() encoding:[NSString defaultCStringEncoding]];
 	NSArray*  extList = [extString componentsSeparatedByString:@";"];
 
 	NSString* objcString = [NSString stringWithCString:title encoding:[NSString defaultCStringEncoding]];
@@ -249,13 +249,13 @@ void open_file_dialog(
 
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
-	tinystl::string extFilter;
+	eastl::string extFilter;
 	FormatFileExtensionsFilter(fileDesc, fileExtensions, extFilter);
 
 	// Create array of filtered extentions
-	NSString* extString = [NSString stringWithCString:extFilter encoding:[NSString defaultCStringEncoding]];
+	NSString* extString = [NSString stringWithCString:extFilter.c_str() encoding:[NSString defaultCStringEncoding]];
 	NSArray*  extList = [extString componentsSeparatedByString:@";"];
 
 	NSString* objcString = [NSString stringWithCString:title encoding:[NSString defaultCStringEncoding]];

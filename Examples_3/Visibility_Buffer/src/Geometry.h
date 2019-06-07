@@ -138,21 +138,21 @@ typedef struct Material
 
 typedef struct Scene
 {
-	uint32_t                             numMeshes;
-	uint32_t                             numMaterials;
-	uint32_t                             totalTriangles;
-	uint32_t                             totalVertices;
-	MeshIn*                              meshes;
-	Material*                            materials;
-	tinystl::vector<SceneVertexPos>      positions;
-	tinystl::vector<SceneVertexTexCoord> texCoords;
-	tinystl::vector<SceneVertexNormal>   normals;
-	tinystl::vector<SceneVertexTangent>  tangents;
-	char**                               textures;
-	char**                               normalMaps;
-	char**                               specularMaps;
+	uint32_t                           numMeshes;
+	uint32_t                           numMaterials;
+	uint32_t                           totalTriangles;
+	uint32_t                           totalVertices;
+	MeshIn*                            meshes;
+	Material*                          materials;
+	eastl::vector<SceneVertexPos>      positions;
+	eastl::vector<SceneVertexTexCoord> texCoords;
+	eastl::vector<SceneVertexNormal>   normals;
+	eastl::vector<SceneVertexTangent>  tangents;
+	char**                             textures;
+	char**                             normalMaps;
+	char**                             specularMaps;
 
-	tinystl::vector<uint32_t> indices;
+	eastl::vector<uint32_t> indices;
 } Scene;
 
 typedef struct FilterBatchData
@@ -193,7 +193,7 @@ void   createAABB(const Scene* pScene, MeshIn* mesh);
 void   createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
 void   destroyClusters(MeshIn* mesh);
 
-void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& IndexBuffer, uint& indexCount);
+void loadModel(const eastl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& IndexBuffer, uint& indexCount);
 
 #if defined(METAL)
 void addClusterToBatchChunk(

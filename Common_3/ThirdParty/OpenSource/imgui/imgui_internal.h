@@ -447,9 +447,9 @@ struct IMGUI_API ImGuiMenuColumns
 struct IMGUI_API ImGuiInputTextState
 {
     ImGuiID                 ID;                     // widget id owning the text state
-    tinystl::vector<ImWchar>       TextW;                  // edit buffer, we need to persist but can't guarantee the persistence of the user-provided buffer. so we copy into own buffer.
-    tinystl::vector<char>          InitialText;            // backup of end-user buffer at the time of focus (in UTF-8, unaltered)
-    tinystl::vector<char>          TempBuffer;             // temporary buffer for callback and other other operations. size=capacity.
+    eastl::vector<ImWchar>       TextW;                  // edit buffer, we need to persist but can't guarantee the persistence of the user-provided buffer. so we copy into own buffer.
+    eastl::vector<char>          InitialText;            // backup of end-user buffer at the time of focus (in UTF-8, unaltered)
+    eastl::vector<char>          TempBuffer;             // temporary buffer for callback and other other operations. size=capacity.
     int                     CurLenA, CurLenW;       // we need to maintain our buffer length in both UTF-8 and wchar format.
     int                     BufCapacityA;           // end-user buffer capacity
     float                   ScrollX;
@@ -490,7 +490,7 @@ struct ImGuiSettingsHandler
     ImGuiID     TypeHash;   // == ImHash(TypeName, 0, 0)
     void*       (*ReadOpenFn)(ImGuiContext* ctx, ImGuiSettingsHandler* handler, const char* name);              // Read: Called when entering into a new ini entry e.g. "[Window][Name]"
     void        (*ReadLineFn)(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* entry, const char* line); // Read: Called for every line of text within an ini entry
-    void        (*WriteAllFn)(ImGuiContext* ctx, ImGuiSettingsHandler* handler, tinystl::string* out_buf);      // Write: Output every entries into 'out_buf'
+    void        (*WriteAllFn)(ImGuiContext* ctx, ImGuiSettingsHandler* handler, eastl::string* out_buf);      // Write: Output every entries into 'out_buf'
     void*       UserData;
 
     ImGuiSettingsHandler() { memset(this, 0, sizeof(*this)); }
@@ -530,7 +530,7 @@ struct ImGuiColumnsSet
     float               LineMinY, LineMaxY;
     float               StartPosY;          // Copy of CursorPos
     float               StartMaxPosX;       // Copy of CursorMaxPos
-    tinystl::vector<ImGuiColumnData> Columns;
+    eastl::vector<ImGuiColumnData> Columns;
 
     ImGuiColumnsSet()   { Clear(); }
     void Clear()
@@ -567,7 +567,7 @@ struct IMGUI_API ImDrawListSharedData
 
 struct ImDrawDataBuilder
 {
-    tinystl::vector<ImDrawList*>   Layers[2];           // Global layers for: regular, tooltip
+    eastl::vector<ImDrawList*>   Layers[2];           // Global layers for: regular, tooltip
 
     void Clear()            { for (int n = 0; n < IM_ARRAYSIZE(Layers); n++) Layers[n].resize(0); }
     void ClearFreeMemory()  { for (int n = 0; n < IM_ARRAYSIZE(Layers); n++) Layers[n].clear(); }
@@ -644,9 +644,9 @@ struct ImGuiContext
     int                     FrameCount;
     int                     FrameCountEnded;
     int                     FrameCountRendered;
-    tinystl::vector<ImGuiWindow*>  Windows;
-    tinystl::vector<ImGuiWindow*>  WindowsSortBuffer;
-    tinystl::vector<ImGuiWindow*>  CurrentWindowStack;
+    eastl::vector<ImGuiWindow*>  Windows;
+    eastl::vector<ImGuiWindow*>  WindowsSortBuffer;
+    eastl::vector<ImGuiWindow*>  CurrentWindowStack;
     ImGuiStorage            WindowsById;
     int                     WindowsActiveCount;
     ImGuiWindow*            CurrentWindow;                      // Being drawn into
@@ -673,11 +673,11 @@ struct ImGuiContext
     ImGuiID                 LastActiveId;                       // Store the last non-zero ActiveId, useful for animation.
     float                   LastActiveIdTimer;                  // Store the last non-zero ActiveId timer since the beginning of activation, useful for animation.
     ImGuiWindow*            MovingWindow;                       // Track the window we clicked on (in order to preserve focus). The actually window that is moved is generally MovingWindow->RootWindow.
-    tinystl::vector<ImGuiColorMod>   ColorModifiers;                     // Stack for PushStyleColor()/PopStyleColor()
-    tinystl::vector<ImGuiStyleMod> StyleModifiers;                     // Stack for PushStyleVar()/PopStyleVar()
-    tinystl::vector<ImFont*>       FontStack;                          // Stack for PushFont()/PopFont()
-    tinystl::vector<ImGuiPopupRef> OpenPopupStack;                     // Which popups are open (persistent)
-    tinystl::vector<ImGuiPopupRef> CurrentPopupStack;                  // Which level of BeginPopup() we are in (reset every frame)
+    eastl::vector<ImGuiColorMod>   ColorModifiers;                     // Stack for PushStyleColor()/PopStyleColor()
+    eastl::vector<ImGuiStyleMod> StyleModifiers;                     // Stack for PushStyleVar()/PopStyleVar()
+    eastl::vector<ImFont*>       FontStack;                          // Stack for PushFont()/PopFont()
+    eastl::vector<ImGuiPopupRef> OpenPopupStack;                     // Which popups are open (persistent)
+    eastl::vector<ImGuiPopupRef> CurrentPopupStack;                  // Which level of BeginPopup() we are in (reset every frame)
     ImGuiNextWindowData     NextWindowData;                     // Storage for SetNextWindow** functions
     bool                    NextTreeNodeOpenVal;                // Storage for SetNextTreeNode** functions
     ImGuiCond               NextTreeNodeOpenCond;
@@ -743,7 +743,7 @@ struct ImGuiContext
     ImGuiID                 DragDropAcceptIdCurr;               // Target item id (set at the time of accepting the payload)
     ImGuiID                 DragDropAcceptIdPrev;               // Target item id from previous frame (we need to store this to allow for overlapping drag and drop targets)
     int                     DragDropAcceptFrameCount;           // Last time a target expressed a desire to accept the source
-    tinystl::vector<unsigned char> DragDropPayloadBufHeap;             // We don't expose the tinystl::vector<> directly
+    eastl::vector<unsigned char> DragDropPayloadBufHeap;             // We don't expose the eastl::vector<> directly
     unsigned char           DragDropPayloadBufLocal[8];         // Local buffer for small payloads
 
     // Widget state
@@ -757,19 +757,19 @@ struct ImGuiContext
     float                   DragSpeedDefaultRatio;              // If speed == 0.0f, uses (max-min) * DragSpeedDefaultRatio
     float2                  ScrollbarClickDeltaToGrabCenter;    // Distance between mouse and center of grab box, normalized in parent space. Use storage?
     int                     TooltipOverrideCount;
-    tinystl::vector<char>          PrivateClipboard;                   // If no custom clipboard handler is defined
+    eastl::vector<char>          PrivateClipboard;                   // If no custom clipboard handler is defined
     float2                  PlatformImePos, PlatformImeLastPos; // Cursor position request & last passed to the OS Input Method Editor
 
     // Settings
     bool                           SettingsLoaded;
     float                          SettingsDirtyTimer;          // Save .ini Settings to memory when time reaches zero
-    tinystl::string                SettingsIniData;             // In memory .ini settings
-    tinystl::vector<ImGuiSettingsHandler> SettingsHandlers;            // List of .ini settings handlers
-    tinystl::vector<ImGuiWindowSettings>  SettingsWindows;             // ImGuiWindow .ini settings entries (parsed from the last loaded .ini file and maintained on saving)
+    eastl::string                SettingsIniData;             // In memory .ini settings
+    eastl::vector<ImGuiSettingsHandler> SettingsHandlers;            // List of .ini settings handlers
+    eastl::vector<ImGuiWindowSettings>  SettingsWindows;             // ImGuiWindow .ini settings entries (parsed from the last loaded .ini file and maintained on saving)
 
     // Logging
     bool                    LogEnabled;
-    tinystl::string         LogClipboard;                       // Accumulation buffer when log to clipboard. This is pointer so our GImGui static constructor doesn't call heap allocators.
+    eastl::string         LogClipboard;                       // Accumulation buffer when log to clipboard. This is pointer so our GImGui static constructor doesn't call heap allocators.
     int                     LogStartDepth;
     int                     LogAutoExpandMaxDepth;
 
@@ -825,7 +825,7 @@ struct IMGUI_API ImGuiWindowTempData
     int                     NavLayerActiveMaskNext; // Which layer have been written to (buffer for current frame)
     bool                    MenuBarAppending;       // FIXME: Remove this
     float2                  MenuBarOffset;          // MenuBarOffset.x is sort of equivalent of a per-layer CursorPos.x, saved/restored as we switch to the menu bar. The only situation when MenuBarOffset.y is > 0 if when (SafeAreaPadding.y > FramePadding.y), often used on TVs.
-    tinystl::vector<ImGuiWindow*>  ChildWindows;
+    eastl::vector<ImGuiWindow*>  ChildWindows;
     ImGuiStorage*           StateStorage;
     ImGuiLayoutType         LayoutType;
     ImGuiLayoutType         ParentLayoutType;       // Layout type of parent window at the time of Begin()
@@ -834,10 +834,10 @@ struct IMGUI_API ImGuiWindowTempData
     ImGuiItemFlags          ItemFlags;              // == ItemFlagsStack.back() [empty == ImGuiItemFlags_Default]
     float                   ItemWidth;              // == ItemWidthStack.back(). 0.0: default, >0.0: width in pixels, <0.0: align xx pixels to the right of window
     float                   TextWrapPos;            // == TextWrapPosStack.back() [empty == -1.0f]
-    tinystl::vector<ImGuiItemFlags>ItemFlagsStack;
-    tinystl::vector<float>         ItemWidthStack;
-    tinystl::vector<float>         TextWrapPosStack;
-    tinystl::vector<ImGuiGroupData>GroupStack;
+    eastl::vector<ImGuiItemFlags>ItemFlagsStack;
+    eastl::vector<float>         ItemWidthStack;
+    eastl::vector<float>         TextWrapPosStack;
+    eastl::vector<ImGuiGroupData>GroupStack;
     int                     StackSizesBackup[6];    // Store size of various stacks for asserting
 
     ImVec1                  Indent;                 // Indentation / start position from left of window (increased by TreePush/TreePop, etc.)
@@ -925,7 +925,7 @@ struct IMGUI_API ImGuiWindow
     float2                  SetWindowPosPivot;                  // store window pivot for positioning. float2(0,0) when positioning from top-left corner; float2(0.5f,0.5f) for centering; float2(1,1) for bottom right.
 
     ImGuiWindowTempData     DC;                                 // Temporary per-window data, reset at the beginning of the frame. This used to be called ImGuiDrawContext, hence the "DC" variable name.
-    tinystl::vector<ImGuiID>       IDStack;                            // ID stack. ID are hashes seeded with the value at the top of the stack
+    eastl::vector<ImGuiID>       IDStack;                            // ID stack. ID are hashes seeded with the value at the top of the stack
     ImRect                  ClipRect;                           // Current clipping rectangle. = DrawList->clip_rect_stack.back(). Scissoring / clipping rectangle. x1, y1, x2, y2.
     ImRect                  OuterRectClipped;                   // = WindowRect just after setup in Begin(). == window->Rect() for root window.
     ImRect                  InnerMainRect, InnerClipRect;
@@ -934,7 +934,7 @@ struct IMGUI_API ImGuiWindow
     float                   ItemWidthDefault;
     ImGuiMenuColumns        MenuColumns;                        // Simplified columns storage for menu items
     ImGuiStorage            StateStorage;
-    tinystl::vector<ImGuiColumnsSet> ColumnsStorage;
+    eastl::vector<ImGuiColumnsSet> ColumnsStorage;
     float                   FontWindowScale;                    // User scale multiplier per-window
     int                     SettingsIdx;                        // Index into SettingsWindow[] (indices are always valid as we only grow the array from the back)
 

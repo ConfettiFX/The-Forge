@@ -11,6 +11,8 @@
 		28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */; };
 		28A5AE39201F7EBE000E571F /* 09_LightShadowPlayground.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28EE9FF6201B30B200D42AD7 /* 09_LightShadowPlayground.cpp */; };
 		28EE9FF7201B30B200D42AD7 /* 09_LightShadowPlayground.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 28EE9FF6201B30B200D42AD7 /* 09_LightShadowPlayground.cpp */; };
+		5B17815B22A5C76D00991DCB /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17815922A5C76D00991DCB /* profile.frag.metal */; };
+		5B17815C22A5C76D00991DCB /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17815A22A5C76D00991DCB /* profile.vert.metal */; };
 		5C172FA721414B560074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172FA521414B560074EE71 /* AppDelegate.m */; };
 		5C172FB021414B730074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FAD21414B680074EE71 /* libThe-Forge.a */; };
 		5C17305221414E980074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17305121414E980074EE71 /* libThe-Forge_iOS.a */; };
@@ -113,6 +115,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
+				5B17815B22A5C76D00991DCB /* profile.frag.metal in Copy Shaders */,
+				5B17815C22A5C76D00991DCB /* profile.vert.metal in Copy Shaders */,
 				5C7B289821F8873C0028D35E /* blurESM.comp.metal in Copy Shaders */,
 				5C7B289921F8873C0028D35E /* copyBuffer.comp.metal in Copy Shaders */,
 				5C7B289A21F8873C0028D35E /* forwardSphere.frag.metal in Copy Shaders */,
@@ -144,6 +148,8 @@
 		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		28A5AE32201F7DB4000E571F /* environment_sky.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = environment_sky.png; path = ../../../UnitTestResources/Textures/environment_sky.png; sourceTree = "<group>"; };
 		28EE9FF6201B30B200D42AD7 /* 09_LightShadowPlayground.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 09_LightShadowPlayground.cpp; path = ../../../src/09_LightShadowPlayground/09_LightShadowPlayground.cpp; sourceTree = "<group>"; };
+		5B17815922A5C76D00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/09_LightShadowPlayground/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
+		5B17815A22A5C76D00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/09_LightShadowPlayground/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
 		5C172FA521414B560074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C172FA621414B560074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C172FA821414B680074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
@@ -302,6 +308,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				5B17815922A5C76D00991DCB /* profile.frag.metal */,
+				5B17815A22A5C76D00991DCB /* profile.vert.metal */,
 				5CA80E1721F09F8100C99983 /* CommonShaders */,
 				5C172FA821414B680074EE71 /* The-Forge.xcodeproj */,
 				28A5AE2F201F7D91000E571F /* Fonts */,
@@ -600,7 +608,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -659,7 +667,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -708,6 +716,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
@@ -737,6 +746,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";

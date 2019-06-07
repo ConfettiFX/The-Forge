@@ -366,10 +366,18 @@ static inline __m128 sseVecDot3(__m128 vec0, __m128 vec1)
 
 static inline __m128 sseVecDot4(__m128 vec0, __m128 vec1)
 {
+    // This is the original implementation, but if we use this it crashes
+    //const __m128 result = _mm_mul_ps(vec0, vec1);
+    //return _mm_add_ps(_mm_shuffle_ps(result, result, _MM_SHUFFLE(0, 0, 0, 0)),
+    //                  _mm_add_ps(_mm_shuffle_ps(result, result, _MM_SHUFFLE(1, 1, 1, 1)),
+    //                             _mm_add_ps(_mm_shuffle_ps(result, result, _MM_SHUFFLE(2, 2, 2, 2)), _mm_shuffle_ps(result, result, _MM_SHUFFLE(3, 3, 3, 3)))));
+    
     const __m128 result = _mm_mul_ps(vec0, vec1);
-    return _mm_add_ps(_mm_shuffle_ps(result, result, _MM_SHUFFLE(0, 0, 0, 0)),
-                      _mm_add_ps(_mm_shuffle_ps(result, result, _MM_SHUFFLE(1, 1, 1, 1)),
-                                 _mm_add_ps(_mm_shuffle_ps(result, result, _MM_SHUFFLE(2, 2, 2, 2)), _mm_shuffle_ps(result, result, _MM_SHUFFLE(3, 3, 3, 3)))));
+    const __m128 temp0 = _mm_shuffle_ps(result, result, _MM_SHUFFLE(0, 0, 0, 0)); // Release crashes here, but not on debug
+    const __m128 temp1 = _mm_shuffle_ps(result, result, _MM_SHUFFLE(1, 1, 1, 1));
+    const __m128 temp2 = _mm_shuffle_ps(result, result, _MM_SHUFFLE(2, 2, 2, 2));
+    const __m128 temp3 = _mm_shuffle_ps(result, result, _MM_SHUFFLE(3, 3, 3, 3));
+    return _mm_add_ps(temp0, _mm_add_ps(temp1, _mm_add_ps(temp2, temp3)));
 }
 
 static inline __m128 sseVecCross(__m128 vec0, __m128 vec1)

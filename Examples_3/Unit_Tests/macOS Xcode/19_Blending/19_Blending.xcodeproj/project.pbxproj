@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5B17817B22A5C87800991DCB /* profile.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B17817722A5C87800991DCB /* profile.vert.metal */; };
+		5B17817C22A5C87800991DCB /* profile.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B17817A22A5C87800991DCB /* profile.frag.metal */; };
 		5CA810B521F0A36A00C99983 /* imgui.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5CA8103421F0A2D700C99983 /* imgui.frag.metal */; };
 		5CA810B621F0A36A00C99983 /* imgui.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5CA8103521F0A2D700C99983 /* imgui.vert.metal */; };
 		5CA810B721F0A36A00C99983 /* textured_mesh.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5CA8103321F0A2D700C99983 /* textured_mesh.frag.metal */; };
@@ -174,6 +176,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
+				5B17817B22A5C87800991DCB /* profile.vert.metal in CopyFiles */,
+				5B17817C22A5C87800991DCB /* profile.frag.metal in CopyFiles */,
 				5CA810B521F0A36A00C99983 /* imgui.frag.metal in CopyFiles */,
 				5CA810B621F0A36A00C99983 /* imgui.vert.metal in CopyFiles */,
 				5CA810B721F0A36A00C99983 /* textured_mesh.frag.metal in CopyFiles */,
@@ -201,6 +205,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5B17817722A5C87800991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/19_Blending/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
+		5B17817A22A5C87800991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/19_Blending/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5CA8102921F0A2D100C99983 /* fontstash3D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash3D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash3D.vert.metal; sourceTree = "<group>"; };
 		5CA8102A21F0A2D100C99983 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
 		5CA8102B21F0A2D100C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
@@ -378,6 +384,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				5B17817A22A5C87800991DCB /* profile.frag.metal */,
+				5B17817722A5C87800991DCB /* profile.vert.metal */,
 				5CA80FDF21F0A28F00C99983 /* CommonShaders */,
 				B2B7405621755BC200324803 /* Shaders */,
 				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,
@@ -742,7 +750,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -801,7 +809,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -849,6 +857,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
@@ -874,6 +883,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";

@@ -28,17 +28,17 @@
 // based on https://interplayoflight.wordpress.com/2018/07/04/hybrid-raytraced-shadows-and-reflections/
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
@@ -130,6 +130,8 @@ struct BVHNode
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 class RenderPassData
 {
@@ -140,8 +142,8 @@ class RenderPassData
 	CmdPool*                       pCmdPool;
 	Cmd**                          ppCmds;
 	Buffer*                        pPerPassCB[gImageCount];
-	tinystl::vector<RenderTarget*> RenderTargets;
-	tinystl::vector<Texture*>      Textures;
+	eastl::vector<RenderTarget*> RenderTargets;
+	eastl::vector<Texture*>      Textures;
 
 	RenderPassData(Renderer* pRenderer, Queue* bGraphicsQueue, int ImageCount)
 	{
@@ -205,8 +207,8 @@ struct UniformObjData
 //Structure of Array for vertex/index data
 struct MeshBatch
 {
-	tinystl::vector<float3> PositionsData;
-	tinystl::vector<uint>   IndicesData;
+	eastl::vector<float3> PositionsData;
+	eastl::vector<uint>   IndicesData;
 
 	Buffer* pPositionStream;
 	Buffer* pNormalStream;
@@ -232,11 +234,11 @@ struct GBufferRT
 struct PropData
 {
 	mat4                        WorldMatrix;
-	tinystl::vector<MeshBatch*> MeshBatches;
+	eastl::vector<MeshBatch*> MeshBatches;
 	Buffer*                     pConstantBuffer;
 };
 
-typedef tinystl::unordered_map<RenderPass::Enum, RenderPassData*> RenderPassMap;
+typedef eastl::unordered_map<RenderPass::Enum, RenderPassData*> RenderPassMap;
 
 Renderer* pRenderer = NULL;
 Queue*    pGraphicsQueue = NULL;
@@ -268,6 +270,7 @@ DescriptorBinder* pDescriptorBinder;
 uint32_t gFrameIndex = 0;
 
 UIApp              gAppUI;
+GuiComponent*      pGuiWindow = NULL;
 GpuProfiler*       pGpuProfiler = NULL;
 ICameraController* pCameraController = NULL;
 
@@ -423,7 +426,7 @@ PropData SponzaProp;
 #define TOTAL_IMGS 84
 Texture* pMaterialTextures[TOTAL_IMGS];
 
-tinystl::vector<int> gSponzaTextureIndexforMaterial;
+eastl::vector<int> gSponzaTextureIndexforMaterial;
 
 AABBox gWholeSceneBBox;
 
@@ -433,7 +436,7 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 uint gFrameNumber = 0;
 
-void addPropToPrimitivesAABBList(tinystl::vector<AABBox>& bboxData, PropData& prop)
+void addPropToPrimitivesAABBList(eastl::vector<AABBox>& bboxData, PropData& prop)
 {
 	mat4& world = prop.WorldMatrix;
 
@@ -465,7 +468,7 @@ void addPropToPrimitivesAABBList(tinystl::vector<AABBox>& bboxData, PropData& pr
 	}
 }
 
-void calculateBounds(tinystl::vector<AABBox>& bboxData, int begin, int end, vec3& minBounds, vec3& maxBounds)
+void calculateBounds(eastl::vector<AABBox>& bboxData, int begin, int end, vec3& minBounds, vec3& maxBounds)
 {
 	minBounds = vec3(FLT_MAX);
 	maxBounds = vec3(-FLT_MAX);
@@ -478,9 +481,9 @@ void calculateBounds(tinystl::vector<AABBox>& bboxData, int begin, int end, vec3
 	}
 }
 
-void sortAlongAxis(tinystl::vector<AABBox>& bboxData, int begin, int end, int axis)
+void sortAlongAxis(eastl::vector<AABBox>& bboxData, int begin, int end, int axis)
 {
-#if 0    // This path is using tinystl::sort which seems much slower than std::qsort.
+#if 0    // This path is using eastl::sort which seems much slower than std::qsort.
 	if (axis == 0)
 	{
 		bboxData.sort(begin, end, [](const AABBox& a, const AABBox& b)
@@ -578,7 +581,7 @@ void sortAlongAxis(tinystl::vector<AABBox>& bboxData, int begin, int end, int ax
 #endif
 }
 
-//BVHNode* createBVHNodeMedianSplit(tinystl::vector<AABBox>& bboxData, int begin, int end)
+//BVHNode* createBVHNodeMedianSplit(eastl::vector<AABBox>& bboxData, int begin, int end)
 //{
 //  int count = end - begin + 1;
 //
@@ -641,7 +644,7 @@ inline float calculateSurfaceArea(const AABBox& bbox)
 }
 
 //based on https://github.com/kayru/RayTracedShadows/blob/master/Source/BVHBuilder.cpp
-void findBestSplit(tinystl::vector<AABBox>& bboxData, int begin, int end, int& split, int& axis, float& splitCost)
+void findBestSplit(eastl::vector<AABBox>& bboxData, int begin, int end, int& split, int& axis, float& splitCost)
 {
 	int count = end - begin + 1;
 	int bestSplit = begin;
@@ -704,7 +707,7 @@ void findBestSplit(tinystl::vector<AABBox>& bboxData, int begin, int end, int& s
 	}
 }
 
-BVHNode* createBVHNodeSHA(tinystl::vector<AABBox>& bboxData, int begin, int end, float parentSplitCost)
+BVHNode* createBVHNodeSHA(eastl::vector<AABBox>& bboxData, int begin, int end, float parentSplitCost)
 {
 	int count = end - begin + 1;
 
@@ -870,23 +873,23 @@ class HybridRaytracing: public IApp
 		//Gbuffer pass
 		RenderPassData* pass =
 			conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(tinystl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::GBuffer, pass));
+		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::GBuffer, pass));
 
 		//Shadow pass
 		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(tinystl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::RaytracedShadows, pass));
+		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::RaytracedShadows, pass));
 
 		//Lighting pass
 		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(tinystl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Lighting, pass));
+		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Lighting, pass));
 
 		//Composite pass
 		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(tinystl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Composite, pass));
+		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Composite, pass));
 
 		//Copy to backbuffer
 		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(tinystl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::CopyToBackbuffer, pass));
+		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::CopyToBackbuffer, pass));
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -897,12 +900,14 @@ class HybridRaytracing: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		//Load shaders
 		{
 			//Load shaders for GPrepass
-			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", tinystl::string::format("%i", TOTAL_IMGS) };
+			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_IMGS) };
 			ShaderLoadDesc shaderGPrepass = {};
 			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0, FSR_SrcShaders };
 #ifndef TARGET_IOS
@@ -1104,6 +1109,14 @@ if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 
 gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
+GuiDesc guiDesc = {};
+float   dpiScale = getDpiScale().x;
+guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
+guiDesc.mStartSize = vec2(450, 600) / dpiScale;
+pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 vec3                   camPos{ 100.0f, 25.0f, 0.0f };
 vec3                   lookAt{ 0 };
@@ -1131,6 +1144,8 @@ return true;
 void Exit()
 {
 	waitQueueIdle(pGraphicsQueue);
+
+	exitProfiler(pRenderer);
 
 	destroyCameraController(pCameraController);
 
@@ -1410,7 +1425,7 @@ void AssignSponzaTextures()
 bool LoadSponza()
 {
 	//load Sponza
-	//tinystl::vector<Image> toLoad(TOTAL_IMGS);
+	//eastl::vector<Image> toLoad(TOTAL_IMGS);
 	//adding material textures
 	for (int i = 0; i < TOTAL_IMGS; ++i)
 	{
@@ -1424,7 +1439,7 @@ bool LoadSponza()
 
 	AssimpImporter importer;
 
-	tinystl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza_File, FSRoot::FSR_Meshes);
+	eastl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza_File, FSRoot::FSR_Meshes);
 	if (!importer.ImportModel(sceneFullPath.c_str(), &gModel_Sponza))
 	{
 		ErrorMsg("Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
@@ -1523,7 +1538,7 @@ bool LoadSponza()
 
 void CreateBVHBuffers()
 {
-	tinystl::vector<AABBox> triBBoxes;
+	eastl::vector<AABBox> triBBoxes;
 	triBBoxes.reserve(1000000);
 
 	//create buffers for BVH
@@ -1936,11 +1951,26 @@ void Update(float deltaTime)
 	}
 
 	gFrameNumber++;
+
+  // ProfileSetDisplayMode()
+      // TODO: need to change this better way 
+  if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+  {
+    Profile& S = *ProfileGet();
+    int nValue = bToggleMicroProfiler ? 1 : 0;
+    nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+    S.nDisplay = nValue;
+
+    bPrevToggleMicroProfiler = bToggleMicroProfiler;
+  }
+
+  /************************************************************************/
+  gAppUI.Update(deltaTime);
 }
 
 void Draw()
 {
-	tinystl::vector<Cmd*> allCmds;
+	eastl::vector<Cmd*> allCmds;
 	acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 	/************************************************************************/
 	// Update uniform buffers
@@ -2231,11 +2261,17 @@ void Draw()
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+
+    gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -2256,9 +2292,10 @@ void Draw()
 		&pRenderCompleteSemaphore);
 	queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	waitForFences(pRenderer, 1, &pRenderCompleteFence);
+	flipProfiler();
 }
 
-tinystl::string GetName() { return "09a_HybridRaytracing"; }
+const char* GetName() { return "09a_HybridRaytracing"; }
 
 bool addSwapChain()
 {

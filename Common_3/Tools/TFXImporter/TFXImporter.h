@@ -22,24 +22,24 @@
 *THE SOFTWARE.
 */
 
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../OS/Math/MathTypes.h"
 #include "../../OS/Interfaces/IFileSystem.h"
 
 struct TFXAsset
 {
 	// Hair data from *.tfx
-	tinystl::vector<float4> mPositions;
-	tinystl::vector<float2> mStrandUV;
-	tinystl::vector<float4> mRefVectors;
-	tinystl::vector<float4> mGlobalRotations;
-	tinystl::vector<float4> mLocalRotations;
-	tinystl::vector<float4> mTangents;
-	tinystl::vector<float4> mFollowRootOffsets;
-	tinystl::vector<int>    mStrandTypes;
-	tinystl::vector<float>  mThicknessCoeffs;
-	tinystl::vector<float>  mRestLengths;
-	tinystl::vector<int>    mTriangleIndices;
+	eastl::vector<float4> mPositions;
+	eastl::vector<float2> mStrandUV;
+	eastl::vector<float4> mRefVectors;
+	eastl::vector<float4> mGlobalRotations;
+	eastl::vector<float4> mLocalRotations;
+	eastl::vector<float4> mTangents;
+	eastl::vector<float4> mFollowRootOffsets;
+	eastl::vector<int>    mStrandTypes;
+	eastl::vector<float>  mThicknessCoeffs;
+	eastl::vector<float>  mRestLengths;
+	eastl::vector<int>    mTriangleIndices;
 	int                     mNumVerticesPerStrand;
 	int                     mNumGuideStrands;
 };
@@ -54,9 +54,9 @@ struct TFXVertex
 
 struct TFXMesh
 {
-	tinystl::vector<tinystl::string> mBones;
-	tinystl::vector<TFXVertex>       mVertices;
-	tinystl::vector<uint>            mIndices;
+	eastl::vector<eastl::string> mBones;
+	eastl::vector<TFXVertex>       mVertices;
+	eastl::vector<uint>            mIndices;
 };
 
 class TFXImporter

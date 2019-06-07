@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../../ThirdParty/OpenSource/EASTL/deque.h"
+
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IMemoryManager.h"
@@ -43,15 +45,15 @@ enum
 
 struct ThreadSystem
 {
-	ThreadDesc                    mThreadDescs[MAX_LOAD_THREADS];
-	ThreadHandle                  mThread[MAX_LOAD_THREADS];
-	tinystl::vector<ThreadedTask> mLoadQueue;
-	ConditionVariable             mQueueCond;
-	Mutex                         mQueueMutex;
-	ConditionVariable             mIdleCond;
-	uint32_t                      mNumLoaders;
-	uint32_t                      mNumIdleLoaders;
-	volatile bool                 mRun;
+	ThreadDesc                 mThreadDescs[MAX_LOAD_THREADS];
+	ThreadHandle               mThread[MAX_LOAD_THREADS];
+	eastl::deque<ThreadedTask> mLoadQueue;
+	ConditionVariable          mQueueCond;
+	Mutex                      mQueueMutex;
+	ConditionVariable          mIdleCond;
+	uint32_t                   mNumLoaders;
+	uint32_t                   mNumIdleLoaders;
+	volatile bool              mRun;
 };
 
 static void taskThreadFunc(void* pThreadData)
@@ -71,7 +73,7 @@ static void taskThreadFunc(void* pThreadData)
 		{
 			ThreadedTask resourceTask = pThreadSystem->mLoadQueue.front();
 			if (resourceTask.mStart + 1 == resourceTask.mEnd)
-				pThreadSystem->mLoadQueue.erase(pThreadSystem->mLoadQueue.begin());
+				pThreadSystem->mLoadQueue.pop_front();
 			else
 				++pThreadSystem->mLoadQueue.front().mStart;
 			pThreadSystem->mQueueMutex.Release();

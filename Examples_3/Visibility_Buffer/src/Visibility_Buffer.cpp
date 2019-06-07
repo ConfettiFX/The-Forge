@@ -25,11 +25,10 @@
 #include "../../../Common_3/OS/Input/InputSystem.h"
 #include "../../../Common_3/OS/Input/InputMappings.h"
 
-#include "../../../Common_3/Tools/Profiler/Profiler.h"
-#include "../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
-#include "../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../Common_3/OS/Core/RingBuffer.h"
 #include "../../../Common_3/OS/Image/Image.h"
 #include "../../../Common_3/OS/Interfaces/ILogManager.h"
@@ -213,9 +212,9 @@ struct DisplayChromacities
 //};
 
 //Camera Walking
-static float            cameraWalkingTime = 0.0f;
-tinystl::vector<float3> positions_directions;
-float3                  CameraPathData[29084];
+static float          cameraWalkingTime = 0.0f;
+eastl::vector<float3> positions_directions;
+float3                CameraPathData[29084];
 
 uint  cameraPoints;
 float totalElpasedTime;
@@ -618,13 +617,13 @@ Texture* gDiffuseMapsStorage = NULL;
 Texture* gNormalMapsStorage = NULL;
 Texture* gSpecularMapsStorage = NULL;
 
-tinystl::vector<Texture*> gDiffuseMaps;
-tinystl::vector<Texture*> gNormalMaps;
-tinystl::vector<Texture*> gSpecularMaps;
+eastl::vector<Texture*> gDiffuseMaps;
+eastl::vector<Texture*> gNormalMaps;
+eastl::vector<Texture*> gSpecularMaps;
 
-tinystl::vector<Texture*> gDiffuseMapsPacked;
-tinystl::vector<Texture*> gNormalMapsPacked;
-tinystl::vector<Texture*> gSpecularMapsPacked;
+eastl::vector<Texture*> gDiffuseMapsPacked;
+eastl::vector<Texture*> gNormalMapsPacked;
+eastl::vector<Texture*> gSpecularMapsPacked;
 /************************************************************************/
 // Vertex buffers for the scene
 /************************************************************************/
@@ -705,7 +704,7 @@ RenderTarget* pScreenRenderTarget = NULL;
 /************************************************************************/
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 IWidget*                    gResolutionProperty = NULL;
-tinystl::vector<Resolution> gResolutions;
+eastl::vector<Resolution> gResolutions;
 uint32_t                    gResolutionIndex = 0;
 bool                        gResolutionChange = false;
 #endif
@@ -746,7 +745,7 @@ void SetupDebugTexturesWindow()
 			pDebugTexturesWindow->AddWidget(widget);
 			
 			
-			tinystl::vector<Texture*> pVBRTs;
+			eastl::vector<Texture*> pVBRTs;
 #if (MSAASAMPLECOUNT == 1)
 			if (gAppSettings.mRenderMode == RENDERMODE_VISBUFF)
 			{
@@ -778,12 +777,12 @@ IWidget* addResolutionProperty(
 	{
 		struct ResolutionData
 		{
-			tinystl::vector<tinystl::string> resNameContainer;
-			tinystl::vector<const char*>     resNamePointers;
-			tinystl::vector<uint32_t>        resValues;
+			eastl::vector<eastl::string> resNameContainer;
+			eastl::vector<const char*>     resNamePointers;
+			eastl::vector<uint32_t>        resValues;
 		};
 		
-		static tinystl::unordered_map<GuiComponent*, ResolutionData> guiResolution;
+		static eastl::unordered_map<GuiComponent*, ResolutionData> guiResolution;
 		ResolutionData&                                              data = guiResolution[pUIManager];
 		
 		data.resNameContainer.clear();
@@ -792,14 +791,14 @@ IWidget* addResolutionProperty(
 		
 		for (uint32_t i = 0; i < resCount; ++i)
 		{
-			data.resNameContainer.push_back(tinystl::string::format("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
+			data.resNameContainer.push_back(eastl::string().sprintf("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
 			data.resValues.push_back(i);
 		}
 		
 		data.resNamePointers.resize(data.resNameContainer.size() + 1);
 		for (uint32_t i = 0; i < (uint32_t)data.resNameContainer.size(); ++i)
 		{
-			data.resNamePointers[i] = data.resNameContainer[i];
+			data.resNamePointers[i] = data.resNameContainer[i].c_str();
 		}
 		data.resNamePointers[data.resNamePointers.size() - 1] = NULL;
 		
@@ -861,7 +860,7 @@ public:
 			return false;
 		
 		//Camera Walking
-		tinystl::string fn("cameraPath.bin");
+		eastl::string fn("cameraPath.bin");
 		mFile.Open(fn, FM_ReadBinary, FSR_OtherFiles);
 		mFile.Read(CameraPathData, sizeof(float3) * 29084);
 		mFile.Close();
@@ -891,21 +890,24 @@ public:
 		addFence(pRenderer, &pTransitionFences);
 		
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+		// Load shaders
+		addShaders();
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer);
+
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
 		
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler);
-		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler);
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler, "GraphicsGpuProfiler");
+		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler, "ComputeGpuProfiler");
 		/************************************************************************/
 		// Start timing the scene load
 		/************************************************************************/
 		HiresTimer timer;
 		
 		HiresTimer shaderTimer;
-		// Load shaders
-		addShaders();
 		LOGF(LogLevel::eINFO, "Load shaders : %f ms", shaderTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// Setup default depth, blend, rasterizer, sampler states
@@ -990,7 +992,7 @@ public:
 		// Load the scene using the SceneLoader class, which uses Assimp
 		/************************************************************************/
 		HiresTimer      sceneLoadTimer;
-		tinystl::string sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
+		eastl::string sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
 		pScene = loadScene(sceneFullPath.c_str(), 50.0f, -20.0f, 0.0f, 0.0f);
 		if (!pScene)
 			return false;
@@ -1253,13 +1255,13 @@ public:
 		
 		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
 		pDrawId =
-		&pRootSignatureVBPass->pDescriptors[pRootSignatureVBPass->pDescriptorNameToIndexMap[tinystl::hash("indirectRootConstant")]];
+		&pRootSignatureVBPass->pDescriptors[pRootSignatureVBPass->pDescriptorNameToIndexMap["indirectRootConstant"]];
 		indirectArgs[0].mRootParameterIndex = pRootSignatureVBPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 		
 		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 2, indirectArgs };
 		pDrawId = &pRootSignatureDeferredPass
-		->pDescriptors[pRootSignatureDeferredPass->pDescriptorNameToIndexMap[tinystl::hash("indirectRootConstant")]];
+		->pDescriptors[pRootSignatureDeferredPass->pDescriptorNameToIndexMap["indirectRootConstant"]];
 		indirectArgs[0].mRootParameterIndex = pRootSignatureDeferredPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
 #else
@@ -1317,9 +1319,6 @@ public:
 			return false;
 		
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
-		ProfileInitialize(pRenderer, gImageCount);
-		ProfileRegisterInput();
-		ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
 		
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
@@ -1587,7 +1586,7 @@ public:
 		
 		gAppSettings.mDynamicUIWidgetsAO.Destroy();
 		
-		ProfileExit(pRenderer);
+		exitProfiler(pRenderer);
 
 		gAppUI.Exit();
 		
@@ -1639,9 +1638,7 @@ public:
 		// Remove loaded scene
 		/************************************************************************/
 		// Destroy scene buffers
-#if !defined(METAL)
 		removeResource(pIndexBufferAll);
-#endif
 		removeResource(pVertexBufferPosition);
 		removeResource(pVertexBufferTexCoord);
 		removeResource(pVertexBufferNormal);
@@ -1742,8 +1739,6 @@ public:
 		
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
-		
-		ProfileLoad(pRenderer, pSwapChain);
 
 #if defined(DIRECT3D12)
 		if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
@@ -2250,8 +2245,6 @@ public:
 			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
 			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
 		}
-		
-		ProfileUnload(pRenderer);
 
 		gAppUI.Unload();
 		
@@ -2641,12 +2634,13 @@ public:
 			
 			Semaphore* pWaitSemaphores[] = { pRenderCompleteSemaphores[gPresentFrameIdx] };
 			queuePresent(pGraphicsQueue, pSwapChain, gPresentFrameIdx, 1, pWaitSemaphores);
+			flipProfiler();
 		}
 		
 		++gFrameCount;
 	}
 	
-	tinystl::string GetName() { return "Visibility Buffer"; }
+	const char* GetName() { return "Visibility Buffer"; }
 	
 	/************************************************************************/
 	// Add render targets
@@ -2909,8 +2903,8 @@ public:
 	void addShaders()
 	{
 		ShaderMacro shadingMacros[2][2] = {
-			{ { "SAMPLE_COUNT", tinystl::string::format("%d", MSAASAMPLECOUNT) }, { "USE_AMBIENT_OCCLUSION", "" } },
-			{ { "SAMPLE_COUNT", tinystl::string::format("%d", MSAASAMPLECOUNT) }, { "USE_AMBIENT_OCCLUSION", "" } },
+			{ { "SAMPLE_COUNT", eastl::string().sprintf("%d", MSAASAMPLECOUNT) }, { "USE_AMBIENT_OCCLUSION", "" } },
+			{ { "SAMPLE_COUNT", eastl::string().sprintf("%d", MSAASAMPLECOUNT) }, { "USE_AMBIENT_OCCLUSION", "" } },
 		};
 		ShaderMacro hdaoMacros[4][2] = {};
 		
@@ -2952,7 +2946,7 @@ public:
 		
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			shadingMacros[i][1].value = tinystl::string::format("%d", i);    //USE_AMBIENT_OCCLUSION
+			shadingMacros[i][1].value = eastl::string().sprintf("%d", i);    //USE_AMBIENT_OCCLUSION
 			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, FSR_SrcShaders };
 			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
 			
@@ -2975,7 +2969,7 @@ public:
 		for (uint32_t i = 0; i < 4; ++i)
 		{
 			hdaoMacros[i][0] = shadingMacros[0][0];
-			hdaoMacros[i][1] = { "AO_QUALITY", tinystl::string::format("%u", (i + 1)) };
+			hdaoMacros[i][1] = { "AO_QUALITY", eastl::string().sprintf("%u", (i + 1)) };
 			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
 			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
 		}
@@ -3113,7 +3107,7 @@ public:
 		VisBufferIndirectCommand* indirectDrawArgumentsMax = (VisBufferIndirectCommand*)conf_malloc(bufSize);
 		memset(indirectDrawArgumentsMax, 0, bufSize);
 		
-		tinystl::vector<uint32_t> materialIDPerDrawCall(pScene->numMeshes);
+		eastl::vector<uint32_t> materialIDPerDrawCall(pScene->numMeshes);
 		for (uint32_t i = 0; i < pScene->numMeshes; i++)
 		{
 			VisBufferIndirectCommand* arg = &indirectDrawArgumentsMax[i];
@@ -3153,9 +3147,9 @@ public:
 		conf_free(indirectDrawArgumentsMax);
 #else
 		const uint32_t numBatches = (const uint32_t)pScene->numMeshes;
-		tinystl::vector<uint32_t> materialIDPerDrawCall(MATERIAL_BUFFER_SIZE);
-		tinystl::vector<VisBufferIndirectCommand> indirectArgsNoAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ 0 });
-		tinystl::vector<VisBufferIndirectCommand> indirectArgsAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ 0 });
+		eastl::vector<uint32_t> materialIDPerDrawCall(MATERIAL_BUFFER_SIZE);
+		eastl::vector<VisBufferIndirectCommand> indirectArgsNoAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ 0 });
+		eastl::vector<VisBufferIndirectCommand> indirectArgsAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ 0 });
 		uint32_t iAlpha = 0, iNoAlpha = 0;
 		for (uint32_t i = 0; i < numBatches; ++i)
 		{
@@ -3945,8 +3939,17 @@ public:
 		if (wasMicroProfileActivated != gAppSettings.mActivateMicroProfiler)
 		{
 			wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
-			ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
-			ProfileSetDisplayMode(P_DRAW_BARS);
+
+      // ProfileSetDisplayMode()
+      // TODO: need to change this better way 
+
+      Profile& S = *ProfileGet();
+      int nValue = wasMicroProfileActivated ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+			//ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
+			//ProfileSetDisplayMode(P_DRAW_BARS);
 		}
 	}
 	/************************************************************************/
@@ -5436,7 +5439,7 @@ public:
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
 		addResource(&skyboxVbDesc, true);
 		
-		tinystl::string sunFullPath = FileSystem::FixPath(gSunName, FSRoot::FSR_Meshes);
+		eastl::string sunFullPath = FileSystem::FixPath(gSunName, FSRoot::FSR_Meshes);
 		loadModel(sunFullPath, pSunVertexBuffer, SunVertexCount, pSunIndexBuffer, SunIndexCount);
 	}
 	
@@ -5664,11 +5667,12 @@ public:
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
 		if(gAppSettings.mActivateMicroProfiler)
-			ProfileDraw(cmd, mSettings.mWidth, mSettings.mHeight);
+			cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 		else
 		{
 			gTimer.GetUSec(true);
-			gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+			gAppUI.DrawText(
+				cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 #if 1
 			// NOTE: Realtime GPU Profiling is not supported on Metal.
@@ -5678,30 +5682,31 @@ public:
 				{
 					float time =
 						max((float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f, (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f);
-					gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+					gAppUI.DrawText(cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", time).c_str(), &gFrameTimeDraw);
 
 					gAppUI.DrawText(
-						cmd, float2(8.0f, 65.0f), tinystl::string::format("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f),
+						cmd, float2(8.0f, 65.0f),
+						eastl::string().sprintf("Compute Queue %f ms", (float)pComputeGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 						&gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 90.0f), pComputeGpuProfiler, NULL);
 					gAppUI.DrawText(
 						cmd, float2(8.0f, 300.0f),
-						tinystl::string::format("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
+						eastl::string().sprintf("Graphics Queue %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 						&gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 325.0f), pGraphicsGpuProfiler, NULL);
 				}
 				else
 				{
 					float time = (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f;
-					gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", time), &gFrameTimeDraw);
+					gAppUI.DrawText(cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", time).c_str(), &gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
 				}
 			}
 			else
 			{
 				gAppUI.DrawText(
-					cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f),
-					&gFrameTimeDraw);
+					cmd, float2(8.0f, 40.0f),
+					eastl::string().sprintf("GPU %f ms", (float)pGraphicsGpuProfiler->mCumulativeTime * 1000.0f).c_str(), &gFrameTimeDraw);
 				gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGraphicsGpuProfiler, NULL);
 			}
 		}

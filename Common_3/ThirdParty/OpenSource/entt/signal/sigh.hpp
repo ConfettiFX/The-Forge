@@ -3,8 +3,8 @@
 
 
 #include <algorithm>
-#include "../../TinySTL/vector.h"
-#include "../../TinySTL/hash_base.h"
+#include "../../EASTL/vector.h"
+#include "../../EASTL/functional.h"
 #include "../config/config.h"
 
 
@@ -27,7 +27,7 @@ struct sigh_traits;
 template<typename Ret, typename... Args>
 struct sigh_traits<Ret(Args...)> {
     using proto_fn_type = Ret(void *, Args...);
-    using call_type = tinystl::pair<void *, proto_fn_type *>;
+    using call_type = eastl::pair<void *, proto_fn_type *>;
 };
 
 
@@ -158,7 +158,7 @@ class Sink<Ret(Args...)> final {
         return (static_cast<Class *>(instance)->*Member)(args...);
     }
 
-    Sink(tinystl::vector<call_type> *calls) ENTT_NOEXCEPT
+    Sink(eastl::vector<call_type> *calls) ENTT_NOEXCEPT
         : calls{calls}
     {}
 
@@ -268,7 +268,7 @@ public:
     }
 
 private:
-    tinystl::vector<call_type> *calls;
+    eastl::vector<call_type> *calls;
 };
 
 
@@ -301,7 +301,7 @@ class SigH<Ret(Args...), Collector> final: private internal::Invoker<Ret(Args...
 
 public:
     /*! @brief Unsigned integer type. */
-	using size_type = size_t;// typename tinystl::vector<call_type>::size_t;
+	using size_type = size_t;// typename eastl::vector<call_type>::size_t;
     /*! @brief Collector type. */
     using collector_type = Collector;
     /*! @brief Sink type. */
@@ -398,7 +398,7 @@ public:
     }
 
 private:
-    tinystl::vector<call_type> calls;
+    eastl::vector<call_type> calls;
 };
 
 

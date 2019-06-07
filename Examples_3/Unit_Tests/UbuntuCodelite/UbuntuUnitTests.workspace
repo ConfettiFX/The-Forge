@@ -37,6 +37,7 @@
   <Project Name="ozz_base" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
+  <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -79,6 +80,7 @@
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
       <Project Name="AssetPipeline" ConfigName="Debug"/>
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
+      <Project Name="EASTL" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
@@ -121,6 +123,7 @@
       <Project Name="ozz_animation_offline" ConfigName="Release"/>
       <Project Name="AssetPipeline" ConfigName="Release"/>
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="EASTL" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

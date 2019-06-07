@@ -3,7 +3,7 @@
 
 
 //#include <utility>
-#include "../../TinySTL/hash_base.h"
+#include "../../EASTL/functional.h"
 #include "../config/config.h"
 
 
@@ -36,7 +36,7 @@ class Delegate;
 template<typename Ret, typename... Args>
 class Delegate<Ret(Args...)> final {
     using proto_fn_type = Ret(void *, Args...);
-    using stub_type = tinystl::pair<void *, proto_fn_type *>;
+    using stub_type = eastl::pair<void *, proto_fn_type *>;
 
     template<Ret(*Function)(Args...)>
     static Ret proto(void *, Args... args) {
@@ -74,7 +74,7 @@ public:
      */
     template<Ret(*Function)(Args...)>
     void connect() ENTT_NOEXCEPT {
-        stub = tinystl::make_pair(nullptr, &proto<Function>);
+        stub = eastl::make_pair(nullptr, &proto<Function>);
     }
 
     /**
@@ -90,7 +90,7 @@ public:
      */
     template<typename Class, Ret(Class:: *Member)(Args...) const>
     void connect(Class *instance) ENTT_NOEXCEPT {
-        stub = tinystl::make_pair(instance, &proto<Class, Member>);
+        stub = eastl::make_pair(instance, &proto<Class, Member>);
     }
 
     /**
@@ -106,7 +106,7 @@ public:
      */
     template<typename Class, Ret(Class:: *Member)(Args...)>
     void connect(Class *instance) ENTT_NOEXCEPT {
-        stub = tinystl::make_pair(instance, &proto<Class, Member>);
+        stub = eastl::make_pair(instance, &proto<Class, Member>);
     }
 
     /**

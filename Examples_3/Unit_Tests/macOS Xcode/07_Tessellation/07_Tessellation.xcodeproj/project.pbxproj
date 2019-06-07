@@ -17,6 +17,8 @@
 		28A5AE01201F7689000E571F /* compute.comp.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADC8201F75F0000E571F /* compute.comp.metal */; };
 		28A5AE02201F768B000E571F /* grass.domain.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADC7201F75F0000E571F /* grass.domain.vert.metal */; };
 		28A5AE03201F768D000E571F /* grass_verthull.comp.metal in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ADC9201F75F0000E571F /* grass_verthull.comp.metal */; };
+		5B17815322A5C72B00991DCB /* profile.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B17815122A5C72B00991DCB /* profile.vert.metal */; };
+		5B17815422A5C72B00991DCB /* profile.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B17815222A5C72B00991DCB /* profile.frag.metal */; };
 		5C172F8F21414A9C0074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F8D21414A9B0074EE71 /* AppDelegate.m */; };
 		5C172F9821414AB70074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F9521414AA80074EE71 /* libThe-Forge.a */; };
 		5C17304021414E610074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17303F21414E610074EE71 /* libThe-Forge_iOS.a */; };
@@ -104,6 +106,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
+				5B17815322A5C72B00991DCB /* profile.vert.metal in CopyFiles */,
+				5B17815422A5C72B00991DCB /* profile.frag.metal in CopyFiles */,
 				5CA80F8C21F0A1EF00C99983 /* fontstash.frag.metal in CopyFiles */,
 				5CA80F8D21F0A1EF00C99983 /* fontstash2D.vert.metal in CopyFiles */,
 				5CA80F8E21F0A1EF00C99983 /* fontstash3D.vert.metal in CopyFiles */,
@@ -132,6 +136,8 @@
 		28A5ADC7201F75F0000E571F /* grass.domain.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = grass.domain.vert.metal; path = ../../../src/07_Tessellation/Shaders/Metal/grass.domain.vert.metal; sourceTree = "<group>"; };
 		28A5ADC8201F75F0000E571F /* compute.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = compute.comp.metal; path = ../../../src/07_Tessellation/Shaders/Metal/compute.comp.metal; sourceTree = "<group>"; };
 		28A5ADC9201F75F0000E571F /* grass_verthull.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = grass_verthull.comp.metal; path = ../../../src/07_Tessellation/Shaders/Metal/grass_verthull.comp.metal; sourceTree = "<group>"; };
+		5B17815122A5C72B00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/07_Tessellation/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
+		5B17815222A5C72B00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/07_Tessellation/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5C172F8D21414A9B0074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C172F8E21414A9B0074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C172F9021414AA70074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
@@ -269,6 +275,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				5B17815222A5C72B00991DCB /* profile.frag.metal */,
+				5B17815122A5C72B00991DCB /* profile.vert.metal */,
 				5CA80E1521F09F7500C99983 /* CommonShaders */,
 				5C172F9021414AA70074EE71 /* The-Forge.xcodeproj */,
 				28A5ADC4201F75D2000E571F /* Fonts */,
@@ -573,7 +581,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -631,7 +639,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -679,6 +687,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
@@ -709,6 +718,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";

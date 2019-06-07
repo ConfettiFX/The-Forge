@@ -2682,11 +2682,11 @@ static void ShowExampleMenuFile()
 struct ExampleAppConsole
 {
     char                  InputBuf[256];
-    tinystl::vector<char*>       Items;
+    eastl::vector<char*>       Items;
     bool                  ScrollToBottom;
-    tinystl::vector<char*>       History;
+    eastl::vector<char*>       History;
     int                   HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
-    tinystl::vector<const char*> Commands;
+    eastl::vector<const char*> Commands;
 
     ExampleAppConsole()
     {
@@ -2900,7 +2900,7 @@ struct ExampleAppConsole
                 }
 
                 // Build a list of candidates
-                tinystl::vector<const char*> candidates;
+                eastl::vector<const char*> candidates;
                 for (int i = 0; i < Commands.size(); i++)
                     if (Strnicmp(Commands[i], word_start, (int)(word_end-word_start)) == 0)
                         candidates.push_back(Commands[i]);
@@ -2996,9 +2996,9 @@ static void ShowExampleAppConsole(bool* p_open)
 //  my_log.Draw("title");
 struct ExampleAppLog
 {
-    tinystl::string     Buf;
+    eastl::string     Buf;
     ImGuiTextFilter     Filter;
-    tinystl::vector<int>       LineOffsets;        // Index to lines offset
+    eastl::vector<int>       LineOffsets;        // Index to lines offset
     bool                ScrollToBottom;
 
     void    Clear()     { Buf = ""; LineOffsets.clear(); }
@@ -3217,7 +3217,7 @@ static void ShowExampleAppLongText(bool* p_open)
     }
 
     static int test_type = 0;
-    static tinystl::string log;
+    static eastl::string log;
     static int lines = 0;
     ImGui::Text("Printing unusually long amount of text.");
     ImGui::Combo("Test type", &test_type, "Single call to TextUnformatted()\0Multiple calls to Text(), clipped manually\0Multiple calls to Text(), not clipped (slow)\0");
@@ -3227,7 +3227,7 @@ static void ShowExampleAppLongText(bool* p_open)
     if (ImGui::Button("Add 1000 lines"))
     {
         for (int i = 0; i < 1000; i++)
-            log += tinystl::string::format("%i The quick brown fox jumps over the lazy dog\n", lines+i);
+            log.append_sprintf("%i The quick brown fox jumps over the lazy dog\n", lines+i);
         lines += 1000;
     }
     ImGui::BeginChild("Log");
@@ -3459,7 +3459,7 @@ static void ShowExampleAppCustomRendering(bool* p_open)
     }
     ImGui::Separator();
     {
-        static tinystl::vector<float2> points;
+        static eastl::vector<float2> points;
         static bool adding_line = false;
         ImGui::Text("Canvas example");
         if (ImGui::Button("Clear")) points.clear();

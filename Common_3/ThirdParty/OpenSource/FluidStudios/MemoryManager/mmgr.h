@@ -50,6 +50,7 @@ typedef	struct tag_au
 {
 	size_t		actualSize;
 	size_t		reportedSize;
+	size_t		alignment;
 	void		*actualAddress;
 	void		*reportedAddress;
 	char		sourceFile[140];
@@ -77,18 +78,22 @@ typedef	struct
 } sMStats;
 
 // ---------------------------------------------------------------------------------------------------------------------------------
-// External constants
+// Defaults for the constants & statics in the MemoryManager class
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-extern	const	unsigned int	m_alloc_unknown;
-extern	const	unsigned int	m_alloc_new;
-extern	const	unsigned int	m_alloc_new_array;
-extern	const	unsigned int	m_alloc_malloc;
-extern	const	unsigned int	m_alloc_calloc;
-extern	const	unsigned int	m_alloc_realloc;
-extern	const	unsigned int	m_alloc_delete;
-extern	const	unsigned int	m_alloc_delete_array;
-extern	const	unsigned int	m_alloc_free;
+enum
+{
+	m_alloc_unknown,
+	m_alloc_new,
+	m_alloc_new_array,
+	m_alloc_malloc,
+	m_alloc_calloc,
+	m_alloc_memalign,
+	m_alloc_realloc,
+	m_alloc_delete,
+	m_alloc_delete_array,
+	m_alloc_free,
+};
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Used by the macros
@@ -108,7 +113,7 @@ bool		&m_breakOnDealloc(void *reportedAddress);
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 void		*m_allocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
-	const unsigned int allocationType, const size_t reportedSize);
+	const unsigned int allocationType, const size_t alignment, const size_t reportedSize);
 void		*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
 	const unsigned int reallocationType, const size_t reportedSize, void *reportedAddress);
 void		m_deallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,

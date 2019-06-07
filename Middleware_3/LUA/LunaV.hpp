@@ -407,12 +407,12 @@ class Luna
 
 	// Helpers
 	//get string from lua on stack position
-	static tinystl::string GetString(lua_State* L, int stackpos)
+	static eastl::string GetString(lua_State* L, int stackpos)
 	{
 		const char* str = lua_tostring(L, stackpos);
 		if (str != nullptr)
 			return str;
-		return tinystl::string("");
+		return eastl::string("");
 	}
 
 	//check if a value is string on the stack position

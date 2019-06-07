@@ -771,7 +771,7 @@ CODE
       io.Fonts->AddFontFromFileTTF("myfontfile.ttf", size_in_pixels, NULL, io.Fonts->GetGlyphRangesJapanese());
 
       // Or create your own custom ranges (e.g. for a game you can feed your entire game script and only build the characters the game need)
-      tinystl::vector<ImWchar> ranges;
+      eastl::vector<ImWchar> ranges;
       ImFontAtlas::GlyphRangesBuilder builder;
       builder.AddText("Hello world");                        // Add a string (here "Hello world" contains 7 unique characters)
       builder.AddChar(0x7262);                               // Add a specific character
@@ -894,16 +894,16 @@ static ImGuiWindow*     CreateNewWindow(const char* name, float2 size, ImGuiWind
 static void             CheckStacksSize(ImGuiWindow* window, bool write);
 static float2           CalcNextScrollFromScrollTargetAndClamp(ImGuiWindow* window, bool snap_on_edges);
 
-static void             AddDrawListToDrawData(tinystl::vector<ImDrawList*>* out_list, ImDrawList* draw_list);
-static void             AddWindowToDrawData(tinystl::vector<ImDrawList*>* out_list, ImGuiWindow* window);
-static void             AddWindowToSortedBuffer(tinystl::vector<ImGuiWindow*>* out_sorted_windows, ImGuiWindow* window);
+static void             AddDrawListToDrawData(eastl::vector<ImDrawList*>* out_list, ImDrawList* draw_list);
+static void             AddWindowToDrawData(eastl::vector<ImDrawList*>* out_list, ImGuiWindow* window);
+static void             AddWindowToSortedBuffer(eastl::vector<ImGuiWindow*>* out_sorted_windows, ImGuiWindow* window);
 
 static ImRect           GetViewportRect();
 
 // Settings
 static void*            SettingsHandlerWindow_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name);
 static void             SettingsHandlerWindow_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line);
-static void             SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSettingsHandler* handler, tinystl::string* buf);
+static void             SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSettingsHandler* handler, eastl::string* buf);
 
 // Platform Dependents default implementation for IO functions
 static const char*      GetClipboardTextFn_DefaultImpl(void* user_data);
@@ -946,7 +946,7 @@ ImGuiContext*   GImGui = NULL;
 
 // Memory Allocator functions. Use SetAllocatorFunctions() to change them.
 // If you use DLL hotreloading you might need to call SetAllocatorFunctions() after reloading code from this file.
-// Otherwise, you probably don't want to modify them mid-program, and if you use global/static e.g. tinystl::vector<> instances you may need to keep them accessible during program destruction.
+// Otherwise, you probably don't want to modify them mid-program, and if you use global/static e.g. eastl::vector<> instances you may need to keep them accessible during program destruction.
 #ifndef IMGUI_DISABLE_DEFAULT_ALLOCATORS
 extern void* conf_malloc(size_t);
 extern void  conf_free(void*);
@@ -1725,15 +1725,15 @@ uint32_t ImGui::GetColorU32(uint32_t col)
 //-----------------------------------------------------------------------------
 
 // std::lower_bound but without the bullshit
-static tinystl::vector<ImGuiStorage::Pair>::iterator LowerBound(tinystl::vector<ImGuiStorage::Pair>& data, ImGuiID key)
+static eastl::vector<ImGuiStorage::Pair>::iterator LowerBound(eastl::vector<ImGuiStorage::Pair>& data, ImGuiID key)
 {
-    tinystl::vector<ImGuiStorage::Pair>::iterator first = data.begin();
-    tinystl::vector<ImGuiStorage::Pair>::iterator last = data.end();
+    eastl::vector<ImGuiStorage::Pair>::iterator first = data.begin();
+    eastl::vector<ImGuiStorage::Pair>::iterator last = data.end();
     size_t count = (size_t)(last - first);
     while (count > 0)
     {
         size_t count2 = count >> 1;
-        tinystl::vector<ImGuiStorage::Pair>::iterator mid = first + count2;
+        eastl::vector<ImGuiStorage::Pair>::iterator mid = first + count2;
         if (mid->key < key)
         {
             first = ++mid;
@@ -1766,7 +1766,7 @@ void ImGuiStorage::BuildSortByKey()
 
 int ImGuiStorage::GetInt(ImGuiID key, int default_val) const
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(const_cast<tinystl::vector<ImGuiStorage::Pair>&>(Data), key);
+    eastl::vector<Pair>::iterator it = LowerBound(const_cast<eastl::vector<ImGuiStorage::Pair>&>(Data), key);
     if (it == Data.end() || it->key != key)
         return default_val;
     return it->val_i;
@@ -1779,7 +1779,7 @@ bool ImGuiStorage::GetBool(ImGuiID key, bool default_val) const
 
 float ImGuiStorage::GetFloat(ImGuiID key, float default_val) const
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(const_cast<tinystl::vector<ImGuiStorage::Pair>&>(Data), key);
+    eastl::vector<Pair>::iterator it = LowerBound(const_cast<eastl::vector<ImGuiStorage::Pair>&>(Data), key);
     if (it == Data.end() || it->key != key)
         return default_val;
     return it->val_f;
@@ -1787,7 +1787,7 @@ float ImGuiStorage::GetFloat(ImGuiID key, float default_val) const
 
 void* ImGuiStorage::GetVoidPtr(ImGuiID key) const
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(const_cast<tinystl::vector<ImGuiStorage::Pair>&>(Data), key);
+    eastl::vector<Pair>::iterator it = LowerBound(const_cast<eastl::vector<ImGuiStorage::Pair>&>(Data), key);
     if (it == Data.end() || it->key != key)
         return NULL;
     return it->val_p;
@@ -1796,7 +1796,7 @@ void* ImGuiStorage::GetVoidPtr(ImGuiID key) const
 // References are only valid until a new value is added to the storage. Calling a Set***() function or a Get***Ref() function invalidates the pointer.
 int* ImGuiStorage::GetIntRef(ImGuiID key, int default_val)
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(Data, key);
+    eastl::vector<Pair>::iterator it = LowerBound(Data, key);
     if (it == Data.end() || it->key != key)
 		//verify change here
         Data.insert(it, Pair(key, default_val));
@@ -1810,7 +1810,7 @@ bool* ImGuiStorage::GetBoolRef(ImGuiID key, bool default_val)
 
 float* ImGuiStorage::GetFloatRef(ImGuiID key, float default_val)
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(Data, key);
+    eastl::vector<Pair>::iterator it = LowerBound(Data, key);
     if (it == Data.end() || it->key != key)
 		//verify change here
 		Data.insert(it, Pair(key, default_val));
@@ -1819,7 +1819,7 @@ float* ImGuiStorage::GetFloatRef(ImGuiID key, float default_val)
 
 void** ImGuiStorage::GetVoidPtrRef(ImGuiID key, void* default_val)
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(Data, key);
+    eastl::vector<Pair>::iterator it = LowerBound(Data, key);
     if (it == Data.end() || it->key != key)
 		//verify change here
 		Data.insert(it, Pair(key, default_val));
@@ -1829,7 +1829,7 @@ void** ImGuiStorage::GetVoidPtrRef(ImGuiID key, void* default_val)
 // FIXME-OPT: Need a way to reuse the result of lower_bound when doing GetInt()/SetInt() - not too bad because it only happens on explicit interaction (maximum one a frame)
 void ImGuiStorage::SetInt(ImGuiID key, int val)
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(Data, key);
+    eastl::vector<Pair>::iterator it = LowerBound(Data, key);
     if (it == Data.end() || it->key != key)
     {
         Data.insert(it, Pair(key, val));
@@ -1845,7 +1845,7 @@ void ImGuiStorage::SetBool(ImGuiID key, bool val)
 
 void ImGuiStorage::SetFloat(ImGuiID key, float val)
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(Data, key);
+    eastl::vector<Pair>::iterator it = LowerBound(Data, key);
     if (it == Data.end() || it->key != key)
     {
         Data.insert(it, Pair(key, val));
@@ -1856,7 +1856,7 @@ void ImGuiStorage::SetFloat(ImGuiID key, float val)
 
 void ImGuiStorage::SetVoidPtr(ImGuiID key, void* val)
 {
-    tinystl::vector<Pair>::iterator it = LowerBound(Data, key);
+    eastl::vector<Pair>::iterator it = LowerBound(Data, key);
     if (it == Data.end() || it->key != key)
     {
         Data.insert(it, Pair(key, val));
@@ -1902,7 +1902,7 @@ bool ImGuiTextFilter::Draw(const char* label, float width)
     return value_changed;
 }
 
-void ImGuiTextFilter::TextRange::split(char separator, tinystl::vector<TextRange>* out) const
+void ImGuiTextFilter::TextRange::split(char separator, eastl::vector<TextRange>* out) const
 {
     out->resize(0);
     const char* wb = b;
@@ -3110,7 +3110,7 @@ static int IMGUI_CDECL ChildWindowComparer(const void* lhs, const void* rhs)
     return (a->BeginOrderWithinParent - b->BeginOrderWithinParent);
 }
 
-static void AddWindowToSortedBuffer(tinystl::vector<ImGuiWindow*>* out_sorted_windows, ImGuiWindow* window)
+static void AddWindowToSortedBuffer(eastl::vector<ImGuiWindow*>* out_sorted_windows, ImGuiWindow* window)
 {
     out_sorted_windows->push_back(window);
     if (window->Active)
@@ -3127,7 +3127,7 @@ static void AddWindowToSortedBuffer(tinystl::vector<ImGuiWindow*>* out_sorted_wi
     }
 }
 
-static void AddDrawListToDrawData(tinystl::vector<ImDrawList*>* out_list, ImDrawList* draw_list)
+static void AddDrawListToDrawData(eastl::vector<ImDrawList*>* out_list, ImDrawList* draw_list)
 {
     if (draw_list->CmdBuffer.empty())
         return;
@@ -3162,7 +3162,7 @@ static void AddDrawListToDrawData(tinystl::vector<ImDrawList*>* out_list, ImDraw
     out_list->push_back(draw_list);
 }
 
-static void AddWindowToDrawData(tinystl::vector<ImDrawList*>* out_render_list, ImGuiWindow* window)
+static void AddWindowToDrawData(eastl::vector<ImDrawList*>* out_render_list, ImGuiWindow* window)
 {
     ImGuiContext& g = *GImGui;
     g.IO.MetricsRenderWindows++;
@@ -3193,7 +3193,7 @@ void ImDrawDataBuilder::FlattenIntoSingleLayer()
     Layers[0].resize(size);
     for (int layer_n = 1; layer_n < IM_ARRAYSIZE(Layers); layer_n++)
     {
-        tinystl::vector<ImDrawList*>& layer = Layers[layer_n];
+        eastl::vector<ImDrawList*>& layer = Layers[layer_n];
         if (layer.empty())
             continue;
         memcpy(&Layers[0][n], &layer[0], layer.size() * sizeof(ImDrawList*));
@@ -3202,7 +3202,7 @@ void ImDrawDataBuilder::FlattenIntoSingleLayer()
     }
 }
 
-static void SetupDrawData(tinystl::vector<ImDrawList*>* draw_lists, ImDrawData* out_draw_data)
+static void SetupDrawData(eastl::vector<ImDrawList*>* draw_lists, ImDrawData* out_draw_data)
 {
     ImGuiIO& io = ImGui::GetIO();
     out_draw_data->Valid = true;
@@ -8570,7 +8570,7 @@ void ImGui::LoadIniSettingsFromDisk(const char* ini_filename)
 	toOpen.Open(ini_filename, FileMode::FM_ReadAppend, FSR_Absolute);
 	if (toOpen.IsOpen())
 	{
-		tinystl::string textFile = toOpen.ReadText();
+		eastl::string textFile = toOpen.ReadText();
 		LoadIniSettingsFromMemory(textFile.c_str(), (size_t)file_data_size);
 		toOpen.Close();
 	}
@@ -8698,7 +8698,7 @@ static void SettingsHandlerWindow_ReadLine(ImGuiContext*, ImGuiSettingsHandler*,
     else if (sscanf(line, "Collapsed=%d", &i) == 1)     settings->Collapsed = (i != 0);
 }
 
-static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSettingsHandler* handler, tinystl::string* buf)
+static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSettingsHandler* handler, eastl::string* buf)
 {
     // Gather data from windows that were active during this session
     ImGuiContext& g = *imgui_ctx;
@@ -8733,11 +8733,11 @@ static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSetting
         const char* name = settings->Name;
         if (const char* p = strstr(name, "###"))  // Skip to the "###" marker if any. We don't skip past to match the behavior of GetID()
             name = p;
-        *buf += tinystl::string::format("[%s][%s]\n", handler->TypeName, name);
-        *buf += tinystl::string::format("Pos=%d,%d\n", (int)settings->Pos.x, (int)settings->Pos.y);
-        *buf += tinystl::string::format("Size=%d,%d\n", (int)settings->Size.x, (int)settings->Size.y);
-        *buf += tinystl::string::format("Collapsed=%d\n", settings->Collapsed);
-        *buf += tinystl::string::format("\n");
+        buf->append_sprintf("[%s][%s]\n", handler->TypeName, name);
+        buf->append_sprintf("Pos=%d,%d\n", (int)settings->Pos.x, (int)settings->Pos.y);
+        buf->append_sprintf("Size=%d,%d\n", (int)settings->Size.x, (int)settings->Size.y);
+        buf->append_sprintf("Collapsed=%d\n", settings->Collapsed);
+        buf->append("\n");
     }
 }
 
@@ -8774,7 +8774,7 @@ static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSetting
 
 static const char* GetClipboardTextFn_DefaultImpl(void*)
 {
-    static tinystl::vector<char> buf_local;
+    static eastl::vector<char> buf_local;
     buf_local.clear();
     if (!::OpenClipboard(NULL))
         return NULL;
@@ -8958,7 +8958,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
                 ImGui::TreePop();
             }
 
-            static void NodeWindows(tinystl::vector<ImGuiWindow*>& windows, const char* label)
+            static void NodeWindows(eastl::vector<ImGuiWindow*>& windows, const char* label)
             {
                 if (!ImGui::TreeNode(label, "%s (%d)", label, (int)windows.size()))
                     return;

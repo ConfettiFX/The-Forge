@@ -39,17 +39,18 @@
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"    //NOTE: this should be the last include in a .cpp
 
-#define LABELID(prop) tinystl::string::format("##%llu", (uint64_t)(prop.pData))
-#define LABELID1(prop) tinystl::string::format("##%llu", (uint64_t)(prop))
+#define LABELID(prop) eastl::string().sprintf("##%llu", (uint64_t)(prop.pData)).c_str()
+#define LABELID1(prop) eastl::string().sprintf("##%llu", (uint64_t)(prop)).c_str()
 
 namespace ImGui {
 bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max, float v_step, const char* display_format)
 {
+	eastl::string text_buf;
+	bool          value_changed = false;
+
 	if (!display_format)
 		display_format = "%.1f";
-
-	tinystl::string text_buf = tinystl::string::format(display_format, *v);
-	bool            value_changed = false;
+	text_buf.sprintf(display_format, *v);
 
 	if (ImGui::GetIO().WantTextInput)
 	{
@@ -79,11 +80,12 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
 
 bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_max, int32_t v_step, const char* display_format)
 {
+	eastl::string text_buf;
+	bool          value_changed = false;
+
 	if (!display_format)
 		display_format = "%d";
-
-	tinystl::string text_buf = tinystl::string::format(display_format, *v);
-	bool            value_changed = false;
+	text_buf.sprintf(display_format, *v);
 
 	if (ImGui::GetIO().WantTextInput)
 	{
@@ -144,7 +146,7 @@ class ImguiGUIDriver: public GUIDriver
 	bool                  loaded;
 	uint32_t              frameIdx;
 
-	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
+	using PipelineMap = eastl::unordered_map<uint64_t, Pipeline*>;
 
 	Renderer*          pRenderer;
 	Shader*            pShaderTextured;
@@ -269,7 +271,7 @@ void ButtonWidget::Draw()
 void SliderFloatWidget::Draw()
 {
 	ImGui::Text("%s", mLabel.c_str());
-	ImGui::SliderFloatWithSteps(LABELID1(pData), pData, mMin, mMax, mStep, mFormat);
+	ImGui::SliderFloatWithSteps(LABELID1(pData), pData, mMin, mMax, mStep, mFormat.c_str());
 	ProcessCallbacks();
 }
 
@@ -278,7 +280,7 @@ void SliderFloat2Widget::Draw()
 	ImGui::Text("%s", mLabel.c_str());
 	for (uint32_t i = 0; i < 2; ++i)
 	{
-		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat);
+		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat.c_str());
 		ProcessCallbacks();
 	}
 }
@@ -288,7 +290,7 @@ void SliderFloat3Widget::Draw()
 	ImGui::Text("%s", mLabel.c_str());
 	for (uint32_t i = 0; i < 3; ++i)
 	{
-		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat);
+		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat.c_str());
 		ProcessCallbacks();
 	}
 }
@@ -298,7 +300,7 @@ void SliderFloat4Widget::Draw()
 	ImGui::Text("%s", mLabel.c_str());
 	for (uint32_t i = 0; i < 4; ++i)
 	{
-		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat);
+		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat.c_str());
 		ProcessCallbacks();
 	}
 }
@@ -306,14 +308,14 @@ void SliderFloat4Widget::Draw()
 void SliderIntWidget::Draw()
 {
 	ImGui::Text("%s", mLabel.c_str());
-	ImGui::SliderIntWithSteps(LABELID1(pData), pData, mMin, mMax, mStep, mFormat);
+	ImGui::SliderIntWithSteps(LABELID1(pData), pData, mMin, mMax, mStep, mFormat.c_str());
 	ProcessCallbacks();
 }
 
 void SliderUintWidget::Draw()
 {
 	ImGui::Text("%s", mLabel.c_str());
-	ImGui::SliderIntWithSteps(LABELID1(pData), (int32_t*)pData, (int32_t)mMin, (int32_t)mMax, (int32_t)mStep, mFormat);
+	ImGui::SliderIntWithSteps(LABELID1(pData), (int32_t*)pData, (int32_t)mMin, (int32_t)mMax, (int32_t)mStep, mFormat.c_str());
 	ProcessCallbacks();
 }
 
@@ -334,11 +336,11 @@ void DropdownWidget::Draw()
 {
 	uint32_t& current = *pData;
 	ImGui::Text("%s", mLabel.c_str());
-	if (ImGui::BeginCombo(LABELID1(pData), mNames[current]))
+	if (ImGui::BeginCombo(LABELID1(pData), mNames[current].c_str()))
 	{
 		for (uint32_t i = 0; i < (uint32_t)mNames.size(); ++i)
 		{
-			if (ImGui::Selectable(mNames[i]))
+			if (ImGui::Selectable(mNames[i].c_str()))
 			{
 				uint32_t prevVal = current;
 				current = i;
@@ -571,7 +573,7 @@ void ImguiGUIDriver::exit()
 {
 	for (PipelineMap::iterator it = mPipelinesTextured.begin(); it != mPipelinesTextured.end(); ++it)
 	{
-		removePipeline(pRenderer, it.node->second);
+		removePipeline(pRenderer, it->second);
 	}
 
 	mPipelinesTextured.clear();
@@ -794,18 +796,18 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 	for (uint32_t compIndex = 0; compIndex < pGuiUpdate->componentCount; ++compIndex)
 	{
 		GuiComponent*                           pComponent = pGuiUpdate->pGuiComponents[compIndex];
-		tinystl::string                         title = pComponent->mTitle;
+		eastl::string                         title = pComponent->mTitle;
 		int32_t                                 guiComponentFlags = pComponent->mFlags;
 		bool*                                   pCloseButtonActiveValue = pComponent->mHasCloseButton ? &pComponent->mHasCloseButton : NULL;
-		const tinystl::vector<tinystl::string>& contextualMenuLabels = pComponent->mContextualMenuLabels;
-		const tinystl::vector<WidgetCallback>&  contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
+		const eastl::vector<eastl::string>& contextualMenuLabels = pComponent->mContextualMenuLabels;
+		const eastl::vector<WidgetCallback>&  contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
 		const float4&                           windowRect = pComponent->mInitialWindowRect;
 		float4&                                 currentWindowRect = pComponent->mCurrentWindowRect;
 		IWidget**                               pProps = pComponent->mWidgets.data();
 		uint32_t                                propCount = (uint32_t)pComponent->mWidgets.size();
 
 		if (title == "")
-			title = tinystl::string::format("##%llu", (uint64_t)pComponent);
+			title.sprintf("##%llu", (uint64_t)pComponent);
 		// Setup the ImGuiWindowFlags
 		ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
 		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
@@ -841,7 +843,7 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
 			guiWinFlags |= ImGuiWindowFlags_NoNavFocus;
 
-		bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
+		bool result = ImGui::Begin(title.c_str(), pCloseButtonActiveValue, guiWinFlags);
 		if (result)
 		{
 			// Setup the contextual menus
@@ -935,7 +937,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	}
 	else
 	{
-		pPipeline = it.node->second;
+		pPipeline = it->second;
 	}
 	uint32_t vSize = 0;
 	uint32_t iSize = 0;

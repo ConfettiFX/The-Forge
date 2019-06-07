@@ -30,7 +30,7 @@
 
 #include <ctime>
 
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
@@ -122,8 +122,8 @@ static WindowsDesc gCurrentWindow;
 
 
 // TODO: Add multiple window/monitor handling functionality to macOS.
-//static tinystl::vector <MonitorDesc> gMonitors;
-//static tinystl::unordered_map<void*, WindowsDesc*> gWindowMap;
+//static eastl::vector <MonitorDesc> gMonitors;
+//static eastl::unordered_map<void*, WindowsDesc*> gWindowMap;
 
 void adjustWindow(WindowsDesc* winDesc);
 

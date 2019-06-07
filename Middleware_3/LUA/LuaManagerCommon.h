@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 enum ScriptState
 {
@@ -12,11 +13,11 @@ typedef void (*ScriptDoneCallback)(ScriptState state);
 
 struct ILuaStateWrap
 {
-	virtual int             GetArgumentsCount() = 0;
-	virtual double          GetNumberArg(int argIdx) = 0;
-	virtual long long int   GetIntegerArg(int argIdx) = 0;
-	virtual tinystl::string GetStringArg(int argIdx) = 0;
-	virtual void            GetStringArrayArg(int argIdx, tinystl::vector<const char*>& outResult) = 0;
+	virtual int           GetArgumentsCount() = 0;
+	virtual double        GetNumberArg(int argIdx) = 0;
+	virtual long long int GetIntegerArg(int argIdx) = 0;
+	virtual eastl::string GetStringArg(int argIdx) = 0;
+	virtual void          GetStringArrayArg(int argIdx, eastl::vector<const char*>& outResult) = 0;
 
 	virtual void PushResultNumber(double d) = 0;
 	virtual void PushResultInteger(int i) = 0;
@@ -29,7 +30,7 @@ struct ILuaFunctionWrap
 	virtual ~ILuaFunctionWrap() {}
 	virtual int ExecuteFunction(ILuaStateWrap* luaState) { return 0; };
 
-	tinystl::string functionName;
+	eastl::string functionName;
 };
 
 template <class T>

@@ -29,8 +29,8 @@
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -42,9 +42,7 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
-
-//Renderer
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -332,6 +330,9 @@ const uint32_t gSpecularSize = 128;
 const uint32_t gSpecularMips = 5;
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
+
 bool           gToggleVSync = false;
 
 Renderer* pRenderer = NULL;
@@ -404,10 +405,10 @@ Buffer* pIntermediateBuffer = NULL;
 #define TOTAL_IMGS 84
 Texture* pMaterialTextures[TOTAL_IMGS];
 
-tinystl::vector<int> gSponzaTextureIndexforMaterial;
+eastl::vector<int> gSponzaTextureIndexforMaterial;
 
 //For clearing Intermediate Buffer
-tinystl::vector<uint32_t> gInitializeVal;
+eastl::vector<uint32_t> gInitializeVal;
 
 #ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
@@ -467,7 +468,7 @@ GpuProfiler* pGpuProfiler = NULL;
 
 BlendState* pBlendStateOneZero = NULL;
 
-tinystl::vector<Buffer*> gSphereBuffers;
+eastl::vector<Buffer*> gSphereBuffers;
 
 ICameraController* pCameraController = NULL;
 
@@ -498,12 +499,12 @@ struct Mesh
 {
 	Buffer*                   pVertexBuffer = NULL;
 	Buffer*                   pIndexBuffer = NULL;
-	tinystl::vector<uint32_t> materialID;
+	eastl::vector<uint32_t> materialID;
 	struct CmdParam
 	{
 		uint32_t indexCount, startIndex, startVertex;
 	};
-	tinystl::vector<CmdParam> cmdArray;
+	eastl::vector<CmdParam> cmdArray;
 };
 
 const char* gModelNames[2] = { "sponza.obj", "lion.obj" };
@@ -592,7 +593,10 @@ class PixelProjectedReflections: public IApp
 			return false;
 #endif
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 		ComputePBRMapsTaskData computePBRMapsData;
 		computePBRMapsData.pRenderer = pRenderer;
 		computePBRMapsData.pQueue = pGraphicsQueue;
@@ -625,7 +629,7 @@ class PixelProjectedReflections: public IApp
 		addSampler(pRenderer, &nearstSamplerDesc, &pSamplerNearest);
 
 		// GBuffer
-		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", tinystl::string::format("%i", TOTAL_IMGS) };
+		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_IMGS) };
 		ShaderLoadDesc gBuffersShaderDesc = {};
 		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, FSR_SrcShaders };
 #ifndef TARGET_IOS
@@ -964,6 +968,8 @@ class PixelProjectedReflections: public IApp
 
 		pGui = gAppUI.AddGuiComponent("Pixel-Projected Reflections", &guiDesc);
 
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 		static const uint32_t enumRenderModes[] = { SCENE_ONLY, PPR_ONLY, SCENE_WITH_PPR, SCENE_EXCLU_PPR, 0 };
 
 		static const char* enumRenderModeNames[] = { "Render Scene Only", "Render PPR Only", "Render Scene with PPR ",
@@ -1029,6 +1035,8 @@ class PixelProjectedReflections: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
+
+		exitProfiler(pRenderer);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -1132,7 +1140,7 @@ class PixelProjectedReflections: public IApp
 		//Load Sponza
 		AssimpImporter        importer;
 		AssimpImporter::Model model;
-		tinystl::string       sceneFullPath = FileSystem::FixPath(gModelNames[index], FSRoot::FSR_Meshes);
+		eastl::string       sceneFullPath = FileSystem::FixPath(gModelNames[index], FSRoot::FSR_Meshes);
 
 		if (!importer.ImportModel(sceneFullPath.c_str(), &model))
 		{
@@ -1242,7 +1250,7 @@ class PixelProjectedReflections: public IApp
 		SyncToken    mToken;
 		OnCompletion mCompletion;
 	};
-	tinystl::vector<ResourceWait> mWaitQueue;
+	eastl::vector<ResourceWait> mWaitQueue;
 	Mutex                         mQueueMutex;
 
 	void addToWaitQueue(ResourceWait wait)
@@ -1601,6 +1609,18 @@ class PixelProjectedReflections: public IApp
 		mPrevProgressBarValue = mProgressBarValue;
 		mProgressBarValue = mAtomicProgress;
 
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -1621,7 +1641,7 @@ class PixelProjectedReflections: public IApp
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
-		tinystl::vector<Cmd*> allCmds;
+		eastl::vector<Cmd*> allCmds;
 
 		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &pUniformDataCamera };
 		updateResource(&camBuffUpdateDesc);
@@ -2049,10 +2069,12 @@ class PixelProjectedReflections: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 		gAppUI.DrawText(
-			cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
@@ -2062,6 +2084,8 @@ class PixelProjectedReflections: public IApp
 		else
 			gAppUI.Gui(pGui);
 #endif
+
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 
 		gAppUI.Draw(cmd);
 
@@ -2078,9 +2102,10 @@ class PixelProjectedReflections: public IApp
 			pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "10_PixelProjectedReflections"; }
+	const char* GetName() { return "10_PixelProjectedReflections"; }
 
 	bool addSwapChain()
 	{

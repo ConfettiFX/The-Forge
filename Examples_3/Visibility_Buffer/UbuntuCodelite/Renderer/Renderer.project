@@ -5,25 +5,22 @@
       <![CDATA[00010001N0005Debug000000000000]]>
     </Plugin>
   </Plugins>
-  <VirtualDirectory Name="Profiler">
-    <File Name="../../../../Common_3/Tools/Profiler/Profiler.cpp"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerVulkan.cpp"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerUI.h"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerUI.cpp"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerInput.h"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerInput.cpp"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerHTML.h"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerEnableMacro.h"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerBase.h"/>
-    <File Name="../../../../Common_3/Tools/Profiler/ProfilerBase.cpp"/>
-    <File Name="../../../../Common_3/Tools/Profiler/Profiler.h"/>
-  </VirtualDirectory>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <VirtualDirectory Name="Profiler">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerHTML.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerDraw.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/Profiler.cpp"/>
+      <File Name="../../../../Common_3/Renderer/GpuProfiler.h"/>
+      <File Name="../../../../Common_3/Renderer/GpuProfiler.cpp"/>
+    </VirtualDirectory>
     <File Name="../../../../Common_3/Renderer/CommonShaderReflection.cpp"/>
-    <File Name="../../../../Common_3/Renderer/GpuProfiler.cpp"/>
-    <File Name="../../../../Common_3/Renderer/GpuProfiler.h"/>
     <File Name="../../../../Common_3/Renderer/IMemoryAllocator.h"/>
     <File Name="../../../../Common_3/Renderer/IRenderer.h"/>
     <File Name="../../../../Common_3/Renderer/IShaderReflection.h"/>
@@ -48,7 +45,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++11; " C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=c++14; " C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
@@ -90,7 +87,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-std=c++11; " C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-std=c++14; " C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>

@@ -30,8 +30,8 @@
 #include <android/native_activity.h>
 #include <android/log.h>
 
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
@@ -53,8 +53,8 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-static tinystl::vector<MonitorDesc>                gMonitors;
-static tinystl::unordered_map<void*, WindowsDesc*> gHWNDMap;
+static eastl::vector<MonitorDesc>                gMonitors;
+static eastl::unordered_map<void*, WindowsDesc*> gHWNDMap;
 static WindowsDesc                                 gWindow;
 
 void adjustWindow(WindowsDesc* winDesc);

@@ -17,6 +17,7 @@
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
     <Project Name="zlibstatic"/>
+    <Project Name="EASTL"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="AssetPipeline"/>
@@ -25,6 +26,7 @@
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
     <Project Name="zlibstatic"/>
+    <Project Name="EASTL"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -47,6 +49,7 @@
         <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/$(IntermediateDirectory)"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libAssetPipeline.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libassimp.a"/>
@@ -54,6 +57,7 @@
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
+        <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="processanimations &quot;../../../../../Examples_3/Unit_Tests_Animation/UnitTestResources/Animation/fbx&quot; &quot;test&quot;" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -101,6 +105,7 @@
         <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/$(IntermediateDirectory)"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libAssetPipeline.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libassimp.a"/>
@@ -108,6 +113,7 @@
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
+        <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="processanimations &quot;../../../../../Examples_3/Unit_Tests_Animation/UnitTestResources/Animation/fbx&quot; &quot;test&quot;" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>

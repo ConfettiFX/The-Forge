@@ -47,8 +47,8 @@
 #include "Random.h"
 
 //TinySTL
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -57,11 +57,11 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 
 //Renderer
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 //Math
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
@@ -185,9 +185,11 @@ const uint32_t gNumAsteroidsPerSubset = (gNumAsteroids + gNumSubsets - 1) / gNum
 const uint32_t gTextureCount = 10;
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 AsteroidSimulation      gAsteroidSim;
-tinystl::vector<Subset> gAsteroidSubsets;
+eastl::vector<Subset> gAsteroidSubsets;
 ThreadData              gThreadData[gNumSubsets];
 Texture*                pAsteroidTex = NULL;
 bool                    gUseThreads = true;
@@ -343,7 +345,9 @@ class ExecuteIndirect: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		for (int i = 0; i < 6; ++i)
 		{
@@ -431,8 +435,8 @@ class ExecuteIndirect: public IApp
 
 		/* Initialize Asteroid Simulation */
 
-		tinystl::vector<Vertex>   vertices;
-		tinystl::vector<uint16_t> indices;
+		eastl::vector<Vertex>   vertices;
+		eastl::vector<uint16_t> indices;
 		uint32_t                  numVerticesPerMesh;
 		gAsteroidSim.numLODs = 3;
 		gAsteroidSim.indexOffsets = (int*)conf_calloc(gAsteroidSim.numLODs + 2, sizeof(int));
@@ -547,18 +551,18 @@ class ExecuteIndirect: public IApp
 		/* Prepare execute indirect command signatures and buffers */
 
 #if defined(DIRECT3D12)
-		tinystl::vector<IndirectArgumentDescriptor> indirectArgDescs(2);
+		eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(2);
 		indirectArgDescs[0] = {};
 		indirectArgDescs[0].mType = INDIRECT_CONSTANT;    // Root Constant
 		indirectArgDescs[0].mRootParameterIndex =
 			pIndirectRoot->pDxRootConstantRootIndices
-				[pIndirectRoot->pDescriptors[pIndirectRoot->pDescriptorNameToIndexMap[tinystl::hash("rootConstant")]].mIndexInParent];
+				[pIndirectRoot->pDescriptors[pIndirectRoot->pDescriptorNameToIndexMap["rootConstant"]].mIndexInParent];
 		indirectArgDescs[0].mCount = 1;
 		indirectArgDescs[1] = {};
 		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
 #else
         // Metal and Vulkan doesn't allow constants as part of command signature
-        tinystl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
+        eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
         indirectArgDescs[0] = {};
         indirectArgDescs[0].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
 #endif
@@ -629,8 +633,10 @@ class ExecuteIndirect: public IApp
 			return false;
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 		static const char*    enumNames[] = { "Instanced Rendering", "Execute Indirect", "Execute Indirect with GPU Compute", NULL };
 		static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };
@@ -699,6 +705,8 @@ class ExecuteIndirect: public IApp
 		gAppUI.Exit();
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
+
+		exitProfiler(pRenderer);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -922,6 +930,19 @@ class ExecuteIndirect: public IApp
 		}
 
 		pCameraController->update(deltaTime);
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		gAppUI.Update(deltaTime);
 
 		static bool paniniEnabled = gbPaniniEnabled;
@@ -992,7 +1013,7 @@ class ExecuteIndirect: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { 1.0f, 0 };
 
-		tinystl::vector<Cmd*> allCmds;
+		eastl::vector<Cmd*> allCmds;
 
 		/************************************************************************/
 		// Draw Skybox
@@ -1208,8 +1229,11 @@ class ExecuteIndirect: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", timer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 
 		char buff[256] = "";
 		char modeStr[128] = "Instanced";
@@ -1230,6 +1254,7 @@ class ExecuteIndirect: public IApp
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 110), pGpuProfiler, NULL);
 #endif
 
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1245,9 +1270,10 @@ class ExecuteIndirect: public IApp
 			pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "04_ExecuteIndirect"; }
+	const char* GetName() { return "04_ExecuteIndirect"; }
 
 	bool addSwapChain()
 	{
@@ -1318,7 +1344,7 @@ class ExecuteIndirect: public IApp
 	/************************************************************************/
 	// Asteroid Mesh Creation
 	/************************************************************************/
-	void ComputeAverageNormals(tinystl::vector<Vertex>& vertices, tinystl::vector<uint16_t>& indices)
+	void ComputeAverageNormals(eastl::vector<Vertex>& vertices, eastl::vector<uint16_t>& indices)
 	{
 		for (Vertex& vert : vertices)
 		{
@@ -1350,7 +1376,7 @@ class ExecuteIndirect: public IApp
 		}
 	}
 
-	void CreateIcosahedron(tinystl::vector<Vertex>& outVertices, tinystl::vector<uint16_t>& outIndices)
+	void CreateIcosahedron(eastl::vector<Vertex>& outVertices, eastl::vector<uint16_t>& outIndices)
 	{
 		static const float a = sqrt(2.0f / (5.0f - sqrt(5.0f)));
 		static const float b = sqrt(2.0f / (5.0f + sqrt(5.0f)));
@@ -1375,7 +1401,7 @@ class ExecuteIndirect: public IApp
 		outIndices.insert(outIndices.end(), indices, indices + numTriangles * 3);
 	}
 
-	void Subdivide(tinystl::vector<Vertex>& outVertices, tinystl::vector<uint16_t>& outIndices)
+	void Subdivide(eastl::vector<Vertex>& outVertices, eastl::vector<uint16_t>& outIndices)
 	{
 		struct Edge
 		{
@@ -1398,15 +1424,14 @@ class ExecuteIndirect: public IApp
 
 		struct GetMidpointIndex
 		{
-			tinystl::unordered_map<Edge, uint16_t>* midPointMap;
-			tinystl::vector<Vertex>*                outVertices;
+			eastl::unordered_map<Edge, uint16_t>* midPointMap;
+			eastl::vector<Vertex>*                outVertices;
 
-			GetMidpointIndex(tinystl::unordered_map<Edge, uint16_t>* v1, tinystl::vector<Vertex>* v2): midPointMap(v1), outVertices(v2){};
+			GetMidpointIndex(eastl::unordered_map<Edge, uint16_t>* v1, eastl::vector<Vertex>* v2): midPointMap(v1), outVertices(v2){};
 
 			uint16_t operator()(Edge e)
 			{
-				tinystl::unordered_hash_iterator<tinystl::unordered_hash_node<Edge, uint16_t>> it;
-				it = midPointMap->find(e);
+				eastl::hash_map<Edge, uint16_t>::iterator it = midPointMap->find(e);
 
 				if (it == midPointMap->end())
 				{
@@ -1416,7 +1441,7 @@ class ExecuteIndirect: public IApp
 					Vertex m;
 					m.mPosition = vec4((a.mPosition.getXYZ() + b.mPosition.getXYZ()) * 0.5f, 1.0f);
 
-					it = midPointMap->insert(tinystl::make_pair(e, uint16_t(outVertices->size()))).first;
+					it = midPointMap->insert(eastl::make_pair(e, uint16_t(outVertices->size()))).first;
 					outVertices->push_back(m);
 				}
 
@@ -1424,8 +1449,8 @@ class ExecuteIndirect: public IApp
 			}
 		};
 
-		tinystl::unordered_map<Edge, uint16_t> midPointMap;
-		tinystl::vector<uint16_t>              newIndices;
+		eastl::unordered_map<Edge, uint16_t> midPointMap;
+		eastl::vector<uint16_t>              newIndices;
 		newIndices.reserve((uint32_t)outIndices.size() * 4);
 		outVertices.reserve((uint32_t)outVertices.size() * 2);
 
@@ -1447,12 +1472,12 @@ class ExecuteIndirect: public IApp
 			newIndices.insert(newIndices.end(), indices, indices + 12);
 		}
 
-		tinystl::vector<uint16_t> temp(outIndices);
+		eastl::vector<uint16_t> temp(outIndices);
 		outIndices = newIndices;
 		newIndices = temp;
 	}
 
-	void Spherify(tinystl::vector<Vertex>& out_vertices)
+	void Spherify(eastl::vector<Vertex>& out_vertices)
 	{
 		for (Vertex& vert : out_vertices)
 		{
@@ -1462,13 +1487,13 @@ class ExecuteIndirect: public IApp
 	}
 
 	void CreateGeosphere(
-		tinystl::vector<Vertex>& outVertices, tinystl::vector<uint16_t>& outIndices, unsigned subdivisions, int* indexOffsets)
+		eastl::vector<Vertex>& outVertices, eastl::vector<uint16_t>& outIndices, unsigned subdivisions, int* indexOffsets)
 	{
 		CreateIcosahedron(outVertices, outIndices);
 		indexOffsets[0] = 0;
 
-		tinystl::vector<Vertex>   vertices(outVertices);
-		tinystl::vector<uint16_t> indices(outIndices);
+		eastl::vector<Vertex>   vertices(outVertices);
+		eastl::vector<uint16_t> indices(outIndices);
 
 		unsigned offset = 0;
 
@@ -1492,14 +1517,14 @@ class ExecuteIndirect: public IApp
 	}
 
 	void CreateAsteroids(
-		tinystl::vector<Vertex>& vertices, tinystl::vector<uint16_t>& indices, unsigned subdivisions, unsigned numMeshes, unsigned rngSeed,
+		eastl::vector<Vertex>& vertices, eastl::vector<uint16_t>& indices, unsigned subdivisions, unsigned numMeshes, unsigned rngSeed,
 		unsigned& outVerticesPerMesh, int* indexOffsets)
 	{
 		srand(rngSeed);
 
 		MyRandom rng(rngSeed);
 
-		tinystl::vector<Vertex> origVerts;
+		eastl::vector<Vertex> origVerts;
 
 		CreateGeosphere(origVerts, indices, subdivisions, indexOffsets);
 
@@ -1515,7 +1540,7 @@ class ExecuteIndirect: public IApp
 			float randomNoise = rng.GetUniformDistribution(0.f, 10000.f);
 			float randomPersistence = rng.GetNormalDistribution(0.95f, 0.04f);
 
-			tinystl::vector<Vertex> newVertices(origVerts);
+			eastl::vector<Vertex> newVertices(origVerts);
 			NoiseOctaves<4>         textureNoise(randomPersistence);
 			float                   noise = randomNoise;
 
@@ -1676,7 +1701,7 @@ class ExecuteIndirect: public IApp
 			uint32_t numToDraw = 0;
 
 			IndirectArguments*        argData = (IndirectArguments*)conf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));
-			tinystl::vector<uint32_t> drawIDs;
+			eastl::vector<uint32_t> drawIDs;
 			for (uint32_t i = startIdx; i < endIdx; ++i)
 			{
 				AsteroidStatic  staticAsteroid = gAsteroidSim.asteroidsStatic[i];

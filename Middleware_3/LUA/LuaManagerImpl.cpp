@@ -1,6 +1,6 @@
 #include "LuaManagerImpl.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 #include "../../Common_3/OS/Interfaces/ICameraController.h"
@@ -241,7 +241,7 @@ void AsyncScriptExecute(void* pData)
 void LuaManagerImpl::AddAsyncScript(const char* scriptname, IScriptCallbackWrap* callbackLambda)
 {
 	ScriptTaskInfo* info = (ScriptTaskInfo*)conf_calloc(1, sizeof(ScriptTaskInfo));
-	info->scriptName = tinystl::string(scriptname);
+	info->scriptName = eastl::string(scriptname);
 	info->callback = nullptr;
 
 	info->callbackLambda = callbackLambda;
@@ -266,7 +266,7 @@ void LuaManagerImpl::AddAsyncScript(const char* scriptname, IScriptCallbackWrap*
 void LuaManagerImpl::AddAsyncScript(const char* scriptname, ScriptDoneCallback callback)
 {
 	ScriptTaskInfo* info = (ScriptTaskInfo*)conf_calloc(1, sizeof(ScriptTaskInfo));
-	info->scriptName = tinystl::string(scriptname);
+	info->scriptName = eastl::string(scriptname);
 	info->callback = callback;
 	info->callbackLambda = nullptr;
 	//ThreadDesc* pItem = (ThreadDesc*)conf_calloc(1, sizeof(*pItem));
@@ -402,13 +402,13 @@ double LuaStateWrap::GetNumberArg(int argIdx) { return lua_tonumber(luaState, ar
 
 long long int LuaStateWrap::GetIntegerArg(int argIdx) { return lua_tointeger(luaState, argIdx); }
 
-tinystl::string LuaStateWrap::GetStringArg(int argIdx)
+eastl::string LuaStateWrap::GetStringArg(int argIdx)
 {
-	tinystl::string result(lua_tostring(luaState, argIdx));
+	eastl::string result(lua_tostring(luaState, argIdx));
 	return result;
 }
 
-void LuaStateWrap::GetStringArrayArg(int argIdx, tinystl::vector<const char*>& outResult)
+void LuaStateWrap::GetStringArrayArg(int argIdx, eastl::vector<const char*>& outResult)
 {
 	int arraySize = (int)luaL_len(luaState, argIdx);    //get array size
 	outResult.resize(arraySize);

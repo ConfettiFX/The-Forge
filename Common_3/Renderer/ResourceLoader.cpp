@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../ThirdParty/OpenSource/EASTL/deque.h"
+
 #include "IRenderer.h"
 #include "ResourceLoader.h"
 #include "../OS/Interfaces/ILogManager.h"
@@ -621,7 +623,7 @@ typedef struct ResourceLoader
 	ConditionVariable mQueueCond;
 	Mutex mTokenMutex;
 	ConditionVariable mTokenCond;
-	tinystl::vector <UpdateRequest> mRequestQueue[MAX_GPUS];
+	eastl::deque <UpdateRequest> mRequestQueue[MAX_GPUS];
 
 	tfrg_atomic64_t mTokenCompleted;
 	tfrg_atomic64_t mTokenCounter;
@@ -677,7 +679,7 @@ static void streamerThreadFunc(void* pThreadData)
 				if (!pLoader->mRequestQueue[i].empty())
 				{
 					updateState[i] = pLoader->mRequestQueue[i].front();
-					pLoader->mRequestQueue[i].erase(pLoader->mRequestQueue[i].begin());
+					pLoader->mRequestQueue[i].pop_front();
 					completionMask &= ~mask;
 				}
 				else
@@ -962,7 +964,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	}
 
 	wchar_t         debugName[MAX_PATH] = {};
-	tinystl::string filename = FileSystem::GetFileNameAndExtension(pImage->GetName());
+	eastl::string filename = FileSystem::GetFileNameAndExtension(pImage->GetName());
 	mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
 	desc.pDebugName = debugName;
 
@@ -1024,7 +1026,10 @@ void updateResource(TextureUpdateDesc* pTextureUpdate, SyncToken* token)
 	if (pTextureUpdate->pRawImageData)
 	{
 		Image* pImage = conf_new<Image>();
-		pImage->Create(pTextureUpdate->pRawImageData->mFormat, pTextureUpdate->pRawImageData->mWidth, pTextureUpdate->pRawImageData->mHeight, pTextureUpdate->pRawImageData->mDepth, pTextureUpdate->pRawImageData->mMipLevels, pTextureUpdate->pRawImageData->mArraySize, pTextureUpdate->pRawImageData->pRawData);
+		pImage->Create(
+			pTextureUpdate->pRawImageData->mFormat, pTextureUpdate->pRawImageData->mWidth, pTextureUpdate->pRawImageData->mHeight,
+			pTextureUpdate->pRawImageData->mDepth, pTextureUpdate->pRawImageData->mMipLevels, pTextureUpdate->pRawImageData->mArraySize,
+			pTextureUpdate->pRawImageData->pRawData);
 		desc.mFreeImage = true;
 	}
 	else
@@ -1122,8 +1127,8 @@ shaderc_shader_kind getShadercShaderType(ShaderStage type)
 // Use shaderc to compile glsl to spirV
 //@todo add support to macros!!
 void vk_compileShader(
-	Renderer* pRenderer, ShaderStage stage, uint32_t codeSize, const char* code, const tinystl::string& outFile, uint32_t macroCount,
-	ShaderMacro* pMacros, tinystl::vector<char>* pByteCode, const char* pEntryPoint)
+	Renderer* pRenderer, ShaderStage stage, uint32_t codeSize, const char* code, const eastl::string& outFile, uint32_t macroCount,
+	ShaderMacro* pMacros, eastl::vector<char>* pByteCode, const char* pEntryPoint)
 {
 	// compile into spir-V shader
 	shaderc_compiler_t           compiler = shaderc_compiler_initialize();
@@ -1149,35 +1154,35 @@ void vk_compileShader(
 // So we call the glslangValidator tool located inside VulkanSDK on user machine to compile the glsl code to spirv
 // This code is not added to Vulkan.cpp since it calls no Vulkan specific functions
 void vk_compileShader(
-	Renderer* pRenderer, ShaderTarget target, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount,
-	ShaderMacro* pMacros, tinystl::vector<char>* pByteCode, const char* pEntryPoint)
+	Renderer* pRenderer, ShaderTarget target, const eastl::string& fileName, const eastl::string& outFile, uint32_t macroCount,
+	ShaderMacro* pMacros, eastl::vector<char>* pByteCode, const char* pEntryPoint)
 {
 	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
 		FileSystem::CreateDir(FileSystem::GetPath(outFile));
 
-	tinystl::string                  commandLine;
-	tinystl::vector<tinystl::string> args;
-	tinystl::string                  configFileName;
+	eastl::string                  commandLine;
+	eastl::vector<eastl::string> args;
+	eastl::string                  configFileName;
 
 	// If there is a config file located in the shader source directory use it to specify the limits
 	if (FileSystem::FileExists(FileSystem::GetPath(fileName) + "/config.conf", FSRoot::FSR_Absolute))
 	{
 		configFileName = FileSystem::GetPath(fileName) + "/config.conf";
 		// Add command to compile from Vulkan GLSL to Spirv
-		commandLine += tinystl::string::format(
+		commandLine.append_sprintf(
 			"\"%s\" -V \"%s\" -o \"%s\"", configFileName.size() ? configFileName.c_str() : "", fileName.c_str(), outFile.c_str());
 	}
 	else
 	{
-		commandLine += tinystl::string::format("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
+		commandLine.append_sprintf("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
 	}
 
 	if (target >= shader_target_6_0)
 		commandLine += " --target-env vulkan1.1 ";
-		//commandLine += " \"-D" + tinystl::string("VULKAN") + "=" + "1" + "\"";
+		//commandLine += " \"-D" + eastl::string("VULKAN") + "=" + "1" + "\"";
 
 	if (pEntryPoint != NULL)
-		commandLine += tinystl::string::format(" -e %s", pEntryPoint);
+		commandLine.append_sprintf(" -e %s", pEntryPoint);
 
 		// Add platform macro
 #ifdef _WINDOWS
@@ -1195,7 +1200,7 @@ void vk_compileShader(
 	}
 	args.push_back(commandLine);
 
-	tinystl::string glslangValidator = getenv("VULKAN_SDK");
+	eastl::string glslangValidator = getenv("VULKAN_SDK");
 	if (glslangValidator.size())
 		glslangValidator += "/bin/glslangValidator";
 	else
@@ -1220,7 +1225,7 @@ void vk_compileShader(
 		}
 		else
 		{
-			tinystl::string errorLog = errorFile.ReadText();
+			eastl::string errorLog = errorFile.ReadText();
 			errorFile.Close();
 			ErrorMsg("Failed to compile shader %s with error\n%s", fileName.c_str(), errorLog.c_str());
 			errorFile.Close();
@@ -1232,23 +1237,23 @@ void vk_compileShader(
 // On Metal, on the other hand, we can compile from code into a MTLLibrary, but cannot save this
 // object's bytecode to disk. We instead use the xcbuild bash tool to compile the shaders.
 void mtl_compileShader(
-	Renderer* pRenderer, const tinystl::string& fileName, const tinystl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros,
-	tinystl::vector<char>* pByteCode, const char* /*pEntryPoint*/)
+	Renderer* pRenderer, const eastl::string& fileName, const eastl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros,
+	eastl::vector<char>* pByteCode, const char* /*pEntryPoint*/)
 {
 	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
 		FileSystem::CreateDir(FileSystem::GetPath(outFile));
 
-	tinystl::string xcrun = "/usr/bin/xcrun";
-	tinystl::string intermediateFile = outFile + ".air";
-	tinystl::vector<tinystl::string> args;
-	tinystl::string tmpArg = "";
+	eastl::string xcrun = "/usr/bin/xcrun";
+	eastl::string intermediateFile = outFile + ".air";
+	eastl::vector<eastl::string> args;
+	eastl::string tmpArg = "";
 
 	// Compile the source into a temporary .air file.
 	args.push_back("-sdk");
 	args.push_back("macosx");
 	args.push_back("metal");
 	args.push_back("-c");
-	tmpArg = tinystl::string::format(
+	tmpArg = eastl::string().sprintf(
 		""
 		"%s"
 		"",
@@ -1278,7 +1283,7 @@ void mtl_compileShader(
 		args.push_back("metallib");
 		args.push_back(intermediateFile.c_str());
 		args.push_back("-o");
-		tmpArg = tinystl::string::format(
+		tmpArg = eastl::string().sprintf(
 			""
 			"%s"
 			"",
@@ -1313,38 +1318,38 @@ extern void compileShader(
 #endif
 
 // Function to generate the timestamp of this shader source file considering all include file timestamp
-static bool process_source_file(File* original, File* file, time_t& outTimeStamp, tinystl::string& outCode)
+static bool process_source_file(File* original, File* file, time_t& outTimeStamp, eastl::string& outCode)
 {
 	// If the source if a non-packaged file, store the timestamp
 	if (file)
 	{
-		tinystl::string fullName = file->GetName();
+		eastl::string fullName = file->GetName();
 		time_t          fileTimeStamp = FileSystem::GetLastModifiedTime(fullName);
 		if (fileTimeStamp > outTimeStamp)
 			outTimeStamp = fileTimeStamp;
 	}
 
-	const tinystl::string pIncludeDirective = "#include";
+	const eastl::string pIncludeDirective = "#include";
 	while (!file->IsEof())
 	{
-		tinystl::string line = file->ReadLine();
-		uint32_t        filePos = line.find(pIncludeDirective, 0);
-		const uint      commentPosCpp = line.find("//", 0);
-		const uint      commentPosC = line.find("/*", 0);
+		eastl::string line = file->ReadLine();
+		size_t        filePos = line.find(pIncludeDirective, 0);
+		const size_t  commentPosCpp = line.find("//", 0);
+		const size_t  commentPosC = line.find("/*", 0);
 
 		// if we have an "#include \"" in our current line
-		const bool bLineHasIncludeDirective = filePos != tinystl::string::npos;
-		const bool bLineIsCommentedOut = (commentPosCpp != tinystl::string::npos && commentPosCpp < filePos) ||
-										 (commentPosC != tinystl::string::npos && commentPosC < filePos);
+		const bool bLineHasIncludeDirective = filePos != eastl::string::npos;
+		const bool bLineIsCommentedOut = (commentPosCpp != eastl::string::npos && commentPosCpp < filePos) ||
+										 (commentPosC != eastl::string::npos && commentPosC < filePos);
 
 		if (bLineHasIncludeDirective && !bLineIsCommentedOut)
 		{
 			// get the include file name
-			uint32_t        currentPos = filePos + (uint32_t)strlen(pIncludeDirective);
-			tinystl::string fileName;
+			size_t        currentPos = filePos + pIncludeDirective.length();
+			eastl::string fileName;
 			while (line.at(currentPos++) == ' ')
 				;    // skip empty spaces
-			if (currentPos >= (uint32_t)line.size())
+			if (currentPos >= line.size())
 				continue;
 			if (line.at(currentPos - 1) != '\"')
 				continue;
@@ -1359,7 +1364,7 @@ static bool process_source_file(File* original, File* file, time_t& outTimeStamp
 			}
 
 			// get the include file path
-			tinystl::string includeFileName = FileSystem::GetPath(file->GetName()) + fileName;
+			eastl::string includeFileName = FileSystem::GetPath(file->GetName()) + fileName;
 			if (FileSystem::GetFileName(includeFileName).at(0) == '<')    // disregard bracketsauthop
 				continue;
 
@@ -1410,7 +1415,7 @@ static bool process_source_file(File* original, File* file, time_t& outTimeStamp
 }
 
 // Loads the bytecode from file if the binary shader file is newer than the source
-bool check_for_byte_code(const tinystl::string& binaryShaderName, time_t sourceTimeStamp, tinystl::vector<char>& byteCode)
+bool check_for_byte_code(const eastl::string& binaryShaderName, time_t sourceTimeStamp, eastl::vector<char>& byteCode)
 {
 	if (!FileSystem::FileExists(binaryShaderName, FSR_Absolute))
 		return false;
@@ -1424,7 +1429,7 @@ bool check_for_byte_code(const tinystl::string& binaryShaderName, time_t sourceT
 	file.Open(binaryShaderName, FM_ReadBinary, FSR_Absolute);
 	if (!file.IsOpen())
 	{
-		LOGF(LogLevel::eERROR, binaryShaderName + " is not a valid shader bytecode file");
+		LOGF(LogLevel::eERROR, (binaryShaderName + " is not a valid shader bytecode file").c_str());
 		return false;
 	}
 
@@ -1434,9 +1439,9 @@ bool check_for_byte_code(const tinystl::string& binaryShaderName, time_t sourceT
 }
 
 // Saves bytecode to a file
-bool save_byte_code(const tinystl::string& binaryShaderName, const tinystl::vector<char>& byteCode)
+bool save_byte_code(const eastl::string& binaryShaderName, const eastl::vector<char>& byteCode)
 {
-	tinystl::string path = FileSystem::GetPath(binaryShaderName);
+	eastl::string path = FileSystem::GetPath(binaryShaderName);
 	if (!FileSystem::DirExists(path))
 		FileSystem::CreateDir(path);
 
@@ -1454,18 +1459,18 @@ bool save_byte_code(const tinystl::string& binaryShaderName, const tinystl::vect
 
 bool load_shader_stage_byte_code(
 	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount,
-	ShaderMacro* pMacros, tinystl::vector<char>& byteCode,
+	ShaderMacro* pMacros, eastl::vector<char>& byteCode,
 	const char* pEntryPoint)
 {
 	File            shaderSource = {};
-	tinystl::string code;
+	eastl::string code;
 	time_t          timeStamp = 0;
 
 #ifndef METAL
 	const char* shaderName = fileName;
 #else
 	// Metal shader files need to have the .metal extension.
-	tinystl::string metalShaderName = tinystl::string(fileName) + ".metal";
+	eastl::string metalShaderName = eastl::string(fileName) + ".metal";
 	const char* shaderName = metalShaderName.c_str();
 #endif
 
@@ -1475,9 +1480,9 @@ bool load_shader_stage_byte_code(
 	if (!process_source_file(&shaderSource, &shaderSource, timeStamp, code))
 		return false;
 
-	tinystl::string name, extension, path;
+	eastl::string name, extension, path;
 	FileSystem::SplitPath(fileName, &path, &name, &extension);
-	tinystl::string shaderDefines;
+	eastl::string shaderDefines;
 	// Apply user specified macros
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
@@ -1486,10 +1491,10 @@ bool load_shader_stage_byte_code(
 
 #if 0    //#ifdef _DURANGO
 	// Using Durango application data storage requires appmanifest(from application) changes.
-	tinystl::string binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
-		FileSystem::GetFileName(fileName) + tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) + extension + ".bin";
+	eastl::string binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
+		FileSystem::GetFileName(fileName) + eastl::string().sprintf("_%zu", eastl::hash(shaderDefines)) + extension + ".bin";
 #else
-	tinystl::string rendererApi;
+	eastl::string rendererApi;
 	switch (pRenderer->mSettings.mApi)
 	{
 		case RENDERER_API_D3D12:
@@ -1500,17 +1505,17 @@ bool load_shader_stage_byte_code(
 		default: break;
 	}
 
-	tinystl::string appName(pRenderer->pName);
-#ifdef __linux__
+	eastl::string appName(pRenderer->pName);
 
-	tinystl::string lowerStr = appName.to_lower();
-	appName = lowerStr != pRenderer->pName ? lowerStr : lowerStr + "_";
+#ifdef __linux__
+	appName.make_lower();
+	appName = appName != pRenderer->pName ? appName : appName + "_";
 #endif
 
-	tinystl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + tinystl::string("/Shaders/") + rendererApi +
-									   tinystl::string("/CompiledShadersBinary/") + FileSystem::GetFileName(fileName) +
-									   tinystl::string::format("_%zu", tinystl::hash(shaderDefines)) + extension +
-									   tinystl::string::format("%u", (uint32_t)target) + ".bin";
+	eastl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + eastl::string("/Shaders/") + rendererApi +
+									 eastl::string().sprintf("/CompiledShadersBinary/") + FileSystem::GetFileName(fileName) +
+									 eastl::string().sprintf("_%zu", eastl::string_hash<eastl::string>()(shaderDefines)) + extension +
+									 eastl::string().sprintf("%u", target) + ".bin";
 #endif
 
 	// Shader source is newer than binary
@@ -1534,14 +1539,14 @@ bool load_shader_stage_byte_code(
 			char*    pByteCode = NULL;
 			uint32_t byteCodeSize = 0;
 			compileShader(
-				pRenderer, target, stage, shaderSource.GetName(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc,
+				pRenderer, target, stage, shaderSource.GetName().c_str(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc,
 				&byteCodeSize, &pByteCode, pEntryPoint);
 			byteCode.resize(byteCodeSize);
 			memcpy(byteCode.data(), pByteCode, byteCodeSize);
 			conf_free(pByteCode);
 			if (!save_byte_code(binaryShaderName, byteCode))
 			{
-				const char* shaderName = shaderSource.GetName();
+				const char* shaderName = shaderSource.GetName().c_str();
 				LOGF(LogLevel::eWARNING, "Failed to save byte code for file %s", shaderName);
 			}
 #endif
@@ -1558,9 +1563,9 @@ bool load_shader_stage_byte_code(
 	return true;
 }
 #ifdef TARGET_IOS
-bool find_shader_stage(const tinystl::string& fileName, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
+bool find_shader_stage(const eastl::string& fileName, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
-	tinystl::string ext = FileSystem::GetExtension(fileName);
+	eastl::string ext = FileSystem::GetExtension(fileName);
 	if (ext == ".vert")
 	{
 		*pOutStage = &pDesc->mVert;
@@ -1612,9 +1617,9 @@ bool find_shader_stage(const tinystl::string& fileName, ShaderDesc* pDesc, Shade
 }
 #else
 bool find_shader_stage(
-	const tinystl::string& fileName, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
+	const eastl::string& fileName, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
-	tinystl::string ext = FileSystem::GetExtension(fileName);
+	eastl::string ext = FileSystem::GetExtension(fileName);
 	if (ext == ".vert")
 	{
 		*pOutStage = &pBinaryDesc->mVert;
@@ -1674,14 +1679,14 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 {
 #ifndef TARGET_IOS
 	BinaryShaderDesc      binaryDesc = {};
-	tinystl::vector<char> byteCodes[SHADER_STAGE_COUNT] = {};
+	eastl::vector<char> byteCodes[SHADER_STAGE_COUNT] = {};
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
 		const RendererShaderDefinesDesc rendererDefinesDesc = get_renderer_shaderdefines(pRenderer);
 
 		if (pDesc->mStages[i].mFileName.size() != 0)
 		{
-			tinystl::string filename = pDesc->mStages[i].mFileName;
+			eastl::string filename = pDesc->mStages[i].mFileName;
 			if (pDesc->mStages[i].mRoot != FSR_SrcShaders)
 				filename = FileSystem::GetRootPath(FSR_SrcShaders) + filename;
 
@@ -1690,14 +1695,14 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 			if (find_shader_stage(filename, &binaryDesc, &pStage, &stage))
 			{
 				const uint32_t macroCount = pDesc->mStages[i].mMacroCount + rendererDefinesDesc.rendererShaderDefinesCnt;
-				tinystl::vector<ShaderMacro> macros(macroCount);
+				eastl::vector<ShaderMacro> macros(macroCount);
 				for (uint32_t macro = 0; macro < rendererDefinesDesc.rendererShaderDefinesCnt; ++macro)
 					macros[macro] = rendererDefinesDesc.rendererShaderDefines[macro];
 				for (uint32_t macro = 0; macro < pDesc->mStages[i].mMacroCount; ++macro)
 					macros[rendererDefinesDesc.rendererShaderDefinesCnt + macro] = pDesc->mStages[i].pMacros[macro];
 
 				if (!load_shader_stage_byte_code(
-						pRenderer, pDesc->mTarget, stage, filename, pDesc->mStages[i].mRoot, macroCount, macros.data(),
+						pRenderer, pDesc->mTarget, stage, filename.c_str(), pDesc->mStages[i].mRoot, macroCount, macros.data(),
 						byteCodes[i], pDesc->mStages[i].mEntryPointName))
 					return;
 
@@ -1734,7 +1739,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 
 		if (pDesc->mStages[i].mFileName.size() > 0)
 		{
-			tinystl::string filename = pDesc->mStages[i].mFileName;
+			eastl::string filename = pDesc->mStages[i].mFileName;
 			if (pDesc->mStages[i].mRoot != FSR_SrcShaders)
 				filename = FileSystem::GetRootPath(FSR_SrcShaders) + filename;
 

@@ -220,7 +220,7 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			const __m128 vz = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2));
 			const __m128 vw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
 			intermediateSSE[i] =
-				_mm_fmadd_ps(orbitSSE[0], vx, _mm_fmadd_ps(orbitSSE[1], vy, _mm_fmadd_ps(orbitSSE[2], vz, _mm_mul_ps(orbitSSE[3], vw))));
+				sseMAdd(orbitSSE[0], vx, sseMAdd(orbitSSE[1], vy, sseMAdd(orbitSSE[2], vz, _mm_mul_ps(orbitSSE[3], vw))));
 		}
 		for (int i = 0; i < 4; ++i)
 		{
@@ -230,9 +230,9 @@ void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned end
 			const __m128 vy = _mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1));
 			const __m128 vz = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2));
 			const __m128 vw = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
-			transformSSE[i] = _mm_fmadd_ps(
+			transformSSE[i] = sseMAdd(
 				intermediateSSE[0], vx,
-				_mm_fmadd_ps(intermediateSSE[1], vy, _mm_fmadd_ps(intermediateSSE[2], vz, _mm_mul_ps(intermediateSSE[3], vw))));
+				sseMAdd(intermediateSSE[1], vy, sseMAdd(intermediateSSE[2], vz, _mm_mul_ps(intermediateSSE[3], vw))));
 		}
 		_mm_store_ps(transform0, transformSSE[0]);
 		_mm_store_ps(transform1, transformSSE[1]);

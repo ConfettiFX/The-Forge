@@ -32,6 +32,11 @@ add_library(os STATIC
             ${COMMON_DIR}/OS/Input/InputSystem.cpp
             ${COMMON_DIR}/OS/MemoryTracking/MemoryTrackingManager.cpp
             ${COMMON_DIR}/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/Profiler.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/ProfilerBase.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/ProfilerUI.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/ProfilerDraw.cpp
 
             # middleware
             ${MIDDLEWARE_DIR}/Text/Fontstash.cpp
@@ -43,6 +48,20 @@ add_library(os STATIC
             ${COMMON_DIR}/ThirdParty/OpenSource/imgui/imgui_demo.cpp
             ${COMMON_DIR}/ThirdParty/OpenSource/imgui/imgui_draw.cpp
             ${COMMON_DIR}/ThirdParty/OpenSource/imgui/imgui_widgets.cpp
+
+            # eastl
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/EAStdC/EAMemory.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/EAStdC/EASprintf.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/allocator_forge.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/assert.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/allocator_forge.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/fixed_pool.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/hashtable.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/intrusive_list.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/numeric_limits.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/red_black_tree.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/string.cpp
+            ${COMMON_DIR}/ThirdParty/OpenSource/EASTL/thread_support.cpp
             )
 target_compile_definitions(os PUBLIC VULKAN)
 target_link_libraries(os shaderc)
@@ -55,11 +74,6 @@ add_library(renderer STATIC
             ${COMMON_DIR}/Renderer/CommonShaderReflection.cpp
             ${COMMON_DIR}/Renderer/GpuProfiler.cpp
             ${COMMON_DIR}/Renderer/ResourceLoader.cpp
-            ${COMMON_DIR}/Tools/Profiler/Profiler.cpp
-            ${COMMON_DIR}/Tools/Profiler/ProfilerBase.cpp
-            ${COMMON_DIR}/Tools/Profiler/ProfilerUI.cpp
-            ${COMMON_DIR}/Tools/Profiler/ProfilerInput.cpp
-            ${COMMON_DIR}/Tools/Profiler/ProfilerVulkan.cpp
 
             # spirv tools
             ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.cpp
@@ -128,7 +142,7 @@ target_compile_definitions(compute PUBLIC VULKAN)
 # ignore these warnings
 # unused private field
 # unused variable
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -Wno-unused-private-field -Wno-unused-variable -Wno-unused-function\
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Werror -Wno-unused-private-field -Wno-unused-variable -Wno-unused-function\
                      -DVK_USE_PLATFORM_ANDROID_KHR")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 

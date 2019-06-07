@@ -2,13 +2,13 @@
 #define ENTT_ENTITY_SNAPSHOT_HPP
 
 
-#include "../../TinySTL/array.h"
+#include "../../EASTL/array.h"
 #include <cstddef>
 #include <utility>
 #include <cassert>
 #include <iterator>
 #include <type_traits>
-#include "../../TinySTL/unordered_map.h"
+#include "../../EASTL/unordered_map.h"
 #include "../config/config.h"
 #include "entt_traits.hpp"
 #include "utility.hpp"
@@ -61,8 +61,8 @@ class Snapshot final {
     }
 
     template<typename... Component, typename Archive, typename It, size_t... Indexes>
-    void component(Archive &archive, It first, It last, std::index_sequence<Indexes...>) const {
-        tinystl::array<size_t, sizeof...(Indexes)> size{};
+    void component(Archive &archive, It first, It last, eastl::index_sequence<Indexes...>) const {
+        eastl::array<size_t, sizeof...(Indexes)> size{};
         auto begin = first;
 
         while(begin != last) {
@@ -151,7 +151,7 @@ public:
 
         archive(static_cast<Entity>(sz));
 
-        for(std::remove_const_t<decltype(sz)> i{}; i < sz; ++i) {
+        for(eastl::remove_const_t<decltype(sz)> i{}; i < sz; ++i) {
             const auto entity = entities[i];
             archive(entity, registry.template get<Component>(entity));
         };
@@ -171,7 +171,7 @@ public:
      * @return An object of this type to continue creating the snapshot.
      */
     template<typename... Component, typename Archive>
-    std::enable_if_t<(sizeof...(Component) > 1), const Snapshot &>
+    eastl::enable_if_t<(sizeof...(Component) > 1), const Snapshot &>
     component(Archive &archive) const {
         using accumulator_type = int[];
         accumulator_type accumulator = { 0, (component<Component>(archive), 0)... };
@@ -195,7 +195,7 @@ public:
      */
     template<typename... Component, typename Archive, typename It>
     const Snapshot & component(Archive &archive, It first, It last) const {
-        component<Component...>(archive, first, last, std::make_index_sequence<sizeof...(Component)>{});
+        component<Component...>(archive, first, last, eastl::make_index_sequence<sizeof...(Component)>{});
         return *this;
     }
 
@@ -236,7 +236,7 @@ public:
      * @return An object of this type to continue creating the snapshot.
      */
     template<typename... Tag, typename Archive>
-    std::enable_if_t<(sizeof...(Tag) > 1), const Snapshot &>
+    eastl::enable_if_t<(sizeof...(Tag) > 1), const Snapshot &>
     tag(Archive &archive) const {
         using accumulator_type = int[];
         accumulator_type accumulator = { 0, (tag<Tag>(archive), 0)... };
@@ -439,7 +439,7 @@ class ContinuousLoader final {
 
         if(it == remloc.cend()) {
             const auto local = registry.create();
-            remloc.emplace(entity, tinystl::make_pair(local, true));
+            remloc.emplace(entity, eastl::make_pair(local, true));
             registry.destroy(local);
         }
     }
@@ -449,7 +449,7 @@ class ContinuousLoader final {
 
         if(it == remloc.cend()) {
             const auto local = registry.create();
-            remloc.emplace(entity, tinystl::make_pair(local, true));
+            remloc.emplace(entity, eastl::make_pair(local, true));
         } else {
             remloc[entity].first =
                     registry.valid(remloc[entity].first)
@@ -462,13 +462,13 @@ class ContinuousLoader final {
     }
 
     template<typename Type, typename Member>
-    std::enable_if_t<std::is_same<Member, Entity>::value>
+    eastl::enable_if_t<eastl::is_same<Member, Entity>::value>
     update(Type &instance, Member Type:: *member) {
         instance.*member = map(instance.*member);
     }
 
     template<typename Type, typename Member>
-    std::enable_if_t<std::is_same<typename std::iterator_traits<typename Member::iterator>::value_type, Entity>::value>
+    eastl::enable_if_t<eastl::is_same<typename eastl::iterator_traits<typename Member::iterator>::value_type, Entity>::value>
     update(Type &instance, Member Type:: *member) {
         for(auto &entity: instance.*member) {
             entity = map(entity);
@@ -476,7 +476,7 @@ class ContinuousLoader final {
     }
 
     template<typename Other, typename Type, typename Member>
-    std::enable_if_t<!std::is_same<Other, Type>::value>
+    eastl::enable_if_t<!eastl::is_same<Other, Type>::value>
     update(Other &, Member Type:: *) {}
 
     template<typename Archive>
@@ -598,7 +598,7 @@ public:
     template<typename... Component, typename Archive, typename... Type, typename... Member>
     ContinuousLoader & component(Archive &archive, Member Type:: *... member) {
         auto apply = [this](const auto entity, const auto &component) {
-            registry.template accommodate<std::decay_t<decltype(component)>>(entity, component);
+            registry.template accommodate<eastl::decay_t<decltype(component)>>(entity, component);
         };
 
         using accumulator_type = int[];
@@ -629,7 +629,7 @@ public:
     template<typename... Tag, typename Archive, typename... Type, typename... Member>
     ContinuousLoader & tag(Archive &archive, Member Type:: *... member) {
         auto apply = [this](const auto entity, const auto &tag) {
-            registry.template assign<std::decay_t<decltype(tag)>>(tag_t{}, entity, tag);
+            registry.template assign<eastl::decay_t<decltype(tag)>>(tag_t{}, entity, tag);
         };
 
         using accumulator_type = int[];
@@ -713,7 +713,7 @@ public:
     }
 
 private:
-    tinystl::unordered_map<Entity, tinystl::pair<Entity, bool>> remloc;
+    eastl::unordered_map<Entity, eastl::pair<Entity, bool>> remloc;
     Registry<Entity> &registry;
 };
 
